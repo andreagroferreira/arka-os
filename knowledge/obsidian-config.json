@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "description": "ARKA OS — Obsidian Vault Configuration",
+    "notes": "ALL department output goes to this Obsidian vault. Conventions match existing vault format."
+  },
+  "vault_path": "/Users/andreagroferreira/Documents/Personal",
+  "paths": {
+    "personas": "Personas",
+    "sources_videos": "Sources/Videos",
+    "sources_articles": "Sources/Articles",
+    "topics": "Topics",
+    "frameworks": "🧠 Knowledge Base/Frameworks",
+    "transcripts": "🧠 Knowledge Base/Raw Transcripts",
+    "projects": "Projects",
+    "wizardingcode": "WizardingCode",
+    "marketing": "WizardingCode/Marketing",
+    "ecommerce": "WizardingCode/Ecommerce",
+    "finance": "WizardingCode/Finance",
+    "operations": "WizardingCode/Operations",
+    "strategy": "WizardingCode/Strategy",
+    "dev_docs": "Projects"
+  },
+  "conventions": {
+    "links": "wikilinks",
+    "link_format": "[[Note Name]]",
+    "tags": "kebab-case",
+    "frontmatter": true,
+    "frontmatter_format": "yaml",
+    "moc_suffix": " MOC",
+    "moc_reference": "*Part of the [[{moc_name} MOC]]*",
+    "date_format": "YYYY-MM-DD"
+  },
+  "templates": {
+    "persona": {
+      "frontmatter": {
+        "type": "persona",
+        "name": "{name}",
+        "expertise": [],
+        "date_updated": "{date}",
+        "tags": ["persona"]
+      }
+    },
+    "source_video": {
+      "frontmatter": {
+        "type": "source",
+        "source_type": "video",
+        "title": "{title}",
+        "url": "{url}",
+        "persona": "[[{persona}]]",
+        "date_processed": "{date}",
+        "tags": ["source", "video"]
+      }
+    },
+    "source_article": {
+      "frontmatter": {
+        "type": "source",
+        "source_type": "article",
+        "title": "{title}",
+        "url": "{url}",
+        "date_processed": "{date}",
+        "tags": ["source", "article"]
+      }
+    },
+    "topic": {
+      "frontmatter": {
+        "type": "topic",
+        "name": "{name}",
+        "related_personas": [],
+        "date_updated": "{date}",
+        "tags": ["topic"]
+      }
+    },
+    "project": {
+      "frontmatter": {
+        "type": "project",
+        "name": "{name}",
+        "client": "{client}",
+        "stack": [],
+        "status": "active",
+        "date_created": "{date}",
+        "tags": ["project"]
+      }
+    },
+    "report": {
+      "frontmatter": {
+        "type": "report",
+        "department": "{department}",
+        "title": "{title}",
+        "date_created": "{date}",
+        "tags": ["report", "{department}"]
+      }
+    }
+  },
+  "moc_pages": {
+    "personas": "Personas MOC",
+    "topics": "Topics MOC",
+    "projects": "Projects MOC",
+    "sources": "Sources MOC",
+    "wizardingcode": "WizardingCode MOC"
+  }
+}

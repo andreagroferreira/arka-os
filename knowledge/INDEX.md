@@ -1,17 +1,34 @@
-# ARKA OS — Knowledge Base Index
+# Knowledge Base — Powered by Obsidian
 
-> Last updated: 2026-03-14
+> All knowledge lives in the Obsidian vault. Use `/kb` commands or open Obsidian directly.
 
-## Personas
+## Vault Location
 
-_No personas yet. Use `/kb learn <youtube-url> --persona "Name"` to add._
+`/Users/andreagroferreira/Documents/Personal/`
 
-## Topics
+## Structure
 
-_No topics yet. Topics are auto-generated when content is analyzed._
+| Content | Vault Path |
+|---------|-----------|
+| Personas | `Personas/<Name>.md` |
+| Video Sources | `Sources/Videos/<date> <title>.md` |
+| Article Sources | `Sources/Articles/<date> <title>.md` |
+| Topics | `Topics/<Topic Name>.md` |
+| Frameworks | `🧠 Knowledge Base/Frameworks/<name>.md` |
+| Raw Transcripts | `🧠 Knowledge Base/Raw Transcripts/<name>.txt` |
 
-## Stats
+## Commands
 
-- Personas: 0
-- Topics: 0
-- Sources processed: 0
+| Command | Description |
+|---------|-------------|
+| `/kb learn <url> --persona "Name"` | Learn from YouTube video |
+| `/kb learn-text <file/url> --persona "Name"` | Learn from text content |
+| `/kb persona <name>` | View persona profile |
+| `/kb personas` | List all personas |
+| `/kb search <query>` | Search knowledge base |
+| `/kb write --persona "Name" --type <type>` | Generate content in persona's style |
+| `/kb topics` | List all topics |
+
+## Configuration
+
+See `knowledge/obsidian-config.json` for full vault path mappings and conventions.

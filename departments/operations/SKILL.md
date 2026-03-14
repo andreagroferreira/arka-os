@@ -25,6 +25,34 @@ Company operations, automations, and routine process management.
 | `/ops onboard-client <name>` | New client onboarding checklist |
 | `/ops standup` | Daily standup summary |
 
+## Obsidian Output
+
+All operations output goes to the Obsidian vault at `/Users/andreagroferreira/Documents/Personal/`:
+
+| Content Type | Vault Path |
+|-------------|-----------|
+| Process docs | `WizardingCode/Operations/Processes/<name>.md` |
+| Automation specs | `WizardingCode/Operations/Automations/<name>.md` |
+| Client onboarding | `WizardingCode/Operations/Clients/<name>/Onboarding.md` |
+| Meeting notes | `WizardingCode/Operations/Meetings/<date> <topic>.md` |
+| Operational reports | `WizardingCode/Operations/Reports/<date> <type>.md` |
+
+**Obsidian format:**
+```markdown
+---
+type: report
+department: operations
+title: "<title>"
+date_created: <YYYY-MM-DD>
+tags:
+  - "report"
+  - "operations"
+  - "<specific-tag>"
+---
+```
+
+All files use wikilinks `[[]]` for cross-references and kebab-case tags.
+
 ## MCP Integrations
 
 | MCP | Used For |
@@ -34,3 +62,6 @@ Company operations, automations, and routine process management.
 | Google Calendar | Scheduling, meetings, deadlines |
 | InvoiceExpress | Invoicing and billing |
 | Google Drive | Document management |
+
+---
+*All output: `WizardingCode/Operations/` — Part of the [[WizardingCode MOC]]*

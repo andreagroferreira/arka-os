@@ -28,10 +28,39 @@ Content creation, social media management, affiliate marketing, and advertising.
 | `/mkt brand <url>` | Brand voice analysis and guidelines |
 | `/mkt audit <url>` | Full marketing audit (5 parallel agents) |
 
+## Obsidian Output
+
+All marketing output goes to the Obsidian vault at `/Users/andreagroferreira/Documents/Personal/`:
+
+| Content Type | Vault Path |
+|-------------|-----------|
+| Social calendars | `WizardingCode/Marketing/Calendars/<date> <title>.md` |
+| Campaign plans | `WizardingCode/Marketing/Campaigns/<name>.md` |
+| Audit reports | `WizardingCode/Marketing/Audits/<date> <target>.md` |
+| Brand guidelines | `WizardingCode/Marketing/Brand/<name>.md` |
+| Ad copy | `WizardingCode/Marketing/Ads/<date> <product>.md` |
+| Blog drafts | `WizardingCode/Marketing/Blog/<title>.md` |
+
+**Obsidian format:**
+```markdown
+---
+type: report
+department: marketing
+title: "<title>"
+date_created: <YYYY-MM-DD>
+tags:
+  - "report"
+  - "marketing"
+  - "<specific-tag>"
+---
+```
+
+All files use wikilinks `[[]]` for cross-references and kebab-case tags.
+
 ## Knowledge Base Integration
 
 When generating content, ALWAYS check:
-1. Does a relevant persona exist in `knowledge/personas/`?
+1. Does a relevant persona exist in `Personas/` in the Obsidian vault?
 2. If yes, use their frameworks and style as reference
 3. If `--persona "Name"` is specified, adopt that persona's voice completely
 
@@ -53,6 +82,9 @@ Example:
 ## Content Personas
 
 Available personas for content creation:
-- Check `knowledge/personas/` for learned personas
+- Check `Personas/` in the Obsidian vault for learned personas
 - Each persona brings frameworks, voice, and strategies
 - Can blend multiple personas for unique content
+
+---
+*All output: `WizardingCode/Marketing/` — Part of the [[WizardingCode MOC]]*

@@ -24,6 +24,34 @@ Store management, product optimization, and e-commerce growth.
 | `/ecom email <type>` | E-commerce email flows (cart, post-purchase, win-back) |
 | `/ecom report <store>` | Store performance report |
 
+## Obsidian Output
+
+All e-commerce output goes to the Obsidian vault at `/Users/andreagroferreira/Documents/Personal/`:
+
+| Content Type | Vault Path |
+|-------------|-----------|
+| Store audits | `WizardingCode/Ecommerce/Audits/<date> <store>.md` |
+| Product analyses | `WizardingCode/Ecommerce/Products/<name>.md` |
+| Competitor research | `WizardingCode/Ecommerce/Competitors/<date> <name>.md` |
+| Launch plans | `WizardingCode/Ecommerce/Launches/<store>.md` |
+| Performance reports | `WizardingCode/Ecommerce/Reports/<date> <store>.md` |
+
+**Obsidian format:**
+```markdown
+---
+type: report
+department: ecommerce
+title: "<title>"
+date_created: <YYYY-MM-DD>
+tags:
+  - "report"
+  - "ecommerce"
+  - "<specific-tag>"
+---
+```
+
+All files use wikilinks `[[]]` for cross-references and kebab-case tags.
+
 ## MCP Integration
 
 Uses Shopify MCP when available for:
@@ -32,3 +60,6 @@ Uses Shopify MCP when available for:
 - Customer management (get-customers, tag-customer)
 - Discount creation (create-discount)
 - Store info (get-shop-details)
+
+---
+*All output: `WizardingCode/Ecommerce/` — Part of the [[WizardingCode MOC]]*

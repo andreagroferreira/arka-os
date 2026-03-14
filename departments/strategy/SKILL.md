@@ -25,6 +25,36 @@ Strategic planning, market analysis, and idea evaluation.
 | `/strat roadmap <project>` | Strategic roadmap creation |
 | `/strat trends <industry>` | Industry trend analysis |
 
+## Obsidian Output
+
+All strategy output goes to the Obsidian vault at `/Users/andreagroferreira/Documents/Personal/`:
+
+| Content Type | Vault Path |
+|-------------|-----------|
+| Brainstorm sessions | `WizardingCode/Strategy/Brainstorms/<date> <topic>.md` |
+| Market analyses | `WizardingCode/Strategy/Market/<date> <sector>.md` |
+| Competitor research | `WizardingCode/Strategy/Competitors/<date> <name>.md` |
+| SWOT analyses | `WizardingCode/Strategy/SWOT/<date> <business>.md` |
+| Roadmaps | `WizardingCode/Strategy/Roadmaps/<project>.md` |
+| Trend reports | `WizardingCode/Strategy/Trends/<date> <industry>.md` |
+| Idea evaluations | `WizardingCode/Strategy/Ideas/<date> <idea>.md` |
+
+**Obsidian format:**
+```markdown
+---
+type: report
+department: strategy
+title: "<title>"
+date_created: <YYYY-MM-DD>
+tags:
+  - "report"
+  - "strategy"
+  - "<specific-tag>"
+---
+```
+
+All files use wikilinks `[[]]` for cross-references and kebab-case tags.
+
 ## Brainstorming Mode
 
 `/strat brainstorm` launches multiple personas simultaneously:
@@ -36,3 +66,8 @@ Strategic planning, market analysis, and idea evaluation.
 5. **Analyst** — "What do the numbers say? What's the market size?"
 
 Each persona responds, then a synthesis combines the best insights.
+
+The brainstorm output is saved to Obsidian with all perspectives documented.
+
+---
+*All output: `WizardingCode/Strategy/` — Part of the [[WizardingCode MOC]]*

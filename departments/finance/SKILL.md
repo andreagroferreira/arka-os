@@ -26,6 +26,35 @@ Financial planning, investment analysis, and business advisory.
 | `/fin invoice <client>` | Generate invoice (via InvoiceExpress MCP) |
 | `/fin cashflow` | Cash flow analysis and projections |
 
+## Obsidian Output
+
+All finance output goes to the Obsidian vault at `/Users/andreagroferreira/Documents/Personal/`:
+
+| Content Type | Vault Path |
+|-------------|-----------|
+| Financial reports | `WizardingCode/Finance/Reports/<date> <title>.md` |
+| Forecasts | `WizardingCode/Finance/Forecasts/<date> <period>.md` |
+| Budgets | `WizardingCode/Finance/Budgets/<project>.md` |
+| Investment analyses | `WizardingCode/Finance/Investments/<date> <asset>.md` |
+| Pitch materials | `WizardingCode/Finance/Pitches/<investor>.md` |
+| Negotiation prep | `WizardingCode/Finance/Negotiations/<date> <context>.md` |
+
+**Obsidian format:**
+```markdown
+---
+type: report
+department: finance
+title: "<title>"
+date_created: <YYYY-MM-DD>
+tags:
+  - "report"
+  - "finance"
+  - "<specific-tag>"
+---
+```
+
+All files use wikilinks `[[]]` for cross-references and kebab-case tags.
+
 ## Important Disclaimer
 
 ARKA OS provides financial ANALYSIS and PREPARATION, not financial advice.
@@ -34,7 +63,7 @@ Analysis is based on publicly available data and may not reflect real-time condi
 
 ## Personas Involved
 
-- **CFO** — Financial strategy, cash flow, budgeting
+- **CFO (Helena)** — Financial strategy, cash flow, budgeting
 - **Investment Analyst** — Market research, opportunity analysis
 - **Negotiation Coach** — Bank/investor meeting preparation
 
@@ -42,3 +71,6 @@ Analysis is based on publicly available data and may not reflect real-time condi
 
 - **InvoiceExpress** — Invoice generation and management
 - **Google Sheets** — Financial models and tracking (if configured)
+
+---
+*All output: `WizardingCode/Finance/` — Part of the [[WizardingCode MOC]]*

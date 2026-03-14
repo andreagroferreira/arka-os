@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "description": "ARKA OS — Laravel Mandatory Packages",
+    "notes": "Boost MUST be installed first to enable laravel-boost MCP. Order matters."
+  },
+  "mandatory": [
+    {
+      "package": "laravel/boost",
+      "order": 1,
+      "post_install": "php artisan boost:install",
+      "notes": "AI-powered development tools. MUST be first — enables laravel-boost MCP."
+    },
+    {
+      "package": "laravel/horizon",
+      "order": 2,
+      "post_install": "php artisan horizon:install",
+      "notes": "Queue monitoring dashboard."
+    },
+    {
+      "package": "echolabs/prism",
+      "order": 3,
+      "post_install": null,
+      "notes": "AI SDK — multi-provider LLM integration for Laravel."
+    },
+    {
+      "package": "php-mcp/laravel",
+      "order": 4,
+      "post_install": "php artisan vendor:publish --provider=\"PhpMcp\\Laravel\\McpServiceProvider\"",
+      "notes": "MCP server implementation for Laravel apps."
+    }
+  ],
+  "recommended": [
+    {
+      "package": "laravel/pulse",
+      "post_install": "php artisan vendor:publish --provider=\"Laravel\\Pulse\\PulseServiceProvider\"",
+      "notes": "Application performance monitoring."
+    },
+    {
+      "package": "laravel/telescope",
+      "post_install": "php artisan telescope:install",
+      "notes": "Debug assistant (dev only)."
+    }
+  ],
+  "localhost": {
+    "tool": "herd",
+    "command": "herd link",
+    "notes": "Always use Laravel Herd for local development."
+  }
+}

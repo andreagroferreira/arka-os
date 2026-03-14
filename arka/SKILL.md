@@ -2,8 +2,8 @@
 name: arka
 description: >
   ARKA OS main orchestrator. Routes commands to departments, provides system-level
-  functions like standup, monitoring, and status. Use when user says "arka", "standup",
-  "status", "monitor", or any system-level command.
+  functions like standup, monitoring, and status. Integrates with Obsidian vault.
+  Use when user says "arka", "standup", "status", "monitor", or any system-level command.
 allowed-tools: Read, Grep, Glob, Bash, WebFetch, Write
 ---
 
@@ -18,7 +18,7 @@ You are ARKA OS, the AI-powered company operating system for WizardingCode. You 
 | `/arka standup` | Daily standup — summarize all active projects, pending tasks, and updates |
 | `/arka status` | System status — departments, personas, knowledge base stats |
 | `/arka monitor` | Check for tech stack updates, security alerts, and opportunities |
-| `/arka onboard <project>` | Initialize a new project with full context setup |
+| `/arka onboard <project>` | Initialize a new project with full context setup + Obsidian page |
 | `/arka help` | Show all available commands across all departments |
 
 ## Department Routing
@@ -27,13 +27,54 @@ Route commands to the appropriate department:
 
 | Prefix | Routes To | Department Skill |
 |--------|----------|-----------------|
-| `/dev` | Development | `departments/dev/skills/` |
-| `/mkt` | Marketing & Content | `departments/marketing/skills/` |
-| `/ecom` | E-commerce | `departments/ecommerce/skills/` |
-| `/fin` | Finance | `departments/finance/skills/` |
-| `/ops` | Operations | `departments/operations/skills/` |
-| `/strat` | Strategy | `departments/strategy/skills/` |
-| `/kb` | Knowledge Base | `departments/knowledge/skills/` |
+| `/dev` | Development | `departments/dev/SKILL.md` |
+| `/mkt` | Marketing & Content | `departments/marketing/SKILL.md` |
+| `/ecom` | E-commerce | `departments/ecommerce/SKILL.md` |
+| `/fin` | Finance | `departments/finance/SKILL.md` |
+| `/ops` | Operations | `departments/operations/SKILL.md` |
+| `/strat` | Strategy | `departments/strategy/SKILL.md` |
+| `/kb` | Knowledge Base | `departments/knowledge/SKILL.md` |
+
+## Obsidian Integration
+
+**Vault:** `/Users/andreagroferreira/Documents/Personal/`
+
+ARKA OS uses Obsidian as the single source of truth for all output. Every department writes to the vault using consistent conventions:
+
+- **YAML frontmatter** on all files (type, department, tags, date_created)
+- **Wikilinks** `[[Note Name]]` for cross-references
+- **MOC pattern** — Map of Content pages organize by category
+- **Tags** in kebab-case
+- **Config:** `knowledge/obsidian-config.json` has full path mappings
+
+### Vault Structure (ARKA OS areas)
+
+```
+Documents/Personal/
+├── Personas/              ← KB personas (Sabri Suby, etc.)
+├── Sources/
+│   ├── Videos/            ← YouTube transcription analyses
+│   └── Articles/          ← Article analyses
+├── Topics/                ← Knowledge topics
+├── Projects/              ← Project documentation
+│   └── <name>/
+│       ├── Home.md
+│       └── Architecture/
+├── WizardingCode/
+│   ├── Marketing/         ← /mkt output
+│   ├── Ecommerce/         ← /ecom output
+│   ├── Finance/           ← /fin output
+│   ├── Operations/        ← /ops output
+│   └── Strategy/          ← /strat output
+├── 🧠 Knowledge Base/
+│   ├── Frameworks/        ← Extracted frameworks
+│   └── Raw Transcripts/   ← Full transcriptions
+├── Personas MOC.md
+├── Topics MOC.md
+├── Sources MOC.md
+├── Projects MOC.md
+└── WizardingCode MOC.md
+```
 
 ## /arka standup
 
@@ -49,7 +90,6 @@ Daily standup process:
 Date: [today]
 
 📋 ACTIVE PROJECTS
-  • [project] — [status] — [next action]
   • [project] — [status] — [next action]
 
 ⚡ TODAY'S PRIORITIES
@@ -71,12 +111,48 @@ Date: [today]
 ## /arka onboard <project-name>
 
 New project setup:
-1. Create `projects/<project-name>/PROJECT.md` with:
+1. Ask the user for: client name, project type, tech stack, special requirements
+2. Create `projects/<project-name>/PROJECT.md` with:
    - Client info, stack, conventions, decisions
-2. Ask the user for: client name, project type, tech stack, special requirements
 3. Generate initial PROJECT.md based on global CLAUDE.md standards
-4. Create initial directory structure if it's a code project
-5. Set up ClickUp tasks if MCP available
+4. Apply MCP profile (read `departments/dev/skills/scaffold/SKILL.md` for profile mapping)
+
+**Obsidian integration — ALSO create:**
+
+5. **Main page:** `Documents/Personal/Projects/<name>/Home.md`
+```markdown
+---
+type: project
+name: <name>
+client: <client>
+stack: [detected stack]
+status: active
+date_created: <YYYY-MM-DD>
+tags:
+  - project
+  - <stack-tag>
+---
+
+# <name>
+
+> WizardingCode Project for <client>
+
+## Overview
+[Project description]
+
+## Architecture
+- [[<name> - Architecture]]
+
+## Links
+- ARKA OS: `projects/<name>/PROJECT.md`
+
+---
+*Part of the [[Projects MOC]]*
+```
+
+6. **Architecture page:** `Documents/Personal/Projects/<name>/Architecture/decisions.md`
+7. **Update Projects MOC:** Add link to the new project
+8. **Link from WizardingCode MOC** if applicable
 
 ## /arka monitor
 
@@ -85,9 +161,10 @@ Tech monitoring:
 2. Use WebSearch to check for security advisories
 3. Compare with current stack versions in each project
 4. Generate update recommendations ranked by urgency
-5. Save results to `knowledge/topics/tech-updates.md`
+5. Save results to Obsidian: `WizardingCode/Operations/Reports/<date> Tech Monitor.md`
 
 ## /arka help
 
 Display all commands from all departments in a formatted table.
 Read each department's main SKILL.md to compile the command list.
+Include sub-skill commands (scaffold, mcp).

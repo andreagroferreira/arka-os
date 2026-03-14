@@ -1,0 +1,110 @@
+{
+  "_meta": {
+    "description": "ARKA OS — Central MCP Registry",
+    "format": "Claude Code .mcp.json compatible",
+    "updated": "2026-03-14"
+  },
+  "mcpServers": {
+    "obsidian": {
+      "command": "npx",
+      "args": ["@bitbonsai/mcpvault@latest", "/Users/andreagroferreira/Documents/Personal"],
+      "category": "base",
+      "description": "Obsidian vault integration — read/write notes, personas, knowledge",
+      "required_env": []
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "category": "base",
+      "description": "Up-to-date library and framework documentation",
+      "required_env": []
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "category": "base",
+      "description": "Browser automation and testing",
+      "required_env": []
+    },
+    "memory-bank": {
+      "command": "npx",
+      "args": ["-y", "@allpepper/memory-bank-mcp"],
+      "env": {
+        "MEMORY_BANK_ROOT": "/Users/andreagroferreira/memory-bank"
+      },
+      "category": "base",
+      "description": "Persistent memory across sessions",
+      "required_env": ["MEMORY_BANK_ROOT"]
+    },
+    "clickup": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.clickup.com/mcp"],
+      "env": {
+        "CLICKUP_API_KEY": "${CLICKUP_API_KEY}",
+        "CLICKUP_TEAM_ID": "${CLICKUP_TEAM_ID}"
+      },
+      "category": "base",
+      "description": "Task management and project tracking",
+      "required_env": ["CLICKUP_API_KEY", "CLICKUP_TEAM_ID"]
+    },
+    "firecrawl": {
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+      },
+      "category": "base",
+      "description": "Web crawling and scraping",
+      "required_env": ["FIRECRAWL_API_KEY"]
+    },
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp",
+      "category": "base",
+      "description": "Error tracking and performance monitoring",
+      "required_env": []
+    },
+    "gh-grep": {
+      "type": "http",
+      "url": "https://mcp.grep.app",
+      "category": "base",
+      "description": "Search across GitHub repositories",
+      "required_env": []
+    },
+    "laravel-boost": {
+      "command": "php",
+      "args": ["artisan", "boost:mcp"],
+      "category": "laravel",
+      "description": "Laravel Boost — AI-powered Laravel development tools",
+      "required_env": []
+    },
+    "serena": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "ide-assistant", "--project", "{cwd}"],
+      "category": "laravel",
+      "description": "Code intelligence — type-aware code analysis and refactoring",
+      "required_env": []
+    },
+    "nuxt-ui": {
+      "type": "http",
+      "url": "https://ui.nuxt.com/mcp",
+      "category": "nuxt",
+      "description": "Nuxt UI component library documentation and examples",
+      "required_env": []
+    },
+    "nuxt": {
+      "type": "http",
+      "url": "https://nuxt.com/mcp",
+      "category": "nuxt",
+      "description": "Nuxt framework documentation and best practices",
+      "required_env": []
+    },
+    "mirakl": {
+      "type": "http",
+      "url": "https://developer.mirakl.com/mcp",
+      "category": "ecommerce",
+      "description": "Mirakl marketplace API integration",
+      "required_env": []
+    }
+  }
+}

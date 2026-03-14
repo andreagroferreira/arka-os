@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "name": "base",
+    "description": "Base MCP profile — included in ALL projects",
+    "extends": null
+  },
+  "mcps": [
+    "obsidian",
+    "context7",
+    "playwright",
+    "memory-bank",
+    "sentry",
+    "gh-grep",
+    "clickup"
+  ]
+}
