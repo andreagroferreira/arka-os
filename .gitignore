@@ -1,0 +1,45 @@
+# Generated reports and outputs
+*.pdf
+*-AUDIT.md
+*-REPORT.md
+audit-data*.json
+
+# Knowledge base sources (large transcription files)
+knowledge/sources/**/*.wav
+knowledge/sources/**/*.mp3
+knowledge/sources/**/*.mp4
+
+# Temporary files
+/tmp/
+*.tmp
+*.tmp.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node
+node_modules/
+
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+*.secret
+*.token
+credentials.*
