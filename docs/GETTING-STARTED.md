@@ -311,4 +311,5 @@ sudo apt install jq
 | Learn about each department | [Departments Guide](DEPARTMENTS.md) |
 | Connect external services | [Integrations Guide](INTEGRATIONS.md) |
 | Install community skills | [External Skills Guide](EXTERNAL-SKILLS.md) |
+| Build a feature (isolated branch) | Run `/dev feature "description"` |
 | Create a new project | Run `/dev scaffold` and choose a type |

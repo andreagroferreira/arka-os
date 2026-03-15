@@ -64,13 +64,22 @@ Build software. Your development team: Marco (CTO), Andre (Senior Developer), Ri
 
 ### Development Workflow
 
-| Command | What It Does | Example |
-|---------|-------------|---------|
-| `/dev feature <description>` | Implement a new feature | `/dev feature "add user registration"` |
-| `/dev review` | Get a code review from the CTO | `/dev review` |
-| `/dev test` | Run tests and get a quality report | `/dev test` |
-| `/dev deploy <environment>` | Deploy to staging or production | `/dev deploy staging` |
-| `/dev db migrate` | Run database migrations | `/dev db migrate` |
+Commands that modify code (`feature`, `api`, `debug`, `refactor`, `db`) automatically run inside a **git worktree** — an isolated branch and working directory. This keeps your main branch clean. After the work is done, you can review, create a PR, or merge.
+
+| Command | What It Does | Worktree? | Example |
+|---------|-------------|:---------:|---------|
+| `/dev feature <description>` | Implement a new feature | Yes | `/dev feature "add user registration"` |
+| `/dev api <spec>` | Generate API endpoints + tests + docs | Yes | `/dev api "payments endpoints"` |
+| `/dev debug <issue>` | Diagnose and fix a bug | Yes | `/dev debug "login returns 500"` |
+| `/dev refactor <target>` | Refactor code with quality gates | Yes | `/dev refactor "controllers"` |
+| `/dev db <description>` | Database schema + migrations | Yes | `/dev db "add user roles table"` |
+| `/dev review` | Get a code review from the CTO | No | `/dev review` |
+| `/dev test` | Run tests and get a quality report | No | `/dev test` |
+| `/dev deploy <environment>` | Deploy to staging or production | No | `/dev deploy staging` |
+| `/dev docs` | Generate technical documentation | No | `/dev docs` |
+| `/dev stack-check` | Check for dependency updates | No | `/dev stack-check` |
+
+**Branch naming:** Features and APIs use `feature/`, bug fixes use `fix/`, refactors use `refactor/`.
 
 ### Integration Management
 

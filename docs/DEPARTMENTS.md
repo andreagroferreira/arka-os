@@ -66,12 +66,28 @@ Carlos automates everything. Docker, CI/CD pipelines, cloud deployments, SSL cer
 |---------|-------------|
 | `/dev scaffold <type> <name>` | Create a complete project from a starter template with dependencies installed and integrations configured |
 | `/dev feature <description>` | Implement a new feature following your project's patterns and conventions |
+| `/dev api <spec>` | Generate API endpoints with controllers, validation, resources, routes, and tests |
+| `/dev debug <issue>` | Diagnose and fix a bug with a regression test |
+| `/dev refactor <target>` | Refactor code with quality gates — tests must pass before and after |
 | `/dev review` | Get Marco to review your code for security issues, performance problems, and convention violations |
 | `/dev test` | Run your test suite and get a report from Rita |
 | `/dev deploy <environment>` | Deploy to staging or production |
-| `/dev db migrate` | Run database migrations |
+| `/dev db <description>` | Create database migrations and update models |
+| `/dev docs` | Generate technical documentation |
+| `/dev stack-check` | Check for dependency updates |
 | `/dev mcp apply <profile>` | Configure integrations for a project |
 | `/dev skill install <url>` | Install a community skill |
+
+### Worktree Isolation (Automatic)
+
+Commands that modify code — `/dev feature`, `/dev api`, `/dev debug`, `/dev refactor`, `/dev db` — automatically run inside a **git worktree**. This means:
+
+- A new branch is created (e.g., `feature/user-auth`, `fix/login-crash`, `refactor/controllers`)
+- All code changes happen in an isolated working directory
+- Your main branch stays clean and untouched
+- After the work is done, you can review it, create a PR, or merge
+
+You don't need to do anything — the worktree is created automatically when you run the command.
 
 ### Real-World Examples
 
@@ -81,11 +97,17 @@ Carlos automates everything. Docker, CI/CD pipelines, cloud deployments, SSL cer
 ```
 Creates a fully configured Laravel project with all required packages installed, integrations configured, and an Obsidian project page ready.
 
-**Build a feature:**
+**Build a feature (runs in isolated worktree):**
 ```
 /dev feature "add user registration with email verification"
 ```
-Andre reads your project context, checks existing patterns, then implements registration following your conventions.
+A new `feature/user-registration` branch is created automatically. Andre reads your project context, checks existing patterns, then implements registration following your conventions. When done, you can review the branch and create a PR.
+
+**Fix a bug (runs in isolated worktree):**
+```
+/dev debug "login returns 500 error"
+```
+A new `fix/login-500-error` branch is created. Andre diagnoses the root cause, fixes the issue, and writes a regression test.
 
 **Get a code review:**
 ```
