@@ -11,6 +11,8 @@
     "memory-bank",
     "sentry",
     "gh-grep",
-    "clickup"
+    "clickup",
+    "firecrawl",
+    "supabase"
   ]
 }

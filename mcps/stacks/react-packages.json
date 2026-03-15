@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "description": "ARKA OS — React/Next.js Recommended Packages",
+    "notes": "Recommended packages for React and Next.js projects. No mandatory install order."
+  },
+  "recommended": [
+    {
+      "package": "tailwindcss",
+      "notes": "Utility-first CSS framework."
+    },
+    {
+      "package": "@shadcn/ui",
+      "notes": "Accessible, composable React component library."
+    },
+    {
+      "package": "zustand",
+      "notes": "Lightweight state management."
+    },
+    {
+      "package": "@tanstack/react-query",
+      "notes": "Server state management and caching."
+    },
+    {
+      "package": "zod",
+      "notes": "TypeScript-first schema validation."
+    },
+    {
+      "package": "react-hook-form",
+      "notes": "Performant form management."
+    },
+    {
+      "package": "next-auth",
+      "notes": "Authentication for Next.js (Next.js only)."
+    },
+    {
+      "package": "@supabase/supabase-js",
+      "notes": "Supabase client for database and auth."
+    }
+  ],
+  "dev": [
+    {
+      "package": "prettier",
+      "notes": "Code formatter."
+    },
+    {
+      "package": "eslint",
+      "notes": "Linting."
+    },
+    {
+      "package": "@testing-library/react",
+      "notes": "React component testing."
+    },
+    {
+      "package": "vitest",
+      "notes": "Fast unit testing."
+    }
+  ]
+}

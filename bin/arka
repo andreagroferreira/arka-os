@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# ============================================================================
+# ARKA OS — CLI Wrapper
+# Usage: arka [command] [args...]
+# ============================================================================
+set -e
+
+command -v claude &>/dev/null || { echo "Error: Claude Code CLI not found."; exit 1; }
+
+ARKA_OS="${ARKA_OS:-$HOME/.claude/skills/arka}"
+[ -d "$ARKA_OS" ] || { echo "Error: ARKA OS not installed. Run: bash install.sh"; exit 1; }
+
+# Run version check (silent on errors)
+bash "$ARKA_OS/version-check.sh" 2>/dev/null || true
+
+case "${1:-}" in
+  skill)
+    shift
+    bash "$HOME/.local/bin/arka-skill" "$@"
+    exit $?
+    ;;
+  update)
+    cd "$(cat "$ARKA_OS/.repo-path")" && git pull && bash install.sh
+    exit $?
+    ;;
+  --version|-v)
+    cat "$ARKA_OS/VERSION"
+    exit 0
+    ;;
+  *)
+    if [ $# -gt 0 ]; then
+      claude "$*"
+    else
+      claude
+    fi
+    ;;
+esac

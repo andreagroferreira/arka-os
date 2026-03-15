@@ -1,0 +1,10 @@
+{
+  "name": "{{SKILL_NAME}}",
+  "version": "1.0.0",
+  "description": "Description of {{SKILL_NAME}} skill",
+  "author": "your-name",
+  "requires_arka_version": ">=0.2.0",
+  "commands": [
+    "/dev {{SKILL_NAME}} <action>"
+  ]
+}

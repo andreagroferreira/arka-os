@@ -2,7 +2,7 @@
   "_meta": {
     "description": "ARKA OS — Central MCP Registry",
     "format": "Claude Code .mcp.json compatible",
-    "updated": "2026-03-14"
+    "updated": "2026-03-15"
   },
   "mcpServers": {
     "obsidian": {
@@ -105,6 +105,80 @@
       "category": "ecommerce",
       "description": "Mirakl marketplace API integration",
       "required_env": []
+    },
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"],
+      "category": "react",
+      "description": "Next.js DevTools — debugging and development assistance",
+      "required_env": []
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp",
+      "category": "base",
+      "description": "Supabase database management and APIs",
+      "required_env": []
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "mcp-postgres-server"],
+      "env": {
+        "PG_HOST": "${PG_HOST}",
+        "PG_PORT": "${PG_PORT}",
+        "PG_USER": "${PG_USER}",
+        "PG_PASSWORD": "${PG_PASSWORD}",
+        "PG_DATABASE": "${PG_DATABASE}"
+      },
+      "category": "base",
+      "description": "PostgreSQL direct database access",
+      "required_env": ["PG_HOST", "PG_PORT", "PG_USER", "PG_PASSWORD", "PG_DATABASE"]
+    },
+    "shopify-dev": {
+      "command": "npx",
+      "args": ["-y", "@shopify/dev-mcp@latest"],
+      "category": "ecommerce",
+      "description": "Shopify development tools and API access",
+      "required_env": []
+    },
+    "slack": {
+      "type": "http",
+      "url": "https://mcp.slack.com/mcp",
+      "category": "comms",
+      "description": "Slack messaging integration (OAuth)",
+      "required_env": []
+    },
+    "discord": {
+      "command": "npx",
+      "args": ["-y", "discord-mcp"],
+      "env": {
+        "DISCORD_TOKEN": "${DISCORD_TOKEN}"
+      },
+      "category": "comms",
+      "description": "Discord bot and messaging integration",
+      "required_env": ["DISCORD_TOKEN"]
+    },
+    "whatsapp": {
+      "command": "npx",
+      "args": ["-y", "whatsapp-mcp"],
+      "env": {
+        "WHATSAPP_API_TOKEN": "${WHATSAPP_API_TOKEN}",
+        "WHATSAPP_PHONE_ID": "${WHATSAPP_PHONE_ID}"
+      },
+      "category": "comms",
+      "description": "WhatsApp Business API messaging",
+      "required_env": ["WHATSAPP_API_TOKEN", "WHATSAPP_PHONE_ID"]
+    },
+    "teams": {
+      "command": "npx",
+      "args": ["-y", "teams-mcp"],
+      "env": {
+        "TEAMS_APP_ID": "${TEAMS_APP_ID}",
+        "TEAMS_APP_SECRET": "${TEAMS_APP_SECRET}"
+      },
+      "category": "comms",
+      "description": "Microsoft Teams messaging integration",
+      "required_env": ["TEAMS_APP_ID", "TEAMS_APP_SECRET"]
     }
   }
 }

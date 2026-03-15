@@ -1,0 +1,300 @@
+#!/usr/bin/env bash
+# ============================================================================
+# ARKA OS — External Skill Manager
+# Install, list, remove, and update external skills.
+# ============================================================================
+set -e
+
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+ARKA_OS="${ARKA_OS:-$HOME/.claude/skills/arka}"
+EXT_DIR="$HOME/.arka-os/ext-skills"
+EXT_REGISTRY="$HOME/.arka-os/ext-registry.json"
+SKILLS_DIR="$HOME/.claude/skills"
+AGENTS_DIR="$HOME/.claude/agents"
+
+mkdir -p "$EXT_DIR" "$SKILLS_DIR" "$AGENTS_DIR"
+
+# Ensure ext-registry exists
+if [ ! -f "$EXT_REGISTRY" ]; then
+    echo '{"_meta":{"format_version":1},"skills":{}}' | jq '.' > "$EXT_REGISTRY"
+fi
+
+usage() {
+    echo -e "${CYAN}ARKA OS — External Skill Manager${NC}"
+    echo ""
+    echo "Usage: arka skill <command> [args]"
+    echo ""
+    echo "Commands:"
+    echo "  install <github-url>   Install an external skill"
+    echo "  list                   List installed external skills"
+    echo "  remove <name>          Remove an external skill"
+    echo "  update <name>          Update an external skill"
+    echo "  create <name>          Scaffold a new skill from template"
+    echo ""
+}
+
+# Version comparison (semver >=)
+version_gte() {
+    # $1 = current version, $2 = required version (e.g., ">=0.2.0")
+    local required="${2#>=}"
+    [ "$(printf '%s\n' "$required" "$1" | sort -V | head -1)" = "$required" ]
+}
+
+cmd_install() {
+    local url="$1"
+    if [ -z "$url" ]; then
+        echo -e "${RED}Error: GitHub URL required.${NC}"
+        echo "Usage: arka skill install <github-url>"
+        exit 1
+    fi
+
+    # Derive name from URL
+    local name
+    name=$(basename "$url" .git)
+
+    echo -e "${CYAN}Installing external skill: ${name}${NC}"
+    echo ""
+
+    # Step 1: Clone
+    local clone_dir="$EXT_DIR/$name"
+    if [ -d "$clone_dir" ]; then
+        echo -e "${YELLOW}Skill already installed. Use 'arka skill update $name' instead.${NC}"
+        exit 1
+    fi
+
+    git clone "$url" "$clone_dir"
+
+    # Step 2: Validate
+    if [ ! -f "$clone_dir/SKILL.md" ]; then
+        echo -e "${RED}Error: SKILL.md not found. Not a valid ARKA OS skill.${NC}"
+        rm -rf "$clone_dir"
+        exit 1
+    fi
+    if [ ! -f "$clone_dir/arka-skill.json" ]; then
+        echo -e "${RED}Error: arka-skill.json not found. Not a valid ARKA OS skill.${NC}"
+        rm -rf "$clone_dir"
+        exit 1
+    fi
+
+    # Step 3: Read metadata
+    local skill_version skill_desc skill_author requires_arka
+    skill_version=$(jq -r '.version' "$clone_dir/arka-skill.json")
+    skill_desc=$(jq -r '.description' "$clone_dir/arka-skill.json")
+    skill_author=$(jq -r '.author' "$clone_dir/arka-skill.json")
+    requires_arka=$(jq -r '.requires_arka_version // ""' "$clone_dir/arka-skill.json")
+
+    # Step 4: Check version compatibility
+    if [ -n "$requires_arka" ] && [ -f "$ARKA_OS/VERSION" ]; then
+        local current_version
+        current_version=$(cat "$ARKA_OS/VERSION" | tr -d '[:space:]')
+        if ! version_gte "$current_version" "$requires_arka"; then
+            echo -e "${RED}Error: Skill requires ARKA OS $requires_arka, but you have v$current_version${NC}"
+            rm -rf "$clone_dir"
+            exit 1
+        fi
+    fi
+
+    # Step 5: Install SKILL.md
+    local skill_install_dir="$SKILLS_DIR/arka-ext-$name"
+    mkdir -p "$skill_install_dir"
+    cp "$clone_dir/SKILL.md" "$skill_install_dir/SKILL.md"
+    echo -e "  ${GREEN}✓${NC} Skill: $name"
+
+    # Step 6: Install agents (if any)
+    local agent_count=0
+    if [ -d "$clone_dir/agents" ]; then
+        for agent_file in "$clone_dir"/agents/*.md; do
+            if [ -f "$agent_file" ]; then
+                local agent_base
+                agent_base=$(basename "$agent_file" .md)
+                cp "$agent_file" "$AGENTS_DIR/arka-ext-${name}-${agent_base}.md"
+                echo -e "  ${GREEN}✓${NC} Agent: $agent_base"
+                agent_count=$((agent_count + 1))
+            fi
+        done
+    fi
+
+    # Step 7: Merge external MCPs (if any)
+    if [ -f "$clone_dir/mcps/registry-ext.json" ] && [ -f "$ARKA_OS/mcps/registry.json" ]; then
+        # Merge without overwriting built-in MCPs
+        local temp_registry
+        temp_registry=$(mktemp)
+        jq -s '
+            .[0] as $base |
+            .[1].mcpServers as $ext |
+            $base | .mcpServers += ($ext // {} | to_entries | map(select(.key as $k | $base.mcpServers[$k] == null)) | from_entries)
+        ' "$ARKA_OS/mcps/registry.json" "$clone_dir/mcps/registry-ext.json" > "$temp_registry"
+        cp "$temp_registry" "$ARKA_OS/mcps/registry.json"
+        rm "$temp_registry"
+        echo -e "  ${GREEN}✓${NC} External MCPs merged"
+    fi
+
+    # Step 8: Register in ext-registry
+    jq --arg name "$name" --arg version "$skill_version" --arg desc "$skill_desc" \
+        --arg author "$skill_author" --arg url "$url" --arg date "$(date +%Y-%m-%d)" \
+        '.skills[$name] = {"version": $version, "description": $desc, "author": $author, "url": $url, "installed": $date}' \
+        "$EXT_REGISTRY" > "${EXT_REGISTRY}.tmp" && mv "${EXT_REGISTRY}.tmp" "$EXT_REGISTRY"
+
+    # Step 9: Report
+    echo ""
+    echo -e "${GREEN}═══ Skill Installed ═══${NC}"
+    echo -e "  Name:     ${CYAN}$name${NC} v$skill_version"
+    echo -e "  Author:   ${CYAN}$skill_author${NC}"
+    echo -e "  Desc:     $skill_desc"
+    echo -e "  Agents:   ${CYAN}$agent_count${NC}"
+    echo -e "${GREEN}═══════════════════════${NC}"
+}
+
+cmd_list() {
+    echo -e "${CYAN}ARKA OS — External Skills${NC}"
+    echo ""
+
+    local count
+    count=$(jq '.skills | length' "$EXT_REGISTRY" 2>/dev/null || echo "0")
+
+    if [ "$count" = "0" ]; then
+        echo "  No external skills installed."
+        echo ""
+        echo "  Install one: arka skill install <github-url>"
+        return
+    fi
+
+    jq -r '.skills | to_entries[] | "  \(.key)\tv\(.value.version)\t\(.value.description)"' "$EXT_REGISTRY" | column -t -s $'\t'
+    echo ""
+    echo -e "  Total: ${CYAN}$count${NC} skill(s)"
+}
+
+cmd_remove() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Error: Skill name required.${NC}"
+        echo "Usage: arka skill remove <name>"
+        exit 1
+    fi
+
+    echo -e "${CYAN}Removing external skill: ${name}${NC}"
+
+    # Remove cloned source
+    [ -d "$EXT_DIR/$name" ] && rm -rf "$EXT_DIR/$name" && echo -e "  ${GREEN}✓${NC} Removed source"
+
+    # Remove installed skill
+    [ -d "$SKILLS_DIR/arka-ext-$name" ] && rm -rf "$SKILLS_DIR/arka-ext-$name" && echo -e "  ${GREEN}✓${NC} Removed skill"
+
+    # Remove installed agents
+    for agent in "$AGENTS_DIR"/arka-ext-${name}-*.md; do
+        [ -f "$agent" ] && rm "$agent" && echo -e "  ${GREEN}✓${NC} Removed $(basename "$agent")"
+    done
+
+    # Remove from registry
+    jq --arg name "$name" 'del(.skills[$name])' "$EXT_REGISTRY" > "${EXT_REGISTRY}.tmp" && mv "${EXT_REGISTRY}.tmp" "$EXT_REGISTRY"
+    echo -e "  ${GREEN}✓${NC} Removed from registry"
+
+    echo -e "${GREEN}Skill '$name' removed.${NC}"
+}
+
+cmd_update() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Error: Skill name required.${NC}"
+        echo "Usage: arka skill update <name>"
+        exit 1
+    fi
+
+    local clone_dir="$EXT_DIR/$name"
+    if [ ! -d "$clone_dir/.git" ]; then
+        echo -e "${RED}Error: Skill '$name' not found.${NC}"
+        exit 1
+    fi
+
+    echo -e "${CYAN}Updating external skill: ${name}${NC}"
+
+    # Pull latest
+    cd "$clone_dir" && git pull --ff-only
+
+    # Re-install SKILL.md
+    local skill_install_dir="$SKILLS_DIR/arka-ext-$name"
+    mkdir -p "$skill_install_dir"
+    cp "$clone_dir/SKILL.md" "$skill_install_dir/SKILL.md"
+    echo -e "  ${GREEN}✓${NC} Skill updated"
+
+    # Re-install agents
+    if [ -d "$clone_dir/agents" ]; then
+        for agent_file in "$clone_dir"/agents/*.md; do
+            if [ -f "$agent_file" ]; then
+                local agent_base
+                agent_base=$(basename "$agent_file" .md)
+                cp "$agent_file" "$AGENTS_DIR/arka-ext-${name}-${agent_base}.md"
+                echo -e "  ${GREEN}✓${NC} Agent: $agent_base"
+            fi
+        done
+    fi
+
+    # Update registry version
+    local skill_version
+    skill_version=$(jq -r '.version' "$clone_dir/arka-skill.json" 2>/dev/null || echo "unknown")
+    jq --arg name "$name" --arg version "$skill_version" \
+        '.skills[$name].version = $version' \
+        "$EXT_REGISTRY" > "${EXT_REGISTRY}.tmp" && mv "${EXT_REGISTRY}.tmp" "$EXT_REGISTRY"
+
+    echo -e "${GREEN}Skill '$name' updated to v$skill_version.${NC}"
+}
+
+cmd_create() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Error: Skill name required.${NC}"
+        echo "Usage: arka skill create <name>"
+        exit 1
+    fi
+
+    local template_dir="$ARKA_OS/skill-template"
+    local target_dir="./$name"
+
+    if [ -d "$target_dir" ]; then
+        echo -e "${RED}Error: Directory '$name' already exists.${NC}"
+        exit 1
+    fi
+
+    echo -e "${CYAN}Creating new skill: ${name}${NC}"
+
+    mkdir -p "$target_dir/agents" "$target_dir/mcps"
+
+    # Copy and process templates
+    if [ -f "$template_dir/SKILL.md.template" ]; then
+        sed "s/{{SKILL_NAME}}/$name/g" "$template_dir/SKILL.md.template" > "$target_dir/SKILL.md"
+    fi
+
+    if [ -f "$template_dir/arka-skill.json.template" ]; then
+        sed "s/{{SKILL_NAME}}/$name/g" "$template_dir/arka-skill.json.template" > "$target_dir/arka-skill.json"
+    fi
+
+    if [ -f "$template_dir/README.md.template" ]; then
+        sed "s/{{SKILL_NAME}}/$name/g" "$template_dir/README.md.template" > "$target_dir/README.md"
+    fi
+
+    echo -e "  ${GREEN}✓${NC} Created $target_dir/"
+    echo -e "  ${GREEN}✓${NC} SKILL.md"
+    echo -e "  ${GREEN}✓${NC} arka-skill.json"
+    echo -e "  ${GREEN}✓${NC} README.md"
+    echo ""
+    echo -e "Next steps:"
+    echo -e "  1. Edit ${CYAN}$target_dir/SKILL.md${NC} with your skill definition"
+    echo -e "  2. Edit ${CYAN}$target_dir/arka-skill.json${NC} with metadata"
+    echo -e "  3. Add agents to ${CYAN}$target_dir/agents/${NC} (optional)"
+    echo -e "  4. Push to GitHub and install with: ${CYAN}arka skill install <url>${NC}"
+}
+
+# Main routing
+case "${1:-}" in
+    install) shift; cmd_install "$@" ;;
+    list)    cmd_list ;;
+    remove)  shift; cmd_remove "$@" ;;
+    update)  shift; cmd_update "$@" ;;
+    create)  shift; cmd_create "$@" ;;
+    *)       usage ;;
+esac

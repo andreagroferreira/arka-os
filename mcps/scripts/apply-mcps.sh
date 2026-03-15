@@ -20,7 +20,7 @@ usage() {
     echo ""
     echo "Usage: apply-mcps.sh <profile> [--project <path>] [--add <mcp-name>]"
     echo ""
-    echo "Profiles: base, laravel, nuxt, vue, ecommerce, full-stack"
+    echo "Profiles: base, laravel, nuxt, vue, react, nextjs, ecommerce, full-stack, comms"
     echo ""
     echo "Options:"
     echo "  --project <path>   Target project directory (default: current dir)"
@@ -83,7 +83,7 @@ if $LIST_MODE; then
     echo ""
     jq -r '.mcpServers | to_entries[] | "  \(.key)\t\(.value.category)\t\(.value.description)"' "$REGISTRY" | column -t -s $'\t'
     echo ""
-    echo -e "${CYAN}Profiles:${NC} base, laravel, nuxt, vue, ecommerce, full-stack"
+    echo -e "${CYAN}Profiles:${NC} base, laravel, nuxt, vue, react, nextjs, ecommerce, full-stack, comms"
     exit 0
 fi
 
@@ -122,7 +122,7 @@ elif [ -n "$PROFILE" ]; then
 
     if [ ! -f "$PROFILE_FILE" ]; then
         echo -e "${RED}Error: Profile '${PROFILE}' not found.${NC}"
-        echo "Available: base, laravel, nuxt, vue, ecommerce, full-stack"
+        echo "Available: base, laravel, nuxt, vue, react, nextjs, ecommerce, full-stack, comms"
         exit 1
     fi
 

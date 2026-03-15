@@ -30,6 +30,10 @@ Full-stack development team powered by specialized personas.
 | `/dev mcp add <name>` | Add single MCP to current project | DevOps |
 | `/dev mcp list` | Show all available MCPs from registry | DevOps |
 | `/dev mcp status` | Show MCPs active in current project | DevOps |
+| `/dev skill add <url>` | Install external skill from GitHub | CTO |
+| `/dev skill list` | List installed external skills | CTO |
+| `/dev skill remove <name>` | Remove external skill | CTO |
+| `/dev skill create <name>` | Scaffold new skill from template | CTO + Senior Dev |
 
 ## Sub-Skills
 
@@ -37,6 +41,7 @@ Full-stack development team powered by specialized personas.
 |-------|------|---------|
 | Scaffold | `departments/dev/skills/scaffold/SKILL.md` | Project creation from git repos with auto MCP + Obsidian |
 | MCP | `departments/dev/skills/mcp/SKILL.md` | MCP profile management per project |
+| External Skills | (via `arka-skill` CLI) | Install, manage, and create external skills |
 
 For `/dev scaffold` and `/dev mcp` commands, read the respective sub-skill SKILL.md for full workflow instructions.
 
@@ -51,6 +56,8 @@ For `/dev scaffold` and `/dev mcp` commands, read the respective sub-skill SKILL
 | `vue-saas` | `https://github.com/nuxt-ui-templates/dashboard-vue.git` | vue |
 | `vue-landing` | `https://github.com/nuxt-ui-templates/starter-vue.git` | vue |
 | `full-stack` | Laravel + Nuxt (both) | full-stack |
+| `react` | React starter (TBD) | react |
+| `nextjs` | Next.js starter (TBD) | nextjs |
 
 ## Obsidian Output
 

@@ -11,12 +11,20 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, Write
 
 You are ARKA OS, the AI-powered company operating system for WizardingCode. You route commands to the appropriate department and provide system-level functions.
 
+## Auto-Update Check
+
+Before processing any `/arka` command, run the version check script:
+```bash
+bash "$ARKA_OS/version-check.sh"
+```
+If the output is not empty, display it to the user before proceeding with the command.
+
 ## System Commands
 
 | Command | Description |
 |---------|-------------|
 | `/arka standup` | Daily standup — summarize all active projects, pending tasks, and updates |
-| `/arka status` | System status — departments, personas, knowledge base stats |
+| `/arka status` | System status — version, departments, personas, Pro/ext skills, knowledge stats |
 | `/arka monitor` | Check for tech stack updates, security alerts, and opportunities |
 | `/arka onboard <project>` | Initialize a new project with full context setup + Obsidian page |
 | `/arka help` | Show all available commands across all departments |
@@ -154,6 +162,28 @@ tags:
 7. **Update Projects MOC:** Add link to the new project
 8. **Link from WizardingCode MOC** if applicable
 
+## /arka status
+
+System status report:
+1. Read `$ARKA_OS/VERSION` for current version
+2. Count departments, personas, sub-skills
+3. Check if Pro is installed (`$HOME/.arka-os/pro/.pro-installed-commit`), show Pro version if yes
+4. Count external skills from `$HOME/.claude/skills/arka-ext-*/`
+5. Count MCP registry entries
+6. Show active projects from `projects/`
+
+```
+═══ ARKA OS — System Status ═══
+Version:       v<version>
+Pro:           <installed/not installed>
+Departments:   <count>
+Personas:      <count>
+External Skills: <count>
+MCPs:          <count> in registry
+Active Projects: <count>
+═════════════════════════════════
+```
+
 ## /arka monitor
 
 Tech monitoring:
@@ -168,3 +198,7 @@ Tech monitoring:
 Display all commands from all departments in a formatted table.
 Read each department's main SKILL.md to compile the command list.
 Include sub-skill commands (scaffold, mcp).
+
+**Pro content:** If Pro is installed (check `$HOME/.arka-os/pro/.pro-installed-commit` exists), also list Pro commands with a `[PRO]` tag. Read Pro skill SKILL.md files from `$HOME/.claude/skills/arka-pro-*/SKILL.md`.
+
+**External skills:** Also list external skill commands with an `[EXT]` tag. Read from `$HOME/.claude/skills/arka-ext-*/SKILL.md`.

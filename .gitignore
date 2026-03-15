@@ -1,3 +1,7 @@
+# Claude Code
+.mcp.json
+.claude/
+
 # Generated reports and outputs
 *.pdf
 *-AUDIT.md
@@ -43,3 +47,9 @@ node_modules/
 *.secret
 *.token
 credentials.*
+
+# ARKA OS runtime files
+.installed-commit
+.last-update-check
+.repo-path
+.pro-installed-commit

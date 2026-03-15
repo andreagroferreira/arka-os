@@ -1,0 +1,27 @@
+# {{SKILL_NAME}} — ARKA OS External Skill
+
+> Description of what this skill does.
+
+## Installation
+
+```bash
+arka skill install https://github.com/your-username/{{SKILL_NAME}}.git
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/dev {{SKILL_NAME}} <action>` | Describe the command |
+
+## Requirements
+
+- ARKA OS >= 0.2.0
+
+## Author
+
+Your Name
+
+## License
+
+MIT

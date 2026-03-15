@@ -25,12 +25,15 @@ Manage Model Context Protocol (MCP) servers for projects. MCPs extend Claude Cod
 
 | Profile | MCPs Included | Use For |
 |---------|---------------|---------|
-| `base` | obsidian, context7, playwright, memory-bank, sentry, gh-grep, clickup | All projects |
+| `base` | obsidian, context7, playwright, memory-bank, sentry, gh-grep, clickup, firecrawl, supabase | All projects |
 | `laravel` | base + laravel-boost, serena | Laravel backends |
 | `nuxt` | base + nuxt, nuxt-ui | Nuxt 3/4 apps |
 | `vue` | base + nuxt-ui | Vue 3 SPAs |
-| `ecommerce` | base + laravel-boost, serena, mirakl | E-commerce projects |
+| `react` | base + next-devtools | React SPAs |
+| `nextjs` | base + next-devtools, supabase | Next.js apps |
+| `ecommerce` | base + laravel-boost, serena, mirakl, shopify-dev | E-commerce projects |
 | `full-stack` | base + laravel-boost, serena, nuxt, nuxt-ui | Laravel + Nuxt apps |
+| `comms` | base + slack, discord, whatsapp, teams | Messaging platforms |
 
 ## How It Works
 
@@ -93,6 +96,10 @@ The central MCP registry lives at `mcps/registry.json`. Each entry contains:
 Some MCPs require API keys or configuration. These are defined in the registry's `env` field.
 When applying MCPs that need env vars, the script will warn which ones need to be set.
 
-The user should set these in their shell profile or project `.env`:
+The user should set these in their shell profile or project `.env`, or run `bash env-setup.sh`:
 - `CLICKUP_API_KEY` / `CLICKUP_TEAM_ID` — ClickUp integration
 - `FIRECRAWL_API_KEY` — Firecrawl web scraping
+- `PG_HOST` / `PG_PORT` / `PG_USER` / `PG_PASSWORD` / `PG_DATABASE` — PostgreSQL direct access
+- `DISCORD_TOKEN` — Discord bot integration
+- `WHATSAPP_API_TOKEN` / `WHATSAPP_PHONE_ID` — WhatsApp Business API
+- `TEAMS_APP_ID` / `TEAMS_APP_SECRET` — Microsoft Teams

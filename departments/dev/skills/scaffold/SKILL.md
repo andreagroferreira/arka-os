@@ -22,6 +22,8 @@ Create new projects from real git repositories with full automation: dependencie
 | `/dev scaffold vue-saas <name>` | `https://github.com/nuxt-ui-templates/dashboard-vue.git` | Vue 3 Dashboard |
 | `/dev scaffold vue-landing <name>` | `https://github.com/nuxt-ui-templates/starter-vue.git` | Vue 3 Landing |
 | `/dev scaffold full-stack <name>` | Laravel + Nuxt (both repos) | Full-stack |
+| `/dev scaffold react <name>` | React starter (TBD) | React SPA |
+| `/dev scaffold nextjs <name>` | Next.js starter (TBD) | Next.js App |
 
 ## Workflow: /dev scaffold <type> <name>
 
@@ -204,6 +206,21 @@ Next steps:
   cd <name>
   /dev feature "describe your first feature"
 ```
+
+## React / Next.js Handling
+
+`/dev scaffold react <name>` and `/dev scaffold nextjs <name>`:
+
+1. Clone template repo
+2. `pnpm install`
+3. Apply MCP profile (`react` or `nextjs`)
+4. Generate PROJECT.md
+5. Create Obsidian project page
+6. Initial git commit
+
+**No mandatory packages step** — React/Next.js projects use recommended packages from `mcps/stacks/react-packages.json` instead. Profile mapping:
+- `react` → `react` profile
+- `nextjs` → `nextjs` profile
 
 ## Full-Stack Special Handling
 
