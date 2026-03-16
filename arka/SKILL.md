@@ -28,6 +28,58 @@ If the output is not empty, display it to the user before proceeding with the co
 | `/arka monitor` | Check for tech stack updates, security alerts, and opportunities |
 | `/arka onboard <project>` | Initialize a new project with full context setup + Obsidian page |
 | `/arka help` | Show all available commands across all departments |
+| `/arka setup` | Re-run onboarding — update name, company, role, objectives |
+
+## Session Greeting
+
+On the **first interaction** of a session, when the user hasn't typed a specific command:
+
+1. Read `~/.arka-os/profile.json` (if it exists)
+2. Show a branded greeting:
+
+```
+══════ ARKA OS ══════
+Welcome back, {user_name}!
+
+Active: {N} projects | {role} @ {company}
+Quick: /dev feature • /mkt social • /arka standup • /arka help
+═════════════════════
+```
+
+3. If no profile exists, show instead:
+```
+══════ ARKA OS ══════
+Welcome to ARKA OS!
+
+Run /arka setup to personalize your experience.
+Quick: /arka help • /dev feature • /mkt social • /kb learn
+═════════════════════
+```
+
+4. If the user immediately provides a command or request, skip the greeting and process their request directly.
+
+## Smart Routing (Plain Text)
+
+When the user types plain text instead of a slash command, classify their request and route to the appropriate department automatically.
+
+**Signal words → Department mapping:**
+
+| Signal Words | Department | Route To |
+|-------------|-----------|----------|
+| "build", "code", "feature", "fix", "bug", "deploy", "test", "refactor", "api", "database", "scaffold", "implement", "debug" | Development | `/dev` |
+| "post", "social", "content", "blog", "email campaign", "ads", "landing page", "SEO", "marketing", "copywrite", "newsletter" | Marketing | `/mkt` |
+| "store", "product", "pricing", "ecommerce", "shop", "listing", "catalog", "checkout", "cart" | E-commerce | `/ecom` |
+| "budget", "forecast", "invoice", "pitch", "invest", "financial", "revenue", "expense", "bank", "funding" | Finance | `/fin` |
+| "task", "meeting", "calendar", "automate", "schedule", "email" (non-campaign), "notify", "process", "workflow" | Operations | `/ops` |
+| "strategy", "brainstorm", "market analysis", "competitor", "SWOT", "evaluate idea", "plan", "roadmap", "vision" | Strategy | `/strat` |
+| "learn", "persona", "knowledge", "transcribe", "search knowledge", "youtube", "video" | Knowledge | `/kb` |
+
+**Routing behavior:**
+1. Classify the request using the signal words above
+2. Announce: "Routing to **{Department}** department..."
+3. Load the department's SKILL.md and execute the appropriate command
+4. If the request is ambiguous or spans multiple departments, ask the user which department they meant
+5. If no department matches, treat it as a general question and answer directly
 
 ## Department Routing
 
@@ -165,3 +217,21 @@ Include sub-skill commands (scaffold, mcp).
 **Pro content:** If Pro is installed (check `$HOME/.arka-os/pro/.pro-installed-commit` exists), also list Pro commands with a `[PRO]` tag. Read Pro skill SKILL.md files from `$HOME/.claude/skills/arka-pro-*/SKILL.md`.
 
 **External skills:** Also list external skill commands with an `[EXT]` tag. Read from `$HOME/.claude/skills/arka-ext-*/SKILL.md`.
+
+## /arka setup
+
+Re-run the onboarding flow to update the user profile. Use `AskUserQuestion` to collect data interactively:
+
+1. Read current profile from `~/.arka-os/profile.json` (show current values as defaults)
+2. Ask each question using `AskUserQuestion`:
+   - **Name**: "What's your name?" (current: {current_name})
+   - **Company**: "What's your company name?" with options: current value, "WizardingCode", or custom
+   - **Role**: "What's your role?" with options: developer, founder, manager, agency, team-member
+   - **Industry**: "What industry?" with options: SaaS, Agency, E-commerce, Services, Other
+   - **Projects dir**: "Where are your projects?" (current: {current_path})
+   - **Documents dir**: "Where are your documents?" (current: {current_path})
+   - **Objectives**: "What are your main objectives?" (comma-separated)
+3. Save updated profile to `~/.arka-os/profile.json` using Bash with jq
+4. Confirm: "Profile updated! Your next session will use the new settings."
+
+**Note:** The profile is read by `system-prompt.sh` which is injected via `--append-system-prompt` when the user runs `arka`. Changes take effect on next session.

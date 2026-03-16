@@ -13,6 +13,9 @@ ARKA_OS="${ARKA_OS:-$HOME/.claude/skills/arka}"
 # Run version check (silent on errors)
 bash "$ARKA_OS/version-check.sh" 2>/dev/null || true
 
+# Generate dynamic system prompt from user profile
+SYSTEM_PROMPT=$(bash "$ARKA_OS/system-prompt.sh" 2>/dev/null || echo "")
+
 case "${1:-}" in
   skill)
     shift
@@ -45,10 +48,18 @@ case "${1:-}" in
     exit $?
     ;;
   *)
-    if [ $# -gt 0 ]; then
-      claude "$*"
+    if [ -n "$SYSTEM_PROMPT" ]; then
+      if [ $# -gt 0 ]; then
+        claude --append-system-prompt "$SYSTEM_PROMPT" "$*"
+      else
+        claude --append-system-prompt "$SYSTEM_PROMPT"
+      fi
     else
-      claude
+      if [ $# -gt 0 ]; then
+        claude "$*"
+      else
+        claude
+      fi
     fi
     ;;
 esac

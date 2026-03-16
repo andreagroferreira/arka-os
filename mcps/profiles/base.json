@@ -5,6 +5,7 @@
     "extends": null
   },
   "mcps": [
+    "arka-prompts",
     "obsidian",
     "context7",
     "playwright",

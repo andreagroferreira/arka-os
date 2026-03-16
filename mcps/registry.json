@@ -5,6 +5,13 @@
     "updated": "2026-03-15"
   },
   "mcpServers": {
+    "arka-prompts": {
+      "command": "uv",
+      "args": ["--directory", "{{ARKA_PROMPTS_DIR}}", "run", "server.py"],
+      "category": "base",
+      "description": "ARKA OS department commands as MCP prompts (Claude Code + Claude Desktop)",
+      "required_env": []
+    },
     "obsidian": {
       "command": "npx",
       "args": ["@bitbonsai/mcpvault@latest", "{{OBSIDIAN_VAULT}}"],

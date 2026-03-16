@@ -94,6 +94,7 @@ Simpler commands (debug, refactor, db) use a focused 3-4 phase workflow. Read-on
 
 | Command | What Happens |
 |---------|-------------|
+| `/dev do <description>` | Describe what you need in plain language — Paulo interprets, asks questions if needed, and routes to the right workflow automatically |
 | `/dev scaffold <type> <name>` | Create a complete project from a starter template with dependencies installed and integrations configured |
 | `/dev feature <description>` | Implement a new feature with full 8-phase enterprise workflow |
 | `/dev api <spec>` | Generate API endpoints with full 8-phase enterprise workflow |
@@ -123,6 +124,12 @@ Commands that modify code — `/dev feature`, `/dev api`, `/dev debug`, `/dev re
 You don't need to do anything — the worktree is created automatically when you run the command.
 
 ### Real-World Examples
+
+**Just describe what you need:**
+```
+/dev do "quero adicionar autenticação com social login Google e GitHub"
+```
+Paulo reads the project context, classifies the request as a Feature, asks if you want backend-only or full-stack, then routes to `/dev feature` with the full 8-phase enterprise workflow. You don't need to remember which command to use.
 
 **Build a feature (full enterprise workflow):**
 ```

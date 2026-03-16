@@ -55,6 +55,17 @@ if [ "${1:-}" = "--uninstall" ]; then
         [ -f "$agent_file" ] && rm "$agent_file" && echo -e "  ${GREEN}✓${NC} Removed $(basename "$agent_file")"
     done
 
+    # Remove MCP server
+    [ -d "$ARKA_OS_DIR/mcp-server" ] && rm -rf "$ARKA_OS_DIR/mcp-server" && echo -e "  ${GREEN}✓${NC} Removed MCP server"
+
+    # Remove arka-prompts from Claude Desktop config
+    CLAUDE_DESKTOP_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+    if [ -f "$CLAUDE_DESKTOP_CONFIG" ] && command -v jq &>/dev/null; then
+        jq 'del(.mcpServers["arka-prompts"])' "$CLAUDE_DESKTOP_CONFIG" > "$CLAUDE_DESKTOP_CONFIG.tmp" && \
+            mv "$CLAUDE_DESKTOP_CONFIG.tmp" "$CLAUDE_DESKTOP_CONFIG" && \
+            echo -e "  ${GREEN}✓${NC} Removed from Claude Desktop config"
+    fi
+
     # Remove CLI commands
     [ -f "$HOME/.local/bin/arka" ] && rm "$HOME/.local/bin/arka" && echo -e "  ${GREEN}✓${NC} Removed arka CLI"
     [ -f "$HOME/.local/bin/arka-skill" ] && rm "$HOME/.local/bin/arka-skill" && echo -e "  ${GREEN}✓${NC} Removed arka-skill CLI"
@@ -136,6 +147,117 @@ else
 fi
 export ARKA_OS="$HOME/.claude/skills/arka"
 
+# ─── User Profile (Onboarding) ──────────────────────────────────────────────
+echo -e "${BLUE}[User Profile]${NC}"
+PROFILE_FILE="$HOME/.arka-os/profile.json"
+mkdir -p "$HOME/.arka-os"
+
+if [ "$INSTALL_MODE" = "update" ] && [ -f "$PROFILE_FILE" ]; then
+    PROFILE_NAME=$(jq -r '.user_name // "unknown"' "$PROFILE_FILE" 2>/dev/null || echo "unknown")
+    echo -e "  ${GREEN}✓${NC} Profile exists (${PROFILE_NAME})"
+    echo -e "  Run ${CYAN}/arka setup${NC} to update your profile"
+else
+    echo ""
+    echo -e "  ${CYAN}Let's personalize ARKA OS for you.${NC}"
+    echo -e "  ${CYAN}Press Enter to skip any question with the default value.${NC}"
+    echo ""
+
+    read -rp "$(echo -e "  ${BLUE}What's your name? ${NC}")" P_NAME < /dev/tty
+    P_NAME="${P_NAME:-}"
+
+    read -rp "$(echo -e "  ${BLUE}What's your company name? (default: WizardingCode) ${NC}")" P_COMPANY < /dev/tty
+    P_COMPANY="${P_COMPANY:-WizardingCode}"
+
+    echo -e "  ${BLUE}What's your role?${NC}"
+    echo -e "    1) developer  2) founder  3) manager  4) agency  5) team-member"
+    read -rp "$(echo -e "  ${BLUE}Pick (1-5, or type custom): ${NC}")" P_ROLE_CHOICE < /dev/tty
+    case "$P_ROLE_CHOICE" in
+        1) P_ROLE="developer" ;;
+        2) P_ROLE="founder" ;;
+        3) P_ROLE="manager" ;;
+        4) P_ROLE="agency" ;;
+        5) P_ROLE="team-member" ;;
+        "") P_ROLE="" ;;
+        *) P_ROLE="$P_ROLE_CHOICE" ;;
+    esac
+
+    echo -e "  ${BLUE}What industry?${NC}"
+    echo -e "    1) SaaS  2) Agency  3) E-commerce  4) Services  5) Other"
+    read -rp "$(echo -e "  ${BLUE}Pick (1-5, or type custom): ${NC}")" P_INDUSTRY_CHOICE < /dev/tty
+    case "$P_INDUSTRY_CHOICE" in
+        1) P_INDUSTRY="SaaS" ;;
+        2) P_INDUSTRY="Agency" ;;
+        3) P_INDUSTRY="E-commerce" ;;
+        4) P_INDUSTRY="Services" ;;
+        5) P_INDUSTRY="Other" ;;
+        "") P_INDUSTRY="" ;;
+        *) P_INDUSTRY="$P_INDUSTRY_CHOICE" ;;
+    esac
+
+    read -rp "$(echo -e "  ${BLUE}Where are your projects? (default: ~/Projects) ${NC}")" P_PROJECTS_DIR < /dev/tty
+    P_PROJECTS_DIR="${P_PROJECTS_DIR:-$HOME/Projects}"
+    # Expand ~ to $HOME
+    P_PROJECTS_DIR="${P_PROJECTS_DIR/#\~/$HOME}"
+
+    read -rp "$(echo -e "  ${BLUE}Where are your documents? (default: ~/Documents) ${NC}")" P_DOCS_DIR < /dev/tty
+    P_DOCS_DIR="${P_DOCS_DIR:-$HOME/Documents}"
+    P_DOCS_DIR="${P_DOCS_DIR/#\~/$HOME}"
+
+    read -rp "$(echo -e "  ${BLUE}Main objectives? (comma-separated, e.g.: launch SaaS, grow marketing) ${NC}")" P_OBJECTIVES_RAW < /dev/tty
+
+    # Build objectives JSON array
+    if [ -n "$P_OBJECTIVES_RAW" ]; then
+        P_OBJECTIVES_JSON=$(echo "$P_OBJECTIVES_RAW" | jq -R 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))' 2>/dev/null || echo "[]")
+    else
+        P_OBJECTIVES_JSON="[]"
+    fi
+
+    # Save profile
+    if command -v jq &>/dev/null; then
+        jq -n \
+            --arg name "$P_NAME" \
+            --arg company "$P_COMPANY" \
+            --arg role "$P_ROLE" \
+            --arg industry "$P_INDUSTRY" \
+            --arg projects "$P_PROJECTS_DIR" \
+            --arg docs "$P_DOCS_DIR" \
+            --argjson objectives "$P_OBJECTIVES_JSON" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+                user_name: $name,
+                company_name: $company,
+                role: $role,
+                industry: $industry,
+                projects_dir: $projects,
+                documents_dir: $docs,
+                objectives: $objectives,
+                preferred_departments: [],
+                onboarded_at: $date,
+                onboarding_version: "1"
+            }' > "$PROFILE_FILE"
+        echo ""
+        echo -e "  ${GREEN}✓${NC} Profile saved to ~/.arka-os/profile.json"
+    else
+        # Fallback without jq — write raw JSON
+        cat > "$PROFILE_FILE" << PROFILE_EOF
+{
+  "user_name": "$P_NAME",
+  "company_name": "$P_COMPANY",
+  "role": "$P_ROLE",
+  "industry": "$P_INDUSTRY",
+  "projects_dir": "$P_PROJECTS_DIR",
+  "documents_dir": "$P_DOCS_DIR",
+  "objectives": [],
+  "preferred_departments": [],
+  "onboarded_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "onboarding_version": "1"
+}
+PROFILE_EOF
+        echo ""
+        echo -e "  ${GREEN}✓${NC} Profile saved to ~/.arka-os/profile.json"
+    fi
+fi
+
 # ─── CLI Command ─────────────────────────────────────────────────────────────
 echo -e "${BLUE}[CLI Command]${NC}"
 mkdir -p "$HOME/.local/bin"
@@ -170,6 +292,8 @@ git -C "$SOURCE_DIR" rev-parse HEAD > "$SKILLS_DIR/arka/.installed-commit" 2>/de
 echo "$SOURCE_DIR" > "$SKILLS_DIR/arka/.repo-path"
 cp "$SOURCE_DIR/version-check.sh" "$SKILLS_DIR/arka/version-check.sh"
 chmod +x "$SKILLS_DIR/arka/version-check.sh"
+cp "$SOURCE_DIR/config/system-prompt.sh" "$SKILLS_DIR/arka/system-prompt.sh"
+chmod +x "$SKILLS_DIR/arka/system-prompt.sh"
 echo -e "  ${GREEN}✓${NC} arka (main orchestrator)"
 
 # ─── Department Skills ──────────────────────────────────────────────────────
@@ -264,6 +388,67 @@ for script in "$SOURCE_DIR"/mcps/scripts/*.sh; do
     fi
 done
 echo -e "  ${GREEN}✓${NC} MCP apply script"
+
+# ─── ARKA Prompts MCP Server ──────────────────────────────────────────────
+echo -e "${BLUE}[ARKA Prompts MCP]${NC}"
+MCP_SERVER_SRC="$SOURCE_DIR/mcps/arka-prompts"
+MCP_SERVER_DST="$SKILLS_DIR/arka/mcp-server"
+if [ -d "$MCP_SERVER_SRC" ]; then
+    mkdir -p "$MCP_SERVER_DST"
+    cp "$MCP_SERVER_SRC/server.py" "$MCP_SERVER_DST/server.py"
+    cp "$MCP_SERVER_SRC/commands.py" "$MCP_SERVER_DST/commands.py"
+    cp "$MCP_SERVER_SRC/pyproject.toml" "$MCP_SERVER_DST/pyproject.toml"
+    echo -e "  ${GREEN}✓${NC} MCP server files copied"
+
+    # Replace placeholder in installed registry
+    if [ -f "$SKILLS_DIR/arka/mcps/registry.json" ]; then
+        sed -i '' "s|{{ARKA_PROMPTS_DIR}}|$MCP_SERVER_DST|g" "$SKILLS_DIR/arka/mcps/registry.json"
+        echo -e "  ${GREEN}✓${NC} Registry placeholder replaced"
+    fi
+
+    # Install dependencies with uv (preferred) or pip fallback
+    if command -v uv &>/dev/null; then
+        (cd "$MCP_SERVER_DST" && uv sync --quiet 2>/dev/null) && \
+            echo -e "  ${GREEN}✓${NC} Dependencies installed (uv)" || \
+            echo -e "  ${YELLOW}⚠${NC} uv sync failed — will install on first run"
+    elif command -v pip3 &>/dev/null; then
+        pip3 install -q "mcp[cli]>=1.2.0" 2>/dev/null && \
+            echo -e "  ${GREEN}✓${NC} Dependencies installed (pip)" || \
+            echo -e "  ${YELLOW}⚠${NC} pip install failed — install manually: pip install 'mcp[cli]>=1.2.0'"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Neither uv nor pip found — install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    fi
+
+    # Claude Desktop integration (macOS)
+    CLAUDE_DESKTOP_DIR="$HOME/Library/Application Support/Claude"
+    CLAUDE_DESKTOP_CONFIG="$CLAUDE_DESKTOP_DIR/claude_desktop_config.json"
+    if [ -d "$CLAUDE_DESKTOP_DIR" ]; then
+        if command -v jq &>/dev/null; then
+            # Create config if it doesn't exist
+            if [ ! -f "$CLAUDE_DESKTOP_CONFIG" ]; then
+                echo '{"mcpServers":{}}' > "$CLAUDE_DESKTOP_CONFIG"
+            fi
+            # Merge arka-prompts into Claude Desktop config
+            MCP_ENTRY=$(jq -n \
+                --arg dir "$MCP_SERVER_DST" \
+                '{
+                    "command": "uv",
+                    "args": ["--directory", $dir, "run", "server.py"],
+                    "env": {
+                        "ARKA_OS": "'"$HOME"'/.claude/skills/arka"
+                    }
+                }')
+            jq --argjson entry "$MCP_ENTRY" '.mcpServers["arka-prompts"] = $entry' \
+                "$CLAUDE_DESKTOP_CONFIG" > "$CLAUDE_DESKTOP_CONFIG.tmp" && \
+                mv "$CLAUDE_DESKTOP_CONFIG.tmp" "$CLAUDE_DESKTOP_CONFIG"
+            echo -e "  ${GREEN}✓${NC} Claude Desktop config updated"
+        else
+            echo -e "  ${YELLOW}⚠${NC} jq not found — Claude Desktop config not updated"
+        fi
+    fi
+else
+    echo -e "  ${YELLOW}⚠${NC} MCP server source not found"
+fi
 
 # ─── External Skills System ───────────────────────────────────────────────
 echo -e "${BLUE}[External Skills]${NC}"

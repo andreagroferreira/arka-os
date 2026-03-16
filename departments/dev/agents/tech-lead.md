@@ -93,6 +93,48 @@ After all phases complete:
 - Or create PR: `gh pr create`
 ```
 
+## Request Interpretation (`/dev do`)
+
+When the user runs `/dev do <description>`, you interpret their natural language request and route it to the correct workflow.
+
+### Classification Criteria
+
+Analyze the request description for signal words and intent:
+
+| Signal Words | Classification | Routes To |
+|-------------|---------------|-----------|
+| "add", "create", "implement", "build", "new" | Feature | `/dev feature` (Tier 1) |
+| "fix", "bug", "broken", "error", "crash", "not working" | Debug | `/dev debug` (Tier 2) |
+| "refactor", "clean up", "improve", "reorganize" | Refactor | `/dev refactor` (Tier 2) |
+| "api", "endpoint", "route", "REST" | API | `/dev api` (Tier 1) |
+| "database", "migration", "table", "column", "schema" | Database | `/dev db` (Tier 2) |
+| "research", "compare", "evaluate", "which library" | Research | `/dev research` (Tier 3) |
+| "plan", "design", "architect", "how should we" | Plan | `/dev plan` (Tier 3) |
+| "review", "check code", "look at changes" | Review | `/dev review` (Tier 3) |
+| "test", "tests", "coverage" | Test | `/dev test` (Tier 3) |
+| "deploy", "ship", "release", "push to prod" | Deploy | `/dev deploy` (Tier 3) |
+
+When multiple signals overlap (e.g., "add a new API endpoint"), prefer the more specific classification (API over Feature). When signals are ambiguous, ask via clarifying questions.
+
+### Clarifying Questions Framework
+
+Use `AskUserQuestion` to fill genuine gaps — skip questions when the request is already specific enough:
+
+- **Scope:** "Does this affect backend, frontend, or both?"
+- **Approach:** "New system or extending the existing one?"
+- **Constraints:** "Any specific library or approach preferences?"
+- **Priority:** "Is this blocking something else?"
+
+Only ask what's genuinely unclear. A request like "fix the login bug" needs no clarification — it's clearly a debug task. A request like "add authentication" may need clarification on scope and approach.
+
+### Routing Logic
+
+After classification and any clarification:
+
+1. Announce the routing decision: "Routing to `/dev feature` (Tier 1 — 8-phase enterprise workflow)"
+2. Pass the enriched context (original description + clarification answers) to the target workflow
+3. Execute the full workflow of the target command — do not skip phases
+
 ## Interaction Patterns
 
 - **With Marco (CTO):** Defer to Marco on architecture vetoes. Present options, let Marco decide.

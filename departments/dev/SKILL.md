@@ -9,7 +9,7 @@ description: >
   Supports Laravel, Vue 3, Nuxt 3, React, Next.js, and Python.
   Use when user says "dev", "build", "code", "feature", "deploy", "test", "review", "scaffold",
   "mcp", "debug", "refactor", "api", "database", "migration", "docs", "stack-check", "plan",
-  "security-audit", "research", or any development-related task.
+  "security-audit", "research", "do", or any development-related task.
 ---
 
 # Development Department — ARKA OS
@@ -34,6 +34,7 @@ Enterprise-grade development team powered by 9 specialized agents.
 
 | Command | Description | Agents Involved | Tier |
 |---------|-------------|-----------------|------|
+| `/dev do <description>` | Smart orchestrator — interprets request, asks clarifying questions, routes to correct workflow | Paulo (routes to full team) | — |
 | `/dev scaffold <type> <name>` | Create project from real git repos (see sub-skill) | Marco + Andre | — |
 | `/dev feature <description>` | Implement a feature end-to-end | Full team (8 phases) | 1 |
 | `/dev api <spec>` | Generate API endpoints + tests + docs | Full team (8 phases) | 1 |
@@ -82,6 +83,7 @@ ALL commands that modify project code MUST run inside a git worktree. This is NO
 - `/dev debug` — Bug investigation and fixing
 - `/dev refactor` — Code refactoring
 - `/dev db` — Database migrations and schema changes
+- `/dev do` — Determined by the routed workflow (worktree if routed to feature/api/debug/refactor/db)
 
 ### Commands that do NOT require worktree (read-only or meta):
 - `/dev scaffold` — Creates new projects (no existing code to isolate)
@@ -128,6 +130,46 @@ Paulo detects the stack from PROJECT.md and adapts agent participation:
 | Self-Critique | Andre: backend checklist | Diana: frontend checklist | Both checklists |
 | Security | Bruno: SQL injection, auth, mass assignment | Bruno: XSS, CSRF, CSP | Bruno: Full scope |
 | QA | Rita: Pest/PHPUnit | Rita: Vitest/Jest | Rita: Both suites |
+
+## Workflow: /dev do (Smart Orchestrator)
+
+Single entry point for all development tasks. Paulo interprets the request and routes to the correct workflow.
+
+### Step 1: Context Loading (Paulo)
+- Read PROJECT.md / CLAUDE.md to understand the project stack
+- Read recent git log to understand current state
+
+### Step 2: Request Interpretation (Paulo)
+Classify the request into one of:
+
+| Signal Words | Classification | Routes To |
+|-------------|---------------|-----------|
+| "add", "create", "implement", "build", "new" | Feature | `/dev feature` (Tier 1) |
+| "fix", "bug", "broken", "error", "crash", "not working" | Debug | `/dev debug` (Tier 2) |
+| "refactor", "clean up", "improve", "reorganize" | Refactor | `/dev refactor` (Tier 2) |
+| "api", "endpoint", "route", "REST" | API | `/dev api` (Tier 1) |
+| "database", "migration", "table", "column", "schema" | Database | `/dev db` (Tier 2) |
+| "research", "compare", "evaluate", "which library" | Research | `/dev research` (Tier 3) |
+| "plan", "design", "architect", "how should we" | Plan | `/dev plan` (Tier 3) |
+| "review", "check code", "look at changes" | Review | `/dev review` (Tier 3) |
+| "test", "tests", "coverage" | Test | `/dev test` (Tier 3) |
+| "deploy", "ship", "release", "push to prod" | Deploy | `/dev deploy` (Tier 3) |
+
+When multiple signals overlap, prefer the more specific classification (e.g., "add a new API endpoint" → API, not Feature).
+
+### Step 3: Clarifying Questions (Paulo)
+Use `AskUserQuestion` to fill any gaps:
+- **Scope:** "Does this affect backend, frontend, or both?"
+- **Approach:** "New system or extending the existing one?"
+- **Constraints:** "Any specific library or approach preferences?"
+- **Priority:** "Is this blocking something else?"
+
+Only ask what's genuinely unclear — skip if the request is already specific enough.
+
+### Step 4: Route & Execute (Paulo)
+- Announce the routing: "Routing to `/dev feature` (Tier 1 — 8-phase enterprise workflow)"
+- Pass enriched context (original description + clarification answers) to the target workflow
+- Execute the full workflow of the target command — do not skip phases
 
 ## Workflow: /dev feature (Tier 1 — Full 8-Phase Enterprise)
 

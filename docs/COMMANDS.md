@@ -70,6 +70,7 @@ Commands that modify code automatically run inside a **git worktree** — an iso
 
 | Command | What It Does | Tier | Worktree? | Example |
 |---------|-------------|:----:|:---------:|---------|
+| `/dev do <description>` | Smart orchestrator — describe what you need, Paulo routes to the right workflow | — | Auto | `/dev do "add social login with Google and GitHub"` |
 | `/dev feature <description>` | Implement a new feature (8-phase) | 1 | Yes | `/dev feature "add user registration"` |
 | `/dev api <spec>` | Generate API endpoints + tests + docs (8-phase) | 1 | Yes | `/dev api "payments endpoints"` |
 | `/dev plan <description>` | Architecture planning only (no code) | 3 | No | `/dev plan "auth system design"` |
@@ -247,6 +248,7 @@ The most useful commands at a glance:
 | I want to... | Command |
 |-------------|---------|
 | See all commands | `/arka help` |
+| Just describe what I need | `/dev do <description>` |
 | Start a new project | `/dev scaffold <type> <name>` |
 | Get a code review | `/dev review` |
 | Write social media posts | `/mkt social <platform> <topic>` |
