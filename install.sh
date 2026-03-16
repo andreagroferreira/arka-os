@@ -294,6 +294,8 @@ cp "$SOURCE_DIR/version-check.sh" "$SKILLS_DIR/arka/version-check.sh"
 chmod +x "$SKILLS_DIR/arka/version-check.sh"
 cp "$SOURCE_DIR/config/system-prompt.sh" "$SKILLS_DIR/arka/system-prompt.sh"
 chmod +x "$SKILLS_DIR/arka/system-prompt.sh"
+cp "$SOURCE_DIR/config/statusline.sh" "$SKILLS_DIR/arka/statusline.sh"
+chmod +x "$SKILLS_DIR/arka/statusline.sh"
 echo -e "  ${GREEN}✓${NC} arka (main orchestrator)"
 
 # ─── Department Skills ──────────────────────────────────────────────────────
@@ -821,6 +823,25 @@ if [ -f "$HOME/.arka-os/pro/.pro-installed-commit" ]; then
 else
     echo -e "  ${YELLOW}→${NC} Pro content available — https://wizardingcode.com/arka-pro"
     echo -e "  Run ${CYAN}bash pro-install.sh${NC} to install"
+fi
+
+# ─── Status Line ──────────────────────────────────────────────────────────
+echo -e "${BLUE}[Status Line]${NC}"
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+STATUSLINE_PATH="$SKILLS_DIR/arka/statusline.sh"
+
+if [ -f "$CLAUDE_SETTINGS" ] && command -v jq &>/dev/null; then
+    # Merge statusLine into existing settings
+    jq --arg cmd "$STATUSLINE_PATH" '.statusLine = {"type":"command","command":$cmd,"padding":2}' \
+        "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS"
+    echo -e "  ${GREEN}✓${NC} Status line configured (updated existing settings)"
+elif command -v jq &>/dev/null; then
+    # Create new settings file
+    jq -n --arg cmd "$STATUSLINE_PATH" '{"statusLine":{"type":"command","command":$cmd,"padding":2}}' \
+        > "$CLAUDE_SETTINGS"
+    echo -e "  ${GREEN}✓${NC} Status line configured (new settings file)"
+else
+    echo -e "  ${YELLOW}⚠${NC} jq not found — add statusLine manually to ~/.claude/settings.json"
 fi
 
 # ─── Environment Setup ───────────────────────────────────────────────────
