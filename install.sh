@@ -171,18 +171,19 @@ if [ "$INSTALL_MODE" = "update" ] && [ -f "$PROFILE_FILE" ]; then
 else
     echo ""
     echo -e "  ${CYAN}Let's personalize ARKA OS for you.${NC}"
-    echo -e "  ${CYAN}Press Enter to skip any question with the default value.${NC}"
+    echo -e "  ${CYAN}Press Enter to skip any question and use the default value.${NC}"
+    echo -e "  ${CYAN}Look for the ${YELLOW}>>>${CYAN} arrow when your input is needed.${NC}"
     echo ""
 
-    read -rp "$(echo -e "  ${BLUE}What's your name? ${NC}")" P_NAME < /dev/tty
+    read -rp "$(echo -e "  ${YELLOW}>>>${NC} What's your name? ")" P_NAME < /dev/tty
     P_NAME="${P_NAME:-}"
 
-    read -rp "$(echo -e "  ${BLUE}What's your company name? (default: WizardingCode) ${NC}")" P_COMPANY < /dev/tty
+    read -rp "$(echo -e "  ${YELLOW}>>>${NC} Company name? ${CYAN}(default: WizardingCode)${NC} ")" P_COMPANY < /dev/tty
     P_COMPANY="${P_COMPANY:-WizardingCode}"
 
     echo -e "  ${BLUE}What's your role?${NC}"
     echo -e "    1) developer  2) founder  3) manager  4) agency  5) team-member"
-    read -rp "$(echo -e "  ${BLUE}Pick (1-5, or type custom): ${NC}")" P_ROLE_CHOICE < /dev/tty
+    read -rp "$(echo -e "  ${YELLOW}>>>${NC} Pick 1-5, or type custom: ")" P_ROLE_CHOICE < /dev/tty
     case "$P_ROLE_CHOICE" in
         1) P_ROLE="developer" ;;
         2) P_ROLE="founder" ;;
@@ -195,7 +196,7 @@ else
 
     echo -e "  ${BLUE}What industry?${NC}"
     echo -e "    1) SaaS  2) Agency  3) E-commerce  4) Services  5) Other"
-    read -rp "$(echo -e "  ${BLUE}Pick (1-5, or type custom): ${NC}")" P_INDUSTRY_CHOICE < /dev/tty
+    read -rp "$(echo -e "  ${YELLOW}>>>${NC} Pick 1-5, or type custom: ")" P_INDUSTRY_CHOICE < /dev/tty
     case "$P_INDUSTRY_CHOICE" in
         1) P_INDUSTRY="SaaS" ;;
         2) P_INDUSTRY="Agency" ;;
@@ -206,16 +207,16 @@ else
         *) P_INDUSTRY="$P_INDUSTRY_CHOICE" ;;
     esac
 
-    read -rp "$(echo -e "  ${BLUE}Where are your projects? (default: ~/Projects) ${NC}")" P_PROJECTS_DIR < /dev/tty
+    read -rp "$(echo -e "  ${YELLOW}>>>${NC} Projects directory? ${CYAN}(default: ~/Projects)${NC} ")" P_PROJECTS_DIR < /dev/tty
     P_PROJECTS_DIR="${P_PROJECTS_DIR:-$HOME/Projects}"
     # Expand ~ to $HOME
     P_PROJECTS_DIR="${P_PROJECTS_DIR/#\~/$HOME}"
 
-    read -rp "$(echo -e "  ${BLUE}Where are your documents? (default: ~/Documents) ${NC}")" P_DOCS_DIR < /dev/tty
+    read -rp "$(echo -e "  ${YELLOW}>>>${NC} Documents directory? ${CYAN}(default: ~/Documents)${NC} ")" P_DOCS_DIR < /dev/tty
     P_DOCS_DIR="${P_DOCS_DIR:-$HOME/Documents}"
     P_DOCS_DIR="${P_DOCS_DIR/#\~/$HOME}"
 
-    read -rp "$(echo -e "  ${BLUE}Main objectives? (comma-separated, e.g.: launch SaaS, grow marketing) ${NC}")" P_OBJECTIVES_RAW < /dev/tty
+    read -rp "$(echo -e "  ${YELLOW}>>>${NC} Main objectives? ${CYAN}(comma-separated, e.g.: launch SaaS, grow marketing)${NC} ")" P_OBJECTIVES_RAW < /dev/tty
 
     # Build objectives JSON array
     if [ -n "$P_OBJECTIVES_RAW" ]; then
@@ -586,7 +587,7 @@ elif [ ${#UNIQUE_VAULTS[@]} -gt 1 ]; then
     done
     echo ""
     if [ -t 0 ] || [ -e /dev/tty ]; then
-        read -rp "$(echo -e "  ${BLUE}Pick a vault (1-${#UNIQUE_VAULTS[@]}), or press Enter to skip: ${NC}")" VAULT_CHOICE < /dev/tty 2>/dev/null
+        read -rp "$(echo -e "  ${YELLOW}>>>${NC} Pick a vault (1-${#UNIQUE_VAULTS[@]}), or Enter to skip: ")" VAULT_CHOICE < /dev/tty 2>/dev/null
     else
         VAULT_CHOICE=""
     fi
@@ -599,7 +600,7 @@ elif [ ${#UNIQUE_VAULTS[@]} -gt 1 ]; then
 else
     echo -e "  ${YELLOW}⚠${NC} No Obsidian vaults found automatically"
     if [ -t 0 ] || [ -e /dev/tty ]; then
-        read -rp "$(echo -e "  ${BLUE}Enter your Obsidian vault path (or press Enter to skip): ${NC}")" MANUAL_VAULT < /dev/tty 2>/dev/null
+        read -rp "$(echo -e "  ${YELLOW}>>>${NC} Obsidian vault path (or Enter to skip): ")" MANUAL_VAULT < /dev/tty 2>/dev/null
     else
         MANUAL_VAULT=""
     fi
@@ -1074,7 +1075,7 @@ fi
 # ─── Environment Setup ───────────────────────────────────────────────────
 echo ""
 if [ -t 0 ] || [ -e /dev/tty ]; then
-    read -rp "$(echo -e "${BLUE}Configure API keys for MCPs? (y/N): ${NC}")" SETUP_ENV < /dev/tty 2>/dev/null || SETUP_ENV="N"
+    read -rp "$(echo -e "${YELLOW}>>>${NC} Configure API keys for MCPs? ${CYAN}(y/N)${NC} ")" SETUP_ENV < /dev/tty 2>/dev/null || SETUP_ENV="N"
 else
     SETUP_ENV="N"
 fi
