@@ -77,7 +77,7 @@ source ~/.zshrc
 arka --version
 ```
 
-You should see something like: `0.4.0`
+You should see something like: `1.0.0`
 
 ---
 

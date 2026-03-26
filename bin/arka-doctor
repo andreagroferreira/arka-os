@@ -2,7 +2,7 @@
 # ============================================================================
 # ARKA OS — Doctor (Health Check System)
 # Usage: arka doctor [--fix] [--json]
-# 15 modular checks: fail = critical, warn = advisory
+# 16 modular checks: fail = critical, warn = advisory
 # ============================================================================
 set -euo pipefail
 
@@ -316,6 +316,51 @@ else
   GOTCHAS_DESC="Gotchas file created (empty)"
 fi
 run_check "gotchas" "warn" "$GOTCHAS_DESC" "$GOTCHAS_OK" "Run: bash install.sh"
+
+# ─── Check 16: Plugins (Superpowers + Claude-Mem) ─────────────────────────
+PLUGINS_OK=false
+PLUGINS_DESC="Plugins not checked"
+if command -v claude &>/dev/null; then
+  PLUGIN_LIST=$(claude plugin list 2>/dev/null || echo "")
+  HAS_SP=false
+  HAS_CM=false
+  echo "$PLUGIN_LIST" | grep -q "superpowers" && HAS_SP=true
+  echo "$PLUGIN_LIST" | grep -q "claude-mem" && HAS_CM=true
+
+  if [ "$HAS_SP" = true ] && [ "$HAS_CM" = true ]; then
+    PLUGINS_OK=true
+    PLUGINS_DESC="Plugins installed (Superpowers + Claude-Mem)"
+  elif [ "$HAS_SP" = true ]; then
+    PLUGINS_DESC="Missing Claude-Mem plugin"
+  elif [ "$HAS_CM" = true ]; then
+    PLUGINS_DESC="Missing Superpowers plugin"
+  else
+    PLUGINS_DESC="Missing both plugins (Superpowers + Claude-Mem)"
+  fi
+
+  # Auto-fix: install missing plugins
+  if [ "$FIX_MODE" = true ] && [ "$PLUGINS_OK" = false ]; then
+    if [ "$HAS_SP" = false ]; then
+      MARKETPLACES=$(claude plugin marketplace list 2>/dev/null || echo "")
+      echo "$MARKETPLACES" | grep -q "superpowers-marketplace" || \
+        claude plugin marketplace add obra/superpowers-marketplace >/dev/null 2>&1
+      claude plugin install superpowers@superpowers-marketplace >/dev/null 2>&1 && HAS_SP=true
+    fi
+    if [ "$HAS_CM" = false ]; then
+      MARKETPLACES=$(claude plugin marketplace list 2>/dev/null || echo "")
+      echo "$MARKETPLACES" | grep -q "thedotmack" || \
+        claude plugin marketplace add thedotmack/claude-mem >/dev/null 2>&1
+      claude plugin install claude-mem@thedotmack >/dev/null 2>&1 && HAS_CM=true
+    fi
+    if [ "$HAS_SP" = true ] && [ "$HAS_CM" = true ]; then
+      PLUGINS_OK=true
+      PLUGINS_DESC="Plugins installed (auto-fixed)"
+    fi
+  fi
+else
+  PLUGINS_DESC="Claude CLI not found — cannot check plugins"
+fi
+run_check "plugins" "warn" "$PLUGINS_DESC" "$PLUGINS_OK" "Run: bash install.sh"
 
 # ─── Output ────────────────────────────────────────────────────────────────
 TOTAL=$((PASS_COUNT + WARN_COUNT + FAIL_COUNT))

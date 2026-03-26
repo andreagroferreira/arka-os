@@ -20,11 +20,11 @@ load helpers/setup
   [ "$type" = "array" ]
 }
 
-@test "arka-doctor --json has 15 checks" {
+@test "arka-doctor --json has 16 checks" {
   run bash "$REPO_DIR/bin/arka-doctor" --json
   [ "$status" -eq 0 ]
   count=$(echo "$output" | jq 'length')
-  [ "$count" -eq 15 ]
+  [ "$count" -eq 16 ]
 }
 
 @test "arka-doctor --json checks have required fields" {
@@ -60,6 +60,13 @@ load helpers/setup
   run bash "$REPO_DIR/bin/arka-doctor" --json
   [ "$status" -eq 0 ]
   has_check=$(echo "$output" | jq '[.[] | select(.name == "gotchas")] | length')
+  [ "$has_check" -eq 1 ]
+}
+
+@test "arka-doctor --json includes plugins check" {
+  run bash "$REPO_DIR/bin/arka-doctor" --json
+  [ "$status" -eq 0 ]
+  has_check=$(echo "$output" | jq '[.[] | select(.name == "plugins")] | length')
   [ "$has_check" -eq 1 ]
 }
 

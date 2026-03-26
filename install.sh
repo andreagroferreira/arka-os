@@ -129,7 +129,7 @@ echo -e "${CYAN}║${NC}   ${GREEN}██╔══██║██╔══██
 echo -e "${CYAN}║${NC}   ${GREEN}██║  ██║██║  ██║██║  ██╗██║  ██║    ╚██████╔╝███████║${NC}     ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}   ${GREEN}╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝     ╚═════╝ ╚══════╝${NC}     ${CYAN}║${NC}"
 echo -e "${CYAN}║                                                              ║${NC}"
-echo -e "${CYAN}║${NC}   ${YELLOW}WizardingCode Company Operating System${NC}                     ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}   ${YELLOW}WizardingCode Company Operating System — v1.0${NC}              ${CYAN}║${NC}"
 echo -e "${CYAN}║                                                              ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
@@ -845,6 +845,48 @@ command -v composer &>/dev/null && echo -e "  ${GREEN}✓${NC} Composer" || echo
 command -v pnpm &>/dev/null && echo -e "  ${GREEN}✓${NC} pnpm" || echo -e "  ${YELLOW}⚠${NC} pnpm not found — install: npm install -g pnpm"
 command -v herd &>/dev/null && echo -e "  ${GREEN}✓${NC} Laravel Herd" || echo -e "  ${YELLOW}⚠${NC} Laravel Herd not found — https://herd.laravel.com"
 
+# ─── Plugins (Superpowers + Claude-Mem) ──────────────────────────────────
+echo -e "${BLUE}[Plugins]${NC}"
+if command -v claude &>/dev/null; then
+    # Add marketplaces if not already configured
+    MARKETPLACES=$(claude plugin marketplace list 2>/dev/null || echo "")
+
+    if ! echo "$MARKETPLACES" | grep -q "superpowers-marketplace"; then
+        claude plugin marketplace add obra/superpowers-marketplace >/dev/null 2>&1 && \
+            echo -e "  ${GREEN}✓${NC} Superpowers marketplace added" || \
+            echo -e "  ${YELLOW}⚠${NC} Could not add Superpowers marketplace"
+    fi
+
+    if ! echo "$MARKETPLACES" | grep -q "thedotmack"; then
+        claude plugin marketplace add thedotmack/claude-mem >/dev/null 2>&1 && \
+            echo -e "  ${GREEN}✓${NC} Claude-Mem marketplace added" || \
+            echo -e "  ${YELLOW}⚠${NC} Could not add Claude-Mem marketplace"
+    fi
+
+    # Install plugins if not already installed
+    PLUGINS=$(claude plugin list 2>/dev/null || echo "")
+
+    if ! echo "$PLUGINS" | grep -q "superpowers"; then
+        claude plugin install superpowers@superpowers-marketplace >/dev/null 2>&1 && \
+            echo -e "  ${GREEN}✓${NC} Superpowers plugin installed (v5.x)" || \
+            echo -e "  ${YELLOW}⚠${NC} Could not install Superpowers plugin"
+    else
+        echo -e "  ${GREEN}✓${NC} Superpowers plugin (already installed)"
+    fi
+
+    if ! echo "$PLUGINS" | grep -q "claude-mem"; then
+        claude plugin install claude-mem@thedotmack >/dev/null 2>&1 && \
+            echo -e "  ${GREEN}✓${NC} Claude-Mem plugin installed (v10.x)" || \
+            echo -e "  ${YELLOW}⚠${NC} Could not install Claude-Mem plugin"
+    else
+        echo -e "  ${GREEN}✓${NC} Claude-Mem plugin (already installed)"
+    fi
+else
+    echo -e "  ${YELLOW}⚠${NC} Claude Code CLI not found — plugins will be installed on first run"
+    echo -e "  Run: ${CYAN}claude plugin install superpowers@superpowers-marketplace${NC}"
+    echo -e "  Run: ${CYAN}claude plugin install claude-mem@thedotmack${NC}"
+fi
+
 # ─── Capability Detection ──────────────────────────────────────────────────
 echo -e "${BLUE}[Capabilities]${NC}"
 CAPS_SCRIPT="$SOURCE_DIR/departments/knowledge/scripts/kb-check-capabilities.sh"
@@ -1096,9 +1138,10 @@ else
 fi
 echo ""
 echo -e "  Version:      ${CYAN}${ARKA_VERSION}${NC}"
-echo -e "  Departments:  ${CYAN}${#DEPARTMENTS[@]}${NC} (dev, marketing, ecommerce, finance, ops, strategy, knowledge)"
+echo -e "  Departments:  ${CYAN}${#DEPARTMENTS[@]}${NC} (dev, marketing, ecommerce, finance, ops, strategy, knowledge, brand)"
 echo -e "  Sub-Skills:   ${CYAN}${SUB_SKILL_COUNT}${NC} (scaffold, mcp)"
 echo -e "  Personas:     ${CYAN}${AGENT_COUNT}${NC}"
+echo -e "  Plugins:      ${CYAN}Superpowers + Claude-Mem${NC} (system-wide)"
 echo -e "  MCP Registry: ${CYAN}${MCP_COUNT:-?}${NC} MCPs, ${CYAN}${PROFILE_COUNT}${NC} profiles"
 echo -e "  Obsidian:     ${CYAN}${OBSIDIAN_VAULT:-not configured}${NC}"
 echo -e "  ARKA_OS:      ${CYAN}\$HOME/.claude/skills/arka${NC}"

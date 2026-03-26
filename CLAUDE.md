@@ -4,7 +4,7 @@
 
 ## Version
 
-- **Current:** 0.4.0
+- **Current:** 1.0.0
 - **Version file:** `VERSION`
 - **Auto-update:** `version-check.sh` checks for updates once per 24h
 - **Update:** Run `arka update` or `cd <repo> && git pull && bash install.sh`
@@ -44,7 +44,7 @@ ARKA OS installs a global `arka` command:
 | `arka kb status [job-id]` | Check KB job status (no Claude Code needed) |
 | `arka kb capabilities` | Show available tools and API keys |
 | `arka kb cleanup` | Remove old media files |
-| `arka doctor` | Run health check system (15 checks) |
+| `arka doctor` | Run health check system (16 checks) |
 | `arka doctor --fix` | Run health checks with auto-repair |
 | `arka doctor --json` | Output health checks as JSON |
 | `arka gotchas` | Show top 10 recurring errors |
@@ -62,6 +62,64 @@ ARKA OS installs a global `arka` command:
 | `arka providers routing` | Show current routing chains |
 | `arka providers --json` | JSON output |
 | `arka test` | Run bats test suite |
+
+## Plugins (Base for All Projects)
+
+ARKA OS v1.0 ships with two Claude Code plugins pre-installed on every installation. These are system-wide (user-scoped) and available in all projects automatically.
+
+### Superpowers (obra/superpowers)
+
+Agentic skills framework that injects structured development workflows into Claude Code. Version 5.x, 115K+ stars.
+
+**What it provides:**
+- **Brainstorming** — Socratic design refinement before coding
+- **Test-Driven Development** — Enforced RED-GREEN-REFACTOR cycle
+- **Systematic Debugging** — 4-phase root cause analysis
+- **Writing Plans** — Implementation plans with exact file paths and verification steps
+- **Executing Plans** — Batch execution with human checkpoints
+- **Subagent-Driven Development** — Per-task subagent dispatch with 2-stage review
+- **Parallel Agents** — Concurrent subagent workflows
+- **Git Worktrees** — Isolated workspace creation (complements ARKA's worktree system)
+- **Code Review** — Pre-review checklist + senior reviewer agent
+- **Verification** — Evidence-based completion verification
+
+**Integration with ARKA OS:** Superpowers skills coexist with ARKA department skills. ARKA's CLAUDE.md takes precedence over Superpowers skill instructions (by design). The worktree skill is complementary — ARKA enforces worktrees via Constitution, Superpowers provides the workflow patterns.
+
+**Marketplace:** `superpowers-marketplace` (obra/superpowers-marketplace)
+
+### Claude-Mem (thedotmack/claude-mem)
+
+Persistent memory system with vector search for Claude Code. Version 10.x.
+
+**What it provides:**
+- **Automatic Memory Capture** — Hooks on session lifecycle events capture decisions, patterns, and context
+- **Vector Search** — Chroma vector DB for semantic memory retrieval
+- **Progressive Disclosure** — Returns compact IDs first, fetch full details on demand (10x token savings)
+- **MCP Search Server** — Memory search available as an MCP tool
+- **Timeline Reports** — Temporal view of captured memories
+- **Smart Exploration** — AI-powered codebase exploration with memory context
+
+**Storage:** `~/.claude-mem/` (SQLite + Chroma vector DB)
+**Runtime:** Requires Bun and uv (auto-installed by plugin)
+
+**Integration with ARKA OS:** Claude-Mem's vector memory complements ARKA's 4-layer memory architecture. ARKA's agent memory (per-agent MEMORY.md files) stores role-specific context; Claude-Mem captures cross-session patterns and decisions automatically. The two systems are additive — ARKA provides structured, role-aware memory; Claude-Mem provides semantic, searchable memory.
+
+**Marketplace:** `thedotmack` (thedotmack/claude-mem)
+
+### Plugin Management
+
+| Command | Description |
+|---------|-------------|
+| `claude plugin list` | List installed plugins |
+| `claude plugin install <plugin>@<marketplace>` | Install a plugin |
+| `claude plugin uninstall <plugin>` | Remove a plugin |
+| `claude plugin update <plugin>` | Update a plugin |
+| `claude plugin marketplace list` | List configured marketplaces |
+| `claude plugin marketplace add <source>` | Add a marketplace |
+
+### awesome-claude-code Reference
+
+The [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) repository is a curated catalog of 200+ Claude Code resources (skills, hooks, CLAUDE.md templates, tools). Not installable — use as a discovery tool for evaluating additional plugins and skills.
 
 ## Tech Stack (Default)
 
@@ -278,9 +336,10 @@ Config: `knowledge/channels-config.json`
 ARKA OS has two tiers:
 
 ### Community (this repo)
-- 8 departments, 19 personas, 22 MCPs
+- 8 departments, 19 personas, 22 MCPs, 2 plugins (Superpowers + Claude-Mem)
 - Full scaffolding (9 types), MCP management, Obsidian integration
-- External skill system, CLI command, auto-updates
+- External skill system, plugin system, CLI command, auto-updates
+- 5-layer memory architecture (Obsidian + Agent Memory + Claude-Mem + Gotchas + Memory Bank)
 
 ### Pro (private repo)
 - Additional agents: growth-hacker, copywriter, data-analyst
@@ -549,7 +608,7 @@ CI: `.github/workflows/test.yml` (runs on push/PR to master)
 
 ## Doctor System
 
-`arka doctor [--fix] [--json]` — 15 modular health checks:
+`arka doctor [--fix] [--json]` — 16 modular health checks:
 
 | # | Check | Type | What |
 |---|-------|------|------|
@@ -568,6 +627,7 @@ CI: `.github/workflows/test.yml` (runs on push/PR to master)
 | 13 | `agent-memory` | warn | 19 agent memory files exist |
 | 14 | `install-manifest` | warn | Manifest exists and valid |
 | 15 | `gotchas` | warn | Gotchas file exists and is valid JSON |
+| 16 | `plugins` | warn | Superpowers + Claude-Mem plugins installed |
 
 - `--fix` attempts auto-repair (profile, statusline, hooks, capabilities)
 - `--json` outputs JSON array for programmatic use
@@ -626,10 +686,11 @@ Cleanup: `/kb cleanup --older-than 90d` removes completed job media older than 9
 
 ## Memory System
 
-ARKA OS has a 4-layer memory architecture:
+ARKA OS has a 5-layer memory architecture:
 
 - **Obsidian Vault** — Primary knowledge store (personas, topics, sources, reports)
-- **Agent Memory** — Per-agent persistent memory at `~/.claude/agent-memory/arka-<name>/MEMORY.md` (15 files, one per agent). Stores key decisions, recurring patterns, gotchas, learned preferences, and project-specific notes. Never overwritten on update.
+- **Agent Memory** — Per-agent persistent memory at `~/.claude/agent-memory/arka-<name>/MEMORY.md` (19 files, one per agent). Stores key decisions, recurring patterns, gotchas, learned preferences, and project-specific notes. Never overwritten on update.
+- **Claude-Mem (Vector Memory)** — Semantic vector search memory via Claude-Mem plugin. Auto-captures decisions and patterns across sessions. Storage at `~/.claude-mem/` (SQLite + Chroma). Provides progressive disclosure search (compact IDs → full details) for 10x token savings.
 - **Gotchas** — Recurring error tracking at `~/.arka-os/gotchas.json`. Auto-populated by PostToolUse hook, surfaced via L0 context injection and `arka gotchas` CLI.
 - **Memory Bank MCP** — Persistent session-to-session memory
 - **projects/** — Project-specific context and decisions
@@ -674,17 +735,17 @@ These MCPs are part of the user's Claude Code environment, not managed by ARKA O
 | Google Drive | Document storage |
 | Canva | Visual design |
 
-## File Structure (v0.4.0)
+## File Structure (v1.0.0)
 
 ```
 arka-os/
 ├── CLAUDE.md                         # System instructions (this file)
 ├── CONSTITUTION.md                   # Governance rules (3 enforcement levels)
-├── VERSION                           # Semver version (0.4.0)
+├── VERSION                           # Semver version (1.0.0)
 ├── install.sh                        # Installer (hooks fix, agent memory, manifest)
 ├── bin/
 │   ├── arka                          # CLI wrapper (gotchas, test, doctor, kb, commands)
-│   ├── arka-doctor                   # Health check (15 checks)
+│   ├── arka-doctor                   # Health check (16 checks)
 │   ├── arka-registry-gen             # Commands registry generator
 │   ├── arka-providers               # AI provider management CLI
 │   └── arka-skill                    # External skill manager
@@ -725,6 +786,8 @@ arka-os/
 **Runtime files (not in repo):**
 ```
 ~/.claude/agent-memory/arka-*/MEMORY.md   # 19 agent memory files
+~/.claude/plugins/                         # Claude Code plugins (superpowers, claude-mem)
+~/.claude-mem/                             # Claude-Mem vector DB (SQLite + Chroma)
 ~/.arka-os/gotchas.json                    # Recurring error patterns
 ~/.arka-os/install-manifest.json           # SHA256 checksums of installed files
 ~/.arka-os/capabilities.json               # Detected tools and API keys
@@ -745,5 +808,5 @@ arka-os/
 9. **All output → Obsidian:** Every report, analysis, and document goes to the vault
 10. **Tracking errors:** Gotchas are auto-tracked by PostToolUse hook. Review with `arka gotchas`.
 11. **Running tests:** Use `arka test` to run the bats test suite
-12. **Health checks:** Use `arka doctor` to verify system integrity (15 checks)
+12. **Health checks:** Use `arka doctor` to verify system integrity (16 checks)
 13. **Constitution:** All agents follow `CONSTITUTION.md` rules. NON-NEGOTIABLE rules cannot be bypassed.
