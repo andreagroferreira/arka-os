@@ -54,7 +54,7 @@ L0=$(cache_get "constitution" 300) || {
   CONSTITUTION_FILE=""
   [ -f "$REPO_PATH/CONSTITUTION.md" ] && CONSTITUTION_FILE="$REPO_PATH/CONSTITUTION.md"
   if [ -n "$CONSTITUTION_FILE" ]; then
-    L0="[Constitution] NON-NEGOTIABLE: worktree-isolation, obsidian-output, authority-boundaries, security-gate, context-first | MUST: conventional-commits, test-coverage, pattern-matching, actionable-output, memory-persistence"
+    L0="[Constitution] NON-NEGOTIABLE: worktree-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing | MUST: conventional-commits, test-coverage, pattern-matching, actionable-output, memory-persistence"
     cache_set "constitution" "$L0"
   else
     L0=""

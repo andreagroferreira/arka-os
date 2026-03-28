@@ -1,8 +1,8 @@
 {
   "_meta": {
     "version": "1.0.0",
-    "generated": "2026-03-26T19:54:17Z",
-    "total_commands": 132,
+    "generated": "2026-03-28T16:01:06Z",
+    "total_commands": 135,
     "generator": "bin/arka-registry-gen"
   },
   "commands": [
@@ -1119,6 +1119,77 @@
       "examples": [
         "remove the geo-seo skill",
         "uninstall external skill"
+      ],
+      "source": "builtin"
+    },
+    {
+      "id": "dev-spec",
+      "command": "/dev spec <description>",
+      "department": "dev",
+      "description": "Create a feature spec interactively",
+      "lead_agent": "dev",
+      "tier": 2,
+      "requires_worktree": false,
+      "modifies_code": false,
+      "keywords": [
+        "spec",
+        "specification",
+        "requirements",
+        "define feature",
+        "write spec",
+        "feature spec",
+        "describe what to build"
+      ],
+      "examples": [
+        "write a spec for user authentication",
+        "create a specification for the payment system",
+        "define requirements for the dashboard"
+      ],
+      "source": "builtin"
+    },
+    {
+      "id": "dev-spec-list",
+      "command": "/dev spec list",
+      "department": "dev",
+      "description": "List specs in current project",
+      "lead_agent": "dev",
+      "tier": 2,
+      "requires_worktree": false,
+      "modifies_code": false,
+      "keywords": [
+        "list specs",
+        "show specs",
+        "existing specs",
+        "all specifications",
+        "project specs"
+      ],
+      "examples": [
+        "show me all specs for this project",
+        "list existing specifications",
+        "what specs do we have"
+      ],
+      "source": "builtin"
+    },
+    {
+      "id": "dev-spec-validate",
+      "command": "/dev spec validate",
+      "department": "dev",
+      "description": "Validate existing spec completeness",
+      "lead_agent": "dev",
+      "tier": 2,
+      "requires_worktree": false,
+      "modifies_code": false,
+      "keywords": [
+        "validate spec",
+        "check spec",
+        "review spec",
+        "spec complete",
+        "spec ready"
+      ],
+      "examples": [
+        "validate the current spec",
+        "is the spec complete",
+        "check the specification"
       ],
       "source": "builtin"
     },

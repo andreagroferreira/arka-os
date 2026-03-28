@@ -450,5 +450,17 @@
   "brand-social-kit": {
     "keywords": ["social kit", "social templates", "social media templates", "visual templates", "brand templates"],
     "examples": ["create social media templates for our brand", "generate a social kit"]
+  },
+  "dev-spec": {
+    "keywords": ["spec", "specification", "requirements", "define feature", "write spec", "feature spec", "describe what to build"],
+    "examples": ["write a spec for user authentication", "create a specification for the payment system", "define requirements for the dashboard"]
+  },
+  "dev-spec-validate": {
+    "keywords": ["validate spec", "check spec", "review spec", "spec complete", "spec ready"],
+    "examples": ["validate the current spec", "is the spec complete", "check the specification"]
+  },
+  "dev-spec-list": {
+    "keywords": ["list specs", "show specs", "existing specs", "all specifications", "project specs"],
+    "examples": ["show me all specs for this project", "list existing specifications", "what specs do we have"]
   }
 }

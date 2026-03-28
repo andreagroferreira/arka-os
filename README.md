@@ -1,26 +1,24 @@
 # ARKA OS
 
-**Your AI-powered company operating system.** One system runs your entire business — development, marketing, sales, finance, operations, and strategy — with a team of AI specialists that actually know what they're doing.
+**Your AI-powered company operating system.** One system runs your entire business with **19 specialized AI team members** organized into **8 departments**. They write code, create marketing content, manage brands, analyze finances, plan strategy, and run operations.
 
-Built by [WizardingCode](https://wizardingcode.com). Current version: **0.2.0**
+Built by [WizardingCode](https://wizardingcode.com). Current version: **1.0.0**
 
 ---
 
 ## What Is ARKA OS?
 
-ARKA OS turns Claude into a full company operating system. Instead of one generic AI assistant, you get **10 specialized team members** organized into **7 departments** — each with their own expertise, personality, and opinions. They write code, create marketing content, analyze finances, plan strategy, and manage operations.
+ARKA OS turns Claude Code into a full company operating system. Instead of one generic AI assistant, you get a team of specialists, each with their own name, personality, DISC behavioral profile, and real expertise. They follow structured workflows, respect authority hierarchies, and produce client-ready output.
 
-Everything they produce is saved to your [Obsidian](https://obsidian.md) vault, so your company knowledge grows with every interaction.
+Everything they produce is saved to your [Obsidian](https://obsidian.md) vault, so your company knowledge compounds with every interaction.
 
-## Key Features
+### Core Principles
 
-- **10 AI Team Members** — A CTO, developer, QA engineer, DevOps, content creator, e-commerce manager, CFO, COO, strategist, and knowledge curator
-- **7 Departments** — Development, Marketing, E-commerce, Finance, Operations, Strategy, Knowledge Base
-- **Project Scaffolding** — Create new projects from real starter templates (Laravel, Nuxt, Vue, React, Next.js) with one command
-- **21 Built-in Integrations** — Connect to Slack, Discord, ClickUp, Shopify, Sentry, GitHub, databases, and more
-- **Obsidian Knowledge Base** — Every report, analysis, and document is saved to your Obsidian vault automatically
-- **External Skills** — Extend ARKA OS with community-built skills from GitHub
-- **Auto-Updates** — Checks for new versions automatically
+1. **One System, Many Departments** — Everything lives here. No scattered projects.
+2. **Personas Are Team Members** — Each agent has a name, personality, expertise, and opinion.
+3. **Knowledge Compounds** — Every interaction can grow the knowledge base.
+4. **Action Over Theory** — Every output must be actionable, not academic.
+5. **Obsidian Is The Brain** — All output goes to the Obsidian vault.
 
 ---
 
@@ -49,174 +47,115 @@ That's it. Type `arka` to start.
 
 ## What Can You Do?
 
-Here are real commands you can run right away:
+You don't need to memorize commands. Just describe what you need in plain text and the orchestrator routes to the right squad automatically.
 
-| Command | What It Does |
-|---------|-------------|
-| `/arka help` | See every available command across all departments |
-| `/dev scaffold laravel my-app` | Create a new Laravel project with everything set up |
-| `/mkt social instagram "New product launch"` | Generate Instagram posts for a product launch |
-| `/fin report monthly` | Generate a monthly financial report |
-| `/strat brainstorm "Enter the US market"` | Run a strategy brainstorm with 5 different perspectives |
-| `/kb learn https://youtube.com/watch?v=...` | Learn from a YouTube video and build a knowledge profile |
+| You type | ARKA OS routes to |
+|----------|-------------------|
+| "add user authentication" | `/dev feature` — Full 9-phase dev squad workflow |
+| "create posts about AI" | `/mkt social` — Luna and the marketing squad |
+| "how much did we make last month" | `/fin report` — Helena and the finance squad |
+| "audit my store" | `/ecom audit` — Ricardo and the e-commerce squad |
+| "brainstorm entering the US market" | `/strat brainstorm` — Tomas and the strategy squad |
+| "learn from this YouTube video" | `/kb learn` — Clara and the knowledge squad |
+| "design our brand identity" | `/brand identity` — Valentina and the brand squad |
+
+Or use explicit commands for direct access:
+
+```bash
+/dev scaffold laravel my-app        # Create a new Laravel project
+/mkt calendar monthly               # Generate a content calendar
+/fin forecast Q2                    # Create a quarterly forecast
+/brand colors "tech startup"        # Generate a color palette
+```
 
 ---
 
-## Your AI Team
+## Your AI Team (19 Agents)
 
-Every team member has a name, a personality, and real expertise. They don't just answer questions — they have opinions and push back when something doesn't make sense.
+Every team member has a name, a DISC behavioral profile, a tier in the authority hierarchy, and real expertise.
 
-| Name | Role | What They Do |
-|------|------|-------------|
-| **Marco** | CTO | Makes architecture decisions, reviews code, prioritizes security and scalability |
-| **Andre** | Senior Developer | Writes code, follows patterns, handles edge cases, tests everything |
-| **Rita** | QA Engineer | Tests happy paths, sad paths, and edge cases — finds what will break |
-| **Carlos** | DevOps Engineer | Automates deployments, manages infrastructure, monitors systems |
-| **Luna** | Content Creator | Creates platform-native content for Instagram, LinkedIn, TikTok, YouTube, X |
-| **Ricardo** | E-commerce Manager | Optimizes stores, analyzes conversions, scales revenue |
-| **Helena** | CFO | Manages finances, budgets, forecasts, investor pitches, and negotiations |
-| **Sofia** | COO | Runs operations, creates processes, manages tasks and client onboarding |
-| **Tomas** | Chief Strategist | Analyzes markets, runs brainstorms, plans strategy with proven frameworks |
-| **Clara** | Knowledge Curator | Learns from content, builds expert profiles, organizes company knowledge |
+### Development Department
+
+| Name | Role | Tier | DISC | Specialty |
+|------|------|------|------|-----------|
+| **Marco** | CTO | 0 (Chief) | D-C | Architecture decisions, final technical authority, veto power |
+| **Paulo** | Tech Lead | 1 (Lead) | I-S | Workflow orchestration, team coordination, TODO tracking |
+| **Gabriel** | Architect | 1 (Lead) | C-D | System design, ADRs, API contracts |
+| **Andre** | Senior Backend Dev | 2 (Specialist) | C-S | Laravel, PHP, PostgreSQL, API implementation |
+| **Diana** | Senior Frontend Dev | 2 (Specialist) | I-C | Vue 3, Nuxt 3, React, Next.js, TypeScript |
+| **Bruno** | Security Engineer | 2 (Specialist) | C-D | OWASP Top 10, threat modeling, security audits |
+| **Carlos** | DevOps Lead | 2 (Specialist) | D-C | CI/CD, deployment, monitoring, infrastructure |
+| **Rita** | QA Lead | 3 (Support) | C-S | Test strategy, quality gates, coverage analysis |
+| **Lucas** | Technical Analyst | 3 (Support) | C-I | Research, documentation, library evaluation |
+
+### Other Departments
+
+| Name | Role | Department | Tier | DISC |
+|------|------|-----------|------|------|
+| **Helena** | CFO | Finance | 0 (Chief) | D-C |
+| **Sofia** | COO | Operations | 0 (Chief) | S-C |
+| **Luna** | Content Creator | Marketing | 1 (Lead) | I-D |
+| **Ricardo** | E-commerce Manager | E-commerce | 1 (Lead) | D-I |
+| **Tomas** | Chief Strategist | Strategy | 1 (Lead) | I-D |
+| **Clara** | Knowledge Curator | Knowledge | 1 (Lead) | S-C |
+| **Valentina** | Creative Director | Brand | 1 (Lead) | S-I |
+| **Mateus** | Brand Strategist | Brand | 2 (Specialist) | C-I |
+| **Isabel** | Visual Designer | Brand | 2 (Specialist) | I-S |
+| **Rafael** | Motion Designer | Brand | 2 (Specialist) | D-I |
 
 ---
 
 ## Departments
 
-| Prefix | Department | What It Does |
-|--------|-----------|-------------|
-| `/arka` | System | Daily standups, system status, monitoring, project onboarding |
-| `/dev` | Development | Scaffold projects, write features, review code, manage integrations |
-| `/mkt` | Marketing | Social media posts, content calendars, ad copy, email sequences |
-| `/ecom` | E-commerce | Store audits, product optimization, pricing strategy, launch plans |
-| `/fin` | Finance | Financial reports, budgets, forecasts, investor prep, negotiation |
-| `/ops` | Operations | Task management, emails, calendar, meetings, messaging channels |
-| `/strat` | Strategy | Market analysis, brainstorming, SWOT, competitive intelligence |
-| `/kb` | Knowledge | Learn from videos/articles, build expert personas, search knowledge |
+| Prefix | Department | Lead | What It Does |
+|--------|-----------|------|-------------|
+| `/arka` | System | — | Daily standups, system status, monitoring, universal orchestrator |
+| `/dev` | Development | Paulo | Scaffold projects, implement features (9-phase workflow), code review, APIs, debugging |
+| `/mkt` | Marketing | Luna | Social media, content calendars, ads, email sequences, blog articles |
+| `/ecom` | E-commerce | Ricardo | Store audits, product optimization, pricing, launch plans |
+| `/fin` | Finance | Helena | Financial reports, budgets, forecasts, investor prep, negotiations |
+| `/ops` | Operations | Sofia | Task management, emails, calendar, messaging channels, automations |
+| `/strat` | Strategy | Tomas | Market analysis, brainstorming (5 perspectives), SWOT, competitive intelligence |
+| `/kb` | Knowledge | Clara | Learn from videos/articles, build expert personas, search knowledge |
+| `/brand` | Brand | Valentina | Brand identity, colors, logos, mockups, photoshoots, videos, naming |
 
 ---
 
-## Available Commands
+## Constitution (9 NON-NEGOTIABLE Rules)
 
-### System (`/arka`)
+ARKA OS enforces governance rules at three levels. The 9 NON-NEGOTIABLE rules cannot be bypassed:
 
-| Command | What It Does |
-|---------|-------------|
-| `/arka help` | Show all commands from all departments |
-| `/arka standup` | Daily summary — projects, tasks, meetings, emails |
-| `/arka status` | System status — version, departments, personas, integrations |
-| `/arka monitor` | Check for tech stack updates and recommendations |
-| `/arka onboard <project>` | Set up a new project with context files and Obsidian page |
-
-### Development (`/dev`)
-
-| Command | What It Does |
-|---------|-------------|
-| `/dev scaffold <type> <name>` | Create a new project from a starter template |
-| `/dev feature <description>` | Implement a new feature following project conventions |
-| `/dev review` | Get a code review from the CTO |
-| `/dev test` | Run tests and get a quality report |
-| `/dev deploy <env>` | Deploy to staging or production |
-| `/dev db migrate` | Run database migrations |
-| `/dev mcp apply <profile>` | Set up integrations for a project |
-| `/dev mcp add <name>` | Add a single integration to a project |
-| `/dev mcp list` | Show all available integrations |
-| `/dev mcp status` | Show active integrations for current project |
-| `/dev skill install <url>` | Install an external skill |
-| `/dev skill list` | List installed external skills |
-| `/dev skill remove <name>` | Remove an external skill |
-| `/dev skill create <name>` | Create a new skill from the template |
-
-### Marketing (`/mkt`)
-
-| Command | What It Does |
-|---------|-------------|
-| `/mkt social <platform> <topic>` | Generate social media posts |
-| `/mkt calendar <period>` | Create a content calendar |
-| `/mkt reels <topic>` | Script short-form video content (Reels, TikTok, Shorts) |
-| `/mkt email <type> <topic>` | Write email sequences |
-| `/mkt landing <product>` | Create landing page copy |
-| `/mkt ads <platform> <product>` | Write ad copy for any platform |
-| `/mkt affiliate <analysis>` | Analyze affiliate marketing opportunities |
-| `/mkt blog <topic>` | Write a blog article |
-| `/mkt copy-analysis <url>` | Analyze existing copy and suggest improvements |
-| `/mkt brand-guide` | Create brand guidelines |
-| `/mkt audit` | Run a full marketing audit |
-
-### E-commerce (`/ecom`)
-
-| Command | What It Does |
-|---------|-------------|
-| `/ecom audit <store-url>` | Full store audit (UX, SEO, performance, content, conversion) |
-| `/ecom product <listing>` | Optimize a product listing |
-| `/ecom pricing <product>` | Analyze and recommend pricing strategy |
-| `/ecom competitors <niche>` | Competitive analysis for your niche |
-| `/ecom launch <product>` | Create a product launch plan |
-| `/ecom ads <product>` | Create ad campaigns for products |
-| `/ecom email-flows` | Design automated email sequences |
-| `/ecom report` | Generate e-commerce performance report |
-
-### Finance (`/fin`)
-
-| Command | What It Does |
-|---------|-------------|
-| `/fin report <type>` | Generate financial reports (monthly, quarterly, annual) |
-| `/fin forecast <period>` | Create revenue and expense forecasts |
-| `/fin budget <project>` | Build a project or company budget |
-| `/fin negotiate <context>` | Prepare for a negotiation with strategy and talking points |
-| `/fin pitch <context>` | Prepare an investor pitch with financial data |
-| `/fin analysis <topic>` | Run financial analysis on any topic |
-| `/fin investment <opportunity>` | Analyze an investment opportunity |
-| `/fin portfolio` | Review and manage investment portfolio |
-| `/fin invoice <client>` | Generate an invoice |
-
-### Operations (`/ops`)
-
-| Command | What It Does |
-|---------|-------------|
-| `/ops tasks` | View and manage tasks (via ClickUp) |
-| `/ops email <type>` | Draft professional emails |
-| `/ops calendar` | View upcoming calendar events |
-| `/ops meeting <topic>` | Prepare meeting agenda and materials |
-| `/ops invoice <client>` | Generate and track invoices |
-| `/ops automate <process>` | Design process automations |
-| `/ops report` | Generate operational reports |
-| `/ops onboard <client>` | Create client onboarding workflow |
-| `/ops standup` | Run daily standup review |
-| `/ops channel add <platform> <id>` | Add a messaging channel (Slack, Discord, WhatsApp, Teams) |
-| `/ops channel list` | Show configured messaging channels |
-| `/ops channel remove <platform>` | Remove a messaging channel |
-| `/ops notify <message>` | Send a message to the default channel |
-| `/ops broadcast <message>` | Send a message to all channels |
-
-### Strategy (`/strat`)
-
-| Command | What It Does |
-|---------|-------------|
-| `/strat brainstorm <topic>` | Structured brainstorm with 5 perspectives |
-| `/strat market <industry>` | Full market analysis (TAM/SAM/SOM) |
-| `/strat prospect <criteria>` | Find and analyze potential clients |
-| `/strat compete <competitor>` | Competitive intelligence report |
-| `/strat swot <business>` | SWOT analysis |
-| `/strat evaluate <idea>` | Evaluate a business idea |
-| `/strat pivot <context>` | Analyze strategic pivot options |
-| `/strat roadmap <product>` | Create a product or business roadmap |
-| `/strat trends <industry>` | Analyze industry trends |
-
-### Knowledge Base (`/kb`)
-
-| Command | What It Does |
-|---------|-------------|
-| `/kb learn <source>` | Learn from a YouTube video, article, or text |
-| `/kb search <query>` | Search the knowledge base |
-| `/kb persona list` | List all expert personas |
-| `/kb persona <name>` | View a specific persona's profile |
-| `/kb topic <name>` | View or create a topic page |
-| `/kb generate <persona> <topic>` | Generate content in a persona's voice and style |
+1. **Worktree Isolation** — All code-modifying commands run inside a git worktree
+2. **Obsidian Output** — All department output is saved to the Obsidian vault
+3. **Authority Boundaries** — Agents cannot exceed their tier authority
+4. **Security Gate** — No code ships without a security audit
+5. **Context First** — Always read project context before modifying code
+6. **SOLID + Clean Code** — All code follows SOLID principles and Clean Code practices
+7. **Spec-Driven Development** — No code is written until a detailed spec exists and is approved
+8. **Human Writing** — All text output reads as naturally human-written, with perfect orthography
+9. **Squad Routing** — Every request is routed through the appropriate department squad
 
 ---
 
-## Project Types
+## Development Workflow (9 Phases)
+
+The `/dev feature` and `/dev api` commands follow a 9-phase enterprise workflow:
+
+| Phase | Agent | What Happens |
+|-------|-------|-------------|
+| 0. Specification | Paulo | Interactive spec creation with the user (NON-NEGOTIABLE) |
+| 1. Orchestration | Paulo | Load context, assess complexity, create TODOs, enter worktree |
+| 2. Research | Lucas | Fetch framework docs, search KB, check existing patterns |
+| 3. Architecture | Gabriel + Marco | Design system, write ADR, CTO approval |
+| 4. Implementation | Andre + Diana | Parallel backend + frontend (follows spec) |
+| 5. Self-Critique | Team | Each dev reviews against SOLID + Clean Code checklists |
+| 6. Security Audit | Bruno | OWASP Top 10, input validation, auth review |
+| 7. Quality Assurance | Rita | Test strategy, write tests, coverage gate (80%+) |
+| 8. Documentation | Lucas + Paulo | Save patterns to KB, commit, final report |
+
+---
+
+## Project Scaffolding
 
 Create fully configured projects with one command. Each comes with dependencies installed, integrations configured, and an Obsidian project page.
 
@@ -234,53 +173,82 @@ Create fully configured projects with one command. Each comes with dependencies 
 
 ---
 
-## Integrations
+## Integrations (22 MCPs)
 
-ARKA OS connects to 21 external services. Integrations are automatically configured when you create a project.
+ARKA OS connects to 22 external services via MCP profiles. Integrations are automatically configured per project type.
 
-| Integration | What It Does |
-|------------|-------------|
-| Obsidian | Reads and writes to your knowledge vault |
-| Context7 | Gets up-to-date documentation for any library |
-| Playwright | Automates browser testing |
-| Memory Bank | Remembers context between sessions |
-| ClickUp | Manages tasks and projects |
-| Firecrawl | Crawls and scrapes websites for research |
-| Sentry | Tracks errors and performance |
-| GitHub Search | Searches across GitHub repositories |
-| Supabase | Manages databases and APIs |
-| Laravel Boost | AI-powered Laravel development tools |
-| Serena | Code intelligence and refactoring |
-| Nuxt UI | Nuxt component library |
-| Shopify | Shopify store development |
-| Slack | Send and receive Slack messages |
-| Discord | Discord bot and messaging |
-| WhatsApp | WhatsApp Business messaging |
-| Teams | Microsoft Teams messaging |
-| PostgreSQL | Direct database access |
+| Profile | Includes |
+|---------|----------|
+| **base** | Obsidian, Context7, Playwright, Memory Bank, Sentry, GitHub Search, ClickUp, Firecrawl, Supabase |
+| **laravel** | base + Laravel Boost, Serena |
+| **nuxt** | base + Nuxt, Nuxt UI |
+| **vue** | base + Nuxt UI |
+| **react/nextjs** | base + Next DevTools |
+| **ecommerce** | base + Laravel Boost, Serena, Mirakl, Shopify Dev |
+| **full-stack** | base + Laravel Boost, Serena, Nuxt, Nuxt UI |
+| **brand** | base + Canva |
+| **comms** | base + Slack, Discord, WhatsApp, Teams |
 
-[Full integration setup guide &rarr;](docs/INTEGRATIONS.md)
+Apply integrations to any project:
+
+```bash
+/dev mcp apply laravel    # Apply Laravel profile
+/dev mcp add shopify-dev  # Add a single integration
+/dev mcp status           # Show active integrations
+```
 
 ---
 
-## Community vs Pro
+## Plugins
 
-| Feature | Community (Free) | Pro |
-|---------|:-:|:-:|
-| 7 departments | Yes | Yes |
-| 10 AI team members | Yes | Yes |
-| 21 integrations | Yes | Yes |
-| 9 project types | Yes | Yes |
-| External skills | Yes | Yes |
-| CLI + auto-updates | Yes | Yes |
-| Growth Hacker agent | - | Yes |
-| Copywriter agent | - | Yes |
-| Data Analyst agent | - | Yes |
-| Advanced SEO skill | - | Yes |
-| Funnel Builder skill | - | Yes |
-| SaaS Playbook | - | Yes |
+ARKA OS v1.0.0 ships with two Claude Code plugins pre-installed:
 
-[Learn more about Pro &rarr;](https://wizardingcode.com/arka-pro)
+### Superpowers (obra/superpowers)
+
+Agentic skills framework providing structured workflows: brainstorming, TDD, systematic debugging, implementation plans, code review, and verification.
+
+### Claude-Mem (thedotmack/claude-mem)
+
+Persistent memory with vector search. Auto-captures decisions and patterns across sessions with progressive disclosure for token efficiency.
+
+---
+
+## AI Providers
+
+Extensible provider system for image generation, video generation, and text completion with automatic fallback routing.
+
+| Chain | Providers |
+|-------|-----------|
+| Image Generation | OpenAI → FAL → Replicate |
+| Video Generation | FAL → Replicate |
+| Text Completion | OpenRouter |
+
+```bash
+arka providers              # List all providers
+arka providers add <id>     # Add a new provider
+arka providers routing      # Show fallback chains
+```
+
+---
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `arka` | Open Claude Code with ARKA OS |
+| `arka --version` | Show installed version |
+| `arka update` | Pull latest and reinstall |
+| `arka doctor` | Run 16 health checks |
+| `arka doctor --fix` | Auto-repair common issues |
+| `arka gotchas` | Show top 10 recurring errors |
+| `arka test` | Run the bats test suite |
+| `arka team-balance` | Show DISC team distribution |
+| `arka providers` | List AI providers and models |
+| `arka commands` | List all available commands |
+| `arka kb queue` | Show KB job queue |
+| `arka skill install <url>` | Install external skill |
+| `arka skill list` | List installed skills |
+| `arka skill create <name>` | Scaffold a new skill |
 
 ---
 
@@ -299,7 +267,52 @@ arka skill list
 arka skill create my-skill
 ```
 
-[Full external skills guide &rarr;](docs/EXTERNAL-SKILLS.md)
+[Full external skills guide](docs/EXTERNAL-SKILLS.md) | [Skill Standard spec](docs/SKILL-STANDARD.md)
+
+---
+
+## Community vs Pro
+
+| Feature | Community (Free) | Pro |
+|---------|:-:|:-:|
+| 8 departments | Yes | Yes |
+| 19 AI team members | Yes | Yes |
+| 22 integrations | Yes | Yes |
+| 9 project types | Yes | Yes |
+| 2 plugins (Superpowers + Claude-Mem) | Yes | Yes |
+| External skills | Yes | Yes |
+| 9 NON-NEGOTIABLE rules | Yes | Yes |
+| Growth Hacker agent | — | Yes |
+| Copywriter agent | — | Yes |
+| Data Analyst agent | — | Yes |
+| Advanced SEO skill | — | Yes |
+| Funnel Builder skill | — | Yes |
+| SaaS Playbook | — | Yes |
+
+[Learn more about Pro](https://wizardingcode.com/arka-pro)
+
+---
+
+## Health Checks
+
+```bash
+arka doctor        # Run 16 checks
+arka doctor --fix  # Auto-repair
+arka doctor --json # JSON output
+```
+
+Checks: Claude CLI, ARKA install, jq, user profile, status line, hooks, Obsidian vault, departments, personas, MCP registry, prerequisites, capabilities, agent memory, install manifest, gotchas, plugins.
+
+---
+
+## Testing
+
+ARKA OS uses [bats-core](https://github.com/bats-core/bats-core) for testing:
+
+```bash
+arka test    # Run full test suite (134 tests)
+bats tests/  # Run directly
+```
 
 ---
 

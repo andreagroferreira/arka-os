@@ -12,6 +12,9 @@ setup() {
   export TEST_AGENTS_DIR="$TEST_HOME/.claude/agents"
   export TEST_ARKA_CONFIG="$TEST_HOME/.arka-os"
 
+  # Clear hook cache to prevent stale L0 strings from previous runs
+  rm -f /tmp/arka-context-cache/constitution 2>/dev/null
+
   mkdir -p "$TEST_ARKA_OS/hooks" "$TEST_ARKA_OS/knowledge" "$TEST_ARKA_OS/mcps"
   mkdir -p "$TEST_AGENTS_DIR"
   mkdir -p "$TEST_ARKA_CONFIG"

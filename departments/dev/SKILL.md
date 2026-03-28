@@ -62,6 +62,9 @@ Enterprise-grade development team powered by 9 specialized agents.
 | `/dev skill list` | List installed external skills | Marco | — |
 | `/dev skill remove <name>` | Remove external skill | Marco | — |
 | `/dev skill create <name>` | Scaffold new skill from template | Marco + Andre | — |
+| `/dev spec <description>` | Create a feature spec interactively | Paulo | 3 |
+| `/dev spec validate` | Validate existing spec completeness | Paulo | 3 |
+| `/dev spec list` | List specs in current project | Paulo | 3 |
 
 ## Workflow Tiers
 
@@ -69,7 +72,7 @@ Commands are classified by complexity:
 
 | Tier | Phases | Commands |
 |------|--------|----------|
-| **Tier 1 — Full Enterprise** | 8 phases (research → architecture → implement → self-critique → security → QA → docs) | `/dev feature`, `/dev api` |
+| **Tier 1 — Full Enterprise** | 9 phases (spec → research → architecture → implement → self-critique → security → QA → docs) | `/dev feature`, `/dev api` |
 | **Tier 2 — Focused Team** | 3-4 phases (plan → implement → verify → wrap-up) | `/dev debug`, `/dev refactor`, `/dev db` |
 | **Tier 3 — Single/Dual Agent** | 1-2 phases | `/dev review`, `/dev test`, `/dev deploy`, `/dev docs`, `/dev stack-check`, `/dev plan`, `/dev security-audit`, `/dev research` |
 
@@ -171,7 +174,15 @@ Only ask what's genuinely unclear — skip if the request is already specific en
 - Pass enriched context (original description + clarification answers) to the target workflow
 - Execute the full workflow of the target command — do not skip phases
 
-## Workflow: /dev feature (Tier 1 — Full 8-Phase Enterprise)
+## Workflow: /dev feature (Tier 1 — Full 9-Phase Enterprise)
+
+### PHASE 0: SPECIFICATION (Paulo — Tech Lead) [NON-NEGOTIABLE]
+- Check if an approved spec exists for this feature (search Obsidian `Projects/<name>/Specs/`)
+- If no spec exists: invoke spec creation workflow from `departments/dev/skills/spec/SKILL.md`
+- If spec exists but is draft: ask user to review and approve
+- If spec is approved: load it as context for all subsequent phases
+- The spec document is passed to Phase 2 (Research), Phase 3 (Architecture), Phase 4 (Implementation), and Phase 7 (QA) as the source of truth
+- **ABORT if user declines to create or approve a spec** — no code without a spec
 
 ### PHASE 1: ORCHESTRATION (Paulo — Tech Lead)
 - Read project context (PROJECT.md, CLAUDE.md)
@@ -221,9 +232,9 @@ Only ask what's genuinely unclear — skip if the request is already specific en
 - Paulo: Final report with branch, files changed, tests, security status
 - Suggest: "Run `/dev review` for code review, or create PR with `gh pr create`"
 
-## Workflow: /dev api (Tier 1 — Full 8-Phase Enterprise)
+## Workflow: /dev api (Tier 1 — Full 9-Phase Enterprise)
 
-Same 8 phases as `/dev feature` but API-focused:
+Same 9 phases as `/dev feature` (including Phase 0: Specification) but API-focused:
 - Phase 3: Gabriel focuses on API contracts, versioning, rate limiting
 - Phase 4: Andre implements endpoints, Diana skips (unless API has a frontend component)
 - Phase 6: Bruno focuses on auth, input validation, rate limiting, IDOR
@@ -284,7 +295,13 @@ Architecture planning only. No code changes, no worktree.
 - Mark TODOs complete, commit with conventional message
 - Report: what changed, before/after comparison, tests still green
 
-## Workflow: /dev db (Tier 2 — 4 Phases)
+## Workflow: /dev db (Tier 2 — 5 Phases)
+
+### Phase 0: Specification (Paulo) [NON-NEGOTIABLE]
+- Check if an approved spec exists for this schema change
+- If not: invoke spec creation workflow from `departments/dev/skills/spec/SKILL.md`
+- Spec must include Data Model section with entities, fields, relationships, and migrations
+- **ABORT if user declines to create or approve a spec**
 
 ### Step 0: Enter Worktree
 `EnterWorktree(name: "feature-<slug>-migration")`
@@ -391,7 +408,17 @@ No worktree required (read-only).
 
 ## Self-Critique Checklists
 
-Each role has mandatory self-review questions after implementation:
+Each role has mandatory self-review questions after implementation.
+
+**SOLID + Clean Code (ALL roles — NON-NEGOTIABLE):**
+- Single Responsibility? Each class/function does one thing
+- Open/Closed? Extendable without modifying existing code
+- Liskov Substitution? Subtypes replaceable for their base types
+- Interface Segregation? No fat interfaces forcing unused methods
+- Dependency Inversion? Depend on abstractions, not concretions
+- No dead code, no magic numbers, no god classes
+- Max 3 levels of nesting, functions under 30 lines
+- Self-documenting names (no abbreviations, no single-letter vars outside loops)
 
 ### Andre (Backend)
 - N+1 queries? Use eager loading where needed
@@ -438,6 +465,7 @@ Each role has mandatory self-review questions after implementation:
 ## Obsidian Output
 
 All development documentation goes to Obsidian vault at `{{OBSIDIAN_VAULT}}`:
+- **Feature specs:** `Projects/<name>/Specs/SPEC-<slug>.md`
 - **Architecture decisions:** `Projects/<name>/Architecture/ADR-<NNN>.md`
 - **Security audits:** `Projects/<name>/Architecture/Security-Audit-<date>.md`
 - **Tech docs:** `Projects/<name>/Docs/`
@@ -448,6 +476,7 @@ All development documentation goes to Obsidian vault at `{{OBSIDIAN_VAULT}}`:
 
 | Skill | Path | Purpose |
 |-------|------|---------|
+| Spec | `departments/dev/skills/spec/SKILL.md` | Spec-driven development gate — creates specs before code (NON-NEGOTIABLE) |
 | Scaffold | `departments/dev/skills/scaffold/SKILL.md` | Project creation from git repos with auto MCP + Obsidian |
 | Onboard | `departments/dev/skills/onboard/SKILL.md` | Onboard existing projects with auto stack detection + MCP + Obsidian |
 | MCP | `departments/dev/skills/mcp/SKILL.md` | MCP profile management per project |

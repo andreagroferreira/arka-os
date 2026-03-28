@@ -143,8 +143,10 @@ The [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) r
 - **React/Next.js:** TypeScript, Server Components, App Router, shadcn/ui
 - **Python:** Type hints, docstrings, virtual environments
 - **Git:** Conventional commits, feature branches, PR reviews
+- **SOLID (NON-NEGOTIABLE):** Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion — enforced on all code
+- **Clean Code (NON-NEGOTIABLE):** Self-documenting names, no dead code, no magic numbers, no god classes, max 3 levels of nesting, functions under 30 lines
 - **Never:** Options API, raw SQL in controllers, business logic in controllers
-- **Enterprise workflow:** All `/dev feature` and `/dev api` commands follow an 8-phase workflow: orchestration → research → architecture → implementation → self-critique → security audit → QA → documentation
+- **Enterprise workflow:** All `/dev feature` and `/dev api` commands follow a 9-phase workflow: specification → orchestration → research → architecture → implementation → self-critique ��� security audit → QA → documentation
 
 ## Development Worktree (Mandatory)
 
@@ -167,6 +169,33 @@ All `/dev` commands that modify project code MUST run inside a git worktree. Thi
 3. All code changes happen inside the worktree (isolated branch)
 4. Work is committed with conventional commit message
 5. User can review, create PR, or merge
+
+## Spec-Driven Development (Mandatory)
+
+All code-modifying dev commands (`/dev feature`, `/dev api`, `/dev db`, and code-modifying `/dev do`) require an approved spec before implementation begins. The spec is created interactively with the user and saved to Obsidian at `Projects/<name>/Specs/SPEC-<slug>.md`.
+
+**Enforced by:** Constitution NON-NEGOTIABLE rule #7 + `departments/dev/skills/spec/SKILL.md`
+
+**Commands:**
+- `/dev spec <description>` — Create a feature spec interactively
+- `/dev spec validate` — Validate existing spec completeness
+- `/dev spec list` — List specs in current project
+
+## Human Writing Standard (Mandatory)
+
+All text output across all departments must read as naturally human-written. No AI patterns, no dashes as sentence connectors, perfect orthography, varied sentence structure. Respects the target language's tone and idiomatic expressions.
+
+**Enforced by:** Constitution NON-NEGOTIABLE rule #8 + `arka/skills/human-writing/SKILL.md`
+
+**Key rules:** No em-dashes as connectors, no "leverage/utilize/robust/streamline", correct accentuation in all languages, active voice by default, concrete facts over vague qualifiers.
+
+## Squad Routing (Mandatory)
+
+Every user request MUST be routed through the appropriate department squad. ARKA OS never responds as a generic assistant. Plain text input is equivalent to `/do` and is resolved to a department command via the registry. The orchestrator uses hook context (`[dept:]`, `[hint:]`), project context (CWD, PROJECT.md), and registry keyword matching to determine the correct squad, even when the user omits the command prefix.
+
+**Enforced by:** Constitution NON-NEGOTIABLE rule #9 + `arka/SKILL.md` Squad Routing section
+
+**Key rule:** There is no request "too simple" for squad routing. Even a one-line fix goes through the dev squad workflow.
 
 ## Laravel Mandatory Packages
 
@@ -456,7 +485,7 @@ Config: `config/statusline.sh`
 
 `CONSTITUTION.md` defines governance rules with 3 enforcement levels:
 
-- **NON-NEGOTIABLE** (5 rules): Worktree isolation, Obsidian output, authority boundaries, security gate, context-first
+- **NON-NEGOTIABLE** (9 rules): Worktree isolation, Obsidian output, authority boundaries, security gate, context-first, SOLID + Clean Code, spec-driven development, human writing, squad routing
 - **MUST** (5 rules): Conventional commits, test coverage ≥80%, pattern matching, actionable output, memory persistence
 - **SHOULD** (4 rules): Research before building, self-critique, KB contribution, complexity assessment
 
@@ -603,7 +632,7 @@ ARKA OS uses [bats-core](https://github.com/bats-core/bats-core) for testing:
 | `arka test` | Run full test suite |
 | `bats tests/` | Run directly |
 
-Test files: `tests/cli.bats`, `tests/hooks.bats`, `tests/doctor.bats`, `tests/statusline.bats`, `tests/disc.bats`, `tests/orchestrator.bats`, `tests/brand.bats`
+Test files: `tests/cli.bats`, `tests/hooks.bats`, `tests/doctor.bats`, `tests/statusline.bats`, `tests/disc.bats`, `tests/orchestrator.bats`, `tests/brand.bats`, `tests/constitution.bats`
 CI: `.github/workflows/test.yml` (runs on push/PR to master)
 
 ## Doctor System
@@ -761,8 +790,13 @@ arka-os/
 │       ├── user-prompt-submit.sh     # 6-layer context injection
 │       ├── post-tool-use.sh          # Gotchas error tracking
 │       └── pre-compact.sh            # Session digest preservation
+├── arka/
+│   ├── SKILL.md                      # Main orchestrator
+│   └── skills/
+│       └── human-writing/SKILL.md    # Core writing quality gate (NON-NEGOTIABLE)
 ├── departments/
 │   ├── dev/agents/                   # 9 dev agents (cto, tech-lead, architect, ...)
+│   ├── dev/skills/spec/SKILL.md      # Spec-driven development gate (NON-NEGOTIABLE)
 │   ├── finance/agents/cfo.md         # Helena
 │   ├── operations/agents/coo.md      # Sofia
 │   ├── marketing/agents/             # Luna
@@ -778,7 +812,8 @@ arka-os/
 │   ├── statusline.bats              # Status line tests
 │   ├── disc.bats                    # DISC framework tests
 │   ├── orchestrator.bats            # Universal orchestrator tests
-│   └── brand.bats                   # Brand department + provider tests
+│   ├── brand.bats                   # Brand department + provider tests
+│   └── constitution.bats            # Constitution rules + new skills tests
 ├── .github/workflows/test.yml        # CI (bats-core on push/PR)
 └── docs/                             # User-facing documentation
 ```
