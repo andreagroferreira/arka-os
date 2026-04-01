@@ -40,7 +40,6 @@ DIR_NAME=$(basename "${WORK_DIR:-arka}")
 GIT_CACHE="/tmp/arka-statusline-git-cache"
 CACHE_MAX_AGE=5
 BRANCH=""
-IN_WORKTREE=""
 
 if [ -n "$WORK_DIR" ] && [ -d "$WORK_DIR" ]; then
   CACHE_KEY=$(echo "$WORK_DIR" | md5 2>/dev/null || echo "$WORK_DIR" | md5sum 2>/dev/null | cut -d' ' -f1)
@@ -48,18 +47,12 @@ if [ -n "$WORK_DIR" ] && [ -d "$WORK_DIR" ]; then
 
   if [ -f "$CACHE_FILE" ] && [ $(($(date +%s) - $(stat -f%m "$CACHE_FILE" 2>/dev/null || stat -c%Y "$CACHE_FILE" 2>/dev/null || echo 0))) -lt $CACHE_MAX_AGE ]; then
     # Read from cache
-    IFS='|' read -r BRANCH IN_WORKTREE < "$CACHE_FILE"
+    BRANCH=$(cat "$CACHE_FILE" 2>/dev/null)
   else
     # Fresh git query
     BRANCH=$(git -C "$WORK_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-    # Detect worktree
-    GIT_DIR=$(git -C "$WORK_DIR" rev-parse --git-dir 2>/dev/null || echo "")
-    if [[ "$GIT_DIR" == *"/worktrees/"* ]]; then
-      WT_NAME=$(basename "$GIT_DIR")
-      IN_WORKTREE="$WT_NAME"
-    fi
     # Write cache
-    echo "${BRANCH}|${IN_WORKTREE}" > "$CACHE_FILE" 2>/dev/null
+    echo "${BRANCH}" > "$CACHE_FILE" 2>/dev/null
   fi
 fi
 
@@ -130,11 +123,6 @@ LINE1="${C_CYAN}▲ARKA${C_RESET}  ${C_WHITE}${DIR_NAME}${C_RESET}"
 # Git branch (hidden on main/master to reduce noise)
 if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ]; then
   LINE1+="  ${C_DIM}on${C_RESET} ${C_GREEN}${BRANCH}${C_RESET}"
-fi
-
-# Worktree indicator
-if [ -n "$IN_WORKTREE" ]; then
-  LINE1+="  ${C_YELLOW}[wt:${IN_WORKTREE}]${C_RESET}"
 fi
 
 LINE1+="  ${C_DIM}|${C_RESET}  ${MODEL}"

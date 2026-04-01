@@ -98,10 +98,10 @@ extract_commands() {
       --arg description "$description" \
       --arg lead_agent "$lead_agent" \
       --argjson tier "$tier" \
-      --argjson requires_worktree "$rw" \
+      --argjson requires_branch "$rw" \
       --argjson modifies_code "$mc" \
       --arg source "$source" \
-      '{id:$id,command:$command,department:$department,description:$description,lead_agent:$lead_agent,tier:$tier,requires_worktree:$requires_worktree,modifies_code:$modifies_code,keywords:[],examples:[],source:$source}'
+      '{id:$id,command:$command,department:$department,description:$description,lead_agent:$lead_agent,tier:$tier,requires_branch:$requires_branch,modifies_code:$modifies_code,keywords:[],examples:[],source:$source}'
   done
 }
 

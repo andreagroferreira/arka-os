@@ -15,6 +15,70 @@ description: >
 
 Company operations, automations, and routine process management.
 
+## Universal Workflow (7-Phase — NON-NEGOTIABLE)
+
+Every operations command follows this workflow. No exceptions. No shortcuts.
+
+### Phase 0: BRIEF (Sofia)
+- Clarify the request: which process, who is involved, urgency, dependencies
+- Check ClickUp for existing task context
+- Check Calendar for scheduling conflicts
+- Save brief to Obsidian: `WizardingCode/Operations/Briefs/BRIEF-<slug>.md`
+- **Gate:** Brief confirmed by user before proceeding
+
+### Phase 1: CHALLENGE & RESEARCH (Lucas — Analyst)
+- Research best practices for the process type
+- Check if similar SOPs exist in Obsidian KB
+- Challenge the approach: "Best practice for X is Y, should we follow that instead?"
+- Evaluate efficiency: is this the most streamlined approach?
+- Present findings to user
+- **Gate:** User approves the approach
+
+### Phase 2: PLANNING (Sofia)
+- Define execution steps and timeline
+- Create TODO list with `TaskCreate` (one task per action)
+- Identify tools needed: ClickUp, Gmail, Calendar, messaging channels
+- Define success criteria
+
+### Phase 3: EXECUTION (Sofia)
+- Execute via MCPs: ClickUp tasks, Gmail drafts, Calendar events
+- Create SOPs in Obsidian if process is repeatable
+- Document every action taken
+- Tasks executed ONE AT A TIME, each validated before the next
+
+### Phase 4: SELF-CRITIQUE (Sofia)
+- Checklist: nothing forgotten, dates correct, all tasks created
+- SOPs complete and actionable?
+- Email drafts professional and error-free?
+
+### Phase 5: SUPERVISION (Marco — CTO or Helena — CFO)
+- Tech operations → Marco reviews
+- Financial operations → Helena reviews
+- Process operations → Sofia self-supervises with escalation path
+- **Gate:** Supervisor approves or sends back to Phase 3
+
+### Phase 6: QUALITY GATE (Marta — CQO)
+- Marta dispatches Eduardo (email copy, SOP text) + Francisca (task configuration, automation logic)
+- Eduardo: email drafts professionally written, SOP clear and complete, zero errors
+- Francisca: ClickUp tasks correctly configured, calendar events accurate, automation logic sound
+- Marta aggregates verdict:
+  - **APPROVED** → Proceed to Phase 7
+  - **REJECTED** → Exact issue list, return to Phase 3
+- **NO OUTPUT REACHES THE USER WITHOUT MARTA'S APPROVAL**
+
+### Phase 7: DELIVERY (Sofia)
+- Save to Obsidian: `WizardingCode/Operations/<type>/`
+- Confirmation of all actions taken
+- Report what was delivered vs. what was in the brief
+
+### Visibility (NON-NEGOTIABLE)
+Every phase transition is announced to the user:
+- "📋 Phase 0: Clarifying process and checking existing context..."
+- "🔍 Phase 1: Lucas researching best practices..."
+- "⚙️ Phase 3: Sofia executing via ClickUp and Gmail..."
+- "🔒 Phase 6: Quality Gate — Eduardo + Francisca reviewing..."
+- "✅ Phase 6: APPROVED by Marta. Proceeding to delivery."
+
 ## Commands
 
 | Command | Description |

@@ -18,10 +18,10 @@ load helpers/setup
   [ "$output" -ge 8 ]
 }
 
-@test "agents-registry.json is valid JSON with 19 agents" {
+@test "agents-registry.json is valid JSON with 22 agents" {
   run jq '.agents | length' "$REPO_DIR/knowledge/agents-registry.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "19" ]
+  [ "$output" = "22" ]
 }
 
 @test "agents-registry.json team_composition counts match agents array" {

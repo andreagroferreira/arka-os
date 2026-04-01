@@ -15,6 +15,70 @@ description: >
 
 Store management, product optimization, and e-commerce growth.
 
+## Universal Workflow (7-Phase — NON-NEGOTIABLE)
+
+Every e-commerce command follows this workflow. No exceptions. No shortcuts.
+
+### Phase 0: BRIEF (Ricardo)
+- Clarify the request: store data, objective, current metrics, constraints
+- Load store context via Shopify MCP or WebFetch
+- Save brief to Obsidian: `WizardingCode/Ecommerce/Briefs/BRIEF-<slug>.md`
+- **Gate:** Brief confirmed by user before proceeding
+
+### Phase 1: CHALLENGE & RESEARCH (Tomas — Strategy + Helena — CFO)
+- Tomas: market positioning, competitor analysis, strategic angle
+- Helena: financial viability, margin impact, ROI projection
+- Challenge assumptions: "Data shows X, are you sure about Y?"
+- Research benchmarks and competitor pricing
+- Present findings and alternatives to user
+- **Gate:** User approves the approach
+
+### Phase 2: PLANNING (Ricardo)
+- Define strategy with supporting data
+- Create TODO list with `TaskCreate` (one task per deliverable)
+- For pricing: define 3 scenarios (conservative, realistic, aggressive)
+- For products: define optimization priorities
+
+### Phase 3: EXECUTION (Ricardo)
+- Execute the approved plan
+- Product optimization: copy, SEO, variants, attributes
+- Pricing: competitor-informed, margin-validated
+- Tasks executed ONE AT A TIME, each validated before the next
+
+### Phase 4: SELF-CRITIQUE (Ricardo)
+- Do the data support the recommendations?
+- Are all product attributes correct for the category? (NO WiFi on shoes)
+- Are margins positive in all scenarios?
+- Does the copy follow human-writing standards?
+
+### Phase 5: SUPERVISION (Helena — CFO)
+- Financial impact review: margins, ROI, cash flow impact
+- Data validation: are the numbers correct and consistent?
+- **Gate:** Helena approves or sends back to Phase 3
+
+### Phase 6: QUALITY GATE (Marta — CQO)
+- Marta dispatches Eduardo (copy review) + Francisca (data/technical review)
+- Eduardo: product copy quality, descriptions, email campaigns
+- Francisca: data integrity (attributes match category), Shopify push validation, pricing consistency
+- Marta aggregates verdict:
+  - **APPROVED** → Proceed to Phase 7
+  - **REJECTED** → Exact issue list, return to Phase 3
+- **NO OUTPUT REACHES THE USER WITHOUT MARTA'S APPROVAL**
+
+### Phase 7: DELIVERY (Ricardo)
+- Apply via Shopify MCP (only if user approved push)
+- Save to Obsidian: `WizardingCode/Ecommerce/<type>/`
+- Report with before/after metrics where applicable
+- Report what was delivered vs. what was in the brief
+
+### Visibility (NON-NEGOTIABLE)
+Every phase transition is announced to the user:
+- "📋 Phase 0: Loading store context and creating brief..."
+- "🔍 Phase 1: Tomas and Helena challenging the approach..."
+- "💰 Phase 5: Helena reviewing financial impact..."
+- "🔒 Phase 6: Quality Gate — Eduardo + Francisca reviewing..."
+- "✅ Phase 6: APPROVED by Marta. Proceeding to delivery."
+
 ## Commands
 
 | Command | Description |

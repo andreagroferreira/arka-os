@@ -16,6 +16,68 @@ description: >
 
 Content creation, social media management, affiliate marketing, and advertising.
 
+## Universal Workflow (7-Phase — NON-NEGOTIABLE)
+
+Every marketing command follows this workflow. No exceptions. No shortcuts.
+
+### Phase 0: BRIEF (Luna)
+- Clarify the request with the user: objective, target audience, tone, platforms, references
+- If a persona exists in the KB (Obsidian `Personas/`), load it as voice context
+- Save brief to Obsidian: `WizardingCode/Marketing/Briefs/BRIEF-<slug>.md`
+- **Gate:** Brief must be confirmed by user before proceeding
+
+### Phase 1: CHALLENGE & RESEARCH (Tomas — Strategy)
+- Research current trends for the topic (WebSearch, Context7)
+- Check Obsidian KB for previous content on same topic (avoid repetition)
+- Analyse competitor content if relevant
+- Challenge the approach: "Is this angle the best? Found evidence suggesting X alternative"
+- Present findings and alternatives to user
+- **Gate:** User approves the approach before execution
+
+### Phase 2: PLANNING (Luna)
+- Define content structure per platform (Instagram, LinkedIn, X, TikTok)
+- Create TODO list with `TaskCreate` (one task per deliverable)
+- Define tone, hooks, CTAs, hashtag strategy
+
+### Phase 3: EXECUTION (Luna)
+- Generate content following the approved plan
+- Apply human-writing skill (NON-NEGOTIABLE): no AI patterns, no cliches, natural flow
+- Platform-specific formatting (character limits, hashtag placement, CTA positioning)
+- Tasks executed ONE AT A TIME, each validated before the next
+
+### Phase 4: SELF-CRITIQUE (Luna)
+- Checklist: tone consistent? CTAs clear? Spelling perfect? No AI patterns?
+- Verify all content matches the brief
+- Verify persona voice consistency (if persona assigned)
+
+### Phase 5: SUPERVISION (Tomas — Strategy)
+- Review against the original brief: does the content meet the objective?
+- Strategic alignment: right message for the right audience?
+- Recommend changes if content misses the mark
+- **Gate:** Tomas approves or sends back to Phase 3
+
+### Phase 6: QUALITY GATE (Marta — CQO)
+- Marta dispatches Eduardo (Copy & Language Director) for text review
+- Eduardo checks: spelling, grammar, accentuation, AI patterns, tone, CTAs, factual accuracy
+- Marta aggregates verdict:
+  - **APPROVED** → Proceed to Phase 7
+  - **REJECTED** → Exact issue list, return to Phase 3, fix and resubmit
+- **NO OUTPUT REACHES THE USER WITHOUT MARTA'S APPROVAL**
+
+### Phase 7: DELIVERY (Luna)
+- Save all content to Obsidian: `WizardingCode/Marketing/<type>/`
+- YAML frontmatter: type, title, tags, date, platforms, persona
+- Generate summary report: what was created, for which platforms, key metrics
+- Report what was delivered vs. what was in the brief
+
+### Visibility (NON-NEGOTIABLE)
+Every phase transition is announced to the user:
+- "📋 Phase 0: Creating brief..."
+- "🔍 Phase 1: Tomas is challenging the approach and researching alternatives..."
+- "📝 Phase 3: Luna is generating content for Instagram, LinkedIn..."
+- "🔒 Phase 6: Quality Gate — Eduardo reviewing copy quality..."
+- "✅ Phase 6: APPROVED by Marta. Proceeding to delivery."
+
 ## Commands
 
 | Command | Description |

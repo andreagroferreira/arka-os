@@ -94,9 +94,9 @@ Build software. Your enterprise development team of 9: Marco (CTO), Paulo (Tech 
 
 Commands are classified into 3 tiers by complexity. **Tier 1** (feature, api) runs the full 8-phase enterprise workflow: orchestration → research → architecture → implementation → self-critique → security audit → QA → documentation. **Tier 2** (debug, refactor, db) runs 3-4 focused phases. **Tier 3** commands are single/dual agent.
 
-Commands that modify code automatically run inside a **git worktree** — an isolated branch and working directory. This keeps your main branch clean.
+Commands that modify code automatically run on a **dedicated feature branch**. This keeps your main and dev branches clean.
 
-| Command | What It Does | Tier | Worktree? | Example |
+| Command | What It Does | Tier | Branch? | Example |
 |---------|-------------|:----:|:---------:|---------|
 | `/dev do <description>` | Smart orchestrator — describe what you need, Paulo routes to the right workflow | — | Auto | `/dev do "add social login with Google and GitHub"` |
 | `/dev feature <description>` | Implement a new feature (8-phase) | 1 | Yes | `/dev feature "add user registration"` |

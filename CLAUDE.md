@@ -79,11 +79,11 @@ Agentic skills framework that injects structured development workflows into Clau
 - **Executing Plans** — Batch execution with human checkpoints
 - **Subagent-Driven Development** — Per-task subagent dispatch with 2-stage review
 - **Parallel Agents** — Concurrent subagent workflows
-- **Git Worktrees** — Isolated workspace creation (complements ARKA's worktree system)
+- **Git Worktrees** — Isolated workspace creation (Superpowers feature, not used by ARKA's branch workflow)
 - **Code Review** — Pre-review checklist + senior reviewer agent
 - **Verification** — Evidence-based completion verification
 
-**Integration with ARKA OS:** Superpowers skills coexist with ARKA department skills. ARKA's CLAUDE.md takes precedence over Superpowers skill instructions (by design). The worktree skill is complementary — ARKA enforces worktrees via Constitution, Superpowers provides the workflow patterns.
+**Integration with ARKA OS:** Superpowers skills coexist with ARKA department skills. ARKA's CLAUDE.md takes precedence over Superpowers skill instructions (by design). ARKA uses standard git branches for isolation, not git worktrees.
 
 **Marketplace:** `superpowers-marketplace` (obra/superpowers-marketplace)
 
@@ -146,15 +146,15 @@ The [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) r
 - **SOLID (NON-NEGOTIABLE):** Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion — enforced on all code
 - **Clean Code (NON-NEGOTIABLE):** Self-documenting names, no dead code, no magic numbers, no god classes, max 3 levels of nesting, functions under 30 lines
 - **Never:** Options API, raw SQL in controllers, business logic in controllers
-- **Enterprise workflow:** All `/dev feature` and `/dev api` commands follow a 9-phase workflow: specification → orchestration → research → architecture → implementation → self-critique ��� security audit → QA → documentation
+- **Enterprise workflow:** All `/dev feature` and `/dev api` commands follow a 10-phase workflow: specification → orchestration → research → architecture → implementation → self-critique ��� security audit → QA → documentation
 
-## Development Worktree (Mandatory)
+## Development Branches (Mandatory)
 
-All `/dev` commands that modify project code MUST run inside a git worktree. This ensures feature branch isolation, prevents conflicts, and keeps the main branch clean.
+All `/dev` commands that modify project code MUST run on a dedicated feature branch. This ensures branch isolation, prevents conflicts, and keeps main/dev branches clean.
 
-**Enforced by:** `departments/dev/SKILL.md` — every code-modifying command starts with `EnterWorktree`
+**Enforced by:** `departments/dev/SKILL.md` — every code-modifying command starts with branch creation (`git checkout -b`)
 
-**Commands requiring worktree:** `/dev feature`, `/dev api`, `/dev debug`, `/dev refactor`, `/dev db`
+**Commands requiring a feature branch:** `/dev feature`, `/dev api`, `/dev debug`, `/dev refactor`, `/dev db`
 
 **Branch naming:**
 | Type | Prefix | Example |
@@ -165,10 +165,10 @@ All `/dev` commands that modify project code MUST run inside a git worktree. Thi
 
 **Workflow:**
 1. User runs `/dev feature "description"` (or similar)
-2. System calls `EnterWorktree(name: "feature-description")`
-3. All code changes happen inside the worktree (isolated branch)
-4. Work is committed with conventional commit message
-5. User can review, create PR, or merge
+2. System creates a branch: `git checkout -b feature/<slug>` (from `dev`)
+3. All code changes happen on this isolated branch
+4. Work is committed with conventional commit messages
+5. A Merge Request is created targeting `dev`
 
 ## Spec-Driven Development (Mandatory)
 
@@ -476,7 +476,7 @@ Two-line color-coded display showing session context and metrics:
 - Color-coded context bar: green <60%, yellow 60-79%, red 80-89%, blinking red 90%+
 - Token count in K/M format from `context_window.total_input_tokens`
 - Smart git branch: hidden on `main`/`master`
-- Worktree indicator: `[wt:name]` when in a worktree
+- Feature branch indicator: shown when on a non-main/dev branch
 - Cached git operations: `/tmp/arka-statusline-git-cache` (5s TTL)
 
 Config: `config/statusline.sh`
@@ -485,7 +485,8 @@ Config: `config/statusline.sh`
 
 `CONSTITUTION.md` defines governance rules with 3 enforcement levels:
 
-- **NON-NEGOTIABLE** (9 rules): Worktree isolation, Obsidian output, authority boundaries, security gate, context-first, SOLID + Clean Code, spec-driven development, human writing, squad routing
+- **NON-NEGOTIABLE** (13 rules): Branch isolation, Obsidian output, authority boundaries, security gate, context-first, SOLID + Clean Code, spec-driven development, human writing, squad routing, full visibility, sequential task validation, mandatory complete QA, ARKA OS supremacy
+- **QUALITY GATE** (mandatory): Marta (CQO) orchestrates Eduardo (Copy Director) + Francisca (Tech/UX Director). Absolute veto power. Nothing ships without APPROVED verdict from all three.
 - **MUST** (5 rules): Conventional commits, test coverage ≥80%, pattern matching, actionable output, memory persistence
 - **SHOULD** (4 rules): Research before building, self-critique, KB contribution, complexity assessment
 
@@ -493,20 +494,34 @@ Compressed version injected as L0 context layer via UserPromptSubmit hook.
 
 ## Agent Tier Hierarchy
 
-All 19 agents have tier assignments and authority matrices in their YAML frontmatter:
+All 22 agents have tier assignments and authority matrices in their YAML frontmatter:
 
 | Tier | Role | Agents |
 |------|------|--------|
-| 0 (Chief) | Veto power, final decisions | CTO Marco, CFO Helena, COO Sofia |
+| 0 (Chief) | Veto power, final decisions | CTO Marco, CFO Helena, COO Sofia, CQO Marta, Eduardo (Copy), Francisca (Tech/UX) |
 | 1 (Lead) | Orchestrate, design, recommend | Tech Lead Paulo, Architect Gabriel, Luna, Ricardo, Tomas, Clara, Valentina |
 | 2 (Specialist) | Implement within boundaries | Andre, Diana, Bruno, Carlos, Mateus, Isabel, Rafael |
 | 3 (Support) | Validate, research, document | QA Rita, Analyst Lucas |
 
-Authority fields: `veto`, `push`, `deploy`, `block_release`, `approve_architecture`, etc.
+Authority fields: `veto`, `push`, `deploy`, `block_release`, `block_delivery`, `approve_architecture`, `approve_quality`, etc.
+
+## Quality Gate Department
+
+Cross-department quality supervision with absolute veto power. Three Tier 0 agents that review ALL output from ALL departments before delivery:
+
+| Agent | Role | Scope |
+|-------|------|-------|
+| **Marta (CQO)** | Chief Quality Officer | Orchestrates quality review, aggregates verdicts, issues final APPROVED/REJECTED |
+| **Eduardo** | Copy & Language Director | ALL text: spelling, grammar, accentuation, tone, AI patterns, factual accuracy |
+| **Francisca** | Technical & UX Director | ALL technical: code quality, tests, UX/UI, data integrity, security, performance |
+
+**Enforcement:** Quality Gate runs on EVERY workflow. No output reaches the user without Marta's APPROVED verdict. Rejected work loops back to execution with exact issue list.
+
+Agent files: `departments/quality/agents/`
 
 ## DISC Behavioral Framework
 
-All 19 agents have DISC behavioral profiles in their YAML frontmatter (`disc:` block) and a "Behavioral Profile" section covering communication style, behavior under pressure, motivation, feedback style, and conflict approach.
+All 22 agents have DISC behavioral profiles in their YAML frontmatter (`disc:` block) and a "Behavioral Profile" section covering communication style, behavior under pressure, motivation, feedback style, and conflict approach.
 
 ### DISC Profiles
 - **D (Dominant):** Fast-paced, task-focused, results-driven
@@ -537,12 +552,15 @@ All 19 agents have DISC behavioral profiles in their YAML frontmatter (`disc:` b
 | Mateus (Brand) | C | I | Analyst-Inspirer |
 | Isabel (Brand) | I | S | Inspirer-Supporter |
 | Rafael (Brand) | D | I | Driver-Inspirer |
+| Marta (CQO) | C | D | Analyst-Driver |
+| Eduardo (Copy Director) | C | S | Analyst-Supporter |
+| Francisca (Tech/UX Director) | D | C | Driver-Analyst |
 
-**Distribution:** D:5, I:5, S:3, C:6 — S improved from 13% to 16% with brand team.
+**Distribution:** D:6, I:5, S:3, C:8 — 22 agents across 9 departments. C profile dominant (36%) reflecting quality-driven culture.
 
 ### Key Files
 - **Reference:** `config/disc-profiles.json` — 4 profiles, 10 combinations, team balance ideal ranges
-- **Registry:** `knowledge/agents-registry.json` — Machine-readable manifest of all 19 agents with DISC data
+- **Registry:** `knowledge/agents-registry.json` — Machine-readable manifest of all 22 agents with DISC data
 - **Validator:** `config/disc-team-validator.sh` — Team balance checker
 - **CLI:** `arka team-balance` — Display team DISC distribution
 
@@ -575,7 +593,7 @@ Injects 6 cached context layers per prompt (10s timeout, target <200ms):
 | L1 | Signal word matching | Detected department name | None |
 | L2 | Agent memory files | Agent name + last 3 gotchas | 30s |
 | L3 | PROJECT.md / .project-path | Project name + stack info | 30s |
-| L4 | Git worktree detection | Active worktree branch | None |
+| L4 | Git branch detection | Active feature branch | None |
 | L5 | `commands-registry.json` | Command hints for non-slash prompts | 30s |
 | + | `gotchas.json` | Top 2 recurring errors for department (count ≥3) | 30s |
 | + | `date +%H` | Time of day | None |
@@ -653,7 +671,7 @@ CI: `.github/workflows/test.yml` (runs on push/PR to master)
 | 10 | `mcp-registry` | fail | MCP registry.json present |
 | 11 | `prerequisites` | warn | yt-dlp, ffmpeg, python3 |
 | 12 | `capabilities` | warn | capabilities.json < 7 days old |
-| 13 | `agent-memory` | warn | 19 agent memory files exist |
+| 13 | `agent-memory` | warn | 22 agent memory files exist |
 | 14 | `install-manifest` | warn | Manifest exists and valid |
 | 15 | `gotchas` | warn | Gotchas file exists and is valid JSON |
 | 16 | `plugins` | warn | Superpowers + Claude-Mem plugins installed |
@@ -718,7 +736,7 @@ Cleanup: `/kb cleanup --older-than 90d` removes completed job media older than 9
 ARKA OS has a 5-layer memory architecture:
 
 - **Obsidian Vault** — Primary knowledge store (personas, topics, sources, reports)
-- **Agent Memory** — Per-agent persistent memory at `~/.claude/agent-memory/arka-<name>/MEMORY.md` (19 files, one per agent). Stores key decisions, recurring patterns, gotchas, learned preferences, and project-specific notes. Never overwritten on update.
+- **Agent Memory** — Per-agent persistent memory at `~/.claude/agent-memory/arka-<name>/MEMORY.md` (22 files, one per agent). Stores key decisions, recurring patterns, gotchas, learned preferences, and project-specific notes. Never overwritten on update.
 - **Claude-Mem (Vector Memory)** — Semantic vector search memory via Claude-Mem plugin. Auto-captures decisions and patterns across sessions. Storage at `~/.claude-mem/` (SQLite + Chroma). Provides progressive disclosure search (compact IDs → full details) for 10x token savings.
 - **Gotchas** — Recurring error tracking at `~/.arka-os/gotchas.json`. Auto-populated by PostToolUse hook, surfaced via L0 context injection and `arka gotchas` CLI.
 - **Memory Bank MCP** — Persistent session-to-session memory
@@ -803,7 +821,8 @@ arka-os/
 │   ├── ecommerce/agents/             # Ricardo
 │   ├── strategy/agents/              # Tomas
 │   ├── knowledge/agents/             # Clara
-│   └── brand/agents/                # Valentina, Mateus, Isabel, Rafael
+│   ├── brand/agents/                # Valentina, Mateus, Isabel, Rafael
+│   └── quality/agents/              # Marta (CQO), Eduardo (Copy), Francisca (Tech/UX)
 ├── tests/
 │   ├── helpers/setup.bash            # Common test helpers
 │   ├── cli.bats                      # CLI routing tests
@@ -820,7 +839,7 @@ arka-os/
 
 **Runtime files (not in repo):**
 ```
-~/.claude/agent-memory/arka-*/MEMORY.md   # 19 agent memory files
+~/.claude/agent-memory/arka-*/MEMORY.md   # 22 agent memory files
 ~/.claude/plugins/                         # Claude Code plugins (superpowers, claude-mem)
 ~/.claude-mem/                             # Claude-Mem vector DB (SQLite + Chroma)
 ~/.arka-os/gotchas.json                    # Recurring error patterns

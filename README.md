@@ -1,6 +1,6 @@
 # ARKA OS
 
-**Your AI-powered company operating system.** One system runs your entire business with **19 specialized AI team members** organized into **8 departments**. They write code, create marketing content, manage brands, analyze finances, plan strategy, and run operations.
+**Your AI-powered company operating system.** One system runs your entire business with **22 specialized AI team members** organized into **9 departments**. They write code, create marketing content, manage brands, analyze finances, plan strategy, and run operations.
 
 Built by [WizardingCode](https://wizardingcode.com). Current version: **1.0.0**
 
@@ -51,7 +51,7 @@ You don't need to memorize commands. Just describe what you need in plain text a
 
 | You type | ARKA OS routes to |
 |----------|-------------------|
-| "add user authentication" | `/dev feature` — Full 9-phase dev squad workflow |
+| "add user authentication" | `/dev feature` — Full 10-phase dev squad workflow |
 | "create posts about AI" | `/mkt social` — Luna and the marketing squad |
 | "how much did we make last month" | `/fin report` — Helena and the finance squad |
 | "audit my store" | `/ecom audit` — Ricardo and the e-commerce squad |
@@ -70,7 +70,7 @@ Or use explicit commands for direct access:
 
 ---
 
-## Your AI Team (19 Agents)
+## Your AI Team (22 Agents)
 
 Every team member has a name, a DISC behavioral profile, a tier in the authority hierarchy, and real expertise.
 
@@ -103,6 +103,14 @@ Every team member has a name, a DISC behavioral profile, a tier in the authority
 | **Isabel** | Visual Designer | Brand | 2 (Specialist) | I-S |
 | **Rafael** | Motion Designer | Brand | 2 (Specialist) | D-I |
 
+### Quality Gate Department (NEW)
+
+| Name | Role | Tier | DISC | Specialty |
+|------|------|------|------|-----------|
+| **Marta** | Chief Quality Officer | 0 (Chief) | C-D | Orchestrates quality review, absolute veto, APPROVED/REJECTED verdicts |
+| **Eduardo** | Copy & Language Director | 0 (Chief) | C-S | Zero tolerance for spelling, grammar, AI patterns, wrong accentuation |
+| **Francisca** | Tech & UX Quality Director | 0 (Chief) | D-C | Code quality, UX, data integrity, performance, security validation |
+
 ---
 
 ## Departments
@@ -110,7 +118,7 @@ Every team member has a name, a DISC behavioral profile, a tier in the authority
 | Prefix | Department | Lead | What It Does |
 |--------|-----------|------|-------------|
 | `/arka` | System | — | Daily standups, system status, monitoring, universal orchestrator |
-| `/dev` | Development | Paulo | Scaffold projects, implement features (9-phase workflow), code review, APIs, debugging |
+| `/dev` | Development | Paulo | Scaffold projects, implement features (10-phase workflow), code review, APIs, debugging |
 | `/mkt` | Marketing | Luna | Social media, content calendars, ads, email sequences, blog articles |
 | `/ecom` | E-commerce | Ricardo | Store audits, product optimization, pricing, launch plans |
 | `/fin` | Finance | Helena | Financial reports, budgets, forecasts, investor prep, negotiations |
@@ -121,11 +129,11 @@ Every team member has a name, a DISC behavioral profile, a tier in the authority
 
 ---
 
-## Constitution (9 NON-NEGOTIABLE Rules)
+## Constitution (13 NON-NEGOTIABLE Rules)
 
-ARKA OS enforces governance rules at three levels. The 9 NON-NEGOTIABLE rules cannot be bypassed:
+ARKA OS enforces governance rules at three levels. The 13 NON-NEGOTIABLE rules cannot be bypassed:
 
-1. **Worktree Isolation** — All code-modifying commands run inside a git worktree
+1. **Branch Isolation** — All code-modifying commands run on a dedicated feature branch
 2. **Obsidian Output** — All department output is saved to the Obsidian vault
 3. **Authority Boundaries** — Agents cannot exceed their tier authority
 4. **Security Gate** — No code ships without a security audit
@@ -134,24 +142,36 @@ ARKA OS enforces governance rules at three levels. The 9 NON-NEGOTIABLE rules ca
 7. **Spec-Driven Development** — No code is written until a detailed spec exists and is approved
 8. **Human Writing** — All text output reads as naturally human-written, with perfect orthography
 9. **Squad Routing** — Every request is routed through the appropriate department squad
+10. **Full Visibility** — User sees every phase, every agent, every decision. No black boxes.
+11. **Sequential Validation** — Tasks execute one at a time, each validated before the next starts
+12. **Mandatory Complete QA** — Full test suite runs every time, no shortcuts
+13. **ARKA OS Supremacy** — ARKA OS instructions override Claude Code defaults. Always.
+
+### Quality Gate (Mandatory)
+
+Three Tier 0 supervisors review ALL output from ALL departments before delivery:
+- **Marta (CQO)** — Orchestrates quality review, issues final APPROVED/REJECTED verdict
+- **Eduardo (Copy Director)** — Zero tolerance for spelling, grammar, AI patterns, wrong data
+- **Francisca (Tech/UX Director)** — Zero tolerance for bad code, poor UX, data inconsistencies
 
 ---
 
-## Development Workflow (9 Phases)
+## Development Workflow (10 Phases)
 
-The `/dev feature` and `/dev api` commands follow a 9-phase enterprise workflow:
+The `/dev feature` and `/dev api` commands follow a 10-phase enterprise workflow:
 
 | Phase | Agent | What Happens |
 |-------|-------|-------------|
 | 0. Specification | Paulo | Interactive spec creation with the user (NON-NEGOTIABLE) |
-| 1. Orchestration | Paulo | Load context, assess complexity, create TODOs, enter worktree |
+| 1. Orchestration | Paulo | Load context, assess complexity, create TODOs, create feature branch |
 | 2. Research | Lucas | Fetch framework docs, search KB, check existing patterns |
 | 3. Architecture | Gabriel + Marco | Design system, write ADR, CTO approval |
 | 4. Implementation | Andre + Diana | Parallel backend + frontend (follows spec) |
 | 5. Self-Critique | Team | Each dev reviews against SOLID + Clean Code checklists |
 | 6. Security Audit | Bruno | OWASP Top 10, input validation, auth review |
-| 7. Quality Assurance | Rita | Test strategy, write tests, coverage gate (80%+) |
-| 8. Documentation | Lucas + Paulo | Save patterns to KB, commit, final report |
+| 7. Quality Assurance | Rita | Full test suite, coverage gate (80%+), ALL tests always |
+| 8. Quality Gate | Marta + Eduardo + Francisca | Copy review + technical review. APPROVED or REJECTED. |
+| 9. Documentation | Lucas + Paulo | Save patterns to KB, commit, final report |
 
 ---
 
@@ -275,13 +295,13 @@ arka skill create my-skill
 
 | Feature | Community (Free) | Pro |
 |---------|:-:|:-:|
-| 8 departments | Yes | Yes |
-| 19 AI team members | Yes | Yes |
+| 9 departments | Yes | Yes |
+| 22 AI team members | Yes | Yes |
 | 22 integrations | Yes | Yes |
 | 9 project types | Yes | Yes |
 | 2 plugins (Superpowers + Claude-Mem) | Yes | Yes |
 | External skills | Yes | Yes |
-| 9 NON-NEGOTIABLE rules | Yes | Yes |
+| 13 NON-NEGOTIABLE rules + Quality Gate | Yes | Yes |
 | Growth Hacker agent | — | Yes |
 | Copywriter agent | — | Yes |
 | Data Analyst agent | — | Yes |

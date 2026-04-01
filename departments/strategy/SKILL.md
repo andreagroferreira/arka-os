@@ -15,6 +15,73 @@ description: >
 
 Strategic planning, market analysis, and idea evaluation.
 
+## Universal Workflow (7-Phase — NON-NEGOTIABLE)
+
+Every strategy command follows this workflow. No exceptions. No shortcuts.
+
+### Phase 0: BRIEF (Tomas)
+- Define the strategic question with clarity
+- Clarify context: market, objective, constraints, timeline
+- Load previous strategic analyses from Obsidian KB
+- Save brief to Obsidian: `WizardingCode/Strategy/Briefs/BRIEF-<slug>.md`
+- **Gate:** Brief confirmed by user before proceeding
+
+### Phase 1: CHALLENGE & RESEARCH (5 Parallel Agents)
+- **Visionary:** Disruptive opportunities, future scenarios, blue ocean possibilities
+- **Pragmatist:** Feasibility, resource requirements, implementation complexity
+- **Devil's Advocate:** Risks, failure modes, what could go wrong, counter-arguments
+- **Customer Voice:** End-user impact, market demand, customer pain points
+- **Analyst:** Data, benchmarks, market size (TAM/SAM/SOM), competitive landscape
+- Each agent presents their perspective with evidence
+- Consolidated findings presented to user
+- **Gate:** User validates direction before deep analysis
+
+### Phase 2: PLANNING (Tomas)
+- Synthesise the 5 perspectives into actionable options
+- Create TODO list with `TaskCreate`
+- Rank options by Impact x Feasibility
+- Define top 3 recommendations with supporting evidence
+
+### Phase 3: EXECUTION (Tomas + Lucas — Analyst)
+- Deep analysis of the approved direction
+- Build supporting models, frameworks, projections
+- Competitive positioning maps, SWOT, or other frameworks as needed
+- Tasks executed ONE AT A TIME, each validated before the next
+
+### Phase 4: SELF-CRITIQUE (Tomas)
+- Is there confirmation bias? Have we challenged our own conclusions?
+- Are data sources reliable and cited?
+- Are recommendations truly actionable (not just theoretical)?
+- Would a sceptic find holes in this analysis?
+
+### Phase 5: SUPERVISION (Marco — CTO + Helena — CFO)
+- Marco: technical feasibility of recommendations
+- Helena: financial viability and investment requirements
+- **Gate:** Both approve or send back to Phase 3
+
+### Phase 6: QUALITY GATE (Marta — CQO)
+- Marta dispatches Eduardo (language, structure) + Francisca (data, logic)
+- Eduardo: report clarity, professional tone, zero errors, sources cited, no AI patterns
+- Francisca: data accuracy, logical consistency, calculations verified, frameworks correctly applied
+- Marta aggregates verdict:
+  - **APPROVED** → Proceed to Phase 7
+  - **REJECTED** → Exact issue list, return to Phase 3
+- **NO OUTPUT REACHES THE USER WITHOUT MARTA'S APPROVAL**
+
+### Phase 7: DELIVERY (Tomas)
+- Save to Obsidian: `WizardingCode/Strategy/<type>/`
+- YAML frontmatter: type, title, tags, date, sector
+- Include concrete next steps with owners and timelines
+- Report what was delivered vs. what was in the brief
+
+### Visibility (NON-NEGOTIABLE)
+Every phase transition is announced to the user:
+- "📋 Phase 0: Defining strategic question..."
+- "🔍 Phase 1: 5 agents analysing from different perspectives..."
+- "⚖️ Phase 2: Tomas synthesising perspectives, ranking options..."
+- "🔒 Phase 6: Quality Gate — Eduardo + Francisca reviewing..."
+- "✅ Phase 6: APPROVED by Marta. Proceeding to delivery."
+
 ## Commands
 
 | Command | Description |

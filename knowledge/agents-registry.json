@@ -210,12 +210,45 @@
       "file": "departments/brand/agents/motion-designer.md",
       "memory_path": "~/.claude/agent-memory/arka-motion-designer/MEMORY.md",
       "key_authority": ["generate_video", "create_motion", "implement"]
+    },
+    {
+      "id": "cqo",
+      "display_name": "Marta",
+      "role": "Chief Quality Officer",
+      "department": "quality",
+      "tier": 0,
+      "disc": { "primary": "C", "secondary": "D", "combination": "C+D", "label": "Analyst-Driver" },
+      "file": "departments/quality/agents/cqo.md",
+      "memory_path": "~/.claude/agent-memory/arka-cqo/MEMORY.md",
+      "key_authority": ["veto", "block_delivery", "block_release", "approve_quality"]
+    },
+    {
+      "id": "copy-director",
+      "display_name": "Eduardo",
+      "role": "Copy & Language Director",
+      "department": "quality",
+      "tier": 0,
+      "disc": { "primary": "C", "secondary": "S", "combination": "C+S", "label": "Analyst-Supporter" },
+      "file": "departments/quality/agents/copy-director.md",
+      "memory_path": "~/.claude/agent-memory/arka-copy-director/MEMORY.md",
+      "key_authority": ["veto", "block_delivery"]
+    },
+    {
+      "id": "tech-ux-director",
+      "display_name": "Francisca",
+      "role": "Technical & UX Quality Director",
+      "department": "quality",
+      "tier": 0,
+      "disc": { "primary": "D", "secondary": "C", "combination": "D+C", "label": "Driver-Analyst" },
+      "file": "departments/quality/agents/tech-ux-director.md",
+      "memory_path": "~/.claude/agent-memory/arka-tech-ux-director/MEMORY.md",
+      "key_authority": ["veto", "block_delivery", "block_release"]
     }
   ],
   "team_composition": {
-    "by_disc_primary": { "D": 5, "I": 5, "S": 3, "C": 6 },
-    "by_tier": { "0": 3, "1": 7, "2": 7, "3": 2 },
-    "by_department": { "dev": 9, "finance": 1, "operations": 1, "marketing": 1, "ecommerce": 1, "strategy": 1, "knowledge": 1, "brand": 4 },
-    "balance_notes": "S profile improved from 13% to 16% with Valentina (S+I). 19 agents across 8 departments."
+    "by_disc_primary": { "D": 6, "I": 5, "S": 3, "C": 8 },
+    "by_tier": { "0": 6, "1": 7, "2": 7, "3": 2 },
+    "by_department": { "dev": 9, "finance": 1, "operations": 1, "marketing": 1, "ecommerce": 1, "strategy": 1, "knowledge": 1, "brand": 4, "quality": 3 },
+    "balance_notes": "22 agents across 9 departments. Quality Gate team (Marta, Eduardo, Francisca) adds 3 Tier 0 supervisors. C profile strong at 36% reflecting quality-driven culture."
   }
 }

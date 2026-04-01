@@ -5,11 +5,11 @@
 
 load helpers/setup
 
-@test "constitution has 9 NON-NEGOTIABLE rules" {
+@test "constitution has 13 NON-NEGOTIABLE rules" {
   count=$(grep -c '^\d\+\.' "$REPO_DIR/CONSTITUTION.md" | head -1 || true)
-  # Count numbered items under NON-NEGOTIABLE section (before MUST section)
-  count=$(sed -n '/^## NON-NEGOTIABLE/,/^## MUST/p' "$REPO_DIR/CONSTITUTION.md" | grep -c '^\d\+\.')
-  [ "$count" -eq 9 ]
+  # Count numbered items under NON-NEGOTIABLE section (before Quality Gate section)
+  count=$(sed -n '/^## NON-NEGOTIABLE/,/^## Quality Gate/p' "$REPO_DIR/CONSTITUTION.md" | grep -c '^\d\+\.')
+  [ "$count" -eq 13 ]
 }
 
 @test "constitution includes solid-clean-code rule" {
@@ -25,7 +25,7 @@ load helpers/setup
 }
 
 @test "constitution L0 string includes new rules" {
-  grep -q "solid-clean-code, spec-driven, human-writing, squad-routing" "$REPO_DIR/CONSTITUTION.md"
+  grep -q "solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy" "$REPO_DIR/CONSTITUTION.md"
 }
 
 @test "constitution includes squad-routing rule" {
@@ -93,4 +93,84 @@ load helpers/setup
 
 @test "arka SKILL.md forbids generic assistant responses" {
   grep -q "never responds as a generic assistant" "$REPO_DIR/arka/SKILL.md"
+}
+
+@test "constitution includes full-visibility rule" {
+  grep -q "Full Visibility" "$REPO_DIR/CONSTITUTION.md"
+}
+
+@test "constitution includes sequential-validation rule" {
+  grep -q "Sequential Task Validation" "$REPO_DIR/CONSTITUTION.md"
+}
+
+@test "constitution includes mandatory-qa rule" {
+  grep -q "Mandatory Complete QA" "$REPO_DIR/CONSTITUTION.md"
+}
+
+@test "constitution includes arka-supremacy rule" {
+  grep -q "ARKA OS Supremacy" "$REPO_DIR/CONSTITUTION.md"
+}
+
+@test "constitution has Quality Gate section" {
+  grep -q "## Quality Gate (Mandatory)" "$REPO_DIR/CONSTITUTION.md"
+}
+
+@test "constitution Quality Gate names all 3 supervisors" {
+  grep -q "Marta (CQO" "$REPO_DIR/CONSTITUTION.md"
+  grep -q "Eduardo (Copy" "$REPO_DIR/CONSTITUTION.md"
+  grep -q "Francisca (Technical" "$REPO_DIR/CONSTITUTION.md"
+}
+
+@test "quality gate agent files exist" {
+  [ -f "$REPO_DIR/departments/quality/agents/cqo.md" ]
+  [ -f "$REPO_DIR/departments/quality/agents/copy-director.md" ]
+  [ -f "$REPO_DIR/departments/quality/agents/tech-ux-director.md" ]
+}
+
+@test "quality gate agents are tier 0" {
+  grep -q "tier: 0" "$REPO_DIR/departments/quality/agents/cqo.md"
+  grep -q "tier: 0" "$REPO_DIR/departments/quality/agents/copy-director.md"
+  grep -q "tier: 0" "$REPO_DIR/departments/quality/agents/tech-ux-director.md"
+}
+
+@test "quality gate agents have veto authority" {
+  grep -q "veto: true" "$REPO_DIR/departments/quality/agents/cqo.md"
+  grep -q "veto: true" "$REPO_DIR/departments/quality/agents/copy-director.md"
+  grep -q "veto: true" "$REPO_DIR/departments/quality/agents/tech-ux-director.md"
+}
+
+@test "quality gate agents have DISC profiles" {
+  grep -q 'combination: "C+D"' "$REPO_DIR/departments/quality/agents/cqo.md"
+  grep -q 'combination: "C+S"' "$REPO_DIR/departments/quality/agents/copy-director.md"
+  grep -q 'combination: "D+C"' "$REPO_DIR/departments/quality/agents/tech-ux-director.md"
+}
+
+@test "agents-registry.json has 22 agents" {
+  count=$(jq '.agents | length' "$REPO_DIR/knowledge/agents-registry.json")
+  [ "$count" -eq 22 ]
+}
+
+@test "agents-registry.json includes quality department" {
+  jq -e '.agents[] | select(.department == "quality")' "$REPO_DIR/knowledge/agents-registry.json" > /dev/null
+  count=$(jq '[.agents[] | select(.department == "quality")] | length' "$REPO_DIR/knowledge/agents-registry.json")
+  [ "$count" -eq 3 ]
+}
+
+@test "hook L0 injection includes quality gate and new rules" {
+  input='{"prompt":"hello","cwd":"/tmp","session_id":"test123"}'
+  run bash -c "export ARKA_OS='$TEST_ARKA_OS' && echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"full-visibility"* ]]
+  [[ "$output" == *"sequential-validation"* ]]
+  [[ "$output" == *"mandatory-qa"* ]]
+  [[ "$output" == *"arka-supremacy"* ]]
+  [[ "$output" == *"QUALITY-GATE"* ]]
+}
+
+@test "dev SKILL.md has Quality Gate phase" {
+  grep -q "PHASE 8: QUALITY GATE" "$REPO_DIR/departments/dev/SKILL.md"
+}
+
+@test "dev SKILL.md has 10-phase workflow" {
+  grep -q "10 phases" "$REPO_DIR/departments/dev/SKILL.md"
 }

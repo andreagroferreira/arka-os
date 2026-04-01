@@ -99,9 +99,9 @@ Rita breaks things — on purpose — and defines the quality bar. She designs t
 
 ### Enterprise Workflow
 
-Features and APIs follow an 8-phase enterprise workflow:
+Features and APIs follow an 10-phase enterprise workflow:
 
-1. **Orchestration** — Paulo creates TODO list, enters worktree, detects stack
+1. **Orchestration** — Paulo creates TODO list, creates feature branch, detects stack
 2. **Research** — Lucas fetches docs (Context7), searches KB, checks codebase
 3. **Architecture** — Gabriel designs, writes ADR. Marco reviews and approves.
 4. **Implementation** — Andre (backend) + Diana (frontend) build in parallel
@@ -118,8 +118,8 @@ Simpler commands (debug, refactor, db) use a focused 3-4 phase workflow. Read-on
 |---------|-------------|
 | `/dev do <description>` | Describe what you need in plain language — Paulo interprets, asks questions if needed, and routes to the right workflow automatically |
 | `/dev scaffold <type> <name>` | Create a complete project from a starter template with dependencies installed and integrations configured |
-| `/dev feature <description>` | Implement a new feature with full 8-phase enterprise workflow |
-| `/dev api <spec>` | Generate API endpoints with full 8-phase enterprise workflow |
+| `/dev feature <description>` | Implement a new feature with full 10-phase enterprise workflow |
+| `/dev api <spec>` | Generate API endpoints with full 10-phase enterprise workflow |
 | `/dev plan <description>` | Architecture planning only — Gabriel designs, no code changes |
 | `/dev debug <issue>` | Diagnose and fix a bug with triage, fix, and regression test |
 | `/dev refactor <target>` | Refactor code with quality gates — tests must pass before and after |
@@ -134,16 +134,16 @@ Simpler commands (debug, refactor, db) use a focused 3-4 phase workflow. Read-on
 | `/dev mcp apply <profile>` | Configure integrations for a project |
 | `/dev skill install <url>` | Install a community skill |
 
-### Worktree Isolation (Automatic)
+### Branch Isolation (Automatic)
 
-Commands that modify code — `/dev feature`, `/dev api`, `/dev debug`, `/dev refactor`, `/dev db` — automatically run inside a **git worktree**. This means:
+Commands that modify code — `/dev feature`, `/dev api`, `/dev debug`, `/dev refactor`, `/dev db` — automatically run on a **dedicated feature branch**. This means:
 
-- A new branch is created (e.g., `feature/user-auth`, `fix/login-crash`, `refactor/controllers`)
-- All code changes happen in an isolated working directory
-- Your main branch stays clean and untouched
-- After the work is done, you can review it, create a PR, or merge
+- A new branch is created from `dev` (e.g., `feature/user-auth`, `fix/login-crash`, `refactor/controllers`)
+- All code changes happen on this isolated branch
+- Your main and dev branches stay clean and untouched
+- After the work is done, you can review it and create a Merge Request to `dev`
 
-You don't need to do anything — the worktree is created automatically when you run the command.
+You don't need to do anything — the branch is created automatically when you run the command.
 
 ### Real-World Examples
 
@@ -151,13 +151,13 @@ You don't need to do anything — the worktree is created automatically when you
 ```
 /dev do "quero adicionar autenticação com social login Google e GitHub"
 ```
-Paulo reads the project context, classifies the request as a Feature, asks if you want backend-only or full-stack, then routes to `/dev feature` with the full 8-phase enterprise workflow. You don't need to remember which command to use.
+Paulo reads the project context, classifies the request as a Feature, asks if you want backend-only or full-stack, then routes to `/dev feature` with the full 10-phase enterprise workflow. You don't need to remember which command to use.
 
 **Build a feature (full enterprise workflow):**
 ```
 /dev feature "add user registration with email verification"
 ```
-Paulo creates a TODO list, enters a worktree (`feature/user-registration`). Lucas researches Laravel auth docs. Gabriel designs the data flow and writes an ADR. Andre implements the backend (migration, model, service, controller). Diana builds the frontend (composable, component, page). Both self-critique their work. Bruno runs a security audit. Rita writes tests and enforces quality gates. Lucas saves patterns to the KB. Paulo writes the final report.
+Paulo creates a TODO list, creates a feature branch (`feature/user-registration`). Lucas researches Laravel auth docs. Gabriel designs the data flow and writes an ADR. Andre implements the backend (migration, model, service, controller). Diana builds the frontend (composable, component, page). Both self-critique their work. Bruno runs a security audit. Rita writes tests and enforces quality gates. Lucas saves patterns to the KB. Paulo writes the final report.
 
 **Plan before building:**
 ```
@@ -530,7 +530,7 @@ Everything flows through your Obsidian vault, so context is always available acr
 
 All departments are governed by `CONSTITUTION.md` — a formal set of rules with 3 enforcement levels:
 
-- **NON-NEGOTIABLE** — Worktree isolation, Obsidian output, authority boundaries, security gate, context-first. These cannot be bypassed.
+- **NON-NEGOTIABLE** (13 rules) — Branch isolation, Obsidian output, authority boundaries, security gate, context-first, SOLID + clean code, spec-driven, human writing, squad routing, full visibility, sequential validation, mandatory QA, ARKA supremacy. Plus mandatory Quality Gate (Marta, Eduardo, Francisca). These cannot be bypassed.
 - **MUST** — Conventional commits, test coverage, pattern matching, actionable output, memory persistence. Violations are flagged.
 - **SHOULD** — Research before building, self-critique, KB contribution, complexity assessment. Best practices.
 
@@ -544,7 +544,7 @@ ARKA OS automatically injects context into every prompt via hooks:
 2. **Department detection** — Your prompt is analyzed to detect which department is relevant
 3. **Agent memory** — If an agent is mentioned, their relevant gotchas are surfaced
 4. **Project context** — If you're in a known project directory, project info is injected
-5. **Worktree awareness** — Active git worktree branch is detected
+5. **Branch awareness** — Active git feature branch is detected
 6. **Error patterns** — Recurring errors for the detected department are surfaced
 7. **Time context** — Morning, afternoon, or evening
 

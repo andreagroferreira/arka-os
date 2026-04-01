@@ -54,7 +54,7 @@ L0=$(cache_get "constitution" 300) || {
   CONSTITUTION_FILE=""
   [ -f "$REPO_PATH/CONSTITUTION.md" ] && CONSTITUTION_FILE="$REPO_PATH/CONSTITUTION.md"
   if [ -n "$CONSTITUTION_FILE" ]; then
-    L0="[Constitution] NON-NEGOTIABLE: worktree-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing | MUST: conventional-commits, test-coverage, pattern-matching, actionable-output, memory-persistence"
+    L0="[Constitution] NON-NEGOTIABLE: branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST: conventional-commits, test-coverage, pattern-matching, actionable-output, memory-persistence"
     cache_set "constitution" "$L0"
   else
     L0=""
@@ -206,12 +206,11 @@ if [ -n "$CWD" ]; then
 fi
 _L3_MS=$(( $(_hook_ms) - ${_L0_MS:-0} - ${_L1_MS:-0} - ${_L2_MS:-0} ))
 
-# ─── L4: Git Worktree Detection (no cache — fast check) ──────────────────
-if [ -n "$CWD" ] && [ -d "$CWD/.git" ] || [ -f "$CWD/.git" ] 2>/dev/null; then
-  # Check if inside a worktree (fast: .git is a file, not directory, in worktrees)
-  if [ -f "$CWD/.git" ] 2>/dev/null; then
-    WT_BRANCH=$(git -C "$CWD" branch --show-current 2>/dev/null || echo "")
-    [ -n "$WT_BRANCH" ] && CONTEXT_PARTS+=("[worktree:$WT_BRANCH]")
+# ─── L4: Git Branch Detection (no cache — fast check) ────────────────────
+if [ -n "$CWD" ]; then
+  CURRENT_BRANCH=$(git -C "$CWD" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ] && [ "$CURRENT_BRANCH" != "dev" ]; then
+    CONTEXT_PARTS+=("[branch:$CURRENT_BRANCH]")
   fi
 fi
 _L4_MS=$(( $(_hook_ms) - ${_L0_MS:-0} - ${_L1_MS:-0} - ${_L2_MS:-0} - ${_L3_MS:-0} ))

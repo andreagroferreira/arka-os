@@ -98,12 +98,12 @@ TaskCreate:
   activeForm: "Researching framework docs and patterns"
 ```
 
-## Worktree Entry
+## Branch Creation
 
-For code-modifying commands, you enter the worktree FIRST:
-- `/dev feature "user auth"` → `EnterWorktree(name: "feature-user-auth")`
-- `/dev api "payments"` → `EnterWorktree(name: "feature-api-payments")`
-- `/dev debug "login crash"` → `EnterWorktree(name: "fix-login-crash")`
+For code-modifying commands, you create a feature branch from `dev` FIRST:
+- `/dev feature "user auth"` → `git checkout dev && git checkout -b feature/user-auth`
+- `/dev api "payments"` → `git checkout dev && git checkout -b feature/api-payments`
+- `/dev debug "login crash"` → `git checkout dev && git checkout -b fix/login-crash`
 
 ## Final Report Template
 
@@ -118,7 +118,7 @@ After all phases complete:
 - **Coverage:** 87% on new code
 
 ## Phases Completed
-1. ✅ Orchestration — TODO created, worktree entered
+1. ✅ Orchestration — TODO created, feature branch created
 2. ✅ Research — Laravel 11 auth docs fetched, existing patterns identified
 3. ✅ Architecture — ADR-001 written, API contracts defined
 4. ✅ Implementation — Backend + Frontend complete

@@ -66,33 +66,48 @@ Enterprise-grade development team powered by 9 specialized agents.
 | `/dev spec validate` | Validate existing spec completeness | Paulo | 3 |
 | `/dev spec list` | List specs in current project | Paulo | 3 |
 
+## Visibility (NON-NEGOTIABLE)
+
+Every phase transition is announced to the user:
+- "Phase 0: Paulo checking for approved spec..."
+- "Phase 1: Paulo creating branch and TODO list..."
+- "Phase 2: Lucas researching via Context7 and KB..."
+- "Phase 3: Gabriel designing architecture, Marco reviewing..."
+- "Phase 4: Andre implementing backend... Diana implementing frontend..."
+- "Phase 5: Self-critique in progress..."
+- "Phase 6: Bruno running security audit..."
+- "Phase 7: Rita running FULL test suite..."
+- "Phase 8: Quality Gate. Marta dispatching Eduardo + Francisca..."
+- "Phase 8: APPROVED by Marta. Proceeding to documentation."
+- "Phase 9: Lucas saving to KB. Paulo writing final report."
+
 ## Workflow Tiers
 
 Commands are classified by complexity:
 
 | Tier | Phases | Commands |
 |------|--------|----------|
-| **Tier 1 — Full Enterprise** | 9 phases (spec → research → architecture → implement → self-critique → security → QA → docs) | `/dev feature`, `/dev api` |
+| **Tier 1 — Full Enterprise** | 10 phases (spec → research → architecture → implement → self-critique → security → QA → quality gate → docs) | `/dev feature`, `/dev api` |
 | **Tier 2 — Focused Team** | 3-4 phases (plan → implement → verify → wrap-up) | `/dev debug`, `/dev refactor`, `/dev db` |
 | **Tier 3 — Single/Dual Agent** | 1-2 phases | `/dev review`, `/dev test`, `/dev deploy`, `/dev docs`, `/dev stack-check`, `/dev plan`, `/dev security-audit`, `/dev research` |
 
-## Worktree Workflow (Mandatory)
+## Branch Workflow (Mandatory)
 
-ALL commands that modify project code MUST run inside a git worktree. This is NON-NEGOTIABLE.
+ALL commands that modify project code MUST run on a dedicated feature branch. This is NON-NEGOTIABLE.
 
-### Commands that REQUIRE worktree:
+### Commands that REQUIRE a feature branch:
 - `/dev feature` — Feature implementation
 - `/dev api` — API endpoint generation
 - `/dev debug` — Bug investigation and fixing
 - `/dev refactor` — Code refactoring
 - `/dev db` — Database migrations and schema changes
-- `/dev do` — Determined by the routed workflow (worktree if routed to feature/api/debug/refactor/db)
+- `/dev do` — Determined by the routed workflow (branch if routed to feature/api/debug/refactor/db)
 
-### Commands that do NOT require worktree (read-only or meta):
+### Commands that do NOT require a feature branch (read-only or meta):
 - `/dev scaffold` — Creates new projects (no existing code to isolate)
 - `/dev onboard` — Registers existing projects
 - `/dev review` — Code review (read-only)
-- `/dev test` — Can run in main or worktree (depends on context)
+- `/dev test` — Can run on any branch (depends on context)
 - `/dev docs` — Documentation generation
 - `/dev stack-check` — Dependency checks
 - `/dev plan` — Architecture planning (no code)
@@ -104,13 +119,13 @@ ALL commands that modify project code MUST run inside a git worktree. This is NO
 
 ### Workflow — Every code-modifying command:
 
-**Step 0: Enter Worktree (BEFORE any code changes)**
-Paulo uses the `EnterWorktree` tool with a descriptive name:
-- `/dev feature "user auth"` → `EnterWorktree(name: "feature-user-auth")`
-- `/dev debug "login crash"` → `EnterWorktree(name: "fix-login-crash")`
-- `/dev refactor "controllers"` → `EnterWorktree(name: "refactor-controllers")`
-- `/dev api "payments"` → `EnterWorktree(name: "feature-api-payments")`
-- `/dev db "add user roles"` → `EnterWorktree(name: "feature-user-roles")`
+**Step 0: Create Feature Branch (BEFORE any code changes)**
+Paulo creates a feature branch from `dev`:
+- `/dev feature "user auth"` → `git checkout dev && git checkout -b feature/user-auth`
+- `/dev debug "login crash"` → `git checkout dev && git checkout -b fix/login-crash`
+- `/dev refactor "controllers"` → `git checkout dev && git checkout -b refactor/controllers`
+- `/dev api "payments"` → `git checkout dev && git checkout -b feature/api-payments`
+- `/dev db "add user roles"` → `git checkout dev && git checkout -b feature/user-roles`
 
 ### Branch naming convention:
 | Command | Branch prefix | Example |
@@ -170,7 +185,7 @@ Use `AskUserQuestion` to fill any gaps:
 Only ask what's genuinely unclear — skip if the request is already specific enough.
 
 ### Step 4: Route & Execute (Paulo)
-- Announce the routing: "Routing to `/dev feature` (Tier 1 — 8-phase enterprise workflow)"
+- Announce the routing: "Routing to `/dev feature` (Tier 1 — 10-phase enterprise workflow)"
 - Pass enriched context (original description + clarification answers) to the target workflow
 - Execute the full workflow of the target command — do not skip phases
 
@@ -188,7 +203,7 @@ Only ask what's genuinely unclear — skip if the request is already specific en
 - Read project context (PROJECT.md, CLAUDE.md)
 - Assess complexity, detect stack (backend/frontend/full-stack)
 - Create TODO list with `TaskCreate` (one task per phase, with acceptance criteria)
-- Enter worktree: `EnterWorktree(name: "feature-<slug>")`
+- Create feature branch: `git checkout dev && git checkout -b feature/<slug>`
 
 ### PHASE 2: RESEARCH (Lucas — Technical Analyst)
 - Fetch relevant framework docs via Context7 MCP
@@ -222,19 +237,34 @@ Only ask what's genuinely unclear — skip if the request is already specific en
 
 ### PHASE 7: QUALITY ASSURANCE (Rita — QA Lead)
 - Define test strategy based on feature scope
-- Write tests: feature (API), unit (services), component (frontend)
-- Run suite, generate coverage report
+- Write ALL tests: feature (API), unit (services), component (frontend), integration, edge cases
+- Run FULL test suite (NON-NEGOTIABLE — no shortcuts, no "only relevant tests")
+- Generate coverage report: target 80%+ on new code
+- Validate EVERY acceptance criterion from the spec has at least one test
 - Quality gate: pass/fail — fix failures until green
+- Rita runs tests on backend AND frontend, not just one side
 
-### PHASE 8: DOCUMENTATION & KB (Lucas + Paulo)
+### PHASE 8: QUALITY GATE (Marta — CQO) [NON-NEGOTIABLE]
+- Marta receives ALL output from phases 4-7
+- Marta dispatches:
+  - **Eduardo (Copy & Language):** Review all text: code comments, docs, error messages, user-facing strings, API responses
+  - **Francisca (Technical & UX):** Review code quality (SOLID, clean code, < 30 line functions), test quality, UX (if frontend), data integrity, security, performance
+- Each reviewer produces a structured verdict: PASS or FAIL with exact issue list
+- Marta aggregates:
+  - **APPROVED** → Proceed to Phase 9
+  - **REJECTED** → Exact issue list with file:line references. Work returns to Phase 4 (Implementation). Loop until all issues resolved.
+- **Visibility:** Marta's full verdict is shown to the user with every issue listed
+- **NO CODE SHIPS WITHOUT MARTA'S APPROVAL**
+
+### PHASE 9: DOCUMENTATION & KB (Lucas + Paulo)
 - Lucas: Save patterns to Obsidian KB, update project docs
 - Paulo: Mark all TODOs complete, commit with conventional message
-- Paulo: Final report with branch, files changed, tests, security status
-- Suggest: "Run `/dev review` for code review, or create PR with `gh pr create`"
+- Paulo: Final report with branch, files changed, tests, security status, quality gate verdict
+- Suggest: "Run `/dev review` for code review, or create MR to `dev`"
 
 ## Workflow: /dev api (Tier 1 — Full 9-Phase Enterprise)
 
-Same 9 phases as `/dev feature` (including Phase 0: Specification) but API-focused:
+Same 10 phases as `/dev feature` (including Phase 0: Specification and Phase 8: Quality Gate) but API-focused:
 - Phase 3: Gabriel focuses on API contracts, versioning, rate limiting
 - Phase 4: Andre implements endpoints, Diana skips (unless API has a frontend component)
 - Phase 6: Bruno focuses on auth, input validation, rate limiting, IDOR
@@ -242,7 +272,7 @@ Same 9 phases as `/dev feature` (including Phase 0: Specification) but API-focus
 
 ## Workflow: /dev plan (Tier 3 — NEW)
 
-Architecture planning only. No code changes, no worktree.
+Architecture planning only. No code changes, no branch creation.
 
 1. **Paulo** reads project context, assesses scope
 2. **Lucas** researches relevant docs (Context7), existing patterns (KB + codebase)
@@ -253,8 +283,8 @@ Architecture planning only. No code changes, no worktree.
 
 ## Workflow: /dev debug (Tier 2 — 4 Phases)
 
-### Step 0: Enter Worktree
-`EnterWorktree(name: "fix-<slug>")`
+### Step 0: Create Feature Branch
+`git checkout dev && git checkout -b fix/<slug>`
 
 ### Phase 1: Triage (Paulo)
 - Read project context, assess severity
@@ -278,8 +308,8 @@ Architecture planning only. No code changes, no worktree.
 
 ## Workflow: /dev refactor (Tier 2 — 3 Phases)
 
-### Step 0: Enter Worktree
-`EnterWorktree(name: "refactor-<slug>")`
+### Step 0: Create Feature Branch
+`git checkout dev && git checkout -b refactor/<slug>`
 
 ### Phase 1: Plan (Paulo + Marco)
 - Paulo creates TODO with `TaskCreate`
@@ -303,8 +333,8 @@ Architecture planning only. No code changes, no worktree.
 - Spec must include Data Model section with entities, fields, relationships, and migrations
 - **ABORT if user declines to create or approve a spec**
 
-### Step 0: Enter Worktree
-`EnterWorktree(name: "feature-<slug>-migration")`
+### Step 0: Create Feature Branch
+`git checkout dev && git checkout -b feature/<slug>-migration`
 
 ### Phase 1: Plan (Paulo + Lucas)
 - Paulo creates TODO with `TaskCreate`
@@ -328,7 +358,7 @@ Architecture planning only. No code changes, no worktree.
 
 ## Workflow: /dev review (Tier 3 — CTO + Security)
 
-No worktree required (read-only).
+No feature branch required (read-only).
 
 1. **Marco (CTO)** reviews current changes:
    - Security vulnerabilities (SQL injection, XSS, CSRF)
@@ -347,7 +377,7 @@ No worktree required (read-only).
 
 ## Workflow: /dev test (Tier 3 — QA Lead)
 
-No worktree required.
+No feature branch required.
 
 1. **Rita** assesses the current test state
 2. Generates tests for untested code (based on coverage gaps)
@@ -356,7 +386,7 @@ No worktree required.
 
 ## Workflow: /dev deploy (Tier 3 — DevOps Lead)
 
-No worktree required.
+No feature branch required.
 
 1. **Carlos** verifies deployment prerequisites:
    - All tests passing in CI
@@ -368,7 +398,7 @@ No worktree required.
 
 ## Workflow: /dev docs (Tier 3 — Analyst)
 
-No worktree required.
+No feature branch required.
 
 1. **Lucas** reads the codebase and project context
 2. Generates technical documentation:
@@ -379,7 +409,7 @@ No worktree required.
 
 ## Workflow: /dev stack-check (Tier 3 — DevOps + CTO)
 
-No worktree required.
+No feature branch required.
 
 1. **Carlos** checks for outdated dependencies and security advisories
 2. **Marco** reviews recommendations and prioritizes updates
@@ -387,7 +417,7 @@ No worktree required.
 
 ## Workflow: /dev security-audit (Tier 3 — NEW)
 
-No worktree required (read-only).
+No feature branch required (read-only).
 
 1. **Bruno** runs full OWASP Top 10 audit on the current codebase
 2. **Lucas** researches any CVEs found in dependencies
@@ -396,7 +426,7 @@ No worktree required (read-only).
 
 ## Workflow: /dev research (Tier 3 — NEW)
 
-No worktree required (read-only).
+No feature branch required (read-only).
 
 1. **Lucas** researches the specified topic:
    - Fetch docs via Context7 MCP

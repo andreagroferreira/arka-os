@@ -15,6 +15,70 @@ description: >
 
 Financial planning, investment analysis, and business advisory.
 
+## Universal Workflow (7-Phase — NON-NEGOTIABLE)
+
+Every finance command follows this workflow. No exceptions. No shortcuts.
+
+### Phase 0: BRIEF (Helena)
+- Clarify the request: period, type of analysis, available data
+- Load previous financial data from Obsidian if exists
+- Define scope and assumptions
+- Save brief to Obsidian: `WizardingCode/Finance/Briefs/BRIEF-<slug>.md`
+- **Gate:** Brief confirmed by user before proceeding
+
+### Phase 1: CHALLENGE & RESEARCH (Tomas — Strategy + Lucas — Analyst)
+- Tomas: market context, industry benchmarks, macroeconomic factors
+- Lucas: research comparable data, fetch benchmarks, verify assumptions
+- Challenge the approach: "Industry benchmark for X is Y, your assumption of Z may be optimistic"
+- Present findings and alternatives to user
+- **Gate:** User approves assumptions and approach
+
+### Phase 2: PLANNING (Helena)
+- Define analysis model and methodology
+- Create TODO list with `TaskCreate` (one task per deliverable)
+- Define scenarios: conservative, realistic, optimistic
+- Identify data gaps and request from user
+
+### Phase 3: EXECUTION (Helena)
+- Build financial models, projections, analyses
+- Calculate key metrics: margins, ROI, cash flow, break-even
+- Sensitivity analysis on critical variables
+- Tasks executed ONE AT A TIME, each validated before the next
+
+### Phase 4: SELF-CRITIQUE (Helena)
+- Do the numbers add up? Cross-verify totals.
+- Are assumptions documented and reasonable?
+- Are scenarios internally consistent?
+- Disclaimer present: "Analysis, not financial advice"
+
+### Phase 5: SUPERVISION (Marco — CTO)
+- Review decisions with business/tech impact
+- Validate methodology and data sources
+- **Gate:** Marco approves or sends back to Phase 3
+
+### Phase 6: QUALITY GATE (Marta — CQO)
+- Marta dispatches Eduardo (report clarity, language) + Francisca (calculations, data consistency)
+- Eduardo: report structure, professional tone, zero spelling errors, no AI patterns
+- Francisca: verify calculations, cross-check scenarios, validate data consistency
+- Marta aggregates verdict:
+  - **APPROVED** → Proceed to Phase 7
+  - **REJECTED** → Exact issue list, return to Phase 3
+- **NO OUTPUT REACHES THE USER WITHOUT MARTA'S APPROVAL**
+
+### Phase 7: DELIVERY (Helena)
+- Save to Obsidian: `WizardingCode/Finance/<type>/`
+- YAML frontmatter: type, title, period, tags, date
+- Executive summary + detailed analysis
+- Report what was delivered vs. what was in the brief
+
+### Visibility (NON-NEGOTIABLE)
+Every phase transition is announced to the user:
+- "📋 Phase 0: Defining financial analysis scope..."
+- "🔍 Phase 1: Tomas and Lucas researching benchmarks and challenging assumptions..."
+- "📊 Phase 3: Helena building financial model..."
+- "🔒 Phase 6: Quality Gate — Eduardo + Francisca reviewing..."
+- "✅ Phase 6: APPROVED by Marta. Proceeding to delivery."
+
 ## Commands
 
 | Command | Description |

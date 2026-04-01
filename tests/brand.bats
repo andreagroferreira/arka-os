@@ -176,10 +176,10 @@ load helpers/setup
 
 # ─── Integration ───────────────────────────────────────────────────────────
 
-@test "agents-registry.json has 19 agents" {
+@test "agents-registry.json has 22 agents" {
   run jq '.agents | length' "$REPO_DIR/knowledge/agents-registry.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "19" ]
+  [ "$output" = "22" ]
 }
 
 @test "agents-registry.json includes all 4 brand agents" {
@@ -192,7 +192,7 @@ load helpers/setup
 @test "agents-registry.json team_composition counts are correct" {
   local total
   total=$(jq '[.team_composition.by_disc_primary | to_entries[].value] | add' "$REPO_DIR/knowledge/agents-registry.json")
-  [ "$total" = "19" ]
+  [ "$total" = "22" ]
 }
 
 @test "MCP registry includes canva entry" {

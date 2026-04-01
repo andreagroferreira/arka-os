@@ -25,6 +25,70 @@ Complete brand identity creation, visual design, and motion graphics with AI-pow
 | Isabel | Visual Designer | I+S | 2 |
 | Rafael | Motion Designer | D+I | 2 |
 
+## Universal Workflow (7-Phase — NON-NEGOTIABLE)
+
+Every brand command follows this workflow. No exceptions. No shortcuts.
+
+### Phase 0: BRIEF (Valentina — Creative Director)
+- Creative briefing with the user: brand context, objectives, audience, references
+- Load existing brand assets and guidelines from Obsidian if they exist
+- Save brief to Obsidian: `WizardingCode/Brand/Briefs/BRIEF-<slug>.md`
+- **Gate:** Brief confirmed by user before proceeding
+
+### Phase 1: CHALLENGE & RESEARCH (Mateus — Brand Strategist)
+- Research market positioning and competitor brand identities
+- Challenge creative direction: "Competitor X already uses this approach, should we differentiate?"
+- Analyse cultural context and audience expectations
+- Present findings and strategic alternatives to user
+- **Gate:** User approves the strategic direction
+
+### Phase 2: PLANNING (Valentina + Mateus)
+- Define creative strategy aligned with approved direction
+- Create TODO list with `TaskCreate` (one task per deliverable)
+- Map brand architecture, visual direction, verbal identity
+- Define quality criteria for each deliverable
+
+### Phase 3: EXECUTION (Isabel — Visual Designer + Rafael — Motion Designer)
+- Isabel: visual assets, colour palettes, logos, mockups, photography
+- Rafael: motion graphics, video concepts, animations
+- Apply brand strategy from Phase 2
+- Tasks executed ONE AT A TIME, each validated before the next
+
+### Phase 4: SELF-CRITIQUE (Isabel + Rafael)
+- 5-second test: does the logo communicate instantly?
+- WCAG AA contrast validation for all colour combinations
+- Brand consistency: do all assets feel like the same brand?
+- Motion: does animation enhance or distract?
+
+### Phase 5: SUPERVISION (Valentina — Creative Director)
+- Review ALL output against the brief and brand strategy
+- Creative quality: does this meet world-class standards?
+- Brand coherence: visual + verbal + motion = unified identity?
+- **Gate:** Valentina approves or sends back to Phase 3
+
+### Phase 6: QUALITY GATE (Marta — CQO)
+- Marta dispatches Eduardo (verbal identity, copy) + Francisca (technical assets, accessibility)
+- Eduardo: brand copy, taglines, messaging, tone of voice, zero AI patterns, cultural appropriateness
+- Francisca: WCAG AA contrast, file formats correct, assets complete, responsive mockups
+- Marta aggregates verdict:
+  - **APPROVED** → Proceed to Phase 7
+  - **REJECTED** → Exact issue list, return to Phase 3
+- **NO OUTPUT REACHES THE USER WITHOUT MARTA'S APPROVAL**
+
+### Phase 7: DELIVERY (Valentina)
+- Save to Obsidian: `WizardingCode/Brand/<type>/`
+- YAML frontmatter: type, brand_name, tags, date
+- Complete asset inventory with file references
+- Report what was delivered vs. what was in the brief
+
+### Visibility (NON-NEGOTIABLE)
+Every phase transition is announced to the user:
+- "📋 Phase 0: Valentina creating creative brief..."
+- "🔍 Phase 1: Mateus researching market positioning and challenging direction..."
+- "🎨 Phase 3: Isabel designing visual assets, Rafael creating motion..."
+- "🔒 Phase 6: Quality Gate — Eduardo + Francisca reviewing..."
+- "✅ Phase 6: APPROVED by Marta. Proceeding to delivery."
+
 ## Commands
 
 | Command | Description |

@@ -104,7 +104,7 @@ Which one? (1/2/3)
 ### Step 4: Confirmation Behavior
 
 - `modifies_code: false` → Auto-execute with announcement
-- `modifies_code: true` or `requires_worktree: true` → Show preview, ask confirmation
+- `modifies_code: true` or `requires_branch: true` → Show preview, ask confirmation
 - Ambiguous (multiple matches with similar scores) → Show options, ask user to pick
 
 ### Step 5: Execute
