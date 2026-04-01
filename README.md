@@ -2,7 +2,7 @@
 
 **Your AI-powered company operating system.** One system runs your entire business with **22 specialized AI team members** organized into **9 departments**. They write code, create marketing content, manage brands, analyze finances, plan strategy, and run operations.
 
-Built by [WizardingCode](https://wizardingcode.com). Current version: **1.0.0**
+Built by [WizardingCode](https://wizardingcode.com). Current version: **1.1.0**
 
 ---
 
@@ -221,7 +221,7 @@ Apply integrations to any project:
 
 ## Plugins
 
-ARKA OS v1.0.0 ships with two Claude Code plugins pre-installed:
+ARKA OS v1.1.0 ships with two Claude Code plugins pre-installed:
 
 ### Superpowers (obra/superpowers)
 

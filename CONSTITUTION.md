@@ -77,4 +77,4 @@ When injected as context layer L0, this constitution is compressed to:
 
 ---
 
-*ARKA OS v1.0.0 — WizardingCode Company Operating System*
+*ARKA OS v1.1.0 — WizardingCode Company Operating System*

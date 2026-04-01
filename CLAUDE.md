@@ -4,7 +4,7 @@
 
 ## Version
 
-- **Current:** 1.0.0
+- **Current:** 1.1.0
 - **Version file:** `VERSION`
 - **Auto-update:** `version-check.sh` checks for updates once per 24h
 - **Update:** Run `arka update` or `cd <repo> && git pull && bash install.sh`
@@ -782,13 +782,13 @@ These MCPs are part of the user's Claude Code environment, not managed by ARKA O
 | Google Drive | Document storage |
 | Canva | Visual design |
 
-## File Structure (v1.0.0)
+## File Structure (v1.1.0)
 
 ```
 arka-os/
 ├── CLAUDE.md                         # System instructions (this file)
 ├── CONSTITUTION.md                   # Governance rules (3 enforcement levels)
-├── VERSION                           # Semver version (1.0.0)
+├── VERSION                           # Semver version (1.1.0)
 ├── install.sh                        # Installer (hooks fix, agent memory, manifest)
 ├── bin/
 │   ├── arka                          # CLI wrapper (gotchas, test, doctor, kb, commands)
