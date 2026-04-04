@@ -1,0 +1,99 @@
+id: content-viral
+name: Viral Content Creation
+description: Design viral content using STEPPS, hooks, and platform-native formatting
+department: content
+tier: enterprise
+command: "/content viral"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Content Brief
+    description: Define topic, platform, audience, and viral goal
+    agents:
+      - agent_id: content-strategist-rafael
+        role: Topic selection, platform choice, viral angle
+    gate:
+      type: user_approval
+      description: User confirms topic and platform
+
+  - id: research
+    name: Viral Research
+    description: Analyze trending content, competitor hooks, platform signals
+    agents:
+      - agent_id: viral-engineer-filipe
+        role: Top-performing hooks, trending formats, algorithm signals
+      - agent_id: content-strategist-rafael
+        role: STEPPS audit of topic, emotional trigger selection
+        parallel: true
+    gate:
+      type: auto
+
+  - id: creation
+    name: Content Creation
+    description: Write hooks, scripts, and packaging
+    agents:
+      - agent_id: viral-engineer-filipe
+        role: 5 hook variants, thumbnail/title options
+        parallel: true
+      - agent_id: scriptwriter-joana
+        role: Full script with hook-bridge-body-CTA structure
+        parallel: true
+    gate:
+      type: user_approval
+      description: User selects hook and approves script
+
+  - id: repurpose
+    name: Repurposing Plan
+    description: Map pillar content to 30+ platform-native pieces
+    agents:
+      - agent_id: repurpose-distributor-nuno
+        role: 1→30+ repurposing map, platform-native adaptations
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/Viral/"
+        description: Repurposing map with platform-specific formats
+
+  - id: self-critique
+    name: Self-Critique
+    description: STEPPS audit on final content — does it pass all 6 triggers?
+    agents:
+      - agent_id: content-strategist-rafael
+        role: STEPPS score, viral probability assessment
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Quality review of all content
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Copy quality, human voice, no AI patterns
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Platform compliance, format specs, accessibility
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Final content package with all variants
+    agents:
+      - agent_id: content-strategist-rafael
+        role: Deliver content package with publishing schedule
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/"
+        description: Viral content package with all platform variants

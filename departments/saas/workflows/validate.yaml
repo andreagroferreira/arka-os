@@ -1,0 +1,103 @@
+id: saas-validate
+name: SaaS Idea Validation
+description: 30-day validation framework for SaaS/Micro-SaaS ideas
+department: saas
+tier: enterprise
+command: "/saas validate"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Idea Brief
+    description: Capture the idea, target audience, problem statement
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Structure the idea into problem/solution/audience
+    gate:
+      type: user_approval
+      description: User confirms the idea framing
+
+  - id: market-check
+    name: Market Validation
+    description: TAM/SAM/SOM, competitor analysis, niche evaluation
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Niche evaluation, staircase stage, T2D3 potential
+        parallel: true
+      - agent_id: market-analyst-lucas
+        role: TAM/SAM/SOM, competitor landscape
+        parallel: true
+    gate:
+      type: user_approval
+      description: User reviews market viability
+
+  - id: model-design
+    name: Business Model & Pricing
+    description: Revenue model, pricing strategy, unit economics projection
+    agents:
+      - agent_id: business-model-designer-marta-s
+        role: Business Model Canvas, revenue model
+        parallel: true
+      - agent_id: saas-strategist-tiago
+        role: Pricing strategy (Van Westendorp), PLG vs SLG decision
+        parallel: true
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Validation/"
+        description: Business Model Canvas + Pricing analysis
+
+  - id: mvp-scope
+    name: MVP Scope Definition
+    description: Define the minimum viable product with acceptance criteria
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: MVP feature set, activation metric, time-to-value target
+      - agent_id: growth-engineer-andre-s
+        role: PLG mechanics, onboarding flow, activation triggers
+    gate:
+      type: user_approval
+      description: User approves MVP scope
+
+  - id: financial-check
+    name: Financial Viability
+    description: Unit economics, runway, break-even analysis
+    agents:
+      - agent_id: financial-analyst-leonor
+        role: Unit economics projection, CAC/LTV model, break-even
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Validate analysis quality and completeness
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Report clarity and communication quality
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Financial model accuracy, data consistency
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Validation Report
+    description: Complete validation package with go/no-go recommendation
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Compile validation report with recommendation
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Validation/"
+        description: SaaS Validation Report with go/no-go

@@ -1,0 +1,112 @@
+id: mkt-campaign
+name: Marketing Campaign
+description: Full marketing campaign from brief to delivery
+department: marketing
+tier: enterprise
+command: "/mkt paid"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Campaign Brief
+    description: Clarify campaign goals, audience, budget, channels
+    agents:
+      - agent_id: marketing-director-luna
+        role: Define campaign strategy and success metrics
+    gate:
+      type: user_approval
+      description: User confirms campaign brief and budget
+
+  - id: research
+    name: Challenge & Research
+    description: Analyze competitors, audience data, channel performance
+    agents:
+      - agent_id: seo-specialist-ana
+        role: Organic opportunity analysis
+        parallel: true
+      - agent_id: paid-specialist-pedro
+        role: Paid channel benchmarks and budget allocation
+        parallel: true
+      - agent_id: strategy-director-tomas
+        role: Strategic positioning check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves research findings and approach
+
+  - id: planning
+    name: Campaign Planning
+    description: Content calendar, ad creatives, email sequences, landing pages
+    agents:
+      - agent_id: marketing-director-luna
+        role: Overall campaign plan with timeline
+      - agent_id: content-marketer-mariana
+        role: Content calendar and copy briefs
+    gate:
+      type: auto
+
+  - id: execution
+    name: Campaign Execution
+    description: Create all campaign assets
+    agents:
+      - agent_id: content-marketer-mariana
+        role: Blog posts, social content, email copy
+        parallel: true
+      - agent_id: paid-specialist-pedro
+        role: Ad creatives, targeting, budget setup
+        parallel: true
+      - agent_id: seo-specialist-ana
+        role: SEO content and on-page optimization
+        parallel: true
+    gate:
+      type: auto
+
+  - id: self-critique
+    name: Self-Critique
+    description: Review all assets against AARRR metrics and brand voice
+    agents:
+      - agent_id: marketing-director-luna
+        role: Campaign coherence and metric alignment review
+    gate:
+      type: auto
+
+  - id: supervision
+    name: Supervision
+    description: Senior review of campaign strategy and assets
+    agents:
+      - agent_id: cto-marco
+        role: Technical feasibility check (if landing pages/tracking involved)
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Mandatory quality review before delivery
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: All copy quality, tone, grammar, AI pattern check
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Tracking setup, landing page UX, technical quality
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Save all assets to Obsidian, present campaign to user
+    agents:
+      - agent_id: marketing-director-luna
+        role: Final campaign package delivery
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Marketing/Campaigns/"
+        description: Complete campaign plan with all assets
