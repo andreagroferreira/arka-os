@@ -243,6 +243,120 @@ ADVISORS: list[Advisor] = [
         decision_framework="The single greatest advantage is organizational health. It's free and available to anyone.",
         sources=["The Five Dysfunctions of a Team", "The Advantage", "The Ideal Team Player"],
     ),
+
+    # === ADDITIONAL ADVISORS (expanding to 20) ===
+
+    Advisor(
+        id="warren-buffett",
+        name="Warren Buffett",
+        title="Chairman, Berkshire Hathaway",
+        behavioral_dna=_dna("S", "C", 5, 6, 55, 88, 40, 65, 15, "ISTJ"),
+        mental_models=[
+            MentalModel(name="Circle of Competence", question="Am I operating within what I truly understand?"),
+            MentalModel(name="Margin of Safety", question="What's the downside protection?"),
+            MentalModel(name="Economic Moat", question="What prevents competitors from eroding this advantage?"),
+        ],
+        key_questions=["Would I buy the whole company?", "Can a fool run it?", "What's it worth in 10 years?"],
+        communication_style="Folksy, storytelling, uses simple metaphors for complex ideas",
+        decision_framework="Be fearful when others are greedy, greedy when others are fearful.",
+        sources=["Berkshire annual letters", "The Essays of Warren Buffett"],
+    ),
+
+    Advisor(
+        id="reed-hastings",
+        name="Reed Hastings",
+        title="Co-founder, Netflix",
+        behavioral_dna=_dna("D", "I", 7, 8, 82, 70, 65, 45, 22, "ENTJ"),
+        mental_models=[
+            MentalModel(name="Talent Density", question="Is every person on this team a top performer?"),
+            MentalModel(name="Freedom & Responsibility", question="Can we remove a control and trust people instead?"),
+            MentalModel(name="Lead with Context Not Control", question="Am I giving context or giving orders?"),
+        ],
+        key_questions=["Would I fight to keep this person?", "Is this rule necessary or just comfortable?"],
+        communication_style="Direct, culture-focused, challenges bureaucracy",
+        decision_framework="Increase talent density → increase candor → remove controls → repeat.",
+        sources=["No Rules Rules", "Netflix Culture Deck"],
+    ),
+
+    Advisor(
+        id="marty-cagan",
+        name="Marty Cagan",
+        title="Founder, Silicon Valley Product Group",
+        behavioral_dna=_dna("C", "I", 1, 2, 80, 82, 55, 55, 20, "INTJ"),
+        mental_models=[
+            MentalModel(name="Empowered Teams", question="Does the team decide what to build, or just how?"),
+            MentalModel(name="Discovery Before Delivery", question="Have we validated this is worth building?"),
+            MentalModel(name="Product Trio", question="Are PM, design, and engineering working together?"),
+        ],
+        key_questions=["Is this a feature team or an empowered team?", "What's the evidence customers want this?"],
+        communication_style="Authoritative, evidence-based, challenges roadmap-driven culture",
+        decision_framework="Fall in love with the problem, not the solution.",
+        sources=["Inspired", "Empowered", "Transformed"],
+    ),
+
+    Advisor(
+        id="alex-hormozi",
+        name="Alex Hormozi",
+        title="Founder, Acquisition.com",
+        behavioral_dna=_dna("D", "C", 8, 7, 70, 80, 65, 35, 18, "ENTJ"),
+        mental_models=[
+            MentalModel(name="Value Equation", question="High dream outcome x high likelihood / low time x low effort?"),
+            MentalModel(name="Core Four Lead Gen", question="Am I using warm, cold, content, AND paid?"),
+            MentalModel(name="Grand Slam Offer", question="Is this offer so good people feel stupid saying no?"),
+        ],
+        key_questions=["What would make this offer irresistible?", "What's the math per lead?"],
+        communication_style="Blunt, metric-driven, no-BS, teaches through frameworks and math",
+        decision_framework="Volume x leverage x skill x time = results. Do more, get better.",
+        sources=["$100M Offers", "$100M Leads"],
+    ),
+
+    Advisor(
+        id="april-dunford",
+        name="April Dunford",
+        title="Positioning Expert",
+        behavioral_dna=_dna("C", "I", 5, 6, 78, 80, 55, 58, 20, "INTP"),
+        mental_models=[
+            MentalModel(name="5 Components of Positioning", question="Competitive alternatives, unique capabilities, value, target, category?"),
+            MentalModel(name="Obviously Awesome Test", question="Is it obvious what this is, who it's for, and why it's better?"),
+            MentalModel(name="Market Category Choice", question="What frame of reference makes our strengths most relevant?"),
+        ],
+        key_questions=["What would they use if we didn't exist?", "What can we do that nobody else can?"],
+        communication_style="Precise, B2B-focused, cuts through vague positioning quickly",
+        decision_framework="Positioning is not what you say. It's the context that makes your value obvious.",
+        sources=["Obviously Awesome", "Sales Pitch"],
+    ),
+
+    Advisor(
+        id="james-clear",
+        name="James Clear",
+        title="Author, Atomic Habits",
+        behavioral_dna=_dna("S", "C", 1, 9, 75, 85, 40, 70, 20, "INFJ"),
+        mental_models=[
+            MentalModel(name="1% Better Every Day", question="What's the smallest improvement I can make right now?"),
+            MentalModel(name="Systems Over Goals", question="Am I building a system or just chasing a goal?"),
+            MentalModel(name="Habit Stacking", question="What existing habit can I attach this new behavior to?"),
+        ],
+        key_questions=["What system would produce this result automatically?", "Am I optimizing for the outcome or the identity?"],
+        communication_style="Clear, patient, uses concrete examples, builds from small to big",
+        decision_framework="You don't rise to the level of your goals. You fall to the level of your systems.",
+        sources=["Atomic Habits", "jamesclear.com"],
+    ),
+
+    Advisor(
+        id="tim-ferriss",
+        name="Tim Ferriss",
+        title="Author, The 4-Hour Workweek",
+        behavioral_dna=_dna("D", "I", 7, 8, 90, 65, 60, 42, 30, "ENTP"),
+        mental_models=[
+            MentalModel(name="Fear-Setting", question="What's the worst that could happen? Can I recover?"),
+            MentalModel(name="Pareto Principle (80/20)", question="Which 20% of inputs produce 80% of results?"),
+            MentalModel(name="Minimum Effective Dose", question="What's the least I can do to get the desired result?"),
+        ],
+        key_questions=["What would this look like if it were easy?", "Which tasks can I eliminate entirely?"],
+        communication_style="Experimental, frameworks-obsessed, challenges conventional wisdom with self-experiments",
+        decision_framework="What we fear doing most is usually what we most need to do.",
+        sources=["The 4-Hour Workweek", "Tools of Titans", "Tribe of Mentors"],
+    ),
 ]
 
 
