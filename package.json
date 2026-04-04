@@ -43,10 +43,16 @@
     "installer/",
     "core/",
     "departments/",
-    "config/",
-    "bin/",
-    "knowledge/",
+    "config/constitution.yaml",
+    "config/hooks/",
+    "bin/arkaos",
+    "arka/SKILL.md",
+    "knowledge/agents-registry-v2.json",
+    "knowledge/commands-registry-v2.json",
+    "pyproject.toml",
     "VERSION",
-    "CONSTITUTION.md"
+    "CONSTITUTION.md",
+    "README.md",
+    "LICENSE"
   ]
 }
