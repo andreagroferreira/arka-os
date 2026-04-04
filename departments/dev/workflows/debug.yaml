@@ -1,0 +1,63 @@
+id: dev-debug
+name: Systematic Debugging
+description: Root cause analysis using 4-phase systematic debugging
+department: dev
+tier: focused
+command: "/dev debug"
+requires_branch: true
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: diagnose
+    name: Diagnose
+    description: Reproduce the issue, gather evidence, identify root cause
+    agents:
+      - agent_id: tech-lead-paulo
+        role: Reproduce issue, read error logs, trace code path
+    gate:
+      type: auto
+
+  - id: fix
+    name: Fix
+    description: Implement the fix with tests proving the issue is resolved
+    agents:
+      - agent_id: backend-dev-andre
+        role: Backend fix (if backend issue)
+        parallel: true
+      - agent_id: frontend-dev-diana
+        role: Frontend fix (if frontend issue)
+        parallel: true
+    gate:
+      type: auto
+
+  - id: verify
+    name: Verify
+    description: Run full test suite, verify fix doesn't break anything
+    agents:
+      - agent_id: qa-eng-rita
+        role: Full test suite + regression check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Review fix quality
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review
+      - agent_id: tech-director-francisca
+        role: Code quality and test coverage check
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: documentation
+    name: Documentation
+    description: Document the issue and fix for future reference
+    agents:
+      - agent_id: tech-lead-paulo
+        role: Update gotchas, document root cause
+    gate:
+      type: auto

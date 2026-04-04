@@ -1,0 +1,64 @@
+id: dev-refactor
+name: Code Refactoring
+description: Refactor code following Clean Code principles with safety net
+department: dev
+tier: focused
+command: "/dev refactor"
+requires_branch: true
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: analyze
+    name: Analyze
+    description: Identify code smells, SOLID violations, and refactoring targets
+    agents:
+      - agent_id: tech-lead-paulo
+        role: Clean Code audit, identify refactoring targets
+    gate:
+      type: user_approval
+      description: User approves refactoring scope
+
+  - id: refactor
+    name: Refactor
+    description: Apply refactoring patterns while keeping tests green
+    agents:
+      - agent_id: backend-dev-andre
+        role: Backend refactoring
+        parallel: true
+      - agent_id: frontend-dev-diana
+        role: Frontend refactoring
+        parallel: true
+    gate:
+      type: auto
+
+  - id: verify
+    name: Verify
+    description: All tests pass, no behavior change, improved metrics
+    agents:
+      - agent_id: qa-eng-rita
+        role: Full test suite, verify no behavior change
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Review refactored code
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review
+      - agent_id: tech-director-francisca
+        role: SOLID compliance, Clean Code check
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: documentation
+    name: Documentation
+    description: Document what was refactored and why
+    agents:
+      - agent_id: tech-lead-paulo
+        role: Update architecture docs if needed
+    gate:
+      type: auto

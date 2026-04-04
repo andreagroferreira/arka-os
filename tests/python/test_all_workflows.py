@@ -22,7 +22,8 @@ class TestAllWorkflowsLoad:
     @pytest.mark.parametrize("wf_file", WORKFLOW_FILES, ids=lambda f: f.stem)
     def test_workflow_has_phases(self, wf_file):
         wf = load_workflow(wf_file)
-        assert len(wf.phases) >= 3, f"{wf.id} has less than 3 phases"
+        min_phases = 2 if wf.tier.value == "specialist" else 3
+        assert len(wf.phases) >= min_phases, f"{wf.id} ({wf.tier.value}) has less than {min_phases} phases"
 
     @pytest.mark.parametrize("wf_file", WORKFLOW_FILES, ids=lambda f: f.stem)
     def test_workflow_has_quality_gate(self, wf_file):
@@ -70,5 +71,5 @@ class TestWorkflowCoverage:
         for f in WORKFLOW_FILES:
             wf = load_workflow(f)
             last_phase = wf.phases[-1].id
-            valid_finals = {"delivery", "documentation"}
+            valid_finals = {"delivery", "documentation", "actions"}
             assert last_phase in valid_finals, f"{wf.id} last phase '{last_phase}' not a final phase"

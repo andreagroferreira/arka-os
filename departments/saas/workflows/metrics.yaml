@@ -1,0 +1,58 @@
+id: saas-metrics
+name: SaaS Metrics Dashboard
+description: Set up or review SaaS metrics with benchmarks
+department: saas
+tier: focused
+command: "/saas metrics"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: collect
+    name: Data Collection
+    description: Gather current metrics from the product/business
+    agents:
+      - agent_id: metrics-analyst-rita-s
+        role: Collect MRR, churn, CAC, LTV, NRR, and supporting data
+    gate:
+      type: auto
+
+  - id: analyze
+    name: Analysis & Benchmarking
+    description: Calculate all metrics and compare to industry benchmarks
+    agents:
+      - agent_id: metrics-analyst-rita-s
+        role: Calculate metrics, benchmark against KeyBanc/Meritech
+      - agent_id: saas-strategist-tiago
+        role: Strategic interpretation and recommendations
+        parallel: true
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Validate data accuracy
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review
+      - agent_id: tech-director-francisca
+        role: Data accuracy and calculation verification
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Metrics dashboard with traffic lights and recommendations
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Final metrics report with action items
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Metrics/"
+        description: SaaS metrics dashboard

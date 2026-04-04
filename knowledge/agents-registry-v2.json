@@ -1,37 +1,37 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-04-04T19:40:52.765611",
-    "total_agents": 56,
+    "generated": "2026-04-04T20:19:07.400992",
+    "total_agents": 62,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
       "1": 15,
-      "2": 35,
+      "2": 41,
       "0": 6
     },
     "departments": {
       "brand": 4,
-      "community": 2,
+      "community": 3,
       "content": 4,
       "dev": 9,
       "ecom": 4,
       "finance": 3,
       "kb": 3,
       "landing": 4,
-      "leadership": 2,
+      "leadership": 3,
       "marketing": 4,
       "ops": 2,
-      "org": 1,
+      "org": 3,
       "pm": 3,
       "quality": 3,
-      "saas": 3,
-      "sales": 2,
+      "saas": 4,
+      "sales": 3,
       "strategy": 3
     },
     "disc_distribution": {
-      "S": 8,
-      "C": 18,
-      "I": 15,
+      "S": 10,
+      "C": 21,
+      "I": 16,
       "D": 15
     }
   },
@@ -291,6 +291,47 @@
       ],
       "file": "departments/community/agents/community-strategist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-community-strategist-beatriz/MEMORY.md"
+    },
+    {
+      "id": "engagement-designer-tania",
+      "name": "Tania",
+      "role": "Engagement & Gamification Designer",
+      "department": "community",
+      "tier": 2,
+      "disc": {
+        "primary": "I",
+        "secondary": "C",
+        "label": "Inspirer-Analyst"
+      },
+      "enneagram": {
+        "type": 7,
+        "wing": 6,
+        "label": "7w6 — The Enthusiast"
+      },
+      "big_five": {
+        "O": 88,
+        "C": 68,
+        "E": 75,
+        "A": 70,
+        "N": 28
+      },
+      "mbti": "ENFP",
+      "authority": {},
+      "expertise_domains": [
+        "gamification system design",
+        "engagement loops",
+        "challenge and streak mechanics",
+        "leaderboards and badges",
+        "event format design (AMA, workshop, challenge)"
+      ],
+      "frameworks": [
+        "Hook Model (Nir Eyal)",
+        "Octalysis Gamification (Yu-kai Chou)",
+        "Engagement Loop Design",
+        "Event Formats Matrix"
+      ],
+      "file": "departments/community/agents/engagement-designer.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-engagement-designer-tania/MEMORY.md"
     },
     {
       "id": "content-strategist-rafael",
@@ -1498,6 +1539,48 @@
       "memory_path": "~/.claude/agent-memory/arka-culture-coach-paula/MEMORY.md"
     },
     {
+      "id": "hr-specialist-diana-r",
+      "name": "Diana R.",
+      "role": "HR & Talent Specialist",
+      "department": "leadership",
+      "tier": 2,
+      "disc": {
+        "primary": "S",
+        "secondary": "C",
+        "label": "Supporter-Analyst"
+      },
+      "enneagram": {
+        "type": 6,
+        "wing": 7,
+        "label": "6w7 — The Loyalist"
+      },
+      "big_five": {
+        "O": 65,
+        "C": 82,
+        "E": 55,
+        "A": 78,
+        "N": 28
+      },
+      "mbti": "ISFJ",
+      "authority": {},
+      "expertise_domains": [
+        "hiring process (scorecard, source, select, sell)",
+        "structured interviews",
+        "onboarding program design",
+        "performance review facilitation",
+        "compensation benchmarking"
+      ],
+      "frameworks": [
+        "Who Method (Geoff Smart)",
+        "Topgrading",
+        "Netflix Keeper Test",
+        "Structured Interview Rubrics",
+        "Career Ladder Framework"
+      ],
+      "file": "departments/leadership/agents/hr-specialist.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-hr-specialist-diana-r/MEMORY.md"
+    },
+    {
       "id": "leadership-director-rodrigo",
       "name": "Rodrigo",
       "role": "Leadership & People Director",
@@ -1840,6 +1923,89 @@
       ],
       "file": "departments/org/agents/coo.yaml",
       "memory_path": "~/.claude/agent-memory/arka-coo-sofia/MEMORY.md"
+    },
+    {
+      "id": "org-designer-pedro-m",
+      "name": "Pedro M.",
+      "role": "Organizational Designer",
+      "department": "org",
+      "tier": 2,
+      "disc": {
+        "primary": "C",
+        "secondary": "D",
+        "label": "Analyst-Driver"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 78,
+        "C": 85,
+        "E": 35,
+        "A": 52,
+        "N": 20
+      },
+      "mbti": "INTJ",
+      "authority": {},
+      "expertise_domains": [
+        "organizational design",
+        "team topologies",
+        "cognitive load management",
+        "Conway's Law analysis",
+        "squad/tribe/chapter design"
+      ],
+      "frameworks": [
+        "Team Topologies (Skelton/Pais)",
+        "Spotify Model (Kniberg)",
+        "Inverse Conway Maneuver",
+        "Cognitive Load Theory",
+        "RACI Matrix"
+      ],
+      "file": "departments/org/agents/org-designer.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-org-designer-pedro-m/MEMORY.md"
+    },
+    {
+      "id": "people-ops-carla",
+      "name": "Carla",
+      "role": "People Operations Specialist",
+      "department": "org",
+      "tier": 2,
+      "disc": {
+        "primary": "S",
+        "secondary": "I",
+        "label": "Supporter-Inspirer"
+      },
+      "enneagram": {
+        "type": 2,
+        "wing": 1,
+        "label": "2w1 — The Helper"
+      },
+      "big_five": {
+        "O": 65,
+        "C": 82,
+        "E": 62,
+        "A": 85,
+        "N": 25
+      },
+      "mbti": "ESFJ",
+      "authority": {},
+      "expertise_domains": [
+        "hiring process design",
+        "employee onboarding",
+        "compensation benchmarking",
+        "performance review systems",
+        "remote work policies"
+      ],
+      "frameworks": [
+        "Who Method (Smart/Street)",
+        "Structured Interviews",
+        "Netflix Keeper Test",
+        "Career Ladder Design"
+      ],
+      "file": "departments/org/agents/people-ops.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-people-ops-carla/MEMORY.md"
     },
     {
       "id": "pm-director-carolina",
@@ -2192,6 +2358,48 @@
       "memory_path": "~/.claude/agent-memory/arka-growth-engineer-andre-s/MEMORY.md"
     },
     {
+      "id": "metrics-analyst-rita-s",
+      "name": "Rita S.",
+      "role": "SaaS Metrics Analyst",
+      "department": "saas",
+      "tier": 2,
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 62,
+        "C": 90,
+        "E": 32,
+        "A": 55,
+        "N": 20
+      },
+      "mbti": "ISTJ",
+      "authority": {},
+      "expertise_domains": [
+        "SaaS metrics (MRR, ARR, NRR, churn, LTV, CAC)",
+        "cohort analysis",
+        "dashboard design",
+        "benchmark comparison (KeyBanc, Meritech, OpenView)",
+        "financial modeling for SaaS"
+      ],
+      "frameworks": [
+        "SaaS Metrics Stack (Janz)",
+        "Rule of 40 (Brad Feld)",
+        "Cohort Analysis",
+        "T2D3 Growth Trajectory",
+        "Magic Number / Burn Multiple"
+      ],
+      "file": "departments/saas/agents/metrics-analyst.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-metrics-analyst-rita-s/MEMORY.md"
+    },
+    {
       "id": "saas-strategist-tiago",
       "name": "Tiago",
       "role": "SaaS Strategist",
@@ -2320,6 +2528,47 @@
       ],
       "file": "departments/sales/agents/sales-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-sales-director-miguel/MEMORY.md"
+    },
+    {
+      "id": "sales-ops-ines-s",
+      "name": "Ines S.",
+      "role": "Sales Operations Analyst",
+      "department": "sales",
+      "tier": 2,
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 6,
+        "wing": 5,
+        "label": "6w5 — The Loyalist"
+      },
+      "big_five": {
+        "O": 58,
+        "C": 90,
+        "E": 38,
+        "A": 60,
+        "N": 22
+      },
+      "mbti": "ISTJ",
+      "authority": {},
+      "expertise_domains": [
+        "pipeline management and analytics",
+        "CRM administration",
+        "revenue forecasting",
+        "sales process optimization",
+        "deal stage definitions"
+      ],
+      "frameworks": [
+        "Pipeline Velocity (# Opps x Win Rate x ACV / Cycle)",
+        "MEDDIC Qualification",
+        "Revenue Forecasting Models",
+        "Sales Funnel Analysis"
+      ],
+      "file": "departments/sales/agents/sales-ops.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-sales-ops-ines-s/MEMORY.md"
     },
     {
       "id": "business-model-designer-marta-s",
