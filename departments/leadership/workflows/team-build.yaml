@@ -1,0 +1,55 @@
+id: lead-team-build
+name: Team Building
+department: leadership
+tier: enterprise
+command: /lead team-build
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Team assessment and building using Five Dysfunctions + DISC
+phases:
+- id: assess
+  name: Team Assessment
+  agents:
+  - agent_id: leadership-director-rodrigo
+    role: Five Dysfunctions assessment + DISC mapping
+  gate:
+    type: user_approval
+    description: User confirms assessment findings
+- id: diagnose
+  name: Diagnose Issues
+  agents:
+  - agent_id: culture-coach-paula
+    role: Root cause analysis of team dysfunctions
+  gate:
+    type: auto
+- id: plan
+  name: Improvement Plan
+  agents:
+  - agent_id: leadership-director-rodrigo
+    role: 'Action plan: trust building, conflict norms, accountability'
+  gate:
+    type: user_approval
+    description: User approves improvement plan
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate
+  - agent_id: copy-director-eduardo
+    role: Plan clarity and communication
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: leadership-director-rodrigo
+    role: Team building plan with milestones
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Leadership/Teams/

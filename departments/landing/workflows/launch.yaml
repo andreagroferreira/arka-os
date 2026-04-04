@@ -1,0 +1,72 @@
+id: landing-launch
+name: Product Launch (PLF)
+department: landing
+tier: enterprise
+command: /landing launch
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Product launch using Jeff Walker's Product Launch Formula
+phases:
+- id: brief
+  name: Launch Brief
+  agents:
+  - agent_id: conversion-strategist-ines
+    role: Define product, audience, launch timeline
+  gate:
+    type: user_approval
+    description: User confirms launch parameters
+- id: offer
+  name: Offer Creation
+  agents:
+  - agent_id: conversion-strategist-ines
+    role: Grand Slam Offer with Value Equation
+  gate:
+    type: user_approval
+    description: User approves offer structure
+- id: plc
+  name: Pre-Launch Content
+  agents:
+  - agent_id: sales-copywriter-teresa
+    role: PLC 1 (Opportunity), PLC 2 (Transformation), PLC 3 (Ownership)
+  gate:
+    type: auto
+- id: sequence
+  name: Email Sequences
+  agents:
+  - agent_id: sales-copywriter-teresa
+    role: Open cart, closing, last chance email sequences
+  gate:
+    type: auto
+- id: funnel
+  name: Funnel Setup
+  agents:
+  - agent_id: cro-specialist-landing-hugo
+    role: Landing page structure, checkout, upsell
+  gate:
+    type: auto
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate
+  - agent_id: copy-director-eduardo
+    role: All copy quality
+    parallel: true
+  - agent_id: tech-director-francisca
+    role: Funnel logic, UX
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: conversion-strategist-ines
+    role: Complete launch package
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Landing-Pages/Launches/
