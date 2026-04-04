@@ -1,8 +1,9 @@
 ---
-name: human-writing
+name: arka-human-writing
 description: >
-  NON-NEGOTIABLE core writing quality gate. Enforces human-like writing across ALL ARKA OS output.
+  NON-NEGOTIABLE core writing quality gate. Enforces human-like writing across ALL ArkaOS output.
   Every text, copy, report, documentation, email, social post, and analysis must follow these rules.
+  Reviewed by Eduardo (Copy Director, Tier 0). Constitution rule #8.
   No AI-sounding patterns. Natural language with proper punctuation, tone matching, and flawless
   orthography. Applied automatically to all departments, all agents, all output types.
   This is a Constitution rule (NON-NEGOTIABLE #8) — violation aborts the operation.

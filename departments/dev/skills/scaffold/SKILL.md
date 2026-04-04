@@ -1,5 +1,5 @@
 ---
-name: dev-scaffold
+name: arka-dev-scaffold
 description: >
   Project scaffolding from real git repositories. Creates new Laravel, Nuxt, Vue, React, or
   Next.js projects with automated dependency installation, mandatory packages, MCP configuration,

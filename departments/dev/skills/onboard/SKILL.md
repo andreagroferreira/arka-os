@@ -1,5 +1,5 @@
 ---
-name: dev-onboard
+name: arka-dev-onboard
 description: >
   Onboard existing projects into ARKA OS with automatic stack detection, codebase analysis,
   MCP configuration, and Obsidian documentation. Analyzes composer.json, package.json,

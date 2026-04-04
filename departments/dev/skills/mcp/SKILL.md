@@ -1,5 +1,5 @@
 ---
-name: dev-mcp
+name: arka-dev-mcp
 description: >
   MCP (Model Context Protocol) management for projects. Apply pre-configured MCP profiles,
   add or remove individual MCP servers, list all available MCPs from the registry, and check
