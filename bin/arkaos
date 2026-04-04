@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# ============================================================================
+# ArkaOS v2 — CLI Wrapper
+# The Operating System for AI Agent Teams
+# ============================================================================
+
+set -euo pipefail
+
+VERSION="2.0.0-alpha.1"
+INSTALL_DIR="${HOME}/.arkaos"
+REPO_ROOT=""
+
+# Load repo root from .repo-path if exists
+if [ -f "$INSTALL_DIR/.repo-path" ]; then
+  REPO_ROOT=$(cat "$INSTALL_DIR/.repo-path" 2>/dev/null || echo "")
+fi
+
+# ─── Commands ────────────────────────────────────────────────────────────
+
+case "${1:-}" in
+  --version|-v)
+    echo "ArkaOS v${VERSION}"
+    ;;
+
+  install)
+    node "${REPO_ROOT}/installer/cli.js" install "${@:2}"
+    ;;
+
+  doctor)
+    node "${REPO_ROOT}/installer/cli.js" doctor
+    ;;
+
+  update)
+    node "${REPO_ROOT}/installer/cli.js" update
+    ;;
+
+  uninstall)
+    node "${REPO_ROOT}/installer/cli.js" uninstall
+    ;;
+
+  test)
+    if [ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT/tests" ]; then
+      cd "$REPO_ROOT"
+      python3 -m pytest tests/ -v
+    else
+      echo "Error: Cannot find ArkaOS repo. Run: npx arkaos install"
+      exit 1
+    fi
+    ;;
+
+  status)
+    echo ""
+    echo "  ArkaOS v${VERSION}"
+    echo ""
+    echo "  Install dir:  ${INSTALL_DIR}"
+    echo "  Repo root:    ${REPO_ROOT:-not set}"
+    echo ""
+    if [ -f "$INSTALL_DIR/install-manifest.json" ] && command -v jq &>/dev/null; then
+      runtime=$(jq -r '.runtime // "unknown"' "$INSTALL_DIR/install-manifest.json")
+      installed=$(jq -r '.installedAt // "unknown"' "$INSTALL_DIR/install-manifest.json")
+      echo "  Runtime:      ${runtime}"
+      echo "  Installed:    ${installed}"
+    fi
+    if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/knowledge/agents-registry-v2.json" ] && command -v jq &>/dev/null; then
+      agents=$(jq -r '._meta.total_agents // 0' "$REPO_ROOT/knowledge/agents-registry-v2.json")
+      echo "  Agents:       ${agents}"
+    fi
+    if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/knowledge/commands-registry-v2.json" ] && command -v jq &>/dev/null; then
+      commands=$(jq -r '._meta.total_commands // 0' "$REPO_ROOT/knowledge/commands-registry-v2.json")
+      echo "  Commands:     ${commands}"
+    fi
+    echo ""
+    ;;
+
+  help|--help|-h|"")
+    echo ""
+    echo "  ArkaOS v${VERSION} — The Operating System for AI Agent Teams"
+    echo ""
+    echo "  Usage:"
+    echo "    arkaos install          Install or reinstall ArkaOS"
+    echo "    arkaos doctor           Run health checks"
+    echo "    arkaos update           Update to latest version"
+    echo "    arkaos uninstall        Remove ArkaOS"
+    echo "    arkaos status           Show installation status"
+    echo "    arkaos test             Run test suite"
+    echo "    arkaos --version        Show version"
+    echo "    arkaos help             Show this help"
+    echo ""
+    echo "  In Claude Code, use slash commands:"
+    echo "    /do <description>       Route to any department"
+    echo "    /dev feature <desc>     Development"
+    echo "    /mkt social <topic>     Marketing"
+    echo "    /brand identity <name>  Brand & Design"
+    echo "    /fin model <type>       Finance"
+    echo "    /strat analyze <topic>  Strategy"
+    echo "    /saas validate <idea>   SaaS"
+    echo "    /landing offer <prod>   Landing Pages"
+    echo "    /content viral <topic>  Content"
+    echo ""
+    ;;
+
+  *)
+    echo "Unknown command: $1"
+    echo "Run 'arkaos help' for usage."
+    exit 1
+    ;;
+esac
