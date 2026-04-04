@@ -1,0 +1,63 @@
+id: kb-learn
+name: Knowledge Ingestion
+department: kb
+tier: enterprise
+command: /kb learn
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Ingest content (YouTube, article, PDF) with 5-agent parallel analysis
+phases:
+- id: queue
+  name: Queue & Download
+  description: Download media, transcribe if needed
+  agents:
+  - agent_id: knowledge-director-clara
+    role: Queue job, initiate download
+  gate:
+    type: auto
+- id: analyze
+  name: 5-Agent Analysis
+  description: Extract frameworks, strategy, voice, principles, topics
+  agents:
+  - agent_id: research-analyst-francisco
+    role: Frameworks and key concepts
+    parallel: true
+  - agent_id: knowledge-curator-helena-c
+    role: Topics and cross-references
+    parallel: true
+  - agent_id: knowledge-director-clara
+    role: Persona DNA extraction
+    parallel: true
+  gate:
+    type: auto
+- id: catalog
+  name: Obsidian Cataloging
+  description: Create notes, links, update MOCs
+  agents:
+  - agent_id: knowledge-curator-helena-c
+    role: Create Obsidian notes with links and MOC updates
+  gate:
+    type: auto
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate
+  - agent_id: copy-director-eduardo
+    role: Note quality and attribution
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: knowledge-director-clara
+    role: Summary of ingested content and KB updates
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: 🧠 Knowledge Base/

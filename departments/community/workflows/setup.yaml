@@ -1,0 +1,62 @@
+id: community-setup
+name: Community Setup
+department: community
+tier: enterprise
+command: /community setup
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Full niche community setup from business model to launch
+phases:
+- id: brief
+  name: Community Brief
+  agents:
+  - agent_id: community-strategist-beatriz
+    role: Define niche, audience, value proposition
+  gate:
+    type: user_approval
+    description: User confirms community concept
+- id: model
+  name: Business Model
+  agents:
+  - agent_id: community-strategist-beatriz
+    role: Community BMC + SPACES value + monetization plan
+  gate:
+    type: user_approval
+    description: User approves business model
+- id: platform
+  name: Platform & Setup
+  agents:
+  - agent_id: community-strategist-beatriz
+    role: Platform selection + channel structure + bot setup
+  gate:
+    type: auto
+- id: onboard
+  name: Onboarding Design
+  agents:
+  - agent_id: community-manager-maria
+    role: Welcome flow, first 7 days, activation triggers
+  gate:
+    type: auto
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate
+  - agent_id: copy-director-eduardo
+    role: Community copy and tone
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: community-strategist-beatriz
+    role: Complete community blueprint
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Communities/

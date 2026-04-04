@@ -1,0 +1,55 @@
+id: org-design
+name: Organizational Design
+department: org
+tier: enterprise
+command: /org design
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Org structure design using Team Topologies and Conway's Law
+phases:
+- id: brief
+  name: Design Brief
+  agents:
+  - agent_id: coo-sofia
+    role: Define org design goals and constraints
+  gate:
+    type: user_approval
+    description: User confirms scope
+- id: analyze
+  name: Current State Analysis
+  agents:
+  - agent_id: org-designer-pedro-m
+    role: Map current topology, cognitive load, communication patterns
+  gate:
+    type: auto
+- id: design
+  name: New Structure
+  agents:
+  - agent_id: org-designer-pedro-m
+    role: Propose new topology with team types and interaction modes
+  gate:
+    type: user_approval
+    description: User approves proposed structure
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate
+  - agent_id: tech-director-francisca
+    role: Conway's Law alignment check
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: coo-sofia
+    role: Org design proposal with transition plan
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Organization/Design/
