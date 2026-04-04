@@ -1,406 +1,61 @@
 ---
-name: mkt
+name: arka-mkt
 description: >
-  Marketing department. Creates social media posts for Instagram, LinkedIn, X/Twitter, and
-  TikTok. Generates content calendars, Reels/Shorts scripts, Instagram Stories sequences,
-  email campaigns (welcome, nurture, launch, cart abandonment), landing page copy, ad copy,
-  affiliate marketing content, SEO blog articles, copy analysis, brand voice guidelines, and
-  full marketing audits with 5 parallel agents. Uses knowledge base personas for authentic voice.
-  All output saved to Obsidian vault.
-  Use when user says "mkt", "social", "content", "affiliate", "ads", "email", "post",
-  "marketing", "campaign", "landing page", "instagram", "linkedin", "twitter", "tiktok",
-  "reels", "stories", "blog", "seo", "brand", "audit", "calendar", or any marketing task.
+  Marketing & Growth department. Full-stack growth team covering SEO, paid acquisition,
+  content marketing, email, social, and analytics. Framework-backed: AARRR, Growth Loops,
+  Schwartz 5 Awareness Levels, PLG, STEPPS, Pillar-Cluster SEO.
+allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
-# Marketing Department — ARKA OS
+# Marketing & Growth Department — ArkaOS v2
 
-Content creation, social media management, affiliate marketing, and advertising.
-
-## Universal Workflow (7-Phase — NON-NEGOTIABLE)
-
-Every marketing command follows this workflow. No exceptions. No shortcuts.
-
-### Phase 0: BRIEF (Luna)
-- Clarify the request with the user: objective, target audience, tone, platforms, references
-- If a persona exists in the KB (Obsidian `Personas/`), load it as voice context
-- Save brief to Obsidian: `WizardingCode/Marketing/Briefs/BRIEF-<slug>.md`
-- **Gate:** Brief must be confirmed by user before proceeding
-
-### Phase 1: CHALLENGE & RESEARCH (Tomas — Strategy)
-- Research current trends for the topic (WebSearch, Context7)
-- Check Obsidian KB for previous content on same topic (avoid repetition)
-- Analyse competitor content if relevant
-- Challenge the approach: "Is this angle the best? Found evidence suggesting X alternative"
-- Present findings and alternatives to user
-- **Gate:** User approves the approach before execution
-
-### Phase 2: PLANNING (Luna)
-- Define content structure per platform (Instagram, LinkedIn, X, TikTok)
-- Create TODO list with `TaskCreate` (one task per deliverable)
-- Define tone, hooks, CTAs, hashtag strategy
-
-### Phase 3: EXECUTION (Luna)
-- Generate content following the approved plan
-- Apply human-writing skill (NON-NEGOTIABLE): no AI patterns, no cliches, natural flow
-- Platform-specific formatting (character limits, hashtag placement, CTA positioning)
-- Tasks executed ONE AT A TIME, each validated before the next
-
-### Phase 4: SELF-CRITIQUE (Luna)
-- Checklist: tone consistent? CTAs clear? Spelling perfect? No AI patterns?
-- Verify all content matches the brief
-- Verify persona voice consistency (if persona assigned)
-
-### Phase 5: SUPERVISION (Tomas — Strategy)
-- Review against the original brief: does the content meet the objective?
-- Strategic alignment: right message for the right audience?
-- Recommend changes if content misses the mark
-- **Gate:** Tomas approves or sends back to Phase 3
-
-### Phase 6: QUALITY GATE (Marta — CQO)
-- Marta dispatches Eduardo (Copy & Language Director) for text review
-- Eduardo checks: spelling, grammar, accentuation, AI patterns, tone, CTAs, factual accuracy
-- Marta aggregates verdict:
-  - **APPROVED** → Proceed to Phase 7
-  - **REJECTED** → Exact issue list, return to Phase 3, fix and resubmit
-- **NO OUTPUT REACHES THE USER WITHOUT MARTA'S APPROVAL**
-
-### Phase 7: DELIVERY (Luna)
-- Save all content to Obsidian: `WizardingCode/Marketing/<type>/`
-- YAML frontmatter: type, title, tags, date, platforms, persona
-- Generate summary report: what was created, for which platforms, key metrics
-- Report what was delivered vs. what was in the brief
-
-### Visibility (NON-NEGOTIABLE)
-Every phase transition is announced to the user:
-- "📋 Phase 0: Creating brief..."
-- "🔍 Phase 1: Tomas is challenging the approach and researching alternatives..."
-- "📝 Phase 3: Luna is generating content for Instagram, LinkedIn..."
-- "🔒 Phase 6: Quality Gate — Eduardo reviewing copy quality..."
-- "✅ Phase 6: APPROVED by Marta. Proceeding to delivery."
+> **Squad Lead:** Luna (Marketing Director) | **Agents:** 4
+> **Frameworks:** AARRR, Growth Loops, Schwartz, PLG, STEPPS, SEO Pillar-Cluster
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `/mkt social <topic>` | Generate social media posts (multi-platform) |
-| `/mkt calendar <period>` | Content calendar (week/month) |
-| `/mkt reels <topic>` | Scripts for Reels/TikTok/Shorts |
-| `/mkt stories <topic>` | Instagram/Facebook stories sequence |
-| `/mkt email <type> <topic>` | Email sequence (welcome, nurture, launch, cart) |
-| `/mkt landing <product>` | Landing page copy (can use KB personas) |
-| `/mkt ads <product>` | Ad copy for multiple platforms |
-| `/mkt affiliate <product-url>` | Affiliate marketing analysis + content |
-| `/mkt blog <topic>` | SEO-optimized blog article |
-| `/mkt copy <url>` | Analyze and improve existing copy |
-| `/mkt brand <url>` | Brand voice analysis and guidelines |
-| `/mkt audit <url>` | Full marketing audit (5 parallel agents) |
-
-## Obsidian Output
-
-All marketing output goes to the Obsidian vault at `{{OBSIDIAN_VAULT}}`:
-
-| Content Type | Vault Path |
-|-------------|-----------|
-| Social calendars | `WizardingCode/Marketing/Calendars/<date> <title>.md` |
-| Campaign plans | `WizardingCode/Marketing/Campaigns/<name>.md` |
-| Audit reports | `WizardingCode/Marketing/Audits/<date> <target>.md` |
-| Brand guidelines | `WizardingCode/Marketing/Brand/<name>.md` |
-| Ad copy | `WizardingCode/Marketing/Ads/<date> <product>.md` |
-| Blog drafts | `WizardingCode/Marketing/Blog/<title>.md` |
-
-**Obsidian format:**
-```markdown
----
-type: report
-department: marketing
-title: "<title>"
-date_created: <YYYY-MM-DD>
-tags:
-  - "report"
-  - "marketing"
-  - "<specific-tag>"
----
-```
-
-All files use wikilinks `[[]]` for cross-references and kebab-case tags.
-
-## Knowledge Base Integration
-
-When generating content, ALWAYS check:
-1. Does a relevant persona exist in `Personas/` in the Obsidian vault?
-2. If yes, use their frameworks and style as reference
-3. If `--persona "Name"` is specified, adopt that persona's voice completely
-
-Example:
-```
-/mkt landing "fitness course" --persona "Sabri Suby"
-→ Uses Sabri's PHSO formula, his direct tone, his CTA patterns
-```
-
-## Affiliate Marketing
-
-`/mkt affiliate <product-url>`:
-1. Analyze the product (WebFetch the URL)
-2. Identify target audience and pain points
-3. Generate: review article, comparison post, email sequence, social posts
-4. Optimize for affiliate conversion (not just traffic)
-5. Include disclosure/compliance notes
-
-## Workflows
-
-### /mkt social <topic>
-
-**Step 1: Persona Check**
-- If `--persona "Name"` specified, read `Personas/<Name>.md` from Obsidian vault
-- Adopt their voice, frameworks, and content patterns
-- If no persona specified, use Luna's default style
-
-**Step 2: Generate Platform-Specific Content**
-
-Create separate, native content for each platform:
-
-**Instagram:**
-- Caption (hook + story + CTA, max 2200 chars)
-- Hashtag set (10-15, mix of broad + niche)
-- Visual direction (image/carousel/reel concept)
-- Best posting time suggestion
-
-**LinkedIn:**
-- Text post (hook + insight + question, max 3000 chars)
-- Professional framing of the topic
-- Engagement question at the end
-
-**X/Twitter:**
-- Tweet (max 280 chars, punchy hook)
-- Thread option (5-7 tweets for depth)
-- Quote-tweet worthy standalone lines
-
-**TikTok/Reels:**
-- Script (hook in first 3 seconds, 30-60 sec total)
-- Visual cues and transitions
-- Trending audio suggestion (describe the vibe)
-
-**Step 3: Save to Obsidian**
-
-**File:** `WizardingCode/Marketing/Campaigns/<YYYY-MM-DD> <topic>.md`
-```markdown
----
-type: social-content
-department: marketing
-title: "<topic> — Social Content"
-date_created: <YYYY-MM-DD>
-persona: "<persona or Luna>"
-tags:
-  - "social-media"
-  - "marketing"
-  - "<topic-kebab-case>"
----
-
-# <topic> — Social Content
-
-## Instagram
-[Content]
-
-## LinkedIn
-[Content]
-
-## X/Twitter
-[Content]
-
-## TikTok/Reels
-[Script]
-
-## Scheduling Notes
-[Best times and cadence]
-
----
-*Part of the [[WizardingCode MOC]]*
-```
-
-**Step 4: Report**
-```
-═══ ARKA MKT — Social Content Ready ═══
-Topic:       <topic>
-Platforms:   Instagram, LinkedIn, X, TikTok
-Persona:     <persona or Luna>
-Obsidian:    WizardingCode/Marketing/Campaigns/<date> <topic>.md
-═════════════════════════════════════════
-```
-
-### /mkt audit <url>
-
-**Step 1: Fetch Site Data**
-- Use WebFetch to crawl the target URL
-- Capture homepage, key pages, social links
-
-**Step 2: Run 5 Parallel Audit Agents**
-
-**Agent 1: SEO Auditor**
-- On-page SEO (titles, metas, headings, alt text)
-- Content quality and keyword targeting
-- Technical SEO indicators
-- Backlink profile assessment (if data available)
-
-**Agent 2: Social Media Auditor**
-- Platform presence and consistency
-- Content quality and posting frequency
-- Engagement patterns
-- Community management
-
-**Agent 3: Content Auditor**
-- Blog/content quality and relevance
-- Content gaps and opportunities
-- Voice consistency
-- Content-to-conversion alignment
-
-**Agent 4: UX Auditor**
-- Navigation clarity
-- Mobile experience
-- Load speed perception
-- Call-to-action effectiveness
-- Trust signals
-
-**Agent 5: Funnel Auditor**
-- Awareness → Interest → Desire → Action mapping
-- Lead capture mechanisms
-- Email marketing indicators
-- Retargeting signals
-- Conversion path clarity
-
-**Step 3: Synthesize & Prioritize**
-- Combine all 5 reports
-- Score each area (1-10)
-- Prioritize by impact and effort
-
-**Step 4: Save to Obsidian**
-
-**File:** `WizardingCode/Marketing/Audits/<YYYY-MM-DD> <target>.md`
-```markdown
----
-type: marketing-audit
-department: marketing
-title: "<target> — Marketing Audit"
-url: "<url>"
-date_created: <YYYY-MM-DD>
-tags:
-  - "audit"
-  - "marketing"
----
-
-# <target> — Marketing Audit
-
-## Scorecard
-| Area | Score | Priority |
-|------|-------|----------|
-| SEO | X/10 | [high/med/low] |
-| Social | X/10 | [high/med/low] |
-| Content | X/10 | [high/med/low] |
-| UX | X/10 | [high/med/low] |
-| Funnel | X/10 | [high/med/low] |
-
-## SEO Analysis
-[Agent 1 findings]
-
-## Social Media Analysis
-[Agent 2 findings]
-
-## Content Analysis
-[Agent 3 findings]
-
-## UX Analysis
-[Agent 4 findings]
-
-## Funnel Analysis
-[Agent 5 findings]
-
-## Priority Actions
-| # | Action | Impact | Effort |
-|---|--------|--------|--------|
-| 1 | [action] | High | [effort] |
-
----
-*Part of the [[WizardingCode MOC]]*
-```
-
-### /mkt calendar <period>
-
-**Step 1: Define Period**
-- Determine scope: week or month
-- Check for holidays, events, or launches in the period
-
-**Step 2: Plan Content Themes**
-- Identify 3-4 themes for the period
-- Map themes to business goals
-- Balance content types: educational, promotional, engagement, behind-the-scenes
-
-**Step 3: Build Calendar**
-- Assign content to specific days
-- Define platform and format per post
-- Set cadence per platform (e.g., Instagram 5x/week, LinkedIn 3x/week)
-
-**Step 4: Save to Obsidian**
-
-**File:** `WizardingCode/Marketing/Calendars/<YYYY-MM-DD> <period>.md`
-```markdown
----
-type: content-calendar
-department: marketing
-title: "Content Calendar — <period>"
-date_created: <YYYY-MM-DD>
-period: "<start> to <end>"
-tags:
-  - "calendar"
-  - "marketing"
-  - "content-strategy"
----
-
-# Content Calendar — <period>
-
-## Themes
-1. **[Theme]** — [business goal it serves]
-2. **[Theme]** — [business goal it serves]
-
-## Platform Cadence
-| Platform | Posts/Week | Best Days | Best Times |
-|----------|-----------|-----------|-----------|
-| Instagram | 5 | Mon-Fri | 9am, 6pm |
-| LinkedIn | 3 | Tue, Thu, Sat | 8am |
-| X | Daily | Every day | 12pm, 5pm |
-
-## Calendar
-### Week 1
-| Day | Platform | Content | Type | Theme |
-|-----|----------|---------|------|-------|
-| Mon | Instagram | [content idea] | Reel | [theme] |
-| Mon | LinkedIn | [content idea] | Post | [theme] |
-
-### Week 2
-[...]
-
-## Content Production Notes
-- [Batch creation suggestions]
-- [Assets needed]
-
----
-*Part of the [[WizardingCode MOC]]*
-```
-
-**Step 5: Report**
-```
-═══ ARKA MKT — Calendar Ready ═══
-Period:      <period>
-Themes:      <count> themes
-Posts:        <total count> across <platforms>
-Obsidian:    WizardingCode/Marketing/Calendars/<date> <period>.md
-═════════════════════════════════════
-```
-
-## Content Personas
-
-Available personas for content creation:
-- Check `Personas/` in the Obsidian vault for learned personas
-- Each persona brings frameworks, voice, and strategies
-- Can blend multiple personas for unique content
-
----
-*All output: `WizardingCode/Marketing/` — Part of the [[WizardingCode MOC]]*
+| Command | Description | Workflow Tier |
+|---------|-------------|---------------|
+| `/mkt social <topic>` | Create social media content for all platforms | Focused |
+| `/mkt seo audit <url>` | Full SEO audit (technical + on-page + content) | Focused |
+| `/mkt seo content <keyword>` | SEO content brief with Pillar-Cluster strategy | Focused |
+| `/mkt paid <platform> <goal>` | Paid campaign strategy and setup | Enterprise |
+| `/mkt email sequence <type>` | Email sequence design (welcome, nurture, launch) | Focused |
+| `/mkt content <type>` | Content strategy or specific content piece | Focused |
+| `/mkt analytics <period>` | Marketing analytics report with AARRR metrics | Specialist |
+| `/mkt ab-test <element>` | A/B test plan with hypothesis and success criteria | Specialist |
+| `/mkt segment <criteria>` | Audience segmentation analysis | Specialist |
+| `/mkt competitor <name>` | Competitive marketing analysis | Focused |
+| `/mkt growth-loop` | Design a sustainable growth loop | Enterprise |
+| `/mkt calendar <period>` | Content calendar with themes and platforms | Focused |
+
+## Squad
+
+| Agent | Role | Tier | DISC | Specialty |
+|-------|------|------|------|-----------|
+| **Luna** | Marketing Director | 1 | I+D | Growth strategy, channel mix |
+| **Ana** | SEO Specialist | 2 | C+I | Keyword research, technical SEO, E-E-A-T |
+| **Pedro** | Performance Marketer | 2 | D+C | Meta/Google/TikTok Ads, ROAS |
+| **Mariana** | Content Marketer | 2 | I+S | Content strategy, blog, email, social |
+
+## Frameworks Applied
+
+| Framework | Author | Used For |
+|-----------|--------|---------|
+| AARRR Pirate Metrics | Dave McClure | Growth diagnostics, funnel analysis |
+| Growth Loops | Andrew Chen / Reforge | Sustainable growth design |
+| 5 Awareness Levels | Eugene Schwartz | Copy strategy per audience state |
+| STEPPS | Jonah Berger | Viral content design |
+| PLG Flywheel | Wes Bush | Product-led growth strategy |
+| Pillar-Cluster SEO | HubSpot | Organic content architecture |
+| Skyscraper Technique | Brian Dean | Link building |
+| ICE Scoring | Sean Ellis | Experiment prioritization |
+
+## Quality Checks
+
+1. Awareness level match — Copy matches audience awareness state?
+2. STEPPS viral check — Content has 3+ of 6 STEPPS triggers?
+3. SEO compliance — Title, meta, H1, internal links, schema present?
+4. Growth loop identified — Strategy has sustainable loop, not just funnel?
+5. Unit economics viable — CAC recoverable? Channel scalable?
+6. Brand consistency — Aligned with brand voice and sacred lexicon?
