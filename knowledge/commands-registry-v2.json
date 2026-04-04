@@ -1,0 +1,3827 @@
+{
+  "_meta": {
+    "version": "2.0.0",
+    "generated": "2026-04-04T18:56:31.250881",
+    "total_commands": 216,
+    "generator": "core/registry/generator.py",
+    "departments": {
+      "brand": 12,
+      "community": 14,
+      "content": 14,
+      "dev": 16,
+      "ecom": 12,
+      "finance": 10,
+      "kb": 12,
+      "landing": 14,
+      "leadership": 10,
+      "marketing": 12,
+      "ops": 10,
+      "org": 10,
+      "pm": 12,
+      "saas": 14,
+      "sales": 10,
+      "strategy": 10,
+      "arka": 24
+    }
+  },
+  "commands": [
+    {
+      "id": "brand-identity",
+      "command": "/brand identity <name>",
+      "department": "brand",
+      "description": "Full brand identity (strategy to visual system)",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 1,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-audit",
+      "command": "/brand audit",
+      "department": "brand",
+      "description": "Brand audit against Primal Code completeness",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 1,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-naming",
+      "command": "/brand naming <project>",
+      "department": "brand",
+      "description": "Brand naming with SMILE/SCRATCH evaluation",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-positioning",
+      "command": "/brand positioning <name>",
+      "department": "brand",
+      "description": "Positioning statement (Ries/Trout template)",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-voice",
+      "command": "/brand voice <context>",
+      "department": "brand",
+      "description": "Define brand voice and tone guide",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-guidelines",
+      "command": "/brand guidelines",
+      "department": "brand",
+      "description": "Compile brand guidelines document",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-colors",
+      "command": "/brand colors <mood>",
+      "department": "brand",
+      "description": "Color palette design with theory",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-logo",
+      "command": "/brand logo <brief>",
+      "department": "brand",
+      "description": "Logo concept generation with AI",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-mockup",
+      "command": "/brand mockup <type>",
+      "department": "brand",
+      "description": "Generate mockups with AI image generation",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-ux-audit",
+      "command": "/brand ux-audit <url>",
+      "department": "brand",
+      "description": "UX heuristic audit (Nielsen 10)",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-design-system",
+      "command": "/brand design-system",
+      "department": "brand",
+      "description": "Design system specification (Atomic Design)",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand-wireframe",
+      "command": "/brand wireframe <page>",
+      "department": "brand",
+      "description": "UI wireframe and information architecture",
+      "keywords": [
+        "brand",
+        "logo",
+        "colors",
+        "palette",
+        "mockup",
+        "identity",
+        "naming",
+        "positioning"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-model",
+      "command": "/community model <niche>",
+      "department": "community",
+      "description": "Community business model design",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-platform",
+      "command": "/community platform <niche>",
+      "department": "community",
+      "description": "Platform selection (Telegram, Discord, Skool, Circle)",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-setup",
+      "command": "/community setup <niche>",
+      "department": "community",
+      "description": "Full niche community setup",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 1,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-betting",
+      "command": "/community betting",
+      "department": "community",
+      "description": "Betting/trading community (Telegram VIP)",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-ai",
+      "command": "/community ai",
+      "department": "community",
+      "description": "AI/tech community (Discord)",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-onboard",
+      "command": "/community onboard",
+      "department": "community",
+      "description": "Member onboarding flow design",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-retain",
+      "command": "/community retain",
+      "department": "community",
+      "description": "Retention system (7 habits, engagement loops)",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-monetize",
+      "command": "/community monetize",
+      "department": "community",
+      "description": "Monetization plan (7 revenue streams)",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-grow",
+      "command": "/community grow",
+      "department": "community",
+      "description": "Growth strategy (1000 True Fans math)",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-calendar",
+      "command": "/community calendar <period>",
+      "department": "community",
+      "description": "Content and events calendar",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-metrics",
+      "command": "/community metrics",
+      "department": "community",
+      "description": "Community health metrics dashboard",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-gamify",
+      "command": "/community gamify",
+      "department": "community",
+      "description": "Gamification system design",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-moderate",
+      "command": "/community moderate",
+      "department": "community",
+      "description": "Moderation rules and escalation",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community-event",
+      "command": "/community event <type>",
+      "department": "community",
+      "description": "Event planning (AMA, workshop, challenge)",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-viral",
+      "command": "/content viral <topic>",
+      "department": "content",
+      "description": "Viral content design with STEPPS audit",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-hook",
+      "command": "/content hook <topic>",
+      "department": "content",
+      "description": "Hook writing (7 types, 5+ variants)",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-script",
+      "command": "/content script <topic>",
+      "department": "content",
+      "description": "Video/podcast script (hook-bridge-body-CTA)",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-system",
+      "command": "/content system",
+      "department": "content",
+      "description": "Content Operating System setup",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-platform",
+      "command": "/content platform <platform>",
+      "department": "content",
+      "description": "Platform-specific optimization guide",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-repurpose",
+      "command": "/content repurpose <pillar>",
+      "department": "content",
+      "description": "1 piece to 30+ platform-native variants",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-ai",
+      "command": "/content ai <task>",
+      "department": "content",
+      "description": "AI-augmented content workflow",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-youtube",
+      "command": "/content youtube <topic>",
+      "department": "content",
+      "description": "YouTube strategy (title, thumb, script, SEO)",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-short",
+      "command": "/content short <topic>",
+      "department": "content",
+      "description": "Short-form content (Reels, TikTok, Shorts)",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-newsletter",
+      "command": "/content newsletter <topic>",
+      "department": "content",
+      "description": "Newsletter writing and growth",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-analytics",
+      "command": "/content analytics",
+      "department": "content",
+      "description": "Content performance analytics review",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-monetize",
+      "command": "/content monetize",
+      "department": "content",
+      "description": "Creator monetization plan (5 levels)",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-calendar",
+      "command": "/content calendar <period>",
+      "department": "content",
+      "description": "Content calendar with themes and batching",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content-thumbnail",
+      "command": "/content thumbnail <video>",
+      "department": "content",
+      "description": "Thumbnail + title packaging (A/B variants)",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-feature",
+      "command": "/dev feature <description>",
+      "department": "dev",
+      "description": "Implement a new feature (full enterprise workflow)",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 1,
+      "modifies_code": true,
+      "requires_branch": true
+    },
+    {
+      "id": "dev-api",
+      "command": "/dev api <spec>",
+      "department": "dev",
+      "description": "Design and implement API endpoints",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": true,
+      "requires_branch": true
+    },
+    {
+      "id": "dev-architecture",
+      "command": "/dev architecture <system>",
+      "department": "dev",
+      "description": "Architecture design with ADR",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-ddd",
+      "command": "/dev ddd <domain>",
+      "department": "dev",
+      "description": "Domain-Driven Design modeling session",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-debug",
+      "command": "/dev debug <issue>",
+      "department": "dev",
+      "description": "Systematic debugging with root cause analysis",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": true,
+      "requires_branch": true
+    },
+    {
+      "id": "dev-refactor",
+      "command": "/dev refactor <scope>",
+      "department": "dev",
+      "description": "Refactor code with Clean Code audit",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": true,
+      "requires_branch": true
+    },
+    {
+      "id": "dev-db",
+      "command": "/dev db <action>",
+      "department": "dev",
+      "description": "Database design, migrations, query optimization",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": true,
+      "requires_branch": true
+    },
+    {
+      "id": "dev-review",
+      "command": "/dev review <file/pr>",
+      "department": "dev",
+      "description": "Code review against SOLID + Clean Code",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-test",
+      "command": "/dev test <scope>",
+      "department": "dev",
+      "description": "Write or improve tests (TDD cycle)",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-security-audit",
+      "command": "/dev security-audit",
+      "department": "dev",
+      "description": "OWASP Top 10 audit + dependency scan",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-performance",
+      "command": "/dev performance <target>",
+      "department": "dev",
+      "description": "Performance audit (CWV, API latency, DB)",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-pipeline",
+      "command": "/dev pipeline <project>",
+      "department": "dev",
+      "description": "CI/CD pipeline design and setup",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-clean-review",
+      "command": "/dev clean-review <file>",
+      "department": "dev",
+      "description": "Clean Code + SOLID compliance review",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-spec",
+      "command": "/dev spec <description>",
+      "department": "dev",
+      "description": "Create feature specification (mandatory pre-impl)",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev-scaffold",
+      "command": "/dev scaffold <type> <name>",
+      "department": "dev",
+      "description": "Project scaffolding from starter repos",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 3,
+      "modifies_code": true,
+      "requires_branch": true
+    },
+    {
+      "id": "dev-do",
+      "command": "/dev do <description>",
+      "department": "dev",
+      "description": "Smart routing to the right dev command",
+      "keywords": [
+        "build",
+        "code",
+        "feature",
+        "deploy",
+        "test",
+        "review",
+        "scaffold",
+        "debug"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-audit",
+      "command": "/ecom audit",
+      "department": "ecom",
+      "description": "Full store audit (UX, SEO, performance, content, conversion)",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 1,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-product-page",
+      "command": "/ecom product-page <product>",
+      "department": "ecom",
+      "description": "Product page optimization (Baymard guidelines)",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-cro",
+      "command": "/ecom cro <page>",
+      "department": "ecom",
+      "description": "CRO optimization with ResearchXL",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-rfm",
+      "command": "/ecom rfm",
+      "department": "ecom",
+      "description": "RFM customer segmentation",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-pricing",
+      "command": "/ecom pricing <product>",
+      "department": "ecom",
+      "description": "Pricing strategy (value-based, dynamic, psychological)",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-marketplace",
+      "command": "/ecom marketplace <action>",
+      "department": "ecom",
+      "description": "Marketplace operations (Mirakl, multi-vendor)",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-fulfillment",
+      "command": "/ecom fulfillment",
+      "department": "ecom",
+      "description": "Fulfillment strategy (3PL, dropship, FBA)",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-subscription",
+      "command": "/ecom subscription <model>",
+      "department": "ecom",
+      "description": "Subscription model design",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-cart-recovery",
+      "command": "/ecom cart-recovery",
+      "department": "ecom",
+      "description": "Cart abandonment email sequence",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-analytics",
+      "command": "/ecom analytics",
+      "department": "ecom",
+      "description": "E-commerce analytics dashboard",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-launch",
+      "command": "/ecom launch <product>",
+      "department": "ecom",
+      "description": "Product launch plan",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom-journey",
+      "command": "/ecom journey <segment>",
+      "department": "ecom",
+      "description": "Customer journey mapping",
+      "keywords": [
+        "store",
+        "product",
+        "shop",
+        "shopify",
+        "ecommerce",
+        "catalog",
+        "cart",
+        "checkout"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-model",
+      "command": "/fin model <type>",
+      "department": "finance",
+      "description": "Financial model (3-statement, DCF, scenario)",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-report",
+      "command": "/fin report <type>",
+      "department": "finance",
+      "description": "Financial report (monthly, quarterly, annual)",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-cashflow",
+      "command": "/fin cashflow <period>",
+      "department": "finance",
+      "description": "Cash flow forecast",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-budget",
+      "command": "/fin budget <scope>",
+      "department": "finance",
+      "description": "Budget planning",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-unit-economics",
+      "command": "/fin unit-economics",
+      "department": "finance",
+      "description": "Unit economics analysis (CAC, LTV, Rule of 40)",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-pitch",
+      "command": "/fin pitch <stage>",
+      "department": "finance",
+      "description": "Investor pitch deck financials",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-valuation",
+      "command": "/fin valuation",
+      "department": "finance",
+      "description": "Company valuation (DCF, comparables)",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-expense-audit",
+      "command": "/fin expense-audit",
+      "department": "finance",
+      "description": "Expense audit and optimization",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-revenue-model",
+      "command": "/fin revenue-model",
+      "department": "finance",
+      "description": "Revenue model design",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin-scenario",
+      "command": "/fin scenario <context>",
+      "department": "finance",
+      "description": "Scenario analysis (base, bull, bear)",
+      "keywords": [
+        "budget",
+        "invoice",
+        "revenue",
+        "forecast",
+        "profit",
+        "financial",
+        "invest",
+        "valuation"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-learn",
+      "command": "/kb learn <url>",
+      "department": "kb",
+      "description": "Ingest content (YouTube, article, PDF) into KB",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-research",
+      "command": "/kb research <topic>",
+      "department": "kb",
+      "description": "Research plan and execution with source evaluation",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-ai-research",
+      "command": "/kb ai-research <topic>",
+      "department": "kb",
+      "description": "AI-augmented research (Elicit, Perplexity, Claude)",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-persona",
+      "command": "/kb persona <name>",
+      "department": "kb",
+      "description": "Build or view a persona from the KB",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-moc",
+      "command": "/kb moc <cluster>",
+      "department": "kb",
+      "description": "Create/update Map of Content",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-zettelkasten",
+      "command": "/kb zettelkasten <note>",
+      "department": "kb",
+      "description": "Process a note through Zettelkasten workflow",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-para-review",
+      "command": "/kb para-review",
+      "department": "kb",
+      "description": "PARA organization review cycle",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-evaluate",
+      "command": "/kb evaluate <source>",
+      "department": "kb",
+      "description": "Source evaluation using CRAAP test",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-taxonomy",
+      "command": "/kb taxonomy",
+      "department": "kb",
+      "description": "Taxonomy and tagging management",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-review",
+      "command": "/kb review",
+      "department": "kb",
+      "description": "Knowledge freshness review (90-day cycle)",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-search",
+      "command": "/kb search <query>",
+      "department": "kb",
+      "description": "Search the knowledge base",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb-intel",
+      "command": "/kb intel <competitor>",
+      "department": "kb",
+      "description": "Competitive intelligence research",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-offer",
+      "command": "/landing offer <product>",
+      "department": "landing",
+      "description": "Grand Slam Offer creation (Hormozi value equation)",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-funnel",
+      "command": "/landing funnel <type>",
+      "department": "landing",
+      "description": "Funnel architecture (squeeze, webinar, VSL, SLO)",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-copy",
+      "command": "/landing copy <type>",
+      "department": "landing",
+      "description": "Sales copy using awareness-matched framework",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-headline",
+      "command": "/landing headline <product>",
+      "department": "landing",
+      "description": "Headline writing (10+ variants for testing)",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-awareness",
+      "command": "/landing awareness <traffic>",
+      "department": "landing",
+      "description": "Diagnose audience awareness level",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-page",
+      "command": "/landing page <product>",
+      "department": "landing",
+      "description": "Landing page structure and wireframe",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-test",
+      "command": "/landing test <element>",
+      "department": "landing",
+      "description": "A/B test plan with hypothesis",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-launch",
+      "command": "/landing launch <product>",
+      "department": "landing",
+      "description": "Product launch using PLF sequence",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-email",
+      "command": "/landing email <sequence>",
+      "department": "landing",
+      "description": "Email sequence (cart, nurture, launch)",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-affiliate",
+      "command": "/landing affiliate <product>",
+      "department": "landing",
+      "description": "Affiliate bridge page and program design",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-webinar",
+      "command": "/landing webinar <topic>",
+      "department": "landing",
+      "description": "Webinar funnel design and script",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-optimize",
+      "command": "/landing optimize <page>",
+      "department": "landing",
+      "description": "CRO optimization with ResearchXL",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-persuade",
+      "command": "/landing persuade <context>",
+      "department": "landing",
+      "description": "Persuasion elements audit (Cialdini 6)",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing-metrics",
+      "command": "/landing metrics",
+      "department": "landing",
+      "description": "Funnel metrics tracking and analysis",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-disc",
+      "command": "/lead disc <person/team>",
+      "department": "leadership",
+      "description": "DISC behavioral assessment",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-team-build",
+      "command": "/lead team-build <context>",
+      "department": "leadership",
+      "description": "Team composition design",
+      "keywords": [],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-1on1",
+      "command": "/lead 1on1 <person>",
+      "department": "leadership",
+      "description": "1-on-1 meeting agenda preparation",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-feedback",
+      "command": "/lead feedback <person>",
+      "department": "leadership",
+      "description": "Structured feedback (Radical Candor)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-okr",
+      "command": "/lead okr <scope>",
+      "department": "leadership",
+      "description": "OKR definition and cascade",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-culture",
+      "command": "/lead culture",
+      "department": "leadership",
+      "description": "Culture audit and design",
+      "keywords": [],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-review",
+      "command": "/lead review <person>",
+      "department": "leadership",
+      "description": "Performance review preparation",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-conflict",
+      "command": "/lead conflict <situation>",
+      "department": "leadership",
+      "description": "Conflict resolution plan",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-hiring",
+      "command": "/lead hiring <role>",
+      "department": "leadership",
+      "description": "Hiring plan with scorecard",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead-change",
+      "command": "/lead change <initiative>",
+      "department": "leadership",
+      "description": "Change management plan",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-social",
+      "command": "/mkt social <topic>",
+      "department": "marketing",
+      "description": "Create social media content for all platforms",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-seo-audit",
+      "command": "/mkt seo audit <url>",
+      "department": "marketing",
+      "description": "Full SEO audit (technical + on-page + content)",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 1,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-seo-content",
+      "command": "/mkt seo content <keyword>",
+      "department": "marketing",
+      "description": "SEO content brief with Pillar-Cluster strategy",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-paid",
+      "command": "/mkt paid <platform> <goal>",
+      "department": "marketing",
+      "description": "Paid campaign strategy and setup",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-email-sequence",
+      "command": "/mkt email sequence <type>",
+      "department": "marketing",
+      "description": "Email sequence design (welcome, nurture, launch)",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-content",
+      "command": "/mkt content <type>",
+      "department": "marketing",
+      "description": "Content strategy or specific content piece",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-analytics",
+      "command": "/mkt analytics <period>",
+      "department": "marketing",
+      "description": "Marketing analytics report with AARRR metrics",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-ab-test",
+      "command": "/mkt ab-test <element>",
+      "department": "marketing",
+      "description": "A/B test plan with hypothesis and success criteria",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-segment",
+      "command": "/mkt segment <criteria>",
+      "department": "marketing",
+      "description": "Audience segmentation analysis",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-competitor",
+      "command": "/mkt competitor <name>",
+      "department": "marketing",
+      "description": "Competitive marketing analysis",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-growth-loop",
+      "command": "/mkt growth-loop",
+      "department": "marketing",
+      "description": "Design a sustainable growth loop",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt-calendar",
+      "command": "/mkt calendar <period>",
+      "department": "marketing",
+      "description": "Content calendar with themes and platforms",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-workflow",
+      "command": "/ops workflow <process>",
+      "department": "ops",
+      "description": "Workflow automation design",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-process-map",
+      "command": "/ops process-map <area>",
+      "department": "ops",
+      "description": "Value stream mapping",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-sop",
+      "command": "/ops sop <process>",
+      "department": "ops",
+      "description": "SOP creation",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-bottleneck",
+      "command": "/ops bottleneck <area>",
+      "department": "ops",
+      "description": "Theory of Constraints bottleneck analysis",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-integration",
+      "command": "/ops integration <systems>",
+      "department": "ops",
+      "description": "Integration design (API, webhook, iPaaS)",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-zapier",
+      "command": "/ops zapier <flow>",
+      "department": "ops",
+      "description": "Zapier flow design",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-n8n",
+      "command": "/ops n8n <flow>",
+      "department": "ops",
+      "description": "n8n workflow design (AI-native)",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-dashboard",
+      "command": "/ops dashboard <area>",
+      "department": "ops",
+      "description": "Operational metrics dashboard",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-lean-audit",
+      "command": "/ops lean-audit <process>",
+      "department": "ops",
+      "description": "Lean audit (7 wastes identification)",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops-gtd-setup",
+      "command": "/ops gtd-setup",
+      "department": "ops",
+      "description": "GTD + PARA personal productivity setup",
+      "keywords": [
+        "automate",
+        "workflow",
+        "process",
+        "sop",
+        "bottleneck",
+        "integration",
+        "zapier",
+        "n8n"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-design",
+      "command": "/org design <company>",
+      "department": "org",
+      "description": "Organizational structure design",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-hiring",
+      "command": "/org hiring <role>",
+      "department": "org",
+      "description": "Hiring plan with job spec and scorecard",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-onboarding",
+      "command": "/org onboarding <role>",
+      "department": "org",
+      "description": "Employee onboarding program design",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-remote",
+      "command": "/org remote",
+      "department": "org",
+      "description": "Remote work setup and policies",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-meeting-audit",
+      "command": "/org meeting audit",
+      "department": "org",
+      "description": "Meeting optimization (reduce, restructure)",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-sop",
+      "command": "/org sop <process>",
+      "department": "org",
+      "description": "SOP creation for organizational processes",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-culture",
+      "command": "/org culture",
+      "department": "org",
+      "description": "Culture definition document",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-assess",
+      "command": "/org assess <team>",
+      "department": "org",
+      "description": "Team assessment (health, skills, gaps)",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-comp",
+      "command": "/org comp <role>",
+      "department": "org",
+      "description": "Compensation plan and benchmarking",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org-decide",
+      "command": "/org decide <decision>",
+      "department": "org",
+      "description": "Decision framework (RACI, authority matrix)",
+      "keywords": [
+        "org design",
+        "hiring plan",
+        "onboarding",
+        "remote",
+        "meeting",
+        "compensation",
+        "decision",
+        "team assess"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-sprint",
+      "command": "/pm sprint <action>",
+      "department": "pm",
+      "description": "Sprint planning, review, or retrospective",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-discover",
+      "command": "/pm discover <opportunity>",
+      "department": "pm",
+      "description": "Product discovery (OST, interviews, experiments)",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-roadmap",
+      "command": "/pm roadmap <product>",
+      "department": "pm",
+      "description": "Outcome-driven product roadmap",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-retro",
+      "command": "/pm retro",
+      "department": "pm",
+      "description": "Facilitated retrospective",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-estimate",
+      "command": "/pm estimate <scope>",
+      "department": "pm",
+      "description": "Estimation and Monte Carlo forecasting",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-backlog",
+      "command": "/pm backlog <action>",
+      "department": "pm",
+      "description": "Backlog grooming and prioritization (RICE)",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-story",
+      "command": "/pm story <description>",
+      "department": "pm",
+      "description": "User story writing with INVEST + acceptance criteria",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-risk",
+      "command": "/pm risk <project>",
+      "department": "pm",
+      "description": "Risk register and pre-mortem",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-stakeholder",
+      "command": "/pm stakeholder <project>",
+      "department": "pm",
+      "description": "Stakeholder mapping (Power/Interest grid)",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-kanban",
+      "command": "/pm kanban <action>",
+      "department": "pm",
+      "description": "Kanban board setup with WIP limits",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-shape",
+      "command": "/pm shape <feature>",
+      "department": "pm",
+      "description": "Shape Up pitch with appetite and rabbit holes",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm-standup",
+      "command": "/pm standup",
+      "department": "pm",
+      "description": "Structured daily standup",
+      "keywords": [
+        "sprint",
+        "backlog",
+        "standup",
+        "retro",
+        "scrum",
+        "kanban",
+        "story",
+        "estimate"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-validate",
+      "command": "/saas validate <idea>",
+      "department": "saas",
+      "description": "Idea validation (30-day framework)",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-mvp",
+      "command": "/saas mvp <product>",
+      "department": "saas",
+      "description": "MVP scope definition with acceptance criteria",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-niche",
+      "command": "/saas niche <market>",
+      "department": "saas",
+      "description": "Niche evaluation (staircase stage, competition)",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-metrics",
+      "command": "/saas metrics",
+      "department": "saas",
+      "description": "SaaS metrics dashboard setup (MRR, churn, NRR)",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-pricing",
+      "command": "/saas pricing <product>",
+      "department": "saas",
+      "description": "Pricing strategy (Van Westendorp, value-based)",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-plg",
+      "command": "/saas plg <product>",
+      "department": "saas",
+      "description": "Product-Led Growth setup (freemium/trial)",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-cs",
+      "command": "/saas cs <account>",
+      "department": "saas",
+      "description": "Customer success playbook",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-growth",
+      "command": "/saas growth <stage>",
+      "department": "saas",
+      "description": "Growth plan by stage (seed, series A, scale)",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-gtm",
+      "command": "/saas gtm <product>",
+      "department": "saas",
+      "description": "Go-to-market strategy for SaaS",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-launch",
+      "command": "/saas launch",
+      "department": "saas",
+      "description": "Launch checklist and execution plan",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-stack",
+      "command": "/saas stack",
+      "department": "saas",
+      "description": "Micro-SaaS stacking strategy",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-onboard",
+      "command": "/saas onboard <product>",
+      "department": "saas",
+      "description": "Onboarding flow optimization",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-churn",
+      "command": "/saas churn",
+      "department": "saas",
+      "description": "Churn analysis with RFM and cohort data",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas-benchmark",
+      "command": "/saas benchmark",
+      "department": "saas",
+      "description": "Benchmark comparison (KeyBanc, Meritech)",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-pipeline",
+      "command": "/sales pipeline",
+      "department": "sales",
+      "description": "Pipeline analysis and recommendations",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-proposal",
+      "command": "/sales proposal <client>",
+      "department": "sales",
+      "description": "Sales proposal writing",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-discovery",
+      "command": "/sales discovery <prospect>",
+      "department": "sales",
+      "description": "Discovery call preparation (SPIN questions)",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-qualify",
+      "command": "/sales qualify <deal>",
+      "department": "sales",
+      "description": "Deal qualification (BANT/MEDDIC)",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-objection",
+      "command": "/sales objection <objection>",
+      "department": "sales",
+      "description": "Objection handling playbook",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-negotiate",
+      "command": "/sales negotiate <deal>",
+      "department": "sales",
+      "description": "Negotiation strategy (BATNA)",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-forecast",
+      "command": "/sales forecast",
+      "department": "sales",
+      "description": "Revenue forecast",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-spin",
+      "command": "/sales spin <context>",
+      "department": "sales",
+      "description": "SPIN selling preparation",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-challenger",
+      "command": "/sales challenger <context>",
+      "department": "sales",
+      "description": "Challenger sale approach",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales-pricing",
+      "command": "/sales pricing <product>",
+      "department": "sales",
+      "description": "Pricing negotiation strategy",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-analyze",
+      "command": "/strat analyze <topic>",
+      "department": "strategy",
+      "description": "Comprehensive strategic analysis (multi-framework)",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 1,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-swot",
+      "command": "/strat swot <business>",
+      "department": "strategy",
+      "description": "SWOT analysis",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-blue-ocean",
+      "command": "/strat blue-ocean <market>",
+      "department": "strategy",
+      "description": "Blue Ocean strategy canvas + ERRC grid",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-bmc",
+      "command": "/strat bmc <business>",
+      "department": "strategy",
+      "description": "Business Model Canvas",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-position",
+      "command": "/strat position <product>",
+      "department": "strategy",
+      "description": "Competitive positioning map",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-scenario",
+      "command": "/strat scenario <context>",
+      "department": "strategy",
+      "description": "Scenario planning (3-5 scenarios)",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-five-forces",
+      "command": "/strat five-forces <industry>",
+      "department": "strategy",
+      "description": "Porter's Five Forces analysis",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-tam",
+      "command": "/strat tam <market>",
+      "department": "strategy",
+      "description": "TAM/SAM/SOM market sizing",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-growth",
+      "command": "/strat growth <business>",
+      "department": "strategy",
+      "description": "Growth strategy (Ansoff, adjacencies)",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat-moat",
+      "command": "/strat moat <company>",
+      "department": "strategy",
+      "description": "7 Powers moat analysis (Helmer)",
+      "keywords": [
+        "strategy",
+        "brainstorm",
+        "market",
+        "swot",
+        "competitor",
+        "roadmap",
+        "position",
+        "blue ocean"
+      ],
+      "tier": 2,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-status",
+      "command": "/arka status",
+      "department": "arka",
+      "description": "System status (version, departments, agents, active projects)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-standup",
+      "command": "/arka standup",
+      "department": "arka",
+      "description": "Daily standup (projects, priorities, blockers, updates)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-monitor",
+      "command": "/arka monitor",
+      "department": "arka",
+      "description": "System health monitoring",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-onboard",
+      "command": "/arka onboard <path>",
+      "department": "arka",
+      "description": "Onboard an existing project into ArkaOS",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-help",
+      "command": "/arka help",
+      "department": "arka",
+      "description": "List all department commands",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-setup",
+      "command": "/arka setup",
+      "department": "arka",
+      "description": "Interactive profile setup (name, company, role, objectives)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-conclave",
+      "command": "/arka conclave",
+      "department": "arka",
+      "description": "Activate personal AI advisory board (The Conclave)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "do",
+      "command": "/do <description>",
+      "department": "arka",
+      "description": "Universal routing — natural language to department command",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "dev",
+      "command": "/dev",
+      "department": "arka",
+      "description": "Development",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "mkt",
+      "command": "/mkt",
+      "department": "arka",
+      "description": "Marketing & Growth",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "brand",
+      "command": "/brand",
+      "department": "arka",
+      "description": "Brand & Design",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "fin",
+      "command": "/fin",
+      "department": "arka",
+      "description": "Finance & Investment",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "strat",
+      "command": "/strat",
+      "department": "arka",
+      "description": "Strategy & Innovation",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ecom",
+      "command": "/ecom",
+      "department": "arka",
+      "description": "E-Commerce",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "kb",
+      "command": "/kb",
+      "department": "arka",
+      "description": "Knowledge Management",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "ops",
+      "command": "/ops",
+      "department": "arka",
+      "description": "Operations & Automation",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "pm",
+      "command": "/pm",
+      "department": "arka",
+      "description": "Project Management",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "saas",
+      "command": "/saas",
+      "department": "arka",
+      "description": "SaaS & Micro-SaaS",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "landing",
+      "command": "/landing",
+      "department": "arka",
+      "description": "Landing Pages & Funnels",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "content",
+      "command": "/content",
+      "department": "arka",
+      "description": "Content & Viralization",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "community",
+      "command": "/community",
+      "department": "arka",
+      "description": "Communities & Groups",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "sales",
+      "command": "/sales",
+      "department": "arka",
+      "description": "Sales & Negotiation",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "lead",
+      "command": "/lead",
+      "department": "arka",
+      "description": "Leadership & People",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "org",
+      "command": "/org",
+      "department": "arka",
+      "description": "Organization & Teams",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    }
+  ]
+}
