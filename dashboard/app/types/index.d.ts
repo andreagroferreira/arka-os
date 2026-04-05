@@ -147,3 +147,35 @@ export interface HealthCheck {
   passed: boolean
   fix: string
 }
+
+export interface Persona {
+  id: string
+  name: string
+  title: string
+  tagline: string
+  source: string
+  mbti: string
+  disc: {
+    primary: string
+    secondary: string
+  }
+  enneagram: {
+    type: number
+    wing: number
+  }
+  big_five: {
+    openness: number
+    conscientiousness: number
+    extraversion: number
+    agreeableness: number
+    neuroticism: number
+  }
+  mental_models: string[]
+  expertise_domains: string[]
+  frameworks: string[]
+  communication: {
+    tone: string
+    vocabulary_level: string
+  }
+  cloned_to_agents: string[]
+}
