@@ -101,11 +101,15 @@ const columns: TableColumn<Agent>[] = [
   {
     accessorKey: 'mbti',
     header: 'MBTI'
+  },
+  {
+    id: 'actions',
+    header: ''
   }
 ]
 
-function onRowClick(row: Agent) {
-  navigateTo(`/agents/${row.id}`)
+function goToAgent(id: string) {
+  navigateTo(`/agents/${id}`)
 }
 </script>
 
@@ -187,8 +191,12 @@ function onRowClick(row: Agent) {
             th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
             td: 'border-b border-default'
           }"
-          @select="onRowClick"
         >
+          <template #name-cell="{ row }">
+            <button class="text-left font-medium text-primary hover:underline" @click="goToAgent(row.original.id)">
+              {{ row.original.name }}
+            </button>
+          </template>
           <template #department-cell="{ row }">
             <UBadge :label="row.original.department" variant="subtle" size="sm" />
           </template>
@@ -197,6 +205,9 @@ function onRowClick(row: Agent) {
           </template>
           <template #mbti-cell="{ row }">
             <span class="font-mono text-sm">{{ row.original.mbti || '-' }}</span>
+          </template>
+          <template #actions-cell="{ row }">
+            <UButton size="xs" variant="ghost" icon="i-lucide-arrow-right" @click="goToAgent(row.original.id)" />
           </template>
         </UTable>
 
