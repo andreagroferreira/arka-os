@@ -1,91 +1,55 @@
-# Migration Guide: ArkaOS v1 → v2
+# Migration Guide: ArkaOS v1 to v2
 
 ## What Changed
 
-| Aspect | v1 | v2 |
-|--------|-----|-----|
-| Name | ARKA OS | ArkaOS |
-| Install | `bash install.sh` | `npx arkaos install` |
-| Tech | Bash-only | Python + Node.js + Bash |
-| Agents | 22 (DISC only) | 62 (DISC + Enneagram + Big Five + MBTI) |
-| Departments | 9 | 16 |
-| Commands | ~135 | 216 |
-| Workflows | Hardcoded in SKILL.md | YAML-defined, declarative |
-| Runtime | Claude Code only | Claude Code + Codex + Gemini + Cursor |
-| Config | JSON | YAML (agents, workflows, constitution) |
-| Install dir | `~/.claude/skills/arka/` | `~/.arkaos/` |
-| CLI | `arka` | `arkaos` |
+| | v1 | v2 |
+|---|---|---|
+| Core | Bash-only | Python + Node.js + Bash |
+| Agents | 22 | 65 |
+| Departments | 9 | 17 |
+| Skills | ~30 | 244+ |
+| Runtime | Claude Code only | Claude Code, Codex, Gemini, Cursor |
+| Install | `git clone` | `npx arkaos install` |
+| Install dir | `~/.claude/skills/arka-os` | `~/.arkaos` |
+| Context | 5-layer Bash | 9-layer Python Synapse |
+| Knowledge | Manual | Vector DB with semantic search |
+| Dashboard | None | Nuxt 4 + FastAPI (8 pages) |
 
-## Migration Steps
-
-### 1. Install v2
+## How to Migrate
 
 ```bash
-npx arkaos install
+npx arkaos migrate
 ```
 
-This installs v2 alongside v1. They don't conflict.
+## What the Migration Does
 
-### 2. Verify Installation
+1. **Detects** v1 at `~/.claude/skills/arka-os` or `~/.claude/skills/arkaos`
+2. **Backs up** v1 to `~/.arkaos-v1-backup`
+3. **Preserves** session digests and media files
+4. **Installs** v2 at `~/.arkaos`
+5. **Updates** Claude Code hooks to v2
+
+Your v1 backup stays at `~/.arkaos-v1-backup` — delete it after confirming v2 works.
+
+## Per-Project Setup
+
+After global migration, initialize each project:
+
+```bash
+cd your-project
+npx arkaos init
+```
+
+Creates `.arkaos.json` with auto-detected stack.
+
+## Auto-Detection
+
+The v2 hooks auto-detect v1 installations and show migration instructions. If you see a `[MIGRATION]` tag in your prompt context, run the migration command.
+
+## Verify
 
 ```bash
 npx arkaos doctor
 ```
 
-All checks should pass.
-
-### 3. Update Projects
-
-v1 project files (`PROJECT.md`, `.project-path`) work unchanged in v2.
-No project migration needed.
-
-### 4. Agent Memory
-
-v1 agent memory at `~/.claude/agent-memory/arka-*/MEMORY.md` is preserved.
-v2 agents read from the same location.
-
-### 5. Obsidian Vault
-
-No changes. v2 uses the same Obsidian paths as v1.
-
-### 6. Remove v1 (Optional)
-
-Once comfortable with v2:
-
-```bash
-# Remove v1 skills
-rm -rf ~/.claude/skills/arka
-
-# Remove v1 hooks (v2 installer already overwrites them)
-# Check ~/.claude/settings.json — v2 hooks should be active
-```
-
-## New Departments (Not in v1)
-
-| Department | Prefix | What's New |
-|-----------|--------|-----------|
-| SaaS | `/saas` | Validation, metrics, PLG, pricing |
-| Landing Pages | `/landing` | Funnels, offers, copy, affiliate |
-| Content | `/content` | Viral, hooks, scripts, repurposing |
-| Community | `/community` | Groups, membership, engagement |
-| Sales | `/sales` | Pipeline, proposals, SPIN, negotiation |
-| Leadership | `/lead` | Team health, hiring, OKRs, culture |
-| Project Management | `/pm` | Scrum, Kanban, Shape Up, discovery |
-
-## New Features (Not in v1)
-
-- **The Conclave** — Personal AI advisory board (20 advisors, DNA profiling)
-- **Living Specs** — Specs that track implementation and record deltas
-- **Multi-Runtime** — Works with Codex CLI, Gemini CLI, Cursor
-- **Background Tasks** — Async job queue for KB downloads, analysis
-- **Squad Framework** — Matrix org with ad-hoc cross-department squads
-
-## Command Changes
-
-Most v1 commands work unchanged. New prefix commands:
-
-```
-/saas, /landing, /content, /community, /sales, /lead, /pm, /org
-```
-
-The `/do` orchestrator now routes to all 16 departments.
+All checks should pass after migration.
