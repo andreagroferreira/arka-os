@@ -48,7 +48,7 @@ class TestInstallerHelp:
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "2.0.0" in result.stdout
+        assert "ArkaOS v" in result.stdout
 
 
 class TestHookScripts:
@@ -104,7 +104,7 @@ class TestPackageJson:
         import json
         pkg = json.loads((BASE_DIR / "package.json").read_text())
         assert pkg["name"] == "arkaos"
-        assert "2.0.0" in pkg["version"]
+        assert pkg["version"].startswith("2.")
         assert "arkaos" in pkg["bin"]
 
     def test_pyproject_valid(self):

@@ -49,9 +49,9 @@ class TestConstitutionRules:
         assert "test-coverage" in rule_ids
         assert "memory-persistence" in rule_ids
 
-    def test_has_4_should_rules(self, constitution):
+    def test_has_5_should_rules(self, constitution):
         rules = constitution.get_should_rules()
-        assert len(rules) == 4
+        assert len(rules) == 5
 
     def test_is_rule_non_negotiable(self, constitution):
         assert constitution.is_rule_non_negotiable("branch-isolation")
@@ -61,7 +61,7 @@ class TestConstitutionRules:
 
     def test_get_all_rule_ids(self, constitution):
         all_ids = constitution.get_rule_ids()
-        assert len(all_ids) == 22  # 13 + 5 + 4
+        assert len(all_ids) == 23  # 13 + 5 + 5
 
 
 class TestConstitutionQualityGate:
