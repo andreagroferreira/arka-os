@@ -5,6 +5,23 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.3] - 2026-04-05
+
+### Added
+- Local vector knowledge DB with Synapse L3.5 KnowledgeRetrieval layer (fastembed + sqlite-vss)
+- `npx arkaos index` to index Obsidian vault into vector DB
+- `npx arkaos search "query"` for semantic knowledge search
+- `npx arkaos init` for per-project configuration (.arkaos.json)
+- V1 detection alert in hooks with migration instructions
+- 3 Tier 3 support agents: Maria (Research), Isabel (Docs), Tomas Jr (Data)
+- Project squad template for cross-department teams
+
+### Fixed
+- PM escalation: Carolina → COO Sofia (was bypassing to CTO)
+- Quality Gate trigger clarified: once per workflow, not per phase
+- Nested subagent policy documented: max 1 level
+- Cross-tier collaboration: Tier 2 agents can collaborate directly in project squads
+
 ## [2.0.2] - 2026-04-05
 
 ### Added
