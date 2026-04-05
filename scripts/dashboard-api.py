@@ -296,9 +296,58 @@ def tasks_active():
     return {"tasks": [t.model_dump() for t in mgr.list_active()]}
 
 
+# --- Job Queue (SQLite) ---
+
+_job_manager = None
+
+def _get_job_manager():
+    global _job_manager
+    if _job_manager is None:
+        try:
+            from core.jobs.manager import JobManager
+            _job_manager = JobManager()
+        except Exception:
+            return None
+    return _job_manager
+
+
+@app.get("/api/jobs")
+def jobs_list(status: Optional[str] = Query(None), limit: int = Query(50)):
+    mgr = _get_job_manager()
+    if not mgr:
+        return {"jobs": [], "summary": {}}
+    if status:
+        jobs = mgr.list_by_status(status, limit)
+    else:
+        jobs = mgr.list_all(limit)
+    return {"jobs": [j.to_dict() for j in jobs], "summary": mgr.summary()}
+
+
+@app.get("/api/jobs/{job_id}")
+def job_detail(job_id: str):
+    mgr = _get_job_manager()
+    if not mgr:
+        return {"error": "Job manager unavailable"}
+    job = mgr.get(job_id)
+    if not job:
+        return {"error": "Job not found"}
+    return job.to_dict()
+
+
+@app.delete("/api/jobs/{job_id}")
+def job_cancel(job_id: str):
+    mgr = _get_job_manager()
+    if not mgr:
+        return {"error": "Job manager unavailable"}
+    if mgr.cancel(job_id):
+        broadcast_from_thread({"type": "job_cancelled", "job_id": job_id})
+        return {"cancelled": True}
+    return {"error": "Can only cancel queued jobs"}
+
+
 @app.post("/api/knowledge/ingest")
 def knowledge_ingest(body: dict):
-    """Ingest content into the knowledge base. Runs in background."""
+    """Ingest content into the knowledge base. Runs in background with SQLite job tracking."""
     import threading
 
     source = body.get("source", "")
@@ -306,10 +355,8 @@ def knowledge_ingest(body: dict):
     if not source:
         return {"error": "source is required"}
 
-    task_mgr = _get_task_manager()
     store = _get_vector_store()
     if not store:
-        # Create store if it doesn't exist
         from core.knowledge.vector_store import VectorStore
         kb_db = Path.home() / ".arkaos" / "knowledge.db"
         kb_db.parent.mkdir(parents=True, exist_ok=True)
@@ -319,54 +366,58 @@ def knowledge_ingest(body: dict):
     if not source_type:
         source_type = detect_source_type(source)
 
-    # Create task
-    from core.tasks.schema import TaskType
-    task = task_mgr.create(
-        title=f"Ingest {source_type}: {source[:80]}",
-        task_type=TaskType.KB_INDEX,
-        description=source,
-        department="kb",
-    )
+    # Create job in SQLite
+    job_mgr = _get_job_manager()
+    job = job_mgr.create(source=source, source_type=source_type)
 
     def run_ingest():
         engine = IngestEngine(store)
         def on_progress(pct, msg):
-            task_mgr.update_progress(task.id, pct, msg)
-            # Broadcast via WebSocket
+            status = "processing"
+            if "download" in msg.lower():
+                status = "downloading"
+            elif "transcrib" in msg.lower():
+                status = "transcribing"
+            elif "embed" in msg.lower() or "index" in msg.lower():
+                status = "embedding"
+            job_mgr.update_progress(job.id, pct, msg, status)
             broadcast_from_thread({
-                "type": "task_progress",
-                "task_id": task.id,
+                "type": "job_progress",
+                "job_id": job.id,
                 "progress": pct,
                 "message": msg,
-                "status": "processing" if pct < 100 else "completed",
+                "status": status,
             })
         try:
-            task_mgr.start(task.id)
-            broadcast_from_thread({"type": "task_progress", "task_id": task.id, "progress": 0, "message": "Starting...", "status": "processing"})
+            job_mgr.start(job.id)
+            broadcast_from_thread({"type": "job_progress", "job_id": job.id, "progress": 0, "message": "Starting...", "status": "processing"})
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
-                task_mgr.complete(task.id, output={
-                    "chunks_created": result.chunks_created,
-                    "text_length": result.text_length,
-                    "title": result.title,
-                })
-                broadcast_from_thread({"type": "task_complete", "task_id": task.id, "chunks_created": result.chunks_created})
+                job_mgr.complete(job.id, chunks_created=result.chunks_created)
+                broadcast_from_thread({"type": "job_complete", "job_id": job.id, "chunks_created": result.chunks_created})
             else:
-                task_mgr.fail(task.id, result.error)
-                broadcast_from_thread({"type": "task_failed", "task_id": task.id, "error": result.error})
+                job_mgr.fail(job.id, result.error)
+                broadcast_from_thread({"type": "job_failed", "job_id": job.id, "error": result.error})
         except Exception as e:
-            task_mgr.fail(task.id, str(e))
-            broadcast_from_thread({"type": "task_failed", "task_id": task.id, "error": str(e)})
+            job_mgr.fail(job.id, str(e))
+            broadcast_from_thread({"type": "job_failed", "job_id": job.id, "error": str(e)})
 
     thread = threading.Thread(target=run_ingest, daemon=True)
     thread.start()
 
-    return {"task_id": task.id, "source_type": source_type, "status": "queued"}
+    return {"job_id": job.id, "source_type": source_type, "status": "queued"}
 
 
 @app.get("/api/tasks/{task_id}")
 def task_detail(task_id: str):
-    """Get a single task by ID."""
+    """Get a single task by ID. Also checks jobs."""
+    # Check jobs first (new system)
+    job_mgr = _get_job_manager()
+    if job_mgr:
+        job = job_mgr.get(task_id)
+        if job:
+            return job.to_dict()
+    # Fallback to old task manager
     mgr = _get_task_manager()
     if not mgr:
         return {"error": "Task manager unavailable"}

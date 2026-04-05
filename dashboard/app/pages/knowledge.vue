@@ -127,25 +127,33 @@ function connectWebSocket() {
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data)
-      if (!activeTask.value || data.task_id !== activeTask.value.id) return
+      const jobId = data.job_id || data.task_id
 
-      if (data.type === 'task_progress') {
-        activeTask.value.progress_percent = data.progress
-        activeTask.value.progress_message = data.message
-        activeTask.value.status = data.status
-      } else if (data.type === 'task_complete') {
-        activeTask.value.status = 'completed'
-        activeTask.value.progress_percent = 100
-        activeTask.value.output_data = { chunks_created: data.chunks_created }
-        isIngesting.value = false
-        localStorage.removeItem(ACTIVE_TASK_KEY)
-        refresh()
-        fetchHistory()
-      } else if (data.type === 'task_failed') {
-        activeTask.value.status = 'failed'
-        activeTask.value.error = data.error
-        isIngesting.value = false
-        localStorage.removeItem(ACTIVE_TASK_KEY)
+      // Update active task if it matches
+      if (activeTask.value && jobId === activeTask.value.id) {
+        if (data.type === 'job_progress' || data.type === 'task_progress') {
+          activeTask.value.progress_percent = data.progress
+          activeTask.value.progress_message = data.message
+          activeTask.value.status = data.status
+        } else if (data.type === 'job_complete' || data.type === 'task_complete') {
+          activeTask.value.status = 'completed'
+          activeTask.value.progress_percent = 100
+          activeTask.value.output_data = { chunks_created: data.chunks_created }
+          isIngesting.value = false
+          localStorage.removeItem(ACTIVE_TASK_KEY)
+          refresh()
+          fetchJobs()
+        } else if (data.type === 'job_failed' || data.type === 'task_failed') {
+          activeTask.value.status = 'failed'
+          activeTask.value.error = data.error
+          isIngesting.value = false
+          localStorage.removeItem(ACTIVE_TASK_KEY)
+        }
+      }
+
+      // Always refresh jobs table on any job event
+      if (data.type?.startsWith('job_')) {
+        fetchJobs()
       }
     } catch {}
   }
@@ -187,8 +195,9 @@ async function handleIngest() {
       } satisfies IngestRequest
     })
 
+    const jobId = response.job_id || response.task_id
     activeTask.value = {
-      id: response.task_id,
+      id: jobId,
       title: source,
       status: 'queued',
       progress_percent: 0,
@@ -196,7 +205,8 @@ async function handleIngest() {
       source_type: response.source_type
     }
 
-    localStorage.setItem(ACTIVE_TASK_KEY, response.task_id)
+    localStorage.setItem(ACTIVE_TASK_KEY, jobId)
+    fetchJobs()
     connectWebSocket()
   } catch (err) {
     isIngesting.value = false
@@ -216,27 +226,19 @@ function dismissActiveTask() {
   clearFile()
 }
 
-// --- Ingestion History ---
-const historyTasks = ref<IngestTask[]>([])
-const historyLoading = ref(false)
+// --- Jobs Table (SQLite) ---
+const jobs = ref<any[]>([])
+const jobsSummary = ref<any>({})
 
-async function fetchHistory() {
-  historyLoading.value = true
+async function fetchJobs() {
   try {
-    const response = await $fetch<{ tasks: IngestTask[] }>(`${apiBase}/api/tasks`, {
-      params: { status: 'completed' }
-    })
-    historyTasks.value = (response.tasks ?? []).filter(
-      t => t.source_type && ['youtube', 'web', 'pdf', 'audio', 'markdown'].includes(t.source_type)
-    )
-  } catch {
-    // History fetch failure is non-critical
-  } finally {
-    historyLoading.value = false
-  }
+    const response = await $fetch<{ jobs: any[], summary: any }>(`${apiBase}/api/jobs`)
+    jobs.value = response.jobs ?? []
+    jobsSummary.value = response.summary ?? {}
+  } catch {}
 }
 
-fetchHistory()
+fetchJobs()
 
 function formatDate(dateStr: string | undefined) {
   if (!dateStr) return '-'
@@ -533,36 +535,81 @@ function formatScore(score: number): string {
           </div>
         </div>
 
-        <!-- Ingestion History -->
-        <div v-if="historyTasks.length" class="mt-4 rounded-lg border border-default p-6">
-          <h3 class="mb-4 text-lg font-semibold text-highlighted">Recent Ingestions</h3>
-          <div class="space-y-3">
-            <div
-              v-for="task in historyTasks"
-              :key="task.id"
-              class="flex items-center justify-between gap-4 rounded-lg border border-default p-3"
-            >
-              <div class="flex items-center gap-3 min-w-0">
-                <UIcon
-                  :name="typeIconMap[task.source_type ?? ''] ?? 'i-lucide-file'"
-                  class="size-4 shrink-0 text-muted"
-                />
-                <span class="text-sm text-highlighted truncate">{{ task.title }}</span>
-              </div>
-              <div class="flex items-center gap-3 shrink-0">
-                <UBadge
-                  v-if="task.source_type"
-                  :label="task.source_type.charAt(0).toUpperCase() + task.source_type.slice(1)"
-                  :color="typeColorMap[task.source_type] ?? 'neutral'"
-                  variant="subtle"
-                  size="sm"
-                />
-                <span v-if="task.output_data?.chunks_created" class="text-xs text-muted">
-                  {{ task.output_data.chunks_created }} chunks
-                </span>
-                <span class="text-xs text-muted">{{ formatDate(task.created_at) }}</span>
-              </div>
+        <!-- Jobs Queue Table -->
+        <div v-if="jobs.length" class="mt-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-muted uppercase tracking-wider">Job Queue</h3>
+            <div class="flex items-center gap-3 text-xs text-muted">
+              <span v-if="jobsSummary.active">{{ jobsSummary.active }} active</span>
+              <span>{{ jobsSummary.completed ?? 0 }} completed</span>
+              <span v-if="jobsSummary.total_chunks">{{ jobsSummary.total_chunks }} total chunks</span>
             </div>
+          </div>
+
+          <div class="rounded-lg border border-default overflow-hidden">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-default bg-elevated/30">
+                  <th class="text-left py-2.5 px-4 text-xs font-semibold text-muted">Source</th>
+                  <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-20">Type</th>
+                  <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-40">Status</th>
+                  <th class="text-right py-2.5 px-3 text-xs font-semibold text-muted w-20">Chunks</th>
+                  <th class="text-right py-2.5 px-4 text-xs font-semibold text-muted w-32">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="job in jobs"
+                  :key="job.id"
+                  class="border-b border-default last:border-b-0 hover:bg-elevated/20 transition-colors"
+                >
+                  <td class="py-2.5 px-4">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <UIcon :name="typeIconMap[job.type] ?? 'i-lucide-file'" class="size-4 shrink-0 text-muted" />
+                      <span class="truncate text-highlighted">{{ job.title }}</span>
+                    </div>
+                  </td>
+                  <td class="py-2.5 px-3">
+                    <UBadge
+                      v-if="job.type"
+                      :label="job.type"
+                      :color="typeColorMap[job.type] ?? 'neutral'"
+                      variant="subtle"
+                      size="xs"
+                    />
+                  </td>
+                  <td class="py-2.5 px-3">
+                    <div class="flex items-center gap-2">
+                      <UIcon
+                        v-if="['queued','processing','downloading','transcribing','embedding'].includes(job.status)"
+                        name="i-lucide-loader-2"
+                        class="size-3.5 animate-spin text-primary shrink-0"
+                      />
+                      <UIcon v-else-if="job.status === 'completed'" name="i-lucide-check-circle" class="size-3.5 text-green-500 shrink-0" />
+                      <UIcon v-else-if="job.status === 'failed'" name="i-lucide-x-circle" class="size-3.5 text-red-500 shrink-0" />
+                      <div class="flex-1 min-w-0">
+                        <div v-if="['processing','downloading','transcribing','embedding'].includes(job.status)" class="space-y-1">
+                          <div class="h-1.5 rounded-full bg-muted/20 overflow-hidden">
+                            <div class="h-1.5 rounded-full bg-primary transition-all" :style="{ width: `${job.progress}%` }" />
+                          </div>
+                          <p class="text-[10px] text-muted truncate">{{ job.message }}</p>
+                        </div>
+                        <span v-else class="text-xs" :class="job.status === 'completed' ? 'text-green-400' : job.status === 'failed' ? 'text-red-400' : 'text-muted'">
+                          {{ job.status }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-2.5 px-3 text-right">
+                    <span v-if="job.chunks_created" class="text-xs font-mono">{{ job.chunks_created }}</span>
+                    <span v-else class="text-xs text-muted">—</span>
+                  </td>
+                  <td class="py-2.5 px-4 text-right text-xs text-muted">
+                    {{ formatDate(job.completed_at || job.created_at) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
