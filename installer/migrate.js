@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
@@ -104,6 +104,9 @@ export async function migrate() {
     console.error(`  To restore: mv "${backupDir}" "${v1Dir}"\n`);
     process.exit(1);
   }
+
+  // Mark as migrated so hook stops alerting
+  writeFileSync(join(V2_PATH, "migrated-from-v1"), new Date().toISOString());
 
   console.log(`
   Migration complete!

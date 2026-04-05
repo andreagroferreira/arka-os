@@ -36,6 +36,7 @@ ArkaOS v${VERSION} — The Operating System for AI Agent Teams
 Usage:
   npx arkaos install          Install ArkaOS in current environment
   npx arkaos install --runtime <runtime>  Install for specific runtime
+  npx arkaos init             Initialize project config (.arkaos.json)
   npx arkaos update           Update to latest version
   npx arkaos migrate          Migrate from v1 to v2
   npx arkaos doctor           Run health checks
@@ -70,6 +71,12 @@ async function main() {
       const runtime = values.runtime || await detectRuntime();
       await install({ runtime, path: values.path, force: values.force });
       break;
+
+    case "init": {
+      const { init } = await import("./init.js");
+      await init({ path: values.path || process.cwd() });
+      break;
+    }
 
     case "doctor":
       const { doctor } = await import("./doctor.js");
