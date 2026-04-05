@@ -15,6 +15,10 @@ mcps/
 projects/
 skill-template/
 
+# Dashboard source (built output included separately)
+dashboard/node_modules/
+dashboard/.nuxt/
+
 # Dev files
 .gitignore
 .editorconfig

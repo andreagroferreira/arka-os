@@ -39,6 +39,7 @@ Usage:
   npx arkaos init             Initialize project config (.arkaos.json)
   npx arkaos update           Update to latest version
   npx arkaos migrate          Migrate from v1 to v2
+  npx arkaos dashboard        Start monitoring dashboard
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
@@ -97,6 +98,18 @@ async function main() {
       const { migrate } = await import("./migrate.js");
       await migrate();
       break;
+
+    case "dashboard": {
+      const { execSync: execDash } = await import("node:child_process");
+      const repoRootDash = dirname(fileURLToPath(import.meta.url)).replace(/\/installer$/, "");
+      try {
+        execDash(`bash "${repoRootDash}/scripts/start-dashboard.sh"`, {
+          stdio: "inherit",
+          env: { ...process.env, ARKAOS_ROOT: repoRootDash },
+        });
+      } catch { process.exit(1); }
+      break;
+    }
 
     case "index": {
       const { execSync } = await import("node:child_process");
