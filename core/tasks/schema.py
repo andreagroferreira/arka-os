@@ -47,6 +47,12 @@ class Task(BaseModel):
     output_data: dict[str, Any] = Field(default_factory=dict)
     output_path: str = ""             # File path for output
 
+    # Budget
+    tokens_estimated: int = 0         # Pre-execution estimate
+    tokens_actual: int = 0            # Post-execution actual
+    budget_approved: bool = True      # True if within budget or approved
+    approved_by: str = ""             # Tier 0 agent who approved overrun
+
     # Progress
     progress_percent: int = 0         # 0-100
     progress_message: str = ""
