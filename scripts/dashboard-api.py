@@ -195,8 +195,37 @@ def commands(dept: Optional[str] = Query(None), q: Optional[str] = Query(None)):
 def budget_all():
     mgr = _get_budget_manager()
     if not mgr:
-        return {"tiers": []}
-    return {"tiers": [mgr.get_summary(tier=t).model_dump() for t in range(4)]}
+        return {"tiers": [], "departments": [], "summary": {"total_tokens": 0, "total_ops": 0, "active_departments": 0}}
+
+    # Department breakdown from raw usages
+    dept_data: dict[str, dict] = {}
+    for u in mgr._usages:
+        dept = u.department or "system"
+        if dept not in dept_data:
+            dept_data[dept] = {"department": dept, "tokens": 0, "operations": 0}
+        dept_data[dept]["tokens"] += u.tokens
+        dept_data[dept]["operations"] += 1
+
+    departments = sorted(dept_data.values(), key=lambda d: d["tokens"], reverse=True)
+    max_tokens = departments[0]["tokens"] if departments else 1
+
+    # Add relative percentage for bar width
+    for d in departments:
+        d["percent"] = round((d["tokens"] / max_tokens) * 100) if max_tokens > 0 else 0
+
+    total_tokens = sum(d["tokens"] for d in departments)
+    total_ops = sum(d["operations"] for d in departments)
+
+    return {
+        "summary": {
+            "total_tokens": total_tokens,
+            "total_ops": total_ops,
+            "active_departments": len(departments),
+            "estimated_cost_usd": round(total_tokens * 0.000003, 4),  # ~$3 per 1M input tokens
+        },
+        "departments": departments,
+        "tiers": [mgr.get_summary(tier=t).model_dump() for t in range(4)],
+    }
 
 
 @app.get("/api/budget/{tier}")
