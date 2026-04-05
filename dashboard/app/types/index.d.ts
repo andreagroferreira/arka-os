@@ -116,6 +116,32 @@ export interface KnowledgeSearchResult {
   score: number
 }
 
+export interface IngestRequest {
+  source: string
+  type: 'youtube' | 'web' | 'pdf' | 'audio' | 'markdown'
+}
+
+export interface IngestResponse {
+  task_id: string
+  source_type: string
+  status: string
+}
+
+export interface IngestTask {
+  id: string
+  title: string
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  progress_percent: number
+  progress_message: string
+  output_data?: {
+    chunks_created?: number
+    [key: string]: unknown
+  }
+  error?: string
+  source_type?: string
+  created_at?: string
+}
+
 export interface HealthCheck {
   name: string
   passed: boolean
