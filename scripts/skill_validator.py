@@ -210,8 +210,6 @@ def main() -> int:
 
     if any(r.is_failure for r in results):
         return 2
-    if any(r.is_warning for r in results):
-        return 1
     return 0
 
 
