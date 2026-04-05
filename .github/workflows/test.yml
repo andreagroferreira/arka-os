@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [master, main, v2]
+    branches: [master, main]
   pull_request:
-    branches: [master, main, v2]
+    branches: [master, main]
 
 jobs:
   python-tests:
@@ -69,3 +69,16 @@ jobs:
 
       - name: Check installer syntax
         run: node --check installer/cli.js
+
+  skill-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate all skills
+        run: python scripts/skill_validator.py departments/ --summary
