@@ -125,3 +125,7 @@ Surface these issues WITHOUT being asked:
 - Latency budget: <Xms per stage>
 - Cost ceiling: <$ per task>
 ```
+
+## References
+
+- [architecture-patterns.md](references/architecture-patterns.md) — 5 multi-agent patterns with decision matrix, anti-patterns, and scaling characteristics

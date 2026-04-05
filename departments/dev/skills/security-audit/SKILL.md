@@ -66,3 +66,7 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 ### Summary: 1 critical, 1 high, 1 medium, 1 low
 ### Recommendation: BLOCK release until C1 and H1 resolved
 ```
+
+## References
+
+- [owasp-2025-deep.md](references/owasp-2025-deep.md) — OWASP Top 10 (2025) with vulnerable and fixed code examples, testing methodology, and tools

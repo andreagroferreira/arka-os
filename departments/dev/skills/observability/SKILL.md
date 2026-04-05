@@ -117,3 +117,7 @@ Surface these issues WITHOUT being asked:
 2. [Next priority]
 3. [Next priority]
 ```
+
+## References
+
+- [slo-design.md](references/slo-design.md) — SLI/SLO/SLA framework, error budget calculations, and burn rate alert configuration

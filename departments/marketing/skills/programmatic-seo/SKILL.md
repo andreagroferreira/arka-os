@@ -121,3 +121,7 @@ Surface these issues WITHOUT being asked:
 ### Monitoring Plan
 | Metric | Tool | Threshold | Review Cadence |
 ```
+
+## References
+
+- [template-playbooks.md](references/template-playbooks.md) — 12 programmatic SEO playbooks with URL structures, schema markup, internal linking strategies, and indexation rules per page type

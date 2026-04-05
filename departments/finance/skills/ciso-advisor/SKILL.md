@@ -111,3 +111,7 @@ Surface these issues WITHOUT being asked:
 ```
 
 ## Output -> Obsidian: `WizardingCode/Finance/Security/CISO-<topic>-<date>.md`
+
+## References
+
+- [compliance-roadmap.md](references/compliance-roadmap.md) — SOC 2, ISO 27001, GDPR, HIPAA, PCI-DSS comparison with timelines, costs, control overlap matrix, and audit preparation checklist

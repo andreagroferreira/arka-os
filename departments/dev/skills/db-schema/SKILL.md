@@ -128,3 +128,7 @@ Surface these issues WITHOUT being asked:
 ### ERD
 <Mermaid diagram>
 ```
+
+## References
+
+- [indexing-strategy.md](references/indexing-strategy.md) — B-tree vs hash vs GIN vs GiST, composite index ordering, partial indexes, covering indexes, EXPLAIN ANALYZE interpretation

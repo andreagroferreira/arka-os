@@ -110,3 +110,7 @@ Surface these issues WITHOUT being asked:
 | Priority | Action | Effort | Risk Reduced |
 |----------|--------|--------|-------------|
 ```
+
+## References
+
+- [prompt-injection-catalog.md](references/prompt-injection-catalog.md) — Direct and indirect injection attacks, jailbreaks, data exfiltration via tools, detection patterns, and mitigation strategies

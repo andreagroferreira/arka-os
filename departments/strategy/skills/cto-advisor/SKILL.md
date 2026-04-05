@@ -111,3 +111,7 @@ Surface these issues WITHOUT being asked:
 ```
 
 ## Output -> Obsidian: `WizardingCode/Strategy/CTO/ADVISORY-<topic>-<date>.md`
+
+## References
+
+- [build-vs-buy-framework.md](references/build-vs-buy-framework.md) — Evaluation criteria, TCO calculation template, risk matrix, vendor assessment checklist, and decision tree

@@ -123,3 +123,7 @@ Surface these issues WITHOUT being asked:
 1. [Key takeaway]
 2. [Key takeaway]
 ```
+
+## References
+
+- [severity-playbook.md](references/severity-playbook.md) — SEV1-4 definitions, escalation paths, communication templates, and PIR checklist

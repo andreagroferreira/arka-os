@@ -123,3 +123,8 @@ Surface these issues WITHOUT being asked:
 - Storage: ~$X/month for <N> vectors
 - Query cost: ~$X per 1K queries
 ```
+
+## References
+
+- [chunking-strategies.md](references/chunking-strategies.md) — Decision tree and benchmarks for chunking approaches
+- [evaluation-guide.md](references/evaluation-guide.md) — RAGAS metrics and ground truth dataset creation

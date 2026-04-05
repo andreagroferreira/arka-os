@@ -128,3 +128,7 @@ jobs:
     steps:
       - run: <deploy-command>
 ```
+
+## References
+
+- [github-actions-patterns.md](references/github-actions-patterns.md) — Caching strategies, matrix builds, reusable workflows, secret management, deployment environments, and common pitfalls

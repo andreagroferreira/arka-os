@@ -110,3 +110,7 @@ Surface these issues WITHOUT being asked:
 ### Detection Gaps: <identified gaps in blue team coverage>
 ### Recommendation: Focus detection investment on choke point T1003
 ```
+
+## References
+
+- [mitre-attack-web.md](references/mitre-attack-web.md) — MITRE ATT&CK tactics and techniques mapped to web application attack surfaces
