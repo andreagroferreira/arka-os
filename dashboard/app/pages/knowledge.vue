@@ -253,91 +253,94 @@ function formatScore(score: number): string {
       <!-- Content -->
       <template v-else>
         <!-- Add Content Section -->
-        <div class="rounded-lg border border-default p-6">
-          <div class="flex items-center gap-2 mb-4">
-            <UIcon name="i-lucide-plus-circle" class="size-5 text-primary" />
-            <h3 class="text-lg font-semibold text-highlighted">Add Content</h3>
-          </div>
-
-          <fieldset :disabled="isIngesting" class="space-y-4">
-            <!-- URL Input -->
-            <div>
-              <label for="ingest-url" class="sr-only">Content URL</label>
+        <UCard>
+          <fieldset :disabled="isIngesting" class="space-y-5">
+            <!-- Main URL Input — full width, prominent -->
+            <div class="relative">
               <UInput
                 id="ingest-url"
                 v-model="ingestUrl"
-                placeholder="Paste YouTube URL, web page URL..."
-                icon="i-lucide-link"
-                size="lg"
+                placeholder="Paste a YouTube URL, web page, or article link..."
+                icon="i-lucide-sparkles"
+                size="xl"
+                class="w-full"
                 :disabled="!!ingestFile"
-                aria-label="Paste a URL to ingest content from YouTube, web pages, or other sources"
+                :ui="{ base: 'text-base' }"
                 @keydown.enter.prevent="canIngest && handleIngest()"
               />
             </div>
 
-            <!-- File Upload -->
-            <div class="flex items-center gap-3">
-              <span class="text-xs text-muted">or</span>
-              <div class="flex items-center gap-2">
+            <!-- Source types + file upload + action — single row -->
+            <div class="flex flex-wrap items-center gap-3">
+              <!-- Supported types -->
+              <div class="flex items-center gap-1.5">
+                <UBadge label="YouTube" color="error" variant="outline" size="xs" icon="i-lucide-play" />
+                <UBadge label="Web" color="primary" variant="outline" size="xs" icon="i-lucide-globe" />
+                <UBadge label="PDF" color="warning" variant="outline" size="xs" icon="i-lucide-file-text" />
+                <UBadge label="Audio" color="success" variant="outline" size="xs" icon="i-lucide-headphones" />
+                <UBadge label="Markdown" color="neutral" variant="outline" size="xs" icon="i-lucide-file-code" />
+              </div>
+
+              <!-- Divider -->
+              <div class="h-4 w-px bg-muted/30" />
+
+              <!-- File upload — styled button -->
+              <label class="cursor-pointer">
                 <input
                   ref="ingestFileInputRef"
                   type="file"
                   accept=".pdf,.mp3,.wav,.m4a,.ogg,.flac,.md,.mdx"
-                  class="text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary file:cursor-pointer hover:file:bg-primary/20"
-                  aria-label="Upload a file (PDF, audio, or markdown)"
+                  class="hidden"
                   @change="handleFileSelect"
                 />
-                <UButton
-                  v-if="ingestFile"
-                  icon="i-lucide-x"
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  aria-label="Clear selected file"
-                  @click="clearFile"
+                <span class="inline-flex items-center gap-1.5 rounded-md border border-default px-3 py-1.5 text-xs font-medium text-muted hover:text-highlighted hover:border-primary/50 transition-colors">
+                  <UIcon name="i-lucide-upload" class="size-3.5" />
+                  {{ ingestFile ? ingestFile.name : 'Upload file' }}
+                </span>
+              </label>
+              <UButton
+                v-if="ingestFile"
+                icon="i-lucide-x"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                @click="clearFile"
+              />
+
+              <!-- Spacer -->
+              <div class="flex-1" />
+
+              <!-- Detected type -->
+              <div v-if="detectedType" class="flex items-center gap-1.5">
+                <UIcon :name="typeIconMap[detectedType] ?? 'i-lucide-file'" class="size-4 text-primary" />
+                <UBadge
+                  :label="detectedType.charAt(0).toUpperCase() + detectedType.slice(1)"
+                  :color="typeColorMap[detectedType] ?? 'neutral'"
+                  variant="subtle"
+                  size="sm"
                 />
               </div>
-            </div>
 
-            <!-- Detected Type + Ingest Button -->
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex items-center gap-2">
-                <template v-if="detectedType">
-                  <UIcon
-                    :name="typeIconMap[detectedType] ?? 'i-lucide-file'"
-                    class="size-4"
-                  />
-                  <UBadge
-                    :label="detectedType.charAt(0).toUpperCase() + detectedType.slice(1)"
-                    :color="typeColorMap[detectedType] ?? 'neutral'"
-                    variant="subtle"
-                    size="sm"
-                  />
-                  <span class="text-xs text-muted">detected</span>
-                </template>
-                <span v-else class="text-xs text-muted">
-                  Enter a URL or select a file to begin
-                </span>
-              </div>
-
+              <!-- Ingest button -->
               <UButton
                 label="Ingest"
-                icon="i-lucide-download"
+                icon="i-lucide-zap"
+                size="md"
                 :disabled="!canIngest"
                 :loading="isIngesting"
                 @click="handleIngest"
               />
             </div>
 
-            <!-- Ingest Error -->
-            <div v-if="ingestError" class="rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950" role="alert">
+            <!-- Error -->
+            <div v-if="ingestError" class="rounded-md border border-red-500/20 bg-red-500/5 p-3" role="alert">
               <div class="flex items-center gap-2">
                 <UIcon name="i-lucide-alert-circle" class="size-4 text-red-500" />
-                <p class="text-sm text-red-700 dark:text-red-300">{{ ingestError }}</p>
+                <p class="text-sm text-red-400">{{ ingestError }}</p>
               </div>
             </div>
           </fieldset>
-        </div>
+        </UCard>
 
         <!-- Active Ingestion Progress -->
         <div v-if="activeTask" class="mt-4 rounded-lg border border-default p-6">
