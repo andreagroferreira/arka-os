@@ -159,25 +159,33 @@ class IngestEngine:
         )
 
     def _process_youtube(self, url: str, progress: ProgressCallback) -> tuple[str, str]:
-        """Download YouTube video and transcribe audio. Uses Python yt-dlp API directly."""
+        """Download YouTube video and transcribe audio.
+
+        5 distinct phases with clear progress:
+        Phase 1: Fetch video info (0-5%)
+        Phase 2: Download video (5-25%)
+        Phase 3: Extract audio (25-35%)
+        Phase 4: Transcribe audio (35-65%)
+        Phase 5: Return text for chunking/indexing (handled by caller, 75-100%)
+        """
         try:
             import yt_dlp
         except ImportError:
             raise RuntimeError("yt-dlp not installed. Run: pip install yt-dlp")
 
-        progress(5, "Fetching video info...")
-
-        # First get info without downloading
+        # === Phase 1: Fetch video info ===
+        progress(2, "Phase 1/4 — Fetching video info...")
         try:
             with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
                 info = ydl.extract_info(url, download=False)
                 title = info.get("title", "YouTube Video")
                 duration = info.get("duration", 0)
-                progress(10, f"Found: {title} ({duration}s)")
+                progress(5, f"Phase 1/4 — Found: {title} ({duration}s)")
         except Exception as e:
             raise RuntimeError(f"YouTube access failed: {str(e)[:200]}")
 
-        # Download audio only
+        # === Phase 2: Download video + extract audio ===
+        progress(8, f"Phase 2/4 — Downloading video...")
         audio_path = str(self._media_dir / "yt_audio.wav")
         ydl_opts = {
             "format": "bestaudio/best",
@@ -189,17 +197,43 @@ class IngestEngine:
             }],
             "quiet": True,
             "no_warnings": True,
+            "progress_hooks": [lambda d: progress(
+                8 + int((d.get("downloaded_bytes", 0) / max(d.get("total_bytes", 1), 1)) * 17),
+                f"Phase 2/4 — Downloading... {d.get('_percent_str', '').strip()}"
+            ) if d.get("status") == "downloading" else None],
         }
 
-        progress(15, "Downloading audio...")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = info.get("title", "YouTube Video")
+            ydl.extract_info(url, download=True)
 
-        progress(35, "Transcribing audio...")
+        # === Phase 3: Extract audio (FFmpeg post-processing) ===
+        progress(28, "Phase 3/4 — Extracting audio from video...")
+
+        # Verify audio file exists
+        if not os.path.exists(audio_path):
+            # Try to find the downloaded file with different extension
+            for ext in ["wav", "m4a", "webm", "mp3", "opus"]:
+                alt = str(self._media_dir / f"yt_audio.{ext}")
+                if os.path.exists(alt):
+                    audio_path = alt
+                    break
+            else:
+                raise RuntimeError("Audio extraction failed — no output file found")
+
+        audio_size_mb = os.path.getsize(audio_path) / (1024 * 1024)
+        progress(35, f"Phase 3/4 — Audio extracted ({audio_size_mb:.1f} MB)")
+
+        # === Phase 4: Transcribe audio ===
+        progress(38, "Phase 4/4 — Transcribing audio (this may take a while)...")
         text = self._transcribe_audio(audio_path)
 
-        # Cleanup
+        if not text or len(text.strip()) < 20:
+            raise RuntimeError("Transcription produced no usable text")
+
+        word_count = len(text.split())
+        progress(70, f"Phase 4/4 — Transcribed: {word_count} words")
+
+        # Cleanup audio file
         try:
             os.remove(audio_path)
         except OSError:

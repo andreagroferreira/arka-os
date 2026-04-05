@@ -370,37 +370,45 @@ def knowledge_ingest(body: dict):
     job_mgr = _get_job_manager()
     job = job_mgr.create(source=source, source_type=source_type)
 
+    job_id = job.id  # Capture ID for thread
+
     def run_ingest():
+        # Create thread-local JobManager (SQLite objects can't cross threads)
+        from core.jobs.manager import JobManager as _JM
+        local_mgr = _JM()
+
         engine = IngestEngine(store)
         def on_progress(pct, msg):
             status = "processing"
-            if "download" in msg.lower():
+            if "phase 2" in msg.lower() or "download" in msg.lower():
                 status = "downloading"
-            elif "transcrib" in msg.lower():
+            elif "phase 3" in msg.lower() or "extract" in msg.lower():
+                status = "processing"
+            elif "phase 4" in msg.lower() or "transcrib" in msg.lower():
                 status = "transcribing"
             elif "embed" in msg.lower() or "index" in msg.lower():
                 status = "embedding"
-            job_mgr.update_progress(job.id, pct, msg, status)
+            local_mgr.update_progress(job_id, pct, msg, status)
             broadcast_from_thread({
                 "type": "job_progress",
-                "job_id": job.id,
+                "job_id": job_id,
                 "progress": pct,
                 "message": msg,
                 "status": status,
             })
         try:
-            job_mgr.start(job.id)
-            broadcast_from_thread({"type": "job_progress", "job_id": job.id, "progress": 0, "message": "Starting...", "status": "processing"})
+            local_mgr.start(job_id)
+            broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": 0, "message": "Starting...", "status": "processing"})
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
-                job_mgr.complete(job.id, chunks_created=result.chunks_created)
-                broadcast_from_thread({"type": "job_complete", "job_id": job.id, "chunks_created": result.chunks_created})
+                local_mgr.complete(job_id, chunks_created=result.chunks_created)
+                broadcast_from_thread({"type": "job_complete", "job_id": job_id, "chunks_created": result.chunks_created})
             else:
-                job_mgr.fail(job.id, result.error)
-                broadcast_from_thread({"type": "job_failed", "job_id": job.id, "error": result.error})
+                local_mgr.fail(job_id, result.error)
+                broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": result.error})
         except Exception as e:
-            job_mgr.fail(job.id, str(e))
-            broadcast_from_thread({"type": "job_failed", "job_id": job.id, "error": str(e)})
+            local_mgr.fail(job_id, str(e))
+            broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": str(e)})
 
     thread = threading.Thread(target=run_ingest, daemon=True)
     thread.start()
