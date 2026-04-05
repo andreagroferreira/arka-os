@@ -49,6 +49,7 @@ class WorkflowEngine:
         on_gate_check: Optional[Callable[[Gate], GateResult]] = None,
         on_visibility: Optional[Callable[[str], None]] = None,
         budget_manager: Any = None,
+        obsidian_writer: Any = None,
     ):
         """Initialize the workflow engine.
 
@@ -63,6 +64,7 @@ class WorkflowEngine:
         self._on_gate_check = on_gate_check
         self._on_visibility = on_visibility
         self._budget_manager = budget_manager
+        self._obsidian_writer = obsidian_writer
         self._history: list[PhaseResult] = []
 
     def announce(self, message: str) -> None:
@@ -145,6 +147,22 @@ class WorkflowEngine:
 
             if self._on_phase_complete:
                 self._on_phase_complete(phase, result)
+
+            # Save outputs to Obsidian vault (NON-NEGOTIABLE: obsidian-output)
+            if self._obsidian_writer and hasattr(phase, "outputs"):
+                for output in getattr(phase, "outputs", []):
+                    obsidian_path = getattr(output, "obsidian_path", "")
+                    if obsidian_path and result.output:
+                        try:
+                            saved = self._obsidian_writer.save(
+                                obsidian_path=obsidian_path,
+                                content=result.output,
+                                department=workflow.department,
+                                workflow=workflow.id,
+                            )
+                            self.announce(f"Saved to vault: {saved.name}")
+                        except Exception as e:
+                            self.announce(f"Vault save failed: {e}")
 
             self.announce(f"Phase {i}: {phase.name} — COMPLETED")
 
