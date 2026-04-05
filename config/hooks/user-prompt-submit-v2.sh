@@ -7,6 +7,17 @@
 
 input=$(cat)
 
+# ─── V1 Migration Detection ─────────────────────────────────────────────
+V1_PATHS=("$HOME/.claude/skills/arka-os" "$HOME/.claude/skills/arkaos")
+MIGRATION_MARKER="$HOME/.arkaos/migrated-from-v1"
+
+for v1_path in "${V1_PATHS[@]}"; do
+  if [ -d "$v1_path" ] && [ ! -f "$MIGRATION_MARKER" ]; then
+    echo "{\"additionalContext\": \"[MIGRATION] ArkaOS v1 detected at $v1_path. Run: npx arkaos migrate — This will backup v1, preserve your data, and install v2. See: https://github.com/andreagroferreira/arka-os#install\"}"
+    exit 0
+  fi
+done
+
 # ─── Performance Timing ──────────────────────────────────────────────────
 _HOOK_START_NS=$(date +%s%N 2>/dev/null || echo "0")
 _hook_ms() {
