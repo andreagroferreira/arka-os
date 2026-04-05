@@ -57,6 +57,8 @@ Runtimes:
 Examples:
   npx arkaos install                    Auto-detect runtime and install
   npx arkaos install --runtime codex    Install for Codex CLI specifically
+  npx arkaos index                     Index knowledge base (Obsidian vault)
+  npx arkaos search "query"            Search indexed knowledge
   npx arkaos doctor                     Verify installation health
 `);
   process.exit(0);
@@ -88,6 +90,33 @@ async function main() {
       const { migrate } = await import("./migrate.js");
       await migrate();
       break;
+
+    case "index": {
+      const { execSync } = await import("node:child_process");
+      const indexArgs = positionals.slice(1).join(" ");
+      const repoRoot = dirname(fileURLToPath(import.meta.url)).replace(/\/installer$/, "");
+      try {
+        execSync(`python3 "${repoRoot}/scripts/knowledge-index.py" ${indexArgs || "--vault"}`, {
+          stdio: "inherit",
+          env: { ...process.env, ARKAOS_ROOT: repoRoot },
+        });
+      } catch { process.exit(1); }
+      break;
+    }
+
+    case "search": {
+      const { execSync } = await import("node:child_process");
+      const query = positionals.slice(1).join(" ");
+      if (!query) { console.error("Usage: npx arkaos search \"your query\""); process.exit(1); }
+      const repoRoot2 = dirname(fileURLToPath(import.meta.url)).replace(/\/installer$/, "");
+      try {
+        execSync(`python3 "${repoRoot2}/scripts/knowledge-index.py" --search "${query}"`, {
+          stdio: "inherit",
+          env: { ...process.env, ARKAOS_ROOT: repoRoot2 },
+        });
+      } catch { process.exit(1); }
+      break;
+    }
 
     default:
       console.error(`Unknown command: ${command}`);

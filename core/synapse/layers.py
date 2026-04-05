@@ -1,17 +1,18 @@
-"""Synapse layer definitions — the 8 context layers.
+"""Synapse layer definitions — the 9 context layers.
 
 Each layer extracts a specific type of context and compresses it
 for injection into the prompt. Layers are pluggable and ordered.
 
 Layer Architecture:
-  L0: Constitution  — Compressed governance rules (TTL: 300s)
-  L1: Department    — Detected department from input (no cache)
-  L2: Agent         — Agent profile + last gotchas (TTL: 30s)
-  L3: Project       — Active project context (TTL: 30s)
-  L4: Branch        — Current git branch (no cache)
-  L5: Command Hints — Matching commands from registry (TTL: 30s)
-  L6: Quality Gate  — QG status and last verdicts (TTL: 60s)
-  L7: Time          — Time-of-day signal (no cache)
+  L0:   Constitution       — Compressed governance rules (TTL: 300s)
+  L1:   Department         — Detected department from input (no cache)
+  L2:   Agent              — Agent profile + last gotchas (TTL: 30s)
+  L3:   Project            — Active project context (TTL: 30s)
+  L3.5: KnowledgeRetrieval — Semantic search from vector DB (TTL: 30s)
+  L4:   Branch             — Current git branch (no cache)
+  L5:   Command Hints      — Matching commands from registry (TTL: 30s)
+  L6:   Quality Gate       — QG status and last verdicts (TTL: 60s)
+  L7:   Time               — Time-of-day signal (no cache)
 """
 
 import re
@@ -438,4 +439,89 @@ class TimeLayer(Layer):
         return LayerResult(
             layer_id=self.id, tag=tag, content=period,
             tokens_est=1, compute_ms=ms, cached=False,
+        )
+
+
+# --- L3.5: Knowledge Retrieval ---
+
+class KnowledgeRetrievalLayer(Layer):
+    """L3.5: Semantic knowledge retrieval from vector DB.
+
+    Searches the local vector store for chunks relevant to the user's
+    input and injects them as context. Gracefully skips if vector store
+    is unavailable or empty.
+    """
+
+    def __init__(self, vector_store: Any = None, max_chunks: int = 3, max_tokens: int = 400) -> None:
+        self._store = vector_store
+        self._max_chunks = max_chunks
+        self._max_tokens = max_tokens
+
+    @property
+    def id(self) -> str:
+        return "L3.5"
+
+    @property
+    def name(self) -> str:
+        return "KnowledgeRetrieval"
+
+    @property
+    def cache_ttl(self) -> int:
+        return 30
+
+    @property
+    def priority(self) -> int:
+        return 35
+
+    def compute(self, ctx: PromptContext) -> LayerResult:
+        start = time.time()
+
+        if not self._store or not ctx.user_input:
+            return LayerResult(
+                layer_id=self.id, tag="", content="",
+                tokens_est=0, compute_ms=0, cached=False,
+            )
+
+        try:
+            results = self._store.search(ctx.user_input, top_k=self._max_chunks)
+        except Exception:
+            return LayerResult(
+                layer_id=self.id, tag="", content="",
+                tokens_est=0, compute_ms=0, cached=False,
+            )
+
+        if not results:
+            ms = int((time.time() - start) * 1000)
+            return LayerResult(
+                layer_id=self.id, tag="", content="",
+                tokens_est=0, compute_ms=ms, cached=False,
+            )
+
+        # Build compact knowledge context
+        snippets = []
+        total_tokens = 0
+        for r in results:
+            text = r["text"][:200].replace("\n", " ").strip()
+            tokens = len(text.split())
+            if total_tokens + tokens > self._max_tokens:
+                break
+            source = r.get("source", "").split("/")[-1] if r.get("source") else ""
+            snippet = f"{source}: {text}" if source else text
+            snippets.append(snippet)
+            total_tokens += tokens
+
+        if not snippets:
+            ms = int((time.time() - start) * 1000)
+            return LayerResult(
+                layer_id=self.id, tag="", content="",
+                tokens_est=0, compute_ms=ms, cached=False,
+            )
+
+        content = " | ".join(snippets)
+        tag = f"[knowledge:{len(snippets)} chunks]"
+        ms = int((time.time() - start) * 1000)
+
+        return LayerResult(
+            layer_id=self.id, tag=tag, content=content,
+            tokens_est=total_tokens, compute_ms=ms, cached=False,
         )

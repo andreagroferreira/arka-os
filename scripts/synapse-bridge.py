@@ -99,6 +99,16 @@ def main() -> int:
     agents = load_agents_registry(root)
     commands = load_commands_registry(root)
 
+    # Load vector store (optional — graceful if unavailable)
+    vector_store = None
+    kb_db = Path(os.environ.get("ARKAOS_KNOWLEDGE_DB", Path.home() / ".arkaos" / "knowledge.db"))
+    if kb_db.exists():
+        try:
+            from core.knowledge.vector_store import VectorStore
+            vector_store = VectorStore(kb_db)
+        except Exception:
+            pass
+
     # Build engine
     try:
         from core.synapse.engine import create_default_engine
@@ -108,6 +118,7 @@ def main() -> int:
             constitution_compressed=constitution,
             commands=commands,
             agents_registry=agents,
+            vector_store=vector_store,
         )
 
         # Build context
