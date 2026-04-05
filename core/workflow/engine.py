@@ -48,6 +48,7 @@ class WorkflowEngine:
         on_phase_complete: Optional[Callable[[Phase, PhaseResult], None]] = None,
         on_gate_check: Optional[Callable[[Gate], GateResult]] = None,
         on_visibility: Optional[Callable[[str], None]] = None,
+        budget_manager: Any = None,
     ):
         """Initialize the workflow engine.
 
@@ -61,6 +62,7 @@ class WorkflowEngine:
         self._on_phase_complete = on_phase_complete
         self._on_gate_check = on_gate_check
         self._on_visibility = on_visibility
+        self._budget_manager = budget_manager
         self._history: list[PhaseResult] = []
 
     def announce(self, message: str) -> None:
@@ -189,11 +191,35 @@ class WorkflowEngine:
         if gate.type == GateType.AUTO:
             return GateResult(passed=True, gate_type=GateType.AUTO, message="Auto-pass")
 
+        if gate.type == GateType.BUDGET_CHECK and self._budget_manager:
+            return self._evaluate_budget_gate(gate)
+
         if self._on_gate_check:
             return self._on_gate_check(gate)
 
         # Default: pass
         return GateResult(passed=True, gate_type=gate.type, message="Default pass")
+
+    def _evaluate_budget_gate(self, gate: Gate) -> GateResult:
+        """Evaluate a budget gate using the budget manager."""
+        # Default tier for budget checks (can be overridden via gate metadata)
+        tier = 2
+        estimated_tokens = 50_000  # Default estimate per phase
+
+        if self._budget_manager.check_budget(tier, estimated_tokens):
+            needs_approval = self._budget_manager.needs_approval(tier)
+            msg = "Budget OK"
+            if needs_approval:
+                msg = "Budget OK (>80% used — Tier 0 notified)"
+                self.announce(f"Budget warning: tier {tier} at >80% monthly usage")
+            return GateResult(passed=True, gate_type=GateType.BUDGET_CHECK, message=msg)
+
+        summary = self._budget_manager.get_summary(tier)
+        return GateResult(
+            passed=False,
+            gate_type=GateType.BUDGET_CHECK,
+            message=f"Budget exceeded: {summary.used}/{summary.allocated} tokens used ({summary.percent_used}%). Needs Tier 0 approval.",
+        )
 
     def _evaluate_condition(self, condition: str) -> bool:
         """Evaluate a skip/branch condition.

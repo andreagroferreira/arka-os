@@ -27,6 +27,7 @@ class GateType(str, Enum):
     QUALITY_GATE = "quality_gate"       # Marta + Eduardo + Francisca
     AUTO = "auto"                       # Passes automatically if phase succeeds
     CONDITION = "condition"             # Passes if condition evaluates true
+    BUDGET_CHECK = "budget_check"       # Verifies token budget before execution
 
 
 class Gate(BaseModel):
