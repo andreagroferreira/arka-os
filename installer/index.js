@@ -8,8 +8,7 @@ import { getRuntimeConfig } from "./detect-runtime.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ARKAOS_ROOT = resolve(__dirname, "..");
-
-const VERSION = "2.0.0-alpha.1";
+const VERSION = JSON.parse(readFileSync(join(ARKAOS_ROOT, "package.json"), "utf-8")).version;
 
 export async function install({ runtime, path, force }) {
   console.log(`\n  ArkaOS v${VERSION} — The Operating System for AI Agent Teams\n`);
