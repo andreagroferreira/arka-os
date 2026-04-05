@@ -191,6 +191,74 @@ def tasks_active():
     return {"tasks": [t.model_dump() for t in mgr.list_active()]}
 
 
+@app.post("/api/knowledge/ingest")
+def knowledge_ingest(body: dict):
+    """Ingest content into the knowledge base. Runs in background."""
+    import threading
+
+    source = body.get("source", "")
+    source_type = body.get("type", "")
+    if not source:
+        return {"error": "source is required"}
+
+    task_mgr = _get_task_manager()
+    store = _get_vector_store()
+    if not store:
+        # Create store if it doesn't exist
+        from core.knowledge.vector_store import VectorStore
+        kb_db = Path.home() / ".arkaos" / "knowledge.db"
+        kb_db.parent.mkdir(parents=True, exist_ok=True)
+        store = VectorStore(kb_db)
+
+    from core.knowledge.ingest import IngestEngine, detect_source_type
+    if not source_type:
+        source_type = detect_source_type(source)
+
+    # Create task
+    from core.tasks.schema import TaskType
+    task = task_mgr.create(
+        title=f"Ingest {source_type}: {source[:80]}",
+        task_type=TaskType.KB_INDEX,
+        description=source,
+        department="kb",
+    )
+
+    def run_ingest():
+        engine = IngestEngine(store)
+        def on_progress(pct, msg):
+            task_mgr.update_progress(task.id, pct, msg)
+        try:
+            task_mgr.start(task.id)
+            result = engine.ingest(source, source_type, on_progress=on_progress)
+            if result.success:
+                task_mgr.complete(task.id, output={
+                    "chunks_created": result.chunks_created,
+                    "text_length": result.text_length,
+                    "title": result.title,
+                })
+            else:
+                task_mgr.fail(task.id, result.error)
+        except Exception as e:
+            task_mgr.fail(task.id, str(e))
+
+    thread = threading.Thread(target=run_ingest, daemon=True)
+    thread.start()
+
+    return {"task_id": task.id, "source_type": source_type, "status": "queued"}
+
+
+@app.get("/api/tasks/{task_id}")
+def task_detail(task_id: str):
+    """Get a single task by ID."""
+    mgr = _get_task_manager()
+    if not mgr:
+        return {"error": "Task manager unavailable"}
+    task = mgr.get(task_id)
+    if not task:
+        return {"error": "Task not found"}
+    return task.model_dump()
+
+
 @app.get("/api/knowledge/stats")
 def knowledge_stats():
     store = _get_vector_store()

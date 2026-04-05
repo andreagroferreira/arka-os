@@ -1,0 +1,270 @@
+"""Knowledge ingest engine — process YouTube, PDF, audio, web, markdown.
+
+Downloads, transcribes, extracts text, chunks, embeds, and indexes into
+the vector store. Reports progress via callback for real-time UI updates.
+"""
+
+import os
+import re
+import tempfile
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Callable, Optional
+
+from core.knowledge.chunker import chunk_markdown
+from core.knowledge.vector_store import VectorStore
+
+
+@dataclass
+class IngestResult:
+    """Result of an ingest operation."""
+    source: str
+    source_type: str
+    text_length: int = 0
+    chunks_created: int = 0
+    title: str = ""
+    error: str = ""
+    success: bool = True
+
+
+ProgressCallback = Callable[[int, str], None]  # (percent, message)
+
+
+def detect_source_type(source: str) -> str:
+    """Auto-detect content type from URL or file extension."""
+    source_lower = source.lower()
+
+    # YouTube URLs
+    if any(domain in source_lower for domain in ["youtube.com", "youtu.be"]):
+        return "youtube"
+
+    # Web URLs
+    if source_lower.startswith(("http://", "https://")):
+        return "web"
+
+    # File extensions
+    ext = Path(source).suffix.lower()
+    if ext == ".pdf":
+        return "pdf"
+    if ext in (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".webm"):
+        return "audio"
+    if ext in (".md", ".txt", ".rst"):
+        return "markdown"
+
+    return "unknown"
+
+
+class IngestEngine:
+    """Processes content from various sources into the vector store."""
+
+    def __init__(self, store: VectorStore, media_dir: str | Path = "") -> None:
+        self._store = store
+        self._media_dir = Path(media_dir) if media_dir else Path.home() / ".arkaos" / "media"
+        self._media_dir.mkdir(parents=True, exist_ok=True)
+
+    def ingest(
+        self,
+        source: str,
+        source_type: str = "",
+        on_progress: Optional[ProgressCallback] = None,
+        metadata: dict | None = None,
+    ) -> IngestResult:
+        """Ingest content from any supported source.
+
+        Args:
+            source: URL or file path.
+            source_type: youtube, pdf, audio, web, markdown. Auto-detected if empty.
+            on_progress: Callback(percent, message) for progress updates.
+            metadata: Extra metadata to attach to indexed chunks.
+        """
+        if not source_type:
+            source_type = detect_source_type(source)
+
+        progress = on_progress or (lambda p, m: None)
+        progress(0, f"Starting {source_type} ingest...")
+
+        processors = {
+            "youtube": self._process_youtube,
+            "pdf": self._process_pdf,
+            "audio": self._process_audio,
+            "web": self._process_web,
+            "markdown": self._process_markdown,
+        }
+
+        processor = processors.get(source_type)
+        if not processor:
+            return IngestResult(source=source, source_type=source_type, error=f"Unsupported type: {source_type}", success=False)
+
+        try:
+            text, title = processor(source, progress)
+        except Exception as e:
+            return IngestResult(source=source, source_type=source_type, error=str(e), success=False)
+
+        if not text or len(text.strip()) < 50:
+            return IngestResult(source=source, source_type=source_type, error="Extracted text too short", success=False)
+
+        # Chunk and index
+        progress(75, "Chunking content...")
+        chunks = chunk_markdown(text, max_tokens=512, source=source)
+
+        progress(85, f"Indexing {len(chunks)} chunks...")
+        texts = [c.text for c in chunks]
+        headings = [c.heading for c in chunks]
+        count = self._store.index_chunks(
+            texts=texts,
+            headings=headings,
+            source=source,
+            metadata={"type": source_type, "title": title, **(metadata or {})},
+        )
+
+        progress(100, f"Done — {count} chunks indexed")
+
+        return IngestResult(
+            source=source,
+            source_type=source_type,
+            text_length=len(text),
+            chunks_created=count,
+            title=title,
+            success=True,
+        )
+
+    def _process_youtube(self, url: str, progress: ProgressCallback) -> tuple[str, str]:
+        """Download YouTube video and transcribe audio."""
+        try:
+            import yt_dlp
+        except ImportError:
+            raise RuntimeError("yt-dlp not installed. Run: pip install yt-dlp")
+
+        progress(5, "Fetching video info...")
+
+        # Download audio only
+        audio_path = str(self._media_dir / "yt_audio.wav")
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "outtmpl": str(self._media_dir / "yt_audio.%(ext)s"),
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "wav",
+                "preferredquality": "16",
+            }],
+            "quiet": True,
+            "no_warnings": True,
+        }
+
+        progress(10, "Downloading audio...")
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            title = info.get("title", "YouTube Video")
+
+        progress(35, "Transcribing audio...")
+        text = self._transcribe_audio(audio_path)
+
+        # Cleanup
+        try:
+            os.remove(audio_path)
+        except OSError:
+            pass
+
+        return text, title
+
+    def _process_pdf(self, path: str, progress: ProgressCallback) -> tuple[str, str]:
+        """Extract text from PDF."""
+        try:
+            import pdfplumber
+        except ImportError:
+            raise RuntimeError("pdfplumber not installed. Run: pip install pdfplumber")
+
+        progress(10, "Opening PDF...")
+        filepath = Path(path)
+        if not filepath.exists():
+            raise FileNotFoundError(f"PDF not found: {path}")
+
+        pages_text = []
+        with pdfplumber.open(filepath) as pdf:
+            total_pages = len(pdf.pages)
+            for i, page in enumerate(pdf.pages):
+                text = page.extract_text() or ""
+                pages_text.append(text)
+                pct = 10 + int((i / total_pages) * 60)
+                progress(pct, f"Extracting page {i + 1}/{total_pages}...")
+
+        title = filepath.stem.replace("-", " ").replace("_", " ")
+        return "\n\n".join(pages_text), title
+
+    def _process_audio(self, path: str, progress: ProgressCallback) -> tuple[str, str]:
+        """Transcribe audio file."""
+        progress(10, "Loading audio...")
+        filepath = Path(path)
+        if not filepath.exists():
+            raise FileNotFoundError(f"Audio not found: {path}")
+
+        progress(20, "Transcribing audio...")
+        text = self._transcribe_audio(str(filepath))
+        title = filepath.stem.replace("-", " ").replace("_", " ")
+        return text, title
+
+    def _process_web(self, url: str, progress: ProgressCallback) -> tuple[str, str]:
+        """Scrape web page content."""
+        try:
+            import requests
+            from bs4 import BeautifulSoup
+        except ImportError:
+            raise RuntimeError("beautifulsoup4 and requests not installed. Run: pip install beautifulsoup4 requests")
+
+        progress(10, "Fetching page...")
+        resp = requests.get(url, timeout=15, headers={
+            "User-Agent": "Mozilla/5.0 (ArkaOS Knowledge Indexer)"
+        })
+        resp.raise_for_status()
+
+        progress(40, "Parsing content...")
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Remove scripts, styles, nav, footer
+        for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+            tag.decompose()
+
+        # Get title
+        title = soup.title.string if soup.title else url
+
+        # Get main content (article > main > body)
+        main = soup.find("article") or soup.find("main") or soup.find("body")
+        text = main.get_text(separator="\n\n", strip=True) if main else soup.get_text(separator="\n\n", strip=True)
+
+        # Clean up whitespace
+        text = re.sub(r'\n{3,}', '\n\n', text)
+
+        return text, title
+
+    def _process_markdown(self, path: str, progress: ProgressCallback) -> tuple[str, str]:
+        """Read markdown/text file directly."""
+        progress(10, "Reading file...")
+        filepath = Path(path)
+        if not filepath.exists():
+            raise FileNotFoundError(f"File not found: {path}")
+
+        text = filepath.read_text(encoding="utf-8")
+        title = filepath.stem.replace("-", " ").replace("_", " ")
+        return text, title
+
+    def _transcribe_audio(self, audio_path: str) -> str:
+        """Transcribe audio using faster-whisper (or fallback)."""
+        try:
+            from faster_whisper import WhisperModel
+            model = WhisperModel("base", device="cpu", compute_type="int8")
+            segments, _ = model.transcribe(audio_path, beam_size=5)
+            return " ".join(segment.text for segment in segments)
+        except ImportError:
+            pass
+
+        try:
+            import whisper
+            model = whisper.load_model("base")
+            result = model.transcribe(audio_path)
+            return result["text"]
+        except ImportError:
+            raise RuntimeError(
+                "No transcription engine available. Install one:\n"
+                "  pip install faster-whisper   (recommended, lighter)\n"
+                "  pip install openai-whisper   (original, heavier)"
+            )
