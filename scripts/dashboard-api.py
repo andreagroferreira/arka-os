@@ -20,10 +20,49 @@ from typing import Optional
 ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(ARKAOS_ROOT))
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="ArkaOS Dashboard API", version="2.0.3")
+app = FastAPI(title="ArkaOS Dashboard API", version="2.2.0")
+
+# --- WebSocket — thread-safe message queue ---
+import asyncio
+import queue as _queue
+
+_ws_clients: list[WebSocket] = []
+_ws_message_queue: _queue.Queue = _queue.Queue()
+
+
+def broadcast_from_thread(data: dict):
+    """Thread-safe: put message in queue, WebSocket loop picks it up."""
+    _ws_message_queue.put(data)
+
+
+@app.websocket("/ws/tasks")
+async def ws_tasks(websocket: WebSocket):
+    await websocket.accept()
+    _ws_clients.append(websocket)
+    try:
+        while True:
+            # Check message queue every 100ms
+            try:
+                while not _ws_message_queue.empty():
+                    msg = _ws_message_queue.get_nowait()
+                    dead = []
+                    for client in _ws_clients:
+                        try:
+                            await client.send_json(msg)
+                        except Exception:
+                            dead.append(client)
+                    for d in dead:
+                        if d in _ws_clients:
+                            _ws_clients.remove(d)
+            except _queue.Empty:
+                pass
+            await asyncio.sleep(0.1)
+    except WebSocketDisconnect:
+        if websocket in _ws_clients:
+            _ws_clients.remove(websocket)
 
 app.add_middleware(
     CORSMiddleware,
@@ -293,8 +332,17 @@ def knowledge_ingest(body: dict):
         engine = IngestEngine(store)
         def on_progress(pct, msg):
             task_mgr.update_progress(task.id, pct, msg)
+            # Broadcast via WebSocket
+            broadcast_from_thread({
+                "type": "task_progress",
+                "task_id": task.id,
+                "progress": pct,
+                "message": msg,
+                "status": "processing" if pct < 100 else "completed",
+            })
         try:
             task_mgr.start(task.id)
+            broadcast_from_thread({"type": "task_progress", "task_id": task.id, "progress": 0, "message": "Starting...", "status": "processing"})
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
                 task_mgr.complete(task.id, output={
@@ -302,10 +350,13 @@ def knowledge_ingest(body: dict):
                     "text_length": result.text_length,
                     "title": result.title,
                 })
+                broadcast_from_thread({"type": "task_complete", "task_id": task.id, "chunks_created": result.chunks_created})
             else:
                 task_mgr.fail(task.id, result.error)
+                broadcast_from_thread({"type": "task_failed", "task_id": task.id, "error": result.error})
         except Exception as e:
             task_mgr.fail(task.id, str(e))
+            broadcast_from_thread({"type": "task_failed", "task_id": task.id, "error": str(e)})
 
     thread = threading.Thread(target=run_ingest, daemon=True)
     thread.start()

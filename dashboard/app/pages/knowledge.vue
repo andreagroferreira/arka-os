@@ -90,39 +90,57 @@ const canIngest = computed(() => {
   return detectedType.value !== null && !isIngesting.value
 })
 
-// --- Active Ingestion Tracking ---
+// --- Active Ingestion Tracking via WebSocket ---
 const activeTask = ref<IngestTask | null>(null)
-let pollInterval: ReturnType<typeof setInterval> | null = null
+let ws: WebSocket | null = null
 
-function startPolling(taskId: string) {
-  stopPolling()
-  pollInterval = setInterval(async () => {
+function connectWebSocket() {
+  if (ws && ws.readyState === WebSocket.OPEN) return
+
+  const wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/tasks'
+  ws = new WebSocket(wsUrl)
+
+  ws.onmessage = (event) => {
     try {
-      const response = await $fetch<IngestTask>(`${apiBase}/api/tasks/${taskId}`)
-      activeTask.value = response
-      if (response.status === 'completed' || response.status === 'failed') {
-        stopPolling()
+      const data = JSON.parse(event.data)
+      if (!activeTask.value || data.task_id !== activeTask.value.id) return
+
+      if (data.type === 'task_progress') {
+        activeTask.value.progress_percent = data.progress
+        activeTask.value.progress_message = data.message
+        activeTask.value.status = data.status
+      } else if (data.type === 'task_complete') {
+        activeTask.value.status = 'completed'
+        activeTask.value.progress_percent = 100
+        activeTask.value.output_data = { chunks_created: data.chunks_created }
         isIngesting.value = false
-        if (response.status === 'completed') {
-          refresh()
-          fetchHistory()
-        }
+        refresh()
+        fetchHistory()
+      } else if (data.type === 'task_failed') {
+        activeTask.value.status = 'failed'
+        activeTask.value.error = data.error
+        isIngesting.value = false
       }
-    } catch {
-      // Polling failure is non-critical, will retry on next interval
+    } catch {}
+  }
+
+  ws.onclose = () => {
+    // Reconnect after 2s if still ingesting
+    if (isIngesting.value) {
+      setTimeout(connectWebSocket, 2000)
     }
-  }, 2000)
+  }
 }
 
-function stopPolling() {
-  if (pollInterval) {
-    clearInterval(pollInterval)
-    pollInterval = null
+function disconnectWebSocket() {
+  if (ws) {
+    ws.close()
+    ws = null
   }
 }
 
 onUnmounted(() => {
-  stopPolling()
+  disconnectWebSocket()
 })
 
 async function handleIngest() {
@@ -152,7 +170,7 @@ async function handleIngest() {
       source_type: response.source_type
     }
 
-    startPolling(response.task_id)
+    connectWebSocket()
   } catch (err) {
     isIngesting.value = false
     ingestError.value = err instanceof Error ? err.message : 'Failed to start ingestion'

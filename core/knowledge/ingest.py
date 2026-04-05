@@ -106,16 +106,30 @@ class IngestEngine:
         # Chunk and index
         progress(75, "Chunking content...")
         chunks = chunk_markdown(text, max_tokens=512, source=source)
+        total_chunks = len(chunks)
 
-        progress(85, f"Indexing {len(chunks)} chunks...")
+        if total_chunks == 0:
+            progress(100, "No chunks to index")
+            return IngestResult(source=source, source_type=source_type, text_length=len(text), chunks_created=0, title=title, success=True)
+
+        # Index in batches with granular progress (85→99%)
         texts = [c.text for c in chunks]
         headings = [c.heading for c in chunks]
-        count = self._store.index_chunks(
-            texts=texts,
-            headings=headings,
-            source=source,
-            metadata={"type": source_type, "title": title, **(metadata or {})},
-        )
+        batch_size = 10
+        count = 0
+
+        for i in range(0, total_chunks, batch_size):
+            batch_end = min(i + batch_size, total_chunks)
+            pct = 85 + int((i / total_chunks) * 14)
+            progress(pct, f"Embedding & indexing chunks {i + 1}—{batch_end} of {total_chunks}...")
+
+            batch_count = self._store.index_chunks(
+                texts=texts[i:batch_end],
+                headings=headings[i:batch_end] if headings else None,
+                source=source,
+                metadata={"type": source_type, "title": title, **(metadata or {})},
+            )
+            count += batch_count
 
         progress(100, f"Done — {count} chunks indexed")
 
