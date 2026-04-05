@@ -29,6 +29,7 @@ class TaskType(str, Enum):
     RESEARCH = "research"             # Background research
     GENERATION = "generation"         # AI content/image generation
     EXPORT = "export"                 # Export to external system
+    KB_INDEX = "kb_index"           # Index documents into vector store
     CUSTOM = "custom"
 
 

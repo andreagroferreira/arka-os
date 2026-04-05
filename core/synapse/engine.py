@@ -10,6 +10,7 @@ Design goals:
 
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 from core.synapse.layers import Layer, LayerResult, PromptContext
 from core.synapse.cache import LayerCache
@@ -152,6 +153,7 @@ def create_default_engine(
     constitution_compressed: str = "",
     commands: list[dict] | None = None,
     agents_registry: dict[str, dict] | None = None,
+    vector_store: Any = None,
 ) -> SynapseEngine:
     """Create a SynapseEngine with all 8 default layers.
 
@@ -166,7 +168,7 @@ def create_default_engine(
     from core.synapse.layers import (
         ConstitutionLayer, DepartmentLayer, AgentLayer,
         ProjectLayer, BranchLayer, CommandHintsLayer,
-        QualityGateLayer, TimeLayer,
+        QualityGateLayer, TimeLayer, KnowledgeRetrievalLayer,
     )
 
     engine = SynapseEngine()
@@ -176,6 +178,8 @@ def create_default_engine(
     engine.register_layer(DepartmentLayer())
     engine.register_layer(AgentLayer(agents_registry=agents_registry))
     engine.register_layer(ProjectLayer())
+    if vector_store is not None:
+        engine.register_layer(KnowledgeRetrievalLayer(vector_store=vector_store))
     engine.register_layer(BranchLayer())
     engine.register_layer(CommandHintsLayer(commands=commands))
     engine.register_layer(QualityGateLayer())
