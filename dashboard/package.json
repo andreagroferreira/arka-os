@@ -1,0 +1,14 @@
+{
+  "name": "arkaos-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 3333",
+    "build": "nuxt build",
+    "preview": "nuxt preview --port 3333"
+  },
+  "dependencies": {
+    "nuxt": "^3.16.0",
+    "@nuxt/ui": "^3.0.0"
+  }
+}
