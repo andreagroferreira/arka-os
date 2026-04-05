@@ -136,11 +136,48 @@ def agents(dept: Optional[str] = Query(None)):
 
 @app.get("/api/agents/{agent_id}")
 def agent_detail(agent_id: str):
+    """Get full agent detail including YAML data."""
+    # First get registry data
     agents = _load_agents()
+    base = None
     for a in agents:
         if a.get("id") == agent_id:
-            return a
-    return {"error": "Agent not found"}
+            base = dict(a)
+            break
+    if not base:
+        return {"error": "Agent not found"}
+
+    # Enrich with full YAML data
+    yaml_file = ARKAOS_ROOT / base.get("file", "")
+    if yaml_file.exists():
+        try:
+            import yaml
+            raw = yaml.safe_load(yaml_file.read_text())
+            dna = raw.get("behavioral_dna", {})
+            disc = dna.get("disc", {})
+            ennea = dna.get("enneagram", {})
+
+            base["disc"]["communication_style"] = disc.get("communication_style", "")
+            base["disc"]["under_pressure"] = disc.get("under_pressure", "")
+            base["disc"]["motivator"] = disc.get("motivator", "")
+            base["enneagram"]["core_motivation"] = ennea.get("core_motivation", "")
+            base["enneagram"]["core_fear"] = ennea.get("core_fear", "")
+            base["enneagram"]["subtype"] = ennea.get("subtype", "")
+
+            base["mental_models"] = raw.get("mental_models", {})
+            base["communication"] = raw.get("communication", {})
+
+            auth = raw.get("authority", {})
+            base["authority"]["delegates_to"] = auth.get("delegates_to", [])
+            base["authority"]["escalates_to"] = auth.get("escalates_to", "")
+
+            expertise = raw.get("expertise", {})
+            base["expertise_depth"] = expertise.get("depth", "")
+            base["expertise_years"] = expertise.get("years_equivalent", 0)
+        except Exception:
+            pass
+
+    return base
 
 
 @app.get("/api/commands")
