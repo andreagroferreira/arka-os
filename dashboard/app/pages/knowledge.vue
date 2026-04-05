@@ -94,6 +94,30 @@ const canIngest = computed(() => {
 const activeTask = ref<IngestTask | null>(null)
 let ws: WebSocket | null = null
 
+// Persist active task ID across page navigation
+const ACTIVE_TASK_KEY = 'arkaos_active_ingest_task'
+
+async function restoreActiveTask() {
+  const savedId = localStorage.getItem(ACTIVE_TASK_KEY)
+  if (!savedId) return
+  try {
+    const task = await $fetch<any>(`${apiBase}/api/tasks/${savedId}`)
+    if (task && task.status && !['completed', 'failed', 'cancelled'].includes(task.status)) {
+      activeTask.value = task
+      isIngesting.value = true
+      connectWebSocket()
+    } else {
+      localStorage.removeItem(ACTIVE_TASK_KEY)
+    }
+  } catch {
+    localStorage.removeItem(ACTIVE_TASK_KEY)
+  }
+}
+
+onMounted(() => {
+  restoreActiveTask()
+})
+
 function connectWebSocket() {
   if (ws && ws.readyState === WebSocket.OPEN) return
 
@@ -114,12 +138,14 @@ function connectWebSocket() {
         activeTask.value.progress_percent = 100
         activeTask.value.output_data = { chunks_created: data.chunks_created }
         isIngesting.value = false
+        localStorage.removeItem(ACTIVE_TASK_KEY)
         refresh()
         fetchHistory()
       } else if (data.type === 'task_failed') {
         activeTask.value.status = 'failed'
         activeTask.value.error = data.error
         isIngesting.value = false
+        localStorage.removeItem(ACTIVE_TASK_KEY)
       }
     } catch {}
   }
@@ -170,6 +196,7 @@ async function handleIngest() {
       source_type: response.source_type
     }
 
+    localStorage.setItem(ACTIVE_TASK_KEY, response.task_id)
     connectWebSocket()
   } catch (err) {
     isIngesting.value = false
@@ -185,6 +212,7 @@ function retryIngest() {
 function dismissActiveTask() {
   activeTask.value = null
   ingestUrl.value = ''
+  localStorage.removeItem(ACTIVE_TASK_KEY)
   clearFile()
 }
 
