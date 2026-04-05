@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-04-05
+
+### Added
+- 8 stdlib-only Python CLI tools (brand voice analyzer, SEO checker, headline scorer, RICE prioritizer, OKR cascade, DCF calculator, SaaS metrics, tech debt analyzer)
+- 14 reference docs for deep knowledge separation (OWASP, MITRE ATT&CK, SLO design, chunking strategies, etc.)
+- 6 compliance skills (GDPR, ISO 27001, SOC 2, risk management, quality management, security compliance)
+- `npx arkaos migrate` command for v1 to v2 migration
+- `.npmignore` for clean npm publishes
+- CHANGELOG, CONTRIBUTING.md, PR template
+- Branch protection on master (PRs required)
+- Release workflow (manual dispatch → version bump → GitHub Release → npm publish)
+- Skill validation CI step
+
+### Fixed
+- Version now read dynamically from package.json (no hardcoded strings)
+- `npx arkaos update` properly checks npm and reinstalls
+- Skill validator exits 0 on warnings, only 2 on failures
+
+### Removed
+- Legacy v1 directories (mcps/, projects/, skill-template/)
+- 44 `__pycache__` files from npm package (449KB → 346KB)
+
+## [2.0.0] - 2026-04-05
+
+First stable release. See 2.0.0-alpha.1 for full feature list.
+
 ## [2.0.0-alpha.1] - 2026-04-05
 
 ### Added
