@@ -1,0 +1,62 @@
+id: ecom-product-page
+name: Product Page Optimization
+description: Optimize product pages using Baymard UX guidelines and CRO best practices
+department: ecom
+tier: focused
+command: "/ecom product-page"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: audit
+    name: Page Audit
+    description: Heuristic analysis of current product page
+    agents:
+      - agent_id: cro-specialist-ecom-alice
+        role: Heuristic analysis (relevance, clarity, friction, distraction)
+    gate:
+      type: auto
+
+  - id: optimize
+    name: Optimization Plan
+    description: Specific improvements based on Baymard guidelines
+    agents:
+      - agent_id: cro-specialist-ecom-alice
+        role: Improvement recommendations prioritized by impact
+      - agent_id: retention-manager-catarina
+        role: Social proof and trust element recommendations
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves optimization priorities
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Review recommendations
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review
+      - agent_id: copy-director-eduardo
+        role: Product copy quality
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: UX compliance, accessibility
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Optimization report with A/B test plan
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Final recommendations with expected impact
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Ecommerce/Optimization/"
+        description: Product page optimization report

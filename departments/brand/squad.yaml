@@ -1,0 +1,39 @@
+id: brand-squad
+name: Brand & Design Squad
+description: Brand identity, visual design, UX/UI, design systems, and brand strategy
+department: brand
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/brand"
+obsidian_path: "WizardingCode/Brand/"
+quality_gate_required: true
+max_size: 5
+
+members:
+  - agent_id: brand-director-valentina
+    role: Creative direction, brand oversight, design system governance
+    is_lead: true
+  - agent_id: brand-strategist-mateus
+    role: Positioning, naming, verbal identity, competitive brand analysis
+  - agent_id: visual-designer-isabel
+    role: Color palettes, logos, mockups, AI image generation, visual assets
+  - agent_id: ux-designer-sofia-d
+    role: UX research, wireframes, prototyping, accessibility, usability audits
+
+workflows:
+  - workflow_id: brand-identity
+    trigger_command: "/brand identity"
+    tier: enterprise
+  - workflow_id: brand-audit
+    trigger_command: "/brand audit"
+    tier: enterprise
+  - workflow_id: brand-naming
+    trigger_command: "/brand naming"
+    tier: focused
+  - workflow_id: brand-ux-audit
+    trigger_command: "/brand ux-audit"
+    tier: focused
+  - workflow_id: brand-design-system
+    trigger_command: "/brand design-system"
+    tier: enterprise

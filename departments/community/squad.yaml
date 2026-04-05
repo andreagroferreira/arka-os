@@ -1,0 +1,32 @@
+id: community-squad
+name: Communities & Groups Squad
+description: Community strategy, member engagement, monetization, platform management
+department: community
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/community"
+obsidian_path: "WizardingCode/Communities/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: community-strategist-beatriz
+    role: Community strategy, business model, growth, monetization
+    is_lead: true
+  - agent_id: community-manager-maria
+    role: Daily management, engagement, events, moderation
+
+workflows:
+  - workflow_id: community-model
+    trigger_command: "/community model"
+    tier: enterprise
+  - workflow_id: community-setup
+    trigger_command: "/community setup"
+    tier: enterprise
+  - workflow_id: community-retain
+    trigger_command: "/community retain"
+    tier: focused
+  - workflow_id: community-grow
+    trigger_command: "/community grow"
+    tier: focused

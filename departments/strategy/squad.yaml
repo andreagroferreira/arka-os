@@ -1,0 +1,37 @@
+id: strategy-squad
+name: Strategy & Innovation Squad
+description: Competitive analysis, positioning, business model design, scenario planning
+department: strategy
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/strat"
+obsidian_path: "WizardingCode/Strategy/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: strategy-director-tomas
+    role: Strategic vision, competitive positioning, market entry
+    is_lead: true
+  - agent_id: market-analyst-lucas
+    role: Market sizing, competitive intelligence, trend analysis
+  - agent_id: business-model-designer-marta-s
+    role: Business model design, value proposition, revenue models
+
+workflows:
+  - workflow_id: strat-analyze
+    trigger_command: "/strat analyze"
+    tier: enterprise
+  - workflow_id: strat-swot
+    trigger_command: "/strat swot"
+    tier: focused
+  - workflow_id: strat-blue-ocean
+    trigger_command: "/strat blue-ocean"
+    tier: enterprise
+  - workflow_id: strat-bmc
+    trigger_command: "/strat bmc"
+    tier: focused
+  - workflow_id: strat-position
+    trigger_command: "/strat position"
+    tier: focused

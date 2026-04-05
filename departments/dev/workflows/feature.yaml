@@ -1,0 +1,129 @@
+id: dev-feature
+name: Feature Development
+description: Full enterprise workflow for implementing a new feature
+department: dev
+tier: enterprise
+command: "/dev feature"
+requires_branch: true
+requires_spec: true
+quality_gate_required: true
+
+phases:
+  - id: spec
+    name: Specification
+    description: Create or validate feature specification
+    agents:
+      - agent_id: tech-lead-paulo
+        role: Orchestrate spec creation
+      - agent_id: architect-gabriel
+        role: Technical feasibility check
+    gate:
+      type: user_approval
+      description: User must approve the spec before proceeding
+
+  - id: research
+    name: Research
+    description: Investigate existing patterns, libraries, and approaches
+    agents:
+      - agent_id: analyst-lucas
+        role: Research libraries and patterns
+        parallel: true
+      - agent_id: architect-gabriel
+        role: Review existing architecture
+        parallel: true
+    gate:
+      type: auto
+
+  - id: architecture
+    name: Architecture
+    description: Design system architecture and write ADR
+    agents:
+      - agent_id: architect-gabriel
+        role: Design architecture and write ADR
+      - agent_id: cto-marco
+        role: Review and approve architecture
+    gate:
+      type: user_approval
+      description: Architecture design approved by CTO
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "Projects/{project}/Architecture/ADR-{number}.md"
+        description: Architecture Decision Record
+
+  - id: implementation
+    name: Implementation
+    description: Write the code following the architecture
+    agents:
+      - agent_id: backend-dev-andre
+        role: Backend implementation
+        parallel: true
+      - agent_id: frontend-dev-diana
+        role: Frontend implementation
+        parallel: true
+    gate:
+      type: auto
+    depends_on:
+      - architecture
+
+  - id: self-critique
+    name: Self-Critique
+    description: Review own code against Clean Code and SOLID
+    agents:
+      - agent_id: tech-lead-paulo
+        role: Code quality review against standards
+    gate:
+      type: auto
+
+  - id: security
+    name: Security Audit
+    description: OWASP Top 10 and dependency scan
+    agents:
+      - agent_id: security-eng-bruno
+        role: Security audit and vulnerability assessment
+    gate:
+      type: auto
+    outputs:
+      - type: review
+        format: markdown
+        description: Security audit report
+
+  - id: qa
+    name: Quality Assurance
+    description: Run ALL tests, verify coverage, check edge cases
+    agents:
+      - agent_id: qa-eng-rita
+        role: Full test suite execution and coverage analysis
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Mandatory review by CQO, Copy Director, and Tech Director
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Review all text, comments, documentation
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Review code quality, tests, UX, security
+        parallel: true
+    gate:
+      type: quality_gate
+      description: All three quality reviewers must approve
+      required_verdict: APPROVED
+
+  - id: documentation
+    name: Documentation & KB
+    description: Update docs, write ADR, save to Obsidian
+    agents:
+      - agent_id: analyst-lucas
+        role: Documentation and knowledge base update
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "Projects/{project}/Docs/"
+        description: Feature documentation

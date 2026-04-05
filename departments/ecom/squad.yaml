@@ -1,0 +1,39 @@
+id: ecom-squad
+name: E-Commerce Squad
+description: Store optimization, CRO, retention, pricing, marketplace operations
+department: ecom
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/ecom"
+obsidian_path: "WizardingCode/Ecommerce/"
+quality_gate_required: true
+max_size: 5
+
+members:
+  - agent_id: ecom-director-ricardo
+    role: Commerce strategy, platform decisions, revenue growth
+    is_lead: true
+  - agent_id: cro-specialist-ecom-alice
+    role: A/B testing, funnel analysis, conversion optimization
+  - agent_id: retention-manager-catarina
+    role: RFM segmentation, email flows, loyalty, CLV
+  - agent_id: commerce-engineer-david
+    role: Shopify development, headless commerce, checkout, APIs
+
+workflows:
+  - workflow_id: ecom-audit
+    trigger_command: "/ecom audit"
+    tier: enterprise
+  - workflow_id: ecom-product-page
+    trigger_command: "/ecom product-page"
+    tier: focused
+  - workflow_id: ecom-pricing
+    trigger_command: "/ecom pricing"
+    tier: focused
+  - workflow_id: ecom-rfm
+    trigger_command: "/ecom rfm"
+    tier: focused
+  - workflow_id: ecom-launch
+    trigger_command: "/ecom launch"
+    tier: enterprise

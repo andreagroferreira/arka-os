@@ -1,8 +1,8 @@
 {
   "_meta": {
     "version": "1.0.0",
-    "generated": "2026-03-26T19:54:17Z",
-    "total_commands": 132,
+    "generated": "2026-04-01T14:35:52Z",
+    "total_commands": 135,
     "generator": "bin/arka-registry-gen"
   },
   "commands": [
@@ -13,7 +13,7 @@
       "description": "Show all available commands across all departments",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "help",
@@ -36,7 +36,7 @@
       "description": "Check for tech stack updates, security alerts, and opportunities",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "monitor",
@@ -59,7 +59,7 @@
       "description": "Initialize a new project with full context setup + Obsidian page",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "onboard project",
@@ -80,7 +80,7 @@
       "description": "Re-run onboarding — update name, company, role, objectives",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "setup profile",
@@ -103,7 +103,7 @@
       "description": "Daily standup — summarize all active projects, pending tasks, and updates",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "standup",
@@ -127,7 +127,7 @@
       "description": "System status — version, departments, personas, Pro/ext skills, knowledge stats",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "system status",
@@ -149,7 +149,7 @@
       "description": "Brand audit (visual + strategic + competitive — 4 parallel agents)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "brand audit",
@@ -171,7 +171,7 @@
       "description": "Generate color palette with rationale, accessibility, and CSS/Tailwind tokens",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "color palette",
@@ -193,7 +193,7 @@
       "description": "Complete brand guidelines document (visual + voice + usage rules)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "brand guidelines",
@@ -215,7 +215,7 @@
       "description": "Full brand identity (colors, typography, voice, logo brief, mood board) — 4-agent workflow",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "brand identity",
@@ -238,7 +238,7 @@
       "description": "Logo concept brief + AI-generated options (multiple styles)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "logo",
@@ -261,7 +261,7 @@
       "description": "Product mockup generation (packaging, merch, digital screens)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "mockup",
@@ -283,7 +283,7 @@
       "description": "Visual mood board with AI-generated reference images",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "moodboard",
@@ -305,7 +305,7 @@
       "description": "Brand/product naming (generate + evaluate + domain check)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "naming",
@@ -328,7 +328,7 @@
       "description": "AI product photography (models wearing brand, lifestyle shots)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "photoshoot",
@@ -350,7 +350,7 @@
       "description": "Brand positioning strategy (archetype, differentiation, messaging)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "brand positioning",
@@ -372,7 +372,7 @@
       "description": "Generate social media visual templates (posts, stories, covers)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "social kit",
@@ -394,7 +394,7 @@
       "description": "AI video generation (brand intro, product showcase, social clip)",
       "lead_agent": "brand",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "brand video",
@@ -416,7 +416,7 @@
       "description": "Development",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -429,7 +429,7 @@
       "description": "Generate API endpoints + tests + docs",
       "lead_agent": "dev",
       "tier": 1,
-      "requires_worktree": true,
+      "requires_branch": true,
       "modifies_code": true,
       "keywords": [
         "api",
@@ -453,7 +453,7 @@
       "description": "Database schema + migrations",
       "lead_agent": "dev",
       "tier": 1,
-      "requires_worktree": true,
+      "requires_branch": true,
       "modifies_code": true,
       "keywords": [
         "database",
@@ -478,7 +478,7 @@
       "description": "Diagnose and fix a bug",
       "lead_agent": "dev",
       "tier": 1,
-      "requires_worktree": true,
+      "requires_branch": true,
       "modifies_code": true,
       "keywords": [
         "fix",
@@ -506,7 +506,7 @@
       "description": "Deploy to environment",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [
         "deploy",
@@ -531,7 +531,7 @@
       "description": "Smart orchestrator — interprets request, asks clarifying questions, routes to correct workflow",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -544,7 +544,7 @@
       "description": "Generate technical documentation",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "documentation",
@@ -567,7 +567,7 @@
       "description": "Add project to ecosystem",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -580,7 +580,7 @@
       "description": "Create a new ecosystem",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "create ecosystem",
@@ -600,7 +600,7 @@
       "description": "List all project ecosystems",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "list ecosystems",
@@ -621,7 +621,7 @@
       "description": "Implement a feature end-to-end",
       "lead_agent": "dev",
       "tier": 1,
-      "requires_worktree": true,
+      "requires_branch": true,
       "modifies_code": true,
       "keywords": [
         "build",
@@ -647,7 +647,7 @@
       "description": "Add single MCP to current project",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "add mcp",
@@ -668,7 +668,7 @@
       "description": "Apply MCP profile to project (see sub-skill)",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "apply mcp",
@@ -690,7 +690,7 @@
       "description": "Show all available MCPs from registry",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "list mcps",
@@ -711,7 +711,7 @@
       "description": "Remove an MCP from a project",
       "lead_agent": "dev-mcp",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "remove mcp",
@@ -731,7 +731,7 @@
       "description": "Show MCPs active in current project",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "mcp status",
@@ -752,7 +752,7 @@
       "description": "Onboard existing project into ARKA OS (see sub-skill)",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "onboard existing",
@@ -774,7 +774,7 @@
       "description": "Onboard and assign to ecosystem",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -787,7 +787,7 @@
       "description": "Architecture planning only (no code)",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "plan",
@@ -810,7 +810,7 @@
       "description": "Refactor code with quality gates",
       "lead_agent": "dev",
       "tier": 1,
-      "requires_worktree": true,
+      "requires_branch": true,
       "modifies_code": true,
       "keywords": [
         "refactor",
@@ -834,7 +834,7 @@
       "description": "Research a lib/framework/integration",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "research",
@@ -858,7 +858,7 @@
       "description": "Code review of current changes",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "review",
@@ -881,7 +881,7 @@
       "description": "Create project from real git repos (see sub-skill)",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [
         "scaffold",
@@ -906,7 +906,7 @@
       "description": "Laravel + Nuxt (both repos)",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -919,7 +919,7 @@
       "description": "`git@andreagroferreira:andreagroferreira/laravel-starter-kit.git`",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -932,7 +932,7 @@
       "description": "Next.js starter (TBD)",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -945,7 +945,7 @@
       "description": "`https://github.com/nuxt-ui-templates/docs.git`",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -958,7 +958,7 @@
       "description": "`https://github.com/nuxt-ui-templates/landing.git`",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -971,7 +971,7 @@
       "description": "`https://github.com/nuxt-ui-templates/dashboard.git`",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -984,7 +984,7 @@
       "description": "React starter (TBD)",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -997,7 +997,7 @@
       "description": "`https://github.com/nuxt-ui-templates/starter-vue.git`",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -1010,7 +1010,7 @@
       "description": "`https://github.com/nuxt-ui-templates/dashboard-vue.git`",
       "lead_agent": "dev-scaffold",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [],
       "examples": [],
@@ -1023,7 +1023,7 @@
       "description": "Standalone security audit (read-only)",
       "lead_agent": "dev",
       "tier": 1,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "security audit",
@@ -1046,7 +1046,7 @@
       "description": "Install external skill from GitHub",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "install skill",
@@ -1066,7 +1066,7 @@
       "description": "Scaffold new skill from template",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "create skill",
@@ -1088,7 +1088,7 @@
       "description": "List installed external skills",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "list skills",
@@ -1109,7 +1109,7 @@
       "description": "Remove external skill",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "remove skill",
@@ -1123,13 +1123,84 @@
       "source": "builtin"
     },
     {
+      "id": "dev-spec",
+      "command": "/dev spec <description>",
+      "department": "dev",
+      "description": "Create a feature spec interactively",
+      "lead_agent": "dev",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false,
+      "keywords": [
+        "spec",
+        "specification",
+        "requirements",
+        "define feature",
+        "write spec",
+        "feature spec",
+        "describe what to build"
+      ],
+      "examples": [
+        "write a spec for user authentication",
+        "create a specification for the payment system",
+        "define requirements for the dashboard"
+      ],
+      "source": "builtin"
+    },
+    {
+      "id": "dev-spec-list",
+      "command": "/dev spec list",
+      "department": "dev",
+      "description": "List specs in current project",
+      "lead_agent": "dev",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false,
+      "keywords": [
+        "list specs",
+        "show specs",
+        "existing specs",
+        "all specifications",
+        "project specs"
+      ],
+      "examples": [
+        "show me all specs for this project",
+        "list existing specifications",
+        "what specs do we have"
+      ],
+      "source": "builtin"
+    },
+    {
+      "id": "dev-spec-validate",
+      "command": "/dev spec validate",
+      "department": "dev",
+      "description": "Validate existing spec completeness",
+      "lead_agent": "dev",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false,
+      "keywords": [
+        "validate spec",
+        "check spec",
+        "review spec",
+        "spec complete",
+        "spec ready"
+      ],
+      "examples": [
+        "validate the current spec",
+        "is the spec complete",
+        "check the specification"
+      ],
+      "source": "builtin"
+    },
+    {
       "id": "dev-stack-check",
       "command": "/dev stack-check",
       "department": "dev",
       "description": "Check for updates in project dependencies",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "stack check",
@@ -1151,7 +1222,7 @@
       "description": "Generate and run test suite",
       "lead_agent": "dev",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": true,
       "keywords": [
         "test",
@@ -1175,7 +1246,7 @@
       "description": "Universal orchestrator — describe what you need in natural language",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1188,7 +1259,7 @@
       "description": "E-commerce",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1201,7 +1272,7 @@
       "description": "E-commerce ad campaigns",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "ecommerce ads",
@@ -1223,7 +1294,7 @@
       "description": "Full store audit (5 agents)",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "store audit",
@@ -1246,7 +1317,7 @@
       "description": "Competitive e-commerce analysis",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "ecommerce competitors",
@@ -1267,7 +1338,7 @@
       "description": "E-commerce email flows (cart, post-purchase, win-back)",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "cart abandonment",
@@ -1289,7 +1360,7 @@
       "description": "New store launch plan",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "store launch",
@@ -1312,7 +1383,7 @@
       "description": "Pricing strategy analysis",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "pricing strategy",
@@ -1334,7 +1405,7 @@
       "description": "Create optimized product listing",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "product listing",
@@ -1357,7 +1428,7 @@
       "description": "Store performance report",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "store report",
@@ -1379,7 +1450,7 @@
       "description": "E-commerce SEO audit",
       "lead_agent": "ecom",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "ecommerce seo",
@@ -1401,7 +1472,7 @@
       "description": "Finance",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1414,7 +1485,7 @@
       "description": "Financial analysis (market, sector, company)",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "financial analysis",
@@ -1435,7 +1506,7 @@
       "description": "Project budget planning",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "budget",
@@ -1458,7 +1529,7 @@
       "description": "Cash flow analysis and projections",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "cash flow",
@@ -1481,7 +1552,7 @@
       "description": "Revenue/expense forecast",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "forecast",
@@ -1504,7 +1575,7 @@
       "description": "Investment opportunity analysis",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "invest",
@@ -1525,7 +1596,7 @@
       "description": "Generate invoice (via InvoiceExpress MCP)",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "finance invoice",
@@ -1546,7 +1617,7 @@
       "description": "Preparation for bank/investor negotiation",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "negotiate",
@@ -1569,7 +1640,7 @@
       "description": "Investor pitch preparation",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "pitch",
@@ -1592,7 +1663,7 @@
       "description": "Portfolio overview and recommendations",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "portfolio",
@@ -1613,7 +1684,7 @@
       "description": "Financial report (monthly/quarterly)",
       "lead_agent": "fin",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "financial report",
@@ -1634,7 +1705,7 @@
       "description": "Knowledge Base",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1647,7 +1718,7 @@
       "description": "Show available tools and API keys",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "kb capabilities",
@@ -1669,7 +1740,7 @@
       "description": "Remove old media files",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "kb cleanup",
@@ -1690,7 +1761,7 @@
       "description": "Queue download + transcription (async, non-blocking)",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "learn",
@@ -1714,7 +1785,7 @@
       "description": "Learn from text/article content (synchronous)",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1727,7 +1798,7 @@
       "description": "View/manage a persona profile",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "view persona",
@@ -1748,7 +1819,7 @@
       "description": "List all personas and their stats",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "list personas",
@@ -1769,7 +1840,7 @@
       "description": "Analyze a ready transcription (interactive choices)",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "process job",
@@ -1790,7 +1861,7 @@
       "description": "Process all ready jobs",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1803,7 +1874,7 @@
       "description": "Show all queued/running/ready jobs",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "kb queue",
@@ -1825,7 +1896,7 @@
       "description": "Search knowledge base by topic",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "search knowledge",
@@ -1846,7 +1917,7 @@
       "description": "Detailed status of a specific job",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "kb status",
@@ -1866,7 +1937,7 @@
       "description": "List all knowledge topics",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "list topics",
@@ -1887,7 +1958,7 @@
       "description": "Add more content to existing persona",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "update persona",
@@ -1908,7 +1979,7 @@
       "description": "Generate content using a persona's style",
       "lead_agent": "kb",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1921,7 +1992,7 @@
       "description": "Marketing & Content",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -1934,7 +2005,7 @@
       "description": "Ad copy for multiple platforms",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "ad copy",
@@ -1958,7 +2029,7 @@
       "description": "Affiliate marketing analysis + content",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "affiliate",
@@ -1979,7 +2050,7 @@
       "description": "Full marketing audit (5 parallel agents)",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "marketing audit",
@@ -2001,7 +2072,7 @@
       "description": "SEO-optimized blog article",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "blog",
@@ -2024,7 +2095,7 @@
       "description": "Brand voice analysis and guidelines",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "brand voice",
@@ -2045,7 +2116,7 @@
       "description": "Content calendar (week/month)",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "content calendar",
@@ -2066,7 +2137,7 @@
       "description": "Analyze and improve existing copy",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "copy analysis",
@@ -2087,7 +2158,7 @@
       "description": "Email sequence (welcome, nurture, launch, cart)",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "email sequence",
@@ -2111,7 +2182,7 @@
       "description": "Landing page copy (can use KB personas)",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "landing page",
@@ -2132,7 +2203,7 @@
       "description": "Scripts for Reels/TikTok/Shorts",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "reels",
@@ -2155,7 +2226,7 @@
       "description": "Generate social media posts (multi-platform)",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "social media",
@@ -2180,7 +2251,7 @@
       "description": "Instagram/Facebook stories sequence",
       "lead_agent": "mkt",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "stories",
@@ -2201,7 +2272,7 @@
       "description": "Operations",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -2214,7 +2285,7 @@
       "description": "Create automation for routine process",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "automate",
@@ -2235,7 +2306,7 @@
       "description": "Send message to all configured channels",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "broadcast",
@@ -2256,7 +2327,7 @@
       "description": "View schedule (via Google Calendar MCP)",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "calendar",
@@ -2279,7 +2350,7 @@
       "description": "Add messaging channel (slack, discord, whatsapp, teams)",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "add channel",
@@ -2301,7 +2372,7 @@
       "description": "List configured messaging channels",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "list channels",
@@ -2321,7 +2392,7 @@
       "description": "Remove a messaging channel",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "remove channel",
@@ -2341,7 +2412,7 @@
       "description": "Send/draft emails (via Gmail MCP)",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "send email",
@@ -2363,7 +2434,7 @@
       "description": "Generate invoice (via InvoiceExpress MCP)",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "invoice",
@@ -2384,7 +2455,7 @@
       "description": "Schedule and prepare meeting",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "meeting",
@@ -2405,7 +2476,7 @@
       "description": "Send message to default notification channel",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "notify",
@@ -2426,7 +2497,7 @@
       "description": "New client onboarding checklist",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "onboard client",
@@ -2447,7 +2518,7 @@
       "description": "Operational reports (weekly, monthly)",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "operations report",
@@ -2468,7 +2539,7 @@
       "description": "Daily standup summary",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "ops standup",
@@ -2488,7 +2559,7 @@
       "description": "View and manage tasks (via ClickUp MCP)",
       "lead_agent": "ops",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "tasks",
@@ -2511,7 +2582,7 @@
       "description": "Strategy",
       "lead_agent": "arka",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [],
       "examples": [],
@@ -2524,7 +2595,7 @@
       "description": "Structured brainstorming session with multiple perspectives",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "brainstorm",
@@ -2548,7 +2619,7 @@
       "description": "Competitive intelligence deep-dive",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "competitor analysis",
@@ -2570,7 +2641,7 @@
       "description": "New idea evaluation (pros, cons, risks, ROI)",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "evaluate idea",
@@ -2593,7 +2664,7 @@
       "description": "Market analysis and opportunity mapping",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "market analysis",
@@ -2616,7 +2687,7 @@
       "description": "Evaluate a strategic pivot",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "pivot",
@@ -2637,7 +2708,7 @@
       "description": "Client prospecting and lead identification",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "prospect",
@@ -2659,7 +2730,7 @@
       "description": "Strategic roadmap creation",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "roadmap",
@@ -2680,7 +2751,7 @@
       "description": "SWOT analysis",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "swot",
@@ -2700,7 +2771,7 @@
       "description": "Industry trend analysis",
       "lead_agent": "strat",
       "tier": 2,
-      "requires_worktree": false,
+      "requires_branch": false,
       "modifies_code": false,
       "keywords": [
         "trends",

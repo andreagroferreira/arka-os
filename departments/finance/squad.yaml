@@ -1,0 +1,37 @@
+id: finance-squad
+name: Finance & Investment Squad
+description: Financial planning, valuation, fundraising, and risk management
+department: finance
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/fin"
+obsidian_path: "WizardingCode/Finance/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: cfo-helena
+    role: Financial strategy, capital allocation, risk governance
+    is_lead: true
+  - agent_id: financial-analyst-leonor
+    role: Financial modeling, unit economics, scenario analysis
+  - agent_id: investment-strategist-rui
+    role: Fundraising, term sheets, cap table, M&A
+
+workflows:
+  - workflow_id: fin-model
+    trigger_command: "/fin model"
+    tier: enterprise
+  - workflow_id: fin-report
+    trigger_command: "/fin report"
+    tier: focused
+  - workflow_id: fin-forecast
+    trigger_command: "/fin cashflow"
+    tier: focused
+  - workflow_id: fin-pitch
+    trigger_command: "/fin pitch"
+    tier: enterprise
+  - workflow_id: fin-budget
+    trigger_command: "/fin budget"
+    tier: focused

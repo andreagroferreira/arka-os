@@ -1,0 +1,39 @@
+id: marketing-squad
+name: Marketing & Growth Squad
+description: Full-stack growth team with SEO, paid, content, and analytics capabilities
+department: marketing
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/mkt"
+obsidian_path: "WizardingCode/Marketing/"
+quality_gate_required: true
+max_size: 6
+
+members:
+  - agent_id: marketing-director-luna
+    role: Growth strategy, channel mix, budget allocation
+    is_lead: true
+  - agent_id: seo-specialist-ana
+    role: Organic search, keyword strategy, technical SEO
+  - agent_id: paid-specialist-pedro
+    role: Paid acquisition, ROAS optimization, creative testing
+  - agent_id: content-marketer-mariana
+    role: Content strategy, blog, email, social content
+
+workflows:
+  - workflow_id: mkt-social
+    trigger_command: "/mkt social"
+    tier: focused
+  - workflow_id: mkt-seo-audit
+    trigger_command: "/mkt seo audit"
+    tier: focused
+  - workflow_id: mkt-campaign
+    trigger_command: "/mkt paid"
+    tier: enterprise
+  - workflow_id: mkt-email
+    trigger_command: "/mkt email sequence"
+    tier: focused
+  - workflow_id: mkt-content
+    trigger_command: "/mkt content"
+    tier: focused

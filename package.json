@@ -1,0 +1,58 @@
+{
+  "name": "arkaos",
+  "version": "2.0.0-alpha.1",
+  "description": "The Operating System for AI Agent Teams",
+  "type": "module",
+  "bin": {
+    "arkaos": "./installer/cli.js"
+  },
+  "scripts": {
+    "test": "node --test tests/installer/",
+    "lint": "eslint installer/",
+    "prepublishOnly": "node scripts/check-version.js"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "orchestration",
+    "claude",
+    "codex",
+    "gemini",
+    "cursor",
+    "saas",
+    "teams",
+    "automation"
+  ],
+  "author": {
+    "name": "WizardingCode",
+    "url": "https://wizardingcode.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andreagroferreira/arka-os.git"
+  },
+  "homepage": "https://arkaos.dev",
+  "bugs": {
+    "url": "https://github.com/andreagroferreira/arka-os/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "installer/",
+    "core/",
+    "departments/",
+    "config/constitution.yaml",
+    "config/hooks/",
+    "bin/arkaos",
+    "arka/SKILL.md",
+    "knowledge/agents-registry-v2.json",
+    "knowledge/commands-registry-v2.json",
+    "pyproject.toml",
+    "VERSION",
+    "CONSTITUTION.md",
+    "README.md",
+    "LICENSE"
+  ]
+}

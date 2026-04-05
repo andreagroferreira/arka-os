@@ -1,0 +1,47 @@
+id: strat-swot
+name: SWOT Analysis
+department: strategy
+tier: focused
+command: /strat swot
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: 'SWOT analysis: Strengths, Weaknesses, Opportunities, Threats'
+phases:
+- id: brief
+  name: Analysis Brief
+  agents:
+  - agent_id: strategy-director-tomas
+    role: Define scope and context
+  gate:
+    type: user_approval
+    description: User confirms scope
+- id: analyze
+  name: SWOT Analysis
+  agents:
+  - agent_id: market-analyst-lucas
+    role: Internal (S/W) and external (O/T) analysis
+  gate:
+    type: auto
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate review
+  - agent_id: tech-director-francisca
+    role: Data accuracy and logic
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: strategy-director-tomas
+    role: SWOT report with strategic implications
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Strategy/SWOT/

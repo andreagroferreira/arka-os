@@ -1,0 +1,35 @@
+id: sales-squad
+name: Sales & Negotiation Squad
+description: Pipeline management, proposals, discovery calls, negotiation, closing
+department: sales
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/sales"
+obsidian_path: "WizardingCode/Sales/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: sales-director-miguel
+    role: Sales strategy, pipeline oversight, revenue forecasting
+    is_lead: true
+  - agent_id: sales-closer-joao
+    role: Deal closing, objection handling, proposal delivery
+
+workflows:
+  - workflow_id: sales-pipeline
+    trigger_command: "/sales pipeline"
+    tier: focused
+  - workflow_id: sales-proposal
+    trigger_command: "/sales proposal"
+    tier: focused
+  - workflow_id: sales-discovery
+    trigger_command: "/sales discovery"
+    tier: focused
+  - workflow_id: sales-negotiate
+    trigger_command: "/sales negotiate"
+    tier: focused
+  - workflow_id: sales-forecast
+    trigger_command: "/sales forecast"
+    tier: specialist

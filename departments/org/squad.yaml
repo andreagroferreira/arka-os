@@ -1,0 +1,33 @@
+id: org-squad
+name: Organization & Teams Squad
+description: Org design, team topologies, scaling operations, cross-department alignment
+department: org
+squad_type: department
+topology: platform
+
+skills_prefix: "/org"
+obsidian_path: "WizardingCode/Organization/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: coo-sofia
+    role: Org strategy, cross-department coordination, scaling
+    is_lead: true
+
+workflows:
+  - workflow_id: org-design
+    trigger_command: "/org design"
+    tier: enterprise
+  - workflow_id: org-hiring
+    trigger_command: "/org hiring"
+    tier: focused
+  - workflow_id: org-onboarding
+    trigger_command: "/org onboarding"
+    tier: focused
+  - workflow_id: org-culture
+    trigger_command: "/org culture"
+    tier: enterprise
+  - workflow_id: org-decide
+    trigger_command: "/org decide"
+    tier: specialist

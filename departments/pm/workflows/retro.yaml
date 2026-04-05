@@ -1,0 +1,33 @@
+id: pm-retro
+name: Sprint Retrospective
+description: Facilitated retrospective with structured format and action items
+department: pm
+tier: specialist
+command: "/pm retro"
+requires_branch: false
+requires_spec: false
+quality_gate_required: false
+
+phases:
+  - id: facilitate
+    name: Retrospective Facilitation
+    description: Run a structured retrospective
+    agents:
+      - agent_id: scrum-master-jorge
+        role: Facilitate retro with chosen format
+    gate:
+      type: auto
+
+  - id: actions
+    name: Action Items
+    description: Define concrete, assigned, time-bound action items
+    agents:
+      - agent_id: scrum-master-jorge
+        role: Compile actions with owners and due dates
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Project-Management/Retros/"
+        description: Retrospective notes with action items

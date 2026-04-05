@@ -1,0 +1,39 @@
+id: landing-squad
+name: Landing Pages & Sales Funnels Squad
+description: Sales copy, funnel architecture, CRO, launches, affiliate marketing
+department: landing
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/landing"
+obsidian_path: "WizardingCode/Landing-Pages/"
+quality_gate_required: true
+max_size: 5
+
+members:
+  - agent_id: conversion-strategist-ines
+    role: Funnel strategy, offer creation, GTM launch coordination
+    is_lead: true
+  - agent_id: sales-copywriter-teresa
+    role: Sales copy, headlines, email sequences, ad copy
+  - agent_id: cro-specialist-landing-hugo
+    role: A/B testing, heatmaps, landing page optimization
+  - agent_id: affiliate-manager-sergio
+    role: Affiliate programs, bridge pages, partnership management
+
+workflows:
+  - workflow_id: landing-offer
+    trigger_command: "/landing offer"
+    tier: enterprise
+  - workflow_id: landing-funnel
+    trigger_command: "/landing funnel"
+    tier: enterprise
+  - workflow_id: landing-copy
+    trigger_command: "/landing copy"
+    tier: focused
+  - workflow_id: landing-launch
+    trigger_command: "/landing launch"
+    tier: enterprise
+  - workflow_id: landing-affiliate
+    trigger_command: "/landing affiliate"
+    tier: focused

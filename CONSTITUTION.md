@@ -1,6 +1,7 @@
-# ARKA OS Constitution
+# ArkaOS Constitution
 
-> Governance rules for all agents and workflows. Three enforcement levels.
+> Governance rules for all agents and workflows. Four enforcement levels.
+> Machine-readable version: `config/constitution.yaml`
 
 ## NON-NEGOTIABLE
 
@@ -77,4 +78,4 @@ When injected as context layer L0, this constitution is compressed to:
 
 ---
 
-*ARKA OS v1.1.0 — WizardingCode Company Operating System*
+*ArkaOS v2.0.0-alpha.1 — The Operating System for AI Agent Teams*

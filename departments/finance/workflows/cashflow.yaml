@@ -1,0 +1,47 @@
+id: fin-cashflow
+name: Cash Flow Forecast
+department: finance
+tier: focused
+command: /fin cashflow
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Cash flow forecast with runway calculation and working capital analysis
+phases:
+- id: collect
+  name: Data Collection
+  agents:
+  - agent_id: financial-analyst-leonor
+    role: Gather revenue, expenses, AR, AP data
+  gate:
+    type: auto
+- id: forecast
+  name: Cash Flow Projection
+  agents:
+  - agent_id: financial-analyst-leonor
+    role: Operating, investing, financing CF + scenarios
+  gate:
+    type: user_approval
+    description: User reviews assumptions
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate
+  - agent_id: tech-director-francisca
+    role: Calculation accuracy
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: cfo-helena
+    role: Cash flow report with runway and recommendations
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Finance/CashFlow/

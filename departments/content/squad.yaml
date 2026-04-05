@@ -1,0 +1,39 @@
+id: content-squad
+name: Content Creation & Viralization Squad
+description: Viral content, hooks, scripts, repurposing, platform optimization
+department: content
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/content"
+obsidian_path: "WizardingCode/Content/"
+quality_gate_required: true
+max_size: 5
+
+members:
+  - agent_id: content-strategist-rafael
+    role: Content strategy, viral design, platform optimization
+    is_lead: true
+  - agent_id: viral-engineer-filipe
+    role: Hook writing, thumbnail packaging, viral mechanics
+  - agent_id: scriptwriter-joana
+    role: Video/podcast scripts, narrative structure
+  - agent_id: repurpose-distributor-nuno
+    role: Content repurposing (1→30+), distribution, calendars
+
+workflows:
+  - workflow_id: content-viral
+    trigger_command: "/content viral"
+    tier: enterprise
+  - workflow_id: content-script
+    trigger_command: "/content script"
+    tier: focused
+  - workflow_id: content-system
+    trigger_command: "/content system"
+    tier: enterprise
+  - workflow_id: content-repurpose
+    trigger_command: "/content repurpose"
+    tier: focused
+  - workflow_id: content-youtube
+    trigger_command: "/content youtube"
+    tier: enterprise

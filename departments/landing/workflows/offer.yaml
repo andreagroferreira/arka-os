@@ -1,0 +1,99 @@
+id: landing-offer
+name: Grand Slam Offer Creation
+description: Create irresistible offers using Hormozi's value equation + funnel architecture
+department: landing
+tier: enterprise
+command: "/landing offer"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Offer Brief
+    description: Understand the product, audience, and dream outcome
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Define dream outcome, target audience, current awareness level
+    gate:
+      type: user_approval
+      description: User confirms offer parameters
+
+  - id: research
+    name: Competitive Offer Research
+    description: Analyze competitor offers, pricing, guarantees
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Competitor offer audit, awareness level diagnosis
+      - agent_id: market-analyst-lucas
+        role: Market pricing benchmarks, willingness to pay
+        parallel: true
+    gate:
+      type: auto
+
+  - id: offer-build
+    name: Offer Architecture
+    description: Build the Grand Slam Offer using Hormozi Value Equation
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Value Equation optimization, bonus stacking, guarantees
+    gate:
+      type: user_approval
+      description: User approves the offer structure
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Landing-Pages/Offers/"
+        description: Grand Slam Offer breakdown
+
+  - id: copy
+    name: Sales Copy
+    description: Write the sales page copy using awareness-matched framework
+    agents:
+      - agent_id: sales-copywriter-teresa
+        role: Headlines, body copy, CTA using AIDA/PAS/PASTOR
+    gate:
+      type: auto
+
+  - id: funnel
+    name: Funnel Architecture
+    description: Design the Value Ladder and funnel flow
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Value Ladder, funnel type selection, upsell sequence
+      - agent_id: cro-specialist-landing-hugo
+        role: Landing page structure, attention ratio, A/B test plan
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves funnel structure
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Review offer, copy, and funnel quality
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Sales copy quality, persuasion ethics, clarity
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Funnel logic, pricing consistency, UX flow
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Complete offer package ready for implementation
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Final offer package delivery
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Landing-Pages/Offers/"
+        description: Complete offer package with copy, funnel map, and A/B plan

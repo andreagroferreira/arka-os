@@ -1,0 +1,49 @@
+id: sales-pipeline
+name: Pipeline Analysis
+department: sales
+tier: focused
+command: /sales pipeline
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Pipeline analysis with velocity metrics and forecast
+phases:
+- id: collect
+  name: Pipeline Data
+  agents:
+  - agent_id: sales-ops-ines-s
+    role: 'Gather pipeline data: deals, stages, values, ages'
+  gate:
+    type: auto
+- id: analyze
+  name: Pipeline Analysis
+  agents:
+  - agent_id: sales-ops-ines-s
+    role: Velocity, conversion by stage, deal aging, bottlenecks
+  - agent_id: sales-director-miguel
+    role: Strategic interpretation
+    parallel: true
+  gate:
+    type: auto
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate
+  - agent_id: tech-director-francisca
+    role: Data accuracy
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: sales-director-miguel
+    role: Pipeline report with recommendations
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Sales/Pipeline/

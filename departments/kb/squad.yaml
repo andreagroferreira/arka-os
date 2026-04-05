@@ -1,0 +1,34 @@
+id: kb-squad
+name: Knowledge Management Squad
+description: Research, knowledge capture, Obsidian curation, persona building
+department: kb
+squad_type: department
+topology: enabling
+
+skills_prefix: "/kb"
+obsidian_path: "🧠 Knowledge Base/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: knowledge-director-clara
+    role: Knowledge strategy, taxonomy governance, quality standards
+    is_lead: true
+  - agent_id: research-analyst-francisco
+    role: Research execution, source evaluation, competitive intelligence
+  - agent_id: knowledge-curator-helena-c
+    role: Vault maintenance, linking, MOCs, progressive summarization
+
+workflows:
+  - workflow_id: kb-learn
+    trigger_command: "/kb learn"
+    tier: enterprise
+  - workflow_id: kb-research
+    trigger_command: "/kb research"
+    tier: focused
+  - workflow_id: kb-moc
+    trigger_command: "/kb moc"
+    tier: specialist
+  - workflow_id: kb-persona
+    trigger_command: "/kb persona"
+    tier: enterprise

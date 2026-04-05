@@ -1,0 +1,62 @@
+id: dev-squad
+name: Development Squad
+description: Full-stack development team with enterprise-grade workflows
+department: dev
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/dev"
+obsidian_path: "Projects/{project}/Docs/"
+quality_gate_required: true
+max_size: 10
+
+members:
+  - agent_id: cto-marco
+    role: Technical authority and architecture decisions
+    is_lead: false  # CTO is Tier 0, not squad lead
+
+  - agent_id: tech-lead-paulo
+    role: Orchestrate workflows, assign tasks, track progress
+    is_lead: true
+
+  - agent_id: architect-gabriel
+    role: System design, ADRs, bounded contexts
+
+  - agent_id: backend-dev-andre
+    role: Backend implementation (Laravel, PHP, PostgreSQL, APIs)
+
+  - agent_id: frontend-dev-diana
+    role: Frontend implementation (Vue, Nuxt, React, Next.js)
+
+  - agent_id: security-eng-bruno
+    role: Security audit, OWASP Top 10, dependency scanning
+
+  - agent_id: devops-eng-carlos
+    role: CI/CD, deployment, infrastructure, monitoring
+
+  - agent_id: qa-eng-rita
+    role: Test strategy, test automation, quality gates
+
+  - agent_id: dba-data-eng
+    role: Database design, migrations, query optimization
+
+workflows:
+  - workflow_id: dev-feature
+    trigger_command: "/dev feature"
+    tier: enterprise
+
+  - workflow_id: dev-api
+    trigger_command: "/dev api"
+    tier: enterprise
+
+  - workflow_id: dev-debug
+    trigger_command: "/dev debug"
+    tier: focused
+
+  - workflow_id: dev-refactor
+    trigger_command: "/dev refactor"
+    tier: focused
+
+  - workflow_id: dev-review
+    trigger_command: "/dev review"
+    tier: specialist

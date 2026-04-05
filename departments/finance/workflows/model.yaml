@@ -1,0 +1,83 @@
+id: fin-model
+name: Financial Model
+description: 3-statement financial model with scenario analysis and unit economics
+department: finance
+tier: enterprise
+command: "/fin model"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Model Brief
+    description: Define model scope, business type, time horizon, key assumptions
+    agents:
+      - agent_id: cfo-helena
+        role: Define model parameters and key assumptions
+    gate:
+      type: user_approval
+      description: User confirms model scope and assumptions
+
+  - id: build
+    name: Model Construction
+    description: Build 3-statement model with revenue, costs, and cash flow
+    agents:
+      - agent_id: financial-analyst-leonor
+        role: Income statement, balance sheet, cash flow statement
+    gate:
+      type: auto
+
+  - id: scenarios
+    name: Scenario Analysis
+    description: Base, optimistic, and pessimistic scenarios
+    agents:
+      - agent_id: financial-analyst-leonor
+        role: 3 scenarios with sensitivity analysis on key variables
+    gate:
+      type: user_approval
+      description: User reviews scenarios and assumptions
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Finance/Models/"
+        description: 3-statement model with scenario comparison
+
+  - id: unit-economics
+    name: Unit Economics Layer
+    description: CAC, LTV, payback, Rule of 40 (if SaaS)
+    agents:
+      - agent_id: financial-analyst-leonor
+        role: Unit economics overlay on the financial model
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Validate model accuracy and assumptions
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Report clarity and narrative quality
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Model integrity, formula accuracy, assumption documentation
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Final model with commentary and recommendations
+    agents:
+      - agent_id: cfo-helena
+        role: Executive summary and financial recommendations
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Finance/"
+        description: Financial model with executive summary

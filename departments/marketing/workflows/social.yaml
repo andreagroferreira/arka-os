@@ -1,0 +1,56 @@
+id: mkt-social
+name: Social Media Content
+description: Create social media content with platform-native formatting
+department: marketing
+tier: focused
+command: "/mkt social"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Content Brief
+    description: Define topic, platforms, audience, tone
+    agents:
+      - agent_id: marketing-director-luna
+        role: Define content angle and platform selection
+    gate:
+      type: user_approval
+      description: User confirms topic and platforms
+
+  - id: create
+    name: Content Creation
+    description: Write platform-native content
+    agents:
+      - agent_id: content-marketer-mariana
+        role: Write posts adapted to each platform
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Review content quality
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review
+      - agent_id: copy-director-eduardo
+        role: Copy quality, tone, grammar, no AI patterns
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Final content ready to publish
+    agents:
+      - agent_id: content-marketer-mariana
+        role: Deliver formatted posts per platform
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Marketing/Social/"
+        description: Social media content pack

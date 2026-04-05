@@ -1,0 +1,58 @@
+id: brand-naming
+name: Brand Naming
+department: brand
+tier: focused
+command: /brand naming
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+description: Generate and evaluate brand names using SMILE/SCRATCH framework
+phases:
+- id: brief
+  name: Naming Brief
+  description: Define brand personality, audience, positioning context
+  agents:
+  - agent_id: brand-strategist-mateus
+    role: Define naming brief and criteria
+  gate:
+    type: user_approval
+    description: User confirms naming brief
+- id: generate
+  name: Name Generation
+  description: Generate 30+ candidates across categories
+  agents:
+  - agent_id: brand-strategist-mateus
+    role: Generate name candidates (descriptive, evocative, invented, lexical)
+  gate:
+    type: auto
+- id: evaluate
+  name: SMILE/SCRATCH Evaluation
+  description: Score each name and check domain availability
+  agents:
+  - agent_id: brand-strategist-mateus
+    role: SMILE score + SCRATCH flags + domain check
+  gate:
+    type: user_approval
+    description: User selects final name from shortlist
+- id: quality-gate
+  name: Quality Gate
+  agents:
+  - agent_id: cqo-marta
+    role: Orchestrate review
+  - agent_id: copy-director-eduardo
+    role: Name quality, pronunciation, cultural check
+    parallel: true
+  gate:
+    type: quality_gate
+    required_verdict: APPROVED
+- id: delivery
+  name: Delivery
+  agents:
+  - agent_id: brand-strategist-mateus
+    role: Final naming report
+  gate:
+    type: auto
+  outputs:
+  - type: document
+    format: markdown
+    obsidian_path: WizardingCode/Brand/Naming/

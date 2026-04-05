@@ -2,13 +2,35 @@
 .mcp.json
 .claude/
 
+# Node.js
+node_modules/
+npm-debug.log*
+.npm
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+
 # Generated reports and outputs
 *.pdf
 *-AUDIT.md
 *-REPORT.md
 audit-data*.json
 
-# Knowledge base sources (large transcription files)
+# Knowledge base sources (large media files)
 knowledge/sources/**/*.wav
 knowledge/sources/**/*.mp3
 knowledge/sources/**/*.mp4
@@ -18,38 +40,20 @@ knowledge/sources/**/*.mp4
 *.tmp
 *.tmp.json
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-env/
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 
-# Node
-node_modules/
-
-# Secrets
+# Environment
 .env
-.env.*
-*.key
-*.pem
-*.secret
-*.token
-credentials.*
+.env.local
+*.env
 
-# ARKA OS runtime files
-.installed-commit
-.last-update-check
-.repo-path
-.pro-installed-commit
+# ArkaOS runtime (not in repo)
+/tmp/arkaos-context-cache/

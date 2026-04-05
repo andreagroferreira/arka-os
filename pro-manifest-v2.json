@@ -1,0 +1,109 @@
+{
+  "_meta": {
+    "version": "2.0.0",
+    "description": "ArkaOS Pro — Premium features for The Operating System for AI Agent Teams",
+    "url": "https://wizardingcode.com/arkaos-pro"
+  },
+  "agents": {
+    "description": "Additional specialized agents",
+    "items": [
+      {
+        "id": "growth-hacker",
+        "department": "marketing",
+        "tier": 2,
+        "description": "Advanced growth experimentation with statistical rigor"
+      },
+      {
+        "id": "data-analyst",
+        "department": "strategy",
+        "tier": 2,
+        "description": "Advanced data analysis, SQL, dashboards, BI"
+      },
+      {
+        "id": "ai-specialist",
+        "department": "dev",
+        "tier": 2,
+        "description": "ML/AI implementation, LLM integration, RAG systems"
+      },
+      {
+        "id": "legal-advisor",
+        "department": "org",
+        "tier": 2,
+        "description": "Contract review, compliance, IP, terms of service"
+      },
+      {
+        "id": "investor-relations",
+        "department": "finance",
+        "tier": 2,
+        "description": "Investor updates, board decks, fundraising pipeline"
+      }
+    ]
+  },
+  "skills": {
+    "description": "Premium skills with advanced frameworks",
+    "items": [
+      {
+        "id": "advanced-seo",
+        "department": "marketing",
+        "description": "Enterprise SEO with programmatic pages, international SEO, and advanced link building"
+      },
+      {
+        "id": "funnel-builder",
+        "department": "landing",
+        "description": "Full funnel implementation with automated email sequences and A/B testing"
+      },
+      {
+        "id": "financial-due-diligence",
+        "department": "finance",
+        "description": "M&A due diligence, deal structuring, synergy modeling"
+      },
+      {
+        "id": "compliance-audit",
+        "department": "org",
+        "description": "SOX, GDPR, ISO 42001, SOC 2 compliance audit and remediation"
+      }
+    ]
+  },
+  "knowledge_packs": {
+    "description": "Pre-built knowledge base content",
+    "items": [
+      {
+        "id": "saas-playbook",
+        "description": "Complete SaaS scaling playbook from $0 to $10M ARR with benchmarks"
+      },
+      {
+        "id": "ecommerce-playbook",
+        "description": "E-commerce growth playbook: Shopify optimization, marketplace, DTC"
+      },
+      {
+        "id": "agency-playbook",
+        "description": "Agency scaling playbook: pricing, hiring, processes, client management"
+      }
+    ]
+  },
+  "features": {
+    "description": "Pro-only platform features",
+    "items": [
+      {
+        "id": "conclave-extended",
+        "description": "30+ advisor personas with deep knowledge bases (books, talks, interviews)"
+      },
+      {
+        "id": "token-budgets",
+        "description": "Per-workflow token budget enforcement and tracking"
+      },
+      {
+        "id": "audit-trails",
+        "description": "Complete audit trail with compliance ledger (SOX/GDPR ready)"
+      },
+      {
+        "id": "squad-marketplace-publish",
+        "description": "Publish custom squads to the community marketplace"
+      },
+      {
+        "id": "priority-support",
+        "description": "Priority support and dedicated Slack channel"
+      }
+    ]
+  }
+}

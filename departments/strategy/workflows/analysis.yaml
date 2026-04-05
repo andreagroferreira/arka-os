@@ -1,0 +1,90 @@
+id: strat-analyze
+name: Strategic Analysis
+description: Comprehensive strategic analysis using Porter, Blue Ocean, Wardley, and 7 Powers
+department: strategy
+tier: enterprise
+command: "/strat analyze"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Analysis Brief
+    description: Define scope, market, competitors, and key questions
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Frame the strategic question and analysis scope
+    gate:
+      type: user_approval
+      description: User confirms analysis scope
+
+  - id: research
+    name: Multi-Framework Research
+    description: 5 parallel analysis agents each applying a different framework
+    agents:
+      - agent_id: market-analyst-lucas
+        role: "Porter's Five Forces + TAM/SAM/SOM"
+        parallel: true
+      - agent_id: business-model-designer-marta-s
+        role: "Business Model Canvas + Value Proposition Canvas"
+        parallel: true
+      - agent_id: strategy-director-tomas
+        role: "Blue Ocean Strategy Canvas + ERRC Grid"
+        parallel: true
+    gate:
+      type: auto
+
+  - id: synthesis
+    name: Strategic Synthesis
+    description: Synthesize all frameworks into unified strategic picture
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Synthesize findings, identify key strategic moves
+    gate:
+      type: user_approval
+      description: User reviews synthesis and strategic recommendations
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/Analysis/"
+        description: Strategic Analysis report
+
+  - id: self-critique
+    name: Self-Critique
+    description: Devil's advocate review of strategic recommendations
+    agents:
+      - agent_id: market-analyst-lucas
+        role: Challenge assumptions, identify blind spots, stress-test
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Quality review of analysis quality and accuracy
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Report clarity, language quality
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Data accuracy, logical consistency
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Save to Obsidian with actionable recommendations
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Final strategic report delivery
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/"
+        description: Strategic Analysis with recommendations

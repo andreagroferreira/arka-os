@@ -1,0 +1,35 @@
+id: leadership-squad
+name: Leadership & People Squad
+description: Team health, hiring, feedback culture, performance management, coaching
+department: leadership
+squad_type: department
+topology: enabling
+
+skills_prefix: "/lead"
+obsidian_path: "WizardingCode/Leadership/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: leadership-director-rodrigo
+    role: Leadership strategy, team assessment, OKR coaching
+    is_lead: true
+  - agent_id: culture-coach-paula
+    role: Performance coaching, feedback culture, conflict mediation
+
+workflows:
+  - workflow_id: lead-team-build
+    trigger_command: "/lead team-build"
+    tier: enterprise
+  - workflow_id: lead-1on1
+    trigger_command: "/lead 1on1"
+    tier: specialist
+  - workflow_id: lead-okr
+    trigger_command: "/lead okr"
+    tier: focused
+  - workflow_id: lead-culture
+    trigger_command: "/lead culture"
+    tier: enterprise
+  - workflow_id: lead-review
+    trigger_command: "/lead review"
+    tier: focused

@@ -1,0 +1,69 @@
+id: ops-lean-audit
+name: Lean Operations Audit
+description: Identify waste using Lean 7 wastes framework and value stream mapping
+department: ops
+tier: enterprise
+command: "/ops lean-audit"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Audit Brief
+    description: Define scope and area to audit
+    agents:
+      - agent_id: ops-lead-daniel
+        role: Define audit scope and expected outcomes
+    gate:
+      type: user_approval
+      description: User confirms audit scope
+
+  - id: map
+    name: Value Stream Mapping
+    description: Map all steps from request to delivery
+    agents:
+      - agent_id: ops-lead-daniel
+        role: Map current value stream, classify each step
+    gate:
+      type: auto
+
+  - id: analyze
+    name: Waste Analysis
+    description: Identify 7 wastes (transport, inventory, motion, waiting, overproduction, overprocessing, defects)
+    agents:
+      - agent_id: ops-lead-daniel
+        role: Classify waste by type, quantify impact
+      - agent_id: automation-engineer-tomas-a
+        role: Identify automation opportunities for waste elimination
+        parallel: true
+    gate:
+      type: user_approval
+      description: User reviews findings
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Validate analysis quality
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review
+      - agent_id: tech-director-francisca
+        role: Process logic and improvement feasibility
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Lean audit report with improvement roadmap
+    agents:
+      - agent_id: ops-lead-daniel
+        role: Deliver report with prioritized improvements
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Operations/Audits/"
+        description: Lean audit report with value stream map

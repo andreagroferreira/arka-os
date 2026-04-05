@@ -1,0 +1,35 @@
+id: ops-squad
+name: Operations & Automation Squad
+description: Process optimization, workflow automation, SOPs, bottleneck analysis
+department: ops
+squad_type: department
+topology: platform
+
+skills_prefix: "/ops"
+obsidian_path: "WizardingCode/Operations/"
+quality_gate_required: true
+max_size: 4
+
+members:
+  - agent_id: ops-lead-daniel
+    role: Day-to-day operations, SOPs, metrics, process design
+    is_lead: true
+  - agent_id: automation-engineer-tomas-a
+    role: Workflow automation (n8n, Zapier, Make), integrations
+
+workflows:
+  - workflow_id: ops-automate
+    trigger_command: "/ops workflow"
+    tier: focused
+  - workflow_id: ops-sop
+    trigger_command: "/ops sop"
+    tier: specialist
+  - workflow_id: ops-bottleneck
+    trigger_command: "/ops bottleneck"
+    tier: focused
+  - workflow_id: ops-process-map
+    trigger_command: "/ops process-map"
+    tier: focused
+  - workflow_id: ops-lean-audit
+    trigger_command: "/ops lean-audit"
+    tier: enterprise

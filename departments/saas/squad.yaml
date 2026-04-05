@@ -1,0 +1,37 @@
+id: saas-squad
+name: SaaS & Micro-SaaS Squad
+description: SaaS validation, metrics, PLG, pricing, customer success, growth
+department: saas
+squad_type: department
+topology: stream-aligned
+
+skills_prefix: "/saas"
+obsidian_path: "WizardingCode/SaaS/"
+quality_gate_required: true
+max_size: 5
+
+members:
+  - agent_id: saas-strategist-tiago
+    role: SaaS strategy, metrics, benchmarking, PLG design
+    is_lead: true
+  - agent_id: growth-engineer-andre-s
+    role: Growth experiments, activation, onboarding optimization
+  - agent_id: cs-manager-patricia
+    role: Customer success lifecycle, churn prevention, NRR
+
+workflows:
+  - workflow_id: saas-validate
+    trigger_command: "/saas validate"
+    tier: enterprise
+  - workflow_id: saas-metrics
+    trigger_command: "/saas metrics"
+    tier: focused
+  - workflow_id: saas-pricing
+    trigger_command: "/saas pricing"
+    tier: focused
+  - workflow_id: saas-plg
+    trigger_command: "/saas plg"
+    tier: enterprise
+  - workflow_id: saas-launch
+    trigger_command: "/saas launch"
+    tier: enterprise

@@ -1,0 +1,113 @@
+id: brand-identity
+name: Brand Identity Creation
+description: Full brand identity from strategy to visual system (8-phase Primal method)
+department: brand
+tier: enterprise
+command: "/brand identity"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Brand Brief
+    description: Understand the brand's purpose, audience, and competitive landscape
+    agents:
+      - agent_id: brand-director-valentina
+        role: Lead discovery conversation, define scope
+    gate:
+      type: user_approval
+      description: User confirms brand brief and project scope
+
+  - id: research
+    name: Research & Diagnosis
+    description: Market research, competitor brand analysis, audience insights
+    agents:
+      - agent_id: brand-strategist-mateus
+        role: Competitive brand landscape, positioning gaps
+        parallel: true
+      - agent_id: strategy-director-tomas
+        role: Market positioning and strategic context
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves research findings
+
+  - id: strategy
+    name: Brand Strategy
+    description: Primal Code, positioning, archetype, brand architecture
+    agents:
+      - agent_id: brand-strategist-mateus
+        role: Primal Branding 7 elements, positioning statement, archetype
+      - agent_id: brand-director-valentina
+        role: Creative direction and brand personality
+    gate:
+      type: user_approval
+      description: User approves brand strategy before visual execution
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Brand/Strategy/"
+        description: Brand Strategy document with Primal Code
+
+  - id: verbal-identity
+    name: Verbal Identity
+    description: Brand name, tagline, voice, sacred lexicon, StoryBrand script
+    agents:
+      - agent_id: brand-strategist-mateus
+        role: Naming (SMILE/SCRATCH), tagline, StoryBrand SB7
+    gate:
+      type: user_approval
+      description: User approves naming and verbal identity
+
+  - id: visual-identity
+    name: Visual Identity
+    description: Color palette, typography, logo concepts, visual system
+    agents:
+      - agent_id: visual-designer-isabel
+        role: Color palette, typography, logo concepts, mockups
+      - agent_id: ux-designer-sofia-d
+        role: UI patterns, design tokens, accessibility compliance
+        optional: true
+    gate:
+      type: user_approval
+      description: User selects visual direction
+
+  - id: self-critique
+    name: Self-Critique
+    description: Review all brand elements against Primal Code completeness
+    agents:
+      - agent_id: brand-director-valentina
+        role: Verify all 7 Primal elements, Rams principles, consistency
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Brand copy, taglines, voice guide quality
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Visual accessibility (WCAG AA), file formats, consistency
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Brand Manual & Delivery
+    description: Compile brand guidelines, save all assets to Obsidian
+    agents:
+      - agent_id: brand-director-valentina
+        role: Brand manual compilation and final delivery
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Brand/Identity/"
+        description: Complete brand identity package

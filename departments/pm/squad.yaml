@@ -1,0 +1,37 @@
+id: pm-squad
+name: Project & Product Management Squad
+description: Product discovery, sprint management, roadmapping, estimation, stakeholders
+department: pm
+squad_type: department
+topology: enabling
+
+skills_prefix: "/pm"
+obsidian_path: "WizardingCode/Project-Management/"
+quality_gate_required: true
+max_size: 5
+
+members:
+  - agent_id: pm-director-carolina
+    role: Product vision, discovery, outcome-driven roadmaps
+    is_lead: true
+  - agent_id: product-owner-sara
+    role: Backlog prioritization, story writing, acceptance criteria
+  - agent_id: scrum-master-jorge
+    role: Facilitation, flow metrics, retrospectives, coaching
+
+workflows:
+  - workflow_id: pm-sprint
+    trigger_command: "/pm sprint"
+    tier: focused
+  - workflow_id: pm-discover
+    trigger_command: "/pm discover"
+    tier: enterprise
+  - workflow_id: pm-roadmap
+    trigger_command: "/pm roadmap"
+    tier: enterprise
+  - workflow_id: pm-retro
+    trigger_command: "/pm retro"
+    tier: specialist
+  - workflow_id: pm-estimate
+    trigger_command: "/pm estimate"
+    tier: focused

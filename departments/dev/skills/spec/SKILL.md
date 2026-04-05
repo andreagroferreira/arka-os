@@ -1,8 +1,9 @@
 ---
-name: dev-spec
+name: arka-dev-spec
 description: >
   NON-NEGOTIABLE spec-driven development gate. Creates, validates, and manages feature
-  specifications before any code is written. Interactive workflow that collaborates with
+  specifications before any code is written. Uses Living Specs engine (core/specs/).
+  Interactive workflow that collaborates with
   the user to produce detailed specs covering scope, acceptance criteria, data model,
   API contracts, UI/UX requirements, edge cases, and test scenarios.
   Auto-invoked as Phase 0 by all code-modifying Tier 1 and Tier 2 dev workflows

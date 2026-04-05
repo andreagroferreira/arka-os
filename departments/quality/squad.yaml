@@ -1,0 +1,25 @@
+id: quality-squad
+name: Quality Gate Squad
+description: Cross-department quality supervision with absolute veto power
+department: quality
+squad_type: department
+topology: enabling
+
+skills_prefix: ""
+obsidian_path: ""
+quality_gate_required: false
+max_size: 3
+
+members:
+  - agent_id: cqo-marta
+    role: Orchestrate quality review, aggregate verdicts, final decision
+    is_lead: true
+  - agent_id: copy-director-eduardo
+    role: All text quality — spelling, grammar, tone, AI patterns, accuracy
+  - agent_id: tech-director-francisca
+    role: All technical quality — code, tests, UX, data, security, performance
+
+workflows:
+  - workflow_id: quality-review
+    trigger_command: ""
+    tier: specialist
