@@ -4,8 +4,8 @@ import type { Persona } from '~/types'
 const { fetchApi, apiBase } = useApi()
 const toast = useToast()
 
-// --- Fetch personas ---
-const { data, status, error, refresh } = fetchApi<{ personas: Persona[], total: number }>('/api/personas')
+// --- Fetch personas (no await — non-blocking) ---
+const { data, status, error, refresh } = fetchApi<{ personas: Persona[]; total: number }>('/api/personas')
 
 const personas = computed(() => data.value?.personas ?? [])
 
@@ -13,59 +13,62 @@ const personas = computed(() => data.value?.personas ?? [])
 const showForm = ref(false)
 
 // --- Form state ---
-const defaultForm = () => ({
-  name: '',
-  title: '',
-  source: '',
-  tagline: '',
-  mbti: '',
-  disc_primary: '',
-  disc_secondary: '',
-  enneagram_type: '',
-  enneagram_wing: '',
-  big_five_o: 50,
-  big_five_c: 50,
-  big_five_e: 50,
-  big_five_a: 50,
-  big_five_n: 50,
-  mental_models: '',
-  expertise_domains: '',
-  frameworks: '',
-  communication_tone: ''
-})
+function defaultForm() {
+  return {
+    name: '',
+    title: '',
+    source: '',
+    tagline: '',
+    mbti: '',
+    disc_primary: '',
+    disc_secondary: '',
+    enneagram_type: '',
+    enneagram_wing: '',
+    big_five_o: 50,
+    big_five_c: 50,
+    big_five_e: 50,
+    big_five_a: 50,
+    big_five_n: 50,
+    mental_models: '',
+    expertise_domains: '',
+    frameworks: '',
+    communication_tone: '',
+  }
+}
 
 const form = ref(defaultForm())
 const creating = ref(false)
 
+// --- Options ---
 const mbtiTypes = [
   'INTJ', 'INTP', 'ENTJ', 'ENTP',
   'INFJ', 'INFP', 'ENFJ', 'ENFP',
   'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-  'ISTP', 'ISFP', 'ESTP', 'ESFP'
+  'ISTP', 'ISFP', 'ESTP', 'ESFP',
 ].map(t => ({ label: t, value: t }))
 
 const discTypes = [
   { label: 'D — Dominance', value: 'D' },
   { label: 'I — Influence', value: 'I' },
   { label: 'S — Steadiness', value: 'S' },
-  { label: 'C — Conscientiousness', value: 'C' }
+  { label: 'C — Conscientiousness', value: 'C' },
 ]
 
 const enneagramTypes = Array.from({ length: 9 }, (_, i) => ({
   label: `Type ${i + 1}`,
-  value: String(i + 1)
+  value: String(i + 1),
 }))
 
 const departmentOptions = [
   'dev', 'marketing', 'brand', 'finance', 'strategy',
   'ecom', 'kb', 'ops', 'pm', 'saas',
-  'landing', 'content', 'community', 'sales', 'leadership', 'org'
+  'landing', 'content', 'community', 'sales', 'leadership', 'org',
 ].map(d => ({ label: d, value: d }))
 
 const tierOptions = [
   { label: 'Tier 1 — Squad Leads', value: '1' },
   { label: 'Tier 2 — Specialists', value: '2' },
-  { label: 'Tier 3 — Support', value: '3' }
+  { label: 'Tier 3 — Support', value: '3' },
 ]
 
 // --- Create persona ---
@@ -84,26 +87,32 @@ async function createPersona() {
         mbti: form.value.mbti,
         disc: {
           primary: form.value.disc_primary,
-          secondary: form.value.disc_secondary
+          secondary: form.value.disc_secondary,
         },
         enneagram: {
           type: form.value.enneagram_type ? Number(form.value.enneagram_type) : null,
-          wing: form.value.enneagram_wing ? Number(form.value.enneagram_wing) : null
+          wing: form.value.enneagram_wing ? Number(form.value.enneagram_wing) : null,
         },
         big_five: {
           openness: form.value.big_five_o,
           conscientiousness: form.value.big_five_c,
           extraversion: form.value.big_five_e,
           agreeableness: form.value.big_five_a,
-          neuroticism: form.value.big_five_n
+          neuroticism: form.value.big_five_n,
         },
-        mental_models: form.value.mental_models ? form.value.mental_models.split(',').map(s => s.trim()).filter(Boolean) : [],
-        expertise_domains: form.value.expertise_domains ? form.value.expertise_domains.split(',').map(s => s.trim()).filter(Boolean) : [],
-        frameworks: form.value.frameworks ? form.value.frameworks.split(',').map(s => s.trim()).filter(Boolean) : [],
+        mental_models: form.value.mental_models
+          ? form.value.mental_models.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        expertise_domains: form.value.expertise_domains
+          ? form.value.expertise_domains.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        frameworks: form.value.frameworks
+          ? form.value.frameworks.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
         communication: {
-          tone: form.value.communication_tone
-        }
-      }
+          tone: form.value.communication_tone,
+        },
+      },
     })
 
     toast.add({ title: 'Persona created', description: `${form.value.name} has been added.`, color: 'success' })
@@ -133,43 +142,40 @@ async function deletePersona(persona: Persona) {
   }
 }
 
-// --- Clone to agent ---
-const cloneTarget = ref<Persona | null>(null)
-const cloneModalOpen = ref(false)
+// --- Clone to agent (inline expansion, no modal) ---
+const cloneExpandedId = ref<string | null>(null)
 const cloneDepartment = ref('')
 const cloneTier = ref('')
 const cloning = ref(false)
 
-function openCloneModal(persona: Persona) {
-  cloneTarget.value = persona
-  cloneDepartment.value = ''
-  cloneTier.value = ''
-  cloneModalOpen.value = true
+function toggleClone(persona: Persona) {
+  if (cloneExpandedId.value === persona.id) {
+    cloneExpandedId.value = null
+  } else {
+    cloneExpandedId.value = persona.id
+    cloneDepartment.value = ''
+    cloneTier.value = ''
+  }
 }
 
-function closeCloneModal() {
-  cloneModalOpen.value = false
-  cloneTarget.value = null
-}
-
-async function cloneToAgent() {
-  if (!cloneTarget.value || !cloneDepartment.value || !cloneTier.value) return
+async function cloneToAgent(persona: Persona) {
+  if (!cloneDepartment.value || !cloneTier.value) return
 
   cloning.value = true
   try {
-    await $fetch(`${apiBase}/api/personas/${cloneTarget.value.id}/clone`, {
+    await $fetch(`${apiBase}/api/personas/${persona.id}/clone`, {
       method: 'POST',
       body: {
         department: cloneDepartment.value,
-        tier: Number(cloneTier.value)
-      }
+        tier: Number(cloneTier.value),
+      },
     })
     toast.add({
       title: 'Agent created',
-      description: `${cloneTarget.value.name} cloned to ${cloneDepartment.value} department.`,
-      color: 'success'
+      description: `${persona.name} cloned to ${cloneDepartment.value} department.`,
+      color: 'success',
     })
-    closeCloneModal()
+    cloneExpandedId.value = null
     await refresh()
   } catch {
     toast.add({ title: 'Error', description: 'Failed to clone persona to agent.', color: 'error' })
@@ -217,8 +223,9 @@ function discColor(disc: string): string {
     </template>
 
     <template #body>
+      <div class="overflow-y-auto h-[calc(100vh-4rem)]">
       <!-- Loading -->
-      <div v-if="status === 'pending'" class="flex items-center justify-center py-12">
+      <div v-if="status === 'pending'" class="flex items-center justify-center py-12" aria-label="Loading personas">
         <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-muted" />
       </div>
 
@@ -232,24 +239,18 @@ function discColor(disc: string): string {
       <!-- Content -->
       <template v-else>
         <!-- Create Persona Form -->
-        <UCard v-if="showForm" class="mb-6">
-          <template #header>
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-user-plus" class="size-5 text-primary" />
-              <h3 class="text-sm font-semibold">Create Persona</h3>
-            </div>
-          </template>
-
-          <form @submit.prevent="createPersona" class="space-y-6">
+        <UCard v-if="showForm" class="mb-8">
+          <form @submit.prevent="createPersona" class="space-y-8 p-2">
             <!-- Identity -->
             <fieldset>
-              <legend class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Identity</legend>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-4">Identity</legend>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UFormField label="Name" required>
                   <UInput
                     v-model="form.name"
                     placeholder="e.g. Alex Hormozi"
                     aria-label="Persona name"
+                    class="w-full"
                     required
                   />
                 </UFormField>
@@ -258,6 +259,7 @@ function discColor(disc: string): string {
                     v-model="form.title"
                     placeholder="e.g. Business Strategy"
                     aria-label="Persona title"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="Source">
@@ -265,6 +267,7 @@ function discColor(disc: string): string {
                     v-model="form.source"
                     placeholder="e.g. Alex Hormozi"
                     aria-label="Persona source"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="Tagline">
@@ -272,6 +275,7 @@ function discColor(disc: string): string {
                     v-model="form.tagline"
                     placeholder="e.g. The Natural Commander"
                     aria-label="Persona tagline"
+                    class="w-full"
                   />
                 </UFormField>
               </div>
@@ -279,7 +283,7 @@ function discColor(disc: string): string {
 
             <!-- Behavioral DNA -->
             <fieldset>
-              <legend class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Behavioral DNA</legend>
+              <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-4">Behavioral DNA</legend>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <UFormField label="MBTI">
                   <USelect
@@ -287,6 +291,7 @@ function discColor(disc: string): string {
                     :items="mbtiTypes"
                     placeholder="Select MBTI"
                     aria-label="MBTI type"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="DISC Primary">
@@ -295,6 +300,7 @@ function discColor(disc: string): string {
                     :items="discTypes"
                     placeholder="Primary"
                     aria-label="DISC primary type"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="DISC Secondary">
@@ -303,6 +309,7 @@ function discColor(disc: string): string {
                     :items="discTypes"
                     placeholder="Secondary"
                     aria-label="DISC secondary type"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="Enneagram Type">
@@ -311,19 +318,20 @@ function discColor(disc: string): string {
                     :items="enneagramTypes"
                     placeholder="Type"
                     aria-label="Enneagram type"
+                    class="w-full"
                   />
                 </UFormField>
               </div>
-              <div class="mt-4">
-                <UFormField label="Enneagram Wing">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <UFormField label="Enneagram Wing (1-9)">
                   <UInput
                     v-model="form.enneagram_wing"
                     type="number"
-                    min="1"
-                    max="9"
+                    :min="1"
+                    :max="9"
                     placeholder="e.g. 4"
-                    class="max-w-32"
                     aria-label="Enneagram wing"
+                    class="w-full"
                   />
                 </UFormField>
               </div>
@@ -331,85 +339,71 @@ function discColor(disc: string): string {
 
             <!-- Big Five -->
             <fieldset>
-              <legend class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Big Five (OCEAN)</legend>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-4">Big Five / OCEAN (0-100)</legend>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <UFormField label="Openness">
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="form.big_five_o"
-                      type="range"
-                      min="0"
-                      max="100"
-                      class="w-full accent-primary"
-                      aria-label="Openness score"
-                    />
-                    <span class="text-xs font-mono text-muted w-8 text-right">{{ form.big_five_o }}</span>
-                  </div>
+                  <UInput
+                    v-model.number="form.big_five_o"
+                    type="number"
+                    :min="0"
+                    :max="100"
+                    aria-label="Openness score"
+                    class="w-full"
+                  />
                 </UFormField>
                 <UFormField label="Conscientiousness">
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="form.big_five_c"
-                      type="range"
-                      min="0"
-                      max="100"
-                      class="w-full accent-primary"
-                      aria-label="Conscientiousness score"
-                    />
-                    <span class="text-xs font-mono text-muted w-8 text-right">{{ form.big_five_c }}</span>
-                  </div>
+                  <UInput
+                    v-model.number="form.big_five_c"
+                    type="number"
+                    :min="0"
+                    :max="100"
+                    aria-label="Conscientiousness score"
+                    class="w-full"
+                  />
                 </UFormField>
                 <UFormField label="Extraversion">
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="form.big_five_e"
-                      type="range"
-                      min="0"
-                      max="100"
-                      class="w-full accent-primary"
-                      aria-label="Extraversion score"
-                    />
-                    <span class="text-xs font-mono text-muted w-8 text-right">{{ form.big_five_e }}</span>
-                  </div>
+                  <UInput
+                    v-model.number="form.big_five_e"
+                    type="number"
+                    :min="0"
+                    :max="100"
+                    aria-label="Extraversion score"
+                    class="w-full"
+                  />
                 </UFormField>
                 <UFormField label="Agreeableness">
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="form.big_five_a"
-                      type="range"
-                      min="0"
-                      max="100"
-                      class="w-full accent-primary"
-                      aria-label="Agreeableness score"
-                    />
-                    <span class="text-xs font-mono text-muted w-8 text-right">{{ form.big_five_a }}</span>
-                  </div>
+                  <UInput
+                    v-model.number="form.big_five_a"
+                    type="number"
+                    :min="0"
+                    :max="100"
+                    aria-label="Agreeableness score"
+                    class="w-full"
+                  />
                 </UFormField>
                 <UFormField label="Neuroticism">
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="form.big_five_n"
-                      type="range"
-                      min="0"
-                      max="100"
-                      class="w-full accent-primary"
-                      aria-label="Neuroticism score"
-                    />
-                    <span class="text-xs font-mono text-muted w-8 text-right">{{ form.big_five_n }}</span>
-                  </div>
+                  <UInput
+                    v-model.number="form.big_five_n"
+                    type="number"
+                    :min="0"
+                    :max="100"
+                    aria-label="Neuroticism score"
+                    class="w-full"
+                  />
                 </UFormField>
               </div>
             </fieldset>
 
             <!-- Knowledge & Communication -->
             <fieldset>
-              <legend class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Knowledge & Communication</legend>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-4">Knowledge & Communication</legend>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UFormField label="Mental Models" hint="Comma-separated">
                   <UInput
                     v-model="form.mental_models"
                     placeholder="e.g. Grand Slam Offer, Value Equation"
                     aria-label="Mental models, comma-separated"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="Expertise Domains" hint="Comma-separated">
@@ -417,6 +411,7 @@ function discColor(disc: string): string {
                     v-model="form.expertise_domains"
                     placeholder="e.g. business strategy, offer creation"
                     aria-label="Expertise domains, comma-separated"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="Frameworks" hint="Comma-separated">
@@ -424,6 +419,7 @@ function discColor(disc: string): string {
                     v-model="form.frameworks"
                     placeholder="e.g. $100M Offers, Value Equation"
                     aria-label="Frameworks, comma-separated"
+                    class="w-full"
                   />
                 </UFormField>
                 <UFormField label="Communication Tone">
@@ -431,29 +427,42 @@ function discColor(disc: string): string {
                     v-model="form.communication_tone"
                     placeholder="e.g. direct, high-energy"
                     aria-label="Communication tone"
+                    class="w-full"
                   />
                 </UFormField>
               </div>
             </fieldset>
 
             <!-- Submit -->
-            <div class="flex justify-end">
-              <UButton
-                type="submit"
-                label="Create Persona"
-                icon="i-lucide-plus"
-                :loading="creating"
-                :disabled="!form.name.trim()"
-              />
-            </div>
+            <UButton
+              type="submit"
+              label="Create Persona"
+              icon="i-lucide-sparkles"
+              size="lg"
+              block
+              :loading="creating"
+              :disabled="!form.name.trim()"
+            />
           </form>
         </UCard>
 
         <!-- Empty state -->
-        <div v-if="!personas.length && !showForm" class="flex flex-col items-center justify-center gap-4 py-12">
-          <UIcon name="i-lucide-user-plus" class="size-12 text-muted" />
-          <p class="text-sm text-muted">No personas yet. Create your first one.</p>
-          <UButton label="New Persona" icon="i-lucide-plus" @click="showForm = true" />
+        <div v-if="!personas.length && !showForm" class="flex flex-col items-center justify-center gap-6 py-20">
+          <div class="rounded-full bg-muted/10 p-6">
+            <UIcon name="i-lucide-users" class="size-12 text-muted" />
+          </div>
+          <div class="text-center space-y-2">
+            <h3 class="text-base font-semibold">No personas yet</h3>
+            <p class="text-sm text-muted max-w-sm">
+              Personas define the behavioral DNA for your AI agents. Create one to get started.
+            </p>
+          </div>
+          <UButton
+            label="Create your first persona"
+            icon="i-lucide-plus"
+            size="lg"
+            @click="showForm = true"
+          />
         </div>
 
         <!-- Personas Grid -->
@@ -461,31 +470,21 @@ function discColor(disc: string): string {
           <UCard
             v-for="persona in personas"
             :key="persona.id"
-            class="group"
+            class="group flex flex-col"
           >
-            <div class="space-y-3">
+            <div class="flex flex-col gap-3 flex-1">
               <!-- Header -->
-              <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                  <h3 class="text-sm font-semibold truncate">{{ persona.name }}</h3>
-                  <p v-if="persona.title" class="text-xs text-muted truncate">{{ persona.title }}</p>
-                </div>
-                <UButton
-                  icon="i-lucide-trash-2"
-                  size="xs"
-                  variant="ghost"
-                  color="error"
-                  :loading="deleting === persona.id"
-                  aria-label="Delete persona"
-                  class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                  @click="deletePersona(persona)"
-                />
+              <div>
+                <h3 class="text-base font-bold truncate">{{ persona.name }}</h3>
+                <p v-if="persona.title" class="text-sm text-muted truncate mt-0.5">{{ persona.title }}</p>
+                <p v-if="persona.source" class="text-xs text-muted/60 mt-1">
+                  Source: {{ persona.source }}
+                </p>
               </div>
 
-              <!-- Tagline & Source -->
-              <p v-if="persona.tagline" class="text-xs text-muted italic">{{ persona.tagline }}</p>
-              <p v-if="persona.source" class="text-xs text-muted">
-                Source: <span class="font-medium">{{ persona.source }}</span>
+              <!-- Tagline -->
+              <p v-if="persona.tagline" class="text-sm text-muted italic leading-relaxed">
+                "{{ persona.tagline }}"
               </p>
 
               <!-- DNA Badges -->
@@ -512,7 +511,7 @@ function discColor(disc: string): string {
                 />
               </div>
 
-              <!-- Expertise -->
+              <!-- Expertise domains -->
               <div v-if="persona.expertise_domains?.length" class="flex flex-wrap gap-1">
                 <UBadge
                   v-for="domain in persona.expertise_domains.slice(0, 3)"
@@ -531,66 +530,64 @@ function discColor(disc: string): string {
                 />
               </div>
 
-              <!-- Clone button -->
-              <div class="pt-2 border-t border-default">
-                <UButton
-                  label="Clone to Agent"
-                  icon="i-lucide-copy"
-                  size="xs"
-                  variant="outline"
-                  block
-                  @click="openCloneModal(persona)"
-                />
+              <!-- Actions -->
+              <div class="pt-3 mt-auto border-t border-default space-y-3">
+                <div class="flex gap-2">
+                  <UButton
+                    label="Clone to Agent"
+                    icon="i-lucide-copy"
+                    size="sm"
+                    variant="solid"
+                    class="flex-1"
+                    @click="toggleClone(persona)"
+                  />
+                  <UButton
+                    icon="i-lucide-trash-2"
+                    size="sm"
+                    variant="ghost"
+                    color="error"
+                    :loading="deleting === persona.id"
+                    aria-label="Delete persona"
+                    @click="deletePersona(persona)"
+                  />
+                </div>
+
+                <!-- Inline clone expansion -->
+                <div v-if="cloneExpandedId === persona.id" class="space-y-3 pt-2">
+                  <UFormField label="Department" required>
+                    <USelect
+                      v-model="cloneDepartment"
+                      :items="departmentOptions"
+                      placeholder="Select department"
+                      aria-label="Target department"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField label="Tier" required>
+                    <USelect
+                      v-model="cloneTier"
+                      :items="tierOptions"
+                      placeholder="Select tier"
+                      aria-label="Agent tier"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UButton
+                    label="Confirm Clone"
+                    icon="i-lucide-check"
+                    size="sm"
+                    block
+                    :loading="cloning"
+                    :disabled="!cloneDepartment || !cloneTier"
+                    @click="cloneToAgent(persona)"
+                  />
+                </div>
               </div>
             </div>
           </UCard>
         </div>
       </template>
-
-      <!-- Clone Modal -->
-      <UModal v-model:open="cloneModalOpen">
-        <template #content>
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold">Clone "{{ cloneTarget?.name }}" to Agent</h3>
-                <UButton icon="i-lucide-x" size="xs" variant="ghost" @click="closeCloneModal" aria-label="Close" />
-              </div>
-            </template>
-
-            <form @submit.prevent="cloneToAgent" class="space-y-4">
-              <UFormField label="Department" required>
-                <USelect
-                  v-model="cloneDepartment"
-                  :items="departmentOptions"
-                  placeholder="Select department"
-                  aria-label="Target department"
-                />
-              </UFormField>
-
-              <UFormField label="Tier" required>
-                <USelect
-                  v-model="cloneTier"
-                  :items="tierOptions"
-                  placeholder="Select tier"
-                  aria-label="Agent tier"
-                />
-              </UFormField>
-
-              <div class="flex justify-end gap-2">
-                <UButton label="Cancel" variant="ghost" @click="closeCloneModal" />
-                <UButton
-                  type="submit"
-                  label="Clone"
-                  icon="i-lucide-copy"
-                  :loading="cloning"
-                  :disabled="!cloneDepartment || !cloneTier"
-                />
-              </div>
-            </form>
-          </UCard>
-        </template>
-      </UModal>
+      </div>
     </template>
   </UDashboardPanel>
 </template>
