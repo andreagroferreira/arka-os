@@ -5,6 +5,19 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-04-05
+
+### Added
+- Orchestration protocol with 4 coordination patterns (Solo Sprint, Domain Deep-Dive, Multi-Agent Handoff, Skill Chain)
+- Communication standard (bottom-line-first, confidence tagging HIGH/MEDIUM/LOW)
+- Token budget system (tier-based limits, per-task max, approval threshold, persistence)
+- Obsidian vault writer (frontmatter, template vars, workflow integration)
+- BUDGET_CHECK gate type in workflow engine
+
+### Changed
+- Pro manifest updated with accurate v2 baseline and new Pro items
+- Removed v1 pro-manifest.json
+
 ## [2.0.1] - 2026-04-05
 
 ### Added
