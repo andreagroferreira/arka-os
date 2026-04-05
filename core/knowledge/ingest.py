@@ -159,30 +159,23 @@ class IngestEngine:
         )
 
     def _process_youtube(self, url: str, progress: ProgressCallback) -> tuple[str, str]:
-        """Download YouTube video and transcribe audio."""
+        """Download YouTube video and transcribe audio. Uses Python yt-dlp API directly."""
         try:
             import yt_dlp
         except ImportError:
             raise RuntimeError("yt-dlp not installed. Run: pip install yt-dlp")
 
-        # Pre-flight check — verify yt-dlp can reach YouTube
-        progress(5, "Checking YouTube access...")
-        import subprocess
-        check = subprocess.run(
-            ["yt-dlp", "--dump-json", "--no-download", url],
-            capture_output=True, text=True, timeout=30,
-        )
-        if check.returncode != 0:
-            error_msg = check.stderr.strip()[:200]
-            if "JavaScript runtime" in error_msg or "deno" in error_msg:
-                raise RuntimeError("yt-dlp requires Deno runtime for YouTube. Run: brew install deno (macOS) or install deno from deno.land")
-            raise RuntimeError(f"YouTube access failed: {error_msg}")
+        progress(5, "Fetching video info...")
 
-        import json
-        video_info = json.loads(check.stdout)
-        title = video_info.get("title", "YouTube Video")
-        duration = video_info.get("duration", 0)
-        progress(10, f"Video found: {title} ({duration}s)")
+        # First get info without downloading
+        try:
+            with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
+                info = ydl.extract_info(url, download=False)
+                title = info.get("title", "YouTube Video")
+                duration = info.get("duration", 0)
+                progress(10, f"Found: {title} ({duration}s)")
+        except Exception as e:
+            raise RuntimeError(f"YouTube access failed: {str(e)[:200]}")
 
         # Download audio only
         audio_path = str(self._media_dir / "yt_audio.wav")
