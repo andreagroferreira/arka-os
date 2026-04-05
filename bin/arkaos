@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-VERSION="2.0.0-alpha.1"
+VERSION=$(node -p "require('$(dirname "$(readlink -f "$0")")/../package.json').version" 2>/dev/null || echo "2.0.0")
 INSTALL_DIR="${HOME}/.arkaos"
 REPO_ROOT=""
 
