@@ -19,7 +19,18 @@ _hook_ms() {
 }
 
 # ─── Paths ───────────────────────────────────────────────────────────────
-ARKAOS_ROOT="${ARKA_OS:-$HOME/.claude/skills/arkaos}"
+# Resolve ARKAOS_ROOT: env var → .repo-path → npm package → fallback
+if [ -n "${ARKAOS_ROOT:-}" ]; then
+  : # already set
+elif [ -f "$HOME/.arkaos/.repo-path" ]; then
+  ARKAOS_ROOT=$(cat "$HOME/.arkaos/.repo-path")
+elif [ -d "$HOME/.arkaos" ]; then
+  ARKAOS_ROOT="$HOME/.arkaos"
+else
+  ARKAOS_ROOT="${ARKA_OS:-$HOME/.claude/skills/arkaos}"
+fi
+export ARKAOS_ROOT
+
 CACHE_DIR="/tmp/arkaos-context-cache"
 CACHE_TTL=300  # Constitution cache: 5 minutes
 
@@ -35,46 +46,17 @@ if [ -z "$user_input" ]; then
   user_input=$(echo "$input" | head -c 2000)
 fi
 
-# ─── Try Python Synapse engine first ─────────────────────────────────────
+# ─── Try Python Synapse bridge first ────────────────────────────────────
 python_result=""
-if command -v python3 &>/dev/null; then
-  python_result=$(python3 -c "
-import sys, os
-sys.path.insert(0, '${ARKAOS_ROOT}')
-try:
-    from core.synapse.engine import create_default_engine
-    from core.synapse.layers import PromptContext
-    from core.governance.constitution import load_constitution
-    import subprocess
+BRIDGE_SCRIPT="${ARKAOS_ROOT}/scripts/synapse-bridge.py"
 
-    # Load constitution for L0
-    const_path = '${ARKAOS_ROOT}/config/constitution.yaml'
-    compressed = ''
-    if os.path.exists(const_path):
-        c = load_constitution(const_path)
-        compressed = c.compress_for_context()
+if command -v python3 &>/dev/null && [ -f "$BRIDGE_SCRIPT" ]; then
+  bridge_output=$(echo "{\"user_input\":$(echo "$user_input" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')}" \
+    | ARKAOS_ROOT="$ARKAOS_ROOT" python3 "$BRIDGE_SCRIPT" --root "$ARKAOS_ROOT" 2>/dev/null)
 
-    # Detect git branch
-    branch = ''
-    try:
-        branch = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
-                                capture_output=True, text=True, timeout=2).stdout.strip()
-    except Exception:
-        pass
-
-    # Create engine and inject
-    engine = create_default_engine(constitution_compressed=compressed)
-    ctx = PromptContext(
-        user_input='''${user_input}''',
-        cwd=os.getcwd(),
-        git_branch=branch,
-    )
-    result = engine.inject(ctx)
-    print(result.context_string)
-except Exception as e:
-    print(f'[arkaos:error] {e}', file=sys.stderr)
-    print('')
-" 2>/dev/null)
+  if [ -n "$bridge_output" ]; then
+    python_result=$(echo "$bridge_output" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('context_string',''))" 2>/dev/null)
+  fi
 fi
 
 # ─── Fallback: Bash-only context (if Python unavailable) ────────────────
