@@ -1,0 +1,28 @@
+# Project Squad Template
+# Copy and customize for cross-department projects
+id: project-{name}
+name: "{Project Name} Squad"
+description: "Cross-department squad for {project description}"
+department: ""  # No single department — cross-cutting
+squad_type: project
+topology: stream-aligned
+
+members:
+  # Borrow from department squads
+  - agent_id: "{lead-agent-id}"
+    role: "Project Lead"
+    is_lead: true
+    borrowed: true     # Borrowed from department squad
+    availability: 0.5  # 50% allocation
+
+  - agent_id: "{specialist-id}"
+    role: "Technical Implementation"
+    borrowed: true
+    availability: 0.3
+
+# Project squads:
+# - Created by COO (Sofia) or any Squad Lead
+# - Agents are borrowed, not moved
+# - Max 10 members (Two-Pizza Team)
+# - Dissolved when project completes
+# - Quality Gate still mandatory

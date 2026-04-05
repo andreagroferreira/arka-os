@@ -102,6 +102,11 @@ class SubagentDispatcher:
     The dispatcher creates HandoffArtifacts from agent definitions
     and task descriptions, then delegates to the runtime adapter
     for actual execution.
+
+    Nesting policy: Maximum 1 level of nesting (agent -> subagent).
+    Sub-subagent dispatch is not recommended -- creates context fragmentation
+    and debugging complexity. If a subagent needs help, it should escalate
+    to its squad lead rather than spawning another subagent.
     """
 
     def __init__(self) -> None:

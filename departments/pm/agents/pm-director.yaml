@@ -42,7 +42,7 @@ authority:
     - product-owner
     - scrum-master
     - project-coordinator
-  escalates_to: cto-marco
+  escalates_to: coo-sofia
 
 expertise:
   domains:

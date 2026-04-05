@@ -35,6 +35,9 @@ class SquadMember(BaseModel):
     borrowed: bool = False           # Borrowed from another department?
     source_department: str = ""      # Original department if borrowed
     availability: float = 1.0        # 0.0-1.0, for shared agents
+    # Tier 2 agents can collaborate directly within project squads
+    # without requiring Tier 1 approval for each interaction.
+    can_collaborate_directly: bool = True
 
 
 class SquadWorkflow(BaseModel):

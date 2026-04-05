@@ -60,6 +60,8 @@ enforcement_levels:
 
   quality_gate:
     description: "Mandatory pre-delivery review. Nothing ships without APPROVED verdict."
+    trigger: "After the last execution phase, before delivery to user"
+    frequency: "Once per workflow execution, not per phase"
     agents:
       orchestrator:
         id: cqo-marta
