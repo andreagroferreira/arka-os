@@ -464,6 +464,42 @@ def persona_delete(persona_id: str):
     return {"error": "Persona not found"}
 
 
+# --- API Keys ---
+
+@app.get("/api/keys")
+def keys_list():
+    try:
+        from core.keys import list_keys
+        return {"keys": list_keys()}
+    except Exception:
+        return {"keys": []}
+
+
+@app.post("/api/keys")
+def keys_set(body: dict):
+    try:
+        from core.keys import set_key
+        name = body.get("key", "")
+        value = body.get("value", "")
+        if not name or not value:
+            return {"error": "key and value required"}
+        set_key(name, value)
+        return {"set": True, "key": name}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.delete("/api/keys/{key_name}")
+def keys_delete(key_name: str):
+    try:
+        from core.keys import remove_key
+        if remove_key(key_name):
+            return {"deleted": True}
+        return {"error": "Key not found"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/api/metrics")
 def metrics():
     metrics_file = Path("/tmp/arkaos-context-cache/hook-metrics.jsonl")

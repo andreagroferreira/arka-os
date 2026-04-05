@@ -40,6 +40,7 @@ Usage:
   npx arkaos update           Update to latest version
   npx arkaos migrate          Migrate from v1 to v2
   npx arkaos dashboard        Start monitoring dashboard
+  npx arkaos keys             Manage API keys (OpenAI, fal.ai, etc.)
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
@@ -98,6 +99,12 @@ async function main() {
       const { migrate } = await import("./migrate.js");
       await migrate();
       break;
+
+    case "keys": {
+      const { keys: keysCmd } = await import("./keys.js");
+      await keysCmd(positionals.slice(1));
+      break;
+    }
 
     case "dashboard": {
       const { execSync: execDash } = await import("node:child_process");

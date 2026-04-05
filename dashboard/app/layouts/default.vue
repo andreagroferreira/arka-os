@@ -60,6 +60,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Settings',
+  icon: 'i-lucide-settings',
+  to: '/settings',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'GitHub',
   icon: 'i-simple-icons-github',
   to: 'https://github.com/andreagroferreira/arka-os',
