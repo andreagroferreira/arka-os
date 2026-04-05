@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-04-05
+
+### Added
+- **Dashboard** (Nuxt 4 + NuxtUI v4 + FastAPI) — 7-page monitoring UI
+  - Overview with stats cards
+  - Agent browser with pagination, filters, detail page with full DNA profile
+  - Command search with department filter
+  - Budget visualization per tier
+  - Task monitor with status tabs
+  - Knowledge base stats + semantic search
+  - System health checks
+  - `npx arkaos dashboard` to start both servers
+- **Knowledge Ingest** via dashboard UI
+  - YouTube URL → download → transcribe → index
+  - PDF upload → extract → index
+  - Audio (MP3/WAV) → transcribe → index
+  - Web URL → scrape → index
+  - Markdown/TXT → direct index
+  - Real-time progress tracking with polling
+- FastAPI backend (13 REST endpoints, port 3334)
+- Auto-start script for dashboard servers
+
+### Fixed
+- Agent detail page routing (Nuxt nested route conflict)
+- SSR disabled for dashboard (local tool, no SSR needed)
+
 ## [2.0.3] - 2026-04-05
 
 ### Added
