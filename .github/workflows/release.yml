@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., 2.0.0-alpha.2, 2.0.0-beta.1, 2.0.0)"
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run tests before release
+        run: |
+          pip install pyyaml pydantic rich click jinja2 pytest
+          python -m pytest tests/python/ -v --tb=short
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ inputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?$'; then
+            echo "Invalid version format: $VERSION"
+            echo "Expected: X.Y.Z or X.Y.Z-prerelease.N"
+            exit 1
+          fi
+
+      - name: Bump version in package.json
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            pkg.version = '${{ inputs.version }}';
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Bump version in VERSION file
+        run: echo "${{ inputs.version }}" > VERSION
+
+      - name: Bump version in pyproject.toml
+        run: |
+          sed -i 's/^version = ".*"/version = "${{ inputs.version }}"/' pyproject.toml
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json VERSION pyproject.toml
+          git commit -m "chore: bump version to ${{ inputs.version }}"
+          git push
+
+      - name: Determine prerelease
+        id: prerelease
+        run: |
+          if echo "${{ inputs.version }}" | grep -qE '(alpha|beta|rc)'; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        run: |
+          PRERELEASE_FLAG=""
+          if [ "${{ steps.prerelease.outputs.is_prerelease }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          gh release create "v${{ inputs.version }}" \
+            --title "ArkaOS v${{ inputs.version }}" \
+            --generate-notes \
+            $PRERELEASE_FLAG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
