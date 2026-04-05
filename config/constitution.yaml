@@ -118,6 +118,10 @@ enforcement_levels:
       - id: complexity-assessment
         rule: "Assess task complexity before starting. Route to appropriate workflow tier."
 
+      - id: communication-standard
+        rule: "Bottom-line first output. Lead with answer, then why, then how. Confidence tags on assessments."
+        enforcement: "See config/standards/communication.md for full standard"
+
 tier_hierarchy:
   description: "Agent authority levels inspired by SpaceX/Google/Anthropic org structures"
   tiers:
