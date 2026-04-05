@@ -1,83 +1,118 @@
 {
   "_meta": {
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "ArkaOS Pro — Premium features for The Operating System for AI Agent Teams",
-    "url": "https://wizardingcode.com/arkaos-pro"
+    "url": "https://wizardingcode.com/arkaos-pro",
+    "community_baseline": {
+      "agents": 62,
+      "skills": 250,
+      "departments": 17,
+      "workflows": 24,
+      "python_tools": 8,
+      "conclave_advisors": 20,
+      "tests": 1750
+    }
   },
   "agents": {
-    "description": "Additional specialized agents",
+    "description": "Additional specialized agents beyond the 62 in community edition",
     "items": [
       {
         "id": "growth-hacker",
         "department": "marketing",
         "tier": 2,
-        "description": "Advanced growth experimentation with statistical rigor"
+        "description": "Advanced growth experimentation with statistical rigor and A/B test design"
       },
       {
         "id": "data-analyst",
         "department": "strategy",
         "tier": 2,
-        "description": "Advanced data analysis, SQL, dashboards, BI"
+        "description": "Advanced data analysis, SQL generation, dashboards, BI integrations"
       },
       {
         "id": "ai-specialist",
         "department": "dev",
         "tier": 2,
-        "description": "ML/AI implementation, LLM integration, RAG systems"
+        "description": "ML/AI implementation, fine-tuning, model evaluation, inference optimization"
       },
       {
         "id": "legal-advisor",
         "department": "org",
         "tier": 2,
-        "description": "Contract review, compliance, IP, terms of service"
+        "description": "Contract review, IP strategy, terms of service, NDA drafting"
       },
       {
         "id": "investor-relations",
         "department": "finance",
         "tier": 2,
-        "description": "Investor updates, board decks, fundraising pipeline"
+        "description": "Investor updates, board decks, fundraising pipeline, cap table management"
+      },
+      {
+        "id": "marketplace-specialist",
+        "department": "ecom",
+        "tier": 2,
+        "description": "Multi-marketplace operations: Amazon, Etsy, Mirakl, Shopify B2B"
+      },
+      {
+        "id": "localization-lead",
+        "department": "content",
+        "tier": 2,
+        "description": "Multi-language content strategy, translation workflows, cultural adaptation"
       }
     ]
   },
   "skills": {
-    "description": "Premium skills with advanced frameworks",
+    "description": "Premium skills with deeper frameworks and automation",
     "items": [
-      {
-        "id": "advanced-seo",
-        "department": "marketing",
-        "description": "Enterprise SEO with programmatic pages, international SEO, and advanced link building"
-      },
-      {
-        "id": "funnel-builder",
-        "department": "landing",
-        "description": "Full funnel implementation with automated email sequences and A/B testing"
-      },
       {
         "id": "financial-due-diligence",
         "department": "finance",
-        "description": "M&A due diligence, deal structuring, synergy modeling"
+        "description": "M&A due diligence, deal structuring, synergy modeling, 100-day integration plan"
       },
       {
-        "id": "compliance-audit",
-        "department": "org",
-        "description": "SOX, GDPR, ISO 42001, SOC 2 compliance audit and remediation"
+        "id": "advanced-funnel",
+        "department": "landing",
+        "description": "Multi-step funnel builder with automated email sequences, webinar funnels, and tripwire offers"
+      },
+      {
+        "id": "enterprise-seo",
+        "department": "marketing",
+        "description": "Enterprise SEO: international hreflang, log file analysis, JavaScript rendering, entity SEO"
+      },
+      {
+        "id": "ml-pipeline",
+        "department": "dev",
+        "description": "End-to-end ML pipeline: data prep, training, evaluation, deployment, monitoring"
+      },
+      {
+        "id": "cap-table",
+        "department": "finance",
+        "description": "Cap table management, SAFE/convertible notes modeling, dilution analysis"
+      },
+      {
+        "id": "marketplace-integration",
+        "department": "ecom",
+        "description": "Multi-marketplace listing, inventory sync, pricing automation, review management"
       }
     ]
   },
   "knowledge_packs": {
-    "description": "Pre-built knowledge base content",
+    "description": "Pre-built knowledge base content with curated frameworks and templates",
     "items": [
       {
         "id": "saas-playbook",
-        "description": "Complete SaaS scaling playbook from $0 to $10M ARR with benchmarks"
+        "description": "Complete SaaS scaling playbook: $0→$10M ARR with benchmarks, churn models, pricing experiments"
       },
       {
         "id": "ecommerce-playbook",
-        "description": "E-commerce growth playbook: Shopify optimization, marketplace, DTC"
+        "description": "E-commerce growth playbook: Shopify optimization, marketplace expansion, DTC strategies"
       },
       {
         "id": "agency-playbook",
-        "description": "Agency scaling playbook: pricing, hiring, processes, client management"
+        "description": "Agency scaling playbook: pricing models, hiring templates, SOPs, client retention"
+      },
+      {
+        "id": "fundraising-playbook",
+        "description": "Fundraising playbook: pitch deck templates, investor outreach, term sheet negotiation, due diligence prep"
       }
     ]
   },
@@ -86,23 +121,27 @@
     "items": [
       {
         "id": "conclave-extended",
-        "description": "30+ advisor personas with deep knowledge bases (books, talks, interviews)"
+        "description": "50+ advisor personas with deep knowledge bases (community: 20 advisors)"
       },
       {
-        "id": "token-budgets",
-        "description": "Per-workflow token budget enforcement and tracking"
+        "id": "advanced-budgets",
+        "description": "Custom tier budgets, cross-department pooling, cost-per-model tracking, budget alerts (community: basic tier limits)"
       },
       {
         "id": "audit-trails",
-        "description": "Complete audit trail with compliance ledger (SOX/GDPR ready)"
+        "description": "Complete audit trail with compliance ledger, exportable to SOX/GDPR formats"
       },
       {
-        "id": "squad-marketplace-publish",
-        "description": "Publish custom squads to the community marketplace"
+        "id": "custom-agents",
+        "description": "Create custom agents with full behavioral DNA, authority levels, and skill assignments"
+      },
+      {
+        "id": "squad-marketplace",
+        "description": "Publish and share custom squads, workflows, and skills with the community"
       },
       {
         "id": "priority-support",
-        "description": "Priority support and dedicated Slack channel"
+        "description": "Priority support, dedicated Slack channel, and quarterly strategy call"
       }
     ]
   }
