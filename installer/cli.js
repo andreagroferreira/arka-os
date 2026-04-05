@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 
 import { parseArgs } from "node:util";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { install } from "./index.js";
 import { detectRuntime } from "./detect-runtime.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const VERSION = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8")).version;
 
 const { values, positionals } = parseArgs({
   options: {
@@ -16,7 +22,6 @@ const { values, positionals } = parseArgs({
   strict: false,
 });
 
-const VERSION = "2.0.0-alpha.1";
 const command = positionals[0] || "install";
 
 if (values.version) {
@@ -31,8 +36,9 @@ ArkaOS v${VERSION} — The Operating System for AI Agent Teams
 Usage:
   npx arkaos install          Install ArkaOS in current environment
   npx arkaos install --runtime <runtime>  Install for specific runtime
-  npx arkaos doctor           Run health checks
   npx arkaos update           Update to latest version
+  npx arkaos migrate          Migrate from v1 to v2
+  npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
 Options:
@@ -76,6 +82,11 @@ async function main() {
     case "uninstall":
       const { uninstall } = await import("./uninstall.js");
       await uninstall();
+      break;
+
+    case "migrate":
+      const { migrate } = await import("./migrate.js");
+      await migrate();
       break;
 
     default:
