@@ -28,7 +28,7 @@ app = FastAPI(title="ArkaOS Dashboard API", version="2.0.3")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3333", "http://localhost:3000"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -340,6 +340,99 @@ def health():
 
     passed = sum(1 for c in checks if c["passed"])
     return {"checks": checks, "passed": passed, "total": len(checks), "healthy": passed == len(checks)}
+
+
+# --- Personas ---
+
+def _get_persona_manager():
+    try:
+        from core.personas.manager import PersonaManager
+        db_path = Path.home() / ".arkaos" / "personas.json"
+        return PersonaManager(storage_path=db_path)
+    except Exception:
+        return None
+
+
+@app.get("/api/personas")
+def personas_list():
+    mgr = _get_persona_manager()
+    if not mgr:
+        return {"personas": [], "total": 0}
+    personas = mgr.list_all()
+    return {"personas": [p.model_dump() for p in personas], "total": len(personas)}
+
+
+@app.get("/api/personas/{persona_id}")
+def persona_detail(persona_id: str):
+    mgr = _get_persona_manager()
+    if not mgr:
+        return {"error": "Persona manager unavailable"}
+    p = mgr.get(persona_id)
+    if not p:
+        return {"error": "Persona not found"}
+    return p.model_dump()
+
+
+@app.post("/api/personas")
+def persona_create(body: dict):
+    mgr = _get_persona_manager()
+    if not mgr:
+        return {"error": "Persona manager unavailable"}
+
+    from core.personas.schema import (
+        Persona, PersonaDISC, PersonaEnneagram, PersonaBigFive, PersonaCommunication,
+    )
+
+    # Generate ID from name
+    name = body.get("name", "Unknown")
+    persona_id = name.lower().replace(" ", "-").replace(".", "")
+
+    persona = Persona(
+        id=persona_id,
+        name=name,
+        title=body.get("title", ""),
+        tagline=body.get("tagline", ""),
+        source=body.get("source", name),
+        disc=PersonaDISC(**(body.get("disc", {}))),
+        enneagram=PersonaEnneagram(**(body.get("enneagram", {}))),
+        big_five=PersonaBigFive(**(body.get("big_five", {}))),
+        mbti=body.get("mbti", "INTJ"),
+        mental_models=body.get("mental_models", []),
+        expertise_domains=body.get("expertise_domains", []),
+        frameworks=body.get("frameworks", []),
+        key_quotes=body.get("key_quotes", []),
+        communication=PersonaCommunication(**(body.get("communication", {}))),
+    )
+
+    mgr.create(persona)
+    return {"id": persona.id, "created": True}
+
+
+@app.post("/api/personas/{persona_id}/clone")
+def persona_clone(persona_id: str, body: dict = {}):
+    mgr = _get_persona_manager()
+    if not mgr:
+        return {"error": "Persona manager unavailable"}
+
+    department = body.get("department", "strategy")
+    tier = body.get("tier", 2)
+    agents_dir = ARKAOS_ROOT / "departments" / department / "agents"
+
+    agent_id = mgr.clone_to_agent(persona_id, department=department, tier=tier, agents_dir=str(agents_dir))
+    if not agent_id:
+        return {"error": "Persona not found"}
+
+    return {"agent_id": agent_id, "department": department, "file": f"departments/{department}/agents/{agent_id}.yaml"}
+
+
+@app.delete("/api/personas/{persona_id}")
+def persona_delete(persona_id: str):
+    mgr = _get_persona_manager()
+    if not mgr:
+        return {"error": "Persona manager unavailable"}
+    if mgr.delete(persona_id):
+        return {"deleted": True}
+    return {"error": "Persona not found"}
 
 
 @app.get("/api/metrics")
