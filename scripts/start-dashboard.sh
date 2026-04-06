@@ -36,17 +36,33 @@ echo "  ArkaOS Dashboard"
 echo "  ─────────────────"
 
 # ── Start FastAPI backend ──
+API_LOG="$HOME/.arkaos/api.log"
 echo "  Starting API on :${API_PORT}..."
-ARKAOS_ROOT="$ARKAOS_ROOT" python3 "${ARKAOS_ROOT}/scripts/dashboard-api.py" --port "$API_PORT" >/dev/null 2>&1 &
+ARKAOS_ROOT="$ARKAOS_ROOT" python3 "${ARKAOS_ROOT}/scripts/dashboard-api.py" --port "$API_PORT" > "$API_LOG" 2>&1 &
 API_PID=$!
-sleep 2
 
-# Verify API started
-if ! kill -0 "$API_PID" 2>/dev/null; then
-  echo "  ✗ API failed to start"
-  exit 1
+# Wait for API with health check (up to 10 seconds)
+API_READY=false
+for i in $(seq 1 20); do
+  sleep 0.5
+  if ! kill -0 "$API_PID" 2>/dev/null; then
+    break
+  fi
+  if curl -s "http://localhost:${API_PORT}/api/overview" >/dev/null 2>&1; then
+    API_READY=true
+    break
+  fi
+done
+
+if [ "$API_READY" = true ]; then
+  echo "  ✓ API: http://localhost:${API_PORT}"
+else
+  echo "  ⚠ API may still be starting (check log: $API_LOG)"
+  if [ -f "$API_LOG" ]; then
+    echo "  Last error: $(tail -3 "$API_LOG" | head -1)"
+  fi
+  # Don't exit — API might still be loading, continue with dashboard
 fi
-echo "  ✓ API: http://localhost:${API_PORT}"
 
 # ── Start Nuxt frontend ──
 UI_PID=""
