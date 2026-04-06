@@ -66,7 +66,7 @@ async def ws_tasks(websocket: WebSocket):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3333", "http://localhost:3000"],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
