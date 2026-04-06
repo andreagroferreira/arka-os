@@ -33,3 +33,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] If mobile app: open in iOS Simulator, test purchase flow, verify responsiveness
+
+## Scheduling ⏰
+
+```
+/schedule daily at 8am — quick store health check: uptime, broken links, price errors
+/loop 1h check store homepage and top 5 product pages for errors or downtime
+```

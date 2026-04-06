@@ -32,3 +32,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] Launch the native app, test user flows, screenshot each screen for the audit report
+
+## Scheduling ⏰
+
+```
+/schedule weekly — run Lighthouse audit on main pages, flag performance regressions
+/schedule monthly — full UX heuristic review of core user flows
+```

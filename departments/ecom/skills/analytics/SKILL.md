@@ -31,3 +31,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] Open analytics dashboards in native apps (Mixpanel, Amplitude) and verify event tracking
+
+## Scheduling ⏰
+
+```
+/loop 1h check store conversion rate and flag if below 2% threshold
+/schedule daily at 9am — morning e-commerce metrics summary: revenue, orders, conversion, AOV
+```

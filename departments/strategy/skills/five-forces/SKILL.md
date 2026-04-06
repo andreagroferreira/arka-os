@@ -86,4 +86,11 @@ Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] Open competitor native apps, screenshot UX patterns, extract feature comparisons
 
+## Scheduling ⏰
+
+```
+/schedule weekly — check competitor pricing pages for changes and summarize differences
+/schedule monthly — full five forces reassessment for the industry
+```
+
 ## Output → Obsidian: `WizardingCode/Strategy/Analysis/FIVE-FORCES-<industry>-<date>.md`

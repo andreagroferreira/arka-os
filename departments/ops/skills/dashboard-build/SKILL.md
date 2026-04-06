@@ -31,3 +31,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] Launch dashboard app and verify widgets, charts, and real-time data render correctly
+
+## Scheduling ⏰
+
+```
+/loop 10m check dashboard API health and flag if any endpoint returns errors
+/schedule hourly — verify dashboard data freshness and alert if stale
+```

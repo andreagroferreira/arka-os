@@ -67,3 +67,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] If native/mobile app: build, launch, and verify feature in the running app or iOS Simulator
+
+## Scheduling ⏰
+
+```
+/loop 5m run pytest and notify if any test fails
+/loop 10m run full test suite, report only failures
+```

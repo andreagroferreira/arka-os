@@ -50,4 +50,11 @@ Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] Open desktop apps (Slack, Notion, calendar apps) to verify automation results
 
+## Scheduling ⏰
+
+```
+/loop 15m check N8N workflow executions, flag any failures in the last hour
+/schedule hourly — monitor all active automations and report error rate
+```
+
 ## Output → Workflow diagram + platform config + error handling spec

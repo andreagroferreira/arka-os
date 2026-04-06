@@ -31,3 +31,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] Launch competitor apps side-by-side, compare UI/UX, capture positioning differences
+
+## Scheduling ⏰
+
+```
+/schedule monthly — review competitor positioning changes: taglines, messaging, pricing
+/schedule quarterly — full competitive positioning reassessment
+```

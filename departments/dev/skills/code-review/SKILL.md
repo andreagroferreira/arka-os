@@ -30,3 +30,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] If native app: launch and click through UI to verify changes visually
+
+## Scheduling ⏰
+
+```
+/loop 30m check open PRs on this repo and summarize any that need review
+/schedule weekdays at 9am — review all open PRs and post summary
+```

@@ -82,6 +82,13 @@ Follow the [Computer Use Availability Check](/arka) for availability checking.
 
 - [COMPUTER] Launch app and test input fields, permissions dialogs, and authentication flows via GUI
 
+## Scheduling ⏰
+
+```
+/schedule weekly — run npm audit and pip audit, flag any critical vulnerabilities
+/schedule daily at 8am — check for new CVEs affecting project dependencies
+```
+
 ## References
 
 - [owasp-2025-deep.md](references/owasp-2025-deep.md) — OWASP Top 10 (2025) with vulnerable and fixed code examples, testing methodology, and tools
