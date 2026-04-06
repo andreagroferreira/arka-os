@@ -13,18 +13,21 @@ const VERSION = JSON.parse(readFileSync(join(ARKAOS_ROOT, "package.json"), "utf-
 export async function install({ runtime, path, force }) {
   const startTime = Date.now();
   const config = getRuntimeConfig(runtime);
-  const installDir = path || join(homedir(), ".arkaos");
-  const isUpgrade = existsSync(join(installDir, "install-manifest.json"));
+  const isUpgrade = existsSync(join(path || join(homedir(), ".arkaos"), "install-manifest.json"));
 
   console.log(`
   ╔══════════════════════════════════════════════════════════╗
   ║  ArkaOS v${VERSION} — The Operating System for AI Agent Teams  ║
   ╚══════════════════════════════════════════════════════════╝
 
-  Runtime:     ${config.name}
-  Install dir: ${installDir}
-  Mode:        ${isUpgrade ? "Upgrade" : "Fresh install"}
+  Runtime: ${config.name}
+  Mode:    ${isUpgrade ? "Upgrade" : "Fresh install"}
   `);
+
+  // ═══ Interactive Setup ═══
+  const { runSetupPrompts } = await import("./prompts.js");
+  const userConfig = await runSetupPrompts(isUpgrade);
+  const installDir = userConfig.installDir;
 
   // ═══ Step 1: Create directories ═══
   step(1, 12, "Creating directories...");
@@ -52,9 +55,9 @@ export async function install({ runtime, path, force }) {
   const pythonCmd = checkPython();
   ok(`Found: ${pythonCmd}`);
 
-  // ═══ Step 4: Install Python core + ALL dependencies ═══
+  // ═══ Step 4: Install Python core + dependencies based on user choices ═══
   step(4, 12, "Installing Python dependencies (this may take a minute)...");
-  installAllPythonDeps(pythonCmd);
+  installAllPythonDeps(pythonCmd, userConfig);
 
   // ═══ Step 5: Copy configuration files ═══
   step(5, 12, "Copying configuration files...");
@@ -83,32 +86,60 @@ export async function install({ runtime, path, force }) {
   writeFileSync(join(skillsDir, ".arkaos-root"), ARKAOS_ROOT);
 
   const profilePath = join(installDir, "profile.json");
-  if (!existsSync(profilePath)) {
-    writeFileSync(profilePath, JSON.stringify({
-      version: "2",
-      created: new Date().toISOString(),
-    }, null, 2));
-    ok("New profile created");
-  } else {
-    ok("Existing profile preserved");
+  const profile = {
+    version: "2",
+    language: userConfig.language,
+    market: userConfig.market,
+    role: userConfig.role,
+    company: userConfig.company,
+    projectsDir: userConfig.projectsDir,
+    vaultPath: userConfig.vaultPath,
+    created: existsSync(profilePath)
+      ? JSON.parse(readFileSync(profilePath, "utf-8")).created
+      : new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
+  writeFileSync(profilePath, JSON.stringify(profile, null, 2));
+  ok("Profile saved");
+
+  // Save API keys if provided
+  if (userConfig.openaiKey || userConfig.googleKey || userConfig.falKey) {
+    const keysPath = join(installDir, "keys.json");
+    const keys = existsSync(keysPath) ? JSON.parse(readFileSync(keysPath, "utf-8")) : {};
+    if (userConfig.openaiKey) keys.OPENAI_API_KEY = userConfig.openaiKey;
+    if (userConfig.googleKey) keys.GOOGLE_API_KEY = userConfig.googleKey;
+    if (userConfig.falKey) keys.FAL_API_KEY = userConfig.falKey;
+    writeFileSync(keysPath, JSON.stringify(keys, null, 2));
+    try { chmodSync(keysPath, 0o600); } catch {}
+    ok("API keys saved");
   }
 
-  // ═══ Step 10: Index knowledge base (if vault configured) ═══
-  step(10, 12, "Checking knowledge base...");
-  const kbDb = join(installDir, "knowledge.db");
-  if (!existsSync(kbDb)) {
+  // ═══ Step 10: Index knowledge base ═══
+  step(10, 12, "Setting up knowledge base...");
+  if (userConfig.installKnowledge) {
+    const kbDb = join(installDir, "knowledge.db");
+    // Index ArkaOS skills first
     try {
       execSync(`${pythonCmd} "${join(ARKAOS_ROOT, "scripts", "knowledge-index.py")}" --dir "${join(ARKAOS_ROOT, "departments")}" --db "${kbDb}"`, {
-        stdio: "pipe",
-        timeout: 60000,
-        env: { ...process.env, ARKAOS_ROOT },
+        stdio: "pipe", timeout: 60000, env: { ...process.env, ARKAOS_ROOT },
       });
-      ok("ArkaOS skills indexed into knowledge base");
+      ok("ArkaOS skills indexed");
     } catch {
-      warn("Knowledge indexing skipped (run 'npx arkaos index' later)");
+      warn("Skill indexing skipped");
+    }
+    // Index user's Obsidian vault if provided
+    if (userConfig.vaultPath && existsSync(userConfig.vaultPath)) {
+      try {
+        execSync(`${pythonCmd} "${join(ARKAOS_ROOT, "scripts", "knowledge-index.py")}" --vault "${userConfig.vaultPath}" --db "${kbDb}"`, {
+          stdio: "pipe", timeout: 120000, env: { ...process.env, ARKAOS_ROOT },
+        });
+        ok(`Obsidian vault indexed: ${userConfig.vaultPath}`);
+      } catch {
+        warn("Vault indexing skipped (run 'npx arkaos index' later)");
+      }
     }
   } else {
-    ok("Knowledge base already exists");
+    ok("Knowledge base skipped (install later with 'npx arkaos index')");
   }
 
   // ═══ Step 11: Verify installation ═══
@@ -213,7 +244,7 @@ function checkPython() {
   process.exit(1);
 }
 
-function installAllPythonDeps(pythonCmd) {
+function installAllPythonDeps(pythonCmd, userConfig = {}) {
   // Core dependencies
   const coreDeps = "pyyaml pydantic rich click jinja2";
   // Knowledge + Vector DB
@@ -225,7 +256,11 @@ function installAllPythonDeps(pythonCmd) {
   // Transcription
   const transcriptionDeps = "faster-whisper";
 
-  const allDeps = `${coreDeps} ${knowledgeDeps} ${ingestDeps} ${dashboardDeps}`;
+  // Build deps list based on user choices
+  let allDeps = coreDeps;
+  if (userConfig.installKnowledge !== false) allDeps += ` ${knowledgeDeps}`;
+  allDeps += ` ${ingestDeps}`;
+  if (userConfig.installDashboard !== false) allDeps += ` ${dashboardDeps}`;
 
   try {
     // Try uv first (faster)
