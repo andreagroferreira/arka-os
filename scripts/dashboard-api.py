@@ -345,6 +345,71 @@ def job_cancel(job_id: str):
     return {"error": "Can only cancel queued jobs"}
 
 
+@app.post("/api/knowledge/upload")
+async def knowledge_upload(file: Any = None):
+    """Upload a file for ingestion."""
+    from fastapi import UploadFile, File as FastAPIFile
+    # Re-import with proper type
+    pass
+
+
+# Actual upload endpoint with proper signature
+from fastapi import UploadFile, File as FastAPIFile
+
+@app.post("/api/knowledge/upload-file")
+async def knowledge_upload_file(file: UploadFile):
+    """Upload and ingest a file (PDF, audio, markdown)."""
+    import threading
+
+    media_dir = Path.home() / ".arkaos" / "media"
+    media_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save uploaded file
+    file_path = media_dir / file.filename
+    content = await file.read()
+    file_path.write_bytes(content)
+
+    source = str(file_path)
+    from core.knowledge.ingest import detect_source_type
+    source_type = detect_source_type(source)
+
+    store = _get_vector_store()
+    if not store:
+        from core.knowledge.vector_store import VectorStore
+        kb_db = Path.home() / ".arkaos" / "knowledge.db"
+        kb_db.parent.mkdir(parents=True, exist_ok=True)
+        store = VectorStore(kb_db)
+
+    job_mgr = _get_job_manager()
+    job = job_mgr.create(source=source, source_type=source_type, title=file.filename)
+    job_id = job.id
+
+    def run_ingest():
+        from core.jobs.manager import JobManager as _JM
+        from core.knowledge.ingest import IngestEngine
+        local_mgr = _JM()
+        engine = IngestEngine(store)
+        def on_progress(pct, msg):
+            status = "embedding" if "embed" in msg.lower() or "index" in msg.lower() else "processing"
+            local_mgr.update_progress(job_id, pct, msg, status)
+            broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": pct, "message": msg, "status": status})
+        try:
+            local_mgr.start(job_id)
+            result = engine.ingest(source, source_type, on_progress=on_progress)
+            if result.success:
+                local_mgr.complete(job_id, chunks_created=result.chunks_created)
+                broadcast_from_thread({"type": "job_complete", "job_id": job_id, "chunks_created": result.chunks_created})
+            else:
+                local_mgr.fail(job_id, result.error)
+                broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": result.error})
+        except Exception as e:
+            local_mgr.fail(job_id, str(e))
+            broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": str(e)})
+
+    threading.Thread(target=run_ingest, daemon=True).start()
+    return {"job_id": job_id, "source_type": source_type, "filename": file.filename, "status": "queued"}
+
+
 @app.post("/api/knowledge/ingest")
 def knowledge_ingest(body: dict):
     """Ingest content into the knowledge base. Runs in background with SQLite job tracking."""
@@ -352,6 +417,21 @@ def knowledge_ingest(body: dict):
 
     source = body.get("source", "")
     source_type = body.get("type", "")
+    text_content = body.get("text", "")
+    text_title = body.get("title", "")
+
+    # Handle direct text paste — save to temp markdown file
+    if text_content and len(text_content) > 10:
+        media_dir = Path.home() / ".arkaos" / "media"
+        media_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = "".join(c if c.isalnum() or c in " -_" else "" for c in (text_title or source)[:40]).strip() or "pasted-text"
+        text_path = media_dir / f"{safe_name}.md"
+        # Add title as heading
+        md_content = f"# {text_title}\n\n{text_content}" if text_title else text_content
+        text_path.write_text(md_content, encoding="utf-8")
+        source = str(text_path)
+        source_type = "markdown"
+
     if not source:
         return {"error": "source is required"}
 

@@ -178,25 +178,45 @@ onUnmounted(() => {
 })
 
 async function handleIngest() {
-  if (!detectedType.value) return
+  if (!detectedType.value && activeInputMode.value !== 'text') return
 
   ingestError.value = null
-  const source = ingestUrl.value.trim() || ingestFile.value?.name || ''
-  const type = detectedType.value
-
-  // Clear form immediately so user can submit more
-  ingestUrl.value = ''
-  clearFile()
-  pasteText.value = ''
-  pasteTitle.value = ''
 
   try {
-    await $fetch<IngestResponse>(`${apiBase}/api/knowledge/ingest`, {
-      method: 'POST',
-      body: { source, type } satisfies IngestRequest,
-    })
+    // File upload — use multipart form
+    if (activeInputMode.value === 'file' && ingestFile.value) {
+      const formData = new FormData()
+      formData.append('file', ingestFile.value)
+      await $fetch(`${apiBase}/api/knowledge/upload-file`, {
+        method: 'POST',
+        body: formData,
+      })
+    }
+    // Text paste — save to temp file via API
+    else if (activeInputMode.value === 'text' && pasteText.value.length > 10) {
+      await $fetch(`${apiBase}/api/knowledge/ingest`, {
+        method: 'POST',
+        body: { source: pasteText.value.slice(0, 100), type: 'markdown', text: pasteText.value, title: pasteTitle.value },
+      })
+    }
+    // URL or Research — standard ingest
+    else {
+      const source = ingestUrl.value.trim()
+      const type = detectedType.value
+      if (!source || !type) return
+      await $fetch(`${apiBase}/api/knowledge/ingest`, {
+        method: 'POST',
+        body: { source, type },
+      })
+    }
 
-    // Refresh jobs table + connect WebSocket for live updates
+    // Clear form immediately
+    ingestUrl.value = ''
+    clearFile()
+    pasteText.value = ''
+    pasteTitle.value = ''
+
+    // Refresh jobs table + connect WebSocket
     fetchJobs()
     connectWebSocket()
   } catch (err) {
