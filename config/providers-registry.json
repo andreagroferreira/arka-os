@@ -36,6 +36,17 @@
         "fal-ai/runway-gen3/turbo/image-to-video": { "type": "video", "description": "Runway Gen3 Turbo" }
       }
     },
+    "gemini": {
+      "name": "Google Gemini (Nano Banana)",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "auth_env": "GOOGLE_API_KEY",
+      "auth_header": "x-goog-api-key",
+      "models": {
+        "gemini-3.1-flash-image-preview": { "type": "image", "description": "Nano Banana 2 — fast, high-quality, up to 4K, search grounding" },
+        "gemini-3-pro-image-preview": { "type": "image", "description": "Nano Banana Pro — professional assets, thinking mode, up to 4K" },
+        "gemini-2.5-flash-image": { "type": "image", "description": "Nano Banana — speed optimized, 1K resolution" }
+      }
+    },
     "openrouter": {
       "name": "OpenRouter",
       "base_url": "https://openrouter.ai/api/v1",
@@ -49,7 +60,7 @@
     }
   },
   "routing": {
-    "image-generation": ["openai/gpt-image-1", "openai/dall-e-3", "fal/fal-ai/flux-pro/v1.1", "replicate/black-forest-labs/flux-1.1-pro"],
+    "image-generation": ["gemini/gemini-3.1-flash-image-preview", "gemini/gemini-3-pro-image-preview", "gemini/gemini-2.5-flash-image", "openai/gpt-image-1", "openai/dall-e-3", "fal/fal-ai/flux-pro/v1.1", "replicate/black-forest-labs/flux-1.1-pro"],
     "video-generation": ["fal/fal-ai/kling-video/v2/master", "fal/fal-ai/runway-gen3/turbo/image-to-video", "replicate/minimax/video-01"],
     "text-completion": ["openrouter/google/gemini-2.5-pro", "openrouter/deepseek/deepseek-r1"]
   }
