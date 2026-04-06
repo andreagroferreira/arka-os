@@ -345,16 +345,7 @@ def job_cancel(job_id: str):
     return {"error": "Can only cancel queued jobs"}
 
 
-@app.post("/api/knowledge/upload")
-async def knowledge_upload(file: Any = None):
-    """Upload a file for ingestion."""
-    from fastapi import UploadFile, File as FastAPIFile
-    # Re-import with proper type
-    pass
-
-
-# Actual upload endpoint with proper signature
-from fastapi import UploadFile, File as FastAPIFile
+from fastapi import UploadFile
 
 @app.post("/api/knowledge/upload-file")
 async def knowledge_upload_file(file: UploadFile):
