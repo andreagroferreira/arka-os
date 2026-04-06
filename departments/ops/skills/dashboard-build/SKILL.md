@@ -25,3 +25,9 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Check that data loads and updates in real-time (if WebSocket)
 - [BROWSER] Test responsive layout at different screen sizes
 - [BROWSER] Verify charts, tables, and graphs display correct data
+
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] Launch dashboard app and verify widgets, charts, and real-time data render correctly

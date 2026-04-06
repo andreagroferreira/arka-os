@@ -24,3 +24,9 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Open the application in the browser and verify UI changes visually
 - [BROWSER] Check browser console for JavaScript errors or warnings
 - [BROWSER] If CSS/layout changes: compare before/after visually
+
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] If native app: launch and click through UI to verify changes visually

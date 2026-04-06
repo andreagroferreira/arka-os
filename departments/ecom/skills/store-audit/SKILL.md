@@ -27,3 +27,9 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Check page load performance via console timing (Performance API)
 - [BROWSER] Verify search functionality works correctly
 - [BROWSER] Test navigation menu and footer links
+
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] If mobile app: open in iOS Simulator, test purchase flow, verify responsiveness

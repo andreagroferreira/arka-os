@@ -307,6 +307,43 @@ else
     echo "✓ Skipped browser integration. Enable later with /chrome."
 fi
 
+# ━━━ Computer Use (Optional) ━━━
+echo ""
+echo "━━━ Computer Use (Optional) ━━━"
+echo ""
+echo "Claude Code can control your desktop: open apps, click, type, and screenshot."
+echo "Useful for testing native apps, design tools, and GUI-only workflows."
+echo "Note: macOS only. Requires Pro or Max plan."
+echo ""
+printf "Enable computer use? (y/n): "
+read -r ENABLE_COMPUTER_USE
+
+if [ "$ENABLE_COMPUTER_USE" = "y" ] || [ "$ENABLE_COMPUTER_USE" = "Y" ]; then
+    # Record preference in profile
+    if [ -f "$HOME/.arkaos/profile.json" ]; then
+        python3 -c "
+import json
+with open('$HOME/.arkaos/profile.json', 'r') as f:
+    profile = json.load(f)
+profile['computer_use'] = True
+with open('$HOME/.arkaos/profile.json', 'w') as f:
+    json.dump(profile, f, indent=2)
+" 2>/dev/null
+    fi
+
+    echo ""
+    echo "✓ Computer Use enabled."
+    echo ""
+    echo "To activate Computer Use:"
+    echo "  1. Run /mcp in a Claude Code session"
+    echo "  2. Find 'computer-use' and select Enable"
+    echo "  3. Grant macOS permissions when prompted (Accessibility + Screen Recording)"
+    echo "  4. You may need to restart Claude Code after granting Screen Recording"
+    echo ""
+else
+    echo "✓ Skipped computer use. Enable later via /mcp → computer-use."
+fi
+
 # ─── CLI Command ─────────────────────────────────────────────────────────────
 echo -e "${BLUE}[CLI Command]${NC}"
 mkdir -p "$HOME/.local/bin"

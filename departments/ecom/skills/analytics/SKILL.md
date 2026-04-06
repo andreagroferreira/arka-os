@@ -25,3 +25,9 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Test conversion tracking: complete a purchase flow and verify events fire
 - [BROWSER] Check Meta Pixel fires correctly (search for fbq in console)
 - [BROWSER] Verify Google Tag Manager container loads
+
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] Open analytics dashboards in native apps (Mixpanel, Amplitude) and verify event tracking

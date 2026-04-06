@@ -44,4 +44,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Test the automated workflow end-to-end by triggering it and watching the result in the browser
 - [BROWSER] Verify notifications and emails arrive correctly
 
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] Open desktop apps (Slack, Notion, calendar apps) to verify automation results
+
 ## Output → Workflow diagram + platform config + error handling spec

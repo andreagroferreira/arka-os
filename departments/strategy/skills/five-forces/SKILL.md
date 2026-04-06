@@ -80,4 +80,10 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Check competitor positioning statements and messaging from their homepage
 - [BROWSER] Extract supplier/partner information from competitor sites when available
 
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] Open competitor native apps, screenshot UX patterns, extract feature comparisons
+
 ## Output → Obsidian: `WizardingCode/Strategy/Analysis/FIVE-FORCES-<industry>-<date>.md`

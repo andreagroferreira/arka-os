@@ -26,3 +26,9 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Capture screenshots of key screens for the UX audit report
 - [BROWSER] Check responsive design at mobile, tablet, and desktop breakpoints
 - [BROWSER] Verify loading states, error states, and empty states render correctly
+
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] Launch the native app, test user flows, screenshot each screen for the audit report

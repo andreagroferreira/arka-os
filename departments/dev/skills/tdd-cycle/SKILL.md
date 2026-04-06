@@ -61,3 +61,9 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 
 - [BROWSER] After tests pass, if web app: open localhost in browser and verify the feature works visually
 - [BROWSER] Check console for runtime errors that tests might not catch
+
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] If native/mobile app: build, launch, and verify feature in the running app or iOS Simulator

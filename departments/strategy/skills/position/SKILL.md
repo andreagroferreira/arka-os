@@ -25,3 +25,9 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Capture visual identity elements: color schemes, typography, imagery style
 - [BROWSER] Check social proof: testimonials, client logos, case studies
 - [BROWSER] Compare pricing pages side-by-side
+
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] Launch competitor apps side-by-side, compare UI/UX, capture positioning differences

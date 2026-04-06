@@ -76,6 +76,12 @@ Follow the [Browser Integration Pattern](/arka) for availability checking.
 - [BROWSER] Open console and check for CSP (Content Security Policy) headers
 - [BROWSER] Test authentication flows: login, logout, session expiry
 
+## Computer Use Steps
+
+Follow the [Computer Use Availability Check](/arka) for availability checking.
+
+- [COMPUTER] Launch app and test input fields, permissions dialogs, and authentication flows via GUI
+
 ## References
 
 - [owasp-2025-deep.md](references/owasp-2025-deep.md) — OWASP Top 10 (2025) with vulnerable and fixed code examples, testing methodology, and tools
