@@ -27,8 +27,9 @@ find_port() {
   echo "$port"
 }
 
-API_PORT=$(find_port "${ARKAOS_DASHBOARD_API_PORT:-3334}")
+# UI first (lower port), API second (higher port) — ensures they don't collide
 UI_PORT=$(find_port "${ARKAOS_DASHBOARD_UI_PORT:-3333}")
+API_PORT=$(find_port "${ARKAOS_DASHBOARD_API_PORT:-$((UI_PORT + 1))}")
 
 echo ""
 echo "  ArkaOS Dashboard"
