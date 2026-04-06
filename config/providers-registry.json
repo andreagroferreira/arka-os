@@ -10,8 +10,8 @@
       "auth_env": "OPENAI_API_KEY",
       "auth_header": "Authorization: Bearer",
       "models": {
-        "gpt-image-1": { "type": "image", "description": "GPT Image 1 — latest" },
-        "dall-e-3": { "type": "image", "description": "DALL-E 3" }
+        "whisper-1": { "type": "audio", "description": "Whisper — speech-to-text transcription" },
+        "tts-1": { "type": "audio", "description": "TTS — text-to-speech" }
       }
     },
     "replicate": {
@@ -60,7 +60,9 @@
     }
   },
   "routing": {
-    "image-generation": ["gemini/gemini-3.1-flash-image-preview", "gemini/gemini-3-pro-image-preview", "gemini/gemini-2.5-flash-image", "openai/gpt-image-1", "openai/dall-e-3", "fal/fal-ai/flux-pro/v1.1", "replicate/black-forest-labs/flux-1.1-pro"],
+    "image-generation": ["gemini/gemini-3.1-flash-image-preview", "gemini/gemini-3-pro-image-preview", "gemini/gemini-2.5-flash-image", "fal/fal-ai/flux-pro/v1.1", "replicate/black-forest-labs/flux-1.1-pro"],
+    "audio-transcription": ["openai/whisper-1"],
+    "text-to-speech": ["openai/tts-1"],
     "video-generation": ["fal/fal-ai/kling-video/v2/master", "fal/fal-ai/runway-gen3/turbo/image-to-video", "replicate/minimax/video-01"],
     "text-completion": ["openrouter/google/gemini-2.5-pro", "openrouter/deepseek/deepseek-r1"]
   }
