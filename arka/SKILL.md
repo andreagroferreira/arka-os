@@ -1,16 +1,16 @@
 ---
 name: arka
 description: >
-  ArkaOS v2 main orchestrator. Routes commands to 16 departments, resolves natural language
-  to slash commands, runs standups, system monitoring, and cross-department coordination.
-  The entry point for every user interaction.
+  ArkaOS v2 main orchestrator. Routes commands to 17 departments, resolves natural language
+  to slash commands, runs standups, system monitoring, dashboard, knowledge base, personas,
+  and cross-department coordination. The entry point for every user interaction.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
 # ArkaOS v2 — Main Orchestrator
 
 > **The Operating System for AI Agent Teams**
-> 56 agents. 16 departments. ~180 commands. Multi-runtime.
+> 65 agents. 17 departments. 244+ skills. Multi-runtime. Dashboard. Knowledge RAG.
 
 ## System Commands
 
@@ -23,6 +23,11 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/arka help` | List all department commands |
 | `/arka setup` | Interactive profile setup (name, company, role, objectives) |
 | `/arka conclave` | Activate personal AI advisory board (The Conclave) |
+| `/arka dashboard` | Open monitoring dashboard (localhost:3333) |
+| `/arka index` | Index Obsidian vault into knowledge base |
+| `/arka search <query>` | Semantic search in knowledge base |
+| `/arka keys` | Manage API keys (OpenAI, Google, fal.ai) |
+| `/arka personas` | Manage AI personas (create, clone to agent) |
 | `/do <description>` | Universal routing — natural language to department command |
 
 ## Universal Orchestrator (/do)
@@ -99,8 +104,9 @@ Every workflow includes a Quality Gate phase before delivery:
 | Tier | Role | Count | Authority |
 |------|------|-------|-----------|
 | 0 | C-Suite | 6 | Veto power, strategic decisions |
-| 1 | Squad Leads | 15 | Orchestrate department, domain decisions |
-| 2 | Specialists | 35 | Execute within domain expertise |
+| 1 | Squad Leads | 16 | Orchestrate department, domain decisions |
+| 2 | Specialists | 40 | Execute within domain expertise |
+| 3 | Support | 3 | Research, documentation, data collection |
 
 ## Cross-Department Collaboration
 
