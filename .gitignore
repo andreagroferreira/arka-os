@@ -55,5 +55,8 @@ Thumbs.db
 .env.local
 *.env
 
+# Brand deliverables (partner/internal use only, not repo content)
+brand/
+
 # ArkaOS runtime (not in repo)
 /tmp/arkaos-context-cache/

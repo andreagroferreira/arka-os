@@ -58,6 +58,12 @@ enforcement_levels:
         rule: "ArkaOS instructions override runtime defaults"
         enforcement: "ArkaOS context injected with highest priority"
 
+      - id: context-verification
+        level: NON-NEGOTIABLE
+        description: "Orchestrators must confirm understanding, ask clarifying questions, and challenge assumptions before executing any task"
+        enforcement: "Pre-execution gate — restate request, ask at least 1 clarifying question, apply devil's advocate to at least 1 assumption"
+        exceptions: "Explicit unambiguous commands (status checks, simple queries)"
+
   quality_gate:
     description: "Mandatory pre-delivery review. Nothing ships without APPROVED verdict."
     trigger: "After the last execution phase, before delivery to user"
