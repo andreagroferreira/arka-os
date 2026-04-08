@@ -111,6 +111,10 @@ enforcement_levels:
         rule: "Key decisions persisted in agent memory files"
         enforcement: "Post-execution hook saves decisions to agent MEMORY.md"
 
+      - id: workflow-standard
+        rule: "All ecosystem skills must follow the standard 7-phase workflow defined in config/standards/ecosystem-workflow.md"
+        enforcement: "Ecosystem SKILL.md files must reference or implement all 7 phases"
+
   should:
     description: "Best practices. Encouraged but not enforced."
     rules:
