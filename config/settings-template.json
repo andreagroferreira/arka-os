@@ -5,6 +5,17 @@
     "padding": 2
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/session-start.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -33,6 +44,17 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/post-tool-use.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/cwd-changed.sh",
             "timeout": 5
           }
         ]
