@@ -8,13 +8,13 @@ load helpers/setup
 # ─── kb-queue.sh ─────────────────────────────────────────────────────────
 
 @test "kb-queue.sh rejects missing URL" {
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-queue.sh"
+  run bash "$REPO_DIR/departments/kb/scripts/kb-queue.sh"
   [ "$status" -ne 0 ]
   [[ "$output" == *"Usage"* ]]
 }
 
 @test "kb-queue.sh rejects empty URL" {
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-queue.sh" ""
+  run bash "$REPO_DIR/departments/kb/scripts/kb-queue.sh" ""
   [ "$status" -ne 0 ]
 }
 
@@ -37,7 +37,7 @@ load helpers/setup
   export HOME="$TEST_HOME"
   mkdir -p "$TEST_HOME/.arka-os"
 
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-queue.sh" "https://youtube.com/watch?v=test123"
+  run bash "$REPO_DIR/departments/kb/scripts/kb-queue.sh" "https://youtube.com/watch?v=test123"
   # May fail due to worker launch, but directory should be created
   [ -d "$TEST_HOME/.arka-os/media" ]
 }
@@ -57,7 +57,7 @@ load helpers/setup
   export HOME="$TEST_HOME"
   mkdir -p "$TEST_HOME/.arka-os"
 
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-status.sh"
+  run bash "$REPO_DIR/departments/kb/scripts/kb-status.sh"
   [ "$status" -eq 0 ]
   [[ "$output" == *"No jobs"* ]]
 }
@@ -72,7 +72,7 @@ load helpers/setup
 shift; shift; "$@"' > "$TEST_TEMP_DIR/bin/flock"
   chmod +x "$TEST_TEMP_DIR/bin/flock"
 
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-status.sh" "abc12345"
+  run bash "$REPO_DIR/departments/kb/scripts/kb-status.sh" "abc12345"
   [ "$status" -eq 0 ]
   [[ "$output" == *"ready"* ]] || [[ "$output" == *"abc12345"* ]]
 }
@@ -86,7 +86,7 @@ shift; shift; "$@"' > "$TEST_TEMP_DIR/bin/flock"
 shift; shift; "$@"' > "$TEST_TEMP_DIR/bin/flock"
   chmod +x "$TEST_TEMP_DIR/bin/flock"
 
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-status.sh" --json
+  run bash "$REPO_DIR/departments/kb/scripts/kb-status.sh" --json
   [ "$status" -eq 0 ]
   echo "$output" | jq empty
 }
@@ -100,7 +100,7 @@ shift; shift; "$@"' > "$TEST_TEMP_DIR/bin/flock"
 shift; shift; "$@"' > "$TEST_TEMP_DIR/bin/flock"
   chmod +x "$TEST_TEMP_DIR/bin/flock"
 
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-status.sh" --json
+  run bash "$REPO_DIR/departments/kb/scripts/kb-status.sh" --json
   [ "$status" -eq 0 ]
   # After status check, dead PID jobs should be marked as failed
   STATUS=$(jq -r '.jobs[0].status' "$TEST_HOME/.arka-os/kb-jobs.json" 2>/dev/null)
@@ -114,7 +114,7 @@ shift; shift; "$@"' > "$TEST_TEMP_DIR/bin/flock"
   create_mock_media_dir
   create_mock_kb_jobs
 
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-cleanup.sh" --dry-run --older-than 0d
+  run bash "$REPO_DIR/departments/kb/scripts/kb-cleanup.sh" --dry-run --older-than 0d
   [ "$status" -eq 0 ]
   [[ "$output" == *"DRY RUN"* ]]
   # Files should still exist
@@ -126,7 +126,7 @@ shift; shift; "$@"' > "$TEST_TEMP_DIR/bin/flock"
   create_mock_media_dir
   create_mock_kb_jobs
 
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-cleanup.sh" --dry-run --older-than 365d
+  run bash "$REPO_DIR/departments/kb/scripts/kb-cleanup.sh" --dry-run --older-than 365d
   [ "$status" -eq 0 ]
   # With 365 days, nothing should be flagged for removal (mock data is recent)
 }
@@ -164,7 +164,7 @@ JOBS
   export PATH="$FILTERED_PATH"
 
   # Worker should fail gracefully (yt-dlp not found)
-  run bash "$REPO_DIR/departments/knowledge/scripts/kb-worker.sh" "testjob1" "https://youtube.com/test" "$OUTPUT_DIR" "none"
+  run bash "$REPO_DIR/departments/kb/scripts/kb-worker.sh" "testjob1" "https://youtube.com/test" "$OUTPUT_DIR" "none"
   # Check worker.log was created with error about yt-dlp
   [ -f "$OUTPUT_DIR/worker.log" ]
 }

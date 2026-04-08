@@ -962,7 +962,7 @@ fi
 
 # ─── Capability Detection ──────────────────────────────────────────────────
 echo -e "${BLUE}[Capabilities]${NC}"
-CAPS_SCRIPT="$SOURCE_DIR/departments/knowledge/scripts/kb-check-capabilities.sh"
+CAPS_SCRIPT="$SOURCE_DIR/departments/kb/scripts/kb-check-capabilities.sh"
 if [ -f "$CAPS_SCRIPT" ]; then
     # Run silently, just show summary
     bash "$CAPS_SCRIPT" >/dev/null 2>&1 || true

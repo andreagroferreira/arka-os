@@ -170,7 +170,7 @@ echo -e "${BLUE}[Capability Detection]${NC}"
 # Source env so capabilities check sees the new keys
 [ -f "$ARKA_ENV_FILE" ] && source "$ARKA_ENV_FILE"
 
-CAPS_SCRIPT="$SCRIPT_DIR/departments/knowledge/scripts/kb-check-capabilities.sh"
+CAPS_SCRIPT="$SCRIPT_DIR/departments/kb/scripts/kb-check-capabilities.sh"
 if [ -f "$CAPS_SCRIPT" ]; then
     bash "$CAPS_SCRIPT" 2>/dev/null
 elif [ -f "$HOME/.claude/skills/arka-knowledge/scripts/kb-check-capabilities.sh" ]; then

@@ -93,11 +93,11 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `config/constitution.yaml` defines governance with 4 enforcement levels:
 
-**NON-NEGOTIABLE (13 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy
+**NON-NEGOTIABLE (14 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
-**MUST (5 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence
+**MUST (6 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard
 
 **SHOULD (4 rules):** research-first, self-critique, kb-contribution, complexity-assessment
 
@@ -214,6 +214,19 @@ arkaos/
 │   └── python/                        # 542 tests (pytest)
 └── docs/                              # Documentation
 ```
+
+## Release Pipeline
+
+| Step | Command | Notes |
+|------|---------|-------|
+| 1. Bump version | Update `VERSION`, `package.json`, `pyproject.toml` | All three must match |
+| 2. Commit | `git commit -m "chore: bump to vX.Y.Z"` | |
+| 3. Push | `git push origin master` | |
+| 4. GitHub release | `gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."` | |
+| 5. npm publish | `npm publish --access public` | Uses ~/.npmrc token |
+| 6. Verify | `npm view arkaos version` | Must show new version |
+
+**npm auth:** Token in `~/.npmrc` as `//registry.npmjs.org/:_authToken=<token>`. If 403, use temp config with `--userconfig`. Account: `wizardingcode`.
 
 ## How To Work
 

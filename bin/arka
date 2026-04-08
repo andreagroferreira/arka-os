@@ -191,7 +191,7 @@ case "${1:-}" in
     # Fallback to repo scripts location
     if [ ! -d "$SCRIPTS_DIR" ]; then
         REPO_DIR="$(cat "$ARKA_OS/.repo-path" 2>/dev/null)"
-        SCRIPTS_DIR="$REPO_DIR/departments/knowledge/scripts"
+        SCRIPTS_DIR="$REPO_DIR/departments/kb/scripts"
     fi
     case "${1:-}" in
       queue)        bash "$SCRIPTS_DIR/kb-status.sh" "${@:2}" ;;
