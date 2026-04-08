@@ -93,11 +93,11 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `config/constitution.yaml` defines governance with 4 enforcement levels:
 
-**NON-NEGOTIABLE (13 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy
+**NON-NEGOTIABLE (14 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
-**MUST (5 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence
+**MUST (6 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard
 
 **SHOULD (4 rules):** research-first, self-critique, kb-contribution, complexity-assessment
 
