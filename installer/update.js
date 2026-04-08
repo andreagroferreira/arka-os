@@ -167,7 +167,7 @@ export async function update() {
     core_updated_at: new Date().toISOString()
   };
   writeFileSync(syncStatePath, JSON.stringify(syncState, null, 2));
-  console.log("         ✓ Sync state reset (run /arka update to sync projects)");
+  console.log("         ✓ Sync state reset (auto-detected on next Claude session)");
 
   console.log(`
   ╔══════════════════════════════════════════╗
@@ -180,6 +180,7 @@ export async function update() {
     Projects:  ${profile.projectsDir || "not set"}
     Vault:     ${profile.vaultPath || "not set"}
 
-  ⚠ Run /arka update in Claude Code to sync all projects.
+  Next time you open Claude Code, ArkaOS will automatically
+  detect the update and sync all your projects.
   `);
 }
