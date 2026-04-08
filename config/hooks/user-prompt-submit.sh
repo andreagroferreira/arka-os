@@ -43,33 +43,8 @@ if [ -f "$ARKAOS_VERSION_FILE" ]; then
   fi
 fi
 
-# ─── Session Greeting (first prompt only, per-session) ─────────────────
+# ─── Session Greeting (now handled by SessionStart hook via systemMessage) ──
 _ARKA_GREETING=""
-_SESSION_MARKER="/tmp/arkaos-greeted-$$"
-if [ ! -f "$_SESSION_MARKER" ]; then
-  touch "$_SESSION_MARKER"
-
-  _GR_NAME="founder"
-  _GR_COMPANY="WizardingCode"
-  _GR_VERSION="2.x"
-
-  if [ -f "$HOME/.arkaos/profile.json" ] && command -v python3 &>/dev/null; then
-    _GR_NAME=$(python3 -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null || echo "founder")
-    _GR_COMPANY=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', 'WizardingCode'))" 2>/dev/null || echo "WizardingCode")
-  fi
-
-  if [ -f "$HOME/.arkaos/.repo-path" ]; then
-    _GR_REPO=$(cat "$HOME/.arkaos/.repo-path")
-    [ -f "$_GR_REPO/VERSION" ] && _GR_VERSION=$(cat "$_GR_REPO/VERSION" | tr -d '[:space:]')
-  fi
-
-  _HOUR=$(date +%H)
-  if [ "$_HOUR" -ge 5 ] && [ "$_HOUR" -lt 12 ]; then _GR_TIME="Bom dia"
-  elif [ "$_HOUR" -ge 12 ] && [ "$_HOUR" -lt 19 ]; then _GR_TIME="Boa tarde"
-  else _GR_TIME="Boa noite"; fi
-
-  _ARKA_GREETING="[arka:greeting] ARKA OS v${_GR_VERSION} | ${_GR_TIME}, ${_GR_NAME} (${_GR_COMPANY}) | 65 agents, 17 departments, 244+ skills | IMPORTANT: Display the ArkaOS branded greeting to the user as your FIRST output. Show the ARKA OS name prominently and welcome the user. "
-fi
 
 # ─── Performance Timing ──────────────────────────────────────────────────
 _HOOK_START_NS=$(date +%s%N 2>/dev/null || echo "0")
