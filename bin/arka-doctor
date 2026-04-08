@@ -256,8 +256,8 @@ if [ "$FIX_MODE" = true ] && [ "$CAPS_OK" = false ]; then
   CAPS_SCRIPT="$ARKA_OS/../arka-knowledge/scripts/kb-check-capabilities.sh"
   # Also check repo path
   REPO_PATH=$(cat "$ARKA_OS/.repo-path" 2>/dev/null || echo "")
-  if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/departments/knowledge/scripts/kb-check-capabilities.sh" ]; then
-    CAPS_SCRIPT="$REPO_PATH/departments/knowledge/scripts/kb-check-capabilities.sh"
+  if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/departments/kb/scripts/kb-check-capabilities.sh" ]; then
+    CAPS_SCRIPT="$REPO_PATH/departments/kb/scripts/kb-check-capabilities.sh"
   fi
   if [ -f "$CAPS_SCRIPT" ]; then
     bash "$CAPS_SCRIPT" >/dev/null 2>&1 && CAPS_OK=true && CAPS_DESC="capabilities.json (refreshed)"

@@ -43,6 +43,31 @@ if [ -f "$ARKAOS_VERSION_FILE" ]; then
   fi
 fi
 
+# ─── Session Greeting ───────────────────────────────────────────────────
+_SESSION_MARKER="/tmp/arkaos-session-$$"
+if [ ! -f "$_SESSION_MARKER" ] && [ ! -f "/tmp/arkaos-greeted-today" ]; then
+  touch "$_SESSION_MARKER"
+  touch "/tmp/arkaos-greeted-today"
+
+  _GREETING_NAME=""
+  _GREETING_COMPANY=""
+  _GREETING_VERSION=""
+
+  if [ -f "$HOME/.arkaos/profile.json" ] && command -v python3 &>/dev/null; then
+    _GREETING_NAME=$(python3 -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null)
+    _GREETING_COMPANY=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', ''))" 2>/dev/null)
+  fi
+
+  if [ -f "$HOME/.arkaos/.repo-path" ]; then
+    _GR_REPO=$(cat "$HOME/.arkaos/.repo-path")
+    if [ -f "$_GR_REPO/VERSION" ]; then
+      _GREETING_VERSION=$(cat "$_GR_REPO/VERSION")
+    fi
+  fi
+
+  _ARKA_GREETING="[arka:greeting]     _    ____  _  __    _    ___  ____     / \\  |  _ \\| |/ /   / \\  / _ \\/ ___|   / _ \\ | |_) | ' /   / _ \\| | | \\___ \\  / ___ \\|  _ <| . \\  / ___ \\ |_| |___) | /_/   \\_\\_| \\_\\_|\\_\\/_/   \\_\\___/|____/  Welcome back, ${_GREETING_NAME:-founder} (${_GREETING_COMPANY:-WizardingCode}). ArkaOS v${_GREETING_VERSION:-2.x} ready. Type /arka help or just describe what you need. "
+fi
+
 # ─── Performance Timing ──────────────────────────────────────────────────
 _HOOK_START_NS=$(date +%s%N 2>/dev/null || echo "0")
 _hook_ms() {
@@ -128,7 +153,7 @@ if [ -z "$python_result" ]; then
 fi
 
 # ─── Output ──────────────────────────────────────────────────────────────
-echo "{\"additionalContext\": \"${_SYNC_NOTICE:-}$python_result\"}"
+echo "{\"additionalContext\": \"${_ARKA_GREETING:-}${_SYNC_NOTICE:-}$python_result\"}"
 
 # ─── Metrics ─────────────────────────────────────────────────────────────
 elapsed=$(_hook_ms)
