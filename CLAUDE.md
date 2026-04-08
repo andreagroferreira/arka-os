@@ -59,6 +59,16 @@ No other framework covers all 4 layers with multi-domain support:
 | `/lead` | Leadership & People | Rodrigo | 10 |
 | `/org` | Organization & Teams | Sofia (COO) | 10 |
 
+## Sync System
+
+| Command | Description |
+|---------|-------------|
+| `/arka update` | AI-powered sync — updates all ecosystem skills, project descriptors, MCP configs, and settings to match current ArkaOS core |
+
+**Flow:** `npx arkaos update` → bumps core → hook detects drift → user runs `/arka update` → AI sweeps everything → report
+
+**State file:** `~/.arkaos/sync-state.json`
+
 ## Agent Hierarchy
 
 Inspired by SpaceX (flat, mission-driven), Google (matrix), Anthropic (small teams, safety embedded).
