@@ -30,14 +30,14 @@ export async function install({ runtime, path, force }) {
   const installDir = userConfig.installDir;
 
   // ═══ Step 1: Create directories ═══
-  step(1, 12, "Creating directories...");
+  step(1, 13, "Creating directories...");
   ensureDir(installDir);
   const dirs = ["config", "config/hooks", "agents", "media", "session-digests", "vault"];
   for (const d of dirs) ensureDir(join(installDir, d));
   ok(`${dirs.length + 1} directories ready`);
 
   // ═══ Step 2: Detect v1 installation ═══
-  step(2, 12, "Checking for v1 installation...");
+  step(2, 13, "Checking for v1 installation...");
   const v1Paths = [
     join(homedir(), ".claude", "skills", "arka-os"),
     join(homedir(), ".claude", "skills", "arkaos"),
@@ -51,35 +51,56 @@ export async function install({ runtime, path, force }) {
   }
 
   // ═══ Step 3: Check Python ═══
-  step(3, 12, "Checking Python 3.11+...");
+  step(3, 13, "Checking Python 3.11+...");
   const pythonCmd = checkPython();
   ok(`Found: ${pythonCmd}`);
 
   // ═══ Step 4: Install Python core + dependencies based on user choices ═══
-  step(4, 12, "Installing Python dependencies (this may take a minute)...");
+  step(4, 13, "Installing Python dependencies (this may take a minute)...");
   installAllPythonDeps(pythonCmd, userConfig);
 
   // ═══ Step 5: Copy configuration files ═══
-  step(5, 12, "Copying configuration files...");
+  step(5, 13, "Copying configuration files...");
   copyConfigFiles(installDir);
   ok("Constitution, standards, and config copied");
 
   // ═══ Step 6: Install hooks with real paths ═══
-  step(6, 12, "Installing hooks...");
+  step(6, 13, "Installing hooks...");
   installHooks(installDir);
 
   // ═══ Step 7: Configure runtime ═══
-  step(7, 12, "Configuring runtime...");
+  step(7, 13, "Configuring runtime...");
   const adapter = await loadAdapter(runtime);
   adapter.configureHooks(config, installDir);
   ok(`${config.name} configured`);
 
   // ═══ Step 8: Install ArkaOS skill to Claude Code ═══
-  step(8, 12, "Installing /arka skill...");
+  step(8, 13, "Installing /arka skill...");
   installSkill(config, installDir);
 
-  // ═══ Step 9: Create references and profile ═══
-  step(9, 12, "Creating references...");
+  // ═══ Step 9: Install CLI wrapper and user instructions ═══
+  step(9, 13, "Installing CLI wrapper...");
+  const binDir = join(installDir, "bin");
+  ensureDir(binDir);
+  const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
+  if (existsSync(wrapperSrc)) {
+    copyFileSync(wrapperSrc, join(binDir, "arka-claude"));
+    try { chmodSync(join(binDir, "arka-claude"), 0o755); } catch {}
+    ok("arka-claude wrapper installed");
+    console.log(`         Add to PATH: export PATH="$HOME/.arkaos/bin:$PATH"`);
+    console.log(`         Optional alias: alias claude="arka-claude"`);
+  }
+  const claudeMdSrc = join(ARKAOS_ROOT, "config", "user-claude.md");
+  const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");
+  if (existsSync(claudeMdSrc) && !existsSync(userClaudeMd)) {
+    copyFileSync(claudeMdSrc, userClaudeMd);
+    ok("~/.claude/CLAUDE.md created (ArkaOS user instructions)");
+  } else if (existsSync(userClaudeMd)) {
+    ok("~/.claude/CLAUDE.md already exists (preserved)");
+  }
+
+  // ═══ Step 10: Create references and profile ═══
+  step(10, 13, "Creating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
   const skillsDir = join(config.skillsDir || join(homedir(), ".claude", "skills"), "arkaos");
   ensureDir(skillsDir);
@@ -115,7 +136,7 @@ export async function install({ runtime, path, force }) {
   }
 
   // ═══ Step 10: Index knowledge base ═══
-  step(10, 12, "Setting up knowledge base...");
+  step(11, 13, "Setting up knowledge base...");
   if (userConfig.installKnowledge) {
     const kbDb = join(installDir, "knowledge.db");
     // Index ArkaOS skills first
@@ -143,7 +164,7 @@ export async function install({ runtime, path, force }) {
   }
 
   // ═══ Step 11: Verify installation ═══
-  step(11, 12, "Verifying installation...");
+  step(12, 13, "Verifying installation...");
   let checks = 0;
   if (existsSync(join(installDir, "config", "constitution.yaml"))) checks++;
   if (existsSync(join(installDir, "config", "hooks", "user-prompt-submit.sh"))) checks++;
@@ -158,7 +179,7 @@ export async function install({ runtime, path, force }) {
   ok(`${checks}/5 checks passed`);
 
   // ═══ Step 12: Finalize ═══
-  step(12, 12, "Finalizing...");
+  step(13, 13, "Finalizing...");
   const manifest = {
     version: VERSION,
     runtime,
@@ -358,9 +379,11 @@ function installHooks(installDir) {
   ensureDir(hooksDir);
 
   const hookMap = {
-    "user-prompt-submit-v2.sh": "user-prompt-submit.sh",
-    "post-tool-use-v2.sh": "post-tool-use.sh",
-    "pre-compact-v2.sh": "pre-compact.sh",
+    "session-start.sh": "session-start.sh",
+    "user-prompt-submit.sh": "user-prompt-submit.sh",
+    "post-tool-use.sh": "post-tool-use.sh",
+    "pre-compact.sh": "pre-compact.sh",
+    "cwd-changed.sh": "cwd-changed.sh",
   };
 
   const srcHooksDir = join(ARKAOS_ROOT, "config", "hooks");

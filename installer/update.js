@@ -83,9 +83,11 @@ export async function update() {
   // ── 3. Update hooks ──
   console.log("  [3/6] Updating hooks...");
   const hookMap = {
-    "user-prompt-submit-v2.sh": "user-prompt-submit.sh",
-    "post-tool-use-v2.sh": "post-tool-use.sh",
-    "pre-compact-v2.sh": "pre-compact.sh",
+    "session-start.sh": "session-start.sh",
+    "user-prompt-submit.sh": "user-prompt-submit.sh",
+    "post-tool-use.sh": "post-tool-use.sh",
+    "pre-compact.sh": "pre-compact.sh",
+    "cwd-changed.sh": "cwd-changed.sh",
   };
   const srcHooksDir = join(ARKAOS_ROOT, "config", "hooks");
   const destHooksDir = join(installDir, "config", "hooks");
@@ -110,8 +112,26 @@ export async function update() {
   }
   console.log("         ✓ Hooks updated");
 
-  // ── 4. Update /arka skill ──
-  console.log("  [4/6] Updating /arka skill...");
+  // ── 4. Update CLI wrapper + user CLAUDE.md ──
+  console.log("  [4/7] Updating CLI wrapper and user instructions...");
+  const binDir = join(installDir, "bin");
+  mkdirSync(binDir, { recursive: true });
+  const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
+  if (existsSync(wrapperSrc)) {
+    copyFileSync(wrapperSrc, join(binDir, "arka-claude"));
+    try { chmodSync(join(binDir, "arka-claude"), 0o755); } catch {}
+    console.log("         ✓ arka-claude wrapper updated");
+  }
+  const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");
+  const claudeMdSrc = join(ARKAOS_ROOT, "config", "user-claude.md");
+  if (existsSync(claudeMdSrc)) {
+    mkdirSync(join(homedir(), ".claude"), { recursive: true });
+    copyFileSync(claudeMdSrc, userClaudeMd);
+    console.log("         ✓ ~/.claude/CLAUDE.md updated");
+  }
+
+  // ── 5. Update /arka skill ──
+  console.log("  [5/7] Updating /arka skill...");
   const skillSrc = join(ARKAOS_ROOT, "arka", "SKILL.md");
   const skillDest = join(homedir(), ".claude", "skills", "arka");
   mkdirSync(skillDest, { recursive: true });
@@ -122,13 +142,13 @@ export async function update() {
     console.log("         ✓ /arka skill updated");
   }
 
-  // ── 5. Update .repo-path ──
-  console.log("  [5/6] Updating references...");
+  // ── 6. Update .repo-path ──
+  console.log("  [6/7] Updating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
   console.log("         ✓ Repo path updated");
 
-  // ── 6. Update manifest ──
-  console.log("  [6/6] Finalizing...");
+  // ── 7. Update manifest ──
+  console.log("  [7/7] Finalizing...");
   manifest.version = VERSION;
   manifest.repoRoot = ARKAOS_ROOT;
   manifest.updatedAt = new Date().toISOString();

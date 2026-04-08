@@ -28,6 +28,19 @@ export default {
       settings.hooks = {};
     }
 
+    // SessionStart — Branded greeting + version drift detection
+    settings.hooks.SessionStart = [
+      {
+        hooks: [
+          {
+            type: "command",
+            command: join(hooksDir, "session-start.sh"),
+            timeout: 5,
+          },
+        ],
+      },
+    ];
+
     // UserPromptSubmit — Synapse v2 context injection
     settings.hooks.UserPromptSubmit = [
       {
@@ -62,6 +75,19 @@ export default {
             type: "command",
             command: join(hooksDir, "pre-compact.sh"),
             timeout: 30,
+          },
+        ],
+      },
+    ];
+
+    // CwdChanged — Project/ecosystem auto-detection
+    settings.hooks.CwdChanged = [
+      {
+        hooks: [
+          {
+            type: "command",
+            command: join(hooksDir, "cwd-changed.sh"),
+            timeout: 5,
           },
         ],
       },

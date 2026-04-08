@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# ============================================================================
+# ArkaOS — Claude Code Wrapper
+# Displays branded greeting BEFORE Claude starts (deterministic, no LLM)
+# Usage: arka-claude [any claude args...]
+# ============================================================================
+
+# ─── Colors ────────────────────────────────────────────────────────────
+GREEN='\033[0;32m'
+WHITE='\033[1;37m'
+DIM='\033[2m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RESET='\033[0m'
+
+# ─── Profile ───────────────────────────────────────────────────────────
+NAME="founder"
+COMPANY="WizardingCode"
+VERSION="2.x"
+
+if [ -f "$HOME/.arkaos/profile.json" ] && command -v python3 &>/dev/null; then
+  NAME=$(python3 -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null || echo "founder")
+  COMPANY=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', 'WizardingCode'))" 2>/dev/null || echo "WizardingCode")
+fi
+
+if [ -f "$HOME/.arkaos/.repo-path" ]; then
+  REPO=$(cat "$HOME/.arkaos/.repo-path")
+  [ -f "$REPO/VERSION" ] && VERSION=$(cat "$REPO/VERSION" | tr -d '[:space:]')
+fi
+
+# ─── Time greeting ─────────────────────────────────────────────────────
+HOUR=$(date +%H)
+if [ "$HOUR" -ge 5 ] && [ "$HOUR" -lt 12 ]; then GREETING="Bom dia"
+elif [ "$HOUR" -ge 12 ] && [ "$HOUR" -lt 19 ]; then GREETING="Boa tarde"
+else GREETING="Boa noite"; fi
+
+# ─── Version drift ─────────────────────────────────────────────────────
+DRIFT_MSG=""
+SYNC_STATE="$HOME/.arkaos/sync-state.json"
+if [ -f "$SYNC_STATE" ]; then
+  SYNCED=$(python3 -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
+  if [ "$SYNCED" != "$VERSION" ]; then
+    DRIFT_MSG="\n  ${YELLOW}⚠  Update available: run /arka update to sync${RESET}"
+  fi
+fi
+
+# ─── Display ───────────────────────────────────────────────────────────
+echo ""
+echo -e "  ${GREEN}╔══════════════════════════════════════════════╗${RESET}"
+echo -e "  ${GREEN}║${RESET}                                              ${GREEN}║${RESET}"
+echo -e "  ${GREEN}║${RESET}              ${WHITE}A R K A   O S${RESET}                   ${GREEN}║${RESET}"
+echo -e "  ${GREEN}║${RESET}                                              ${GREEN}║${RESET}"
+echo -e "  ${GREEN}║${RESET}   ${DIM}The Operating System for AI Teams${RESET}          ${GREEN}║${RESET}"
+echo -e "  ${GREEN}║${RESET}                  ${DIM}by WizardingCode${RESET}            ${GREEN}║${RESET}"
+echo -e "  ${GREEN}║${RESET}                                              ${GREEN}║${RESET}"
+echo -e "  ${GREEN}╚══════════════════════════════════════════════╝${RESET}"
+echo ""
+echo -e "  ${CYAN}${GREETING}, ${NAME}${RESET} ${DIM}(${COMPANY})${RESET}"
+echo -e "  ${DIM}ArkaOS v${VERSION} │ 65 agents │ 17 departments │ 244+ skills${RESET}"
+echo -e "${DRIFT_MSG}"
+echo ""
+
+# ─── Launch Claude ─────────────────────────────────────────────────────
+exec claude "$@"

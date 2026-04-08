@@ -59,15 +59,52 @@ No other framework covers all 4 layers with multi-domain support:
 | `/lead` | Leadership & People | Rodrigo | 10 |
 | `/org` | Organization & Teams | Sofia (COO) | 10 |
 
-## Sync System
+## Update & Sync System
 
-| Command | Description |
-|---------|-------------|
-| `/arka update` | AI-powered sync — updates all ecosystem skills, project descriptors, MCP configs, and settings to match current ArkaOS core |
+### How Updates Work (2-step process)
 
-**Flow:** `npx arkaos update` → bumps core → hook detects drift → user runs `/arka update` → AI sweeps everything → report
+| Step | Command | What it does |
+|------|---------|-------------|
+| 1 | `npx arkaos@latest update` | Downloads latest ArkaOS core, updates hooks, resets sync state |
+| 2 | `/arka update` (inside Claude Code) | AI-powered sync of all project configs, MCP, settings, skills |
 
-**State file:** `~/.arkaos/sync-state.json`
+### Step 1: Core Update (terminal)
+
+```bash
+npx arkaos@latest update
+```
+
+This updates:
+- Python dependencies
+- Hook scripts (SessionStart, UserPromptSubmit, PostToolUse, PreCompact, CwdChanged)
+- CLI wrapper (`arka-claude`)
+- `/arka` skill
+- Constitution and config files
+- Resets sync state → triggers `[arka:update-available]` on next Claude session
+
+### Step 2: Project Sync (Claude Code)
+
+```
+/arka update
+```
+
+This syncs all projects:
+- Ecosystem skills (agent types, workflows)
+- Project descriptors (stacks, status, paths)
+- MCP configs (`.mcp.json` per project)
+- Settings (`.claude/settings.local.json` per project)
+- Generates sync report
+
+### Auto-Detection
+
+When core updates but projects aren't synced, the SessionStart hook shows:
+```
+[arka:update-available] Core vX.Y.Z != synced vX.Y.Z. Run /arka update.
+```
+
+### State file
+
+`~/.arkaos/sync-state.json` — tracks version, last sync timestamp, project/skill counts, errors
 
 ## Agent Hierarchy
 
