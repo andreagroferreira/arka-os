@@ -215,6 +215,19 @@ arkaos/
 └── docs/                              # Documentation
 ```
 
+## Release Pipeline
+
+| Step | Command | Notes |
+|------|---------|-------|
+| 1. Bump version | Update `VERSION`, `package.json`, `pyproject.toml` | All three must match |
+| 2. Commit | `git commit -m "chore: bump to vX.Y.Z"` | |
+| 3. Push | `git push origin master` | |
+| 4. GitHub release | `gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."` | |
+| 5. npm publish | `npm publish --access public` | Uses ~/.npmrc token |
+| 6. Verify | `npm view arkaos version` | Must show new version |
+
+**npm auth:** Token in `~/.npmrc` as `//registry.npmjs.org/:_authToken=<token>`. If 403, use temp config with `--userconfig`. Account: `wizardingcode`.
+
 ## How To Work
 
 1. **Any request** → Routes through `/do` to the correct department
