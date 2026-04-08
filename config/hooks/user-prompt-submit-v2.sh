@@ -18,6 +18,31 @@ for v1_path in "${V1_PATHS[@]}"; do
   fi
 done
 
+# ─── Sync Version Detection ────────────────────────────────────────────
+SYNC_STATE="$HOME/.arkaos/sync-state.json"
+ARKAOS_VERSION_FILE="$HOME/.arkaos/.repo-path"
+
+if [ -f "$ARKAOS_VERSION_FILE" ]; then
+  _REPO_PATH=$(cat "$ARKAOS_VERSION_FILE")
+  if [ -f "$_REPO_PATH/VERSION" ]; then
+    _CURRENT_VERSION=$(cat "$_REPO_PATH/VERSION")
+  elif [ -f "$_REPO_PATH/package.json" ]; then
+    _CURRENT_VERSION=$(python3 -c "import json; print(json.load(open('$_REPO_PATH/package.json'))['version'])" 2>/dev/null || echo "")
+  fi
+
+  if [ -n "${_CURRENT_VERSION:-}" ]; then
+    if [ -f "$SYNC_STATE" ]; then
+      _SYNCED_VERSION=$(python3 -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
+    else
+      _SYNCED_VERSION="none"
+    fi
+
+    if [ "$_CURRENT_VERSION" != "$_SYNCED_VERSION" ]; then
+      _SYNC_NOTICE="[arka:update-available] ArkaOS v${_CURRENT_VERSION} installed (synced: ${_SYNCED_VERSION}). Run /arka update to sync all projects. "
+    fi
+  fi
+fi
+
 # ─── Performance Timing ──────────────────────────────────────────────────
 _HOOK_START_NS=$(date +%s%N 2>/dev/null || echo "0")
 _hook_ms() {
@@ -103,7 +128,7 @@ if [ -z "$python_result" ]; then
 fi
 
 # ─── Output ──────────────────────────────────────────────────────────────
-echo "{\"additionalContext\": \"$python_result\"}"
+echo "{\"additionalContext\": \"${_SYNC_NOTICE:-}$python_result\"}"
 
 # ─── Metrics ─────────────────────────────────────────────────────────────
 elapsed=$(_hook_ms)
