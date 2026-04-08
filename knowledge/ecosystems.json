@@ -1,20 +1,372 @@
 {
   "_meta": {
     "description": "ARKA OS — Project Ecosystem Registry",
-    "updated": "2026-04-06"
+    "updated": "2026-04-07"
   },
   "ecosystems": {
-    "wizardingcode": {
+    "edp": {
+      "name": "EDP",
+      "description": "Enterprise integration architecture platform for EDP (Energias de Portugal). Architect solutions, AI agents, and API governance for system analysts.",
+      "client": "EDP - Energias de Portugal",
+      "type": "client",
+      "status": "active",
       "projects": [
-        {
-          "name": "arka-os",
-          "role": "product",
-          "stack": "Python + Node.js + React",
-          "path": "/Users/andreagroferreira/AIProjects/arka-os",
-          "skill": "/platform-arka",
-          "description": "ArkaOS — The Operating System for AI Agent Teams"
-        }
-      ]
+        "gba-web",
+        "gba-lurch-a2a",
+        "gba-zenodotus"
+      ],
+      "squad": {
+        "roles": [
+          "project-manager",
+          "backend-developer",
+          "frontend-developer",
+          "ai-specialist",
+          "context-analyst",
+          "security-engineer",
+          "qa-tester"
+        ],
+        "description": "Dedicated EDP squad for integration architecture platform"
+      },
+      "tech_stack": {
+        "frontend": ["Laravel 12", "Inertia.js 2", "Vue 3", "TypeScript", "Tailwind CSS 4"],
+        "backend": ["PHP 8.4", "Python 3.12+", "FastAPI"],
+        "databases": ["MySQL", "PostgreSQL", "SQLite (dev)", "Redis"],
+        "ai": ["Azure OpenAI (GPT-5-mini-gba)", "pydantic-ai", "FastA2A"],
+        "infra": ["Docker", "FrankenPHP", "Laravel Octane", "Uvicorn", "Kafka", "AWS RDS", "ELK Stack"],
+        "auth": ["Azure AD OAuth 2.0", "JWT", "Spatie Permissions"],
+        "protocols": ["REST", "SOAP", "A2A (JSON-RPC 2.0)", "MCP"]
+      },
+      "created_at": "2026-03-17"
+    },
+    "rockport": {
+      "name": "Rockport",
+      "description": "E-commerce marketplace platform for Rockport premium footwear. CRM, storefront, SAP ERP integration, and logistics microservice.",
+      "client": "Rockport",
+      "type": "client",
+      "status": "active",
+      "projects": [
+        "crm-rockport",
+        "rockport-ecommerce-v2",
+        "sap-erp-service",
+        "gologistic-ms"
+      ],
+      "squad": {
+        "roles": [
+          "project-manager",
+          "backend-developer",
+          "frontend-developer",
+          "ecommerce-specialist",
+          "integrations-specialist",
+          "security-engineer",
+          "qa-tester"
+        ],
+        "description": "Dedicated Rockport squad for e-commerce platform"
+      },
+      "tech_stack": {
+        "frontend": ["Nuxt 4", "Vue 3", "TypeScript", "Tailwind CSS 4", "Nuxt UI 4", "Pinia 3", "Vuetify 3"],
+        "backend": ["PHP 8.4", "Laravel 11/12", "Laravel Modules"],
+        "databases": ["PostgreSQL", "Redis", "Meilisearch", "SQLite (dev)"],
+        "payments": ["SIBS", "Klarna", "Adyen", "MBWay"],
+        "integrations": ["SAP Business One", "Kafka", "GoLogistic", "DPD", "Mirakl", "Actito", "SendGrid", "Infobip"],
+        "infra": ["Docker", "FrankenPHP", "Octane/Roadrunner", "Horizon", "DigitalOcean Spaces", "AWS S3"],
+        "auth": ["Sanctum", "Spatie Permissions", "Social Login (Google/Facebook/Apple)"],
+        "protocols": ["REST", "Kafka", "WebSocket (Reverb)"]
+      },
+      "created_at": "2026-03-17"
+    },
+    "clubefashion": {
+      "name": "ClubeFashion",
+      "description": "E-commerce marketplace platform for ClubeFashion. Complex ecosystem with CRM migration in progress, Mirakl marketplace, Primavera ERP, and AI-ready modernization.",
+      "client": "ClubeFashion",
+      "type": "client",
+      "status": "active",
+      "projects": [
+        "the-burrow-hub",
+        "marketplace-ms",
+        "goblinledger",
+        "crm-cf-v2",
+        "nuxt-boilerplate",
+        "crm-frontend-v2"
+      ],
+      "squad": {
+        "roles": [
+          "project-manager",
+          "backend-developer",
+          "frontend-developer",
+          "ecommerce-specialist",
+          "marketplace-specialist",
+          "erp-specialist",
+          "migration-architect",
+          "ai-specialist",
+          "security-engineer",
+          "qa-tester",
+          "devops"
+        ],
+        "description": "Dedicated ClubeFashion squad — largest team due to migration complexity"
+      },
+      "tech_stack": {
+        "frontend": ["Nuxt 4", "Vue 3", "Vuetify 3", "Nuxt UI 4", "TypeScript", "Tailwind CSS 4", "Pinia"],
+        "backend": ["PHP 8.4/8.5", "Laravel 11/12", "Laravel Modules (19)"],
+        "databases": ["PostgreSQL", "Redis", "Meilisearch", "SQLite (dev)"],
+        "payments": ["SIBS", "Klarna", "Adyen", "MBWay"],
+        "integrations": ["Mirakl (marketplace-ms)", "Primavera ERP (goblinledger)", "Kafka (30+ topics)", "Actito", "SendGrid", "Infobip", "Skeepers", "DPD", "Google Merchant"],
+        "infra": ["Docker", "FrankenPHP", "Octane/Roadrunner", "Horizon", "AWS S3", "DigitalOcean Spaces"],
+        "auth": ["Sanctum", "Spatie Permissions", "Social Login"],
+        "protocols": ["REST", "Kafka", "WebSocket (Reverb)"],
+        "project_management": ["ClickUp (Space: 90153217724)"]
+      },
+      "migration": {
+        "from": "the-burrow-hub (Laravel 11, 19 modules, 431 migrations, 163 models)",
+        "to": "crm-cf-v2 (Laravel 12, AI-ready, strict types) + crm-frontend-v2 (Vue 3 SPA)",
+        "status": "paused — foundation laid, 0% content migration",
+        "priority": "planning phase"
+      },
+      "created_at": "2026-03-17"
+    },
+    "fovory": {
+      "name": "Fovory",
+      "description": "Supplier-to-Shopify integration engine with custom Laravel codebase (fovory-supplier-sync) AND Shopify store operations/marketing. Dual nature: dev squad for code work, ops/marketing squad for store management.",
+      "client": "Fovory (internal business)",
+      "type": "internal",
+      "status": "active",
+      "projects": [
+        "fovory-supplier-sync"
+      ],
+      "platform": "Shopify + Custom Laravel App",
+      "squad": {
+        "roles": [
+          "tech-lead",
+          "backend-developer",
+          "frontend-developer",
+          "ai-specialist",
+          "security-engineer",
+          "qa-tester",
+          "operations-manager",
+          "ecommerce-manager",
+          "product-manager",
+          "marketing-strategist",
+          "content-creator",
+          "ads-specialist",
+          "email-marketing",
+          "seo-specialist",
+          "analytics-specialist",
+          "pricing-strategist"
+        ],
+        "description": "Dual squad: dev team (Laravel/Vue) + operations/marketing team (Shopify store)"
+      },
+      "tech_stack": {
+        "frontend": ["Vue 3.5", "Inertia.js 3", "TypeScript", "Tailwind CSS 4", "Nuxt UI 4", "TipTap 3", "TanStack Table", "Unovis"],
+        "backend": ["PHP 8.4", "Laravel 13", "Laravel Horizon", "Laravel Reverb", "Laravel Fortify", "Laravel Pennant"],
+        "databases": ["PostgreSQL", "Redis", "SQLite (dev)"],
+        "ai": ["Laravel AI SDK", "Claude/Anthropic", "OpenRouter", "OpenAI"],
+        "import": ["Maatwebsite Excel", "WebSocket progress"],
+        "testing": ["Pest 5", "Playwright", "Larastan", "Rector", "Pint"],
+        "build": ["Bun", "Vite"],
+        "shopify": ["Shopify GraphQL Admin API", "Shopify MCP"]
+      },
+      "codebase_stats": {
+        "models": 43,
+        "actions": 75,
+        "controllers": 42,
+        "vue_pages": 44,
+        "migrations": 72,
+        "tests": 943,
+        "assertions": 2997,
+        "updated": "2026-04-07"
+      },
+      "capabilities": {
+        "dev": ["Supplier integration (API + CSV)", "Product CRUD with variants/offers", "AI system (providers/agents/personas/triggers)", "Bulk import (Excel + WebSocket)", "E-commerce settings", "Multi-locale translations"],
+        "store": ["Shopify MCP", "Product management", "CSV bulk operations", "Pricing strategy (min 35% margin)", "Stock management (15min sync, 5% buffer)", "Translations"],
+        "marketing": ["Social media (Instagram, LinkedIn, TikTok, X)", "Email campaigns", "Google Ads", "Meta Ads", "Content calendars", "Reels/Shorts scripts"],
+        "analytics": ["Google Analytics 4", "Google Ads", "Shopify Analytics", "Meta Pixel"],
+        "knowledge": ["KB personas for content voice", "Market research", "Competitor analysis", "Trend analysis"],
+        "automation": ["Bulk product updates", "Price optimization", "Translation automation", "Ad creative generation"]
+      },
+      "created_at": "2026-03-17",
+      "updated_at": "2026-04-07"
+    },
+    "wizardingcode": {
+      "name": "WizardingCode Internal",
+      "description": "Internal growth engine. Revenue target: 1M EUR by Dec 2026. Micro-SaaS, AI tools, content creation, financial management, trend scouting.",
+      "client": "WizardingCode (internal)",
+      "type": "internal",
+      "status": "active",
+      "projects": [
+        "lora-tester",
+        "purz-comfyui-workflows"
+      ],
+      "squad": {
+        "roles": [
+          "ceo-copilot",
+          "creative-director",
+          "marketing-lead",
+          "data-analyst",
+          "market-scout",
+          "content-creator",
+          "financial-controller",
+          "full-stack-builder",
+          "growth-hacker",
+          "community-manager"
+        ],
+        "description": "Growth team — strategy, content, finance, and product development"
+      },
+      "revenue_target": {
+        "amount": 1000000,
+        "currency": "EUR",
+        "deadline": "2026-12-31",
+        "monthly_target": 83333
+      },
+      "capabilities": {
+        "strategy": ["Idea evaluation", "OKRs", "Roadmap", "Market analysis"],
+        "product": ["Micro-SaaS", "AI tools", "ARKA OS Pro", "Landing pages"],
+        "content": ["AI articles", "Entrepreneurship", "YouTube", "LinkedIn", "Newsletter"],
+        "finance": ["Gmail accounting", "Revenue tracking", "Investment plans", "Invoicing"],
+        "marketing": ["Social media", "Email funnels", "Google Ads", "Growth hacking"]
+      },
+      "integrations": ["Gmail (accounting)", "Google Calendar", "ClickUp", "InvoiceExpress"],
+      "created_at": "2026-03-17"
+    },
+    "rothbard100": {
+      "name": "Rothbard 100",
+      "description": "Libertarian event platform celebrating the 100th anniversary of Murray Rothbard. Landing page, future registration app, and event CRM. Organized by Cataláxia EDITORA. Event: Porto, 27 Jun 2026.",
+      "client": "Cataláxia EDITORA",
+      "type": "internal",
+      "status": "active",
+      "projects": [
+        "rothbard100-landing"
+      ],
+      "squad": {
+        "roles": [
+          "project-manager",
+          "frontend-developer",
+          "content-creator",
+          "seo-marketing",
+          "security-engineer",
+          "qa-tester",
+          "devops"
+        ],
+        "description": "Dedicated Rothbard 100 squad for event platform — landing page focus"
+      },
+      "tech_stack": {
+        "frontend": ["Nuxt 4.4.2", "Vue 3", "TypeScript", "Tailwind CSS 4", "Nuxt UI v4.5.1"],
+        "i18n": ["@nuxtjs/i18n (pt, en, fr, es, de)"],
+        "content": ["@nuxt/content v3"],
+        "images": ["@nuxt/image v2"],
+        "icons": ["Iconify (lucide + simple-icons)"],
+        "infra": ["Cloudflare Pages", "pnpm"],
+        "build": ["SSG (Nitro prerender)"]
+      },
+      "brand": {
+        "primary_color": "#FFC939",
+        "secondary_color": "#000000",
+        "theme": "dark-premium-revolutionary",
+        "style": "Silicon Valley event level",
+        "font": "Inter (400-900)",
+        "mode": "light-only"
+      },
+      "created_at": "2026-03-26",
+      "updated_at": "2026-04-07"
+    },
+    "cascais24horas": {
+      "name": "Cascais 24 Horas",
+      "description": "Local news and events portal for Cascais, Portugal. Security-critical rebuild after WordPress hack. CMS backend with admin panel and public-facing Nuxt frontend.",
+      "client": "WizardingCode (internal project)",
+      "type": "internal",
+      "status": "active",
+      "projects": [
+        "cascais24horas-cms",
+        "cascais24horas-web"
+      ],
+      "squad": {
+        "roles": [
+          "project-manager",
+          "backend-developer",
+          "frontend-developer-cms",
+          "frontend-developer-web",
+          "content-creator",
+          "seo-marketing",
+          "security-engineer",
+          "qa-tester"
+        ],
+        "description": "Dedicated Cascais24Horas squad for news portal rebuild"
+      },
+      "tech_stack": {
+        "frontend_cms": ["Vue 3", "Inertia.js 3", "TypeScript", "Tailwind CSS 4", "TipTap"],
+        "frontend_web": ["Nuxt 4", "Nuxt UI 4", "Vue 3", "TypeScript", "Tailwind CSS 4"],
+        "backend": ["PHP 8.4", "Laravel 12"],
+        "databases": ["SQLite (dev)", "PostgreSQL (prod)", "Redis"],
+        "search": ["Laravel Scout"],
+        "media": ["Spatie MediaLibrary"],
+        "auth": ["Sanctum", "Spatie Permission"],
+        "seo": ["Spatie Sitemap", "Nuxt SEO", "Google News"],
+        "content": ["@nuxt/content v3", "TipTap", "HTML Purifier"]
+      },
+      "security_context": "Rebuilt after WordPress hack — security is first-class concern",
+      "created_at": "2026-03-31"
+    },
+    "marlon": {
+      "name": "Marlon",
+      "description": "Services and consulting client of WizardingCode. Web application ecosystem with Nuxt/Vue frontend. Dedicated squad and orchestrator.",
+      "client": "Marlon",
+      "type": "client",
+      "status": "active",
+      "projects": [],
+      "squad": {
+        "roles": [
+          "project-manager",
+          "backend-developer",
+          "frontend-developer",
+          "security-engineer",
+          "qa-tester",
+          "devops"
+        ],
+        "description": "Dedicated Marlon squad for services/consulting web platform"
+      },
+      "tech_stack": {
+        "frontend": ["Nuxt 4", "Vue 3", "TypeScript", "Tailwind CSS 4", "Nuxt UI 4"],
+        "backend": ["PHP 8.4", "Laravel 12"],
+        "databases": ["PostgreSQL", "SQLite (dev)", "Redis"],
+        "auth": ["Sanctum", "Spatie Permissions"],
+        "infra": ["Docker", "pnpm", "Vercel/Netlify"]
+      },
+      "created_at": "2026-04-06"
+    },
+    "zugatv": {
+      "name": "ZugaTV",
+      "description": "Portuguese content/media partner. Viral interactive content and audience growth funnels. First project: Raio-X Ideologico — political ideology quiz for follower growth.",
+      "client": "ZugaTV",
+      "type": "partner",
+      "status": "active",
+      "projects": [
+        "raiox-ideologico"
+      ],
+      "squad": {
+        "roles": [
+          "project-manager",
+          "frontend-developer",
+          "content-creator",
+          "seo-marketing",
+          "security-engineer",
+          "qa-tester"
+        ],
+        "description": "Dedicated ZugaTV squad for viral content platforms"
+      },
+      "tech_stack": {
+        "frontend": ["Nuxt 4", "Vue 3", "TypeScript", "Tailwind CSS 4", "Nuxt UI 4", "Chart.js", "vue-chartjs"],
+        "content": ["@nuxt/content v3"],
+        "composables": ["@vueuse/nuxt"],
+        "seo": ["@nuxtjs/seo", "@nuxtjs/robots", "nuxt-og-image"],
+        "analytics": ["nuxt-plausible"],
+        "fonts": ["@nuxt/fonts (Inter)"],
+        "testing": ["Vitest", "@vue/test-utils", "happy-dom"],
+        "build": ["pnpm", "SSR/SPA hybrid", "Vercel or Cloudflare Pages"]
+      },
+      "constraints": {
+        "architecture": "100% client-side scoring — NO backend, NO database, NO auth",
+        "privacy": "RGPD by design — no personal data stored server-side",
+        "language": "Portuguese (pt-PT) only — no i18n"
+      },
+      "created_at": "2026-03-28"
     }
   }
 }
