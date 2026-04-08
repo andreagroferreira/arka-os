@@ -135,6 +135,20 @@ export async function update() {
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   console.log("         ✓ Manifest updated");
 
+  // Reset sync state to trigger /arka update on next session
+  const syncStatePath = join(installDir, "sync-state.json");
+  const syncState = {
+    version: "pending-sync",
+    last_sync: null,
+    projects_synced: 0,
+    skills_synced: 0,
+    errors: [],
+    core_updated_to: VERSION,
+    core_updated_at: new Date().toISOString()
+  };
+  writeFileSync(syncStatePath, JSON.stringify(syncState, null, 2));
+  console.log("         ✓ Sync state reset (run /arka update to sync projects)");
+
   console.log(`
   ╔══════════════════════════════════════════╗
   ║  ArkaOS updated to v${VERSION}              ║
@@ -146,6 +160,6 @@ export async function update() {
     Projects:  ${profile.projectsDir || "not set"}
     Vault:     ${profile.vaultPath || "not set"}
 
-  Run 'npx arkaos doctor' to verify.
+  ⚠ Run /arka update in Claude Code to sync all projects.
   `);
 }
