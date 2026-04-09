@@ -1,4 +1,4 @@
-"""Tests for ObsidianWriter — KnowledgeEntry → Obsidian markdown notes."""
+"""Tests for ObsidianWriter and VectorWriter — KnowledgeEntry dual-write."""
 
 from pathlib import Path
 
@@ -6,6 +6,7 @@ import pytest
 
 from core.cognition.memory.obsidian import CATEGORY_FOLDERS, ObsidianWriter
 from core.cognition.memory.schemas import KnowledgeEntry
+from core.cognition.memory.vector import VectorWriter
 
 
 # --- Helpers ---
@@ -109,3 +110,60 @@ class TestObsidianWriter:
         content = Path(path_second).read_text()
         assert "confidence: 0.99" in content
         assert "confidence: 0.5" not in content
+
+
+# --- VectorWriter Tests ---
+
+class TestVectorWriter:
+    @pytest.fixture
+    def writer(self, tmp_path: Path) -> VectorWriter:
+        db = VectorWriter(db_path=str(tmp_path / "test_vector.db"))
+        yield db
+        db.close()
+
+    def test_write_indexes_entry(self, writer: VectorWriter) -> None:
+        """write() returns True when the entry is successfully stored."""
+        entry = make_entry()
+        result = writer.write(entry)
+        assert result is True
+
+    def test_search_finds_entry(self, writer: VectorWriter) -> None:
+        """search() with matching keywords returns the written entry."""
+        entry = make_entry(
+            title="Laravel Sanctum Auth Setup",
+            tags=["laravel", "auth", "sanctum"],
+            content="Install Sanctum and publish the config.",
+        )
+        writer.write(entry)
+
+        results = writer.search("laravel sanctum")
+        assert len(results) >= 1
+        titles = [r["title"] for r in results]
+        assert entry.title in titles
+
+    def test_search_returns_metadata(self, writer: VectorWriter) -> None:
+        """Result dicts include entry_id, confidence, and applicable_to."""
+        entry = make_entry(confidence=0.8, applicable_to="laravel")
+        writer.write(entry)
+
+        results = writer.search("laravel")
+        assert len(results) >= 1
+        result = results[0]
+        assert "entry_id" in result
+        assert "confidence" in result
+        assert "applicable_to" in result
+        assert result["applicable_to"] == "laravel"
+        assert result["confidence"] == pytest.approx(0.8)
+
+    def test_update_replaces_entry(self, writer: VectorWriter) -> None:
+        """Writing the same entry twice upserts — no duplicates, data updated."""
+        entry = make_entry(confidence=0.5)
+        writer.write(entry)
+
+        updated = entry.model_copy(update={"confidence": 0.95})
+        writer.write(updated)
+
+        results = writer.search("laravel sanctum")
+        matching = [r for r in results if r["entry_id"] == entry.id]
+        assert len(matching) == 1
+        assert matching[0]["confidence"] == pytest.approx(0.95)
