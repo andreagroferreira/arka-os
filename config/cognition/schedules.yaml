@@ -1,0 +1,25 @@
+# ArkaOS Cognitive Layer — Schedule Configuration
+#
+# This file is deployed to ~/.arkaos/schedules.yaml during installation.
+# Edit the deployed copy to customize schedules.
+
+schedules:
+  dreaming:
+    command: dreaming
+    prompt_file: "~/.arkaos/cognition/prompts/dreaming.md"
+    time: "02:00"
+    timezone: auto
+    enabled: true
+    retry_on_fail: true
+    max_retries: 2
+    timeout_minutes: 60
+
+  research:
+    command: research
+    prompt_file: "~/.arkaos/cognition/prompts/research.md"
+    time: "05:00"
+    timezone: auto
+    enabled: true
+    retry_on_fail: true
+    max_retries: 2
+    timeout_minutes: 90
