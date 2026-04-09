@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { getRuntimeConfig } from "./detect-runtime.js";
+import { findSystemPython, ensureVenv, getArkaosPython, getArkaosPip, pipInstall } from "./python-resolver.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,14 +31,14 @@ export async function install({ runtime, path, force }) {
   const installDir = userConfig.installDir;
 
   // ═══ Step 1: Create directories ═══
-  step(1, 13, "Creating directories...");
+  step(1, 14, "Creating directories...");
   ensureDir(installDir);
   const dirs = ["config", "config/hooks", "agents", "media", "session-digests", "vault"];
   for (const d of dirs) ensureDir(join(installDir, d));
   ok(`${dirs.length + 1} directories ready`);
 
   // ═══ Step 2: Detect v1 installation ═══
-  step(2, 13, "Checking for v1 installation...");
+  step(2, 14, "Checking for v1 installation...");
   const v1Paths = [
     join(homedir(), ".claude", "skills", "arka-os"),
     join(homedir(), ".claude", "skills", "arkaos"),
@@ -50,36 +51,53 @@ export async function install({ runtime, path, force }) {
     ok("No v1 installation found");
   }
 
-  // ═══ Step 3: Check Python ═══
-  step(3, 13, "Checking Python 3.11+...");
-  const pythonCmd = checkPython();
-  ok(`Found: ${pythonCmd}`);
+  // ═══ Step 3: Check Python + create venv ═══
+  step(3, 14, "Checking Python 3.11+ and creating virtual environment...");
+  const systemPython = findSystemPython();
+  if (!systemPython) {
+    console.error(`
+  ✗ Python 3.11+ is required but not found.
+
+  Install Python:
+    macOS:   brew install python@3.13
+    Linux:   sudo apt install python3.13
+    Windows: https://python.org/downloads/
+    `);
+    process.exit(1);
+  }
+  ok(`System Python found: ${systemPython}`);
+  const venvCreated = ensureVenv((msg) => console.log(msg));
+  if (!venvCreated) {
+    warn("Venv creation failed — falling back to system Python (PEP 668 may apply)");
+  }
+  const pythonCmd = getArkaosPython();
+  ok(`ArkaOS Python: ${pythonCmd}`);
 
   // ═══ Step 4: Install Python core + dependencies based on user choices ═══
-  step(4, 13, "Installing Python dependencies (this may take a minute)...");
-  installAllPythonDeps(pythonCmd, userConfig);
+  step(4, 14, "Installing Python dependencies (this may take a minute)...");
+  installAllPythonDeps(userConfig);
 
   // ═══ Step 5: Copy configuration files ═══
-  step(5, 13, "Copying configuration files...");
+  step(5, 14, "Copying configuration files...");
   copyConfigFiles(installDir);
   ok("Constitution, standards, and config copied");
 
   // ═══ Step 6: Install hooks with real paths ═══
-  step(6, 13, "Installing hooks...");
+  step(6, 14, "Installing hooks...");
   installHooks(installDir);
 
   // ═══ Step 7: Configure runtime ═══
-  step(7, 13, "Configuring runtime...");
+  step(7, 14, "Configuring runtime...");
   const adapter = await loadAdapter(runtime);
   adapter.configureHooks(config, installDir);
   ok(`${config.name} configured`);
 
   // ═══ Step 8: Install ArkaOS skill to Claude Code ═══
-  step(8, 13, "Installing /arka skill...");
+  step(8, 14, "Installing /arka skill...");
   installSkill(config, installDir);
 
   // ═══ Step 9: Install CLI wrapper and user instructions ═══
-  step(9, 13, "Installing CLI wrapper...");
+  step(9, 14, "Installing CLI wrapper...");
   const binDir = join(installDir, "bin");
   ensureDir(binDir);
   const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
@@ -99,8 +117,12 @@ export async function install({ runtime, path, force }) {
     ok("~/.claude/CLAUDE.md already exists (preserved)");
   }
 
-  // ═══ Step 10: Create references and profile ═══
-  step(10, 13, "Creating references...");
+  // ═══ Step 10: Deploy Cognitive Scheduler ═══
+  step(10, 14, "Deploying cognitive scheduler...");
+  deployCognitiveScheduler(installDir, ARKAOS_ROOT);
+
+  // ═══ Step 11: Create references and profile ═══
+  step(11, 14, "Creating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
   const skillsDir = join(config.skillsDir || join(homedir(), ".claude", "skills"), "arkaos");
   ensureDir(skillsDir);
@@ -135,8 +157,8 @@ export async function install({ runtime, path, force }) {
     ok("API keys saved");
   }
 
-  // ═══ Step 10: Index knowledge base ═══
-  step(11, 13, "Setting up knowledge base...");
+  // ═══ Step 12: Index knowledge base ═══
+  step(12, 14, "Setting up knowledge base...");
   if (userConfig.installKnowledge) {
     const kbDb = join(installDir, "knowledge.db");
     // Index ArkaOS skills first
@@ -163,8 +185,8 @@ export async function install({ runtime, path, force }) {
     ok("Knowledge base skipped (install later with 'npx arkaos index')");
   }
 
-  // ═══ Step 11: Verify installation ═══
-  step(12, 13, "Verifying installation...");
+  // ═══ Step 13: Verify installation ═══
+  step(13, 14, "Verifying installation...");
   let checks = 0;
   if (existsSync(join(installDir, "config", "constitution.yaml"))) checks++;
   if (existsSync(join(installDir, "config", "hooks", "user-prompt-submit.sh"))) checks++;
@@ -178,8 +200,8 @@ export async function install({ runtime, path, force }) {
   } catch {}
   ok(`${checks}/5 checks passed`);
 
-  // ═══ Step 12: Finalize ═══
-  step(13, 13, "Finalizing...");
+  // ═══ Step 14: Finalize ═══
+  step(14, 14, "Finalizing...");
   const manifest = {
     version: VERSION,
     runtime,
@@ -241,31 +263,9 @@ function ensureDir(dir) {
   }
 }
 
-function checkPython() {
-  const candidates = ["python3", "python"];
-  for (const cmd of candidates) {
-    try {
-      const version = execSync(`${cmd} --version 2>&1`, { stdio: "pipe" }).toString().trim();
-      const match = version.match(/(\d+)\.(\d+)/);
-      if (match && parseInt(match[1]) >= 3 && parseInt(match[2]) >= 11) {
-        return cmd;
-      }
-    } catch {
-      continue;
-    }
-  }
-  console.error(`
-  ✗ Python 3.11+ is required but not found.
+function installAllPythonDeps(userConfig = {}) {
+  const log = (msg) => console.log(msg);
 
-  Install Python:
-    macOS:   brew install python@3.13
-    Linux:   sudo apt install python3.13
-    Windows: https://python.org/downloads/
-  `);
-  process.exit(1);
-}
-
-function installAllPythonDeps(pythonCmd, userConfig = {}) {
   // Core dependencies
   const coreDeps = "pyyaml pydantic rich click jinja2";
   // Knowledge + Vector DB
@@ -277,75 +277,56 @@ function installAllPythonDeps(pythonCmd, userConfig = {}) {
   // Transcription
   const transcriptionDeps = "faster-whisper";
 
-  // Build deps list based on user choices
-  let allDeps = coreDeps;
-  if (userConfig.installKnowledge !== false) allDeps += ` ${knowledgeDeps}`;
-  allDeps += ` ${ingestDeps}`;
-  if (userConfig.installDashboard !== false) allDeps += ` ${dashboardDeps}`;
-
-  try {
-    // Try uv first (faster)
-    try {
-      execSync("uv --version", { stdio: "pipe" });
-      console.log("         Using uv (fast installer)...");
-      execSync(`uv pip install ${allDeps}`, { stdio: "pipe", timeout: 300000 });
-      ok("Core + Knowledge + Ingest + Dashboard deps installed");
-      // Transcription optional (heavy)
-      try {
-        execSync(`uv pip install ${transcriptionDeps}`, { stdio: "pipe", timeout: 300000 });
-        ok("Whisper transcription installed");
-      } catch {
-        warn("Whisper not installed (optional — needed for YouTube/audio transcription)");
-      }
-      return;
-    } catch {
-      // uv not available, use pip
-    }
-
-    console.log("         Installing core dependencies...");
-    execSync(`${pythonCmd} -m pip install ${coreDeps} --quiet`, { stdio: "pipe", timeout: 120000 });
+  // Core deps (required)
+  console.log("         Installing core dependencies...");
+  if (pipInstall(coreDeps, { log })) {
     ok("Core deps installed (pyyaml, pydantic, rich, click, jinja2)");
+  } else {
+    warn("Core deps failed — some features may not work");
+  }
 
+  // Knowledge deps (optional)
+  if (userConfig.installKnowledge !== false) {
     console.log("         Installing knowledge base dependencies...");
-    try {
-      execSync(`${pythonCmd} -m pip install ${knowledgeDeps} --quiet`, { stdio: "pipe", timeout: 180000 });
+    if (pipInstall(knowledgeDeps, { log, timeout: 180000 })) {
       ok("Vector DB installed (fastembed, sqlite-vss)");
-    } catch {
-      warn("Vector DB not installed (run: pip install fastembed sqlite-vss)");
+    } else {
+      warn("Vector DB not installed (run later: npx arkaos doctor for fix)");
     }
+  }
 
-    console.log("         Installing content ingest dependencies...");
-    try {
-      execSync(`${pythonCmd} -m pip install ${ingestDeps} --quiet`, { stdio: "pipe", timeout: 120000 });
-      ok("Ingest deps installed (yt-dlp, pdfplumber, beautifulsoup4)");
-    } catch {
-      warn("Ingest deps not fully installed (some content types may not work)");
-    }
+  // Ingest deps
+  console.log("         Installing content ingest dependencies...");
+  if (pipInstall(ingestDeps, { log })) {
+    ok("Ingest deps installed (yt-dlp, pdfplumber, beautifulsoup4)");
+  } else {
+    warn("Ingest deps not fully installed (some content types may not work)");
+  }
 
+  // Dashboard deps (optional)
+  if (userConfig.installDashboard !== false) {
     console.log("         Installing dashboard dependencies...");
-    try {
-      execSync(`${pythonCmd} -m pip install ${dashboardDeps} --quiet`, { stdio: "pipe", timeout: 60000 });
+    if (pipInstall(dashboardDeps, { log, timeout: 60000 })) {
       ok("Dashboard API installed (fastapi, uvicorn)");
-    } catch {
-      warn("Dashboard API not installed (run: pip install fastapi uvicorn)");
+    } else {
+      warn("Dashboard API not installed (optional)");
     }
+  }
 
-    console.log("         Installing transcription engine...");
-    try {
-      execSync(`${pythonCmd} -m pip install ${transcriptionDeps} --quiet`, { stdio: "pipe", timeout: 300000 });
-      ok("Whisper transcription installed");
-    } catch {
-      warn("Whisper not installed (optional — needed for YouTube/audio)");
-    }
+  // Transcription (optional, heavy)
+  console.log("         Installing transcription engine...");
+  if (pipInstall(transcriptionDeps, { log, timeout: 300000 })) {
+    ok("Whisper transcription installed");
+  } else {
+    warn("Whisper not installed (optional — needed for YouTube/audio)");
+  }
 
-    // Install ArkaOS itself as editable
-    try {
-      execSync(`${pythonCmd} -m pip install -e "${ARKAOS_ROOT}" --quiet`, { stdio: "pipe", timeout: 60000 });
-    } catch {}
-
-  } catch (err) {
-    warn(`Some Python deps failed: ${err.message.slice(0, 100)}`);
-    console.log("         You can install manually: pip install pyyaml pydantic rich click fastembed sqlite-vss");
+  // Install ArkaOS core package as editable
+  console.log("         Installing ArkaOS core engine...");
+  if (pipInstall("", { editable: ARKAOS_ROOT, log, timeout: 60000 })) {
+    ok("ArkaOS core engine installed");
+  } else {
+    warn("Core engine install failed — run: npx arkaos doctor for fix");
   }
 }
 
@@ -439,6 +420,156 @@ function installSkill(config, installDir) {
       // cpSync may not be available in older Node
       warn("Department skills copy skipped");
     }
+  }
+}
+
+function deployCognitiveScheduler(installDir, arkaosRoot) {
+  const platform = process.platform;
+
+  // 1. Copy schedule config
+  const schedSrc = join(arkaosRoot, "config", "cognition", "schedules.yaml");
+  const schedDest = join(installDir, "schedules.yaml");
+  if (existsSync(schedSrc)) {
+    copyFileSync(schedSrc, schedDest);
+    ok("Schedule config deployed");
+  } else {
+    warn("schedules.yaml not found in package");
+    return;
+  }
+
+  // 2. Copy prompt files
+  const promptsDir = join(installDir, "cognition", "prompts");
+  ensureDir(promptsDir);
+  const promptsSrc = join(arkaosRoot, "config", "cognition", "prompts");
+  if (existsSync(promptsSrc)) {
+    for (const f of readdirSync(promptsSrc)) {
+      copyFileSync(join(promptsSrc, f), join(promptsDir, f));
+    }
+    ok("Cognitive prompts deployed (dreaming, research)");
+  }
+
+  // 3. Copy daemon script
+  const daemonSrc = join(arkaosRoot, "bin", "scheduler-daemon.py");
+  const binDir = join(installDir, "bin");
+  ensureDir(binDir);
+  if (existsSync(daemonSrc)) {
+    copyFileSync(daemonSrc, join(binDir, "scheduler-daemon.py"));
+    try { chmodSync(join(binDir, "scheduler-daemon.py"), 0o755); } catch {}
+    ok("Scheduler daemon deployed");
+  }
+
+  // 4. Create log directories
+  ensureDir(join(installDir, "logs", "dreaming"));
+  ensureDir(join(installDir, "logs", "research"));
+
+  // 5. Install platform service
+  const daemonPath = join(binDir, "scheduler-daemon.py");
+  if (platform === "darwin") {
+    installLaunchdService(installDir, daemonPath);
+  } else if (platform === "linux") {
+    installSystemdService(installDir, daemonPath);
+  } else if (platform === "win32") {
+    installSchtasksService(daemonPath);
+  } else {
+    warn(`Scheduler auto-start not supported on ${platform} — run manually`);
+  }
+}
+
+function installLaunchdService(installDir, daemonPath) {
+  const label = "com.arkaos.scheduler";
+  const plistDir = join(homedir(), "Library", "LaunchAgents");
+  const plistPath = join(plistDir, `${label}.plist`);
+  const logDir = join(installDir, "logs");
+
+  let pythonPath;
+  try {
+    pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+  } catch {
+    pythonPath = "python3";
+  }
+
+  const plist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>Label</key>
+\t<string>${label}</string>
+\t<key>ProgramArguments</key>
+\t<array>
+\t\t<string>${pythonPath}</string>
+\t\t<string>${daemonPath}</string>
+\t</array>
+\t<key>RunAtLoad</key>
+\t<true/>
+\t<key>KeepAlive</key>
+\t<true/>
+\t<key>StandardOutPath</key>
+\t<string>${join(logDir, "scheduler-stdout.log")}</string>
+\t<key>StandardErrorPath</key>
+\t<string>${join(logDir, "scheduler-stderr.log")}</string>
+</dict>
+</plist>`;
+
+  ensureDir(plistDir);
+  // Unload existing if present
+  try { execSync(`launchctl unload "${plistPath}" 2>/dev/null`, { stdio: "pipe" }); } catch {}
+  writeFileSync(plistPath, plist);
+  try {
+    execSync(`launchctl load "${plistPath}"`, { stdio: "pipe" });
+    ok("Scheduler service installed and started (launchd)");
+  } catch {
+    warn("Scheduler plist written but launchctl load failed — start manually");
+  }
+}
+
+function installSystemdService(installDir, daemonPath) {
+  let pythonPath;
+  try {
+    pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+  } catch {
+    pythonPath = "python3";
+  }
+
+  const serviceDir = join(homedir(), ".config", "systemd", "user");
+  const servicePath = join(serviceDir, "arkaos-scheduler.service");
+  const unit = `[Unit]
+Description=ArkaOS Cognitive Scheduler
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${pythonPath} ${daemonPath}
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=default.target
+`;
+
+  ensureDir(serviceDir);
+  writeFileSync(servicePath, unit);
+  try {
+    execSync("systemctl --user enable --now arkaos-scheduler.service", { stdio: "pipe" });
+    ok("Scheduler service installed and started (systemd)");
+  } catch {
+    warn("Scheduler unit written but systemctl enable failed — start manually");
+  }
+}
+
+function installSchtasksService(daemonPath) {
+  let pythonPath;
+  try {
+    pythonPath = execSync("where python3", { stdio: "pipe" }).toString().trim().split("\n")[0];
+  } catch {
+    pythonPath = "python";
+  }
+
+  try {
+    execSync(`schtasks /Create /F /TN "ArkaOS-Scheduler" /SC ONLOGON /TR "${pythonPath} ${daemonPath}"`, { stdio: "pipe" });
+    execSync('schtasks /Run /TN "ArkaOS-Scheduler"', { stdio: "pipe" });
+    ok("Scheduler task installed and started (schtasks)");
+  } catch {
+    warn("Scheduler schtasks registration failed — start manually");
   }
 }
 

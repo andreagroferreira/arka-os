@@ -1,7 +1,8 @@
-import { existsSync, readFileSync, writeFileSync, copyFileSync, chmodSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, copyFileSync, chmodSync, mkdirSync, readdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
+import { ensureVenv, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -42,37 +43,51 @@ export async function update() {
 
   console.log("  Updating (keeping your configuration)...\n");
 
-  const pythonCmd = manifest.pythonCmd || "python3";
+  // ── 1. Update Python deps (using venv) ──
+  console.log("  [1/8] Updating Python dependencies...");
 
-  // ── 1. Update Python deps ──
-  console.log("  [1/6] Updating Python dependencies...");
-  try {
-    const coreDeps = "pyyaml pydantic rich click jinja2";
-    execSync(`${pythonCmd} -m pip install --upgrade ${coreDeps} --quiet`, { stdio: "pipe", timeout: 120000 });
-    console.log("         ✓ Core deps updated");
+  // Ensure venv exists (creates one if missing — fixes PEP 668)
+  const venvOk = ensureVenv((msg) => console.log(msg));
+  if (!venvOk) {
+    console.log("         \u26a0 Could not create venv — trying system Python with PEP 668 handling");
+  }
 
-    // Only update optional deps if they were installed before
-    try {
-      execSync(`${pythonCmd} -c "import fastembed"`, { stdio: "pipe" });
-      execSync(`${pythonCmd} -m pip install --upgrade fastembed sqlite-vss --quiet`, { stdio: "pipe", timeout: 180000 });
-      console.log("         ✓ Knowledge deps updated");
-    } catch { /* not installed, skip */ }
+  const pythonCmd = getArkaosPython();
+  const log = (msg) => console.log(msg);
 
-    try {
-      execSync(`${pythonCmd} -c "import fastapi"`, { stdio: "pipe" });
-      execSync(`${pythonCmd} -m pip install --upgrade fastapi uvicorn --quiet`, { stdio: "pipe", timeout: 60000 });
-      console.log("         ✓ Dashboard deps updated");
-    } catch { /* not installed, skip */ }
+  // Core deps (always upgrade)
+  if (pipInstall("pyyaml pydantic rich click jinja2", { upgrade: true, log })) {
+    console.log("         \u2713 Core deps updated");
+  } else {
+    console.log("         \u26a0 Core deps update failed");
+  }
 
-    try {
-      execSync(`${pythonCmd} -m pip install -e "${ARKAOS_ROOT}" --quiet`, { stdio: "pipe", timeout: 60000 });
-    } catch {}
-  } catch (err) {
-    console.log(`         ⚠ Some deps failed: ${err.message.slice(0, 80)}`);
+  // Only update optional deps if they were installed before
+  const pyCheck = (mod) => {
+    try { execSync(`"${pythonCmd}" -c "import ${mod}"`, { stdio: "pipe" }); return true; } catch { return false; }
+  };
+
+  if (pyCheck("fastembed")) {
+    if (pipInstall("fastembed sqlite-vss", { upgrade: true, log, timeout: 180000 })) {
+      console.log("         \u2713 Knowledge deps updated");
+    }
+  }
+
+  if (pyCheck("fastapi")) {
+    if (pipInstall("fastapi uvicorn", { upgrade: true, log, timeout: 60000 })) {
+      console.log("         \u2713 Dashboard deps updated");
+    }
+  }
+
+  // Always install ArkaOS core engine
+  if (pipInstall("", { editable: ARKAOS_ROOT, log, timeout: 60000 })) {
+    console.log("         \u2713 ArkaOS core engine installed");
+  } else {
+    console.log("         \u26a0 Core engine install failed — run: npx arkaos doctor");
   }
 
   // ── 2. Update config files ──
-  console.log("  [2/6] Updating configuration...");
+  console.log("  [2/8] Updating configuration...");
   const constitutionSrc = join(ARKAOS_ROOT, "config", "constitution.yaml");
   if (existsSync(constitutionSrc)) {
     mkdirSync(join(installDir, "config"), { recursive: true });
@@ -81,7 +96,7 @@ export async function update() {
   }
 
   // ── 3. Update hooks ──
-  console.log("  [3/6] Updating hooks...");
+  console.log("  [3/8] Updating hooks...");
   const hookMap = {
     "session-start.sh": "session-start.sh",
     "user-prompt-submit.sh": "user-prompt-submit.sh",
@@ -113,7 +128,7 @@ export async function update() {
   console.log("         ✓ Hooks updated");
 
   // ── 4. Update CLI wrapper + user CLAUDE.md ──
-  console.log("  [4/7] Updating CLI wrapper and user instructions...");
+  console.log("  [4/8] Updating CLI wrapper and user instructions...");
   const binDir = join(installDir, "bin");
   mkdirSync(binDir, { recursive: true });
   const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
@@ -130,8 +145,12 @@ export async function update() {
     console.log("         ✓ ~/.claude/CLAUDE.md updated");
   }
 
-  // ── 5. Update /arka skill ──
-  console.log("  [5/7] Updating /arka skill...");
+  // ── 5. Update Cognitive Scheduler ──
+  console.log("  [5/8] Updating cognitive scheduler...");
+  updateCognitiveScheduler(installDir, ARKAOS_ROOT);
+
+  // ── 6. Update /arka skill ──
+  console.log("  [6/8] Updating /arka skill...");
   const skillSrc = join(ARKAOS_ROOT, "arka", "SKILL.md");
   const skillDest = join(homedir(), ".claude", "skills", "arka");
   mkdirSync(skillDest, { recursive: true });
@@ -142,15 +161,16 @@ export async function update() {
     console.log("         ✓ /arka skill updated");
   }
 
-  // ── 6. Update .repo-path ──
-  console.log("  [6/7] Updating references...");
+  // ── 7. Update .repo-path ──
+  console.log("  [7/8] Updating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
   console.log("         ✓ Repo path updated");
 
-  // ── 7. Update manifest ──
-  console.log("  [7/7] Finalizing...");
+  // ── 8. Update manifest ──
+  console.log("  [8/8] Finalizing...");
   manifest.version = VERSION;
   manifest.repoRoot = ARKAOS_ROOT;
+  manifest.pythonCmd = pythonCmd;
   manifest.updatedAt = new Date().toISOString();
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   console.log("         ✓ Manifest updated");
@@ -183,4 +203,107 @@ export async function update() {
   Next time you open Claude Code, ArkaOS will automatically
   detect the update and sync all your projects.
   `);
+}
+
+function ensureDir(dir) {
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
+function updateCognitiveScheduler(installDir, arkaosRoot) {
+  const platform = process.platform;
+
+  // 1. Update schedule config
+  const schedSrc = join(arkaosRoot, "config", "cognition", "schedules.yaml");
+  if (existsSync(schedSrc)) {
+    copyFileSync(schedSrc, join(installDir, "schedules.yaml"));
+    console.log("         \u2713 Schedule config updated");
+  }
+
+  // 2. Update prompt files
+  const promptsDir = join(installDir, "cognition", "prompts");
+  ensureDir(promptsDir);
+  const promptsSrc = join(arkaosRoot, "config", "cognition", "prompts");
+  if (existsSync(promptsSrc)) {
+    for (const f of readdirSync(promptsSrc)) {
+      copyFileSync(join(promptsSrc, f), join(promptsDir, f));
+    }
+    console.log("         \u2713 Cognitive prompts updated");
+  }
+
+  // 3. Update daemon script
+  const daemonSrc = join(arkaosRoot, "bin", "scheduler-daemon.py");
+  const binDir = join(installDir, "bin");
+  ensureDir(binDir);
+  if (existsSync(daemonSrc)) {
+    copyFileSync(daemonSrc, join(binDir, "scheduler-daemon.py"));
+    try { chmodSync(join(binDir, "scheduler-daemon.py"), 0o755); } catch {}
+    console.log("         \u2713 Scheduler daemon updated");
+  }
+
+  // 4. Ensure log directories
+  ensureDir(join(installDir, "logs", "dreaming"));
+  ensureDir(join(installDir, "logs", "research"));
+
+  // 5. Restart platform service if installed
+  const daemonPath = join(binDir, "scheduler-daemon.py");
+  if (platform === "darwin") {
+    const plistPath = join(homedir(), "Library", "LaunchAgents", "com.arkaos.scheduler.plist");
+    if (existsSync(plistPath)) {
+      // Reload to pick up updated daemon
+      try {
+        execSync(`launchctl unload "${plistPath}" 2>/dev/null`, { stdio: "pipe" });
+        execSync(`launchctl load "${plistPath}"`, { stdio: "pipe" });
+        console.log("         \u2713 Scheduler service restarted (launchd)");
+      } catch {
+        console.log("         \u26a0 Scheduler reload failed — restart manually");
+      }
+    } else {
+      // First time — install the service
+      let pythonPath;
+      try {
+        pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+      } catch {
+        pythonPath = "python3";
+      }
+      const logDir = join(installDir, "logs");
+      const plist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>Label</key>
+\t<string>com.arkaos.scheduler</string>
+\t<key>ProgramArguments</key>
+\t<array>
+\t\t<string>${pythonPath}</string>
+\t\t<string>${daemonPath}</string>
+\t</array>
+\t<key>RunAtLoad</key>
+\t<true/>
+\t<key>KeepAlive</key>
+\t<true/>
+\t<key>StandardOutPath</key>
+\t<string>${join(logDir, "scheduler-stdout.log")}</string>
+\t<key>StandardErrorPath</key>
+\t<string>${join(logDir, "scheduler-stderr.log")}</string>
+</dict>
+</plist>`;
+      ensureDir(join(homedir(), "Library", "LaunchAgents"));
+      writeFileSync(plistPath, plist);
+      try {
+        execSync(`launchctl load "${plistPath}"`, { stdio: "pipe" });
+        console.log("         \u2713 Scheduler service installed and started (launchd)");
+      } catch {
+        console.log("         \u26a0 Scheduler plist written but load failed");
+      }
+    }
+  } else if (platform === "linux") {
+    try {
+      execSync("systemctl --user restart arkaos-scheduler.service 2>/dev/null", { stdio: "pipe" });
+      console.log("         \u2713 Scheduler service restarted (systemd)");
+    } catch {
+      console.log("         \u26a0 Scheduler not running — install with: npx arkaos install");
+    }
+  }
 }
