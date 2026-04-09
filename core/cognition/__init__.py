@@ -1,5 +1,7 @@
-"""ArkaOS Cognitive Layer — persistent memory and knowledge extraction system.
+"""ArkaOS Cognitive Layer — Memory, Dreaming, Research."""
 
-Provides RawCapture (session captures), KnowledgeEntry (curated dual-write knowledge),
-and ActionableInsight (proactive agent-generated insights).
-"""
+from .capture.store import CaptureStore
+from .insights.store import InsightStore
+from .memory.writer import DualWriter
+
+__all__ = ["DualWriter", "CaptureStore", "InsightStore"]

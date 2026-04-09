@@ -167,3 +167,73 @@ class TestVectorWriter:
         matching = [r for r in results if r["entry_id"] == entry.id]
         assert len(matching) == 1
         assert matching[0]["confidence"] == pytest.approx(0.95)
+
+
+# --- DualWriter Tests ---
+
+class TestDualWriter:
+    from core.cognition.memory.writer import DualWriter
+
+    @pytest.fixture
+    def dual_writer(self, tmp_path: Path):
+        from core.cognition.memory.writer import DualWriter
+        obsidian_base = str(tmp_path / "vault")
+        vector_db = str(tmp_path / "vector.db")
+        writer = DualWriter(obsidian_base=obsidian_base, vector_db_path=vector_db)
+        yield writer
+        writer.close()
+
+    def test_write_persists_to_both(self, dual_writer, tmp_path: Path) -> None:
+        """write() stores to Obsidian (file exists) and Vector DB (indexed True)."""
+        entry = make_entry()
+        result = dual_writer.write(entry)
+
+        assert result.obsidian_path is not None
+        assert result.vector_indexed is True
+        assert Path(result.obsidian_path).exists()
+        assert result.obsidian_error is None
+        assert result.vector_error is None
+
+    def test_write_survives_obsidian_failure(self, tmp_path: Path) -> None:
+        """If Obsidian path is invalid, vector still indexes and obsidian_error is set."""
+        from core.cognition.memory.writer import DualWriter
+
+        # Use a path that cannot be written to (root-level invalid location)
+        bad_obsidian = "/no/such/directory/vault"
+        vector_db = str(tmp_path / "vector_fallback.db")
+        writer = DualWriter(obsidian_base=bad_obsidian, vector_db_path=vector_db)
+        try:
+            result = writer.write(make_entry())
+        finally:
+            writer.close()
+
+        assert result.obsidian_path is None
+        assert result.obsidian_error is not None
+        assert result.vector_indexed is True
+        assert result.vector_error is None
+
+    def test_search_delegates_to_vector(self, dual_writer) -> None:
+        """After write(), search() returns the written entry via vector store."""
+        entry = make_entry(
+            title="Sanctum Token Auth",
+            tags=["sanctum", "token", "auth"],
+            content="Use Sanctum for stateless token-based authentication.",
+        )
+        dual_writer.write(entry)
+
+        results = dual_writer.search("sanctum token")
+        assert len(results) >= 1
+        titles = [r["title"] for r in results]
+        assert entry.title in titles
+
+    def test_write_returns_stats(self, dual_writer) -> None:
+        """WriteResult exposes all 4 attributes with correct types."""
+        from core.cognition.memory.writer import WriteResult
+
+        result = dual_writer.write(make_entry())
+
+        assert hasattr(result, "obsidian_path")
+        assert hasattr(result, "obsidian_error")
+        assert hasattr(result, "vector_indexed")
+        assert hasattr(result, "vector_error")
+        assert isinstance(result, WriteResult)
