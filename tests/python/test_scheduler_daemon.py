@@ -9,6 +9,7 @@ import pytest
 import yaml
 
 from core.cognition.scheduler import ArkaScheduler, ScheduleConfig
+from core.cognition.scheduler.cli import list_schedules, run_now, scheduler_status
 
 
 # ---------------------------------------------------------------------------
@@ -151,3 +152,115 @@ class TestArkaScheduler:
             assert acquired_second is False
         finally:
             scheduler.release_lock()
+
+
+# ---------------------------------------------------------------------------
+# TestSchedulerCLI
+# ---------------------------------------------------------------------------
+
+CLI_SCHEDULE_YAML = {
+    "schedules": {
+        "dreaming": {
+            "command": "dreaming",
+            "prompt_file": "PROMPT_FILE_PLACEHOLDER",
+            "time": "02:00",
+            "enabled": True,
+            "retry_on_fail": True,
+            "max_retries": 2,
+            "timeout_minutes": 60,
+        },
+        "research": {
+            "command": "research",
+            "prompt_file": "PROMPT_FILE_PLACEHOLDER",
+            "time": "05:00",
+            "enabled": True,
+            "retry_on_fail": True,
+            "max_retries": 1,
+            "timeout_minutes": 90,
+        },
+    }
+}
+
+
+@pytest.fixture()
+def cli_fixture(tmp_path: Path):
+    """Temp schedules.yaml with 2 schedules and a real prompt file."""
+    prompt_file = tmp_path / "prompt.md"
+    prompt_file.write_text("think deeply")
+
+    yaml_data = {
+        "schedules": {
+            name: {**cfg, "prompt_file": str(prompt_file)}
+            for name, cfg in CLI_SCHEDULE_YAML["schedules"].items()
+        }
+    }
+    yaml_file = tmp_path / "schedules.yaml"
+    yaml_file.write_text(yaml.dump(yaml_data))
+
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    lock_path = tmp_path / "arkascheduler.lock"
+
+    return {
+        "config_path": str(yaml_file),
+        "log_dir": str(log_dir),
+        "lock_path": str(lock_path),
+        "tmp_path": tmp_path,
+    }
+
+
+class TestSchedulerCLI:
+    def test_list_schedules(self, cli_fixture: dict) -> None:
+        """list_schedules returns 2 items with correct command names."""
+        result = list_schedules(cli_fixture["config_path"])
+
+        assert len(result) == 2
+        commands = {item["command"] for item in result}
+        assert commands == {"dreaming", "research"}
+
+        dreaming = next(item for item in result if item["command"] == "dreaming")
+        assert dreaming["time"] == "02:00"
+        assert dreaming["timeout"] == 60
+        assert dreaming["retry"] is True
+
+        research = next(item for item in result if item["command"] == "research")
+        assert research["time"] == "05:00"
+        assert research["timeout"] == 90
+
+    def test_status_output(self, cli_fixture: dict) -> None:
+        """scheduler_status output contains schedule commands, times, and status."""
+        output = scheduler_status(
+            config_path=cli_fixture["config_path"],
+            log_dir=cli_fixture["log_dir"],
+            lock_path=cli_fixture["lock_path"],
+        )
+
+        assert "dreaming" in output
+        assert "research" in output
+        assert "02:00" in output
+        assert "05:00" in output
+        assert "STOPPED" in output
+        assert "Last runs:" in output
+        assert "never" in output
+
+    def test_status_shows_running_when_lock_exists(self, cli_fixture: dict) -> None:
+        """scheduler_status shows RUNNING when the lock file is present."""
+        Path(cli_fixture["lock_path"]).touch()
+
+        output = scheduler_status(
+            config_path=cli_fixture["config_path"],
+            log_dir=cli_fixture["log_dir"],
+            lock_path=cli_fixture["lock_path"],
+        )
+
+        assert "RUNNING" in output
+
+    def test_run_now_raises_for_unknown_command(self, cli_fixture: dict) -> None:
+        """run_now raises ValueError for an unrecognised command."""
+        with pytest.raises(ValueError, match="unknown_cmd"):
+            run_now(
+                command="unknown_cmd",
+                config_path=cli_fixture["config_path"],
+                log_dir=cli_fixture["log_dir"],
+                lock_path=cli_fixture["lock_path"],
+            )
