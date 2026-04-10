@@ -6,6 +6,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { install } from "./index.js";
 import { detectRuntime } from "./detect-runtime.js";
+import { IS_WINDOWS } from "./platform.js";
+import { getArkaosPython } from "./python-resolver.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VERSION = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8")).version;
@@ -108,9 +110,16 @@ async function main() {
 
     case "dashboard": {
       const { execSync: execDash } = await import("node:child_process");
-      const repoRootDash = dirname(fileURLToPath(import.meta.url)).replace(/\/installer$/, "");
+      // join(__dirname, "..") is cross-platform; the previous regex
+      // `/\/installer$/` used forward slashes and did not match the
+      // Windows backslash-separated path, leaving repoRootDash pointing
+      // at the installer directory instead of the repo root.
+      const repoRootDash = join(__dirname, "..");
+      const dashCmd = IS_WINDOWS
+        ? `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${join(repoRootDash, "scripts", "start-dashboard.ps1")}"`
+        : `bash "${repoRootDash}/scripts/start-dashboard.sh"`;
       try {
-        execDash(`bash "${repoRootDash}/scripts/start-dashboard.sh"`, {
+        execDash(dashCmd, {
           stdio: "inherit",
           env: { ...process.env, ARKAOS_ROOT: repoRootDash },
         });
@@ -121,9 +130,11 @@ async function main() {
     case "index": {
       const { execSync } = await import("node:child_process");
       const indexArgs = positionals.slice(1).join(" ");
-      const repoRoot = dirname(fileURLToPath(import.meta.url)).replace(/\/installer$/, "");
+      const repoRoot = join(__dirname, "..");
+      const pyIndex = getArkaosPython();
+      if (!pyIndex) { console.error("No Python found. Run: npx arkaos install"); process.exit(1); }
       try {
-        execSync(`python3 "${repoRoot}/scripts/knowledge-index.py" ${indexArgs || ""}`, {
+        execSync(`"${pyIndex}" "${join(repoRoot, "scripts", "knowledge-index.py")}" ${indexArgs || ""}`, {
           stdio: "inherit",
           env: { ...process.env, ARKAOS_ROOT: repoRoot },
         });
@@ -135,9 +146,11 @@ async function main() {
       const { execSync } = await import("node:child_process");
       const query = positionals.slice(1).join(" ");
       if (!query) { console.error("Usage: npx arkaos search \"your query\""); process.exit(1); }
-      const repoRoot2 = dirname(fileURLToPath(import.meta.url)).replace(/\/installer$/, "");
+      const repoRoot2 = join(__dirname, "..");
+      const pySearch = getArkaosPython();
+      if (!pySearch) { console.error("No Python found. Run: npx arkaos install"); process.exit(1); }
       try {
-        execSync(`python3 "${repoRoot2}/scripts/knowledge-index.py" --search "${query}"`, {
+        execSync(`"${pySearch}" "${join(repoRoot2, "scripts", "knowledge-index.py")}" --search "${query}"`, {
           stdio: "inherit",
           env: { ...process.env, ARKAOS_ROOT: repoRoot2 },
         });
