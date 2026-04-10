@@ -24,7 +24,7 @@ SESSION_ID=$(echo "$input" | jq -r '.session_id // "unknown"' 2>/dev/null)
 TRANSCRIPT=$(echo "$input" | jq -r '.transcript // ""' 2>/dev/null)
 
 # ─── Setup ────────────────────────────────────────────────────────────────
-DIGEST_DIR="$HOME/.arka-os/session-digests"
+DIGEST_DIR="$HOME/.arkaos/session-digests"
 mkdir -p "$DIGEST_DIR"
 
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
@@ -39,11 +39,15 @@ else
   TAIL_LINES="(no transcript available)"
 fi
 
-# Extract last 5 assistant messages from JSON if available
+# Extract last 5 assistant messages from JSON if available.
+# The previous filter used `last(5)` which in jq returns the LAST element
+# of the generator `5` (the constant 5 itself), so the pipeline collapsed
+# to `5 | .[]` and always produced nothing. Use the array slice `[-5:]`
+# to actually take the last up-to-five elements, then iterate.
 ASSISTANT_MSGS=""
 if echo "$input" | jq -e '.messages' &>/dev/null; then
   ASSISTANT_MSGS=$(echo "$input" | jq -r '
-    [.messages[] | select(.role == "assistant") | .content] | last(5) | .[] // empty
+    [.messages[] | select(.role == "assistant") | .content][-5:] | .[]
   ' 2>/dev/null)
 fi
 
@@ -82,9 +86,9 @@ fi
 
 # ─── Log Metrics ─────────────────────────────────────────────────────────
 _DURATION_MS=$(_hook_ms)
-METRICS_FILE="$HOME/.arka-os/hook-metrics.json"
-METRICS_LOCK="$HOME/.arka-os/hook-metrics.lock"
-mkdir -p "$HOME/.arka-os"
+METRICS_FILE="$HOME/.arkaos/hook-metrics.json"
+METRICS_LOCK="$HOME/.arkaos/hook-metrics.lock"
+mkdir -p "$HOME/.arkaos"
 (
   if command -v flock &>/dev/null; then flock -w 2 200; else true; fi
   [ ! -f "$METRICS_FILE" ] && echo '[]' > "$METRICS_FILE"
