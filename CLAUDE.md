@@ -130,11 +130,11 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `config/constitution.yaml` defines governance with 4 enforcement levels:
 
-**NON-NEGOTIABLE (14 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification
+**NON-NEGOTIABLE (15 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification, forge-governance
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
-**MUST (6 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard
+**MUST (7 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, forge-persistence
 
 **SHOULD (4 rules):** research-first, self-critique, kb-contribution, complexity-assessment
 
@@ -150,6 +150,7 @@ Agent YAML files: `departments/*/agents/*.yaml`
 | **Living Specs** | Bidirectional spec/code sync, deltas, patterns | `core/specs/` |
 | **Governance** | Constitution, quality gates, audit trails | `core/governance/` |
 | **Multi-Runtime** | Claude Code, Codex, Gemini, Cursor adapters | `core/runtime/` |
+| **The Forge** | Multi-agent planning with complexity escalation | `core/forge/` |
 
 ## Workflows
 
