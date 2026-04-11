@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from core.workflow.state import init_workflow, get_state, clear_workflow
+from core.workflow.state import update_phase, set_branch, add_violation, is_phase_completed
 
 STATE_FILE_NAME = "workflow-state.json"
 
@@ -65,3 +66,80 @@ class TestClearWorkflow:
 
     def test_clear_when_no_file_is_noop(self) -> None:
         clear_workflow()  # should not raise
+
+
+class TestUpdatePhase:
+    def test_sets_phase_status(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context", "spec"])
+        result = update_phase("context", "in_progress")
+        assert result["phases"]["context"]["status"] == "in_progress"
+        assert "at" in result["phases"]["context"]
+
+    def test_completed_records_timestamp(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["spec"])
+        result = update_phase("spec", "completed")
+        assert result["phases"]["spec"]["status"] == "completed"
+        assert result["phases"]["spec"]["at"]
+
+    def test_stores_artifact(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["spec"])
+        result = update_phase("spec", "completed", artifact="docs/spec.md")
+        assert result["phases"]["spec"]["artifact"] == "docs/spec.md"
+
+    def test_rejects_invalid_status(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        with pytest.raises(ValueError, match="Invalid status"):
+            update_phase("context", "cancelled")
+
+    def test_rejects_unknown_phase(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        with pytest.raises(ValueError, match="Unknown phase"):
+            update_phase("nonexistent", "completed")
+
+    def test_raises_when_no_workflow(self) -> None:
+        with pytest.raises(RuntimeError, match="No active workflow"):
+            update_phase("context", "completed")
+
+
+class TestSetBranch:
+    def test_sets_branch(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        result = set_branch("feature/add-auth")
+        assert result["branch"] == "feature/add-auth"
+
+
+class TestAddViolation:
+    def test_appends_violation(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        result = add_violation("spec-driven", "Code edited without spec")
+        assert len(result["violations"]) == 1
+        assert result["violations"][0]["rule"] == "spec-driven"
+        assert result["violations"][0]["detail"] == "Code edited without spec"
+        assert "at" in result["violations"][0]
+
+    def test_records_tool_and_file(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        result = add_violation("spec-driven", "Code edited", tool="Edit", file="src/a.py")
+        v = result["violations"][0]
+        assert v["tool"] == "Edit"
+        assert v["file"] == "src/a.py"
+
+    def test_multiple_violations_accumulate(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        add_violation("rule-a", "detail-a")
+        result = add_violation("rule-b", "detail-b")
+        assert len(result["violations"]) == 2
+
+
+class TestIsPhaseCompleted:
+    def test_returns_true_when_completed(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        update_phase("context", "completed")
+        assert is_phase_completed("context") is True
+
+    def test_returns_false_when_pending(self) -> None:
+        init_workflow("dev/feature", "/tmp/p", ["context"])
+        assert is_phase_completed("context") is False
+
+    def test_returns_false_when_no_workflow(self) -> None:
+        assert is_phase_completed("context") is False
