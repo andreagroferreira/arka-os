@@ -109,92 +109,127 @@ def export_to_obsidian(plan: ForgePlan) -> Path:
     return target
 
 
-def _render_obsidian_plan(plan: ForgePlan) -> str:
-    """Render a ForgePlan as Obsidian markdown with frontmatter."""
-    lines: list[str] = []
-    # Frontmatter
+def _render_obsidian_frontmatter(plan: ForgePlan) -> list[str]:
+    """Render YAML frontmatter block for an Obsidian plan note."""
     tags = ["forge", "plan", plan.complexity.tier.value]
     for phase in plan.plan_phases:
         if phase.department not in tags:
             tags.append(phase.department)
-    lines.append("---")
-    lines.append(f"tags: [{', '.join(tags)}]")
-    lines.append(f"status: {plan.status.value}")
-    lines.append(f"confidence: {plan.critic.confidence}")
-    lines.append(f"complexity: {plan.complexity.score}")
-    lines.append(f"created: {plan.created_at or ''}")
+    lines = [
+        "---",
+        f"tags: [{', '.join(tags)}]",
+        f"status: {plan.status.value}",
+        f"confidence: {plan.critic.confidence}",
+        f"complexity: {plan.complexity.score}",
+        f"created: {plan.created_at or ''}",
+    ]
     if plan.executed_at:
         lines.append(f"executed: {plan.executed_at}")
-    lines.append("---")
-    lines.append("")
-    lines.append(f"# {plan.name}")
-    lines.append("")
-    # Context
+    lines += ["---", "", f"# {plan.name}", ""]
+    return lines
+
+
+def _render_obsidian_context(plan: ForgePlan) -> list[str]:
+    """Render the Context and Prompt sections."""
     ctx = plan.context
-    lines.append("## Context")
-    lines.append(f"Repo: {ctx.repo} | Branch: {ctx.branch} | Commit: {ctx.commit_at_forge} | ArkaOS: {ctx.arkaos_version}")
-    lines.append("")
-    lines.append("## Prompt")
-    lines.append(f"> {ctx.prompt}")
-    lines.append("")
-    # Approaches
-    if plan.approaches:
-        lines.append("## Approaches Explored")
-        for approach in plan.approaches:
-            label = approach.explorer.value.title()
-            lines.append(f"### {label} Explorer")
-            lines.append(approach.summary)
-            if approach.key_decisions:
-                lines.append("")
-                for kd in approach.key_decisions:
-                    lines.append(f"- **{kd.decision}**: {kd.rationale}")
+    return [
+        "## Context",
+        f"Repo: {ctx.repo} | Branch: {ctx.branch} | Commit: {ctx.commit_at_forge} | ArkaOS: {ctx.arkaos_version}",
+        "",
+        "## Prompt",
+        f"> {ctx.prompt}",
+        "",
+    ]
+
+
+def _render_obsidian_approaches(plan: ForgePlan) -> list[str]:
+    """Render the Approaches Explored section."""
+    if not plan.approaches:
+        return []
+    lines = ["## Approaches Explored"]
+    for approach in plan.approaches:
+        label = approach.explorer.value.title()
+        lines.append(f"### {label} Explorer")
+        lines.append(approach.summary)
+        if approach.key_decisions:
             lines.append("")
-    # Critic
+            for kd in approach.key_decisions:
+                lines.append(f"- **{kd.decision}**: {kd.rationale}")
+        lines.append("")
+    return lines
+
+
+def _render_obsidian_critic(plan: ForgePlan) -> list[str]:
+    """Render the Critic Synthesis section."""
     critic = plan.critic
-    if critic.confidence > 0:
-        lines.append("## Critic Synthesis")
-        lines.append(f"**Confidence:** {critic.confidence}")
+    if critic.confidence <= 0:
+        return []
+    lines = ["## Critic Synthesis", f"**Confidence:** {critic.confidence}", ""]
+    if critic.synthesis:
+        lines.append("### Adopted Elements")
+        for source, elements in critic.synthesis.items():
+            for elem in elements:
+                lines.append(f"- [{source}] {elem}")
         lines.append("")
-        if critic.synthesis:
-            lines.append("### Adopted Elements")
-            for source, elements in critic.synthesis.items():
-                for elem in elements:
-                    lines.append(f"- [{source}] {elem}")
-            lines.append("")
-        if critic.rejected_elements:
-            lines.append("### Rejected Elements")
-            for rej in critic.rejected_elements:
-                lines.append(f"- **{rej.element}**: {rej.reason}")
-            lines.append("")
-        if critic.risks:
-            lines.append("### Risks")
-            for risk in critic.risks:
-                lines.append(f"- **{risk.risk}** ({risk.severity.value}) — Mitigation: {risk.mitigation}")
-            lines.append("")
-    # Plan phases
-    if plan.plan_phases:
-        lines.append("## Plan")
-        for i, phase in enumerate(plan.plan_phases):
-            lines.append(f"### Phase {i + 1}: {phase.name}")
-            lines.append(f"- **Department:** {phase.department}")
-            if phase.agents:
-                lines.append(f"- **Agents:** {', '.join(phase.agents)}")
-            if phase.deliverables:
-                lines.append(f"- **Deliverables:** {', '.join(phase.deliverables)}")
-            if phase.acceptance_criteria:
-                lines.append("- **Acceptance Criteria:**")
-                for ac in phase.acceptance_criteria:
-                    lines.append(f"  - {ac}")
-            lines.append("")
-    # Execution
-    if plan.execution_path.target:
-        lines.append("## Execution")
-        lines.append(f"- **Path:** {plan.execution_path.type.value}")
-        lines.append(f"- **Target:** {plan.execution_path.target}")
-        if plan.governance.branch_strategy:
-            lines.append(f"- **Branch:** {plan.governance.branch_strategy}")
+    if critic.rejected_elements:
+        lines.append("### Rejected Elements")
+        for rej in critic.rejected_elements:
+            lines.append(f"- **{rej.element}**: {rej.reason}")
         lines.append("")
-    return "\n".join(lines)
+    if critic.risks:
+        lines.append("### Risks")
+        for risk in critic.risks:
+            lines.append(f"- **{risk.risk}** ({risk.severity.value}) — Mitigation: {risk.mitigation}")
+        lines.append("")
+    return lines
+
+
+def _render_obsidian_phases(plan: ForgePlan) -> list[str]:
+    """Render the Plan Phases section."""
+    if not plan.plan_phases:
+        return []
+    lines = ["## Plan"]
+    for i, phase in enumerate(plan.plan_phases):
+        lines.append(f"### Phase {i + 1}: {phase.name}")
+        lines.append(f"- **Department:** {phase.department}")
+        if phase.agents:
+            lines.append(f"- **Agents:** {', '.join(phase.agents)}")
+        if phase.deliverables:
+            lines.append(f"- **Deliverables:** {', '.join(phase.deliverables)}")
+        if phase.acceptance_criteria:
+            lines.append("- **Acceptance Criteria:**")
+            for ac in phase.acceptance_criteria:
+                lines.append(f"  - {ac}")
+        lines.append("")
+    return lines
+
+
+def _render_obsidian_execution(plan: ForgePlan) -> list[str]:
+    """Render the Execution section."""
+    if not plan.execution_path.target:
+        return []
+    lines = [
+        "## Execution",
+        f"- **Path:** {plan.execution_path.type.value}",
+        f"- **Target:** {plan.execution_path.target}",
+    ]
+    if plan.governance.branch_strategy:
+        lines.append(f"- **Branch:** {plan.governance.branch_strategy}")
+    lines.append("")
+    return lines
+
+
+def _render_obsidian_plan(plan: ForgePlan) -> str:
+    """Render a ForgePlan as Obsidian markdown with frontmatter."""
+    sections = (
+        _render_obsidian_frontmatter(plan)
+        + _render_obsidian_context(plan)
+        + _render_obsidian_approaches(plan)
+        + _render_obsidian_critic(plan)
+        + _render_obsidian_phases(plan)
+        + _render_obsidian_execution(plan)
+    )
+    return "\n".join(sections)
 
 
 # ---------------------------------------------------------------------------

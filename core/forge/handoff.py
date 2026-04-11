@@ -66,14 +66,24 @@ def generate_workflow_yaml(plan: ForgePlan) -> str:
     return yaml.dump(workflow, default_flow_style=False, allow_unicode=True)
 
 
+def _git_changed_files(base: str, current: str) -> list[str]:
+    """Return list of files changed between two commits, or [] on error."""
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--name-only", base, current],
+            capture_output=True, text=True, check=True,
+        )
+        return [f for f in result.stdout.strip().split("\n") if f]
+    except subprocess.CalledProcessError:
+        return []
+
+
 def check_repo_drift(commit_at_forge: str) -> dict:
     """Check if the repo has changed since the forge snapshot."""
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
+            capture_output=True, text=True, check=True,
         )
         current = result.stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -82,17 +92,7 @@ def check_repo_drift(commit_at_forge: str) -> dict:
     if current == commit_at_forge:
         return {"changed": False, "files": [], "message": "Repo unchanged"}
 
-    try:
-        diff_result = subprocess.run(
-            ["git", "diff", "--name-only", commit_at_forge, current],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        files = [f for f in diff_result.stdout.strip().split("\n") if f]
-    except subprocess.CalledProcessError:
-        files = []
-
+    files = _git_changed_files(commit_at_forge, current)
     return {
         "changed": True,
         "files": files,
