@@ -239,6 +239,14 @@ export async function install({ runtime, path, force }) {
   };
   writeFileSync(join(installDir, "install-manifest.json"), JSON.stringify(manifest, null, 2));
 
+  // Create sync-state.json so session-start hook does not show
+  // [arka:update-available] on the very first session after install.
+  const syncState = {
+    version: VERSION,
+    syncedAt: new Date().toISOString(),
+  };
+  writeFileSync(join(installDir, "sync-state.json"), JSON.stringify(syncState));
+
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
   console.log(`
