@@ -31,30 +31,37 @@ def sync_project_settings(
     Permissions are always preserved. When the file does not exist it is
     created with _DEFAULT_PERMISSIONS.
     """
-    settings_file = project_path / ".claude" / "settings.local.json"
-    target_servers = sorted(mcp_result.final_mcp_list)
-
     try:
-        current = _read_current_settings(settings_file)
-        if _is_already_correct(current, target_servers):
-            return SettingsSyncResult(path=str(project_path), status="unchanged")
-
-        added, removed = _compute_diff(current, target_servers)
-        merged = _build_merged_settings(current, target_servers)
-        _write_settings(settings_file, merged)
-
-        return SettingsSyncResult(
-            path=str(project_path),
-            status="updated",
-            servers_added=added,
-            servers_removed=removed,
-        )
+        return _do_sync(project_path, mcp_result)
     except Exception as exc:  # noqa: BLE001
         return SettingsSyncResult(
             path=str(project_path),
             status="error",
             error=str(exc),
         )
+
+
+def _do_sync(
+    project_path: Path, mcp_result: McpSyncResult
+) -> SettingsSyncResult:
+    """Execute the settings sync logic for a single project."""
+    settings_file = project_path / ".claude" / "settings.local.json"
+    target_servers = sorted(mcp_result.final_mcp_list)
+
+    current = _read_current_settings(settings_file)
+    if _is_already_correct(current, target_servers):
+        return SettingsSyncResult(path=str(project_path), status="unchanged")
+
+    added, removed = _compute_diff(current, target_servers)
+    merged = _build_merged_settings(current, target_servers)
+    _write_settings(settings_file, merged)
+
+    return SettingsSyncResult(
+        path=str(project_path),
+        status="updated",
+        servers_added=added,
+        servers_removed=removed,
+    )
 
 
 def sync_all_settings(mcp_results: list[McpSyncResult]) -> list[SettingsSyncResult]:

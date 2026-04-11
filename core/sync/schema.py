@@ -85,6 +85,8 @@ class SyncReport(BaseModel):
 
     previous_version: str
     current_version: str
+    new_features: list[str] = Field(default_factory=list)
+    deprecated_features: list[str] = Field(default_factory=list)
     mcp_results: list[McpSyncResult] = Field(default_factory=list)
     settings_results: list[SettingsSyncResult] = Field(default_factory=list)
     descriptor_results: list[DescriptorSyncResult] = Field(default_factory=list)

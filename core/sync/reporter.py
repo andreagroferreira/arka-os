@@ -32,12 +32,16 @@ def build_report(
     settings_results: list[SettingsSyncResult],
     descriptor_results: list[DescriptorSyncResult],
     skill_results: list[SkillSyncResult],
+    new_features: list[str] | None = None,
+    deprecated_features: list[str] | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
     errors = _collect_errors(mcp_results, settings_results, descriptor_results, skill_results)
     return SyncReport(
         previous_version=previous_version,
         current_version=current_version,
+        new_features=new_features or [],
+        deprecated_features=deprecated_features or [],
         mcp_results=mcp_results,
         settings_results=settings_results,
         descriptor_results=descriptor_results,

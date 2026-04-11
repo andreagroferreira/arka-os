@@ -31,7 +31,7 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
     current_version = _read_current_version(arkaos_home)
     features_dir = _resolve_features_dir(arkaos_home)
 
-    build_manifest(previous_version, current_version, features_dir)
+    manifest = build_manifest(previous_version, current_version, features_dir)
 
     projects = _discover_projects(arkaos_home, skills_dir)
 
@@ -47,6 +47,8 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
         settings_results,
         descriptor_results,
         [],
+        new_features=manifest.new_features,
+        deprecated_features=manifest.deprecated_features,
     )
 
     state_file = arkaos_home / "sync-state.json"
@@ -71,7 +73,7 @@ def main() -> None:
     report = run_sync(
         arkaos_home=Path(args.home),
         skills_dir=Path(args.skills),
-        home_path=str(Path(args.home).parent),
+        home_path=str(Path.home()),
     )
 
     if args.output == "json":

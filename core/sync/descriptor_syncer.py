@@ -37,32 +37,38 @@ def sync_descriptor(project: Project) -> DescriptorSyncResult:
         return DescriptorSyncResult(path=project.path, status="unchanged")
 
     try:
-        text = desc_path.read_text()
-        frontmatter, body = _split_frontmatter(text)
-        changes: list[str] = []
-
-        if not Path(project.path).exists():
-            frontmatter["status"] = "archived"
-            changes.append("status: archived (path not found)")
-            _write_descriptor(desc_path, frontmatter, body)
-            return DescriptorSyncResult(
-                path=project.path, status="updated", changes=changes
-            )
-
-        _check_stack(frontmatter, project.stack, changes)
-        _check_activity(frontmatter, project.path, changes)
-
-        if not changes:
-            return DescriptorSyncResult(path=project.path, status="unchanged")
-
-        _write_descriptor(desc_path, frontmatter, body)
-        return DescriptorSyncResult(
-            path=project.path, status="updated", changes=changes
-        )
+        return _do_sync(project)
     except Exception as exc:  # noqa: BLE001
         return DescriptorSyncResult(
             path=project.path, status="error", error=str(exc)
         )
+
+
+def _do_sync(project: Project) -> DescriptorSyncResult:
+    """Execute the descriptor sync logic for a single project."""
+    desc_path = Path(project.descriptor_path)  # type: ignore[arg-type]
+    text = desc_path.read_text()
+    frontmatter, body = _split_frontmatter(text)
+    changes: list[str] = []
+
+    if not Path(project.path).exists():
+        frontmatter["status"] = "archived"
+        changes.append("status: archived (path not found)")
+        _write_descriptor(desc_path, frontmatter, body)
+        return DescriptorSyncResult(
+            path=project.path, status="updated", changes=changes
+        )
+
+    _check_stack(frontmatter, project.stack, changes)
+    _check_activity(frontmatter, project.path, changes)
+
+    if not changes:
+        return DescriptorSyncResult(path=project.path, status="unchanged")
+
+    _write_descriptor(desc_path, frontmatter, body)
+    return DescriptorSyncResult(
+        path=project.path, status="updated", changes=changes
+    )
 
 
 def sync_all_descriptors(projects: list[Project]) -> list[DescriptorSyncResult]:

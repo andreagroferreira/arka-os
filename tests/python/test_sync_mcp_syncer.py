@@ -118,11 +118,13 @@ class TestResolveMcpsForStack:
         assert "laravel-boost" in names
         assert "serena" in names
 
-    def test_php_maps_to_laravel_category(self) -> None:
+    def test_php_alone_does_not_map_to_laravel_category(self) -> None:
         registry = _SAMPLE_REGISTRY["mcpServers"]
         result = resolve_mcps_for_stack(registry, ["php"])
         names = [name for name, _ in result]
-        assert "laravel-boost" in names
+        # "php" alone should NOT get laravel MCPs — only "laravel" in stack should
+        assert "laravel-boost" not in names
+        assert "arka-prompts" in names  # base MCPs are still included
 
     def test_nuxt_maps_to_nuxt_category(self) -> None:
         registry = {

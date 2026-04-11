@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import yaml
+
 from core.sync.schema import Project
 
 
@@ -86,17 +88,13 @@ def _parse_descriptor_frontmatter(text: str) -> dict:
     """Extract YAML frontmatter from a markdown file."""
     if not text.startswith("---"):
         return {}
-    end = text.find("---", 3)
-    if end == -1:
+    parts = text.split("---", 2)
+    if len(parts) < 3:
         return {}
-    frontmatter = text[3:end].strip()
-    data: dict = {}
-    for line in frontmatter.splitlines():
-        if ":" not in line:
-            continue
-        key, _, value = line.partition(":")
-        data[key.strip()] = value.strip()
-    return data
+    try:
+        return yaml.safe_load(parts[1]) or {}
+    except yaml.YAMLError:
+        return {}
 
 
 def _read_descriptor_item(item: Path) -> dict:
@@ -107,15 +105,36 @@ def _read_descriptor_item(item: Path) -> dict:
         return {}
 
 
+def _process_descriptor_item(item: Path, descriptor_dir: Path) -> "Project | None":
+    """Parse a single descriptor file and return a Project or None."""
+    fm = _read_descriptor_item(item)
+    raw_path = fm.get("path", "")
+    if not raw_path:
+        return None
+    project_path = Path(raw_path)
+    if not project_path.exists():
+        return None
+    name = fm.get("name", project_path.name)
+    stack = detect_stack(project_path)
+    return Project(
+        path=str(project_path),
+        name=name,
+        ecosystem=fm.get("ecosystem") or None,
+        stack=stack,
+        descriptor_path=str(item),
+        has_mcp_json=(project_path / ".mcp.json").exists(),
+        has_settings=(project_path / ".claude").is_dir(),
+    )
+
+
 def discover_from_descriptors(descriptor_dir: Path) -> list[Project]:
     """Discover projects from .md descriptor files with YAML frontmatter.
 
     Reads .md files in descriptor_dir and PROJECT.md in subdirectories.
     Skips entries whose paths don't exist on the filesystem.
     """
-    projects: list[Project] = []
     if not descriptor_dir.exists():
-        return projects
+        return []
 
     candidates: list[Path] = list(descriptor_dir.glob("*.md"))
     for subdir in descriptor_dir.iterdir():
@@ -124,25 +143,11 @@ def discover_from_descriptors(descriptor_dir: Path) -> list[Project]:
             if project_md.exists():
                 candidates.append(project_md)
 
+    projects: list[Project] = []
     for item in candidates:
-        fm = _read_descriptor_item(item)
-        raw_path = fm.get("path", "")
-        if not raw_path:
-            continue
-        project_path = Path(raw_path)
-        if not project_path.exists():
-            continue
-        name = fm.get("name", project_path.name)
-        stack = detect_stack(project_path)
-        projects.append(Project(
-            path=str(project_path),
-            name=name,
-            ecosystem=fm.get("ecosystem") or None,
-            stack=stack,
-            descriptor_path=str(item),
-            has_mcp_json=(project_path / ".mcp.json").exists(),
-            has_settings=(project_path / ".claude").is_dir(),
-        ))
+        project = _process_descriptor_item(item, descriptor_dir)
+        if project is not None:
+            projects.append(project)
 
     return projects
 
@@ -158,9 +163,10 @@ def discover_from_filesystem(scan_dirs: list[Path]) -> list[Project]:
         for subdir in scan_dir.iterdir():
             if not subdir.is_dir():
                 continue
-            has_mcp = (subdir / ".mcp.json").exists()
+            has_mcp = (subdir / ".mcp.json").is_file()
             has_claude = (subdir / ".claude").is_dir()
-            if not has_mcp and not has_claude:
+            has_claude_md = (subdir / "CLAUDE.md").is_file()
+            if not has_mcp and not has_claude and not has_claude_md:
                 continue
             stack = detect_stack(subdir)
             projects.append(Project(

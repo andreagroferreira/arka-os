@@ -15,7 +15,6 @@ from core.sync.schema import McpSyncResult, Project
 # Maps stack item names to registry categories
 _STACK_TO_CATEGORIES: dict[str, list[str]] = {
     "laravel": ["laravel"],
-    "php": ["laravel"],
     "nuxt": ["nuxt"],
     "vue": ["nuxt"],
     "next": ["react"],
@@ -75,45 +74,52 @@ def sync_project_mcp(
     and project stack, and writes a merged result that includes both target MCPs
     and custom (user-added) MCPs not present in the registry.
     """
-    mcp_file = Path(project.path) / ".mcp.json"
-
     try:
-        current = _read_current_mcps(mcp_file)
-        target_raw = resolve_mcps_for_stack(registry, project.stack)
-        target = _resolve_placeholders(target_raw, home_path, project.path)
-        registry_names = set(registry.keys())
-
-        added, removed, updated, preserved = _diff_mcps(
-            current, target, registry_names, registry
-        )
-
-        if not added and not removed and not updated:
-            final_list = sorted(current.keys())
-            return McpSyncResult(
-                path=project.path,
-                status="unchanged",
-                final_mcp_list=final_list,
-            )
-
-        merged = _build_merged(current, target, registry_names, registry)
-        _write_mcp_json(mcp_file, merged)
-        status = "created" if not mcp_file.exists() or not current else "updated"
-
-        return McpSyncResult(
-            path=project.path,
-            status=status,
-            mcps_added=sorted(added),
-            mcps_removed=sorted(removed),
-            mcps_updated=sorted(updated),
-            mcps_preserved=sorted(preserved),
-            final_mcp_list=sorted(merged.keys()),
-        )
+        return _do_sync_mcp(project, registry, home_path)
     except Exception as exc:  # noqa: BLE001
         return McpSyncResult(
             path=project.path,
             status="error",
             error=str(exc),
         )
+
+
+def _do_sync_mcp(
+    project: Project, registry: dict, home_path: str
+) -> McpSyncResult:
+    """Execute the MCP sync logic for a single project."""
+    mcp_file = Path(project.path) / ".mcp.json"
+    is_new = not mcp_file.is_file()
+
+    current = _read_current_mcps(mcp_file)
+    target_raw = resolve_mcps_for_stack(registry, project.stack)
+    target = _resolve_placeholders(target_raw, home_path, project.path)
+    registry_names = set(registry.keys())
+
+    added, removed, updated, preserved = _diff_mcps(
+        current, target, registry_names, registry
+    )
+
+    if not added and not removed and not updated:
+        return McpSyncResult(
+            path=project.path,
+            status="unchanged",
+            final_mcp_list=sorted(current.keys()),
+        )
+
+    merged = _build_merged(current, target, registry_names, registry)
+    _write_mcp_json(mcp_file, merged)
+    status = "created" if is_new else "updated"
+
+    return McpSyncResult(
+        path=project.path,
+        status=status,
+        mcps_added=sorted(added),
+        mcps_removed=sorted(removed),
+        mcps_updated=sorted(updated),
+        mcps_preserved=sorted(preserved),
+        final_mcp_list=sorted(merged.keys()),
+    )
 
 
 def sync_all_mcps(
