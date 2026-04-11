@@ -74,10 +74,10 @@ case "$CMD" in
       exit 0
     fi
     if command -v python3 &>/dev/null; then
-      _F_NAME=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(d.get('name',''))" 2>/dev/null)
-      _F_STATUS=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(d.get('status',''))" 2>/dev/null)
-      _F_PHASES=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(len(d.get('plan_phases',[])))" 2>/dev/null)
-      _F_BRANCH=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
+      _F_NAME=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('name',''))" 2>/dev/null)
+      _F_STATUS=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
+      _F_PHASES=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(len(d.get('plan_phases',[])))" 2>/dev/null)
+      _F_BRANCH=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
       echo "${_FORGE_ID}|${_F_NAME}|${_F_STATUS}|${_F_PHASES}|${_F_BRANCH}"
     else
       echo "${_FORGE_ID}|||0|"

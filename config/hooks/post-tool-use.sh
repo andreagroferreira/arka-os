@@ -250,16 +250,16 @@ if [ -z "$VIOLATION_MSG" ] && [ -f "$_FORGE_ACTIVE" ] && [ -n "$ARKAOS_PY" ] && 
       # Fallback: extract file_path from input JSON
       [ -z "$_EDITED_FILE" ] && _EDITED_FILE=$(echo "$input" | jq -r '.file_path // ""' 2>/dev/null)
       if [ -n "$_EDITED_FILE" ]; then
-        _FORGE_VIOLATION=$(PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
-import yaml, sys
-plan = yaml.safe_load(open('$_FORGE_FILE'))
+        _FORGE_VIOLATION=$(FORGE_FILE="$_FORGE_FILE" EDITED_FILE="$_EDITED_FILE" PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
+import yaml, sys, os
+plan = yaml.safe_load(open(os.environ['FORGE_FILE']))
 if plan.get('status', '') != 'executing':
     sys.exit(0)
 phases = plan.get('plan_phases', [])
 all_deliverables = []
 for p in phases:
     all_deliverables.extend(p.get('deliverables', []))
-edited = '$_EDITED_FILE'
+edited = os.environ['EDITED_FILE']
 match = any(d in edited or edited.endswith(d) for d in all_deliverables)
 if not match and all_deliverables:
     print('forge-scope-creep')

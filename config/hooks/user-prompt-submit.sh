@@ -119,7 +119,7 @@ if command -v python3 &>/dev/null && [ -f "$BRIDGE_SCRIPT" ]; then
     _FORGE_ID=$(cat "$_FORGE_ACTIVE" 2>/dev/null)
     _FORGE_FILE="$HOME/.arkaos/plans/${_FORGE_ID}.yaml"
     if [ -f "$_FORGE_FILE" ] && command -v python3 &>/dev/null; then
-      _FORGE_STATUS=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(d.get('status',''))" 2>/dev/null)
+      _FORGE_STATUS=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
       _FORGE_TAG="[forge:${_FORGE_ID}] [forge-status:${_FORGE_STATUS}]"
       python_result="${python_result} ${_FORGE_TAG}"
     fi
@@ -175,7 +175,7 @@ if [ -z "$python_result" ]; then
     _FORGE_ID_FB=$(cat "$_FORGE_ACTIVE_FB" 2>/dev/null)
     _FORGE_FILE_FB="$HOME/.arkaos/plans/${_FORGE_ID_FB}.yaml"
     if [ -f "$_FORGE_FILE_FB" ] && command -v python3 &>/dev/null; then
-      _FORGE_STATUS_FB=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE_FB')); print(d.get('status',''))" 2>/dev/null)
+      _FORGE_STATUS_FB=$(FORGE_FILE="$_FORGE_FILE_FB" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
       L9="[forge:${_FORGE_ID_FB}] [forge-status:${_FORGE_STATUS_FB}]"
     fi
   fi
