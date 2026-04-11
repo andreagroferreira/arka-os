@@ -380,6 +380,20 @@ export async function update() {
     console.log("         ✓ MCP infrastructure updated (profiles, stacks, scripts, arka-prompts server)");
   }
 
+  // ── 6b. Copy feature registry for sync engine ──
+  const featuresSource = join(ARKAOS_ROOT, 'core', 'sync', 'features');
+  const featuresDest = join(installDir, 'config', 'sync', 'features');
+  if (existsSync(featuresSource)) {
+    mkdirSync(featuresDest, { recursive: true });
+    const featureFiles = readdirSync(featuresSource).filter(f => f.endsWith('.yaml'));
+    for (const file of featureFiles) {
+      copyFileSync(join(featuresSource, file), join(featuresDest, file));
+    }
+    if (featureFiles.length > 0) {
+      console.log(`         ✓ Feature registry: ${featureFiles.length} features copied`);
+    }
+  }
+
   // ── 7. Update .repo-path + .arkaos-root ──
   // Two references point at the source repo. Both MUST be updated on
   // every update pass, otherwise running `npx arkaos update` from a
