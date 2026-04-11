@@ -1,5 +1,6 @@
 """ArkaOS Sync Engine — Hybrid sync for /arka update."""
 
+from core.sync.engine import run_sync
 from core.sync.schema import (
     ChangeManifest,
     DescriptorSyncResult,
@@ -12,6 +13,7 @@ from core.sync.schema import (
 )
 
 __all__ = [
+    "run_sync",
     "ChangeManifest",
     "DescriptorSyncResult",
     "FeatureSpec",
