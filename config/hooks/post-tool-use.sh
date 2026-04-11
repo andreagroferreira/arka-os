@@ -229,6 +229,49 @@ add_violation('sequential-validation', 'Code written before implementation phase
   fi
 fi
 
+# --- Forge Violation Detection ---
+_FORGE_ACTIVE="$HOME/.arkaos/plans/active.yaml"
+
+# Ensure ARKAOS_PY and ARKAOS_ROOT are set (may not be set if no active workflow)
+if [ -z "${ARKAOS_PY:-}" ]; then
+  [ -f "$HOME/.arkaos/venv/bin/python3" ] && ARKAOS_PY="$HOME/.arkaos/venv/bin/python3"
+  [ -z "${ARKAOS_PY:-}" ] && [ -f "$HOME/.arkaos/.venv/bin/python3" ] && ARKAOS_PY="$HOME/.arkaos/.venv/bin/python3"
+  [ -z "${ARKAOS_PY:-}" ] && ARKAOS_PY=$(command -v python3 2>/dev/null)
+fi
+[ -z "${ARKAOS_ROOT:-}" ] && ARKAOS_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+
+if [ -z "$VIOLATION_MSG" ] && [ -f "$_FORGE_ACTIVE" ] && [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ]; then
+  _FORGE_ID=$(cat "$_FORGE_ACTIVE" 2>/dev/null)
+  _FORGE_FILE="$HOME/.arkaos/plans/${_FORGE_ID}.yaml"
+
+  if [ -f "$_FORGE_FILE" ]; then
+    if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ]; then
+      _EDITED_FILE="${tool_input_file_path:-}"
+      # Fallback: extract file_path from input JSON
+      [ -z "$_EDITED_FILE" ] && _EDITED_FILE=$(echo "$input" | jq -r '.file_path // ""' 2>/dev/null)
+      if [ -n "$_EDITED_FILE" ]; then
+        _FORGE_VIOLATION=$(FORGE_FILE="$_FORGE_FILE" EDITED_FILE="$_EDITED_FILE" PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
+import yaml, sys, os
+plan = yaml.safe_load(open(os.environ['FORGE_FILE']))
+if plan.get('status', '') != 'executing':
+    sys.exit(0)
+phases = plan.get('plan_phases', [])
+all_deliverables = []
+for p in phases:
+    all_deliverables.extend(p.get('deliverables', []))
+edited = os.environ['EDITED_FILE']
+match = any(d in edited or edited.endswith(d) for d in all_deliverables)
+if not match and all_deliverables:
+    print('forge-scope-creep')
+" 2>/dev/null)
+        if [ "$_FORGE_VIOLATION" = "forge-scope-creep" ]; then
+          VIOLATION_MSG="⚠ Forge scope-creep: editing ${_EDITED_FILE} which is outside forge plan deliverables."
+        fi
+      fi
+    fi
+  fi
+fi
+
 # ─── Log Metrics ─────────────────────────────────────────────────────────
 _DURATION_MS=$(_hook_ms)
 METRICS_FILE="$HOME/.arkaos/hook-metrics.json"

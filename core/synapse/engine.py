@@ -28,7 +28,7 @@ class SynapseResult:
 
 
 class SynapseEngine:
-    """8-layer context injection engine.
+    """9-layer context injection engine.
 
     Computes all registered layers, caches results per TTL,
     filters empty results, and combines into a compact context string.
@@ -155,7 +155,7 @@ def create_default_engine(
     agents_registry: dict[str, dict] | None = None,
     vector_store: Any = None,
 ) -> SynapseEngine:
-    """Create a SynapseEngine with all 8 default layers.
+    """Create a SynapseEngine with all 9 default layers.
 
     Args:
         constitution_compressed: Compressed Constitution string for L0.
@@ -169,6 +169,7 @@ def create_default_engine(
         ConstitutionLayer, DepartmentLayer, AgentLayer,
         ProjectLayer, BranchLayer, CommandHintsLayer,
         QualityGateLayer, TimeLayer, KnowledgeRetrievalLayer,
+        ForgeContextLayer,
     )
 
     engine = SynapseEngine()
@@ -184,5 +185,6 @@ def create_default_engine(
     engine.register_layer(CommandHintsLayer(commands=commands))
     engine.register_layer(QualityGateLayer())
     engine.register_layer(TimeLayer())
+    engine.register_layer(ForgeContextLayer())
 
     return engine
