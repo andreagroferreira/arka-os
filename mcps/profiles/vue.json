@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "name": "vue",
+    "description": "Vue 3 SPA projects — base + Vue-compatible MCPs",
+    "extends": "base"
+  },
+  "mcps": [
+    "nuxt-ui"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "name": "comms",
+    "description": "Communications — base + all messaging platform MCPs",
+    "extends": "base"
+  },
+  "mcps": [
+    "slack",
+    "discord",
+    "whatsapp",
+    "teams"
+  ]
+}

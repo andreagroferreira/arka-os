@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "name": "ecommerce",
+    "description": "E-commerce projects — base + Laravel + marketplace MCPs",
+    "extends": "base"
+  },
+  "mcps": [
+    "laravel-boost",
+    "serena",
+    "mirakl",
+    "shopify-dev"
+  ]
+}

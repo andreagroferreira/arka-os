@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "name": "brand",
+    "description": "Brand department MCP profile — base + Canva for visual design",
+    "extends": "base"
+  },
+  "mcps": [
+    "arka-prompts",
+    "obsidian",
+    "context7",
+    "playwright",
+    "memory-bank",
+    "sentry",
+    "gh-grep",
+    "clickup",
+    "firecrawl",
+    "supabase",
+    "canva"
+  ]
+}

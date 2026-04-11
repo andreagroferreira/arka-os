@@ -1,0 +1,11 @@
+{
+  "_meta": {
+    "name": "laravel",
+    "description": "Laravel projects — base + Laravel-specific MCPs",
+    "extends": "base"
+  },
+  "mcps": [
+    "laravel-boost",
+    "serena"
+  ]
+}

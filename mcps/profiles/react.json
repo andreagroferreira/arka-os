@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "name": "react",
+    "description": "React SPA projects — base + React-specific MCPs",
+    "extends": "base"
+  },
+  "mcps": [
+    "next-devtools"
+  ]
+}
