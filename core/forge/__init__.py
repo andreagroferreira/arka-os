@@ -8,6 +8,17 @@ from core.forge.schema import (
     ExecutionPathType,
     ComplexityDimensions,
     ComplexityScore,
+    KeyDecision,
+    PhaseDeliverable,
+    ExplorerApproach,
+    RejectedElement,
+    IdentifiedRisk,
+    CriticVerdict,
+    ForgeContext,
+    PlanPhase,
+    ExecutionPath,
+    ForgeGovernance,
+    ForgePlan,
 )
 
 __all__ = [
@@ -18,4 +29,15 @@ __all__ = [
     "ExecutionPathType",
     "ComplexityDimensions",
     "ComplexityScore",
+    "KeyDecision",
+    "PhaseDeliverable",
+    "ExplorerApproach",
+    "RejectedElement",
+    "IdentifiedRisk",
+    "CriticVerdict",
+    "ForgeContext",
+    "PlanPhase",
+    "ExecutionPath",
+    "ForgeGovernance",
+    "ForgePlan",
 ]

@@ -10,6 +10,17 @@ from core.forge.schema import (
     ExecutionPathType,
     ComplexityDimensions,
     ComplexityScore,
+    KeyDecision,
+    PhaseDeliverable,
+    ExplorerApproach,
+    RejectedElement,
+    IdentifiedRisk,
+    CriticVerdict,
+    ForgeContext,
+    PlanPhase,
+    ExecutionPath,
+    ForgeGovernance,
+    ForgePlan,
 )
 
 
@@ -206,3 +217,97 @@ class TestComplexityScore:
                 dimensions=ComplexityDimensions(),
             )
             assert score.tier == tier
+
+
+# --- ExplorerApproach ---
+
+class TestExplorerApproach:
+    def test_create_approach(self):
+        approach = ExplorerApproach(explorer=ExplorerLens.PRAGMATIC, summary="Fast path")
+        assert approach.explorer == ExplorerLens.PRAGMATIC
+
+    def test_default_empty_lists(self):
+        approach = ExplorerApproach(explorer=ExplorerLens.ARCHITECTURAL, summary="")
+        assert approach.key_decisions == []
+        assert approach.risks == []
+
+
+# --- CriticVerdict ---
+
+class TestCriticVerdict:
+    def test_create_verdict(self):
+        verdict = CriticVerdict(
+            synthesis={"a": ["x"]},
+            rejected_elements=[RejectedElement(element="e", reason="r")],
+            risks=[IdentifiedRisk(risk="r", mitigation="m", severity=RiskSeverity.MEDIUM)],
+            confidence=0.82,
+        )
+        assert verdict.confidence == 0.82
+
+    def test_is_valid_true(self):
+        v = CriticVerdict(
+            rejected_elements=[RejectedElement(element="e", reason="r")],
+            risks=[IdentifiedRisk(risk="r", mitigation="m")],
+            confidence=0.5,
+        )
+        assert v.is_valid() is True
+
+    def test_is_valid_false_no_rejected(self):
+        v = CriticVerdict(risks=[IdentifiedRisk(risk="r", mitigation="m")])
+        assert v.is_valid() is False
+
+    def test_is_valid_false_no_risks(self):
+        v = CriticVerdict(rejected_elements=[RejectedElement(element="e", reason="r")])
+        assert v.is_valid() is False
+
+
+# --- ForgeContext ---
+
+class TestForgeContext:
+    def test_create_context(self):
+        ctx = ForgeContext(repo="test", branch="main", commit_at_forge="abc", arkaos_version="2.14.0", prompt="test")
+        assert ctx.context_refreshed is False
+
+
+# --- PlanPhase ---
+
+class TestPlanPhase:
+    def test_create_phase(self):
+        p = PlanPhase(name="Schema", department="dev", deliverables=["schema.py"])
+        assert p.department == "dev"
+
+    def test_default_empty_context(self):
+        p = PlanPhase(name="P", department="dev")
+        assert p.context_from_forge == {}
+
+
+# --- ForgePlan ---
+
+class TestForgePlan:
+    def test_create_minimal(self):
+        plan = ForgePlan(
+            id="forge-test", name="Test",
+            context=ForgeContext(repo="t", branch="m", commit_at_forge="a", arkaos_version="2.14.0", prompt="p"),
+        )
+        assert plan.status == ForgeStatus.DRAFT
+        assert plan.version == 1
+        assert plan.approved_at is None
+
+    def test_full_plan(self):
+        plan = ForgePlan(
+            id="forge-full", name="Full",
+            context=ForgeContext(repo="arka-os", branch="master", commit_at_forge="b42", arkaos_version="2.14.0", prompt="build"),
+            complexity=ComplexityScore(score=72, tier=ForgeTier.DEEP,
+                dimensions=ComplexityDimensions(scope=85, dependencies=60, ambiguity=55, risk=70, novelty=90)),
+            approaches=[ExplorerApproach(explorer=ExplorerLens.PRAGMATIC, summary="Fast")],
+            critic=CriticVerdict(
+                synthesis={"a": ["elem"]},
+                rejected_elements=[RejectedElement(element="x", reason="y")],
+                risks=[IdentifiedRisk(risk="r", mitigation="m", severity=RiskSeverity.LOW)],
+                confidence=0.82),
+            plan_phases=[PlanPhase(name="P1", department="dev")],
+            execution_path=ExecutionPath(type=ExecutionPathType.ENTERPRISE_WORKFLOW, target="wf.yaml", departments=["dev", "ops"]),
+            governance=ForgeGovernance(constitution_check="passed", quality_gate_required=True, branch_strategy="feature/forge"),
+        )
+        assert plan.complexity.tier == ForgeTier.DEEP
+        assert plan.critic.confidence == 0.82
