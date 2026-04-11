@@ -1,7 +1,7 @@
-"""Vector store — SQLite-VSS backed semantic search.
+"""Vector store — SQLite-vec backed semantic search.
 
 Stores document chunks with embeddings for fast similarity search.
-Graceful degradation: works without sqlite-vss (brute-force fallback).
+Graceful degradation: works without sqlite-vec (brute-force fallback).
 """
 
 import json
@@ -13,25 +13,25 @@ from typing import Any, Optional
 from core.knowledge.embedder import embed, embed_batch, EMBEDDING_DIMS
 
 
-def _load_vss(db: sqlite3.Connection) -> bool:
-    """Try to load sqlite-vss extension."""
+def _load_vec(db: sqlite3.Connection) -> bool:
+    """Try to load sqlite-vec extension."""
     try:
         db.enable_load_extension(True)
-        import sqlite_vss
-        sqlite_vss.load(db)
+        import sqlite_vec
+        sqlite_vec.load(db)
         return True
     except (ImportError, Exception):
         return False
 
 
 class VectorStore:
-    """SQLite-VSS backed vector store for knowledge retrieval."""
+    """SQLite-vec backed vector store for knowledge retrieval."""
 
     def __init__(self, db_path: str | Path = ":memory:") -> None:
         self._db_path = str(db_path)
         self._db = sqlite3.connect(self._db_path)
         self._db.row_factory = sqlite3.Row
-        self._vss_available = _load_vss(self._db)
+        self._vec_available = _load_vec(self._db)
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -50,14 +50,38 @@ class VectorStore:
             CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source);
             CREATE INDEX IF NOT EXISTS idx_chunks_hash ON chunks(file_hash);
         """)
-        if self._vss_available:
+        self._migrate_vss_to_vec()
+        if self._vec_available:
             try:
                 self._db.execute(
-                    f"CREATE VIRTUAL TABLE IF NOT EXISTS vss_chunks USING vss0(embedding({EMBEDDING_DIMS}))"
+                    f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(embedding float[{EMBEDDING_DIMS}])"
                 )
             except Exception:
-                self._vss_available = False
+                self._vec_available = False
         self._db.commit()
+
+    def _migrate_vss_to_vec(self) -> None:
+        """Drop legacy sqlite-vss tables if present.
+
+        The vss_chunks virtual table used a different schema and query
+        syntax that is incompatible with sqlite-vec. Dropping it forces a
+        clean re-index on the next /arka index invocation. The chunks
+        table (with raw embeddings) is preserved — only the virtual table
+        index is removed.
+        """
+        try:
+            tables = [
+                r[0]
+                for r in self._db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'vss_%'"
+                ).fetchall()
+            ]
+            if tables:
+                for t in tables:
+                    self._db.execute(f"DROP TABLE IF EXISTS {t}")
+                self._db.commit()
+        except Exception:
+            pass
 
     def index_chunks(
         self,
@@ -90,9 +114,9 @@ class VectorStore:
                 (text, heading, source, file_hash, meta_json, emb_blob),
             )
 
-            if self._vss_available and emb_blob:
+            if self._vec_available and emb_blob:
                 self._db.execute(
-                    "INSERT INTO vss_chunks (rowid, embedding) VALUES (?, ?)",
+                    "INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)",
                     (cursor.lastrowid, emb_blob),
                 )
             count += 1
@@ -112,23 +136,24 @@ class VectorStore:
 
         query_emb = embed(query)
 
-        if query_emb and self._vss_available:
+        if query_emb and self._vec_available:
             try:
-                return self._vss_search(query_emb, top_k)
+                return self._vec_search(query_emb, top_k)
             except Exception:
                 return self._keyword_search(query, top_k)
 
         # Fallback: keyword search
         return self._keyword_search(query, top_k)
 
-    def _vss_search(self, query_emb: list[float], top_k: int) -> list[dict]:
-        """Vector similarity search via sqlite-vss."""
+    def _vec_search(self, query_emb: list[float], top_k: int) -> list[dict]:
+        """Vector similarity search via sqlite-vec."""
         query_blob = _vec_to_blob(query_emb)
         rows = self._db.execute("""
             SELECT c.text, c.heading, c.source, c.metadata, v.distance
-            FROM vss_chunks v
+            FROM vec_chunks v
             JOIN chunks c ON c.id = v.rowid
-            WHERE vss_search(v.embedding, vss_search_params(?, ?))
+            WHERE v.embedding MATCH ? AND k = ?
+            ORDER BY v.distance
         """, (query_blob, top_k)).fetchall()
 
         return [
@@ -136,7 +161,7 @@ class VectorStore:
                 "text": r["text"],
                 "heading": r["heading"],
                 "source": r["source"],
-                "score": 1.0 - r["distance"],  # Convert distance to similarity
+                "score": 1.0 / (1.0 + r["distance"]),  # Convert distance to similarity
                 "metadata": json.loads(r["metadata"]),
             }
             for r in rows
@@ -176,10 +201,10 @@ class VectorStore:
 
     def remove_file(self, source: str) -> int:
         """Remove all chunks from a source file."""
-        if self._vss_available:
+        if self._vec_available:
             rows = self._db.execute("SELECT id FROM chunks WHERE source = ?", (source,)).fetchall()
             for r in rows:
-                self._db.execute("DELETE FROM vss_chunks WHERE rowid = ?", (r["id"],))
+                self._db.execute("DELETE FROM vec_chunks WHERE rowid = ?", (r["id"],))
         deleted = self._db.execute("DELETE FROM chunks WHERE source = ?", (source,)).rowcount
         self._db.commit()
         return deleted
@@ -191,14 +216,14 @@ class VectorStore:
         return {
             "total_chunks": total,
             "total_files": sources,
-            "vss_available": self._vss_available,
+            "vec_available": self._vec_available,
             "db_path": self._db_path,
         }
 
     def clear(self) -> None:
         """Remove all data."""
-        if self._vss_available:
-            self._db.execute("DELETE FROM vss_chunks")
+        if self._vec_available:
+            self._db.execute("DELETE FROM vec_chunks")
         self._db.execute("DELETE FROM chunks")
         self._db.commit()
 

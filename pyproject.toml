@@ -30,7 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 knowledge = [
     "fastembed>=0.8.0",
-    "sqlite-vss>=0.1.2",
+    "sqlite-vec>=0.1.1",
 ]
 dashboard = [
     "fastapi>=0.115.0",

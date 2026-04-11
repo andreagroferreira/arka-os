@@ -133,7 +133,7 @@ DEPARTMENT_PATTERNS: dict[str, str] = {
     "marketing": r"\b(social|content|campaign|post|instagram|linkedin|twitter|tiktok|seo|marketing|ads|email.?campaign|growth|viral)\b",
     "finance": r"\b(budget|invoice|revenue|forecast|profit|loss|roi|margin|cash.?flow|financial|invest|valuation|pricing)\b",
     "ecom": r"\b(store|product|shop|shopify|ecommerce|catalog|inventory|cart|checkout|pricing|marketplace)\b",
-    "strategy": r"\b(strategy|brainstorm|market|swot|competitor|roadmap|pivot|growth|porter|blue.?ocean|positioning)\b",
+    "strategy": r"\b(strategy|brainstorm|market|swot|competitors?|roadmap|pivot|growth|porter|blue.?ocean|positioning)\b",
     "ops": r"\b(task|automate|meeting|workflow|process|schedule|sop|integration|zapier|n8n)\b",
     "kb": r"\b(learn|persona|knowledge|youtube|transcribe|article|research|zettelkasten|note)\b",
     "brand": r"\b(brand|logo|colors|palette|mockup|photoshoot|brand.?identity|brand.?guide|mood.?board|naming|visual.?design|motion|ux|ui|wireframe)\b",
@@ -143,7 +143,7 @@ DEPARTMENT_PATTERNS: dict[str, str] = {
     "content": r"\b(viral|hook|script|repurpose|youtube|tiktok|reels|shorts|newsletter|creator)\b",
     "pm": r"\b(sprint|backlog|standup|retro|scrum|kanban|story|estimate|roadmap|agile)\b",
     "lead": r"\b(leadership|delegation|1on1|feedback|culture|hiring|performance.?review|team.?build)\b",
-    "sales": r"\b(pipeline|proposal|discovery.?call|objection|negotiate|deal|close|prospect|spin|challenger)\b",
+    "sales": r"\b(pipeline|proposal|discovery.?call|objection|negotiate|deal|close|prospect|spin|challenger|cold.?email|outreach)\b",
     "org": r"\b(org.?design|hiring.?plan|onboarding|remote|meeting.?optimize|compensation|decision.?framework)\b",
 }
 

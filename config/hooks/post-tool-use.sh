@@ -105,11 +105,11 @@ if [ -n "$CWD" ]; then
 fi
 
 # ─── Store in gotchas.json ────────────────────────────────────────────────
-GOTCHAS_FILE="$HOME/.arka-os/gotchas.json"
-mkdir -p "$HOME/.arka-os"
+GOTCHAS_FILE="$HOME/.arkaos/gotchas.json"
+mkdir -p "$HOME/.arkaos"
 
 # Use flock for concurrent safety (fallback if flock not available on macOS)
-LOCK_FILE="$HOME/.arka-os/gotchas.lock"
+LOCK_FILE="$HOME/.arkaos/gotchas.lock"
 if command -v flock &>/dev/null; then
   LOCK_CMD="flock -w 3 200"
 else
@@ -172,9 +172,9 @@ fi
 
 # ─── Log Metrics ─────────────────────────────────────────────────────────
 _DURATION_MS=$(_hook_ms)
-METRICS_FILE="$HOME/.arka-os/hook-metrics.json"
-METRICS_LOCK="$HOME/.arka-os/hook-metrics.lock"
-mkdir -p "$HOME/.arka-os"
+METRICS_FILE="$HOME/.arkaos/hook-metrics.json"
+METRICS_LOCK="$HOME/.arkaos/hook-metrics.lock"
+mkdir -p "$HOME/.arkaos"
 (
   if command -v flock &>/dev/null; then flock -w 2 200; else true; fi
   [ ! -f "$METRICS_FILE" ] && echo '[]' > "$METRICS_FILE"
