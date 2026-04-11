@@ -169,6 +169,7 @@ def create_default_engine(
         ConstitutionLayer, DepartmentLayer, AgentLayer,
         ProjectLayer, BranchLayer, CommandHintsLayer,
         QualityGateLayer, TimeLayer, KnowledgeRetrievalLayer,
+        ForgeContextLayer,
     )
 
     engine = SynapseEngine()
@@ -184,5 +185,6 @@ def create_default_engine(
     engine.register_layer(CommandHintsLayer(commands=commands))
     engine.register_layer(QualityGateLayer())
     engine.register_layer(TimeLayer())
+    engine.register_layer(ForgeContextLayer())
 
     return engine
