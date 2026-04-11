@@ -49,6 +49,20 @@ MSG+="║                                              ║\\n"
 MSG+="╚══════════════════════════════════════════════╝\\n"
 MSG+="\\n"
 MSG+="${GREETING}, ${NAME} (${COMPANY})\\n"
+# ─── Active Workflow ──────────────────────────────────────────────────
+STATE_READER="$REPO/core/workflow/state_reader.sh"
+if [ -n "$REPO" ] && [ -f "$STATE_READER" ] && bash "$STATE_READER" active 2>/dev/null; then
+  WF_SUMMARY=$(bash "$STATE_READER" summary 2>/dev/null)
+  WF_NAME=$(echo "$WF_SUMMARY" | cut -d'|' -f1)
+  WF_PHASE=$(echo "$WF_SUMMARY" | cut -d'|' -f2)
+  WF_PROGRESS=$(echo "$WF_SUMMARY" | cut -d'|' -f3)
+  WF_BRANCH=$(echo "$WF_SUMMARY" | cut -d'|' -f4)
+  WF_VIOLATIONS=$(echo "$WF_SUMMARY" | cut -d'|' -f5)
+  MSG+="\\nWorkflow: ${WF_NAME} (${WF_PROGRESS})"
+  [ -n "$WF_BRANCH" ] && MSG+=" branch:${WF_BRANCH}"
+  [ "$WF_VIOLATIONS" != "0" ] && MSG+=" VIOLATIONS:${WF_VIOLATIONS}"
+  MSG+="\\n"
+fi
 MSG+="ArkaOS v${VERSION} | 65 agents | 17 departments | 244+ skills"
 MSG+="${DRIFT}"
 
