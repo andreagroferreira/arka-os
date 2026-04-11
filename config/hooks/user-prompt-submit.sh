@@ -99,6 +99,19 @@ if command -v python3 &>/dev/null && [ -f "$BRIDGE_SCRIPT" ]; then
   if [ -n "$bridge_output" ]; then
     python_result=$(echo "$bridge_output" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('context_string',''))" 2>/dev/null)
   fi
+
+  # Append workflow state to synapse context
+  _WF_READER="$ARKAOS_ROOT/core/workflow/state_reader.sh"
+  if [ -f "$_WF_READER" ] && bash "$_WF_READER" active 2>/dev/null; then
+    _WF_SUM=$(bash "$_WF_READER" summary 2>/dev/null)
+    _WF_N=$(echo "$_WF_SUM" | cut -d'|' -f1)
+    _WF_P=$(echo "$_WF_SUM" | cut -d'|' -f2)
+    _WF_B=$(echo "$_WF_SUM" | cut -d'|' -f4)
+    _WF_V=$(echo "$_WF_SUM" | cut -d'|' -f5)
+    _WF_TAG="[workflow:${_WF_N}] [phase:${_WF_P}] [branch:${_WF_B}] [violations:${_WF_V}]"
+    [ "$_WF_V" != "0" ] && _WF_TAG="WARNING: ${_WF_V} workflow violation(s). $_WF_TAG"
+    python_result="${python_result} ${_WF_TAG}"
+  fi
 fi
 
 # ─── Fallback: Bash-only context (if Python unavailable) ────────────────
@@ -130,7 +143,20 @@ if [ -z "$python_result" ]; then
     L7="[time:evening]"
   fi
 
-  python_result="$L0 $L4 $L7"
+  # L8: Workflow state
+  L8=""
+  _WF_READER="$ARKAOS_ROOT/core/workflow/state_reader.sh"
+  if [ -f "$_WF_READER" ] && bash "$_WF_READER" active 2>/dev/null; then
+    _WF_SUM=$(bash "$_WF_READER" summary 2>/dev/null)
+    _WF_N=$(echo "$_WF_SUM" | cut -d'|' -f1)
+    _WF_P=$(echo "$_WF_SUM" | cut -d'|' -f2)
+    _WF_B=$(echo "$_WF_SUM" | cut -d'|' -f4)
+    _WF_V=$(echo "$_WF_SUM" | cut -d'|' -f5)
+    L8="[workflow:${_WF_N}] [phase:${_WF_P}] [branch:${_WF_B}] [violations:${_WF_V}]"
+    [ "$_WF_V" != "0" ] && L8="WARNING: ${_WF_V} workflow violation(s). $L8"
+  fi
+
+  python_result="$L0 $L4 $L7 $L8"
 fi
 
 # ─── Output ──────────────────────────────────────────────────────────────
