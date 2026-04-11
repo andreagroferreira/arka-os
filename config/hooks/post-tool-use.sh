@@ -170,6 +170,65 @@ fi
 
 ) 200>"$LOCK_FILE"
 
+# ─── Workflow Violation Detection ────────────────────────────────────────
+VIOLATION_MSG=""
+STATE_READER=""
+[ -f "$HOME/.arkaos/.repo-path" ] && STATE_READER="$(cat "$HOME/.arkaos/.repo-path")/core/workflow/state_reader.sh"
+
+if [ -n "$STATE_READER" ] && [ -f "$STATE_READER" ] && bash "$STATE_READER" active 2>/dev/null; then
+  ARKAOS_PY=""
+  [ -f "$HOME/.arkaos/venv/bin/python3" ] && ARKAOS_PY="$HOME/.arkaos/venv/bin/python3"
+  [ -z "$ARKAOS_PY" ] && [ -f "$HOME/.arkaos/.venv/bin/python3" ] && ARKAOS_PY="$HOME/.arkaos/.venv/bin/python3"
+  [ -z "$ARKAOS_PY" ] && ARKAOS_PY=$(command -v python3 2>/dev/null)
+  ARKAOS_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+
+  # Rule 1: Branch isolation — commit on master while workflow active
+  if [ "$TOOL_NAME" = "Bash" ]; then
+    if echo "$TOOL_OUTPUT" | grep -q "^\[master\|^\[main" 2>/dev/null; then
+      CMD_TEXT=$(echo "$input" | jq -r '.command // ""' 2>/dev/null)
+      if echo "$CMD_TEXT" | grep -qE 'git commit'; then
+        [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ] && \
+          PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
+from core.workflow.state import add_violation
+add_violation('branch-isolation', 'Commit on master/main while workflow active', 'Bash')
+" 2>/dev/null
+        VIOLATION_MSG="VIOLATION [branch-isolation]: Commit on master while workflow active. Use a feature branch."
+      fi
+    fi
+  fi
+
+  # Rule 2: Spec-driven — code edited without completed spec
+  if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
+    FILE_PATH=$(echo "$input" | jq -r '.file_path // ""' 2>/dev/null)
+    if echo "$FILE_PATH" | grep -qE '\.(py|js|ts|vue|php|jsx|tsx)$'; then
+      if ! bash "$STATE_READER" check spec 2>/dev/null; then
+        [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ] && \
+          PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
+from core.workflow.state import add_violation
+add_violation('spec-driven', 'Code edited without completed spec', '$TOOL_NAME', '$FILE_PATH')
+" 2>/dev/null
+        VIOLATION_MSG="VIOLATION [spec-driven]: Code edited without completed spec ($FILE_PATH). Complete the spec phase first."
+      fi
+    fi
+  fi
+
+  # Rule 3: Sequential — implementation before planning
+  if [ -z "$VIOLATION_MSG" ] && { [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; }; then
+    FILE_PATH=$(echo "$input" | jq -r '.file_path // ""' 2>/dev/null)
+    if echo "$FILE_PATH" | grep -qE '\.(py|js|ts|vue|php|jsx|tsx)$'; then
+      IMPL_STATUS=$(bash "$STATE_READER" phase implementation 2>/dev/null)
+      if [ "$IMPL_STATUS" = "pending" ]; then
+        [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ] && \
+          PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
+from core.workflow.state import add_violation
+add_violation('sequential-validation', 'Code written before implementation phase started', '$TOOL_NAME', '$FILE_PATH')
+" 2>/dev/null
+        VIOLATION_MSG="VIOLATION [sequential-validation]: Implementation started before planning completed ($FILE_PATH)."
+      fi
+    fi
+  fi
+fi
+
 # ─── Log Metrics ─────────────────────────────────────────────────────────
 _DURATION_MS=$(_hook_ms)
 METRICS_FILE="$HOME/.arkaos/hook-metrics.json"
@@ -184,5 +243,9 @@ mkdir -p "$HOME/.arkaos"
     "$METRICS_FILE" > "$METRICS_FILE.tmp" 2>/dev/null && mv "$METRICS_FILE.tmp" "$METRICS_FILE"
 ) 200>"$METRICS_LOCK" 2>/dev/null
 
-# Silent output — no context injection needed from PostToolUse
-echo '{}'
+# Output violation as context if detected, otherwise empty
+if [ -n "$VIOLATION_MSG" ]; then
+  echo "{\"additionalContext\": \"$VIOLATION_MSG\"}"
+else
+  echo '{}'
+fi
