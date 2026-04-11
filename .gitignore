@@ -60,3 +60,6 @@ brand/
 
 # ArkaOS runtime (not in repo)
 /tmp/arkaos-context-cache/
+
+# Git worktrees
+.worktrees/
