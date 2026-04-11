@@ -127,13 +127,119 @@ class TestArkaScheduler:
             run_time=time(2, 0),
         )
 
-        with patch("shutil.which", return_value="/usr/local/bin/claude"):
+        # Create a fake claude binary in a known location
+        fake_claude = tmp_path / ".local" / "bin" / "claude"
+        fake_claude.parent.mkdir(parents=True)
+        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.chmod(0o755)
+
+        with patch.object(Path, "home", return_value=tmp_path):
             cmd = scheduler._build_command(schedule)
 
-        assert "claude" in cmd[0]
+        assert str(fake_claude) == cmd[0]
         assert "--dangerously-skip-permissions" in cmd
         assert "-p" in cmd
         assert "dream about the future" in cmd
+
+    def test_resolve_claude_binary_fallback_to_which(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """Falls back to shutil.which when known paths don't exist."""
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("shutil.which", side_effect=lambda x: "/usr/bin/claude" if x == "claude" else None),
+        ):
+            result = ArkaScheduler._resolve_claude_binary()
+        assert result == "/usr/bin/claude"
+
+    def test_resolve_claude_binary_raises_when_missing(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """Raises FileNotFoundError when claude is nowhere to be found."""
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("shutil.which", return_value=None),
+        ):
+            with pytest.raises(FileNotFoundError, match="Claude CLI not found"):
+                ArkaScheduler._resolve_claude_binary()
+
+    def test_daemon_env_includes_claude_paths(self, scheduler: ArkaScheduler) -> None:
+        """_daemon_env PATH must include .local/bin and .arkaos/bin."""
+        env = scheduler._daemon_env()
+        assert ".local/bin" in env["PATH"]
+        assert ".arkaos/bin" in env["PATH"]
+        assert "/usr/local/bin" in env["PATH"]
+
+    def test_execute_success(self, scheduler: ArkaScheduler, tmp_path: Path) -> None:
+        """execute returns True when the subprocess exits 0."""
+        prompt_file = tmp_path / "prompt.md"
+        prompt_file.write_text("test prompt")
+        schedule = ScheduleConfig(
+            command="test_cmd", prompt_file=str(prompt_file), run_time=time(2, 0),
+        )
+
+        fake_result = MagicMock(returncode=0)
+        with (
+            patch.object(scheduler, "_resolve_claude_binary", return_value="/bin/echo"),
+            patch("subprocess.run", return_value=fake_result),
+        ):
+            assert scheduler.execute(schedule) is True
+
+        log = (tmp_path / "logs" / "test_cmd").glob("*.log")
+        assert any(log)
+
+    def test_execute_retries_on_failure(self, scheduler: ArkaScheduler, tmp_path: Path) -> None:
+        """execute retries up to max_retries on non-zero exit codes."""
+        prompt_file = tmp_path / "prompt.md"
+        prompt_file.write_text("test")
+        schedule = ScheduleConfig(
+            command="retry_cmd", prompt_file=str(prompt_file),
+            run_time=time(2, 0), retry_on_fail=True, max_retries=2,
+        )
+
+        fail_result = MagicMock(returncode=1)
+        with (
+            patch.object(scheduler, "_resolve_claude_binary", return_value="/bin/false"),
+            patch("subprocess.run", return_value=fail_result),
+            patch("time.sleep"),  # Skip actual backoff
+        ):
+            assert scheduler.execute(schedule) is False
+
+    def test_execute_backoff_delay(self, scheduler: ArkaScheduler, tmp_path: Path) -> None:
+        """Retry backoff increases: 30s after first fail, 60s after second."""
+        prompt_file = tmp_path / "prompt.md"
+        prompt_file.write_text("test")
+        schedule = ScheduleConfig(
+            command="backoff_cmd", prompt_file=str(prompt_file),
+            run_time=time(2, 0), retry_on_fail=True, max_retries=2,
+        )
+
+        fail_result = MagicMock(returncode=1)
+        sleep_calls = []
+        with (
+            patch.object(scheduler, "_resolve_claude_binary", return_value="/bin/false"),
+            patch("subprocess.run", return_value=fail_result),
+            patch("time.sleep", side_effect=lambda d: sleep_calls.append(d)),
+        ):
+            scheduler.execute(schedule)
+
+        assert sleep_calls == [30, 60]
+
+    def test_execute_returns_false_when_claude_missing(
+        self, scheduler: ArkaScheduler, tmp_path: Path,
+    ) -> None:
+        """execute returns False and logs FATAL when claude binary not found."""
+        prompt_file = tmp_path / "prompt.md"
+        prompt_file.write_text("test")
+        schedule = ScheduleConfig(
+            command="missing_cmd", prompt_file=str(prompt_file), run_time=time(2, 0),
+        )
+
+        with patch.object(
+            scheduler, "_resolve_claude_binary",
+            side_effect=FileNotFoundError("Claude CLI not found"),
+        ):
+            assert scheduler.execute(schedule) is False
 
     def test_lock_prevents_duplicate(
         self, scheduler: ArkaScheduler, tmp_path: Path

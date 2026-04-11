@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time as time_mod
 from dataclasses import dataclass, field
 from datetime import datetime, time
 from pathlib import Path
@@ -113,9 +114,34 @@ class ArkaScheduler:
             and current_time.minute == schedule.run_time.minute
         )
 
+    @staticmethod
+    def _resolve_claude_binary() -> str:
+        """Resolve the Claude CLI binary by checking known install locations.
+
+        In daemon context (launchd/systemd/schtasks), PATH is minimal and shell
+        aliases don't exist, so we check absolute paths first.
+        """
+        home = Path.home()
+        candidates = [
+            home / ".local" / "bin" / "claude",
+            home / ".arkaos" / "bin" / "arka-claude",
+        ]
+        for candidate in candidates:
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                return str(candidate)
+        # Fallback to PATH lookup (works in interactive shells)
+        found = shutil.which("claude") or shutil.which("arka-claude")
+        if found:
+            return found
+        raise FileNotFoundError(
+            "Claude CLI not found. Checked: "
+            + ", ".join(str(c) for c in candidates)
+            + " and PATH lookup."
+        )
+
     def _build_command(self, schedule: ScheduleConfig) -> list[str]:
         """Build the Claude CLI invocation for a schedule."""
-        claude_bin = shutil.which("claude") or "claude"
+        claude_bin = self._resolve_claude_binary()
         prompt_path = os.path.expanduser(schedule.prompt_file)
         prompt_content = Path(prompt_path).read_text(encoding="utf-8")
         return [claude_bin, "-p", prompt_content, "--dangerously-skip-permissions"]
@@ -131,33 +157,63 @@ class ArkaScheduler:
         log_dir.mkdir(parents=True, exist_ok=True)
         return log_dir / f"{today}.log"
 
+    @staticmethod
+    def _daemon_env() -> dict[str, str]:
+        """Build an environment with PATH that includes known Claude locations.
+
+        Daemons (launchd/systemd) inherit a minimal PATH. We extend it so that
+        any child processes spawned by Claude can also find common tools.
+        """
+        home = str(Path.home())
+        extra_paths = [
+            os.path.join(home, ".local", "bin"),
+            os.path.join(home, ".arkaos", "bin"),
+            "/usr/local/bin",
+        ]
+        env = os.environ.copy()
+        existing = env.get("PATH", "/usr/bin:/bin")
+        env["PATH"] = ":".join(extra_paths) + ":" + existing
+        return env
+
+    def _run_attempt(
+        self, cmd: list[str], log_file: Path, attempt: int, timeout: int,
+    ) -> bool:
+        """Run a single attempt of a scheduled command. Returns True on success."""
+        env = self._daemon_env()
+        with open(log_file, "a", encoding="utf-8") as lf:
+            lf.write(f"\n--- attempt {attempt} at {datetime.now().isoformat()} ---\n")
+            lf.write(f"cmd: {cmd[0]}\n")
+            try:
+                result = subprocess.run(
+                    cmd, stdout=lf, stderr=lf, timeout=timeout, env=env,
+                )
+                if result.returncode == 0:
+                    return True
+                lf.write(f"exit code: {result.returncode}\n")
+            except subprocess.TimeoutExpired:
+                lf.write("TIMEOUT\n")
+            except Exception as exc:  # noqa: BLE001
+                lf.write(f"ERROR: {exc}\n")
+        return False
+
     def execute(self, schedule: ScheduleConfig) -> bool:
-        """Run the scheduled command, writing output to a dated log file."""
+        """Run the scheduled command with retries and backoff."""
         log_file = self._log_path(schedule.command)
-        timeout_seconds = schedule.timeout_minutes * 60
-        attempts = 0
+        timeout = schedule.timeout_minutes * 60
         max_attempts = schedule.max_retries + 1 if schedule.retry_on_fail else 1
 
-        while attempts < max_attempts:
-            attempts += 1
+        try:
             cmd = self._build_command(schedule)
+        except FileNotFoundError as exc:
             with open(log_file, "a", encoding="utf-8") as lf:
-                lf.write(f"\n--- attempt {attempts} at {datetime.now().isoformat()} ---\n")
-                try:
-                    result = subprocess.run(
-                        cmd,
-                        stdout=lf,
-                        stderr=lf,
-                        timeout=timeout_seconds,
-                    )
-                    if result.returncode == 0:
-                        return True
-                    lf.write(f"exit code: {result.returncode}\n")
-                except subprocess.TimeoutExpired:
-                    lf.write("TIMEOUT\n")
-                except Exception as exc:  # noqa: BLE001
-                    lf.write(f"ERROR: {exc}\n")
+                lf.write(f"\n--- at {datetime.now().isoformat()} ---\nFATAL: {exc}\n")
+            return False
 
+        for attempt in range(1, max_attempts + 1):
+            if self._run_attempt(cmd, log_file, attempt, timeout):
+                return True
+            if attempt < max_attempts:
+                time_mod.sleep(30 * attempt)
         return False
 
     # ------------------------------------------------------------------

@@ -507,7 +507,7 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
     console.log("         \u2713 Cognitive prompts updated");
   }
 
-  // 3. Update daemon script
+  // 3. Update daemon script and core modules
   const daemonSrc = join(arkaosRoot, "bin", "scheduler-daemon.py");
   const binDir = join(installDir, "bin");
   ensureDir(binDir);
@@ -516,6 +516,30 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
     try { chmodSync(join(binDir, "scheduler-daemon.py"), 0o755); } catch {}
     console.log("         \u2713 Scheduler daemon updated");
   }
+
+  // 3b. Update scheduler core modules (daemon imports these at runtime)
+  const schedulerModules = [
+    "core/cognition/scheduler/__init__.py",
+    "core/cognition/scheduler/daemon.py",
+    "core/cognition/scheduler/platform.py",
+    "core/cognition/scheduler/cli.py",
+  ];
+  for (const mod of schedulerModules) {
+    const src = join(arkaosRoot, mod);
+    const dest = join(installDir, mod);
+    if (existsSync(src)) {
+      ensureDir(dirname(dest));
+      copyFileSync(src, dest);
+    }
+  }
+  // Write minimal __init__.py files (don't copy full cognition init — it
+  // imports modules not deployed here like capture, insights, memory)
+  for (const init of ["core/__init__.py", "core/cognition/__init__.py"]) {
+    const dest = join(installDir, init);
+    ensureDir(dirname(dest));
+    writeFileSync(dest, '"""ArkaOS — deployed subset for scheduler."""\n');
+  }
+  console.log("         \u2713 Scheduler core modules updated");
 
   // 4. Ensure log directories
   ensureDir(join(installDir, "logs", "dreaming"));
@@ -536,13 +560,19 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
       }
     } else {
       // First time — install the service
+      const home = homedir();
       let pythonPath;
       try {
-        pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+        pythonPath = getArkaosPython();
       } catch {
-        pythonPath = "python3";
+        try {
+          pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+        } catch {
+          pythonPath = "python3";
+        }
       }
       const logDir = join(installDir, "logs");
+      const pathValue = `${home}/.local/bin:${home}/.arkaos/bin:/usr/local/bin:/usr/bin:/bin`;
       const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -554,6 +584,13 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
 \t\t<string>${pythonPath}</string>
 \t\t<string>${daemonPath}</string>
 \t</array>
+\t<key>EnvironmentVariables</key>
+\t<dict>
+\t\t<key>PATH</key>
+\t\t<string>${pathValue}</string>
+\t\t<key>HOME</key>
+\t\t<string>${home}</string>
+\t</dict>
 \t<key>RunAtLoad</key>
 \t<true/>
 \t<key>KeepAlive</key>

@@ -614,7 +614,7 @@ function deployCognitiveScheduler(installDir, arkaosRoot) {
     ok("Cognitive prompts deployed (dreaming, research)");
   }
 
-  // 3. Copy daemon script
+  // 3. Copy daemon script and core modules it imports
   const daemonSrc = join(arkaosRoot, "bin", "scheduler-daemon.py");
   const binDir = join(installDir, "bin");
   ensureDir(binDir);
@@ -623,6 +623,30 @@ function deployCognitiveScheduler(installDir, arkaosRoot) {
     try { chmodSync(join(binDir, "scheduler-daemon.py"), 0o755); } catch {}
     ok("Scheduler daemon deployed");
   }
+
+  // 3b. Copy scheduler core modules so the daemon can import them
+  const schedulerModules = [
+    "core/cognition/scheduler/__init__.py",
+    "core/cognition/scheduler/daemon.py",
+    "core/cognition/scheduler/platform.py",
+    "core/cognition/scheduler/cli.py",
+  ];
+  for (const mod of schedulerModules) {
+    const src = join(arkaosRoot, mod);
+    const dest = join(installDir, mod);
+    if (existsSync(src)) {
+      ensureDir(dirname(dest));
+      copyFileSync(src, dest);
+    }
+  }
+  // Write minimal __init__.py files (don't copy full cognition init — it
+  // imports modules not deployed here like capture, insights, memory)
+  for (const init of ["core/__init__.py", "core/cognition/__init__.py"]) {
+    const dest = join(installDir, init);
+    ensureDir(dirname(dest));
+    writeFileSync(dest, '"""ArkaOS — deployed subset for scheduler."""\n');
+  }
+  ok("Scheduler core modules deployed");
 
   // 4. Create log directories
   ensureDir(join(installDir, "logs", "dreaming"));
@@ -646,13 +670,22 @@ function installLaunchdService(installDir, daemonPath) {
   const plistDir = join(homedir(), "Library", "LaunchAgents");
   const plistPath = join(plistDir, `${label}.plist`);
   const logDir = join(installDir, "logs");
+  const home = homedir();
 
+  // Use the ArkaOS venv Python, not whatever `which python3` finds
   let pythonPath;
   try {
-    pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+    pythonPath = getArkaosPython();
   } catch {
-    pythonPath = "python3";
+    try {
+      pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+    } catch {
+      pythonPath = "python3";
+    }
   }
+
+  // PATH must include known Claude CLI locations — launchd inherits a minimal PATH
+  const pathValue = `${home}/.local/bin:${home}/.arkaos/bin:/usr/local/bin:/usr/bin:/bin`;
 
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -665,6 +698,13 @@ function installLaunchdService(installDir, daemonPath) {
 \t\t<string>${pythonPath}</string>
 \t\t<string>${daemonPath}</string>
 \t</array>
+\t<key>EnvironmentVariables</key>
+\t<dict>
+\t\t<key>PATH</key>
+\t\t<string>${pathValue}</string>
+\t\t<key>HOME</key>
+\t\t<string>${home}</string>
+\t</dict>
 \t<key>RunAtLoad</key>
 \t<true/>
 \t<key>KeepAlive</key>
@@ -689,14 +729,22 @@ function installLaunchdService(installDir, daemonPath) {
 }
 
 function installSystemdService(installDir, daemonPath) {
+  const home = homedir();
   let pythonPath;
   try {
-    pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+    pythonPath = getArkaosPython();
   } catch {
-    pythonPath = "python3";
+    try {
+      pythonPath = execSync("which python3", { stdio: "pipe" }).toString().trim();
+    } catch {
+      pythonPath = "python3";
+    }
   }
 
-  const serviceDir = join(homedir(), ".config", "systemd", "user");
+  // systemd inherits a minimal PATH — inject known Claude CLI locations
+  const pathValue = `${home}/.local/bin:${home}/.arkaos/bin:/usr/local/bin:/usr/bin:/bin`;
+
+  const serviceDir = join(home, ".config", "systemd", "user");
   const servicePath = join(serviceDir, "arkaos-scheduler.service");
   const unit = `[Unit]
 Description=ArkaOS Cognitive Scheduler
@@ -704,6 +752,7 @@ After=network.target
 
 [Service]
 Type=simple
+Environment=PATH=${pathValue}
 ExecStart=${pythonPath} ${daemonPath}
 Restart=on-failure
 RestartSec=60

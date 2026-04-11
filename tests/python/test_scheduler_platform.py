@@ -88,6 +88,15 @@ class TestMacOSAdapter:
         assert "StandardOutPath" in plist
         assert "StandardErrorPath" in plist
 
+    def test_generates_plist_with_environment_variables(self, adapter: MacOSAdapter) -> None:
+        """Generated plist injects PATH with known Claude binary locations."""
+        plist = adapter._generate_plist()
+        assert "EnvironmentVariables" in plist
+        assert ".local/bin" in plist
+        assert ".arkaos/bin" in plist
+        assert "<key>PATH</key>" in plist
+        assert "<key>HOME</key>" in plist
+
     def test_platform_name(self, adapter: MacOSAdapter) -> None:
         assert adapter.platform_name == "macos"
 
@@ -130,6 +139,13 @@ class TestLinuxAdapter:
         assert "Restart=on-failure" in unit
         assert "RestartSec=60" in unit
         assert "WantedBy=default.target" in unit
+
+    def test_generates_unit_with_path_environment(self, adapter: LinuxAdapter) -> None:
+        """Generated unit injects PATH with known Claude binary locations."""
+        unit = adapter._generate_unit()
+        assert "Environment=PATH=" in unit
+        assert ".local/bin" in unit
+        assert ".arkaos/bin" in unit
 
     def test_platform_name(self, adapter: LinuxAdapter) -> None:
         assert adapter.platform_name == "linux"
