@@ -184,7 +184,7 @@ if [ -n "$STATE_READER" ] && [ -f "$STATE_READER" ] && bash "$STATE_READER" acti
 
   # Rule 1: Branch isolation — commit on master while workflow active
   if [ "$TOOL_NAME" = "Bash" ]; then
-    if echo "$TOOL_OUTPUT" | grep -q "^\[master\|^\[main" 2>/dev/null; then
+    if echo "$TOOL_OUTPUT" | grep -qE '^\[(master|main)' 2>/dev/null; then
       CMD_TEXT=$(echo "$input" | jq -r '.command // ""' 2>/dev/null)
       if echo "$CMD_TEXT" | grep -qE 'git commit'; then
         [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ] && \
@@ -203,9 +203,9 @@ add_violation('branch-isolation', 'Commit on master/main while workflow active',
     if echo "$FILE_PATH" | grep -qE '\.(py|js|ts|vue|php|jsx|tsx)$'; then
       if ! bash "$STATE_READER" check spec 2>/dev/null; then
         [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ] && \
-          PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
-from core.workflow.state import add_violation
-add_violation('spec-driven', 'Code edited without completed spec', '$TOOL_NAME', '$FILE_PATH')
+          PYTHONPATH="$ARKAOS_ROOT" _V_TOOL="$TOOL_NAME" _V_FILE="$FILE_PATH" $ARKAOS_PY -c "
+import os; from core.workflow.state import add_violation
+add_violation('spec-driven', 'Code edited without completed spec', os.environ['_V_TOOL'], os.environ['_V_FILE'])
 " 2>/dev/null
         VIOLATION_MSG="VIOLATION [spec-driven]: Code edited without completed spec ($FILE_PATH). Complete the spec phase first."
       fi
@@ -219,9 +219,9 @@ add_violation('spec-driven', 'Code edited without completed spec', '$TOOL_NAME',
       IMPL_STATUS=$(bash "$STATE_READER" phase implementation 2>/dev/null)
       if [ "$IMPL_STATUS" = "pending" ]; then
         [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ] && \
-          PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
-from core.workflow.state import add_violation
-add_violation('sequential-validation', 'Code written before implementation phase started', '$TOOL_NAME', '$FILE_PATH')
+          PYTHONPATH="$ARKAOS_ROOT" _V_TOOL="$TOOL_NAME" _V_FILE="$FILE_PATH" $ARKAOS_PY -c "
+import os; from core.workflow.state import add_violation
+add_violation('sequential-validation', 'Code written before implementation phase started', os.environ['_V_TOOL'], os.environ['_V_FILE'])
 " 2>/dev/null
         VIOLATION_MSG="VIOLATION [sequential-validation]: Implementation started before planning completed ($FILE_PATH)."
       fi
