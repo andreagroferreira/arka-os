@@ -342,6 +342,44 @@ export async function update() {
     console.log(`         ✓ ${agentCount} agent personas updated`);
   }
 
+  // MCP infrastructure: deploy mcps/ subdirectories, registry, and
+  // arka-prompts server — mirrors the same block in installSkill().
+  const mcpsSrc = join(ARKAOS_ROOT, "mcps");
+  if (existsSync(mcpsSrc)) {
+    const mcpsDest = join(skillDest, "mcps");
+    if (!existsSync(mcpsDest)) mkdirSync(mcpsDest, { recursive: true });
+
+    for (const subdir of ["profiles", "stacks", "scripts"]) {
+      const src = join(mcpsSrc, subdir);
+      if (!existsSync(src)) continue;
+      const dest = join(mcpsDest, subdir);
+      if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
+      try { cpSync(src, dest, { recursive: true }); } catch {}
+    }
+
+    const registrySrc = join(mcpsSrc, "registry.json");
+    if (existsSync(registrySrc)) {
+      copyFileSync(registrySrc, join(mcpsDest, "registry.json"));
+    }
+
+    const applyScript = join(mcpsDest, "scripts", "apply-mcps.sh");
+    if (existsSync(applyScript)) {
+      try { chmodSync(applyScript, 0o755); } catch {}
+    }
+
+    const mcpServerSrc = join(mcpsSrc, "arka-prompts");
+    const mcpServerDest = join(skillsBase, "arka", "mcp-server");
+    if (existsSync(mcpServerSrc)) {
+      if (!existsSync(mcpServerDest)) mkdirSync(mcpServerDest, { recursive: true });
+      for (const f of ["server.py", "commands.py", "pyproject.toml"]) {
+        const src = join(mcpServerSrc, f);
+        if (existsSync(src)) copyFileSync(src, join(mcpServerDest, f));
+      }
+    }
+
+    console.log("         ✓ MCP infrastructure updated (profiles, stacks, scripts, arka-prompts server)");
+  }
+
   // ── 7. Update .repo-path + .arkaos-root ──
   // Two references point at the source repo. Both MUST be updated on
   // every update pass, otherwise running `npx arkaos update` from a
