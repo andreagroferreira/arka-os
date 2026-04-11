@@ -176,8 +176,9 @@ for mcp_name in "${MCP_NAMES[@]}"; do
         MCP_ARGS=$(echo "$MCP_ENTRY" | jq -c '.args')
         MCP_ENV=$(echo "$MCP_ENTRY" | jq -c '.env // {}')
 
-        # Replace {cwd} placeholder with project dir
-        MCP_ARGS=$(echo "$MCP_ARGS" | sed "s|{cwd}|$PROJECT_DIR|g")
+        # Replace {cwd} and {home} placeholders
+        MCP_ARGS=$(echo "$MCP_ARGS" | sed "s|{cwd}|$PROJECT_DIR|g; s|{home}|$HOME|g")
+        MCP_ENV=$(echo "$MCP_ENV" | sed "s|{cwd}|$PROJECT_DIR|g; s|{home}|$HOME|g")
 
         if [ "$MCP_ENV" = "{}" ]; then
             MCP_JSON=$(echo "$MCP_JSON" | jq --arg name "$mcp_name" --arg cmd "$MCP_CMD" --argjson args "$MCP_ARGS" \
