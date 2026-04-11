@@ -16,7 +16,7 @@
       "command": "npx",
       "args": ["@bitbonsai/mcpvault@latest", "{home}/Documents/Personal"],
       "category": "base",
-      "description": "Obsidian vault integration — read/write notes, personas, knowledge",
+      "description": "Obsidian vault integration: read/write notes, personas, knowledge",
       "required_env": []
     },
     "context7": {
@@ -82,14 +82,14 @@
       "command": "php",
       "args": ["artisan", "boost:mcp"],
       "category": "laravel",
-      "description": "Laravel Boost — AI-powered Laravel development tools",
+      "description": "Laravel Boost: AI-powered Laravel development tools",
       "required_env": []
     },
     "serena": {
       "command": "uvx",
       "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "ide-assistant", "--project", "{cwd}"],
       "category": "laravel",
-      "description": "Code intelligence — type-aware code analysis and refactoring",
+      "description": "Code intelligence: type-aware code analysis and refactoring",
       "required_env": []
     },
     "nuxt-ui": {
@@ -117,7 +117,7 @@
       "command": "npx",
       "args": ["-y", "next-devtools-mcp@latest"],
       "category": "react",
-      "description": "Next.js DevTools — debugging and development assistance",
+      "description": "Next.js DevTools: debugging and development assistance",
       "required_env": []
     },
     "supabase": {
@@ -191,7 +191,7 @@
       "type": "http",
       "url": "https://mcp.canva.com/mcp",
       "category": "brand",
-      "description": "Canva design platform — create, edit, export designs, manage brand kits",
+      "description": "Canva design platform: create, edit, export designs, and manage brand kits",
       "required_env": []
     }
   }

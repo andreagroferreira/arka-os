@@ -39,7 +39,7 @@ COMMANDS: dict[str, dict] = {
         "skill_dir": "arka-dev",
         "slash_command": "/dev feature",
         "title": "Dev — Implement Feature",
-        "description": "Implement a feature end-to-end with 8-phase enterprise workflow.",
+        "description": "Implement a feature with the full 8-phase development workflow.",
         "arguments": [
             {"name": "description", "description": "Feature description", "required": True},
         ],
@@ -380,7 +380,7 @@ COMMANDS: dict[str, dict] = {
         "skill_dir": "arka-strategy",
         "slash_command": "/strat competitor",
         "title": "Strat — Competitive Analysis",
-        "description": "Competitive intelligence deep-dive.",
+        "description": "Competitive intelligence analysis.",
         "arguments": [
             {"name": "url", "description": "Competitor URL or name", "required": True},
         ],
