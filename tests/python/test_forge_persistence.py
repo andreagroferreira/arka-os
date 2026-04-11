@@ -132,3 +132,12 @@ class TestPatternExtraction:
 
     def test_load_patterns_empty(self, _use_tmp_obsidian):
         assert load_patterns() == []
+
+    def test_roundtrip_extract_then_load(self, _use_tmp_obsidian):
+        plan = _make_plan()
+        plan.status = ForgeStatus.COMPLETED
+        plan.plan_phases = [PlanPhase(name="A", department="dev"), PlanPhase(name="B", department="ops")]
+        extract_patterns(plan)
+        loaded = load_patterns()
+        assert len(loaded) >= 1
+        assert loaded[0]["source_plan"] == plan.id
