@@ -587,6 +587,52 @@ function installSkill(config, installDir) {
   if (agentDeployed > 0) {
     ok(`${agentDeployed} agent personas installed (~/.claude/agents/arka-*.md)`);
   }
+
+  // ── MCP infrastructure ──────────────────────────────────────────────
+  // Deploy mcps/ subdirectories (profiles, stacks, scripts) and registry
+  // to ~/.claude/skills/arka/mcps/, and the arka-prompts server files to
+  // ~/.claude/skills/arka/mcp-server/. Mirrors the mcps/ tree in the repo.
+  const mcpsSrc = join(ARKAOS_ROOT, "mcps");
+  if (existsSync(mcpsSrc)) {
+    const mcpsDest = join(skillDest, "mcps");
+    ensureDir(mcpsDest);
+
+    // Copy subdirectories: profiles, stacks, scripts
+    for (const subdir of ["profiles", "stacks", "scripts"]) {
+      const src = join(mcpsSrc, subdir);
+      if (!existsSync(src)) continue;
+      const dest = join(mcpsDest, subdir);
+      ensureDir(dest);
+      try {
+        cpSync(src, dest, { recursive: true });
+      } catch {}
+    }
+
+    // Copy registry.json to mcps root
+    const registrySrc = join(mcpsSrc, "registry.json");
+    if (existsSync(registrySrc)) {
+      copyFileSync(registrySrc, join(mcpsDest, "registry.json"));
+    }
+
+    // Make apply-mcps.sh executable
+    const applyScript = join(mcpsDest, "scripts", "apply-mcps.sh");
+    if (existsSync(applyScript)) {
+      try { chmodSync(applyScript, 0o755); } catch {}
+    }
+
+    // Deploy arka-prompts server to mcp-server/
+    const mcpServerSrc = join(mcpsSrc, "arka-prompts");
+    const mcpServerDest = join(skillsBase, "arka", "mcp-server");
+    if (existsSync(mcpServerSrc)) {
+      ensureDir(mcpServerDest);
+      for (const f of ["server.py", "commands.py", "pyproject.toml"]) {
+        const src = join(mcpServerSrc, f);
+        if (existsSync(src)) copyFileSync(src, join(mcpServerDest, f));
+      }
+    }
+
+    ok("MCP infrastructure deployed (profiles, stacks, scripts, arka-prompts server)");
+  }
 }
 
 function deployCognitiveScheduler(installDir, arkaosRoot) {
