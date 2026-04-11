@@ -6,7 +6,7 @@
  * and guarantees the doctor checks the same interpreter the installer uses.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, platform } from "node:os";
 import { execSync } from "node:child_process";
@@ -64,16 +64,24 @@ export function getArkaosPip() {
  * Find system Python 3.11+ (used only during initial venv creation).
  */
 export function findSystemPython() {
+  const isWindows = platform() === "win32";
   const candidates = ["python3", "python"];
+  const finder = isWindows ? "where" : "which";
+
   for (const cmd of candidates) {
     try {
-      const version = execSync(`${cmd} --version 2>&1`, { stdio: "pipe" }).toString().trim();
+      // stderr redirected via stdio, not shell operators, so it works the
+      // same on bash, zsh, and cmd.exe.
+      const version = execSync(`${cmd} --version`, {
+        stdio: ["pipe", "pipe", "pipe"],
+      }).toString().trim();
       const match = version.match(/(\d+)\.(\d+)/);
       if (match && parseInt(match[1]) >= 3 && parseInt(match[2]) >= 11) {
-        // Resolve to absolute path
+        // Resolve to an absolute path using the platform-native locator.
         try {
-          const resolved = execSync(`which ${cmd} 2>/dev/null || where ${cmd} 2>nul`, { stdio: "pipe" })
-            .toString().trim().split("\n")[0];
+          const resolved = execSync(`${finder} ${cmd}`, {
+            stdio: ["pipe", "pipe", "ignore"],
+          }).toString().trim().split(/\r?\n/)[0];
           return resolved || cmd;
         } catch {
           return cmd;
@@ -121,6 +129,33 @@ export function ensureVenv(log = console.log) {
 }
 
 /**
+ * Extract a meaningful error message from a failed execSync error.
+ * Prefers stderr (the actual pip output), falls back to err.message.
+ * Collapses multi-line output into a single line and caps the length
+ * so a traceback does not dominate the installer log, while keeping
+ * the failing package name and the key "No matching distribution" /
+ * "error: subprocess-exited-with-error" markers visible.
+ */
+function formatPipError(err) {
+  let text = "";
+  if (err.stderr) {
+    text = err.stderr.toString();
+  } else if (err.stdout) {
+    text = err.stdout.toString();
+  } else if (err.message) {
+    text = err.message;
+  }
+  text = text
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim().length > 0)
+    .join(" | ");
+  if (text.length > 400) text = text.slice(0, 400) + "...";
+  return text;
+}
+
+/**
  * Install Python packages using the ArkaOS interpreter.
  * Uses venv pip (no PEP 668 issues) or falls back with --break-system-packages.
  */
@@ -142,7 +177,7 @@ export function pipInstall(packages, opts = {}) {
       execSync(`"${venvPip}" install ${flags.join(" ")} ${pkgArg}`, { stdio: "pipe", timeout });
       return true;
     } catch (err) {
-      log(`         \u26a0 Venv pip install failed: ${err.message.slice(0, 80)}`);
+      log(`         \u26a0 Venv pip install failed for ${packages}: ${formatPipError(err)}`);
       return false;
     }
   }
@@ -164,11 +199,11 @@ export function pipInstall(packages, opts = {}) {
           });
           return true;
         } catch (err2) {
-          log(`         \u26a0 pip install with --break-system-packages also failed: ${err2.message.slice(0, 80)}`);
+          log(`         \u26a0 pip install with --break-system-packages also failed for ${packages}: ${formatPipError(err2)}`);
           return false;
         }
       }
-      log(`         \u26a0 pip install failed: ${err.message.slice(0, 80)}`);
+      log(`         \u26a0 pip install failed for ${packages}: ${formatPipError(err)}`);
       return false;
     }
   }
@@ -201,14 +236,14 @@ export function canImportCore() {
 export function getRepoRoot() {
   const repoPathFile = join(INSTALL_DIR, ".repo-path");
   if (existsSync(repoPathFile)) {
-    const p = execSync(`cat "${repoPathFile}"`, { stdio: "pipe" }).toString().trim();
+    const p = readFileSync(repoPathFile, "utf-8").trim();
     if (existsSync(p)) return p;
   }
   // Fallback: try manifest
   const manifestPath = join(INSTALL_DIR, "install-manifest.json");
   if (existsSync(manifestPath)) {
     try {
-      const m = JSON.parse(execSync(`cat "${manifestPath}"`, { stdio: "pipe" }).toString());
+      const m = JSON.parse(readFileSync(manifestPath, "utf-8"));
       if (m.repoRoot && existsSync(m.repoRoot)) return m.repoRoot;
     } catch {}
   }

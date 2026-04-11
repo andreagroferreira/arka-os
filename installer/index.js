@@ -1,10 +1,11 @@
-import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, readdirSync, chmodSync, cpSync } from "node:fs";
+import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, readdirSync, chmodSync, cpSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { homedir } from "node:os";
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { findSystemPython, ensureVenv, getArkaosPython, getArkaosPip, pipInstall } from "./python-resolver.js";
+import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -100,13 +101,36 @@ export async function install({ runtime, path, force }) {
   step(9, 14, "Installing CLI wrapper...");
   const binDir = join(installDir, "bin");
   ensureDir(binDir);
-  const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
-  if (existsSync(wrapperSrc)) {
-    copyFileSync(wrapperSrc, join(binDir, "arka-claude"));
-    try { chmodSync(join(binDir, "arka-claude"), 0o755); } catch {}
-    ok("arka-claude wrapper installed");
-    console.log(`         Add to PATH: export PATH="$HOME/.arkaos/bin:$PATH"`);
-    console.log(`         Optional alias: alias claude="arka-claude"`);
+
+  // On Unix we deploy the bash wrapper. On Windows we deploy the PowerShell
+  // port plus a .cmd shim so `arka-claude ...` works from cmd.exe,
+  // PowerShell, and Windows Terminal alike.
+  if (IS_WINDOWS) {
+    const psSrc  = join(ARKAOS_ROOT, "bin", "arka-claude.ps1");
+    const cmdSrc = join(ARKAOS_ROOT, "bin", "arka-claude.cmd");
+    let installed = false;
+    if (existsSync(psSrc)) {
+      copyFileSync(psSrc, join(binDir, "arka-claude.ps1"));
+      installed = true;
+    }
+    if (existsSync(cmdSrc)) {
+      copyFileSync(cmdSrc, join(binDir, "arka-claude.cmd"));
+      installed = true;
+    }
+    if (installed) {
+      ok("arka-claude wrapper installed (.cmd + .ps1)");
+      console.log(`         Add to PATH: setx PATH "%PATH%;%USERPROFILE%\\.arkaos\\bin"`);
+      console.log(`         Then reopen any shell and run: arka-claude`);
+    }
+  } else {
+    const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
+    if (existsSync(wrapperSrc)) {
+      copyFileSync(wrapperSrc, join(binDir, "arka-claude"));
+      try { chmodSync(join(binDir, "arka-claude"), 0o755); } catch {}
+      ok("arka-claude wrapper installed");
+      console.log(`         Add to PATH: export PATH="$HOME/.arkaos/bin:$PATH"`);
+      console.log(`         Optional alias: alias claude="arka-claude"`);
+    }
   }
   const claudeMdSrc = join(ARKAOS_ROOT, "config", "user-claude.md");
   const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");
@@ -189,7 +213,8 @@ export async function install({ runtime, path, force }) {
   step(13, 14, "Verifying installation...");
   let checks = 0;
   if (existsSync(join(installDir, "config", "constitution.yaml"))) checks++;
-  if (existsSync(join(installDir, "config", "hooks", "user-prompt-submit.sh"))) checks++;
+  const verifyHookExt = HOOK_EXT;
+  if (existsSync(join(installDir, "config", "hooks", `user-prompt-submit${verifyHookExt}`))) checks++;
   if (existsSync(join(installDir, ".repo-path"))) checks++;
   if (existsSync(profilePath)) checks++;
   try {
@@ -268,8 +293,8 @@ function installAllPythonDeps(userConfig = {}) {
 
   // Core dependencies
   const coreDeps = "pyyaml pydantic rich click jinja2";
-  // Knowledge + Vector DB
-  const knowledgeDeps = "fastembed sqlite-vss";
+  // Knowledge + Vector DB - installed individually (see below) so that
+  // a failure of one does not block the other.
   // Ingest (YouTube, PDF, web, audio)
   const ingestDeps = "yt-dlp pdfplumber beautifulsoup4 requests";
   // Dashboard API
@@ -285,11 +310,20 @@ function installAllPythonDeps(userConfig = {}) {
     warn("Core deps failed — some features may not work");
   }
 
-  // Knowledge deps (optional)
+  // Knowledge deps (optional). Installed one package at a time so a
+  // partial success (e.g. fastembed OK, sqlite-vec fails on Windows)
+  // is reported accurately and the user knows which capability they
+  // actually have.
   if (userConfig.installKnowledge !== false) {
     console.log("         Installing knowledge base dependencies...");
-    if (pipInstall(knowledgeDeps, { log, timeout: 180000 })) {
-      ok("Vector DB installed (fastembed, sqlite-vss)");
+    const fastembedOk = pipInstall("fastembed", { log, timeout: 180000 });
+    const sqliteVssOk = pipInstall("sqlite-vec", { log, timeout: 180000 });
+    if (fastembedOk && sqliteVssOk) {
+      ok("Vector DB installed (fastembed, sqlite-vec)");
+    } else if (fastembedOk) {
+      warn("fastembed installed but sqlite-vec failed — semantic search degraded");
+    } else if (sqliteVssOk) {
+      warn("sqlite-vec installed but fastembed failed — embedding pipeline degraded");
     } else {
       warn("Vector DB not installed (run later: npx arkaos doctor for fix)");
     }
@@ -345,6 +379,12 @@ function copyConfigFiles(installDir) {
     }
   }
 
+  // Statusline script (platform-aware: .ps1 on Windows, .sh elsewhere)
+  const statuslineFile = IS_WINDOWS ? "config/statusline.ps1" : "config/statusline.sh";
+  if (existsSync(join(ARKAOS_ROOT, statuslineFile))) {
+    files.push([statuslineFile, statuslineFile]);
+  }
+
   for (const [src, dest] of files) {
     const srcPath = join(ARKAOS_ROOT, src);
     const destPath = join(installDir, dest);
@@ -359,39 +399,96 @@ function installHooks(installDir) {
   const hooksDir = join(installDir, "config", "hooks");
   ensureDir(hooksDir);
 
-  const hookMap = {
-    "session-start.sh": "session-start.sh",
-    "user-prompt-submit.sh": "user-prompt-submit.sh",
-    "post-tool-use.sh": "post-tool-use.sh",
-    "pre-compact.sh": "pre-compact.sh",
-    "cwd-changed.sh": "cwd-changed.sh",
-  };
+  // On Windows we deploy the PowerShell ports of the hooks; on Unix-like
+  // systems we deploy the Bash originals. The adapter in
+  // installer/adapters/claude-code.js registers whichever extension was
+  // deployed here, so the two lists must stay in sync.
+  const hookNames = [
+    "session-start",
+    "user-prompt-submit",
+    "post-tool-use",
+    "pre-compact",
+    "cwd-changed",
+  ];
+  const hookExt = HOOK_EXT;
 
   const srcHooksDir = join(ARKAOS_ROOT, "config", "hooks");
 
-  for (const [src, dest] of Object.entries(hookMap)) {
-    const srcPath = join(srcHooksDir, src);
-    const destPath = join(hooksDir, dest);
+  for (const name of hookNames) {
+    const filename = `${name}${hookExt}`;
+    const srcPath = join(srcHooksDir, filename);
+    const destPath = join(hooksDir, filename);
     if (existsSync(srcPath)) {
       let content = readFileSync(srcPath, "utf-8");
-      // Set ARKAOS_ROOT to the npm package location (persistent)
-      content = content.replace(
-        /ARKAOS_ROOT="\$\{ARKA_OS:-\$HOME\/\.claude\/skills\/arkaos\}"/g,
-        `ARKAOS_ROOT="${ARKAOS_ROOT}"`
-      );
-      content = content.replace(
-        /ARKAOS_HOME="\$\{HOME\}\/\.arkaos"/g,
-        `ARKAOS_HOME="${installDir}"`
-      );
+      // The text-replacement pattern below only exists in the legacy
+      // bash hooks. Skip it on Windows (.ps1 files resolve ARKAOS_ROOT
+      // from the install manifest at runtime instead).
+      if (hookExt === ".sh") {
+        content = content.replace(
+          /ARKAOS_ROOT="\$\{ARKA_OS:-\$HOME\/\.claude\/skills\/arkaos\}"/g,
+          `ARKAOS_ROOT="${ARKAOS_ROOT}"`
+        );
+        content = content.replace(
+          /ARKAOS_HOME="\$\{HOME\}\/\.arkaos"/g,
+          `ARKAOS_HOME="${installDir}"`
+        );
+      }
       writeFileSync(destPath, content);
+      // chmod is a no-op on Windows (NTFS ACLs aren't POSIX), but the
+      // try/catch kept it safe already. Leaving the call in place.
       try { chmodSync(destPath, 0o755); } catch {}
-      ok(`Hook: ${dest}`);
+      ok(`Hook: ${filename}`);
     }
   }
 }
 
+// Safe directory iteration. Returns an empty array instead of throwing
+// when the target does not exist, which lets us skip missing sources
+// (fresh repo checkouts may omit optional department resource dirs).
+function listSubdirs(parent) {
+  if (!existsSync(parent)) return [];
+  try {
+    return readdirSync(parent, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
+// Port of the "Resources" copy loop from install.sh:399-403. Copies any
+// of scripts/references/assets that exist next to a skill's SKILL.md
+// into the deployed skill directory. Silent no-op when a resource dir
+// does not exist. Each copy is wrapped in a try/catch so a partial
+// failure on one resource doesn't block the rest of the deployment.
+function copySkillResources(skillSrcDir, skillDestDir) {
+  const resources = ["scripts", "references", "assets"];
+  for (const res of resources) {
+    const src = join(skillSrcDir, res);
+    if (!existsSync(src)) continue;
+    try {
+      cpSync(src, join(skillDestDir, res), { recursive: true });
+    } catch {
+      // Best-effort — a single missing resource dir shouldn't break install.
+    }
+  }
+}
+
+// Deploy one skill directory as a top-level `arka-<name>/` under the
+// Claude Code skills base. Mirrors install.sh lines 396-405 and 414-425.
+// Returns true if SKILL.md was deployed, false otherwise.
+function deployTopLevelSkill(skillSrcDir, arkaName, skillsBase) {
+  const skillMd = join(skillSrcDir, "SKILL.md");
+  if (!existsSync(skillMd)) return false;
+  const dest = join(skillsBase, arkaName);
+  ensureDir(dest);
+  copyFileSync(skillMd, join(dest, "SKILL.md"));
+  copySkillResources(skillSrcDir, dest);
+  return true;
+}
+
 function installSkill(config, installDir) {
-  // Copy arka/SKILL.md to Claude Code skills directory
+  // ── Main /arka skill ────────────────────────────────────────────────
   const skillSrc = join(ARKAOS_ROOT, "arka", "SKILL.md");
   const skillsBase = config.skillsDir || join(homedir(), ".claude", "skills");
   const skillDest = join(skillsBase, "arka");
@@ -400,26 +497,95 @@ function installSkill(config, installDir) {
 
   if (existsSync(skillSrc)) {
     copyFileSync(skillSrc, join(skillDest, "SKILL.md"));
-    // Write repo path reference
     writeFileSync(join(skillDest, ".repo-path"), ARKAOS_ROOT);
     writeFileSync(join(skillDest, "VERSION"), VERSION);
-    ok("/arka skill installed → Claude Code can now use ArkaOS");
+    // Nested arka/skills/ (conclave, human-writing) is copied as a
+    // reference bundle under the main /arka skill, preserving the
+    // old behaviour for anything that reads from that path.
+    const nestedSkillsSrc = join(ARKAOS_ROOT, "arka", "skills");
+    if (existsSync(nestedSkillsSrc)) {
+      const nestedSkillsOut = join(skillDest, "skills");
+      ensureDir(nestedSkillsOut);
+      try {
+        cpSync(nestedSkillsSrc, nestedSkillsOut, { recursive: true });
+      } catch {
+        // Silent — these are bundled references, not user-facing skills.
+      }
+    }
+    ok("/arka skill installed");
   } else {
-    warn("SKILL.md not found in package");
+    warn("arka/SKILL.md not found in package");
   }
 
-  // Also copy department skills as references
-  const deptSkillSrc = join(ARKAOS_ROOT, "arka", "skills");
-  if (existsSync(deptSkillSrc)) {
-    const skillsOut = join(skillDest, "skills");
-    ensureDir(skillsOut);
-    try {
-      cpSync(deptSkillSrc, skillsOut, { recursive: true });
-      ok("Department skills copied");
-    } catch {
-      // cpSync may not be available in older Node
-      warn("Department skills copy skipped");
+  // ── Department skills ───────────────────────────────────────────────
+  // For each `departments/<dept>/SKILL.md`, deploy as top-level
+  // `~/.claude/skills/arka-<dept>/`. Mirrors install.sh:391-406, but
+  // iterates the source directory dynamically instead of hardcoding a
+  // department list (the bash list is stale — ships 8 of the 18 real
+  // departments on disk, so half are silently skipped on macOS/Linux
+  // too until a user edits install.sh).
+  const deptRoot = join(ARKAOS_ROOT, "departments");
+  let deptDeployed = 0;
+  for (const dept of listSubdirs(deptRoot)) {
+    if (deployTopLevelSkill(join(deptRoot, dept), `arka-${dept}`, skillsBase)) {
+      deptDeployed++;
     }
+  }
+  if (deptDeployed > 0) {
+    ok(`${deptDeployed} department skills installed (/arka-<dept>)`);
+  }
+
+  // ── Sub-skills (departments/*/skills/*) ─────────────────────────────
+  // For each `departments/<dept>/skills/<skill>/SKILL.md`, deploy as
+  // top-level `~/.claude/skills/arka-<skill>/`. Mirrors install.sh:411-425.
+  // Collisions between departments (two depts defining the same
+  // sub-skill name) are resolved by "later wins", same semantics as
+  // the bash loop — in practice the repo has no collisions today.
+  let subSkillDeployed = 0;
+  for (const dept of listSubdirs(deptRoot)) {
+    const deptSkillsDir = join(deptRoot, dept, "skills");
+    for (const subSkill of listSubdirs(deptSkillsDir)) {
+      const subSkillSrc = join(deptSkillsDir, subSkill);
+      if (deployTopLevelSkill(subSkillSrc, `arka-${subSkill}`, skillsBase)) {
+        subSkillDeployed++;
+      }
+    }
+  }
+  if (subSkillDeployed > 0) {
+    ok(`${subSkillDeployed} sub-skills installed (/arka-<skill>)`);
+  }
+
+  // ── Agent personas ──────────────────────────────────────────────────
+  // For each `departments/<dept>/agents/<name>.md`, deploy to
+  // `~/.claude/agents/arka-<name>.md`. Mirrors install.sh:436-443.
+  // The agents dir parallels skillsBase — Claude Code reads it
+  // separately from the skills tree.
+  const agentsBase = join(homedir(), ".claude", "agents");
+  ensureDir(agentsBase);
+  let agentDeployed = 0;
+  for (const dept of listSubdirs(deptRoot)) {
+    const agentsSrc = join(deptRoot, dept, "agents");
+    if (!existsSync(agentsSrc)) continue;
+    try {
+      for (const agentFile of readdirSync(agentsSrc)) {
+        if (!agentFile.endsWith(".md")) continue;
+        const srcFile = join(agentsSrc, agentFile);
+        // Safety: don't deploy anything that's not a regular file.
+        try {
+          if (!statSync(srcFile).isFile()) continue;
+        } catch {
+          continue;
+        }
+        const baseName = agentFile.replace(/\.md$/, "");
+        copyFileSync(srcFile, join(agentsBase, `arka-${baseName}.md`));
+        agentDeployed++;
+      }
+    } catch {
+      // Silently skip departments with unreadable agents dirs.
+    }
+  }
+  if (agentDeployed > 0) {
+    ok(`${agentDeployed} agent personas installed (~/.claude/agents/arka-*.md)`);
   }
 }
 
@@ -556,24 +722,121 @@ WantedBy=default.target
   }
 }
 
-function installSchtasksService(daemonPath) {
-  let pythonPath;
-  try {
-    pythonPath = execSync("where python3", { stdio: "pipe" }).toString().trim().split("\n")[0];
-  } catch {
-    pythonPath = "python";
+// Recognize the common schtasks failure modes so we can print actionable
+// guidance instead of a cryptic "ERROR: Access is denied." Windows
+// localizes these strings, so match against both English text and the
+// canonical HRESULT code 0x80070005 (E_ACCESSDENIED).
+function classifySchtasksError(stderr) {
+  const s = (stderr || "").toLowerCase();
+  if (s.includes("access is denied") || s.includes("0x80070005") || s.includes("access denied")) {
+    return "access-denied";
   }
-
-  try {
-    execSync(`schtasks /Create /F /TN "ArkaOS-Scheduler" /SC ONLOGON /TR "${pythonPath} ${daemonPath}"`, { stdio: "pipe" });
-    execSync('schtasks /Run /TN "ArkaOS-Scheduler"', { stdio: "pipe" });
-    ok("Scheduler task installed and started (schtasks)");
-  } catch {
-    warn("Scheduler schtasks registration failed — start manually");
+  if (s.includes("the system cannot find the file") || s.includes("cannot find the path")) {
+    return "not-found";
   }
+  if (s.includes("already exists")) {
+    return "already-exists";
+  }
+  return "other";
 }
 
-async function loadAdapter(runtime) {
+function printSchtasksAccessDeniedHelp(pythonPath, daemonPath) {
+  // Two realistic root causes on Windows 10/11:
+  // 1. Current shell is not elevated AND the local security policy
+  //    denies "Log on as a batch job" for the standard Users group
+  //    (common on domain-joined or org-managed machines).
+  // 2. A previous admin-owned ArkaOS-Scheduler task exists and our
+  //    /F overwrite is blocked because the current user can't modify
+  //    tasks owned by another principal.
+  //
+  // Neither case is fatal to the install — the scheduler daemon is a
+  // nice-to-have that keeps background tasks ticking. We print the
+  // manual registration command so power users can elevate once and
+  // run it, and move on.
+  console.log("         Access denied. Options:");
+  console.log("         1) Re-run the installer from an elevated PowerShell (Run as Administrator)");
+  console.log("         2) Or register the task manually from an elevated prompt:");
+  console.log(`            schtasks /Create /F /TN "ArkaOS-Scheduler" /SC ONLOGON /TR "\"${pythonPath}\" \"${daemonPath}\""`);
+  console.log("         3) Or skip the scheduler and launch the daemon manually when needed:");
+  console.log(`            "${pythonPath}" "${daemonPath}"`);
+  console.log("         The rest of ArkaOS is installed and functional — this only affects background task automation.");
+}
+
+function installSchtasksService(daemonPath) {
+  // Prefer the ArkaOS venv python so the scheduled task runs against the
+  // interpreter that actually has the ArkaOS core dependencies installed.
+  // Falls back to system Python via findSystemPython -> "python" when no
+  // venv exists. This replaces `where python3`, which is broken on
+  // Windows because the binary is `python.exe`, not `python3.exe`.
+  const pythonPath = getArkaosPython() || findSystemPython() || "python";
+
+  // Build the /TR value as a single command line with both paths
+  // individually quoted. When schtasks runs the task later, Windows
+  // parses this line with CommandLineToArgvW and lifts argv[0] as the
+  // executable and argv[1..] as the arguments. Without inner quotes a
+  // pythonPath or daemonPath containing spaces would break the parse.
+  const trValue = `\"${pythonPath}\" \"${daemonPath}\"`;
+
+  // Use execFileSync (no shell) with an argv array so we bypass cmd.exe
+  // quoting rules entirely. Node on Windows handles the argv -> command
+  // line encoding, escaping internal quotes with the `\"` convention
+  // that CommandLineToArgvW (used by schtasks) understands.
+  //
+  // /RU with the current username is redundant for a local on-logon
+  // task (schtasks defaults to the invoking user), but passing it
+  // explicitly makes our intent visible in the XML schtasks writes and
+  // surfaces "this task runs as <name>" when a sysadmin audits tasks.
+  const currentUser = process.env.USERNAME || process.env.USER || "";
+  const createArgs = [
+    "/Create", "/F",
+    "/TN", "ArkaOS-Scheduler",
+    "/SC", "ONLOGON",
+    "/TR", trValue,
+  ];
+  if (currentUser) {
+    createArgs.push("/RU", currentUser);
+  }
+  const runArgs = ["/Run", "/TN", "ArkaOS-Scheduler"];
+
+  const tryRun = (cmd, args) => {
+    try {
+      execFileSync(cmd, args, { stdio: ["pipe", "pipe", "pipe"] });
+      return { ok: true, stderr: "" };
+    } catch (err) {
+      const raw = err.stderr ? err.stderr.toString() : (err.message || "");
+      const stderr = raw.replace(/\r?\n/g, " ").trim();
+      return { ok: false, stderr };
+    }
+  };
+
+  const createResult = tryRun("schtasks", createArgs);
+  if (!createResult.ok) {
+    const kind = classifySchtasksError(createResult.stderr);
+    warn(`Scheduler: schtasks /Create failed (${kind}): ${createResult.stderr.slice(0, 220)}`);
+    if (kind === "access-denied") {
+      printSchtasksAccessDeniedHelp(pythonPath, daemonPath);
+    } else {
+      console.log("         Try manually: schtasks /Create /F /TN \"ArkaOS-Scheduler\" /SC ONLOGON /TR \"" + pythonPath + " " + daemonPath + "\"");
+    }
+    return;
+  }
+
+  const runResult = tryRun("schtasks", runArgs);
+  if (!runResult.ok) {
+    const kind = classifySchtasksError(runResult.stderr);
+    warn(`Scheduler: task created but /Run failed (${kind}): ${runResult.stderr.slice(0, 220)}`);
+    if (kind === "access-denied") {
+      console.log("         Task is registered but couldn't be started now. It will run automatically at next logon.");
+    } else {
+      console.log("         Task will start at next logon");
+    }
+    return;
+  }
+
+  ok("Scheduler task installed and started (schtasks)");
+}
+
+export async function loadAdapter(runtime) {
   try {
     const mod = await import(`./adapters/${runtime}.js`);
     return mod.default;

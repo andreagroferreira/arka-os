@@ -58,7 +58,7 @@ _hook_ms() {
 }
 
 # ─── Paths ───────────────────────────────────────────────────────────────
-# Resolve ARKAOS_ROOT: env var → .repo-path → npm package → fallback
+# Resolve ARKAOS_ROOT: env var → .repo-path → $HOME/.arkaos → portable fallback
 if [ -n "${ARKAOS_ROOT:-}" ]; then
   : # already set
 elif [ -f "$HOME/.arkaos/.repo-path" ]; then
@@ -66,7 +66,10 @@ elif [ -f "$HOME/.arkaos/.repo-path" ]; then
 elif [ -d "$HOME/.arkaos" ]; then
   ARKAOS_ROOT="$HOME/.arkaos"
 else
-  ARKAOS_ROOT="/Users/andreagroferreira/.npm/_npx/67d92defd11b9985/node_modules/arkaos"
+  # Portable fallback — matches user-prompt-submit-v2.sh. Power users can
+  # override with the ARKA_OS env var. Reached only on corrupt/uninitialised
+  # installs; synapse-bridge.py will fail gracefully if the path is wrong.
+  ARKAOS_ROOT="${ARKA_OS:-$HOME/.claude/skills/arkaos}"
 fi
 export ARKAOS_ROOT
 
