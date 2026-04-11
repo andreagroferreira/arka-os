@@ -1,7 +1,8 @@
 import pytest
 import yaml
+from unittest.mock import patch, MagicMock
 from core.forge.schema import ForgePlan, ForgeContext, PlanPhase, ExecutionPath, ExecutionPathType
-from core.forge.handoff import select_execution_path, generate_workflow_yaml
+from core.forge.handoff import select_execution_path, generate_workflow_yaml, check_repo_drift
 
 
 def _ctx():
@@ -52,3 +53,30 @@ class TestGenerateWorkflowYaml:
         plan = ForgePlan(id="forge-qg", name="QG", context=_ctx(), plan_phases=[PlanPhase(name="P1", department="dev")])
         data = yaml.safe_load(generate_workflow_yaml(plan))
         assert data["quality_gate_required"] is True
+
+
+class TestCheckRepoDrift:
+    def test_no_change(self):
+        with patch("core.forge.handoff.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="abc123\n", returncode=0)
+            result = check_repo_drift("abc123")
+            assert result["changed"] is False
+
+    def test_change_detected(self):
+        def side_effect(cmd, **kwargs):
+            mock = MagicMock()
+            mock.returncode = 0
+            if cmd[1] == "rev-parse":
+                mock.stdout = "def456\n"
+            else:
+                mock.stdout = "file1.py\nfile2.py\n"
+            return mock
+        with patch("core.forge.handoff.subprocess.run", side_effect=side_effect):
+            result = check_repo_drift("abc123")
+            assert result["changed"] is True
+            assert len(result["files"]) == 2
+
+    def test_git_not_available(self):
+        with patch("core.forge.handoff.subprocess.run", side_effect=FileNotFoundError):
+            result = check_repo_drift("abc123")
+            assert result["changed"] is False
