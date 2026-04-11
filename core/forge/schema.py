@@ -8,7 +8,7 @@ structured ForgePlan that downstream agents consume.
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +68,8 @@ class ComplexityDimensions(BaseModel):
     risk: int = Field(default=0, description="Potential for breakage, data loss, or security impact.")
     novelty: int = Field(default=0, description="How unlike existing patterns this work is.")
 
-    @validator("scope", "dependencies", "ambiguity", "risk", "novelty", pre=True)
+    @field_validator("scope", "dependencies", "ambiguity", "risk", "novelty", mode="before")
+    @classmethod
     def clamp_to_range(cls, v: int) -> int:
         """Clamp dimension value to [0, 100]."""
         return max(0, min(100, int(v)))
