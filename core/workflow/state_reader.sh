@@ -14,6 +14,7 @@ if [ ! -f "$STATE_FILE" ]; then
     violations) echo "0"; exit 0 ;;
     phase) echo "none"; exit 0 ;;
     check) exit 1 ;;
+    forge) ;; # forge reads its own state file — fall through to main case
     *) echo "No active workflow"; exit 1 ;;
   esac
 fi
@@ -60,9 +61,32 @@ case "$CMD" in
     echo "${WORKFLOW}|${CURRENT}|${COMPLETED}/${TOTAL}|${BRANCH}|${VIOLATIONS}"
     ;;
 
+  forge)
+    _FORGE_ACTIVE="$HOME/.arkaos/plans/active.yaml"
+    if [ ! -f "$_FORGE_ACTIVE" ]; then
+      echo "none"
+      exit 0
+    fi
+    _FORGE_ID=$(cat "$_FORGE_ACTIVE" 2>/dev/null)
+    _FORGE_FILE="$HOME/.arkaos/plans/${_FORGE_ID}.yaml"
+    if [ ! -f "$_FORGE_FILE" ]; then
+      echo "none"
+      exit 0
+    fi
+    if command -v python3 &>/dev/null; then
+      _F_NAME=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(d.get('name',''))" 2>/dev/null)
+      _F_STATUS=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(d.get('status',''))" 2>/dev/null)
+      _F_PHASES=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(len(d.get('plan_phases',[])))" 2>/dev/null)
+      _F_BRANCH=$(python3 -c "import yaml; d=yaml.safe_load(open('$_FORGE_FILE')); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
+      echo "${_FORGE_ID}|${_F_NAME}|${_F_STATUS}|${_F_PHASES}|${_F_BRANCH}"
+    else
+      echo "${_FORGE_ID}|||0|"
+    fi
+    ;;
+
   *)
     echo "Unknown command: $CMD" >&2
-    echo "Usage: state-reader.sh {active|phase|check|violations|summary} [arg]" >&2
+    echo "Usage: state-reader.sh {active|phase|check|violations|summary|forge} [arg]" >&2
     exit 1
     ;;
 esac
