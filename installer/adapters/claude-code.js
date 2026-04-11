@@ -105,19 +105,20 @@ export default {
     ];
 
     // Statusline — ArkaOS branded status bar
+    // Claude Code reads the camelCase "statusLine" key; the lowercase
+    // "statusline" variant is silently ignored.
     const configDir = join(installDir, "config");
     const statuslineFile = IS_WINDOWS ? "statusline.ps1" : "statusline.sh";
     const statuslinePath = join(configDir, statuslineFile);
     if (existsSync(statuslinePath)) {
-      if (IS_WINDOWS) {
-        settings.statusline = {
-          command: `powershell -NoProfile -ExecutionPolicy Bypass -File "${statuslinePath}"`,
-        };
-      } else {
-        settings.statusline = {
-          command: statuslinePath,
-        };
-      }
+      const command = IS_WINDOWS
+        ? `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${statuslinePath}"`
+        : statuslinePath;
+      settings.statusLine = {
+        type: "command",
+        command,
+        padding: 2,
+      };
     }
 
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
