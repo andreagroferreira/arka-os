@@ -7,14 +7,14 @@
   "mcpServers": {
     "arka-prompts": {
       "command": "uv",
-      "args": ["--directory", "/Users/andreagroferreira/.claude/skills/arka/mcp-server", "run", "server.py"],
+      "args": ["--directory", "{home}/.claude/skills/arka/mcp-server", "run", "server.py"],
       "category": "base",
       "description": "ARKA OS department commands as MCP prompts (Claude Code + Claude Desktop)",
       "required_env": []
     },
     "obsidian": {
       "command": "npx",
-      "args": ["@bitbonsai/mcpvault@latest", "/Users/andreagroferreira/Documents/Personal"],
+      "args": ["@bitbonsai/mcpvault@latest", "{home}/Documents/Personal"],
       "category": "base",
       "description": "Obsidian vault integration — read/write notes, personas, knowledge",
       "required_env": []
@@ -37,7 +37,7 @@
       "command": "npx",
       "args": ["-y", "@allpepper/memory-bank-mcp"],
       "env": {
-        "MEMORY_BANK_ROOT": "/Users/andreagroferreira/memory-bank"
+        "MEMORY_BANK_ROOT": "{home}/memory-bank"
       },
       "category": "base",
       "description": "Persistent memory across sessions",
