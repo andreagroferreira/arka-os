@@ -62,6 +62,10 @@ enforcement_levels:
         rule: "Orchestrators must confirm understanding, ask clarifying questions, and challenge assumptions before executing any task"
         enforcement: "Pre-execution gate — restate request, ask at least 1 clarifying question, apply devil's advocate to at least 1 assumption"
 
+      - id: forge-governance
+        rule: "Forge plans must pass critic validation and governance check before approval"
+        enforcement: "Plan Critic validates constitution compliance; PostToolUse monitors execution"
+
   quality_gate:
     description: "Mandatory pre-delivery review. Nothing ships without APPROVED verdict."
     trigger: "After the last execution phase, before delivery to user"
@@ -112,6 +116,10 @@ enforcement_levels:
       - id: workflow-standard
         rule: "All ecosystem skills must follow the standard 7-phase workflow defined in config/standards/ecosystem-workflow.md"
         enforcement: "Ecosystem SKILL.md files must reference or implement all 7 phases"
+
+      - id: forge-persistence
+        rule: "All forge plans (approved and rejected) must be persisted to Obsidian"
+        enforcement: "persistence.py exports on status change; audit detects missing exports"
 
   should:
     description: "Best practices. Encouraged but not enforced."

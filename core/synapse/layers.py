@@ -525,3 +525,52 @@ class KnowledgeRetrievalLayer(Layer):
             layer_id=self.id, tag=tag, content=content,
             tokens_est=total_tokens, compute_ms=ms, cached=False,
         )
+
+
+# --- L8: Forge Context ---
+
+class ForgeContextLayer(Layer):
+    """L8: Active forge plan context — decisions, risks, rejected approaches."""
+
+    @property
+    def id(self) -> str:
+        return "L8"
+
+    @property
+    def name(self) -> str:
+        return "ForgeContext"
+
+    @property
+    def cache_ttl(self) -> int:
+        return 0
+
+    @property
+    def priority(self) -> int:
+        return 80
+
+    def compute(self, ctx: PromptContext) -> LayerResult:
+        start = time.time()
+        try:
+            from core.forge.persistence import get_active_plan
+            plan = get_active_plan()
+        except Exception:
+            plan = None
+        if plan is None:
+            return LayerResult(layer_id=self.id, tag="", content="", tokens_est=0, compute_ms=0, cached=False)
+        tag = f"[forge:{plan.id}]"
+        parts = [f"Forge plan: {plan.id} ({plan.status.value})"]
+        if plan.critic.confidence > 0:
+            decisions = []
+            for source, elements in plan.critic.synthesis.items():
+                decisions.extend(elements)
+            if decisions:
+                parts.append(f"Decisions: {'; '.join(decisions[:5])}")
+            rejected = [r.element for r in plan.critic.rejected_elements]
+            if rejected:
+                parts.append(f"Rejected: {'; '.join(rejected[:3])}")
+            risks = [r.risk for r in plan.critic.risks]
+            if risks:
+                parts.append(f"Risks: {'; '.join(risks[:3])}")
+        content = " | ".join(parts)
+        ms = int((time.time() - start) * 1000)
+        return LayerResult(layer_id=self.id, tag=tag, content=content, tokens_est=len(content.split()), compute_ms=ms, cached=False)

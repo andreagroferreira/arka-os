@@ -63,7 +63,31 @@ if [ -n "$REPO" ] && [ -f "$STATE_READER" ] && bash "$STATE_READER" active 2>/de
   [ "$WF_VIOLATIONS" != "0" ] && MSG+=" VIOLATIONS:${WF_VIOLATIONS}"
   MSG+="\\n"
 fi
+
+# --- Forge Plan Display ---
+_FORGE_PLANS="$HOME/.arkaos/plans"
+_FORGE_ACTIVE="$_FORGE_PLANS/active.yaml"
+_FORGE_LINE=""
+
+if [ -f "$_FORGE_ACTIVE" ]; then
+  _FORGE_ID=$(cat "$_FORGE_ACTIVE" 2>/dev/null)
+  _FORGE_FILE="$_FORGE_PLANS/${_FORGE_ID}.yaml"
+  if [ -f "$_FORGE_FILE" ] && command -v python3 &>/dev/null; then
+    _FORGE_NAME=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('name',''))" 2>/dev/null)
+    _FORGE_STATUS=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
+    _FORGE_PHASES=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(len(d.get('plan_phases',[])))" 2>/dev/null)
+    _FORGE_BRANCH=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
+
+    if [ "$_FORGE_STATUS" = "approved" ]; then
+      _FORGE_LINE="  ⚒ Forge plan pending: ${_FORGE_NAME} | Phases: ${_FORGE_PHASES} | /forge resume"
+    elif [ "$_FORGE_STATUS" = "executing" ]; then
+      _FORGE_LINE="  ⚒ Forge executing: ${_FORGE_NAME} | Phases: ${_FORGE_PHASES} | Branch: ${_FORGE_BRANCH}"
+    fi
+  fi
+fi
+
 MSG+="ArkaOS v${VERSION} | 65 agents | 17 departments | 244+ skills"
+[ -n "$_FORGE_LINE" ] && MSG+="\\n${_FORGE_LINE}"
 MSG+="${DRIFT}"
 
 # ─── Output as systemMessage (same protocol as claude-mem) ─────────────
