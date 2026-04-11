@@ -1,0 +1,19 @@
+name: workflow-tiers
+added_in: "2.12.0"
+mandatory: true
+section_title: "Workflow Tiers"
+detection_pattern: "Enterprise.*phase|Focused.*phase|Specialist.*phase"
+deprecated_in: null
+content: |
+  ## Workflow Tiers
+
+  Three workflow tiers based on task complexity:
+
+  | Tier | Phases | When |
+  |------|--------|------|
+  | Enterprise | 7-10 phases | Complex features, multi-file changes |
+  | Focused | 3-5 phases | Medium tasks, single-domain changes |
+  | Specialist | 1-2 phases | Simple tasks, quick fixes |
+
+  Tier selection is automatic based on complexity assessment.
+  Quality Gate phase is mandatory on ALL tiers.

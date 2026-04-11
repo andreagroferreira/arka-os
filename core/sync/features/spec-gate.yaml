@@ -1,0 +1,15 @@
+name: spec-driven-gate
+added_in: "2.13.0"
+mandatory: true
+section_title: "Spec-Driven Development"
+detection_pattern: "arka-spec"
+deprecated_in: null
+content: |
+  ## Spec-Driven Development
+
+  Phase 0 of all workflows. No implementation begins without a validated spec.
+
+  - Invocation: automatic before any feature/fix work
+  - Gate: spec must be approved before planning phase starts
+  - Storage: `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+  - Review: user approval required on written spec

@@ -1,0 +1,15 @@
+name: quality-gate
+added_in: "2.10.0"
+mandatory: true
+section_title: "Quality Gate"
+detection_pattern: "Marta.*CQO|Quality Gate"
+deprecated_in: null
+content: |
+  ## Quality Gate
+
+  Mandatory on every workflow. Nothing ships without approval.
+
+  - **Marta (CQO):** Orchestrates review, absolute veto power
+  - **Eduardo (Copy Director):** Reviews all text output
+  - **Francisca (Tech Director):** Reviews all code and technical output
+  - Verdict: APPROVED or REJECTED (binary, no partial)
