@@ -80,6 +80,17 @@ class SkillSyncResult(BaseModel):
     error: str | None = None
 
 
+class ContentSyncResult(BaseModel):
+    """Result of syncing content artefacts (CLAUDE.md, rules, hooks, constitution) for a project."""
+
+    path: str
+    status: str
+    artefacts_updated: list[str] = Field(default_factory=list)
+    artefacts_unchanged: list[str] = Field(default_factory=list)
+    artefacts_errored: list[str] = Field(default_factory=list)
+    error: str | None = None
+
+
 class SyncReport(BaseModel):
     """Aggregated report produced at the end of a full /arka update run."""
 
@@ -91,4 +102,5 @@ class SyncReport(BaseModel):
     settings_results: list[SettingsSyncResult] = Field(default_factory=list)
     descriptor_results: list[DescriptorSyncResult] = Field(default_factory=list)
     skill_results: list[SkillSyncResult] = Field(default_factory=list)
+    content_results: list[ContentSyncResult] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
