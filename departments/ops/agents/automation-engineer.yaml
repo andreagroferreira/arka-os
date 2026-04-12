@@ -3,6 +3,7 @@ name: Tomas A.
 role: Automation Engineer
 department: ops
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

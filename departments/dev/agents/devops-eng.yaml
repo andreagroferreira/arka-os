@@ -3,6 +3,7 @@ name: Carlos
 role: DevOps Lead
 department: dev
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

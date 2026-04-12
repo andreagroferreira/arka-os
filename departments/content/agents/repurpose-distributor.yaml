@@ -3,6 +3,7 @@ name: Nuno
 role: Repurpose & Distribution Specialist
 department: content
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

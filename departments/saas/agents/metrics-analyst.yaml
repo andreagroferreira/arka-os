@@ -3,6 +3,7 @@ name: Rita S.
 role: SaaS Metrics Analyst
 department: saas
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

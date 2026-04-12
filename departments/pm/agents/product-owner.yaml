@@ -3,6 +3,7 @@ name: Sara
 role: Product Owner
 department: pm
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

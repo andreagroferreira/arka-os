@@ -3,6 +3,7 @@ name: Carla
 role: People Operations Specialist
 department: org
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

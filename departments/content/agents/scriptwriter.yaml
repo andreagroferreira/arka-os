@@ -3,6 +3,7 @@ name: Joana
 role: Scriptwriter
 department: content
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

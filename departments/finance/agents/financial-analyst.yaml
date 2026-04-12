@@ -3,6 +3,7 @@ name: Leonor
 role: Financial Analyst
 department: finance
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:
