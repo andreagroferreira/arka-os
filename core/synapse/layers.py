@@ -420,6 +420,13 @@ class TimeLayer(Layer):
         return "Time"
 
     @property
+    def cache_ttl(self) -> int:
+        # 1 hour — time-of-day period only changes at 5/12/18 boundaries.
+        # Cache bucket drift of up to 1h is acceptable for a low-signal tag
+        # and dramatically improves prompt-cache hit rate.
+        return 3600
+
+    @property
     def priority(self) -> int:
         return 70
 
