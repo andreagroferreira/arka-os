@@ -27,9 +27,15 @@ TRANSCRIPT=$(echo "$input" | jq -r '.transcript // ""' 2>/dev/null)
 DIGEST_DIR="$HOME/.arkaos/session-digests"
 mkdir -p "$DIGEST_DIR"
 
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 SHORT_ID=$(echo "$SESSION_ID" | head -c 8)
-DIGEST_FILE="${DIGEST_DIR}/${TIMESTAMP}-${SHORT_ID}.md"
+# Content-hash filename → deduplicable and cache-friendly.
+# Falls back to session id + transcript head so identical compactions collapse.
+if command -v shasum &>/dev/null; then
+  DIGEST_ID=$(printf '%s' "${SESSION_ID:-default}-$(printf '%s' "$TRANSCRIPT" | head -c 200 | tr -d '\n')" | shasum -a 256 | cut -c1-16)
+else
+  DIGEST_ID=$(printf '%s' "${SESSION_ID:-default}-$(printf '%s' "$TRANSCRIPT" | head -c 200 | tr -d '\n')" | md5 | cut -c1-16)
+fi
+DIGEST_FILE="${DIGEST_DIR}/digest-${SHORT_ID}-${DIGEST_ID}.md"
 
 # ─── Extract Context ──────────────────────────────────────────────────────
 # Get last 50 lines of transcript
@@ -56,14 +62,14 @@ cat > "$DIGEST_FILE" << DIGEST_EOF
 ---
 type: session-digest
 session_id: ${SESSION_ID}
-timestamp: ${TIMESTAMP}
+digest_id: ${DIGEST_ID}
 trigger: pre-compact
 ---
 
-# Session Digest — ${TIMESTAMP}
+# Session Digest — ${DIGEST_ID}
 
 **Session:** \`${SESSION_ID}\`
-**Saved at:** $(date '+%Y-%m-%d %H:%M:%S')
+**Digest:** \`${DIGEST_ID}\`
 **Trigger:** Context compaction
 
 ## Last Assistant Messages
