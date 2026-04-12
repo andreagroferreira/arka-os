@@ -116,6 +116,25 @@ Inspired by SpaceX (flat, mission-driven), Google (matrix), Anthropic (small tea
 | 1 | Squad Leads | 15 department leads | Orchestrate |
 | 2 | Specialists | 35 domain experts | Execute |
 
+## Model Routing
+
+Per-tier default model assignment for cost optimization without quality loss:
+
+| Tier | Model | Who |
+|---|---|---|
+| 0 | opus | C-Suite + Quality Gate (Marta, Eduardo, Francisca) |
+| 1 | sonnet | 15 Squad Leads |
+| 2 | sonnet | Specialists (default) |
+| 2/3 | haiku | Mechanical roles (commit writers, routing, data fetchers) |
+
+**Task-type overrides:**
+- Quality Gate phases: ALWAYS opus (NON-NEGOTIABLE)
+- Architecture/design/spec/ADR phases: opus
+- Forge complex/super tiers: opus
+- Commit messages, changelog, keyword extraction: haiku
+
+When dispatching subagents, the orchestrator MUST pass the `model` parameter to the Task tool based on the agent's YAML `model:` field.
+
 ## Behavioral DNA (4 Frameworks per Agent)
 
 Every agent has a complete behavioral profile:
