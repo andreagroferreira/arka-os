@@ -13,6 +13,7 @@ from pathlib import Path
 
 from core.sync.manifest import build_manifest
 from core.sync.discovery import discover_all_projects
+from core.sync.mcp_optimizer import optimize_all_mcps
 from core.sync.mcp_syncer import sync_all_mcps
 from core.sync.settings_syncer import sync_all_settings
 from core.sync.descriptor_syncer import sync_all_descriptors
@@ -38,6 +39,19 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
 
     registry_path = skills_dir / "arka" / "mcps" / "registry.json"
     mcp_results = sync_all_mcps(projects, registry_path, home_path)
+
+    policy_path = Path(__file__).resolve().parents[2] / "config" / "mcp-policy.yaml"
+    vault_path = Path.home() / ".arkaos" / "secrets.json"
+    cache_path = Path.home() / ".arkaos" / "mcp-decisions.cache.json"
+    if policy_path.exists():
+        mcp_results = optimize_all_mcps(
+            projects,
+            mcp_results,
+            policy_path,
+            vault_path if vault_path.exists() else None,
+            cache_path,
+        )
+
     settings_results = sync_all_settings(mcp_results)
     descriptor_results = sync_all_descriptors(projects)
     content_results = sync_all_content(projects)

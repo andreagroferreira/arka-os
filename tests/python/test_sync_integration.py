@@ -250,8 +250,9 @@ class TestFullSyncIntegration:
             (r for r in report.mcp_results if "crm-app" in r.path), None
         )
         assert crm_result is not None, "Expected MCP result for crm-app"
-        assert "laravel-boost" in crm_result.final_mcp_list
-        assert "my-custom" in crm_result.final_mcp_list
+        # After optimizer: laravel policy activates context7; laravel-boost and
+        # my-custom are ambiguous with no AI available so they are deferred.
+        assert "context7" in crm_result.final_mcp_list
 
         state_path = env["arkaos_home"] / "sync-state.json"
         assert state_path.exists()
@@ -325,5 +326,6 @@ class TestFullSyncIntegration:
         )
         assert web_result is not None, "Expected MCP result for web-app"
         assert "laravel-boost" not in web_result.final_mcp_list
-        assert "arka-prompts" in web_result.final_mcp_list
+        # After optimizer: nuxt policy activates context7; arka-prompts is
+        # ambiguous with no AI available so it is deferred.
         assert "context7" in web_result.final_mcp_list
