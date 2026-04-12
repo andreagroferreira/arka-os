@@ -93,6 +93,17 @@ class ContentSyncResult(BaseModel):
     error: str | None = None
 
 
+class AgentProvisionResult(BaseModel):
+    """Result of syncing baseline agents for a project."""
+
+    path: str
+    status: str
+    agents_added: list[str] = Field(default_factory=list)
+    agents_unchanged: list[str] = Field(default_factory=list)
+    agents_errored: list[str] = Field(default_factory=list)
+    error: str | None = None
+
+
 class SyncReport(BaseModel):
     """Aggregated report produced at the end of a full /arka update run."""
 
@@ -105,4 +116,5 @@ class SyncReport(BaseModel):
     descriptor_results: list[DescriptorSyncResult] = Field(default_factory=list)
     skill_results: list[SkillSyncResult] = Field(default_factory=list)
     content_results: list[ContentSyncResult] = Field(default_factory=list)
+    agent_results: list[AgentProvisionResult] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
