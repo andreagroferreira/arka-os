@@ -64,8 +64,12 @@ def _resolve(
 
 
 def _cache_key(mcp: str, stack: list[str], ecosystem: str | None) -> str:
-    raw = f"{mcp}|{','.join(sorted(stack))}|{ecosystem or ''}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+    payload = json.dumps(
+        {"mcp": mcp, "stack": sorted(stack), "ecosystem": ecosystem},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 def _load_cache(path: Path) -> dict[str, str]:

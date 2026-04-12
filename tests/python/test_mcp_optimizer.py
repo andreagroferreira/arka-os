@@ -151,11 +151,36 @@ def test_missing_secrets_generate_env_example(tmp_path: Path, policy_file: Path)
         vault_path=None, cache_path=tmp_path / "cache.json",
     )
 
-    env_example = proj / ".env.example"
+    env_example = proj / ".env.arkaos.example"
     assert env_example.exists()
     text = env_example.read_text()
     assert "PG_HOST" in text
     assert "PG_PASSWORD" in text
+
+
+def test_override_collision_force_active_wins(tmp_path: Path, policy_file: Path) -> None:
+    proj = tmp_path / "p"
+    (proj / ".arkaos").mkdir(parents=True)
+    _make_mcp_json(proj, {"canva": {}})
+    (proj / ".arkaos" / "mcp-override.yaml").write_text(
+        "force_active: [canva]\n"
+        "force_deferred: [canva]\n"
+        "reason: conflicting\n"
+    )
+
+    mcp_result = McpSyncResult(
+        path=str(proj), status="updated", final_mcp_list=["canva"],
+    )
+    project = Project(path=str(proj), name="p", stack=["laravel"])
+
+    result = optimize_project_mcps(
+        project, mcp_result, policy_file,
+        vault_path=None, cache_path=tmp_path / "cache.json",
+    )
+
+    assert "canva" in result.final_mcp_list
+    assert "canva" not in result.mcps_deferred
+    assert any("collision" in w for w in result.optimizer_warnings)
 
 
 def test_vault_rejected_when_world_readable(tmp_path: Path, policy_file: Path) -> None:
