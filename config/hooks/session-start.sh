@@ -19,11 +19,10 @@ if [ -f "$HOME/.arkaos/.repo-path" ]; then
   [ -f "$REPO/VERSION" ] && VERSION=$(cat "$REPO/VERSION" | tr -d '[:space:]')
 fi
 
-# ─── Time greeting ─────────────────────────────────────────────────────
-HOUR=$(date +%H)
-if [ "$HOUR" -ge 5 ] && [ "$HOUR" -lt 12 ]; then GREETING="Bom dia"
-elif [ "$HOUR" -ge 12 ] && [ "$HOUR" -lt 19 ]; then GREETING="Boa tarde"
-else GREETING="Boa noite"; fi
+# ─── Static greeting (cache-friendly) ──────────────────────────────────
+# Time-of-day branching removed: it invalidated prompt cache 3x/day without
+# meaningful signal. Static greeting keeps SessionStart output stable.
+GREETING="Olá"
 
 # ─── Version drift ─────────────────────────────────────────────────────
 SYNC_STATE="$HOME/.arkaos/sync-state.json"
