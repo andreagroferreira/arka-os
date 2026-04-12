@@ -38,7 +38,13 @@ def build_report(
     content_results: list[ContentSyncResult] | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
-    errors = _collect_errors(mcp_results, settings_results, descriptor_results, skill_results)
+    errors = _collect_errors(
+        mcp_results,
+        settings_results,
+        descriptor_results,
+        skill_results,
+        content_results=content_results,
+    )
     return SyncReport(
         previous_version=previous_version,
         current_version=current_version,
@@ -104,6 +110,7 @@ def _collect_errors(
     settings: list[SettingsSyncResult],
     desc: list[DescriptorSyncResult],
     skills: list[SkillSyncResult],
+    content_results: list[ContentSyncResult] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     for r in mcp:
@@ -118,6 +125,11 @@ def _collect_errors(
     for r in skills:
         if r.error:
             errors.append(f"Skill({r.skill_name}): {r.error}")
+    for r in content_results or []:
+        if r.error:
+            errors.append(f"Content({r.path}): {r.error}")
+        for artefact_error in r.artefacts_errored:
+            errors.append(f"Content({r.path}): {artefact_error}")
     return errors
 
 

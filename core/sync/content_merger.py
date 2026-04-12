@@ -87,7 +87,6 @@ def merge_managed_content(
 
 
 def _render_block(content: str, version: str, content_hash: str) -> str:
-    """Render a managed block with start/end markers around content."""
     return (
         f"<!-- arkaos:managed:start version={version} hash={content_hash} -->\n"
         f"{content}\n"
@@ -96,7 +95,6 @@ def _render_block(content: str, version: str, content_hash: str) -> str:
 
 
 def _prepend_block(target_text: str, new_block: str) -> MergeResult:
-    """Prepend a managed block to target_text, preserving trailing content."""
     separator = "\n\n" if target_text else "\n"
     new_text = f"{new_block}{separator}{target_text}" if target_text else f"{new_block}\n"
     return MergeResult(status="updated", new_text=new_text)

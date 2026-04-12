@@ -17,11 +17,7 @@ from core.sync.schema import ContentSyncResult, Project
 
 
 def _core_root() -> Path:
-    """Return the ArkaOS core repo root.
-
-    Honors the ``ARKAOS_CORE_ROOT`` environment variable for tests; falls
-    back to the directory two levels above this file.
-    """
+    # Honors ARKAOS_CORE_ROOT env var for tests; falls back to repo root.
     env = os.environ.get("ARKAOS_CORE_ROOT")
     if env:
         return Path(env)
@@ -39,7 +35,6 @@ def sync_project_content(project: Project) -> ContentSyncResult:
 
 
 def _do_sync(project: Project) -> ContentSyncResult:
-    """Execute content sync for all four artefact classes."""
     core = _core_root()
     version = (core / "VERSION").read_text().strip()
     project_claude = Path(project.path) / ".claude"
@@ -54,7 +49,12 @@ def _do_sync(project: Project) -> ContentSyncResult:
     _sync_hooks(core, project_claude, updated, unchanged, errored)
     _sync_constitution(core, project_claude, updated, unchanged, errored)
 
-    status = "updated" if updated else ("error" if errored else "unchanged")
+    if errored:
+        status = "error"
+    elif updated:
+        status = "updated"
+    else:
+        status = "unchanged"
     return ContentSyncResult(
         path=project.path,
         status=status,
@@ -73,7 +73,6 @@ def _sync_claude_md(
     unchanged: list[str],
     errored: list[str],
 ) -> None:
-    """Build managed content and merge into <project>/.claude/CLAUDE.md."""
     base = (core / "config" / "user-claude.md").read_text()
     overlays_dir = core / "config" / "standards" / "claude-md-overlays"
     overlays: list[str] = []
@@ -106,7 +105,7 @@ def _sync_rules(
     unchanged: list[str],
     errored: list[str],
 ) -> None:
-    """Copy core standards into <project>/.claude/rules/ (full replace)."""
+    # Copies/updates rules from core standards; does not delete orphan files.
     src = core / "config" / "standards"
     dst = project_claude / "rules"
     dst.mkdir(parents=True, exist_ok=True)
@@ -127,7 +126,6 @@ def _sync_hooks(
     unchanged: list[str],
     errored: list[str],
 ) -> None:
-    """Copy core hooks, preserving executable bit."""
     src = core / "config" / "hooks"
     dst = project_claude / "hooks"
     dst.mkdir(parents=True, exist_ok=True)
@@ -149,7 +147,6 @@ def _sync_constitution(
     unchanged: list[str],
     errored: list[str],
 ) -> None:
-    """Render a human-readable excerpt of the constitution for the project."""
     src = core / "config" / "constitution.yaml"
     target = project_claude / "constitution-applicable.md"
     data = yaml.safe_load(src.read_text()) or {}
