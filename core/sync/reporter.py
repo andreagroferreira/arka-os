@@ -121,6 +121,8 @@ def _collect_errors(
     for r in mcp:
         if r.error:
             errors.append(f"MCP({r.path}): {r.error}")
+        for w in r.optimizer_warnings:
+            errors.append(f"MCP Optimizer({r.path}): {w}")
     for r in settings:
         if r.error:
             errors.append(f"Settings({r.path}): {r.error}")
