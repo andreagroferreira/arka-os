@@ -63,3 +63,16 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | Content-to-Revenue Pipeline | Creator economy | Monetization strategy |
 | Pillar to Atomize | GaryVee | 1 to 30+ repurposing |
 | Hook-Bridge-Body-CTA | Scriptwriting standard | Video/audio script structure |
+
+## Model Selection
+
+When dispatching subagent work via the Task tool, include the `model` parameter from the target agent's YAML `model:` field:
+
+- Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | haiku`
+- Quality Gate dispatch (Marta/Eduardo/Francisca) ALWAYS uses `model: opus` — NON-NEGOTIABLE
+- Default to `sonnet` if the agent YAML has no `model` field
+- Mechanical tasks (commit messages, routing, keyword extraction) use `model: haiku`
+
+Example Task tool call:
+
+    Task(description="...", subagent_type="general-purpose", model="sonnet", prompt="...")
