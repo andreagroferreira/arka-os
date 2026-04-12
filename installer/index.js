@@ -555,6 +555,25 @@ function installSkill(config, installDir) {
     ok(`${subSkillDeployed} sub-skills installed (/arka-<skill>)`);
   }
 
+  // ── Meta skills (arka/skills/*) ─────────────────────────────────────
+  // For each `arka/skills/<skill>/SKILL.md`, deploy as top-level
+  // `~/.claude/skills/arka-<skill>/`. These are cross-cutting meta
+  // orchestrators (e.g. forge, platform-arka) that don't belong to a
+  // single department. They ALSO remain copied as bundled references
+  // under `~/.claude/skills/arka/skills/` by the nested block above —
+  // this additional deployment makes them invocable as `arka-<skill>`.
+  const arkaSkillsDir = join(ARKAOS_ROOT, "arka", "skills");
+  let metaSkillDeployed = 0;
+  for (const metaSkill of listSubdirs(arkaSkillsDir)) {
+    const metaSkillSrc = join(arkaSkillsDir, metaSkill);
+    if (deployTopLevelSkill(metaSkillSrc, `arka-${metaSkill}`, skillsBase)) {
+      metaSkillDeployed++;
+    }
+  }
+  if (metaSkillDeployed > 0) {
+    ok(`${metaSkillDeployed} meta skills installed (/arka-<skill>)`);
+  }
+
   // ── Agent personas ──────────────────────────────────────────────────
   // For each `departments/<dept>/agents/<name>.md`, deploy to
   // `~/.claude/agents/arka-<name>.md`. Mirrors install.sh:436-443.
