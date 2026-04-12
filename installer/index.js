@@ -243,9 +243,12 @@ export async function install({ runtime, path, force }) {
   // [arka:update-available] on the very first session after install.
   const syncState = {
     version: VERSION,
-    syncedAt: new Date().toISOString(),
+    last_sync: new Date().toISOString(),
+    projects_synced: 0,
+    skills_synced: 0,
+    errors: [],
   };
-  writeFileSync(join(installDir, "sync-state.json"), JSON.stringify(syncState));
+  writeFileSync(join(installDir, "sync-state.json"), JSON.stringify(syncState, null, 2));
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 

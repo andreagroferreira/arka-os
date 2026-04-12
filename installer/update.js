@@ -417,16 +417,19 @@ export async function update() {
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   console.log("         ✓ Manifest updated");
 
-  // Write sync state with the actual installed version so the
-  // session-start hook sees a match and does not show
-  // [arka:update-available] after a successful update.
+  // Reset sync state to trigger /arka update on next session
   const syncStatePath = join(installDir, "sync-state.json");
   const syncState = {
-    version: VERSION,
-    syncedAt: new Date().toISOString(),
+    version: "pending-sync",
+    last_sync: null,
+    projects_synced: 0,
+    skills_synced: 0,
+    errors: [],
+    core_updated_to: VERSION,
+    core_updated_at: new Date().toISOString()
   };
-  writeFileSync(syncStatePath, JSON.stringify(syncState));
-  console.log("         ✓ Sync state updated to v" + VERSION);
+  writeFileSync(syncStatePath, JSON.stringify(syncState, null, 2));
+  console.log("         ✓ Sync state reset (auto-detected on next Claude session)");
 
   console.log(`
   ╔══════════════════════════════════════════╗
