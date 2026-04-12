@@ -33,6 +33,7 @@ phases:
 
   - id: offer-build
     name: Offer Architecture
+    model_override: opus
     description: Build the Grand Slam Offer using Hormozi Value Equation
     agents:
       - agent_id: conversion-strategist-ines
@@ -57,6 +58,7 @@ phases:
 
   - id: funnel
     name: Funnel Architecture
+    model_override: opus
     description: Design the Value Ladder and funnel flow
     agents:
       - agent_id: conversion-strategist-ines
