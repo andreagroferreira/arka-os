@@ -5,6 +5,58 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-04-12
+
+### Added
+
+- **Project Runtime Sync umbrella** — `/arka update` now brings all 81
+  projects to the current core behavior, not just MCP configs.
+  - **Content Sync** (Sub-feature A): per-project CLAUDE.md, rules, hooks,
+    and constitution excerpt synced via intelligent managed-region merge.
+    HTML-comment markers delimit core-owned regions; project-authored
+    content outside markers is preserved forever. Stack overlays
+    (`laravel`, `nuxt`, `python`, `node`) append stack-specific conventions
+    inside the managed block.
+  - **MCP Optimizer** (Sub-feature B): hybrid policy + AI fallback decides
+    which MCPs load active vs deferred per project. Policy registry in
+    `config/mcp-policy.yaml` covers the common cases deterministically;
+    Haiku resolves ambiguous entries with disk-cached decisions.
+    Per-project override at `<project>/.arkaos/mcp-override.yaml`
+    (force_active wins on collision, with warning). Env vault at
+    `~/.arkaos/secrets.json` (chmod 600 enforced) injects secrets into
+    `.mcp.json`; missing vars listed in `.env.arkaos.example`.
+  - **Agent Provisioning** (Sub-feature C): stack-based baseline sync
+    (Phase 8) populates `<project>/.claude/agents/` from
+    `config/agent-allowlists/<stack>.yaml`. PreToolUse hook
+    (`agent-provision.sh`) intercepts `Task` calls for missing agents and
+    copies them from core at runtime, with hardened path-traversal
+    defenses (allowlist regex + `resolve().relative_to()` containment +
+    atomic write). Auto-creation via Skill Architect deferred to v2.18.0.
+  - **Self-healing Sync** (Sub-feature D): `run_with_retry` wrapper with
+    exponential backoff; `SyncError` structured-error model with
+    grep-able codes; integration test asserts full-sync idempotence
+    across two consecutive runs.
+
+### Changed
+
+- Reporter now aggregates content sync, MCP optimizer warnings, and agent
+  provisioning errors into `SyncReport.errors` — no more silent failures.
+- `McpSyncResult` extended with `mcps_deferred` and `optimizer_warnings`.
+
+### Security
+
+- PreToolUse hook for agent provisioning validates `subagent_type` against
+  a strict allowlist regex before any filesystem operation. Source agent
+  lookup + target write-path are confined to `departments/` and
+  `.claude/agents/` via `Path.resolve()` containment checks. Atomic writes
+  prevent corrupt half-provisioned agent files.
+- MCP env vault refuses to load world- or group-readable `secrets.json`;
+  refusal surfaces as a structured warning in the sync report.
+
+### Tests
+
+- 2292 passing (2244 baseline + 48 new across A/B/C/D). Zero regressions.
+
 ## [2.16.1] - 2026-04-12
 
 ### Fixed
