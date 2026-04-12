@@ -125,6 +125,10 @@ enforcement_levels:
         rule: "Per-tier model assignment enforced: Tier 0 opus, Tier 1/2 sonnet, mechanical haiku. Quality Gate ALWAYS opus."
         enforcement: "warning"
 
+      - id: subagent-discipline
+        rule: "Dispatch subagents only when task requires >3 Reads or >5 Greps or isolated context. Never parallel subagents sharing state. Prefer main thread for trivial tasks."
+        enforcement: "warning"
+
   should:
     description: "Best practices. Encouraged but not enforced."
     rules:
