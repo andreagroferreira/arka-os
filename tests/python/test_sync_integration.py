@@ -329,3 +329,89 @@ class TestFullSyncIntegration:
         # After optimizer: nuxt policy activates context7; arka-prompts is
         # ambiguous with no AI available so it is deferred.
         assert "context7" in web_result.final_mcp_list
+
+    def test_mcp_optimizer_defers_canva_on_laravel_stack(self, tmp_path: Path) -> None:
+        """Optimizer defers canva (policy-deferred for laravel) and keeps context7/postgres active."""
+        arkaos_home = tmp_path / ".arkaos"
+        arkaos_home.mkdir()
+
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / "VERSION").write_text("2.14.0")
+        features_dir = repo / "core" / "sync" / "features"
+        _make_feature_yaml(features_dir)
+        (arkaos_home / ".repo-path").write_text(str(repo))
+        (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}))
+
+        herd_dir = tmp_path / "herd"
+        herd_dir.mkdir()
+        (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}))
+
+        skills_dir = tmp_path / ".claude" / "skills"
+        skills_dir.mkdir(parents=True)
+
+        mcps_dir = skills_dir / "arka" / "mcps"
+        mcps_dir.mkdir(parents=True)
+        registry = {
+            "mcpServers": {
+                "context7": {
+                    "category": "base",
+                    "command": "npx",
+                    "args": ["-y", "@upstash/context7-mcp"],
+                },
+                "postgres": {
+                    "category": "base",
+                    "command": "npx",
+                    "args": ["-y", "postgres-mcp"],
+                },
+                "canva": {
+                    "category": "base",
+                    "command": "npx",
+                    "args": ["-y", "canva-mcp"],
+                },
+            }
+        }
+        (mcps_dir / "registry.json").write_text(json.dumps(registry, indent=2))
+
+        projects_dir = skills_dir / "arka" / "projects"
+        projects_dir.mkdir(parents=True)
+        knowledge_dir = skills_dir / "arka" / "knowledge"
+        knowledge_dir.mkdir(parents=True)
+        (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}))
+
+        laravel_app = herd_dir / "laravel-app"
+        laravel_app.mkdir()
+        # composer.json triggers stack detection as laravel/php
+        (laravel_app / "composer.json").write_text(
+            json.dumps({"require": {"laravel/framework": "^11.0"}})
+        )
+
+        # Pre-populate .mcp.json with context7, postgres, and canva
+        mcp_json = {
+            "mcpServers": {
+                "context7": {"command": "npx", "args": ["-y", "@upstash/context7-mcp"]},
+                "postgres": {"command": "npx", "args": ["-y", "postgres-mcp"]},
+                "canva": {"command": "npx", "args": ["-y", "canva-mcp"]},
+            }
+        }
+        (laravel_app / ".mcp.json").write_text(json.dumps(mcp_json, indent=2))
+
+        (projects_dir / "laravel-app.md").write_text(
+            f"---\nname: laravel-app\npath: {laravel_app}\nstatus: active\nstack: [laravel]\n---\n\nLaravel app.\n"
+        )
+
+        with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
+            report = run_sync(
+                arkaos_home=arkaos_home,
+                skills_dir=skills_dir,
+                home_path=str(tmp_path),
+            )
+
+        settings_file = laravel_app / ".claude" / "settings.local.json"
+        assert settings_file.exists(), "settings.local.json should have been written"
+        settings = json.loads(settings_file.read_text())
+        enabled = settings.get("enabledMcpjsonServers", [])
+
+        assert "context7" in enabled, f"context7 should be active; got {enabled}"
+        assert "postgres" in enabled, f"postgres should be active; got {enabled}"
+        assert "canva" not in enabled, f"canva should be deferred; got {enabled}"
