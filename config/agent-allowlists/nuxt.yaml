@@ -1,0 +1,7 @@
+stack: nuxt
+baseline:
+  - frontend-dev
+  - backend-dev
+  - architect
+  - qa
+  - devops

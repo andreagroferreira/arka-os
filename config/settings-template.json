@@ -59,6 +59,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/agent-provision.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

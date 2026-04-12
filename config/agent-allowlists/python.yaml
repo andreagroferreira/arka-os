@@ -1,0 +1,7 @@
+stack: python
+baseline:
+  - senior-dev
+  - architect
+  - qa
+  - devops
+  - analyst

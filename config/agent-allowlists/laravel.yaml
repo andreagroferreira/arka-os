@@ -1,0 +1,9 @@
+stack: laravel
+baseline:
+  - backend-dev
+  - senior-dev
+  - architect
+  - qa
+  - devops
+  - security
+  - analyst
