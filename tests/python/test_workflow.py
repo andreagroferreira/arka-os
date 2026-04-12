@@ -2,6 +2,7 @@
 
 import pytest
 from pathlib import Path
+from pydantic import ValidationError
 
 from core.workflow.schema import (
     Workflow, Phase, Gate, GateType, PhaseStatus,
@@ -82,6 +83,28 @@ class TestWorkflowSchema:
     def test_workflow_tiers(self):
         wf = make_workflow(tier=WorkflowTier.ENTERPRISE)
         assert wf.tier == WorkflowTier.ENTERPRISE
+
+
+class TestPhaseModelOverride:
+    def test_model_override_opus(self):
+        phase = make_phase("p1", "Phase 1", model_override="opus")
+        assert phase.model_override == "opus"
+
+    def test_model_override_sonnet(self):
+        phase = make_phase("p1", "Phase 1", model_override="sonnet")
+        assert phase.model_override == "sonnet"
+
+    def test_model_override_haiku(self):
+        phase = make_phase("p1", "Phase 1", model_override="haiku")
+        assert phase.model_override == "haiku"
+
+    def test_model_override_default_none(self):
+        phase = make_phase("p1", "Phase 1")
+        assert phase.model_override is None
+
+    def test_model_override_invalid_raises(self):
+        with pytest.raises(ValidationError):
+            make_phase("p1", "Phase 1", model_override="gpt-4")
 
 
 class TestGate:
