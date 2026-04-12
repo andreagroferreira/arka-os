@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.sync.schema import (
+    ContentSyncResult,
     DescriptorSyncResult,
     McpSyncResult,
     SettingsSyncResult,
@@ -34,9 +35,16 @@ def build_report(
     skill_results: list[SkillSyncResult],
     new_features: list[str] | None = None,
     deprecated_features: list[str] | None = None,
+    content_results: list[ContentSyncResult] | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
-    errors = _collect_errors(mcp_results, settings_results, descriptor_results, skill_results)
+    errors = _collect_errors(
+        mcp_results,
+        settings_results,
+        descriptor_results,
+        skill_results,
+        content_results=content_results,
+    )
     return SyncReport(
         previous_version=previous_version,
         current_version=current_version,
@@ -46,6 +54,7 @@ def build_report(
         settings_results=settings_results,
         descriptor_results=descriptor_results,
         skill_results=skill_results,
+        content_results=content_results or [],
         errors=errors,
     )
 
@@ -75,6 +84,7 @@ def format_report(report: SyncReport) -> str:
         _format_phase_line("Settings", report.settings_results),
         _format_phase_line("Descriptors", report.descriptor_results),
         _format_skill_line(report.skill_results),
+        _format_content_line(report.content_results),
     ]
 
     key_changes = _format_key_changes(report)
@@ -100,6 +110,7 @@ def _collect_errors(
     settings: list[SettingsSyncResult],
     desc: list[DescriptorSyncResult],
     skills: list[SkillSyncResult],
+    content_results: list[ContentSyncResult] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     for r in mcp:
@@ -114,6 +125,11 @@ def _collect_errors(
     for r in skills:
         if r.error:
             errors.append(f"Skill({r.skill_name}): {r.error}")
+    for r in content_results or []:
+        if r.error:
+            errors.append(f"Content({r.path}): {r.error}")
+        for artefact_error in r.artefacts_errored:
+            errors.append(f"Content({r.path}): {artefact_error}")
     return errors
 
 
@@ -176,3 +192,10 @@ def _add_skill_changes(results: list[SkillSyncResult], changes: list[str]) -> No
     for r in results:
         for feature in r.features_added:
             changes.append(f"'{feature}' added to: {r.skill_name}")
+
+
+def _format_content_line(results: list[ContentSyncResult]) -> str:
+    total = len(results)
+    updated = _count_updated(results)
+    unchanged = _count_unchanged(results)
+    return f"  {'Content:':<14}{total} synced ({updated} updated, {unchanged} unchanged)"

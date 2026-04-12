@@ -162,6 +162,75 @@ def _build_environment(tmp_path: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _build_content_core_repo(root: Path) -> None:
+    """Create a minimal fake ArkaOS core repo for content sync."""
+    (root / "config" / "standards" / "claude-md-overlays").mkdir(parents=True)
+    (root / "config" / "hooks").mkdir(parents=True)
+    (root / "config" / "user-claude.md").write_text("# ArkaOS CLAUDE Template\n")
+    (root / "config" / "standards" / "claude-md-overlays" / "python.md").write_text(
+        "## Python Rules\n"
+    )
+    (root / "config" / "standards" / "communication.md").write_text("# Communication\n")
+    (root / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n")
+    (root / "config" / "constitution.yaml").write_text(
+        "rules:\n  - name: squad-routing\n    level: NON-NEGOTIABLE\n"
+    )
+    (root / "VERSION").write_text("2.14.0\n")
+
+
+def _build_content_sync_environment(tmp_path: Path) -> dict:
+    """Create a mock environment with a python project for content sync tests."""
+    arkaos_home = tmp_path / ".arkaos"
+    arkaos_home.mkdir()
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "VERSION").write_text("2.14.0")
+
+    features_dir = repo / "core" / "sync" / "features"
+    _make_feature_yaml(features_dir)
+
+    (arkaos_home / ".repo-path").write_text(str(repo))
+    (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}))
+
+    herd_dir = tmp_path / "herd"
+    herd_dir.mkdir()
+    (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}))
+
+    skills_dir = tmp_path / ".claude" / "skills"
+    skills_dir.mkdir(parents=True)
+
+    mcps_dir = skills_dir / "arka" / "mcps"
+    mcps_dir.mkdir(parents=True)
+    _write_registry(mcps_dir)
+
+    projects_dir = skills_dir / "arka" / "projects"
+    projects_dir.mkdir(parents=True)
+
+    knowledge_dir = skills_dir / "arka" / "knowledge"
+    knowledge_dir.mkdir(parents=True)
+    (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}))
+
+    py_app = herd_dir / "py-app"
+    py_app.mkdir()
+    (py_app / ".mcp.json").write_text(json.dumps({"mcpServers": {}}))
+    (projects_dir / "py-app.md").write_text(
+        f"---\nname: py-app\npath: {py_app}\nstatus: active\nstack: [python]\n---\n\nPython app.\n"
+    )
+
+    core_repo = tmp_path / "core-repo"
+    core_repo.mkdir()
+    _build_content_core_repo(core_repo)
+
+    return {
+        "arkaos_home": arkaos_home,
+        "skills_dir": skills_dir,
+        "home_path": str(tmp_path),
+        "py_app": py_app,
+        "core_repo": core_repo,
+    }
+
+
 class TestFullSyncIntegration:
     def test_full_first_sync(self, tmp_path: Path) -> None:
         env = _build_environment(tmp_path)
@@ -206,6 +275,38 @@ class TestFullSyncIntegration:
         assert "2.14.0" in output
         assert "MCPs" in output
         assert "Errors: 0" in output
+
+    def test_content_sync_idempotent_across_two_runs(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        env = _build_content_sync_environment(tmp_path)
+        monkeypatch.setenv("ARKAOS_CORE_ROOT", str(env["core_repo"]))
+
+        with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
+            report1 = run_sync(
+                arkaos_home=env["arkaos_home"],
+                skills_dir=env["skills_dir"],
+                home_path=env["home_path"],
+            )
+
+        py_result1 = next(
+            (r for r in report1.content_results if "py-app" in r.path), None
+        )
+        assert py_result1 is not None, "Expected content_result for py-app on first run"
+        assert py_result1.status == "updated"
+
+        with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
+            report2 = run_sync(
+                arkaos_home=env["arkaos_home"],
+                skills_dir=env["skills_dir"],
+                home_path=env["home_path"],
+            )
+
+        py_result2 = next(
+            (r for r in report2.content_results if "py-app" in r.path), None
+        )
+        assert py_result2 is not None, "Expected content_result for py-app on second run"
+        assert py_result2.status == "unchanged"
 
     def test_nuxt_project_gets_base_mcps_only(self, tmp_path: Path) -> None:
         env = _build_environment(tmp_path)
