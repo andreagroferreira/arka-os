@@ -47,8 +47,10 @@ class McpSyncResult(BaseModel):
     mcps_removed: list[str] = Field(default_factory=list)
     mcps_updated: list[str] = Field(default_factory=list)
     mcps_preserved: list[str] = Field(default_factory=list)
+    mcps_deferred: list[str] = Field(default_factory=list)
     final_mcp_list: list[str] = Field(default_factory=list)
     error: str | None = None
+    optimizer_warnings: list[str] = Field(default_factory=list)
 
 
 class SettingsSyncResult(BaseModel):

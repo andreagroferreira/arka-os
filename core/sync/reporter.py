@@ -92,6 +92,11 @@ def format_report(report: SyncReport) -> str:
         lines += ["", "  Key changes:"]
         lines += [f"  - {c}" for c in key_changes]
 
+    total_deferred = sum(len(r.mcps_deferred) for r in report.mcp_results)
+    projects_with_deferred = sum(1 for r in report.mcp_results if r.mcps_deferred)
+    if total_deferred > 0:
+        lines += ["", f"  Deferred MCPs: {total_deferred} across {projects_with_deferred} projects."]
+
     lines += [
         "",
         f"  Errors: {len(report.errors)}",
@@ -116,6 +121,8 @@ def _collect_errors(
     for r in mcp:
         if r.error:
             errors.append(f"MCP({r.path}): {r.error}")
+        for w in r.optimizer_warnings:
+            errors.append(f"MCP Optimizer({r.path}): {w}")
     for r in settings:
         if r.error:
             errors.append(f"Settings({r.path}): {r.error}")
