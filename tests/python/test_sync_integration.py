@@ -379,6 +379,50 @@ class TestFullSyncIntegration:
         assert agent_result2 is not None, "Expected agent_result for py-app on second run"
         assert agent_result2.status == "unchanged"
 
+    def test_full_sync_idempotent_across_two_runs(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        env = _build_content_sync_environment(tmp_path)
+        core_repo: Path = env["core_repo"]
+
+        allowlists_dir = core_repo / "config" / "agent-allowlists"
+        allowlists_dir.mkdir(parents=True, exist_ok=True)
+        (allowlists_dir / "_base.yaml").write_text(
+            "stack: _base\nbaseline:\n  - strategy-director\n"
+        )
+        strategy_agents_dir = core_repo / "departments" / "strategy" / "agents"
+        strategy_agents_dir.mkdir(parents=True, exist_ok=True)
+        (strategy_agents_dir / "strategy-director.md").write_text(
+            "# Strategy Director\n\nDrives strategy.\n"
+        )
+
+        monkeypatch.setenv("ARKAOS_CORE_ROOT", str(core_repo))
+
+        with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
+            run_sync(
+                arkaos_home=env["arkaos_home"],
+                skills_dir=env["skills_dir"],
+                home_path=env["home_path"],
+            )
+
+        with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
+            report2 = run_sync(
+                arkaos_home=env["arkaos_home"],
+                skills_dir=env["skills_dir"],
+                home_path=env["home_path"],
+            )
+
+        for r in report2.content_results:
+            assert r.status == "unchanged", f"content {r.path} expected unchanged, got {r.status}"
+
+        for r in report2.agent_results:
+            assert r.status == "unchanged", f"agent {r.path} expected unchanged, got {r.status}"
+
+        for r in report2.mcp_results:
+            assert r.mcps_added == [], f"mcp {r.path} expected no mcps_added, got {r.mcps_added}"
+
+        assert report2.errors == [], f"expected no errors, got {report2.errors}"
+
     def test_mcp_optimizer_defers_canva_on_laravel_stack(self, tmp_path: Path) -> None:
         """Optimizer defers canva (policy-deferred for laravel) and keeps context7/postgres active."""
         arkaos_home = tmp_path / ".arkaos"
