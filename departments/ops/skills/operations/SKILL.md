@@ -1,5 +1,5 @@
 ---
-name: ops
+name: arka-operations
 description: >
   Operations department. Task management via ClickUp, email drafting via Gmail, calendar
   management via Google Calendar, meeting scheduling and agenda preparation, invoice generation,

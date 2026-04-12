@@ -1,5 +1,5 @@
 ---
-name: kb
+name: arka-knowledge
 description: >
   Dynamic knowledge base powered by Obsidian. Async background processing: queues YouTube
   downloads, transcribes with Whisper (local or API), and pauses for interactive analysis.

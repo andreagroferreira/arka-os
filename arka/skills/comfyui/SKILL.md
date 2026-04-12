@@ -1,5 +1,5 @@
 ---
-name: comfyui
+name: arka-comfyui
 description: >
   ComfyUI ecosystem orchestrator. Two specialized squads: ComfyUI Core (workflow engineering,
   custom nodes research, model discovery, pipeline optimization, API automation) and

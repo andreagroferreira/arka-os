@@ -1,5 +1,5 @@
 ---
-name: rothbard100
+name: arka-rothbard100
 description: >
   Rothbard 100 ecosystem orchestrator. Dedicated command for all Rothbard 100 event work.
   Routes tasks to specialized squad roles (PM, frontend developer, content creator,

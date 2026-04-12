@@ -1,5 +1,5 @@
 ---
-name: ecom
+name: arka-ecommerce
 description: >
   E-commerce department. Full store audits with 5 parallel agents (UX, SEO, performance,
   content, conversion), product listing optimization, pricing strategy analysis, store launch

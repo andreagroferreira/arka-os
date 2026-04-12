@@ -1,5 +1,5 @@
 ---
-name: platform-arka
+name: arka-platform-arka
 description: >
   ArkaOS platform ecosystem orchestrator. Self-managing product development for ArkaOS —
   the core WizardingCode product. Full-stack product team: Python core engine, Node.js

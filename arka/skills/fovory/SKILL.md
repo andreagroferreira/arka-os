@@ -1,5 +1,5 @@
 ---
-name: fovory
+name: arka-fovory
 description: >
   Fovory ecosystem orchestrator. Supplier-to-Shopify integration engine with custom Laravel codebase
   (fovory-supplier-sync) AND Shopify store operations. Routes to dev squad for code work and
