@@ -17,6 +17,7 @@ from core.sync.mcp_optimizer import optimize_all_mcps
 from core.sync.mcp_syncer import sync_all_mcps
 from core.sync.settings_syncer import sync_all_settings
 from core.sync.descriptor_syncer import sync_all_descriptors
+from core.sync.agent_provisioner import sync_all_agents
 from core.sync.content_syncer import sync_all_content
 from core.sync.reporter import build_report, format_report, write_sync_state
 from core.sync.schema import SyncReport
@@ -55,6 +56,7 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
     settings_results = sync_all_settings(mcp_results)
     descriptor_results = sync_all_descriptors(projects)
     content_results = sync_all_content(projects)
+    agent_results = sync_all_agents(projects)
 
     report = build_report(
         previous_version,
@@ -64,6 +66,7 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
         descriptor_results,
         [],
         content_results=content_results,
+        agent_results=agent_results,
         new_features=manifest.new_features,
         deprecated_features=manifest.deprecated_features,
     )

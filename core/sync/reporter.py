@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.sync.schema import (
+    AgentProvisionResult,
     ContentSyncResult,
     DescriptorSyncResult,
     McpSyncResult,
@@ -36,6 +37,7 @@ def build_report(
     new_features: list[str] | None = None,
     deprecated_features: list[str] | None = None,
     content_results: list[ContentSyncResult] | None = None,
+    agent_results: list[AgentProvisionResult] | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
     errors = _collect_errors(
@@ -44,6 +46,7 @@ def build_report(
         descriptor_results,
         skill_results,
         content_results=content_results,
+        agent_results=agent_results,
     )
     return SyncReport(
         previous_version=previous_version,
@@ -55,6 +58,7 @@ def build_report(
         descriptor_results=descriptor_results,
         skill_results=skill_results,
         content_results=content_results or [],
+        agent_results=agent_results or [],
         errors=errors,
     )
 
@@ -85,6 +89,7 @@ def format_report(report: SyncReport) -> str:
         _format_phase_line("Descriptors", report.descriptor_results),
         _format_skill_line(report.skill_results),
         _format_content_line(report.content_results),
+        _format_agents_line(report.agent_results),
     ]
 
     key_changes = _format_key_changes(report)
@@ -116,6 +121,7 @@ def _collect_errors(
     desc: list[DescriptorSyncResult],
     skills: list[SkillSyncResult],
     content_results: list[ContentSyncResult] | None = None,
+    agent_results: list[AgentProvisionResult] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     for r in mcp:
@@ -137,6 +143,11 @@ def _collect_errors(
             errors.append(f"Content({r.path}): {r.error}")
         for artefact_error in r.artefacts_errored:
             errors.append(f"Content({r.path}): {artefact_error}")
+    for r in agent_results or []:
+        if r.error:
+            errors.append(f"Agents({r.path}): {r.error}")
+        for a in r.agents_errored:
+            errors.append(f"Agents({r.path}): missing core file for {a}")
     return errors
 
 
@@ -206,3 +217,10 @@ def _format_content_line(results: list[ContentSyncResult]) -> str:
     updated = _count_updated(results)
     unchanged = _count_unchanged(results)
     return f"  {'Content:':<14}{total} synced ({updated} updated, {unchanged} unchanged)"
+
+
+def _format_agents_line(results: list[AgentProvisionResult]) -> str:
+    total = len(results)
+    updated = _count_updated(results)
+    unchanged = _count_unchanged(results)
+    return f"  {'Agents:':<14}{total} synced ({updated} updated, {unchanged} unchanged)"

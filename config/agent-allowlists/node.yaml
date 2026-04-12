@@ -1,0 +1,7 @@
+stack: node
+baseline:
+  - backend-dev
+  - senior-dev
+  - architect
+  - qa
+  - devops
