@@ -3,6 +3,7 @@ name: Andre
 role: Senior Backend Developer
 department: dev
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

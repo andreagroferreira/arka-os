@@ -3,6 +3,7 @@ name: Patricia
 role: Customer Success Manager
 department: saas
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

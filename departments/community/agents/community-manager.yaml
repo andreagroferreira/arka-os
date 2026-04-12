@@ -3,6 +3,7 @@ name: Maria
 role: Community Manager
 department: community
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

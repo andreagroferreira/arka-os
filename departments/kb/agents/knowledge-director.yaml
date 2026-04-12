@@ -3,6 +3,7 @@ name: Clara
 role: Knowledge Director
 department: kb
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:

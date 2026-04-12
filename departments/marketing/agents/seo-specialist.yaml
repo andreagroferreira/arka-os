@@ -3,6 +3,7 @@ name: Ana
 role: SEO Specialist
 department: marketing
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

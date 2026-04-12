@@ -121,6 +121,10 @@ enforcement_levels:
         rule: "All forge plans (approved and rejected) must be persisted to Obsidian"
         enforcement: "persistence.py exports on status change; audit detects missing exports"
 
+      - id: model-routing
+        rule: "Per-tier model assignment enforced: Tier 0 opus, Tier 1/2 sonnet, mechanical haiku. Quality Gate ALWAYS opus."
+        enforcement: "warning"
+
   should:
     description: "Best practices. Encouraged but not enforced."
     rules:

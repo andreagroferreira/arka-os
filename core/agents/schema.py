@@ -8,8 +8,18 @@ Every ArkaOS agent has a complete behavioral profile composed of:
 """
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field, model_validator
+
+
+ModelTier = Literal["haiku", "sonnet", "opus"]
+
+
+def tier_default_model(tier: int) -> ModelTier:
+    """Return default Claude model for a given agent tier."""
+    if tier == 0:
+        return "opus"
+    return "sonnet"
 
 
 # --- DISC Framework ---
@@ -258,8 +268,17 @@ class Agent(BaseModel):
 
     memory_path: str = ""
 
+    model: Optional[ModelTier] = Field(
+        default=None,
+        description="Claude model override for dispatch. Falls back to tier default when None.",
+    )
+
     @model_validator(mode="after")
     def auto_fill_memory_path(self) -> "Agent":
         if not self.memory_path:
             self.memory_path = f"~/.claude/agent-memory/arka-{self.id}/MEMORY.md"
         return self
+
+    def get_model(self) -> ModelTier:
+        """Return the resolved Claude model, using tier default when unset."""
+        return self.model or tier_default_model(self.tier)

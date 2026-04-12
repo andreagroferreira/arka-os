@@ -3,6 +3,7 @@ name: Helena C.
 role: Knowledge Curator
 department: kb
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

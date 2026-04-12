@@ -3,6 +3,7 @@ name: Alice
 role: CRO Specialist
 department: ecom
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

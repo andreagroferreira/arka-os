@@ -3,6 +3,7 @@ name: Filipe
 role: Viral Content Engineer
 department: content
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

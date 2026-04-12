@@ -35,3 +35,16 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | **Marta S.** | 2 | I+C | Business model design, value proposition, revenue models |
 
 ## Frameworks: Five Forces (Porter), Playing to Win (Martin), Blue Ocean (Kim/Mauborgne), BMC (Osterwalder), Wardley Maps, 7 Powers (Helmer), TAM/SAM/SOM, SWOT, PESTLE, BCG Matrix, Ansoff Matrix
+
+## Model Selection
+
+When dispatching subagent work via the Task tool, include the `model` parameter from the target agent's YAML `model:` field:
+
+- Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | haiku`
+- Quality Gate dispatch (Marta/Eduardo/Francisca) ALWAYS uses `model: opus` — NON-NEGOTIABLE
+- Default to `sonnet` if the agent YAML has no `model` field
+- Mechanical tasks (commit messages, routing, keyword extraction) use `model: haiku`
+
+Example Task tool call:
+
+    Task(description="...", subagent_type="general-purpose", model="sonnet", prompt="...")

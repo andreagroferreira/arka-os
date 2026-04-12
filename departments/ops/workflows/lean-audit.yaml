@@ -43,6 +43,7 @@ phases:
 
   - id: quality-gate
     name: Quality Gate
+    model_override: opus
     description: Validate analysis quality
     agents:
       - agent_id: cqo-marta

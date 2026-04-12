@@ -33,6 +33,7 @@ phases:
 
   - id: quality-gate
     name: Quality Gate
+    model_override: opus
     description: Review recommendations
     agents:
       - agent_id: cqo-marta

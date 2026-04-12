@@ -4,11 +4,14 @@ Referenced from SKILL.md. Read only when needed.
 
 ## Complexity Tiers
 
-| Tier | Score | Explorers | Critic | Companion |
-|------|-------|-----------|--------|-----------|
-| Shallow | ≤ 30 | 1 (Pragmatic, inline) | Light | None |
-| Standard | 31-65 | 2 (Pragmatic + Architectural, parallel) | Full | On request |
-| Deep | ≥ 66 | 3 (Pragmatic + Architectural + Contrarian, parallel) | Full | Proactive |
+| Tier | Score | Explorers | Critic | Companion | Model |
+|------|-------|-----------|--------|-----------|-------|
+| Simple (Shallow) | ≤ 30 | 1 (Pragmatic, inline) | Light | None | haiku |
+| Standard | 31-65 | 2 (Pragmatic + Architectural, parallel) | Full | On request | sonnet |
+| Complex (Deep) | 66-85 | 3 (Pragmatic + Architectural + Contrarian, parallel) | Full | Proactive | opus |
+| Super | ≥ 86 | 3 + full synthesis | Full (highest judgment) | Proactive | opus |
+
+Model routing: when dispatching explorer subagents and the critic via the Task tool, pass `model: <tier_model>` using the mapping above. Simple/standard tiers keep costs low; complex/super escalate to opus for the judgment-heavy work.
 
 ## Dimensions (0-100 each)
 

@@ -3,6 +3,7 @@ name: Miguel
 role: Sales Director
 department: sales
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:

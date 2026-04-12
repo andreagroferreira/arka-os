@@ -177,6 +177,40 @@ class TestAgent:
         assert agent.behavioral_dna.mbti.dominant == CognitiveFunction.Ni
 
 
+# --- Model Routing Tests ---
+
+class TestModelRouting:
+    def test_model_haiku(self):
+        agent = make_agent(model="haiku")
+        assert agent.model == "haiku"
+        assert agent.get_model() == "haiku"
+
+    def test_model_sonnet(self):
+        agent = make_agent(model="sonnet")
+        assert agent.get_model() == "sonnet"
+
+    def test_model_opus(self):
+        agent = make_agent(model="opus")
+        assert agent.get_model() == "opus"
+
+    def test_model_none_derives_from_tier_zero(self):
+        agent = make_agent(tier=0)
+        assert agent.model is None
+        assert agent.get_model() == "opus"
+
+    def test_model_none_derives_from_tier_one(self):
+        agent = make_agent(tier=1)
+        assert agent.get_model() == "sonnet"
+
+    def test_model_none_derives_from_tier_two(self):
+        agent = make_agent(tier=2)
+        assert agent.get_model() == "sonnet"
+
+    def test_invalid_model_rejected(self):
+        with pytest.raises(ValueError):
+            make_agent(model="gpt-4")
+
+
 # --- Validator Tests ---
 
 class TestValidator:

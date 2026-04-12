@@ -3,6 +3,7 @@ name: Eduardo
 role: Copy & Language Director
 department: quality
 tier: 0
+model: opus
 
 behavioral_dna:
   disc:

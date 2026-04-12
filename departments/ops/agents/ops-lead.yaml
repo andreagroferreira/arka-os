@@ -3,6 +3,7 @@ name: Daniel
 role: Operations Lead
 department: ops
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:

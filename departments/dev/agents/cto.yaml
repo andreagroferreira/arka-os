@@ -3,6 +3,7 @@ name: Marco
 role: Chief Technology Officer
 department: dev
 tier: 0
+model: opus
 
 behavioral_dna:
   disc:

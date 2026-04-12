@@ -3,6 +3,7 @@ name: Pedro
 role: Performance Marketing Specialist
 department: marketing
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

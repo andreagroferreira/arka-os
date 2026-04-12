@@ -3,6 +3,7 @@ name: Lucas
 role: Market & Competitive Intelligence Analyst
 department: strategy
 tier: 2
+model: sonnet
 
 behavioral_dna:
   disc:

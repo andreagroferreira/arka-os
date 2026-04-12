@@ -3,6 +3,7 @@ name: Tomas Jr
 role: Data Collector
 department: kb
 tier: 3
+model: haiku
 
 behavioral_dna:
   disc:

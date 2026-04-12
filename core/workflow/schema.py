@@ -9,8 +9,10 @@ Workflows define multi-phase execution plans with:
 """
 
 from enum import Enum
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 from pydantic import BaseModel, Field
+
+ModelOverride = Literal["haiku", "sonnet", "opus"]
 
 
 class PhaseStatus(str, Enum):
@@ -65,6 +67,7 @@ class Phase(BaseModel):
     outputs: list[PhaseOutput] = Field(default_factory=list)
     depends_on: list[str] = Field(default_factory=list)
     skip_if: Optional[str] = None       # Condition to skip this phase
+    model_override: Optional[ModelOverride] = None  # Force model for this phase (overrides agent defaults)
     status: PhaseStatus = PhaseStatus.PENDING
     result: Optional[str] = None
 

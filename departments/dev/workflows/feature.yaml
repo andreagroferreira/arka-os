@@ -11,6 +11,7 @@ quality_gate_required: true
 phases:
   - id: spec
     name: Specification
+    model_override: opus
     description: Create or validate feature specification
     agents:
       - agent_id: tech-lead-paulo
@@ -36,6 +37,7 @@ phases:
 
   - id: architecture
     name: Architecture
+    model_override: opus
     description: Design system architecture and write ADR
     agents:
       - agent_id: architect-gabriel
@@ -99,6 +101,7 @@ phases:
 
   - id: quality-gate
     name: Quality Gate
+    model_override: opus
     description: Mandatory review by CQO, Copy Director, and Tech Director
     agents:
       - agent_id: cqo-marta

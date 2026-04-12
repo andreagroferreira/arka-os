@@ -3,6 +3,7 @@ name: Ines
 role: Conversion Strategist
 department: landing
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:
