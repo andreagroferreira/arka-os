@@ -101,21 +101,51 @@ def _split_frontmatter(text: str) -> tuple[dict, str]:
 
 
 def _normalize_stack_item(item: str) -> str:
-    """Normalize a stack item to lowercase first word for comparison."""
-    return item.strip().lower().split()[0]
+    """Normalize a stack item to lowercase first word for comparison.
+
+    Returns an empty string for empty or whitespace-only input so that
+    iteration over malformed stacks (e.g., a scalar YAML string) does not
+    crash with IndexError.
+    """
+    parts = item.strip().lower().split()
+    return parts[0] if parts else ""
 
 
 def _check_stack(
     frontmatter: dict, detected_stack: list[str], changes: list[str]
 ) -> None:
-    """Compare frontmatter stack with detected stack and update if different."""
-    fm_stack: list[str] = frontmatter.get("stack") or []
-    fm_normalized = {_normalize_stack_item(s) for s in fm_stack}
-    detected_normalized = {_normalize_stack_item(s) for s in detected_stack}
+    """Compare frontmatter stack with detected stack and update if different.
+
+    Tolerates malformed frontmatter where ``stack`` is a scalar string or
+    ``None`` by coercing it to a list first. A scalar value is always
+    rewritten as a list even when the normalized tokens match. Empty or
+    whitespace-only items are dropped during normalization.
+    """
+    raw_fm_stack = frontmatter.get("stack")
+    needs_type_coercion = not isinstance(raw_fm_stack, list)
+
+    if raw_fm_stack is None:
+        fm_stack: list[str] = []
+    elif isinstance(raw_fm_stack, str):
+        fm_stack = [raw_fm_stack]
+    elif isinstance(raw_fm_stack, list):
+        fm_stack = [s for s in raw_fm_stack if isinstance(s, str)]
+    else:
+        fm_stack = []
+
+    fm_normalized = {
+        token for s in fm_stack if (token := _normalize_stack_item(s))
+    }
+    detected_normalized = {
+        token for s in detected_stack if (token := _normalize_stack_item(s))
+    }
 
     if fm_normalized != detected_normalized and detected_stack:
         frontmatter["stack"] = detected_stack
         changes.append(f"stack updated: {fm_stack} -> {detected_stack}")
+    elif needs_type_coercion and detected_stack:
+        frontmatter["stack"] = detected_stack
+        changes.append(f"stack coerced to list: {raw_fm_stack!r} -> {detected_stack}")
 
 
 def _check_activity(
