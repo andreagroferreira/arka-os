@@ -135,6 +135,28 @@ Per-tier default model assignment for cost optimization without quality loss:
 
 When dispatching subagents, the orchestrator MUST pass the `model` parameter to the Task tool based on the agent's YAML `model:` field.
 
+## Token Hygiene
+
+The `UserPromptSubmit` hook runs 4 proactive checks before every turn and
+emits non-blocking suggestions via `additionalContext`. Suggestions never
+block execution — the user decides whether to act.
+
+| Check | Triggers when | Output |
+|---|---|---|
+| Context % monitor | Runtime exposes context usage > 60% (>80% = warn) | `[arka:suggest]` / `[arka:warn]` |
+| Topic drift | Keyword overlap with last 3 user messages < 30% | `[arka:suggest] Topic shift — consider /clear` |
+| Large paste | Prompt > 2000 chars AND contains code fence | `[arka:suggest] Large paste — use @filepath` |
+| Vague reference | Phrases like "fix the bug", "that file", "esse ficheiro" without any `@` reference | `[arka:suggest] Vague reference — use @path` |
+
+Implementation: `config/hooks/token-hygiene.sh`, called from
+`config/hooks/user-prompt-submit.sh`. Hooks must respect the 10s
+UserPromptSubmit budget and never block (exit 0 only).
+
+Subagent discipline (MUST rule `subagent-discipline`): dispatch subagents
+only when a task requires >3 Reads, >5 Greps, or isolated context. Never
+run parallel subagents that share state. Trivial tasks stay on the main
+thread to avoid handoff token overhead.
+
 ## Behavioral DNA (4 Frameworks per Agent)
 
 Every agent has a complete behavioral profile:
@@ -153,7 +175,7 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
-**MUST (7 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, forge-persistence
+**MUST (9 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, forge-persistence, model-routing, subagent-discipline
 
 **SHOULD (4 rules):** research-first, self-critique, kb-contribution, complexity-assessment
 
