@@ -3,6 +3,7 @@ name: Helena
 role: Chief Financial Officer
 department: finance
 tier: 0
+model: opus
 
 behavioral_dna:
   disc:

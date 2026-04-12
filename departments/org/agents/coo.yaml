@@ -3,6 +3,7 @@ name: Sofia
 role: Chief Operations Officer
 department: org
 tier: 0
+model: opus
 
 behavioral_dna:
   disc:
