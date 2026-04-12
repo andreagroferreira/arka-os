@@ -145,15 +145,10 @@ if [ -z "$python_result" ]; then
     L4="[branch:$branch]"
   fi
 
-  # L7: Time
-  hour=$(date +%H)
-  if [ "$hour" -ge 5 ] && [ "$hour" -lt 12 ]; then
-    L7="[time:morning]"
-  elif [ "$hour" -ge 12 ] && [ "$hour" -lt 18 ]; then
-    L7="[time:afternoon]"
-  else
-    L7="[time:evening]"
-  fi
+  # L7: Time — intentionally skipped in bash fallback.
+  # Low-signal tag that changed every prompt and invalidated prompt cache.
+  # The Python TimeLayer (cache_ttl=3600) is authoritative when available.
+  L7=""
 
   # L8: Workflow state
   L8=""
