@@ -41,7 +41,7 @@ class TestConstitutionRules:
 
     def test_has_6_must_rules(self, constitution):
         rules = constitution.get_must_rules()
-        assert len(rules) == 8
+        assert len(rules) == 9
 
     def test_must_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_must_rules()]
@@ -61,7 +61,7 @@ class TestConstitutionRules:
 
     def test_get_all_rule_ids(self, constitution):
         all_ids = constitution.get_rule_ids()
-        assert len(all_ids) == 28  # 15 + 8 + 5
+        assert len(all_ids) == 29  # 15 + 9 + 5
 
 
 class TestConstitutionQualityGate:

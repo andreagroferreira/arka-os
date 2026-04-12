@@ -178,8 +178,31 @@ if [ -z "$python_result" ]; then
   python_result="$L0 $L4 $L7 $L8 $L9"
 fi
 
+# ─── Token Hygiene suggestions (non-blocking) ───────────────────────────
+_HYGIENE=""
+_HYGIENE_SCRIPT="$(dirname "$0")/token-hygiene.sh"
+if [ -f "$_HYGIENE_SCRIPT" ]; then
+  # Extract transcript path from input JSON if present
+  _TRANSCRIPT=""
+  if command -v jq &>/dev/null; then
+    _TRANSCRIPT=$(echo "$input" | jq -r '.transcript_path // ""' 2>/dev/null)
+  fi
+  _HYGIENE=$(ARKA_PROMPT="$user_input" \
+             ARKA_TRANSCRIPT_PATH="$_TRANSCRIPT" \
+             CLAUDE_CONTEXT_USED="${CLAUDE_CONTEXT_USED:-}" \
+             bash "$_HYGIENE_SCRIPT" 2>/dev/null)
+fi
+
 # ─── Output ──────────────────────────────────────────────────────────────
-echo "{\"additionalContext\": \"${_ARKA_GREETING:-}${_SYNC_NOTICE:-}$python_result\"}"
+_OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}$python_result"
+[ -n "$_HYGIENE" ] && _OUT_CONTEXT="$_OUT_CONTEXT $_HYGIENE"
+# Escape for JSON
+_OUT_JSON=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$_OUT_CONTEXT" 2>/dev/null)
+if [ -n "$_OUT_JSON" ]; then
+  echo "{\"additionalContext\": $_OUT_JSON}"
+else
+  echo "{\"additionalContext\": \"${_ARKA_GREETING:-}${_SYNC_NOTICE:-}$python_result\"}"
+fi
 
 # ─── Metrics ─────────────────────────────────────────────────────────────
 elapsed=$(_hook_ms)
