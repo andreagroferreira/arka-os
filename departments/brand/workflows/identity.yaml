@@ -84,6 +84,7 @@ phases:
 
   - id: quality-gate
     name: Quality Gate
+    model_override: opus
     description: Mandatory quality review
     agents:
       - agent_id: cqo-marta

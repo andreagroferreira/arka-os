@@ -33,6 +33,7 @@ phases:
     description: User approves proposed structure
 - id: quality-gate
   name: Quality Gate
+  model_override: opus
   agents:
   - agent_id: cqo-marta
     role: Orchestrate

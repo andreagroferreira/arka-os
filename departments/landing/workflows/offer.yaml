@@ -70,6 +70,7 @@ phases:
 
   - id: quality-gate
     name: Quality Gate
+    model_override: opus
     description: Review offer, copy, and funnel quality
     agents:
       - agent_id: cqo-marta

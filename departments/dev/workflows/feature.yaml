@@ -99,6 +99,7 @@ phases:
 
   - id: quality-gate
     name: Quality Gate
+    model_override: opus
     description: Mandatory review by CQO, Copy Director, and Tech Director
     agents:
       - agent_id: cqo-marta

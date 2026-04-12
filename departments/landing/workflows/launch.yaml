@@ -47,6 +47,7 @@ phases:
     type: auto
 - id: quality-gate
   name: Quality Gate
+  model_override: opus
   agents:
   - agent_id: cqo-marta
     role: Orchestrate

@@ -36,6 +36,7 @@ phases:
     description: User selects final name from shortlist
 - id: quality-gate
   name: Quality Gate
+  model_override: opus
   agents:
   - agent_id: cqo-marta
     role: Orchestrate review
