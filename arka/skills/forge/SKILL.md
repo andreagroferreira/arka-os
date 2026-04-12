@@ -29,13 +29,25 @@ The Forge analyses any prompt across 5 complexity dimensions, routes to 1-3 expl
 
 ## Complexity Tiers
 
-| Tier | Score | Explorers | Critic | Companion |
-|------|-------|-----------|--------|-----------|
-| Shallow | ≤ 30 | 1 (Pragmatic, inline) | Light | None |
-| Standard | 31-65 | 2 (Pragmatic + Architectural, parallel) | Full | On request |
-| Deep | ≥ 66 | 3 (+ Contrarian, parallel) | Full | Proactive |
+| Tier | Score | Explorers | Critic | Companion | Model |
+|------|-------|-----------|--------|-----------|-------|
+| Simple (Shallow) | ≤ 30 | 1 (Pragmatic, inline) | Light | None | haiku |
+| Standard | 31-65 | 2 (Pragmatic + Architectural, parallel) | Full | On request | sonnet |
+| Complex (Deep) | 66-85 | 3 (+ Contrarian, parallel) | Full | Proactive | opus |
+| Super | ≥ 86 | 3 + full synthesis | Full (highest judgment) | Proactive | opus |
 
 Five dimensions score 0-100 each: **scope**, **dependencies**, **ambiguity**, **risk**, **novelty**. See `references/complexity-engine.md` for scoring details and tier confirmation prompt.
+
+## Subagent Dispatch — Model Routing
+
+When dispatching explorer subagents via the Task tool, include `model: <tier_model>` parameter. The tier-to-model mapping is:
+
+- simple → `model: haiku` (fast routing, single explorer)
+- standard → `model: sonnet` (default, 1-2 explorers)
+- complex → `model: opus` (3 explorers + critic synthesis)
+- super → `model: opus` (highest judgment, full synthesis)
+
+Example: for complex tier, use `model: opus` on every explorer Task call and on the critic synthesis dispatch.
 
 ## Explorer Lenses
 
