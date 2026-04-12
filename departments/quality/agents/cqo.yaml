@@ -3,6 +3,7 @@ name: Marta
 role: Chief Quality Officer
 department: quality
 tier: 0
+model: opus
 
 behavioral_dna:
   disc:
