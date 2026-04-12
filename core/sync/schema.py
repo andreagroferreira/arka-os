@@ -118,3 +118,14 @@ class SyncReport(BaseModel):
     content_results: list[ContentSyncResult] = Field(default_factory=list)
     agent_results: list[AgentProvisionResult] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
+
+
+class SyncError(BaseModel):
+    """Structured sync error with grep-able code and context."""
+
+    phase: str
+    project_path: str
+    code: str
+    message: str
+    context: dict = Field(default_factory=dict)
+    retry_count: int = 0
