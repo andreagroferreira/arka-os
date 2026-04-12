@@ -330,6 +330,55 @@ class TestFullSyncIntegration:
         # ambiguous with no AI available so it is deferred.
         assert "context7" in web_result.final_mcp_list
 
+    def test_agent_provisioning_idempotent(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        env = _build_content_sync_environment(tmp_path)
+
+        # Extend the fake core repo with agent allowlists and a source agent file.
+        core_repo: Path = env["core_repo"]
+        allowlists_dir = core_repo / "config" / "agent-allowlists"
+        allowlists_dir.mkdir(parents=True, exist_ok=True)
+        (allowlists_dir / "_base.yaml").write_text(
+            "stack: _base\nbaseline:\n  - strategy-director\n"
+        )
+        strategy_agents_dir = core_repo / "departments" / "strategy" / "agents"
+        strategy_agents_dir.mkdir(parents=True, exist_ok=True)
+        (strategy_agents_dir / "strategy-director.md").write_text(
+            "# Strategy Director\n\nDrives strategy.\n"
+        )
+
+        monkeypatch.setenv("ARKAOS_CORE_ROOT", str(core_repo))
+
+        with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
+            report1 = run_sync(
+                arkaos_home=env["arkaos_home"],
+                skills_dir=env["skills_dir"],
+                home_path=env["home_path"],
+            )
+
+        agent_result1 = next(
+            (r for r in report1.agent_results if "py-app" in r.path), None
+        )
+        assert agent_result1 is not None, "Expected agent_result for py-app on first run"
+        assert agent_result1.agents_added, "Expected at least one agent added on first run"
+
+        agent_md = Path(env["py_app"]) / ".claude" / "agents" / "strategy-director.md"
+        assert agent_md.exists(), "strategy-director.md should exist after first run"
+
+        with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
+            report2 = run_sync(
+                arkaos_home=env["arkaos_home"],
+                skills_dir=env["skills_dir"],
+                home_path=env["home_path"],
+            )
+
+        agent_result2 = next(
+            (r for r in report2.agent_results if "py-app" in r.path), None
+        )
+        assert agent_result2 is not None, "Expected agent_result for py-app on second run"
+        assert agent_result2.status == "unchanged"
+
     def test_mcp_optimizer_defers_canva_on_laravel_stack(self, tmp_path: Path) -> None:
         """Optimizer defers canva (policy-deferred for laravel) and keeps context7/postgres active."""
         arkaos_home = tmp_path / ".arkaos"
