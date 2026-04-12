@@ -1,0 +1,7 @@
+# Baseline agents every project gets regardless of stack.
+stack: _base
+baseline:
+  - strategy-director
+  - cqo
+  - copy-director
+  - tech-ux-director
