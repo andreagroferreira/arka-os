@@ -1,0 +1,36 @@
+# ArkaOS MCP Policy Registry
+# Controls which MCPs load eagerly vs deferred per project stack/ecosystem.
+# Rules evaluated top-to-bottom; first match wins. "ambiguous: ['*']" means
+# all other MCPs defer to AI (or fallback heuristic when AI unavailable).
+
+version: 1
+policies:
+  - match:
+      stack_includes: [laravel, php]
+    active: [context7, gh-grep, postgres, supabase]
+    deferred: [canva, clickup, firecrawl, chrome, gmail, calendar, claude-in-chrome]
+    ambiguous: []
+
+  - match:
+      stack_includes: [nuxt, vue, react, next]
+    active: [context7, gh-grep, playwright, claude-in-chrome]
+    deferred: [postgres, supabase, canva, clickup, gmail, calendar]
+    ambiguous: []
+
+  - match:
+      ecosystem: marketing
+    active: [canva, gmail, calendar, firecrawl, clickup]
+    deferred: [postgres, supabase, playwright]
+    ambiguous: []
+
+  - match:
+      ecosystem: content
+    active: [canva, firecrawl, youtube-transcript]
+    deferred: [postgres, clickup]
+    ambiguous: []
+
+  - match:
+      default: true
+    active: [context7]
+    deferred: []
+    ambiguous: ["*"]
