@@ -9,6 +9,7 @@ Claude Code can consume.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import yaml
@@ -68,6 +69,21 @@ def _do_sync(project: Project) -> AgentProvisionResult:
     agents_dir.mkdir(parents=True, exist_ok=True)
 
     allowlist = resolve_allowlist(project.stack)
+    added, unchanged, errored = _apply_allowlist(core, agents_dir, allowlist)
+
+    status = _status_from_counts(added, unchanged, errored)
+    return AgentProvisionResult(
+        path=project.path,
+        status=status,
+        agents_added=added,
+        agents_unchanged=unchanged,
+        agents_errored=errored,
+    )
+
+
+def _apply_allowlist(
+    core: Path, agents_dir: Path, allowlist: list[str]
+) -> tuple[list[str], list[str], list[str]]:
     added: list[str] = []
     unchanged: list[str] = []
     errored: list[str] = []
@@ -85,16 +101,17 @@ def _do_sync(project: Project) -> AgentProvisionResult:
         target.write_text(rendered)
         added.append(name)
 
-    status = "error" if errored and not added and not unchanged else (
-        "updated" if added else "unchanged"
-    )
-    return AgentProvisionResult(
-        path=project.path,
-        status=status,
-        agents_added=added,
-        agents_unchanged=unchanged,
-        agents_errored=errored,
-    )
+    return added, unchanged, errored
+
+
+def _status_from_counts(
+    added: list[str], unchanged: list[str], errored: list[str]
+) -> str:
+    if errored:
+        return "error"
+    if added:
+        return "updated"
+    return "unchanged"
 
 
 def _render_agent(core: Path, name: str) -> str | None:
@@ -116,8 +133,18 @@ def _render_agent(core: Path, name: str) -> str | None:
 
 
 def _find_agent_file(core: Path, name: str, suffix: str) -> Path | None:
-    for dept in (core / "departments").iterdir() if (core / "departments").exists() else []:
-        candidate = dept / "agents" / f"{name}{suffix}"
+    # Defense in depth: reject names that could escape the agents dir.
+    if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", name):
+        return None
+    departments_root = (core / "departments").resolve()
+    if not departments_root.exists():
+        return None
+    for dept in departments_root.iterdir():
+        candidate = (dept / "agents" / f"{name}{suffix}").resolve()
+        try:
+            candidate.relative_to(departments_root)
+        except ValueError:
+            continue
         if candidate.exists():
             return candidate
     return None

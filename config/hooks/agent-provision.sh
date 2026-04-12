@@ -20,6 +20,13 @@ if [ -z "$subagent_type" ] || [ "$subagent_type" = "null" ]; then
     exit 0
 fi
 
+# Strict allowlist: lowercase alphanumeric + hyphens, max 64 chars, must start with letter.
+if [[ ! "$subagent_type" =~ ^[a-z][a-z0-9-]{0,63}$ ]]; then
+    # Invalid name — skip hook (do not block) so legitimate workflows continue;
+    # the Task dispatch itself will fail naturally if the agent truly doesn't exist.
+    exit 0
+fi
+
 project_root="$(pwd)"
 project_agents_dir="$project_root/.claude/agents"
 target="$project_agents_dir/${subagent_type}.md"
@@ -36,25 +43,46 @@ fi
 
 if [ -d "$core_root/departments" ]; then
     mkdir -p "$project_agents_dir"
-    python3 - "$core_root" "$subagent_type" "$target" <<'PY' || true
-import os, sys
+    set +e
+    python3 - "$core_root" "$subagent_type" "$target" <<'PY'
+import os, re, sys
 from pathlib import Path
 
-core = Path(sys.argv[1])
+core = Path(sys.argv[1]).resolve()
 name = sys.argv[2]
-target = Path(sys.argv[3])
+target = Path(sys.argv[3]).resolve()
+
+if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", name):
+    sys.exit(2)
+
+departments_root = (core / "departments").resolve()
+if not departments_root.exists():
+    sys.exit(2)
+
+# Ensure target stays within .claude/agents of the project
+expected_parent = target.parent.resolve()
+if target.suffix != ".md" or expected_parent.name != "agents":
+    sys.exit(2)
 
 yaml_path = None
 md_path = None
-for dept in (core / "departments").iterdir():
+for dept in departments_root.iterdir():
     agents = dept / "agents"
     if not agents.is_dir():
         continue
-    y = agents / f"{name}.yaml"
-    m = agents / f"{name}.md"
+    y = (agents / f"{name}.yaml").resolve()
+    m = (agents / f"{name}.md").resolve()
     if y.exists() and yaml_path is None:
+        try:
+            y.relative_to(departments_root)
+        except ValueError:
+            continue
         yaml_path = y
     if m.exists() and md_path is None:
+        try:
+            m.relative_to(departments_root)
+        except ValueError:
+            continue
         md_path = m
 
 if yaml_path is None and md_path is None:
@@ -68,12 +96,29 @@ if yaml_path is not None:
 if md_path is not None:
     parts.append(md_path.read_text().rstrip())
 
-target.write_text("\n".join(parts) + "\n")
+content = "\n".join(parts) + "\n"
+
+# Atomic write: temp file in same dir, then os.replace.
+tmp = target.with_suffix(".md.tmp")
+tmp.write_text(content)
+os.replace(tmp, target)
 PY
-    if [ -f "$target" ]; then
-        echo "[arka:provisioned] Copied agent '$subagent_type' from ArkaOS core." >&2
-        exit 0
-    fi
+    rc=$?
+    set -e
+
+    case "$rc" in
+        0)
+            echo "[arka:provisioned] Copied agent '$subagent_type' from ArkaOS core." >&2
+            exit 0
+            ;;
+        2)
+            # Agent not found in core; fall through to approval-request message below.
+            ;;
+        *)
+            echo "[arka:provision-error] Unexpected error ($rc) while provisioning '$subagent_type'. Dispatch not blocked." >&2
+            exit 1
+            ;;
+    esac
 fi
 
 # Agent not in project and not in core — surface an approval-request.

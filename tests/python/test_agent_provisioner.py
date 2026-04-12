@@ -124,3 +124,25 @@ def test_sync_reports_missing_core_agent_as_errored(
     result = sync_project_agents(project)
     assert "ghost-agent" in result.agents_errored
     assert "backend-dev" in result.agents_added
+
+
+def test_sync_rejects_path_traversal_in_allowlist(
+    fake_core: Path, project: Project, tmp_path: Path
+) -> None:
+    # Allowlist entry that tries to escape the departments dir
+    (fake_core / "config" / "agent-allowlists" / "laravel.yaml").write_text(
+        "stack: laravel\nbaseline:\n  - ../../../etc/passwd\n  - backend-dev\n"
+    )
+
+    # Snapshot sensitive location outside the project
+    outside = tmp_path / "outside-sentinel"
+    outside.write_text("untouched")
+
+    result = sync_project_agents(project)
+
+    # The bogus entry should be reported as errored, not written anywhere.
+    assert "../../../etc/passwd" in result.agents_errored
+    # backend-dev should still be added normally.
+    assert "backend-dev" in result.agents_added
+    # Sensitive location must not be altered.
+    assert outside.read_text() == "untouched"
