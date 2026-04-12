@@ -3,6 +3,7 @@ name: Rodrigo
 role: Leadership & People Director
 department: leadership
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:

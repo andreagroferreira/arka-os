@@ -3,6 +3,7 @@ name: Carolina
 role: Product Manager
 department: pm
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:

@@ -3,6 +3,7 @@ name: Rafael
 role: Content Strategist
 department: content
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:

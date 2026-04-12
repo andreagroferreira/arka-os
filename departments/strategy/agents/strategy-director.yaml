@@ -3,6 +3,7 @@ name: Tomas
 role: Chief Strategist
 department: strategy
 tier: 1
+model: sonnet
 
 behavioral_dna:
   disc:
