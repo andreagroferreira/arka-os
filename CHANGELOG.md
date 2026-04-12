@@ -5,6 +5,17 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.1] - 2026-04-12
+
+### Fixed
+
+- Descriptor syncer crashed with `IndexError: list index out of range` when a
+  project descriptor had a scalar `stack:` value instead of a YAML list
+  (affected `lora-tester` and `purz-comfyui-workflows`). The syncer now
+  coerces scalar strings to single-element lists, tolerates `None`, and drops
+  empty tokens during normalization. Affected descriptor files were also
+  normalized to the canonical list form.
+
 ## [2.1.0] - 2026-04-05
 
 ### Added
