@@ -130,12 +130,25 @@ class SubagentDispatcher:
             task_description: What the subagent should do.
             relevant_files: File paths the subagent should read.
             context_summary: Compacted context from prior work.
+                Required when ARKAOS_STRICT_HANDOFF=1; otherwise emits a
+                warning. Use ContextCompactor.build() to construct.
             constraints: Boundaries for the subagent.
             expected_output: What format/content is expected back.
 
         Returns:
             HandoffArtifact ready for dispatch.
         """
+        import os, warnings
+        if not context_summary or not context_summary.strip():
+            msg = (
+                "create_handoff called without context_summary — subagent will "
+                "lack prior conversation context. Use ContextCompactor.build() "
+                "to construct one. Set ARKAOS_STRICT_HANDOFF=1 to enforce."
+            )
+            if os.environ.get("ARKAOS_STRICT_HANDOFF") == "1":
+                raise ValueError(msg)
+            warnings.warn(msg, DeprecationWarning, stacklevel=2)
+
         self._task_counter += 1
         task_id = f"task-{self._task_counter}"
 
