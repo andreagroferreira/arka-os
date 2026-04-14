@@ -197,7 +197,7 @@ fi
 # High-salience tag — ensures squad routing persists across conversation turns,
 # not just on turn 1 when /arka skill content is fresh. See spec:
 # docs/superpowers/specs/2026-04-14-persistent-routing-reminder-design.md
-_ROUTE_REMINDER="[arka:route] Every response MUST route through a department squad. No generic assistant replies. Announce the squad before responding."
+_ROUTE_REMINDER="[arka:route] Every response MUST route through a department squad. No generic assistant replies. Announce the squad before responding. When [knowledge:N chunks] is present in this context, you MUST cite at least one source and acknowledge KB was consulted; if absent on a non-trivial ArkaOS topic, query Obsidian before responding."
 
 # ─── Output ──────────────────────────────────────────────────────────────
 _OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}${_ROUTE_REMINDER} $python_result"
