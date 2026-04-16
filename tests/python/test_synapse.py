@@ -5,15 +5,23 @@ import pytest
 
 from core.synapse.cache import LayerCache
 from core.synapse.layers import (
-    Layer, LayerResult, PromptContext,
-    ConstitutionLayer, DepartmentLayer, AgentLayer,
-    ProjectLayer, BranchLayer, CommandHintsLayer,
-    QualityGateLayer, TimeLayer,
+    Layer,
+    LayerResult,
+    PromptContext,
+    ConstitutionLayer,
+    DepartmentLayer,
+    AgentLayer,
+    ProjectLayer,
+    BranchLayer,
+    CommandHintsLayer,
+    QualityGateLayer,
+    TimeLayer,
 )
 from core.synapse.engine import SynapseEngine, create_default_engine
 
 
 # --- Cache Tests ---
+
 
 class TestLayerCache:
     def test_set_and_get(self):
@@ -78,6 +86,7 @@ class TestLayerCache:
 
 # --- Individual Layer Tests ---
 
+
 class TestConstitutionLayer:
     def test_returns_compressed_string(self):
         layer = ConstitutionLayer(compressed="NON-NEGOTIABLE: a, b, c")
@@ -133,6 +142,27 @@ class TestDepartmentLayer:
         assert result.content == ""
         assert result.tag == ""
 
+    def test_do_routes_to_orchestrator_empty_tag(self):
+        """Both /do and /arka-do should route to orchestrator with empty tag."""
+        layer = DepartmentLayer()
+
+        result_do = layer.compute(PromptContext(user_input="/do build landing page"))
+        assert result_do.content == ""
+        assert result_do.tag == ""
+
+        result_arka_do = layer.compute(PromptContext(user_input="/arka-do build landing page"))
+        assert result_arka_do.content == ""
+        assert result_arka_do.tag == ""
+
+        # Even with dept keywords, /do and /arka-do route to orchestrator
+        result_do_dev = layer.compute(PromptContext(user_input="/do dev feature auth"))
+        assert result_do_dev.content == ""
+        assert result_do_dev.tag == ""
+
+        result_arka_do_dev = layer.compute(PromptContext(user_input="/arka-do dev feature auth"))
+        assert result_arka_do_dev.content == ""
+        assert result_arka_do_dev.tag == ""
+
 
 class TestBranchLayer:
     def test_feature_branch_shown(self):
@@ -181,6 +211,17 @@ class TestCommandHintsLayer:
         result = layer.compute(PromptContext(user_input="/dev feature auth"))
         assert result.tag == ""
 
+    def test_arka_do_not_skipped_gets_hints(self):
+        """/arka-do should NOT be skipped — it needs command hints for sub-commands."""
+        commands = [
+            {"command": "/dev feature", "keywords": ["feature", "build"]},
+            {"command": "/landing funnel", "keywords": ["landing", "funnel"]},
+        ]
+        layer = CommandHintsLayer(commands=commands)
+        result = layer.compute(PromptContext(user_input="/arka-do build landing"))
+        assert result.tag != ""  # Should NOT be empty — /arka-do needs hints
+        assert "[hint:" in result.tag
+
     def test_max_two_hints(self):
         commands = [
             {"command": "/dev feature", "keywords": ["build"]},
@@ -201,6 +242,7 @@ class TestTimeLayer:
 
 
 # --- Engine Tests ---
+
 
 class TestSynapseEngine:
     def test_create_default_engine(self):
@@ -285,6 +327,7 @@ class TestSynapseEngine:
 
 
 # --- Integration Test ---
+
 
 class TestSynapseIntegration:
     def test_full_context_injection(self):

@@ -1,0 +1,301 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "ArkaOS ArkaOS" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - img "ArkaOS" [ref=e8]
+        - generic [ref=e12]: ArkaOS
+      - navigation [ref=e14]:
+        - list [ref=e16]:
+          - listitem [ref=e17]:
+            - link "Features" [ref=e18] [cursor=pointer]:
+              - /url: /features
+              - generic [ref=e19]: Features
+          - listitem [ref=e20]:
+            - link "Departments" [ref=e21] [cursor=pointer]:
+              - /url: /departments
+              - generic [ref=e22]: Departments
+          - listitem [ref=e23]:
+            - link "Documentation" [ref=e24] [cursor=pointer]:
+              - /url: /docs
+              - generic [ref=e25]: Documentation
+          - listitem [ref=e26]:
+            - link "Blog" [ref=e27] [cursor=pointer]:
+              - /url: /blog
+              - generic [ref=e28]: Blog
+          - listitem [ref=e29]:
+            - link "Community" [ref=e30] [cursor=pointer]:
+              - /url: /community
+              - generic [ref=e31]: Community
+      - link "Get Started" [ref=e33] [cursor=pointer]:
+        - /url: /docs
+        - generic [ref=e34]: Get Started
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - generic [ref=e40]:
+        - heading "18 departments at your command" [level=1] [ref=e41]
+        - generic [ref=e42]: Every department has a squad lead, specialized agents, and a full command library. From a single prompt to a full enterprise workflow.
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]:
+            - generic [ref=e46]: "64"
+            - generic [ref=e47]: Agents
+          - generic [ref=e48]:
+            - generic [ref=e49]: "18"
+            - generic [ref=e50]: Departments
+          - generic [ref=e51]:
+            - generic [ref=e52]: 244+
+            - generic [ref=e53]: Commands
+          - generic [ref=e54]:
+            - generic [ref=e55]: "24"
+            - generic [ref=e56]: Workflows
+        - generic [ref=e57]:
+          - generic [ref=e63]:
+            - generic [ref=e64]:
+              - heading "Development" [level=3] [ref=e65]
+              - generic [ref=e67]: /dev
+            - paragraph [ref=e68]: Full-stack development with 10-phase enterprise workflows. Laravel, Vue/Nuxt, React/Next.js, Python. Spec-driven development gate, stack adaptation matrix, 80%+ test coverage.
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - text: "Lead:"
+                - generic [ref=e72]: Paulo (Tech Lead) + Marco (CTO)
+              - generic [ref=e73]: 10 agents
+              - generic [ref=e75]: 26 commands
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - heading "Brand & Design" [level=3] [ref=e84]
+              - generic [ref=e86]: /brand
+            - paragraph [ref=e87]: Pentagram/Wolff Olins methodology. Full identity creation, logo concepts (7 types), color palettes (WCAG AA), AI photoshoots, brand video. Canva MCP + OpenAI/Replicate/FAL providers.
+            - generic [ref=e88]:
+              - generic [ref=e89]:
+                - text: "Lead:"
+                - generic [ref=e91]: Valentina (Creative Director)
+              - generic [ref=e92]: 4 agents
+              - generic [ref=e94]: 12 commands
+          - generic [ref=e101]:
+            - generic [ref=e102]:
+              - heading "Marketing & Growth" [level=3] [ref=e103]
+              - generic [ref=e105]: /mkt
+            - paragraph [ref=e106]: Multi-platform social (IG/LinkedIn/X/TikTok), content calendars, Reels scripts, email flows (welcome/nurture/launch/cart), 5-agent parallel marketing audit, KB persona voice integration.
+            - generic [ref=e107]:
+              - generic [ref=e108]:
+                - text: "Lead:"
+                - generic [ref=e110]: Luna (Marketing Director)
+              - generic [ref=e111]: 4 agents
+              - generic [ref=e113]: 12 commands
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - heading "Finance & Investment" [level=3] [ref=e122]
+              - generic [ref=e124]: /fin
+            - paragraph [ref=e125]: 3-statement financial models, DCF valuation with WACC sensitivity, unit economics, fundraising strategy, BATNA negotiation with ZOPA mapping, InvoiceExpress integration.
+            - generic [ref=e126]:
+              - generic [ref=e127]:
+                - text: "Lead:"
+                - generic [ref=e129]: Helena (CFO, Tier 0)
+              - generic [ref=e130]: 3 agents
+              - generic [ref=e132]: 10 commands
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - heading "Strategy & Innovation" [level=3] [ref=e141]
+              - generic [ref=e143]: /strat
+            - paragraph [ref=e144]: 5-perspective brainstorming (Visionary/Pragmatist/Devil's Advocate/Customer Voice/Analyst), TAM/SAM/SOM sizing, Porter's Five Forces, Blue Ocean, Wardley Maps.
+            - generic [ref=e145]:
+              - generic [ref=e146]:
+                - text: "Lead:"
+                - generic [ref=e148]: Tomas (Chief Strategist)
+              - generic [ref=e149]: 3 agents
+              - generic [ref=e151]: 9 commands
+          - generic [ref=e158]:
+            - generic [ref=e159]:
+              - heading "E-Commerce" [level=3] [ref=e160]
+              - generic [ref=e162]: /ecom
+            - paragraph [ref=e163]: 5-agent parallel store audit (UX/SEO/performance/content/conversion), psychological pricing, Shopify MCP, cart abandonment flows, RFM segmentation.
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - text: "Lead:"
+                - generic [ref=e167]: Ricardo (E-Commerce Director)
+              - generic [ref=e168]: 4 agents
+              - generic [ref=e170]: 9 commands
+          - generic [ref=e177]:
+            - generic [ref=e178]:
+              - heading "Knowledge Management" [level=3] [ref=e179]
+              - generic [ref=e181]: /kb
+            - paragraph [ref=e182]: YouTube+PDF+audio+web ingestion pipeline. Whisper transcription. 6-agent persona analysis. Vector DB semantic search. Background job processing (queue 100+ URLs). Content generation in any persona's voice.
+            - generic [ref=e183]:
+              - generic [ref=e184]:
+                - text: "Lead:"
+                - generic [ref=e186]: Clara (Knowledge Director)
+              - generic [ref=e187]: 4 agents
+              - generic [ref=e189]: 14 commands
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - heading "Operations" [level=3] [ref=e198]
+              - generic [ref=e200]: /ops
+            - paragraph [ref=e201]: ClickUp task management, Gmail email drafting, Google Calendar scheduling, SOP creation, multi-channel messaging (Slack/Discord/WhatsApp/Teams), InvoiceExpress integration.
+            - generic [ref=e202]:
+              - generic [ref=e203]:
+                - text: "Lead:"
+                - generic [ref=e205]: Daniel (Operations Lead)
+              - generic [ref=e206]: 3 agents
+              - generic [ref=e208]: 14 commands
+          - generic [ref=e215]:
+            - generic [ref=e216]:
+              - heading "Project Management" [level=3] [ref=e217]
+              - generic [ref=e219]: /pm
+            - paragraph [ref=e220]: Scrum/Kanban, sprint planning, retrospectives, Monte Carlo forecasting, story mapping, continuous discovery, OKR cascade.
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - text: "Lead:"
+                - generic [ref=e224]: Carolina (Product Manager)
+              - generic [ref=e225]: 3 agents
+              - generic [ref=e227]: 12 commands
+          - generic [ref=e234]:
+            - generic [ref=e235]:
+              - heading "ComfyUI & Video Production" [level=3] [ref=e236]
+              - generic [ref=e238]: /comfyui
+              - generic [ref=e240]: NEW
+            - paragraph [ref=e241]: "TWO SQUADS: Core (6 agents for ComfyUI engineering) + Hollywood Cinematographic (10 agents for film production). LTX-2, SVD, AnimateDiff pipelines. Full cinematic vocabulary."
+            - generic [ref=e242]:
+              - generic [ref=e243]:
+                - text: "Lead:"
+                - generic [ref=e245]: Viktor (Pipeline Architect) + Roman (Director)
+              - generic [ref=e246]: 16 agents
+              - generic [ref=e248]: 24 commands
+          - generic [ref=e255]:
+            - generic [ref=e256]:
+              - heading "SaaS & Micro-SaaS" [level=3] [ref=e257]
+              - generic [ref=e259]: /saas
+            - paragraph [ref=e260]: SaaS validation, PLG, micro-SaaS playbook, MRR/ARR/NRR/churn/LTV metrics, Quick Ratio, cohort analysis, growth experimentation.
+            - generic [ref=e261]:
+              - generic [ref=e262]:
+                - text: "Lead:"
+                - generic [ref=e264]: Tiago (SaaS Strategist)
+              - generic [ref=e265]: 4 agents
+              - generic [ref=e267]: 14 commands
+          - generic [ref=e274]:
+            - generic [ref=e275]:
+              - heading "Landing Pages & Funnels" [level=3] [ref=e276]
+              - generic [ref=e278]: /landing
+            - paragraph [ref=e279]: Sales funnels, A/B copy, Hormozi Grand Slam offer creation, launch sequences, affiliate marketing, direct response copywriting.
+            - generic [ref=e280]:
+              - generic [ref=e281]:
+                - text: "Lead:"
+                - generic [ref=e283]: Ines (Conversion Strategist)
+              - generic [ref=e284]: 4 agents
+              - generic [ref=e286]: 14 commands
+          - generic [ref=e293]:
+            - generic [ref=e294]:
+              - heading "Content & Viralization" [level=3] [ref=e295]
+              - generic [ref=e297]: /content
+            - paragraph [ref=e298]: Viral content design, hook writing, video scripting, content repurposing (1→30+ pieces), platform-specific optimization (YouTube/TikTok/IG/LinkedIn).
+            - generic [ref=e299]:
+              - generic [ref=e300]:
+                - text: "Lead:"
+                - generic [ref=e302]: Rafael (Content Strategist)
+              - generic [ref=e303]: 4 agents
+              - generic [ref=e305]: 14 commands
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - heading "Communities & Groups" [level=3] [ref=e314]
+              - generic [ref=e316]: /community
+            - paragraph [ref=e317]: Discord/Telegram/Skool/Circle setup, gamification, engagement loops, monetization, ambassador programs, event planning.
+            - generic [ref=e318]:
+              - generic [ref=e319]:
+                - text: "Lead:"
+                - generic [ref=e321]: Beatriz (Community Strategist)
+              - generic [ref=e322]: 3 agents
+              - generic [ref=e324]: 14 commands
+          - generic [ref=e331]:
+            - generic [ref=e332]:
+              - heading "Sales & Negotiation" [level=3] [ref=e333]
+              - generic [ref=e335]: /sales
+            - paragraph [ref=e336]: SPIN Selling, Challenger Sale, MEDDIC qualification, pipeline management, proposal writing, BATNA negotiation, revenue forecasting.
+            - generic [ref=e337]:
+              - generic [ref=e338]:
+                - text: "Lead:"
+                - generic [ref=e340]: Miguel (Sales Director)
+              - generic [ref=e341]: 3 agents
+              - generic [ref=e343]: 10 commands
+          - generic [ref=e350]:
+            - generic [ref=e351]:
+              - heading "Leadership & People" [level=3] [ref=e352]
+              - generic [ref=e354]: /lead
+            - paragraph [ref=e355]: Who Method hiring, performance management, feedback culture, 1-on-1s, conflict resolution, team assessment.
+            - generic [ref=e356]:
+              - generic [ref=e357]:
+                - text: "Lead:"
+                - generic [ref=e359]: Rodrigo (Leadership Director)
+              - generic [ref=e360]: 3 agents
+              - generic [ref=e362]: 10 commands
+          - generic [ref=e369]:
+            - generic [ref=e370]:
+              - heading "Organization & Teams" [level=3] [ref=e371]
+              - generic [ref=e373]: /org
+            - paragraph [ref=e374]: Team Topologies, OKRs, org design, remote work policies, cross-department coordination, hiring, onboarding.
+            - generic [ref=e375]:
+              - generic [ref=e376]:
+                - text: "Lead:"
+                - generic [ref=e378]: Sofia (COO, Tier 0)
+              - generic [ref=e379]: 3 agents
+              - generic [ref=e381]: 10 commands
+          - generic [ref=e388]:
+            - generic [ref=e389]:
+              - heading "Quality" [level=3] [ref=e390]
+              - generic [ref=e392]: /quality
+            - paragraph [ref=e393]: Marta + Eduardo (Copy) + Francisca (Tech). Absolute veto power. Binary APPROVED/REJECTED. Nothing ships without all three.
+            - generic [ref=e394]:
+              - generic [ref=e395]:
+                - text: "Lead:"
+                - generic [ref=e397]: Marta (CQO, Tier 0)
+              - generic [ref=e398]: 3 agents
+              - generic [ref=e400]: Cross-cutting
+  - contentinfo [ref=e402]:
+    - generic [ref=e405]:
+      - generic [ref=e406]:
+        - generic [ref=e407]:
+          - link "ArkaOS ArkaOS" [ref=e408] [cursor=pointer]:
+            - /url: /
+            - img "ArkaOS" [ref=e409]
+            - generic [ref=e413]: ArkaOS
+          - paragraph [ref=e414]: The Operating System for AI Agent Teams. 56 agents. 16 departments.
+        - generic [ref=e415]:
+          - paragraph [ref=e416]: Product
+          - list [ref=e417]:
+            - listitem [ref=e418]:
+              - link "Features" [ref=e419] [cursor=pointer]:
+                - /url: /features
+            - listitem [ref=e420]:
+              - link "Departments" [ref=e421] [cursor=pointer]:
+                - /url: /departments
+            - listitem [ref=e422]:
+              - link "Agents" [ref=e423] [cursor=pointer]:
+                - /url: /agents
+            - listitem [ref=e424]:
+              - link "Changelog" [ref=e425] [cursor=pointer]:
+                - /url: /changelog
+        - generic [ref=e426]:
+          - paragraph [ref=e427]: Resources
+          - list [ref=e428]:
+            - listitem [ref=e429]:
+              - link "Documentation" [ref=e430] [cursor=pointer]:
+                - /url: /docs
+            - listitem [ref=e431]:
+              - link "Blog" [ref=e432] [cursor=pointer]:
+                - /url: /blog
+            - listitem [ref=e433]:
+              - link "Community" [ref=e434] [cursor=pointer]:
+                - /url: /community
+            - listitem [ref=e435]:
+              - link "GitHub" [ref=e436] [cursor=pointer]:
+                - /url: https://github.com/andreagroferreira/arka-os
+        - generic [ref=e437]:
+          - paragraph [ref=e438]: Company
+          - list [ref=e439]:
+            - listitem [ref=e440]:
+              - link "About" [ref=e441] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=e442]:
+              - link "WizardingCode" [ref=e443] [cursor=pointer]:
+                - /url: https://wizardingcode.com
+      - separator [ref=e444]
+      - paragraph [ref=e447]: © 2026 WizardingCode. All rights reserved.

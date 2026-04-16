@@ -40,6 +40,9 @@ if [ -f "$ARKAOS_VERSION_FILE" ]; then
     if [ "$_CURRENT_VERSION" != "$_SYNCED_VERSION" ]; then
       _SYNC_NOTICE="[arka:update-available] ArkaOS v${_CURRENT_VERSION} installed (synced: ${_SYNCED_VERSION}). Run /arka update to sync all projects. "
     fi
+    if [ -n "${ARKAOS_DEBUG:-}" ]; then
+      echo "[DEBUG] Detected version: ${_CURRENT_VERSION:-unknown}, synced: ${_SYNCED_VERSION:-none}" >&2
+    fi
   fi
 fi
 
@@ -92,42 +95,110 @@ fi
 python_result=""
 BRIDGE_SCRIPT="${ARKAOS_ROOT}/scripts/synapse-bridge.py"
 
+# Determine which path we're using for debug output
+if [ -n "${ARKAOS_DEBUG:-}" ]; then
+  echo "[DEBUG] ARKAOS_ROOT=${ARKAOS_ROOT}" >&2
+  echo "[DEBUG] BRIDGE_SCRIPT=${BRIDGE_SCRIPT}" >&2
+fi
+
 if command -v python3 &>/dev/null && [ -f "$BRIDGE_SCRIPT" ]; then
-  bridge_output=$(echo "{\"user_input\":$(echo "$user_input" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')}" \
-    | ARKAOS_ROOT="$ARKAOS_ROOT" python3 "$BRIDGE_SCRIPT" --root "$ARKAOS_ROOT" 2>/dev/null)
+  # Validate ARKAOS_ROOT before calling bridge
+  if [ ! -d "$ARKAOS_ROOT" ]; then
+    if [ -n "${ARKAOS_DEBUG:-}" ]; then
+      echo "[DEBUG] ARKAOS_ROOT is not a valid directory, skipping Python bridge" >&2
+    fi
+  else
+    _bridge_start=$(date +%s%N 2>/dev/null || echo "0")
+    bridge_output=$(echo "{\"user_input\":$(echo "$user_input" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')}" \
+      | ARKAOS_ROOT="$ARKAOS_ROOT" python3 "$BRIDGE_SCRIPT" --root "$ARKAOS_ROOT" 2>/dev/null)
+    _bridge_status=$?
 
-  if [ -n "$bridge_output" ]; then
-    python_result=$(echo "$bridge_output" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('context_string',''))" 2>/dev/null)
+    if [ -n "${ARKAOS_DEBUG:-}" ]; then
+      if [ "$_bridge_start" != "0" ] && [ $(date +%s%N 2>/dev/null || echo "0") != "0" ]; then
+        _bridge_ms=$(( ($(date +%s%N) - _bridge_start) / 1000000 ))
+        echo "[DEBUG] bridge completed in ${_bridge_ms}ms, exit=$_bridge_status" >&2
+      fi
+      echo "[DEBUG] bridge_output length=${#bridge_output}" >&2
+    fi
+
+    if [ -n "$bridge_output" ] && [ $_bridge_status -eq 0 ]; then
+      python_result=$(echo "$bridge_output" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('context_string',''))" 2>/dev/null)
+      if [ -n "${ARKAOS_DEBUG:-}" ]; then
+        echo "[DEBUG] python_result length=${#python_result}" >&2
+      fi
+    elif [ -n "${ARKAOS_DEBUG:-}" ]; then
+      echo "[DEBUG] bridge failed or returned empty, exit=$_bridge_status" >&2
+    fi
   fi
 
-  # Append workflow state to synapse context
-  _WF_READER="$ARKAOS_ROOT/core/workflow/state_reader.sh"
-  if [ -f "$_WF_READER" ] && bash "$_WF_READER" active 2>/dev/null; then
-    _WF_SUM=$(bash "$_WF_READER" summary 2>/dev/null)
-    _WF_N=$(echo "$_WF_SUM" | cut -d'|' -f1)
-    _WF_P=$(echo "$_WF_SUM" | cut -d'|' -f2)
-    _WF_B=$(echo "$_WF_SUM" | cut -d'|' -f4)
-    _WF_V=$(echo "$_WF_SUM" | cut -d'|' -f5)
-    _WF_TAG="[workflow:${_WF_N}] [phase:${_WF_P}] [branch:${_WF_B}] [violations:${_WF_V}]"
-    [ "$_WF_V" != "0" ] && _WF_TAG="WARNING: ${_WF_V} workflow violation(s). $_WF_TAG"
-    python_result="${python_result} ${_WF_TAG}"
-  fi
+  # Append workflow state to synapse context (always, if python result was set)
+  if [ -n "$python_result" ]; then
+    _WF_READER="$ARKAOS_ROOT/core/workflow/state_reader.sh"
+    if [ -f "$_WF_READER" ] && bash "$_WF_READER" active 2>/dev/null; then
+      _WF_SUM=$(bash "$_WF_READER" summary 2>/dev/null)
+      _WF_N=$(echo "$_WF_SUM" | cut -d'|' -f1)
+      _WF_P=$(echo "$_WF_SUM" | cut -d'|' -f2)
+      _WF_B=$(echo "$_WF_SUM" | cut -d'|' -f4)
+      _WF_V=$(echo "$_WF_SUM" | cut -d'|' -f5)
+      _WF_TAG="[workflow:${_WF_N}] [phase:${_WF_P}] [branch:${_WF_B}] [violations:${_WF_V}]"
+      [ "$_WF_V" != "0" ] && _WF_TAG="WARNING: ${_WF_V} workflow violation(s). $_WF_TAG"
+      python_result="${python_result} ${_WF_TAG}"
+    fi
 
-  # --- Forge Context Injection ---
-  _FORGE_ACTIVE="$HOME/.arkaos/plans/active.yaml"
-  if [ -f "$_FORGE_ACTIVE" ]; then
-    _FORGE_ID=$(cat "$_FORGE_ACTIVE" 2>/dev/null)
-    _FORGE_FILE="$HOME/.arkaos/plans/${_FORGE_ID}.yaml"
-    if [ -f "$_FORGE_FILE" ] && command -v python3 &>/dev/null; then
-      _FORGE_STATUS=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
-      _FORGE_TAG="[forge:${_FORGE_ID}] [forge-status:${_FORGE_STATUS}]"
-      python_result="${python_result} ${_FORGE_TAG}"
+    # --- Forge Context Injection ---
+    _FORGE_ACTIVE="$HOME/.arkaos/plans/active.yaml"
+    if [ -f "$_FORGE_ACTIVE" ]; then
+      _FORGE_ID=$(cat "$_FORGE_ACTIVE" 2>/dev/null)
+      _FORGE_FILE="$HOME/.arkaos/plans/${_FORGE_ID}.yaml"
+      if [ -f "$_FORGE_FILE" ] && command -v python3 &>/dev/null; then
+        _FORGE_STATUS=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
+        _FORGE_TAG="[forge:${_FORGE_ID}] [forge-status:${_FORGE_STATUS}]"
+        python_result="${python_result} ${_FORGE_TAG}"
+      fi
+    fi
+
+    # --- Knowledge Auto-Inject (On-Demand via Session Cache) ---
+    if [ -n "$python_result" ] && [[ "$python_result" == *"[knowledge:"* ]]; then
+      _KB_SESSION_ID="${ARKAOS_SESSION_ID:-${CLAUDE_SESSION_ID:-bridge-$$}}"
+      _KB_PROJECT_HASH=$(echo "$ARKAOS_ROOT" | md5sum 2>/dev/null | cut -c1-12 || echo "default")
+      _KB_CACHE_DIR="/tmp/arkaos-kb-${_KB_PROJECT_HASH}"
+
+      if [ -n "${ARKAOS_DEBUG:-}" ]; then
+        echo "[DEBUG] KB session_id=${_KB_SESSION_ID}, project_hash=${_KB_PROJECT_HASH}" >&2
+      fi
+
+      if [ -d "$_KB_CACHE_DIR" ] && command -v python3 &>/dev/null; then
+        _KB_CONTENT=$(python3 -c "
+import sys
+sys.path.insert(0, '$ARKAOS_ROOT')
+from core.synapse.kb_cache import KBSessionCache
+cache = KBSessionCache(session_id='$_KB_SESSION_ID', project_path='$ARKAOS_ROOT')
+results = cache.get_overlap('''$user_input''', threshold=0.3)
+if results:
+    snippets = []
+    for r in results[:3]:
+        src = r.get('source', '').split('/')[-1] if r.get('source') else ''
+        txt = r.get('text', '')[:200].replace('\n', ' ')
+        snippets.append(f'{src}: {txt}' if src else txt)
+    print(' | '.join(snippets))
+" 2>/dev/null)
+
+        if [ -n "$_KB_CONTENT" ]; then
+          if [ -n "${ARKAOS_DEBUG:-}" ]; then
+            echo "[DEBUG] KB auto-inject: ${#_KB_CONTENT} chars of knowledge" >&2
+          fi
+          python_result="${_KB_CONTENT} ${python_result}"
+        fi
+      fi
     fi
   fi
 fi
 
 # ─── Fallback: Bash-only context (if Python unavailable) ────────────────
 if [ -z "$python_result" ]; then
+  if [ -n "${ARKAOS_DEBUG:-}" ]; then
+    echo "[DEBUG] Using bash fallback (python_result was empty)" >&2
+  fi
   # L0: Constitution (cached)
   L0=""
   L0_CACHE="$CACHE_DIR/l0-constitution"
@@ -197,7 +268,12 @@ fi
 # High-salience tag — ensures squad routing persists across conversation turns,
 # not just on turn 1 when /arka skill content is fresh. See spec:
 # docs/superpowers/specs/2026-04-14-persistent-routing-reminder-design.md
-_ROUTE_REMINDER="[arka:route] Every response MUST route through a department squad. No generic assistant replies. Announce the squad before responding. When [knowledge:N chunks] is present in this context, you MUST cite at least one source and acknowledge KB was consulted; if absent on a non-trivial ArkaOS topic, query Obsidian before responding."
+_ROUTE_REMINDER="
+[ARKA:ROUTE]
+EVERY response MUST route through a department squad.
+NO generic assistant replies. Announce the squad before responding.
+When [knowledge:N chunks] is present, cite at least one source.
+If [knowledge:N chunks] is absent on a non-trivial ArkaOS topic, query Obsidian first."
 
 # ─── Output ──────────────────────────────────────────────────────────────
 _OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}${_ROUTE_REMINDER} $python_result"

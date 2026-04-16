@@ -25,17 +25,19 @@ from typing import Optional, Any
 @dataclass
 class LayerResult:
     """Result from computing a single layer."""
+
     layer_id: str
-    tag: str         # e.g., "[dept:dev]"
-    content: str     # Full content for this layer
+    tag: str  # e.g., "[dept:dev]"
+    content: str  # Full content for this layer
     tokens_est: int  # Estimated token count
     compute_ms: int  # Time to compute in milliseconds
-    cached: bool     # Whether this was served from cache
+    cached: bool  # Whether this was served from cache
 
 
 @dataclass
 class PromptContext:
     """Input context for layer computation."""
+
     user_input: str = ""
     cwd: str = ""
     git_branch: str = ""
@@ -86,6 +88,7 @@ class Layer(ABC):
 
 
 # --- L0: Constitution ---
+
 
 class ConstitutionLayer(Layer):
     """L0: Compressed Constitution rules. Highest priority, longest cache."""
@@ -168,23 +171,49 @@ class DepartmentLayer(Layer):
         text = ctx.user_input.lower()
 
         # Check for explicit command prefix first
-        prefix_match = re.match(r"^/(\w+)\s", text)
+        # Use [-\w] to handle hyphenated commands like /arka-do
+        prefix_match = re.match(r"^/([-\w]+)\s", text)
         if prefix_match:
             prefix = prefix_match.group(1)
             dept_map = {
-                "dev": "dev", "mkt": "marketing", "fin": "finance",
-                "strat": "strategy", "ops": "ops", "ecom": "ecom",
-                "kb": "kb", "brand": "brand", "saas": "saas",
-                "landing": "landing", "community": "community",
-                "content": "content", "pm": "pm", "lead": "lead",
-                "sales": "sales", "org": "org",
+                "dev": "dev",
+                "mkt": "marketing",
+                "fin": "finance",
+                "strat": "strategy",
+                "ops": "ops",
+                "ecom": "ecom",
+                "kb": "kb",
+                "brand": "brand",
+                "saas": "saas",
+                "landing": "landing",
+                "community": "community",
+                "content": "content",
+                "pm": "pm",
+                "lead": "lead",
+                "sales": "sales",
+                "org": "org",
+                "do": "orchestrator",
+                "arka-do": "orchestrator",
             }
             if prefix in dept_map:
                 dept = dept_map[prefix]
                 ms = int((time.time() - start) * 1000)
+                if dept == "orchestrator":
+                    return LayerResult(
+                        layer_id=self.id,
+                        tag="",
+                        content="",
+                        tokens_est=0,
+                        compute_ms=ms,
+                        cached=False,
+                    )
                 return LayerResult(
-                    layer_id=self.id, tag=f"[dept:{dept}]",
-                    content=dept, tokens_est=1, compute_ms=ms, cached=False,
+                    layer_id=self.id,
+                    tag=f"[dept:{dept}]",
+                    content=dept,
+                    tokens_est=1,
+                    compute_ms=ms,
+                    cached=False,
                 )
 
         # Pattern matching on input text
@@ -199,12 +228,17 @@ class DepartmentLayer(Layer):
 
         ms = int((time.time() - start) * 1000)
         return LayerResult(
-            layer_id=self.id, tag=tag, content=dept,
-            tokens_est=1, compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tag,
+            content=dept,
+            tokens_est=1,
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L2: Agent Context ---
+
 
 class AgentLayer(Layer):
     """L2: Active agent profile and recent gotchas."""
@@ -234,8 +268,12 @@ class AgentLayer(Layer):
         if not agent_id:
             ms = int((time.time() - start) * 1000)
             return LayerResult(
-                layer_id=self.id, tag="", content="",
-                tokens_est=0, compute_ms=ms, cached=False,
+                layer_id=self.id,
+                tag="",
+                content="",
+                tokens_est=0,
+                compute_ms=ms,
+                cached=False,
             )
 
         agent = self._registry.get(agent_id, {})
@@ -244,12 +282,17 @@ class AgentLayer(Layer):
 
         ms = int((time.time() - start) * 1000)
         return LayerResult(
-            layer_id=self.id, tag=tag, content=agent_id,
-            tokens_est=3, compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tag,
+            content=agent_id,
+            tokens_est=3,
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L3: Project Context ---
+
 
 class ProjectLayer(Layer):
     """L3: Active project name and stack."""
@@ -281,12 +324,17 @@ class ProjectLayer(Layer):
         tag = f"[{' '.join(parts)}]" if parts else ""
         ms = int((time.time() - start) * 1000)
         return LayerResult(
-            layer_id=self.id, tag=tag, content=ctx.project_name or "",
-            tokens_est=len(parts), compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tag,
+            content=ctx.project_name or "",
+            tokens_est=len(parts),
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L4: Git Branch ---
+
 
 class BranchLayer(Layer):
     """L4: Current git branch (hidden for main/master/dev)."""
@@ -314,12 +362,17 @@ class BranchLayer(Layer):
 
         ms = int((time.time() - start) * 1000)
         return LayerResult(
-            layer_id=self.id, tag=tag, content=branch,
-            tokens_est=1 if tag else 0, compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tag,
+            content=branch,
+            tokens_est=1 if tag else 0,
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L5: Command Hints ---
+
 
 class CommandHintsLayer(Layer):
     """L5: Matching commands from the registry for non-explicit requests."""
@@ -347,12 +400,17 @@ class CommandHintsLayer(Layer):
         start = time.time()
         text = ctx.user_input.lower()
 
-        # Skip if already an explicit command
-        if text.startswith("/"):
+        # Skip if already an explicit command — EXCEPT /arka-do which needs hints
+        # /do-style commands should still get command hints for sub-commands
+        if text.startswith("/") and not text.startswith("/arka-do"):
             ms = int((time.time() - start) * 1000)
             return LayerResult(
-                layer_id=self.id, tag="", content="",
-                tokens_est=0, compute_ms=ms, cached=False,
+                layer_id=self.id,
+                tag="",
+                content="",
+                tokens_est=0,
+                compute_ms=ms,
+                cached=False,
             )
 
         # Score commands by keyword match
@@ -369,12 +427,17 @@ class CommandHintsLayer(Layer):
         tags = " ".join(f"[hint:{h}]" for h in hints)
         ms = int((time.time() - start) * 1000)
         return LayerResult(
-            layer_id=self.id, tag=tags, content=" ".join(hints),
-            tokens_est=len(hints) * 2, compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tags,
+            content=" ".join(hints),
+            tokens_est=len(hints) * 2,
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L6: Quality Gate Status ---
+
 
 class QualityGateLayer(Layer):
     """L6: Current quality gate status and recent verdicts."""
@@ -401,12 +464,17 @@ class QualityGateLayer(Layer):
         tag = "[qg:active]"
         ms = int((time.time() - start) * 1000)
         return LayerResult(
-            layer_id=self.id, tag=tag, content="active",
-            tokens_est=1, compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tag,
+            content="active",
+            tokens_est=1,
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L7: Time Signal ---
+
 
 class TimeLayer(Layer):
     """L7: Time-of-day signal for context-aware behavior."""
@@ -433,6 +501,7 @@ class TimeLayer(Layer):
     def compute(self, ctx: PromptContext) -> LayerResult:
         start = time.time()
         import datetime
+
         hour = datetime.datetime.now().hour
         if 5 <= hour < 12:
             period = "morning"
@@ -444,12 +513,17 @@ class TimeLayer(Layer):
         tag = f"[time:{period}]"
         ms = int((time.time() - start) * 1000)
         return LayerResult(
-            layer_id=self.id, tag=tag, content=period,
-            tokens_est=1, compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tag,
+            content=period,
+            tokens_est=1,
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L3.5: Knowledge Retrieval ---
+
 
 class KnowledgeRetrievalLayer(Layer):
     """L3.5: Semantic knowledge retrieval from vector DB.
@@ -459,7 +533,9 @@ class KnowledgeRetrievalLayer(Layer):
     is unavailable or empty.
     """
 
-    def __init__(self, vector_store: Any = None, max_chunks: int = 3, max_tokens: int = 400) -> None:
+    def __init__(
+        self, vector_store: Any = None, max_chunks: int = 3, max_tokens: int = 400
+    ) -> None:
         self._store = vector_store
         self._max_chunks = max_chunks
         self._max_tokens = max_tokens
@@ -485,26 +561,48 @@ class KnowledgeRetrievalLayer(Layer):
 
         if not self._store or not ctx.user_input:
             return LayerResult(
-                layer_id=self.id, tag="", content="",
-                tokens_est=0, compute_ms=0, cached=False,
+                layer_id=self.id,
+                tag="",
+                content="",
+                tokens_est=0,
+                compute_ms=0,
+                cached=False,
             )
 
         try:
             results = self._store.search(ctx.user_input, top_k=self._max_chunks)
         except Exception:
             return LayerResult(
-                layer_id=self.id, tag="", content="",
-                tokens_est=0, compute_ms=0, cached=False,
+                layer_id=self.id,
+                tag="",
+                content="",
+                tokens_est=0,
+                compute_ms=0,
+                cached=False,
             )
 
         if not results:
             ms = int((time.time() - start) * 1000)
             return LayerResult(
-                layer_id=self.id, tag="", content="",
-                tokens_est=0, compute_ms=ms, cached=False,
+                layer_id=self.id,
+                tag="",
+                content="",
+                tokens_est=0,
+                compute_ms=ms,
+                cached=False,
             )
 
-        # Build compact knowledge context
+        session_id = ctx.extra.get("session_id", "default") if ctx.extra else "default"
+        project_path = ctx.cwd or None
+
+        try:
+            from core.synapse.kb_cache import KBSessionCache
+
+            cache = KBSessionCache(session_id=session_id, project_path=project_path)
+            cache.store(ctx.user_input, results)
+        except Exception:
+            pass
+
         snippets = []
         total_tokens = 0
         for r in results:
@@ -520,21 +618,29 @@ class KnowledgeRetrievalLayer(Layer):
         if not snippets:
             ms = int((time.time() - start) * 1000)
             return LayerResult(
-                layer_id=self.id, tag="", content="",
-                tokens_est=0, compute_ms=ms, cached=False,
+                layer_id=self.id,
+                tag="",
+                content="",
+                tokens_est=0,
+                compute_ms=ms,
+                cached=False,
             )
 
-        content = " | ".join(snippets)
         tag = f"[knowledge:{len(snippets)} chunks]"
         ms = int((time.time() - start) * 1000)
 
         return LayerResult(
-            layer_id=self.id, tag=tag, content=content,
-            tokens_est=total_tokens, compute_ms=ms, cached=False,
+            layer_id=self.id,
+            tag=tag,
+            content="",
+            tokens_est=0,
+            compute_ms=ms,
+            cached=False,
         )
 
 
 # --- L8: Forge Context ---
+
 
 class ForgeContextLayer(Layer):
     """L8: Active forge plan context — decisions, risks, rejected approaches."""
@@ -559,11 +665,14 @@ class ForgeContextLayer(Layer):
         start = time.time()
         try:
             from core.forge.persistence import get_active_plan
+
             plan = get_active_plan()
         except Exception:
             plan = None
         if plan is None:
-            return LayerResult(layer_id=self.id, tag="", content="", tokens_est=0, compute_ms=0, cached=False)
+            return LayerResult(
+                layer_id=self.id, tag="", content="", tokens_est=0, compute_ms=0, cached=False
+            )
         tag = f"[forge:{plan.id}]"
         parts = [f"Forge plan: {plan.id} ({plan.status.value})"]
         if plan.critic.confidence > 0:
@@ -580,4 +689,11 @@ class ForgeContextLayer(Layer):
                 parts.append(f"Risks: {'; '.join(risks[:3])}")
         content = " | ".join(parts)
         ms = int((time.time() - start) * 1000)
-        return LayerResult(layer_id=self.id, tag=tag, content=content, tokens_est=len(content.split()), compute_ms=ms, cached=False)
+        return LayerResult(
+            layer_id=self.id,
+            tag=tag,
+            content=content,
+            tokens_est=len(content.split()),
+            compute_ms=ms,
+            cached=False,
+        )

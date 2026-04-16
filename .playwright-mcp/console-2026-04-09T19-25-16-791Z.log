@@ -1,0 +1,28 @@
+[     101ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Page not found: /departments) @ http://localhost:3000/departments:0
+[     232ms] [WARNING] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. @ http://localhost:3000/departments:500
+[     528ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3000/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=bdd75f03:10
+[     530ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/departments" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at pushWithRedirect (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3000/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=bdd75f03:47
+[     530ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/departments" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at pushWithRedirect (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3000/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=bdd75f03:47
+[     531ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3000/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.31_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=bdd75f03:10
+[     534ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3000/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=bdd75f03:7232
+[     723ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3000/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/@nuxt+devtools@3.2.4_vite@7.3.1_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_yaml@2.8.3__vue@3.5.31_typescript@6.0.2_/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=bdd75f03:51

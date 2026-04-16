@@ -1,0 +1,49 @@
+[    9633ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=7564e8fc:7232
+[    9714ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@nuxt+devtools@3.2.4_vite@7.3.1_@types+node@25.5.2_jiti@2.6.1_lightningcss@1.32.0_terse_c6ca6e280733c67581cf92b5396abe68/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=7564e8fc:51
+[ 2498689ms] [LOG] %cssr:success%c Vite server hmr 104 files 
+      background: #2ecc71;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      in 0.716ms 
+  at vite_node_entry_default (node_modules/.pnpm/@nuxt+vite-builder@4.4.2_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@types+nod_b708f2e37a582498f3bb7dd69af57d8c/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs)
+  at process.processTicksAndRejections (node:internal/process/task_queues)
+  at async Object.renderToString (node_modules/.pnpm/vue-bundle-renderer@2.2.0/node_modules/vue-bundle-renderer/dist/runtime.mjs)
+ @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=7564e8fc:47
+[ 2498704ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=7564e8fc:7232
+[ 2498727ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@nuxt+devtools@3.2.4_vite@7.3.1_@types+node@25.5.2_jiti@2.6.1_lightningcss@1.32.0_terse_c6ca6e280733c67581cf92b5396abe68/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=7564e8fc:51
+[ 2534650ms] [LOG] %cssr:success%c Vite server hmr 11 files 
+      background: #2ecc71;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      in 0.445ms 
+  at vite_node_entry_default (node_modules/.pnpm/@nuxt+vite-builder@4.4.2_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@types+nod_b708f2e37a582498f3bb7dd69af57d8c/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs)
+  at process.processTicksAndRejections (node:internal/process/task_queues)
+  at async Object.renderToString (node_modules/.pnpm/vue-bundle-renderer@2.2.0/node_modules/vue-bundle-renderer/dist/runtime.mjs)
+ @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=7564e8fc:47
+[ 2534660ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=7564e8fc:7232
+[ 2534679ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@nuxt+devtools@3.2.4_vite@7.3.1_@types+node@25.5.2_jiti@2.6.1_lightningcss@1.32.0_terse_c6ca6e280733c67581cf92b5396abe68/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=7564e8fc:51
+[ 3440178ms] [WARNING] [intlify] Not found 'nav.features' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440178ms] [WARNING] [intlify] Not found 'nav.departments' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440178ms] [WARNING] [intlify] Not found 'nav.docs' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440178ms] [WARNING] [intlify] Not found 'nav.blog' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440178ms] [WARNING] [intlify] Not found 'nav.community' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'nav.getStarted' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'footer.product' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'nav.features' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'nav.departments' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'footer.resources' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'nav.docs' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'nav.blog' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'nav.community' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440182ms] [WARNING] [intlify] Not found 'footer.company' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440183ms] [WARNING] [intlify] Not found 'footer.copyright' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440184ms] [WARNING] [intlify] Not found 'hero.tagline' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440184ms] [WARNING] [intlify] Not found 'hero.description' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440184ms] [WARNING] [intlify] Not found 'hero.cta' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440184ms] [WARNING] [intlify] Not found 'hero.github' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440185ms] [WARNING] [intlify] Not found 'hero.cta' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7
+[ 3440185ms] [WARNING] [intlify] Not found 'hero.github' key in 'en' locale messages. @ http://localhost:4999/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@intlify+shared@11.3.2/node_modules/@intlify/shared/dist/shared.mjs?v=7564e8fc:7

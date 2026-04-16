@@ -1,0 +1,154 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+        - generic [ref=e12]:
+          - navigation [ref=e13]:
+            - list [ref=e15]:
+              - listitem [ref=e16]:
+                - link "Guidelines" [ref=e17] [cursor=pointer]:
+                  - /url: /guidelines
+                  - generic [ref=e18]: Guidelines
+              - listitem [ref=e19]:
+                - link "Strategy" [ref=e20] [cursor=pointer]:
+                  - /url: /strategy
+                  - generic [ref=e21]: Strategy
+              - listitem [ref=e22]:
+                - link "Expression" [ref=e23] [cursor=pointer]:
+                  - /url: /expression
+                  - generic [ref=e24]: Expression
+              - listitem [ref=e25]:
+                - link "Movimento" [ref=e26] [cursor=pointer]:
+                  - /url: /movimento
+                  - generic [ref=e27]: Movimento
+              - listitem [ref=e28]:
+                - link "Pitch" [ref=e29] [cursor=pointer]:
+                  - /url: /pitch
+                  - generic [ref=e30]: Pitch
+              - listitem [ref=e31]:
+                - link "Brownfield" [ref=e32] [cursor=pointer]:
+                  - /url: /brownfield
+                  - generic [ref=e33]: Brownfield
+              - listitem [ref=e34]:
+                - button "Showcase" [ref=e35]:
+                  - generic [ref=e36]: Showcase
+          - generic [ref=e40]: v2.0
+    - main [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - img
+        - generic [ref=e47]:
+          - heading "ARKAOS" [level=1] [ref=e48]
+          - generic [ref=e49]:
+            - paragraph [ref=e50]: Brand Identity System — Dark Cockpit Edition v2.0
+            - img "ArkaOS Logo" [ref=e52]
+            - generic [ref=e56]:
+              - generic [ref=e57]: ArkaOS
+              - generic [ref=e58]: —
+              - generic [ref=e59]: Brand Identity System
+              - generic [ref=e60]: —
+              - generic [ref=e61]: v2.0
+              - generic [ref=e62]: —
+              - generic [ref=e63]: "2026"
+        - separator [ref=e64]
+        - generic [ref=e67]:
+          - generic [ref=e69]:
+            - heading "Sections" [level=2] [ref=e70]
+            - generic [ref=e71]: The complete ArkaOS brand identity system
+          - generic [ref=e73]:
+            - link "Brand Guidelines 01-04 Identity System, Typography, Color Palette, Logo Construction" [ref=e74] [cursor=pointer]:
+              - /url: /guidelines
+              - generic [ref=e80]:
+                - generic [ref=e81]:
+                  - heading "Brand Guidelines" [level=3] [ref=e82]
+                  - generic [ref=e84]: 01-04
+                - paragraph [ref=e85]: Identity System, Typography, Color Palette, Logo Construction
+            - link "Brand Strategy 05-10 Manifesto, Positioning, Archetypes, Evidence" [ref=e87] [cursor=pointer]:
+              - /url: /strategy
+              - generic [ref=e93]:
+                - generic [ref=e94]:
+                  - heading "Brand Strategy" [level=3] [ref=e95]
+                  - generic [ref=e97]: 05-10
+                - paragraph [ref=e98]: Manifesto, Positioning, Archetypes, Evidence
+            - link "Brand Expression 11-15 Narrative, Truelines, Personality, Vocabulary, Dual Voice" [ref=e100] [cursor=pointer]:
+              - /url: /expression
+              - generic [ref=e106]:
+                - generic [ref=e107]:
+                  - heading "Brand Expression" [level=3] [ref=e108]
+                  - generic [ref=e110]: 11-15
+                - paragraph [ref=e111]: Narrative, Truelines, Personality, Vocabulary, Dual Voice
+            - link "Brandbook Estrategico 01-13 Complete strategic document — Manifesto, Positioning, BrandScript, Contract" [ref=e113] [cursor=pointer]:
+              - /url: /movimento
+              - generic [ref=e119]:
+                - generic [ref=e120]:
+                  - heading "Brandbook Estrategico" [level=3] [ref=e121]
+                  - generic [ref=e123]: 01-13
+                - paragraph [ref=e124]: Complete strategic document — Manifesto, Positioning, BrandScript, Contract
+            - link "Pitch Deck 12 Investor Data Room — Thesis, Operations, Product & Structure" [ref=e126] [cursor=pointer]:
+              - /url: /pitch
+              - generic [ref=e132]:
+                - generic [ref=e133]:
+                  - heading "Pitch Deck" [level=3] [ref=e134]
+                  - generic [ref=e136]: "12"
+                - paragraph [ref=e137]: Investor Data Room — Thesis, Operations, Product & Structure
+            - link "Brownfield Discovery 08 Multi-agent technical debt assessment — 8 phases, 5 agents, 2 decision points" [ref=e139] [cursor=pointer]:
+              - /url: /brownfield
+              - generic [ref=e145]:
+                - generic [ref=e146]:
+                  - heading "Brownfield Discovery" [level=3] [ref=e147]
+                  - generic [ref=e149]: "08"
+                - paragraph [ref=e150]: Multi-agent technical debt assessment — 8 phases, 5 agents, 2 decision points
+            - link "Showcase — Slides 22 22 presentation templates — Dark Cockpit Edition" [ref=e152] [cursor=pointer]:
+              - /url: /showcase/slides
+              - generic [ref=e158]:
+                - generic [ref=e159]:
+                  - heading "Showcase — Slides" [level=3] [ref=e160]
+                  - generic [ref=e162]: "22"
+                - paragraph [ref=e163]: 22 presentation templates — Dark Cockpit Edition
+            - link "Showcase — Mockups 10 10 product applications — CSS-rendered brand mockups" [ref=e165] [cursor=pointer]:
+              - /url: /showcase/mockups
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - heading "Showcase — Mockups" [level=3] [ref=e173]
+                  - generic [ref=e175]: "10"
+                - paragraph [ref=e176]: 10 product applications — CSS-rendered brand mockups
+            - link "Showcase — Apparel 12 12 branded clothing items — Dark Cockpit Edition" [ref=e178] [cursor=pointer]:
+              - /url: /showcase/apparel
+              - generic [ref=e184]:
+                - generic [ref=e185]:
+                  - heading "Showcase — Apparel" [level=3] [ref=e186]
+                  - generic [ref=e188]: "12"
+                - paragraph [ref=e189]: 12 branded clothing items — Dark Cockpit Edition
+            - link "Showcase — Sneakers 8 8 footwear concepts — Dark Cockpit Edition" [ref=e191] [cursor=pointer]:
+              - /url: /showcase/sneakers
+              - generic [ref=e197]:
+                - generic [ref=e198]:
+                  - heading "Showcase — Sneakers" [level=3] [ref=e199]
+                  - generic [ref=e201]: "8"
+                - paragraph [ref=e202]: 8 footwear concepts — Dark Cockpit Edition
+        - separator [ref=e204]
+        - generic [ref=e209]:
+          - heading "Your AI Workforce" [level=2] [ref=e210]
+          - generic [ref=e211]: One command. 65 specialists. Brand Identity System // v2.0
+    - separator [ref=e212]
+    - contentinfo [ref=e214]:
+      - generic [ref=e215]:
+        - paragraph [ref=e217]: © 2026 WizardingCode
+        - generic [ref=e219]:
+          - img [ref=e221]
+          - paragraph [ref=e225]: Brand Identity System // v2.0 // Confidential
+  - region "Notifications (F8)":
+    - list
+  - generic:
+    - img
+  - generic [ref=e226]:
+    - button "Toggle Nuxt DevTools" [ref=e227] [cursor=pointer]:
+      - img [ref=e228]
+    - generic "Page load time" [ref=e231]:
+      - generic [ref=e232]: "42"
+      - generic [ref=e233]: ms
+    - button "Toggle Component Inspector" [ref=e235] [cursor=pointer]:
+      - img [ref=e236]

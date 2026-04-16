@@ -1,0 +1,802 @@
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/features" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/departments" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/docs" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/blog" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/community" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/docs" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/features" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/departments" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/agents" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/changelog" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/docs" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/blog" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/community" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7039ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/about" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[    7114ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:7232
+[    7298ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@nuxt+devtools@3.2.4_vite@7.3.1_@types+node@25.5.2_jiti@2.6.1_lightningcss@1.32.0_terse_c6ca6e280733c67581cf92b5396abe68/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=93b28a8d:51
+[    7496ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7497ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7498ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7499ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7500ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7500ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7501ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7501ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7502ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7503ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7505ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7505ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7521ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7522ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7522ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7522ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7522ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7523ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7523ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7523ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7523ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7523ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7524ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7524ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7524ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7524ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7524ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7525ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7592ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7593ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7593ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7593ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7593ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[    7593ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388529ms] [LOG] %cssr:success%c Vite server hmr 104 files 
+      background: #2ecc71;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      in 0.356ms 
+  at vite_node_entry_default (node_modules/.pnpm/@nuxt+vite-builder@4.4.2_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@types+nod_b708f2e37a582498f3bb7dd69af57d8c/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs)
+  at process.processTicksAndRejections (node:internal/process/task_queues)
+  at async Object.renderToString (node_modules/.pnpm/vue-bundle-renderer@2.2.0/node_modules/vue-bundle-renderer/dist/runtime.mjs)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/features" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/departments" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/docs" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/blog" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/community" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/docs" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/features" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/departments" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388529ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/agents" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388530ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/changelog" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388530ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/docs" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388530ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/blog" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388530ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/community" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388530ms] [WARNING] %cssr:warn%c [Vue Router warn]: No match found for location with path "/about" 
+      background: #f39c12;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      
+  at warn$1 (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js)
+  at Object.resolve (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+  at ComputedRefImpl.fn (node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/vue-router.js)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=93b28a8d:47
+[  388540ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:7232
+[  388557ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@nuxt+devtools@3.2.4_vite@7.3.1_@types+node@25.5.2_jiti@2.6.1_lightningcss@1.32.0_terse_c6ca6e280733c67581cf92b5396abe68/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=93b28a8d:51
+[  388586ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388586ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388587ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388588ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388588ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388589ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388590ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388591ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388592ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388592ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388593ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388593ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388599ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388600ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388600ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388600ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388600ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388601ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388601ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388601ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388601ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388601ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388602ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388602ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388602ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388602ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388602ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388603ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388663ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388663ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388663ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388663ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388663ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  388663ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  402102ms] [WARNING] [Vue warn]: Failed to resolve component: TerminalAnimation
+If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement. 
+  at <HomeHero > 
+  at <Index onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< null > > 
+  at <RouteProvider key="/" vnode= {__v_isVNode: true, __v_skip: true, type: Object, props: Object, key: null} route= {fullPath: /, hash: , query: Object, name: index___en, path: /}  ... > 
+  at <RouterView name=undefined route=undefined > 
+  at <NuxtPage > 
+  at <Primitive as="main" class="min-h-[calc(100vh-var(--ui-header-height))]" > 
+  at <UMain > 
+  at <Default ref=Ref< Proxy(Object) > > 
+  at <AsyncComponentWrapper ref=Ref< Proxy(Object) > > 
+  at <LayoutLoader key="default" layoutProps= {ref: RefImpl} name="default" > 
+  at <NuxtLayoutProvider layoutProps= {ref: RefImpl} key="default" name="default"  ... > 
+  at <NuxtLayout > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App> 
+  at <App key=4 > 
+  at <NuxtRoot> @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:49
+[  402103ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  402103ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[  402164ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019034ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019034ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019034ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019034ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019038ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019038ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019039ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019039ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019039ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019039ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019040ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019041ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1019041ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020087ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020087ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020088ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020089ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020090ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020091ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020091ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020092ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020093ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020094ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020095ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020096ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020098ms] [WARNING] [Vue warn]: Failed to resolve component: TerminalAnimation
+If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement. 
+  at <HomeHero > 
+  at <Index onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< undefined > > 
+  at <RouteProvider key="/" vnode= {__v_isVNode: true, __v_skip: true, type: Object, props: Object, key: null} route= {fullPath: /, path: /, query: Object, hash: , name: index___en}  ... > 
+  at <RouterView name=undefined route=undefined > 
+  at <NuxtPage > 
+  at <Primitive as="main" class="min-h-[calc(100vh-var(--ui-header-height))]" > 
+  at <UMain > 
+  at <Default ref=Ref< undefined > > 
+  at <AsyncComponentWrapper ref=Ref< undefined > > 
+  at <LayoutLoader key="default" layoutProps= {ref: RefImpl} name="default" > 
+  at <NuxtLayoutProvider layoutProps= {ref: RefImpl} key="default" name="default"  ... > 
+  at <NuxtLayout > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App> 
+  at <App key=4 > 
+  at <NuxtRoot> @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:49
+[ 1020099ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020099ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020102ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020102ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020103ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020103ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020103ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020104ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020104ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020104ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020104ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020105ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020105ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020105ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020106ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020106ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020106ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020106ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020149ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020149ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020149ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020149ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020149ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020149ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1020150ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1079062ms] [WARNING] [Vue warn]: Failed to resolve component: TerminalAnimation
+If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement. 
+  at <HomeHero > 
+  at <Index onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< null > > 
+  at <RouteProvider key="/" vnode= {__v_isVNode: true, __v_skip: true, type: Object, props: Object, key: null} route= {fullPath: /, path: /, query: Object, hash: , name: index___en}  ... > 
+  at <RouterView name=undefined route=undefined > 
+  at <NuxtPage > 
+  at <Primitive as="main" class="min-h-[calc(100vh-var(--ui-header-height))]" > 
+  at <UMain > 
+  at <Default ref=Ref< Proxy(Object) > > 
+  at <AsyncComponentWrapper ref=Ref< Proxy(Object) > > 
+  at <LayoutLoader key="default" layoutProps= {ref: RefImpl} name="default" > 
+  at <NuxtLayoutProvider layoutProps= {ref: RefImpl} key="default" name="default"  ... > 
+  at <NuxtLayout > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App> 
+  at <App key=4 > 
+  at <NuxtRoot> @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:49
+[ 1079063ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1079063ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1079084ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1079084ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1079152ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1158295ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1160256ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1160256ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1160256ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1160313ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1160313ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1160379ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1160380ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1161097ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431668ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:7232
+[ 1431686ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@nuxt+devtools@3.2.4_vite@7.3.1_@types+node@25.5.2_jiti@2.6.1_lightningcss@1.32.0_terse_c6ca6e280733c67581cf92b5396abe68/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=93b28a8d:51
+[ 1431709ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431709ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431710ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431711ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431712ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431712ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431713ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431714ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431715ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431715ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431716ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431717ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431725ms] [WARNING] [Vue warn]: Failed to resolve component: TerminalAnimation
+If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement. 
+  at <HomeHero > 
+  at <Index onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< undefined > > 
+  at <RouteProvider key="/" vnode= {__v_isVNode: true, __v_skip: true, type: Object, props: Object, key: null} route= {fullPath: /, hash: , query: Object, name: index___en, path: /}  ... > 
+  at <RouterView name=undefined route=undefined > 
+  at <NuxtPage > 
+  at <Primitive as="main" class="min-h-[calc(100vh-var(--ui-header-height))]" > 
+  at <UMain > 
+  at <Default ref=Ref< undefined > > 
+  at <AsyncComponentWrapper ref=Ref< undefined > > 
+  at <LayoutLoader key="default" layoutProps= {ref: RefImpl} name="default" > 
+  at <NuxtLayoutProvider layoutProps= {ref: RefImpl} key="default" name="default"  ... > 
+  at <NuxtLayout > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App> 
+  at <App key=4 > 
+  at <NuxtRoot> @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:49
+[ 1431725ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431726ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431746ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431746ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431748ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431748ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431749ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431749ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431749ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431749ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431749ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431750ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431750ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431750ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431750ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431750ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431751ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431751ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431751ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431751ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431806ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431806ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431806ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431806ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431806ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431806ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1431806ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1466980ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1467990ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1467990ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1467990ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1468039ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1468040ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1468063ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1468063ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1468080ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487700ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487700ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487700ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487700ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487705ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487705ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487706ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487706ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487706ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487706ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487707ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487707ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487707ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487707ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487707ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487707ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1487708ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489196ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489196ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489197ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489198ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489199ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489200ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489201ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489201ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489202ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489203ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489204ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489204ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489207ms] [WARNING] [Vue warn]: Failed to resolve component: TerminalAnimation
+If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement. 
+  at <HomeHero > 
+  at <Index onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< undefined > > 
+  at <RouteProvider key="/" vnode= {__v_isVNode: true, __v_skip: true, type: Object, props: Object, key: null} route= {fullPath: /, path: /, query: Object, hash: , name: index___en}  ... > 
+  at <RouterView name=undefined route=undefined > 
+  at <NuxtPage > 
+  at <Primitive as="main" class="min-h-[calc(100vh-var(--ui-header-height))]" > 
+  at <UMain > 
+  at <Default ref=Ref< undefined > > 
+  at <AsyncComponentWrapper ref=Ref< undefined > > 
+  at <LayoutLoader key="default" layoutProps= {ref: RefImpl} name="default" > 
+  at <NuxtLayoutProvider layoutProps= {ref: RefImpl} key="default" name="default"  ... > 
+  at <NuxtLayout > 
+  at <ToastProvider swipe-direction="right" duration=5000 > 
+  at <Toaster key=0 > 
+  at <TooltipProvider > 
+  at <ConfigProvider use-id=fn<use-id> dir=undefined locale=undefined > 
+  at <App> 
+  at <App key=4 > 
+  at <NuxtRoot> @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=93b28a8d:49
+[ 1489207ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489208ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489225ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489226ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489228ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489228ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489228ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489229ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489229ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489229ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489229ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489230ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489230ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489230ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489231ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489231ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489231ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489232ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489233ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489233ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489309ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489309ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489309ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489309ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489309ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489309ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1489309ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538117ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538600ms] [WARNING] [Vue Router warn]: No match found for location with path "/features" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538600ms] [WARNING] [Vue Router warn]: No match found for location with path "/departments" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538600ms] [WARNING] [Vue Router warn]: No match found for location with path "/agents" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538600ms] [WARNING] [Vue Router warn]: No match found for location with path "/docs" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538600ms] [WARNING] [Vue Router warn]: No match found for location with path "/blog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538600ms] [WARNING] [Vue Router warn]: No match found for location with path "/community" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538600ms] [WARNING] [Vue Router warn]: No match found for location with path "/about" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1538617ms] [WARNING] [Vue Router warn]: No match found for location with path "/changelog" @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/arkaos-site/node_modules/.pnpm/vue-router@5.0.4_@vue+compiler-sfc@3.5.32_vue@3.5.31_typescript@6.0.2_/node_modules/vue-router/dist/devtools-DUDsFuj9.js?v=93b28a8d:10
+[ 1795967ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3004/_nuxt/@vite/client:864
+[ 1802104ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt-calendly@0.1.21_magicast@0.5.2/node_modules/nuxt-calendly/dist/runtime/assets/external/widget.css:0
+[ 1802106ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3004/_nuxt/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt-calendly@0.1.21_magicast@0.5.2/node_modules/nuxt-calendly/dist/runtime/assets/external/widget.css:0
+[ 1802110ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3004/_nuxt/components/ServicesSection.vue?vue&type=style&index=0&scoped=d3d64893&lang.css:0
+[ 1802110ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3004/_nuxt/Users/andreagroferreira/Work/wizardingCode-site/app/assets/css/main.css:0
+[ 1806002ms] [LOG] %cssr:success%c Vite server hmr 1 files 
+      background: #2ecc71;
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+      in 37.077ms 
+  at vite_node_entry_default (node_modules/.pnpm/@nuxt+vite-builder@4.4.2_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@types+nod_d83c6cec1719ae54d6b95e9476c8417e/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs)
+  at process.processTicksAndRejections (node:internal/process/task_queues)
+  at async Object.renderToString (node_modules/.pnpm/vue-bundle-renderer@2.2.0/node_modules/vue-bundle-renderer/dist/runtime.mjs)
+ @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/consola@3.4.2/node_modules/consola/dist/browser.mjs?v=cbf0c83d:47
+[ 1806059ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:7208
+[ 1806146ms] [WARNING] [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:49
+[ 1806181ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@nuxt+devtools@3.2.3_vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terse_0e92ca891d1c21d502750e0b2d7c103c/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=cbf0c83d:51
+[ 1806217ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3004/_payload.json?1775758941149:0
+[ 1806217ms] [WARNING] [nuxt] Cannot load payload  /_payload.json?1775758941149 SyntaxError: Unexpected token 'N', "No respons"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parse (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/devalue@5.6.4/node_modules/devalue/src/parse.js?v=cbf0c83d:18:24)
+    at parsePayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:150:16)
+    at async _importPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:80:12)
+    at async loadPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:15:12)
+    at async Array.<anonymous> (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/plugins/payload.client.js?v=cbf0c83d:37:11)
+    at async Promise.all (index 0)
+    at async prefetch (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:216:9)
+    at async http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:237:21 @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:81
+[ 1806448ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Page not found: /images/clients/mondelez.png) @ http://localhost:3004/images/clients/mondelez.png:0
+[ 1806449ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Page not found: /images/clients/worten.svg) @ http://localhost:3004/images/clients/worten.svg:0
+[ 1806449ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Page not found: /images/clients/tlscontact.svg) @ http://localhost:3004/images/clients/tlscontact.svg:0
+[ 1806450ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Page not found: /images/clients/eviso.svg) @ http://localhost:3004/images/clients/eviso.svg:0
+[ 1806450ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Page not found: /images/clients/edp.png) @ http://localhost:3004/images/clients/edp.png:0
+[ 1871494ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3004/_nuxt/@vite/client:864
+[ 1873199ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:7208
+[ 1873274ms] [WARNING] [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:49
+[ 1873296ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@nuxt+devtools@3.2.3_vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terse_0e92ca891d1c21d502750e0b2d7c103c/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=cbf0c83d:51
+[ 1873339ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3004/_payload.json?1775759008268:0
+[ 1873340ms] [WARNING] [nuxt] Cannot load payload  /_payload.json?1775759008268 SyntaxError: Unexpected token 'N', "No respons"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parse (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/devalue@5.6.4/node_modules/devalue/src/parse.js?v=cbf0c83d:18:24)
+    at parsePayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:150:16)
+    at async _importPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:80:12)
+    at async loadPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:15:12)
+    at async Array.<anonymous> (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/plugins/payload.client.js?v=cbf0c83d:37:11)
+    at async Promise.all (index 0)
+    at async prefetch (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:216:9)
+    at async http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:237:21 @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:81
+[ 1895015ms] [WARNING] Warning: `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://www.reka-ui.com/docs/components/dialog.html#title @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/reka-ui@2.8.2_vue@3.5.30_typescript@5.9.3_/node_modules/reka-ui/dist/Dialog/utils.js?v=cbf0c83d:14
+[ 1895015ms] [WARNING] Warning: Missing `Description` or `aria-describedby="undefined"` for DialogContent. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/reka-ui@2.8.2_vue@3.5.30_typescript@5.9.3_/node_modules/reka-ui/dist/Dialog/utils.js?v=cbf0c83d:18
+[ 1902247ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:7208
+[ 1902323ms] [WARNING] [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:49
+[ 1902347ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@nuxt+devtools@3.2.3_vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terse_0e92ca891d1c21d502750e0b2d7c103c/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=cbf0c83d:51
+[ 1902389ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3004/_payload.json?1775759037320:0
+[ 1902389ms] [WARNING] [nuxt] Cannot load payload  /_payload.json?1775759037320 SyntaxError: Unexpected token 'N', "No respons"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parse (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/devalue@5.6.4/node_modules/devalue/src/parse.js?v=cbf0c83d:18:24)
+    at parsePayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:150:16)
+    at async _importPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:80:12)
+    at async loadPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:15:12)
+    at async Array.<anonymous> (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/plugins/payload.client.js?v=cbf0c83d:37:11)
+    at async Promise.all (index 0)
+    at async prefetch (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:216:9)
+    at async http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:237:21 @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:81
+[ 2053720ms] [WARNING] Warning: `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://www.reka-ui.com/docs/components/dialog.html#title @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/reka-ui@2.8.2_vue@3.5.30_typescript@5.9.3_/node_modules/reka-ui/dist/Dialog/utils.js?v=cbf0c83d:14
+[ 2053720ms] [WARNING] Warning: Missing `Description` or `aria-describedby="undefined"` for DialogContent. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/reka-ui@2.8.2_vue@3.5.30_typescript@5.9.3_/node_modules/reka-ui/dist/Dialog/utils.js?v=cbf0c83d:18
+[ 2061637ms] [INFO] <Suspense> is an experimental feature and its API will likely change. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:7208
+[ 2061711ms] [WARNING] [Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement. @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@vue+runtime-core@3.5.30/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js?v=cbf0c83d:49
+[ 2061738ms] [LOG] ✨ %cNuxt DevTools %c Press Shift + Option + D to open DevTools color: black; border-radius: 3px 0 0 3px; padding: 2px 2px 1px 10px; background: #00DC82 border-radius: 0 3px 3px 0; padding: 2px 10px 1px 2px; background: #00DC8220  @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/@nuxt+devtools@3.2.3_vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terse_0e92ca891d1c21d502750e0b2d7c103c/node_modules/@nuxt/devtools/dist/runtime/plugins/devtools.client.js?v=cbf0c83d:51
+[ 2061782ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3004/_payload.json?1775759196711:0
+[ 2061782ms] [WARNING] [nuxt] Cannot load payload  /_payload.json?1775759196711 SyntaxError: Unexpected token 'N', "No respons"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parse (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/devalue@5.6.4/node_modules/devalue/src/parse.js?v=cbf0c83d:18:24)
+    at parsePayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:150:16)
+    at async _importPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:80:12)
+    at async loadPayload (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:15:12)
+    at async Array.<anonymous> (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/plugins/payload.client.js?v=cbf0c83d:37:11)
+    at async Promise.all (index 0)
+    at async prefetch (http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:216:9)
+    at async http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/components/nuxt-link.js?v=cbf0c83d:237:21 @ http://localhost:3004/_nuxt/@fs/Users/andreagroferreira/Work/wizardingCode-site/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@parc_cd9d26928c97398ea7d2926798710128/node_modules/nuxt/dist/app/composables/payload.js?v=cbf0c83d:81

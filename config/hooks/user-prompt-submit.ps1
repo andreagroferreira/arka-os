@@ -199,9 +199,9 @@ if ($python -and (Test-Path -LiteralPath $bridgeScript)) {
         $proc = [System.Diagnostics.Process]::Start($psi)
         $proc.StandardInput.Write($bridgeInput)
         $proc.StandardInput.Close()
-        # Cap the bridge call at 3 seconds so a stuck bridge cannot burn the
+        # Cap the bridge call at 8 seconds so a stuck bridge cannot burn the
         # full 10-second hook budget.
-        if (-not $proc.WaitForExit(3000)) {
+        if (-not $proc.WaitForExit(8000)) {
             try { $proc.Kill() } catch { }
         } else {
             $bridgeOutput = $proc.StandardOutput.ReadToEnd()

@@ -1,0 +1,86 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "ArkaOS ArkaOS" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - img "ArkaOS" [ref=e8]
+        - generic [ref=e12]: ArkaOS
+      - navigation [ref=e14]:
+        - list [ref=e16]:
+          - listitem [ref=e17]:
+            - link "Features" [ref=e18] [cursor=pointer]:
+              - /url: /features
+              - generic [ref=e19]: Features
+          - listitem [ref=e20]:
+            - link "Departments" [ref=e21] [cursor=pointer]:
+              - /url: /departments
+              - generic [ref=e22]: Departments
+          - listitem [ref=e23]:
+            - link "Documentation" [ref=e24] [cursor=pointer]:
+              - /url: /docs
+              - generic [ref=e25]: Documentation
+          - listitem [ref=e26]:
+            - link "Blog" [ref=e27] [cursor=pointer]:
+              - /url: /blog
+              - generic [ref=e28]: Blog
+          - listitem [ref=e29]:
+            - link "Community" [ref=e30] [cursor=pointer]:
+              - /url: /community
+              - generic [ref=e31]: Community
+      - link "Get Started" [ref=e33] [cursor=pointer]:
+        - /url: /docs
+        - generic [ref=e34]: Get Started
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - paragraph [ref=e37]: ArkaOS
+      - heading "Coming Soon" [level=1] [ref=e38]
+  - contentinfo [ref=e39]:
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - link "ArkaOS ArkaOS" [ref=e45] [cursor=pointer]:
+            - /url: /
+            - img "ArkaOS" [ref=e46]
+            - generic [ref=e50]: ArkaOS
+          - paragraph [ref=e51]: The Operating System for AI Agent Teams. 56 agents. 16 departments.
+        - generic [ref=e52]:
+          - paragraph [ref=e53]: Product
+          - list [ref=e54]:
+            - listitem [ref=e55]:
+              - link "Features" [ref=e56] [cursor=pointer]:
+                - /url: /features
+            - listitem [ref=e57]:
+              - link "Departments" [ref=e58] [cursor=pointer]:
+                - /url: /departments
+            - listitem [ref=e59]:
+              - link "Agents" [ref=e60] [cursor=pointer]:
+                - /url: /agents
+            - listitem [ref=e61]:
+              - link "Changelog" [ref=e62] [cursor=pointer]:
+                - /url: /changelog
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: Resources
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - link "Documentation" [ref=e67] [cursor=pointer]:
+                - /url: /docs
+            - listitem [ref=e68]:
+              - link "Blog" [ref=e69] [cursor=pointer]:
+                - /url: /blog
+            - listitem [ref=e70]:
+              - link "Community" [ref=e71] [cursor=pointer]:
+                - /url: /community
+            - listitem [ref=e72]:
+              - link "GitHub" [ref=e73] [cursor=pointer]:
+                - /url: https://github.com/andreagroferreira/arka-os
+        - generic [ref=e74]:
+          - paragraph [ref=e75]: Company
+          - list [ref=e76]:
+            - listitem [ref=e77]:
+              - link "About" [ref=e78] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=e79]:
+              - link "WizardingCode" [ref=e80] [cursor=pointer]:
+                - /url: https://wizardingcode.com
+      - separator [ref=e81]
+      - paragraph [ref=e84]: © 2026 WizardingCode. All rights reserved.

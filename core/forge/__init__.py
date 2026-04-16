@@ -55,6 +55,26 @@ from core.forge.handoff import (
     check_repo_drift,
 )
 
+from core.forge.orchestrator import (
+    ForgeOrchestrator,
+    ForgeDecision,
+    ForgeStep,
+    ForgeStatusOutput,
+    ForgeHistoryEntry,
+    ForgeCompareOutput,
+    CONSTITUTION_PHASES,
+)
+
+from core.forge.runtime_dispatcher import (
+    ForgeTaskDispatcher,
+    ClaudeCodeForgeDispatcher,
+    ExplorerDispatchRequest,
+    CriticDispatchRequest,
+    DispatchResult,
+    _tier_to_model,
+    create_dispatcher,
+)
+
 __all__ = [
     # schema
     "ForgeTier",
@@ -101,4 +121,20 @@ __all__ = [
     "select_execution_path",
     "generate_workflow_yaml",
     "check_repo_drift",
+    # orchestrator
+    "ForgeOrchestrator",
+    "ForgeDecision",
+    "ForgeStep",
+    "ForgeStatusOutput",
+    "ForgeHistoryEntry",
+    "ForgeCompareOutput",
+    "CONSTITUTION_PHASES",
+    # runtime dispatcher
+    "ForgeTaskDispatcher",
+    "ClaudeCodeForgeDispatcher",
+    "ExplorerDispatchRequest",
+    "CriticDispatchRequest",
+    "DispatchResult",
+    "_tier_to_model",
+    "create_dispatcher",
 ]

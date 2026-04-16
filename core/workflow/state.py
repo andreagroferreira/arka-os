@@ -34,7 +34,11 @@ def _write(state: dict) -> dict:
     path = _state_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     fd = NamedTemporaryFile(
-        mode="w", dir=str(path.parent), suffix=".tmp", delete=False, encoding="utf-8",
+        mode="w",
+        dir=str(path.parent),
+        suffix=".tmp",
+        delete=False,
+        encoding="utf-8",
     )
     try:
         json.dump(state, fd, indent=2)
@@ -104,7 +108,11 @@ def set_branch(branch: str) -> dict:
 
 
 def add_violation(
-    rule: str, detail: str, tool: str | None = None, file: str | None = None,
+    rule: str,
+    detail: str,
+    tool: str | None = None,
+    file: str | None = None,
+    severity: str | None = None,
 ) -> dict:
     """Append a violation to the violations list."""
     state = _require_state()
@@ -113,6 +121,8 @@ def add_violation(
         violation["tool"] = tool
     if file:
         violation["file"] = file
+    if severity:
+        violation["severity"] = severity
     state["violations"].append(violation)
     return _write(state)
 

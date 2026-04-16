@@ -1,0 +1,251 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - heading "404" [level=1] [ref=e5]
+    - 'heading "Page not found: /departments" [level=2] [ref=e6]'
+    - paragraph [ref=e7]: "Page not found: /departments"
+    - link "Go back home" [ref=e9] [cursor=pointer]:
+      - /url: /
+  - status [ref=e10]
+  - iframe [ref=e11]:
+    - generic [ref=f3e2]:
+      - banner [ref=f3e3]:
+        - generic [ref=f3e5]:
+          - checkbox [ref=f3e6]
+          - generic "Light mode" [ref=f3e8] [cursor=pointer]:
+            - img [ref=f3e9]
+      - generic [ref=f3e13]:
+        - heading "Error" [level=4] [ref=f3e14]
+        - heading "An error has occurred" [level=1] [ref=f3e15]
+      - 'heading "Page not found: /departments Copy error with stack trace to clipboard" [level=2] [ref=f3e19]':
+        - img [ref=f3e21]
+        - generic [ref=f3e23]: "Page not found: /departments"
+        - button "Copy error with stack trace to clipboard" [ref=f3e24] [cursor=pointer]:
+          - img [ref=f3e25]
+      - generic [ref=f3e30]:
+        - heading "Stack Trace" [level=3] [ref=f3e33]
+        - generic [ref=f3e35]:
+          - generic [ref=f3e36]:
+            - generic [ref=f3e38]:
+              - checkbox "View All Frames" [ref=f3e39]
+              - generic [ref=f3e40]: View All Frames
+            - generic [ref=f3e42]:
+              - button "Pretty" [ref=f3e43]
+              - button "Raw" [ref=f3e44]
+          - list [ref=f3e47]:
+            - listitem [ref=f3e48]:
+              - generic [ref=f3e49]:
+                - button "node_modules/.pnpm/h3@1.15.10/node_modules/h3/dist/index.mjs in createError at line 71:15" [ref=f3e50]:
+                  - link "node_modules/.pnpm/h3@1.15.10/node_modules/h3/dist/index.mjs" [ref=f3e51] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/h3@1.15.10/node_modules/h3/dist/index.mjs:71
+                  - generic [ref=f3e52]:
+                    - text: in
+                    - code [ref=f3e53]: createError
+                  - generic [ref=f3e54]:
+                    - text: at line
+                    - code [ref=f3e55]: 71:15
+                - button [ref=f3e57]:
+                  - img [ref=f3e58]
+              - code [ref=f3e62]:
+                - generic [ref=f3e76]: "return new H3Error(input); } if (isError(input)) { return input; } const err = new H3Error(input.message ?? input.statusMessage ?? \"\", { cause: input.cause || input }); if (hasProp(input, \"stack\")) { try { Object.defineProperty(err, \"stack\", {"
+            - listitem [ref=f3e77]:
+              - generic [ref=f3e78]:
+                - button "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/composables/error.js in createError at line 45:58" [ref=f3e79]:
+                  - link "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/composables/error.js" [ref=f3e80] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/composables/error.js:45
+                  - generic [ref=f3e81]:
+                    - text: in
+                    - code [ref=f3e82]: createError
+                  - generic [ref=f3e83]:
+                    - text: at line
+                    - code [ref=f3e84]: 45:58
+                - button [ref=f3e86]:
+                  - img [ref=f3e87]
+            - listitem [ref=f3e89]:
+              - generic [ref=f3e90]:
+                - button "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/pages/runtime/plugins/router.js at line 221:118" [ref=f3e91]:
+                  - link "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/pages/runtime/plugins/router.js" [ref=f3e92] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/pages/runtime/plugins/router.js:221
+                  - generic [ref=f3e93]:
+                    - text: at line
+                    - code [ref=f3e94]: 221:118
+                - button [ref=f3e96]:
+                  - img [ref=f3e97]
+            - listitem [ref=f3e99]:
+              - generic [ref=f3e100]:
+                - button "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js in fn at line 242:44" [ref=f3e101]:
+                  - link "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js" [ref=f3e102] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js:242
+                  - generic [ref=f3e103]:
+                    - text: in
+                    - code [ref=f3e104]: fn
+                  - generic [ref=f3e105]:
+                    - text: at line
+                    - code [ref=f3e106]: 242:44
+                - button [ref=f3e108]:
+                  - img [ref=f3e109]
+            - listitem [ref=f3e111]:
+              - generic [ref=f3e112]:
+                - button "node_modules/.pnpm/unctx@2.5.0/node_modules/unctx/dist/index.mjs in Object.callAsync at line 68:55" [ref=f3e113]:
+                  - link "node_modules/.pnpm/unctx@2.5.0/node_modules/unctx/dist/index.mjs" [ref=f3e114] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/unctx@2.5.0/node_modules/unctx/dist/index.mjs:68
+                  - generic [ref=f3e115]:
+                    - text: in
+                    - code [ref=f3e116]: Object.callAsync
+                  - generic [ref=f3e117]:
+                    - text: at line
+                    - code [ref=f3e118]: 68:55
+                - button [ref=f3e120]:
+                  - img [ref=f3e121]
+            - listitem [ref=f3e123]:
+              - generic [ref=f3e124]:
+                - button "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js at line 245:56" [ref=f3e125]:
+                  - link "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js" [ref=f3e126] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js:245
+                  - generic [ref=f3e127]:
+                    - text: at line
+                    - code [ref=f3e128]: 245:56
+                - button [ref=f3e130]:
+                  - img [ref=f3e131]
+            - listitem [ref=f3e133]:
+              - generic [ref=f3e134]:
+                - button "node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.cjs.js in Object.runWithContext at line 4279:18" [ref=f3e135]:
+                  - link "node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.cjs.js" [ref=f3e136] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/@vue+runtime-core@3.5.31/node_modules/@vue/runtime-core/dist/runtime-core.cjs.js:4279
+                  - generic [ref=f3e137]:
+                    - text: in
+                    - code [ref=f3e138]: Object.runWithContext
+                  - generic [ref=f3e139]:
+                    - text: at line
+                    - code [ref=f3e140]: 4279:18
+                - button [ref=f3e142]:
+                  - img [ref=f3e143]
+            - listitem [ref=f3e145]:
+              - generic [ref=f3e146]:
+                - button "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js in callWithNuxt at line 245:24" [ref=f3e147]:
+                  - link "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js" [ref=f3e148] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js:245
+                  - generic [ref=f3e149]:
+                    - text: in
+                    - code [ref=f3e150]: callWithNuxt
+                  - generic [ref=f3e151]:
+                    - text: at line
+                    - code [ref=f3e152]: 245:24
+                - button [ref=f3e154]:
+                  - img [ref=f3e155]
+            - listitem [ref=f3e157]:
+              - generic [ref=f3e158]:
+                - button "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js at line 55:41" [ref=f3e159]:
+                  - link "node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js" [ref=f3e160] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/nuxt@4.4.2_@babel+core@7.29.0_@babel+plugin-syntax-jsx@7.28.6_@babel+core@7.29.0__@emna_4a2541796beedf54d0416f2367408b39/node_modules/nuxt/dist/app/nuxt.js:55
+                  - generic [ref=f3e161]:
+                    - text: at line
+                    - code [ref=f3e162]: 55:41
+                - button [ref=f3e164]:
+                  - img [ref=f3e165]
+            - listitem [ref=f3e167]:
+              - generic [ref=f3e168]:
+                - button "node_modules/.pnpm/@vue+reactivity@3.5.31/node_modules/@vue/reactivity/dist/reactivity.cjs.js in EffectScope.run at line 87:16" [ref=f3e169]:
+                  - link "node_modules/.pnpm/@vue+reactivity@3.5.31/node_modules/@vue/reactivity/dist/reactivity.cjs.js" [ref=f3e170] [cursor=pointer]:
+                    - /url: vscode://file//Users/andreagroferreira/Work/arkaos-brand/node_modules/.pnpm/@vue+reactivity@3.5.31/node_modules/@vue/reactivity/dist/reactivity.cjs.js:87
+                  - generic [ref=f3e171]:
+                    - text: in
+                    - code [ref=f3e172]: EffectScope.run
+                  - generic [ref=f3e173]:
+                    - text: at line
+                    - code [ref=f3e174]: 87:16
+                - button [ref=f3e176]:
+                  - img [ref=f3e177]
+      - generic [ref=f3e180]:
+        - heading "Error Cause" [level=3] [ref=f3e183]
+        - code [ref=f3e188]:
+          - generic [ref=f3e189]:
+            - text: "Object {"
+            - button "▼" [ref=f3e190]:
+              - generic [ref=f3e191]: ▼
+            - text: "}"
+      - generic [ref=f3e193]:
+        - heading "Request" [level=3] [ref=f3e195]
+        - generic [ref=f3e196]:
+          - generic [ref=f3e197]:
+            - heading "url" [level=4] [ref=f3e198]
+            - text: http://localhost:3000/departments
+          - generic [ref=f3e199]:
+            - heading "method" [level=4] [ref=f3e200]
+            - text: GET
+          - generic [ref=f3e201]:
+            - heading "headers" [level=4] [ref=f3e202]
+            - table [ref=f3e203]:
+              - rowgroup [ref=f3e204]:
+                - row "host localhost:3000" [ref=f3e205]:
+                  - cell "host" [ref=f3e206]
+                  - cell "localhost:3000" [ref=f3e207]
+                - row "connection close" [ref=f3e208]:
+                  - cell "connection" [ref=f3e209]
+                  - cell "close" [ref=f3e210]
+                - row "sec-ch-ua \"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"" [ref=f3e211]:
+                  - cell "sec-ch-ua" [ref=f3e212]
+                  - cell "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"" [ref=f3e213]
+                - row "sec-ch-ua-mobile ?0" [ref=f3e214]:
+                  - cell "sec-ch-ua-mobile" [ref=f3e215]
+                  - cell "?0" [ref=f3e216]
+                - row "sec-ch-ua-platform \"macOS\"" [ref=f3e217]:
+                  - cell "sec-ch-ua-platform" [ref=f3e218]
+                  - cell "\"macOS\"" [ref=f3e219]
+                - row "upgrade-insecure-requests 1" [ref=f3e220]:
+                  - cell "upgrade-insecure-requests" [ref=f3e221]
+                  - cell "1" [ref=f3e222]
+                - row "user-agent Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36" [ref=f3e223]:
+                  - cell "user-agent" [ref=f3e224]
+                  - cell "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36" [ref=f3e225]
+                - row "accept text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7" [ref=f3e226]:
+                  - cell "accept" [ref=f3e227]
+                  - cell "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7" [ref=f3e228]
+                - row "sec-fetch-site none" [ref=f3e229]:
+                  - cell "sec-fetch-site" [ref=f3e230]
+                  - cell "none" [ref=f3e231]
+                - row "sec-fetch-mode navigate" [ref=f3e232]:
+                  - cell "sec-fetch-mode" [ref=f3e233]
+                  - cell "navigate" [ref=f3e234]
+                - row "sec-fetch-user ?1" [ref=f3e235]:
+                  - cell "sec-fetch-user" [ref=f3e236]
+                  - cell "?1" [ref=f3e237]
+                - row "sec-fetch-dest document" [ref=f3e238]:
+                  - cell "sec-fetch-dest" [ref=f3e239]
+                  - cell "document" [ref=f3e240]
+                - row "accept-encoding gzip, deflate, br, zstd" [ref=f3e241]:
+                  - cell "accept-encoding" [ref=f3e242]
+                  - cell "gzip, deflate, br, zstd" [ref=f3e243]
+                - row "accept-language en-US,en;q=0.9" [ref=f3e244]:
+                  - cell "accept-language" [ref=f3e245]
+                  - cell "en-US,en;q=0.9" [ref=f3e246]
+                - 'row "cookie Object { ▼ }" [ref=f3e247]':
+                  - cell "cookie" [ref=f3e248]
+                  - 'cell "Object { ▼ }" [ref=f3e249]':
+                    - code [ref=f3e252]:
+                      - generic [ref=f3e253]:
+                        - text: "Object {"
+                        - button "▼" [ref=f3e254]:
+                          - generic [ref=f3e255]: ▼
+                        - text: "}"
+                - row "x-forwarded-for ::1" [ref=f3e256]:
+                  - cell "x-forwarded-for" [ref=f3e257]
+                  - cell "::1" [ref=f3e258]
+                - row "x-forwarded-port 3000" [ref=f3e259]:
+                  - cell "x-forwarded-port" [ref=f3e260]
+                  - cell "3000" [ref=f3e261]
+                - row "x-forwarded-proto http" [ref=f3e262]:
+                  - cell "x-forwarded-proto" [ref=f3e263]
+                  - cell "http" [ref=f3e264]
+  - button "Toggle detailed error view Hide error overlay" [ref=e12]:
+    - generic [ref=e13]: Toggle detailed error view
+    - button "Hide error overlay" [ref=e14] [cursor=pointer]: ×
+  - generic:
+    - img
+  - generic [ref=e15]:
+    - button "Toggle Nuxt DevTools" [ref=e16] [cursor=pointer]:
+      - img [ref=e17]
+    - generic "App load time" [ref=e20]:
+      - generic [ref=e21]: "87"
+      - generic [ref=e22]: ms
+    - button "Toggle Component Inspector" [ref=e24] [cursor=pointer]:
+      - img [ref=e25]

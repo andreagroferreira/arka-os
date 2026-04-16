@@ -64,7 +64,11 @@ class TestVectorStore:
 
     def test_search_returns_results(self, store):
         store.index_chunks(
-            texts=["Python programming tutorial", "JavaScript web development", "Database schema design"],
+            texts=[
+                "Python programming tutorial",
+                "JavaScript web development",
+                "Database schema design",
+            ],
             source="docs.md",
         )
         results = store.search("python coding", top_k=2)
@@ -105,8 +109,12 @@ class TestVectorStore:
 class TestIndexer:
     def test_index_directory(self, tmp_path):
         # Create test markdown files
-        (tmp_path / "doc1.md").write_text("# Doc 1\n\nFirst document content about Python programming language and its ecosystem with libraries and frameworks for web development and data science applications.")
-        (tmp_path / "doc2.md").write_text("# Doc 2\n\nSecond document about JavaScript web development including React, Vue, Angular frameworks and Node.js backend runtime with express and fastify servers.")
+        (tmp_path / "doc1.md").write_text(
+            "# Doc 1\n\nFirst document content about Python programming language and its ecosystem with libraries and frameworks for web development and data science applications."
+        )
+        (tmp_path / "doc2.md").write_text(
+            "# Doc 2\n\nSecond document about JavaScript web development including React, Vue, Angular frameworks and Node.js backend runtime with express and fastify servers."
+        )
         (tmp_path / "short.md").write_text("Too short")  # Should be skipped (< 20 words)
 
         store = VectorStore(":memory:")
@@ -119,7 +127,9 @@ class TestIndexer:
         store.close()
 
     def test_incremental_indexing(self, tmp_path):
-        (tmp_path / "doc.md").write_text("# Test\n\nSome content for indexing with enough words to pass the minimum threshold of twenty words required by the indexer for processing documents.")
+        (tmp_path / "doc.md").write_text(
+            "# Test\n\nSome content for indexing with enough words to pass the minimum threshold of twenty words required by the indexer for processing documents."
+        )
 
         store = VectorStore(":memory:")
         r1 = index_directory(tmp_path, store)
@@ -133,7 +143,9 @@ class TestIndexer:
         hidden = tmp_path / ".obsidian"
         hidden.mkdir()
         (hidden / "config.md").write_text("# Config\n\nThis should be skipped.")
-        (tmp_path / "visible.md").write_text("# Visible\n\nThis should be indexed because it has enough content words to pass the minimum threshold for the indexer to consider it a valid document for chunking and embedding.")
+        (tmp_path / "visible.md").write_text(
+            "# Visible\n\nThis should be indexed because it has enough content words to pass the minimum threshold for the indexer to consider it a valid document for chunking and embedding."
+        )
 
         store = VectorStore(":memory:")
         result = index_directory(tmp_path, store)
@@ -165,7 +177,7 @@ class TestKnowledgeRetrievalLayer:
         result = layer.compute(ctx)
         assert result.layer_id == "L3.5"
         assert result.tag  # Should have knowledge tag
-        assert result.tokens_est > 0
+        assert "knowledge:" in result.tag  # Tag format: [knowledge:N chunks]
         store.close()
 
     def test_layer_without_store(self):
@@ -202,3 +214,167 @@ class TestKnowledgeRetrievalLayer:
         layer_ids = [lr.layer_id for lr in result.layers]
         assert "L3.5" in layer_ids
         store.close()
+
+
+class TestKBSessionCache:
+    """Tests for on-demand knowledge retrieval via session cache."""
+
+    def test_store_and_retrieve(self, tmp_path):
+        from core.synapse.kb_cache import KBSessionCache
+
+        cache = KBSessionCache(
+            session_id="test-session-001",
+            project_path="/test/project",
+            cache_dir=str(tmp_path),
+        )
+
+        results = [
+            {"text": "ArkaOS routing works by matching commands", "source": "routing.md"},
+            {"text": "Commands are resolved via Synapse layers", "source": "synapse.md"},
+        ]
+        cache.store("how does routing work in ArkaOS", results)
+
+        retrieved = cache.get_overlap("routing arkaos deployment", threshold=0.3)
+        assert len(retrieved) == 2
+        assert "ArkaOS routing" in retrieved[0]["text"]
+
+    def test_jaccard_similarity(self):
+        from core.synapse.kb_cache import KBSessionCache
+
+        topics1 = {"routing", "commands", "synapse"}
+        topics2 = {"routing", "setup", "configuration"}
+
+        score = KBSessionCache.jaccard(topics1, topics2)
+        assert 0.0 < score < 1.0
+        assert score == 1.0 / 5.0  # 1 intersection / 5 union
+
+    def test_jaccard_no_overlap(self):
+        from core.synapse.kb_cache import KBSessionCache
+
+        topics1 = {"python", "programming"}
+        topics2 = {"cooking", "recipes"}
+
+        score = KBSessionCache.jaccard(topics1, topics2)
+        assert score == 0.0
+
+    def test_extract_topics(self):
+        from core.synapse.kb_cache import KBSessionCache
+
+        cache = KBSessionCache(session_id="test", project_path="/test")
+        topics = cache.extract_topics("how to deploy arkaos on kubernetes using docker")
+
+        assert "deploy" in topics
+        assert "arkaos" in topics
+        assert "kubernetes" in topics
+        assert "docker" in topics
+        assert "how" not in topics
+        assert "to" not in topics
+        assert "on" not in topics
+
+    def test_project_scoped_cache(self, tmp_path):
+        from core.synapse.kb_cache import KBSessionCache
+
+        cache1 = KBSessionCache(
+            session_id="shared-session",
+            project_path="/project/a",
+            cache_dir=str(tmp_path / "proj_a"),
+        )
+        cache2 = KBSessionCache(
+            session_id="shared-session",
+            project_path="/project/b",
+            cache_dir=str(tmp_path / "proj_b"),
+        )
+
+        cache1.store("project A specific knowledge", [{"text": "Project A info", "source": "a.md"}])
+
+        results_from_a = cache1.retrieve(topics={"project", "specific", "knowledge"})
+        results_from_b = cache2.retrieve(topics={"project", "specific", "knowledge"})
+
+        assert len(results_from_a) == 1
+        assert len(results_from_b) == 0  # Different project, no access
+
+    def test_auto_inject_threshold(self, tmp_path):
+        from core.synapse.kb_cache import KBSessionCache
+
+        cache = KBSessionCache(
+            session_id="test-threshold",
+            project_path="/test",
+            cache_dir=str(tmp_path),
+        )
+
+        cache.store(
+            "deploy arkaos on kubernetes", [{"text": "K8s deployment guide", "source": "k8s.md"}]
+        )
+
+        strong_overlap = cache.retrieve(topics={"deploy", "kubernetes"}, threshold=0.3)
+        assert len(strong_overlap) == 1
+
+        weak_overlap = cache.retrieve(topics={"docker", "container"}, threshold=0.3)
+        assert len(weak_overlap) == 0
+
+    def test_session_cache_ttl(self, tmp_path):
+        from core.synapse.kb_cache import KBSessionCache
+        import time
+
+        cache = KBSessionCache(
+            session_id="test-ttl",
+            project_path="/test",
+            cache_dir=str(tmp_path),
+            ttl_seconds=1,
+        )
+
+        cache.store("temporary knowledge", [{"text": "Will expire soon", "source": "temp.md"}])
+
+        time.sleep(1.1)
+
+        results = cache.retrieve(topics={"temporary", "knowledge"})
+        assert len(results) == 0
+
+    def test_get_overlap_convenience(self, tmp_path):
+        from core.synapse.kb_cache import KBSessionCache
+
+        cache = KBSessionCache(
+            session_id="test-overlap",
+            project_path="/test",
+            cache_dir=str(tmp_path),
+        )
+
+        cache.store(
+            "configure arkaos settings", [{"text": "Settings configuration", "source": "config.md"}]
+        )
+
+        results = cache.get_overlap("how do I configure settings in arkaos", threshold=0.3)
+        assert len(results) == 1
+
+    def test_clear_cache(self, tmp_path):
+        from core.synapse.kb_cache import KBSessionCache
+
+        cache = KBSessionCache(
+            session_id="test-clear",
+            project_path="/test",
+            cache_dir=str(tmp_path),
+        )
+
+        cache.store("knowledge to clear", [{"text": "Will be cleared", "source": "clear.md"}])
+        cache.clear()
+
+        stats = cache.stats()
+        assert stats["valid_entries"] == 0
+
+    def test_stats(self, tmp_path):
+        from core.synapse.kb_cache import KBSessionCache
+
+        cache = KBSessionCache(
+            session_id="test-stats",
+            project_path="/test/project",
+            cache_dir=str(tmp_path),
+        )
+
+        cache.store("first query", [{"text": "First", "source": "f.md"}])
+        cache.store("second query", [{"text": "Second", "source": "s.md"}])
+
+        stats = cache.stats()
+        assert stats["session_id"] == "test-stats"
+        assert stats["total_entries"] == 2
+        assert stats["valid_entries"] == 2
+        assert str(tmp_path) in stats["cache_dir"]

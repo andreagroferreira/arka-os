@@ -30,6 +30,7 @@ def load_constitution(root: Path) -> str:
         return ""
     try:
         from core.governance.constitution import load_constitution as _load
+
         const = _load(str(config_path))
         parts = []
         for level_name in ("non_negotiable", "quality_gate", "must", "should"):
@@ -74,7 +75,11 @@ def load_commands_registry(root: Path) -> list:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Synapse Bridge — context injection for hooks")
-    parser.add_argument("--layers-only", action="store_true", help="Output layer breakdown instead of context string")
+    parser.add_argument(
+        "--layers-only",
+        action="store_true",
+        help="Output layer breakdown instead of context string",
+    )
     parser.add_argument("--root", type=str, default=str(ARKAOS_ROOT), help="ArkaOS root directory")
     args = parser.parse_args()
 
@@ -105,6 +110,7 @@ def main() -> int:
     if kb_db.exists():
         try:
             from core.knowledge.vector_store import VectorStore
+
             vector_store = VectorStore(kb_db)
         except Exception:
             pass
@@ -123,14 +129,24 @@ def main() -> int:
 
         # Build context
         import subprocess
+
         try:
             branch = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                capture_output=True, text=True, timeout=2,
+                capture_output=True,
+                text=True,
+                timeout=2,
                 cwd=input_data.get("cwd", os.getcwd()),
             ).stdout.strip()
         except Exception:
             branch = ""
+
+        session_id = (
+            input_data.get("session_id")
+            or os.environ.get("ARKAOS_SESSION_ID", "")
+            or os.environ.get("CLAUDE_SESSION_ID", "")
+            or f"bridge-{os.getpid()}"
+        )
 
         ctx = PromptContext(
             user_input=user_input,
@@ -140,6 +156,7 @@ def main() -> int:
             project_stack=input_data.get("project_stack", ""),
             active_agent=input_data.get("active_agent", ""),
             runtime_id=input_data.get("runtime_id", "claude-code"),
+            extra={"session_id": session_id},
         )
 
         result = engine.inject(ctx)
@@ -148,6 +165,7 @@ def main() -> int:
         # Record token usage in budget tracker
         try:
             from core.budget.manager import BudgetManager
+
             budget_mgr = BudgetManager(storage_path=Path.home() / ".arkaos" / "budget-usage.json")
             # Extract department from result layers
             dept = ""
@@ -169,7 +187,13 @@ def main() -> int:
             output = {
                 "context_string": result.context_string,
                 "layers": [
-                    {"id": lr.layer_id, "tag": lr.tag, "tokens": lr.tokens_est, "cached": lr.cached, "ms": lr.compute_ms}
+                    {
+                        "id": lr.layer_id,
+                        "tag": lr.tag,
+                        "tokens": lr.tokens_est,
+                        "cached": lr.cached,
+                        "ms": lr.compute_ms,
+                    }
                     for lr in result.layers
                 ],
                 "total_ms": total_ms,

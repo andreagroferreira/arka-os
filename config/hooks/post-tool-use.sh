@@ -229,6 +229,78 @@ add_violation('sequential-validation', 'Code written before implementation phase
   fi
 fi
 
+# ─── ArkaOS Enforcement Engine (All 14 Rules) ─────────────────────────────────
+# Uses core/workflow/enforcer.py to check ALL 14 NON-NEGOTIABLE rules
+# BLOCK violations halt operation; ESCALATE violations alert Tier 0
+# Gotchas auto-recovery is ALWAYS active (SIM per Sprint 3 decision)
+
+if [ -z "${ARKAOS_PY:-}" ]; then
+  [ -f "$HOME/.arkaos/venv/bin/python3" ] && ARKAOS_PY="$HOME/.arkaos/venv/bin/python3"
+  [ -z "${ARKAOS_PY:-}" ] && [ -f "$HOME/.arkaos/.venv/bin/python3" ] && ARKAOS_PY="$HOME/.arkaos/.venv/bin/python3"
+  [ -z "${ARKAOS_PY:-}" ] && ARKAOS_PY=$(command -v python3 2>/dev/null)
+fi
+[ -z "${ARKAOS_ROOT:-}" ] && ARKAOS_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+
+if [ -n "$ARKAOS_PY" ] && [ -n "$ARKAOS_ROOT" ] && [ -f "$ARKAOS_ROOT/core/workflow/enforcer.py" ]; then
+  ENFORCER_OUTPUT=$(PYTHONPATH="$ARKAOS_ROOT" $ARKAOS_PY -c "
+import json, sys
+from core.workflow.enforcer import enforce_tool
+from core.workflow.state import add_violation
+
+input_data = json.loads(sys.stdin.read())
+tool_name = input_data.get('tool_name', '')
+command = input_data.get('command', '')
+file_path = input_data.get('file_path', '')
+user_input = input_data.get('user_input', '')
+
+extra = {}
+if tool_name == 'Bash':
+    import subprocess
+    try:
+        branch = subprocess.check_output(['git', 'branch', '--show-current'], text=True, stderr=subprocess.DEVNULL).strip()
+        extra['git_branch'] = branch
+    except:
+        extra['git_branch'] = ''
+
+result = enforce_tool(
+    tool_name=tool_name,
+    command=command,
+    file_path=file_path,
+    user_input=user_input,
+    **extra
+)
+
+if result.violations:
+    for v in result.violations:
+        try:
+            add_violation(v.rule_id, v.message, v.tool, v.file_path, v.severity)
+        except:
+            pass
+
+    print(json.dumps({
+        'violations': [v.to_dict() for v in result.violations],
+        'blocked': result.blocked,
+        'escalated': result.escalated,
+        'messages': result.messages
+    }))
+else:
+    print(json.dumps({'violations': [], 'blocked': False, 'escalated': False, 'messages': []}))
+" <<< "$input" 2>/dev/null)
+
+  if [ -n "$ENFORCER_OUTPUT" ] && echo "$ENFORCER_OUTPUT" | jq -e '.violations | length > 0' &>/dev/null; then
+    ENFORCER_BLOCKED=$(echo "$ENFORCER_OUTPUT" | jq -r '.blocked')
+    ENFORCER_MESSAGES=$(echo "$ENFORCER_OUTPUT" | jq -r '.messages | join("|")')
+
+    for msg in $(echo "$ENFORCER_MESSAGES" | tr '|' '\n'); do
+      [ -n "$msg" ] && VIOLATION_MSG="${VIOLATION_MSG}${VIOLATION_MSG:+$'\n'}${msg}"
+    done
+
+    if [ "$ENFORCER_BLOCKED" = "true" ]; then
+      VIOLATION_MSG="🔴 BLOCK: ${VIOLATION_MSG}"
+    fi
+  fi
+fi
+
 # --- Forge Violation Detection ---
 _FORGE_ACTIVE="$HOME/.arkaos/plans/active.yaml"
 

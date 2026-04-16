@@ -28,9 +28,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/arka search <query>` | Semantic search in knowledge base |
 | `/arka keys` | Manage API keys (OpenAI, Google, fal.ai) |
 | `/arka personas` | Manage AI personas (create, clone to agent) |
-| `/do <description>` | Universal routing — natural language to department command |
+| `/arka-do <description>` | Universal routing — natural language to department command |
 
-## Universal Orchestrator (/do)
+## Universal Orchestrator (/arka-do)
 
 Users don't need to memorize commands. Just describe what you need:
 
@@ -114,7 +114,7 @@ ArkaOS supports matrix structure: agents belong to department squads but can be
 borrowed into ad-hoc project squads. Example:
 
 ```
-/do "launch campaign for new product"
+/arka-do "launch campaign for new product"
 → Creates project squad with:
    - Ines (Landing) — offer + funnel
    - Teresa (Landing) — sales copy
