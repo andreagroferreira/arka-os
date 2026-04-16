@@ -19,12 +19,13 @@ from core.synapse.cache import LayerCache
 @dataclass
 class SynapseResult:
     """Complete result of Synapse context injection."""
-    context_string: str          # The combined context to inject
-    layers: list[LayerResult]    # Individual layer results
-    total_ms: int                # Total computation time
-    total_tokens_est: int        # Estimated total tokens injected
-    cache_stats: dict            # Cache hit/miss statistics
-    layers_skipped: int          # Layers that returned empty results
+
+    context_string: str  # The combined context to inject
+    layers: list[LayerResult]  # Individual layer results
+    total_ms: int  # Total computation time
+    total_tokens_est: int  # Estimated total tokens injected
+    cache_stats: dict  # Cache hit/miss statistics
+    layers_skipped: int  # Layers that returned empty results
 
 
 class SynapseEngine:
@@ -83,13 +84,15 @@ class SynapseEngine:
         total_ms = int((time.time() - start) * 1000)
 
         # Record metrics
-        self._metrics.append({
-            "timestamp": time.time(),
-            "total_ms": total_ms,
-            "layers_computed": len(results),
-            "layers_skipped": skipped,
-            "tokens_injected": total_tokens,
-        })
+        self._metrics.append(
+            {
+                "timestamp": time.time(),
+                "total_ms": total_ms,
+                "layers_computed": len(results),
+                "layers_skipped": skipped,
+                "tokens_injected": total_tokens,
+            }
+        )
         # Keep only last 500 metrics
         if len(self._metrics) > 500:
             self._metrics = self._metrics[-500:]
@@ -166,10 +169,17 @@ def create_default_engine(
         Configured SynapseEngine ready to use.
     """
     from core.synapse.layers import (
-        ConstitutionLayer, DepartmentLayer, AgentLayer,
-        ProjectLayer, BranchLayer, CommandHintsLayer,
-        QualityGateLayer, TimeLayer, KnowledgeRetrievalLayer,
+        ConstitutionLayer,
+        DepartmentLayer,
+        AgentLayer,
+        ProjectLayer,
+        BranchLayer,
+        CommandHintsLayer,
+        QualityGateLayer,
+        TimeLayer,
+        KnowledgeRetrievalLayer,
         ForgeContextLayer,
+        SessionContextLayer,
     )
 
     engine = SynapseEngine()
@@ -186,5 +196,6 @@ def create_default_engine(
     engine.register_layer(QualityGateLayer())
     engine.register_layer(TimeLayer())
     engine.register_layer(ForgeContextLayer())
+    engine.register_layer(SessionContextLayer())
 
     return engine

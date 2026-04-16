@@ -89,6 +89,22 @@ MSG+="ArkaOS v${VERSION} | 65 agents | 17 departments | 244+ skills"
 [ -n "$_FORGE_LINE" ] && MSG+="\\n${_FORGE_LINE}"
 MSG+="${DRIFT}"
 
+# --- Session Memory Resume Context ---
+if command -v python3 &>/dev/null && [ -n "$REPO" ]; then
+  _SESSION_CTX=$(cd "$REPO" && python3 -c "
+import sys
+sys.path.insert(0, '$REPO')
+try:
+    from core.memory.rehydrator import build_resume_context
+    ctx = build_resume_context()
+    if ctx:
+        print('\\n[SESSION] ' + ctx.replace('\\n', '\\n[SESSION] '))
+except Exception:
+    pass
+" 2>/dev/null)
+  [ -n "$_SESSION_CTX" ] && MSG+="\\n${_SESSION_CTX}"
+fi
+
 # ─── Output as systemMessage (same protocol as claude-mem) ─────────────
 python3 -c "
 import json

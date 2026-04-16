@@ -206,7 +206,7 @@ class TestKnowledgeRetrievalLayer:
         store.index_chunks(texts=["ArkaOS deployment guide"], source="deploy.md")
 
         engine = create_default_engine(vector_store=store)
-        assert engine.layer_count == 10  # 9 default + 1 knowledge
+        assert engine.layer_count == 11  # 10 default + 1 knowledge
 
         ctx = PromptContext(user_input="how to deploy")
         result = engine.inject(ctx)

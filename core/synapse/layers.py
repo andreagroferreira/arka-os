@@ -460,14 +460,33 @@ class QualityGateLayer(Layer):
 
     def compute(self, ctx: PromptContext) -> LayerResult:
         start = time.time()
-        # Quality Gate status is contextual — loaded from governance engine
+        try:
+            from core.governance.quality_api import list_pending, list_approved
+
+            pending = list_pending()
+            approved = list_approved(limit=3)
+        except Exception:
+            pending = []
+            approved = []
+
+        parts = []
+        if pending:
+            parts.append(f"{len(pending)} pending")
+            titles = [p.get("title", "")[:30] for p in pending[:2]]
+            parts.append(f"pending: {'; '.join(titles)}")
+        if approved:
+            parts.append(f"recent approved: {len(approved)}")
+
         tag = "[qg:active]"
+        content = " | ".join(parts) if parts else "active"
+        tokens = len(content.split())
+
         ms = int((time.time() - start) * 1000)
         return LayerResult(
             layer_id=self.id,
             tag=tag,
-            content="active",
-            tokens_est=1,
+            content=content,
+            tokens_est=tokens,
             compute_ms=ms,
             cached=False,
         )
@@ -595,11 +614,13 @@ class KnowledgeRetrievalLayer(Layer):
         session_id = ctx.extra.get("session_id", "default") if ctx.extra else "default"
         project_path = ctx.cwd or None
 
+        overlapping: list[dict] = []
         try:
             from core.synapse.kb_cache import KBSessionCache
 
             cache = KBSessionCache(session_id=session_id, project_path=project_path)
             cache.store(ctx.user_input, results)
+            overlapping = cache.get_overlap(ctx.user_input, threshold=0.3)
         except Exception:
             pass
 
@@ -615,7 +636,7 @@ class KnowledgeRetrievalLayer(Layer):
             snippets.append(snippet)
             total_tokens += tokens
 
-        if not snippets:
+        if not snippets and not overlapping:
             ms = int((time.time() - start) * 1000)
             return LayerResult(
                 layer_id=self.id,
@@ -626,14 +647,25 @@ class KnowledgeRetrievalLayer(Layer):
                 cached=False,
             )
 
-        tag = f"[knowledge:{len(snippets)} chunks]"
+        parts: list[str] = []
+        if overlapping:
+            for o in overlapping[:2]:
+                text = o.get("text", "")[:200].replace("\n", " ").strip()
+                src = o.get("source", "").split("/")[-1] if o.get("source") else ""
+                parts.append(f"[cached] {src}: {text}" if src else f"[cached] {text}")
+        parts.extend(snippets)
+
+        content = " | ".join(parts)
+        chunk_count = len(snippets) + (len(overlapping) if overlapping else 0)
+        tag = f"[knowledge:{chunk_count} chunks]"
         ms = int((time.time() - start) * 1000)
+        tokens_est = len(content.split())
 
         return LayerResult(
             layer_id=self.id,
             tag=tag,
-            content="",
-            tokens_est=0,
+            content=content,
+            tokens_est=tokens_est,
             compute_ms=ms,
             cached=False,
         )
@@ -694,6 +726,61 @@ class ForgeContextLayer(Layer):
             tag=tag,
             content=content,
             tokens_est=len(content.split()),
+            compute_ms=ms,
+            cached=False,
+        )
+
+
+# --- L9: Session Memory Context ---
+
+
+class SessionContextLayer(Layer):
+    """L9: Restored session context from memory store.
+
+    Provides context from previous sessions via build_resume_context().
+    Shows workflow position, pending items, and violations.
+    """
+
+    @property
+    def id(self) -> str:
+        return "L9"
+
+    @property
+    def name(self) -> str:
+        return "SessionMemory"
+
+    @property
+    def cache_ttl(self) -> int:
+        return 0
+
+    @property
+    def priority(self) -> int:
+        return 90
+
+    def compute(self, ctx: PromptContext) -> LayerResult:
+        start = time.time()
+        try:
+            from core.memory.rehydrator import build_resume_context
+
+            content = build_resume_context()
+        except Exception:
+            content = ""
+
+        if not content:
+            return LayerResult(
+                layer_id=self.id, tag="", content="", tokens_est=0, compute_ms=0, cached=False
+            )
+
+        lines = content.split("\n")
+        tag = "[session:resume]"
+        tokens = len(content.split())
+
+        ms = int((time.time() - start) * 1000)
+        return LayerResult(
+            layer_id=self.id,
+            tag=tag,
+            content=content,
+            tokens_est=tokens,
             compute_ms=ms,
             cached=False,
         )

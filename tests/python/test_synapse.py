@@ -247,7 +247,7 @@ class TestTimeLayer:
 class TestSynapseEngine:
     def test_create_default_engine(self):
         engine = create_default_engine(constitution_compressed="test")
-        assert engine.layer_count == 9
+        assert engine.layer_count == 10
 
     def test_inject_returns_result(self):
         engine = create_default_engine(constitution_compressed="NON-NEGOTIABLE: a")
