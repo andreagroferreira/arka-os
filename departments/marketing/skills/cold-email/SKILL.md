@@ -108,21 +108,9 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Cold Email — [Prospect Segment]
-
-**Mode:** write | sequence | iterate
-**Sender:** [role] at [company]
-**Prospect:** [title] at [company type]
-**Goal:** [book call / get reply / get referral]
-
-### Email 1 — First Touch
-**Subject:** [line]
-**Body:** [copy]
-
-### Subject Line Variants
-1. [variant]
-2. [variant]
-3. [variant]
-
-### Rationale
-[Why this structure, framework, and tone were chosen]
+**Mode:** [write/sequence/iterate] | **Sender:** [role] at [company]
+**Prospect:** [title] at [company type] | **Goal:** [book call / get reply]
+### Email 1: **Subject:** [line] | **Body:** [copy]
+### Subject Lines: 1. [variant] 2. [variant] 3. [variant]
+### Rationale: [why this structure and tone were chosen]
 ```

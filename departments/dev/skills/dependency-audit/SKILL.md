@@ -117,6 +117,4 @@ Surface these issues WITHOUT being asked:
 - Recommendation: {SAFE TO DEPLOY | FIX BEFORE DEPLOY | BLOCK DEPLOY}
 ```
 
-## References
-
-- [license-matrix.md](references/license-matrix.md) — Open source license compatibility matrix, copyleft obligations, commercial use implications, and dual-licensing strategies
+See `references/license-matrix.md` for full license compatibility matrix.

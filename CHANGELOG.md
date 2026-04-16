@@ -5,6 +5,25 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.4] - 2026-04-16
+
+### Changed
+
+- **Sprint 10: Lazy-Load Skills** — All skill SKILL.md files trimmed to ≤120 lines.
+  Thin orchestrators kept in SKILL.md; deep content moved to `references/` subdirectory.
+  20 SKILL.md files updated across departments and arka/ meta-skills.
+  Forbidden patterns and advisor tables extracted to reference files.
+  12 project-specific skills removed from shared repo (cascais24horas, clubefashion,
+  edp, fovory, lora-tester, marlon, rockport, rothbard100, wizardingcode,
+  zugatv, scaffold, saas-scaffold) per client instruction.
+
+## [2.17.3] - 2026-04-16
+
+### Changed
+
+- Updated HookShell dispatch to route `PreToolUse` events through the
+  new `dispatch_to_shell()` function in `hooks/user-prompt-submit.sh`.
+
 ## [2.17.0] - 2026-04-12
 
 ### Added

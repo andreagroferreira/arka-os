@@ -101,29 +101,11 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Incident Report: <title>
-
-### Summary
-- Severity: SEV{level}
-- Duration: {start} to {end} ({total time})
-- Impact: {users/services affected}
-- Root Cause: {1-2 sentence summary}
-
-### Timeline
-| Time | Event |
-|------|-------|
-
-### Root Cause Analysis
-[5 Whys / Fishbone / Timeline analysis]
-
-### Action Items
-| # | Action | Owner | Due | Status |
-|---|--------|-------|-----|--------|
-
-### Lessons Learned
-1. [Key takeaway]
-2. [Key takeaway]
+### Summary: SEV{level} | Duration: {start}-{end} | Impact: {users/services} | Root Cause: {1-2 sentences}
+### Timeline: | Time | Event |
+### Root Cause: [5 Whys / Fishbone analysis]
+### Action Items: | # | Action | Owner | Due | Status |
+### Lessons Learned: 1. [takeaway] 2. [takeaway]
 ```
 
-## References
-
-- [severity-playbook.md](references/severity-playbook.md) — SEV1-4 definitions, escalation paths, communication templates, and PIR checklist
+See `references/severity-playbook.md` for SEV1-4 definitions and escalation paths.

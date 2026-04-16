@@ -53,60 +53,28 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 For `/dev feature` and `/dev api`:
 
 ```
-Phase 0: SPECIFICATION → Paulo + Gabriel create/validate spec
-  Gate: User approval
-
-Phase 1: RESEARCH → Analyst researches patterns + Gabriel checks architecture
-  Gate: Auto
-
-Phase 2: ARCHITECTURE → Gabriel designs + Marco approves ADR
-  Gate: User approval
-
+Phase 0: SPECIFICATION → Paulo + Gabriel create/validate spec (User approval gate)
+Phase 1: RESEARCH → Analyst + Gabriel check patterns + architecture
+Phase 2: ARCHITECTURE → Gabriel designs + Marco approves ADR (User approval gate)
 Phase 3: IMPLEMENTATION → Andre (backend) + Diana (frontend) in parallel
-  Gate: Auto
-
-Phase 4: SELF-CRITIQUE → Paulo reviews against Clean Code + SOLID
-  Gate: Auto
-
+Phase 4: SELF-CRITIQUE → Paulo reviews Clean Code + SOLID
 Phase 5: SECURITY AUDIT → Bruno runs OWASP Top 10 + dependency scan
-  Gate: Auto
-
-Phase 6: QA → Rita runs ALL tests, checks coverage >= 80%, mutation score
-  Gate: Auto
-
-Phase 7: QUALITY GATE → Marta dispatches Eduardo (copy) + Francisca (tech)
-  Gate: APPROVED required from all three
-
-Phase 8: DOCUMENTATION → Save ADR + docs to Obsidian
-  Gate: Auto
+Phase 6: QA → Rita runs ALL tests, coverage >= 80%, mutation score
+Phase 7: QUALITY GATE → Marta + Eduardo (copy) + Francisca (tech) → APPROVED
+Phase 8: DOCUMENTATION → ADR + docs to Obsidian
 ```
 
 ## Focused Workflow (4 Phases)
 
-For `/dev debug`, `/dev refactor`, `/dev db`, `/dev performance`, `/dev pipeline`:
-
-```
-Phase 0: DIAGNOSE → Relevant specialist investigates
-Phase 1: IMPLEMENT → Fix/change with tests
-Phase 2: VERIFY → Rita validates, Paulo reviews
-Phase 3: QUALITY GATE → Marta reviews
-```
+For `/dev debug`, `/dev refactor`, `/dev db`, `/dev performance`, `/dev pipeline`: Diagnose → Implement with tests → Rita validates → Quality Gate (Marta).
 
 ## Specialist Workflow (2 Phases)
 
-For `/dev review`, `/dev test`, `/dev security-audit`, `/dev clean-review`:
-
-```
-Phase 0: EXECUTE → Specialist agent performs the task
-Phase 1: REPORT → Results saved to Obsidian
-```
+For `/dev review`, `/dev test`, `/dev security-audit`, `/dev clean-review`: Execute → Report (Obsidian).
 
 ## Branch Workflow (Mandatory)
 
-All code-modifying commands create a feature branch:
-- Features: `feature/<slug>`
-- Fixes: `fix/<slug>`
-- Refactors: `refactor/<slug>`
+Feature branches: `feature/<slug>` · `fix/<slug>` · `refactor/<slug>`
 
 ## Frameworks Applied
 

@@ -101,31 +101,11 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Agent System Design: <System Name>
-
-### Architecture
-- **Pattern:** <selected pattern>
-- **Rationale:** <why this pattern fits>
-
-### Agents
-| Agent | Role | Tools | Interfaces |
-|-------|------|-------|-----------|
-| ... | ... | ... | ... |
-
-### Communication
-- **Pattern:** <message passing / shared state / event-driven>
-- **Handoff contract:** <fields passed between agents>
-
-### Guardrails
-- **Input:** <validation rules>
-- **Output:** <filtering rules>
-- **Human gates:** <approval checkpoints>
-
-### Evaluation Metrics
-- Task success rate target: >X%
-- Latency budget: <Xms per stage>
-- Cost ceiling: <$ per task>
+### Architecture: <pattern> | Rationale: <why>
+### Agents: | Agent | Role | Tools | Interfaces |
+### Communication: <pattern> | Handoff: <fields passed>
+### Guardrails: Input <rules> | Output <rules> | Human gates <checkpoints>
+### Evaluation: Success >X% | Latency <Xms/stage | Cost <$$/task
 ```
 
-## References
-
-- [architecture-patterns.md](references/architecture-patterns.md) — 5 multi-agent patterns with decision matrix, anti-patterns, and scaling characteristics
+See `references/architecture-patterns.md` for multi-agent pattern details.

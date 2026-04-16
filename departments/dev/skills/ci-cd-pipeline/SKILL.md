@@ -87,48 +87,25 @@ Surface these issues WITHOUT being asked:
 ```yaml
 # .github/workflows/ci.yml
 name: CI
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-
+on: { push: { branches: [main, develop] }, pull_request: { branches: [main] } }
 jobs:
   lint:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: <setup-action>
-      - run: <install-command>
-      - run: <lint-command>
-
+    steps: [uses: actions/checkout@v4, uses: <setup-action>, run: <install-command>, run: <lint-command>]
   test:
     needs: lint
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: <setup-action>
-      - run: <install-command>
-      - run: <test-command>
-
+    steps: [uses: actions/checkout@v4, uses: <setup-action>, run: <install-command>, run: <test-command>]
   build:
     needs: test
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: <setup-action>
-      - run: <install-command>
-      - run: <build-command>
-
+    steps: [uses: actions/checkout@v4, uses: <setup-action>, run: <install-command>, run: <build-command>]
   deploy:
     needs: build
     if: github.ref == 'refs/heads/main'
     environment: <staging|production>
     runs-on: ubuntu-latest
-    steps:
-      - run: <deploy-command>
+    steps: [run: <deploy-command>]
 ```
 
-## References
-
-- [github-actions-patterns.md](references/github-actions-patterns.md) — Caching strategies, matrix builds, reusable workflows, secret management, deployment environments, and common pitfalls
+See `references/github-actions-patterns.md` for caching strategies and deployment patterns.

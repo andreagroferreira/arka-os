@@ -90,34 +90,11 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Observability Design: <project>
-
-### Service Inventory
-| Service | SLI | SLO Target | Current |
-|---------|-----|------------|---------|
-
-### Logging
-- Format: [structured JSON / plaintext -- recommendation]
-- Missing correlation IDs: [list]
-- Level misuse: [list]
-
-### Metrics & Alerts
-- Golden signals coverage: [X/4 per service]
-- Alert rules: [count] ([actionable %])
-- Missing alerts: [list]
-
-### Tracing
-- Instrumented services: [X/Y]
-- Sampling strategy: [head/tail/adaptive]
-
-### Dashboard Plan
-- [Executive | Service | Component] dashboards needed
-
-### Recommendations (priority order)
-1. [Most impactful improvement]
-2. [Next priority]
-3. [Next priority]
+### Service Inventory: | Service | SLI | SLO Target | Current |
+### Logging: Format, missing IDs, level issues
+### Metrics & Alerts: Golden signals X/4, alert rules, missing alerts
+### Tracing: Instrumented X/Y, sampling strategy
+### Dashboard Plan: [Executive | Service | Component] dashboards needed
 ```
 
-## References
-
-- [slo-design.md](references/slo-design.md) — SLI/SLO/SLA framework, error budget calculations, and burn rate alert configuration
+See `references/slo-design.md` for SLI/SLO/SLA framework details.

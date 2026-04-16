@@ -106,29 +106,11 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Schema Design: <Feature Name>
-
-### Entities
-| Table | Purpose | Key Columns |
-|-------|---------|------------|
-| ... | ... | ... |
-
-### Relationships
-| From | To | Type | FK |
-|------|-----|------|-----|
-| ... | ... | 1:N | ... |
-
-### Indexes
-| Table | Columns | Type | Reason |
-|-------|---------|------|--------|
-| ... | ... | composite | ... |
-
-### Migration
-<Laravel migration code>
-
-### ERD
-<Mermaid diagram>
+### Entities: | Table | Purpose | Key Columns |
+### Relationships: | From | To | Type | FK |
+### Indexes: | Table | Columns | Type | Reason |
+### Migration: <Laravel migration code>
+### ERD: <Mermaid diagram>
 ```
 
-## References
-
-- [indexing-strategy.md](references/indexing-strategy.md) — B-tree vs hash vs GIN vs GiST, composite index ordering, partial indexes, covering indexes, EXPLAIN ANALYZE interpretation
+See `references/indexing-strategy.md` for B-tree vs hash vs GIN vs GiST and EXPLAIN ANALYZE.

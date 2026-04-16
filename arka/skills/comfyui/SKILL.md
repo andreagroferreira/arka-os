@@ -22,14 +22,12 @@ Full-spectrum AI media production platform. From ComfyUI node engineering to Hol
 | **purz-comfyui-workflows** | Workflow Collection | ComfyUI JSON (7 workflows, 110+ nodes) | `/Users/andreagroferreira/AIProjects/purz-comfyui-workflows` |
 | **lora_tester** | CLI Tool + Gallery | Python 3.8+ (stdlib) + Vanilla HTML/JS | `/Users/andreagroferreira/AIProjects/lora_tester` |
 
-## Squads (summary)
+## Squads
 
-| Squad | Purpose | Members |
-|-------|---------|---------|
-| **ComfyUI Core** | Technical engine: workflow JSON, custom nodes, models, VRAM, API automation | Viktor (Pipeline Architect), Kaito (Workflow Engineer), Iris (Node Researcher), Atlas (Model Specialist), Nexus (Automation Engineer), Pixel (QA Tester) |
-| **Cinematographic Production** | Hollywood pipeline: direction, DP, art, VFX, color, edit, sound, motion, production | Roman (Director), Lena (DP), Soren (Screenwriter), Mika (Art Director), Orion (VFX), Celeste (Colorist), Raven (Editor), Echo (Sound Designer), Flux (Motion Graphics), Sterling (Producer) |
+**ComfyUI Core:** Viktor, Kaito, Iris, Atlas, Nexus, Pixel — workflow JSON, custom nodes, models, VRAM, API.
+**Cinematographic Production:** Roman, Lena, Soren, Mika, Orion, Celeste, Raven, Echo, Flux, Sterling — direction, DP, VFX, color, edit, sound, motion.
 
-Full role definitions, agent types, and competencies: `references/squads.md`.
+Full role definitions: `references/squads.md`.
 
 ## Commands
 
@@ -70,13 +68,53 @@ Full role definitions, agent types, and competencies: `references/squads.md`.
 
 ## Orchestration Workflow
 
-Every `/comfyui` request follows a 6-phase flow: (1) context loading, (2) analysis & planning with squad routing, (3) plan presentation & approval gate, (4) execution with worktree isolation, (5) mandatory Quality Gate (Marta/Eduardo/Francisca), (6) documentation & report.
+6-phase flow: context → analysis+squad routing → plan approval → execution (worktree) → Quality Gate → docs. Squad: technical → Core; creative → Cinematographic; full → both (Sterling coords); research → Iris/Atlas. Details: `references/workflows.md`
 
-Squad routing: technical → Core; creative production → Cinematographic; full production → both, coordinated by Producer Sterling; research → Iris or Atlas.
+<!-- arka:feature:forge-integration:start -->
+## Forge Integration
 
-**See `references/workflows.md`** for full phase templates (plan, report), workflows catalogue (LTX-2 T2V/I2V/Audio, SVD, AnimateDiff), model registry, cinematic prompt engineering guide, ComfyUI API reference, status command, `/comfyui produce` pipeline, custom node research protocol, and Obsidian output structure.
+Complex requests (complexity score >= 5) are automatically routed to
+The Forge for multi-agent planning before execution.
 
-## References
+- Phase 0.5: Forge analysis (after spec creation, before squad planning)
+- Complexity assessment: automatic via Synapse L8 (ForgeContextLayer)
+- Manual invocation: `/forge` command
+- Handoff: Forge outputs structured plan -> squad executes phases
+<!-- arka:feature:forge-integration:end -->
 
-- `references/squads.md` — Full Core and Cinematographic squad role tables, agent types, core competencies
-- `references/workflows.md` — Phase templates, workflow catalogue, model registry, API reference, prompt engineering guide, Obsidian output
+<!-- arka:feature:quality-gate:start -->
+## Quality Gate
+
+Mandatory on every workflow. Nothing ships without approval.
+
+- **Marta (CQO):** Orchestrates review, absolute veto power
+- **Eduardo (Copy Director):** Reviews all text output
+- **Francisca (Tech Director):** Reviews all code and technical output
+- Verdict: APPROVED or REJECTED (binary, no partial)
+<!-- arka:feature:quality-gate:end -->
+
+<!-- arka:feature:spec-driven-gate:start -->
+## Spec-Driven Development
+
+Phase 0 of all workflows. No implementation begins without a validated spec.
+
+- Invocation: automatic before any feature/fix work
+- Gate: spec must be approved before planning phase starts
+- Storage: `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+- Review: user approval required on written spec
+<!-- arka:feature:spec-driven-gate:end -->
+
+<!-- arka:feature:workflow-tiers:start -->
+## Workflow Tiers
+
+Three workflow tiers based on task complexity:
+
+| Tier | Phases | When |
+|------|--------|------|
+| Enterprise | 7-10 phases | Complex features, multi-file changes |
+| Focused | 3-5 phases | Medium tasks, single-domain changes |
+| Specialist | 1-2 phases | Simple tasks, quick fixes |
+
+Tier selection is automatic based on complexity assessment.
+Quality Gate phase is mandatory on ALL tiers.
+<!-- arka:feature:workflow-tiers:end -->

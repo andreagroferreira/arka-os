@@ -28,9 +28,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/arka search <query>` | Semantic search in knowledge base |
 | `/arka keys` | Manage API keys (OpenAI, Google, fal.ai) |
 | `/arka personas` | Manage AI personas (create, clone to agent) |
-| `/arka-do <description>` | Universal routing — natural language to department command |
+| `/do <description>` | Universal routing — natural language to department command |
 
-## Universal Orchestrator (/arka-do)
+## Universal Orchestrator (/do)
 
 Users don't need to memorize commands. Just describe what you need:
 
@@ -47,23 +47,10 @@ Users don't need to memorize commands. Just describe what you need:
 
 ### Routing Logic
 
-```
-1. Check for explicit /prefix command → Route directly
-
-2. If no prefix (natural language):
-   a. Synapse L1 (Department Detection) matches keywords
-   b. Synapse L5 (Command Hints) scores against registry
-   c. Hook context [dept:], [hint:] tags from Synapse
-
-3. Resolution:
-   - Single high-confidence match → Announce squad + execute
-   - Multiple matches → Show top 3, ask user to pick
-   - No match but clear department → Route to /dept do
-   - Ambiguous → Ask "Which department?"
-
-4. Code-modifying commands → Show preview, ask confirmation
-   Non-code commands → Auto-execute with announcement
-```
+1. Explicit `/prefix` → Route directly
+2. Natural language → Synapse L1 (keyword) + L5 (command hints) + hook context tags
+3. Resolution: single match → announce + execute | multiple → top 3 + ask | ambiguous → ask department
+4. Code-modifying → preview + confirm | non-code → auto-execute
 
 ### Squad Routing (NON-NEGOTIABLE)
 
@@ -72,24 +59,7 @@ as a generic assistant. Even a one-line task goes through the correct squad work
 
 ## Department Routing Table
 
-| Prefix | Department | Lead Agent | Commands |
-|--------|-----------|------------|----------|
-| `/dev` | Development | Paulo (Tech Lead) | 16 |
-| `/mkt` | Marketing & Growth | Luna | 12 |
-| `/brand` | Brand & Design | Valentina | 12 |
-| `/fin` | Finance & Investment | Helena (CFO) | 10 |
-| `/strat` | Strategy & Innovation | Tomas | 10 |
-| `/ecom` | E-Commerce | Ricardo | 12 |
-| `/kb` | Knowledge Management | Clara | 12 |
-| `/ops` | Operations & Automation | Daniel | 10 |
-| `/pm` | Project Management | Carolina | 12 |
-| `/saas` | SaaS & Micro-SaaS | Tiago | 14 |
-| `/landing` | Landing Pages & Funnels | Ines | 14 |
-| `/content` | Content & Viralization | Rafael | 14 |
-| `/community` | Communities & Groups | Beatriz | 14 |
-| `/sales` | Sales & Negotiation | Miguel | 10 |
-| `/lead` | Leadership & People | Rodrigo | 10 |
-| `/org` | Organization & Teams | Sofia (COO) | 10 |
+`/dev` Paulo · `/mkt` Luna · `/brand` Valentina · `/fin` Helena · `/strat` Tomas · `/ecom` Ricardo · `/kb` Clara · `/ops` Daniel · `/pm` Carolina · `/saas` Tiago · `/landing` Ines · `/content` Rafael · `/community` Beatriz · `/sales` Miguel · `/lead` Rodrigo · `/org` Sofia (COO)
 
 ## Quality Gate (Automatic)
 
@@ -110,44 +80,16 @@ Every workflow includes a Quality Gate phase before delivery:
 
 ## Cross-Department Collaboration
 
-ArkaOS supports matrix structure: agents belong to department squads but can be
-borrowed into ad-hoc project squads. Example:
-
-```
-/arka-do "launch campaign for new product"
-→ Creates project squad with:
-   - Ines (Landing) — offer + funnel
-   - Teresa (Landing) — sales copy
-   - Luna (Marketing) — paid + social
-   - Isabel (Brand) — visual assets
-   - Ricardo (E-Commerce) — store setup
-```
+Matrix structure: agents belong to department squads but can be borrowed into ad-hoc project squads. Example: `/do "launch campaign"` → Ines (Landing) + Luna (Marketing) + Isabel (Brand) + Ricardo (E-Commerce).
 
 ## Session Greeting
 
-On first interaction (no command provided):
-1. Read user profile from ~/.arkaos/profile.json
-2. If profile exists: Show branded welcome with name and company
-3. If no profile: Prompt onboarding via /arka setup
-4. If command provided: Skip greeting, process immediately
+No command: read `~/.arkaos/profile.json` → welcome if exists, else `/arka setup`. Command provided → process immediately.
 
 ## Obsidian Integration
 
-All department output saved to the Obsidian vault:
-- YAML frontmatter on all files
-- Wikilinks for cross-references
-- Department-specific output paths
-- MOC (Map of Content) for organization
+All output: YAML frontmatter · wikilinks · department paths · MOC organization.
 
 ## Model Selection
 
-When dispatching subagent work via the Task tool, include the `model` parameter from the target agent's YAML `model:` field:
-
-- Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | haiku`
-- Quality Gate dispatch (Marta/Eduardo/Francisca) ALWAYS uses `model: opus` — NON-NEGOTIABLE
-- Default to `sonnet` if the agent YAML has no `model` field
-- Mechanical tasks (commit messages, routing, keyword extraction) use `model: haiku`
-
-Example Task tool call:
-
-    Task(description="...", subagent_type="general-purpose", model="sonnet", prompt="...")
+Use `model` parameter from agent YAML (`departments/*/agents/*.yaml`). Quality Gate (Marta/Eduardo/Francisca) ALWAYS `model: opus` — NON-NEGOTIABLE. Default: `sonnet`. Mechanical tasks: `haiku`.

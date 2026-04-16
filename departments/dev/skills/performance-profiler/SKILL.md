@@ -99,30 +99,9 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Performance Profile: <Target>
-
-### Baseline
-| Metric | Value | Budget | Status |
-|--------|-------|--------|--------|
-| P50 latency | 480ms | < 100ms | OVER |
-| P95 latency | 1240ms | < 200ms | OVER |
-| P99 latency | 3100ms | < 1000ms | OVER |
-| DB queries/req | 23 | < 10 | OVER |
-
-### Root Cause
-[What the profiler revealed]
-
-### Fix Applied
-[What changed]
-
-### After
-| Metric | Before | After | Delta |
-|--------|--------|-------|-------|
-| P50 | 480ms | 48ms | -90% |
-| P95 | 1240ms | 120ms | -90% |
-| P99 | 3100ms | 280ms | -91% |
-| Queries | 23 | 1 | -96% |
-
-### Recommendations
-| Priority | Action | Expected Impact |
-|----------|--------|----------------|
+### Baseline: | Metric | Value | Budget | Status |
+### Root Cause: [what profiler revealed]
+### Fix Applied: [what changed]
+### After: | Metric | Before | After | Delta |
+### Recommendations: | Priority | Action | Expected Impact |
 ```

@@ -96,26 +96,12 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Board Decision Brief: <Topic>
-
-### Decision Required
-[One sentence]
-
-### Perspectives Summary
-| Role | Position | Confidence |
-|------|----------|------------|
-
-### Where They Agree / Disagree
-[Key alignment and tension points]
-
-### Recommended Decision
-[Action + rationale]
-
-### Action Items
-| # | Action | Owner | Deadline |
-|---|--------|-------|----------|
-
-### Open Risks
-[What could go wrong]
+### Decision Required: [one sentence]
+### Perspectives: | Role | Position | Confidence | ... |
+### Recommended Decision: [action + rationale]
+### Action Items: | # | Action | Owner | Deadline |
 ```
 
-## Output -> Obsidian: `WizardingCode/Strategy/Board/DECISION-<topic>-<date>.md`
+## Obsidian Output
+
+`WizardingCode/Strategy/Board/DECISION-<topic>-<date>.md`

@@ -101,21 +101,8 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## MCP Server: <Server Name>
-
-### Tools
-| Tool | Description | Params | Returns |
-|------|------------|--------|---------|
-| ... | ... | ... | ... |
-
-### Auth
-- **Strategy:** <env vars / OAuth / API key>
-- **Outbound hosts:** <allowlist>
-
-### Versioning
-- **Current:** v<X>
-- **Compatibility:** <backward-compatible since vX>
-
-### Deployment
-- **Runtime:** <Python / TypeScript>
-- **Transport:** <stdio / HTTP>
+### Tools: | Tool | Description | Params | Returns |
+### Auth: <strategy> | Outbound hosts: <allowlist>
+### Versioning: v<X> | Compatibility: <backward-compatible since vX>
+### Deployment: <Python / TypeScript> | Transport: <stdio / HTTP>
 ```

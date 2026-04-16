@@ -110,21 +110,8 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Release Plan: v{X.Y.Z}
-
-### Version Bump: {MAJOR|MINOR|PATCH}
-### Reason: {summary of changes}
-
-### Readiness
-- [ ] Code quality gates: {PASS/FAIL}
-- [ ] Documentation: {PASS/FAIL}
-- [ ] Approvals: {PASS/FAIL}
-
-### Changes Included
-- Features: {count}
-- Fixes: {count}
-- Breaking changes: {count}
-
-### Deployment Strategy: {blue-green / canary / rolling}
-### Rollback Plan: {container revert / feature flag / DB-safe}
-### Risk Assessment: {LOW / MEDIUM / HIGH}
+### Version Bump: {MAJOR|MINOR|PATCH} | Reason: {summary}
+### Readiness: Code quality [PASS/FAIL] | Docs [PASS/FAIL] | Approvals [PASS/FAIL]
+### Changes: Features {count} | Fixes {count} | Breaking {count}
+### Deployment: {blue-green/canary/rolling} | Rollback: {plan} | Risk: {LOW/MEDIUM/HIGH}
 ```

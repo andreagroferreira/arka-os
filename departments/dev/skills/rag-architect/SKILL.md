@@ -103,28 +103,10 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## RAG System Design: <System Name>
-
-### Pipeline
-- **Chunking:** <strategy>, <size>, <overlap>
-- **Embedding:** <model>, <dimensions>
-- **Vector DB:** <database>, <index type>
-- **Retrieval:** <strategy>, top-K=<N>
-- **Reranking:** <model or none>
-
-### Evaluation Targets
-| Metric | Target |
-|--------|--------|
-| Faithfulness | >X% |
-| Context Relevance | >X |
-| Answer Relevance | >X |
-
-### Cost Estimate
-- Embedding cost: ~$X per 1K docs
-- Storage: ~$X/month for <N> vectors
-- Query cost: ~$X per 1K queries
+### Pipeline: Chunking <strategy+size+overlap> | Embedding <model+dims> | Vector DB <db+index>
+### Retrieval: <strategy>, top-K=<N> | Reranking: <model or none>
+### Evaluation: Faithfulness >X% | Context Relevance >X | Answer Relevance >X
+### Cost: Embedding ~$X/1K docs | Storage ~$X/mo | Query ~$X/1K queries
 ```
 
-## References
-
-- [chunking-strategies.md](references/chunking-strategies.md) — Decision tree and benchmarks for chunking approaches
-- [evaluation-guide.md](references/evaluation-guide.md) — RAGAS metrics and ground truth dataset creation
+See `references/chunking-strategies.md` and `references/evaluation-guide.md` for details.

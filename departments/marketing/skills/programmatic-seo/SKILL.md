@@ -100,26 +100,11 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Programmatic SEO Strategy — [Niche]
-
-**Playbook:** [Selected playbook]
-**Keyword pattern:** [pattern] | **Estimated pages:** [N]
-**Data source:** [type] | **Defensibility:** [tier]
-
-### Opportunity Analysis
-| Pattern | Est. Volume | Data Source | Difficulty |
-|---------|-------------|-------------|------------|
-
-### Page Template Spec
-- URL: /[hub]/[variable]/
-- Title: [template]
-- Meta: [template]
-- Content blocks: [list]
-
-### Pre-Launch Checklist
-[checkbox items]
-
-### Monitoring Plan
-| Metric | Tool | Threshold | Review Cadence |
+**Playbook:** [type] | **Keyword:** [pattern] | **Pages:** [N] | **Defensibility:** [tier]
+### Opportunity: | Pattern | Est. Volume | Data Source | Difficulty |
+### Template: URL /[hub]/[variable]/ | Title/meta [template] | Content [blocks]
+### Pre-Launch Checklist: [items]
+### Monitoring: | Metric | Tool | Threshold | Cadence |
 ```
 
 ## References

@@ -105,20 +105,8 @@ Surface these issues WITHOUT being asked:
 
 ```markdown
 ## Landing Page — [Product Name]
-
-**Style:** [design style] | **Framework:** [copy framework]
+**Style:** [style] | **Framework:** [copy framework]
 **Sections:** [list of generated sections]
-
-### Files Generated
-- `components/hero.tsx`
-- `components/features.tsx`
-- `components/pricing.tsx`
-- `components/faq.tsx`
-- `components/cta.tsx`
-- `components/footer.tsx`
-- `app/page.tsx` (assembles all sections)
-- `app/layout.tsx` (SEO meta + OG tags)
-
-### SEO Checklist
-[validated items]
+### Files: components/hero.tsx, features.tsx, pricing.tsx, faq.tsx, cta.tsx, footer.tsx, app/page.tsx, app/layout.tsx
+### SEO Checklist: [validated items]
 ```
