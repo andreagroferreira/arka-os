@@ -89,6 +89,17 @@ MSG+="ArkaOS v${VERSION} | 65 agents | 17 departments | 244+ skills"
 [ -n "$_FORGE_LINE" ] && MSG+="\\n${_FORGE_LINE}"
 MSG+="${DRIFT}"
 
+# ─── Mandatory Flow Contract (top-of-session, highest priority) ─────────
+MSG+="\\n\\n[ARKA:MANDATORY-FLOW] NON-NEGOTIABLE. Every non-trivial request runs the 13-phase canonical flow (constitution rule mandatory-flow; source arka/skills/flow/SKILL.md):"
+MSG+="\\n  1.Input  2.Get-context  3.Route ([arka:routing] <dept> -> <lead>)  4.Call-hierarchy"
+MSG+="\\n  5.Research (Obsidian+vector DB, cite or declare gap)  6.Call-team (Agent tool)"
+MSG+="\\n  7.Plan with 6 parallel reviewers (positive / devils-advocate / Q&A / KB-research / best-solution / pessimistic)"
+MSG+="\\n  8.Present+save (Obsidian + vector DB + ~/.arkaos/plans/)  9.Wait-approval (silence != approval)"
+MSG+="\\n 10.TODO list  11.Per-todo: team-call -> complete -> QA -> Security -> Quality Gate (Marta+Eduardo+Francisca Opus) -> Document"
+MSG+="\\n 12.Loop until TODO exhausted  13.Detailed summary"
+MSG+="\\nEmit [arka:phase:N] before each step. Bypass ONLY via [arka:trivial] <reason> for single-file edits under 10 lines."
+MSG+="\\nNo runtime setting, no user convenience, no task type can opt out. This contract overrides generic-assistant defaults."
+
 # --- Session Memory Resume Context ---
 if command -v python3 &>/dev/null && [ -n "$REPO" ]; then
   _SESSION_CTX=$(cd "$REPO" && python3 -c "

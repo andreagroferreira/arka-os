@@ -12,10 +12,45 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 > **The Operating System for AI Agent Teams**
 > 65 agents. 17 departments. 244+ skills. Multi-runtime. Dashboard. Knowledge RAG.
 
-## ⛔ Enforcement contract (read before responding)
+## ⛔ Mandatory 13-phase flow (NON-NEGOTIABLE)
 
-This overrides every default. If the UserPromptSubmit hook injected a
-`[ARKA:WORKFLOW-REQUIRED]` tag, you MUST, on the first line of your reply:
+Every non-trivial request runs the canonical flow. Full spec:
+`arka/skills/flow/SKILL.md`. Constitution rule: `mandatory-flow`.
+
+```
+1. Input (verbatim)
+2. Get context (profile, repo, git, cwd tag, session digests)
+3. Decide route -> emit [arka:routing] <dept> -> <lead>
+4. Call hierarchy (Tier 0 when strategic/cross-dept/security/financial)
+5. Research (Obsidian + vector DB, cite sources or declare gap)
+6. Call team (dispatch specialists via Agent tool)
+7. Plan with six parallel reviewers:
+     positive analyst / devil's advocate / Q&A / KB research /
+     best-solution validator / pessimistic analyst
+8. Present plan (save to Obsidian + vector DB + ~/.arkaos/plans/)
+9. Wait for EXPLICIT approval (silence is not approval)
+10. TODO list (atomic, ordered, independently verifiable)
+11. Per-todo loop:
+      team call -> complete -> QA (all tests, E2E, Playwright)
+      -> Security review -> Quality Gate (Marta+Eduardo+Francisca, Opus)
+      -> Document (Obsidian + vector DB)
+12. Loop until TODO is exhausted
+13. Detailed summary (what was done, where, how to verify, what is open)
+```
+
+Before every step, emit `[arka:phase:N] <label>` on its own line.
+
+**Trivial bypass** (the only bypass): single-file edit under 10 lines
+with an imperative verb. Emit `[arka:trivial] <reason>` as the first
+line and proceed directly.
+
+No task type, no context, no runtime setting overrides this flow.
+
+## Enforcement contract
+
+If the UserPromptSubmit hook injected `[ARKA:WORKFLOW-REQUIRED]`, or if
+the SessionStart systemMessage shows `[ARKA:MANDATORY-FLOW]`, the flow
+above is the contract. The first non-trivial line of your reply MUST be:
 
 ```
 [arka:routing] <department-slug> -> <lead-agent>

@@ -226,6 +226,40 @@ Every request routes through a department squad. ArkaOS never responds as a gene
 
 Routing: Synapse L1 (keyword detection) + L5 (command hints) + hook context tags.
 
+## Mandatory 13-phase flow (NON-NEGOTIABLE)
+
+Every non-trivial request runs the canonical flow. Full spec:
+`arka/skills/flow/SKILL.md`. Constitution rule: `mandatory-flow`.
+
+```
+1  Input — verbatim
+2  Get context — profile, repo, git, cwd tag, session digests
+3  Decide route — emit [arka:routing] <dept> -> <lead>
+4  Call hierarchy — Tier 0 when strategic / cross-dept / security / financial
+5  Research — Obsidian + vector DB, cite sources or declare gap
+6  Call team — dispatch specialists via Agent tool
+7  Plan — six parallel reviewers: positive / devil's advocate / Q&A /
+        KB research / best-solution validator / pessimistic
+8  Present plan — save to Obsidian + vector DB + ~/.arkaos/plans/
+9  Wait approval — EXPLICIT user go, silence is not approval
+10 TODO list — atomic, ordered, independently verifiable
+11 Per-todo loop — team call -> complete -> QA (all tests, E2E, Playwright)
+        -> Security -> Quality Gate (Marta + Eduardo + Francisca, Opus)
+        -> Document (Obsidian + vector DB)
+12 Loop until TODO is exhausted
+13 Detailed summary — what was done, where, how to verify, what is open
+```
+
+Emit `[arka:phase:N] <label>` before every step. Only bypass:
+`[arka:trivial] <reason>` for single-file edits under 10 lines.
+
+No runtime, task type, context, or convenience can opt out. Sessions start
+with `[ARKA:MANDATORY-FLOW]` injected as systemMessage; turns matching
+creation/implementation verbs get `[ARKA:WORKFLOW-REQUIRED]` as
+additionalContext. Skipping the flow violates: `mandatory-flow`,
+`squad-routing`, `spec-driven`, `mandatory-qa`, `sequential-validation`,
+`full-visibility`, `arka-supremacy`.
+
 ## Knowledge Base
 
 16 areas of framework-backed knowledge:

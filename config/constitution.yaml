@@ -66,6 +66,24 @@ enforcement_levels:
         rule: "Forge plans must pass critic validation and governance check before approval"
         enforcement: "Plan Critic validates constitution compliance; PostToolUse monitors execution"
 
+      - id: mandatory-flow
+        rule: "Every non-trivial request executes the 13-phase canonical flow defined in arka/skills/flow/SKILL.md. No task type, no context, no runtime setting can opt out. The only bypass is [arka:trivial] for single-file edits under 10 lines."
+        enforcement: "UserPromptSubmit hook classifies the turn; SessionStart systemMessage embeds the flow at system-prompt priority; arka/SKILL.md references it as default; violation is a constitution breach, not a style issue."
+        phases:
+          - "1. Input (verbatim)"
+          - "2. Get context (profile, repo, KB, session digests)"
+          - "3. Decide context and route ([arka:routing] tag)"
+          - "4. Call hierarchy (Tier 0 when strategic/cross-dept)"
+          - "5. Understand and research (Obsidian + vector DB)"
+          - "6. Call team (squad + specialists via Agent)"
+          - "7. Plan with six parallel reviewers"
+          - "8. Present plan (save to Obsidian + vector DB + cache)"
+          - "9. Wait for explicit approval"
+          - "10. TODO list"
+          - "11. Per-todo loop: team call -> complete -> QA -> Security -> Quality Gate -> Document"
+          - "12. Loop until TODO exhausted"
+          - "13. Detailed summary"
+
   quality_gate:
     description: "Mandatory pre-delivery review. Nothing ships without APPROVED verdict."
     trigger: "After the last execution phase, before delivery to user"
