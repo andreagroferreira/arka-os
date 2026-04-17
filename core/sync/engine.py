@@ -11,6 +11,10 @@ import re
 import sys
 from pathlib import Path
 
+from core.runtime.user_paths import (
+    ecosystems_file as resolve_ecosystems_file,
+    projects_dir as resolve_projects_dir,
+)
 from core.sync.manifest import build_manifest
 from core.sync.discovery import discover_all_projects
 from core.sync.mcp_optimizer import optimize_all_mcps
@@ -169,13 +173,29 @@ def _parse_scan_dirs(projects_dir_str: str) -> list[Path]:
 
 
 def _discover_projects(arkaos_home: Path, skills_dir: Path) -> list:
-    """Combine profile.json dirs, descriptor dir, and ecosystems into projects."""
-    descriptor_dir = skills_dir / "arka" / "projects"
-    ecosystems_file = skills_dir / "arka" / "knowledge" / "ecosystems.json"
+    """Combine profile.json dirs, descriptor dir, and ecosystems into projects.
+
+    Project descriptors and the ecosystems registry are user-local data and
+    live under ~/.arkaos/ (see ADR 2026-04-17-user-data-separation). During
+    the deprecation window, reads fall back to the legacy paths under
+    skills_dir with a one-shot warning. `skills_dir` is kept in the
+    signature for backward compatibility and test ergonomics but is no
+    longer consulted for user data.
+    """
+    del skills_dir  # retained for signature stability; unused.
+
+    descriptor_dir = resolve_projects_dir()
+    ecosystems_path = resolve_ecosystems_file()
+
+    # discover_all_projects treats missing paths as empty; pass a stable
+    # sentinel when the resolver returned None so downstream .exists()
+    # checks short-circuit cleanly.
+    descriptor_dir = descriptor_dir or (Path.home() / ".arkaos" / "projects")
+    ecosystems_path = ecosystems_path or (Path.home() / ".arkaos" / "ecosystems.json")
 
     scan_dirs = _load_scan_dirs_from_profile(arkaos_home)
 
-    return discover_all_projects(descriptor_dir, scan_dirs, ecosystems_file)
+    return discover_all_projects(descriptor_dir, scan_dirs, ecosystems_path)
 
 
 def _load_scan_dirs_from_profile(arkaos_home: Path) -> list[Path]:

@@ -2,7 +2,7 @@
   "_meta": {
     "description": "ARKA OS — Project Ecosystem Registry (user-local, populated after install)",
     "format": "Ecosystems group related projects that share squads, stacks, and conventions.",
-    "note": "This file ships empty. Users define their own ecosystems locally via /arka onboard or by editing ~/.claude/skills/arka/knowledge/ecosystems.json after installation. Client names and internal project data MUST NOT be committed to the public repository.",
+    "note": "This file ships empty. Users define their own ecosystems locally in ~/.arkaos/ecosystems.json (populated by /arka onboard). Client names and internal project data MUST NOT be committed to the public repository.",
     "updated": "2026-04-17"
   },
   "ecosystems": {}
