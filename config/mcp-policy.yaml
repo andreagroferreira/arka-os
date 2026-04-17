@@ -1,36 +1,249 @@
 # ArkaOS MCP Policy Registry
 # Controls which MCPs load eagerly vs deferred per project stack/ecosystem.
-# Rules evaluated top-to-bottom; first match wins. "ambiguous: ['*']" means
-# all other MCPs defer to AI (or fallback heuristic when AI unavailable).
+# Rules evaluated top-to-bottom; first match wins.
+#
+# v2: fully deterministic — every known MCP is explicitly active or deferred
+# per stack. No ambiguous fallthrough required. AI decider remains as an
+# optional extension for future user-added MCPs.
 
-version: 1
+version: 2
 policies:
+  # --- Backend: Laravel / PHP ---
   - match:
       stack_includes: [laravel, php]
-    active: [context7, gh-grep, postgres, supabase]
-    deferred: [canva, clickup, firecrawl, chrome, gmail, calendar, claude-in-chrome]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - gh-grep
+      - memory-bank
+      - postgres
+      - supabase
+      - laravel-boost
+      - serena
+      - sentry
+    deferred:
+      - playwright
+      - nuxt
+      - nuxt-ui
+      - next-devtools
+      - canva
+      - clickup
+      - firecrawl
+      - slack
+      - discord
+      - whatsapp
+      - teams
+      - shopify-dev
+      - mirakl
     ambiguous: []
 
+  # --- Frontend: Nuxt / Vue ---
   - match:
-      stack_includes: [nuxt, vue, react, next]
-    active: [context7, gh-grep, playwright, claude-in-chrome]
-    deferred: [postgres, supabase, canva, clickup, gmail, calendar]
+      stack_includes: [nuxt, vue]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - gh-grep
+      - memory-bank
+      - playwright
+      - nuxt
+      - nuxt-ui
+      - sentry
+    deferred:
+      - postgres
+      - supabase
+      - laravel-boost
+      - serena
+      - next-devtools
+      - canva
+      - clickup
+      - firecrawl
+      - slack
+      - discord
+      - whatsapp
+      - teams
+      - shopify-dev
+      - mirakl
     ambiguous: []
 
+  # --- Frontend: React / Next ---
+  - match:
+      stack_includes: [next, react]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - gh-grep
+      - memory-bank
+      - playwright
+      - next-devtools
+      - sentry
+    deferred:
+      - postgres
+      - supabase
+      - laravel-boost
+      - serena
+      - nuxt
+      - nuxt-ui
+      - canva
+      - clickup
+      - firecrawl
+      - slack
+      - discord
+      - whatsapp
+      - teams
+      - shopify-dev
+      - mirakl
+    ambiguous: []
+
+  # --- E-commerce (Shopify / Mirakl) ---
+  - match:
+      stack_includes: [shopify]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - gh-grep
+      - memory-bank
+      - playwright
+      - shopify-dev
+      - mirakl
+      - sentry
+    deferred:
+      - postgres
+      - supabase
+      - laravel-boost
+      - serena
+      - nuxt
+      - nuxt-ui
+      - next-devtools
+      - canva
+      - clickup
+      - firecrawl
+      - slack
+      - discord
+      - whatsapp
+      - teams
+    ambiguous: []
+
+  # --- Python projects ---
+  - match:
+      stack_includes: [python]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - gh-grep
+      - memory-bank
+      - sentry
+    deferred:
+      - playwright
+      - postgres
+      - supabase
+      - laravel-boost
+      - serena
+      - nuxt
+      - nuxt-ui
+      - next-devtools
+      - canva
+      - clickup
+      - firecrawl
+      - slack
+      - discord
+      - whatsapp
+      - teams
+      - shopify-dev
+      - mirakl
+    ambiguous: []
+
+  # --- Ecosystem: marketing ---
   - match:
       ecosystem: marketing
-    active: [canva, gmail, calendar, firecrawl, clickup]
-    deferred: [postgres, supabase, playwright]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - memory-bank
+      - canva
+      - firecrawl
+      - clickup
+    deferred:
+      - gh-grep
+      - postgres
+      - supabase
+      - playwright
+      - laravel-boost
+      - serena
+      - nuxt
+      - nuxt-ui
+      - next-devtools
+      - sentry
+      - slack
+      - discord
+      - whatsapp
+      - teams
+      - shopify-dev
+      - mirakl
     ambiguous: []
 
+  # --- Ecosystem: content ---
   - match:
       ecosystem: content
-    active: [canva, firecrawl, youtube-transcript]
-    deferred: [postgres, clickup]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - memory-bank
+      - canva
+      - firecrawl
+    deferred:
+      - gh-grep
+      - postgres
+      - supabase
+      - playwright
+      - laravel-boost
+      - serena
+      - nuxt
+      - nuxt-ui
+      - next-devtools
+      - sentry
+      - clickup
+      - slack
+      - discord
+      - whatsapp
+      - teams
+      - shopify-dev
+      - mirakl
     ambiguous: []
 
+  # --- Default: minimal safe set ---
   - match:
       default: true
-    active: [context7]
-    deferred: []
-    ambiguous: ["*"]
+    active:
+      - arka-prompts
+      - obsidian
+      - context7
+      - gh-grep
+      - memory-bank
+    deferred:
+      - postgres
+      - supabase
+      - playwright
+      - laravel-boost
+      - serena
+      - nuxt
+      - nuxt-ui
+      - next-devtools
+      - sentry
+      - canva
+      - clickup
+      - firecrawl
+      - slack
+      - discord
+      - whatsapp
+      - teams
+      - shopify-dev
+      - mirakl
+    ambiguous: []
