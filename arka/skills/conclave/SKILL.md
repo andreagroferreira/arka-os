@@ -83,7 +83,30 @@ Full advisor profile: all 4 DNA frameworks, mental models with key questions, co
 
 ## The 20 Advisors
 
-Full table with DNA, specialty, and challenge dimension per advisor: `references/advisors.md`
+| # | Name | DNA | Specialty |
+|---|------|-----|-----------|
+| 1 | Charlie Munger | C+D, 5w6, ISTJ | Inversion, mental models |
+| 2 | Ray Dalio | D+C, 5w6, INTJ | Principles, radical transparency |
+| 3 | Naval Ravikant | C+D, 5w6, INTP | Leverage, first principles |
+| 4 | Elon Musk | D+C, 8w7, INTJ | First principles physics, 10x |
+| 5 | Steve Jobs | D+I, 3w4, ENTJ | Simplicity, taste, A-players |
+| 6 | Simon Sinek | I+S, 2w1, ENFJ | Golden Circle, purpose |
+| 7 | Brene Brown | I+S, 4w3, ENFP | Vulnerability, courage |
+| 8 | Peter Drucker | C+S, 1w9, INTJ | Effectiveness, MBO |
+| 9 | Jeff Bezos | D+C, 3w2, ENTJ | Day 1, working backwards |
+| 10 | Derek Sivers | S+C, 9w1, INFP | Hell Yeah or No, simplicity |
+| 11 | Nassim Taleb | D+C, 8w7, INTJ | Antifragility, barbell |
+| 12 | Seth Godin | I+C, 7w6, ENFP | Purple Cow, permission |
+| 13 | Patrick Lencioni | I+S, 2w1, ENFJ | Five Dysfunctions, trust |
+| 14 | Warren Buffett | S+C, 5w6, ISTJ | Circle of competence, moats |
+| 15 | Reed Hastings | D+I, 7w8, ENTJ | Talent density, freedom |
+| 16 | Marty Cagan | C+I, 1w2, INTJ | Empowered teams, discovery |
+| 17 | Alex Hormozi | D+C, 8w7, ENTJ | Value equation, Grand Slam |
+| 18 | April Dunford | C+I, 5w6, INTP | Positioning, 5 components |
+| 19 | James Clear | S+C, 1w9, INFJ | Atomic Habits, systems |
+| 20 | Tim Ferriss | D+I, 7w8, ENTP | Fear-setting, 80/20 |
+
+Full details + challenge dimensions: `references/advisors.md`
 
 ## Advisor Response Examples
 

@@ -128,8 +128,8 @@ class KBSessionCache:
         session_id: str,
         project_path: Optional[str] = None,
         cache_dir: Optional[str] = None,
-        max_entries: int = 50,
-        ttl_seconds: int = 1800,
+        max_entries: int = 150,
+        ttl_seconds: int = 5400,
     ) -> None:
         self._session_id = session_id
         self._max_entries = max_entries
@@ -248,6 +248,8 @@ class KBSessionCache:
             "entry_count": len(cache) - 1,
         }
 
+        cache = self._evict_expired(cache)
+
         if len(cache) - 1 > self._max_entries:
             cache = self._evict_oldest(cache)
 
@@ -319,6 +321,19 @@ class KBSessionCache:
         """
         topics = self.extract_topics(query)
         return self.retrieve(topics=topics, threshold=threshold)
+
+    def _evict_expired(self, cache: dict[str, Any]) -> dict[str, Any]:
+        """Evict expired entries on every store to prevent accumulation."""
+        now = time.time()
+        keep_entries = {"_meta": cache.get("_meta", {})}
+        for k, v in cache.items():
+            if k == "_meta":
+                continue
+            age = now - v.get("timestamp", 0)
+            if age > self._ttl_seconds:
+                continue
+            keep_entries[k] = v
+        return keep_entries
 
     def _evict_oldest(self, cache: dict[str, Any]) -> dict[str, Any]:
         """Evict oldest entries when cache exceeds max_entries."""
