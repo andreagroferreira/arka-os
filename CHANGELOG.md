@@ -5,6 +5,17 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.5] - 2026-04-17
+
+### Fixed
+
+- **KB Cache TTL eviction bug** — `_evict_expired()` now called on every `store()` call
+  to proactively evict expired entries. Previously expired entries only evicted on reads,
+  causing them to accumulate on disk. Default TTL raised 30min → 90min,
+  max_entries raised 50 → 150.
+- **conclave/SKILL.md** — Added compact 20-advisor table inline to fix
+  `test_skill_md_lists_all_20_advisors` assertion.
+
 ## [2.17.4] - 2026-04-16
 
 ### Changed
