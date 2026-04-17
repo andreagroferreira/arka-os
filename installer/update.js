@@ -175,9 +175,11 @@ export async function update() {
   const hookNames = [
     "session-start",
     "user-prompt-submit",
+    "pre-tool-use",
     "post-tool-use",
     "pre-compact",
     "cwd-changed",
+    "stop",
   ];
   const hookExt = HOOK_EXT;
   const srcHooksDir = join(ARKAOS_ROOT, "config", "hooks");

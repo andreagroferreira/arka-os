@@ -447,9 +447,11 @@ function installHooks(installDir) {
   const hookNames = [
     "session-start",
     "user-prompt-submit",
+    "pre-tool-use",
     "post-tool-use",
     "pre-compact",
     "cwd-changed",
+    "stop",
   ];
   const hookExt = HOOK_EXT;
 
