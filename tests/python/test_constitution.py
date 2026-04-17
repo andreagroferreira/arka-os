@@ -24,9 +24,9 @@ class TestConstitutionRules:
         path = Path(__file__).parent.parent.parent / "config" / "constitution.yaml"
         return load_constitution(path)
 
-    def test_has_14_non_negotiable_rules(self, constitution):
+    def test_has_16_non_negotiable_rules(self, constitution):
         rules = constitution.get_non_negotiable_rules()
-        assert len(rules) == 15
+        assert len(rules) == 16
 
     def test_non_negotiable_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_non_negotiable_rules()]
@@ -36,6 +36,7 @@ class TestConstitutionRules:
             "spec-driven", "human-writing", "squad-routing",
             "full-visibility", "sequential-validation", "mandatory-qa",
             "arka-supremacy", "context-verification", "forge-governance",
+            "mandatory-flow",
         ]
         assert rule_ids == expected
 
@@ -61,7 +62,7 @@ class TestConstitutionRules:
 
     def test_get_all_rule_ids(self, constitution):
         all_ids = constitution.get_rule_ids()
-        assert len(all_ids) == 29  # 15 + 9 + 5
+        assert len(all_ids) == 30  # 16 + 9 + 5
 
 
 class TestConstitutionQualityGate:

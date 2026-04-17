@@ -94,6 +94,19 @@ export default {
       { hooks: [hookEntry(hooksDir, "post-tool-use", 5)] },
     ];
 
+    // PreToolUse — Flow enforcement gate (gated by hooks.hardEnforcement
+    // feature flag in ~/.arkaos/config.json; no-op when flag is false).
+    settings.hooks.PreToolUse = [
+      { hooks: [hookEntry(hooksDir, "pre-tool-use", 10)] },
+    ];
+
+    // Stop — Flow completion validator (WARN mode in v2.20.0; promotion
+    // to STRICT mode is gated on ≥ 2 weeks of clean telemetry per ADR
+    // 2026-04-17-binding-flow-enforcement).
+    settings.hooks.Stop = [
+      { hooks: [hookEntry(hooksDir, "stop", 5)] },
+    ];
+
     // PreCompact — Session digest
     settings.hooks.PreCompact = [
       { hooks: [hookEntry(hooksDir, "pre-compact", 30)] },

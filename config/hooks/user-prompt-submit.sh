@@ -83,12 +83,21 @@ mkdir -p "$CACHE_DIR" 2>/dev/null
 
 # ─── Extract user input from hook JSON ───────────────────────────────────
 user_input=""
+SESSION_ID=""
 if command -v jq &>/dev/null; then
   user_input=$(echo "$input" | jq -r '.userInput // .message // ""' 2>/dev/null)
+  SESSION_ID=$(echo "$input" | jq -r '.session_id // ""' 2>/dev/null)
 fi
 # Fallback: try to get the raw text
 if [ -z "$user_input" ]; then
   user_input=$(echo "$input" | head -c 2000)
+fi
+
+# ─── Load shared workflow classifier ─────────────────────────────────────
+_CLASSIFIER_LIB="$(dirname "$0")/_lib/workflow-classifier.sh"
+if [ -f "$_CLASSIFIER_LIB" ]; then
+  # shellcheck disable=SC1090
+  . "$_CLASSIFIER_LIB"
 fi
 
 # ─── Try Python Synapse bridge first ────────────────────────────────────
@@ -276,21 +285,18 @@ When [knowledge:N chunks] is present, cite at least one source.
 If [knowledge:N chunks] is absent on a non-trivial ArkaOS topic, query Obsidian first."
 
 # ─── Workflow Classifier (hard enforcement for creation/implementation) ──
-# Classifies the user prompt. If it looks like a creation/implementation/
-# modification request that is NOT already routed with an explicit /prefix,
-# emits a directive that the agent MUST acknowledge with [arka:routing]
-# BEFORE using any write tool. Trivial quick questions pass through
-# untouched. Explicit slash commands pass through untouched.
+# Uses the shared _lib/workflow-classifier.sh. When a creation/implementation
+# verb is detected, the session is marked as flow-required so PreToolUse
+# can block Write/Edit/MultiEdit until the agent emits [arka:routing] or
+# [arka:trivial]. Explicit slash commands and bang shells pass through.
 _WORKFLOW_DIRECTIVE=""
-if [ -n "$user_input" ]; then
-  # Skip: explicit slash command (already routed)
-  _FIRST_CHAR=$(echo "$user_input" | head -c 1)
-  if [ "$_FIRST_CHAR" != "/" ] && [ "$_FIRST_CHAR" != "!" ]; then
-    # Match creation/implementation verbs in EN and PT (case-insensitive).
-    _VERB_PATTERN='(criar?|crie[ms]?|cria[mr]?|adicionar?|adiciona[mr]?|implementar?|implementa[mr]?|desenvolver?|desenvolve[mr]?|construir?|constru[ií]a?[mr]?|fazer?|faz[ae][mr]?|refactor(izar?)?|corrigir?|corrige[mr]?|consertar?|conserta[mr]?|create[sd]?|creating|build(s|ing)?|add(s|ed|ing)?|implement(s|ed|ing)?|develop(s|ed|ing)?|fix(es|ed|ing)?|refactor(s|ed|ing)?|make[sd]?|making)'
-    _NOUN_PATTERN='(feature|funcionalidade|skill|squad|agent[e]?|workflow|endpoint|api|component[e]?|module|m[oó]dulo|page|p[aá]gina|hook|pipeline|integration|integra[cç][aã]o|dashboard|report|report[eó]|script|test[es]?)'
-    if echo "$user_input" | grep -qiE "\b${_VERB_PATTERN}\b"; then
-      _WORKFLOW_DIRECTIVE="
+if [ -n "$user_input" ] && command -v arka_wf_classify &>/dev/null; then
+  if [ "$(arka_wf_classify "$user_input")" = "true" ]; then
+    # Mark session as flow-required (consumed by pre-tool-use.sh and stop.sh)
+    if command -v arka_wf_mark_required &>/dev/null; then
+      arka_wf_mark_required "$SESSION_ID"
+    fi
+    _WORKFLOW_DIRECTIVE="
 [ARKA:WORKFLOW-REQUIRED] Your user request matched a CREATION/IMPLEMENTATION pattern.
 The ArkaOS mandatory 13-phase flow applies. It is NON-NEGOTIABLE (constitution rule
 mandatory-flow). You MUST walk every phase, in order, emitting a [arka:phase:N] tag
@@ -323,7 +329,6 @@ Anything else runs the full 13 phases. Source: arka/skills/flow/SKILL.md.
 This is enforced by the hook and the session-start systemMessage, not by convention.
 Skipping violates: mandatory-flow, squad-routing, spec-driven, mandatory-qa,
 sequential-validation, full-visibility, arka-supremacy."
-    fi
   fi
 fi
 
