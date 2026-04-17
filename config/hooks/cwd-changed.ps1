@@ -43,7 +43,13 @@ if ([string]::IsNullOrWhiteSpace($newCwd)) { exit 0 }
 if (-not (Test-Path -LiteralPath $newCwd -PathType Container)) { exit 0 }
 
 # ─── Detect ecosystem from ecosystems.json ─────────────────────────────
-$ecosystemsFile = Join-Path $env:USERPROFILE '.claude\skills\arka\knowledge\ecosystems.json'
+# Canonical path is %USERPROFILE%\.arkaos\ecosystems.json (ADR 2026-04-17).
+# Falls back to the legacy skill-dir path until v2.21.0.
+$ecosystemsFile = Join-Path $env:USERPROFILE '.arkaos\ecosystems.json'
+if (-not (Test-Path -LiteralPath $ecosystemsFile)) {
+    $legacyEcosystems = Join-Path $env:USERPROFILE '.claude\skills\arka\knowledge\ecosystems.json'
+    if (Test-Path -LiteralPath $legacyEcosystems) { $ecosystemsFile = $legacyEcosystems }
+}
 $ecosystem = ''
 $ecosystemName = ''
 
@@ -115,15 +121,17 @@ if (Test-Path -LiteralPath $composerJson) {
 
 # ─── Check for project descriptor ─────────────────────────────────────
 $dirName = Split-Path -Leaf $newCwd.TrimEnd('\','/')
-$projectsDir   = Join-Path $env:USERPROFILE '.claude\skills\arka\projects'
-$descriptorFile = Join-Path $projectsDir "$dirName.md"
-$descriptorDir  = Join-Path (Join-Path $projectsDir $dirName) 'PROJECT.md'
+$newProjectsDir    = Join-Path $env:USERPROFILE '.arkaos\projects'
+$legacyProjectsDir = Join-Path $env:USERPROFILE '.claude\skills\arka\projects'
 
 $descriptor = ''
-if (Test-Path -LiteralPath $descriptorFile) {
-    $descriptor = $descriptorFile
-} elseif (Test-Path -LiteralPath $descriptorDir) {
-    $descriptor = $descriptorDir
+foreach ($candidate in @(
+    (Join-Path $newProjectsDir    "$dirName.md"),
+    (Join-Path (Join-Path $newProjectsDir    $dirName) 'PROJECT.md'),
+    (Join-Path $legacyProjectsDir "$dirName.md"),
+    (Join-Path (Join-Path $legacyProjectsDir $dirName) 'PROJECT.md')
+)) {
+    if (Test-Path -LiteralPath $candidate) { $descriptor = $candidate; break }
 }
 
 # ─── Build context output ─────────────────────────────────────────────

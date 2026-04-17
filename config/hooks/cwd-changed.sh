@@ -13,7 +13,13 @@ if [ -z "$NEW_CWD" ] || [ ! -d "$NEW_CWD" ]; then
 fi
 
 # ─── Detect ecosystem from ecosystems.json ─────────────────────────────
-ECOSYSTEMS_FILE="$HOME/.claude/skills/arka/knowledge/ecosystems.json"
+# Canonical path is ~/.arkaos/ecosystems.json (ADR 2026-04-17). During the
+# deprecation window we fall back to the legacy skill-dir path. The legacy
+# fallback is removed in v2.21.0.
+ECOSYSTEMS_FILE="$HOME/.arkaos/ecosystems.json"
+if [ ! -f "$ECOSYSTEMS_FILE" ] && [ -f "$HOME/.claude/skills/arka/knowledge/ecosystems.json" ]; then
+  ECOSYSTEMS_FILE="$HOME/.claude/skills/arka/knowledge/ecosystems.json"
+fi
 ECOSYSTEM=""
 ECOSYSTEM_NAME=""
 
@@ -75,16 +81,19 @@ elif [ -f "$NEW_CWD/pyproject.toml" ]; then
 fi
 
 # ─── Check for project descriptor ─────────────────────────────────────
+# New canonical path: ~/.arkaos/projects/. Legacy fallback remains until v2.21.0.
 DIR_NAME=$(basename "$NEW_CWD")
 DESCRIPTOR=""
-DESCRIPTOR_FILE="$HOME/.claude/skills/arka/projects/${DIR_NAME}.md"
-DESCRIPTOR_DIR="$HOME/.claude/skills/arka/projects/${DIR_NAME}/PROJECT.md"
-
-if [ -f "$DESCRIPTOR_FILE" ]; then
-  DESCRIPTOR="$DESCRIPTOR_FILE"
-elif [ -f "$DESCRIPTOR_DIR" ]; then
-  DESCRIPTOR="$DESCRIPTOR_DIR"
-fi
+for CANDIDATE in \
+  "$HOME/.arkaos/projects/${DIR_NAME}.md" \
+  "$HOME/.arkaos/projects/${DIR_NAME}/PROJECT.md" \
+  "$HOME/.claude/skills/arka/projects/${DIR_NAME}.md" \
+  "$HOME/.claude/skills/arka/projects/${DIR_NAME}/PROJECT.md"; do
+  if [ -f "$CANDIDATE" ]; then
+    DESCRIPTOR="$CANDIDATE"
+    break
+  fi
+done
 
 # ─── Build context output ─────────────────────────────────────────────
 CONTEXT=""

@@ -5,6 +5,7 @@ import { execSync } from "node:child_process";
 import { ensureVenv, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
+import { migrateUserData, printMigrationReport } from "./migrate-user-data.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
 import { fileURLToPath } from "node:url";
 
@@ -35,6 +36,14 @@ export async function update() {
     migrateLegacyHookState(homedir(), installDir);
   } catch (err) {
     console.log(`         \u26a0 Legacy hook state migration skipped: ${err.message}`);
+  }
+
+  // User-data separation (ADR 2026-04-17): move descriptors and ecosystems
+  // from ~/.claude/skills/arka/ to ~/.arkaos/. Idempotent, non-destructive.
+  try {
+    printMigrationReport(migrateUserData());
+  } catch (err) {
+    console.log(`         \u26a0 User-data migration skipped: ${err.message}`);
   }
 
   const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));

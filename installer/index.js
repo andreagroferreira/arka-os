@@ -34,8 +34,28 @@ export async function install({ runtime, path, force }) {
   // ═══ Step 1: Create directories ═══
   step(1, 14, "Creating directories...");
   ensureDir(installDir);
-  const dirs = ["config", "config/hooks", "agents", "media", "session-digests", "vault"];
+  const dirs = ["config", "config/hooks", "agents", "media", "session-digests", "vault", "projects", "logs"];
   for (const d of dirs) ensureDir(join(installDir, d));
+
+  // Seed an empty ecosystems.json the first time; never overwrite existing user data.
+  const ecosystemsPath = join(installDir, "ecosystems.json");
+  if (!existsSync(ecosystemsPath)) {
+    writeFileSync(
+      ecosystemsPath,
+      JSON.stringify(
+        {
+          _meta: {
+            description: "ArkaOS — user-local ecosystem registry",
+            note: "Populated by /arka onboard. Never committed to the public repo.",
+            updated: new Date().toISOString().slice(0, 10),
+          },
+          ecosystems: {},
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+  }
   ok(`${dirs.length + 1} directories ready`);
 
   // ═══ Step 2: Detect v1 installation ═══

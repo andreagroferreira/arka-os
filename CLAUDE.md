@@ -106,6 +106,20 @@ When core updates but projects aren't synced, the SessionStart hook shows:
 
 `~/.arkaos/sync-state.json` — tracks version, last sync timestamp, project/skill counts, errors
 
+### User-data paths (v2.19.0+)
+
+User-mutable data lives under `~/.arkaos/`. The installed skill bundle at
+`~/.claude/skills/arka/` is read-only and installer-managed. See ADR
+`docs/adr/2026-04-17-user-data-separation.md`.
+
+| Concern | Canonical path |
+|---|---|
+| Project descriptors | `~/.arkaos/projects/<slug>.md` or `~/.arkaos/projects/<slug>/PROJECT.md` |
+| Ecosystem registry | `~/.arkaos/ecosystems.json` |
+| Install state | `~/.arkaos/sync-state.json`, `~/.arkaos/profile.json`, `~/.arkaos/install-manifest.json` |
+
+The legacy paths `~/.claude/skills/arka/projects/` and `~/.claude/skills/arka/knowledge/ecosystems.json` remain readable during the deprecation window and are removed in v2.21.0. Migration runs automatically on `npx arkaos update`; run `npx arkaos migrate-user-data` to trigger it manually.
+
 ## Agent Hierarchy
 
 Inspired by SpaceX (flat, mission-driven), Google (matrix), Anthropic (small teams, safety embedded).

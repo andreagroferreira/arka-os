@@ -41,6 +41,7 @@ Usage:
   npx arkaos init             Initialize project config (.arkaos.json)
   npx arkaos update           Update to latest version
   npx arkaos migrate          Migrate from v1 to v2
+  npx arkaos migrate-user-data  Move user data (~/.claude/skills/arka/ → ~/.arkaos/)
   npx arkaos dashboard        Start monitoring dashboard
   npx arkaos keys             Manage API keys (OpenAI, fal.ai, etc.)
   npx arkaos doctor           Run health checks
@@ -101,6 +102,12 @@ async function main() {
       const { migrate } = await import("./migrate.js");
       await migrate();
       break;
+
+    case "migrate-user-data": {
+      const { migrateUserData, printMigrationReport } = await import("./migrate-user-data.js");
+      printMigrationReport(migrateUserData());
+      break;
+    }
 
     case "keys": {
       const { keys: keysCmd } = await import("./keys.js");
