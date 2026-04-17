@@ -259,6 +259,27 @@ export async function install({ runtime, path, force }) {
   };
   writeFileSync(join(installDir, "install-manifest.json"), JSON.stringify(manifest, null, 2));
 
+  // Seed sync-state.json so session-start.sh does not read a missing file as
+  // version drift and permanently show [arka:update-available] on a fresh
+  // install. Schema aligned with core/sync/reporter.py write_sync_state.
+  const syncStatePath = join(installDir, "sync-state.json");
+  if (!existsSync(syncStatePath)) {
+    writeFileSync(
+      syncStatePath,
+      JSON.stringify(
+        {
+          version: VERSION,
+          last_sync: new Date().toISOString(),
+          projects_synced: 0,
+          skills_synced: 0,
+          errors: [],
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
   console.log(`
