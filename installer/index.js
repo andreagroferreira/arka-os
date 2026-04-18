@@ -450,6 +450,8 @@ function installHooks(installDir) {
     "post-tool-use",
     "pre-compact",
     "cwd-changed",
+    "pre-tool-use",
+    "stop",
   ];
   const hookExt = HOOK_EXT;
 
@@ -480,6 +482,19 @@ function installHooks(installDir) {
       try { chmodSync(destPath, 0o755); } catch {}
       ok(`Hook: ${filename}`);
     }
+  }
+
+  const srcLibDir = join(srcHooksDir, "_lib");
+  if (existsSync(srcLibDir)) {
+    const destLibDir = join(hooksDir, "_lib");
+    ensureDir(destLibDir);
+    cpSync(srcLibDir, destLibDir, { recursive: true });
+    try {
+      for (const f of readdirSync(destLibDir)) {
+        if (f.endsWith(".sh")) chmodSync(join(destLibDir, f), 0o755);
+      }
+    } catch {}
+    ok("Hook lib: _lib/");
   }
 }
 

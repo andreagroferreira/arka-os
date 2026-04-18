@@ -62,7 +62,19 @@ const checks = [
     name: "hooks-dir",
     description: "Hook scripts installed",
     severity: "fail",
-    check: () => existsSync(join(INSTALL_DIR, "config", "hooks", `user-prompt-submit${HOOK_EXT}`)),
+    check: () => {
+      const required = [
+        "session-start",
+        "user-prompt-submit",
+        "post-tool-use",
+        "pre-compact",
+        "cwd-changed",
+        "pre-tool-use",
+        "stop",
+      ];
+      const hooksDir = join(INSTALL_DIR, "config", "hooks");
+      return required.every((h) => existsSync(join(hooksDir, `${h}${HOOK_EXT}`)));
+    },
     fix: () => "Run: npx arkaos install --force",
   },
   {
