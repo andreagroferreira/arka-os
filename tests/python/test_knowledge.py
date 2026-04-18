@@ -76,9 +76,13 @@ class TestVectorStore:
         assert all("text" in r and "score" in r for r in results)
 
     def test_is_file_indexed(self, store):
-        assert not store.is_file_indexed("hash123")
-        store.index_chunks(texts=["Content"], file_hash="hash123")
-        assert store.is_file_indexed("hash123")
+        assert not store.is_file_indexed("a.md", "hash123")
+        store.index_chunks(texts=["Content"], source="a.md", file_hash="hash123")
+        assert store.is_file_indexed("a.md", "hash123")
+        # Same hash, different path — must NOT be reported as indexed.
+        assert not store.is_file_indexed("b.md", "hash123")
+        # Same path, different hash (content changed) — must re-index.
+        assert not store.is_file_indexed("a.md", "hash456")
 
     def test_remove_file(self, store):
         store.index_chunks(texts=["Content A"], source="a.md")

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, mkdirSync, writeFileSync, cpSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
@@ -75,7 +75,7 @@ export async function migrate() {
   const v2Digests = join(V2_PATH, "session-digests");
   if (existsSync(v1Digests) && !existsSync(v2Digests)) {
     try {
-      execSync(`cp -r "${v1Digests}" "${v2Digests}"`, { stdio: "pipe" });
+      cpSync(v1Digests, v2Digests, { recursive: true });
       console.log("  Preserved session digests.");
     } catch {
       console.log("  Could not copy session digests.");
@@ -87,7 +87,7 @@ export async function migrate() {
   const v2Media = join(V2_PATH, "media");
   if (existsSync(v1Media) && !existsSync(v2Media)) {
     try {
-      execSync(`cp -r "${v1Media}" "${v2Media}"`, { stdio: "pipe" });
+      cpSync(v1Media, v2Media, { recursive: true });
       console.log("  Preserved media files.");
     } catch {
       console.log("  Could not copy media files.");
@@ -101,7 +101,10 @@ export async function migrate() {
   } catch (err) {
     console.error(`\n  Migration failed during install: ${err.message}`);
     console.error(`  Your v1 backup is at: ${backupDir}`);
-    console.error(`  To restore: mv "${backupDir}" "${v1Dir}"\n`);
+    const restoreHint = process.platform === "win32"
+      ? `Move-Item "${backupDir}" "${v1Dir}"`
+      : `mv "${backupDir}" "${v1Dir}"`;
+    console.error(`  To restore: ${restoreHint}\n`);
     process.exit(1);
   }
 

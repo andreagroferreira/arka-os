@@ -178,6 +178,8 @@ export async function update() {
     "post-tool-use",
     "pre-compact",
     "cwd-changed",
+    "pre-tool-use",
+    "stop",
   ];
   const hookExt = HOOK_EXT;
   const srcHooksDir = join(ARKAOS_ROOT, "config", "hooks");
@@ -206,6 +208,21 @@ export async function update() {
       writeFileSync(destPath, content);
       try { chmodSync(destPath, 0o755); } catch {}
     }
+  }
+
+  // Keep _lib/ in sync with the shipped tarball — hooks like
+  // user-prompt-submit.sh source helpers from here and break silently if
+  // the update leaves an older _lib/ behind.
+  const srcLibDir = join(srcHooksDir, "_lib");
+  if (existsSync(srcLibDir)) {
+    const destLibDir = join(destHooksDir, "_lib");
+    mkdirSync(destLibDir, { recursive: true });
+    cpSync(srcLibDir, destLibDir, { recursive: true });
+    try {
+      for (const f of readdirSync(destLibDir)) {
+        if (f.endsWith(".sh")) chmodSync(join(destLibDir, f), 0o755);
+      }
+    } catch {}
   }
   console.log("         ✓ Hook scripts updated");
 

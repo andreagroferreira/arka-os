@@ -192,10 +192,17 @@ class VectorStore:
             for r in rows
         ]
 
-    def is_file_indexed(self, file_hash: str) -> bool:
-        """Check if a file has already been indexed."""
+    def is_file_indexed(self, source: str, file_hash: str) -> bool:
+        """Check if a file (identified by source path + content hash) is indexed.
+
+        The source path is part of the key so identical content in two
+        different locations (e.g. two npx cache directories) each get
+        indexed — a hash-only check would skip every subsequent cache
+        and leave the new location un-searchable.
+        """
         row = self._db.execute(
-            "SELECT COUNT(*) as cnt FROM chunks WHERE file_hash = ?", (file_hash,)
+            "SELECT COUNT(*) as cnt FROM chunks WHERE source = ? AND file_hash = ?",
+            (source, file_hash),
         ).fetchone()
         return row["cnt"] > 0
 

@@ -124,7 +124,7 @@ async function main() {
       const repoRootDash = join(__dirname, "..");
       const dashCmd = IS_WINDOWS
         ? `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${join(repoRootDash, "scripts", "start-dashboard.ps1")}"`
-        : `bash "${repoRootDash}/scripts/start-dashboard.sh"`;
+        : `bash "${join(repoRootDash, "scripts", "start-dashboard.sh")}"`;
       try {
         execDash(dashCmd, {
           stdio: "inherit",
