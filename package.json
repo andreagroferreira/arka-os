@@ -7,9 +7,9 @@
     "arkaos": "./installer/cli.js"
   },
   "scripts": {
-    "test": "node --test tests/installer/",
+    "test": "node --test \"tests/installer/**/*.test.js\"",
     "lint": "eslint installer/",
-    "prepublishOnly": "node scripts/check-version.js"
+    "prepublishOnly": "node scripts/check-version.js && npm test"
   },
   "keywords": [
     "ai",
