@@ -11,7 +11,10 @@ knowing which runtime is active. Each adapter handles the translation.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from core.runtime.llm_provider import LLMResponse
 
 
 @dataclass
@@ -141,3 +144,29 @@ class RuntimeAdapter(ABC):
             "mcp": config.supports_mcp,
         }
         return feature_map.get(feature, False)
+
+    def headless_supported(self) -> bool:
+        """Whether this adapter can perform a headless CLI completion.
+
+        Default: False. Override in adapters that implement
+        `headless_complete`. `SubagentProvider` consults this before
+        attempting a call so the factory can fall back cleanly.
+        """
+        return False
+
+    def headless_complete(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int = 2000,
+        system: str = "",
+    ) -> "LLMResponse":
+        """Run a one-shot headless completion via this runtime's CLI.
+
+        Default implementation raises NotImplementedError — adapters
+        that do not have a headless CLI mode (e.g. Cursor) inherit this
+        behaviour. Never hardcodes a model.
+        """
+        raise NotImplementedError(
+            f"{self.get_config().name} does not support headless LLM completion"
+        )

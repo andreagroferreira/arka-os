@@ -4,10 +4,15 @@ OpenAI's Codex CLI. Supports sandboxed execution and file operations.
 More limited than Claude Code: no native hooks, no MCP servers.
 """
 
+import shutil
 from pathlib import Path
 from os.path import expanduser
+from typing import TYPE_CHECKING
 
 from core.runtime.base import RuntimeAdapter, RuntimeConfig, AgentContext, AgentResult
+
+if TYPE_CHECKING:
+    from core.runtime.llm_provider import LLMResponse
 
 
 class CodexCliAdapter(RuntimeAdapter):
@@ -69,3 +74,31 @@ class CodexCliAdapter(RuntimeAdapter):
 
     def search_content(self, pattern: str, path: str = ".") -> list[str]:
         raise NotImplementedError("Use Codex CLI's native content search")
+
+    def headless_supported(self) -> bool:
+        # Codex CLI headless invocation syntax is not stable as of
+        # 2026-04-20. Until verified, we surface unsupported and let
+        # SubagentProvider fall back to AnthropicDirect or stub.
+        return False
+
+    def headless_complete(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int = 2000,
+        system: str = "",
+    ) -> "LLMResponse":
+        binary = shutil.which("codex")
+        if binary is None:
+            raise NotImplementedError(
+                "codex CLI not found on PATH — install Codex CLI to "
+                "enable headless completion."
+            )
+        # TODO(llm-agnostic): Verify Codex CLI headless invocation
+        # syntax (`codex exec "<prompt>"` was the working hypothesis
+        # but has not been confirmed for the current release). Until
+        # then, refuse rather than guess. Tracked in Task #12 report.
+        raise NotImplementedError(
+            "Codex CLI headless completion not yet wired — verify CLI "
+            "syntax before enabling. See core/runtime/codex_cli.py TODO."
+        )

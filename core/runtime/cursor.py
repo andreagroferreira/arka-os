@@ -6,8 +6,12 @@ Supports agent mode with tool execution.
 
 from pathlib import Path
 from os.path import expanduser
+from typing import TYPE_CHECKING
 
 from core.runtime.base import RuntimeAdapter, RuntimeConfig, AgentContext, AgentResult
+
+if TYPE_CHECKING:
+    from core.runtime.llm_provider import LLMResponse
 
 
 class CursorAdapter(RuntimeAdapter):
@@ -69,3 +73,18 @@ class CursorAdapter(RuntimeAdapter):
 
     def search_content(self, pattern: str, path: str = ".") -> list[str]:
         raise NotImplementedError("Use Cursor's native content search")
+
+    def headless_supported(self) -> bool:
+        return False
+
+    def headless_complete(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int = 2000,
+        system: str = "",
+    ) -> "LLMResponse":
+        raise NotImplementedError(
+            "Cursor has no headless CLI mode as of 2026-04. "
+            "Fall back to AnthropicDirectProvider or StubProvider."
+        )

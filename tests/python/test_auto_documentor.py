@@ -1,13 +1,20 @@
-"""Tests for core.cognition.auto_documentor — Task #7 (intelligence-v2).
+"""Tests for core.cognition.auto_documentor.
 
-Covers extraction heuristics, dynamic model routing, template synthesis,
-and the full `document_session` pipeline that integrates with the Task #4
-Obsidian cataloger + relator.
+Covers extraction heuristics, LLM-agnostic synthesis (delegating to
+`core.runtime.llm_provider.get_llm_provider`), template fallback, and
+the full `document_session` pipeline that integrates with the Obsidian
+cataloger + relator (Task #4).
+
+Task #13 removed the `choose_model` / `model_hint` machinery. The
+module now knows NOTHING about which model runs — those tests are gone
+and replaced with LLMProvider-delegation tests plus a static source
+guard that locks in the invariant.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -15,11 +22,11 @@ import pytest
 from core.cognition import auto_documentor as ad
 from core.cognition.auto_documentor import (
     Learning,
-    choose_model,
     document_session,
     extract_learnings,
     synthesize,
 )
+from core.runtime.llm_provider import LLMResponse, LLMUnavailable
 
 
 # ─── Transcript builder helpers ────────────────────────────────────────
@@ -41,6 +48,43 @@ def _write_transcript(path: Path, records: list[dict]) -> Path:
         "\n".join(json.dumps(r) for r in records), encoding="utf-8"
     )
     return path
+
+
+# ─── Stub provider for LLM-delegation tests ────────────────────────────
+
+
+class _StubLLM:
+    def __init__(
+        self,
+        *,
+        text: str = "",
+        available: bool = True,
+        raise_on_complete: Exception | None = None,
+    ) -> None:
+        self._text = text
+        self._available = available
+        self._raise = raise_on_complete
+        self.calls: list[dict] = []
+
+    def name(self) -> str:
+        return "stub-test"
+
+    def is_available(self) -> bool:
+        return self._available
+
+    def complete(self, prompt: str, *, max_tokens: int = 2000, system: str = "") -> LLMResponse:
+        self.calls.append(
+            {"prompt": prompt, "max_tokens": max_tokens, "system": system}
+        )
+        if self._raise is not None:
+            raise self._raise
+        return LLMResponse(
+            text=self._text,
+            tokens_in=10,
+            tokens_out=20,
+            cached_tokens=0,
+            model="",
+        )
 
 
 @pytest.fixture
@@ -133,64 +177,119 @@ def test_extract_detects_stack_metadata(simple_transcript):
     assert lg.metadata.get("dept") == "dev"
 
 
-# ─── choose_model ──────────────────────────────────────────────────────
+# ─── _call_llm (LLMProvider delegation) ────────────────────────────────
 
 
-def test_choose_model_haiku_for_short_summary():
-    lg = Learning(topic="t", content="Small note about indent width.")
-    assert choose_model(lg) == "haiku"
+def test_call_llm_delegates_to_provider(monkeypatch):
+    stub = _StubLLM(text="  Real LLM output  ")
+    monkeypatch.setattr(ad, "get_llm_provider", lambda: stub, raising=False)
+    # Import-level reference used inside _call_llm goes through core.runtime.
+    from core import runtime as rt
+    monkeypatch.setattr(rt, "get_llm_provider", lambda: stub)
+
+    lg = Learning(topic="t", content="body", sources=["https://example.com"])
+    assert ad._call_llm(lg) == "Real LLM output"
+    assert len(stub.calls) == 1
+    assert stub.calls[0]["max_tokens"] == ad._LLM_MAX_TOKENS
+    assert "auto-documentor" in stub.calls[0]["system"].lower()
+    assert "https://example.com" in stub.calls[0]["prompt"]
 
 
-def test_choose_model_sonnet_for_analysis():
+def test_call_llm_returns_empty_on_provider_unavailable(monkeypatch):
+    stub = _StubLLM(text="should not be used", available=False)
+    from core import runtime as rt
+    monkeypatch.setattr(rt, "get_llm_provider", lambda: stub)
+
+    assert ad._call_llm(Learning(topic="t", content="x")) == ""
+    assert stub.calls == []  # complete() never invoked
+
+
+def test_call_llm_returns_empty_on_llm_unavailable_exception(monkeypatch):
+    stub = _StubLLM(raise_on_complete=LLMUnavailable("cli down"))
+    from core import runtime as rt
+    monkeypatch.setattr(rt, "get_llm_provider", lambda: stub)
+
+    assert ad._call_llm(Learning(topic="t", content="x")) == ""
+
+
+def test_call_llm_returns_empty_on_unexpected_exception(monkeypatch):
+    stub = _StubLLM(raise_on_complete=RuntimeError("boom"))
+    from core import runtime as rt
+    monkeypatch.setattr(rt, "get_llm_provider", lambda: stub)
+
+    # Must not propagate — doc job must survive any LLM failure.
+    assert ad._call_llm(Learning(topic="t", content="x")) == ""
+
+
+def test_call_llm_returns_empty_when_factory_raises(monkeypatch):
+    def boom():
+        raise RuntimeError("factory down")
+
+    from core import runtime as rt
+    monkeypatch.setattr(rt, "get_llm_provider", boom)
+
+    assert ad._call_llm(Learning(topic="t", content="x")) == ""
+
+
+# ─── _build_synthesis_prompt ───────────────────────────────────────────
+
+
+def test_build_synthesis_prompt_deterministic():
     lg = Learning(
-        topic="Benchmark",
-        content=("analysis of redis vs memcached " * 40),
-        decisions=["chose redis"],
+        topic="My Topic",
+        content="The body.",
+        sources=["https://a.example", "https://b.example"],
+        decisions=["chose X", "selected Y"],
+        metadata={"dept": "dev", "stack": "Laravel"},
     )
-    assert choose_model(lg) == "sonnet"
+    first = ad._build_synthesis_prompt(lg)
+    second = ad._build_synthesis_prompt(lg)
+    assert first == second
+    assert "My Topic" in first
+    assert "https://a.example" in first
+    assert "chose X" in first
+    assert "dept: dev" in first
 
 
-def test_choose_model_opus_for_architectural():
-    lg = Learning(
-        topic="ADR",
-        content="This is an architecture decision with trade-offs and migration plan. " * 20,
-        decisions=["selected hexagonal", "decided to split repo", "chose pg"],
-    )
-    assert choose_model(lg) == "opus"
+def test_build_synthesis_prompt_handles_empty_fields():
+    lg = Learning(topic="Bare", content="")
+    prompt = ad._build_synthesis_prompt(lg)
+    assert "Bare" in prompt
+    # Must not crash, must still ask for output.
+    assert "Output only markdown" in prompt
 
 
-def test_choose_model_opus_on_length_plus_decisions():
-    lg = Learning(
-        topic="t",
-        content="x" * 5000,
-        decisions=["d1", "d2", "d3", "d4"],
-    )
-    assert choose_model(lg) == "opus"
+# ─── synthesize ────────────────────────────────────────────────────────
 
 
-# ─── synthesize ─────────────────────────────────────────────────────────
-
-
-def test_synthesize_template_fallback_no_llm():
+def test_synthesize_template_fallback_when_no_llm(monkeypatch):
+    # Force empty LLM → template path.
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
     lg = Learning(
         topic="My Topic",
         content="## Request\n\nBuild X",
         sources=["https://example.com"],
         decisions=["chose pattern Y"],
     )
-    out = synthesize(lg, "haiku")
+    out = synthesize(lg)
     assert "# My Topic" in out
-    assert "haiku" in out
+    assert ad._AUTO_DOC_SUFFIX in out
     assert "https://example.com" in out
     assert "chose pattern Y" in out
 
 
-def test_synthesize_honors_llm_hook(monkeypatch):
+def test_synthesize_uses_llm_when_available(monkeypatch):
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "Real LLM output")
     lg = Learning(topic="t", content="body")
-    monkeypatch.setattr(
-        ad, "_call_llm", lambda learning, hint: "LLM OUTPUT"
-    )
-    assert synthesize(lg, "sonnet") == "LLM OUTPUT"
+    assert synthesize(lg) == "Real LLM output"
+
+
+def test_synthesize_falls_back_to_template_when_llm_empty(monkeypatch):
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
+    lg = Learning(topic="Fallback", content="body", decisions=["d1"])
+    out = synthesize(lg)
+    assert out.startswith("# Fallback")
+    assert "d1" in out
 
 
 # ─── document_session ──────────────────────────────────────────────────
@@ -202,8 +301,10 @@ def test_document_session_skips_if_qg_not_approved(simple_transcript, vault):
 
 
 def test_document_session_end_to_end_uses_cataloger_and_relator(
-    simple_transcript, vault
+    simple_transcript, vault, monkeypatch
 ):
+    # Force template path so the note content is deterministic.
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
     written = document_session(simple_transcript, "sess-1", vault, "APPROVED")
     assert len(written) == 1
     note = written[0]
@@ -216,7 +317,10 @@ def test_document_session_end_to_end_uses_cataloger_and_relator(
     assert "arkaos" in text
 
 
-def test_document_session_tags_by_detected_domain(simple_transcript, vault):
+def test_document_session_tags_by_detected_domain(
+    simple_transcript, vault, monkeypatch
+):
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
     written = document_session(simple_transcript, "sess-2", vault, "APPROVED")
     note = written[0]
     text = note.read_text(encoding="utf-8")
@@ -258,6 +362,8 @@ def test_document_session_cataloger_missing_vars_skipped(tmp_path, vault, monkey
 def test_document_session_relator_failure_does_not_crash(
     simple_transcript, vault, monkeypatch
 ):
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
+
     def boom(*_args, **_kwargs):
         raise RuntimeError("relator down")
 
@@ -269,8 +375,9 @@ def test_document_session_relator_failure_does_not_crash(
 
 
 def test_document_session_appends_related_block_when_matches(
-    tmp_path, vault
+    tmp_path, vault, monkeypatch
 ):
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
     # Seed vault with a very similar note so relator returns matches.
     seed = vault / "existing.md"
     seed.write_text(
@@ -294,3 +401,37 @@ def test_document_session_appends_related_block_when_matches(
     body = written[0].read_text(encoding="utf-8")
     # Relator should have either added Related heading or a backlink.
     assert "## Related" in body or "[[" in body
+
+
+# ─── Invariant: no model-name leakage ─────────────────────────────────
+
+
+def test_document_one_writes_auto_documented_suffix_no_model(
+    simple_transcript, vault, monkeypatch
+):
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
+    written = document_session(simple_transcript, "sess-nm", vault, "APPROVED")
+    assert written
+    body = written[0].read_text(encoding="utf-8")
+    assert ad._AUTO_DOC_SUFFIX in body
+    lower = body.lower()
+    for forbidden in ("opus", "sonnet", "haiku", "gpt-4", "gemini"):
+        # Frontmatter may contain 'model' key but never a hardcoded id.
+        assert forbidden not in lower, f"Model name leaked into note: {forbidden}"
+
+
+def test_no_model_names_in_auto_documentor_source():
+    """Static guard: the module source must stay model-agnostic forever.
+
+    If this fails, someone hardcoded a model name (haiku/sonnet/opus/
+    gpt-4/gemini) into auto_documentor.py. Route model selection through
+    the LLMProvider / runtime env instead.
+    """
+    source_path = Path(ad.__file__)
+    source = source_path.read_text(encoding="utf-8")
+    forbidden = re.compile(r"\b(opus|sonnet|haiku|gpt-4|gemini)\b", re.IGNORECASE)
+    hits = forbidden.findall(source)
+    assert hits == [], (
+        f"auto_documentor.py contains forbidden model name(s): {hits!r}. "
+        "Model selection must stay in LLMProvider / runtime env."
+    )

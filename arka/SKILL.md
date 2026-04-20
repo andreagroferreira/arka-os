@@ -109,7 +109,8 @@ violation (squad-routing, arka-supremacy, spec-driven, mandatory-qa).
 
 | Command | Description |
 |---------|-------------|
-| `/arka status` | System status (version, departments, agents, active projects) |
+| `/arka status` | System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period="today")`. |
+| `/arka costs [period]` | LLM cost visibility — aggregates telemetry by day/week/month/all, with top expensive sessions. See `arka/skills/costs/SKILL.md`. Shells out to `python -m core.runtime.llm_cost_telemetry_cli <period>`. |
 | `/arka standup` | Daily standup (projects, priorities, blockers, updates) |
 | `/arka monitor` | System health monitoring |
 | `/arka onboard <path>` | Onboard an existing project into ArkaOS |

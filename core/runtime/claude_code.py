@@ -4,10 +4,17 @@ Claude Code is the primary and most capable runtime for ArkaOS.
 It supports hooks, subagents (Agent tool), MCP servers, and worktrees.
 """
 
+import json
+import shutil
+import subprocess
 from pathlib import Path
 from os.path import expanduser
+from typing import TYPE_CHECKING
 
 from core.runtime.base import RuntimeAdapter, RuntimeConfig, AgentContext, AgentResult
+
+if TYPE_CHECKING:
+    from core.runtime.llm_provider import LLMResponse
 
 
 class ClaudeCodeAdapter(RuntimeAdapter):
@@ -102,3 +109,64 @@ class ClaudeCodeAdapter(RuntimeAdapter):
     def supports_feature(self, feature: str) -> bool:
         """Claude Code supports all features."""
         return True
+
+    def headless_supported(self) -> bool:
+        return shutil.which("claude") is not None
+
+    def headless_complete(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int = 2000,
+        system: str = "",
+    ) -> "LLMResponse":
+        from core.runtime.llm_provider import LLMResponse, LLMUnavailable
+
+        binary = shutil.which("claude")
+        if binary is None:
+            raise NotImplementedError(
+                "claude CLI not found on PATH — install Claude Code to enable "
+                "headless completion via this adapter."
+            )
+        cmd = [binary, "-p", prompt, "--output-format", "json"]
+        if system:
+            cmd.extend(["--append-system-prompt", system])
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise LLMUnavailable("claude CLI timed out after 60s") from exc
+        except OSError as exc:
+            raise LLMUnavailable(f"claude CLI subprocess failed: {exc}") from exc
+
+        if proc.returncode != 0:
+            raise LLMUnavailable(
+                f"claude CLI exited {proc.returncode}: {proc.stderr.strip()[:200]}"
+            )
+        return _parse_claude_json(proc.stdout)
+
+
+def _parse_claude_json(stdout: str) -> "LLMResponse":
+    from core.runtime.llm_provider import LLMResponse
+
+    payload = json.loads(stdout) if stdout.strip() else {}
+    text = str(payload.get("result") or payload.get("response") or "")
+    usage = payload.get("usage") or {}
+    tokens_in = int(usage.get("input_tokens") or 0)
+    tokens_out = int(usage.get("output_tokens") or 0)
+    cache_read = int(usage.get("cache_read_input_tokens") or 0)
+    cache_write = int(usage.get("cache_creation_input_tokens") or 0)
+    total_input = tokens_in + cache_read + cache_write
+    model = str(payload.get("model") or "")
+    return LLMResponse(
+        text=text,
+        tokens_in=total_input,
+        tokens_out=tokens_out,
+        cached_tokens=cache_read,
+        model=model,
+    )

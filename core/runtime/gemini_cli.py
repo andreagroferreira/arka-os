@@ -3,10 +3,15 @@
 Google's Gemini CLI. Uses GEMINI.md for instructions and activate_skill for skills.
 """
 
+import shutil
 from pathlib import Path
 from os.path import expanduser
+from typing import TYPE_CHECKING
 
 from core.runtime.base import RuntimeAdapter, RuntimeConfig, AgentContext, AgentResult
+
+if TYPE_CHECKING:
+    from core.runtime.llm_provider import LLMResponse
 
 
 class GeminiCliAdapter(RuntimeAdapter):
@@ -66,3 +71,31 @@ class GeminiCliAdapter(RuntimeAdapter):
 
     def search_content(self, pattern: str, path: str = ".") -> list[str]:
         raise NotImplementedError("Use Gemini CLI's native content search")
+
+    def headless_supported(self) -> bool:
+        # Gemini CLI headless invocation syntax is not verified for the
+        # current release. Returning False lets SubagentProvider fall
+        # back gracefully rather than shell out blindly.
+        return False
+
+    def headless_complete(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int = 2000,
+        system: str = "",
+    ) -> "LLMResponse":
+        binary = shutil.which("gemini")
+        if binary is None:
+            raise NotImplementedError(
+                "gemini CLI not found on PATH — install Gemini CLI to "
+                "enable headless completion."
+            )
+        # TODO(llm-agnostic): Verify Gemini CLI's headless invocation
+        # (`gemini -p "<prompt>"` was the working hypothesis). Until
+        # confirmed for the shipped CLI version, refuse rather than
+        # guess. Tracked in Task #12 report.
+        raise NotImplementedError(
+            "Gemini CLI headless completion not yet wired — verify CLI "
+            "syntax before enabling. See core/runtime/gemini_cli.py TODO."
+        )
