@@ -31,12 +31,6 @@ if command -v jq &>/dev/null; then
   CWD=$(echo "$input" | jq -r '.cwd // ""' 2>/dev/null)
 fi
 
-# ─── Fast allow: not a gated tool
-case "$TOOL_NAME" in
-  Write|Edit|MultiEdit) ;;
-  *) exit 0 ;;
-esac
-
 # ─── Resolve ARKAOS_ROOT (same rules as user-prompt-submit.sh) ──────────
 if [ -z "${ARKAOS_ROOT:-}" ]; then
   if [ -f "$HOME/.arkaos/.repo-path" ]; then
@@ -48,10 +42,90 @@ if [ -z "${ARKAOS_ROOT:-}" ]; then
   fi
 fi
 
-# ─── Degrade gracefully if Python or module is unavailable ──────────────
+# ─── Degrade gracefully if Python is unavailable ────────────────────────
 if ! command -v python3 &>/dev/null; then
   exit 0
 fi
+
+# ─── KB-first gate (Task #6, independent from flow_enforcer) ────────────
+# Runs BEFORE the flow-marker gate so that external research tools are
+# always KB-checked regardless of whether the tool is Write/Edit/MultiEdit.
+# Extract the user query (if present) to feed the nudge generator.
+QUERY_HINT=""
+if command -v jq &>/dev/null; then
+  QUERY_HINT=$(echo "$input" | jq -r '.tool_input.query // .tool_input.prompt // .tool_input.url // ""' 2>/dev/null | head -c 500)
+fi
+
+if [ -f "$ARKAOS_ROOT/core/workflow/research_gate.py" ]; then
+  KB_DECISION_JSON=$(TOOL_NAME="$TOOL_NAME" \
+                     SESSION_ID="$SESSION_ID" \
+                     QUERY_HINT="$QUERY_HINT" \
+                     ARKAOS_ROOT="$ARKAOS_ROOT" \
+                     python3 - <<'PY' 2>/dev/null
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from core.workflow.research_gate import evaluate_research_gate, record_telemetry
+except Exception:
+    print(json.dumps({"allow": True, "nudge": False, "reason": "kb-gate-import-failed"}))
+    sys.exit(0)
+
+decision = evaluate_research_gate(
+    tool_name=os.environ.get("TOOL_NAME", ""),
+    session_id=os.environ.get("SESSION_ID", ""),
+    query=os.environ.get("QUERY_HINT", ""),
+)
+try:
+    record_telemetry(
+        session_id=os.environ.get("SESSION_ID", ""),
+        tool=os.environ.get("TOOL_NAME", ""),
+        decision=decision,
+    )
+except Exception:
+    pass
+print(json.dumps({
+    "allow": decision.allow,
+    "nudge": decision.nudge,
+    "reason": decision.reason,
+    "stderr_msg": decision.to_stderr_message(),
+}))
+PY
+)
+
+  if [ -n "$KB_DECISION_JSON" ]; then
+    KB_ALLOW=$(echo "$KB_DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('allow', True))" 2>/dev/null)
+    KB_NUDGE=$(echo "$KB_DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('nudge', False))" 2>/dev/null)
+    KB_STDERR=$(echo "$KB_DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('stderr_msg',''))" 2>/dev/null)
+
+    if [ "$KB_ALLOW" != "True" ] && [ "$KB_ALLOW" != "true" ]; then
+      echo "$KB_STDERR" >&2
+      STDERR_MSG="$KB_STDERR" python3 - <<'PY'
+import json, os
+print(json.dumps({"hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": os.environ.get("STDERR_MSG", ""),
+}}))
+PY
+      exit 2
+    fi
+
+    # Nudge path: emit advisory to stderr, continue to flow-marker gate.
+    if [ "$KB_NUDGE" = "True" ] || [ "$KB_NUDGE" = "true" ]; then
+      [ -n "$KB_STDERR" ] && echo "$KB_STDERR" >&2
+    fi
+  fi
+fi
+
+# ─── Fast allow: not a flow-gated tool (Write/Edit/MultiEdit) ───────────
+case "$TOOL_NAME" in
+  Write|Edit|MultiEdit) ;;
+  *) exit 0 ;;
+esac
+
 if [ ! -f "$ARKAOS_ROOT/core/workflow/flow_enforcer.py" ]; then
   exit 0
 fi

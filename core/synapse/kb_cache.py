@@ -10,13 +10,31 @@ Architecture:
     - TTL: 30 minutes
     - Project-scoped via cwd hash (isolates knowledge by project)
     - Auto-inject when Jaccard topic overlap >= 0.3
+
+Turn-scoped marker (record_obsidian_query / read_obsidian_query):
+    - Path: /tmp/arkaos-kb-query/{session_id}.json
+    - Written by Synapse L2.5 whenever an Obsidian search ran in the turn.
+    - Read by research_gate to know whether KB-first was respected
+      before external research tools run.
+    - Invalidated by UserPromptSubmit hook at each new turn (same pattern
+      as core.workflow.marker_cache).
 """
 
 import hashlib
 import json
+import os
+import re
+import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any, Optional
+
+
+SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+KB_QUERY_MARKER_DIR = Path("/tmp/arkaos-kb-query")
+_MAX_QUERIES_PER_TURN = 32
+_MAX_QUERY_LEN = 512
 
 
 STOP_WORDS = {
@@ -146,18 +164,15 @@ class KBSessionCache:
 
     @staticmethod
     def _hash_project(path: str) -> str:
-        """Create short hash of project path for directory naming."""
         if not path:
             return "default"
         h = hashlib.md5(path.encode(), usedforsecurity=False)
         return h.hexdigest()[:12]
 
     def _ensure_dir(self) -> None:
-        """Ensure cache directory exists."""
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
     def _load(self) -> dict[str, Any]:
-        """Load cache from disk."""
         if not self._cache_file.exists():
             return {}
         try:
@@ -166,7 +181,6 @@ class KBSessionCache:
             return {}
 
     def _save(self, data: dict[str, Any]) -> None:
-        """Save cache to disk."""
         self._cache_file.write_text(json.dumps(data, indent=2))
 
     def extract_topics(self, query: str) -> set[str]:
@@ -323,7 +337,6 @@ class KBSessionCache:
         return self.retrieve(topics=topics, threshold=threshold)
 
     def _evict_expired(self, cache: dict[str, Any]) -> dict[str, Any]:
-        """Evict expired entries on every store to prevent accumulation."""
         now = time.time()
         keep_entries = {"_meta": cache.get("_meta", {})}
         for k, v in cache.items():
@@ -336,7 +349,6 @@ class KBSessionCache:
         return keep_entries
 
     def _evict_oldest(self, cache: dict[str, Any]) -> dict[str, Any]:
-        """Evict oldest entries when cache exceeds max_entries."""
         entries = [(k, v) for k, v in cache.items() if k != "_meta"]
         entries.sort(key=lambda x: x[1].get("timestamp", 0))
 
@@ -395,3 +407,110 @@ def jaccard_similarity(topics1: set[str], topics2: set[str]) -> float:
     Convenience wrapper for use in external contexts.
     """
     return KBSessionCache.jaccard(topics1, topics2)
+
+
+# ─── KB-first turn marker (consumed by core.workflow.research_gate) ────
+#
+# This is NOT the full session cache above. It is a cheap per-turn flag
+# that records "the model consulted Obsidian at least once this turn".
+# The research gate uses it to decide whether to nudge/deny external
+# research tools. Marker is invalidated on every new user prompt.
+
+
+def _kb_query_dir() -> Path:
+    override = os.environ.get("ARKA_KB_QUERY_DIR", "").strip()
+    if override:
+        return Path(override)
+    override_legacy = os.environ.get("ARKA_KB_QUERY_MARKER_DIR", "").strip()
+    if override_legacy:
+        return Path(override_legacy)
+    return KB_QUERY_MARKER_DIR
+
+
+def _kb_query_path(session_id: str) -> Optional[Path]:
+    if not session_id or not isinstance(session_id, str):
+        return None
+    if not SAFE_SESSION_ID_RE.match(session_id):
+        return None
+    return _kb_query_dir() / f"{session_id}.json"
+
+
+def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> None:
+    """Record that an Obsidian search ran in this turn.
+
+    Consumed by `core.workflow.research_gate` (Task #6) to decide whether
+    KB-first was respected before external research runs.
+
+    Storage: `/tmp/arkaos-kb-query/<session_id>.json` — atomic tmp+rename.
+    Turn-scoped: invalidated by UserPromptSubmit (same pattern as
+    `core.workflow.marker_cache.invalidate_marker`).
+
+    Args:
+        session_id: Session identifier (must match ``SAFE_SESSION_ID_RE``).
+        query: The query string that was executed.
+        hit_count: Number of notes returned (0 means search ran but empty).
+    """
+    path = _kb_query_path(session_id)
+    if path is None:
+        return
+    safe_query = (query or "")[:_MAX_QUERY_LEN]
+    try:
+        hits = int(hit_count)
+    except (TypeError, ValueError):
+        hits = 0
+    now = time.time()
+    existing = read_obsidian_query(session_id) or {}
+    queries_raw = existing.get("queries")
+    queries = list(queries_raw) if isinstance(queries_raw, list) else []
+    queries.append({"query": safe_query, "hit_count": hits, "ts": now})
+    if len(queries) > _MAX_QUERIES_PER_TURN:
+        queries = queries[-_MAX_QUERIES_PER_TURN:]
+    record = {
+        "session_id": session_id,
+        "queries": queries,
+        "last_query_ts": now,
+        "last_hit_count": hits,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    unique = f"{os.getpid()}-{threading.get_ident()}-{uuid.uuid4().hex}"
+    tmp = path.with_suffix(path.suffix + f".{unique}.tmp")
+    try:
+        tmp.write_text(json.dumps(record), encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            tmp.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def read_obsidian_query(session_id: str) -> Optional[dict]:
+    """Return the turn-scoped Obsidian-query record, or None if absent."""
+    path = _kb_query_path(session_id)
+    if path is None or not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def obsidian_queried_this_turn(session_id: str) -> bool:
+    """Return True iff ``record_obsidian_query`` was called since turn start."""
+    return read_obsidian_query(session_id) is not None
+
+
+def invalidate_obsidian_query(session_id: str) -> None:
+    """Clear the per-turn KB consult marker. Idempotent."""
+    path = _kb_query_path(session_id)
+    if path is None:
+        return
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+    except OSError:
+        pass
