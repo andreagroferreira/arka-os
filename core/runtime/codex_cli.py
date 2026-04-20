@@ -94,11 +94,28 @@ class CodexCliAdapter(RuntimeAdapter):
                 "codex CLI not found on PATH — install Codex CLI to "
                 "enable headless completion."
             )
-        # TODO(llm-agnostic): Verify Codex CLI headless invocation
-        # syntax (`codex exec "<prompt>"` was the working hypothesis
-        # but has not been confirmed for the current release). Until
-        # then, refuse rather than guess. Tracked in Task #12 report.
+        # TODO(llm-agnostic): Implement real headless completion.
+        #
+        # Status as of 2026-04-20: Codex CLI is NOT installed on the
+        # development machine, so actual invocation syntax could not
+        # be verified. Until a local install is available, refuse
+        # rather than ship guessed arguments.
+        #
+        # Verification checklist for whoever picks this up:
+        #   1. Install:   npm install -g @openai/codex-cli
+        #   2. Discover:  codex --help   (confirm non-interactive flag)
+        #   3. Pattern:   likely `codex exec "<prompt>"` or
+        #                 `codex --prompt "<prompt>" --format json`
+        #   4. Wire the subprocess call (mirror the Gemini adapter —
+        #      list-form args, 60s timeout, stderr clipped, JSON parse
+        #      with plain-text fallback, token estimate on miss).
+        #
+        # SubagentProvider cleanly falls back to anthropic-direct or
+        # stub when this raises, so the chain keeps working.
         raise NotImplementedError(
-            "Codex CLI headless completion not yet wired — verify CLI "
-            "syntax before enabling. See core/runtime/codex_cli.py TODO."
+            "Codex CLI headless mode requires local `codex` CLI. "
+            "Install: `npm install -g @openai/codex-cli` (as of 2026-04). "
+            "Verify syntax: `codex --help`. "
+            "See TODO(llm-agnostic) in this file. "
+            "SubagentProvider will cleanly fall back to anthropic-direct or stub."
         )

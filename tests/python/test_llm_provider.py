@@ -416,8 +416,11 @@ class TestAdapterHeadless:
         with pytest.raises(NotImplementedError):
             CodexCliAdapter().headless_complete("hi")
 
-    def test_gemini_adapter_refuses_until_verified(self):
-        with pytest.raises(NotImplementedError):
+    def test_gemini_adapter_refuses_when_cli_missing(self, monkeypatch):
+        monkeypatch.setattr(
+            "core.runtime.gemini_cli.shutil.which", lambda _name: None
+        )
+        with pytest.raises(NotImplementedError, match="gemini CLI not found"):
             GeminiCliAdapter().headless_complete("hi")
 
     def test_cursor_never_supports_headless(self):
