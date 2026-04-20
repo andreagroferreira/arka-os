@@ -8,7 +8,7 @@
 npx arkaos install
 ```
 
-[![npm](https://img.shields.io/npm/v/arkaos)](https://www.npmjs.com/package/arkaos) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Tests](https://img.shields.io/badge/tests-1993%20passing-brightgreen)]()
+[![npm](https://img.shields.io/npm/v/arkaos)](https://www.npmjs.com/package/arkaos) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Tests](https://img.shields.io/badge/tests-3025%20passing-brightgreen)]()
 
 ---
 
@@ -228,6 +228,84 @@ arkaos scheduler logs         # View logs
 
 ---
 
+## Intelligence Loop (v2.21.0+)
+
+Three-layer system that makes ArkaOS consult its brain before going external, and write every session's learnings back to the vault automatically. The system compounds daily — tomorrow's ArkaOS is smarter than today's.
+
+### Synapse L2.5 — KB Context Injection (v2.21.0)
+
+On every user prompt, ArkaOS runs semantic search against the Obsidian vault and injects the top relevant notes (with wikilinks and excerpts) as context **before the model starts planning**. The agent sees what the vault already knows, naturally — no hard gate, no friction.
+
+- Top 3–5 notes by similarity
+- Jaccard fallback when vector store absent
+- Feature flag `synapse.l25KbContext` default `true`
+- Kill switch `ARKA_BYPASS_L25=1`
+
+### Research Gate — Natural Nudge (v2.21.0)
+
+When an agent tries `Context7`, `WebSearch`, `WebFetch`, or `Firecrawl` without consulting Obsidian first:
+
+- **First attempt** → natural PT-PT nudge listing top 3 vault hits. Allows the call.
+- **Second attempt in same turn** → deny. The nudge wasn't enough.
+
+Feature flag `hooks.kbFirst` default `false` in v2.21.0 — dormant until operator flips. Kill switch `ARKA_BYPASS_KB_FIRST=1` (audited).
+
+### Auto-Documentor + Cataloger + Relator (v2.21.0)
+
+After every approved session, an async worker writes the learnings back to the vault:
+
+1. **Extract** — parses the transcript for sources consulted, decisions made, deliverables produced
+2. **Classify** — cataloger chooses the right taxonomic home (code pattern, persona, client strategy, marketing test, ADR, research finding, framework, or session fallback)
+3. **Write** — creates the note at the correct vault path with frontmatter + tags
+4. **Relate** — relator finds semantically similar existing notes, creates bidirectional `[[wikilinks]]`, updates MOCs
+
+The vault becomes a relational graph that grows with every session.
+
+### LLM Agnostic Auto-Documentor (v2.22.0)
+
+The synthesis LLM call is runtime-agnostic. **Zero model hardcoding.** Whatever runtime you have configured decides the model:
+
+| Provider | Default | Model decided by |
+|---|---|---|
+| `subagent` | ✅ | Active runtime's headless CLI (`claude -p`, `gemini -p …`) |
+| `anthropic-direct` | — | `ANTHROPIC_MODEL` env var; no code default |
+| `stub` | tests | Template fallback |
+
+Fallback chain `subagent → anthropic-direct → stub` never raises. Prompt caching ON by default (5-min TTL `cache_control: ephemeral` on system block).
+
+### Budget Telemetry + `/arka costs` (v2.22.0)
+
+Every LLM call appends to `~/.arkaos/telemetry/llm-cost.jsonl` with tokens, cache hits, and estimated cost. Per [ADR-011](docs/adr/), this is **visibility only — never blocks**.
+
+```bash
+/arka costs           # today (default)
+/arka costs week      # last 7 days
+/arka costs month     # last 30 days
+/arka costs sessions  # top 10 expensive sessions
+```
+
+Soft advisory when a single session exceeds $5 equivalent. No hard caps.
+
+### Flow Marker v2 (v2.21.0)
+
+The constitutional 13-phase flow enforcement (binding in v2.20) got a turn-scoped marker cache, eliminating the cross-turn false positives that triggered on subagent dispatch and short user continuations. ADR-compliant: cache accelerates ALLOW decisions only; the transcript remains authoritative for DENY.
+
+### Polish & Consolidation (v2.22.1)
+
+- `core/shared/safe_session_id.py` — single source of truth for the path-traversal / injection allowlist, deduped across 6 modules (100% coverage, 33 security-contract tests)
+- Gemini CLI headless live (`gemini -p "…" --output-format json`)
+- `_MAX_FALLBACK_NOTES = 2000` bound on Synapse L2.5 degraded-mode scan
+- Auto-documentor coverage lifted 93% → 98%
+- Template synthesiser now mirrors LLM prompt structure (Key Facts → Decisions → Sources)
+
+### ADRs
+
+- [`2026-04-20-flow-marker-v2.md`](docs/adr/2026-04-20-flow-marker-v2.md) — turn-scoped cache amendment
+- [`2026-04-20-kb-first-intelligence.md`](docs/adr/2026-04-20-kb-first-intelligence.md) — Synapse L2.5 + gate + auto-documentor
+- [`2026-04-20-llm-agnostic.md`](docs/adr/2026-04-20-llm-agnostic.md) — runtime-agnostic LLM wiring
+
+---
+
 ## Ecosystem Management
 
 ArkaOS manages client projects as **ecosystems** — groups of related projects with dedicated squads.
@@ -370,21 +448,39 @@ Full documentation is available on the **[GitHub Wiki](https://github.com/andrea
 
 ## CLI Reference
 
+**Installer (terminal):**
+
 ```bash
-npx arkaos install       # Fresh install (auto-detects runtime)
-npx arkaos update        # Update to latest version
-npx arkaos migrate       # Migrate from v1
-npx arkaos doctor        # Health check
-npx arkaos dashboard     # Start monitoring dashboard
-npx arkaos keys          # Manage API keys
-npx arkaos uninstall     # Remove ArkaOS
+npx arkaos install             # Fresh install (auto-detects runtime)
+npx arkaos@latest update       # Update core + hooks to latest version
+npx arkaos migrate             # Migrate from v1
+npx arkaos doctor              # Health check
+npx arkaos dashboard           # Start monitoring dashboard
+npx arkaos keys                # Manage API keys
+npx arkaos uninstall           # Remove ArkaOS
 ```
+
+**In-session commands (inside Claude Code / Codex / Gemini / Cursor):**
+
+```
+/arka update                   # Sync all project configs after core update
+/arka status                   # System health + LLM costs (24h)
+/arka costs [today|week|month|all|sessions]  # LLM cost visibility
+/arka index                    # (Re)index Obsidian vault into vector store
+/arka search <query>           # Semantic search in knowledge base
+/arka standup                  # Daily standup (projects, blockers, updates)
+/arka onboard <path>           # Onboard an existing project
+/arka conclave                 # Personal AI advisory board
+/do <description>              # Universal routing — natural language to department
+```
+
+Department commands: `/dev`, `/mkt`, `/brand`, `/fin`, `/strat`, `/ecom`, `/kb`, `/ops`, `/pm`, `/saas`, `/landing`, `/content`, `/community`, `/sales`, `/lead`, `/org`.
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome — all changes require passing the full test suite (1,993 tests) and Quality Gate review.
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome — all changes require passing the full test suite (3,025 tests) and Quality Gate review.
 
 ## License
 
