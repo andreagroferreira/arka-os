@@ -157,13 +157,18 @@ def create_default_engine(
     commands: list[dict] | None = None,
     agents_registry: dict[str, dict] | None = None,
     vector_store: Any = None,
+    kb_vault_path: str | None = None,
+    kb_max_notes: int = 5,
 ) -> SynapseEngine:
-    """Create a SynapseEngine with all 9 default layers.
+    """Create a SynapseEngine with all default layers.
 
     Args:
         constitution_compressed: Compressed Constitution string for L0.
         commands: Command registry for L5 hints.
         agents_registry: Agent registry for L2 context.
+        vector_store: Optional vector store (enables L2.5 + L3.5).
+        kb_vault_path: Optional Obsidian vault path for L2.5 Jaccard fallback.
+        kb_max_notes: Max Obsidian notes to inject at L2.5 (default 5).
 
     Returns:
         Configured SynapseEngine ready to use.
@@ -178,6 +183,7 @@ def create_default_engine(
         QualityGateLayer,
         TimeLayer,
         KnowledgeRetrievalLayer,
+        KBContextLayer,
         ForgeContextLayer,
         SessionContextLayer,
     )
@@ -188,6 +194,14 @@ def create_default_engine(
     engine.register_layer(l0)
     engine.register_layer(DepartmentLayer())
     engine.register_layer(AgentLayer(agents_registry=agents_registry))
+    if vector_store is not None or kb_vault_path:
+        engine.register_layer(
+            KBContextLayer(
+                vector_store=vector_store,
+                vault_path=kb_vault_path,
+                max_notes=kb_max_notes,
+            )
+        )
     engine.register_layer(ProjectLayer())
     if vector_store is not None:
         engine.register_layer(KnowledgeRetrievalLayer(vector_store=vector_store))

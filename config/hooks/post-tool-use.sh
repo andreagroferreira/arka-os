@@ -24,6 +24,53 @@ TOOL_NAME=$(echo "$input" | jq -r '.tool_name // ""' 2>/dev/null)
 TOOL_OUTPUT=$(echo "$input" | jq -r '.tool_output // ""' 2>/dev/null)
 EXIT_CODE=$(echo "$input" | jq -r '.exit_code // "0"' 2>/dev/null)
 CWD=$(echo "$input" | jq -r '.cwd // ""' 2>/dev/null)
+SESSION_ID_PTU=$(echo "$input" | jq -r '.session_id // ""' 2>/dev/null)
+ASSISTANT_MSG=$(echo "$input" | jq -r '.assistant_message // ""' 2>/dev/null)
+
+# ─── Flow marker cache write (v2 — turn-scoped ALLOW accelerator) ───────
+# Detect [arka:routing] or [arka:trivial] in the assistant message that
+# accompanied this tool call, and persist it so the PreToolUse enforcer
+# can short-circuit the transcript scan for the rest of the turn.
+# Never blocks the hook — all failures are swallowed.
+if [ -n "$SESSION_ID_PTU" ] && [ -n "$ASSISTANT_MSG" ] && command -v python3 &>/dev/null; then
+  _MARKER_KIND=""
+  _MARKER_DEPT=""
+  _MARKER_LEAD=""
+  if printf '%s' "$ASSISTANT_MSG" | grep -qiE '\[arka:routing\][[:space:]]*[A-Za-z_-]+[[:space:]]*->[[:space:]]*[A-Za-z_-]+'; then
+    _MARKER_KIND="routing"
+    _ROUTE_LINE=$(printf '%s' "$ASSISTANT_MSG" | grep -iEo '\[arka:routing\][[:space:]]*[A-Za-z_-]+[[:space:]]*->[[:space:]]*[A-Za-z_-]+' | head -1)
+    _MARKER_DEPT=$(printf '%s' "$_ROUTE_LINE" | sed -E 's/.*\[arka:routing\][[:space:]]*([A-Za-z_-]+).*/\1/')
+    _MARKER_LEAD=$(printf '%s' "$_ROUTE_LINE" | sed -E 's/.*->[[:space:]]*([A-Za-z_-]+).*/\1/')
+  elif printf '%s' "$ASSISTANT_MSG" | grep -qiE '\[arka:trivial\][[:space:]]*\S+'; then
+    _MARKER_KIND="trivial"
+  fi
+
+  if [ -n "$_MARKER_KIND" ]; then
+    _MARKER_ROOT="${ARKAOS_ROOT:-}"
+    if [ -z "$_MARKER_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+      _MARKER_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+    fi
+    [ -z "$_MARKER_ROOT" ] && _MARKER_ROOT="$HOME/.arkaos"
+    SESSION_ID_PTU="$SESSION_ID_PTU" \
+    MARKER_KIND="$_MARKER_KIND" \
+    MARKER_DEPT="$_MARKER_DEPT" \
+    MARKER_LEAD="$_MARKER_LEAD" \
+    PYTHONPATH="$_MARKER_ROOT" \
+    python3 -c "
+import os, sys
+try:
+    from core.workflow.marker_cache import write_marker
+    write_marker(
+        os.environ.get('SESSION_ID_PTU', ''),
+        os.environ.get('MARKER_KIND', ''),
+        os.environ.get('MARKER_DEPT', ''),
+        os.environ.get('MARKER_LEAD', ''),
+    )
+except Exception:
+    pass
+" 2>/dev/null || true
+  fi
+fi
 
 # Only process if there was an error
 if [ "$EXIT_CODE" = "0" ] || [ -z "$EXIT_CODE" ]; then

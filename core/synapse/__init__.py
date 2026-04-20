@@ -5,7 +5,13 @@ and 65% context reduction through intelligent filtering.
 """
 
 from core.synapse.engine import SynapseEngine
-from core.synapse.layers import Layer, LayerResult, ForgeContextLayer, SessionContextLayer
+from core.synapse.layers import (
+    Layer,
+    LayerResult,
+    ForgeContextLayer,
+    KBContextLayer,
+    SessionContextLayer,
+)
 from core.synapse.cache import LayerCache
 
 __all__ = [
@@ -14,5 +20,6 @@ __all__ = [
     "LayerResult",
     "LayerCache",
     "ForgeContextLayer",
+    "KBContextLayer",
     "SessionContextLayer",
 ]

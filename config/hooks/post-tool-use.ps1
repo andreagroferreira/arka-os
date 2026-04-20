@@ -120,6 +120,86 @@ if ($shouldProcessGotchas -and $null -ne $payload) {
     $exitCode   = if ($null -ne $payload.exit_code)   { [string]$payload.exit_code   } else { '0' }
     $cwd        = if ($null -ne $payload.cwd)         { [string]$payload.cwd         } else { '' }
 
+    # --- Flow marker cache write (v2 ALLOW accelerator) ------------------
+    # Mirror of the bash hook: detect [arka:routing] or [arka:trivial] in
+    # $payload.assistant_message and persist via core.workflow.marker_cache.
+    # Non-blocking — any failure is swallowed.
+    try {
+        $sessionIdPtu = if ($null -ne $payload.session_id) { [string]$payload.session_id } else { '' }
+        $assistantMsg = if ($null -ne $payload.assistant_message) { [string]$payload.assistant_message } else { '' }
+        if ($sessionIdPtu -and $assistantMsg) {
+            $routingRe = [regex]'(?i)\[arka:routing\]\s*([A-Za-z_-]+)\s*->\s*([A-Za-z_-]+)'
+            $trivialRe = [regex]'(?i)\[arka:trivial\]\s*\S+'
+            $markerKind = ''
+            $markerDept = ''
+            $markerLead = ''
+            $routingMatch = $routingRe.Match($assistantMsg)
+            if ($routingMatch.Success) {
+                $markerKind = 'routing'
+                $markerDept = $routingMatch.Groups[1].Value
+                $markerLead = $routingMatch.Groups[2].Value
+            } elseif ($trivialRe.IsMatch($assistantMsg)) {
+                $markerKind = 'trivial'
+            }
+            if ($markerKind) {
+                $arkaosRootPtu = $env:ARKAOS_ROOT
+                if (-not $arkaosRootPtu) {
+                    $repoPathFile = Join-Path $env:USERPROFILE '.arkaos\.repo-path'
+                    if (Test-Path -LiteralPath $repoPathFile) {
+                        try {
+                            $arkaosRootPtu = (Get-Content -Raw -LiteralPath $repoPathFile -Encoding UTF8).Trim()
+                        } catch { }
+                    }
+                }
+                if (-not $arkaosRootPtu) {
+                    $arkaosRootPtu = Join-Path $env:USERPROFILE '.arkaos'
+                }
+                # Locate Python (venv-first, then system).
+                $pythonForMarker = $null
+                $venvPy = Join-Path $env:USERPROFILE '.arkaos\venv\Scripts\python.exe'
+                if (Test-Path -LiteralPath $venvPy) {
+                    $pythonForMarker = $venvPy
+                } else {
+                    foreach ($cmd in 'python3','python','py') {
+                        $resolved = Get-Command $cmd -ErrorAction SilentlyContinue
+                        if ($resolved) { $pythonForMarker = $resolved.Source; break }
+                    }
+                }
+                if ($pythonForMarker) {
+                    $pyCode = @"
+import os
+try:
+    from core.workflow.marker_cache import write_marker
+    write_marker(
+        os.environ.get('SESSION_ID_PTU', ''),
+        os.environ.get('MARKER_KIND', ''),
+        os.environ.get('MARKER_DEPT', ''),
+        os.environ.get('MARKER_LEAD', ''),
+    )
+except Exception:
+    pass
+"@
+                    $psi = New-Object System.Diagnostics.ProcessStartInfo
+                    $psi.FileName = $pythonForMarker
+                    $psi.Arguments = "-c `"$($pyCode -replace '"','\"' -replace "`r?`n",'; ')`""
+                    $psi.UseShellExecute = $false
+                    $psi.CreateNoWindow = $true
+                    $psi.RedirectStandardOutput = $true
+                    $psi.RedirectStandardError = $true
+                    [void]$psi.EnvironmentVariables.Add('SESSION_ID_PTU', $sessionIdPtu)
+                    [void]$psi.EnvironmentVariables.Add('MARKER_KIND', $markerKind)
+                    [void]$psi.EnvironmentVariables.Add('MARKER_DEPT', $markerDept)
+                    [void]$psi.EnvironmentVariables.Add('MARKER_LEAD', $markerLead)
+                    [void]$psi.EnvironmentVariables.Add('PYTHONPATH', $arkaosRootPtu)
+                    try {
+                        $proc = [System.Diagnostics.Process]::Start($psi)
+                        if (-not $proc.WaitForExit(1500)) { try { $proc.Kill() } catch { } }
+                    } catch { }
+                }
+            }
+        }
+    } catch { }
+
     # ─── Only process when there is actually an error ─────────────────
     $errorPattern = '(?i)(error:|fatal:|exception:|failed|ENOENT|EACCES|EPERM|panic:)'
     if ($exitCode -eq '0' -or [string]::IsNullOrEmpty($exitCode)) {

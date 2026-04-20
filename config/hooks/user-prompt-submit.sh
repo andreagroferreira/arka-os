@@ -88,6 +88,30 @@ if command -v jq &>/dev/null; then
   user_input=$(echo "$input" | jq -r '.userInput // .message // ""' 2>/dev/null)
   SESSION_ID=$(echo "$input" | jq -r '.session_id // ""' 2>/dev/null)
 fi
+
+# ─── Flow marker cache invalidation (v2 — new turn, reset ALLOW cache) ──
+# Cheap, non-blocking, runs before Synapse so a stuck Python later cannot
+# leave a stale marker alive across turns.
+if [ -n "$SESSION_ID" ] && command -v python3 &>/dev/null; then
+  _INVALIDATE_ROOT="${ARKAOS_ROOT:-}"
+  if [ -z "$_INVALIDATE_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+    _INVALIDATE_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+  fi
+  [ -z "$_INVALIDATE_ROOT" ] && _INVALIDATE_ROOT="$HOME/.arkaos"
+  SESSION_ID="$SESSION_ID" PYTHONPATH="$_INVALIDATE_ROOT" python3 -c "
+import os
+try:
+    from core.workflow.marker_cache import invalidate_marker
+    invalidate_marker(os.environ.get('SESSION_ID', ''))
+except Exception:
+    pass
+try:
+    from core.synapse.kb_cache import invalidate_obsidian_query
+    invalidate_obsidian_query(os.environ.get('SESSION_ID', ''))
+except Exception:
+    pass
+" 2>/dev/null || true
+fi
 # Fallback: try to get the raw text
 if [ -z "$user_input" ]; then
   user_input=$(echo "$input" | head -c 2000)

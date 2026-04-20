@@ -7,6 +7,7 @@ Layer Architecture:
   L0:   Constitution       — Compressed governance rules (TTL: 300s)
   L1:   Department         — Detected department from input (no cache)
   L2:   Agent              — Agent profile + last gotchas (TTL: 30s)
+  L2.5: KBContext          — Obsidian notes relevant to prompt (no cache)
   L3:   Project            — Active project context (TTL: 30s)
   L3.5: KnowledgeRetrieval — Semantic search from vector DB (TTL: 30s)
   L4:   Branch             — Current git branch (no cache)
@@ -15,10 +16,13 @@ Layer Architecture:
   L7:   Time               — Time-of-day signal (no cache)
 """
 
+import json
+import os
 import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, Any
 
 
@@ -781,6 +785,298 @@ class SessionContextLayer(Layer):
             tag=tag,
             content=content,
             tokens_est=tokens,
+            compute_ms=ms,
+            cached=False,
+        )
+
+
+# --- L2.5: KB Context (Obsidian) -------------------------------------------
+
+_WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:\|[^\]]+)?\]\]")
+_FRONTMATTER_RE = re.compile(r"^---\n.*?\n---\n", re.DOTALL)
+_KB_CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
+_KB_STOPWORDS: frozenset[str] = frozenset({
+    "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of",
+    "with", "by", "from", "as", "is", "was", "are", "were", "be", "been", "being",
+    "have", "has", "had", "do", "does", "did", "will", "would", "should", "could",
+    "may", "might", "must", "can", "this", "that", "these", "those", "it", "its",
+    "about", "into", "over", "under", "up", "down", "out", "than", "then", "so",
+    "if", "because", "while", "where", "when", "what", "which", "who", "whom",
+    "how", "why", "all", "some", "any", "no", "not", "very", "just", "also",
+})
+
+
+def _l25_feature_flag_on() -> bool:
+    if os.environ.get("ARKA_BYPASS_L25", "").strip() == "1":
+        return False
+    if not _KB_CONFIG_PATH.exists():
+        return True
+    try:
+        data = json.loads(_KB_CONFIG_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return True
+    synapse_cfg = data.get("synapse") or {}
+    return bool(synapse_cfg.get("l25KbContext", True))
+
+
+def _tokenize_for_jaccard(text: str) -> set[str]:
+    if not text:
+        return set()
+    words = re.findall(r"[a-zA-Z0-9]{3,}", text.lower())
+    return {w for w in words if w not in _KB_STOPWORDS}
+
+
+def _jaccard(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    union = len(a | b)
+    return inter / union if union else 0.0
+
+
+def _extract_note_body(raw: str) -> str:
+    return _FRONTMATTER_RE.sub("", raw, count=1).lstrip()
+
+
+def _extract_title(raw: str, fallback: str) -> str:
+    body = _extract_note_body(raw)
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            return stripped.lstrip("#").strip() or fallback
+        if stripped:
+            return fallback
+    return fallback
+
+
+def _extract_excerpt(raw: str, max_lines: int = 2) -> str:
+    body = _extract_note_body(raw)
+    lines: list[str] = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        lines.append(stripped)
+        if len(lines) >= max_lines:
+            break
+    return " ".join(lines)[:240]
+
+
+def _extract_wikilinks(raw: str, limit: int = 3) -> list[str]:
+    body = _extract_note_body(raw)
+    seen: list[str] = []
+    for match in _WIKILINK_RE.finditer(body):
+        target = match.group(1).strip()
+        if target and target not in seen:
+            seen.append(target)
+        if len(seen) >= limit:
+            break
+    return seen
+
+
+def _format_kb_block(notes: list[dict]) -> str:
+    lines: list[str] = [
+        f"[arka:kb-context] O teu cérebro (Obsidian) tem {len(notes)} "
+        f"nota{'s' if len(notes) != 1 else ''} relevante{'s' if len(notes) != 1 else ''} "
+        f"para este pedido:",
+        "",
+    ]
+    for note in notes:
+        title = note.get("title", "")
+        path = note.get("path", "")
+        excerpt = note.get("excerpt", "")
+        relates = note.get("relates", []) or []
+        lines.append(f"- [[{title}]] (path: `{path}`)")
+        if excerpt:
+            lines.append(f"  Excerto: {excerpt}")
+        if relates:
+            rel = ", ".join(f"[[{r}]]" for r in relates)
+            lines.append(f"  Relacionada: {rel}")
+        lines.append("")
+    lines.append(
+        "Consulta-as antes de ir a Context7/Web. Se preencherem o pedido, "
+        "usa-as e cita. Se tiverem lacuna, investiga externamente e "
+        "documenta de volta."
+    )
+    return "\n".join(lines).strip()
+
+
+def _vector_search(store: Any, prompt: str, top_k: int) -> list[dict]:
+    if store is None:
+        return []
+    try:
+        return list(store.search(prompt, top_k=top_k)) or []
+    except Exception:
+        return []
+
+
+def _jaccard_fallback(
+    prompt: str, notes: list[dict], top_k: int, threshold: float
+) -> list[dict]:
+    prompt_tokens = _tokenize_for_jaccard(prompt)
+    scored: list[tuple[float, dict]] = []
+    for note in notes:
+        title_tokens = _tokenize_for_jaccard(note.get("title", ""))
+        score = _jaccard(prompt_tokens, title_tokens)
+        if score >= threshold:
+            scored.append((score, note))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [n for _, n in scored[:top_k]]
+
+
+def _load_fallback_notes(vault_path: Optional[Path]) -> list[dict]:
+    if vault_path is None or not vault_path.exists() or not vault_path.is_dir():
+        return []
+    notes: list[dict] = []
+    for md in sorted(vault_path.rglob("*.md")):
+        try:
+            raw = md.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        notes.append(
+            {
+                "title": _extract_title(raw, md.stem),
+                "path": str(md),
+                "raw": raw,
+            }
+        )
+    return notes
+
+
+def _build_note_entry(raw: str, title: str, path: str, score: float) -> dict:
+    return {
+        "title": title,
+        "path": path,
+        "excerpt": _extract_excerpt(raw),
+        "relates": _extract_wikilinks(raw),
+        "score": float(score),
+    }
+
+
+def _note_from_vector_hit(hit: dict) -> dict:
+    source = hit.get("source", "") or ""
+    raw = hit.get("text", "") or ""
+    title = hit.get("heading") or Path(source).stem or "note"
+    score_val = hit.get("score", 0.0) or 0.0
+    return _build_note_entry(raw, str(title), str(source), float(score_val))
+
+
+class KBContextLayer(Layer):
+    """L2.5: Obsidian KB context injection before the model thinks.
+
+    Design (see plan ``2026-04-20-intelligence-v2.md``):
+      1. Semantic search the user prompt against the vector store.
+      2. If store empty or embedder unavailable, fall back to Jaccard
+         keyword similarity against cached note titles.
+      3. Keep notes with similarity ≥ ``min_similarity`` (default 0.5),
+         up to ``max_notes``.
+      4. Format as ``[arka:kb-context]`` block with title, path, 2-line
+         excerpt, and top 3 wikilinks per note.
+      5. Call ``record_obsidian_query`` so research_gate (Task #6) can
+         verify KB-first was respected this turn.
+
+    Feature flag: ``synapse.l25KbContext`` in ``~/.arkaos/config.json``
+    (default ``true``). ``ARKA_BYPASS_L25=1`` env disables for debugging.
+    """
+
+    def __init__(
+        self,
+        vector_store: Any = None,
+        vault_path: Optional[str] = None,
+        max_notes: int = 5,
+        min_similarity: float = 0.5,
+    ) -> None:
+        self._store = vector_store
+        self._vault_path = Path(vault_path) if vault_path else None
+        self._max_notes = max_notes
+        self._min_similarity = min_similarity
+
+    @property
+    def id(self) -> str:
+        return "L2.5"
+
+    @property
+    def name(self) -> str:
+        return "KBContext"
+
+    @property
+    def cache_ttl(self) -> int:
+        return 0
+
+    @property
+    def priority(self) -> int:
+        return 25
+
+    def _empty(self, start: float) -> LayerResult:
+        ms = int((time.time() - start) * 1000)
+        return LayerResult(
+            layer_id=self.id, tag="", content="", tokens_est=0, compute_ms=ms, cached=False
+        )
+
+    def _session_id(self, ctx: PromptContext) -> str:
+        return ctx.extra.get("session_id", "") if ctx.extra else ""
+
+    def _record(self, ctx: PromptContext, hit_count: int) -> None:
+        session_id = self._session_id(ctx)
+        if not session_id:
+            return
+        try:
+            from core.synapse.kb_cache import record_obsidian_query
+
+            record_obsidian_query(session_id, ctx.user_input, hit_count)
+        except Exception:
+            pass
+
+    def _retrieve(self, prompt: str) -> list[dict]:
+        hits = _vector_search(self._store, prompt, top_k=self._max_notes * 2)
+        notes: list[dict] = []
+        for h in hits:
+            score = float(h.get("score", 0.0) or 0.0)
+            if score < self._min_similarity:
+                continue
+            notes.append(_note_from_vector_hit(h))
+            if len(notes) >= self._max_notes:
+                break
+        if notes:
+            return notes
+        candidates = _load_fallback_notes(self._vault_path)
+        if not candidates:
+            return []
+        picked = _jaccard_fallback(
+            prompt, candidates, self._max_notes, self._min_similarity
+        )
+        return [
+            _build_note_entry(n["raw"], n["title"], n["path"], 0.0)
+            for n in picked
+        ]
+
+    def build(self, prompt: str) -> Optional[str]:
+        """Public entrypoint — returns the formatted block or None."""
+        if not prompt or not _l25_feature_flag_on():
+            return None
+        notes = self._retrieve(prompt[:2000])
+        if not notes:
+            return None
+        return _format_kb_block(notes[: self._max_notes])
+
+    def compute(self, ctx: PromptContext) -> LayerResult:
+        start = time.time()
+        if not ctx.user_input or not _l25_feature_flag_on():
+            return self._empty(start)
+        try:
+            notes = self._retrieve(ctx.user_input[:2000])
+        except Exception:
+            return self._empty(start)
+        self._record(ctx, len(notes))
+        if not notes:
+            return self._empty(start)
+        block = _format_kb_block(notes[: self._max_notes])
+        ms = int((time.time() - start) * 1000)
+        return LayerResult(
+            layer_id=self.id,
+            tag=f"[kb-context:{len(notes)}]",
+            content=block,
+            tokens_est=len(block.split()),
             compute_ms=ms,
             cached=False,
         )

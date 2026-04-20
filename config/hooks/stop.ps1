@@ -104,6 +104,85 @@ except Exception:
 
 $pyScript | & $python.Source - | Out-Null
 
+# ─── Auto-documentor enqueue (fire-and-forget) ─────────────────────────
+# Queues a background job when classifier flagged flow, QG approved, and
+# external research happened. Never blocks the Stop hook.
+$env:SESSION_ID_VAL = $sessionId
+$env:TRANSCRIPT_PATH_VAL = $transcriptPath
+$env:CWD_VAL = $cwd
+$env:ARKAOS_ROOT = $env:ARKAOS_ROOT
+
+$autoDocScript = @'
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.environ.get("ARKAOS_ROOT", ""))
+try:
+    from core.jobs.auto_doc_worker import enqueue_job
+    from core.workflow.flow_enforcer import _load_last_assistant_messages
+except Exception:
+    sys.exit(0)
+
+session_id = os.environ.get("SESSION_ID_VAL", "")
+transcript_path = os.environ.get("TRANSCRIPT_PATH_VAL", "")
+if not session_id or not transcript_path:
+    sys.exit(0)
+
+last = ""
+try:
+    msgs = _load_last_assistant_messages(transcript_path, n=1)
+    last = msgs[-1] if msgs else ""
+except Exception:
+    last = ""
+
+qg_approved = bool(re.search(r"\[arka:qg:approved\]", last, re.IGNORECASE))
+if not qg_approved:
+    qg_log = Path.home() / ".arkaos" / "telemetry" / "qg.jsonl"
+    if qg_log.exists():
+        try:
+            for line in reversed(qg_log.read_text(encoding="utf-8").splitlines()):
+                if not line.strip():
+                    continue
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                if rec.get("session_id") == session_id:
+                    qg_approved = rec.get("verdict", "").upper() == "APPROVED"
+                    break
+        except Exception:
+            pass
+if not qg_approved:
+    sys.exit(0)
+
+external_markers = (
+    "WebFetch", "WebSearch", "mcp__context7", "mcp__firecrawl",
+    "http://", "https://",
+)
+has_external = False
+try:
+    data = Path(transcript_path).read_text(encoding="utf-8", errors="replace")
+    has_external = any(marker in data for marker in external_markers)
+except Exception:
+    has_external = False
+if not has_external:
+    sys.exit(0)
+
+try:
+    enqueue_job(session_id, transcript_path, "APPROVED")
+except Exception:
+    pass
+'@
+
+try {
+    $autoDocScript | & $python.Source - | Out-Null
+} catch {
+    # Swallow — enqueue is fire-and-forget.
+}
+
 # Belt-and-braces marker cleanup (safe even if the Python block crashed).
 if ($sessionId -match '^[A-Za-z0-9._-]{1,128}$') {
     Remove-Item -LiteralPath $wfMarker -ErrorAction SilentlyContinue

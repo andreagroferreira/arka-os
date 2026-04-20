@@ -63,6 +63,56 @@ if (-not $v2Installed) {
 # --- Performance timing ----------------------------------------------------
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
+# --- Flow marker cache invalidation (v2 — new turn resets ALLOW cache) ---
+# Runs before the Synapse bridge so a stuck Python call cannot leave a
+# stale marker across turns. Non-blocking — all failures swallowed.
+try {
+    $sessionIdUps = ''
+    if ($payload -and $payload.session_id) {
+        $sessionIdUps = [string]$payload.session_id
+    }
+    if ($sessionIdUps) {
+        $arkaosRootUps = $env:ARKAOS_ROOT
+        if (-not $arkaosRootUps) {
+            $repoPathFileUps = Join-Path $env:USERPROFILE '.arkaos\.repo-path'
+            if (Test-Path -LiteralPath $repoPathFileUps) {
+                try {
+                    $arkaosRootUps = (Get-Content -Raw -LiteralPath $repoPathFileUps -Encoding UTF8).Trim()
+                } catch { }
+            }
+        }
+        if (-not $arkaosRootUps) {
+            $arkaosRootUps = Join-Path $env:USERPROFILE '.arkaos'
+        }
+        $pythonForInvalidate = $null
+        $venvPyUps = Join-Path $env:USERPROFILE '.arkaos\venv\Scripts\python.exe'
+        if (Test-Path -LiteralPath $venvPyUps) {
+            $pythonForInvalidate = $venvPyUps
+        } else {
+            foreach ($cmd in 'python3','python','py') {
+                $resolvedUps = Get-Command $cmd -ErrorAction SilentlyContinue
+                if ($resolvedUps) { $pythonForInvalidate = $resolvedUps.Source; break }
+            }
+        }
+        if ($pythonForInvalidate) {
+            $pyCode = "import os`ntry:`n    from core.workflow.marker_cache import invalidate_marker`n    invalidate_marker(os.environ.get('SESSION_ID_UPS',''))`nexcept Exception:`n    pass`ntry:`n    from core.synapse.kb_cache import invalidate_obsidian_query`n    invalidate_obsidian_query(os.environ.get('SESSION_ID_UPS',''))`nexcept Exception:`n    pass"
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = $pythonForInvalidate
+            $psi.Arguments = "-c `"$($pyCode -replace '"','\"' -replace "`r?`n",'; ')`""
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            [void]$psi.EnvironmentVariables.Add('SESSION_ID_UPS', $sessionIdUps)
+            [void]$psi.EnvironmentVariables.Add('PYTHONPATH', $arkaosRootUps)
+            try {
+                $procUps = [System.Diagnostics.Process]::Start($psi)
+                if (-not $procUps.WaitForExit(1500)) { try { $procUps.Kill() } catch { } }
+            } catch { }
+        }
+    }
+} catch { }
+
 # --- Sync version detection ------------------------------------------------
 $syncNotice = ''
 $arkaosHome    = Join-Path $env:USERPROFILE '.arkaos'
