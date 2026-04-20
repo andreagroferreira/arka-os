@@ -28,9 +28,11 @@ from typing import Iterable
 from core.obsidian import cataloger as _cataloger
 from core.obsidian import relator as _relator
 from core.obsidian.writer import ObsidianWriter
+from core.shared import safe_session_id as _safe_session_id_module
 
 
-SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+# Re-export for backward compatibility with any external importers.
+SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
 
 _URL_RE = re.compile(r"https?://[^\s\)\]\"']+")
 _FILE_PATH_RE = re.compile(r"(?:^|[\s`'])(/[A-Za-z0-9_./\-]+\.[A-Za-z0-9]+)")
@@ -428,6 +430,4 @@ def _append_related_block(note_path: Path, related) -> None:
 
 
 def _safe_session_id(session_id: str) -> bool:
-    if not isinstance(session_id, str) or not session_id:
-        return False
-    return bool(SAFE_SESSION_ID_RE.match(session_id))
+    return _safe_session_id_module.safe_session_id(session_id) is not None

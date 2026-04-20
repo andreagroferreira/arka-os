@@ -13,12 +13,14 @@ ADR compliance (docs/adr/2026-04-17-binding-flow-enforcement.md):
 
 import json
 import os
-import re
 import threading
 import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
+
+from core.shared import safe_session_id as _safe_session_id_module
+
 
 def _resolve_cache_dir() -> Path:
     override = os.environ.get("ARKA_MARKER_CACHE_DIR", "").strip()
@@ -28,7 +30,8 @@ def _resolve_cache_dir() -> Path:
 
 
 MARKER_CACHE_DIR = _resolve_cache_dir()
-SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+# Re-export for backward compatibility with any external importers.
+SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
 VALID_MARKER_TYPES: frozenset[str] = frozenset({"routing", "trivial", "phase"})
 _MAX_LABEL_LEN = 64
 
@@ -51,12 +54,7 @@ class MarkerRecord:
         }
 
 
-def _safe_session_id(session_id: str) -> str | None:
-    if not session_id or not isinstance(session_id, str):
-        return None
-    if not SAFE_SESSION_ID_RE.match(session_id):
-        return None
-    return session_id
+_safe_session_id = _safe_session_id_module.safe_session_id
 
 
 def _cache_path(session_id: str) -> Path | None:

@@ -28,7 +28,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 import time
 import uuid
@@ -36,9 +35,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from core.shared import safe_session_id as _safe_session_id_module
+
 
 MAX_ATTEMPTS = 3
-SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+# Re-export for backward compatibility with any external importers.
+SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
 _QUEUE_SUBDIRS = ("pending", "processing", "completed", "failed")
 
 
@@ -77,7 +79,7 @@ def enqueue_job(
     """Write a pending job file. Returns the job id."""
     root = queue_root or _queue_root()
     _ensure_queue(root)
-    safe = session_id if SAFE_SESSION_ID_RE.match(session_id or "") else "unknown"
+    safe = _safe_session_id_module.safe_session_id(session_id or "") or "unknown"
     job_id = f"{int(time.time())}-{uuid.uuid4().hex[:12]}"
     payload = {
         "job_id": job_id,
