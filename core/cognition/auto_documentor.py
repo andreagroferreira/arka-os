@@ -5,14 +5,15 @@ synthesises learnings about external sources consulted, decisions made,
 and deliverables produced, then invokes the Obsidian cataloger + relator
 (Task #4 modules) to file structured, wikilinked notes into the vault.
 
-Model routing is dynamic: a complexity heuristic over the learning
-content chooses haiku / sonnet / opus. Nothing is hardcoded per task
-type. The actual LLM call is abstracted behind `_call_llm` and falls
-back to a deterministic template when no SDK is wired — this keeps the
-module testable and unblocks the SDK integration as a follow-up.
+The synthesis step is runtime- and model-agnostic: it delegates to the
+active `LLMProvider` (see `core.runtime.llm_provider`). This module
+NEVER picks a model — the provider / runtime / env does. When no
+provider is available or the call fails, it falls through to a
+deterministic template synthesiser that preserves every extracted fact.
 
 ADR/Plan references:
 - ~/.arkaos/plans/2026-04-20-intelligence-v2.md (Task #7 — Épico B)
+- ~/.arkaos/plans/2026-04-20-llm-agnostic.md (Task #12/#13 — LLMProvider)
 - core/obsidian/cataloger.py, core/obsidian/relator.py (Task #4)
 """
 
@@ -21,9 +22,8 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import date
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable
 
 from core.obsidian import cataloger as _cataloger
 from core.obsidian import relator as _relator
@@ -32,14 +32,6 @@ from core.obsidian.writer import ObsidianWriter
 
 SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
-_ARCHITECTURAL_KEYWORDS = (
-    "architecture", "adr", "decision", "trade-off", "tradeoff",
-    "design pattern", "refactor", "migration", "schema", "bounded context",
-)
-_ANALYSIS_KEYWORDS = (
-    "analysis", "investigation", "compare", "benchmark", "evaluate",
-    "profile", "review", "audit",
-)
 _URL_RE = re.compile(r"https?://[^\s\)\]\"']+")
 _FILE_PATH_RE = re.compile(r"(?:^|[\s`'])(/[A-Za-z0-9_./\-]+\.[A-Za-z0-9]+)")
 _ROUTING_MARKER_RE = re.compile(
@@ -58,8 +50,17 @@ _EXTERNAL_RESEARCH_TOOLS = frozenset({
     "mcp__firecrawl__firecrawl_extract",
 })
 
-_HAIKU_MAX_CHARS = 600
-_OPUS_MIN_CHARS = 4000
+_AUTO_DOC_SUFFIX = "Auto-documented by ArkaOS"
+_LLM_MAX_TOKENS = 1500
+
+_SYSTEM_PROMPT = (
+    "You are ArkaOS's auto-documentor. Produce a concise knowledge note "
+    "(150-300 words) summarising the session. Structure: short intro, "
+    "then markdown sections for Key Facts, Decisions, and Sources. "
+    "Preserve every URL and file path verbatim. Use Obsidian wikilinks "
+    "([[Topic]]) for reusable concepts. No preamble, no sign-off, no "
+    "meta commentary about the model or prompt. Output only markdown."
+)
 
 
 @dataclass
@@ -264,49 +265,73 @@ def _dedupe_keep_order(items: Iterable[str]) -> list[str]:
     return out
 
 
-# ─── Model routing ─────────────────────────────────────────────────────
-
-
-def choose_model(learning: Learning) -> str:
-    """Return 'haiku' | 'sonnet' | 'opus' based on content complexity."""
-    low = learning.content.lower()
-    length = len(learning.content)
-    if any(kw in low for kw in _ARCHITECTURAL_KEYWORDS):
-        return "opus"
-    if length >= _OPUS_MIN_CHARS and len(learning.decisions) >= 3:
-        return "opus"
-    if length <= _HAIKU_MAX_CHARS and len(learning.decisions) <= 1:
-        return "haiku"
-    if any(kw in low for kw in _ANALYSIS_KEYWORDS):
-        return "sonnet"
-    if length >= _HAIKU_MAX_CHARS:
-        return "sonnet"
-    return "haiku"
-
-
 # ─── Synthesis ─────────────────────────────────────────────────────────
 
 
-def synthesize(learning: Learning, model_hint: str) -> str:
+def synthesize(learning: Learning) -> str:
     """Produce a markdown body for the learning.
 
-    Calls `_call_llm` when a real LLM integration is wired; otherwise
-    falls back to a deterministic template that preserves all extracted
-    information. The template path is what ships in Task #7.
+    Delegates to the active `LLMProvider` via `_call_llm`. If the
+    provider is unavailable, returns empty text, or raises, falls
+    through to a deterministic template that preserves every extracted
+    fact. No model name ever crosses this boundary.
     """
-    llm_out = _call_llm(learning, model_hint)
+    llm_out = _call_llm(learning)
     if llm_out:
         return llm_out
-    return _template_synthesize(learning, model_hint)
+    return _template_synthesize(learning)
 
 
-def _call_llm(learning: Learning, model_hint: str) -> str:
-    return ""
+def _call_llm(learning: Learning) -> str:
+    from core.runtime import get_llm_provider
+    from core.runtime.llm_provider import LLMUnavailable
+
+    try:
+        provider = get_llm_provider()
+        if not provider.is_available():
+            return ""
+        prompt = _build_synthesis_prompt(learning)
+        response = provider.complete(
+            prompt, max_tokens=_LLM_MAX_TOKENS, system=_SYSTEM_PROMPT
+        )
+        return response.text.strip()
+    except LLMUnavailable:
+        return ""
+    except Exception:  # noqa: BLE001 — LLM path must never crash the doc job
+        return ""
 
 
-def _template_synthesize(learning: Learning, model_hint: str) -> str:
+def _build_synthesis_prompt(learning: Learning) -> str:
+    lines = [f"Topic: {learning.topic}", ""]
+    if learning.content.strip():
+        lines.append("Session blob:")
+        lines.append(learning.content.strip())
+        lines.append("")
+    if learning.sources:
+        lines.append("Sources consulted:")
+        for src in learning.sources[:20]:
+            lines.append(f"- {src}")
+        lines.append("")
+    if learning.decisions:
+        lines.append("Decisions recorded:")
+        for dec in learning.decisions[:10]:
+            lines.append(f"- {dec}")
+        lines.append("")
+    if learning.metadata:
+        meta_pairs = sorted(learning.metadata.items())
+        lines.append("Metadata:")
+        for key, value in meta_pairs:
+            lines.append(f"- {key}: {value}")
+        lines.append("")
+    lines.append(
+        "Write the note now. Obey the system prompt. Output only markdown."
+    )
+    return "\n".join(lines)
+
+
+def _template_synthesize(learning: Learning) -> str:
     parts = [f"# {learning.topic}", ""]
-    parts.append(f"> Auto-documented via ArkaOS ({model_hint}).")
+    parts.append(f"> {_AUTO_DOC_SUFFIX}.")
     parts.append("")
     if learning.content.strip():
         parts.append(learning.content.strip())
@@ -318,7 +343,7 @@ def _template_synthesize(learning: Learning, model_hint: str) -> str:
             parts.append(f"- {src}")
         parts.append("")
     if learning.decisions:
-        parts.append("## Key decisions")
+        parts.append("## Decisions")
         parts.append("")
         for dec in learning.decisions[:10]:
             parts.append(f"- {dec}")
@@ -358,14 +383,12 @@ def _document_one(
     writer: ObsidianWriter,
     vault_path: Path,
     session_id: str,
-) -> Optional[Path]:
-    model_hint = choose_model(learning)
-    body = synthesize(learning, model_hint)
+) -> Path | None:
+    body = synthesize(learning)
     meta = dict(learning.metadata)
     meta.setdefault("title", learning.topic[:80])
     meta.setdefault("session", session_id)
     meta.setdefault("auto_documented", True)
-    meta.setdefault("model_hint", model_hint)
     try:
         plan = _cataloger.plan(body, meta)
     except ValueError:
