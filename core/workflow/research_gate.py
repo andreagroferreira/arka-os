@@ -160,9 +160,14 @@ def _mark_violation(session_id: str, tool: str) -> None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     entry = json.dumps({"tool": tool, "ts": datetime.now(timezone.utc).isoformat()})
+    # Race contract: two concurrent tool calls on the same session may
+    # both observe "no prior violation" and both emit the first-violation
+    # nudge. This is intentional — a nudge is cheap and both calls were
+    # genuinely first-ish. Deny is reserved for the SECOND violation
+    # after the first marker is on disk, which is what a plain
+    # ``write_text`` (non-exclusive, last-writer-wins) gives us. Tested
+    # by ``test_concurrent_violation_markers_race_safe``.
     try:
-        # O_CREAT|O_EXCL would be stricter, but we want idempotent writes
-        # from a concurrent race — last writer wins, both see "first".
         path.write_text(entry, encoding="utf-8")
     except OSError:
         pass
