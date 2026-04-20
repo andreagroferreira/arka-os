@@ -120,7 +120,7 @@ class ClaudeCodeAdapter(RuntimeAdapter):
         max_tokens: int = 2000,
         system: str = "",
     ) -> "LLMResponse":
-        from core.runtime.llm_provider import LLMResponse, LLMUnavailable
+        from core.runtime.llm_provider import LLMUnavailable
 
         binary = shutil.which("claude")
         if binary is None:
@@ -131,27 +131,28 @@ class ClaudeCodeAdapter(RuntimeAdapter):
         cmd = [binary, "-p", prompt, "--output-format", "json"]
         if system:
             cmd.extend(["--append-system-prompt", system])
-        try:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise LLMUnavailable("claude CLI timed out after 60s") from exc
-        except OSError as exc:
-            raise LLMUnavailable(f"claude CLI subprocess failed: {exc}") from exc
-
+        proc = _run_claude_cli(cmd)
         if proc.returncode != 0:
             raise LLMUnavailable(
                 f"claude CLI exited {proc.returncode}: {proc.stderr.strip()[:200]}"
             )
-        return _parse_claude_json(proc.stdout)
+        return _parse_claude_cli_output(proc.stdout)
 
 
-def _parse_claude_json(stdout: str) -> "LLMResponse":
+def _run_claude_cli(cmd: list[str]) -> subprocess.CompletedProcess:
+    from core.runtime.llm_provider import LLMUnavailable
+
+    try:
+        return subprocess.run(
+            cmd, capture_output=True, text=True, timeout=60, check=False
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise LLMUnavailable("claude CLI timed out after 60s") from exc
+    except OSError as exc:
+        raise LLMUnavailable(f"claude CLI subprocess failed: {exc}") from exc
+
+
+def _parse_claude_cli_output(stdout: str) -> "LLMResponse":
     from core.runtime.llm_provider import LLMResponse
 
     payload = json.loads(stdout) if stdout.strip() else {}
@@ -170,3 +171,8 @@ def _parse_claude_json(stdout: str) -> "LLMResponse":
         cached_tokens=cache_read,
         model=model,
     )
+
+
+# Backward compatibility alias — tests and external importers that used
+# the old helper name continue to work without modification.
+_parse_claude_json = _parse_claude_cli_output

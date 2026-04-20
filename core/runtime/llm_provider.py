@@ -199,6 +199,19 @@ class AnthropicDirectProvider:
             }
         ]
 
+    def _build_anthropic_payload(
+        self, prompt: str, system: str, max_tokens: int, model: str
+    ) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        system_blocks = self._build_system_blocks(system)
+        if system_blocks:
+            payload["system"] = system_blocks
+        return payload
+
     def complete(
         self,
         prompt: str,
@@ -213,15 +226,7 @@ class AnthropicDirectProvider:
                 "cannot select a model."
             )
         client = self._build_client()
-        payload: dict[str, object] = {
-            "model": model,
-            "max_tokens": max_tokens,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-        system_blocks = self._build_system_blocks(system)
-        if system_blocks:
-            payload["system"] = system_blocks
-
+        payload = self._build_anthropic_payload(prompt, system, max_tokens, model)
         try:
             raw = client.messages.create(**payload)  # type: ignore[attr-defined]
         except Exception as exc:  # noqa: BLE001
