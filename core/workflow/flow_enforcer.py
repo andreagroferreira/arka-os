@@ -22,6 +22,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.workflow import marker_cache
+
 try:
     import fcntl  # POSIX only
     _HAS_FLOCK = True
@@ -58,7 +60,7 @@ TRIVIAL_RE = re.compile(r"\[arka:trivial\]\s*\S+", re.IGNORECASE)
 PHASE_RE = re.compile(r"\[arka:phase:\d+\]", re.IGNORECASE)
 SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
-ASSISTANT_WINDOW = 3
+ASSISTANT_WINDOW = 6
 CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 BYPASS_AUDIT_PATH = Path.home() / ".arkaos" / "audit" / "bypass.log"
 TELEMETRY_PATH = Path.home() / ".arkaos" / "telemetry" / "enforcement.jsonl"
@@ -94,7 +96,7 @@ class Decision:
         return (
             f"[ARKA:ENFORCEMENT] Flow marker missing. "
             f"Emit `[arka:routing] <dept> -> <lead>` or `[arka:trivial] <reason>` "
-            f"before any Write/Edit/MultiEdit. Reason: {self.reason}"
+            f"before any `Write`/`Edit`/`MultiEdit`. Reason: {self.reason}"
         )
 
 
@@ -234,13 +236,22 @@ def evaluate(
     if not _flow_required_for_session(session_id):
         return Decision(allow=True, reason="classifier-did-not-match")
 
+    cached = marker_cache.read_marker(session_id)
+    if cached is not None:
+        cached_type = cached.get("marker_type", "")
+        return Decision(
+            allow=True,
+            reason=f"marker-cache-hit:{cached_type}",
+            marker_found=cached_type or None,
+        )
+
     messages = _load_last_assistant_messages(transcript_path, ASSISTANT_WINDOW)
     marker_found, phase_observed = _scan_markers(messages)
 
     if marker_found is None:
         return Decision(
             allow=False,
-            reason="no-flow-marker-in-last-3-assistant-messages",
+            reason=f"no-flow-marker-in-last-{ASSISTANT_WINDOW}-assistant-messages",
             phase_observed=phase_observed,
         )
 

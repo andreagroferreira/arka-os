@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from core.workflow import flow_enforcer
+from core.workflow import flow_enforcer, marker_cache
 from core.workflow.flow_enforcer import (
     Decision,
     evaluate,
@@ -28,10 +28,12 @@ def tmp_config(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     tmp_flow_required = tmp_path / "wf-required"
+    tmp_marker_cache = tmp_path / "marker-cache"
     monkeypatch.setattr(flow_enforcer, "CONFIG_PATH", home / "config.json")
     monkeypatch.setattr(flow_enforcer, "BYPASS_AUDIT_PATH", home / "audit" / "bypass.log")
     monkeypatch.setattr(flow_enforcer, "TELEMETRY_PATH", home / "telemetry" / "enforcement.jsonl")
     monkeypatch.setattr(flow_enforcer, "FLOW_REQUIRED_DIR", tmp_flow_required)
+    monkeypatch.setattr(marker_cache, "MARKER_CACHE_DIR", tmp_marker_cache)
     return home
 
 
@@ -106,7 +108,7 @@ def test_write_without_marker_denies(tmp_config, tmp_path):
     )
     d = evaluate("Write", str(transcript), "session-2", "/tmp")
     assert d.allow is False
-    assert d.reason == "no-flow-marker-in-last-3-assistant-messages"
+    assert d.reason == f"no-flow-marker-in-last-{flow_enforcer.ASSISTANT_WINDOW}-assistant-messages"
     assert d.marker_found is None
 
 
@@ -164,18 +166,14 @@ def test_marker_in_any_of_last_three_messages(tmp_config, tmp_path):
     assert d.marker_found == "routing"
 
 
-def test_marker_older_than_three_turns_denies(tmp_config, tmp_path):
-    """Marker beyond the 3-message window is stale → deny."""
+def test_marker_older_than_window_denies(tmp_config, tmp_path):
+    """Marker beyond the configured window is stale → deny."""
     _write_config(tmp_config, True)
     mark_flow_required("session-7")
+    filler = [f"Step {i}." for i in range(flow_enforcer.ASSISTANT_WINDOW + 1)]
     transcript = _write_transcript(
         tmp_path / "t.jsonl",
-        [
-            "[arka:routing] dev -> Paulo",
-            "Step 2.",
-            "Step 3.",
-            "Step 4.",  # window starts here → no marker
-        ],
+        ["[arka:routing] dev -> Paulo", *filler],
     )
     d = evaluate("Write", str(transcript), "session-7", "/tmp")
     assert d.allow is False
@@ -378,6 +376,37 @@ def test_bash_classifier_rejects_unsafe_session_ids(tmp_path, monkeypatch):
         capture_output=True,
     )
     assert (fake_dir / "safe-id-1").exists()
+
+
+# ─── v2 window widening + cache integration sanity ────────────────────
+
+
+def test_assistant_window_is_six_after_v2():
+    """v2 widens the fallback scan from 3 → 6 messages."""
+    assert flow_enforcer.ASSISTANT_WINDOW == 6
+
+
+def test_deny_reason_reflects_current_window(tmp_config, tmp_path):
+    _write_config(tmp_config, True)
+    mark_flow_required("session-v2-deny")
+    transcript = _write_transcript(tmp_path / "t.jsonl", ["no marker here"])
+    d = evaluate("Write", str(transcript), "session-v2-deny", "/tmp")
+    assert d.allow is False
+    assert f"last-{flow_enforcer.ASSISTANT_WINDOW}" in d.reason
+
+
+def test_cache_hit_does_not_break_transcript_fallback(tmp_config, tmp_path):
+    """If cache is empty, evaluate() must still honour transcript markers."""
+    _write_config(tmp_config, True)
+    mark_flow_required("session-fallback")
+    transcript = _write_transcript(
+        tmp_path / "t.jsonl",
+        ["[arka:routing] dev -> Paulo"],
+    )
+    d = evaluate("Write", str(transcript), "session-fallback", "/tmp")
+    assert d.allow is True
+    assert d.marker_found == "routing"
+    assert not d.reason.startswith("marker-cache-hit")
 
 
 def test_telemetry_append_remains_valid_jsonl_under_concurrency(tmp_config):
