@@ -22,6 +22,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.shared import safe_session_id as _safe_session_id_module
 from core.workflow import marker_cache
 
 try:
@@ -58,26 +59,17 @@ GATED_TOOLS: frozenset[str] = frozenset({"Write", "Edit", "MultiEdit"})
 ROUTING_RE = re.compile(r"\[arka:routing\]\s*[\w-]+\s*->\s*\w+", re.IGNORECASE)
 TRIVIAL_RE = re.compile(r"\[arka:trivial\]\s*\S+", re.IGNORECASE)
 PHASE_RE = re.compile(r"\[arka:phase:\d+\]", re.IGNORECASE)
-SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+
+# Re-export for backward compatibility with any external importers that
+# relied on the module-level symbols before the core.shared extraction.
+SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
+_safe_session_id = _safe_session_id_module.safe_session_id
 
 ASSISTANT_WINDOW = 6
 CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 BYPASS_AUDIT_PATH = Path.home() / ".arkaos" / "audit" / "bypass.log"
 TELEMETRY_PATH = Path.home() / ".arkaos" / "telemetry" / "enforcement.jsonl"
 FLOW_REQUIRED_DIR = Path("/tmp/arkaos-wf-required")
-
-
-def _safe_session_id(session_id: str) -> str | None:
-    """Validate session_id against a strict allowlist (prevents path traversal).
-
-    Returns the id if safe, or None if it contains path separators, dots-dots,
-    or characters outside `[A-Za-z0-9._-]`. Callers MUST treat None as reject.
-    """
-    if not session_id or not isinstance(session_id, str):
-        return None
-    if not SAFE_SESSION_ID_RE.match(session_id):
-        return None
-    return session_id
 
 
 @dataclass

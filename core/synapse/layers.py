@@ -795,6 +795,11 @@ class SessionContextLayer(Layer):
 _WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:\|[^\]]+)?\]\]")
 _FRONTMATTER_RE = re.compile(r"^---\n.*?\n---\n", re.DOTALL)
 _KB_CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
+# Cap fallback-note scanning to avoid O(vault size) blow-ups on large
+# Obsidian vaults. The cap is above any realistic top-N retrieval need
+# (Jaccard ranks the top few notes; scanning 2000 sorted-by-name first
+# is plenty — see `_load_fallback_notes`) while still bounding worst-case latency.
+_MAX_FALLBACK_NOTES = 2000
 _KB_STOPWORDS: frozenset[str] = frozenset({
     "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of",
     "with", "by", "from", "as", "is", "was", "are", "were", "be", "been", "being",
@@ -929,6 +934,8 @@ def _load_fallback_notes(vault_path: Optional[Path]) -> list[dict]:
         return []
     notes: list[dict] = []
     for md in sorted(vault_path.rglob("*.md")):
+        if len(notes) >= _MAX_FALLBACK_NOTES:
+            break
         try:
             raw = md.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):

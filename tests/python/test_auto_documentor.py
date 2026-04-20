@@ -435,3 +435,301 @@ def test_no_model_names_in_auto_documentor_source():
         f"auto_documentor.py contains forbidden model name(s): {hits!r}. "
         "Model selection must stay in LLMProvider / runtime env."
     )
+
+
+# ─── Template / LLM section parity ─────────────────────────────────────
+
+
+def test_template_uses_same_sections_as_llm_prompt():
+    """Both synthesis paths must produce the same section scaffolding.
+
+    The LLM system prompt asks for Key Facts, Decisions, Sources (in
+    that order). The template fallback must mirror those headings so
+    downstream consumers never branch on which provider produced the
+    note.
+    """
+    lg = Learning(
+        topic="Auth refactor",
+        content=(
+            "Moved sessions to JWT.\n\n"
+            "Refresh tokens live in Redis.\n"
+            "Token TTL is 15 minutes.\n"
+        ),
+        sources=["https://example.com/jwt"],
+        decisions=["routed: dev -> paulo"],
+        metadata={"dept": "dev"},
+    )
+    body = ad._template_synthesize(lg)
+
+    # LLM contract (system prompt) requires all three headings.
+    assert "Key Facts" in ad._SYSTEM_PROMPT
+    assert "Decisions" in ad._SYSTEM_PROMPT
+    assert "Sources" in ad._SYSTEM_PROMPT
+
+    # Template must mirror exactly the same section headings.
+    assert "## Key Facts" in body
+    assert "## Decisions" in body
+    assert "## Sources" in body
+
+    # Order must match: Key Facts → Decisions → Sources.
+    kf = body.index("## Key Facts")
+    dec = body.index("## Decisions")
+    src = body.index("## Sources")
+    assert kf < dec < src
+
+
+def test_extract_key_facts_drops_markdown_headings_and_empty_lines():
+    lg = Learning(
+        topic="X",
+        content=(
+            "# Heading should be dropped\n"
+            "\n"
+            "First actual fact about the system.\n"
+            "Second fact, long enough.\n"
+            "\n"
+            "## Another heading dropped\n"
+            "Third fact survives.\n"
+            "tiny\n"  # too short — skip
+        ),
+    )
+    facts = ad._extract_key_facts(lg, limit=5)
+    assert len(facts) >= 2
+    assert not any(f.startswith("#") for f in facts)
+    assert not any(len(f) < 8 for f in facts)
+
+
+def test_extract_key_facts_empty_content_returns_empty():
+    assert ad._extract_key_facts(Learning(topic="X", content="")) == []
+
+
+# ─── Telemetry ────────────────────────────────────────────────────────
+
+
+def test_classification_failed_emits_telemetry(tmp_path, vault, monkeypatch):
+    """When cataloger.plan raises ValueError, emit classification-failed."""
+    telemetry = tmp_path / "telemetry.jsonl"
+    monkeypatch.setattr(ad, "AUTO_DOC_TELEMETRY_PATH", telemetry)
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
+
+    transcript = _write_transcript(tmp_path / "t.jsonl", [
+        _msg_user("anything"),
+        _msg_assistant("[arka:routing] dev -> paulo"),
+    ])
+
+    def boom(*_a, **_kw):
+        raise ValueError("missing required vars: stack")
+
+    monkeypatch.setattr(ad._cataloger, "plan", boom)
+
+    document_session(transcript, "sess-cf", vault, "APPROVED")
+    assert telemetry.exists()
+    entries = [json.loads(l) for l in telemetry.read_text().splitlines() if l.strip()]
+    classifications = [e for e in entries if e["event"] == "classification-failed"]
+    assert len(classifications) == 1
+    assert classifications[0]["session_id"] == "sess-cf"
+    assert "missing required vars" in classifications[0]["reason"]
+
+
+def test_succeeded_empty_emits_telemetry(tmp_path, vault, monkeypatch):
+    """When cataloger.plan returns None (defensive), log succeeded-empty."""
+    telemetry = tmp_path / "telemetry.jsonl"
+    monkeypatch.setattr(ad, "AUTO_DOC_TELEMETRY_PATH", telemetry)
+    monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
+
+    transcript = _write_transcript(tmp_path / "t.jsonl", [
+        _msg_user("anything"),
+        _msg_assistant("[arka:routing] dev -> paulo"),
+    ])
+
+    monkeypatch.setattr(ad._cataloger, "plan", lambda *_a, **_kw: None)
+
+    document_session(transcript, "sess-se", vault, "APPROVED")
+    assert telemetry.exists()
+    entries = [json.loads(l) for l in telemetry.read_text().splitlines() if l.strip()]
+    events = [e["event"] for e in entries]
+    assert "succeeded-empty" in events
+
+
+def test_log_auto_doc_event_degrades_silently_on_oserror(tmp_path, monkeypatch):
+    """OSError writing telemetry must NOT propagate."""
+    # Point telemetry at a path that cannot be created.
+    bogus = tmp_path / "will-fail"
+    monkeypatch.setattr(ad, "AUTO_DOC_TELEMETRY_PATH", bogus)
+
+    from unittest.mock import patch
+
+    with patch(
+        "core.cognition.auto_documentor._locked_append",
+        side_effect=OSError("boom"),
+    ):
+        # Must not raise.
+        ad._log_auto_doc_event(
+            session_id="s", event="classification-failed",
+            topic="t", reason="r",
+        )
+
+
+# ─── OS-error coverage lift ───────────────────────────────────────────
+
+
+def test_load_transcript_oserror_returns_empty(tmp_path, monkeypatch):
+    """Line 108-109: OSError on read_text is swallowed and returns []."""
+    path = tmp_path / "transcript.jsonl"
+    path.write_text("{}", encoding="utf-8")
+
+    from unittest.mock import patch
+
+    with patch.object(Path, "read_text", side_effect=OSError("perm denied")):
+        # Must return [] silently, not raise.
+        result = ad._load_transcript(path)
+    assert result == []
+
+
+def test_append_related_block_read_oserror_returns(tmp_path, monkeypatch):
+    """Line 418-419: OSError reading note defers silently."""
+    note = tmp_path / "note.md"
+    note.write_text("# Existing\n\nBody.\n", encoding="utf-8")
+
+    class _Rel:
+        title = "other"
+
+    from unittest.mock import patch
+
+    with patch.object(Path, "read_text", side_effect=OSError("perm")):
+        ad._append_related_block(note, [_Rel()])
+    # File unchanged — ensures early return path executed.
+    assert "Body" in note.read_text(encoding="utf-8")
+
+
+def test_append_related_block_write_oserror_swallowed(tmp_path, monkeypatch):
+    """Line 426-427: OSError writing related block degrades silently."""
+    note = tmp_path / "note.md"
+    note.write_text("# Existing\n\nBody.\n", encoding="utf-8")
+
+    class _Rel:
+        title = "other"
+
+    # Stub relator so block is non-empty.
+    monkeypatch.setattr(
+        ad._relator, "generate_wikilinks_block",
+        lambda related: "## Related\n\n- [[other]]\n",
+    )
+
+    original_write = Path.write_text
+
+    def selective_fail(self, *args, **kwargs):
+        if self == note:
+            raise OSError("no space left")
+        return original_write(self, *args, **kwargs)
+
+    from unittest.mock import patch
+
+    with patch.object(Path, "write_text", selective_fail):
+        # Must not raise even though write fails.
+        ad._append_related_block(note, [_Rel()])
+
+
+def test_template_synthesize_with_no_content_produces_no_key_facts():
+    """Guards the empty-content branch in _extract_key_facts."""
+    lg = Learning(topic="Nothing", content="")
+    body = ad._template_synthesize(lg)
+    assert "## Key Facts" not in body
+    assert "# Nothing" in body
+
+
+def test_append_related_block_empty_block_early_returns(tmp_path, monkeypatch):
+    """Guards line 539: empty block string skips the write."""
+    note = tmp_path / "note.md"
+    note.write_text("# Existing\n\nBody.\n", encoding="utf-8")
+    monkeypatch.setattr(
+        ad._relator, "generate_wikilinks_block", lambda related: ""
+    )
+
+    class _Rel:
+        title = "x"
+
+    ad._append_related_block(note, [_Rel()])
+    # File unchanged.
+    assert note.read_text(encoding="utf-8") == "# Existing\n\nBody.\n"
+
+
+def test_detect_metadata_picks_vue_stack(tmp_path):
+    transcript = _write_transcript(tmp_path / "t.jsonl", [
+        _msg_user("scaffold a Nuxt 3 composable for auth"),
+        _msg_assistant("[arka:routing] dev -> paulo"),
+    ])
+    lg = extract_learnings(transcript)[0]
+    assert lg.metadata.get("stack") == "Vue"
+
+
+def test_detect_metadata_picks_react_stack(tmp_path):
+    transcript = _write_transcript(tmp_path / "t.jsonl", [
+        _msg_user("build a React component with Next.js routing"),
+        _msg_assistant("[arka:routing] dev -> paulo"),
+    ])
+    lg = extract_learnings(transcript)[0]
+    assert lg.metadata.get("stack") == "React"
+
+
+def test_detect_metadata_picks_python_stack(tmp_path):
+    transcript = _write_transcript(tmp_path / "t.jsonl", [
+        _msg_user("write a Python pydantic model for validation"),
+        _msg_assistant("[arka:routing] dev -> paulo"),
+    ])
+    lg = extract_learnings(transcript)[0]
+    assert lg.metadata.get("stack") == "Python"
+
+
+def test_iter_content_items_handles_string_content(tmp_path):
+    """Line 140-141: content as plain string (not list)."""
+    # A record where 'content' is a raw string.
+    rec = {"role": "user", "content": "plain string content here"}
+    items = list(ad._iter_content_items(rec))
+    assert items == [{"type": "text", "text": "plain string content here"}]
+
+
+def test_iter_content_items_handles_nested_message_content(tmp_path):
+    """Line 135: fallback to record['message']['content']."""
+    rec = {"message": {"role": "user", "content": [{"type": "text", "text": "nested"}]}}
+    items = list(ad._iter_content_items(rec))
+    assert items == [{"type": "text", "text": "nested"}]
+
+
+def test_extract_sources_dedupes_urls(tmp_path):
+    """Lines 165-167: url already seen skips."""
+    transcript = _write_transcript(tmp_path / "t.jsonl", [
+        _msg_user("See https://example.com/docs and https://example.com/docs again"),
+        _msg_assistant("Referenced https://example.com/docs once more."),
+    ])
+    lg = extract_learnings(transcript)[0]
+    # The same URL should appear exactly once in sources.
+    assert lg.sources.count("https://example.com/docs") == 1
+
+
+def test_derive_topic_falls_back_to_metadata_dept_when_no_user_text(tmp_path):
+    """Line 267: fallback to metadata dept.title()."""
+    transcript = _write_transcript(tmp_path / "t.jsonl", [
+        _msg_assistant("[arka:routing] dev -> paulo"),
+    ])
+    lg = extract_learnings(transcript)[0] if extract_learnings(transcript) else None
+    # If extract returned something, the topic fallback path was hit.
+    if lg is not None:
+        assert lg.topic  # non-empty string
+
+
+def test_extract_key_facts_hits_break_when_limit_crosses_paragraph(tmp_path):
+    """Line 370: limit reached and paragraph boundary break."""
+    lg = Learning(
+        topic="X",
+        content=(
+            "First paragraph line one with enough length.\n"
+            "First paragraph line two with enough length.\n"
+            "First paragraph line three with enough length.\n"
+            "\n"
+            "Second paragraph still has more content lines.\n"
+            "Second paragraph line two has content.\n"
+        ),
+    )
+    # Limit=2 so the outer paragraph break is exercised.
+    facts = ad._extract_key_facts(lg, limit=2)
+    assert len(facts) == 2

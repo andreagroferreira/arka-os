@@ -21,16 +21,28 @@ from __future__ import annotations
 
 import json
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
 from core.obsidian import cataloger as _cataloger
 from core.obsidian import relator as _relator
 from core.obsidian.writer import ObsidianWriter
+from core.shared import safe_session_id as _safe_session_id_module
+
+try:
+    import fcntl  # POSIX only
+    _HAS_FLOCK = True
+except ImportError:
+    _HAS_FLOCK = False
 
 
-SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+# Re-export for backward compatibility with any external importers.
+SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
+
+AUTO_DOC_TELEMETRY_PATH = Path.home() / ".arkaos" / "telemetry" / "auto_doc.jsonl"
 
 _URL_RE = re.compile(r"https?://[^\s\)\]\"']+")
 _FILE_PATH_RE = re.compile(r"(?:^|[\s`'])(/[A-Za-z0-9_./\-]+\.[A-Za-z0-9]+)")
@@ -58,8 +70,8 @@ _SYSTEM_PROMPT = (
     "(150-300 words) summarising the session. Structure: short intro, "
     "then markdown sections for Key Facts, Decisions, and Sources. "
     "Preserve every URL and file path verbatim. Use Obsidian wikilinks "
-    "([[Topic]]) for reusable concepts. No preamble, no sign-off, no "
-    "meta commentary about the model or prompt. Output only markdown."
+    "([[Topic]]) for reusable concepts. Do not include preamble, sign-off, "
+    "or meta commentary about the model or prompt. Output only markdown."
 )
 
 
@@ -329,24 +341,64 @@ def _build_synthesis_prompt(learning: Learning) -> str:
     return "\n".join(lines)
 
 
+def _extract_key_facts(learning: Learning, limit: int = 5) -> list[str]:
+    """Pull 3-5 bullet candidates from the learning content.
+
+    Used by the template fallback so both the LLM and template paths
+    produce a ``## Key Facts`` section in the same order as
+    ``_SYSTEM_PROMPT`` requires.
+    """
+    text = (learning.content or "").strip()
+    if not text:
+        return []
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    bullets: list[str] = []
+    for para in paragraphs:
+        for raw in para.splitlines():
+            line = raw.strip().lstrip("-*• ").strip()
+            # Skip markdown section headings; they aren't facts.
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith(">") or line.startswith("`"):
+                continue
+            if len(line) < 8:
+                continue
+            bullets.append(line[:240])
+            if len(bullets) >= limit:
+                return bullets
+        if len(bullets) >= limit:
+            break
+    return bullets
+
+
 def _template_synthesize(learning: Learning) -> str:
-    parts = [f"# {learning.topic}", ""]
+    # Section order mirrors _SYSTEM_PROMPT: Key Facts → Decisions →
+    # Sources. Keeping both synthesis paths aligned means downstream
+    # consumers (MOC generation, relator) never branch on provider.
+    parts: list[str] = [f"# {learning.topic}", ""]
     parts.append(f"> {_AUTO_DOC_SUFFIX}.")
     parts.append("")
     if learning.content.strip():
         parts.append(learning.content.strip())
         parts.append("")
-    if learning.sources:
-        parts.append("## Sources")
+    key_facts = _extract_key_facts(learning)
+    if key_facts:
+        parts.append("## Key Facts")
         parts.append("")
-        for src in learning.sources[:20]:
-            parts.append(f"- {src}")
+        for fact in key_facts:
+            parts.append(f"- {fact}")
         parts.append("")
     if learning.decisions:
         parts.append("## Decisions")
         parts.append("")
         for dec in learning.decisions[:10]:
             parts.append(f"- {dec}")
+        parts.append("")
+    if learning.sources:
+        parts.append("## Sources")
+        parts.append("")
+        for src in learning.sources[:20]:
+            parts.append(f"- {src}")
         parts.append("")
     return "\n".join(parts).rstrip() + "\n"
 
@@ -391,11 +443,76 @@ def _document_one(
     meta.setdefault("auto_documented", True)
     try:
         plan = _cataloger.plan(body, meta)
-    except ValueError:
+    except ValueError as exc:
+        _log_auto_doc_event(
+            session_id=session_id,
+            event="classification-failed",
+            topic=learning.topic,
+            reason=str(exc),
+        )
+        return None
+    if plan is None:
+        _log_auto_doc_event(
+            session_id=session_id,
+            event="succeeded-empty",
+            topic=learning.topic,
+            reason="cataloger returned no plan",
+        )
         return None
     note_path = _cataloger.execute(plan, body, writer)
     _relate_note(note_path, body, vault_path, plan)
+    _log_auto_doc_event(
+        session_id=session_id,
+        event="succeeded-wrote-note",
+        topic=learning.topic,
+        reason=str(note_path),
+    )
     return note_path
+
+
+@contextmanager
+def _locked_append(path: Path):
+    """Append to ``path`` under an exclusive advisory lock (POSIX flock).
+
+    Mirrors the pattern in ``core/workflow/flow_enforcer._locked_append``
+    — see that module for the platform-fallback rationale.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fh = path.open("a", encoding="utf-8")
+    try:
+        if _HAS_FLOCK:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        yield fh
+    finally:
+        if _HAS_FLOCK:
+            try:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+        fh.close()
+
+
+def _log_auto_doc_event(
+    *,
+    session_id: str,
+    event: str,
+    topic: str,
+    reason: str,
+) -> None:
+    """Append a structured auto-doc telemetry entry, degrade silently."""
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "session_id": session_id,
+        "event": event,
+        "topic": topic[:120],
+        "reason": reason[:240],
+    }
+    try:
+        with _locked_append(AUTO_DOC_TELEMETRY_PATH) as fh:
+            fh.write(json.dumps(entry) + "\n")
+    except OSError:
+        # Telemetry failures must never break the doc job.
+        return
 
 
 def _relate_note(note_path: Path, body: str, vault_path: Path, plan) -> None:
@@ -428,6 +545,4 @@ def _append_related_block(note_path: Path, related) -> None:
 
 
 def _safe_session_id(session_id: str) -> bool:
-    if not isinstance(session_id, str) or not session_id:
-        return False
-    return bool(SAFE_SESSION_ID_RE.match(session_id))
+    return _safe_session_id_module.safe_session_id(session_id) is not None

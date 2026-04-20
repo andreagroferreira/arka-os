@@ -27,6 +27,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.shared import safe_session_id as _safe_session_id_module
 from core.synapse import kb_cache
 
 try:
@@ -48,7 +49,8 @@ RESEARCH_EXTERNAL_TOOLS: frozenset[str] = frozenset({
     "mcp__firecrawl__firecrawl_extract",
 })
 
-SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+# Re-export for backward compatibility with any external importers.
+SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
 CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 BYPASS_AUDIT_PATH = Path.home() / ".arkaos" / "audit" / "kb_first_bypass.log"
 TELEMETRY_PATH = Path.home() / ".arkaos" / "telemetry" / "kb_first.jsonl"
@@ -100,12 +102,7 @@ def _locked_append(path: Path):
         fh.close()
 
 
-def _safe_session_id(session_id: str) -> str | None:
-    if not session_id or not isinstance(session_id, str):
-        return None
-    if not SAFE_SESSION_ID_RE.match(session_id):
-        return None
-    return session_id
+_safe_session_id = _safe_session_id_module.safe_session_id
 
 
 def _feature_flag_on() -> bool:
@@ -163,9 +160,14 @@ def _mark_violation(session_id: str, tool: str) -> None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     entry = json.dumps({"tool": tool, "ts": datetime.now(timezone.utc).isoformat()})
+    # Race contract: two concurrent tool calls on the same session may
+    # both observe "no prior violation" and both emit the first-violation
+    # nudge. This is intentional — a nudge is cheap and both calls were
+    # genuinely first-ish. Deny is reserved for the SECOND violation
+    # after the first marker is on disk, which is what a plain
+    # ``write_text`` (non-exclusive, last-writer-wins) gives us. Tested
+    # by ``test_concurrent_violation_markers_race_safe``.
     try:
-        # O_CREAT|O_EXCL would be stricter, but we want idempotent writes
-        # from a concurrent race — last writer wins, both see "first".
         path.write_text(entry, encoding="utf-8")
     except OSError:
         pass

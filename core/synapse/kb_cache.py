@@ -23,15 +23,17 @@ Turn-scoped marker (record_obsidian_query / read_obsidian_query):
 import hashlib
 import json
 import os
-import re
 import threading
 import time
 import uuid
 from pathlib import Path
 from typing import Any, Optional
 
+from core.shared import safe_session_id as _safe_session_id_module
 
-SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+
+# Re-export for backward compatibility with any external importers.
+SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
 KB_QUERY_MARKER_DIR = Path("/tmp/arkaos-kb-query")
 _MAX_QUERIES_PER_TURN = 32
 _MAX_QUERY_LEN = 512
@@ -428,11 +430,10 @@ def _kb_query_dir() -> Path:
 
 
 def _kb_query_path(session_id: str) -> Optional[Path]:
-    if not session_id or not isinstance(session_id, str):
+    safe = _safe_session_id_module.safe_session_id(session_id)
+    if safe is None:
         return None
-    if not SAFE_SESSION_ID_RE.match(session_id):
-        return None
-    return _kb_query_dir() / f"{session_id}.json"
+    return _kb_query_dir() / f"{safe}.json"
 
 
 def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> None:

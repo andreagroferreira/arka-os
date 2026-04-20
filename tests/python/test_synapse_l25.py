@@ -312,3 +312,23 @@ def test_format_kb_block_handles_multiple_notes():
     block = _format_kb_block(notes)
     assert "2 notas relevantes" in block
     assert "[[A]]" in block and "[[B]]" in block
+
+
+def test_load_fallback_notes_respects_cap(tmp_path, monkeypatch):
+    """Large vaults must not blow the fallback loader: cap at 2000 notes."""
+    from core.synapse import layers
+
+    # Temporarily lower the cap to a manageable number for this test —
+    # the behaviour under test is the break-on-cap, not the exact value.
+    monkeypatch.setattr(layers, "_MAX_FALLBACK_NOTES", 10)
+
+    for i in range(25):
+        (tmp_path / f"note-{i:03d}.md").write_text(
+            f"# Note {i}\n\nBody {i}.", encoding="utf-8"
+        )
+
+    notes = layers._load_fallback_notes(tmp_path)
+    assert len(notes) == 10, (
+        "loader must stop at _MAX_FALLBACK_NOTES — got "
+        f"{len(notes)} notes from 25 files"
+    )
