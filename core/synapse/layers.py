@@ -798,7 +798,7 @@ _KB_CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 # Cap fallback-note scanning to avoid O(vault size) blow-ups on large
 # Obsidian vaults. The cap is above any realistic top-N retrieval need
 # (Jaccard ranks the top few notes; scanning 2000 sorted-by-name first
-# is plenty) while still bounding worst-case latency.
+# is plenty — see `_load_fallback_notes`) while still bounding worst-case latency.
 _MAX_FALLBACK_NOTES = 2000
 _KB_STOPWORDS: frozenset[str] = frozenset({
     "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of",

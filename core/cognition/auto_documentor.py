@@ -70,8 +70,8 @@ _SYSTEM_PROMPT = (
     "(150-300 words) summarising the session. Structure: short intro, "
     "then markdown sections for Key Facts, Decisions, and Sources. "
     "Preserve every URL and file path verbatim. Use Obsidian wikilinks "
-    "([[Topic]]) for reusable concepts. No preamble, no sign-off, no "
-    "meta commentary about the model or prompt. Output only markdown."
+    "([[Topic]]) for reusable concepts. Do not include preamble, sign-off, "
+    "or meta commentary about the model or prompt. Output only markdown."
 )
 
 

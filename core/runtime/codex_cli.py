@@ -114,7 +114,7 @@ class CodexCliAdapter(RuntimeAdapter):
         # stub when this raises, so the chain keeps working.
         raise NotImplementedError(
             "Codex CLI headless mode requires local `codex` CLI. "
-            "Install: `npm install -g @openai/codex-cli` (as of 2026-04). "
+            "Install: `npm install -g @openai/codex-cli` (verified 2026-04-20). "
             "Verify syntax: `codex --help`. "
             "See TODO(llm-agnostic) in this file. "
             "SubagentProvider will cleanly fall back to anthropic-direct or stub."
