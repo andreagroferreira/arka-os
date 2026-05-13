@@ -67,8 +67,8 @@ test("ensureSystemTools omits ollama by default (opt-in)", () => {
   assert.equal(out.ollama, null);
 });
 
-test("ensureSystemTools includes ollama when withCognitive=true", () => {
-  const out = ensureSystemTools({ dryRun: true, withCognitive: true });
+test("ensureSystemTools includes ollama when withOllama=true", () => {
+  const out = ensureSystemTools({ dryRun: true, withOllama: true });
   assert.ok(out.ollama);
   assert.equal(out.ollama.name, "ollama");
   assert.ok(["none", "install", "start", "upgrade"].includes(out.ollama.needsAction));

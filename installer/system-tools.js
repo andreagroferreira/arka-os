@@ -56,9 +56,12 @@ const OLLAMA_FALLBACK_URL = "https://ollama.com/download";
  * Validate every required tool, install what can be installed without
  * sudo, and collect copy-paste commands for the ones that can't.
  *
- * When ``options.withCognitive`` is set, Ollama (cognitive-layer LLM
- * runtime) is included in the check + install set. Opt-in so existing
- * 20K-user installs are not surprised by a 4GB+ Ollama download.
+ * When ``options.withOllama`` is set, Ollama is included in the check
+ * + install set as one possible **backend** for the cognitive layer.
+ * Opt-in: most users keep the Claude Code backend (default) and never
+ * need a local LLM runtime. Multi-backend selection lives in
+ * ``profile.json:cognitiveBackend``; this flag only governs the
+ * Ollama prerequisite at install time.
  */
 export function ensureSystemTools(options = {}) {
   if (options.skipSystem) {
@@ -77,7 +80,7 @@ export function ensureSystemTools(options = {}) {
   const python = checkPython();  // never auto-install Python — leave to OS
 
   let ollama = null;
-  if (options.withCognitive) {
+  if (options.withOllama) {
     ollama = ensureTool("ollama", checkOllama, OLLAMA_PACKAGE, OLLAMA_FALLBACK_URL, options);
   }
 

@@ -20,7 +20,7 @@ const { values, positionals } = parseArgs({
     path: { type: "string", short: "p" },
     force: { type: "boolean", short: "f" },
     "no-system": { type: "boolean" },
-    "with-cognitive": { type: "boolean" },
+    "with-ollama": { type: "boolean" },
   },
   allowPositionals: true,
   strict: false,
@@ -81,7 +81,7 @@ async function main() {
         path: values.path,
         force: values.force,
         skipSystem: values["no-system"],
-        withCognitive: values["with-cognitive"],
+        withOllama: values["with-ollama"],
       });
       break;
 
