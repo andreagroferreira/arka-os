@@ -26,7 +26,8 @@ class TestConstitutionRules:
 
     def test_has_16_non_negotiable_rules(self, constitution):
         rules = constitution.get_non_negotiable_rules()
-        assert len(rules) == 16
+        # PR10 v2.32.0 added 7 NON-NEGOTIABLE rules: 16 → 23
+        assert len(rules) == 23
 
     def test_non_negotiable_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_non_negotiable_rules()]
@@ -37,6 +38,11 @@ class TestConstitutionRules:
             "full-visibility", "sequential-validation", "mandatory-qa",
             "arka-supremacy", "context-verification", "forge-governance",
             "mandatory-flow",
+            # PR10 v2.32.0 Conclave Phase 5 additions
+            "quality-over-speed", "always-research",
+            "project-design-system-prerequisite",
+            "definition-of-done-per-domain", "arkaos-not-yes-man",
+            "inter-agent-checkpoints", "hybrid-learning",
         ]
         assert rule_ids == expected
 
@@ -63,8 +69,8 @@ class TestConstitutionRules:
 
     def test_get_all_rule_ids(self, constitution):
         all_ids = constitution.get_rule_ids()
-        # PR5 v2.27.0 added sub-squad-hierarchy MUST: 30 → 31
-        assert len(all_ids) == 31  # 16 + 10 + 5
+        # PR10 v2.32.0 added 7 NON-NEGOTIABLE: 31 → 38
+        assert len(all_ids) == 38  # 23 + 10 + 5
 
 
 class TestConstitutionQualityGate:
@@ -91,6 +97,91 @@ class TestConstitutionQualityGate:
         assert "APPROVED" in qg["process"][-1]
 
 
+class TestConclavePhase5Sections:
+    """PR10 v2.32.0 added 3 new top-level sections to the constitution.
+    These tests pin the structure so future edits do not silently drop them."""
+
+    @pytest.fixture
+    def raw(self):
+        import yaml
+        path = Path(__file__).parent.parent.parent / "config" / "constitution.yaml"
+        with open(path) as fh:
+            return yaml.safe_load(fh)
+
+    def test_definition_of_done_section_exists(self, raw):
+        assert "definition_of_done" in raw
+        dod = raw["definition_of_done"]
+        assert "universal" in dod
+        assert "frontend" in dod
+        assert "backend" in dod
+        assert "content" in dod
+
+    def test_definition_of_done_universal_items_are_hard(self, raw):
+        items = raw["definition_of_done"]["universal"]["items"]
+        for item in items:
+            assert item.get("hard") is True, f"{item['id']} must be hard for universal"
+        ids = {i["id"] for i in items}
+        assert "acceptance-criteria-met" in ids
+        assert "quality-gate-approved" in ids
+        assert "kb-research-cited" in ids
+
+    def test_definition_of_done_frontend_wcag_is_conditional(self, raw):
+        items = raw["definition_of_done"]["frontend"]["items"]
+        wcag = next(i for i in items if i["id"] == "wcag-pass")
+        assert wcag["hard"] is False
+        assert "landing" in wcag.get("conditional", "").lower()
+        assert "internal" in wcag.get("conditional", "").lower() or "dashboard" in wcag.get("conditional", "").lower()
+
+    def test_definition_of_done_backend_anti_vanity_rule(self, raw):
+        items = raw["definition_of_done"]["backend"]["items"]
+        tests = next(i for i in items if i["id"] == "tests-meaningful")
+        # The rule body must explicitly reject vanity-coverage tests
+        assert "MEANINGFUL" in tests["rule"] or "meaningful" in tests["rule"].lower()
+        assert "vanity" in tests["rule"].lower() or "REJECTED" in tests["rule"]
+
+    def test_reference_companies_section_exists(self, raw):
+        assert "reference_companies" in raw
+        companies = raw["reference_companies"]["primary"]
+        names = {c["name"] for c in companies}
+        # The 6 locked by Andre 2026-05-13
+        assert names == {"Google", "Stripe", "SpaceX", "Tesla", "Anthropic", "OpenAI"}
+
+    def test_reference_companies_have_strengths(self, raw):
+        companies = raw["reference_companies"]["primary"]
+        for c in companies:
+            assert "strength" in c
+            assert len(c["strength"]) > 5  # non-trivial description
+
+    def test_reference_companies_application_map_exists(self, raw):
+        app = raw["reference_companies"]["application"]
+        assert "code_backend" in app
+        assert "frontend_ux" in app
+        assert "content_copy" in app
+
+    def test_tone_guide_primary_voice_is_hormozi(self, raw):
+        assert "tone_guide" in raw
+        assert raw["tone_guide"]["primary_voice"] == "Hormozi-direct"
+
+    def test_tone_guide_pushback_protocol_has_escalation(self, raw):
+        protocol = raw["tone_guide"]["pushback_protocol"]
+        assert "escalation_levels" in protocol
+        levels = protocol["escalation_levels"]
+        assert len(levels) >= 5  # at least 5 escalation stages
+
+    def test_tone_guide_anti_patterns_forbidden(self, raw):
+        anti = raw["tone_guide"]["anti_patterns_forbidden"]
+        # Must include the bedtime / time-of-day rule
+        assert any("bedtime" in a.lower() or "dorme bem" in a.lower() or "ate amanha" in a.lower() for a in anti)
+        # Must include the "tens razao when flawed" rule
+        assert any("tens razao" in a.lower() or "structurally flawed" in a.lower() for a in anti)
+
+    def test_pr10_amendment_logged(self, raw):
+        history = raw["amendments"]["history"]
+        v232 = next((h for h in history if h.get("version") == "2.32.0"), None)
+        assert v232 is not None
+        assert "Conclave Phase 5" in v232["changes"]
+
+
 class TestConstitutionCompression:
     @pytest.fixture
     def constitution(self) -> Constitution:
@@ -110,9 +201,10 @@ class TestConstitutionCompression:
 
     def test_compressed_is_compact(self, constitution):
         compressed = constitution.compress_for_context()
-        # Should be a single line, under 500 chars
+        # Single line. PR10 v2.32.0 grew the rule set (16→23 NON-NEGOTIABLE),
+        # bumping the compressed size; keep under 900 chars (still <1KB).
         assert "\n" not in compressed
-        assert len(compressed) < 600
+        assert len(compressed) < 900
 
 
 class TestConstitutionTiers:
