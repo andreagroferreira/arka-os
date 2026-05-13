@@ -12,7 +12,7 @@ const __dirname = dirname(__filename);
 const ARKAOS_ROOT = resolve(__dirname, "..");
 const VERSION = JSON.parse(readFileSync(join(ARKAOS_ROOT, "package.json"), "utf-8")).version;
 
-export async function install({ runtime, path, force }) {
+export async function install({ runtime, path, force, skipSystem }) {
   const startTime = Date.now();
   const config = getRuntimeConfig(runtime);
   const isUpgrade = existsSync(join(path || join(homedir(), ".arkaos"), "install-manifest.json"));
@@ -70,6 +70,31 @@ export async function install({ runtime, path, force }) {
     console.log("         Run 'npx arkaos migrate' after install to migrate your data.");
   } else {
     ok("No v1 installation found");
+  }
+
+  // ═══ Step 2.5: Ensure system tools (Obsidian, Node ≥ 20, Python ≥ 3.12) ═══
+  // Wrapped in try/catch so a regression in system-tools.js cannot break a
+  // fresh `npx arkaos install` for the ~20K user base. We degrade to a warn
+  // and proceed to venv creation rather than exiting non-zero.
+  if (!skipSystem) {
+    try {
+      const { ensureSystemTools } = await import("./system-tools.js");
+      const { formatSudoInstructions } = await import("./package-manager.js");
+      const sys = ensureSystemTools({ skipSystem: false });
+      if (sys.sudoCommands && sys.sudoCommands.length > 0) {
+        console.log(formatSudoInstructions(sys.sudoCommands));
+      }
+      for (const tool of [sys.obsidian, sys.node]) {
+        if (!tool) continue;
+        if (tool.justInstalled) ok(`${tool.name} installed`);
+        else if (tool.needsAction === "none") ok(`${tool.name} ready`);
+        else warn(`${tool.name} ${tool.needsAction} — see commands above`);
+      }
+    } catch (err) {
+      warn(`System tool check failed: ${err.message}. Continuing without it.`);
+    }
+  } else {
+    warn("System tool checks skipped (--no-system)");
   }
 
   // ═══ Step 3: Check Python + create venv ═══

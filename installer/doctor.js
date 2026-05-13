@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { getArkaosPython, getVenvPython, canImportCore, getRepoRoot } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT, CMD_FINDER } from "./platform.js";
+import { checkNode, checkObsidian } from "./system-tools.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
 
@@ -123,6 +124,28 @@ const checks = [
     severity: "warn",
     check: () => existsSync(join(INSTALL_DIR, "schedules.yaml")),
     fix: () => "Run: npx arkaos@latest update (deploys scheduler)",
+  },
+  {
+    name: "obsidian",
+    description: "Obsidian app installed",
+    severity: "warn",
+    check: () => checkObsidian().installed,
+    fix: () => {
+      const s = checkObsidian();
+      if (s.suggestedCommand) return `Run: ${s.suggestedCommand}`;
+      return `Install Obsidian from ${s.fallbackUrl || "https://obsidian.md/download"}`;
+    },
+  },
+  {
+    name: "node",
+    description: "Node.js 20+ available",
+    severity: "warn",
+    check: () => checkNode().needsAction === "none",
+    fix: () => {
+      const s = checkNode();
+      if (s.suggestedCommand) return `Run: ${s.suggestedCommand}`;
+      return `Install Node.js 20+ from ${s.fallbackUrl || "https://nodejs.org/en/download"}`;
+    },
   },
 ];
 
