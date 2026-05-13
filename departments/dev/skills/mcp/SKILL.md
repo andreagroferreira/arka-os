@@ -118,3 +118,19 @@ The user should set these in their shell profile or project `.env`, or run `bash
 - `DISCORD_TOKEN` — Discord bot integration
 - `WHATSAPP_API_TOKEN` / `WHATSAPP_PHONE_ID` — WhatsApp Business API
 - `TEAMS_APP_ID` / `TEAMS_APP_SECRET` — Microsoft Teams
+
+## Recommended baseline (Orgo 2026-05-13)
+
+Three MCPs that the 2026-05-13 podcast pattern recommends for every
+agent-business setup. They are *optional* in the registry but worth
+adopting deliberately:
+
+| MCP | Why | When to add |
+| --- | --- | --- |
+| **Composio** | One connector, thousands of apps (Gmail, Slack, Notion, GitHub). Handles auth + tool calling without per-tool wiring. | Any agent that needs broad SaaS integration. Cuts setup time on every new customer. |
+| **Agent Mail** | Gives each agent a real email address that it can read and send from. Adds the "digital employee" feel that closes deals. | Customer-facing agents, executive assistants, follow-up workflows. |
+| **XMCP** | Twitter / X's official MCP. Brings community wisdom into the agent's context — recent threads, hot takes, real-time discourse. | Research-heavy workflows, content / community / sales squads. |
+
+These pair naturally with the existing `Firecrawl` (deep scrape),
+`Context7` (official docs), and `Perplexity` (real-time web). The
+`/arka research` skill fans out across all five.

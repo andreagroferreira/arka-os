@@ -193,6 +193,56 @@
       "category": "brand",
       "description": "Canva design platform: create, edit, export designs, and manage brand kits",
       "required_env": []
+    },
+    "perplexity": {
+      "command": "npx",
+      "args": ["-y", "@perplexity-ai/mcp-server"],
+      "env": {
+        "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
+      },
+      "category": "research",
+      "description": "Real-time web search with citations via Perplexity. Used by /arka research fan-out.",
+      "required_env": ["PERPLEXITY_API_KEY"]
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "exa-mcp-server"],
+      "env": {
+        "EXA_API_KEY": "${EXA_API_KEY}"
+      },
+      "category": "research",
+      "description": "Semantic vector search across the web via Exa AI. Used by /arka research fan-out.",
+      "required_env": ["EXA_API_KEY"]
+    },
+    "x": {
+      "command": "npx",
+      "args": ["-y", "@x/mcp-server"],
+      "env": {
+        "X_BEARER_TOKEN": "${X_BEARER_TOKEN}"
+      },
+      "category": "research",
+      "description": "Twitter / X official MCP — community wisdom, threads, real-time discourse. Used by /arka research fan-out.",
+      "required_env": ["X_BEARER_TOKEN"]
+    },
+    "composio": {
+      "command": "npx",
+      "args": ["-y", "@composio/mcp-server"],
+      "env": {
+        "COMPOSIO_API_KEY": "${COMPOSIO_API_KEY}"
+      },
+      "category": "integrations",
+      "description": "Composio universal connector — one auth surface for Gmail, Slack, Notion, GitHub and 250+ apps. Recommended baseline per the Orgo 2026-05-13 pattern.",
+      "required_env": ["COMPOSIO_API_KEY"]
+    },
+    "agent-mail": {
+      "command": "npx",
+      "args": ["-y", "@agentmail/mcp-server"],
+      "env": {
+        "AGENTMAIL_API_KEY": "${AGENTMAIL_API_KEY}"
+      },
+      "category": "comms",
+      "description": "Per-agent email inbox via Agent Mail. Gives every agent a real address it can read and send from. Recommended baseline per the Orgo 2026-05-13 pattern.",
+      "required_env": ["AGENTMAIL_API_KEY"]
     }
   }
 }

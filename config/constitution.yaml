@@ -135,6 +135,10 @@ enforcement_levels:
         rule: "All ecosystem skills must follow the standard 7-phase workflow defined in config/standards/ecosystem-workflow.md"
         enforcement: "Ecosystem SKILL.md files must reference or implement all 7 phases"
 
+      - id: sub-squad-hierarchy
+        rule: "Agents in a sub-squad MUST declare parent_squad (department slug) and sub_squad_role. Sub-squads inherit the parent department's authority chain; their lead escalates to the department squad lead, not directly to Tier 0."
+        enforcement: "Agent loader validates parent_squad + sub_squad_role coherence (sub_squad_role requires parent_squad). PR5 v2.27.0 introduced the pattern; AIOX Squad → Sub-Squad → Skills/Scripts is the reference architecture."
+
       - id: forge-persistence
         rule: "All forge plans (approved and rejected) must be persisted to Obsidian"
         enforcement: "persistence.py exports on status change; audit detects missing exports"

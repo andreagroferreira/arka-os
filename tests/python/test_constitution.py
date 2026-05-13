@@ -42,7 +42,8 @@ class TestConstitutionRules:
 
     def test_has_6_must_rules(self, constitution):
         rules = constitution.get_must_rules()
-        assert len(rules) == 9
+        # PR5 v2.27.0 added sub-squad-hierarchy: 9 → 10
+        assert len(rules) == 10
 
     def test_must_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_must_rules()]
@@ -62,7 +63,8 @@ class TestConstitutionRules:
 
     def test_get_all_rule_ids(self, constitution):
         all_ids = constitution.get_rule_ids()
-        assert len(all_ids) == 30  # 16 + 9 + 5
+        # PR5 v2.27.0 added sub-squad-hierarchy MUST: 30 → 31
+        assert len(all_ids) == 31  # 16 + 10 + 5
 
 
 class TestConstitutionQualityGate:

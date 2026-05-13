@@ -391,6 +391,23 @@ if not match and all_deliverables:
   fi
 fi
 
+# ─── Cognitive layer capture (PR4 v2.26.0 hooks-as-retrieval) ────────────
+# Backgrounded so the hook returns immediately. The retrieval helper has
+# its own internal time caps (ripgrep ≤ 1s, Python fallback capped at 500
+# files) so a runaway extract can never block the next user prompt. We
+# disown so the child cannot zombie if the hook process exits first.
+if [ -n "$SESSION_ID_PTU" ] && [ -n "$TOOL_OUTPUT" ]; then
+  _ARKAOS_REPO=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null || echo "")
+  if [ -n "$_ARKAOS_REPO" ] && [ -d "$_ARKAOS_REPO" ]; then
+    (
+      PYTHONPATH="$_ARKAOS_REPO" python3 -m core.cognition.retrieval capture "$SESSION_ID_PTU" <<EOF >/dev/null 2>&1
+$TOOL_OUTPUT
+EOF
+    ) &
+    disown 2>/dev/null || true
+  fi
+fi
+
 # ─── Log Metrics ─────────────────────────────────────────────────────────
 _DURATION_MS=$(_hook_ms)
 METRICS_FILE="$HOME/.arkaos/hook-metrics.json"
