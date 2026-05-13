@@ -147,6 +147,31 @@ const checks = [
       return `Install Node.js 20+ from ${s.fallbackUrl || "https://nodejs.org/en/download"}`;
     },
   },
+  {
+    name: "claude-code-version",
+    description: "Claude Code 2.1.122+ (ToolSearch late-binding + hooks isolation)",
+    severity: "warn",
+    check: () => {
+      if (!commandExists("claude")) return true; // no claude binary = not applicable
+      try {
+        const out = execSync("claude --version 2>&1", {
+          stdio: "pipe",
+        }).toString().trim();
+        const m = out.match(/(\d+)\.(\d+)\.(\d+)/);
+        if (!m) return false;
+        const [, maj, min, patch] = m.map(Number);
+        // 2.1.122 minimum
+        if (maj > 2) return true;
+        if (maj < 2) return false;
+        if (min > 1) return true;
+        if (min < 1) return false;
+        return patch >= 122;
+      } catch {
+        return false;
+      }
+    },
+    fix: () => "Upgrade Claude Code: npm install -g @anthropic-ai/claude-code@latest",
+  },
 ];
 
 // ─── Windows-only checks ───────────────────────────────────────────────
