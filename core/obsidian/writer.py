@@ -130,14 +130,15 @@ class ObsidianWriter:
 
         if config_path.exists():
             try:
+                from core.runtime.path_resolver import resolve
                 config = json.loads(config_path.read_text())
-                vault = config.get("vault_path", "")
-                if vault and Path(vault).exists():
+                vault = resolve(config.get("vault_path", ""))
+                if vault and not vault.startswith("${") and Path(vault).exists():
                     return Path(vault)
-            except (json.JSONDecodeError, OSError):
+            except (json.JSONDecodeError, OSError, Exception):
                 pass
 
-        # 3. Environment variable
+        # 3. Environment variable (legacy fallback only — path_resolver handles ARKAOS_VAULT_PATH)
         env_vault = os.environ.get("ARKAOS_VAULT", "")
         if env_vault and Path(env_vault).exists():
             return Path(env_vault)

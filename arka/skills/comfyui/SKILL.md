@@ -19,8 +19,8 @@ Full-spectrum AI media production platform. From ComfyUI node engineering to Hol
 
 | Project | Type | Stack | Path |
 |---------|------|-------|------|
-| **purz-comfyui-workflows** | Workflow Collection | ComfyUI JSON (7 workflows, 110+ nodes) | `/Users/andreagroferreira/AIProjects/purz-comfyui-workflows` |
-| **lora_tester** | CLI Tool + Gallery | Python 3.8+ (stdlib) + Vanilla HTML/JS | `/Users/andreagroferreira/AIProjects/lora_tester` |
+| **purz-comfyui-workflows** | Workflow Collection | ComfyUI JSON (7 workflows, 110+ nodes) | `${ARKA_OS_REPOS}/purz-comfyui-workflows` |
+| **lora_tester** | CLI Tool + Gallery | Python 3.8+ (stdlib) + Vanilla HTML/JS | `${ARKA_OS_REPOS}/lora_tester` |
 
 ## Squads
 

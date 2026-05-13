@@ -2,6 +2,8 @@ import { existsSync, mkdirSync, readdirSync, renameSync, statSync, writeFileSync
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { migrateProfileSchemaV3 } from "./migrations/v3_path_schema.js";
+
 const LEGACY_SKILLS_ROOT = join(homedir(), ".claude", "skills", "arka");
 const USER_DATA_ROOT = join(homedir(), ".arkaos");
 
@@ -28,8 +30,22 @@ export function migrateUserData({ dryRun = false } = {}) {
   const skipped = [...projectsResult.skipped, ...ecosystemsResult.skipped];
   const conflicts = [...projectsResult.conflicts, ...ecosystemsResult.conflicts];
 
+  let profileSchemaResult = null;
+  if (!dryRun) {
+    try {
+      profileSchemaResult = migrateProfileSchemaV3();
+      if (profileSchemaResult?.migrated) {
+        moved.push(
+          `profile.json schema v2 → v3 (${profileSchemaResult.projectRoots.length} roots)`
+        );
+      }
+    } catch (err) {
+      conflicts.push(`profile schema v3 migration failed: ${err.message}`);
+    }
+  }
+
   const logPath = writeReport({ moved, skipped, conflicts, dryRun });
-  return { moved, skipped, conflicts, logPath };
+  return { moved, skipped, conflicts, logPath, profileSchemaResult };
 }
 
 export function printMigrationReport(result) {

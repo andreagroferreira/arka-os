@@ -7,13 +7,20 @@ from datetime import datetime, timezone
 
 from core.cognition.capture.store import CaptureStore
 from core.cognition.memory.schemas import RawCapture
+from core.runtime.path_resolver import ProfileMissingError, project_root_regex
+
+_FALLBACK_REGEX = re.compile(
+    r"((?:/Users|/home)/\S+/(?:Herd|Work|AIProjects|code|repos))[/\\]([^\s/\\]+)"
+)
 
 
 def _detect_project(digest: str) -> tuple[str, str]:
     """Try to detect project name and path from digest content."""
-    path_match = re.search(
-        r"(/Users/\S+/(?:Herd|Work|AIProjects)/([^\s/]+))", digest
-    )
+    try:
+        regex = project_root_regex()
+    except ProfileMissingError:
+        regex = _FALLBACK_REGEX
+    path_match = regex.search(digest)
     if path_match:
         return path_match.group(2).rstrip("/"), path_match.group(1).rstrip("/")
     return "unknown", os.getcwd()

@@ -144,6 +144,11 @@ class ArkaScheduler:
         claude_bin = self._resolve_claude_binary()
         prompt_path = os.path.expanduser(schedule.prompt_file)
         prompt_content = Path(prompt_path).read_text(encoding="utf-8")
+        try:
+            from core.runtime.path_resolver import resolve
+            prompt_content = resolve(prompt_content)
+        except Exception:
+            pass  # fall back to raw template if profile unavailable
         return [claude_bin, "-p", prompt_content, "--dangerously-skip-permissions"]
 
     # ------------------------------------------------------------------
