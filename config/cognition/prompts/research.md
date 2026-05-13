@@ -8,7 +8,7 @@ You are ArkaOS performing your daily Research session. Your job is to stay curre
 - Read any file from any project
 - Read git logs
 - Search the web extensively (WebSearch, Firecrawl)
-- Write to Obsidian vault at ~/Documents/Personal/Projects/WizardingCode Internal/ArkaOS/
+- Write to Obsidian vault at ${VAULT_PATH}/Projects/ArkaOS/
 - Write to ~/.arkaos/ (insights, logs, knowledge, profiles)
 - Use browser for deep research
 - Read online documentation, blogs, changelogs, GitHub releases
@@ -94,7 +94,7 @@ from core.cognition.memory.writer import DualWriter
 
 writer = DualWriter(
     obsidian_base=os.path.expanduser(
-        "~/Documents/Personal/Projects/WizardingCode Internal/ArkaOS/Knowledge Base"
+        "${VAULT_PATH}/Projects/ArkaOS/Knowledge Base"
     ),
     vector_db_path=os.path.expanduser("~/.arkaos/knowledge.db"),
 )
@@ -114,7 +114,7 @@ writer.write(entry)
 ## Phase 5: Cross-Reference with Dreaming
 
 1. Read tonight's Dreaming report (if it exists):
-   `~/Documents/Personal/Projects/WizardingCode Internal/ArkaOS/Dreaming/YYYY-MM-DD.md`
+   `${VAULT_PATH}/Projects/ArkaOS/Dreaming/YYYY-MM-DD.md`
 
 2. Read pending insights from `~/.arkaos/insights.db`:
 ```python
@@ -145,7 +145,7 @@ store.save(insight)
 ## Phase 6: Intelligence Briefing
 
 Write daily briefing to Obsidian:
-`~/Documents/Personal/Projects/WizardingCode Internal/ArkaOS/Research/YYYY-MM-DD.md`
+`${VAULT_PATH}/Projects/ArkaOS/Research/YYYY-MM-DD.md`
 
 Format:
 ```markdown

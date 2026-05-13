@@ -3,7 +3,7 @@
     "description": "ARKA OS — Obsidian Vault Configuration",
     "notes": "ALL department output goes to this Obsidian vault. Conventions match existing vault format."
   },
-  "vault_path": "/Users/andreagroferreira/Documents/Personal",
+  "vault_path": "${VAULT_PATH}",
   "paths": {
     "personas": "Personas",
     "sources_videos": "Sources/Videos",

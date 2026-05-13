@@ -56,7 +56,7 @@ Every phase transition announced to the user.
 
 ## Obsidian Output
 
-Vault root: `/Users/andreagroferreira/Documents/Personal`
+Vault root: `${VAULT_PATH}`
 
 | Content | Path |
 |---------|------|

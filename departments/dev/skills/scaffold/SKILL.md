@@ -16,7 +16,7 @@ Create new projects from real git repositories with full automation: dependencie
 
 | Command | Git Repository | Stack |
 |---------|---------------|-------|
-| `/dev scaffold laravel <name>` | `git@andreagroferreira:andreagroferreira/laravel-starter-kit.git` | Laravel + Herd |
+| `/dev scaffold laravel <name>` | `https://${GIT_HOST}/laravel/laravel.git` (override with `ARKAOS_LARAVEL_STARTER_REPO` env) | Laravel + Herd |
 | `/dev scaffold nuxt-saas <name>` | `https://github.com/nuxt-ui-templates/dashboard.git` | Nuxt 3 Dashboard |
 | `/dev scaffold nuxt-landing <name>` | `https://github.com/nuxt-ui-templates/landing.git` | Nuxt 3 Landing |
 | `/dev scaffold nuxt-docs <name>` | `https://github.com/nuxt-ui-templates/docs.git` | Nuxt 3 Docs |
@@ -136,7 +136,7 @@ cp PROJECT.md "$ARKA_OS/projects/<name>/PROJECT.md"
 
 Create pages in the Obsidian vault:
 
-**Main page:** `Documents/Personal/Projects/<name>/Home.md`
+**Main page:** `${VAULT_PATH}/Projects/<name>/Home.md`
 ```markdown
 ---
 type: project
@@ -165,7 +165,7 @@ tags:
 - *Part of the [[Projects MOC]]*
 ```
 
-**Architecture page:** `Documents/Personal/Projects/<name>/Architecture/decisions.md`
+**Architecture page:** `${VAULT_PATH}/Projects/<name>/Architecture/decisions.md`
 ```markdown
 ---
 type: adr-log
@@ -242,7 +242,7 @@ Both directories get their respective dependencies installed, and the full-stack
 
 ## Error Handling
 
-- If `git clone` fails: check SSH keys (`git@andreagroferreira:` for private repos)
+- If `git clone` fails: check SSH keys / repo access permissions for the configured `${GIT_HOST}`
 - If `composer install` fails: check PHP version (`php -v`, need 8.3+)
 - If `pnpm install` fails: check Node version (`node -v`, need 18+)
 - If `herd link` fails: check Herd is installed and running

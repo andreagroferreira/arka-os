@@ -22,7 +22,7 @@ Dynamic knowledge acquisition and management system. Learn from YouTube videos, 
 
 ## Obsidian Configuration
 
-- **Vault:** `/Users/andreagroferreira/Documents/Personal`
+- **Vault:** `${VAULT_PATH}`
 - **Config:** Read `knowledge/obsidian-config.json` for full path/convention details
 - **MCP:** Use Obsidian MCP when available, fallback to direct file Write
 - **Conventions:** YAML frontmatter, wikilinks `[[]]`, MOC references, kebab-case tags

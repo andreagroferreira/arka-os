@@ -22,7 +22,7 @@ SHELL_RC="$HOME/.zshrc"
 # If running via `curl ... | bash`, SOURCE_DIR won't contain the repo files.
 # In that case, clone the repo to ~/.arka-os/repo and use that as SOURCE_DIR.
 if [ ! -f "$SOURCE_DIR/VERSION" ]; then
-    REPO_URL="https://github.com/andreagroferreira/arka-os.git"
+    REPO_URL="${ARKAOS_REPO_URL:-https://github.com/andreagroferreira/arka-os.git}"
     CLONE_DIR="$HOME/.arka-os/repo"
     echo ""
     echo -e "${BLUE}Downloading ARKA OS...${NC}"
@@ -624,14 +624,21 @@ if [ -f "$SOURCE_DIR/knowledge/ecosystems.json" ]; then
     fi
 fi
 
-# ─── Auto-detect Obsidian Vault ─────────────────────────────────────────────
+# ─── Auto-detect Obsidian Vault (cross-OS: macOS / Linux / Windows-Git-Bash/WSL) ──
 OBSIDIAN_VAULT=""
 FOUND_VAULTS=()
 SEARCH_DIRS=(
     "$HOME/Documents"
     "$HOME"
     "$HOME/Obsidian"
+    # macOS — iCloud mobile vault
     "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
+    # Linux — XDG data dir + common dock locations
+    "$HOME/.local/share/obsidian"
+    "$HOME/Documents/Obsidian"
+    # Windows Git Bash / WSL — USERPROFILE Documents
+    "$USERPROFILE/Documents"
+    "$USERPROFILE/Documents/Obsidian"
 )
 for dir in "${SEARCH_DIRS[@]}"; do
     [ -d "$dir" ] || continue

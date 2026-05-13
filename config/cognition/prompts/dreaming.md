@@ -8,7 +8,7 @@ You are ArkaOS performing your nightly Dreaming session. Your job is to review e
 - Read any file from any project
 - Read git logs and diffs
 - Search the web (WebSearch, Firecrawl)
-- Write to Obsidian vault at ~/Documents/Personal/Projects/WizardingCode Internal/ArkaOS/
+- Write to Obsidian vault at ${VAULT_PATH}/Projects/ArkaOS/
 - Write to ~/.arkaos/ (captures, insights, logs, knowledge)
 - Use browser for research
 - Read online documentation
@@ -81,7 +81,7 @@ from core.cognition.memory.writer import DualWriter
 
 writer = DualWriter(
     obsidian_base=os.path.expanduser(
-        "~/Documents/Personal/Projects/WizardingCode Internal/ArkaOS/Knowledge Base"
+        "${VAULT_PATH}/Projects/ArkaOS/Knowledge Base"
     ),
     vector_db_path=os.path.expanduser("~/.arkaos/knowledge.db"),
 )
@@ -113,7 +113,7 @@ Use `DualWriter.write()` for each KnowledgeEntry. This automatically writes to b
 ## Phase 6: Report + Evolution Metrics
 
 Write daily report to Obsidian:
-`~/Documents/Personal/Projects/WizardingCode Internal/ArkaOS/Dreaming/YYYY-MM-DD.md`
+`${VAULT_PATH}/Projects/ArkaOS/Dreaming/YYYY-MM-DD.md`
 
 Format:
 ```markdown

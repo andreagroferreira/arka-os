@@ -368,7 +368,12 @@ else
 fi
 
 # ─── Metrics ─────────────────────────────────────────────────────────────
+# Count @-mentions in the prompt for at_mention_frequency telemetry. Mirrors
+# the claude_code.at_mention OpenTelemetry event introduced in Claude Code
+# 2.1.122, but works on any version because we count from the same input
+# the hook already receives.
+at_mentions=$(printf '%s' "$user_input" | grep -oE '(^|[[:space:]])@[A-Za-z0-9_./-]+' | wc -l | tr -d ' ')
 elapsed=$(_hook_ms)
 if [ "$elapsed" -gt 0 ] 2>/dev/null; then
-  echo "{\"hook\":\"user-prompt-submit-v2\",\"ms\":$elapsed}" >> "$CACHE_DIR/hook-metrics.jsonl" 2>/dev/null
+  echo "{\"hook\":\"user-prompt-submit-v2\",\"ms\":$elapsed,\"at_mentions\":${at_mentions:-0}}" >> "$CACHE_DIR/hook-metrics.jsonl" 2>/dev/null
 fi

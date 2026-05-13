@@ -7,8 +7,8 @@ Referenced from SKILL.md. Read only when needed.
 For EVERY `/comfyui` request, follow this workflow:
 
 ### Phase 1 — Context Loading
-1. Read ComfyUI skill reference: `/Users/andreagroferreira/AIProjects/lora_tester/.claude/skills/comfy_local/skill.md`
-2. Check available workflows: `ls /Users/andreagroferreira/AIProjects/purz-comfyui-workflows/`
+1. Read ComfyUI skill reference: `${ARKA_OS_REPOS}/lora_tester/.claude/skills/comfy_local/skill.md`
+2. Check available workflows: `ls ${ARKA_OS_REPOS}/purz-comfyui-workflows/`
 3. Check ComfyUI server: `curl -s http://localhost:8188/system_stats 2>/dev/null`
 4. Load project context for affected repos
 5. Identify which squad(s) the request needs
@@ -320,8 +320,8 @@ while pending:
 curl -s http://localhost:8188/system_stats 2>/dev/null
 
 # Project status
-cd /Users/andreagroferreira/AIProjects/purz-comfyui-workflows && git log --oneline -5
-cd /Users/andreagroferreira/AIProjects/lora_tester && git log --oneline -5
+cd ${ARKA_OS_REPOS}/purz-comfyui-workflows && git log --oneline -5
+cd ${ARKA_OS_REPOS}/lora_tester && git log --oneline -5
 ```
 
 Present as:
@@ -403,10 +403,10 @@ When Iris (Node Researcher) investigates custom nodes:
 
 ## Obsidian Output
 
-All documentation: `/Users/andreagroferreira/Documents/Personal/Projects/WizardingCode Internal/ComfyUI/`
+All documentation: `${VAULT_PATH}/Projects/ComfyUI/`
 
 ```
-WizardingCode Internal/ComfyUI/
+Projects/ComfyUI/
 ├── Home.md                    <- Ecosystem overview
 ├── Workflows/
 │   ├── LTX-2 T2V.md

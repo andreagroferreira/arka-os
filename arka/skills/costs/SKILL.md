@@ -55,6 +55,17 @@ Source:
 One JSONL line per LLM call, written by every provider adapter.
 Malformed lines are skipped and counted, never raised.
 
+## Cost-tuning levers
+
+Outside this skill's scope but worth surfacing alongside the summary:
+
+| Lever | Where | Effect |
+| --- | --- | --- |
+| `ARKAOS_LLM_PROVIDER` | env | Switch between Anthropic, OpenAI, Gemini adapters per the multi-LLM router. |
+| `ANTHROPIC_BEDROCK_SERVICE_TIER` | env (Claude Code 2.1.122+) | `default` / `flex` / `priority`. Only relevant when routing through AWS Bedrock — `flex` cuts cost ~50 % on non-urgent workloads at the price of higher tail latency. |
+| Agent `model:` field | `departments/*/agents/*.yaml` | Per-agent override per the model-routing matrix in CLAUDE.md. Mechanical roles default to haiku, C-suite to opus. |
+| Quality Gate model | constitution rule (NON-NEGOTIABLE) | Marta / Eduardo / Francisca always run on opus regardless of the cost ceiling. |
+
 ## Non-negotiables
 
 1. Read-only. This skill never edits state.

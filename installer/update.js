@@ -6,6 +6,7 @@ import { ensureVenv, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
 import { migrateUserData, printMigrationReport } from "./migrate-user-data.js";
+import { resolveFile } from "./path-resolver.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
 import { fileURLToPath } from "node:url";
 
@@ -277,7 +278,7 @@ export async function update() {
   const skillDest = join(skillsBase, "arka");
   mkdirSync(skillDest, { recursive: true });
   if (existsSync(skillSrc)) {
-    copyFileSync(skillSrc, join(skillDest, "SKILL.md"));
+    safeResolveMarkdown(skillSrc, join(skillDest, "SKILL.md"));
     writeFileSync(join(skillDest, ".repo-path"), ARKAOS_ROOT);
     writeFileSync(join(skillDest, "VERSION"), VERSION);
     console.log("         ✓ /arka skill updated");
@@ -309,7 +310,7 @@ export async function update() {
     if (!existsSync(md)) return false;
     const dest = join(skillsBase, arkaName);
     mkdirSync(dest, { recursive: true });
-    copyFileSync(md, join(dest, "SKILL.md"));
+    safeResolveMarkdown(md, join(dest, "SKILL.md"));
     copyResources(src, dest);
     return true;
   };
@@ -477,6 +478,20 @@ function ensureDir(dir) {
 }
 
 /**
+ * Copy a markdown file, substituting ${VAR} tokens from path-resolver when
+ * a profile.json is available. Falls back to plain copy on any error so a
+ * missing profile during first install never blocks deployment of the file
+ * itself; the agent / Python runtime will resolve later when profile lands.
+ */
+function safeResolveMarkdown(src, dst) {
+  try {
+    resolveFile(src, dst);
+  } catch {
+    copyFileSync(src, dst);
+  }
+}
+
+/**
  * Copy v2 hook state files from the legacy ~/.arka-os/ directory into
  * the canonical ~/.arkaos/ runtime directory. Safe to run every update:
  * - If ~/.arka-os/ does not exist, does nothing.
@@ -563,7 +578,13 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
   const promptsSrc = join(arkaosRoot, "config", "cognition", "prompts");
   if (existsSync(promptsSrc)) {
     for (const f of readdirSync(promptsSrc)) {
-      copyFileSync(join(promptsSrc, f), join(promptsDir, f));
+      const src = join(promptsSrc, f);
+      const dst = join(promptsDir, f);
+      if (f.endsWith(".md")) {
+        safeResolveMarkdown(src, dst);
+      } else {
+        copyFileSync(src, dst);
+      }
     }
     console.log("         \u2713 Cognitive prompts updated");
   }
