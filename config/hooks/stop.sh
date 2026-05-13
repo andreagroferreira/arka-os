@@ -96,6 +96,23 @@ closing_ok = phase13 or trivial
 # measure compliance before promoting to enforcement in a later PR.
 meta_tag_found = bool(re.search(r"\[arka:meta\]", last, re.IGNORECASE))
 
+# PR13 v2.35.0 — Sycophancy detection (warn-only).
+# Heuristic detector records when a response shows agreement-without-
+# critique, pure-agreement-standalone, recommendation-without-reference-
+# company, or missing-critic-verdict signals. Telemetry only; never
+# blocks. Promotion to hard enforce is a later PR after baseline data.
+sycophancy_signals: list = []
+sycophancy_confidence = 0.0
+is_sycophantic = False
+try:
+    from core.governance.sycophancy_detector import detect_sycophancy
+    sv = detect_sycophancy(last)
+    sycophancy_signals = sv.signals
+    sycophancy_confidence = sv.confidence
+    is_sycophantic = sv.is_sycophantic
+except Exception:
+    pass
+
 entry = {
     "ts": datetime.now(timezone.utc).isoformat(),
     "session_id": session_id,
@@ -105,6 +122,9 @@ entry = {
     "phase13": phase13,
     "trivial": trivial,
     "meta_tag_found": meta_tag_found,
+    "sycophancy_is_flagged": is_sycophantic,
+    "sycophancy_signals": sycophancy_signals,
+    "sycophancy_confidence": sycophancy_confidence,
     "mode": "warn",
 }
 
