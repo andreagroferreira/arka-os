@@ -20,6 +20,7 @@ const { values, positionals } = parseArgs({
     path: { type: "string", short: "p" },
     force: { type: "boolean", short: "f" },
     "no-system": { type: "boolean" },
+    "with-cognitive": { type: "boolean" },
   },
   allowPositionals: true,
   strict: false,
@@ -75,7 +76,13 @@ async function main() {
   switch (command) {
     case "install":
       const runtime = values.runtime || await detectRuntime();
-      await install({ runtime, path: values.path, force: values.force, skipSystem: values["no-system"] });
+      await install({
+        runtime,
+        path: values.path,
+        force: values.force,
+        skipSystem: values["no-system"],
+        withCognitive: values["with-cognitive"],
+      });
       break;
 
     case "init": {
