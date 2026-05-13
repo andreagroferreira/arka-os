@@ -273,6 +273,35 @@ class Agent(BaseModel):
         description="Claude model override for dispatch. Falls back to tier default when None.",
     )
 
+    parent_squad: Optional[str] = Field(
+        default=None,
+        description=(
+            "Slug of the parent squad when this agent belongs to a sub-squad. "
+            "Sub-squads are operational specialisations inside a department "
+            "(e.g. brand → design-ops). Optional and backwards-compatible: "
+            "agents without a parent_squad belong directly to their department."
+        ),
+    )
+
+    sub_squad_role: Optional[str] = Field(
+        default=None,
+        description=(
+            "Role within the sub-squad when parent_squad is set "
+            "(e.g. 'lead', 'extraction-script-writer', 'wcag-auditor'). "
+            "Inspired by the AIOX Squad → Sub-Squad pattern (KB note "
+            "AIOX Squads, April 30 2026 live)."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_sub_squad_coherence(self) -> "Agent":
+        """sub_squad_role only makes sense when parent_squad is set."""
+        if self.sub_squad_role and not self.parent_squad:
+            raise ValueError(
+                "sub_squad_role requires parent_squad to be set"
+            )
+        return self
+
     @model_validator(mode="after")
     def auto_fill_memory_path(self) -> "Agent":
         if not self.memory_path:

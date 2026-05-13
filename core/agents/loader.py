@@ -60,7 +60,10 @@ def load_all_agents(
     for agents_dir in search_dirs:
         if not agents_dir.is_dir():
             continue
-        for yaml_file in sorted(agents_dir.glob("*.yaml")):
+        # Recursive rglob picks up sub-squad subdirectories (e.g.
+        # departments/brand/agents/design-ops/*.yaml) per the v2.27.0
+        # Sub-Squad pattern. Sorted output keeps load order stable.
+        for yaml_file in sorted(agents_dir.rglob("*.yaml")):
             try:
                 agent = load_agent(yaml_file)
                 agents.append(agent)

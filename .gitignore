@@ -56,7 +56,8 @@ Thumbs.db
 *.env
 
 # Brand deliverables (partner/internal use only, not repo content)
-brand/
+# Anchored to repo root so it doesn't shadow departments/brand/.
+/brand/
 
 # Private / client-specific skills (NEVER commit)
 arka/skills/fovory/
