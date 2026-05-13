@@ -31,6 +31,7 @@ from core.runtime.user_paths import user_data_root
 
 _CACHE_DIRNAME = "context-cache"
 _DEFAULT_TTL_SECONDS = 600
+_REAPER_MAX_AGE_SECONDS = 24 * 60 * 60  # cache files older than 24h get pruned
 _MAX_ENTITIES = 20
 _MAX_VAULT_HITS = 5
 _RIPGREP_TIMEOUT_S = 1.0
@@ -204,6 +205,29 @@ def _write_cache(cache: ContextCache, cache_dir: Path) -> None:
     tmp = cache_dir / f"{cache.session_id}.json.tmp"
     tmp.write_text(json.dumps(cache.to_dict(), indent=2), encoding="utf-8")
     os.replace(tmp, path)
+    _prune_stale_cache(cache_dir)
+
+
+def _prune_stale_cache(cache_dir: Path) -> int:
+    """Delete cache files older than 24h to bound disk growth.
+
+    Called from ``_write_cache`` so cleanup amortises across normal use
+    without requiring a separate cron job. Per Marta's PR4 follow-up
+    observation: the read-side TTL hides stale data but on-disk files
+    accumulate one-per-session forever. Returns the count of pruned files.
+    """
+    if not cache_dir.is_dir():
+        return 0
+    cutoff = datetime.now(timezone.utc).timestamp() - _REAPER_MAX_AGE_SECONDS
+    pruned = 0
+    for child in cache_dir.glob("*.json"):
+        try:
+            if child.stat().st_mtime < cutoff:
+                child.unlink()
+                pruned += 1
+        except OSError:
+            continue
+    return pruned
 
 
 def _within_ttl(captured_iso: str, ttl_seconds: int) -> bool:
