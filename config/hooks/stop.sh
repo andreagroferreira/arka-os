@@ -90,6 +90,12 @@ phase13 = bool(re.search(r"\[arka:phase:13\]", last, re.IGNORECASE))
 trivial = bool(re.search(r"\[arka:trivial\]", last, re.IGNORECASE))
 closing_ok = phase13 or trivial
 
+# PR12 v2.34.0 — Transparency tag measurement (warn-only).
+# The [arka:meta] tag should appear on every substantive response that
+# consulted KB / research / persona. Absence here is recorded so we can
+# measure compliance before promoting to enforcement in a later PR.
+meta_tag_found = bool(re.search(r"\[arka:meta\]", last, re.IGNORECASE))
+
 entry = {
     "ts": datetime.now(timezone.utc).isoformat(),
     "session_id": session_id,
@@ -98,6 +104,7 @@ entry = {
     "closing_marker_found": closing_ok,
     "phase13": phase13,
     "trivial": trivial,
+    "meta_tag_found": meta_tag_found,
     "mode": "warn",
 }
 

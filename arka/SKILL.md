@@ -60,6 +60,38 @@ line and proceed directly.
 
 No task type, no context, no runtime setting overrides this flow.
 
+## Transparency tag contract (`[arka:meta]`)
+
+Introduced in PR12 v2.34.0 (Conclave Phase 5). Every substantive
+response that consulted KB, ran research, or produced a recommendation
+ends with a single line:
+
+```
+[arka:meta] kb=N research=X persona=Y gap=Z critic=W
+```
+
+| Field | Meaning | Allowed values |
+| --- | --- | --- |
+| `kb=N` | Number of Obsidian / KB notes consulted | integer ≥ 0 |
+| `research=X` | MCPs invoked (or 'none') | `none` or comma-list: `perplexity,exa,context7,firecrawl,xmcp` |
+| `persona=Y` | Conclave / squad-lead persona who drove the response | `Tomas`, `Marco`, `Marta`, `Eduardo`, `Francisca`, `Paulo`, `Iris`, etc., or `orchestrator` |
+| `gap=Z` | KB gap topic when external research filled a missing area | `none` or short topic slug |
+| `critic=W` | Self-critic verdict | `passed` \| `failed` \| `skipped` |
+
+**Mandatory for:** any response after EFFECT tool calls; plan / recommendation / strategic outputs; Quality Gate verdicts.
+
+**Optional for:** pure read-only status replies (`ok`, `sim`, simple confirmations).
+
+Absence is logged by the Stop hook in **warn-only mode** during v2.34.0. The telemetry informs whether to promote to hard enforcement in a later PR.
+
+Example after a substantive turn:
+
+```
+... <response content> ...
+
+[arka:meta] kb=3 research=context7 persona=Marco gap=none critic=passed
+```
+
 ## Enforcement contract
 
 If the UserPromptSubmit hook injected `[ARKA:WORKFLOW-REQUIRED]`, or if
