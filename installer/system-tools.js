@@ -41,13 +41,27 @@ const NODE_PACKAGE = {
   choco: "nodejs",
 };
 
+const OLLAMA_PACKAGE = {
+  brew: "ollama",
+  winget: "Ollama.Ollama",
+  choco: "ollama",
+};
+
 const OBSIDIAN_FALLBACK_URL = "https://obsidian.md/download";
 const NODE_FALLBACK_URL = "https://nodejs.org/en/download";
 const PYTHON_FALLBACK_URL = "https://www.python.org/downloads/";
+const OLLAMA_FALLBACK_URL = "https://ollama.com/download";
 
 /**
  * Validate every required tool, install what can be installed without
  * sudo, and collect copy-paste commands for the ones that can't.
+ *
+ * When ``options.withOllama`` is set, Ollama is included in the check
+ * + install set as one possible **backend** for the cognitive layer.
+ * Opt-in: most users keep the Claude Code backend (default) and never
+ * need a local LLM runtime. Multi-backend selection lives in
+ * ``profile.json:cognitiveBackend``; this flag only governs the
+ * Ollama prerequisite at install time.
  */
 export function ensureSystemTools(options = {}) {
   if (options.skipSystem) {
@@ -56,6 +70,7 @@ export function ensureSystemTools(options = {}) {
       obsidian: null,
       node: null,
       python: null,
+      ollama: null,
       sudoCommands: [],
     };
   }
@@ -64,7 +79,13 @@ export function ensureSystemTools(options = {}) {
   const node = ensureTool("node", checkNode, NODE_PACKAGE, NODE_FALLBACK_URL, options);
   const python = checkPython();  // never auto-install Python — leave to OS
 
-  const sudoCommands = [obsidian, node]
+  let ollama = null;
+  if (options.withOllama) {
+    ollama = ensureTool("ollama", checkOllama, OLLAMA_PACKAGE, OLLAMA_FALLBACK_URL, options);
+  }
+
+  const tools = [obsidian, node, ollama].filter(Boolean);
+  const sudoCommands = tools
     .filter((t) => t?.needsSudo && t.suggestedCommand)
     .map((t) => t.suggestedCommand);
 
@@ -72,7 +93,7 @@ export function ensureSystemTools(options = {}) {
     sudoCommands.push(python.suggestedCommand);
   }
 
-  return { skipped: false, obsidian, node, python, sudoCommands };
+  return { skipped: false, obsidian, node, python, ollama, sudoCommands };
 }
 
 /**
@@ -130,6 +151,40 @@ export function checkNode() {
     fallbackUrl: suggested.fallbackUrl,
   };
 }
+
+/**
+ * Detect Ollama presence + whether the local service responds.
+ *
+ * Ollama is the cognitive-layer LLM runtime. Linux install uses an
+ * official script (``curl https://ollama.com/install.sh | sh``) that
+ * requires sudo — we never run it; we surface the command.
+ */
+export function checkOllama() {
+  const location = findBinary("ollama");
+  if (!location) {
+    const suggested = buildOllamaSuggestion();
+    return {
+      name: "ollama",
+      installed: false,
+      needsAction: "install",
+      suggestedCommand: suggested.command,
+      needsSudo: suggested.needsSudo,
+      fallbackUrl: OLLAMA_FALLBACK_URL,
+    };
+  }
+  const reachable = isOllamaReachable();
+  const version = readVersion("ollama --version");
+  return {
+    name: "ollama",
+    installed: true,
+    location,
+    version,
+    needsAction: reachable ? "none" : "start",
+    suggestedCommand: reachable ? undefined : "ollama serve   # or run the Ollama app",
+    needsSudo: false,
+  };
+}
+
 
 export function checkPython() {
   const candidates = IS_WINDOWS ? ["python", "py"] : ["python3", "python3.12", "python3.13"];
@@ -194,6 +249,28 @@ function buildSuggestedInstall(packageMap, fallbackUrl) {
   }
   return { command: `Download from ${fallbackUrl}`, needsSudo: false, fallbackUrl };
 }
+
+function buildOllamaSuggestion() {
+  const os = platform();
+  if (os === "darwin") return { command: "brew install ollama", needsSudo: false };
+  if (IS_WINDOWS) return { command: "winget install --id Ollama.Ollama --silent --accept-source-agreements --accept-package-agreements", needsSudo: false };
+  if (os === "linux") return { command: "curl -fsSL https://ollama.com/install.sh | sh", needsSudo: true };
+  return { command: `Download from ${OLLAMA_FALLBACK_URL}`, needsSudo: false };
+}
+
+
+function isOllamaReachable() {
+  try {
+    execSync("ollama list", {
+      stdio: ["ignore", "ignore", "ignore"],
+      timeout: 1500,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 
 function findBinary(name) {
   try {

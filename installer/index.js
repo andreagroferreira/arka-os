@@ -12,7 +12,7 @@ const __dirname = dirname(__filename);
 const ARKAOS_ROOT = resolve(__dirname, "..");
 const VERSION = JSON.parse(readFileSync(join(ARKAOS_ROOT, "package.json"), "utf-8")).version;
 
-export async function install({ runtime, path, force, skipSystem }) {
+export async function install({ runtime, path, force, skipSystem, withOllama }) {
   const startTime = Date.now();
   const config = getRuntimeConfig(runtime);
   const isUpgrade = existsSync(join(path || join(homedir(), ".arkaos"), "install-manifest.json"));
@@ -80,15 +80,18 @@ export async function install({ runtime, path, force, skipSystem }) {
     try {
       const { ensureSystemTools } = await import("./system-tools.js");
       const { formatSudoInstructions } = await import("./package-manager.js");
-      const sys = ensureSystemTools({ skipSystem: false });
+      const sys = ensureSystemTools({ skipSystem: false, withOllama });
       if (sys.sudoCommands && sys.sudoCommands.length > 0) {
         console.log(formatSudoInstructions(sys.sudoCommands));
       }
-      for (const tool of [sys.obsidian, sys.node]) {
+      for (const tool of [sys.obsidian, sys.node, sys.ollama]) {
         if (!tool) continue;
         if (tool.justInstalled) ok(`${tool.name} installed`);
         else if (tool.needsAction === "none") ok(`${tool.name} ready`);
         else warn(`${tool.name} ${tool.needsAction} — see commands above`);
+      }
+      if (withOllama && sys.ollama?.needsAction === "none") {
+        ok("Ollama backend ready — cognitive layer can use local LLM inference");
       }
     } catch (err) {
       warn(`System tool check failed: ${err.message}. Continuing without it.`);

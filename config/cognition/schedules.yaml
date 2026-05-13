@@ -6,6 +6,12 @@
 schedules:
   dreaming:
     command: dreaming
+    # PR9 v2.31.0: Dreaming v2 is a Python engine (see core.cognition.dreaming).
+    # The legacy prompt_file path is kept as fallback for installs that
+    # still ship the older Claude-CLI-prompt dreaming task. python_module
+    # wins when both are present.
+    python_module: "core.cognition.dreaming"
+    module_args: ["run"]
     prompt_file: "~/.arkaos/cognition/prompts/dreaming.md"
     time: "02:00"
     timezone: auto

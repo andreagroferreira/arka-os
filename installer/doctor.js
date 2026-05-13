@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { getArkaosPython, getVenvPython, canImportCore, getRepoRoot } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT, CMD_FINDER } from "./platform.js";
-import { checkNode, checkObsidian } from "./system-tools.js";
+import { checkNode, checkObsidian, checkOllama } from "./system-tools.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
 
@@ -145,6 +145,18 @@ const checks = [
       const s = checkNode();
       if (s.suggestedCommand) return `Run: ${s.suggestedCommand}`;
       return `Install Node.js 20+ from ${s.fallbackUrl || "https://nodejs.org/en/download"}`;
+    },
+  },
+  {
+    name: "ollama",
+    description: "Ollama present (optional — cognitive layer LLM runtime)",
+    severity: "warn",
+    check: () => checkOllama().installed,
+    fix: () => {
+      const s = checkOllama();
+      if (s.needsAction === "start") return `Run: ${s.suggestedCommand}`;
+      if (s.suggestedCommand) return `Run: ${s.suggestedCommand}`;
+      return `Install Ollama from ${s.fallbackUrl || "https://ollama.com/download"}`;
     },
   },
   {

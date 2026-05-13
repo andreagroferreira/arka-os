@@ -18,7 +18,16 @@ import yaml
 
 @dataclass
 class ScheduleConfig:
-    """Configuration for a single scheduled cognitive task."""
+    """Configuration for a single scheduled cognitive task.
+
+    Two execution modes (mutually exclusive):
+      - prompt_file (default): shell out to the active Claude CLI with the
+        rendered prompt as the user input. Backward-compat for legacy
+        dreaming.md / research.md schedules.
+      - python_module: invoke ``python -m <module> [args...]`` directly.
+        Used by Dreaming v2 (PR8) which is a Python engine, not a
+        prompt-only task.
+    """
 
     command: str
     prompt_file: str
@@ -27,6 +36,8 @@ class ScheduleConfig:
     retry_on_fail: bool = True
     max_retries: int = 2
     timeout_minutes: int = 60
+    python_module: str | None = None
+    module_args: list[str] = field(default_factory=list)
 
     @classmethod
     def load(cls, config_path: str) -> "list[ScheduleConfig]":
@@ -43,12 +54,14 @@ class ScheduleConfig:
             schedules.append(
                 cls(
                     command=cfg["command"],
-                    prompt_file=cfg["prompt_file"],
+                    prompt_file=cfg.get("prompt_file", ""),
                     run_time=time(hour, minute),
                     enabled=cfg.get("enabled", True),
                     retry_on_fail=cfg.get("retry_on_fail", True),
                     max_retries=cfg.get("max_retries", 2),
                     timeout_minutes=cfg.get("timeout_minutes", 60),
+                    python_module=cfg.get("python_module"),
+                    module_args=list(cfg.get("module_args") or []),
                 )
             )
         return schedules
@@ -140,7 +153,14 @@ class ArkaScheduler:
         )
 
     def _build_command(self, schedule: ScheduleConfig) -> list[str]:
-        """Build the Claude CLI invocation for a schedule."""
+        """Build the subprocess invocation for a schedule.
+
+        Dispatches on python_module first (PR8 Dreaming v2 path), falls
+        back to the legacy Claude-CLI-with-prompt path for unchanged
+        schedules.
+        """
+        if schedule.python_module:
+            return [sys.executable, "-m", schedule.python_module, *schedule.module_args]
         claude_bin = self._resolve_claude_binary()
         prompt_path = os.path.expanduser(schedule.prompt_file)
         prompt_content = Path(prompt_path).read_text(encoding="utf-8")

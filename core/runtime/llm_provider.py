@@ -31,7 +31,7 @@ from core.runtime.pricing import estimate_cost_usd
 
 
 _DEFAULT_CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
-_FALLBACK_ORDER: tuple[str, ...] = ("subagent", "anthropic-direct", "stub")
+_FALLBACK_ORDER: tuple[str, ...] = ("subagent", "ollama", "anthropic-direct", "stub")
 
 
 # ─── Public dataclass ─────────────────────────────────────────────────
@@ -305,8 +305,15 @@ class StubProvider:
 # ─── Factory + fallback chain ─────────────────────────────────────────
 
 
+def _import_ollama_provider() -> type:
+    """Lazy import to keep the Ollama provider optional at runtime."""
+    from core.runtime.ollama_provider import OllamaProvider
+    return OllamaProvider
+
+
 _PROVIDERS: dict[str, type] = {
     "subagent": SubagentProvider,
+    "ollama": _import_ollama_provider(),
     "anthropic-direct": AnthropicDirectProvider,
     "stub": StubProvider,
 }

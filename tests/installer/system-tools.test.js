@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   checkNode,
+  checkOllama,
   checkPython,
   ensureSystemTools,
 } from "../../installer/system-tools.js";
@@ -59,4 +60,36 @@ test("ensureSystemTools is idempotent (run twice has no side effects)", () => {
 test("sudoCommands is always an array even when all tools are present", () => {
   const out = ensureSystemTools({ dryRun: true });
   assert.ok(Array.isArray(out.sudoCommands));
+});
+
+test("ensureSystemTools omits ollama by default (opt-in)", () => {
+  const out = ensureSystemTools({ dryRun: true });
+  assert.equal(out.ollama, null);
+});
+
+test("ensureSystemTools includes ollama when withOllama=true", () => {
+  const out = ensureSystemTools({ dryRun: true, withOllama: true });
+  assert.ok(out.ollama);
+  assert.equal(out.ollama.name, "ollama");
+  assert.ok(["none", "install", "start", "upgrade"].includes(out.ollama.needsAction));
+});
+
+test("checkOllama returns valid ToolStatus shape", () => {
+  const status = checkOllama();
+  assert.equal(status.name, "ollama");
+  assert.ok(typeof status.installed === "boolean");
+});
+
+test("checkOllama on host with ollama present detects it (smoke)", () => {
+  // This test only meaningful on machines where ollama is installed; if not,
+  // the assertion gracefully accepts both shapes.
+  const status = checkOllama();
+  if (status.installed) {
+    assert.equal(status.name, "ollama");
+    assert.ok(status.location);
+    assert.ok(["none", "start"].includes(status.needsAction));
+  } else {
+    assert.equal(status.needsAction, "install");
+    assert.ok(status.suggestedCommand);
+  }
 });

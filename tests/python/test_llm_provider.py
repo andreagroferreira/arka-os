@@ -122,22 +122,30 @@ class TestFactory:
 
     def test_invalid_provider_in_config_falls_back(self, tmp_config, tmp_cost_file):
         _write_config(tmp_config, "nonsense")
-        # Force SubagentProvider unavailable; we expect stub (end of chain).
+        # Force every non-stub provider unavailable; we expect stub (end of chain).
+        # PR8 v2.30.0 added OllamaProvider — it must also be patched here so the
+        # chain truly reaches the stub.
+        from core.runtime.ollama_provider import OllamaProvider
         with patch.object(SubagentProvider, "is_available", return_value=False), \
+             patch.object(OllamaProvider, "is_available", return_value=False), \
              patch.object(AnthropicDirectProvider, "is_available", return_value=False):
             provider = get_llm_provider(config_path=tmp_config)
         assert isinstance(provider, StubProvider)
 
     def test_fallback_chain_skips_unavailable(self, tmp_config, tmp_cost_file):
         _write_config(tmp_config, "subagent")
+        from core.runtime.ollama_provider import OllamaProvider
         with patch.object(SubagentProvider, "is_available", return_value=False), \
+             patch.object(OllamaProvider, "is_available", return_value=False), \
              patch.object(AnthropicDirectProvider, "is_available", return_value=False):
             provider = get_llm_provider(config_path=tmp_config)
         assert isinstance(provider, StubProvider)
 
     def test_fallback_chain_logs_telemetry(self, tmp_config, tmp_cost_file):
         _write_config(tmp_config, "subagent")
+        from core.runtime.ollama_provider import OllamaProvider
         with patch.object(SubagentProvider, "is_available", return_value=False), \
+             patch.object(OllamaProvider, "is_available", return_value=False), \
              patch.object(AnthropicDirectProvider, "is_available", return_value=False):
             get_llm_provider(config_path=tmp_config)
         entries = read_entries(tmp_cost_file)
