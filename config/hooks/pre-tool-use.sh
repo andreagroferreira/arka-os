@@ -120,9 +120,12 @@ PY
   fi
 fi
 
-# ─── Fast allow: not a flow-gated tool (Write/Edit/MultiEdit) ───────────
+# ─── Fast allow: not a flow-gated tool ──────────────────────────────────
+# PR11 v2.33.0 expanded the gated set to include all EFFECT tools.
+# Bash is special — handled per-command by the Python enforcer via
+# bash_is_effect(). Skip fast-path for Bash so the enforcer can classify.
 case "$TOOL_NAME" in
-  Write|Edit|MultiEdit) ;;
+  Write|Edit|MultiEdit|NotebookEdit|Task|Skill|Bash) ;;
   *) exit 0 ;;
 esac
 
@@ -130,11 +133,18 @@ if [ ! -f "$ARKAOS_ROOT/core/workflow/flow_enforcer.py" ]; then
   exit 0
 fi
 
+# ─── Extract tool_input (needed for Bash command classification) ───────
+TOOL_INPUT_JSON="{}"
+if command -v jq &>/dev/null; then
+  TOOL_INPUT_JSON=$(echo "$input" | jq -c '.tool_input // {}' 2>/dev/null)
+fi
+
 # ─── Delegate to Python enforcer ────────────────────────────────────────
 DECISION_JSON=$(TOOL_NAME="$TOOL_NAME" \
                 TRANSCRIPT_PATH="$TRANSCRIPT_PATH" \
                 SESSION_ID="$SESSION_ID" \
                 CWD="$CWD" \
+                TOOL_INPUT_JSON="$TOOL_INPUT_JSON" \
                 ARKAOS_ROOT="$ARKAOS_ROOT" \
                 python3 - <<'PY' 2>/dev/null
 import json
@@ -148,11 +158,17 @@ except Exception:
     print(json.dumps({"allow": True, "reason": "enforcer-import-failed"}))
     sys.exit(0)
 
+try:
+    tool_input = json.loads(os.environ.get("TOOL_INPUT_JSON", "{}"))
+except json.JSONDecodeError:
+    tool_input = {}
+
 decision = evaluate(
     tool_name=os.environ.get("TOOL_NAME", ""),
     transcript_path=os.environ.get("TRANSCRIPT_PATH", ""),
     session_id=os.environ.get("SESSION_ID", ""),
     cwd=os.environ.get("CWD", ""),
+    tool_input=tool_input,
 )
 try:
     record_telemetry(

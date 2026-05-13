@@ -54,7 +54,135 @@ def _locked_append(path: Path):
                 pass
         fh.close()
 
-GATED_TOOLS: frozenset[str] = frozenset({"Write", "Edit", "MultiEdit"})
+# PR11 v2.33.0 — Discovery vs Effect tool taxonomy (Conclave Phase 5).
+#
+# DISCOVERY tools (no routing required): Read, Grep, Glob, ToolSearch,
+# the various read-only MCP tools (Obsidian search, claude-mem search,
+# Context7 query), AskUserQuestion. These never mutate user state.
+#
+# EFFECT tools (routing required): tools below produce visible state
+# changes — write to filesystem, dispatch agents, invoke skills,
+# mutate the notebook. Each requires a flow marker
+# ([arka:routing] or [arka:trivial]) in the recent assistant messages.
+#
+# Bash is special: command-by-command classification via bash_is_effect().
+# Pure read commands (cat, ls, grep, git status, etc.) are DISCOVERY.
+# Mutating commands (rm, mv, git commit/push, npm install, etc.) are
+# EFFECT. Unknown commands default to EFFECT (safer).
+
+EFFECT_TOOLS_ALWAYS: frozenset[str] = frozenset({
+    "Write", "Edit", "MultiEdit", "NotebookEdit",
+    "Task", "Skill",  # Agent dispatch + skill invocation cascade to effect
+})
+
+# Backwards-compatible alias for callers that import GATED_TOOLS.
+GATED_TOOLS: frozenset[str] = EFFECT_TOOLS_ALWAYS
+
+# Bash classifier — whitelist of safe DISCOVERY first-tokens.
+_BASH_DISCOVERY_FIRST: frozenset[str] = frozenset({
+    # File reading
+    "cat", "head", "tail", "less", "more", "tee",
+    # Directory + search
+    "ls", "find", "locate", "tree", "stat", "file",
+    # Text search / processing (read-only)
+    "grep", "ag", "rg", "wc", "sort", "uniq", "tr", "cut", "awk", "fmt",
+    # System info
+    "pwd", "whoami", "id", "hostname", "uname", "date", "df", "du",
+    "free", "uptime", "echo", "printf", "true", "false",
+    # Process info
+    "ps", "pgrep", "jobs",
+    # Tool version queries (no side-effect)
+    "which", "type", "command", "where",
+    # Common toolchain read-only entry points (subcommand checked below)
+    "git", "npm", "yarn", "pnpm", "pip", "pip3", "uv", "poetry",
+    "brew", "apt", "snap", "winget", "choco", "ollama", "docker",
+    "python", "python3", "node", "ruby", "php", "go", "rustc",
+    "curl", "wget",  # default to read; mutation via flags below
+    # Shell builtins / control
+    "test", "[", "if", "while", "for", "case", "function", "return",
+    "exit", "source", ".", "set", "export", "alias", "unalias",
+    "shopt", "trap", "wait", "eval", "exec",
+    # Test runners (read state but don't mutate canonical files)
+    "pytest", "jest", "vitest", "phpunit", "pest", "rspec", "mocha",
+    "go", "cargo",
+})
+
+# Bash classifier — patterns that indicate mutation (anywhere in command).
+_BASH_EFFECT_PATTERNS: tuple[re.Pattern, ...] = tuple(
+    re.compile(p) for p in [
+        # File-system mutation
+        r"(^|[\s|;&])rm\s", r"(^|[\s|;&])mv\s", r"(^|[\s|;&])cp\s+-[rRf]",
+        r"(^|[\s|;&])dd\s", r"(^|[\s|;&])truncate\s",
+        r"(^|[\s|;&])touch\s", r"(^|[\s|;&])mkdir\s", r"(^|[\s|;&])rmdir\s",
+        r"(^|[\s|;&])ln\s+-s", r"(^|[\s|;&])chmod\s", r"(^|[\s|;&])chown\s",
+        # In-place edit
+        r"sed\s+-i", r"perl\s+-i", r"awk\s+-i\s",
+        # Process control
+        r"(^|[\s|;&])kill\s", r"(^|[\s|;&])killall\s", r"(^|[\s|;&])pkill\s",
+        # Elevation
+        r"(^|[\s|;&])sudo\s", r"(^|[\s|;&])su\s+-",
+        # Git mutation
+        r"git\s+(commit|push|merge|rebase|reset\s+--hard|checkout\s+-[Bb]|tag\s|stash|cherry-pick|revert|branch\s+-[dD])",
+        # Package mutation
+        r"npm\s+(install|i|publish|uninstall|update|run\s+publish)",
+        r"yarn\s+(add|remove|install|publish|upgrade)",
+        r"pnpm\s+(add|remove|install|publish|update)",
+        r"pip3?\s+install", r"pip3?\s+uninstall",
+        r"uv\s+pip\s+install", r"poetry\s+(add|remove|install|publish)",
+        r"brew\s+(install|uninstall|upgrade|cleanup)",
+        r"apt(-get)?\s+(install|remove|purge|upgrade)",
+        r"snap\s+(install|remove|refresh)",
+        r"winget\s+(install|uninstall|upgrade)",
+        r"choco\s+(install|uninstall|upgrade)",
+        # GitHub mutation
+        r"gh\s+(pr\s+create|release\s+create|issue\s+create|repo\s+create|secret\s+set)",
+        r"gh\s+pr\s+merge", r"gh\s+pr\s+close", r"gh\s+repo\s+delete",
+        # Docker mutation
+        r"docker\s+(build|push|run|create|rm|kill|stop|start|restart|exec)",
+        # Network transfer (mutates remote)
+        r"(^|[\s|;&])scp\s",
+        # rsync is intentionally not in the blacklist nor in the discovery
+        # whitelist — default-deny path classifies it as EFFECT. Users
+        # who genuinely need rsync (including --dry-run) emit a routing
+        # marker; safer than guessing intent from flags.
+        # Redirects to file (overwrite or append)
+        r">\s*[^&\s]", r">>\s*[^&\s]",
+    ]
+)
+
+
+def bash_is_effect(command: str) -> bool:
+    """Classify a Bash command as EFFECT (requires routing) or DISCOVERY (free).
+
+    Algorithm (default-deny for unknowns):
+      1. Empty command → False (no effect).
+      2. Any blacklist pattern matches anywhere in the command → True.
+      3. First non-pipe token is in the discovery whitelist → False.
+      4. Otherwise → True (unknown commands default to requiring routing).
+
+    Pipes and command chaining are scanned as a whole — if any segment
+    has an effect verb, the entire chain is classified EFFECT.
+    """
+    if not command or not command.strip():
+        return False
+    stripped = command.strip()
+    for pattern in _BASH_EFFECT_PATTERNS:
+        if pattern.search(stripped):
+            return True
+    first_tokens = stripped.split(None, 1)
+    if not first_tokens:
+        return False
+    first = first_tokens[0]
+    # Strip leading env-var assignments like FOO=bar baz qux
+    while "=" in first and first_tokens:
+        first_tokens = first_tokens[1].split(None, 1) if len(first_tokens) > 1 else []
+        first = first_tokens[0] if first_tokens else ""
+    if not first:
+        return False
+    if first in _BASH_DISCOVERY_FIRST:
+        return False
+    # Unknown command — default to requiring routing.
+    return True
 
 ROUTING_RE = re.compile(r"\[arka:routing\]\s*[\w-]+\s*->\s*\w+", re.IGNORECASE)
 TRIVIAL_RE = re.compile(r"\[arka:trivial\]\s*\S+", re.IGNORECASE)
@@ -88,7 +216,9 @@ class Decision:
         return (
             f"[ARKA:ENFORCEMENT] Flow marker missing. "
             f"Emit `[arka:routing] <dept> -> <lead>` or `[arka:trivial] <reason>` "
-            f"before any `Write`/`Edit`/`MultiEdit`. Reason: {self.reason}"
+            f"before any tool that mutates state "
+            f"(Write/Edit/MultiEdit/NotebookEdit/Task/Skill, or Bash with effect commands like rm/mv/git commit/npm install). "
+            f"Reason: {self.reason}"
         )
 
 
@@ -209,13 +339,24 @@ def evaluate(
     transcript_path: str,
     session_id: str = "",
     cwd: str = "",
+    tool_input: dict | None = None,
 ) -> Decision:
     """Decide whether a tool call may proceed.
 
     Returns a Decision. Caller is responsible for translating `allow=False`
     into the appropriate hook exit code or permissionDecision output.
+
+    PR11 v2.33.0 expanded the gated set beyond Write/Edit/MultiEdit to
+    cover all EFFECT tools (NotebookEdit, Task, Skill) and to classify
+    Bash commands per-command via ``bash_is_effect``.
     """
-    if tool_name not in GATED_TOOLS:
+    is_gated = tool_name in EFFECT_TOOLS_ALWAYS
+    if not is_gated and tool_name == "Bash":
+        bash_cmd = ""
+        if tool_input and isinstance(tool_input, dict):
+            bash_cmd = str(tool_input.get("command", ""))
+        is_gated = bash_is_effect(bash_cmd)
+    if not is_gated:
         return Decision(allow=True, reason="tool-not-gated")
 
     if not _feature_flag_on():
