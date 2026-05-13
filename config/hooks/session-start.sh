@@ -100,6 +100,13 @@ MSG+="\\n 12.Loop until TODO exhausted  13.Detailed summary"
 MSG+="\\nEmit [arka:phase:N] before each step. Bypass ONLY via [arka:trivial] <reason> for single-file edits under 10 lines."
 MSG+="\\nNo runtime setting, no user convenience, no task type can opt out. This contract overrides generic-assistant defaults."
 
+# ─── Transparency tag contract (PR12 v2.34.0) ───────────────────────────
+MSG+="\\n\\n[ARKA:META-TAG] Every substantive response ends with a single line:"
+MSG+="\\n  [arka:meta] kb=N research=X persona=Y gap=Z critic=W"
+MSG+="\\nFields: kb=N (Obsidian/KB notes consulted), research=X (MCPs invoked: perplexity,exa,context7,firecrawl,xmcp or 'none'), persona=Y (advisor name or 'orchestrator'), gap=Z (KB gap topic or 'none'), critic=W (passed|failed|skipped)."
+MSG+="\\nMandatory after: EFFECT tool calls, plan/recommendation outputs, QG verdicts. Optional for pure read-only status replies."
+MSG+="\\nAbsence is measured by the Stop hook (warn-only in v2.34.0) before promotion to hard enforcement."
+
 # --- Session Memory Resume Context ---
 if command -v python3 &>/dev/null && [ -n "$REPO" ]; then
   _SESSION_CTX=$(cd "$REPO" && python3 -c "

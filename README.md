@@ -314,7 +314,7 @@ ArkaOS manages client projects as **ecosystems** — groups of related projects 
 /client_retail          → ClientRetail ecosystem (4 projects: API, frontend, admin, docs)
 /client_commerce            → ClientCommerce ecosystem (supplier sync + Shopify theme)
 /client_fashion      → ClientFashion (6 projects: CRM, store, API, migration...)
-/edp               → EDP (3 projects: portal, API, analytics)
+/client_energy     → ClientEnergy ecosystem (3 projects: portal, API, analytics)
 ```
 
 Each ecosystem gets:

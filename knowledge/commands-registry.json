@@ -916,7 +916,7 @@
       "id": "dev-scaffold-laravel",
       "command": "/dev scaffold laravel <name>",
       "department": "dev",
-      "description": "`git@andreagroferreira:andreagroferreira/laravel-starter-kit.git`",
+      "description": "Scaffold a Laravel project from the configured starter-kit template.",
       "lead_agent": "dev-scaffold",
       "tier": 2,
       "requires_branch": false,
