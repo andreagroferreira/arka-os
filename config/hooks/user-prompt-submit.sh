@@ -356,9 +356,25 @@ sequential-validation, full-visibility, arka-supremacy."
   fi
 fi
 
+# ─── Cognitive context injection (PR4 v2.26.0 hooks-as-retrieval) ───────
+# Read the context cache populated by the previous PostToolUse turn and
+# inject any KB hits as an `[arka:context]` advisory. The Python helper
+# has internal TTL filtering (10 min) and returns empty when there is no
+# fresh cache, so this stays a no-op until the cognitive layer has data
+# to share.
+_ARKA_CONTEXT_HITS=""
+if [ -n "$SESSION_ID" ]; then
+  _ARKAOS_REPO=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null || echo "")
+  if [ -n "$_ARKAOS_REPO" ] && [ -d "$_ARKAOS_REPO" ]; then
+    _ARKA_CONTEXT_HITS=$(PYTHONPATH="$_ARKAOS_REPO" python3 -m core.cognition.retrieval inject "$SESSION_ID" 2>/dev/null)
+  fi
+fi
+
 # ─── Output ──────────────────────────────────────────────────────────────
 _OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}${_ROUTE_REMINDER}${_WORKFLOW_DIRECTIVE} $python_result"
 [ -n "$_HYGIENE" ] && _OUT_CONTEXT="$_OUT_CONTEXT $_HYGIENE"
+[ -n "$_ARKA_CONTEXT_HITS" ] && _OUT_CONTEXT="$_OUT_CONTEXT
+$_ARKA_CONTEXT_HITS"
 # Escape for JSON
 _OUT_JSON=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$_OUT_CONTEXT" 2>/dev/null)
 if [ -n "$_OUT_JSON" ]; then
