@@ -214,11 +214,10 @@ class Decision:
         if self.allow:
             return ""
         return (
-            f"[ARKA:ENFORCEMENT] Flow marker missing. "
-            f"Emit `[arka:routing] <dept> -> <lead>` or `[arka:trivial] <reason>` "
-            f"before any tool that mutates state "
-            f"(Write/Edit/MultiEdit/NotebookEdit/Task/Skill, or Bash with effect commands like rm/mv/git commit/npm install). "
-            f"Reason: {self.reason}"
+            f"[ARKA:ENFORCEMENT] Missing `[arka:routing] <dept> -> <lead>` or "
+            f"`[arka:trivial] <reason>` before "
+            f"Write/Edit/MultiEdit/NotebookEdit/Task/Skill/Bash-effect. "
+            f"Bypass once with `ARKA_BYPASS_FLOW=1`. Reason: {self.reason}."
         )
 
 
