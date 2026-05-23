@@ -275,6 +275,26 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
 
   // ═══ Step 14: Finalize ═══
   step(14, 14, "Finalizing...");
+
+  // PR19 v2.41.0 — seed/migrate hooks.hardEnforcement so the PreToolUse
+  // gate blocks tool calls without [arka:routing] on fresh installs.
+  // Idempotent + preserves explicit user `false`.
+  try {
+    const { seedArkaosConfig } = await import("./config-seed.js");
+    const seedResult = seedArkaosConfig({ home: homedir() });
+    if (seedResult.action === "created") {
+      console.log(`         hardEnforcement enabled (default).`);
+    } else if (seedResult.action === "added-key") {
+      console.log(`         hardEnforcement enabled (key was unset).`);
+    } else if (seedResult.action === "preserved-user-false") {
+      console.log(`         hardEnforcement is OFF (user-set, preserved).`);
+    } else if (seedResult.action === "rewrote-corrupt") {
+      console.log(`         config.json was corrupt — rewrote, backup at ${seedResult.backup}`);
+    }
+  } catch (err) {
+    console.log(`         Warning: could not seed config.json (${err.message})`);
+  }
+
   const manifest = {
     version: VERSION,
     runtime,

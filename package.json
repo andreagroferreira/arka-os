@@ -1,10 +1,10 @@
 {
   "name": "arkaos",
-  "version": "2.40.0",
+  "version": "2.41.0",
   "description": "The Operating System for AI Agent Teams",
   "type": "module",
   "bin": {
-    "arkaos": "./installer/cli.js"
+    "arkaos": "installer/cli.js"
   },
   "scripts": {
     "test": "node --test \"tests/installer/**/*.test.js\"",
