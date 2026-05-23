@@ -113,6 +113,47 @@ try:
 except Exception:
     pass
 
+# PR18 v2.40.0 — KB citation soft-block. Records whether the closing
+# assistant message cited the vault on an ArkaOS topic. Result is also
+# persisted to /tmp/arkaos-cite/<session>.json so the next UserPromptSubmit
+# can surface a nudge if passed=False. Non-blocking; never raises.
+cite_passed = True
+cite_reason = "trivial"
+cite_count = 0
+cite_topic_score = 0.0
+cite_suggestion: str | None = None
+try:
+    from core.governance.kb_cite_check import check_citation
+    cr = check_citation(last)
+    cite_passed = cr.passed
+    cite_reason = cr.reason
+    cite_count = cr.citation_count
+    cite_topic_score = cr.topic_score
+    cite_suggestion = cr.suggestion
+    # PR18 security fix: session_id comes from the runtime via stdin JSON
+    # and is untrusted. Reuse the shared allowlist before building any
+    # filesystem path. Reject (skip write) on anything outside
+    # [A-Za-z0-9._-]{1,128} — no `..`, no slashes, no whitespace, no NUL.
+    try:
+        from core.shared.safe_session_id import safe_session_id as _safe_sid
+        safe_sid = _safe_sid(session_id)
+    except Exception:
+        safe_sid = None
+    if safe_sid:
+        cite_dir = Path("/tmp/arkaos-cite")
+        cite_dir.mkdir(parents=True, exist_ok=True)
+        cite_path = cite_dir / f"{safe_sid}.json"
+        cite_payload = {
+            "passed": cr.passed,
+            "reason": cr.reason,
+            "suggestion": cr.suggestion,
+            "citation_count": cr.citation_count,
+            "topic_score": cr.topic_score,
+        }
+        cite_path.write_text(json.dumps(cite_payload), encoding="utf-8")
+except Exception:
+    pass
+
 entry = {
     "ts": datetime.now(timezone.utc).isoformat(),
     "session_id": session_id,
@@ -125,6 +166,10 @@ entry = {
     "sycophancy_is_flagged": is_sycophantic,
     "sycophancy_signals": sycophancy_signals,
     "sycophancy_confidence": sycophancy_confidence,
+    "kb_cite_passed": cite_passed,
+    "kb_cite_reason": cite_reason,
+    "kb_cite_count": cite_count,
+    "kb_cite_topic_score": cite_topic_score,
     "mode": "warn",
 }
 
