@@ -370,9 +370,34 @@ if [ -n "$SESSION_ID" ]; then
   fi
 fi
 
+# ─── KB citation nudge (PR18 v2.40.0) ────────────────────────────────────
+# Read the cite-check result written by the previous Stop hook. If the
+# last assistant turn was on an ArkaOS topic without any citation, surface
+# the suggestion to the model in this turn's additionalContext. One-shot:
+# the file is deleted after read so the nudge does not repeat across turns.
+_KB_CITE_NUDGE=""
+if [ -n "$SESSION_ID" ]; then
+  _CITE_FILE="/tmp/arkaos-cite/${SESSION_ID}.json"
+  if [ -f "$_CITE_FILE" ]; then
+    if command -v jq &>/dev/null; then
+      # NOTE: do not use `// true` here — jq's `//` treats false as needing
+      # the default, which would suppress the nudge in the exact case we
+      # care about. Read .passed raw and compare to the literal "false".
+      _CITE_PASSED=$(jq -r '.passed' "$_CITE_FILE" 2>/dev/null)
+      _CITE_SUGGEST=$(jq -r '.suggestion // ""' "$_CITE_FILE" 2>/dev/null)
+      if [ "$_CITE_PASSED" = "false" ] && [ -n "$_CITE_SUGGEST" ] && [ "$_CITE_SUGGEST" != "null" ]; then
+        _KB_CITE_NUDGE="[arka:suggest] ${_CITE_SUGGEST}"
+      fi
+    fi
+    rm -f "$_CITE_FILE" 2>/dev/null
+  fi
+fi
+
 # ─── Output ──────────────────────────────────────────────────────────────
 _OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}${_ROUTE_REMINDER}${_WORKFLOW_DIRECTIVE} $python_result"
 [ -n "$_HYGIENE" ] && _OUT_CONTEXT="$_OUT_CONTEXT $_HYGIENE"
+[ -n "$_KB_CITE_NUDGE" ] && _OUT_CONTEXT="$_OUT_CONTEXT
+$_KB_CITE_NUDGE"
 [ -n "$_ARKA_CONTEXT_HITS" ] && _OUT_CONTEXT="$_OUT_CONTEXT
 $_ARKA_CONTEXT_HITS"
 # Escape for JSON
