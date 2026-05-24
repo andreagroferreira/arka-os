@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.51.0] - 2026-05-24
+
+### Added (GTM department — cross-departmental feature)
+
+- **`/saas gtm` workflow** (PR32) — new
+  `departments/saas/workflows/gtm-strategy.yaml`. 9-phase Enterprise
+  cross-departmental orchestration: brief → ICP discovery (parallel
+  Strategy + SaaS) → positioning (Brand + Strategy) → motion
+  selection (SaaS + Sales) → channel mix (Marketing + Landing) →
+  90-day plan (SaaS + Marketing + Sales) → self-critique →
+  Quality Gate (opus) → delivery. First cross-departmental
+  Enterprise workflow in the system — orchestrates five separate
+  departments through a single command.
+- **`skills/gtm-strategy/SKILL.md` expanded** (32 → 158 lines).
+  Added: ICP template (firmographics + persona + pain + signal),
+  Onlyness positioning frame with 3-test validation, 6 GTM
+  motions comparison table with CAC payback windows, channel-
+  motion matrix, 90-day execution plan template with named
+  owners, 1-page executive summary contract.
+
+### Pattern
+
+Same shape as PR31 (Brand): SKILL.md promised Enterprise outcome,
+delivered a stub. Audit identifies it, PR closes the gap with
+production workflow + framework-dense skill spec. Pattern is now
+repeatable across departments — Marketing / Sales / Strategy /
+Landing each have analogous gaps.
+
 ## [2.50.0] - 2026-05-24
 
 ### Added (Brand department — user-facing feature)
