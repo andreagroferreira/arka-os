@@ -29,7 +29,7 @@ rule (`mandatory-flow`). Until this ADR, enforcement was **100% advisory**:
   always pass through
 - No `Stop` hook exists → final response is never validated
 
-Observed failure: in multiple client projects (Rockport, and per-owner
+Observed failure: in multiple client projects (one footwear retailer, and per-owner
 auto-memory others), the Claude Code runtime skipped the flow repeatedly —
 wrote amateur CRUD with `.env` hardcoded values, skipped Phase 7 (six
 parallel reviewers), delivered, was corrected, then skipped the flow again.

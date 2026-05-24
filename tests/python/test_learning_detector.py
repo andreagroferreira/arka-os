@@ -80,7 +80,7 @@ class TestAbsoluteLanguage:
 
 class TestCorrectionVerbs:
     @pytest.mark.parametrize("text", [
-        "não quero que faças isso quando estamos a trabalhar no fovory",
+        "não quero que faças isso quando estamos a trabalhar no clientalpha",
         "para de assumir que eu sei o contexto do projeto",
         "deixa de pedir confirmação para cada pequena alteração",
         "stop doing the early-return pattern in those views",

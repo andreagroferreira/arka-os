@@ -39,19 +39,19 @@ def synthetic_vault(tmp_path):
     vault = tmp_path / "vault"
     vault.mkdir()
     (vault / "Projects").mkdir()
-    fovory = vault / "Projects" / "Fovory.md"
-    fovory.write_text(
-        "# Fovory\n\n"
-        "Decided to migrate Fovory to Inertia v3 this week, the supplier sync "
+    clientalpha = vault / "Projects" / "Clientalpha.md"
+    clientalpha.write_text(
+        "# Clientalpha\n\n"
+        "Decided to migrate Clientalpha to Inertia v3 this week, the supplier sync "
         "module was the main reason — the v2 React shell could not handle the "
-        "pagination over 1000 rows that Fovory pricing screen needs.\n\n"
+        "pagination over 1000 rows that Clientalpha pricing screen needs.\n\n"
         "Pest browser tests fail on pagination over 1000 rows consistently in "
-        "the Fovory batch_decisions screen — third occurrence this month and "
+        "the Clientalpha batch_decisions screen — third occurrence this month and "
         "the pattern looks structural, not flaky.\n\n"
-        "Fovory pricing tier B requires confirmation of 35 percent margin "
+        "Clientalpha pricing tier B requires confirmation of 35 percent margin "
         "across the Sicily handbag line — Marta flagged the contradiction "
         "with the auditor evidence earlier in the week.\n\n"
-        "Pest pagination bug recurs in Fovory batch_decisions screen again; "
+        "Pest pagination bug recurs in Clientalpha batch_decisions screen again; "
         "shared helper paginatesLargeDataset would close this once and for "
         "all across three projects that share the pattern.\n",
         encoding="utf-8",
@@ -107,13 +107,13 @@ def test_parse_insight_extracts_title_body_confidence():
         text="TITLE: Pest pagination recurring bug\nBODY: Three notes show pagination Pest tests fail. Add a shared helper.\nCONFIDENCE: high",
         tokens_in=20, tokens_out=20, cached_tokens=0, model="x",
     )
-    cluster = Cluster(topic="Pest", chunks=[Chunk("Projects/Fovory.md", "...", "vault")])
+    cluster = Cluster(topic="Pest", chunks=[Chunk("Projects/Clientalpha.md", "...", "vault")])
     insight = _parse_insight(resp, cluster)
     assert insight is not None
     assert insight.title == "Pest pagination recurring bug"
     assert "shared helper" in insight.body
     assert insight.confidence == "high"
-    assert insight.sources == ["Projects/Fovory.md"]
+    assert insight.sources == ["Projects/Clientalpha.md"]
     assert insight.tags == ["pest"]
 
 
@@ -134,15 +134,15 @@ def test_parse_insight_clamps_invalid_confidence():
 
 def test_build_insight_prompt_includes_sources_and_excerpts():
     cluster = Cluster(
-        topic="Fovory",
+        topic="Clientalpha",
         chunks=[
-            Chunk("Projects/Fovory.md", "First excerpt about pagination.", "vault"),
-            Chunk("Projects/Fovory.md", "Second excerpt about migration.", "vault"),
+            Chunk("Projects/Clientalpha.md", "First excerpt about pagination.", "vault"),
+            Chunk("Projects/Clientalpha.md", "Second excerpt about migration.", "vault"),
         ],
     )
     prompt = _build_insight_prompt(cluster)
-    assert "Topic anchor: Fovory" in prompt
-    assert "Projects/Fovory.md" in prompt
+    assert "Topic anchor: Clientalpha" in prompt
+    assert "Projects/Clientalpha.md" in prompt
     assert "First excerpt about pagination" in prompt
 
 
@@ -167,7 +167,7 @@ def test_dreaming_end_to_end_with_scripted_provider(synthetic_vault, tmp_path, f
     fake_provider.complete.side_effect = [
         # First cluster — produce insight
         LLMResponse(
-            text="TITLE: Pest pagination recurring\nBODY: Three Fovory notes mention pagination Pest tests failing. Consider a shared helper.\nCONFIDENCE: high",
+            text="TITLE: Pest pagination recurring\nBODY: Three Clientalpha notes mention pagination Pest tests failing. Consider a shared helper.\nCONFIDENCE: high",
             tokens_in=20, tokens_out=20, cached_tokens=0, model="test",
         ),
         # Critic — accept

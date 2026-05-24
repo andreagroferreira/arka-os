@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-06
 **Status:** Approved
-**Approach:** Ecosystem Skill (classic pattern, like /client_retail, /edp, /client_commerce)
+**Approach:** Ecosystem Skill (classic pattern, like /client_retail, /client_energy, /client_commerce)
 
 ## Summary
 

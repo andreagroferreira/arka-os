@@ -346,7 +346,7 @@ stacks:
 
 domains:
   - E-commerce (Shopify, marketplace trends, conversion)
-  - Energy sector (EDP, smart grid, regulation)
+  - Energy sector (utility, smart grid, regulation)
   - Media/Streaming (ClientVideo, content delivery)
   - AI/ML (LLM updates, agent frameworks, fine-tuning)
   - Fashion retail (ClientFashion, CRM, loyalty)

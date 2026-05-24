@@ -106,21 +106,13 @@ def _format_leak_check_result(report) -> CheckResult:
             reason=f"{report.files_scanned} file(s) scanned, no leaks",
         )
     first = report.hits[0]
-    # PR22 v2.44.0 introduces this check at WARNING severity to ship the
-    # scanner without blocking on pre-existing leaks in test fixtures
-    # (test_dreaming.py and siblings) + historical CHANGELOG/ADR
-    # references. PR23 cleans those up and flips severity to "blocking".
     return CheckResult(
-        name="no-client-name-leaks", passed=False, severity="warning",
+        name="no-client-name-leaks", passed=False, severity="blocking",
         reason=(
             f"{len(report.hits)} leak(s) — first: "
             f"{first.path.name}:{first.line_number} matched `{first.matched_token}`"
         ),
-        remediation=(
-            "move the literal to ~/.arkaos/ or sanitize before commit; "
-            "PR22 scope intentionally warning-only — PR23 will scrub "
-            "historical leaks and flip this check to blocking"
-        ),
+        remediation="move the literal to ~/.arkaos/ or sanitize before commit",
     )
 
 
