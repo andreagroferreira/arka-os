@@ -1,0 +1,144 @@
+id: content-youtube
+name: YouTube Strategy
+description: Full YouTube strategy — channel positioning, title × thumbnail × hook architecture, script structure, SEO optimization, distribution
+department: content
+tier: enterprise
+command: "/content youtube"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: YouTube Brief
+    description: Define topic, target audience, current channel state, monetisation goal, weekly capacity
+    agents:
+      - agent_id: content-director-rafael
+        role: Frame topic, audience, current subscribers + AVG view duration, monetisation goal
+    gate:
+      type: user_approval
+      description: User confirms YouTube brief
+
+  - id: channel-positioning
+    name: Channel Positioning
+    description: Position the channel in the YouTube taxonomy — niche, target persona, channel promise, competing channels
+    agents:
+      - agent_id: content-director-rafael
+        role: Channel positioning statement + competing channels analysis
+      - agent_id: brand-strategist-mateus
+        role: Differentiation angle, channel identity
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves channel positioning
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/YouTube/Positioning/"
+        description: Channel positioning + competing channels + differentiation angle
+
+  - id: title-thumbnail-architecture
+    name: Title × Thumbnail Architecture
+    description: Design 10 title × thumbnail pairs using CTR-tested patterns — curiosity gap + transformation + specificity + visual hierarchy
+    agents:
+      - agent_id: content-director-rafael
+        role: 10 title × thumbnail pairs with CTR pattern named per pair
+      - agent_id: visual-designer-isabel
+        role: Thumbnail visual hierarchy specs (face / contrast / focal-point / text-overlay rules)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User selects 3-5 title × thumbnail pairs for first videos
+
+  - id: hook-script-structure
+    name: Hook × Script Structure
+    description: First 30s hook architecture + retention curve plan for the full script
+    agents:
+      - agent_id: content-director-rafael
+        role: Hook framework (negative → positive → curiosity gap → preview) + retention curve plan
+      - agent_id: sales-copywriter-teresa
+        role: Hook copy variants (3 per video) + script outline with retention drops mapped
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves hook + script structure
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/YouTube/Scripts/"
+        description: Hook architecture + script structure with retention curve plan
+
+  - id: seo-metadata
+    name: SEO & Metadata
+    description: Title keywords, description optimization, tags, end-screen design, playlist architecture
+    agents:
+      - agent_id: content-director-rafael
+        role: SEO metadata specs per video; playlist hierarchy
+      - agent_id: marketing-director-luna
+        role: Keyword research + search volume targeting
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves SEO + playlist architecture
+
+  - id: publishing-cadence
+    name: Publishing Cadence
+    description: Set sustainable publishing cadence with first-week / first-month / first-quarter targets
+    agents:
+      - agent_id: content-director-rafael
+        role: Cadence math + first-week / first-month / first-quarter view + subscriber targets
+    gate:
+      type: user_approval
+      description: User approves cadence and targets
+
+  - id: distribution-amplification
+    name: Distribution & Amplification
+    description: Cross-platform distribution — Shorts derivatives, Twitter/LinkedIn threads, email newsletter, podcast
+    agents:
+      - agent_id: content-director-rafael
+        role: Cross-platform derivative spec per long-form video
+      - agent_id: short-form-specialist
+        role: Shorts adaptation spec (3-5 Shorts per long-form)
+        parallel: true
+    gate:
+      type: auto
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the strategy — is the cadence sustainable? Does positioning differentiate from competing channels? Does the CTR pattern math hold?
+    agents:
+      - agent_id: content-director-rafael
+        role: Coherence + sustainability + differentiation check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Title copy, hook copy, script structure, no clickbait that breaks promise
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Thumbnail visual hierarchy, retention curve feasibility, SEO metadata correctness
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: YouTube Strategy Package Delivery
+    description: Compile the full YouTube strategy package
+    agents:
+      - agent_id: content-director-rafael
+        role: Full YouTube strategy package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/YouTube/"
+        description: Complete YouTube strategy — positioning + title × thumbnail pairs + hook architecture + script structure + SEO metadata + publishing cadence + distribution + exec summary

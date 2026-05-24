@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.55.0] - 2026-05-24
+
+### Added (Content department — sixth pattern repeat)
+
+- **`/content system` workflow** (PR36) — new
+  `departments/content/workflows/system.yaml`. 10-phase Enterprise
+  workflow: brief → pillar-design → format-stack → production-
+  cadence → distribution-channels → analytics-stack → ops-systems
+  → self-critique → Quality Gate (opus) → delivery. Builds a full
+  Content Operating System with pillars + cadence + cross-channel
+  derivatives + analytics dashboard spec.
+- **`/content youtube` workflow** (PR36) — new
+  `departments/content/workflows/youtube.yaml`. 10-phase Enterprise
+  workflow: brief → channel-positioning → title × thumbnail
+  architecture (parallel: Rafael + Isabel) → hook + script
+  structure (parallel: Rafael + Teresa) → SEO + metadata → cadence
+  → distribution → self-critique → Quality Gate (opus) → delivery.
+- **`skills/youtube-strategy/SKILL.md` expanded** (32 → 161
+  lines). Added: CTR-retention math (median + top-performer
+  benchmarks), 7 named title × thumbnail patterns with use cases,
+  thumbnail visual hierarchy rules, hook architecture (4-stage
+  first-30s template), 10-12min script structure with retention
+  drop points, SEO metadata stack YAML format, publishing cadence
+  math with 90-day targets, cross-platform derivative spec (3-5
+  shorts + thread + LinkedIn + newsletter + podcast).
+
 ## [2.54.0] - 2026-05-24
 
 ### Added (Strategy department — fifth pattern repeat)
