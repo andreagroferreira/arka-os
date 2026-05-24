@@ -1,0 +1,145 @@
+id: saas-launch
+name: SaaS Launch Checklist & Execution
+description: SaaS launch checklist + execution plan — pre-launch / launch / post-launch with stage-appropriate distribution
+department: saas
+tier: enterprise
+command: "/saas launch"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Launch Brief
+    description: Define product, current beta state, target audience, success metric, launch type (public / private / soft / hard)
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Frame product, beta state, audience, success metric, launch type
+    gate:
+      type: user_approval
+      description: User confirms launch brief
+
+  - id: readiness-audit
+    name: Launch Readiness Audit
+    description: Product readiness checklist — feature-complete, performance, billing, support, tracking, legal
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Readiness audit with pass/waiver per criterion
+      - agent_id: tech-director-francisca
+        role: Technical readiness (performance, billing, infra, security)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves launch readiness (zero blockers or explicit waivers)
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Launches/Readiness/"
+        description: Readiness audit with checklist per dimension
+
+  - id: positioning-message
+    name: Positioning & Core Message
+    description: Confirm positioning (re-using GTM positioning if exists) + 3-tier message hierarchy
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Core message hierarchy (tagline / headline / value props)
+      - agent_id: brand-strategist-mateus
+        role: Onlyness validation + brand consistency check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves message hierarchy
+
+  - id: launch-assets
+    name: Launch Assets Inventory
+    description: Asset inventory — landing page + email + social + product hunt + press kit + demo video + docs
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Asset inventory with delivery dates
+      - agent_id: conversion-strategist-ines
+        role: Landing page conversion spec
+        parallel: true
+      - agent_id: copy-director-eduardo
+        role: Copy briefs for all launch assets
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves asset list and delivery dates
+
+  - id: channel-sequence
+    name: Channel Sequence
+    description: Day-by-day channel activation — community → list → social → press → paid
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Channel sequence with day-by-day priorities
+      - agent_id: marketing-director-luna
+        role: Channel-specific tactics + paid ramp plan
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves channel sequence
+
+  - id: launch-day-runbook
+    name: Launch Day Runbook
+    description: Hour-by-hour launch day — owners, action items, escalation paths, decision gates
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Hour-by-hour runbook with named owners + decision gates
+    gate:
+      type: user_approval
+      description: User approves launch day runbook
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Launches/Runbooks/"
+        description: Hour-by-hour launch day runbook
+
+  - id: post-launch-plan
+    name: Post-Launch Plan
+    description: Week-1 / Month-1 follow-up sequence — retention focus, support scaling, iteration based on real usage
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Week-1 + Month-1 post-launch plan with retention focus
+    gate:
+      type: user_approval
+      description: User approves post-launch plan
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the launch — are readiness waivers acceptable? Does channel sequence match audience reality? Are decision gates actionable?
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Launch coherence + readiness defensibility check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: All launch copy + message hierarchy + no over-promise
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Readiness audit accuracy + tracking + scalability
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Launch Package Delivery
+    description: Compile launch package — readiness + assets + channel sequence + runbook + post-launch plan
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Full launch package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Launches/"
+        description: Complete launch package — readiness + positioning + assets + channel sequence + launch day runbook + post-launch plan + exec summary

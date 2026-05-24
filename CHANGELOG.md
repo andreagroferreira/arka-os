@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.60.0] - 2026-05-24
+
+### Added (SaaS department — eleventh pattern repeat, three workflows)
+
+- **`/saas plg` workflow** (PR41) — 10-phase Enterprise workflow.
+  Freemium vs trial vs reverse-trial model selection + activation
+  event design + onboarding optimisation + monetisation trigger
+  + expansion mechanics (NRR > 110%) + instrumentation. Multi-
+  functional: Tiago + Helena (CFO unit-economics) + Carolina
+  (Product) + Sofia D (UX) + Francisca (Tech).
+- **`/saas growth` workflow** (PR41) — 10-phase Enterprise
+  workflow. Stage diagnosis (seed / Series A / scale) + stage-
+  appropriate metrics + motion × channel fit + team allocation
+  + budget × runway + 90-day experiment portfolio. Multi-
+  functional: Tiago + Helena + Tomas + Luna + Sofia (COO).
+- **`/saas launch` workflow** (PR41) — 10-phase Enterprise
+  workflow. Launch readiness audit + positioning + asset
+  inventory + channel sequence + hour-by-hour launch day
+  runbook + week-1/month-1 post-launch plan.
+
+### Pattern arc (11 PRs deep)
+
+Brand → GTM → Site → Marketing → Strategy → Content → PM → KB
+→ Org → Ecom → SaaS. Only community remains in the user-facing
+dept arc (2 Enterprise gaps).
+
 ## [2.59.0] - 2026-05-24
 
 ### Added (E-commerce department — tenth pattern repeat, three workflows in one PR)

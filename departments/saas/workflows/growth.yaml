@@ -1,0 +1,140 @@
+id: saas-growth
+name: SaaS Growth Plan
+description: Stage-specific growth plan (seed / Series A / scale) with stage-appropriate metrics, channels, team allocation
+department: saas
+tier: enterprise
+command: "/saas growth"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Growth Brief
+    description: Define current stage, ARR, growth rate, runway, target stage end-state
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Frame current stage, ARR, growth rate, runway, end-state
+    gate:
+      type: user_approval
+      description: User confirms stage context and target
+
+  - id: stage-diagnosis
+    name: Stage Diagnosis
+    description: Diagnose where the SaaS actually is (vs claims) — seed (PMF search), Series A (PMF + scale prep), scale (efficient growth)
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Stage diagnosis with evidence (PMF signals, expansion math, sales motion maturity)
+      - agent_id: strategy-director-tomas
+        role: Strategic context — category position, competitive intensity
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves stage diagnosis
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Growth/Diagnosis/"
+        description: Stage diagnosis with PMF evidence and stage-shift criteria
+
+  - id: stage-metrics
+    name: Stage-Appropriate Metrics
+    description: Define the 3-5 metrics that matter at THIS stage (different per stage)
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Stage-specific metric set with target per metric
+      - agent_id: cfo-helena
+        role: Financial metric integration (Magic Number, Net Burn Multiple, CAC payback)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves metric set
+
+  - id: motion-channel-fit
+    name: Motion × Channel Fit (Stage-Adjusted)
+    description: Pick GTM motion + channels appropriate to stage (seed = focused, A = scaled-up, scale = portfolio)
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Motion + channel selection with stage rationale
+      - agent_id: marketing-director-luna
+        role: Channel-feasibility validation
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves motion + channels
+
+  - id: team-allocation
+    name: Team Allocation
+    description: How team headcount maps to the growth plan — first hires per stage, when to hire what
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Team allocation with hire-when-X triggers
+      - agent_id: coo-sofia
+        role: Org design — when to add second-line management
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves team allocation
+
+  - id: budget-runway
+    name: Budget × Runway
+    description: 12-month budget split across hire / paid / tools / experiments with runway impact
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Budget allocation with monthly burn
+      - agent_id: cfo-helena
+        role: Runway impact + worst-case scenario
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves budget × runway plan
+
+  - id: experiment-portfolio
+    name: 90-Day Experiment Portfolio
+    description: 3-5 prioritised experiments — hypothesis, success criteria, kill-switch date
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Experiment portfolio with hypothesis + MDE + kill date per experiment
+    gate:
+      type: user_approval
+      description: User approves experiment portfolio
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the plan — does stage diagnosis support motion choice? Does budget × runway × team math close?
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Coherence check across stage / motion / team / budget / experiments
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Plan prose, stage diagnosis defensibility, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Metric math, budget math, instrumentation feasibility
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Growth Plan Delivery
+    description: Compile the growth plan + executive summary + monthly checkpoint cadence
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Full growth plan + executive summary + monthly checkpoint schedule
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/Growth/"
+        description: Complete growth plan — stage diagnosis + metrics + motion + team + budget + experiments + monthly checkpoints
