@@ -1,0 +1,136 @@
+id: pm-shape
+name: Shape Up Pitch
+description: Shape Up pitch (Basecamp method) — appetite + problem + solution sketch + rabbit holes + no-gos for a 6-week build cycle
+department: pm
+tier: enterprise
+command: "/pm shape"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Shaping Brief
+    description: Define the raw problem, the appetite (2 / 4 / 6 weeks), the people who'll build it
+    agents:
+      - agent_id: product-director-carolina
+        role: Frame raw problem, set appetite, name the build team
+    gate:
+      type: user_approval
+      description: User confirms problem, appetite, and team
+
+  - id: setting-boundaries
+    name: Setting Boundaries
+    description: Define what's IN scope and what's OUT — appetite is the constraint, fixed time variable scope
+    agents:
+      - agent_id: product-director-carolina
+        role: Scope definition — IN list, OUT list, explicit no-gos
+    gate:
+      type: user_approval
+      description: User approves scope boundaries
+
+  - id: rough-solution
+    name: Rough Solution
+    description: Sketch the solution at the right altitude — fat marker level, not pixel level. Just enough to commit
+    agents:
+      - agent_id: product-director-carolina
+        role: Solution sketch with fat-marker fidelity
+      - agent_id: ux-designer-sofia-d
+        role: User flow at fat-marker level
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves rough solution
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Product/Shape/Solutions/"
+        description: Fat-marker solution sketch with user flow
+
+  - id: rabbit-holes
+    name: Rabbit Holes
+    description: Identify rabbit holes — risks, unknowns, technical debt traps — and either eliminate them in shaping or surface as risks
+    agents:
+      - agent_id: product-director-carolina
+        role: Rabbit hole identification + mitigation strategy per hole
+      - agent_id: tech-director-francisca
+        role: Technical rabbit holes (data, integration, dependency)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves rabbit hole mitigation strategy
+
+  - id: no-gos
+    name: No-Gos
+    description: Explicitly name what's NOT being built — features that look related but aren't part of this bet
+    agents:
+      - agent_id: product-director-carolina
+        role: No-gos list with rationale per item
+    gate:
+      type: auto
+
+  - id: pitch-document
+    name: Pitch Document
+    description: Compile the pitch — problem + appetite + solution + rabbit holes + no-gos + nobody-decisions
+    agents:
+      - agent_id: product-director-carolina
+        role: Full Shape Up pitch document with all 5 sections
+      - agent_id: copy-director-eduardo
+        role: Pitch readability — does it commit the reader to a decision?
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves pitch document before betting table
+
+  - id: betting-decision
+    name: Betting Table Decision
+    description: Decide GO / NO-GO / RESHAPE at the betting table — does the appetite, solution, and team fit the next cycle?
+    agents:
+      - agent_id: product-director-carolina
+        role: Betting decision with rationale
+      - agent_id: strategy-director-tomas
+        role: Strategic alignment check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User makes the betting decision (GO / NO-GO / RESHAPE)
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the pitch — is the appetite realistic? Are rabbit holes fully named? Are no-gos enforced?
+    agents:
+      - agent_id: product-director-carolina
+        role: Pitch coherence check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Pitch prose, no over-promise, decision-forcing language
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Appetite × scope feasibility, rabbit hole completeness
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Pitch Package Delivery
+    description: Compile the pitch package — pitch doc + rabbit hole register + betting decision + handoff to build team
+    agents:
+      - agent_id: product-director-carolina
+        role: Full pitch package + handoff brief for build team
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Product/Shape/"
+        description: Complete pitch package — pitch doc + rabbit hole register + no-gos + betting decision + build-team handoff

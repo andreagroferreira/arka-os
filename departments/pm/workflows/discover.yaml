@@ -1,0 +1,136 @@
+id: pm-discover
+name: Product Discovery
+description: Continuous product discovery using Opportunity Solution Tree (Teresa Torres) — interviews + assumption tests + outcome alignment
+department: pm
+tier: enterprise
+command: "/pm discover"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Discovery Brief
+    description: Define product outcome, the question we're answering, current evidence base, runway for discovery
+    agents:
+      - agent_id: product-director-carolina
+        role: Frame outcome, question, current evidence, time budget
+    gate:
+      type: user_approval
+      description: User confirms outcome statement and discovery question
+
+  - id: opportunity-mapping
+    name: Opportunity Mapping
+    description: Map the Opportunity Solution Tree — desired outcome at top, opportunities (customer needs) in middle, solution candidates at bottom
+    agents:
+      - agent_id: product-director-carolina
+        role: OST construction with explicit opportunity definitions
+      - agent_id: ux-designer-sofia-d
+        role: Customer journey lens — where do opportunities surface?
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves OST structure
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Product/Discovery/OST/"
+        description: Opportunity Solution Tree with opportunity definitions
+
+  - id: interview-plan
+    name: Interview Plan
+    description: Plan 5-10 customer interviews — recruit criteria, script, capture format
+    agents:
+      - agent_id: product-director-carolina
+        role: Interview script with story-based question structure (specific recent moments, not opinions)
+    gate:
+      type: user_approval
+      description: User approves interview plan and recruit criteria
+
+  - id: interview-execution
+    name: Interviews + Synthesis
+    description: Run interviews; synthesize into opportunity additions/refinements to the OST
+    agents:
+      - agent_id: product-director-carolina
+        role: Run interviews, capture verbatim notes, synthesize into opportunity refinements
+    gate:
+      type: user_approval
+      description: User approves interview synthesis
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Product/Discovery/Interviews/"
+        description: Interview synthesis with opportunity refinements
+
+  - id: opportunity-selection
+    name: Opportunity Selection
+    description: Pick the target opportunity using impact × confidence × ease prioritisation
+    agents:
+      - agent_id: product-director-carolina
+        role: Opportunity selection with explicit prioritisation matrix and rationale
+    gate:
+      type: user_approval
+      description: User approves target opportunity
+
+  - id: assumption-tests
+    name: Assumption Mapping & Tests
+    description: For the chosen opportunity, list assumptions (desirability / viability / feasibility / usability) and design tests for the riskiest
+    agents:
+      - agent_id: product-director-carolina
+        role: Assumption map + test design for top 3 riskiest assumptions
+      - agent_id: tech-director-francisca
+        role: Feasibility-assumption test feasibility check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the top 3 assumption tests
+
+  - id: experiment-execution
+    name: Experiment Execution Plan
+    description: Concrete 2-week experiments — what to do, success criteria, failure criteria, owner
+    agents:
+      - agent_id: product-director-carolina
+        role: 2-week experiment plan per top-3 assumption
+    gate:
+      type: user_approval
+      description: User approves experiment execution plan
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test discovery — does the chosen opportunity tie to the outcome? Are assumption tests falsifiable?
+    agents:
+      - agent_id: product-director-carolina
+        role: Coherence check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Interview script quality, synthesis prose, no leading questions
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Assumption test rigour, feasibility math, falsifiability
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Discovery Package Delivery
+    description: Compile discovery package — OST + interviews + opportunity selection + assumption tests + experiment plan
+    agents:
+      - agent_id: product-director-carolina
+        role: Full discovery package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Product/Discovery/"
+        description: Complete discovery package — OST + interview synthesis + opportunity selection + assumption tests + 2-week experiment plan + exec summary

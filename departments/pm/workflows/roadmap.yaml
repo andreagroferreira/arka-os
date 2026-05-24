@@ -1,0 +1,127 @@
+id: pm-roadmap
+name: Outcome-Driven Roadmap
+description: Outcome-driven product roadmap (3 horizons) — replaces feature-list roadmaps with measurable outcomes and bets
+department: pm
+tier: enterprise
+command: "/pm roadmap"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Roadmap Brief
+    description: Define product vision, current state, time horizon, owner organisation, stakeholders
+    agents:
+      - agent_id: product-director-carolina
+        role: Frame vision, current state, horizon, stakeholders
+    gate:
+      type: user_approval
+      description: User confirms vision and horizon
+
+  - id: outcome-definition
+    name: North Star + Outcome Tree
+    description: Define the North Star metric and 3-5 derived outcomes that decompose it
+    agents:
+      - agent_id: product-director-carolina
+        role: North Star + outcome tree definition with measurable per-outcome metrics
+      - agent_id: strategy-director-tomas
+        role: Strategic coherence — does the North Star align with company strategy?
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves North Star and outcome tree
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Product/Roadmap/NorthStar/"
+        description: North Star + outcome tree with metrics per outcome
+
+  - id: three-horizons
+    name: Three Horizons (Now / Next / Later)
+    description: Map work across the 3 horizons — Now (committed), Next (validating), Later (exploring)
+    agents:
+      - agent_id: product-director-carolina
+        role: Three-horizon mapping with explicit commitment levels per horizon
+    gate:
+      type: user_approval
+      description: User approves horizon mapping
+
+  - id: bet-selection
+    name: Bet Selection
+    description: For each outcome, select 1-3 bets (large, named, time-boxed efforts) with hypothesis + success criteria
+    agents:
+      - agent_id: product-director-carolina
+        role: Bet selection with hypothesis + success criteria per bet
+      - agent_id: strategy-director-tomas
+        role: Bet-outcome coherence and competitive context check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves bet selection
+
+  - id: capacity-allocation
+    name: Capacity Allocation
+    description: Allocate team capacity across bets — fixed-time vs fixed-scope policy per bet
+    agents:
+      - agent_id: product-director-carolina
+        role: Capacity allocation with team mapping
+      - agent_id: tech-director-francisca
+        role: Technical feasibility + capacity math
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves capacity allocation
+
+  - id: communication-plan
+    name: Communication Plan
+    description: Internal stakeholder communication strategy — what each audience sees, how often, what's redacted
+    agents:
+      - agent_id: product-director-carolina
+        role: Per-audience roadmap view (exec / engineering / sales / customer-facing)
+      - agent_id: copy-director-eduardo
+        role: Per-audience copy adaptations
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves communication strategy
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the roadmap — are bets falsifiable? Does capacity match commitments? Are outcomes measurable?
+    agents:
+      - agent_id: product-director-carolina
+        role: Coherence check across outcomes / bets / capacity / horizons
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Outcome prose, bet hypothesis clarity, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Capacity math, feasibility, measurement integrity
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Roadmap Package Delivery
+    description: Compile the roadmap package + audience-specific versions
+    agents:
+      - agent_id: product-director-carolina
+        role: Full roadmap + audience-specific views + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Product/Roadmap/"
+        description: Complete roadmap — North Star + outcome tree + 3-horizon map + bet definitions + capacity allocation + per-audience communication
