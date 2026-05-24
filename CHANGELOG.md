@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.48.0] - 2026-05-24
+
+### Added
+
+- **Behavior compliance summarizer** (PR29) — new
+  `core/governance/compliance_telemetry.py` reads stop-hook entries
+  from `~/.arkaos/telemetry/enforcement.jsonl` and reports compliance
+  with the four contracts the session-start hook establishes:
+  - `closing_marker_found` (`[arka:phase:13]` / `[arka:trivial]`)
+  - `meta_tag_found` (`[arka:meta]` one-liner, PR12 v2.34.0)
+  - `kb_cite_passed` (KB citation soft block, PR18 v2.40.0)
+  - sycophancy clean (inverse of flagged, PR13 v2.35.0)
+- **`/arka compliance [period]` command** — markdown table with
+  per-contract rates. Periods today/week/month/all share the
+  vocabulary of `/arka enforcement` and `/arka costs`.
+- **10 unit tests** covering missing/empty file, null fields excluded
+  from denominators, period filter, perfect/mixed/zero compliance,
+  invalid period raises.
+
+### Surfaced
+
+- **Detection-logic gap (telemetry quality)** — first real run against
+  the operator's KB shows 272 stop-events but compliance rates near
+  zero for meta_tag / kb_cite / sycophancy fields (consistent null
+  values in JSONL). PR30 will diagnose the stop-hook detection
+  pipeline and bring the data quality up before promoting any of
+  these contracts from warn-only to blocking.
+
 ## [2.47.0] - 2026-05-24
 
 ### Added
