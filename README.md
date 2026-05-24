@@ -464,8 +464,10 @@ npx arkaos uninstall           # Remove ArkaOS
 
 ```
 /arka update                   # Sync all project configs after core update
-/arka status                   # System health + LLM costs (24h)
+/arka status                   # System health + LLM costs + Enforcement + Reorganization (24h)
 /arka costs [today|week|month|all|sessions]  # LLM cost visibility
+/arka enforcement [today|week|month|all]     # Flow-marker compliance (v2.41.0)
+/arka reorganize [--since-days N]            # KB → agent proposal markdown (v2.42.0)
 /arka index                    # (Re)index Obsidian vault into vector store
 /arka search <query>           # Semantic search in knowledge base
 /arka standup                  # Daily standup (projects, blockers, updates)
@@ -474,13 +476,24 @@ npx arkaos uninstall           # Remove ArkaOS
 /do <description>              # Universal routing — natural language to department
 ```
 
+**Release pipeline (operator-side, headless):**
+
+```
+python -m core.release.preflight_cli --expected-npm-user <user>
+# Step 0 NON-NEGOTIABLE before any tag/push/publish (v2.43.0+).
+# Six checks: version-alignment / npm-auth / npm-publish-capability /
+# gh-auth / git-remote / git-clean. Plus no-client-name-leaks
+# (v2.44.0+, BLOCKING since v2.45.0).
+# Exit 1 = STOP, fix every remediation, re-run.
+```
+
 Department commands: `/dev`, `/mkt`, `/brand`, `/fin`, `/strat`, `/ecom`, `/kb`, `/ops`, `/pm`, `/saas`, `/landing`, `/content`, `/community`, `/sales`, `/lead`, `/org`.
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome — all changes require passing the full test suite (3,025 tests) and Quality Gate review.
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome — all changes require passing the full test suite (3,473+ tests as of v2.46.x) and Quality Gate review (Marta CQO + Eduardo Copy + Francisca Tech, all Opus).
 
 ## License
 
