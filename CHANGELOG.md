@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.61.0] - 2026-05-24
+
+### Added (Community department — twelfth pattern repeat, ARC COMPLETE)
+
+- **`/community model` workflow** (PR42) — new
+  `departments/community/workflows/model.yaml`. 11-phase Enterprise
+  workflow building a community business model. Phases: brief →
+  purpose-definition (parallel: Beatriz + Mateus) → ideal-member-
+  profile → SPACES-classification → two-sided-value-prop (parallel:
+  Beatriz + Eduardo) → platform-fit → monetisation (parallel:
+  Beatriz + Helena) → growth-loop (parallel: Beatriz + Luna) →
+  self-critique → Quality Gate (opus) → delivery.
+
+### Arc complete
+
+Twelve user-facing-feature PRs closed (PR31 → PR42) covering every
+department where an Enterprise-tier command lacked a workflow. The
+audit-first / workflow + skill-expansion template is now codified
+and repeatable. Every Enterprise-tier command across the system
+either has a production workflow or never claimed Enterprise tier
+(Sales, Fin, Leadership).
+
 ## [2.60.0] - 2026-05-24
 
 ### Added (SaaS department — eleventh pattern repeat, three workflows)
