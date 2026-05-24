@@ -5,6 +5,40 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.50.0] - 2026-05-24
+
+### Added (Brand department — user-facing feature)
+
+- **`/brand audit` workflow** (PR31) — new
+  `departments/brand/workflows/audit.yaml`. 8-phase Enterprise-tier
+  orchestration: brief → asset-gather → 7-element-mapping (parallel)
+  → 21-point scoring → competitor benchmark → self-critique →
+  Quality Gate (opus) → delivery. Closes a tier-contract violation
+  where SKILL.md flagged `/brand audit` as Enterprise but no
+  workflow YAML existed.
+- **`/brand design-system` workflow** (PR31) — new
+  `departments/brand/workflows/design-system.yaml`. 8-phase
+  Enterprise-tier orchestration: brief → token-design → atom-
+  molecule-organism (parallel) → template-page → WCAG AA audit →
+  self-critique → Quality Gate (opus) → delivery. Same tier-
+  contract closure.
+- **`skills/primal-audit/SKILL.md` expanded** (57 → 130 lines) —
+  added per-element scoring rubric (3 sub-criteria each = 21
+  total), evidence citation contract, competitor benchmark table
+  template, ranked remediation plan with leverage ratings.
+- **`skills/design-system/SKILL.md` expanded** (33 → 204 lines) —
+  added two-layer token JSON schema, Atomic Design 5-level
+  component manifest with props + a11y notes, WCAG 2.2 AA gates
+  per criterion, Storybook CSF3 export contract, integration
+  guide.
+
+### Why this lands now
+
+User-facing Brand department feature. Closes the audit gap
+identified by the brand-strategist self-audit: SKILL.md promised
+two Enterprise-tier commands that delivered single-skill stubs
+instead of multi-phase Quality-Gated workflows.
+
 ## [2.49.0] - 2026-05-24
 
 ### Added
