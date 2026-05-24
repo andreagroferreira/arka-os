@@ -1,0 +1,134 @@
+id: org-culture
+name: Culture Definition
+description: Define organisational culture explicitly — values + behaviours + rituals + decision principles — that can be operationalised in hiring, performance, and decision-making
+department: org
+tier: enterprise
+command: "/org culture"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Culture Brief
+    description: Define company stage, current culture state (default-on or explicit), audience for the document
+    agents:
+      - agent_id: coo-sofia
+        role: Frame company stage, current culture state, audience
+    gate:
+      type: user_approval
+      description: User confirms scope and audience
+
+  - id: archaeology
+    name: Cultural Archaeology
+    description: Extract the existing implicit culture from artefacts — Slack patterns, email norms, decisions taken, founder choices
+    agents:
+      - agent_id: coo-sofia
+        role: Cultural artefact analysis — what's already true vs aspirational
+      - agent_id: kb-curator-clara
+        role: Mine the KB for founder stories, public statements, recurring decision patterns
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the as-is culture map
+
+  - id: values-set
+    name: Values Set (Real, Not Marketing)
+    description: Define 4-6 values that pass the inversion test — values whose opposites are also defensible positions held by other companies
+    agents:
+      - agent_id: coo-sofia
+        role: Values selection with inversion test per value
+      - agent_id: strategy-director-tomas
+        role: Strategic coherence — do values reinforce competitive position?
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves values set
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Org/Culture/Values/"
+        description: Values set with inversion test + strategic rationale per value
+
+  - id: behaviours
+    name: Behaviour Mapping
+    description: Translate each value to 3-5 concrete behaviours that are observable and coachable
+    agents:
+      - agent_id: coo-sofia
+        role: Per-value behaviour mapping with observable + coachable criteria
+    gate:
+      type: user_approval
+      description: User approves behaviour map
+
+  - id: rituals
+    name: Rituals & Practices
+    description: Identify the rituals that reinforce values — weekly cadences, decision rituals, recognition patterns, retrospective formats
+    agents:
+      - agent_id: coo-sofia
+        role: Ritual catalogue with frequency + owner + value-reinforced per ritual
+    gate:
+      type: user_approval
+      description: User approves ritual catalogue
+
+  - id: decision-principles
+    name: Decision Principles
+    description: Codify decision principles — when do we decide fast vs slow, who decides what, how do we disagree, how do we commit
+    agents:
+      - agent_id: coo-sofia
+        role: Decision principles with examples per principle
+      - agent_id: cqo-marta
+        role: Quality + governance integration check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves decision principles
+
+  - id: operationalisation
+    name: Operationalisation
+    description: Wire culture into hiring, onboarding, performance review, promotion criteria
+    agents:
+      - agent_id: coo-sofia
+        role: Operational integration plan per HR surface
+    gate:
+      type: user_approval
+      description: User approves operationalisation plan
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test — does each value pass the inversion test? Are behaviours observable? Are rituals load-bearing or decorative?
+    agents:
+      - agent_id: coo-sofia
+        role: Culture coherence check + decorative-ritual elimination
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Values prose, no aspirational clichés, behaviour specificity
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Operationalisation feasibility, observability of behaviours, ritual ownership clarity
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Culture Document Delivery
+    description: Compile the culture document — values + behaviours + rituals + decision principles + operationalisation
+    agents:
+      - agent_id: coo-sofia
+        role: Full culture document + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Org/Culture/"
+        description: Complete culture document — values (inversion-tested) + behaviours + rituals + decision principles + operationalisation plan + exec summary

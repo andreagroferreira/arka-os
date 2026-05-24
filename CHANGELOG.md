@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.58.0] - 2026-05-24
+
+### Added (Org department — ninth pattern repeat)
+
+- **`/org culture` workflow** (PR39) — new
+  `departments/org/workflows/culture.yaml`. 10-phase Enterprise
+  workflow defining org culture operationally. Phases: brief →
+  archaeology (parallel: Sofia + Clara) → values-set (parallel:
+  Sofia + Tomas) → behaviours → rituals → decision-principles
+  (parallel: Sofia + Marta) → operationalisation → self-critique
+  → Quality Gate (opus) → delivery.
+- **`skills/culture-define/SKILL.md` expanded** (32 → 169 lines).
+  Inversion Test (the only test that matters — values must have
+  defensible opposites held by reputable companies), cultural
+  archaeology (extract as-is before defining aspirational),
+  behaviour mapping with observable + coachable criteria, ritual
+  catalogue with load-bearing classification, decision principles
+  YAML format (fast lane / slow lane / disagree-and-commit /
+  escalation), operationalisation into hiring + onboarding +
+  performance + promotion, 5 common failure modes including
+  Platitude Values and Wall Poster Syndrome.
+
 ## [2.57.0] - 2026-05-24
 
 ### Added (KB department — eighth pattern repeat)
