@@ -311,6 +311,27 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     console.log(`         Warning: could not scaffold user-data (${err.message})`);
   }
 
+  // PR43 v2.62.0 — auto-install default Claude Code plugins. Only runs
+  // when runtime is Claude Code AND the `claude` CLI is available.
+  // Idempotent: skips plugins already in installed_plugins.json.
+  try {
+    const { installDefaultClaudePlugins } = await import("./claude-plugins.js");
+    const pluginResult = installDefaultClaudePlugins({ runtime });
+    if (!pluginResult.skipped) {
+      for (const r of pluginResult.results) {
+        if (r.action === "installed") {
+          console.log(`         ${r.plugin} installed.`);
+        } else if (r.action === "already-present") {
+          console.log(`         ${r.plugin} already installed (skipped).`);
+        } else if (r.action === "failed") {
+          console.log(`         ${r.plugin} install failed (${r.reason}).`);
+        }
+      }
+    }
+  } catch (err) {
+    console.log(`         Warning: could not install default Claude plugins (${err.message})`);
+  }
+
   const manifest = {
     version: VERSION,
     runtime,
