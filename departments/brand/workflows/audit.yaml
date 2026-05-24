@@ -1,0 +1,118 @@
+id: brand-audit
+name: Brand Audit
+description: Diagnose an existing brand against the 7 Primal Code elements with competitor benchmark
+department: brand
+tier: enterprise
+command: "/brand audit"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Audit Brief
+    description: Define brand under audit, audience, competitors to benchmark against
+    agents:
+      - agent_id: brand-director-valentina
+        role: Frame audit scope, identify the 3-5 competitor brands for benchmark
+    gate:
+      type: user_approval
+      description: User confirms brand-under-audit and competitor set
+
+  - id: asset-gather
+    name: Asset Gathering
+    description: Collect all live brand assets (logo, palette, type, voice samples, taglines, web/social proof points)
+    agents:
+      - agent_id: brand-director-valentina
+        role: Catalog the brand surface area, flag missing assets
+      - agent_id: visual-designer-isabel
+        role: Extract visual tokens from existing materials
+        parallel: true
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Brand/Audits/Assets/"
+        description: Asset inventory with file references
+
+  - id: seven-element-mapping
+    name: Primal 7-Element Mapping
+    description: Score each Primal element (Creation Story, Creed, Icons, Rituals, Sacred Words, Non-Believers, Leader) against evidence
+    agents:
+      - agent_id: brand-strategist-mateus
+        role: Score Creation Story, Creed, Sacred Words, Non-Believers, Leader against asset evidence
+        parallel: true
+      - agent_id: ux-designer-sofia-d
+        role: Score Icons and Rituals against UI/interaction evidence
+        parallel: true
+    gate:
+      type: auto
+
+  - id: scoring
+    name: 21-Point Scoring
+    description: Aggregate per-element scores into a 21-point Primal Code Index (3 points per element across 7 elements)
+    agents:
+      - agent_id: brand-strategist-mateus
+        role: Compute the 21-point Primal Code Index, identify gaps
+    gate:
+      type: user_approval
+      description: User reviews the 21-point scoring before benchmark phase
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Brand/Audits/Scoring/"
+        description: 21-point Primal Code Index with per-element evidence
+
+  - id: competitor-benchmark
+    name: Competitor Benchmark
+    description: Run the same 21-point scoring on 3-5 competitor brands; compute relative position
+    agents:
+      - agent_id: brand-strategist-mateus
+        role: Benchmark competitor scores, compute relative position
+      - agent_id: strategy-director-tomas
+        role: Strategic context — which gaps are wins to close, which are deliberate non-positions
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the benchmark results before remediation ranking
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the audit — are scores defensible by evidence? Are gaps actionable?
+    agents:
+      - agent_id: brand-director-valentina
+        role: Verify each score has a concrete asset citation, each gap has a measurable target
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Audit prose quality, no clichés, defensible scoring language
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Visual evidence completeness, accessibility findings, file format integrity
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Audit Report & Recommendations
+    description: Compile audit report with ranked remediation recommendations
+    agents:
+      - agent_id: brand-director-valentina
+        role: Compile audit report — 21-point index, gap analysis, ranked remediation plan
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Brand/Audits/"
+        description: Complete brand audit with 21-point index + competitor benchmark + ranked recommendations

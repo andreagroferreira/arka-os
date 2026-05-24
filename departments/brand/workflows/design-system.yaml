@@ -1,0 +1,122 @@
+id: brand-design-system
+name: Design System Specification
+description: Production design system from tokens to Storybook components (Atomic Design + WCAG AA)
+department: brand
+tier: enterprise
+command: "/brand design-system"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Design System Brief
+    description: Define product surface, platforms, accessibility floor, integration target
+    agents:
+      - agent_id: brand-director-valentina
+        role: Frame system scope (web / mobile / multi-product), confirm accessibility floor (WCAG AA minimum)
+    gate:
+      type: user_approval
+      description: User confirms scope, platforms, and accessibility floor
+
+  - id: token-design
+    name: Token Design
+    description: Define design tokens (color, typography, spacing, radius, elevation, motion) as JSON
+    agents:
+      - agent_id: visual-designer-isabel
+        role: Color palette with semantic tokens, typography scale, spacing rhythm, radius/elevation/motion tokens
+    gate:
+      type: user_approval
+      description: User approves the token system before component build
+    outputs:
+      - type: document
+        format: json
+        obsidian_path: "WizardingCode/Brand/DesignSystems/Tokens/"
+        description: design-tokens.json with full semantic layer
+
+  - id: atom-molecule-organism
+    name: Atom, Molecule, Organism
+    description: Build the lower three Atomic Design levels — primitives, composed pairs, complete sections
+    agents:
+      - agent_id: ux-designer-sofia-d
+        role: Atoms (button, input, label, icon), molecules (form field, card header, nav item)
+        parallel: true
+      - agent_id: visual-designer-isabel
+        role: Organisms (nav bar, hero, card grid, dialog) with token application
+        parallel: true
+    gate:
+      type: auto
+
+  - id: template-page
+    name: Templates & Pages
+    description: Complete Atomic Design — page templates with content placeholders, plus 2-3 production page examples
+    agents:
+      - agent_id: ux-designer-sofia-d
+        role: Page templates (landing, dashboard, settings, empty state)
+      - agent_id: visual-designer-isabel
+        role: Production page examples with real content
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the template set before accessibility audit
+
+  - id: accessibility-audit
+    name: WCAG AA Audit
+    description: Full WCAG 2.2 AA audit on every component — contrast, focus, semantics, ARIA, keyboard
+    agents:
+      - agent_id: wcag-auditor
+        role: WCAG 2.2 AA conformance audit on every atom/molecule/organism/template
+      - agent_id: ux-designer-sofia-d
+        role: Remediate failures, document permanent waivers with rationale
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the conformance report (zero AA failures required)
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Brand/DesignSystems/Accessibility/"
+        description: WCAG AA conformance report — every component pass/waiver
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the system — naming consistency, token coverage, scale integrity, edge-case components
+    agents:
+      - agent_id: brand-director-valentina
+        role: Verify naming consistency, token coverage, scale integrity, edge-case components
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Component naming, prop names, docstring clarity, no AI clichés in copy
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Token schema integrity, accessibility compliance, Storybook contract correctness
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Design System Delivery
+    description: Compile the design system — tokens JSON + component catalog + WCAG report + Storybook story stubs
+    agents:
+      - agent_id: brand-director-valentina
+        role: Compile the design system package and write the integration guide
+      - agent_id: shadcn-padronizer
+        role: Optional shadcn/ui alignment for code-side parity
+        optional: true
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Brand/DesignSystems/"
+        description: Complete design system — design-tokens.json + component catalog + accessibility report + Storybook stubs + integration guide
