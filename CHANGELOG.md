@@ -5,6 +5,37 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.56.0] - 2026-05-24
+
+### Added (PM department — seventh pattern repeat, three workflows in one PR)
+
+- **`/pm discover` workflow** (PR37) — 10-phase Enterprise
+  workflow. Teresa Torres Opportunity Solution Tree + assumption
+  mapping + 2-week experiments. Phases: brief →
+  opportunity-mapping → interview-plan → interview-execution →
+  opportunity-selection → assumption-tests → experiment-execution
+  → self-critique → Quality Gate (opus) → delivery.
+- **`/pm roadmap` workflow** (PR37) — 9-phase Enterprise workflow.
+  Outcome-driven roadmap with three horizons + bet selection +
+  capacity allocation + per-audience communication.
+- **`/pm shape` workflow** (PR37) — 10-phase Enterprise workflow.
+  Shape Up pitch (Basecamp) — appetite + boundaries + rough
+  solution + rabbit holes + no-gos + betting decision.
+- **`skills/roadmap-build/SKILL.md` expanded** (32 → 137 lines).
+  North Star math constraints (lagging+leading+causal+movable),
+  outcome tree decomposition math, three-horizon commitment
+  policy, Bets vs Promises distinction (with failure criteria
+  required on bets), capacity allocation policies (fixed time
+  vs fixed scope vs invalid both), per-audience communication
+  matrix, 5 common failure modes.
+
+### Pattern arc (7 PRs deep)
+
+Brand → GTM → Site → Marketing → Strategy → Content → PM. 3
+workflows in one PR (vs the usual 2) because PM had a 3-gap
+clean sweep and the template was fluent. Remaining: kb (2),
+org (2), ecom (3), saas (4), community (2).
+
 ## [2.55.0] - 2026-05-24
 
 ### Added (Content department — sixth pattern repeat)
