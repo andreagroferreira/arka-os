@@ -1,0 +1,144 @@
+id: saas-gtm-strategy
+name: GTM Strategy (Cross-Departmental)
+description: Full go-to-market strategy from ICP to 90-day execution plan, orchestrating SaaS + Strategy + Marketing + Sales + Landing
+department: saas
+tier: enterprise
+command: "/saas gtm"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: GTM Brief
+    description: Define product, current stage, available budget/runway, and success metric
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Frame product context, current ARR/MRR, runway, win condition for the launch
+    gate:
+      type: user_approval
+      description: User confirms product context, budget, and success metric
+
+  - id: icp-discovery
+    name: ICP Discovery
+    description: Define Ideal Customer Profile from existing user data and competitor analysis
+    agents:
+      - agent_id: strategy-director-tomas
+        role: ICP framework — firmographics, technographics, pain triggers, buying committee
+        parallel: true
+      - agent_id: saas-strategist-tiago
+        role: Current-user pattern extraction, look-alike modeling, willingness-to-pay signals
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the ICP (firmographics + persona + pain triggers + buying signal)
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/GTM/ICP/"
+        description: ICP profile with persona card, pain triggers, buying signals
+
+  - id: positioning
+    name: Positioning Statement
+    description: Position the product in the ICP's mental category using Ries/Trout template + Onlyness frame
+    agents:
+      - agent_id: brand-strategist-mateus
+        role: Onlyness statement (only X that Y for Z), category creation vs category capture analysis
+      - agent_id: strategy-director-tomas
+        role: Competitive contrast — 3-5 direct competitors with relative positioning
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves positioning (one-sentence + competitive contrast)
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/GTM/Positioning/"
+        description: Positioning statement + competitive contrast table
+
+  - id: motion-selection
+    name: GTM Motion Selection
+    description: Pick the primary motion (PLG / SLG / community / partner / inbound / outbound) and the assist motion
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Apply Sangram Vajre's MOVE framework — Markets, Operations, Velocity, Expansion
+      - agent_id: sales-director-miguel
+        role: Sales motion feasibility — pipeline math, CAC payback, win-rate baseline
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves primary motion + assist motion + 90-day target velocity
+
+  - id: channel-mix
+    name: Channel Mix
+    description: Map motion to channels — content / paid / community / partnerships / events / outbound — with budget allocation
+    agents:
+      - agent_id: marketing-director-luna
+        role: Channel mix design with AARRR baseline, growth loop selection
+      - agent_id: conversion-strategist-ines
+        role: Landing surface design per channel (one URL per channel intent)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves channel allocation and budget split
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/GTM/Channels/"
+        description: Channel mix with budget allocation and AARRR baseline
+
+  - id: ninety-day-plan
+    name: 90-Day Execution Plan
+    description: Concrete week-by-week deliverables, owners, success metrics — first 90 days
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Week-by-week deliverable plan with named owners and weekly checkpoints
+      - agent_id: marketing-director-luna
+        role: Marketing-side deliverables (content cadence, paid ramp, community)
+        parallel: true
+      - agent_id: sales-director-miguel
+        role: Sales-side deliverables (outbound cadence, demo book rate target)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the 90-day plan before Quality Gate
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the plan — is the motion-channel-budget triple internally consistent? Are weekly checkpoints measurable?
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Strategic coherence check — motion ↔ ICP ↔ positioning ↔ channels alignment
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: ICP language, positioning prose, plan readability — no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Plan executability — every action has an owner, a date, a metric
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: GTM Package Delivery
+    description: Compile the full GTM package and produce the 1-page executive summary
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Full GTM package compilation + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/GTM/"
+        description: Complete GTM package — ICP + positioning + motion + channel mix + 90-day plan + executive summary
