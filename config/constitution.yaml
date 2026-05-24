@@ -66,6 +66,10 @@ enforcement_levels:
         rule: "Forge plans must pass critic validation and governance check before approval"
         enforcement: "Plan Critic validates constitution compliance; PostToolUse monitors execution"
 
+      - id: mandatory-skill-evaluation
+        rule: "After every completed substantive task (Phase 13 marker fires), the system MUST evaluate whether the work just done represents a repeatable capability that should be captured as a permanent skill. Proposals are written to ~/.arkaos/skill-proposals/<date>-<slug>.md for operator review. Bypass via [arka:trivial] or [arka:skill-skip]."
+        enforcement: "Stop hook calls core.governance.skill_proposer.evaluate on the closing transcript tail. When the classifier returns should_propose=True a SKILL.md draft is written. Operator promotes via /arka skill-promote (PR45) or manual scaffold under departments/<dept>/skills/<slug>/."
+
       - id: mandatory-flow
         rule: "Every non-trivial request executes the 13-phase canonical flow defined in arka/skills/flow/SKILL.md. No task type, no context, no runtime setting can opt out. The only bypass is [arka:trivial] for single-file edits under 10 lines."
         enforcement: "UserPromptSubmit hook classifies the turn; SessionStart systemMessage embeds the flow at system-prompt priority; arka/SKILL.md references it as default; violation is a constitution breach, not a style issue."
