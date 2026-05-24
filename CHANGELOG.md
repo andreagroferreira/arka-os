@@ -5,6 +5,162 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.46.2] - 2026-05-24
+
+### Documentation
+
+- Backfilled CHANGELOG entries for v2.40.0–v2.46.1 (9 releases shipped
+  in the 24h discipline arc). Range v2.18.0–v2.39.0 acknowledged as a
+  detailed-history gap with summary themes; `git log --oneline
+  v2.17.5..v2.40.0` remains authoritative for per-commit detail.
+
+## [2.46.1] - 2026-05-24
+
+### Fixed
+
+- **Preflight `_run() None` branch coverage** — 5 new tests cover
+  `FileNotFoundError` / `TimeoutExpired` paths for npm-auth,
+  npm-publish-capability, gh-auth, git-remote, git-clean. Each check
+  degrades gracefully when the underlying CLI isn't installed or hangs.
+- **PAT-in-URL credential leak in `check_git_remote`** —
+  `_redact_git_credentials` strips `user:token@` segments from remote
+  URLs before they reach the CLI output. SSH URLs pass through unchanged.
+- **`/tmp/arkaos-cite` permissions on multi-user systems** — Stop hook
+  wraps the cite-file write in `os.umask(0o077)` so the directory is
+  `0o700` and JSON file is `0o600` — owner-only. No-op on single-user
+  dev boxes.
+
+## [2.46.0] - 2026-05-24
+
+### Added
+
+- **Stale-aware reorganizer trigger** (PR24) — session-start hook
+  auto-fires `python -m core.cognition.reorganizer_cli` in background
+  with a 30s timeout when today's proposal file is missing. No cron,
+  no platform-specific scheduler — file existence is the signal.
+- **`core/cognition/reorganizer_scheduler.py`** — `is_stale()`,
+  `status_summary()`, `render_status_md()` for the new `/arka status`
+  Reorganization section.
+- **`/arka status` Reorganization section** — surfaces today's proposal
+  path + artifact count alongside LLM costs and Enforcement.
+
+## [2.45.0] - 2026-05-24
+
+### Fixed
+
+- **39 historical client-name leaks scrubbed** (PR23) — 33 in test
+  fixtures (test_dreaming, test_obsidian_cataloger, test_research_profiler,
+  test_retrieval, test_sync_discovery, test_learning_detector) replaced
+  with synthetic equivalents (acmecorp / clientalpha / globexsa). 6 doc
+  files sanitized (CHANGELOG L28, 1 ADR, 4 superpowers specs).
+- **`check_no_client_name_leaks` severity flipped to BLOCKING** —
+  PR22 shipped at WARNING to avoid blocking the very release that
+  introduced the scanner. With historical leaks scrubbed, the check is
+  now blocking by default. Regression test locks the contract.
+
+## [2.44.0] - 2026-05-24
+
+### Added
+
+- **Client-name leak scanner** (PR22) — `core/governance/leak_scanner.py`
+  scans tracked source files for word-boundary matches against the
+  operator's user-local `~/.arkaos/redaction-clients.json`. Empty/missing
+  config is a no-op (no false positives in CI clones).
+- **`check_no_client_name_leaks` preflight check** — runs on every
+  release preflight, surfaces leaks with `file:line` and matched token.
+  Ships at WARNING severity initially (see v2.45.0 for the BLOCKING flip).
+
+## [2.43.0] - 2026-05-24
+
+### Added
+
+- **Release preflight gate** (PR21) — step 0 of the release pipeline.
+  Six checks before the irreversible tag/push/publish steps: version
+  alignment, npm-auth, npm-publish-capability, gh-auth, git-remote,
+  git-clean. Exit 1 on any blocking failure. Closes a debt from
+  v2.40.0 release (1h lost because expired npm token only surfaced
+  post-merge).
+- **`/arka enforcement` command** — exposed in `arka/SKILL.md`.
+
+## [2.42.0] - 2026-05-24
+
+### Added
+
+- **Dreaming → Agent reorganizer** (PR20) — `core/cognition/reorganizer.py`
+  scans the KB for pattern/anti-pattern/lesson markdown files, sanitizes
+  client identifiers, renders a markdown proposal at
+  `~/.arkaos/reorganize-proposals/<date>.md`. **Propose-only** — never
+  modifies agent YAMLs. Cron + auto-PR creation deferred.
+- **`/arka reorganize [--since-days N] [--dry-run]`** — manual command.
+
+### Fixed
+
+- **Markdown pipe injection in proposal table cells** — `_md_escape`
+  applied to every rendered cell.
+- **`output_dir` path traversal** — `_validate_output_dir` allowlist
+  (`~/.arkaos` or system tempdir).
+- **Same-day rerun torn-write** — atomic `tmp + os.replace()`.
+
+## [2.41.0] - 2026-05-24
+
+### Added
+
+- **Hard enforcement default** (PR19) — `hooks.hardEnforcement = true`
+  is now the default for fresh installs and unset configs. Explicit
+  user `false` preserved.
+- **`core/governance/enforcement_telemetry.py`** — line-streamed
+  JSONL summarizer over `~/.arkaos/telemetry/enforcement.jsonl`.
+- **`/arka enforcement [period]` command** — markdown aggregation:
+  total calls, block rate, top blocked tools, top reasons. Periods:
+  today/week/month/all.
+- **`installer/config-seed.js`** — idempotent `~/.arkaos/config.json`
+  seed during install/upgrade. Atomic write. Preserves user choice.
+- **`/arka status` Enforcement section** — surfaces today's
+  compliance numbers alongside LLM costs.
+
+### Changed
+
+- **Tighter `Decision.to_stderr_message`** — 4-line verbose form
+  compressed to one line; same contract tokens preserved; adds
+  `ARKA_BYPASS_FLOW=1` hint.
+
+## [2.40.0] - 2026-05-23
+
+### Added
+
+- **KB-first soft block** (PR18) — `core/governance/kb_cite_check.py`
+  is a citation classifier. Stop hook writes a per-session result to
+  `/tmp/arkaos-cite/<session>.json`; UserPromptSubmit hook surfaces a
+  `[arka:suggest]` nudge in the next turn's `additionalContext` when
+  the previous response was on an ArkaOS topic without `[[wikilink]]`,
+  `[knowledge:` marker, or `file:line` reference.
+- **`safe_session_id` wrapper** — prevents path traversal via
+  malicious session_id (`../../../tmp/pwn` → no write).
+
+### Fixed
+
+- **ReDoS in `_FILE_LINE_PATTERN`** — bounded quantifiers + 50KB scan
+  cap. Pathological 100KB input now completes <500ms (was ~41s).
+
+## [v2.18.0 – v2.39.0] - 2026-04-17 → 2026-05-13
+
+This range corresponds to the **Conclave Phase 5** governance batch
+plus the v2.18.0–v2.31.x development sprints. Detailed entries were
+not written at the time. See `git log --oneline v2.17.5..v2.40.0`
+for the per-commit history. Notable themes:
+
+- Conclave Phase 5 governance layer (PR10 v2.32.0 — constitution)
+- Discovery vs Effect taxonomy (PR11 v2.33.0 — Bash classifier)
+- `[arka:meta]` transparency tag (PR12 v2.34.0)
+- Sycophancy detector (PR13 v2.35.0 — `arkaos-not-yes-man`)
+- Definition-of-Done gates (PR14 v2.36.0)
+- Checkpoint primitives MVP (PR15 v2.37.0)
+- Hybrid learning detector (PR16 v2.38.0)
+- Pack-safety / repo sanitization (PR17 v2.39.0)
+- Dreaming v2 (insights, KB cataloger, auto-documentor)
+- Job queue, dashboard, websocket-ingest
+- User-data separation (`~/.arkaos/` canonicalisation)
+
 ## [2.17.5] - 2026-04-17
 
 ### Fixed
