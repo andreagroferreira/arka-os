@@ -1,0 +1,139 @@
+id: ecom-marketplace
+name: Marketplace Operations
+description: Marketplace operations setup or optimization (Mirakl, multi-vendor, Amazon/Shopify) — catalog + onboarding + orders + payments + analytics
+department: ecom
+tier: enterprise
+command: "/ecom marketplace"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Marketplace Brief
+    description: Define marketplace type (operator vs participant), platform, vendor scale target, vertical
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Frame marketplace type, platform, vendor scale, vertical
+    gate:
+      type: user_approval
+      description: User confirms marketplace context
+
+  - id: governance-model
+    name: Governance Model
+    description: Define curated vs open, commission model, vendor approval criteria, content moderation
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Governance model with curation criteria + commission economics + moderation policy
+      - agent_id: strategy-director-tomas
+        role: Strategic positioning — vertical specialisation vs horizontal
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves governance model
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Ecom/Marketplace/Governance/"
+        description: Governance model with curation + commission + moderation policies
+
+  - id: catalog-architecture
+    name: Catalog Architecture
+    description: Taxonomy, attribute schema, normalisation rules, deduplication strategy
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Taxonomy + attribute schema + dedup strategy
+      - agent_id: tech-director-francisca
+        role: Schema technical feasibility + ETL pipeline implications
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves catalog architecture
+
+  - id: vendor-onboarding
+    name: Vendor Onboarding Flow
+    description: Onboarding flow — application + verification + agreement + training + first-listing
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Onboarding flow with friction-vs-quality trade-off explicit
+      - agent_id: ux-designer-sofia-d
+        role: Onboarding UX with completion targets per step
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves onboarding flow
+
+  - id: order-fulfilment
+    name: Order & Fulfilment Flow
+    description: Order routing + fulfilment SLA + returns/refunds + dispute resolution
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Order flow design + SLA spec + dispute resolution policy
+    gate:
+      type: user_approval
+      description: User approves order/fulfilment flow
+
+  - id: payments-payouts
+    name: Payments & Payouts
+    description: Payment processing model + split-payment to vendors + escrow + chargeback handling
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Payment + payout model with chargeback handling policy
+      - agent_id: cfo-helena
+        role: Cash flow + escrow capital requirement check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves payments model
+
+  - id: analytics-stack
+    name: Analytics Stack
+    description: Vendor-facing analytics + operator analytics + customer-facing trust signals
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Analytics layer with per-audience views
+      - agent_id: tech-director-francisca
+        role: Data pipeline feasibility
+        parallel: true
+    gate:
+      type: auto
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the model — does governance scale? Is fulfilment SLA enforceable? Does the take-rate math close?
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Coherence + scalability + economics check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Policy prose, vendor-facing copy, no AI clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Schema integrity, pipeline feasibility, payment model correctness
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Marketplace Package Delivery
+    description: Compile the marketplace package + 90-day launch roadmap if greenfield, or 90-day optimisation roadmap if existing
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Full marketplace package + 90-day roadmap
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Ecom/Marketplace/"
+        description: Complete marketplace package — governance + catalog + onboarding + order flow + payments + analytics + 90-day roadmap

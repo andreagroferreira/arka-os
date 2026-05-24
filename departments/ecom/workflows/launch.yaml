@@ -1,0 +1,137 @@
+id: ecom-launch
+name: Product Launch (E-commerce)
+description: Product launch plan for an e-commerce SKU or collection — positioning + pricing + content + distribution + ad creative + post-launch optimisation
+department: ecom
+tier: enterprise
+command: "/ecom launch"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Launch Brief
+    description: Define product, target customer, launch date, sales target, budget, inventory commit
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Frame product, target customer, launch date, sales target, budget
+    gate:
+      type: user_approval
+      description: User confirms product brief and launch parameters
+
+  - id: positioning
+    name: Product Positioning
+    description: Position the SKU — competitive set, differentiation angle, price tier
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Positioning statement + competitive set + price tier
+      - agent_id: brand-strategist-mateus
+        role: Brand-relative positioning + onlyness frame
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves positioning
+
+  - id: pricing-strategy
+    name: Pricing Strategy
+    description: Price ladder — anchor + main + promo + bundle. Margin math per tier.
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Price ladder with margin per tier
+      - agent_id: cfo-helena
+        role: Margin floor + promo economics check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves pricing strategy
+
+  - id: content-assets
+    name: Content Assets
+    description: Product page copy + photography brief + video brief + email copy + social copy
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Content asset inventory with delivery dates
+      - agent_id: copy-director-eduardo
+        role: Product page + email + social copy
+        parallel: true
+      - agent_id: visual-designer-isabel
+        role: Photography + video brief specs
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves content assets
+
+  - id: distribution-channels
+    name: Distribution Channels
+    description: Channel mix — owned channels + marketplace + paid + organic + partnerships
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Channel mix with day-0 / week-1 / month-1 priorities
+      - agent_id: marketing-director-luna
+        role: Paid + organic channel allocation
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves channel mix
+
+  - id: ad-creative
+    name: Ad Creative Plan
+    description: Ad creative across formats — static + video + UGC + retargeting
+    agents:
+      - agent_id: paid-specialist-pedro
+        role: Ad creative plan with format × channel matrix
+      - agent_id: visual-designer-isabel
+        role: Creative brief per format
+        parallel: true
+    gate:
+      type: auto
+
+  - id: launch-sequence
+    name: Launch Sequence
+    description: Day-by-day sequence — soft launch, hard launch, post-launch optimisation triggers
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Day-by-day launch sequence with daily success criteria
+    gate:
+      type: user_approval
+      description: User approves launch sequence
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the launch — does inventory match demand projection? Are channel ramp curves realistic? Is the kill-switch criterion clear?
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Launch coherence + inventory + ramp curve check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: All copy quality + no over-promise + no AI clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Tracking + inventory + channel-tech integrity
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Launch Package Delivery
+    description: Compile the launch package — positioning + pricing + content + channels + ads + sequence + analytics + executive summary
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Full launch package + executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Ecom/Launches/"
+        description: Complete launch package — positioning + pricing + content + distribution + ad creative + launch sequence + exec summary

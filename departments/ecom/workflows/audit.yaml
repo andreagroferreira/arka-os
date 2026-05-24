@@ -1,0 +1,130 @@
+id: ecom-audit
+name: Store Audit
+description: Full e-commerce store audit — UX + SEO + performance + content + conversion — with ranked remediation plan
+department: ecom
+tier: enterprise
+command: "/ecom audit"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Audit Brief
+    description: Define store URL, vertical, audience, primary KPI, scope of audit
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Frame store, vertical, baseline KPIs (conversion rate, AOV, traffic mix)
+    gate:
+      type: user_approval
+      description: User confirms audit scope and baseline KPIs
+
+  - id: ux-audit
+    name: UX Audit (Baymard + Nielsen)
+    description: Baymard 76-criteria checklist + Nielsen 10 heuristics audit on key flows
+    agents:
+      - agent_id: ux-designer-sofia-d
+        role: UX audit with criteria-level scoring per key flow (homepage / category / PDP / cart / checkout)
+    gate:
+      type: user_approval
+      description: User approves UX audit
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Ecom/Audits/UX/"
+        description: UX audit with Baymard + Nielsen scores per flow
+
+  - id: seo-audit
+    name: SEO Audit
+    description: Technical SEO + on-page + content audit
+    agents:
+      - agent_id: seo-specialist-ana
+        role: Technical SEO (Core Web Vitals + crawl + index + schema) + on-page audit (title + meta + content + internal links)
+    gate:
+      type: user_approval
+      description: User approves SEO audit
+
+  - id: performance-audit
+    name: Performance Audit
+    description: Core Web Vitals + page weight + render path + mobile performance
+    agents:
+      - agent_id: ux-designer-sofia-d
+        role: Performance audit with LCP/INP/CLS + page weight + render-blocking analysis per key flow
+    gate:
+      type: user_approval
+      description: User approves performance audit
+
+  - id: content-audit
+    name: Content Audit
+    description: Product copy + category copy + about + policies + brand voice consistency
+    agents:
+      - agent_id: copy-director-eduardo
+        role: Content audit with brand voice consistency check + copy quality scoring
+    gate:
+      type: user_approval
+      description: User approves content audit
+
+  - id: conversion-audit
+    name: Conversion Audit
+    description: ResearchXL framework — heuristic + quantitative + qualitative + technical
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: ResearchXL audit across all 4 dimensions, identifies top 10 conversion friction points
+    gate:
+      type: user_approval
+      description: User approves conversion audit
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Ecom/Audits/Conversion/"
+        description: ResearchXL conversion audit with top 10 friction points
+
+  - id: ranked-remediation
+    name: Ranked Remediation Plan
+    description: ICE prioritisation of all findings across UX + SEO + Performance + Content + Conversion
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: ICE scoring per finding, ranked remediation plan with effort estimates
+    gate:
+      type: user_approval
+      description: User approves ranked remediation
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the audit — is every finding evidence-backed? Are remediations sized correctly?
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Audit coherence + remediation feasibility check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Audit prose, scoring rationale clarity, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Technical findings accuracy, scoring math, prioritisation rigour
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Audit Report Delivery
+    description: Compile full audit + executive summary + 30-day quick-win plan + 90-day strategic plan
+    agents:
+      - agent_id: ecom-director-ricardo
+        role: Full audit report + executive summary + 30/90-day plans
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Ecom/Audits/"
+        description: Complete store audit — UX + SEO + Performance + Content + Conversion + ranked remediation + 30-day + 90-day plans + exec summary

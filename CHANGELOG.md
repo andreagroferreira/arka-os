@@ -5,6 +5,30 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.59.0] - 2026-05-24
+
+### Added (E-commerce department — tenth pattern repeat, three workflows in one PR)
+
+- **`/ecom audit` workflow** (PR40) — 10-phase Enterprise workflow.
+  Baymard + Nielsen UX audit + technical SEO + Core Web Vitals
+  performance + brand-voice content audit + ResearchXL conversion
+  audit → ICE-prioritised remediation plan.
+- **`/ecom marketplace` workflow** (PR40) — 10-phase Enterprise
+  workflow. Governance model + catalog architecture + vendor
+  onboarding + order/fulfilment + payments/payouts + analytics
+  stack. Multi-vendor + Mirakl/Amazon/Shopify aware.
+- **`/ecom launch` workflow** (PR40) — 10-phase Enterprise workflow.
+  Positioning + pricing ladder + content assets + channel mix +
+  ad creative + day-by-day launch sequence with inventory-aware
+  demand curve.
+- **`skills/product-launch/SKILL.md` expanded** (32 → 191 lines).
+  Positioning frame (e-commerce specific with onlyness + price
+  tier), 4-tier pricing ladder with margin floor per tier,
+  complete content asset inventory, channel ramp priority matrix,
+  T-30 to T+14 day-by-day launch sequence template,
+  inventory-aware demand curve with sold-out scenario playbook,
+  explicit kill-switch criteria, 5 common failure modes.
+
 ## [2.58.0] - 2026-05-24
 
 ### Added (Org department — ninth pattern repeat)
