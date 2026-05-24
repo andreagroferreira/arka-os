@@ -1,0 +1,141 @@
+id: mkt-growth-loop
+name: Growth Loop Design
+description: Design a sustainable growth loop (viral / paid / content / product / community) that compounds over time
+department: marketing
+tier: enterprise
+command: "/mkt growth-loop"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Growth Loop Brief
+    description: Frame product, current growth, audience, retention baseline, runway
+    agents:
+      - agent_id: marketing-director-luna
+        role: Frame product, current new-user volume, current retention curve (D1/D7/D30), runway
+    gate:
+      type: user_approval
+      description: User confirms product context, current growth, retention baseline
+
+  - id: retention-baseline
+    name: Retention Baseline
+    description: Measure the current retention curve and identify the activation moment
+    agents:
+      - agent_id: marketing-director-luna
+        role: Compute D1/D7/D30/D90 retention from existing analytics, identify activation event
+      - agent_id: strategy-director-tomas
+        role: Compare retention to category norms; flag whether product-market fit is plausible
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves retention baseline and activation event
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Marketing/GrowthLoops/Baseline/"
+        description: Retention baseline with activation event and category comparison
+
+  - id: loop-selection
+    name: Loop Type Selection
+    description: Pick the primary loop type (viral / paid / content / product / community) based on product DNA and retention curve
+    agents:
+      - agent_id: marketing-director-luna
+        role: Apply loop-type fitness matrix (retention shape × CAC payback × content production capacity)
+      - agent_id: paid-specialist-pedro
+        role: Paid-loop feasibility math (CAC × LTV × payback window)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves loop type + secondary loop choice
+
+  - id: loop-design
+    name: Loop Specification
+    description: Spec the loop — Input → Action → Output → Re-input. Define every step's mechanism and metric
+    agents:
+      - agent_id: marketing-director-luna
+        role: Loop spec with named mechanism per step and target metric per step
+    gate:
+      type: user_approval
+      description: User approves the loop spec before instrumentation
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Marketing/GrowthLoops/Specs/"
+        description: Loop specification with per-step mechanisms and metrics
+
+  - id: compounding-math
+    name: Compounding Math
+    description: Compute the loop's compounding factor — viral coefficient K, content velocity, CAC payback — and the conditions for self-sustaining
+    agents:
+      - agent_id: marketing-director-luna
+        role: Compute K-factor / content compounding rate / payback window; identify the breakeven threshold
+      - agent_id: cfo-helena
+        role: Validate unit economics — LTV/CAC, contribution margin, runway impact
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the loop economics
+
+  - id: instrumentation
+    name: Instrumentation
+    description: Define the tracking spec — every loop step needs an event + a dashboard widget
+    agents:
+      - agent_id: marketing-director-luna
+        role: Event schema per step, dashboard layout, owner per metric
+      - agent_id: tech-director-francisca
+        role: Tracking implementation feasibility check
+        parallel: true
+    gate:
+      type: auto
+
+  - id: experiment-plan
+    name: 30-Day Experiment Plan
+    description: First 30 days — what to test, what hypothesis per test, how to declare a win
+    agents:
+      - agent_id: marketing-director-luna
+        role: 3-5 prioritized experiments with hypothesis, MDE, success criteria
+    gate:
+      type: user_approval
+      description: User approves the 30-day experiment plan
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the loop — is every step instrumented? Are dependencies named? What kills the loop?
+    agents:
+      - agent_id: marketing-director-luna
+        role: Loop coherence + failure-mode enumeration
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Loop documentation clarity, no clichés, mechanism specificity
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Instrumentation correctness, tracking event integrity, dashboard feasibility
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Growth Loop Package Delivery
+    description: Compile the loop package — spec + economics + instrumentation + experiment plan
+    agents:
+      - agent_id: marketing-director-luna
+        role: Full growth loop package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Marketing/GrowthLoops/"
+        description: Complete growth loop package — retention baseline + loop spec + compounding math + instrumentation spec + 30-day experiment plan + exec summary
