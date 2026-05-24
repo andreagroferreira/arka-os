@@ -236,6 +236,72 @@ class TestLeakCheckSeverity:
         assert result.passed is True
 
 
+# ─── PR25 v2.46.1 — _run None path coverage + credential redaction ──────
+
+
+class TestRunNoneBranches:
+    """Cover the `_run() returns None` path that the FileNotFoundError /
+    TimeoutExpired except branches produce. Each check_* must degrade
+    gracefully when the subprocess primitive can't even start."""
+
+    def _patch_run_to_none(self, monkeypatch):
+        def returner(*args, **kwargs):
+            raise FileNotFoundError("npm: command not found")
+        monkeypatch.setattr(subprocess, "run", returner)
+
+    def test_npm_auth_handles_missing_npm(self, monkeypatch):
+        self._patch_run_to_none(monkeypatch)
+        result = check_npm_auth(expected_user=None)
+        assert result.passed is False
+        assert "npm" in result.remediation.lower()
+
+    def test_npm_publish_capability_handles_missing_npm(self, monkeypatch):
+        self._patch_run_to_none(monkeypatch)
+        result = check_npm_publish_capability()
+        assert result.passed is False
+
+    def test_gh_auth_handles_missing_gh(self, monkeypatch):
+        self._patch_run_to_none(monkeypatch)
+        result = check_gh_auth()
+        assert result.passed is False
+        assert "gh auth login" in (result.remediation or "")
+
+    def test_git_remote_handles_missing_git(self, monkeypatch):
+        self._patch_run_to_none(monkeypatch)
+        result = check_git_remote()
+        assert result.passed is False
+
+    def test_git_clean_handles_missing_git_as_warning(self, monkeypatch):
+        self._patch_run_to_none(monkeypatch)
+        result = check_git_clean()
+        assert result.severity == "warning"
+
+
+class TestRedactGitCredentials:
+    """check_git_remote must strip `user:token@` segments from PAT-in-URL
+    remotes before surfacing them in CLI output."""
+
+    def test_https_pat_url_is_redacted(self, monkeypatch):
+        _patch_subprocess(
+            monkeypatch,
+            {"git": ("https://andre:ghp_secrettokenvalue@github.com/foo/bar.git\n", "", 0)},
+        )
+        result = check_git_remote()
+        assert "ghp_secrettokenvalue" not in result.reason
+        assert "andre" not in result.reason
+        assert "redacted-credentials" in result.reason
+
+    def test_ssh_url_is_unchanged(self, monkeypatch):
+        _patch_subprocess(
+            monkeypatch,
+            {"git": ("git@github.com:foo/bar.git\n", "", 0)},
+        )
+        result = check_git_remote()
+        # SSH URLs use user@host (no colon-password segment); pass through
+        assert "redacted" not in result.reason
+        assert "git@github.com" in result.reason
+
+
 class TestAggregation:
     def test_run_preflight_aggregates_results(self, monkeypatch, tmp_path: Path):
         # All systems green

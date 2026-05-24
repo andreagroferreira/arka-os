@@ -140,17 +140,25 @@ try:
     except Exception:
         safe_sid = None
     if safe_sid:
-        cite_dir = Path("/tmp/arkaos-cite")
-        cite_dir.mkdir(parents=True, exist_ok=True)
-        cite_path = cite_dir / f"{safe_sid}.json"
-        cite_payload = {
-            "passed": cr.passed,
-            "reason": cr.reason,
-            "suggestion": cr.suggestion,
-            "citation_count": cr.citation_count,
-            "topic_score": cr.topic_score,
-        }
-        cite_path.write_text(json.dumps(cite_payload), encoding="utf-8")
+        # PR25 v2.46.1 — restrict cite-file permissions on shared
+        # multi-user systems. umask(0o077) makes the directory and the
+        # JSON file owner-only (mode 0600 / 0700). No-op on single-user
+        # dev boxes; defence in depth otherwise.
+        prev_umask = os.umask(0o077)
+        try:
+            cite_dir = Path("/tmp/arkaos-cite")
+            cite_dir.mkdir(parents=True, exist_ok=True)
+            cite_path = cite_dir / f"{safe_sid}.json"
+            cite_payload = {
+                "passed": cr.passed,
+                "reason": cr.reason,
+                "suggestion": cr.suggestion,
+                "citation_count": cr.citation_count,
+                "topic_score": cr.topic_score,
+            }
+            cite_path.write_text(json.dumps(cite_payload), encoding="utf-8")
+        finally:
+            os.umask(prev_umask)
 except Exception:
     pass
 
