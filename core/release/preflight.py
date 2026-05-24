@@ -61,8 +61,67 @@ def run_preflight(
         check_gh_auth(),
         check_git_remote(),
         check_git_clean(),
+        check_no_client_name_leaks(repo_root=root),
     ]
     return _aggregate(results)
+
+
+def check_no_client_name_leaks(
+    *, repo_root: Path | None = None,
+) -> CheckResult:
+    """Scan tracked source files for client identifiers (PR22 v2.44.0).
+
+    No-op when the operator's ~/.arkaos/redaction-clients.json is absent
+    or empty — no false positives in CI clones lacking the local config.
+    """
+    from core.governance.leak_scanner import scan_paths
+
+    root = repo_root or _DEFAULT_REPO_ROOT
+    paths = _collect_tracked_paths(root)
+    if paths is None:
+        return CheckResult(
+            name="no-client-name-leaks", passed=True,
+            reason="git ls-files unavailable — skipped",
+        )
+    report = scan_paths(paths)
+    return _format_leak_check_result(report)
+
+
+def _collect_tracked_paths(root: Path) -> list[Path] | None:
+    tracked = _run(["git", "-C", str(root), "ls-files", "--cached"])
+    if tracked is None or tracked.returncode != 0:
+        return None
+    return [root / line for line in tracked.stdout.splitlines() if line.strip()]
+
+
+def _format_leak_check_result(report) -> CheckResult:
+    if report.pattern_count == 0:
+        return CheckResult(
+            name="no-client-name-leaks", passed=True,
+            reason="no redaction config — scan skipped (no-op)",
+        )
+    if report.clean:
+        return CheckResult(
+            name="no-client-name-leaks", passed=True,
+            reason=f"{report.files_scanned} file(s) scanned, no leaks",
+        )
+    first = report.hits[0]
+    # PR22 v2.44.0 introduces this check at WARNING severity to ship the
+    # scanner without blocking on pre-existing leaks in test fixtures
+    # (test_dreaming.py and siblings) + historical CHANGELOG/ADR
+    # references. PR23 cleans those up and flips severity to "blocking".
+    return CheckResult(
+        name="no-client-name-leaks", passed=False, severity="warning",
+        reason=(
+            f"{len(report.hits)} leak(s) — first: "
+            f"{first.path.name}:{first.line_number} matched `{first.matched_token}`"
+        ),
+        remediation=(
+            "move the literal to ~/.arkaos/ or sanitize before commit; "
+            "PR22 scope intentionally warning-only — PR23 will scrub "
+            "historical leaks and flip this check to blocking"
+        ),
+    )
 
 
 def _load_repo_versions(
