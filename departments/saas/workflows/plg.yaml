@@ -1,0 +1,139 @@
+id: saas-plg
+name: Product-Led Growth Setup
+description: Product-Led Growth setup — freemium or trial model selection, activation event design, monetisation trigger, expansion mechanics
+department: saas
+tier: enterprise
+command: "/saas plg"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: PLG Brief
+    description: Define product, current ICP, current activation pattern, current monetisation
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Frame product fit-for-PLG, current activation, current monetisation, runway
+    gate:
+      type: user_approval
+      description: User confirms PLG context and fit assessment
+
+  - id: model-selection
+    name: Model Selection (Freemium vs Trial)
+    description: Pick freemium vs free-trial vs reverse-trial based on product DNA + ICP + CAC math
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Model selection with explicit trade-off table
+      - agent_id: cfo-helena
+        role: Unit economics check per model (LTV/CAC, payback)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves PLG model
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/PLG/Model/"
+        description: Model selection rationale + economics
+
+  - id: activation-event
+    name: Activation Event Design
+    description: Define the activation event — the moment user gets first measurable value (Aha moment)
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Activation event definition with measurable success criteria
+      - agent_id: product-director-carolina
+        role: User journey to activation, time-to-first-value target
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves activation event definition
+
+  - id: onboarding-design
+    name: Onboarding Design
+    description: Onboarding flow optimised for activation — checklist, empty states, value signposts
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Onboarding flow with friction-vs-completion trade-off explicit
+      - agent_id: ux-designer-sofia-d
+        role: UX patterns with completion target per step
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves onboarding flow
+
+  - id: monetisation-trigger
+    name: Monetisation Trigger
+    description: When and how the user hits the paywall — usage limits, feature gates, team upgrades
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Monetisation trigger design — value-based, not arbitrary
+      - agent_id: cfo-helena
+        role: Trigger-to-conversion math
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves monetisation trigger
+
+  - id: expansion-mechanics
+    name: Expansion Mechanics
+    description: How accounts expand within the product — multi-seat, usage growth, feature upsell, NRR > 110% target
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Expansion levers with NRR > 110% math
+    gate:
+      type: user_approval
+      description: User approves expansion mechanics
+
+  - id: instrumentation
+    name: Instrumentation
+    description: Tracking events for activation, monetisation triggers, expansion — full funnel telemetry
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Event schema with per-funnel-step tracking
+      - agent_id: tech-director-francisca
+        role: Implementation feasibility
+        parallel: true
+    gate:
+      type: auto
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test — does activation event predict retention? Does monetisation trigger feel earned? Does expansion math close?
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: PLG coherence check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Onboarding copy, paywall framing, no aggressive monetisation prose
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Instrumentation correctness, event schema integrity
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: PLG Package Delivery
+    description: Compile the PLG package — model + activation + onboarding + monetisation + expansion + instrumentation
+    agents:
+      - agent_id: saas-strategist-tiago
+        role: Full PLG package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/SaaS/PLG/"
+        description: Complete PLG package — model + activation + onboarding + monetisation + expansion + instrumentation + exec summary
