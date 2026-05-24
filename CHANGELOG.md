@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.49.0] - 2026-05-24
+
+### Added
+
+- **Meta-tag soft block** (PR30) — `core/governance/meta_tag_check.py`
+  is a response-side classifier mirroring `kb_cite_check` (PR18). Stop
+  hook writes per-session result to `/tmp/arkaos-meta/<session>.json`
+  (owner-only via umask 0o077). UserPromptSubmit hook surfaces a
+  `[arka:suggest]` nudge on the next turn when the previous
+  substantive response was missing the `[arka:meta] kb=N research=X
+  persona=Y gap=Z critic=W` one-liner.
+- **11 unit tests** covering present/bypass/missing/result-shape paths.
+- **Stop-hook telemetry** gains `meta_tag_check_passed` and
+  `meta_tag_check_reason` fields alongside the existing kb_cite,
+  sycophancy, and closing-marker signals.
+
+### Why this lands now
+
+PR29's `/arka compliance` summary surfaced a 0.00% meta-tag rate
+on 272 real stop-events. The contract from PR12 (v2.34.0) was being
+recorded in telemetry but never enforced or nudged. PR30 closes that
+gap with the same soft-block pattern that worked for KB-first.
+
 ## [2.48.0] - 2026-05-24
 
 ### Added
