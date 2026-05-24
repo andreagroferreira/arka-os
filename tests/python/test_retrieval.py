@@ -29,8 +29,8 @@ def vault(tmp_path):
         "# ArkaOS\nThe operating system for AI agent teams. PathResolver is documented here.",
         encoding="utf-8",
     )
-    (root / "Projects" / "Fovory.md").write_text(
-        "# Fovory\nLaravel 13 + Inertia v3 supplier sync project.",
+    (root / "Projects" / "Clientalpha.md").write_text(
+        "# Clientalpha\nLaravel 13 + Inertia v3 supplier sync project.",
         encoding="utf-8",
     )
     (root / "core_runtime_resolver.md").write_text(
@@ -172,12 +172,12 @@ def test_read_context_returns_empty_on_corrupt_json(cache_dir):
 def test_format_advisory_renders_compact_block():
     hits = [
         ContextHit(entity="PathResolver", vault_path="Projects/A.md", snippet="PathResolver wraps profile.json"),
-        ContextHit(entity="Fovory", vault_path="Projects/B.md", snippet="Laravel 13 supplier sync"),
+        ContextHit(entity="Clientalpha", vault_path="Projects/B.md", snippet="Laravel 13 supplier sync"),
     ]
     out = format_advisory(hits)
     assert out.startswith("[arka:context]")
     assert "PathResolver" in out
-    assert "Fovory" in out
+    assert "Clientalpha" in out
 
 
 def test_format_advisory_empty_when_no_hits():

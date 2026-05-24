@@ -92,7 +92,7 @@ class TestClassify:
         assert classify(ADR_SAMPLE) == NoteType.ARCHITECTURE_DECISION
 
     def test_marketing_test(self):
-        got = classify(MARKETING_SAMPLE, {"client": "Rockport"})
+        got = classify(MARKETING_SAMPLE, {"client": "Acmecorp"})
         assert got == NoteType.MARKETING_TEST
 
     def test_research_finding(self):
@@ -145,9 +145,9 @@ class TestPlan:
     def test_marketing_test_path(self):
         p = plan(
             MARKETING_SAMPLE,
-            {"client": "Rockport", "campaign": "Winter", "title": "Urgency Test"},
+            {"client": "Acmecorp", "campaign": "Winter", "title": "Urgency Test"},
         )
-        assert "Projects/Rockport/Campaigns/Winter/Tests/Urgency Test.md" == p.vault_path
+        assert "Projects/Acmecorp/Campaigns/Winter/Tests/Urgency Test.md" == p.vault_path
 
     def test_session_fallback_when_vague(self):
         p = plan(VAGUE_SAMPLE)
@@ -156,7 +156,7 @@ class TestPlan:
 
     def test_missing_required_vars_raises(self):
         with pytest.raises(ValueError, match="missing required vars"):
-            plan(MARKETING_SAMPLE, {"client": "Rockport"})
+            plan(MARKETING_SAMPLE, {"client": "Acmecorp"})
 
     def test_tags_include_defaults_and_date(self):
         p = plan(CODE_SAMPLE, {"title": "X", "dept": "dev"})

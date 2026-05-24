@@ -242,8 +242,8 @@ class TestDiscoverAllProjects:
         ecosystems_file = tmp_path / "ecosystems.json"
         ecosystems_file.write_text(json.dumps({
             "ecosystems": {
-                "edp": {
-                    "name": "EDP",
+                "globexsa": {
+                    "name": "GLOBEXSA",
                     "project_paths": {"eco-app": str(proj)},
                 }
             }
@@ -255,7 +255,7 @@ class TestDiscoverAllProjects:
         projects = discover_all_projects(desc_dir, [tmp_path], ecosystems_file)
         found = next((p for p in projects if p.name == "eco-app"), None)
         assert found is not None
-        assert found.ecosystem == "edp"
+        assert found.ecosystem == "globexsa"
 
     def test_results_are_sorted_by_name(self, tmp_path: Path) -> None:
         for name in ["zebra", "alpha", "mango"]:

@@ -19,6 +19,7 @@ import pytest
 from core.release.preflight import (
     CheckResult,
     PreflightReport,
+    _format_leak_check_result,
     check_git_clean,
     check_git_remote,
     check_gh_auth,
@@ -187,6 +188,52 @@ class TestGitChecks:
 
 
 # ─── Aggregation ────────────────────────────────────────────────────────
+
+
+# ─── PR23 v2.45.0 contract: leak check severity is BLOCKING ─────────────
+
+
+class TestLeakCheckSeverity:
+    """PR23 locks the post-cleanup contract: when scan returns hits, the
+    check MUST be 'blocking' (never downgraded to 'warning' again).
+
+    PR22 v2.44.0 introduced this check at 'warning' to ship the scanner
+    without blocking on 39 pre-existing leaks. PR23 scrubbed those leaks
+    and flipped the severity. This test asserts the flip stays put.
+    """
+
+    def test_severity_is_blocking_when_hits_present(self):
+        # Build a synthetic ScanReport that has hits — same shape the
+        # real scanner returns, sufficient for the formatter contract.
+        from types import SimpleNamespace
+        from pathlib import Path
+        fake_report = SimpleNamespace(
+            pattern_count=3,
+            files_scanned=10,
+            clean=False,
+            hits=[SimpleNamespace(
+                path=Path("fake.py"),
+                line_number=42,
+                matched_token="acmecorp",
+            )],
+        )
+        result = _format_leak_check_result(fake_report)
+        assert result.severity == "blocking"
+        assert result.passed is False
+        assert "acmecorp" in result.reason
+
+    def test_severity_remains_blocking_for_clean_pass(self):
+        # Clean reports still pass — but the contract is that the FAIL
+        # path must be blocking, not warning.
+        from types import SimpleNamespace
+        fake_report = SimpleNamespace(
+            pattern_count=3,
+            files_scanned=10,
+            clean=True,
+            hits=[],
+        )
+        result = _format_leak_check_result(fake_report)
+        assert result.passed is True
 
 
 class TestAggregation:

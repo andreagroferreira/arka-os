@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   20 SKILL.md files updated across departments and arka/ meta-skills.
   Forbidden patterns and advisor tables extracted to reference files.
   12 project-specific skills removed from shared repo (client_media, client_fashion,
-  edp, client_commerce, lora-tester, client_advisory, client_retail, client_publisher, wizardingcode,
+  client_energy, client_commerce, lora-tester, client_advisory, client_retail, client_publisher, wizardingcode,
   client_video, scaffold, saas-scaffold) per client instruction.
 
 ## [2.17.3] - 2026-04-16

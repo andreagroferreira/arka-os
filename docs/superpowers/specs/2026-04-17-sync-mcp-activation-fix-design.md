@@ -108,7 +108,7 @@ pytest tests/python/sync/test_engine_integration.py -v
 
 # Manual validation (Fix #6)
 python -m core.sync.engine --home ~/.arkaos --skills ~/.claude/skills
-# Expect: ~200+ active MCPs decisions, commands deployed to Edp/example_hub/crm-client_retail
+# Expect: ~200+ active MCPs decisions, commands deployed to example_hub/crm-client_retail
 ```
 
 ## Quality Gate

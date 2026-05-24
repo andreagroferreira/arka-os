@@ -24,9 +24,9 @@ def ecosystems_file(tmp_path: Path) -> Path:
                     "shopify": ["Shopify GraphQL Admin API"],
                 },
             },
-            "edp": {
-                "name": "EDP",
-                "description": "Enterprise integration architecture platform for EDP energy utility.",
+            "globexsa": {
+                "name": "GLOBEXSA",
+                "description": "Enterprise integration architecture platform for GLOBEXSA energy utility.",
                 "type": "client",
                 "tech_stack": {
                     "frontend": ["Vue 3", "Inertia.js"],
@@ -80,7 +80,7 @@ class TestInferDomains:
         assert "ecommerce" in profile.domains
 
     def test_enterprise_domain_detected(self, profiler: ResearchProfiler) -> None:
-        """EDP description triggers enterprise domain."""
+        """GLOBEXSA description triggers enterprise domain."""
         profile = profiler.build_profile()
         assert "enterprise" in profile.domains
 

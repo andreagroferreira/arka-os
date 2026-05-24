@@ -346,7 +346,7 @@ Each skill is an independent commit, so rollback is granular.
 ## Out of Scope (deferred)
 
 - Remaining 246 skills not in top 10 — can be done later if needed; 80% of bloat is in these 10
-- Ecosystem orchestrators we didn't touch (arka-wizardingcode, arka-client_retail, arka-client_video, arka-client_fashion, arka-client_media, arka-edp, arka-lora-tester, arka-client_advisory) — add to follow-up if wins warrant
+- Ecosystem orchestrators we didn't touch (arka-wizardingcode, arka-client_retail, arka-client_video, arka-client_fashion, arka-client_media, arka-client_energy, arka-lora-tester, arka-client_advisory) — add to follow-up if wins warrant
 
 ## Risks
 
