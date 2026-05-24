@@ -162,6 +162,38 @@ try:
 except Exception:
     pass
 
+# PR30 v2.49.0 — Meta-tag soft block. Mirrors the KB cite-check
+# pipeline. Records whether the closing message carried the required
+# [arka:meta] one-liner; persists result to /tmp/arkaos-meta/<session>.json
+# so the next UserPromptSubmit can surface a nudge if missing.
+meta_passed = True
+meta_reason = "trivial"
+meta_suggestion: str | None = None
+try:
+    from core.governance.meta_tag_check import check_meta_tag
+    mr = check_meta_tag(last)
+    meta_passed = mr.passed
+    meta_reason = mr.reason
+    meta_suggestion = mr.suggestion
+    if safe_sid:
+        prev_umask = os.umask(0o077)
+        try:
+            meta_dir = Path("/tmp/arkaos-meta")
+            meta_dir.mkdir(parents=True, exist_ok=True)
+            meta_path = meta_dir / f"{safe_sid}.json"
+            meta_path.write_text(
+                json.dumps({
+                    "passed": mr.passed,
+                    "reason": mr.reason,
+                    "suggestion": mr.suggestion,
+                }),
+                encoding="utf-8",
+            )
+        finally:
+            os.umask(prev_umask)
+except Exception:
+    pass
+
 entry = {
     "ts": datetime.now(timezone.utc).isoformat(),
     "session_id": session_id,
@@ -178,6 +210,8 @@ entry = {
     "kb_cite_reason": cite_reason,
     "kb_cite_count": cite_count,
     "kb_cite_topic_score": cite_topic_score,
+    "meta_tag_check_passed": meta_passed,
+    "meta_tag_check_reason": meta_reason,
     "mode": "warn",
 }
 

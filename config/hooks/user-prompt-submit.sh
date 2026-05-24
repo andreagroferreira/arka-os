@@ -393,11 +393,31 @@ if [ -n "$SESSION_ID" ]; then
   fi
 fi
 
+# ─── Meta-tag nudge (PR30 v2.49.0) ───────────────────────────────────────
+# Mirror of the KB citation nudge but for the [arka:meta] one-liner
+# contract. One-shot; deleted after read.
+_META_TAG_NUDGE=""
+if [ -n "$SESSION_ID" ]; then
+  _META_FILE="/tmp/arkaos-meta/${SESSION_ID}.json"
+  if [ -f "$_META_FILE" ]; then
+    if command -v jq &>/dev/null; then
+      _META_PASSED=$(jq -r '.passed' "$_META_FILE" 2>/dev/null)
+      _META_SUGGEST=$(jq -r '.suggestion // ""' "$_META_FILE" 2>/dev/null)
+      if [ "$_META_PASSED" = "false" ] && [ -n "$_META_SUGGEST" ] && [ "$_META_SUGGEST" != "null" ]; then
+        _META_TAG_NUDGE="[arka:suggest] ${_META_SUGGEST}"
+      fi
+    fi
+    rm -f "$_META_FILE" 2>/dev/null
+  fi
+fi
+
 # ─── Output ──────────────────────────────────────────────────────────────
 _OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}${_ROUTE_REMINDER}${_WORKFLOW_DIRECTIVE} $python_result"
 [ -n "$_HYGIENE" ] && _OUT_CONTEXT="$_OUT_CONTEXT $_HYGIENE"
 [ -n "$_KB_CITE_NUDGE" ] && _OUT_CONTEXT="$_OUT_CONTEXT
 $_KB_CITE_NUDGE"
+[ -n "$_META_TAG_NUDGE" ] && _OUT_CONTEXT="$_OUT_CONTEXT
+$_META_TAG_NUDGE"
 [ -n "$_ARKA_CONTEXT_HITS" ] && _OUT_CONTEXT="$_OUT_CONTEXT
 $_ARKA_CONTEXT_HITS"
 # Escape for JSON
