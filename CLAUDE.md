@@ -346,14 +346,15 @@ arkaos/
 
 | Step | Command | Notes |
 |------|---------|-------|
+| **0. Preflight** | `python -m core.release.preflight_cli --expected-npm-user wizardingcode` | **NON-NEGOTIABLE step 0** (PR21 v2.43.0). Exit 1 = STOP, fix every remediation, re-run. Catches: version-misalignment, npm/gh auth expired, missing remote. Prevents the v2.40.0 friction (60-min release because expired token only surfaced after merge). |
 | 1. Bump version | Update `VERSION`, `package.json`, `pyproject.toml` | All three must match |
 | 2. Commit | `git commit -m "chore: bump to vX.Y.Z"` | |
 | 3. Push | `git push origin master` | |
 | 4. GitHub release | `gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."` | |
-| 5. npm publish | `npm publish --access public` | Uses ~/.npmrc token |
+| 5. npm publish | `npm publish --access public` | Granular token in ~/.npmrc bypasses 2FA |
 | 6. Verify | `npm view arkaos version` | Must show new version |
 
-**npm auth:** Token in `~/.npmrc` as `//registry.npmjs.org/:_authToken=<token>`. If 403, use temp config with `--userconfig`. Account: `wizardingcode`.
+**npm auth:** Granular access token in `~/.npmrc` as `//registry.npmjs.org/:_authToken=<token>`. Token MUST have "Read and write" permission on the `arkaos` package AND "Bypass 2FA" enabled (classic tokens trigger interactive OTP that the headless pipeline cannot satisfy). Account: `wizardingcode`. Generate at https://www.npmjs.com/settings/wizardingcode/tokens/granular. If preflight reports `npm-publish-capability` FAIL, rotate the token.
 
 ## How To Work
 
