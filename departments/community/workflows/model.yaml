@@ -1,0 +1,147 @@
+id: community-model
+name: Community Business Model
+description: Community business model design — purpose + ideal member + value prop + SPACES role + platform fit + monetisation + growth loop
+department: community
+tier: enterprise
+command: "/community model"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Community Brief
+    description: Define niche, founder context, current audience size, success metric, runway
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Frame niche, founder context, current audience, runway, success metric
+    gate:
+      type: user_approval
+      description: User confirms niche and context
+
+  - id: purpose-definition
+    name: Purpose & Identity
+    description: Define the community's purpose using the Onlyness frame — only community where X for Y who want Z
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Onlyness frame + community identity statement
+      - agent_id: brand-strategist-mateus
+        role: Differentiation from adjacent communities
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves purpose and identity
+
+  - id: ideal-member-profile
+    name: Ideal Member Profile
+    description: Define the IMP (Ideal Member Profile) with firmographics + practitioner level + transformation context
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: IMP definition with belonging triggers + dropout triggers
+    gate:
+      type: user_approval
+      description: User approves IMP
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Communities/IMP/"
+        description: Ideal Member Profile with belonging + dropout triggers
+
+  - id: spaces-classification
+    name: SPACES Classification
+    description: Classify the community across the SPACES framework — Support / Product / Action / Content / Engagement / Success
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: SPACES classification with primary + secondary purpose
+    gate:
+      type: user_approval
+      description: User approves SPACES role
+
+  - id: value-prop
+    name: Value Proposition (Member-Side + Operator-Side)
+    description: Two value props — what the member gets, what the operator gets, why both compound
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Two-sided value prop with compounding logic
+      - agent_id: copy-director-eduardo
+        role: Value prop copy for both audiences
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves value props
+
+  - id: platform-fit
+    name: Platform Fit
+    description: Pick platform based on IMP × SPACES × moderation needs — Discord / Slack / Circle / Mighty / native / open-source
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Platform selection matrix with fit per dimension
+    gate:
+      type: user_approval
+      description: User approves platform choice
+
+  - id: monetisation
+    name: Monetisation Model
+    description: Free / freemium / paid / cohort / sponsorship — with unit economics check
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Monetisation model with conversion + LTV math
+      - agent_id: cfo-helena
+        role: Unit economics validation
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves monetisation model
+
+  - id: growth-loop
+    name: Community Growth Loop
+    description: Define the loop — member contributes → status / reach → outsiders notice → join → contribute. Plus K-factor / NRG target.
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Growth loop spec with mechanism + metric per step
+      - agent_id: marketing-director-luna
+        role: Loop compounding factor + coordination with other depts (content, paid)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves growth loop
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test — does IMP × SPACES × platform align? Does monetisation match member value? Is the loop compounding-positive?
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Coherence check across all blocks
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Value prop prose, member-side / operator-side language, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Platform technical feasibility, monetisation tech stack, instrumentation
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Community Model Package Delivery
+    description: Compile the community model package — purpose + IMP + SPACES + value props + platform + monetisation + growth loop
+    agents:
+      - agent_id: community-strategist-beatriz
+        role: Full community model package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Communities/Models/"
+        description: Complete community model — purpose + IMP + SPACES + two-sided value prop + platform + monetisation + growth loop + exec summary
