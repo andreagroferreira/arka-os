@@ -26,8 +26,9 @@ class TestConstitutionRules:
 
     def test_has_16_non_negotiable_rules(self, constitution):
         rules = constitution.get_non_negotiable_rules()
-        # PR10 v2.32.0 added 7 NON-NEGOTIABLE rules: 16 → 23
-        assert len(rules) == 23
+        # PR10 v2.32.0 added 7 NON-NEGOTIABLE rules: 16 → 23.
+        # PR44 v2.63.0 added mandatory-skill-evaluation: 23 → 24.
+        assert len(rules) == 24
 
     def test_non_negotiable_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_non_negotiable_rules()]
@@ -37,6 +38,7 @@ class TestConstitutionRules:
             "spec-driven", "human-writing", "squad-routing",
             "full-visibility", "sequential-validation", "mandatory-qa",
             "arka-supremacy", "context-verification", "forge-governance",
+            "mandatory-skill-evaluation",
             "mandatory-flow",
             # PR10 v2.32.0 Conclave Phase 5 additions
             "quality-over-speed", "always-research",
@@ -69,8 +71,8 @@ class TestConstitutionRules:
 
     def test_get_all_rule_ids(self, constitution):
         all_ids = constitution.get_rule_ids()
-        # PR10 v2.32.0 added 7 NON-NEGOTIABLE: 31 → 38
-        assert len(all_ids) == 38  # 23 + 10 + 5
+        # PR10 v2.32.0 added 7 NON-NEGOTIABLE: 31 → 38. PR44 mandatory-skill-evaluation: 38 → 39.
+        assert len(all_ids) == 39  # 23 + 10 + 5
 
 
 class TestConstitutionQualityGate:

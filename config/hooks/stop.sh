@@ -162,6 +162,17 @@ try:
 except Exception:
     pass
 
+# PR44 v2.63.0 — Mandatory post-task skill evaluation
+# (NON-NEGOTIABLE constitution rule mandatory-skill-evaluation).
+# Classifier decides whether closing message represents a repeatable
+# capability worth capturing as a permanent skill. Proposals written
+# to ~/.arkaos/skill-proposals/<date>-<slug>.md. Never raises.
+try:
+    from core.governance.skill_proposer import evaluate as _eval_skill
+    _eval_skill(last)
+except Exception:
+    pass
+
 # PR30 v2.49.0 — Meta-tag soft block. Mirrors the KB cite-check
 # pipeline. Records whether the closing message carried the required
 # [arka:meta] one-liner; persists result to /tmp/arkaos-meta/<session>.json
