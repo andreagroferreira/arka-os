@@ -1,0 +1,136 @@
+id: content-system
+name: Content Operating System
+description: Build a complete Content OS — strategy + production system + distribution + repurposing + analytics — that compounds output over time
+department: content
+tier: enterprise
+command: "/content system"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Content OS Brief
+    description: Define audience, content goals, current capacity, platforms, runway, success metric
+    agents:
+      - agent_id: content-director-rafael
+        role: Frame audience, goals, current production cadence, target platforms, success metric
+    gate:
+      type: user_approval
+      description: User confirms audience, goals, platforms, success metric
+
+  - id: pillar-design
+    name: Content Pillar Design
+    description: Define 3-5 content pillars that align audience interest × business value × differentiation
+    agents:
+      - agent_id: content-director-rafael
+        role: 3-5 pillar topics with audience-interest score + business-value score per pillar
+      - agent_id: marketing-director-luna
+        role: Search demand + competitive density per pillar
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the pillar set
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/OS/Pillars/"
+        description: Content pillar definition with audience/business/differentiation scoring
+
+  - id: format-stack
+    name: Format Stack
+    description: Define the format stack per pillar (long-form anchor + short-form derivatives + repurposing chain)
+    agents:
+      - agent_id: content-director-rafael
+        role: Format stack design (anchor format + 4-6 derivative formats per anchor)
+      - agent_id: short-form-specialist
+        role: Short-form derivative specifications (Reels / Shorts / Tweets / Carousels)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the format stack
+
+  - id: production-cadence
+    name: Production Cadence
+    description: Set realistic cadence — anchor pieces per month, derivatives per anchor, total weekly output
+    agents:
+      - agent_id: content-director-rafael
+        role: Cadence math — anchor cycle time, derivative multiplier, weekly total, sustainability check
+    gate:
+      type: user_approval
+      description: User approves the cadence
+
+  - id: distribution-channels
+    name: Distribution Channels
+    description: Map content type × platform — where each anchor and each derivative lives, with platform-native adaptations
+    agents:
+      - agent_id: content-director-rafael
+        role: Channel map with platform-native adaptations per format
+      - agent_id: marketing-director-luna
+        role: Distribution amplification — paid, partnerships, syndication options
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves distribution map
+
+  - id: analytics-stack
+    name: Analytics Stack
+    description: Define the metrics that matter — per-pillar performance, per-format performance, per-channel performance, North Star metric
+    agents:
+      - agent_id: content-director-rafael
+        role: Analytics dashboard spec with per-level metrics (pillar / format / channel)
+      - agent_id: tech-director-francisca
+        role: Tracking implementation feasibility
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves analytics stack
+
+  - id: ops-systems
+    name: Ops & Systems
+    description: Templates, briefs, asset library, review workflow, publishing workflow, archive
+    agents:
+      - agent_id: content-director-rafael
+        role: Operational templates and workflow specs (brief, review, publish, archive)
+    gate:
+      type: auto
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the system — is cadence sustainable? Are pillars differentiated? Does analytics tie to North Star?
+    agents:
+      - agent_id: content-director-rafael
+        role: Coherence check across pillars / format stack / cadence / analytics / North Star
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Pillar prose, format brief quality, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Cadence feasibility, tracking integrity, workflow operability
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Content OS Package Delivery
+    description: Compile the full Content OS — pillars + format stack + cadence + distribution + analytics + ops templates
+    agents:
+      - agent_id: content-director-rafael
+        role: Full Content OS package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/OS/"
+        description: Complete Content OS — pillars + format stack + cadence + distribution + analytics + ops templates + exec summary
