@@ -1,0 +1,134 @@
+id: landing-webinar
+name: Webinar Funnel
+description: Webinar funnel — registration page, reminder sequence, live pitch script, replay sequence, indoctrination + cart sequences
+department: landing
+tier: enterprise
+command: "/landing webinar"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Webinar Brief
+    description: Define topic, target avatar, live vs evergreen, sale price, dates
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Frame topic, audience, format (live / auto / hybrid), sale price, broadcast dates
+    gate:
+      type: user_approval
+      description: User confirms topic, format, sale price, and dates
+
+  - id: hook-design
+    name: Hook & Promise
+    description: Design the webinar hook (one-time deal, secret framework, mistake list) and the core promise
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Hook variants (3-5), core promise statement, false-belief frames (3)
+    gate:
+      type: user_approval
+      description: User approves hook and core promise
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Webinars/Hooks/"
+        description: Hook variants + core promise + false-belief frames
+
+  - id: registration-page
+    name: Registration Page
+    description: Registration page design — hook, promise, agenda, host bio, social proof, CTA
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Page wireframe with conversion target
+      - agent_id: sales-copywriter-teresa
+        role: Headline + sub-headline + agenda copy + host bio + CTA copy
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the registration page before email sequence build
+
+  - id: reminder-sequence
+    name: Reminder Sequence
+    description: Email sequence before the webinar — confirmation, value-prime, day-before, hour-before, last-call
+    agents:
+      - agent_id: sales-copywriter-teresa
+        role: 5-email reminder sequence with show-up rate target
+    gate:
+      type: auto
+
+  - id: live-script
+    name: Live Pitch Script
+    description: Webinar script — open, content (3-5 modules), pitch transition, offer, FAQ, close
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Script structure with timing, false-belief teardown, offer stack, urgency, FAQ
+      - agent_id: sales-copywriter-teresa
+        role: Script copy with stories, transitions, CTAs
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves script structure before replay sequence
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Webinars/Scripts/"
+        description: Live pitch script with timing markers
+
+  - id: replay-sequence
+    name: Replay & Cart Sequence
+    description: Post-webinar email sequence — replay availability, encore, cart-open, cart-close, last-chance
+    agents:
+      - agent_id: sales-copywriter-teresa
+        role: 5-7 email post-webinar sequence with cart-close target
+    gate:
+      type: auto
+
+  - id: metrics-targets
+    name: Conversion Targets
+    description: Set registration → show-up → buy targets, plus replay attribution
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Funnel math — registration rate, show-up rate, buy rate, CAC, LTV
+    gate:
+      type: user_approval
+      description: User approves the conversion targets
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the webinar — does hook match promise match script match offer?
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Coherence check across all webinar elements
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Script + email copy quality, no clichés, no over-promise
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Funnel mechanics integrity, tracking, evergreen-vs-live config correctness
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Webinar Package Delivery
+    description: Compile the full webinar package
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Full webinar package compilation
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Webinars/"
+        description: Complete webinar package — hook + registration page + reminder sequence + script + replay sequence + conversion targets

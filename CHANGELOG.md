@@ -5,6 +5,41 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.52.0] - 2026-05-24
+
+### Added (Landing/Site department — user-facing feature)
+
+- **`/landing funnel` workflow** (PR33) — new
+  `departments/landing/workflows/funnel.yaml`. 10-phase Enterprise
+  orchestration: brief → awareness diagnosis → funnel-type
+  selection (Value Ladder) → offer design (Grand Slam) → page
+  architecture → email sequences → metrics targets → self-critique
+  → Quality Gate (opus) → delivery. Selects squeeze / tripwire /
+  SLO / webinar / VSL / application funnel matched to awareness ×
+  price.
+- **`/landing webinar` workflow** (PR33) — new
+  `departments/landing/workflows/webinar.yaml`. 10-phase Enterprise
+  orchestration: brief → hook & promise → registration page →
+  reminder sequence → live script → replay & cart sequence →
+  conversion targets → self-critique → Quality Gate (opus) →
+  delivery.
+- **`skills/webinar-funnel/SKILL.md` expanded** (32 → 185 lines).
+  Added: Perfect Webinar timing frame (Brunson), false belief
+  pattern template (6-step teardown), registration page anatomy
+  with conversion targets, 5-email reminder sequence template,
+  full pitch script structure with 7 timed sections, 5-7 email
+  replay/cart sequence, pixel-event tracking spec with attribution
+  windows.
+
+### Pattern (third repeat)
+
+PR31 (Brand) → PR32 (GTM cross-departmental) → PR33 (Landing/Site).
+Same shape every time: SKILL.md promises Enterprise outcome,
+underlying artifact is a stub, audit identifies, PR ships full
+workflow + framework-dense skill spec. Pattern is now repeatable
+across remaining departments (Marketing, Sales, Strategy, Content,
+Community).
+
 ## [2.51.0] - 2026-05-24
 
 ### Added (GTM department — cross-departmental feature)

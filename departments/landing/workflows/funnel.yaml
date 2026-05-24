@@ -1,0 +1,135 @@
+id: landing-funnel
+name: Funnel Architecture
+description: Sales funnel architecture matched to audience awareness and price point — squeeze, tripwire, SLO, webinar, VSL, application
+department: landing
+tier: enterprise
+command: "/landing funnel"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Funnel Brief
+    description: Define product, price point, audience awareness level, conversion target
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Frame product, current traffic source, price point, current conversion baseline
+    gate:
+      type: user_approval
+      description: User confirms product, price point, awareness level, conversion target
+
+  - id: awareness-diagnosis
+    name: Awareness Diagnosis
+    description: Diagnose audience awareness level (Schwartz 5 stages) — drives funnel type selection
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Apply Schwartz Awareness Ladder, score audience position
+    gate:
+      type: user_approval
+      description: User approves awareness diagnosis before funnel-type selection
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Funnels/Awareness/"
+        description: Awareness diagnosis with evidence per stage
+
+  - id: funnel-selection
+    name: Funnel Type Selection
+    description: Pick funnel type from Value Ladder matching awareness × price (squeeze / tripwire / SLO / webinar / VSL / application)
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Apply Value Ladder + awareness-price-funnel matrix; select primary funnel
+      - agent_id: saas-strategist-tiago
+        role: Pricing strategy fit check
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves funnel-type selection with rationale
+
+  - id: offer-design
+    name: Offer Design
+    description: Grand Slam Offer construction (Hormozi value equation) for the funnel
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Build offer with dream outcome × perceived likelihood / (time delay × effort)
+    gate:
+      type: user_approval
+      description: User approves offer structure before page architecture
+
+  - id: page-architecture
+    name: Page Architecture
+    description: Map every page in the funnel — squeeze / sales / order / thank-you / upsell / downsell, plus copy framework per page
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Define page list with role, copy framework, conversion target per page
+      - agent_id: sales-copywriter-teresa
+        role: Headline + sub-headline + lead drafts per page
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the page list and primary CTA per page
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Funnels/Architecture/"
+        description: Page list with copy framework and conversion target per page
+
+  - id: email-sequences
+    name: Email Sequences
+    description: Email sequences supporting the funnel — indoctrination, cart, nurture, abandonment, post-purchase
+    agents:
+      - agent_id: sales-copywriter-teresa
+        role: Email sequence design per supporting role
+    gate:
+      type: auto
+
+  - id: metrics-targets
+    name: Metrics & Targets
+    description: Set conversion targets per page + funnel-level metrics (CAC, AOV, LTV, ROAS)
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Compute conversion baseline + targets, funnel economics
+    gate:
+      type: user_approval
+      description: User approves the funnel metrics targets
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the funnel — does awareness match offer match price match traffic source?
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Coherence check across all funnel elements
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Sales copy quality, awareness-match prose, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Page count + metrics target feasibility + tracking integrity
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Funnel Package Delivery
+    description: Compile the funnel package — pages + copy + emails + metrics targets
+    agents:
+      - agent_id: conversion-strategist-ines
+        role: Full funnel package compilation
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Funnels/"
+        description: Complete funnel package — awareness diagnosis + offer + page architecture + email sequences + metrics targets
