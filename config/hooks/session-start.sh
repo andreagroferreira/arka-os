@@ -107,6 +107,21 @@ MSG+="\\nFields: kb=N (Obsidian/KB notes consulted), research=X (MCPs invoked: p
 MSG+="\\nMandatory after: EFFECT tool calls, plan/recommendation outputs, QG verdicts. Optional for pure read-only status replies."
 MSG+="\\nAbsence is measured by the Stop hook (warn-only in v2.34.0) before promotion to hard enforcement."
 
+# ─── Stale-aware reorganizer trigger (PR24 v2.46.0) ─────────────────────
+# If today's proposal file is missing, fire the reorganizer in the
+# background with a 30s timeout. Best-effort, never blocks session
+# start. Multiple sessions per day no-op because the file now exists.
+if [ -n "$REPO" ] && command -v python3 &>/dev/null; then
+  _PROPOSAL_DIR="$HOME/.arkaos/reorganize-proposals"
+  _TODAY="$(date -u +%Y-%m-%d).md"
+  if [ ! -f "$_PROPOSAL_DIR/$_TODAY" ]; then
+    (
+      cd "$REPO" && timeout 30s python3 -m core.cognition.reorganizer_cli >/dev/null 2>&1
+    ) &
+    disown 2>/dev/null || true
+  fi
+fi
+
 # --- Session Memory Resume Context ---
 if command -v python3 &>/dev/null && [ -n "$REPO" ]; then
   _SESSION_CTX=$(cd "$REPO" && python3 -c "
