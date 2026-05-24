@@ -5,6 +5,33 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.53.0] - 2026-05-24
+
+### Added (Marketing department — fourth pattern repeat)
+
+- **`/mkt growth-loop` workflow** (PR34) — new
+  `departments/marketing/workflows/growth-loop.yaml`. 10-phase
+  Enterprise orchestration: brief → retention-baseline → loop-type
+  selection → loop-design → compounding-math → instrumentation
+  (parallel: marketing + tech) → 30-day experiment plan →
+  self-critique → Quality Gate (opus) → delivery. Cross-validates
+  unit economics with CFO (Helena) parallel review in the
+  compounding-math phase.
+- **`skills/growth-loop/SKILL.md` expanded** (64 → 181 lines).
+  Added: loop type decision matrix (viral / paid / content /
+  product / community) with retention minimums + unit economics
+  thresholds, 5 loop types fully spec'd with worked examples and
+  failure modes, loop specification YAML format (4-step structure),
+  8-point pre-instrumentation design checklist, 5 common failure
+  modes across all loop types.
+
+### Pattern (fourth repeat — Marketing follows Brand → GTM → Site)
+
+PR31 Brand → PR32 GTM → PR33 Site (Landing) → PR34 Marketing.
+Each PR fills the single biggest Enterprise-tier gap in its
+department per the same audit shape. Pattern is now textbook —
+Sales, Strategy, Content, Community follow next.
+
 ## [2.52.0] - 2026-05-24
 
 ### Added (Landing/Site department — user-facing feature)
