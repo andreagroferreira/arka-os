@@ -5,6 +5,23 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.47.0] - 2026-05-24
+
+### Added
+
+- **Installer user-data scaffolding** (PR28) — `npx arkaos install` and
+  `npx arkaos@latest update` now create the operator-mutable files
+  the discipline-arc commands depend on:
+  - `~/.arkaos/redaction-clients.json` with an empty `clients` list +
+    `_doc` field explaining how to populate it. Fresh installs no
+    longer have a silent leak scanner.
+  - `~/.arkaos/reorganize-proposals/` directory so the session-start
+    stale-aware trigger and `/arka reorganize` have a write target
+    on day zero.
+- **`installer/user-data-scaffold.js`** — idempotent: never overwrites
+  operator-authored content. Returns a per-resource status object.
+- **5 installer tests** covering create / preserve / idempotent paths.
+
 ## [2.46.3] - 2026-05-24
 
 ### Documentation

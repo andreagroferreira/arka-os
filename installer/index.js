@@ -295,6 +295,22 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     console.log(`         Warning: could not seed config.json (${err.message})`);
   }
 
+  // PR28 v2.47.0 — scaffold the user-mutable files the discipline-arc
+  // commands depend on: redaction-clients.json (leak scanner config)
+  // and reorganize-proposals/ (daily proposal output). Idempotent.
+  try {
+    const { scaffoldArkaosUserData } = await import("./user-data-scaffold.js");
+    const scaffoldResult = scaffoldArkaosUserData({ home: homedir() });
+    if (scaffoldResult.redaction.action === "created") {
+      console.log(`         redaction-clients.json scaffolded (empty list — populate to enable leak scanner).`);
+    }
+    if (scaffoldResult.proposals.action === "created") {
+      console.log(`         reorganize-proposals/ directory created.`);
+    }
+  } catch (err) {
+    console.log(`         Warning: could not scaffold user-data (${err.message})`);
+  }
+
   const manifest = {
     version: VERSION,
     runtime,
