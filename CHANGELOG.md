@@ -5,6 +5,39 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.54.0] - 2026-05-24
+
+### Added (Strategy department — fifth pattern repeat)
+
+- **`/strat blue-ocean` workflow** (PR35) — new
+  `departments/strategy/workflows/blue-ocean.yaml`. 10-phase
+  Enterprise orchestration. Phases: brief → red-ocean canvas →
+  ERRC grid (parallel: Tomas + Rita) → non-customer analysis →
+  blue-ocean canvas → viability test (parallel: Tomas + Helena) →
+  execution plan → self-critique → Quality Gate (opus) → delivery.
+- **`/strat growth` workflow** (PR35) — new
+  `departments/strategy/workflows/growth.yaml`. 10-phase Enterprise
+  orchestration. Phases: brief → Greiner diagnosis → Ansoff Matrix
+  (parallel: Tomas + Rita) → adjacency analysis (parallel: Tomas +
+  Helena) → vector selection → risk-feasibility (parallel: Tomas +
+  Helena) → 12-month roadmap → self-critique → Quality Gate (opus)
+  → delivery.
+- **`skills/growth-strategy/SKILL.md` expanded** (32 → 161 lines).
+  Added: Greiner 6-phase model with predictable crises, Ansoff
+  Matrix 2×2 with risk-adjusted sequencing, Chris Zook adjacency
+  framework with empirical success-rate math, growth vector
+  decision tree, risk profile YAML template with pre-mortem
+  format, 12-month roadmap template with decision gates per
+  quarter, 5 common failure modes.
+
+### Audit revealed (uncovered surface)
+
+Cross-departmental Enterprise gap audit ran for the first time
+this PR: 12+ Enterprise-tier commands remain across 9 departments
+that lack workflow YAMLs. Sales is unique — zero Enterprise
+commands declared. Remaining gap-rich depts: content, pm, kb,
+org, ecom, saas, community.
+
 ## [2.53.0] - 2026-05-24
 
 ### Added (Marketing department — fourth pattern repeat)

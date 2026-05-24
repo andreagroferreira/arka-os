@@ -1,0 +1,136 @@
+id: strat-blue-ocean
+name: Blue Ocean Strategy
+description: Blue Ocean Strategy canvas with ERRC grid (Eliminate / Reduce / Raise / Create) — define uncontested market space
+department: strategy
+tier: enterprise
+command: "/strat blue-ocean"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Market Brief
+    description: Define the current market, the industry's competitive factors, and the customer base under analysis
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Frame current market, named competitors, customer segments
+    gate:
+      type: user_approval
+      description: User confirms market scope, competitor set, customer segments
+
+  - id: red-ocean-canvas
+    name: Red Ocean Strategy Canvas
+    description: Map the current industry on the Strategy Canvas — 6-10 competitive factors with relative levels
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Identify 6-10 competitive factors the industry competes on; score each competitor 1-10
+    gate:
+      type: user_approval
+      description: User approves the red ocean canvas before ERRC analysis
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/BlueOcean/Canvas/"
+        description: Red Ocean Strategy Canvas with competitor scores per factor
+
+  - id: errc-grid
+    name: ERRC Grid
+    description: Apply the ERRC framework — Eliminate / Reduce / Raise / Create — to redesign the value curve
+    agents:
+      - agent_id: strategy-director-tomas
+        role: ERRC analysis on each competitive factor with rationale
+      - agent_id: market-analyst-rita
+        role: Non-customer analysis — what would the 3 tiers of non-customers value?
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the ERRC grid
+
+  - id: non-customer-analysis
+    name: Non-Customer Analysis
+    description: Map the 3 tiers of non-customers (Soon-to-be, Refusing, Unexplored) and what would convert each tier
+    agents:
+      - agent_id: market-analyst-rita
+        role: Define 3 non-customer tiers with their reasons for not buying and conversion triggers
+    gate:
+      type: user_approval
+      description: User approves non-customer analysis
+
+  - id: blue-ocean-canvas
+    name: Blue Ocean Strategy Canvas
+    description: Draw the new value curve — the blue ocean position based on ERRC + non-customer insights
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Blue Ocean Strategy Canvas with new value curve; quantify divergence from red ocean
+    gate:
+      type: user_approval
+      description: User approves the blue ocean canvas before viability test
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/BlueOcean/Canvas/"
+        description: Blue Ocean Strategy Canvas with new value curve and divergence analysis
+
+  - id: viability-test
+    name: Commercial Viability Test
+    description: Apply the BOS Sequence — Utility, Price, Cost, Adoption — to test whether the blue ocean is commercially viable
+    agents:
+      - agent_id: strategy-director-tomas
+        role: BOS Sequence test (Buyer Utility Map, Strategic Pricing, Target Cost, Adoption Hurdles)
+      - agent_id: cfo-helena
+        role: Cost feasibility check — does the target cost math work given the price corridor?
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves commercial viability before execution plan
+
+  - id: execution-plan
+    name: Execution Plan
+    description: 90-day execution — first product/service move, channels, organisational changes
+    agents:
+      - agent_id: strategy-director-tomas
+        role: 90-day execution plan with first move, channel implications, organisational changes
+    gate:
+      type: user_approval
+      description: User approves the 90-day execution plan
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the blue ocean — is the divergence real? Are non-customer triggers credible? Does the cost math close?
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Coherence + viability + execution feasibility cross-check
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Canvas labels, non-customer prose, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Visual canvas integrity, ERRC grid completeness, viability test math
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Blue Ocean Package Delivery
+    description: Compile the full blue ocean package
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Full blue ocean package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/BlueOcean/"
+        description: Complete blue ocean package — red ocean canvas + ERRC grid + non-customer analysis + blue ocean canvas + viability test + execution plan

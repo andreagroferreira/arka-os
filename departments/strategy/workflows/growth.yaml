@@ -1,0 +1,139 @@
+id: strat-growth
+name: Growth Strategy
+description: Growth strategy using Ansoff Matrix + adjacencies + Greiner growth phases — pick the next growth vector with risk-adjusted feasibility
+department: strategy
+tier: enterprise
+command: "/strat growth"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Growth Brief
+    description: Define current business state, current revenue mix, current growth rate, runway, success metric
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Frame current business — products, markets, revenue mix, growth rate, runway
+    gate:
+      type: user_approval
+      description: User confirms business context and growth target
+
+  - id: greiner-diagnosis
+    name: Greiner Growth Phase Diagnosis
+    description: Identify which Greiner growth phase the business is in (Creativity / Direction / Delegation / Coordination / Collaboration / Alliances) and the predictable crisis
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Greiner phase diagnosis with evidence; name the impending crisis
+    gate:
+      type: user_approval
+      description: User approves Greiner diagnosis
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/Growth/Diagnosis/"
+        description: Greiner growth phase diagnosis with crisis prediction
+
+  - id: ansoff-matrix
+    name: Ansoff Matrix Analysis
+    description: Map growth options across the 4 Ansoff quadrants (Market Penetration / Market Development / Product Development / Diversification)
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Ansoff Matrix mapping with concrete options per quadrant
+      - agent_id: market-analyst-rita
+        role: Market sizing per quadrant option
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves Ansoff Matrix mapping before adjacency analysis
+
+  - id: adjacency-analysis
+    name: Adjacency Analysis
+    description: Apply Chris Zook's adjacency framework — score each adjacency by distance from core, capability fit, market attractiveness
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Adjacency scoring (distance from core × capability fit × market attractiveness)
+      - agent_id: cfo-helena
+        role: Investment requirement and payback per adjacency
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves adjacency scoring
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/Growth/Adjacencies/"
+        description: Ranked adjacency analysis with investment + payback
+
+  - id: vector-selection
+    name: Growth Vector Selection
+    description: Pick the primary growth vector + assist vector based on Greiner phase, Ansoff quadrant, adjacency ranking
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Vector selection with explicit trade-off rationale
+    gate:
+      type: user_approval
+      description: User approves primary + assist growth vector
+
+  - id: risk-feasibility
+    name: Risk & Feasibility
+    description: Stress-test the chosen vector — what kills it? What signals indicate it's working / failing?
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Pre-mortem analysis — top 5 risks + early warning signals + mitigation per risk
+      - agent_id: cfo-helena
+        role: Runway impact per vector, breakeven scenario, downside math
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves risk profile
+
+  - id: execution-roadmap
+    name: 12-Month Execution Roadmap
+    description: Quarter-by-quarter milestones, owner per milestone, success metric per quarter
+    agents:
+      - agent_id: strategy-director-tomas
+        role: 12-month roadmap with quarterly milestones and named owners
+    gate:
+      type: user_approval
+      description: User approves the 12-month roadmap
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test coherence — does Greiner phase support the chosen vector? Does Ansoff position match adjacency ranking?
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Coherence check across Greiner / Ansoff / adjacency / vector / roadmap
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Diagnosis prose, vector rationale, no clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Roadmap executability, milestone measurability, owner specificity
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Growth Strategy Package Delivery
+    description: Compile the full growth strategy package
+    agents:
+      - agent_id: strategy-director-tomas
+        role: Full growth package + 1-page executive summary
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Strategy/Growth/"
+        description: Complete growth package — Greiner diagnosis + Ansoff Matrix + adjacency analysis + vector selection + risk profile + 12-month roadmap
