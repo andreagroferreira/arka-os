@@ -26,6 +26,9 @@ _DEFAULT_REPO_ROOT = Path.cwd()
 _SUBPROCESS_TIMEOUT = 10
 _NPM_PACKAGE_VERSION_RE = re.compile(r'"version"\s*:\s*"([^"]+)"')
 _PYPROJECT_VERSION_RE = re.compile(r'^version\s*=\s*"([^"]+)"', re.MULTILINE)
+# PR25 v2.46.1 — Redact `user:token@` from git remote URLs before
+# surfacing them in CLI output (some operators use PAT-in-URL remotes).
+_GIT_URL_CREDENTIAL_RE = re.compile(r"://[^/\s@]+:[^/\s@]+@")
 
 
 @dataclass(frozen=True)
@@ -229,10 +232,16 @@ def check_git_remote() -> CheckResult:
             reason="no `origin` remote configured",
             remediation="set up the remote with `git remote add origin <url>`",
         )
+    url = _redact_git_credentials(out.stdout.strip())
     return CheckResult(
         name="git-remote", passed=True,
-        reason=out.stdout.strip(),
+        reason=url,
     )
+
+
+def _redact_git_credentials(url: str) -> str:
+    """Strip `user:token@` segments from a remote URL before display."""
+    return _GIT_URL_CREDENTIAL_RE.sub("://<redacted-credentials>@", url)
 
 
 def check_git_clean() -> CheckResult:
