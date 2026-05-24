@@ -1,0 +1,131 @@
+id: kb-persona
+name: Persona Build
+description: Build or refine a persona from the KB — extract beliefs, voice, expertise, decision patterns; produce a callable advisor profile
+department: kb
+tier: enterprise
+command: "/kb persona"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Persona Brief
+    description: Define who the persona represents — real human reference, target use cases, advisor context
+    agents:
+      - agent_id: kb-curator-clara
+        role: Frame the persona — named reference human, role, decision domains, advisor use cases
+    gate:
+      type: user_approval
+      description: User confirms persona scope and reference
+
+  - id: source-gathering
+    name: Source Gathering
+    description: Collect all KB sources for the persona — talks, interviews, writings, transcripts, social posts
+    agents:
+      - agent_id: kb-curator-clara
+        role: KB source enumeration with date range and source-type tagging
+    gate:
+      type: user_approval
+      description: User approves source set
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Personas/Sources/"
+        description: Source inventory per persona
+
+  - id: belief-extraction
+    name: Belief & Frame Extraction
+    description: Extract the persona's core beliefs, mental models, and recurring frames from sources
+    agents:
+      - agent_id: kb-curator-clara
+        role: Belief extraction with source citation per belief
+      - agent_id: research-analyst-pedro
+        role: Pattern detection across sources — what recurs, what's load-bearing
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves belief inventory
+
+  - id: voice-pattern
+    name: Voice & Vocabulary Pattern
+    description: Map the persona's voice — sentence rhythm, vocabulary signature, characteristic phrases, no-go words
+    agents:
+      - agent_id: kb-curator-clara
+        role: Voice analysis with N-gram patterns + recurring phrases + structural signatures
+      - agent_id: copy-director-eduardo
+        role: Voice replication test — would a current reader recognise this voice?
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves voice pattern
+
+  - id: expertise-domains
+    name: Expertise Domains
+    description: Map what the persona knows deeply vs surface-level vs explicitly avoids
+    agents:
+      - agent_id: kb-curator-clara
+        role: Expertise mapping — 3-5 deep domains, 5-10 surface domains, explicit no-go domains
+    gate:
+      type: user_approval
+      description: User approves expertise map
+
+  - id: decision-patterns
+    name: Decision Patterns
+    description: Extract characteristic decision patterns — how the persona evaluates trade-offs, what evidence they accept, what they refuse
+    agents:
+      - agent_id: kb-curator-clara
+        role: Decision pattern extraction with example decisions cited from sources
+    gate:
+      type: user_approval
+      description: User approves decision pattern map
+
+  - id: advisor-profile
+    name: Callable Advisor Profile
+    description: Compile the persona into a callable advisor YAML — voice + beliefs + expertise + decision patterns + bio
+    agents:
+      - agent_id: kb-curator-clara
+        role: Advisor profile YAML compilation
+    gate:
+      type: user_approval
+      description: User approves callable advisor profile
+
+  - id: self-critique
+    name: Self-Critique
+    description: Stress-test the persona — would the reference human recognise themselves? Are beliefs cited? Are no-go domains enforceable?
+    agents:
+      - agent_id: kb-curator-clara
+        role: Self-test — generate 3 sample advisor outputs and verify voice + beliefs
+    gate:
+      type: auto
+
+  - id: quality-gate
+    name: Quality Gate
+    model_override: opus
+    description: Mandatory quality review
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate quality review
+      - agent_id: copy-director-eduardo
+        role: Voice fidelity, vocabulary signature accuracy, no-clichés
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Source citation integrity, expertise domain boundaries, decision pattern falsifiability
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Persona Package Delivery
+    description: Compile the persona package — sources + beliefs + voice + expertise + decisions + advisor YAML
+    agents:
+      - agent_id: kb-curator-clara
+        role: Full persona package + advisor invocation guide
+    gate:
+      type: auto
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Personas/"
+        description: Complete persona — sources + beliefs (cited) + voice pattern + expertise map + decision patterns + advisor YAML + invocation guide

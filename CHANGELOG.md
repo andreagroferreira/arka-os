@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.57.0] - 2026-05-24
+
+### Added (KB department — eighth pattern repeat)
+
+- **`/kb persona` workflow** (PR38) — new
+  `departments/kb/workflows/persona.yaml`. 10-phase Enterprise
+  workflow building or refining a callable persona from KB
+  sources. Phases: brief → source-gathering → belief-extraction
+  (parallel: Clara + Pedro) → voice-pattern (parallel: Clara +
+  Eduardo) → expertise-domains → decision-patterns →
+  advisor-profile → self-critique → Quality Gate (opus) →
+  delivery.
+- **`skills/persona-build/SKILL.md` expanded** (32 → 211 lines).
+  Source inventory format with diversity floor, belief inventory
+  with citation requirements (2+ citations per belief, 4+ for
+  load-bearing), 4-layer voice pattern extraction (lexical +
+  syntactic + rhetorical + tonal), expertise map with deep /
+  surface / no-go classification, decision pattern catalogue with
+  cited examples, 4-framework Behavioral DNA scoring (DISC +
+  Enneagram + Big Five + MBTI) with source-evidence requirement,
+  callable advisor YAML schema, 5 common failure modes.
+
 ## [2.56.0] - 2026-05-24
 
 ### Added (PM department — seventh pattern repeat, three workflows in one PR)
