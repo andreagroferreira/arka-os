@@ -89,6 +89,12 @@ def _render_sessions(rows: list[dict[str, Any]], title: str) -> list[str]:
     return lines
 
 
+def _has_category_data(group: dict[str, dict[str, Any]]) -> bool:
+    # The summariser always returns at least the "" bucket for legacy
+    # rows. Hide the section unless ≥ 1 row has a non-empty key.
+    return any(k.strip() for k in group.keys())
+
+
 def _render_advisories(advisories: list[str]) -> list[str]:
     if not advisories:
         return []
@@ -101,6 +107,11 @@ def _format_summary(summary: CostSummary) -> str:
     parts.append("")
     parts.extend(_render_group("By provider", summary.by_provider))
     parts.extend(_render_group("By model", summary.by_model))
+    # Per-category breakdown (Claude Code v2.1.149+): skill, subagent,
+    # plugin, mcp-server. Renders only when at least one categorised
+    # entry exists so old telemetry doesn't show an empty section.
+    if _has_category_data(summary.by_category):
+        parts.extend(_render_group("By category", summary.by_category))
     parts.extend(_render_sessions(summary.by_session, "Top 10 sessions"))
     parts.extend(_render_advisories(summary.advisories))
     if summary.corrupt_line_count:

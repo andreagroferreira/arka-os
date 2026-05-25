@@ -160,6 +160,64 @@ def test_cli_empty_file_renders_gracefully(tmp_path, monkeypatch):
     assert "Total cost: **n/a**" in out
 
 
+# ---------------------------------------------------------------------------
+# PR47 v2.66.0 — per-category usage breakdown
+# ---------------------------------------------------------------------------
+
+
+def _write_rows(path: Path, rows: list[dict]) -> None:
+    path.write_text(
+        "\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8"
+    )
+
+
+def test_cli_renders_by_category_when_present(tmp_path, monkeypatch):
+    path = tmp_path / "categorised.jsonl"
+    monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
+    now = datetime.now(timezone.utc)
+    _write_rows(
+        path,
+        [
+            {
+                "ts": now.isoformat(),
+                "session_id": "s",
+                "provider": "anthropic",
+                "model": "claude-opus-4-7",
+                "tokens_in": 100,
+                "tokens_out": 50,
+                "cached_tokens": 0,
+                "estimated_cost_usd": 0.01,
+                "category": "skill:arka",
+            },
+            {
+                "ts": now.isoformat(),
+                "session_id": "s",
+                "provider": "anthropic",
+                "model": "claude-opus-4-7",
+                "tokens_in": 100,
+                "tokens_out": 50,
+                "cached_tokens": 0,
+                "estimated_cost_usd": 0.02,
+                "category": "subagent:dev",
+            },
+        ],
+    )
+    code, out, _ = _run(["today"])
+    assert code == 0
+    assert "## By category" in out
+    assert "skill:arka" in out
+    assert "subagent:dev" in out
+
+
+def test_cli_hides_by_category_for_legacy_only_entries(
+    populated_telemetry: Path,
+):
+    # populated_telemetry rows have no `category` field at all.
+    code, out, _ = _run(["all"])
+    assert code == 0
+    assert "## By category" not in out
+
+
 def test_cli_unknown_models_bucketed(tmp_path, monkeypatch):
     path = tmp_path / "unknown.jsonl"
     now = datetime.now(timezone.utc)

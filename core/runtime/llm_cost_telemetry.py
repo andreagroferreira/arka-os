@@ -66,8 +66,14 @@ def record_cost(
     tokens_out: int,
     cached_tokens: int,
     estimated_cost_usd: float | None,
+    category: str = "",
 ) -> None:
     """Append one JSONL line describing an LLM call's cost.
+
+    `category` mirrors Claude Code v2.1.149's per-category usage
+    breakdown: ``"skill:<slug>"``, ``"subagent:<dept>"``,
+    ``"plugin:<id>"``, ``"mcp:<server>"``, or ``""`` for base usage.
+    Free-form string — the aggregator groups whatever it sees.
 
     Silently swallows all errors. Telemetry must never break a
     completion call. The caller decides whether to compute the cost via
@@ -87,6 +93,7 @@ def record_cost(
                 if estimated_cost_usd is not None
                 else None
             ),
+            "category": str(category or ""),
         }
         with _locked_append(_telemetry_path()) as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -133,6 +140,7 @@ class CostSummary:
     call_count: int
     by_provider: dict[str, dict[str, Any]] = field(default_factory=dict)
     by_model: dict[str, dict[str, Any]] = field(default_factory=dict)
+    by_category: dict[str, dict[str, Any]] = field(default_factory=dict)
     by_session: list[dict[str, Any]] = field(default_factory=list)
     advisories: list[str] = field(default_factory=list)
     corrupt_line_count: int = 0
@@ -291,6 +299,7 @@ def summarise(
         call_count=finalised["call_count"],
         by_provider=_group(entries, "provider"),
         by_model=_group(entries, "model"),
+        by_category=_group(entries, "category"),
         by_session=sessions,
         advisories=_build_advisories(sessions, advisory_threshold_usd),
         corrupt_line_count=corrupt,

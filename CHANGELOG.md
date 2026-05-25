@@ -5,6 +5,33 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.66.0] - 2026-05-25
+
+### Added (Per-category usage breakdown — Claude Code adoption arc PR47)
+
+- **`category` field on every telemetry row** — `record_cost` now
+  accepts an optional `category` arg mirroring Claude Code v2.1.149's
+  per-category usage breakdown. Free-form string: callers ship
+  `"skill:<slug>"`, `"subagent:<dept>"`, `"plugin:<id>"`,
+  `"mcp:<server>"`, or `""` for base usage. Backward-compatible —
+  existing JSONL rows without a `category` field land in the `""`
+  bucket.
+- **`CostSummary.by_category`** populated by the aggregator using the
+  same `_group` helper as `by_provider` / `by_model`.
+- **`/arka costs` renders a "By category" section** when at least one
+  categorised row exists. Pure markdown table, sorted by cost desc.
+  Hidden when telemetry is legacy-only so old vaults don't grow an
+  empty section.
+
+### Test coverage
+
+- 4 new `tests/python/test_llm_cost_telemetry.py` cases (writer
+  records category; default empty; aggregator groups; legacy
+  unmigrated rows fall into the `""` bucket).
+- 2 new `tests/python/test_llm_cost_telemetry_cli.py` cases (CLI
+  renders "By category" when present; hides it for legacy-only data).
+- Full cost-telemetry suite: 50/50 passing.
+
 ## [2.65.0] - 2026-05-25
 
 ### Added (Effort-aware nudge gating — Claude Code adoption arc PR46)
