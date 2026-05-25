@@ -362,6 +362,19 @@ def get_llm_provider(config_path: Path | None = None) -> LLMProvider:
     return last if last is not None else StubProvider()
 
 
+def _current_category() -> str:
+    """Resolve the per-call category from the environment.
+
+    PR60 v2.77.0 — orchestration layers can set
+    ``ARKA_CALL_CATEGORY=skill:<slug>`` /
+    ``subagent:<dept>`` / ``plugin:<id>`` / ``mcp:<server>`` before
+    invoking the provider so `/arka costs --by-category` (PR47) can
+    attribute spend. Returns "" when unset, which lands in the base
+    bucket (backward-compatible).
+    """
+    return os.environ.get("ARKA_CALL_CATEGORY", "").strip()
+
+
 def _log_fallback(preferred: str, selected: str, reason: str = "") -> None:
     # Piggy-back on the cost telemetry file: zero-token, provider-only row.
     # Downstream can group by provider to spot degraded chains.
@@ -373,6 +386,7 @@ def _log_fallback(preferred: str, selected: str, reason: str = "") -> None:
         tokens_out=0,
         cached_tokens=0,
         estimated_cost_usd=None,
+        category=_current_category(),
     )
 
 
@@ -391,4 +405,5 @@ def _record(session_id: str, provider: str, response: LLMResponse) -> None:
         tokens_out=response.tokens_out,
         cached_tokens=response.cached_tokens,
         estimated_cost_usd=cost,
+        category=_current_category(),
     )

@@ -76,10 +76,16 @@ class CodexCliAdapter(RuntimeAdapter):
         raise NotImplementedError("Use Codex CLI's native content search")
 
     def headless_supported(self) -> bool:
-        # Codex CLI headless invocation syntax is not stable as of
-        # 2026-04-20. Until verified, we surface unsupported and let
-        # SubagentProvider fall back to AnthropicDirect or stub.
-        return False
+        # Auto-detect: headless is supported iff the `codex` binary is
+        # on PATH. When the operator installs Codex CLI later, this
+        # lights up without any code change (the headless_complete()
+        # method below already gates on shutil.which() too, so a missing
+        # binary will raise cleanly).
+        #
+        # Note: even when the binary is present, headless_complete()
+        # still raises until the invocation syntax is verified locally.
+        # See TODO(llm-agnostic) below for the verification checklist.
+        return shutil.which("codex") is not None
 
     def headless_complete(
         self,
@@ -96,14 +102,15 @@ class CodexCliAdapter(RuntimeAdapter):
             )
         # TODO(llm-agnostic): Implement real headless completion.
         #
-        # Status as of 2026-04-20: Codex CLI is NOT installed on the
-        # development machine, so actual invocation syntax could not
-        # be verified. Until a local install is available, refuse
-        # rather than ship guessed arguments.
+        # Status as of 2026-05-25 (PR60): Codex CLI still not verified
+        # in any ArkaOS dev environment. headless_supported() now
+        # auto-detects the binary on PATH so this lights up the moment
+        # someone installs it — but the actual subprocess call below
+        # still needs syntax verification before we can stop refusing.
         #
         # Verification checklist for whoever picks this up:
         #   1. Install:   npm install -g @openai/codex-cli
-        #   2. Discover:  codex --help   (confirm non-interactive flag)
+        #   2. Discover:  codex --help    (confirm non-interactive flag)
         #   3. Pattern:   likely `codex exec "<prompt>"` or
         #                 `codex --prompt "<prompt>" --format json`
         #   4. Wire the subprocess call (mirror the Gemini adapter —
@@ -113,9 +120,11 @@ class CodexCliAdapter(RuntimeAdapter):
         # SubagentProvider cleanly falls back to anthropic-direct or
         # stub when this raises, so the chain keeps working.
         raise NotImplementedError(
-            "Codex CLI headless mode requires local `codex` CLI. "
-            "Install: `npm install -g @openai/codex-cli` (verified 2026-04-20). "
-            "Verify syntax: `codex --help`. "
-            "See TODO(llm-agnostic) in this file. "
+            "Codex CLI headless mode requires verified invocation syntax. "
+            "The `codex` binary is on PATH but ArkaOS has not validated "
+            "the non-interactive call shape locally. "
+            "Verification steps: `codex --help`, then update "
+            "core/runtime/codex_cli.py::headless_complete to call the "
+            "discovered subprocess shape. "
             "SubagentProvider will cleanly fall back to anthropic-direct or stub."
         )

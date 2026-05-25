@@ -5,6 +5,52 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.77.0] - 2026-05-25
+
+### Added (Cost-category env var + Codex headless auto-detect — PR60)
+
+- **`ARKA_CALL_CATEGORY` env var** read by `_record` and
+  `_log_fallback` in `core/runtime/llm_provider.py`. Orchestration
+  layers can set it before invoking the provider so `/arka costs`
+  (PR47's `by_category` aggregation) attributes spend by skill /
+  subagent / plugin / MCP server. Empty / unset → base bucket
+  (backward-compat).
+- **Codex CLI `headless_supported()` auto-detects PATH** — adapter
+  reports `True` whenever the `codex` binary is on PATH. When the
+  operator installs Codex CLI later, the adapter lights up without a
+  code change (`headless_complete` still raises until the invocation
+  syntax is verified, but the supported gate now responds correctly).
+- **Codex error messages split by situation** — missing binary
+  carries the install hint; binary-present-but-unverified carries the
+  syntax-verification checklist. Cleaner operator UX in both cases.
+
+### Why
+
+- Cost category: PR47 added `by_category` aggregation but the field
+  was never populated automatically — every row landed in the `""`
+  bucket. PR60 closes that loop with the env-var pattern (orchestrator
+  sets, provider reads).
+- Codex auto-detect: TODO comment was dated 2026-04-20 and the
+  `headless_supported()` returning hard `False` blocked any future
+  fast-path discovery. Auto-detect is the lowest-friction unblock.
+
+### Test coverage
+
+- 3 new `test_pr60_*` cases in `test_llm_provider.py` (env var flows,
+  unset → base bucket, whitespace stripping)
+- 3 new `TestImprovedCodexTodoMessage` cases in
+  `test_gemini_cli_headless.py` (missing-binary install hint,
+  present-binary syntax hint, `headless_supported` reflects PATH)
+- Full Python suite: 3683/3683 passing
+- Preflight: `all_passed: True`
+
+### Deferred
+
+- Setting `ARKA_CALL_CATEGORY` at specific orchestration points (skill
+  execution, subagent dispatch, plugin invocation, MCP server call)
+  is an opt-in follow-up. Operator can grep callers and wire env-var
+  sets where useful.
+
 ## [2.76.0] - 2026-05-25
 
 ### Added (Closing-marker soft block — PR59)

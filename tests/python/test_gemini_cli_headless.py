@@ -161,21 +161,56 @@ class TestHeadlessComplete:
 
 
 class TestImprovedCodexTodoMessage:
-    """The Codex TODO error must mention the install command."""
+    """The Codex TODO error must surface actionable guidance.
 
-    def test_message_includes_install_hint(self):
+    PR60 v2.77.0: the install hint lives on the missing-binary path
+    (the first NotImplementedError); the verify-syntax hint lives on
+    the present-binary path (the TODO raise). Two distinct error
+    shapes for two distinct operator situations.
+    """
+
+    def test_missing_binary_path_mentions_install(self):
+        """When `codex` is not on PATH, the error must guide the operator
+        to install it."""
         from core.runtime.codex_cli import CodexCliAdapter
 
         adapter = CodexCliAdapter()
-        # When codex is installed (patch `which`), the real method is
-        # reached and must raise with the actionable TODO message.
+        with patch("shutil.which", return_value=None):
+            with pytest.raises(NotImplementedError) as exc_info:
+                adapter.headless_complete("hi")
+        message = str(exc_info.value)
+        assert "codex CLI not found" in message
+        assert "install" in message.lower()
+
+    def test_present_binary_path_mentions_syntax_verification(self):
+        """When `codex` IS on PATH, the error must guide the operator
+        to verify the invocation syntax and update the adapter."""
+        from core.runtime.codex_cli import CodexCliAdapter
+
+        adapter = CodexCliAdapter()
         with patch("shutil.which", return_value="/usr/local/bin/codex"):
             with pytest.raises(NotImplementedError) as exc_info:
                 adapter.headless_complete("hi")
         message = str(exc_info.value)
-        assert "npm install -g @openai/codex-cli" in message
         assert "codex --help" in message
         assert "SubagentProvider" in message
+        assert "verified invocation syntax" in message
+
+    def test_headless_supported_reflects_binary_presence(self):
+        """PR60 v2.77.0 — headless_supported now auto-detects PATH so
+        installing Codex CLI later lights up the adapter without code
+        changes (the headless_complete call still raises until syntax
+        is verified)."""
+        from core.runtime.codex_cli import CodexCliAdapter
+
+        adapter = CodexCliAdapter()
+        with patch("core.runtime.codex_cli.shutil.which", return_value=None):
+            assert adapter.headless_supported() is False
+        with patch(
+            "core.runtime.codex_cli.shutil.which",
+            return_value="/usr/local/bin/codex",
+        ):
+            assert adapter.headless_supported() is True
 
 
 if __name__ == "__main__":
