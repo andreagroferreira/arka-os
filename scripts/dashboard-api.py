@@ -1110,6 +1110,189 @@ def llm_costs_trend(days: int = 7):
     return {"days": out_days, "period_days": capped_days}
 
 
+# --- Settings sections (PR63b v2.89.0): MCPs / Hooks / Plugins ---
+
+
+@app.get("/api/settings/mcps")
+def settings_mcps():
+    """List MCP servers across user-global config + ArkaOS registry.
+
+    Reads:
+      - ``~/.claude.json::mcpServers`` (Claude Code user-global)
+      - ``~/.claude/skills/arka/mcps/registry.json`` (ArkaOS registry)
+
+    Returns a deduplicated list with each entry's name + source +
+    transport (stdio / http / sse) where the config exposes it.
+    """
+    out: list[dict] = []
+    seen: set[str] = set()
+
+    user_global = Path.home() / ".claude.json"
+    if user_global.exists():
+        try:
+            data = json.loads(user_global.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
+        for name, cfg in (data.get("mcpServers") or {}).items():
+            if not isinstance(name, str) or name in seen:
+                continue
+            seen.add(name)
+            out.append({
+                "name": name,
+                "source": "user-global",
+                "transport": _detect_mcp_transport(cfg),
+                "command": (cfg or {}).get("command", "") if isinstance(cfg, dict) else "",
+            })
+
+    registry = Path.home() / ".claude" / "skills" / "arka" / "mcps" / "registry.json"
+    if registry.exists():
+        try:
+            data = json.loads(registry.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
+        servers = data.get("servers") if isinstance(data, dict) else None
+        if isinstance(servers, dict):
+            for name, cfg in servers.items():
+                if not isinstance(name, str) or name in seen:
+                    continue
+                seen.add(name)
+                out.append({
+                    "name": name,
+                    "source": "arkaos-registry",
+                    "transport": _detect_mcp_transport(cfg),
+                    "command": (cfg or {}).get("command", "") if isinstance(cfg, dict) else "",
+                })
+        elif isinstance(servers, list):
+            for entry in servers:
+                if not isinstance(entry, dict):
+                    continue
+                name = str(entry.get("name") or "")
+                if not name or name in seen:
+                    continue
+                seen.add(name)
+                out.append({
+                    "name": name,
+                    "source": "arkaos-registry",
+                    "transport": _detect_mcp_transport(entry),
+                    "command": entry.get("command", ""),
+                })
+
+    out.sort(key=lambda r: r["name"])
+    return {"mcps": out, "total": len(out)}
+
+
+def _detect_mcp_transport(cfg: object) -> str:
+    """Best-effort transport sniff from an MCP server config dict."""
+    if not isinstance(cfg, dict):
+        return "unknown"
+    if cfg.get("url"):
+        return "http"
+    if cfg.get("transport"):
+        return str(cfg["transport"])
+    if cfg.get("command"):
+        return "stdio"
+    return "unknown"
+
+
+@app.get("/api/settings/hooks")
+def settings_hooks():
+    """Inspect the hooks block of ~/.claude/settings.json.
+
+    Returns one row per hook type with command paths + timeouts so the
+    operator can see at a glance which hooks are wired and which are
+    missing. We never edit the file from here (Hooks ship from the
+    ArkaOS installer); this is purely read-only diagnostics.
+    """
+    settings_file = Path.home() / ".claude" / "settings.json"
+    if not settings_file.exists():
+        return {"hooks": [], "settings_path": str(settings_file)}
+    try:
+        data = json.loads(settings_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"hooks": [], "settings_path": str(settings_file)}
+
+    hooks_block = data.get("hooks") if isinstance(data, dict) else None
+    if not isinstance(hooks_block, dict):
+        return {"hooks": [], "settings_path": str(settings_file)}
+
+    rows: list[dict] = []
+    for hook_type, entries in hooks_block.items():
+        if not isinstance(entries, list):
+            continue
+        commands: list[dict] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            inner = entry.get("hooks") if isinstance(entry, dict) else None
+            if not isinstance(inner, list):
+                continue
+            for h in inner:
+                if not isinstance(h, dict):
+                    continue
+                commands.append({
+                    "command": str(h.get("command", ""))[:200],
+                    "type": str(h.get("type", "command")),
+                    "timeout": h.get("timeout"),
+                })
+        rows.append({
+            "hook": hook_type,
+            "count": len(commands),
+            "commands": commands,
+        })
+    rows.sort(key=lambda r: r["hook"])
+    hard_enforcement = bool(
+        isinstance(data.get("hooks"), dict)
+        and data["hooks"].get("hardEnforcement")
+    )
+    return {
+        "hooks": rows,
+        "settings_path": str(settings_file),
+        "hard_enforcement": hard_enforcement,
+    }
+
+
+@app.get("/api/settings/plugins")
+def settings_plugins():
+    """List Claude Code plugins installed via ~/.claude/plugins/installed_plugins.json.
+
+    The PR43 auto-installer + PR55 marketplace flow both touch this
+    file. Format is ``{"plugins": {"<name>@<marketplace>": [entry,...]}}``.
+    We flatten to one row per (name, marketplace, version).
+    """
+    plugins_file = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
+    if not plugins_file.exists():
+        return {"plugins": [], "total": 0, "plugins_path": str(plugins_file)}
+    try:
+        data = json.loads(plugins_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"plugins": [], "total": 0, "plugins_path": str(plugins_file)}
+
+    rows: list[dict] = []
+    plugins_map = data.get("plugins") if isinstance(data, dict) else None
+    if isinstance(plugins_map, dict):
+        for key, entries in plugins_map.items():
+            if not isinstance(entries, list):
+                continue
+            name, _, marketplace = str(key).partition("@")
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                rows.append({
+                    "name": name,
+                    "marketplace": marketplace,
+                    "version": entry.get("version", ""),
+                    "scope": entry.get("scope", ""),
+                    "installed_at": entry.get("installedAt", ""),
+                    "last_updated": entry.get("lastUpdated", ""),
+                })
+    rows.sort(key=lambda r: (r["marketplace"], r["name"]))
+    return {
+        "plugins": rows,
+        "total": len(rows),
+        "plugins_path": str(plugins_file),
+    }
+
+
 # --- Profile (PR63 v2.81.0) ---
 
 @app.get("/api/profile")
