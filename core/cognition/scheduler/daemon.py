@@ -38,6 +38,15 @@ class ScheduleConfig:
     timeout_minutes: int = 60
     python_module: str | None = None
     module_args: list[str] = field(default_factory=list)
+    # PR54 v2.71.0 — opt-in Claude Code v2.1.139 /goal primitive.
+    # When goal_condition is set the scheduler appends
+    # `--goal <condition> --task-budget <N>` to the claude argv, so the
+    # model keeps running until it decides the condition is met (instead
+    # of stopping when the prompt's hardcoded phases run out). NEVER
+    # pair --goal without --task-budget — KB caveat: sharp edges around
+    # the model overcommitting to ambiguous goals (infinite-loop risk).
+    goal_condition: str | None = None
+    task_budget: int | None = None
 
     @classmethod
     def load(cls, config_path: str) -> "list[ScheduleConfig]":
@@ -62,6 +71,8 @@ class ScheduleConfig:
                     timeout_minutes=cfg.get("timeout_minutes", 60),
                     python_module=cfg.get("python_module"),
                     module_args=list(cfg.get("module_args") or []),
+                    goal_condition=cfg.get("goal_condition"),
+                    task_budget=cfg.get("task_budget"),
                 )
             )
         return schedules
@@ -170,7 +181,32 @@ class ArkaScheduler:
             prompt_content = resolve(prompt_content)
         except Exception:
             pass  # fall back to raw template if profile unavailable
-        return [claude_bin, "-p", prompt_content, "--dangerously-skip-permissions"]
+        argv = [claude_bin, "-p", prompt_content, "--dangerously-skip-permissions"]
+        argv.extend(self._goal_argv(schedule))
+        return argv
+
+    @staticmethod
+    def _goal_argv(schedule: ScheduleConfig) -> list[str]:
+        """Build the --goal/--task-budget argv suffix when configured.
+
+        Returns an empty list when goal_condition is unset (legacy
+        single-shot behaviour). Raises ValueError when --goal is set
+        without --task-budget — pairing the two is mandatory per the
+        Claude Code v2.1.139 KB caveat (sharp edges around the model
+        overcommitting to ambiguous goals → infinite-loop risk).
+        """
+        if not schedule.goal_condition:
+            return []
+        if not schedule.task_budget or schedule.task_budget <= 0:
+            raise ValueError(
+                f"schedule '{schedule.command}' sets goal_condition without "
+                "a positive task_budget — pairing is mandatory to bound the "
+                "metered burn (Claude Code v2.1.139 KB caveat)."
+            )
+        return [
+            "--goal", str(schedule.goal_condition),
+            "--task-budget", str(int(schedule.task_budget)),
+        ]
 
     @staticmethod
     def _warn_metered_billing_cutover(schedule: ScheduleConfig) -> None:

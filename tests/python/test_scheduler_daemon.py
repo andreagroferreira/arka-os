@@ -92,6 +92,34 @@ class TestScheduleConfig:
         commands = [s.command for s in schedules]
         assert "disabled_task" not in commands
 
+    def test_load_goal_and_task_budget_fields(self, tmp_path: Path) -> None:
+        """PR54 v2.71.0 — YAML loader reads goal_condition + task_budget
+        when present, leaves them None when absent."""
+        yaml_file = tmp_path / "schedules.yaml"
+        yaml_file.write_text(yaml.dump({
+            "schedules": {
+                "with_goal": {
+                    "command": "research",
+                    "prompt_file": "~/r.md",
+                    "time": "05:00",
+                    "goal_condition": "briefing on disk AND json log exists",
+                    "task_budget": 15,
+                },
+                "without_goal": {
+                    "command": "dreaming",
+                    "prompt_file": "~/d.md",
+                    "time": "02:00",
+                },
+            }
+        }))
+        schedules = ScheduleConfig.load(str(yaml_file))
+        with_goal = next(s for s in schedules if s.command == "research")
+        without_goal = next(s for s in schedules if s.command == "dreaming")
+        assert with_goal.goal_condition == "briefing on disk AND json log exists"
+        assert with_goal.task_budget == 15
+        assert without_goal.goal_condition is None
+        assert without_goal.task_budget is None
+
 
 # ---------------------------------------------------------------------------
 # TestArkaScheduler
@@ -167,6 +195,80 @@ class TestArkaScheduler:
             scheduler._build_command(schedule)
             err2 = capsys.readouterr().err
             assert err2 == ""
+
+    def test_goal_condition_appends_goal_and_budget_flags(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """PR54 v2.71.0 — goal_condition + task_budget produce the
+        `--goal <cond> --task-budget <N>` argv suffix."""
+        prompt_file = tmp_path / "research.md"
+        prompt_file.write_text("# research prompt")
+        fake_claude = tmp_path / ".local" / "bin" / "claude"
+        fake_claude.parent.mkdir(parents=True)
+        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.chmod(0o755)
+        schedule = ScheduleConfig(
+            command="research",
+            prompt_file=str(prompt_file),
+            run_time=time(5, 0),
+            goal_condition=(
+                "Today's Research briefing is on disk AND the JSON log exists"
+            ),
+            task_budget=12,
+        )
+        with patch.object(Path, "home", return_value=tmp_path):
+            cmd = scheduler._build_command(schedule)
+        assert "--goal" in cmd
+        idx = cmd.index("--goal")
+        assert cmd[idx + 1] == (
+            "Today's Research briefing is on disk AND the JSON log exists"
+        )
+        assert "--task-budget" in cmd
+        assert cmd[cmd.index("--task-budget") + 1] == "12"
+
+    def test_goal_without_task_budget_raises(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """Pairing --goal with --task-budget is mandatory. Setting one
+        without the other must fail loudly rather than silently dropping
+        the goal or the budget."""
+        prompt_file = tmp_path / "x.md"
+        prompt_file.write_text("x")
+        fake_claude = tmp_path / ".local" / "bin" / "claude"
+        fake_claude.parent.mkdir(parents=True)
+        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.chmod(0o755)
+        schedule = ScheduleConfig(
+            command="bad",
+            prompt_file=str(prompt_file),
+            run_time=time(2, 0),
+            goal_condition="something",
+            task_budget=None,
+        )
+        with patch.object(Path, "home", return_value=tmp_path):
+            with pytest.raises(ValueError, match="task_budget"):
+                scheduler._build_command(schedule)
+
+    def test_no_goal_condition_yields_legacy_argv(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """When goal_condition is unset, argv must not gain --goal nor
+        --task-budget. Pre-PR54 schedules stay byte-identical."""
+        prompt_file = tmp_path / "x.md"
+        prompt_file.write_text("legacy prompt")
+        fake_claude = tmp_path / ".local" / "bin" / "claude"
+        fake_claude.parent.mkdir(parents=True)
+        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.chmod(0o755)
+        schedule = ScheduleConfig(
+            command="legacy",
+            prompt_file=str(prompt_file),
+            run_time=time(2, 0),
+        )
+        with patch.object(Path, "home", return_value=tmp_path):
+            cmd = scheduler._build_command(schedule)
+        assert "--goal" not in cmd
+        assert "--task-budget" not in cmd
 
     def test_python_module_path_does_not_emit_metered_warning(
         self, scheduler: ArkaScheduler, tmp_path: Path, capsys
