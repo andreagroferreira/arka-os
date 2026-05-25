@@ -5,6 +5,52 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.79.0] - 2026-05-25
+
+### Added (Persona builder wizard — PR62)
+
+- **`dashboard/app/components/PersonaWizard.vue`** — 4-step wizard
+  closing the loop on PR57's backend (`POST /api/personas/build`):
+  1. **Sources** — operator types the person's name and pastes URLs
+     (one per line, up to 50). Optional "skip ingest" checkbox if
+     content is already indexed.
+  2. **Indexing** — fires `POST /api/knowledge/ingest-bulk` (PR56),
+     subscribes to `/ws/tasks` for per-job progress, auto-advances
+     when every job is `completed` or `failed`.
+  3. **Generating DNA** — calls `POST /api/personas/build`; reads the
+     indexed chunks via the multi-backend `LLMProvider` and produces
+     a draft `Persona`.
+  4. **Review & save** — operator edits any field (Identity, DNA,
+     Knowledge), optionally checks "Also clone to an agent
+     immediately" with department + tier pickers. Save calls
+     `POST /api/personas` and (when requested) `.../clone`.
+- **`dashboard/app/pages/personas.vue`** — header now offers two
+  creation paths: `AI Builder` (primary, opens the wizard) +
+  `Manual` (legacy 30-field form, preserved for power users who
+  want to type every DNA value). The wizard never auto-saves; every
+  transition is operator-confirmed.
+
+### Why
+
+`[[project_persona_builder]]` memory explicitly flagged the manual
+form as the wrong UX ("form is too tall, no overflow scroll") and
+specified the wizard shape. PR57 shipped the backend (the builder
++ endpoint + 14 tests). PR62 ships the frontend that consumes it.
+Together they implement the complete plan from the project memory.
+
+### Test coverage
+
+- Vue typecheck clean for the new component
+- Full Python suite: 3712/3712 passing (no backend change in this PR)
+- Preflight: `all_passed: True`
+
+### Operator action
+
+This PR ships the wizard code but does **not** include a Vitest
+suite (dashboard/ has no test infra yet — separate PR worth). Verify
+the four-step flow in browser after merge: run `cd dashboard && pnpm dev`
+and `python3 scripts/dashboard-api.py`, then `/personas` → `AI Builder`.
+
 ## [2.78.0] - 2026-05-25
 
 ### Added (One-stop `/arka update` orchestrator — PR61)
