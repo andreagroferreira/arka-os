@@ -193,7 +193,16 @@ PHASE_RE = re.compile(r"\[arka:phase:\d+\]", re.IGNORECASE)
 SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
 _safe_session_id = _safe_session_id_module.safe_session_id
 
-ASSISTANT_WINDOW = 6
+# PR53 v2.70.0 — widened from 6 to 20. The 6-message window was too
+# tight for long multi-PR sessions: after a single PR's worth of test
+# runs / commits / npm publishes (each producing a substantive assistant
+# message), the [arka:routing] line aged out and the enforcer blocked
+# subsequent Edit/Write calls even though the operator was clearly mid-
+# scope. 20 covers ~2-3 PRs of tool work without re-emitting the
+# routing line. Transcript remains the authoritative source per
+# docs/adr/2026-04-17-binding-flow-enforcement.md — this just widens
+# how far back we look before declaring the marker absent.
+ASSISTANT_WINDOW = 20
 CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 BYPASS_AUDIT_PATH = Path.home() / ".arkaos" / "audit" / "bypass.log"
 TELEMETRY_PATH = Path.home() / ".arkaos" / "telemetry" / "enforcement.jsonl"
