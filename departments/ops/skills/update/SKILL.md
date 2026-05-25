@@ -21,15 +21,31 @@ Hybrid sync engine: Python handles deterministic operations (MCPs, settings, des
 
 ## Orchestration (Summary)
 
-1. **Phases 1–3 + 5 (deterministic, Python):** Run the engine:
+1. **One-stop: npm refresh + engine (PR61 v2.78.0 orchestrator).**
    ```bash
-   cd $ARKAOS_ROOT && python -m core.sync.engine --home ~/.arkaos --skills ~/.claude/skills --output json
+   cd $ARKAOS_ROOT && python -m core.sync.update_orchestrator --home ~/.arkaos --skills ~/.claude/skills --output json
    ```
-   Handles manifest, discovery, MCP sync, settings sync, descriptors, and writes `~/.arkaos/sync-state.json`.
+   The orchestrator detects whether the running ArkaOS is behind npm
+   latest. When stale, it shells out to `npx arkaos@latest update`
+   first so the sync engine below reads fresh code; when current, it
+   skips straight to the engine. Either way it runs the
+   deterministic engine (manifest, discovery, MCP sync, settings
+   sync, descriptors, content, agents) and writes
+   `~/.arkaos/sync-state.json`.
+
+   Probe is cached for 1 hour in `~/.arkaos/npm-latest.cache.json`
+   to keep repeat runs cheap. Offline / `npx` missing → orchestrator
+   silently skips the npm step and falls through to the engine.
+
+   Fallback (no orchestrator): the underlying engine still runs the
+   same way via `python -m core.sync.engine ...` for callers that
+   don't need the version-drift gate.
 
 2. **Phase 4 (intelligent, AI subagent):** After the engine completes, dispatch ONE subagent with the engine's JSON report + the feature registry (`core/sync/features/*.yaml`). The subagent injects/removes feature sections in each `~/.claude/skills/arka-{ecosystem}/SKILL.md` while preserving all custom content.
 
-3. **Report:** Display the formatted summary returned by the engine.
+3. **Report:** Display the formatted summary returned by the engine,
+   plus `installed_version_before` / `latest_version_seen` from the
+   orchestrator so the operator sees what got refreshed.
 
 ## Error Handling (Summary)
 
