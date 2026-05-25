@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.87.0] - 2026-05-25
+
+### Added (Health page: auto-refresh + severity + copy-fix — PR70)
+
+- **Backend `/api/health` extended** with three new fields:
+  - `severity` on every check — `"fail"` (must-pass) or `"warn"`
+    (recommended). `knowledge_db` and `profile` are now warn-only
+    so a fresh install doesn't show "blocking failures" for things
+    the operator simply hasn't done yet.
+  - `failed_blocking` and `warning_count` aggregates so the UI
+    can distinguish degraded-but-workable from broken.
+  - `ts` ISO timestamp on the response so the UI can show
+    "last checked".
+  - `healthy` now ignores warnings (only blocking failures break it).
+- **Frontend `health.vue` rewritten**:
+  - 30 s auto-refresh while the tab is visible (pauses on hide,
+    refreshes immediately on resume — `visibilitychange` listener)
+  - Last-checked timestamp in the header
+  - Severity-aware banner: green (all pass), yellow (warnings only),
+    red (blocking failures)
+  - Per-check ▶ Copy-fix button when a `fix` command is present
+    (clipboard write + check-icon confirmation for 1.5 s)
+  - Per-check row colour reflects severity (warn = yellow tint,
+    fail = red tint)
+
+### Test coverage
+
+- 9 new `tests/python/test_health_api.py` cases:
+  - `ts` is ISO with timezone
+  - Aggregate fields exist (`failed_blocking`, `warning_count`, `healthy`)
+  - Every check carries a `severity` ∈ {`fail`, `warn`}
+  - Warn checks don't count as blocking; `warning_count` is correct
+  - `healthy` iff no blocking failures (warnings tolerated)
+  - `knowledge_db` + `profile` are deliberately `warn`-severity
+  - `constitution` stays `fail`-severity
+- Vue typecheck clean
+- Full Python suite: 3778/3778 passing
+- Preflight: `all_passed: True`
+
 ## [2.86.0] - 2026-05-25
 
 ### Added (Agents activity feed + dispatch copy — PR69)

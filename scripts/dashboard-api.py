@@ -614,18 +614,38 @@ def knowledge_search(q: str = Query(...), top_k: int = Query(5)):
 
 @app.get("/api/health")
 def health():
-    checks = []
+    """PR70 v2.87.0 — per-check severity + response timestamp.
+
+    Each check now carries a `severity` field:
+      - "fail" — must-pass; missing breaks ArkaOS
+      - "warn" — recommended; missing means a degraded but workable env
+
+    Response also carries `ts` so the UI can show "last checked".
+    Frontend polls every 30s and surfaces copy-fix buttons.
+    """
+    from datetime import datetime, timezone
+
+    checks: list[dict] = []
     arkaos_home = Path.home() / ".arkaos"
 
-    def check(name, condition, fix=""):
-        checks.append({"name": name, "passed": condition, "fix": fix})
+    def check(name: str, condition: bool, fix: str = "", severity: str = "fail"):
+        checks.append({
+            "name": name,
+            "passed": condition,
+            "fix": fix,
+            "severity": severity,
+        })
 
-    check("install_dir", arkaos_home.exists(), "Run: npx arkaos install")
-    check("manifest", (arkaos_home / "install-manifest.json").exists(), "Run: npx arkaos install")
+    check("install_dir", arkaos_home.exists(), "npx arkaos install")
+    check("manifest", (arkaos_home / "install-manifest.json").exists(),
+          "npx arkaos install")
     check("constitution", (ARKAOS_ROOT / "config" / "constitution.yaml").exists())
-    check("agents_registry", (ARKAOS_ROOT / "knowledge" / "agents-registry-v2.json").exists())
-    check("commands_registry", (ARKAOS_ROOT / "knowledge" / "commands-registry-v2.json").exists())
-    check("hooks_dir", (arkaos_home / "config" / "hooks").exists(), "Run: npx arkaos install")
+    check("agents_registry",
+          (ARKAOS_ROOT / "knowledge" / "agents-registry-v2.json").exists())
+    check("commands_registry",
+          (ARKAOS_ROOT / "knowledge" / "commands-registry-v2.json").exists())
+    check("hooks_dir", (arkaos_home / "config" / "hooks").exists(),
+          "npx arkaos install")
 
     try:
         subprocess.run(["python3", "--version"], capture_output=True, timeout=2)
@@ -633,10 +653,34 @@ def health():
     except Exception:
         check("python", False, "Install Python 3.11+")
 
-    check("knowledge_db", (arkaos_home / "knowledge.db").exists(), "Run: npx arkaos index")
+    # Telemetry + knowledge — warn-only; missing them is a degraded
+    # but workable state (new installs, never-indexed-anything).
+    check("knowledge_db", (arkaos_home / "knowledge.db").exists(),
+          "Open the Knowledge tab and ingest a source",
+          severity="warn")
+    check("profile",
+          (arkaos_home / "profile.json").exists(),
+          "Open Settings → Profile to introduce yourself",
+          severity="warn")
 
     passed = sum(1 for c in checks if c["passed"])
-    return {"checks": checks, "passed": passed, "total": len(checks), "healthy": passed == len(checks)}
+    failed_blocking = sum(
+        1 for c in checks
+        if not c["passed"] and c["severity"] == "fail"
+    )
+    warning_count = sum(
+        1 for c in checks
+        if not c["passed"] and c["severity"] == "warn"
+    )
+    return {
+        "checks": checks,
+        "passed": passed,
+        "total": len(checks),
+        "failed_blocking": failed_blocking,
+        "warning_count": warning_count,
+        "healthy": failed_blocking == 0,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # --- Personas ---
