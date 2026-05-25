@@ -5,6 +5,65 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.78.0] - 2026-05-25
+
+### Added (One-stop `/arka update` orchestrator — PR61)
+
+- **`core/sync/update_orchestrator.py`** — version-drift-aware
+  wrapper around the existing sync engine. On every `/arka update`:
+  1. Reads the running ArkaOS version from `<repo>/VERSION`.
+  2. Probes the npm registry for the published latest (5s timeout,
+     1-hour disk cache at `~/.arkaos/npm-latest.cache.json`).
+  3. If older, shells out to `npx arkaos@latest update` and waits
+     for it to finish (10-min timeout). The npx step rewrites
+     `~/.arkaos/.repo-path` to the freshly-extracted package so the
+     sync engine below reads the right code.
+  4. Dispatches the existing `run_sync()` engine — same arguments,
+     same telemetry, same report shape.
+- **Skill rewired** — `departments/ops/skills/update/SKILL.md` now
+  points `/arka update` at the orchestrator instead of the bare
+  engine. The engine remains the documented fallback for callers
+  that don't need the version-drift gate.
+
+### Bug fixed
+
+Operators were running `/arka update` inside Claude Code without
+first running `npx arkaos@latest update`. Result: the sync engine
+silently ran from whichever npx cache `~/.arkaos/.repo-path` last
+pointed at — months-stale in some cases (e.g. `v2.39.0` from
+2026-05-14 in the dev environment that built this PR). Every
+intervening release became invisible to `/arka update`.
+
+Confirmed local repro: `cat ~/.arkaos/.repo-path` →
+`/Users/.../node_modules/arkaos` at v2.39.0; `npm view arkaos
+version` → v2.77.0 (the version published by PR60). 38 releases
+silently skipped.
+
+### Safety
+
+- Never raises on transient failures: npm offline, slow registry,
+  missing `npx` → orchestrator falls through to the engine using
+  whatever code is currently installed (= identical to pre-PR61).
+- Version-drift detection only triggers `npx` when *both* installed
+  and latest are readable semver — defends against probe garbage.
+- Probe TTL caps registry traffic to once per hour per machine.
+
+### Test coverage
+
+- 29 new `tests/python/test_update_orchestrator.py` cases:
+  - Semver shape: 8 parametrised cases (canonical, prerelease,
+    leading-`v`, missing patch, garbage, oversized)
+  - Semver compare: 5 parametrised older-than cases
+  - npm probe: fresh cache hit, expired cache refresh, timeout,
+    non-zero exit, garbage output, OSError
+  - End-to-end orchestrate: runs npx on stale, skips on current,
+    skips on probe-None, skips on installed-None, always returns
+    a SyncReport
+  - `_run_npx_update` never raises: OSError, TimeoutExpired,
+    non-zero returncode
+- Full Python suite: 3712/3712 passing
+- Preflight: `all_passed: True`
+
 ## [2.77.0] - 2026-05-25
 
 ### Added (Cost-category env var + Codex headless auto-detect — PR60)
