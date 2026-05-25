@@ -729,6 +729,176 @@ def persona_build(body: dict):
     }
 
 
+# --- Command center (PR66 v2.83.0) ---
+
+@app.get("/api/overview/command-center")
+def overview_command_center():
+    """Telemetry-driven overview surfacing what the operator actually needs.
+
+    Returns greeting, today's cost, project list with stack + last-commit
+    + status, recent enforcement incidents, and suggested quick actions.
+    """
+    from core.profile import ProfileManager
+    from core.profile.manager import parse_projects_dirs
+    from core.runtime.llm_cost_telemetry import summarise
+
+    profile = ProfileManager().read()
+    today_cost = summarise(period="today")
+
+    return {
+        "greeting": {
+            "name": profile.name,
+            "role": profile.role,
+            "company": profile.company,
+            "language": profile.language,
+        },
+        "today_cost": {
+            "total_usd": today_cost.total_cost_usd,
+            "call_count": today_cost.call_count,
+            "tokens_in": today_cost.total_tokens_in,
+            "tokens_out": today_cost.total_tokens_out,
+            "cache_hit_rate": today_cost.cache_hit_rate,
+        },
+        "projects": _scan_projects(parse_projects_dirs(profile.projectsDir)),
+        "recent_incidents": _recent_incidents(limit=8),
+        "quick_actions": [
+            {"command": "/arka update", "description": "Sync projects + skills"},
+            {"command": "/arka costs", "description": "View detailed LLM cost breakdown"},
+            {"command": "/arka conclave", "description": "Convene the personal AI advisory board"},
+            {"command": "/dev review", "description": "Run a code review on the current branch"},
+        ],
+    }
+
+
+def _scan_projects(projects_dirs: list[str]) -> list[dict]:
+    """Read each project descriptor and enrich with last-commit info.
+
+    Best-effort: never raises. Returns an empty list when descriptors
+    or scan directories are missing.
+    """
+    from datetime import datetime, timezone
+    descriptor_dir = Path.home() / ".arkaos" / "projects"
+    if not descriptor_dir.exists():
+        return []
+
+    rows: list[dict] = []
+    for entry in sorted(descriptor_dir.iterdir()):
+        if entry.is_dir():
+            descriptor = entry / "PROJECT.md"
+        elif entry.suffix == ".md":
+            descriptor = entry
+        else:
+            continue
+        if not descriptor.exists():
+            continue
+        try:
+            data = _parse_descriptor(descriptor)
+        except Exception:
+            continue
+        rows.append(data)
+
+    # Sort by last_commit_days ascending (most recently active first).
+    rows.sort(key=lambda r: (
+        r.get("last_commit_days") if r.get("last_commit_days") is not None else 9999,
+        r.get("name", ""),
+    ))
+    return rows[:30]  # cap to keep payload bounded
+
+
+def _parse_descriptor(path: Path) -> dict:
+    """Extract frontmatter + last-commit-days from a project descriptor."""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    fm: dict = {}
+    if text.startswith("---\n"):
+        end = text.find("\n---", 4)
+        if end > 0:
+            import yaml as _yaml
+            try:
+                fm = _yaml.safe_load(text[4:end]) or {}
+            except Exception:
+                fm = {}
+    name = str(fm.get("name") or path.stem)
+    project_path = str(fm.get("path") or "")
+    stack = fm.get("stack") or []
+    if not isinstance(stack, list):
+        stack = [str(stack)]
+    status = str(fm.get("status") or "unknown")
+    ecosystem = str(fm.get("ecosystem") or "")
+    last_commit_days = _last_commit_days(project_path) if project_path else None
+    return {
+        "name": name,
+        "path": project_path,
+        "stack": [str(s) for s in stack][:6],
+        "status": status,
+        "ecosystem": ecosystem,
+        "last_commit_days": last_commit_days,
+    }
+
+
+def _last_commit_days(project_path: str) -> Optional[int]:
+    """Return days since the last git commit, or None when unknown."""
+    import os
+    if not project_path or not os.path.isdir(project_path):
+        return None
+    git_dir = os.path.join(project_path, ".git")
+    if not os.path.exists(git_dir):
+        return None
+    try:
+        from datetime import datetime, timezone
+        result = subprocess.run(
+            ["git", "-C", project_path, "log", "-1", "--format=%ct"],
+            capture_output=True, text=True, timeout=3, check=False,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        committed_at = datetime.fromtimestamp(int(result.stdout.strip()), tz=timezone.utc)
+        delta = datetime.now(timezone.utc) - committed_at
+        return max(0, delta.days)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+def _recent_incidents(limit: int = 8) -> list[dict]:
+    """Recent enforcement / bypass events from telemetry.
+
+    Reads the tail of ~/.arkaos/telemetry/enforcement.jsonl and keeps
+    rows where the operator hit a bypass or a flow-marker block. The
+    UI uses these to show "what went sideways recently".
+    """
+    log = Path.home() / ".arkaos" / "telemetry" / "enforcement.jsonl"
+    if not log.exists():
+        return []
+    try:
+        text = log.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    rows: list[dict] = []
+    # Walk lines in reverse; stop when we've gathered `limit` matches.
+    for line in reversed(text.splitlines()):
+        if len(rows) >= limit:
+            break
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        # Interesting events: bypass used OR allow=False (a block).
+        bypass = bool(entry.get("bypass_used"))
+        allowed = entry.get("allow")
+        if not bypass and allowed is not False:
+            continue
+        rows.append({
+            "ts": entry.get("ts", ""),
+            "tool": entry.get("tool", ""),
+            "reason": entry.get("reason", ""),
+            "cwd": entry.get("cwd", ""),
+            "bypass_used": bypass,
+            "kind": "bypass" if bypass else "blocked",
+        })
+    return rows
+
+
 # --- LLM Costs (PR65 v2.82.0) ---
 
 @app.get("/api/llm-costs")

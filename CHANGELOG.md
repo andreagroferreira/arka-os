@@ -5,6 +5,55 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.83.0] - 2026-05-25
+
+### Added (Index → Command Center — PR66)
+
+- **`GET /api/overview/command-center`** — telemetry-driven aggregate:
+  - `greeting` (name, role, company, language from `~/.arkaos/profile.json`)
+  - `today_cost` (total USD, calls, tokens in/out, cache hit rate from PR47)
+  - `projects` (parsed from `~/.arkaos/projects/<slug>.md` descriptors;
+    enriched with last-commit-days via `git log -1 --format=%ct`)
+  - `recent_incidents` (last 8 bypass / blocked rows from
+    `~/.arkaos/telemetry/enforcement.jsonl`)
+  - `quick_actions` (curated command suggestions with one-click copy)
+- **`dashboard/app/pages/index.vue` rebuilt** from a 6-stat-card
+  overview that re-counted things you already knew (agents=62,
+  skills=256) into a real operator command center:
+  - **Hero** — personalised greeting + today's cost/calls/cache
+  - **Projects column (2/3 width)** — each project with stack badges,
+    status pill, ecosystem tag, last-commit timestamp (green/yellow/red
+    by freshness)
+  - **Incidents column (1/3 width)** — recent bypass / blocked events
+    with tool + reason
+  - **Quick actions** — click-to-copy `/arka update`, `/arka costs`,
+    `/arka conclave`, `/dev review`
+- Profile manager (`core/profile/manager.py`) now resolves the default
+  path at call time so HOME changes (tests, multi-tenant daemons) are
+  honoured. Production behaviour unchanged.
+
+### Why
+
+Per the dashboard audit ("Stats são números cegos — não dão
+indicação de saúde"), the homepage was a vanity board. The user
+asked: "what justifies this page existing if the CLI shows the same
+counts?" PR66 answers: nothing — replace it with what the operator
+actually needs at session start.
+
+### Test coverage
+
+- 15 new `tests/python/test_command_center_api.py` cases:
+  - `_parse_descriptor` (minimal, full frontmatter, stack-cap-6,
+    scalar stack, malformed YAML)
+  - `_last_commit_days` (missing path, not-a-repo, empty string)
+  - `_recent_incidents` (missing log, filter bypass/blocked,
+    cap-at-limit, skip malformed)
+  - `/api/overview/command-center` (required-keys shape,
+    greeting-from-profile, empty-projects)
+- 1 updated profile-manager behaviour (call-time path resolution)
+- Vue typecheck clean
+- Full Python suite: 3761/3761 passing
+
 ## [2.82.0] - 2026-05-25
 
 ### Added (Budget rebuild — PR65)

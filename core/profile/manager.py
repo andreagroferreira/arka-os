@@ -82,7 +82,11 @@ class ProfileManager:
     """
 
     def __init__(self, path: Path | None = None) -> None:
-        self._path = path or DEFAULT_PROFILE_PATH
+        # Resolve at call time so HOME changes (tests, multi-tenant
+        # daemons) are honoured. DEFAULT_PROFILE_PATH stays as a
+        # module-level constant for callers that want the canonical
+        # path explicitly.
+        self._path = path or (Path.home() / ".arkaos" / "profile.json")
 
     @property
     def path(self) -> Path:
