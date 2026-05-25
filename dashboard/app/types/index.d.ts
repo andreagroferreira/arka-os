@@ -175,6 +175,9 @@ export interface HealthCheck {
   name: string
   passed: boolean
   fix: string
+  // PR70 v2.87.0 — backend now tags every check with a severity.
+  // 'fail' is must-pass; 'warn' is recommended but non-blocking.
+  severity?: 'fail' | 'warn'
 }
 
 export interface Persona {
