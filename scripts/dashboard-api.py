@@ -487,6 +487,48 @@ def knowledge_ingest(body: dict):
     return {"job_id": job.id, "source_type": source_type, "status": "queued"}
 
 
+@app.post("/api/knowledge/ingest-bulk")
+def knowledge_ingest_bulk(body: dict):
+    """PR56 v2.73.0 — bulk URL ingest.
+
+    Accepts ``{"sources": ["url1", "url2", ...]}`` and queues one
+    background job per source. Returns ``{"jobs": [{...}, ...]}`` so the
+    dashboard can subscribe to each via the existing /ws/tasks stream.
+    Empty / whitespace-only lines are filtered. Duplicates collapse on
+    the JobManager side (one job per unique source).
+    """
+    raw_sources = body.get("sources") or []
+    if not isinstance(raw_sources, list):
+        return {"error": "sources must be a list"}
+    cleaned = []
+    seen: set[str] = set()
+    for raw in raw_sources:
+        if not isinstance(raw, str):
+            continue
+        s = raw.strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        cleaned.append(s)
+    if not cleaned:
+        return {"error": "no valid sources provided"}
+    if len(cleaned) > 50:
+        return {"error": "bulk ingest is capped at 50 sources per request"}
+    jobs = []
+    for source in cleaned:
+        result = knowledge_ingest({"source": source})
+        if "error" in result:
+            jobs.append({"source": source, "error": result["error"]})
+        else:
+            jobs.append({
+                "source": source,
+                "job_id": result["job_id"],
+                "source_type": result.get("source_type"),
+                "status": result.get("status", "queued"),
+            })
+    return {"jobs": jobs, "count": len(jobs)}
+
+
 @app.get("/api/tasks/{task_id}")
 def task_detail(task_id: str):
     """Get a single task by ID. Also checks jobs."""

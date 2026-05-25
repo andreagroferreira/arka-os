@@ -16,15 +16,26 @@ const ingestError = ref<string | null>(null)
 const isDragging = ref(false)
 const pasteText = ref('')
 const pasteTitle = ref('')
+// PR56 v2.73.0 — bulk URL ingest mode. Paste a list of URLs (one per
+// line) and the backend queues one job per source.
+const bulkUrls = ref('')
 
-const activeInputMode = ref<'url' | 'file' | 'text' | 'research'>('url')
+const activeInputMode = ref<'url' | 'file' | 'text' | 'research' | 'bulk'>('url')
 
 const inputModes = [
   { label: 'URL', value: 'url' as const, icon: 'i-lucide-link' },
+  { label: 'Bulk', value: 'bulk' as const, icon: 'i-lucide-list' },
   { label: 'File', value: 'file' as const, icon: 'i-lucide-upload' },
   { label: 'Text', value: 'text' as const, icon: 'i-lucide-type' },
   { label: 'Research', value: 'research' as const, icon: 'i-lucide-search' },
 ]
+
+const bulkUrlCount = computed(() =>
+  bulkUrls.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0).length
+)
 
 function handleDrop(e: DragEvent) {
   isDragging.value = false
@@ -87,6 +98,7 @@ function clearFile() {
 }
 
 const canIngest = computed(() => {
+  if (activeInputMode.value === 'bulk') return bulkUrlCount.value > 0
   return detectedType.value !== null
 })
 
@@ -178,7 +190,11 @@ onUnmounted(() => {
 })
 
 async function handleIngest() {
-  if (!detectedType.value && activeInputMode.value !== 'text') return
+  if (
+    !detectedType.value
+    && activeInputMode.value !== 'text'
+    && activeInputMode.value !== 'bulk'
+  ) return
 
   ingestError.value = null
 
@@ -199,6 +215,17 @@ async function handleIngest() {
         body: { source: pasteText.value.slice(0, 100), type: 'markdown', text: pasteText.value, title: pasteTitle.value },
       })
     }
+    // Bulk URL paste — one job per non-blank line, server caps at 50
+    else if (activeInputMode.value === 'bulk' && bulkUrlCount.value > 0) {
+      const sources = bulkUrls.value
+        .split('\n')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+      await $fetch(`${apiBase}/api/knowledge/ingest-bulk`, {
+        method: 'POST',
+        body: { sources },
+      })
+    }
     // URL or Research — standard ingest
     else {
       const source = ingestUrl.value.trim()
@@ -215,6 +242,7 @@ async function handleIngest() {
     clearFile()
     pasteText.value = ''
     pasteTitle.value = ''
+    bulkUrls.value = ''
 
     // Refresh jobs table + connect WebSocket
     fetchJobs()
@@ -415,6 +443,23 @@ function formatScore(score: number): string {
               />
             </div>
 
+            <!-- Mode: Bulk URLs (PR56 v2.73.0) -->
+            <div v-if="activeInputMode === 'bulk'" class="space-y-3">
+              <UTextarea
+                v-model="bulkUrls"
+                placeholder="Paste one URL per line. Up to 50 sources per batch.&#10;&#10;https://www.youtube.com/watch?v=...&#10;https://example.com/article&#10;https://example.com/paper.pdf"
+                :rows="8"
+                size="lg"
+                class="w-full font-mono text-sm"
+              />
+              <div class="flex items-center justify-between text-xs text-muted">
+                <span>{{ bulkUrlCount }} source{{ bulkUrlCount === 1 ? '' : 's' }} detected</span>
+                <span v-if="bulkUrlCount > 50" class="text-red-400">
+                  Over the 50-source cap — extras will be rejected.
+                </span>
+              </div>
+            </div>
+
             <!-- Mode: Research -->
             <div v-if="activeInputMode === 'research'" class="space-y-3">
               <UInput
@@ -447,7 +492,11 @@ function formatScore(score: number): string {
               </div>
 
               <UButton
-                :label="activeInputMode === 'research' ? 'Research & Index' : 'Ingest'"
+                :label="
+                  activeInputMode === 'research' ? 'Research & Index'
+                  : activeInputMode === 'bulk' ? `Ingest ${bulkUrlCount} source${bulkUrlCount === 1 ? '' : 's'}`
+                  : 'Ingest'
+                "
                 icon="i-lucide-zap"
                 size="md"
                 :disabled="!canIngest && !(activeInputMode === 'text' && pasteText.length > 50)"
