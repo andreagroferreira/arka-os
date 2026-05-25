@@ -458,6 +458,105 @@ class TestAdapterHeadless:
         assert resp.text == "reply"
         assert resp.model == "claude-opus-4-7"
 
+    def test_pr60_category_env_var_flows_to_telemetry(
+        self, monkeypatch, tmp_path,
+    ):
+        """PR60 v2.77.0 — ARKA_CALL_CATEGORY env var lands in the
+        telemetry row's category field. Backward-compat: absent env
+        var → empty string category (base bucket)."""
+        telemetry_path = tmp_path / "llm-cost.jsonl"
+        monkeypatch.setenv("ARKA_LLM_COST_PATH", str(telemetry_path))
+        monkeypatch.setenv("ARKA_CALL_CATEGORY", "skill:arka-spec")
+        monkeypatch.setenv("ARKA_SESSION_ID", "sess-cat")
+        monkeypatch.setattr(
+            "core.runtime.claude_code.shutil.which",
+            lambda _name: "/fake/claude",
+        )
+        fake_stdout = json.dumps({
+            "result": "ok", "model": "claude-opus-4-7",
+            "usage": {"input_tokens": 5, "output_tokens": 5,
+                      "cache_read_input_tokens": 0,
+                      "cache_creation_input_tokens": 0},
+        })
+        monkeypatch.setattr(
+            "core.runtime.claude_code.subprocess.run",
+            lambda cmd, **kw: SimpleNamespace(
+                returncode=0, stdout=fake_stdout, stderr="",
+            ),
+        )
+        SubagentProvider(adapter=ClaudeCodeAdapter()).complete("hi")
+        rows = [
+            json.loads(line)
+            for line in telemetry_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        assert len(rows) == 1
+        assert rows[0]["category"] == "skill:arka-spec"
+        assert rows[0]["session_id"] == "sess-cat"
+
+    def test_pr60_no_category_env_lands_in_base_bucket(
+        self, monkeypatch, tmp_path,
+    ):
+        telemetry_path = tmp_path / "llm-cost.jsonl"
+        monkeypatch.setenv("ARKA_LLM_COST_PATH", str(telemetry_path))
+        monkeypatch.delenv("ARKA_CALL_CATEGORY", raising=False)
+        monkeypatch.setenv("ARKA_SESSION_ID", "sess-base")
+        monkeypatch.setattr(
+            "core.runtime.claude_code.shutil.which",
+            lambda _name: "/fake/claude",
+        )
+        fake_stdout = json.dumps({
+            "result": "ok", "model": "claude-opus-4-7",
+            "usage": {"input_tokens": 5, "output_tokens": 5,
+                      "cache_read_input_tokens": 0,
+                      "cache_creation_input_tokens": 0},
+        })
+        monkeypatch.setattr(
+            "core.runtime.claude_code.subprocess.run",
+            lambda cmd, **kw: SimpleNamespace(
+                returncode=0, stdout=fake_stdout, stderr="",
+            ),
+        )
+        SubagentProvider(adapter=ClaudeCodeAdapter()).complete("hi")
+        rows = [
+            json.loads(line)
+            for line in telemetry_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        assert len(rows) == 1
+        assert rows[0]["category"] == ""
+
+    def test_pr60_category_env_var_strips_whitespace(
+        self, monkeypatch, tmp_path,
+    ):
+        telemetry_path = tmp_path / "llm-cost.jsonl"
+        monkeypatch.setenv("ARKA_LLM_COST_PATH", str(telemetry_path))
+        monkeypatch.setenv("ARKA_CALL_CATEGORY", "  subagent:dev  ")
+        monkeypatch.setenv("ARKA_SESSION_ID", "sess-strip")
+        monkeypatch.setattr(
+            "core.runtime.claude_code.shutil.which",
+            lambda _name: "/fake/claude",
+        )
+        fake_stdout = json.dumps({
+            "result": "ok", "model": "claude-opus-4-7",
+            "usage": {"input_tokens": 1, "output_tokens": 1,
+                      "cache_read_input_tokens": 0,
+                      "cache_creation_input_tokens": 0},
+        })
+        monkeypatch.setattr(
+            "core.runtime.claude_code.subprocess.run",
+            lambda cmd, **kw: SimpleNamespace(
+                returncode=0, stdout=fake_stdout, stderr="",
+            ),
+        )
+        SubagentProvider(adapter=ClaudeCodeAdapter()).complete("hi")
+        rows = [
+            json.loads(line)
+            for line in telemetry_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        assert rows[0]["category"] == "subagent:dev"
+
     def test_claude_code_non_zero_exit_raises(self, monkeypatch):
         monkeypatch.setattr(
             "core.runtime.claude_code.shutil.which",
