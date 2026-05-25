@@ -612,6 +612,32 @@ def knowledge_search(q: str = Query(...), top_k: int = Query(5)):
     return {"results": results, "query": q, "total": len(results)}
 
 
+@app.delete("/api/knowledge/sources")
+def knowledge_delete_source(source: str = Query(...)):
+    """PR71 v2.88.0 — remove all chunks from a given source.
+
+    Operators sometimes ingest a noisy / wrong source and want to nuke
+    every chunk that came from it without rebuilding the whole vector
+    DB. The vector store already exposes `remove_file(source)` —
+    this endpoint just exposes it on the wire.
+
+    Returns ``{deleted: N, source: "..."}``. Refuses empty source
+    paths so a runaway client doesn't accidentally request "delete
+    everything that has no source".
+    """
+    clean = (source or "").strip()
+    if not clean:
+        return {"error": "source query param is required"}
+    store = _get_vector_store()
+    if not store:
+        return {"error": "vector store unavailable", "deleted": 0}
+    try:
+        deleted = store.remove_file(clean)
+    except Exception as exc:  # noqa: BLE001 — surface as 200+error
+        return {"error": f"delete failed: {exc}", "deleted": 0}
+    return {"deleted": int(deleted), "source": clean}
+
+
 @app.get("/api/health")
 def health():
     """PR70 v2.87.0 — per-check severity + response timestamp.

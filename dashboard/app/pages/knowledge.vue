@@ -324,6 +324,90 @@ async function handleSearch() {
 function formatScore(score: number): string {
   return `${(score * 100).toFixed(0)}%`
 }
+
+// PR71 v2.88.0 — delete all chunks from a given source.
+
+const deletingSource = ref<string | null>(null)
+
+async function askDeleteSource(source: string) {
+  if (!source) return
+  if (typeof window === 'undefined') return
+  const ok = window.confirm(
+    `Delete every indexed chunk from this source?\n\n${source}\n\n`
+    + 'This removes the source from search results but does not delete the original file. '
+    + 'You can re-ingest the source later if needed.',
+  )
+  if (!ok) return
+  await deleteSource(source)
+}
+
+async function deleteSource(source: string) {
+  deletingSource.value = source
+  try {
+    const res = await $fetch<{ deleted?: number, source?: string, error?: string }>(
+      `${apiBase}/api/knowledge/sources`,
+      { method: 'DELETE', query: { source } },
+    )
+    if (res.error) {
+      toast.add({
+        title: 'Delete failed',
+        description: res.error,
+        color: 'error',
+      })
+      return
+    }
+    const deleted = res.deleted ?? 0
+    // Drop the matching rows from the in-memory list without a full re-fetch.
+    searchResults.value = searchResults.value.filter((r) => r.source !== source)
+    searchTotal.value = searchResults.value.length
+    // Refresh stats so the chunk count in the header updates.
+    if (typeof refresh === 'function') {
+      await refresh()
+    }
+    toast.add({
+      title: deleted > 0
+        ? `Deleted ${deleted} chunk${deleted === 1 ? '' : 's'}`
+        : 'Nothing to delete',
+      description: source,
+      color: 'success',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Delete failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    deletingSource.value = null
+  }
+}
+
+// PR71 — highlight the search query in the preview text.
+// Tolerates malformed regex (escapes special characters) and HTML-
+// escapes the input so v-html'd output is safe from XSS via DB rows.
+function highlightMatches(text: string, query: string): string {
+  const safe = escapeHtml(text || '')
+  const q = (query || '').trim()
+  if (!q) return safe
+  const pattern = new RegExp(`(${escapeRegex(q)})`, 'gi')
+  return safe.replace(
+    pattern,
+    '<mark class="bg-primary/20 text-primary rounded px-0.5">$1</mark>',
+  )
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 </script>
 
 <template>
@@ -771,17 +855,30 @@ function formatScore(score: number): string {
                         {{ result.heading }}
                       </span>
                     </div>
-                    <span class="text-xs text-muted whitespace-nowrap">
-                      Score: {{ formatScore(result.score) }}
-                    </span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-xs text-muted whitespace-nowrap">
+                        Score: {{ formatScore(result.score) }}
+                      </span>
+                      <UButton
+                        v-if="result.source"
+                        :icon="deletingSource === result.source
+                          ? 'i-lucide-loader-2'
+                          : 'i-lucide-trash-2'"
+                        :loading="deletingSource === result.source"
+                        variant="ghost"
+                        color="error"
+                        size="xs"
+                        aria-label="Delete all chunks from this source"
+                        @click.stop="askDeleteSource(result.source)"
+                      />
+                    </div>
                   </div>
                   <p v-if="result.source" class="text-xs text-muted mb-1 truncate">
                     <UIcon name="i-lucide-file-text" class="size-3 inline-block mr-1" />
                     {{ result.source }}
                   </p>
-                  <p class="text-sm text-muted line-clamp-3">
-                    {{ result.text || result.content }}
-                  </p>
+                  <!-- PR71 v2.88.0 — highlight query matches in the preview -->
+                  <p class="text-sm text-muted line-clamp-3" v-html="highlightMatches(result.text || result.content, searchQuery)" />
                 </div>
               </div>
 

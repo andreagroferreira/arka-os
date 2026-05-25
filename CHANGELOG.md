@@ -5,6 +5,44 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.88.0] - 2026-05-25
+
+### Added (Knowledge page: delete source + match highlight — PR71)
+
+- **`DELETE /api/knowledge/sources?source=<path>`** — removes every
+  indexed chunk that came from a given source. Wraps the existing
+  `VectorStore.remove_file(source)`; rejects empty / whitespace-only
+  `source` so a runaway client can't accidentally request "delete
+  everything that has no source". Catches store exceptions inline
+  so the endpoint never raises.
+- **Delete button per search result** in `knowledge.vue` — trash icon
+  next to the score, behind a `window.confirm` so it's not
+  accidentally clicked. On success the row disappears immediately
+  + stats refresh + toast confirms the deletion count.
+- **Match highlight** in search-result previews — query terms are
+  wrapped in `<mark class="bg-primary/20 text-primary rounded">`
+  with regex special characters escaped and HTML escaped first so
+  the `v-html` output stays XSS-safe regardless of what the chunk
+  contains.
+
+### Test coverage
+
+- 7 new `tests/python/test_knowledge_delete_source.py` cases:
+  empty / whitespace rejection, store-missing, success path with
+  count, whitespace-strip on input, store-exception swallowed,
+  idempotent zero-delete path.
+- Vue typecheck clean
+- Full Python suite: 3785/3785 passing
+- Preflight: `all_passed: True`
+
+### Dashboard UI backlog status
+
+Original 10-PR audit list now complete: **PR62 wizard, PR63 settings,
+PR64 dashboard-state, PR65 budget, PR66 command-center, PR67 tasks
+real-time, PR68 commands ▶+★, PR69 agents activity, PR70 health
+polish, PR71 knowledge polish.** Next batch (PR63b — Settings MCPs /
+Hooks / Plugins / Theme) lands when prioritised.
+
 ## [2.87.0] - 2026-05-25
 
 ### Added (Health page: auto-refresh + severity + copy-fix — PR70)
