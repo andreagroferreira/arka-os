@@ -5,6 +5,41 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.80.0] - 2026-05-25
+
+### Added (Shared `DashboardState` component — PR64)
+
+- **`dashboard/app/components/DashboardState.vue`** consolidates the
+  loading / error / empty triple that was duplicated (with subtle
+  drift — different icon sizes, inconsistent ARIA roles, some
+  retry buttons missing) across five dashboard pages.
+- **Slots**: `default` (success content), `loading`, `error`,
+  `empty` — all overridable. Sensible defaults.
+- **Props**: `status` (Nuxt `AsyncDataRequestStatus`), `error`,
+  `empty`, `emptyTitle`, `emptyDescription`, `emptyIcon`,
+  `loadingLabel`, `onRetry`.
+
+### Refactored
+
+- `dashboard/app/pages/index.vue` — overview now uses `DashboardState`
+- `dashboard/app/pages/health.vue` — empty state is now consistent
+  with the rest of the dashboard
+- `dashboard/app/pages/tasks.vue`
+- `dashboard/app/pages/budget.vue`
+- `dashboard/app/pages/agents/index.vue`
+
+Net code reduction: 5 × ~15 lines of duplicated boilerplate removed,
+replaced by one ~100-line component that ships consistent ARIA roles
+and retry-button affordances. The next dashboard PRs (PR63 Settings,
+PR65 Budget rebuild, PR66 Index → command center) inherit this
+foundation.
+
+### Test coverage
+
+- Vue typecheck clean for the new component + 5 refactored pages
+- Full Python suite: 3712/3712 (no backend changes)
+- Preflight: `all_passed: True`
+
 ## [2.79.0] - 2026-05-25
 
 ### Added (Persona builder wizard — PR62)

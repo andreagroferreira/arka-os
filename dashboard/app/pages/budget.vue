@@ -37,17 +37,13 @@ const tierLabels: Record<number, string> = {
     </template>
 
     <template #body>
-      <div v-if="status === 'pending'" class="flex items-center justify-center py-12">
-        <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-muted" />
-      </div>
-
-      <div v-else-if="error" class="flex flex-col items-center justify-center gap-4 py-12" role="alert">
-        <UIcon name="i-lucide-alert-triangle" class="size-12 text-red-500" />
-        <p class="text-sm text-muted">Failed to load budget data.</p>
-        <UButton label="Retry" variant="outline" icon="i-lucide-refresh-cw" @click="refresh()" />
-      </div>
-
-      <div v-else class="space-y-6">
+      <DashboardState
+        :status="status"
+        :error="error"
+        loading-label="Loading budget"
+        :on-retry="() => refresh()"
+      >
+      <div class="space-y-6">
         <!-- Monthly Summary -->
         <UCard>
           <div class="space-y-3">
@@ -127,6 +123,7 @@ const tierLabels: Record<number, string> = {
           </div>
         </div>
       </div>
+      </DashboardState>
     </template>
   </UDashboardPanel>
 </template>

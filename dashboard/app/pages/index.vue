@@ -39,20 +39,12 @@ function formatCurrency(value: number): string {
     </template>
 
     <template #body>
-      <!-- Loading State -->
-      <div v-if="status === 'pending'" class="flex items-center justify-center py-12">
-        <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-muted" />
-      </div>
-
-      <!-- Error State -->
-      <div v-else-if="error" class="flex flex-col items-center justify-center gap-4 py-12" role="alert">
-        <UIcon name="i-lucide-alert-triangle" class="size-12 text-red-500" />
-        <p class="text-sm text-muted">Failed to load overview data.</p>
-        <UButton label="Retry" variant="outline" color="primary" icon="i-lucide-refresh-cw" @click="refresh()" />
-      </div>
-
-      <!-- Content -->
-      <template v-else>
+      <DashboardState
+        :status="status"
+        :error="error"
+        loading-label="Loading overview"
+        :on-retry="() => refresh()"
+      >
         <!-- Stats Grid -->
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <div
@@ -120,7 +112,7 @@ function formatCurrency(value: number): string {
             </div>
           </div>
         </div>
-      </template>
+      </DashboardState>
     </template>
   </UDashboardPanel>
 </template>
