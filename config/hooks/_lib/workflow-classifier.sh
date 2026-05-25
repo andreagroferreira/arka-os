@@ -33,7 +33,14 @@ arka_wf_safe_session_id() {
 
 # Verb + noun patterns shared with the original inline classifier in
 # user-prompt-submit.sh. Keep in sync when adding new intent verbs.
-ARKA_WF_VERB_PATTERN='(criar?|crie[ms]?|cria[mr]?|adicionar?|adiciona[mr]?|implementar?|implementa[mr]?|desenvolver?|desenvolve[mr]?|construir?|constru[ií]a?[mr]?|fazer?|faz[ae][mr]?|refactor(izar?)?|corrigir?|corrige[mr]?|consertar?|conserta[mr]?|create[sd]?|creating|build(s|ing)?|add(s|ed|ing)?|implement(s|ed|ing)?|develop(s|ed|ing)?|fix(es|ed|ing)?|refactor(s|ed|ing)?|make[sd]?|making)'
+#
+# PR58 v2.75.0 — pattern widened with continuation + ship verbs after
+# telemetry analysis showed 97% of prompts in a 30h continuous-build
+# session were classified "classifier-did-not-match". Most of the
+# missed prompts were short continuations ("continua", "força") or
+# ship-tier verbs ("ship", "publish", "merge", "release", "deploy")
+# that prolong existing flow-required activity.
+ARKA_WF_VERB_PATTERN='(criar?|crie[ms]?|cria[mr]?|adicionar?|adiciona[mr]?|implementar?|implementa[mr]?|desenvolver?|desenvolve[mr]?|construir?|constru[ií]a?[mr]?|fazer?|faz[ae]?[mr]?|refactor(izar?)?|corrigir?|corrige[mr]?|consertar?|conserta[mr]?|continuar?|continua[mr]?|forçar?|força[mr]?|colocar?|coloca[mr]?|p[oô]r|melhorar?|melhora[mr]?|terminar?|termina[mr]?|acabar?|acaba[mr]?|publicar?|publica[mr]?|lançar?|lança[mr]?|create[sd]?|creating|build(s|ing)?|add(s|ed|ing)?|implement(s|ed|ing)?|develop(s|ed|ing)?|fix(es|ed|ing)?|refactor(s|ed|ing)?|make[sd]?|making|continue[sd]?|continuing|ship(s|ped|ping)?|merge[sd]?|merging|publish(es|ed|ing)?|release[sd]?|releasing|deploy(s|ed|ing)?|finish(es|ed|ing)?|improve[sd]?|improving)'
 
 # Classify: returns "true" if the prompt looks like a creation/
 # implementation/modification request, "false" otherwise.

@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.75.0] - 2026-05-25
+
+### Changed (Workflow classifier widened — PR58)
+
+- **`config/hooks/_lib/workflow-classifier.sh`** verb pattern extended
+  with continuation, ship-tier, and improvement verbs. Telemetry from
+  the May 24-25 session showed **97% classifier-did-not-match**
+  across 495 enforcement rows — most missed prompts were short
+  continuations (`continua`, `força`) or ship verbs (`ship`,
+  `publish`, `merge`, `release`, `deploy`) that prolonged in-flight
+  work that the classifier should have flagged.
+
+### New verbs in the pattern
+
+- Portuguese: `continuar`, `força`, `colocar`, `pôr`/`por`, `melhorar`,
+  `terminar`, `acabar`, `publicar`, `lançar` + their conjugations
+- English: `continue`, `continuing`, `ship`, `merge`, `publish`,
+  `release`, `deploy`, `finish`, `improve` + their conjugations
+- Also fixed: the existing `fazer` pattern missed bare `faz` (3-char
+  form); the optional-char fix catches it now.
+
+### Why
+
+Without this, follow-up prompts in a long continuous-build session
+went unmeasured — no `[ARKA:WORKFLOW-REQUIRED]` injection, no Stop-
+hook telemetry. The compliance dashboard couldn't surface gaps it
+should have surfaced. PR58 closes that measurement gap before any
+further enforcement decisions.
+
+### Test coverage
+
+- 27 new `tests/workflow-classifier.bats` cases (4 legacy creation
+  verbs, 16 new continuation/ship/improvement verbs, 7 negative
+  cases: questions, slash commands, bang shells, empty, single-word
+  greetings)
+- `tests/hooks.bats` still 18/18 passing (no regression)
+- Full Python suite: 3663/3663 passing
+- Preflight: `all_passed: True`
+
 ## [2.74.0] - 2026-05-25
 
 ### Added (AI-powered persona builder — PR57)
