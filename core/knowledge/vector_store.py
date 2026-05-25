@@ -13,24 +13,81 @@ from typing import Any, Optional
 from core.knowledge.embedder import embed, embed_batch, EMBEDDING_DIMS
 
 
+_VEC_UNAVAILABLE_REASON: str = ""  # set by _load_vec on failure
+
+
 def _load_vec(db: sqlite3.Connection) -> bool:
-    """Try to load sqlite-vec extension."""
+    """Try to load sqlite-vec extension.
+
+    PR73 v2.91.0 — failure reason is now captured in a module-level
+    string so the dashboard / /api/knowledge/stats can surface why
+    vector search is unavailable instead of just "Unavailable".
+    Common reasons:
+      - sqlite-vec not installed (pip install sqlite-vec)
+      - Python sqlite3 built without enable_load_extension (rare on
+        homebrew Python; common on system Python on some distros)
+    """
+    global _VEC_UNAVAILABLE_REASON
     try:
         db.enable_load_extension(True)
-        import sqlite_vec
+    except AttributeError:
+        _VEC_UNAVAILABLE_REASON = (
+            "Python sqlite3 was built without extension loading support. "
+            "On macOS, reinstall via Homebrew Python: brew install python."
+        )
+        return False
+    except sqlite3.OperationalError as exc:
+        _VEC_UNAVAILABLE_REASON = f"sqlite3 refused extension loading: {exc}"
+        return False
+    try:
+        import sqlite_vec  # noqa: PLC0415
+    except ImportError:
+        _VEC_UNAVAILABLE_REASON = (
+            "sqlite-vec package missing. Install with: "
+            "pip install sqlite-vec"
+        )
+        return False
+    try:
         sqlite_vec.load(db)
+        _VEC_UNAVAILABLE_REASON = ""
         return True
-    except (ImportError, Exception):
+    except Exception as exc:  # noqa: BLE001
+        _VEC_UNAVAILABLE_REASON = f"sqlite_vec.load failed: {exc}"
         return False
 
 
+def vec_unavailable_reason() -> str:
+    """Public accessor for the last vec-load failure reason."""
+    return _VEC_UNAVAILABLE_REASON
+
+
 class VectorStore:
-    """SQLite-vec backed vector store for knowledge retrieval."""
+    """SQLite-vec backed vector store for knowledge retrieval.
+
+    PR73 v2.91.0 — connection is opened with ``check_same_thread=False``
+    so background ingest workers (knowledge_ingest, knowledge_ingest_bulk
+    in scripts/dashboard-api.py) can reuse a long-lived FastAPI-scoped
+    store instance without hitting ``sqlite3.ProgrammingError: SQLite
+    objects created in a thread can only be used in that same thread``.
+    Concurrent writes are serialised via ``_write_lock``; SQLite's WAL
+    journal_mode lets readers continue while a writer holds the lock.
+    """
 
     def __init__(self, db_path: str | Path = ":memory:") -> None:
+        import threading
         self._db_path = str(db_path)
-        self._db = sqlite3.connect(self._db_path)
+        # check_same_thread=False — see class docstring.
+        self._db = sqlite3.connect(self._db_path, check_same_thread=False)
         self._db.row_factory = sqlite3.Row
+        # WAL gives concurrent readers + a single writer at the engine
+        # level. The Python lock below serialises our application-level
+        # writes per VectorStore instance.
+        try:
+            self._db.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError:
+            # in-memory DBs don't support WAL — harmless.
+            pass
+        self._write_lock = threading.Lock()
         self._vec_available = _load_vec(self._db)
         self._init_schema()
 
@@ -102,26 +159,31 @@ class VectorStore:
         meta_json = json.dumps(metadata or {})
         count = 0
 
-        for i, text in enumerate(texts):
-            heading = headings[i] if headings and i < len(headings) else ""
-            emb_blob = None
+        # PR73 v2.91.0 — serialise writes from background ingest threads.
+        # check_same_thread=False on the connection lets the threads use
+        # `self._db`; the lock ensures only one writer at a time so
+        # cursor lastrowid stays consistent.
+        with self._write_lock:
+            for i, text in enumerate(texts):
+                heading = headings[i] if headings and i < len(headings) else ""
+                emb_blob = None
 
-            if embeddings and i < len(embeddings):
-                emb_blob = _vec_to_blob(embeddings[i])
+                if embeddings and i < len(embeddings):
+                    emb_blob = _vec_to_blob(embeddings[i])
 
-            cursor = self._db.execute(
-                "INSERT INTO chunks (text, heading, source, file_hash, metadata, embedding) VALUES (?, ?, ?, ?, ?, ?)",
-                (text, heading, source, file_hash, meta_json, emb_blob),
-            )
-
-            if self._vec_available and emb_blob:
-                self._db.execute(
-                    "INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)",
-                    (cursor.lastrowid, emb_blob),
+                cursor = self._db.execute(
+                    "INSERT INTO chunks (text, heading, source, file_hash, metadata, embedding) VALUES (?, ?, ?, ?, ?, ?)",
+                    (text, heading, source, file_hash, meta_json, emb_blob),
                 )
-            count += 1
 
-        self._db.commit()
+                if self._vec_available and emb_blob:
+                    self._db.execute(
+                        "INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)",
+                        (cursor.lastrowid, emb_blob),
+                    )
+                count += 1
+
+            self._db.commit()
         return count
 
     def search(self, query: str, top_k: int = 5) -> list[dict]:
@@ -201,13 +263,14 @@ class VectorStore:
 
     def remove_file(self, source: str) -> int:
         """Remove all chunks from a source file."""
-        if self._vec_available:
-            rows = self._db.execute("SELECT id FROM chunks WHERE source = ?", (source,)).fetchall()
-            for r in rows:
-                self._db.execute("DELETE FROM vec_chunks WHERE rowid = ?", (r["id"],))
-        deleted = self._db.execute("DELETE FROM chunks WHERE source = ?", (source,)).rowcount
-        self._db.commit()
-        return deleted
+        with self._write_lock:
+            if self._vec_available:
+                rows = self._db.execute("SELECT id FROM chunks WHERE source = ?", (source,)).fetchall()
+                for r in rows:
+                    self._db.execute("DELETE FROM vec_chunks WHERE rowid = ?", (r["id"],))
+            deleted = self._db.execute("DELETE FROM chunks WHERE source = ?", (source,)).rowcount
+            self._db.commit()
+            return deleted
 
     def get_stats(self) -> dict:
         """Get store statistics."""

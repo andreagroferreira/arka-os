@@ -325,6 +325,13 @@ function formatScore(score: number): string {
   return `${(score * 100).toFixed(0)}%`
 }
 
+// PR73 v2.91.0 — `vec_available` is the canonical PR47-era flag from
+// the new VectorStore; `vss_available` is the legacy field name from
+// earlier sqlite-vss builds. Treat either as "active".
+const vectorSearchActive = computed(() =>
+  Boolean(stats.value?.vec_available || stats.value?.vss_available),
+)
+
 // PR71 v2.88.0 — delete all chunks from a given source.
 
 const deletingSource = ref<string | null>(null)
@@ -419,9 +426,9 @@ function escapeRegex(value: string): string {
         </template>
         <template #trailing>
           <UBadge
-            v-if="stats?.vss_available !== undefined"
-            :label="stats.vss_available ? 'VSS Active' : 'VSS Unavailable'"
-            :color="stats.vss_available ? 'success' : 'neutral'"
+            v-if="stats?.vec_available !== undefined || stats?.vss_available !== undefined"
+            :label="vectorSearchActive ? 'Vector Active' : 'Vector Off'"
+            :color="vectorSearchActive ? 'success' : 'warning'"
             variant="subtle"
           />
         </template>
@@ -768,12 +775,19 @@ function escapeRegex(value: string): string {
           </div>
           <div class="rounded-lg border border-default p-4 text-center">
             <UBadge
-              :label="stats?.vss_available ? 'Available' : 'Unavailable'"
-              :color="stats?.vss_available ? 'success' : 'neutral'"
+              :label="vectorSearchActive ? 'Active' : 'Unavailable'"
+              :color="vectorSearchActive ? 'success' : 'warning'"
               variant="subtle"
               size="sm"
             />
             <p class="text-xs text-muted mt-1">Vector Search</p>
+            <p
+              v-if="!vectorSearchActive && stats?.vec_unavailable_reason"
+              class="text-xs text-yellow-400 mt-2 text-left"
+              :title="stats.vec_unavailable_reason"
+            >
+              {{ stats.vec_unavailable_reason }}
+            </p>
           </div>
         </div>
 
