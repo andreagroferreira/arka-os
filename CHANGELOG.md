@@ -5,6 +5,47 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.69.0] - 2026-05-25
+
+### Added (Portable Agent Skills export — PR51, Angle C)
+
+- **`scripts/marketplace_export.py`** generates open-spec-compliant
+  exports of the ten outward-facing development skills (per KB note
+  `[[2026-04-25-agent-skills-open-standard]]` Angle-C recommendation):
+  `code-review`, `tdd-cycle`, `runbook`, `spec`, `db-design`,
+  `security-audit`, `clean-code-review`, `api-design`, `refactor-plan`,
+  `architecture-design`.
+- **Output: `marketplace/skills/<slug>/SKILL.md`** + catalog `README.md`.
+  Conforms to the open spec at https://agentskills.io so the skills run
+  inside any compliant runtime (Claude Code, Codex CLI, Cursor, VS Code
+  Copilot, Atlassian, Figma).
+- **Non-destructive** — in-tree skills under `departments/dev/skills/`
+  keep their ArkaOS-specific KB-first prefix and `allowed-tools` field
+  for the Claude Code path. The export script generates a portable
+  copy each time it runs.
+
+### Transformations applied
+
+1. Strip the `<!-- arka:kb-first-prefix … -->` block (depends on
+   Obsidian MCP — ArkaOS-specific).
+2. Normalise frontmatter `name` — drop `dev/`, `arka-dev-`, `arka-`
+   namespace prefixes so the spec sees the bare slug.
+3. Drop `allowed-tools` (Claude Code-specific grammar).
+4. Strip ArkaOS slash-command references (`/dev`, `/arka`, etc.)
+   from header lines so the skill is verb-driven, not invocation-bound.
+
+### Submission to anthropic/skills
+
+Fork-and-PR remains a manual step (operator's call on timing and
+which exports to upstream). Run `python3 scripts/marketplace_export.py`
+to regenerate the bundle before submitting.
+
+### Test coverage
+
+- 13 new `tests/python/test_marketplace_export.py` cases (per
+  transformation + end-to-end on the real source tree)
+- Full Python suite: 3634/3634 passing
+
 ## [2.68.0] - 2026-05-25
 
 ### Added (Metered-billing cutover warning — PR52)
