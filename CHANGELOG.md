@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.68.0] - 2026-05-25
+
+### Added (Metered-billing cutover warning — PR52)
+
+- **Scheduler emits a one-time stderr warning** when a schedule still
+  uses the legacy `claude -p` invocation. Anthropic's Agent SDK $200
+  credit policy takes effect **2026-06-15**: programmatic Claude usage
+  (`claude -p`, Agent SDK, GitHub Actions, third-party harnesses) is
+  metered separately from interactive subscription credit (Pro $20 /
+  Max5x $100 / Max20x $200, no rollover). Operator action: migrate the
+  affected schedule to `python_module` (Dreaming v2 path) or to a
+  direct API key with explicit budget alarms.
+- Warning is **one-time per schedule** via a marker under
+  `~/.arkaos/telemetry/metered-billing-warned.<command>`. Stays out of
+  the way of operators who have already migrated.
+- The `python_module` path (Dreaming v2) is never warned — it's the
+  migration target, not the deprecated route.
+
+### Audit findings (PR52)
+
+- Dreaming v2 already lives on `python_module`, so the production
+  cognitive loop is **not** at risk on 2026-06-15.
+- GitHub Actions workflows (publish/release/test) do **not** call
+  `claude`, so CI is not affected.
+- Only legacy `prompt_file`-only schedules in the operator's
+  `~/.arkaos/schedules.yaml` trigger the warning. If none exist,
+  the warning never fires.
+
 ## [2.67.0] - 2026-05-25
 
 ### Added (worktree.baseRef = head — Claude Code adoption arc PR48)

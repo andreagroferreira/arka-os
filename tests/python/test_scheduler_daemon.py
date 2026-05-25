@@ -141,6 +141,48 @@ class TestArkaScheduler:
         assert "-p" in cmd
         assert "dream about the future" in cmd
 
+    def test_legacy_claude_p_emits_metered_billing_warning(
+        self, scheduler: ArkaScheduler, tmp_path: Path, capsys
+    ) -> None:
+        """PR52 v2.68.0 — operator must be warned the legacy claude -p path
+        hits the metered $200 pool after 2026-06-15. Warning is one-time
+        per schedule (marker under ~/.arkaos/telemetry/)."""
+        prompt_file = tmp_path / "dreaming.md"
+        prompt_file.write_text("dream about the future")
+        fake_claude = tmp_path / ".local" / "bin" / "claude"
+        fake_claude.parent.mkdir(parents=True)
+        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.chmod(0o755)
+        schedule = ScheduleConfig(
+            command="legacy-dreaming",
+            prompt_file=str(prompt_file),
+            run_time=time(2, 0),
+        )
+        with patch.object(Path, "home", return_value=tmp_path):
+            scheduler._build_command(schedule)
+            err = capsys.readouterr().err
+            assert "2026-06-15" in err
+            assert "legacy-dreaming" in err
+            # Second invocation should NOT emit (marker exists)
+            scheduler._build_command(schedule)
+            err2 = capsys.readouterr().err
+            assert err2 == ""
+
+    def test_python_module_path_does_not_emit_metered_warning(
+        self, scheduler: ArkaScheduler, tmp_path: Path, capsys
+    ) -> None:
+        """python_module path is the migration target — never warn for it."""
+        schedule = ScheduleConfig(
+            command="dreaming-v2",
+            prompt_file="/unused",
+            run_time=time(2, 0),
+            python_module="core.cognition.dreaming",
+        )
+        with patch.object(Path, "home", return_value=tmp_path):
+            scheduler._build_command(schedule)
+        err = capsys.readouterr().err
+        assert "2026-06-15" not in err
+
     def test_resolve_claude_binary_fallback_to_which(
         self, scheduler: ArkaScheduler, tmp_path: Path
     ) -> None:
