@@ -311,6 +311,25 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     console.log(`         Warning: could not scaffold user-data (${err.message})`);
   }
 
+  // PR45 v2.64.0 — seed autoMode.hard_deny defaults into
+  // ~/.claude/settings.json so auto mode blocks destructive actions
+  // (git push --force, ~/.ssh reads, rm -rf, sudo, etc.) regardless
+  // of allow rules. Preserves operator-authored entries; merges
+  // operator extensions from ~/.arkaos/hard-deny.json.
+  try {
+    const { seedAutoModeHardDeny } = await import("./hard-deny.js");
+    const denyResult = seedAutoModeHardDeny({ runtime });
+    if (!denyResult.skipped) {
+      if (denyResult.action === "created") {
+        console.log(`         autoMode.hard_deny created (${denyResult.count} rules).`);
+      } else if (denyResult.action === "merged") {
+        console.log(`         autoMode.hard_deny merged (${denyResult.count} rules, operator entries preserved).`);
+      }
+    }
+  } catch (err) {
+    console.log(`         Warning: could not seed autoMode.hard_deny (${err.message})`);
+  }
+
   // PR43 v2.62.0 — auto-install default Claude Code plugins. Only runs
   // when runtime is Claude Code AND the `claude` CLI is available.
   // Idempotent: skips plugins already in installed_plugins.json.
