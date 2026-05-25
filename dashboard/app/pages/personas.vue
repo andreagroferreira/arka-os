@@ -9,8 +9,30 @@ const { data, status, error, refresh } = fetchApi<{ personas: Persona[]; total: 
 
 const personas = computed(() => data.value?.personas ?? [])
 
-// --- Form visibility ---
-const showForm = ref(false)
+// --- Creation mode ---
+// PR62 v2.79.0 — three modes: list (default), wizard (AI builder), manual.
+// The wizard is the new primary path; manual stays as fallback for
+// operators who want to type every DNA field by hand.
+type CreateMode = 'list' | 'wizard' | 'manual'
+const createMode = ref<CreateMode>('list')
+const showForm = computed(() => createMode.value === 'manual')
+
+function startWizard() {
+  createMode.value = 'wizard'
+}
+
+function startManual() {
+  createMode.value = 'manual'
+}
+
+function cancelCreation() {
+  createMode.value = 'list'
+}
+
+async function onWizardComplete() {
+  createMode.value = 'list'
+  await refresh()
+}
 
 // --- Form state ---
 function defaultForm() {
@@ -216,11 +238,29 @@ function discColor(disc: string): string {
 
         <template #right>
           <UButton
-            :label="showForm ? 'Cancel' : 'New Persona'"
-            :icon="showForm ? 'i-lucide-x' : 'i-lucide-plus'"
-            :variant="showForm ? 'ghost' : 'solid'"
+            v-if="createMode === 'list'"
+            label="AI Builder"
+            icon="i-lucide-sparkles"
+            color="primary"
             size="sm"
-            @click="showForm = !showForm"
+            @click="startWizard"
+          />
+          <UButton
+            v-if="createMode === 'list'"
+            label="Manual"
+            icon="i-lucide-plus"
+            variant="outline"
+            size="sm"
+            class="ml-2"
+            @click="startManual"
+          />
+          <UButton
+            v-else
+            label="Back to list"
+            icon="i-lucide-arrow-left"
+            variant="ghost"
+            size="sm"
+            @click="cancelCreation"
           />
         </template>
       </UDashboardNavbar>
@@ -242,7 +282,15 @@ function discColor(disc: string): string {
 
       <!-- Content -->
       <template v-else>
-        <!-- Create Persona Form -->
+        <!-- PR62: AI Persona Wizard -->
+        <PersonaWizard
+          v-if="createMode === 'wizard'"
+          class="mb-8"
+          @completed="onWizardComplete"
+          @cancelled="cancelCreation"
+        />
+
+        <!-- Manual create form (legacy / fallback) -->
         <UCard v-if="showForm" class="mb-8">
           <form @submit.prevent="createPersona" class="space-y-8 p-2">
             <!-- Identity -->
