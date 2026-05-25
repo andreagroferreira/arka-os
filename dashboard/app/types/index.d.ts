@@ -95,6 +95,35 @@ export interface TaskSummary {
   completed: number
 }
 
+// PR67 v2.84.0 — Jobs shape from /api/jobs (SQLite job queue).
+// Mirrors core/jobs/manager.Job dataclass.
+export interface Job {
+  id: string
+  type: string
+  source: string
+  title: string
+  status:
+    | 'queued' | 'processing' | 'downloading' | 'transcribing'
+    | 'embedding' | 'completed' | 'failed' | 'cancelled'
+  progress: number
+  message: string
+  chunks_created: number
+  media_path: string
+  error: string
+  created_at: string
+  started_at: string
+  completed_at: string
+}
+
+export interface JobSummary {
+  total: number
+  queued: number
+  processing: number
+  completed: number
+  failed: number
+  cancelled?: number
+}
+
 export interface KnowledgeStats {
   total_chunks: number
   total_files: number
