@@ -5,6 +5,50 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.82.0] - 2026-05-25
+
+### Added (Budget rebuild — PR65)
+
+- **`GET /api/llm-costs?period=today|week|month|all`** — exposes the
+  full PR47 `CostSummary`: per-provider, per-model, **per-category**,
+  top sessions, advisories, corrupt-line count.
+- **`GET /api/llm-costs/trend?days=N`** — daily rollup with one bucket
+  per day in the window (zeros included so the chart never has gaps).
+  Floored at 1, capped at 90, malformed timestamps skipped, missing
+  costs surface as `null` instead of zero.
+- **`dashboard/app/pages/budget.vue`** rebuilt against the new
+  endpoints. Replaces the tokens-only view that
+  `[[feedback_budget_ux]]` complained about:
+  - Top-line: total cost USD + call count + tokens in/out + cache hit %
+  - 7-day inline trend chart (tooltip per bar: date, cost, calls)
+  - Breakdown tabs: **By category** / **By provider** / **By model**
+  - Top sessions list with cost per session
+  - Advisory banner when sessions exceed the $5 threshold
+  - Period selector (Today / 7 days / 30 days / All time)
+- **By Category** view explicitly explains the empty state — operators
+  who haven't set `ARKA_CALL_CATEGORY` (PR60) see a hint instead of
+  a blank chart.
+
+### Why
+
+`[[feedback_budget_ux]]` flagged the legacy page as confusing:
+"tokens shown as $, tiers meaningless, needs department-based
+redesign". PR47 added the data layer (category-aware telemetry);
+PR60 wired the env-var auto-populator; PR65 finally shows it. The
+3-PR chain closes the loop: real cost USD attributable by category.
+
+### Test coverage
+
+- 11 new `tests/python/test_llm_costs_api.py` cases:
+  - `/api/llm-costs` — invalid-period rejection, PR47 shape contract,
+    all valid periods round-trip
+  - `/api/llm-costs/trend` — one bucket per day, days clamp (1, 90),
+    aggregation correctness, null-cost preservation, quiet-day zeros,
+    malformed-ts skip, out-of-window skip
+- Vue typecheck clean
+- Full Python suite: 3746/3746 passing
+- Preflight: `all_passed: True`
+
 ## [2.81.0] - 2026-05-25
 
 ### Added (Settings expansion: Profile + Projects + Keys — PR63)
