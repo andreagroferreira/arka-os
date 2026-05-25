@@ -5,6 +5,44 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.71.0] - 2026-05-25
+
+### Added (Opt-in `/goal` integration into scheduler — PR54)
+
+- **`ScheduleConfig.goal_condition` + `task_budget`** — new optional
+  YAML fields that map to Claude Code v2.1.139's `/goal` primitive.
+  When set, the scheduler appends `--goal <condition> --task-budget <N>`
+  to the `claude -p` argv so the model keeps running until it decides
+  the condition is satisfied, instead of stopping when the prompt's
+  hardcoded phases run out.
+- **Pairing guard** — setting `goal_condition` without a positive
+  `task_budget` raises `ValueError`. Per KB note
+  `[[2026-05-12-claude-code-2-1-139-goal-agent-view]]`: sharp edges
+  around the model overcommitting to ambiguous goals → infinite-loop
+  risk. The budget caps the metered burn.
+- **Production schedules untouched** — both fields default to `None`,
+  so existing operator schedules ship byte-identical argv. Opt-in
+  only.
+
+### Migration note
+
+The Anthropic Agent SDK $200 credit policy still applies on
+2026-06-15 (see PR52). Adopting `/goal` increases the number of
+turns per run, so flipping a schedule to goal-driven completion
+*after* the cutover should pair with a direct-API-key invocation
+(or stay on the python_module path for Dreaming v2). The
+`metered-billing-warned.<command>` marker from PR52 continues
+to fire on any legacy `claude -p` schedule regardless of /goal.
+
+### Test coverage
+
+- 4 new `tests/python/test_scheduler_daemon.py` cases:
+  - YAML loader picks up `goal_condition` + `task_budget`
+  - Both unset → legacy argv (byte-identical to pre-PR54)
+  - Both set → argv gains `--goal <cond> --task-budget <N>`
+  - `goal_condition` without `task_budget` → ValueError raised
+- Full scheduler suite: 23/23 passing
+
 ## [2.70.0] - 2026-05-25
 
 ### Changed (Flow enforcer lookback widened 6 → 20 — PR53)
