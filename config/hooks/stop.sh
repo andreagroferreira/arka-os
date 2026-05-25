@@ -19,12 +19,25 @@ SESSION_ID=""
 TRANSCRIPT_PATH=""
 STOP_HOOK_ACTIVE=""
 CWD=""
+EFFORT_LEVEL=""
 if command -v jq &>/dev/null; then
   SESSION_ID=$(echo "$input" | jq -r '.session_id // ""' 2>/dev/null)
   TRANSCRIPT_PATH=$(echo "$input" | jq -r '.transcript_path // ""' 2>/dev/null)
   STOP_HOOK_ACTIVE=$(echo "$input" | jq -r '.stop_hook_active // ""' 2>/dev/null)
   CWD=$(echo "$input" | jq -r '.cwd // ""' 2>/dev/null)
+  # PR46 v2.65.0 — Claude Code W19 ships effort.level in hook stdin and
+  # $CLAUDE_EFFORT env var. Soft-block checks (kb-cite, meta-tag) only
+  # run at high|xhigh; hard enforcement runs regardless.
+  EFFORT_LEVEL=$(echo "$input" | jq -r '.effort.level // ""' 2>/dev/null)
 fi
+# Fallback to env var if stdin didn't carry it
+[ -z "$EFFORT_LEVEL" ] && EFFORT_LEVEL="${CLAUDE_EFFORT:-}"
+
+# Telemetry-only signal. Soft-block checks (kb_cite, meta_tag, sycophancy)
+# always run here because they're cheap and feed /arka compliance.
+# What is effort-gated is the NUDGE SURFACING in user-prompt-submit.sh
+# (whether the next turn sees a [arka:suggest] line). Record the level
+# on the telemetry row so we can later analyze suppression rates.
 
 # Prevent infinite loops when Stop hook was triggered by its own decision.
 if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
@@ -60,6 +73,7 @@ SESSION_ID_VAL="$SESSION_ID" \
 TRANSCRIPT_PATH_VAL="$TRANSCRIPT_PATH" \
 CWD_VAL="$CWD" \
 ARKAOS_ROOT_VAL="$ARKAOS_ROOT" \
+EFFORT_LEVEL_VAL="$EFFORT_LEVEL" \
 python3 - <<'PY' 2>/dev/null
 import json
 import os
@@ -223,6 +237,9 @@ entry = {
     "kb_cite_topic_score": cite_topic_score,
     "meta_tag_check_passed": meta_passed,
     "meta_tag_check_reason": meta_reason,
+    # PR46 v2.65.0 — Claude Code effort level captured for later analysis
+    # of nudge-suppression rates. Unset / unknown values land as "".
+    "effort_level": os.environ.get("EFFORT_LEVEL_VAL", ""),
     "mode": "warn",
 }
 
