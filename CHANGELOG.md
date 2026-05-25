@@ -5,6 +5,48 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.84.0] - 2026-05-25
+
+### Changed (Tasks page → real-time jobs view — PR67)
+
+- **`dashboard/app/pages/tasks.vue` rewritten** against `/api/jobs`
+  (the SQLite job queue) instead of the legacy `/api/tasks`
+  endpoint. Jobs are what knowledge ingest, persona-builder bulk
+  fetches, and future workflow primitives all flow through.
+- **Live updates** via `/ws/tasks` WebSocket — every
+  `job_progress` / `job_complete` / `job_failed` / `job_cancelled`
+  broadcast updates the matching row in place. Header shows a
+  `Live` / `Offline` badge so the operator sees the connection
+  state at a glance.
+- **Per-row Cancel** button on `queued` and `processing` jobs.
+  Calls `DELETE /api/jobs/{id}` (existing); WS broadcast flips
+  the row to `cancelled`; success toast on confirmation.
+- **Empty state fixed** — the previous hint pointed at a dead
+  command (`npx arkaos index`). Now it directs the operator to
+  the Knowledge tab with a CTA button.
+- **Five summary cards** (Total / Active / Queued / Completed /
+  Failed) instead of four, because Failed deserves its own count.
+- **Inline error display** — failed jobs show the error message
+  truncated in the source cell so the operator doesn't have to
+  drill down to see what broke.
+
+### Fixed (PR66 client-name leak)
+
+- Sanitised `tests/python/test_command_center_api.py` fixtures.
+  Replaced a confidential client identifier (`fovory-supplier-sync`,
+  `fovory`) with neutral placeholders (`acme-supplier-sync`, `acme`)
+  caught by `core/release/preflight::check_no_client_name_leaks`
+  before publish. Per `[[feedback_npm_publish_safety]]`,
+  `[[feedback_confidentiality]]` — client names never reach the repo.
+
+### Test coverage
+
+- 15 existing `test_command_center_api.py` cases still pass with
+  the sanitised fixtures
+- Vue typecheck clean on the rewritten `tasks.vue`
+- Full Python suite: 3761/3761 passing
+- Preflight: `all_passed: True`
+
 ## [2.83.0] - 2026-05-25
 
 ### Added (Index → Command Center — PR66)

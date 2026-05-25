@@ -37,20 +37,20 @@ class TestParseDescriptor:
         assert result["status"] == "unknown"
 
     def test_full_frontmatter(self, dashboard_module, tmp_path):
-        path = tmp_path / "fovory.md"
+        path = tmp_path / "acme.md"
         path.write_text(
-            "---\nname: fovory-supplier-sync\n"
-            "path: /Users/foo/Work/fovory-supplier-sync\n"
+            "---\nname: acme-supplier-sync\n"
+            "path: /Users/foo/Work/acme-supplier-sync\n"
             "stack:\n  - nuxt\n  - typescript\n  - postgres\n"
-            "status: active\necosystem: fovory\n---\n\nbody\n",
+            "status: active\necosystem: acme\n---\n\nbody\n",
             encoding="utf-8",
         )
         result = dashboard_module._parse_descriptor(path)
-        assert result["name"] == "fovory-supplier-sync"
-        assert result["path"] == "/Users/foo/Work/fovory-supplier-sync"
+        assert result["name"] == "acme-supplier-sync"
+        assert result["path"] == "/Users/foo/Work/acme-supplier-sync"
         assert result["stack"] == ["nuxt", "typescript", "postgres"]
         assert result["status"] == "active"
-        assert result["ecosystem"] == "fovory"
+        assert result["ecosystem"] == "acme"
 
     def test_caps_stack_at_six(self, dashboard_module, tmp_path):
         stack = "\n".join(f"  - tech{i}" for i in range(20))
