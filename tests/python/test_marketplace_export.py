@@ -135,6 +135,30 @@ def test_export_all_writes_ten_skills_in_real_tree(tmp_path, monkeypatch):
         assert "name: dev/" not in body
 
 
+def test_marketplace_manifest_is_valid_json():
+    """PR55 — .claude-plugin/marketplace.json is the plugin marketplace
+    manifest consumed by `/plugin marketplace add andreagroferreira/arka-os`.
+    Must parse as JSON, declare the arkaos plugin name, and list all 10
+    portable skill paths."""
+    import json
+    manifest_path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
+    assert manifest_path.exists(), "marketplace manifest is missing"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["name"] == "arkaos"
+    plugins = manifest["plugins"]
+    assert len(plugins) >= 1
+    dev_bundle = next(
+        (p for p in plugins if p["name"] == "arkaos-dev-skills"), None
+    )
+    assert dev_bundle is not None, "arkaos-dev-skills plugin must exist"
+    assert len(dev_bundle["skills"]) == 10
+    for slug in EXPORTABLE_SKILLS:
+        expected_path = f"./marketplace/skills/{slug}"
+        assert expected_path in dev_bundle["skills"], (
+            f"skill {slug} missing from marketplace bundle"
+        )
+
+
 def test_write_index_lists_every_skill(tmp_path, monkeypatch):
     import marketplace_export as me
     monkeypatch.setattr(me, "EXPORT_DIR", tmp_path)

@@ -125,12 +125,26 @@ def write_index(results: list[ExportResult]) -> Path:
         "",
         "Open-spec exports of ArkaOS's outward-facing development skills.",
         "Compatible with any Agent Skills runtime "
-        "(see https://agentskills.io).",
+        "(see https://agentskills.io) — Claude Code, Codex CLI, Cursor, "
+        "VS Code Copilot, Atlassian, Figma.",
+        "",
+        "## Install via Claude Code Plugin Marketplace",
+        "",
+        "Register this repository as a marketplace, then install the bundle:",
+        "",
+        "```",
+        "/plugin marketplace add andreagroferreira/arka-os",
+        "/plugin install arkaos-dev-skills@arkaos",
+        "```",
+        "",
+        "After install, the ten skills below are available in your Claude "
+        "Code session. Mention a skill by name (e.g., *\"use code-review on "
+        "this PR\"*) and Claude loads the relevant `SKILL.md`.",
         "",
         "## Catalog",
         "",
     ]
-    for r in results:
+    for r in sorted(results, key=lambda x: x.slug):
         lines.append(f"- [{r.slug}]({r.slug}/SKILL.md)")
     lines.append("")
     lines.append(

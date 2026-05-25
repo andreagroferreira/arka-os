@@ -5,6 +5,39 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.72.0] - 2026-05-25
+
+### Added (ArkaOS as Claude Code plugin marketplace — PR55)
+
+- **`.claude-plugin/marketplace.json`** turns the `andreagroferreira/arka-os`
+  repo into a Claude Code plugin marketplace consumable by anyone:
+  ```
+  /plugin marketplace add andreagroferreira/arka-os
+  /plugin install arkaos-dev-skills@arkaos
+  ```
+- **Bundle `arkaos-dev-skills`** ships the 10 portable skills generated
+  by PR51 (`code-review`, `tdd-cycle`, `runbook`, `spec`, `db-design`,
+  `security-audit`, `clean-code-review`, `api-design`, `refactor-plan`,
+  `architecture-design`).
+- **`marketplace/skills/README.md`** regenerated with install
+  instructions and the catalog, sorted alphabetically.
+
+### Pivot from PR51 plan
+
+The original PR51 plan was to PR our skills into `github.com/anthropics/skills`.
+After inspecting that repo: it's a curated first-party showcase
+(Anthropic-authored skills, 16,598 forks for consumption), not an
+open submission marketplace. Anthropic's contribution model is
+**"host your own marketplace"** — the `/plugin marketplace add <owner>/<repo>`
+flow. PR55 implements that pattern, which puts WizardingCode in
+control of the bundle name, versioning, and skill curation.
+
+### Test coverage
+
+- 1 new `test_marketplace_manifest_is_valid_json` (parses, declares
+  `arkaos`, ships all 10 skills under `arkaos-dev-skills`)
+- Full Python suite: 3640/3640 passing
+
 ## [2.71.0] - 2026-05-25
 
 ### Added (Opt-in `/goal` integration into scheduler — PR54)
