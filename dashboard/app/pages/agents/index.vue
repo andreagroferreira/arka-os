@@ -127,26 +127,15 @@ function goToAgent(id: string) {
     </template>
 
     <template #body>
-      <!-- Loading -->
-      <div v-if="status === 'pending'" class="flex items-center justify-center py-12">
-        <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-muted" />
-      </div>
-
-      <!-- Error -->
-      <div v-else-if="error" class="flex flex-col items-center justify-center gap-4 py-12" role="alert">
-        <UIcon name="i-lucide-alert-triangle" class="size-12 text-red-500" />
-        <p class="text-sm text-muted">Failed to load agents.</p>
-        <UButton label="Retry" variant="outline" color="primary" icon="i-lucide-refresh-cw" @click="refresh()" />
-      </div>
-
-      <!-- Empty -->
-      <div v-else-if="!agents.length" class="flex flex-col items-center justify-center gap-4 py-12">
-        <UIcon name="i-lucide-users" class="size-12 text-muted" />
-        <p class="text-sm text-muted">No agents found.</p>
-      </div>
-
-      <!-- Content -->
-      <template v-else>
+      <DashboardState
+        :status="status"
+        :error="error"
+        :empty="!agents.length"
+        empty-title="No agents found"
+        empty-icon="i-lucide-users"
+        loading-label="Loading agents"
+        :on-retry="() => refresh()"
+      >
         <div class="flex flex-wrap items-center gap-3 mb-4">
           <UInput
             v-model="search"
@@ -219,7 +208,7 @@ function goToAgent(id: string) {
             @update:page="(val) => page = val"
           />
         </div>
-      </template>
+      </DashboardState>
     </template>
   </UDashboardPanel>
 </template>

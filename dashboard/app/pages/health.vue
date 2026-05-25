@@ -30,26 +30,15 @@ const allPassed = computed(() => passed.value === total.value && total.value > 0
     </template>
 
     <template #body>
-      <!-- Loading -->
-      <div v-if="status === 'pending'" class="flex items-center justify-center py-12">
-        <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-muted" />
-      </div>
-
-      <!-- Error -->
-      <div v-else-if="error" class="flex flex-col items-center justify-center gap-4 py-12" role="alert">
-        <UIcon name="i-lucide-alert-triangle" class="size-12 text-red-500" />
-        <p class="text-sm text-muted">Failed to load health checks.</p>
-        <UButton label="Retry" variant="outline" color="primary" icon="i-lucide-refresh-cw" @click="refresh()" />
-      </div>
-
-      <!-- Empty -->
-      <div v-else-if="!checks.length" class="flex flex-col items-center justify-center gap-4 py-12">
-        <UIcon name="i-lucide-heart-pulse" class="size-12 text-muted" />
-        <p class="text-sm text-muted">No health checks available.</p>
-      </div>
-
-      <!-- Content -->
-      <template v-else>
+      <DashboardState
+        :status="status"
+        :error="error"
+        :empty="!checks.length"
+        empty-title="No health checks available"
+        empty-icon="i-lucide-heart-pulse"
+        loading-label="Loading health checks"
+        :on-retry="() => refresh()"
+      >
         <!-- Overall Status -->
         <div
           class="mb-6 rounded-lg border p-6 text-center"
@@ -92,7 +81,7 @@ const allPassed = computed(() => passed.value === total.value && total.value > 0
             />
           </div>
         </div>
-      </template>
+      </DashboardState>
     </template>
   </UDashboardPanel>
 </template>
