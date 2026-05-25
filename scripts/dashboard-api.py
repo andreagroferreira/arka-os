@@ -729,6 +729,102 @@ def persona_build(body: dict):
     }
 
 
+# --- LLM Costs (PR65 v2.82.0) ---
+
+@app.get("/api/llm-costs")
+def llm_costs(period: str = "today"):
+    """Aggregated LLM cost summary backed by the PR47 telemetry pipeline.
+
+    `period` ∈ {today, week, month, all}. Returns the same shape the
+    `/arka costs` CLI returns — by_provider, by_model, by_category
+    (PR47), top sessions, advisories. The Budget page consumes this
+    to show category-aware spend instead of the legacy
+    /api/budget tokens-only view.
+    """
+    try:
+        from core.runtime.llm_cost_telemetry import summarise, VALID_PERIODS
+    except Exception as exc:  # pragma: no cover - import guard
+        return {"error": f"telemetry unavailable: {exc}"}
+    if period not in VALID_PERIODS:
+        return {"error": f"period must be one of {list(VALID_PERIODS)}"}
+    summary = summarise(period=period)
+    return {
+        "period": summary.period,
+        "total_cost_usd": summary.total_cost_usd,
+        "total_tokens_in": summary.total_tokens_in,
+        "total_tokens_out": summary.total_tokens_out,
+        "total_cached_tokens": summary.total_cached_tokens,
+        "cache_hit_rate": summary.cache_hit_rate,
+        "call_count": summary.call_count,
+        "by_provider": summary.by_provider,
+        "by_model": summary.by_model,
+        "by_category": summary.by_category,
+        "by_session": summary.by_session,
+        "advisories": summary.advisories,
+        "corrupt_line_count": summary.corrupt_line_count,
+    }
+
+
+@app.get("/api/llm-costs/trend")
+def llm_costs_trend(days: int = 7):
+    """Day-by-day rolling totals from the cost telemetry.
+
+    Returns ``{"days": [{"date": "YYYY-MM-DD", "cost_usd": x.xx,
+    "tokens_in": N, "tokens_out": N, "call_count": N}]}`` so the
+    Budget page can render a 7-day trend chart with @unovis/vue.
+    Cap `days` to 90 to keep response size bounded.
+    """
+    from datetime import datetime, timedelta, timezone
+    from core.runtime.llm_cost_telemetry import read_entries
+    # `days or 7` would treat 0 as "use default", which contradicts the
+    # documented floor-at-1 behaviour. Cast first, then clamp.
+    try:
+        days_int = int(days) if days is not None else 7
+    except (TypeError, ValueError):
+        days_int = 7
+    capped_days = max(1, min(days_int, 90))
+    today = datetime.now(timezone.utc).date()
+    buckets: dict[str, dict] = {}
+    # Seed every day so the chart shows zeros instead of gaps.
+    for offset in range(capped_days):
+        d = today - timedelta(days=capped_days - 1 - offset)
+        buckets[d.isoformat()] = {
+            "date": d.isoformat(),
+            "cost_usd": 0.0,
+            "cost_known": False,
+            "tokens_in": 0,
+            "tokens_out": 0,
+            "call_count": 0,
+        }
+    cutoff = today - timedelta(days=capped_days - 1)
+    for entry in read_entries():
+        raw_ts = entry.get("ts") or ""
+        if not isinstance(raw_ts, str):
+            continue
+        try:
+            ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        d = ts.date()
+        if d < cutoff:
+            continue
+        key = d.isoformat()
+        if key not in buckets:
+            continue
+        b = buckets[key]
+        b["tokens_in"] += int(entry.get("tokens_in") or 0)
+        b["tokens_out"] += int(entry.get("tokens_out") or 0)
+        b["call_count"] += 1
+        cost = entry.get("estimated_cost_usd")
+        if cost is not None:
+            b["cost_usd"] += float(cost)
+            b["cost_known"] = True
+    out_days = list(buckets.values())
+    for b in out_days:
+        b["cost_usd"] = round(b["cost_usd"], 6) if b.pop("cost_known") else None
+    return {"days": out_days, "period_days": capped_days}
+
+
 # --- Profile (PR63 v2.81.0) ---
 
 @app.get("/api/profile")
