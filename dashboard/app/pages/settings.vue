@@ -141,14 +141,87 @@ const keyOptions = [
   { label: 'Custom...', value: 'custom' },
 ]
 
+// ─── PR63b v2.89.0 — MCPs / Hooks / Plugins / Theme sections ────────────
+
+interface McpRow {
+  name: string
+  source: 'user-global' | 'arkaos-registry' | string
+  transport: string
+  command: string
+}
+
+interface HookCommand {
+  command: string
+  type: string
+  timeout?: number | null
+}
+
+interface HookRow {
+  hook: string
+  count: number
+  commands: HookCommand[]
+}
+
+interface PluginRow {
+  name: string
+  marketplace: string
+  version: string
+  scope: string
+  installed_at: string
+  last_updated: string
+}
+
+const { data: mcpsData, refresh: refreshMcps } = fetchApi<{ mcps: McpRow[], total: number }>('/api/settings/mcps')
+const { data: hooksData, refresh: refreshHooks } = fetchApi<{
+  hooks: HookRow[]
+  settings_path: string
+  hard_enforcement: boolean
+}>('/api/settings/hooks')
+const { data: pluginsData, refresh: refreshPlugins } = fetchApi<{
+  plugins: PluginRow[]
+  total: number
+  plugins_path: string
+}>('/api/settings/plugins')
+
+const mcps = computed(() => mcpsData.value?.mcps ?? [])
+const hooks = computed(() => hooksData.value?.hooks ?? [])
+const plugins = computed(() => pluginsData.value?.plugins ?? [])
+
+// Theme — Nuxt UI ships useColorMode; we just expose a picker.
+const colorMode = useColorMode()
+const themeOptions = [
+  { label: 'System (auto)', value: 'system' },
+  { label: 'Light', value: 'light' },
+  { label: 'Dark', value: 'dark' },
+]
+
+function transportColor(transport: string): 'primary' | 'warning' | 'success' | 'neutral' {
+  if (transport === 'stdio') return 'primary'
+  if (transport === 'http' || transport === 'sse') return 'success'
+  return 'neutral'
+}
+
+function formatInstalledAt(iso: string): string {
+  if (!iso) return ''
+  try {
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso))
+  } catch {
+    return iso
+  }
+}
+
 // ─── Section nav ────────────────────────────────────────────────────────
 
-type SectionId = 'profile' | 'projects' | 'keys'
+type SectionId = 'profile' | 'projects' | 'keys' | 'mcps' | 'hooks' | 'plugins' | 'theme'
 
 const sections: { id: SectionId; label: string; icon: string }[] = [
-  { id: 'profile', label: 'Profile', icon: 'i-lucide-user-circle' },
-  { id: 'projects', label: 'Projects', icon: 'i-lucide-folders' },
-  { id: 'keys', label: 'API Keys', icon: 'i-lucide-key' },
+  { id: 'profile',  label: 'Profile',   icon: 'i-lucide-user-circle' },
+  { id: 'projects', label: 'Projects',  icon: 'i-lucide-folders' },
+  { id: 'keys',     label: 'API Keys',  icon: 'i-lucide-key' },
+  { id: 'mcps',     label: 'MCPs',      icon: 'i-lucide-plug-2' },
+  { id: 'hooks',    label: 'Hooks',     icon: 'i-lucide-webhook' },
+  { id: 'plugins',  label: 'Plugins',   icon: 'i-lucide-puzzle' },
+  { id: 'theme',    label: 'Theme',     icon: 'i-lucide-palette' },
 ]
 
 const activeSection = ref<SectionId>('profile')
@@ -182,7 +255,8 @@ const activeSection = ref<SectionId>('profile')
             <span>{{ s.label }}</span>
           </button>
           <p class="text-xs text-muted px-3 mt-6">
-            More sections (MCPs, Hooks, Plugins, Theme) coming in PR63b.
+            7 sections. Profile + Projects edit data; everything else is
+            read-only diagnostics until an explicit edit endpoint lands.
           </p>
         </nav>
 
@@ -408,6 +482,183 @@ const activeSection = ref<SectionId>('profile')
                 </div>
               </div>
             </DashboardState>
+          </section>
+
+          <!-- MCPs -->
+          <section v-else-if="activeSection === 'mcps'">
+            <div class="flex items-baseline justify-between mb-1">
+              <h2 class="text-lg font-semibold">MCPs</h2>
+              <UButton
+                label="Refresh"
+                variant="ghost"
+                icon="i-lucide-refresh-cw"
+                size="xs"
+                @click="refreshMcps()"
+              />
+            </div>
+            <p class="text-sm text-muted mb-6">
+              MCP servers configured globally for your Claude Code account.
+              Sourced from <code class="font-mono text-xs">~/.claude.json</code>
+              and the ArkaOS registry. Read-only.
+            </p>
+            <div v-if="!mcps.length" class="rounded-lg border border-default p-6 text-center">
+              <UIcon name="i-lucide-plug-2" class="size-10 text-muted mx-auto mb-2" />
+              <p class="text-sm text-muted">No MCP servers configured.</p>
+            </div>
+            <div v-else class="space-y-2">
+              <div
+                v-for="m in mcps"
+                :key="`${m.source}:${m.name}`"
+                class="flex items-center gap-3 rounded-lg border border-default p-3"
+              >
+                <UIcon name="i-lucide-plug-2" class="size-4 text-muted shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-sm font-mono font-medium">{{ m.name }}</span>
+                    <UBadge :label="m.source" variant="outline" size="xs" />
+                    <UBadge
+                      :label="m.transport"
+                      :color="transportColor(m.transport)"
+                      variant="subtle"
+                      size="xs"
+                    />
+                  </div>
+                  <p v-if="m.command" class="text-xs font-mono text-muted truncate" :title="m.command">
+                    {{ m.command }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Hooks -->
+          <section v-else-if="activeSection === 'hooks'">
+            <div class="flex items-baseline justify-between mb-1">
+              <h2 class="text-lg font-semibold">Hooks</h2>
+              <UButton
+                label="Refresh"
+                variant="ghost"
+                icon="i-lucide-refresh-cw"
+                size="xs"
+                @click="refreshHooks()"
+              />
+            </div>
+            <p class="text-sm text-muted mb-6">
+              Claude Code hooks wired by the ArkaOS installer.
+              Sourced from
+              <code class="font-mono text-xs">{{ hooksData?.settings_path ?? '~/.claude/settings.json' }}</code>.
+              Read-only — re-wire via <code class="font-mono text-xs">npx arkaos@latest update</code>.
+            </p>
+            <div
+              v-if="hooksData?.hard_enforcement"
+              class="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm"
+            >
+              <UIcon name="i-lucide-shield-check" class="size-4 inline text-primary mr-1" />
+              Hard enforcement is <strong>ON</strong>. Effect tools require
+              <code class="font-mono text-xs">[arka:routing]</code> markers.
+            </div>
+            <div v-if="!hooks.length" class="rounded-lg border border-default p-6 text-center">
+              <UIcon name="i-lucide-webhook" class="size-10 text-muted mx-auto mb-2" />
+              <p class="text-sm text-muted">No hooks wired in settings.json.</p>
+            </div>
+            <div v-else class="space-y-3">
+              <div
+                v-for="h in hooks"
+                :key="h.hook"
+                class="rounded-lg border border-default p-3"
+              >
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-sm font-mono font-semibold">{{ h.hook }}</span>
+                  <UBadge :label="`${h.count}`" variant="subtle" size="xs" />
+                </div>
+                <ul class="space-y-1">
+                  <li
+                    v-for="(c, idx) in h.commands"
+                    :key="idx"
+                    class="flex items-center gap-2 text-xs"
+                  >
+                    <UIcon name="i-lucide-terminal" class="size-3 text-muted shrink-0" />
+                    <code class="font-mono text-xs truncate flex-1" :title="c.command">
+                      {{ c.command }}
+                    </code>
+                    <span v-if="c.timeout" class="text-muted whitespace-nowrap">
+                      {{ c.timeout }}s
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Plugins -->
+          <section v-else-if="activeSection === 'plugins'">
+            <div class="flex items-baseline justify-between mb-1">
+              <h2 class="text-lg font-semibold">Plugins</h2>
+              <UButton
+                label="Refresh"
+                variant="ghost"
+                icon="i-lucide-refresh-cw"
+                size="xs"
+                @click="refreshPlugins()"
+              />
+            </div>
+            <p class="text-sm text-muted mb-6">
+              Claude Code plugins installed via the marketplace system
+              (PR43 auto-install + PR55 ArkaOS marketplace). Sourced
+              from <code class="font-mono text-xs">{{ pluginsData?.plugins_path ?? '~/.claude/plugins/installed_plugins.json' }}</code>.
+            </p>
+            <div v-if="!plugins.length" class="rounded-lg border border-default p-6 text-center">
+              <UIcon name="i-lucide-puzzle" class="size-10 text-muted mx-auto mb-2" />
+              <p class="text-sm text-muted">No plugins installed.</p>
+              <p class="text-xs text-muted mt-2">
+                Try <code class="font-mono">/plugin marketplace add andreagroferreira/arka-os</code>
+                from Claude Code.
+              </p>
+            </div>
+            <div v-else class="space-y-2">
+              <div
+                v-for="p in plugins"
+                :key="`${p.marketplace}:${p.name}:${p.version}`"
+                class="flex items-center gap-3 rounded-lg border border-default p-3"
+              >
+                <UIcon name="i-lucide-puzzle" class="size-4 text-muted shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-sm font-semibold">{{ p.name }}</span>
+                    <UBadge :label="p.marketplace" variant="outline" size="xs" />
+                    <UBadge v-if="p.scope" :label="p.scope" variant="soft" size="xs" />
+                    <UBadge v-if="p.version" :label="`v${p.version}`" variant="subtle" size="xs" />
+                  </div>
+                  <p v-if="p.installed_at" class="text-xs text-muted">
+                    Installed {{ formatInstalledAt(p.installed_at) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Theme -->
+          <section v-else-if="activeSection === 'theme'">
+            <h2 class="text-lg font-semibold mb-1">Theme</h2>
+            <p class="text-sm text-muted mb-6">
+              Light / dark / system (follows OS preference).
+              Stored locally by your browser.
+            </p>
+            <UCard>
+              <div class="space-y-4">
+                <UFormField label="Appearance">
+                  <USelect
+                    v-model="colorMode.preference"
+                    :items="themeOptions"
+                    class="w-full max-w-xs"
+                  />
+                </UFormField>
+                <p class="text-xs text-muted">
+                  Currently rendering as
+                  <UBadge :label="colorMode.value" variant="subtle" size="xs" />
+                </p>
+              </div>
+            </UCard>
           </section>
         </div>
       </div>

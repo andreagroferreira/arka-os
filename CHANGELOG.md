@@ -5,6 +5,62 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.89.0] - 2026-05-25
+
+### Added (Settings expansion: MCPs / Hooks / Plugins / Theme — PR63b)
+
+Closes the original 10-PR dashboard backlog plus the follow-up
+PR63b. Settings now has all 7 sections promised in the audit.
+
+#### Backend
+
+- **`GET /api/settings/mcps`** — merges `~/.claude.json::mcpServers`
+  with `~/.claude/skills/arka/mcps/registry.json`. Dedupes by name
+  (user-global wins). Detects transport (stdio / http / sse / unknown).
+  Handles both dict-shape and list-shape registries. Corrupt JSON
+  swallowed.
+- **`GET /api/settings/hooks`** — parses `~/.claude/settings.json::hooks`
+  into one row per hook type with command paths + timeouts. Surfaces
+  `hard_enforcement` flag from the PR19 binding-flow enforcement
+  switch. Read-only diagnostics.
+- **`GET /api/settings/plugins`** — flattens
+  `~/.claude/plugins/installed_plugins.json` into one row per
+  `(name, marketplace, version)`. Sorted by marketplace then name.
+
+#### Frontend (`settings.vue`)
+
+- **4 new sections** behind the existing left-nav: MCPs, Hooks,
+  Plugins, Theme.
+- **MCPs** — each server with source badge (`user-global` /
+  `arkaos-registry`), transport pill (stdio / http / sse), command
+  preview.
+- **Hooks** — per-hook-type group with command + timeout list. A
+  primary-tinted banner appears at top when `hardEnforcement` is on.
+- **Plugins** — name + marketplace + version + scope + installed-at
+  per row. Empty state hints at the `/plugin marketplace add` flow.
+- **Theme** — `useColorMode()` picker (System / Light / Dark) with a
+  "Currently rendering as ..." footer.
+
+### Test coverage
+
+- 13 new `tests/python/test_settings_sections_api.py` cases:
+  - **MCPs (6)**: empty, user-global parse, dedupe with arkaos
+    registry, http transport detection, corrupt JSON, list-shape
+    registry support
+  - **Hooks (4)**: missing file, full block parse, hardEnforcement
+    flag surface, corrupt JSON
+  - **Plugins (3)**: missing file, marketplace-keyed flatten,
+    corrupt JSON
+- Vue typecheck clean
+- Full Python suite: 3798/3798 passing
+- Preflight: `all_passed: True`
+
+### Dashboard UI backlog status — closed
+
+11 PRs shipped: PR62 wizard, PR63 settings, PR64 dashboard-state,
+PR65 budget, PR66 command-center, PR67 tasks, PR68 commands,
+PR69 agents, PR70 health, PR71 knowledge, PR63b settings full set.
+
 ## [2.88.0] - 2026-05-25
 
 ### Added (Knowledge page: delete source + match highlight — PR71)
