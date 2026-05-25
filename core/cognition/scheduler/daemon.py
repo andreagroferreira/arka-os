@@ -161,6 +161,7 @@ class ArkaScheduler:
         """
         if schedule.python_module:
             return [sys.executable, "-m", schedule.python_module, *schedule.module_args]
+        self._warn_metered_billing_cutover(schedule)
         claude_bin = self._resolve_claude_binary()
         prompt_path = os.path.expanduser(schedule.prompt_file)
         prompt_content = Path(prompt_path).read_text(encoding="utf-8")
@@ -170,6 +171,41 @@ class ArkaScheduler:
         except Exception:
             pass  # fall back to raw template if profile unavailable
         return [claude_bin, "-p", prompt_content, "--dangerously-skip-permissions"]
+
+    @staticmethod
+    def _warn_metered_billing_cutover(schedule: ScheduleConfig) -> None:
+        """Emit a one-time warning for legacy `claude -p` schedules.
+
+        PR52 v2.68.0 — Anthropic's Agent SDK $200 credit policy takes
+        effect 2026-06-15: programmatic Claude usage (`claude -p`,
+        Agent SDK, GitHub Actions, third-party harnesses) is metered
+        separately from interactive use. Subscriptions previously
+        absorbed the burn; after the cutover they no longer do. Operator
+        action: migrate this schedule to `python_module` (Dreaming v2)
+        or to a direct-API-key invocation with explicit budget alarms.
+        """
+        marker_dir = Path.home() / ".arkaos" / "telemetry"
+        marker = marker_dir / f"metered-billing-warned.{schedule.command}"
+        if marker.exists():
+            return
+        try:
+            marker_dir.mkdir(parents=True, exist_ok=True)
+            marker.write_text(datetime.now().isoformat(), encoding="utf-8")
+        except OSError:
+            pass  # best-effort marker; warning still fires every time
+        msg = (
+            "[arkaos] schedule '" + schedule.command + "' uses the legacy "
+            "`claude -p` path. From 2026-06-15, programmatic Claude usage "
+            "is metered separately from interactive subscription credit "
+            "(Pro $20 / Max5x $100 / Max20x $200, no rollover). "
+            "Migrate to python_module or direct API key before then. "
+            "See: knowledge-anthropic-agent-sdk-credit-policy-2026-06-15"
+        )
+        try:
+            sys.stderr.write(msg + "\n")
+            sys.stderr.flush()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Execution
