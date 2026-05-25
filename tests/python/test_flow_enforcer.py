@@ -179,6 +179,23 @@ def test_marker_older_than_window_denies(tmp_config, tmp_path):
     assert d.allow is False
 
 
+def test_pr53_marker_at_position_15_still_found(tmp_config, tmp_path):
+    """PR53 regression — routing marker emitted 15 messages ago must still
+    be found (would have been invisible under the old 6-message window)."""
+    _write_config(tmp_config, True)
+    mark_flow_required("session-pr53")
+    # Routing line followed by 15 substantive non-marker messages — would
+    # have been pushed off the 6-msg window but stays inside the 20-msg one.
+    messages = (
+        ["[arka:routing] dev -> Paulo"]
+        + [f"Tool result {i}: ran tests, all green." for i in range(15)]
+    )
+    transcript = _write_transcript(tmp_path / "t.jsonl", messages)
+    d = evaluate("Write", str(transcript), "session-pr53", "/tmp")
+    assert d.allow is True
+    assert d.marker_found == "routing"
+
+
 # ─── Bypass path ───────────────────────────────────────────────────────
 
 
@@ -381,9 +398,10 @@ def test_bash_classifier_rejects_unsafe_session_ids(tmp_path, monkeypatch):
 # ─── v2 window widening + cache integration sanity ────────────────────
 
 
-def test_assistant_window_is_six_after_v2():
-    """v2 widens the fallback scan from 3 → 6 messages."""
-    assert flow_enforcer.ASSISTANT_WINDOW == 6
+def test_assistant_window_after_pr53_widening():
+    """PR53 widens the fallback scan from 6 → 20 messages to survive
+    long multi-PR sessions without re-emitting [arka:routing] every PR."""
+    assert flow_enforcer.ASSISTANT_WINDOW == 20
 
 
 def test_deny_reason_reflects_current_window(tmp_config, tmp_path):

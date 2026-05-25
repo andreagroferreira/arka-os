@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.70.0] - 2026-05-25
+
+### Changed (Flow enforcer lookback widened 6 → 20 — PR53)
+
+- **`core/workflow/flow_enforcer.ASSISTANT_WINDOW`** bumped from `6`
+  to `20`. The 6-message window was too tight for long multi-PR
+  sessions: after a single PR's worth of test runs / commits / npm
+  publishes (each producing a substantive assistant message), the
+  `[arka:routing]` marker aged out and the enforcer blocked subsequent
+  Edit/Write calls even when the operator was clearly mid-scope.
+  Surfaced repeatedly during the May 24-25 7-PR adoption arc — used
+  `ARKA_BYPASS_FLOW=1` multiple times as a workaround. PR53 closes
+  that carry-forward.
+- **Transcript remains authoritative** per ADR
+  `docs/adr/2026-04-17-binding-flow-enforcement.md` — the change just
+  widens the lookback before declaring the marker absent.
+
+### Test coverage
+
+- 1 new regression test (`test_pr53_marker_at_position_15_still_found`)
+  verifies a routing line emitted 15 messages back is found — would
+  have been invisible under the old window.
+- Existing `test_assistant_window_after_pr53_widening` updated to lock
+  the new value at 20.
+- Full Python suite: 3635/3635 passing.
+
 ## [2.69.0] - 2026-05-25
 
 ### Added (Portable Agent Skills export — PR51, Angle C)
