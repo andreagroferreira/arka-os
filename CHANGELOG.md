@@ -5,6 +5,80 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.65.0] - 2026-05-25
+
+### Added (Effort-aware nudge gating — Claude Code adoption arc PR46)
+
+- **Effort-aware `[arka:suggest]` surfacing** (PR46) — both the Stop and
+  UserPromptSubmit hooks now read Claude Code's W19 `effort.level`
+  signal from hook stdin (`.effort.level` JSON field) with
+  `$CLAUDE_EFFORT` env-var fallback. The soft-block nudges (KB-cite
+  + meta-tag) only surface to the next turn when effort is
+  `high` / `xhigh` (or unset, defaulting to high). On `low` / `medium`
+  the nudges are suppressed so cheap exploratory turns don't drag the
+  full ArkaOS contract along for every paragraph.
+- **Telemetry labelling for nudge suppression** — every
+  `stop-hook-flow-check` record in `~/.arkaos/telemetry/enforcement.jsonl`
+  now carries an `effort_level` field, so `/arka costs` and future
+  compliance reports can compute suppression rates per effort tier.
+- **Test coverage** — five new `tests/hooks.bats` cases lock the gating
+  (low/medium suppress, high surfaces, default surfaces, `$CLAUDE_EFFORT`
+  fallback honoured).
+
+### Design note
+
+Telemetry is cheap and feeds compliance dashboards, so the kb_cite,
+meta_tag, and sycophancy detectors continue to run on every Stop turn
+regardless of effort. Effort only gates the *next-turn nudge surfacing*
+because that costs model tokens. Hard enforcement (PreToolUse
+`flow_enforcer`) is unaffected and runs at every effort level.
+
+## [2.64.0] - 2026-05-25
+
+### Added (Hard deny defaults — Claude Code adoption arc PR45)
+
+- **`autoMode.hard_deny` seeder** (PR45) — Claude Code v2.1.131+ shipped
+  unconditional deny rules. New `installer/hard-deny.js` ships a curated
+  default list (destructive git, filesystem destruction, secrets paths,
+  privilege escalation, `curl | sh`) and merges it into
+  `~/.claude/settings.json` on every `npx arkaos install` / `update`.
+  Operator-authored rules in `settings.json` and entries in
+  `~/.arkaos/hard-deny.json` are preserved on every run.
+- **Behaviour** — idempotent (string-equality merge, no duplicates),
+  atomic write (.tmp + rename), no-op when runtime is not Claude Code,
+  no-op when settings file missing. Eight new tests in
+  `tests/installer/hard-deny.test.js` lock the contract.
+- **Why** — without `hard_deny`, auto mode is structurally unsafe: an
+  allow rule can shadow a deny one. The seeder closes that gap by
+  default on every install, no operator action required.
+
+## [2.63.0] - 2026-05-24
+
+### Added (Mandatory post-task skill evaluation — PR44)
+
+- **`mandatory-skill-evaluation` NON-NEGOTIABLE rule** added to
+  `config/constitution.yaml`. Stop hook now invokes
+  `core/governance/skill_proposer.evaluate` on every closing assistant
+  message. Bypass gates: explicit skip markers, no-completion-signal,
+  trivial-length (<15 words), below-skill-hint floor (needs ≥2 of:
+  10-phase / workflow / skill / template / procedure / playbook /
+  checklist). Surviving turns generate a Markdown proposal under
+  `~/.arkaos/skill-proposals/<date>-<slug>.md` for later promotion.
+- **Test fixtures** — `tests/python/test_constitution.py` updated for
+  24 NON-NEGOTIABLE / 39 total rule IDs.
+
+## [2.62.0] - 2026-05-24
+
+### Added (Automatic Claude Code plugin installation — PR43)
+
+- **`frontend-design@claude-plugins-official`** auto-installed on every
+  `npx arkaos install` / `update` when the runtime is Claude Code. The
+  installer detects the runtime, shells out to `claude plugins install`,
+  and tracks the result in `~/.arkaos/plugins-installed.json`. Failures
+  are non-fatal — the rest of the install proceeds. Test suite in
+  `tests/installer/plugin-install.test.js` mocks the shell-out and
+  locks the idempotent behaviour.
+
 ## [2.61.0] - 2026-05-24
 
 ### Added (Community department — twelfth pattern repeat, ARC COMPLETE)

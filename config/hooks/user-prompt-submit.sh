@@ -84,10 +84,25 @@ mkdir -p "$CACHE_DIR" 2>/dev/null
 # ─── Extract user input from hook JSON ───────────────────────────────────
 user_input=""
 SESSION_ID=""
+EFFORT_LEVEL=""
 if command -v jq &>/dev/null; then
   user_input=$(echo "$input" | jq -r '.userInput // .message // ""' 2>/dev/null)
   SESSION_ID=$(echo "$input" | jq -r '.session_id // ""' 2>/dev/null)
+  # PR46 v2.65.0 — Claude Code W19 ships effort.level in hook stdin.
+  # Soft-block nudges (KB-first + meta-tag) are gated by effort: only
+  # surfaced at high|xhigh; low/medium skip the nudge to avoid forcing
+  # the model to comply with full contracts during cheap exploratory
+  # turns. Hard enforcement (PreToolUse flow_enforcer) runs regardless.
+  EFFORT_LEVEL=$(echo "$input" | jq -r '.effort.level // ""' 2>/dev/null)
 fi
+[ -z "$EFFORT_LEVEL" ] && EFFORT_LEVEL="${CLAUDE_EFFORT:-}"
+
+# Decide whether soft-block nudges surface to the next turn.
+_ARKA_SURFACE_NUDGES="true"
+case "${EFFORT_LEVEL:-high}" in
+  low|medium) _ARKA_SURFACE_NUDGES="false" ;;
+  *)          _ARKA_SURFACE_NUDGES="true"  ;;
+esac
 
 # ─── Flow marker cache invalidation (v2 — new turn, reset ALLOW cache) ──
 # Cheap, non-blocking, runs before Synapse so a stuck Python later cannot
@@ -376,7 +391,7 @@ fi
 # the suggestion to the model in this turn's additionalContext. One-shot:
 # the file is deleted after read so the nudge does not repeat across turns.
 _KB_CITE_NUDGE=""
-if [ -n "$SESSION_ID" ]; then
+if [ -n "$SESSION_ID" ] && [ "$_ARKA_SURFACE_NUDGES" = "true" ]; then
   _CITE_FILE="/tmp/arkaos-cite/${SESSION_ID}.json"
   if [ -f "$_CITE_FILE" ]; then
     if command -v jq &>/dev/null; then
@@ -397,7 +412,7 @@ fi
 # Mirror of the KB citation nudge but for the [arka:meta] one-liner
 # contract. One-shot; deleted after read.
 _META_TAG_NUDGE=""
-if [ -n "$SESSION_ID" ]; then
+if [ -n "$SESSION_ID" ] && [ "$_ARKA_SURFACE_NUDGES" = "true" ]; then
   _META_FILE="/tmp/arkaos-meta/${SESSION_ID}.json"
   if [ -f "$_META_FILE" ]; then
     if command -v jq &>/dev/null; then

@@ -87,6 +87,58 @@ load helpers/setup
   echo "$output" | jq empty
 }
 
+# ─── PR46 v2.65.0 — effort-aware nudge gating ────────────────────────────
+
+@test "user-prompt-submit.sh suppresses KB-cite nudge on low effort" {
+  mkdir -p /tmp/arkaos-cite
+  sid="effort-low-$$"
+  echo '{"passed":false,"reason":"missing","suggestion":"KB-first nudge"}' > "/tmp/arkaos-cite/${sid}.json"
+  input='{"prompt":"hi","cwd":"/tmp","session_id":"'${sid}'","effort":{"level":"low"}}'
+  run bash -c "echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[arka:suggest] KB-first nudge"* ]]
+}
+
+@test "user-prompt-submit.sh suppresses meta-tag nudge on medium effort" {
+  mkdir -p /tmp/arkaos-meta
+  sid="effort-med-$$"
+  echo '{"passed":false,"reason":"missing","suggestion":"meta-tag nudge"}' > "/tmp/arkaos-meta/${sid}.json"
+  input='{"prompt":"hi","cwd":"/tmp","session_id":"'${sid}'","effort":{"level":"medium"}}'
+  run bash -c "echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[arka:suggest] meta-tag nudge"* ]]
+}
+
+@test "user-prompt-submit.sh surfaces KB-cite nudge on high effort" {
+  mkdir -p /tmp/arkaos-cite
+  sid="effort-high-$$"
+  echo '{"passed":false,"reason":"missing","suggestion":"KB-first nudge"}' > "/tmp/arkaos-cite/${sid}.json"
+  input='{"prompt":"hi","cwd":"/tmp","session_id":"'${sid}'","effort":{"level":"high"}}'
+  run bash -c "echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[arka:suggest] KB-first nudge"* ]]
+}
+
+@test "user-prompt-submit.sh surfaces nudges when effort is unset (default high)" {
+  mkdir -p /tmp/arkaos-cite
+  sid="effort-default-$$"
+  echo '{"passed":false,"reason":"missing","suggestion":"KB-first nudge"}' > "/tmp/arkaos-cite/${sid}.json"
+  input='{"prompt":"hi","cwd":"/tmp","session_id":"'${sid}'"}'
+  run bash -c "echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[arka:suggest] KB-first nudge"* ]]
+}
+
+@test "user-prompt-submit.sh reads CLAUDE_EFFORT env var when JSON omits effort" {
+  mkdir -p /tmp/arkaos-cite
+  sid="effort-env-$$"
+  echo '{"passed":false,"reason":"missing","suggestion":"KB-first nudge"}' > "/tmp/arkaos-cite/${sid}.json"
+  input='{"prompt":"hi","cwd":"/tmp","session_id":"'${sid}'"}'
+  run bash -c "export CLAUDE_EFFORT=low && echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[arka:suggest] KB-first nudge"* ]]
+}
+
 @test "settings-template.json is valid JSON" {
   run jq empty "$REPO_DIR/config/settings-template.json"
   [ "$status" -eq 0 ]
