@@ -84,9 +84,21 @@ const links = [[{
       class="bg-elevated/25"
     >
       <template #header="{ collapsed }">
-        <div class="flex items-center gap-2" :class="collapsed ? 'justify-center' : ''">
-          <span class="text-xl font-bold text-primary">A</span>
-          <span v-if="!collapsed" class="font-semibold">ArkaOS</span>
+        <!-- PR72 v2.90.0 — global light/dark switch in the sidebar
+             header. Nuxt UI's canonical UColorModeButton (per
+             /websites/ui_nuxt docs) flips between sun/moon icons and
+             handles SSR via ClientOnly internally. Visible on every
+             page; the Settings → Theme section keeps the explicit
+             3-way picker (system / light / dark). -->
+        <div
+          class="flex items-center w-full"
+          :class="collapsed ? 'justify-center' : 'justify-between gap-2'"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-bold text-primary">A</span>
+            <span v-if="!collapsed" class="font-semibold">ArkaOS</span>
+          </div>
+          <UColorModeButton v-if="!collapsed" size="xs" />
         </div>
       </template>
 

@@ -5,6 +5,39 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.90.0] - 2026-05-25
+
+### Added (Global light/dark switch in sidebar header — PR72)
+
+- **`<UColorModeButton />`** mounted in the dashboard sidebar header
+  (next to the "ArkaOS" wordmark). Nuxt UI's canonical color-mode
+  toggle — flips sun ↔ moon icon, handles SSR via `<ClientOnly>`
+  internally, persists the choice through `useColorMode`.
+- Visible on **every page** — operators don't have to dive into
+  Settings → Theme to flip the appearance.
+- **Hidden when sidebar is collapsed** (icon-only mode); the bare
+  "A" mark is the only thing showing in that state. The explicit
+  3-way picker in Settings → Theme (system / light / dark) stays
+  as the deeper preference UI.
+
+### How I picked the component
+
+Researched via `mcp__context7` on `/websites/ui_nuxt` (Nuxt UI's
+canonical docs). Two recommended approaches:
+
+1. Drop-in `<UColorModeButton />` (zero config).
+2. Custom button using `useColorMode()` with manual sun/moon icon swap.
+
+Went with (1) — it's the documented Nuxt UI primitive, ships ARIA
+labels, and stays in sync with `useColorMode.preference` updates
+from the Settings page automatically.
+
+### Test coverage
+
+- Vue typecheck clean
+- Full Python suite: 3798/3798 passing (no backend changes)
+- Preflight: `all_passed: True`
+
 ## [2.89.0] - 2026-05-25
 
 ### Added (Settings expansion: MCPs / Hooks / Plugins / Theme — PR63b)
