@@ -687,6 +687,48 @@ def persona_delete(persona_id: str):
     return {"error": "Persona not found"}
 
 
+@app.post("/api/personas/build")
+def persona_build(body: dict):
+    """PR57 v2.74.0 — AI-powered persona draft from already-indexed content.
+
+    Body: {
+        "name": "<person to model>",
+        "search_query": "<optional vector search query>",
+        "top_k": <optional, default 20>,
+        "source_label": "<optional label, e.g. 'Alex Hormozi'>"
+    }
+
+    Returns: {persona: {...draft...}, chunks_used, provider_name}
+    The draft is NOT saved — the operator reviews and calls
+    POST /api/personas to persist.
+    """
+    name = (body.get("name") or "").strip()
+    if not name:
+        return {"error": "name is required"}
+    store = _get_vector_store()
+    if not store:
+        from core.knowledge.vector_store import VectorStore
+        kb_db = Path.home() / ".arkaos" / "knowledge.db"
+        kb_db.parent.mkdir(parents=True, exist_ok=True)
+        store = VectorStore(kb_db)
+    from core.personas.builder import PersonaBuilder, PersonaBuildError
+    builder = PersonaBuilder(store)
+    try:
+        result = builder.generate(
+            name=name,
+            search_query=body.get("search_query", ""),
+            top_k=int(body.get("top_k", 20) or 20),
+            source_label=body.get("source_label", ""),
+        )
+    except PersonaBuildError as exc:
+        return {"error": str(exc)}
+    return {
+        "persona": result.persona.model_dump(),
+        "chunks_used": result.chunks_used,
+        "provider_name": result.provider_name,
+    }
+
+
 # --- API Keys ---
 
 @app.get("/api/keys")
