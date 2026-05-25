@@ -5,6 +5,33 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.67.0] - 2026-05-25
+
+### Added (worktree.baseRef = head — Claude Code adoption arc PR48)
+
+- **`installer/worktree-baseref.js`** seeds `worktree.baseRef = "head"`
+  into `~/.claude/settings.json` on every Claude Code install/update.
+  Claude Code v2.1.151+ ships the `worktree.baseRef` setting; the
+  default branches new worktrees from the repo's main branch. For
+  ArkaOS's iterative feature-branch workflow we want worktrees to
+  branch from current HEAD instead, so an agent working off a feature
+  branch gets a worktree built on top of it (not master).
+- **Operator overrides preserved** — the seeder only writes when the
+  key is missing. If a value already exists (including `"main"` set
+  explicitly by the operator), it stays.
+- **Merge-safe** — if `worktree` exists with other subkeys but no
+  `baseRef`, the seeder merges `baseRef` in without touching siblings.
+- Default also added to `config/settings-template.json` so first
+  installs (no prior settings.json) get the value via the bootstrap
+  jq merge in `install.sh`.
+
+### Test coverage
+
+- 7 new `tests/installer/worktree-baseref.test.js` cases (runtime
+  gating, missing-settings, create, preserve unrelated keys,
+  operator override, idempotency, merge with sibling subkeys).
+- Full installer suite: 66/66 passing.
+
 ## [2.66.0] - 2026-05-25
 
 ### Added (Per-category usage breakdown — Claude Code adoption arc PR47)

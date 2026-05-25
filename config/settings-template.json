@@ -4,6 +4,9 @@
     "command": "{{STATUSLINE_PATH}}",
     "padding": 2
   },
+  "worktree": {
+    "baseRef": "head"
+  },
   "hooks": {
     "SessionStart": [
       {
