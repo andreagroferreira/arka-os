@@ -729,6 +729,43 @@ def persona_build(body: dict):
     }
 
 
+# --- Profile (PR63 v2.81.0) ---
+
+@app.get("/api/profile")
+def profile_get():
+    """Return the operator profile from ~/.arkaos/profile.json.
+
+    Always returns a profile object (default empty strings when the
+    file doesn't exist yet) so the dashboard can render a setup form
+    instead of an error.
+    """
+    from core.profile import ProfileManager
+    from core.profile.manager import parse_projects_dirs
+    profile = ProfileManager().read()
+    payload = profile.to_dict()
+    # Convenience: split projectsDir into a list for the UI.
+    payload["projects_dirs_list"] = parse_projects_dirs(profile.projectsDir)
+    return payload
+
+
+@app.post("/api/profile")
+def profile_post(body: dict):
+    """Patch the operator profile.
+
+    Only the writable fields are honoured (name, language, market,
+    role, company, projectsDir, vaultPath). Unknown keys are silently
+    dropped. Returns the updated profile.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    from core.profile import ProfileManager
+    from core.profile.manager import parse_projects_dirs
+    updated = ProfileManager().patch(body)
+    payload = updated.to_dict()
+    payload["projects_dirs_list"] = parse_projects_dirs(updated.projectsDir)
+    return payload
+
+
 # --- API Keys ---
 
 @app.get("/api/keys")
