@@ -426,6 +426,24 @@ if [ -n "$SESSION_ID" ] && [ "$_ARKA_SURFACE_NUDGES" = "true" ]; then
   fi
 fi
 
+# ─── Closing-marker nudge (PR59 v2.76.0) ─────────────────────────────────
+# Mirror of meta-tag nudge but for [arka:phase:13] / [arka:trivial]
+# closing markers. One-shot; deleted after read.
+_CLOSING_MARKER_NUDGE=""
+if [ -n "$SESSION_ID" ] && [ "$_ARKA_SURFACE_NUDGES" = "true" ]; then
+  _CLOSING_FILE="/tmp/arkaos-closing/${SESSION_ID}.json"
+  if [ -f "$_CLOSING_FILE" ]; then
+    if command -v jq &>/dev/null; then
+      _CLOSING_PASSED=$(jq -r '.passed' "$_CLOSING_FILE" 2>/dev/null)
+      _CLOSING_SUGGEST=$(jq -r '.suggestion // ""' "$_CLOSING_FILE" 2>/dev/null)
+      if [ "$_CLOSING_PASSED" = "false" ] && [ -n "$_CLOSING_SUGGEST" ] && [ "$_CLOSING_SUGGEST" != "null" ]; then
+        _CLOSING_MARKER_NUDGE="[arka:suggest] ${_CLOSING_SUGGEST}"
+      fi
+    fi
+    rm -f "$_CLOSING_FILE" 2>/dev/null
+  fi
+fi
+
 # ─── Output ──────────────────────────────────────────────────────────────
 _OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}${_ROUTE_REMINDER}${_WORKFLOW_DIRECTIVE} $python_result"
 [ -n "$_HYGIENE" ] && _OUT_CONTEXT="$_OUT_CONTEXT $_HYGIENE"
@@ -433,6 +451,8 @@ _OUT_CONTEXT="${_ARKA_GREETING:-}${_SYNC_NOTICE:-}${_ROUTE_REMINDER}${_WORKFLOW_
 $_KB_CITE_NUDGE"
 [ -n "$_META_TAG_NUDGE" ] && _OUT_CONTEXT="$_OUT_CONTEXT
 $_META_TAG_NUDGE"
+[ -n "$_CLOSING_MARKER_NUDGE" ] && _OUT_CONTEXT="$_OUT_CONTEXT
+$_CLOSING_MARKER_NUDGE"
 [ -n "$_ARKA_CONTEXT_HITS" ] && _OUT_CONTEXT="$_OUT_CONTEXT
 $_ARKA_CONTEXT_HITS"
 # Escape for JSON
