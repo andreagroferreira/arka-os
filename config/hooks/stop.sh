@@ -219,6 +219,38 @@ try:
 except Exception:
     pass
 
+# PR59 v2.76.0 — Closing-marker soft block. Telemetry analysis showed
+# 0% [arka:phase:13]/[arka:trivial] rate on flow-required turns. Persist
+# result to /tmp/arkaos-closing/<session>.json so the next
+# UserPromptSubmit can surface a nudge if missing.
+closing_check_passed = True
+closing_check_reason = "trivial"
+closing_check_suggestion: str | None = None
+try:
+    from core.governance.closing_marker_check import check_closing_marker
+    cmr = check_closing_marker(last)
+    closing_check_passed = cmr.passed
+    closing_check_reason = cmr.reason
+    closing_check_suggestion = cmr.suggestion
+    if safe_sid:
+        prev_umask = os.umask(0o077)
+        try:
+            closing_dir = Path("/tmp/arkaos-closing")
+            closing_dir.mkdir(parents=True, exist_ok=True)
+            closing_path = closing_dir / f"{safe_sid}.json"
+            closing_path.write_text(
+                json.dumps({
+                    "passed": cmr.passed,
+                    "reason": cmr.reason,
+                    "suggestion": cmr.suggestion,
+                }),
+                encoding="utf-8",
+            )
+        finally:
+            os.umask(prev_umask)
+except Exception:
+    pass
+
 entry = {
     "ts": datetime.now(timezone.utc).isoformat(),
     "session_id": session_id,
@@ -237,6 +269,9 @@ entry = {
     "kb_cite_topic_score": cite_topic_score,
     "meta_tag_check_passed": meta_passed,
     "meta_tag_check_reason": meta_reason,
+    # PR59 v2.76.0 — Closing-marker soft-block telemetry.
+    "closing_marker_check_passed": closing_check_passed,
+    "closing_marker_check_reason": closing_check_reason,
     # PR46 v2.65.0 — Claude Code effort level captured for later analysis
     # of nudge-suppression rates. Unset / unknown values land as "".
     "effort_level": os.environ.get("EFFORT_LEVEL_VAL", ""),

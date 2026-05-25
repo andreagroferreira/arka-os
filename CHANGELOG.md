@@ -5,6 +5,41 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.76.0] - 2026-05-25
+
+### Added (Closing-marker soft block — PR59)
+
+- **`core/governance/closing_marker_check.py`** — response-side
+  classifier for `[arka:phase:13]` / `[arka:trivial]` closing markers.
+  Mirrors `meta_tag_check` (PR30) and `kb_cite_check` (PR18). Trivial-
+  length bypass (under 15 words) skips the check.
+- **Stop hook wires it in** — `closing_marker_check_passed` +
+  `closing_marker_check_reason` now appear on every
+  `stop-hook-flow-check` row in `~/.arkaos/telemetry/enforcement.jsonl`;
+  result JSON persists to `/tmp/arkaos-closing/<session>.json` so the
+  next UserPromptSubmit can surface a nudge.
+- **UserPromptSubmit surfaces the nudge** as a third `[arka:suggest]`
+  line (alongside KB-cite + meta-tag), gated by the same effort
+  threshold (low/medium suppress, high/xhigh/default surface).
+
+### Why
+
+Telemetry analysis from the May 24-25 session showed **0% closing-
+marker rate** on flow-required turns (5/5 rows with neither
+`[arka:phase:13]` nor `[arka:trivial]`). The model finishes the work
+but skips the wrap-up tag that lets telemetry confirm the turn closed
+cleanly. PR59 follows the proven PR29→PR30 pattern: surface the gap,
+close it with soft-block enforcement.
+
+### Test coverage
+
+- 15 new `tests/python/test_closing_marker_check.py` cases (present /
+  trivial-length / missing / defensive edges / result immutability)
+- 2 new `tests/hooks.bats` cases (high effort surfaces, low effort
+  suppresses) — `hooks.bats` 20/20 passing minus the pre-existing
+  unrelated constitution-L0 failure
+- Full Python suite: 3678/3678 passing
+
 ## [2.75.0] - 2026-05-25
 
 ### Changed (Workflow classifier widened — PR58)

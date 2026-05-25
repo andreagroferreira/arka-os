@@ -129,6 +129,26 @@ load helpers/setup
   [[ "$output" == *"[arka:suggest] KB-first nudge"* ]]
 }
 
+@test "PR59: user-prompt-submit.sh surfaces closing-marker nudge on high effort" {
+  mkdir -p /tmp/arkaos-closing
+  sid="closing-high-$$"
+  echo '{"passed":false,"reason":"missing","suggestion":"closing-marker nudge"}' > "/tmp/arkaos-closing/${sid}.json"
+  input='{"prompt":"hi","cwd":"/tmp","session_id":"'${sid}'","effort":{"level":"high"}}'
+  run bash -c "echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[arka:suggest] closing-marker nudge"* ]]
+}
+
+@test "PR59: user-prompt-submit.sh suppresses closing-marker nudge on low effort" {
+  mkdir -p /tmp/arkaos-closing
+  sid="closing-low-$$"
+  echo '{"passed":false,"reason":"missing","suggestion":"closing-marker nudge"}' > "/tmp/arkaos-closing/${sid}.json"
+  input='{"prompt":"hi","cwd":"/tmp","session_id":"'${sid}'","effort":{"level":"low"}}'
+  run bash -c "echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[arka:suggest] closing-marker nudge"* ]]
+}
+
 @test "user-prompt-submit.sh reads CLAUDE_EFFORT env var when JSON omits effort" {
   mkdir -p /tmp/arkaos-cite
   sid="effort-env-$$"
