@@ -595,11 +595,29 @@ def task_detail(task_id: str):
 
 @app.get("/api/knowledge/stats")
 def knowledge_stats():
+    """PR73 v2.91.0 — vec_unavailable_reason surfaced so the dashboard
+    can show *why* vector search is offline instead of just a generic
+    "Unavailable" badge."""
     store = _get_vector_store()
     if not store:
-        return {"total_chunks": 0, "total_files": 0, "vss_available": False, "indexed": False}
+        return {
+            "total_chunks": 0,
+            "total_files": 0,
+            "vss_available": False,
+            "vec_available": False,
+            "vec_unavailable_reason": "Vector store could not be opened.",
+            "indexed": False,
+        }
     stats = store.get_stats()
     stats["indexed"] = stats["total_chunks"] > 0
+    if not stats.get("vec_available", False):
+        try:
+            from core.knowledge.vector_store import vec_unavailable_reason
+            stats["vec_unavailable_reason"] = vec_unavailable_reason()
+        except Exception:
+            stats["vec_unavailable_reason"] = "unknown"
+    else:
+        stats["vec_unavailable_reason"] = ""
     return stats
 
 
@@ -722,11 +740,47 @@ def _get_persona_manager():
 
 @app.get("/api/personas")
 def personas_list():
+    """PR73 v2.91.0 — merges JSON-store personas with the Obsidian
+    vault's ``<vaultPath>/Personas/*.md`` files. Obsidian is the
+    source of truth: when the same persona exists in both places
+    (matched by name/slug), the vault entry wins.
+    """
+    by_id: dict[str, dict] = {}
+
+    # JSON store first (in-memory copy is fast, vault read may be slow)
     mgr = _get_persona_manager()
-    if not mgr:
-        return {"personas": [], "total": 0}
-    personas = mgr.list_all()
-    return {"personas": [p.model_dump() for p in personas], "total": len(personas)}
+    if mgr:
+        for p in mgr.list_all():
+            payload = p.model_dump()
+            by_id[payload["id"]] = payload
+
+    # Obsidian vault — overwrites duplicates so the vault wins.
+    try:
+        from core.personas.obsidian_store import ObsidianPersonaStore
+        ob_store = ObsidianPersonaStore()
+        if ob_store.available:
+            for p in ob_store.list_all():
+                payload = p.model_dump()
+                payload["_source_store"] = "obsidian"
+                by_id[payload["id"]] = payload
+    except Exception:
+        pass
+
+    personas = list(by_id.values())
+    personas.sort(key=lambda p: p.get("name", "").lower())
+    return {
+        "personas": personas,
+        "total": len(personas),
+        "obsidian_available": _obsidian_store_available(),
+    }
+
+
+def _obsidian_store_available() -> bool:
+    try:
+        from core.personas.obsidian_store import ObsidianPersonaStore
+        return ObsidianPersonaStore().available
+    except Exception:
+        return False
 
 
 @app.get("/api/personas/{persona_id}")
@@ -772,7 +826,23 @@ def persona_create(body: dict):
     )
 
     mgr.create(persona)
-    return {"id": persona.id, "created": True}
+
+    # PR73 v2.91.0 — also write to the Obsidian vault so the persona
+    # survives outside the JSON store and is browsable in Obsidian.
+    # Best-effort: vault unavailable / write failure does not abort
+    # the JSON-side success.
+    obsidian_path: str | None = None
+    try:
+        from core.personas.obsidian_store import ObsidianPersonaStore
+        ob_store = ObsidianPersonaStore()
+        if ob_store.available or ob_store._vault_path is not None:
+            written = ob_store.write(persona)
+            if written is not None:
+                obsidian_path = str(written)
+    except Exception:
+        pass
+
+    return {"id": persona.id, "created": True, "obsidian_path": obsidian_path}
 
 
 @app.post("/api/personas/{persona_id}/clone")

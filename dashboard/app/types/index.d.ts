@@ -128,6 +128,10 @@ export interface KnowledgeStats {
   total_chunks: number
   total_files: number
   vss_available?: boolean
+  // PR73 v2.91.0 — vec_available + reason surfaced by /api/knowledge/stats
+  vec_available?: boolean
+  vec_unavailable_reason?: string
+  indexed?: boolean
   areas?: {
     name: string
     chunks: number

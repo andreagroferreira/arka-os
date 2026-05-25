@@ -5,6 +5,64 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.91.0] - 2026-05-25
+
+### Fixed (SQLite threading + vector-search visibility — PR73)
+
+- **`SQLite objects created in a thread can only be used in that same thread`
+  is fixed.** `core/knowledge/vector_store.py` now opens its connection
+  with `check_same_thread=False` and serialises writes through a
+  per-instance `threading.Lock`. WAL mode is enabled so concurrent
+  readers don't block. The bulk-ingest / single-ingest / upload-file
+  paths in `scripts/dashboard-api.py` all share a single store
+  instance from background workers cleanly.
+- **`/api/knowledge/stats` now reports `vec_unavailable_reason`** so
+  the dashboard can surface *why* vector search is offline. Common
+  reasons:
+  - `sqlite-vec package missing` → `pip install sqlite-vec`
+  - Python sqlite3 built without extension loading
+  - Extension loaded but `CREATE VIRTUAL TABLE vec_chunks` failed
+- **Knowledge page** shows the actual reason instead of a generic
+  "Unavailable" badge. The hero badge flips from "Vector Off"
+  (warning) to "Vector Active" (success) based on a new
+  `vectorSearchActive` computed that accepts either the new
+  `vec_available` or the legacy `vss_available` flag.
+
+### Added (Personas from Obsidian — PR73)
+
+- **`core/personas/obsidian_store.py`** — new module that reads/writes
+  personas as Markdown files under `<vaultPath>/Personas/`. Frontmatter
+  schema mirrors the `Persona` Pydantic model (DISC, Enneagram, Big
+  Five, MBTI, mental models, expertise, frameworks, key quotes,
+  communication). Recognises the legacy `expertise:` alias.
+- **`GET /api/personas`** now merges JSON-store personas with the
+  Obsidian vault. **Obsidian wins on conflicts** (it's the operator's
+  source of truth). Response carries `obsidian_available: bool` so
+  the UI can show whether the vault is wired.
+- **`POST /api/personas`** also writes the new persona to the vault
+  (best-effort — JSON-store success is unaffected by vault write
+  failures). Response carries `obsidian_path` when the write succeeded.
+
+### Operator action needed
+
+Run `pip3 install sqlite-vec` once to enable vector search. The
+dashboard's Knowledge page will tell you exactly that until you do.
+
+### Test coverage
+
+- 4 new `tests/python/test_vector_store_threading.py` cases:
+  background thread can write+search, concurrent writes don't
+  corrupt, main thread stays usable after worker, connection
+  accepts cross-thread reads
+- 16 new `tests/python/test_obsidian_persona_store.py` cases:
+  empty vault, missing personas dir, minimal+full frontmatter,
+  non-persona-type skip, no-frontmatter skip, legacy `expertise:`
+  alias, corrupt YAML, write to personas folder, auto-create
+  folder, no-vault → None, overwrites, round trip, availability
+- Vue typecheck clean
+- Full Python suite: 3818/3818 passing
+- Preflight: `all_passed: True`
+
 ## [2.90.0] - 2026-05-25
 
 ### Added (Global light/dark switch in sidebar header — PR72)
