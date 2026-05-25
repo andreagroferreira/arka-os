@@ -161,8 +161,9 @@ def _entry(
     tokens_out: int = 200,
     cached_tokens: int = 0,
     cost: float | None = 0.01,
+    category: str | None = None,
 ) -> dict:
-    return {
+    row = {
         "ts": ts.isoformat(),
         "session_id": session_id,
         "provider": provider,
@@ -172,6 +173,9 @@ def _entry(
         "cached_tokens": cached_tokens,
         "estimated_cost_usd": cost,
     }
+    if category is not None:
+        row["category"] = category
+    return row
 
 
 def test_summarise_today_filters_by_utc_midnight(tmp_telemetry: Path):
@@ -313,6 +317,67 @@ def test_summarise_groups_by_model_unknown_bucketed(tmp_telemetry: Path):
     assert "" in summary.by_model  # unknown bucket
     assert summary.by_model[""]["call_count"] == 2
     assert summary.by_model[""]["total_cost_usd"] is None
+
+
+# ---------------------------------------------------------------------------
+# PR47 v2.66.0 — per-category usage breakdown (Claude Code v2.1.149+)
+# ---------------------------------------------------------------------------
+
+
+def test_record_cost_writes_category_field(tmp_telemetry: Path):
+    record_cost("s", "anthropic", "m", 100, 50, 0, 0.01, category="skill:arka")
+    entries = read_entries(tmp_telemetry)
+    assert entries[0]["category"] == "skill:arka"
+
+
+def test_record_cost_defaults_category_to_empty_string(tmp_telemetry: Path):
+    record_cost("s", "anthropic", "m", 100, 50, 0, 0.01)
+    entries = read_entries(tmp_telemetry)
+    assert entries[0]["category"] == ""
+
+
+def test_summarise_groups_by_category(tmp_telemetry: Path):
+    now = datetime.now(timezone.utc)
+    _write_entries(
+        tmp_telemetry,
+        [
+            _entry(now, category="skill:arka", cost=1.0),
+            _entry(now, category="skill:arka", cost=2.0),
+            _entry(now, category="subagent:dev", cost=0.5),
+            _entry(now, category="plugin:frontend-design", cost=0.25),
+            _entry(now, category="mcp:obsidian", cost=0.15),
+        ],
+    )
+    summary = summarise(period="all", path=tmp_telemetry)
+    keys = set(summary.by_category.keys())
+    assert keys == {
+        "skill:arka",
+        "subagent:dev",
+        "plugin:frontend-design",
+        "mcp:obsidian",
+    }
+    assert summary.by_category["skill:arka"]["call_count"] == 2
+    assert summary.by_category["skill:arka"]["total_cost_usd"] == pytest.approx(3.0)
+
+
+def test_summarise_groups_legacy_entries_without_category_into_empty_bucket(
+    tmp_telemetry: Path,
+):
+    now = datetime.now(timezone.utc)
+    _write_entries(
+        tmp_telemetry,
+        [
+            # Legacy row — no 'category' key at all.
+            _entry(now, cost=0.5),
+            _entry(now, cost=0.5),
+            _entry(now, category="skill:arka", cost=1.0),
+        ],
+    )
+    summary = summarise(period="all", path=tmp_telemetry)
+    assert "" in summary.by_category
+    assert summary.by_category[""]["call_count"] == 2
+    assert summary.by_category[""]["total_cost_usd"] == pytest.approx(1.0)
+    assert summary.by_category["skill:arka"]["call_count"] == 1
 
 
 def test_summarise_top_sessions_sorted_desc_by_cost(tmp_telemetry: Path):
