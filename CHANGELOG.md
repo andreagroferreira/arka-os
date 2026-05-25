@@ -5,6 +5,44 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.81.0] - 2026-05-25
+
+### Added (Settings expansion: Profile + Projects + Keys — PR63)
+
+- **`core/profile/manager.py`** — safe read/write of
+  `~/.arkaos/profile.json`. `ProfileManager.patch(updates)` merges
+  with stored data, sanitises (only writable fields, string coercion,
+  bumps `updated` timestamp, preserves `created`), atomic write via
+  `.tmp + os.replace()`. Never raises on disk failures — caller
+  always gets a `Profile` back.
+- **`parse_projects_dirs(value)`** — extracts absolute path tokens
+  from the free-text `projectsDir` (handles the historical schema
+  `"/path/A para X, /path/B para Y"` used by the sync engine).
+- **`GET /api/profile`** and **`POST /api/profile`** endpoints —
+  returns the profile with a `projects_dirs_list` convenience field;
+  POST patches with writable-field whitelist.
+- **`dashboard/app/pages/settings.vue`** restructured with a
+  left-side section nav + three sections:
+  - **Profile** — name, company, role, language, market, vaultPath
+  - **Projects** — projectsDir textarea + live parsed-paths preview
+  - **API Keys** — existing functionality, polished into the new shell
+- Future sections (MCPs, Hooks, Plugins, Theme) marked as PR63b in
+  the nav footer so the operator sees they're coming.
+
+### Test coverage
+
+- 23 new `tests/python/test_profile_manager.py` cases:
+  - 5 `Profile.from_dict` (defaults, known fields, unknown drop,
+    coercion, non-dict guard)
+  - 4 `ProfileManager.read` (missing file, valid file, corrupt JSON,
+    top-level array)
+  - 7 `ProfileManager.patch` (first write, merge, unwritable drop,
+    timestamp bump, created preservation, coercion, disk failure)
+  - 7 `parse_projects_dirs` (empty, single, comma-separated, prose,
+    first-path-per-segment, home-relative, non-path skip)
+- Vue typecheck clean
+- Full Python suite: 3735/3735 passing
+
 ## [2.80.0] - 2026-05-25
 
 ### Added (Shared `DashboardState` component — PR64)
