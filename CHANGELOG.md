@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.85.0] - 2026-05-25
+
+### Added (Commands page: ▶ Copy + ★ Favorites — PR68)
+
+- **Per-row Copy button** — one click puts the command on the
+  clipboard. Icon flips to a check for 1.5s on success; toast
+  confirms. Closes Daniel Ek's audit question ("what's the
+  job-to-be-done here vs the CLI?" → fast lookup → paste back).
+- **★ Favorites** — operators star commands with a ghost icon; the
+  list is persisted in `localStorage` under `arkaos_command_favorites`.
+  Favourites pin to the top of the "All" view; a second tab
+  "Favorites" shows just the starred ones. Header badge shows the
+  count.
+- **Header shows total + favorites count** so the operator sees the
+  scale of the catalogue.
+- **Click on the command code itself** still expands the keywords
+  pane; the ★ + ▶ buttons stop event propagation so a star/copy
+  doesn't toggle the expansion.
+
+### Test coverage
+
+- Vue typecheck clean
+- Full Python suite: 3761/3761 passing (no backend changes)
+- Preflight: `all_passed: True` (after the earlier PR67 CHANGELOG
+  sanitisation referenced below)
+
 ## [2.84.0] - 2026-05-25
 
 ### Changed (Tasks page → real-time jobs view — PR67)
@@ -33,10 +59,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed (PR66 client-name leak)
 
 - Sanitised `tests/python/test_command_center_api.py` fixtures.
-  Replaced a confidential client identifier (`fovory-supplier-sync`,
-  `fovory`) with neutral placeholders (`acme-supplier-sync`, `acme`)
-  caught by `core/release/preflight::check_no_client_name_leaks`
-  before publish. Per `[[feedback_npm_publish_safety]]`,
+  A confidential client identifier had leaked into the test data;
+  replaced with neutral placeholders. The leak was caught by
+  `core/release/preflight::check_no_client_name_leaks` before
+  publish. Per `[[feedback_npm_publish_safety]]`,
   `[[feedback_confidentiality]]` — client names never reach the repo.
 
 ### Test coverage
