@@ -330,6 +330,21 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     console.log(`         Warning: could not seed autoMode.hard_deny (${err.message})`);
   }
 
+  // PR48 v2.67.0 — seed worktree.baseRef = "head" so new Claude Code
+  // worktrees branch from the current HEAD instead of the repo's main.
+  // Only sets when missing — operator overrides are preserved.
+  try {
+    const { seedWorktreeBaseRef } = await import("./worktree-baseref.js");
+    const wtResult = seedWorktreeBaseRef({ runtime });
+    if (!wtResult.skipped && wtResult.action === "created") {
+      console.log(`         worktree.baseRef set to "${wtResult.value}".`);
+    } else if (!wtResult.skipped && wtResult.action === "merged") {
+      console.log(`         worktree.baseRef merged ("${wtResult.value}").`);
+    }
+  } catch (err) {
+    console.log(`         Warning: could not seed worktree.baseRef (${err.message})`);
+  }
+
   // PR43 v2.62.0 — auto-install default Claude Code plugins. Only runs
   // when runtime is Claude Code AND the `claude` CLI is available.
   // Idempotent: skips plugins already in installed_plugins.json.
