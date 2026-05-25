@@ -5,6 +5,52 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.74.0] - 2026-05-25
+
+### Added (AI-powered persona builder — PR57)
+
+- **`core/personas/builder.py`** generates persona drafts from
+  already-indexed vector-store content. Searches the store for chunks
+  about the target person, joins them up to a 18 000-char context
+  window, sends the bundle to the configured LLM via the
+  multi-backend `LLMProvider` (Claude Code subagent / Anthropic API /
+  Ollama local — per `[[feedback_multi_backend_not_single]]`), parses
+  the JSON response into a `Persona` model.
+- **`POST /api/personas/build`** wires the dashboard up:
+  ```
+  {"name": "Alex Hormozi", "search_query": "...", "top_k": 20,
+   "source_label": "..."}
+  ```
+  → `{persona: <draft>, chunks_used: N, provider_name: "..."}`.
+  The draft is **never saved** — operator reviews and calls
+  `POST /api/personas` to persist.
+- **Robust JSON extraction** — the parser tolerates LLM responses
+  that wrap the JSON in markdown fences or add leading prose. Bare
+  arrays are rejected so a malformed shape can't sneak through.
+- **System prompt enforces the full DNA schema** — DISC, Enneagram,
+  Big Five, MBTI, mental models, expertise domains, frameworks, key
+  quotes (verbatim only), communication style.
+
+### Flow
+
+Closes the project memory plan
+`[[project_persona_builder]]`: user provides sources → existing
+`IngestEngine` indexes them → `PersonaBuilder.generate(name)` analyses
+the chunks → draft Persona surfaced for review → operator edits and
+saves via existing CRUD endpoints. Multi-step wizard UX still owed on
+the Vue side; backend + builder are ready.
+
+### Test coverage
+
+- 14 new `tests/python/test_persona_builder.py` cases:
+  - JSON extraction across bare / fenced / leading-prose / non-JSON /
+    bare-array shapes
+  - End-to-end build with a fake provider + fake store
+  - Name fallback to search query, explicit query override, context
+    truncation, no-chunks raise, empty-name raise, non-JSON raise,
+    schema-violation raise, system-prompt propagation
+- Full Python suite: 3663/3663 passing
+
 ## [2.73.0] - 2026-05-25
 
 ### Added (Bulk URL ingestion — PR56)
