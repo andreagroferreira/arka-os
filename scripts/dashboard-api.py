@@ -173,6 +173,51 @@ def agents(dept: Optional[str] = Query(None)):
     return {"agents": data, "total": len(data)}
 
 
+@app.get("/api/agents/activity")
+def agents_activity(period: str = "week"):
+    """Per-department activity from the PR47 LLM cost telemetry.
+
+    Returns ``{by_department: {dev: {call_count, total_cost_usd,
+    total_tokens_in, total_tokens_out}}}`` derived from rows whose
+    ``category`` field starts with ``subagent:``. Each agent's
+    dispatch is currently tagged at the department level — finer
+    per-agent attribution will land when orchestrators set
+    ``ARKA_CALL_CATEGORY=subagent:<dept>:<agent>``.
+    """
+    try:
+        from core.runtime.llm_cost_telemetry import summarise, VALID_PERIODS
+    except Exception:  # pragma: no cover - import guard
+        return {"by_department": {}, "period": period}
+    if period not in VALID_PERIODS:
+        period = "week"
+    summary = summarise(period=period)
+    out: dict[str, dict] = {}
+    for category, row in (summary.by_category or {}).items():
+        if not isinstance(category, str) or not category.startswith("subagent:"):
+            continue
+        dept = category.split(":", 1)[1] or "unknown"
+        bucket = out.setdefault(dept, {
+            "call_count": 0,
+            "total_cost_usd": 0.0,
+            "any_cost_known": False,
+            "total_tokens_in": 0,
+            "total_tokens_out": 0,
+        })
+        bucket["call_count"] += row.get("call_count", 0)
+        bucket["total_tokens_in"] += row.get("total_tokens_in", 0)
+        bucket["total_tokens_out"] += row.get("total_tokens_out", 0)
+        cost = row.get("total_cost_usd")
+        if isinstance(cost, (int, float)):
+            bucket["total_cost_usd"] += float(cost)
+            bucket["any_cost_known"] = True
+    for dept, b in out.items():
+        if not b.pop("any_cost_known"):
+            b["total_cost_usd"] = None
+        else:
+            b["total_cost_usd"] = round(b["total_cost_usd"], 6)
+    return {"by_department": out, "period": period}
+
+
 @app.get("/api/agents/{agent_id}")
 def agent_detail(agent_id: str):
     """Get full agent detail including YAML data."""
