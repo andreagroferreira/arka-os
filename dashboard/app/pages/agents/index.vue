@@ -2,11 +2,72 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { Agent } from '~/types'
 
-const { fetchApi } = useApi()
+const { fetchApi, apiBase } = useApi()
+const toast = useToast()
 
 const { data, status, error, refresh } = await fetchApi<{ agents: Agent[], total: number }>('/api/agents')
 
+// PR69 v2.86.0 — per-department activity from PR47 telemetry.
+// Used to badge agents whose department has run recently and to
+// surface "no activity yet" hint when a department's never been
+// invoked. Failure-tolerant — returns empty if telemetry unavailable.
+interface ActivityRow {
+  call_count: number
+  total_cost_usd: number | null
+  total_tokens_in: number
+  total_tokens_out: number
+}
+
+const {
+  data: activityData,
+  refresh: refreshActivity,
+} = fetchApi<{ by_department: Record<string, ActivityRow>, period: string }>(
+  '/api/agents/activity?period=week',
+)
+
 const agents = computed(() => data.value?.agents ?? [])
+
+function deptActivity(dept: string): ActivityRow | undefined {
+  return activityData.value?.by_department?.[dept]
+}
+
+const copied = ref<string | null>(null)
+let copyTimer: ReturnType<typeof setTimeout> | null = null
+
+async function copyAgentMention(agent: Agent) {
+  if (typeof navigator === 'undefined' || !navigator.clipboard) {
+    toast.add({ title: 'Clipboard unavailable', color: 'warning' })
+    return
+  }
+  // The most useful copy for an operator: a ready-to-paste mention
+  // that names the agent + their role so the orchestrator can dispatch.
+  const text = `Use ${agent.name} (${agent.role}, dept ${agent.department}, tier ${agent.tier}) for this task.`
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = agent.id
+    if (copyTimer) clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => { copied.value = null; copyTimer = null }, 1500)
+    toast.add({
+      title: 'Copied',
+      description: `${agent.name} mention ready to paste.`,
+      color: 'success',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Copy failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  }
+}
+
+onBeforeUnmount(() => {
+  if (copyTimer) clearTimeout(copyTimer)
+})
+
+async function refreshAll() {
+  await Promise.all([refresh(), refreshActivity()])
+}
 
 const search = ref('')
 const departmentFilter = ref('all')
@@ -77,35 +138,18 @@ const tierColor = (tier: number) => {
 }
 
 const columns: TableColumn<Agent>[] = [
-  {
-    accessorKey: 'name',
-    header: 'Name'
-  },
-  {
-    accessorKey: 'role',
-    header: 'Role'
-  },
-  {
-    accessorKey: 'department',
-    header: 'Department'
-  },
-  {
-    accessorKey: 'tier',
-    header: 'Tier'
-  },
+  { accessorKey: 'name',       header: 'Name' },
+  { accessorKey: 'role',       header: 'Role' },
+  { accessorKey: 'department', header: 'Department' },
+  { accessorKey: 'tier',       header: 'Tier' },
   {
     accessorFn: (row: Agent) => row.disc?.primary ?? '-',
     id: 'disc',
-    header: 'DISC'
+    header: 'DISC',
   },
-  {
-    accessorKey: 'mbti',
-    header: 'MBTI'
-  },
-  {
-    id: 'actions',
-    header: ''
-  }
+  { accessorKey: 'mbti',       header: 'MBTI' },
+  { id: 'activity',            header: 'Activity (7d)' },
+  { id: 'actions',             header: '' },
 ]
 
 function goToAgent(id: string) {
@@ -134,7 +178,7 @@ function goToAgent(id: string) {
         empty-title="No agents found"
         empty-icon="i-lucide-users"
         loading-label="Loading agents"
-        :on-retry="() => refresh()"
+        :on-retry="() => refreshAll()"
       >
         <div class="flex flex-wrap items-center gap-3 mb-4">
           <UInput
@@ -195,8 +239,33 @@ function goToAgent(id: string) {
           <template #mbti-cell="{ row }">
             <span class="font-mono text-sm">{{ row.original.mbti || '-' }}</span>
           </template>
+          <template #activity-cell="{ row }">
+            <template v-if="deptActivity(row.original.department)">
+              <div class="flex items-center gap-2">
+                <span class="inline-block size-2 rounded-full bg-green-500" />
+                <span class="text-xs font-mono">
+                  {{ deptActivity(row.original.department)?.call_count ?? 0 }} calls
+                </span>
+              </div>
+            </template>
+            <span v-else class="text-xs text-muted">—</span>
+          </template>
           <template #actions-cell="{ row }">
-            <UButton size="xs" variant="ghost" icon="i-lucide-arrow-right" @click="goToAgent(row.original.id)" />
+            <UButton
+              :icon="copied === row.original.id ? 'i-lucide-check' : 'i-lucide-copy'"
+              :color="copied === row.original.id ? 'success' : 'neutral'"
+              variant="ghost"
+              size="xs"
+              aria-label="Copy agent mention"
+              @click.stop="copyAgentMention(row.original)"
+            />
+            <UButton
+              size="xs"
+              variant="ghost"
+              icon="i-lucide-arrow-right"
+              aria-label="Open agent detail"
+              @click="goToAgent(row.original.id)"
+            />
           </template>
         </UTable>
 

@@ -5,6 +5,37 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.0] - 2026-05-25
+
+### Added (Agents activity feed + dispatch copy — PR69)
+
+- **`GET /api/agents/activity?period=today|week|month|all`** —
+  per-department call counts derived from PR47 telemetry rows whose
+  `category` starts with `subagent:`. Per-agent attribution will
+  land when orchestrators set
+  `ARKA_CALL_CATEGORY=subagent:<dept>:<agent>`.
+- **Activity (7d) column** on the Agents list — green dot + call
+  count when the agent's department has been invoked in the last 7
+  days, em-dash when quiet.
+- **▶ Copy mention** button per agent row — copies a ready-to-paste
+  string like `Use Paulo (Tech Lead, dept dev, tier 1) for this
+  task.` so the operator can drop it into the next prompt. Icon
+  flips to a check for 1.5s on success.
+- **Resilient telemetry handling** — invalid period falls back to
+  `week`, non-subagent categories are filtered out, partial-cost
+  rows still aggregate the known totals.
+
+### Test coverage
+
+- 8 new `tests/python/test_agents_activity_api.py` cases:
+  - Empty telemetry, grouping by dept, non-subagent filtering,
+    `subagent:` (no dept) bucketing under `unknown`, invalid period
+    fallback, null-cost preservation, partial-cost aggregation,
+    token aggregation.
+- Vue typecheck clean on the agents list page
+- Full Python suite: 3769/3769 passing
+- Preflight: `all_passed: True`
+
 ## [2.85.0] - 2026-05-25
 
 ### Added (Commands page: ▶ Copy + ★ Favorites — PR68)
