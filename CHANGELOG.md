@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.73.0] - 2026-05-25
+
+### Added (Bulk URL ingestion — PR56)
+
+- **`POST /api/knowledge/ingest-bulk`** — accepts
+  `{"sources": ["url1", "url2", ...]}` and queues one background job
+  per source via the existing `IngestEngine` pipeline. Validation:
+  rejects non-list payloads, empty/whitespace-only entries, non-string
+  entries; dedupes; caps at 50 sources per request.
+- **`Bulk` input mode in the knowledge dashboard page** — paste a list
+  of URLs (one per line) and ship them as a batch. Live count of
+  detected sources, over-cap warning, button label reflects pending
+  source count.
+
+### Why
+
+Heavy KB-builders ingest dozens of YouTube videos, articles, and PDFs
+per session — the URL-at-a-time UX was a friction point. Bulk mode
+turns a batch into one paste-and-go action while reusing the same
+per-job WebSocket progress stream the single-source flow already
+ships.
+
+### Test coverage
+
+- 9 new `tests/python/test_knowledge_bulk_ingest.py` cases:
+  validation rejection paths (non-list / empty / whitespace / over-cap),
+  dedup, whitespace stripping, result aggregation, per-source error
+  doesn't abort batch, non-string entries skipped.
+- Full Python suite: 3649/3649 passing.
+
 ## [2.72.0] - 2026-05-25
 
 ### Added (ArkaOS as Claude Code plugin marketplace — PR55)
