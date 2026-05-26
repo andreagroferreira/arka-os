@@ -230,6 +230,17 @@ const suggestingField = ref<SuggestField | null>(null)
 const favs = useFavorites()
 await favs.load()
 
+// PR86d v3.18.0 — render Markdown bio.
+import { marked } from 'marked'
+function markedHtml(src: string): string {
+  if (!src?.trim()) return ''
+  try {
+    return marked.parse(src, { breaks: true, gfm: true }) as string
+  } catch {
+    return ''
+  }
+}
+
 // PR85a v3.11.0 — Clone to Agent dialog.
 const cloneOpen = ref(false)
 function onCloned(agentId: string) {
@@ -558,6 +569,20 @@ const vocabOptions = [
               <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Frameworks</p>
               <p class="text-2xl font-bold">{{ detail.frameworks?.length ?? 0 }}</p>
             </div>
+          </section>
+
+          <!-- BIO (PR86d) -->
+          <section
+            v-if="(detail as any).bio_md"
+            class="rounded-xl border border-default bg-elevated/10 p-5"
+          >
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-muted mb-3">
+              Bio
+            </h3>
+            <div
+              class="prose prose-sm dark:prose-invert max-w-none"
+              v-html="markedHtml((detail as any).bio_md)"
+            />
           </section>
 
           <!-- TABS -->
@@ -935,6 +960,18 @@ const vocabOptions = [
                         class="w-full"
                       />
                     </UFormField>
+                  </section>
+
+                  <section class="space-y-3">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+                      Bio (Markdown)
+                    </h3>
+                    <MarkdownEditor
+                      :model-value="(draft as any).bio_md ?? ''"
+                      :rows="10"
+                      placeholder="A free-text Markdown bio for this persona — voice samples, context, references."
+                      @update:model-value="(v: string) => { if (draft) { (draft as any).bio_md = v; markDirty() } }"
+                    />
                   </section>
 
                   <section class="space-y-3">

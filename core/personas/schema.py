@@ -61,6 +61,10 @@ class Persona(BaseModel):
     # Communication
     communication: PersonaCommunication = Field(default_factory=PersonaCommunication)
 
+    # PR86d v3.18.0 — long-form Markdown bio. Free-text field, never
+    # parsed; rendered in the dashboard with `marked` for preview.
+    bio_md: str = ""
+
     # Metadata
     created_at: str = ""
     updated_at: str = ""

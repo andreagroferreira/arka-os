@@ -5,6 +5,53 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.18.0] - 2026-05-26
+
+### Added (Markdown bio field — PR86d)
+
+Agents and personas gain a free-text Markdown bio field with a
+live Edit / Preview tabbed editor and a rendered Bio section on the
+detail pages.
+
+### Backend
+
+- `Persona` Pydantic model gains `bio_md: str = ""`.
+- Agent YAML PUT (`PUT /api/agents/{id}`) now accepts and writes a
+  `bio_md` field.
+- Persona PUT (`PUT /api/personas/{id}`) passes `bio_md` through the
+  Persona constructor.
+- Existing YAML / JSON files without the field continue to load —
+  `bio_md` defaults to empty.
+
+### Frontend
+
+- `dashboard/app/components/MarkdownEditor.vue` (NEW) — tabbed
+  Edit / Preview component. Edit is a monospace UTextarea; Preview
+  renders via `marked` (GFM + line breaks).
+- `AgentEditDrawer` and the persona edit slideover gain a new
+  "Bio (Markdown)" section using the editor.
+- Agent + persona detail pages render the bio as a styled prose
+  block (with Tailwind typography) above the existing tabs / sections.
+- `marked@^15.0.0` added to the dashboard deps.
+
+### Why
+
+- Operators want a place to drop voice samples, internal notes,
+  context about source material, and personal references — none of
+  which fit in the structured DNA / expertise lists.
+- Markdown keeps the field structured enough for the Obsidian export
+  to copy verbatim into the vault file.
+
+### Files changed
+
+- `core/personas/schema.py` — `bio_md` field
+- `scripts/dashboard-api.py` — PUT routes accept `bio_md`
+- `dashboard/package.json` — `marked@^15.0.0`
+- `dashboard/app/components/MarkdownEditor.vue` (NEW)
+- `dashboard/app/components/AgentEditDrawer.vue` — Bio section
+- `dashboard/app/pages/agents/[id].vue` — bio render + form wiring
+- `dashboard/app/pages/personas/[id].vue` — bio render + form wiring
+
 ## [3.17.0] - 2026-05-26
 
 ### Added (Export agent profile to Obsidian — PR86c)

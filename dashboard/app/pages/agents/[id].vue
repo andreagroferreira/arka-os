@@ -65,6 +65,17 @@ function formatRelative(iso: string | null): string {
 const favs = useFavorites()
 await favs.load()
 
+// PR86d v3.18.0 — render Markdown bio.
+import { marked } from 'marked'
+function markedHtml(src: string): string {
+  if (!src?.trim()) return ''
+  try {
+    return marked.parse(src, { breaks: true, gfm: true }) as string
+  } catch {
+    return ''
+  }
+}
+
 // PR86c v3.17.0 — export to Obsidian.
 const exporting = ref(false)
 async function exportToVault() {
@@ -416,6 +427,20 @@ function formatTokens(n: number): string {
               />
             </div>
           </div>
+        </section>
+
+        <!-- ===== BIO (PR86d) ===== -->
+        <section
+          v-if="(agent as any).bio_md"
+          class="rounded-xl border border-default bg-elevated/10 p-5"
+        >
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted mb-3">
+            Bio
+          </h3>
+          <div
+            class="prose prose-sm dark:prose-invert max-w-none"
+            v-html="markedHtml((agent as any).bio_md)"
+          />
         </section>
 
         <AgentEditDrawer
