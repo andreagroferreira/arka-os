@@ -54,20 +54,30 @@ function kindColor(kind: string): string {
     </UButton>
 
     <template #content>
-      <div class="p-2 border-b border-default flex items-center justify-between">
+      <div class="p-2 border-b border-default flex items-center justify-between gap-2">
         <div>
           <p class="text-sm font-semibold">Recent activity</p>
           <p class="text-xs text-muted">
-            Last {{ Math.min(feed.events.value.length, 50) }} event{{ feed.events.value.length === 1 ? '' : 's' }}
+            {{ feed.unreadCount.value }} unread ·
+            {{ feed.events.value.length }} total
           </p>
         </div>
-        <UButton
-          v-if="feed.events.value.length > 0"
-          label="Clear"
-          variant="ghost"
-          size="xs"
-          @click="feed.clear()"
-        />
+        <div class="flex items-center gap-1">
+          <UButton
+            v-if="feed.unreadCount.value > 0"
+            label="Mark all read"
+            variant="ghost"
+            size="xs"
+            @click="feed.markAllRead()"
+          />
+          <UButton
+            v-if="feed.events.value.length > 0"
+            label="Clear"
+            variant="ghost"
+            size="xs"
+            @click="feed.clear()"
+          />
+        </div>
       </div>
       <div class="max-h-80 overflow-y-auto">
         <p
@@ -81,7 +91,9 @@ function kindColor(kind: string): string {
           <li
             v-for="ev in feed.events.value"
             :key="ev.id"
-            class="px-3 py-2 hover:bg-elevated/40 transition-colors group"
+            class="px-3 py-2 hover:bg-elevated/40 transition-colors group cursor-pointer"
+            :class="{ 'bg-primary/5': !ev.read }"
+            @click="feed.markRead(ev.id)"
           >
             <component
               :is="ev.to ? 'NuxtLink' : 'div'"
@@ -93,7 +105,16 @@ function kindColor(kind: string): string {
                 :class="['size-4 shrink-0 mt-0.5', kindColor(ev.kind)]"
               />
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium truncate">{{ ev.title }}</p>
+                <p class="text-sm flex items-center gap-1.5">
+                  <span
+                    v-if="!ev.read"
+                    class="inline-block size-1.5 rounded-full bg-primary shrink-0"
+                    aria-label="unread"
+                  />
+                  <span :class="ev.read ? 'font-normal text-muted' : 'font-medium'" class="truncate">
+                    {{ ev.title }}
+                  </span>
+                </p>
                 <p v-if="ev.description" class="text-xs text-muted truncate">
                   {{ ev.description }}
                 </p>
