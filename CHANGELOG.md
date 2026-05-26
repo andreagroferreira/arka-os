@@ -5,6 +5,39 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.56.0] - 2026-05-26
+
+### Added (Terminal commands with custom args — PR96b)
+
+/terminal supports parameterised commands. Each entry can declare
+`args: [{name, label, choices, default}]`; UI renders a USelect per
+arg; backend substitutes the validated choice into the
+`cmd_template`. Closed-set choices kill the shell-injection vector.
+
+### New helpers
+
+- `_resolve_cmd_template` — element-by-element substitution + choice
+  validation + unknown-arg rejection.
+- `_safe_args_schema` — sanitised schema for public listing (never
+  leaks cmd or cmd_template).
+
+### New entries
+
+- `git-log` — picks commit count (5/10/20/50).
+- `arka-costs` — picks period (today/week/month/all).
+
+### Frontend
+
+- `pages/terminal.vue` — arg grid per command card with USelects.
+
+### 7 new tests + no-leak invariants.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — schema, 2 entries, 2 helpers
+- `tests/python/test_terminal_exec.py` — 7 new tests
+- `dashboard/app/pages/terminal.vue` — arg picker UI
+
 ## [3.55.0] - 2026-05-26
 
 ### Added (Table keyboard navigation on /personas — PR96a)
