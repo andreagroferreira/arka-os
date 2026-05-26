@@ -1387,6 +1387,46 @@ def agent_export_to_vault(agent_id: str):
     return {"exported": True, "path": str(res.path), "vault_path": str(res.vault_path)}
 
 
+# --- Workflows (PR88b v3.24.0) ---
+
+@app.get("/api/workflows")
+def workflows_list():
+    """Scan departments/*/workflows/*.yaml and return metadata + content."""
+    out: list[dict] = []
+    dept_root = ARKAOS_ROOT / "departments"
+    if not dept_root.exists():
+        return {"workflows": []}
+    try:
+        import yaml as _yaml
+    except ImportError:
+        return {"workflows": [], "error": "PyYAML unavailable"}
+    for path in sorted(dept_root.glob("*/workflows/*.yaml")):
+        try:
+            content = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        try:
+            raw = _yaml.safe_load(content) or {}
+        except Exception:  # noqa: BLE001
+            raw = {}
+        if not isinstance(raw, dict):
+            continue
+        phases = raw.get("phases") if isinstance(raw.get("phases"), list) else []
+        rel = path.relative_to(ARKAOS_ROOT).as_posix()
+        out.append({
+            "id": str(raw.get("id") or path.stem),
+            "name": str(raw.get("name") or path.stem),
+            "description": str(raw.get("description") or ""),
+            "department": str(raw.get("department") or path.parent.parent.name),
+            "tier": str(raw.get("tier") or ""),
+            "command": str(raw.get("command") or ""),
+            "phases_count": len(phases),
+            "file": rel,
+            "content": content,
+        })
+    return {"workflows": out}
+
+
 # --- Sidebar stats widget (PR87d v3.22.0) ---
 
 @app.get("/api/sidebar-stats")
