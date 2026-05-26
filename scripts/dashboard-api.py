@@ -1617,6 +1617,75 @@ def department_detail(dept_id: str):
 
 # --- Workflows (PR88b v3.24.0) ---
 
+@app.get("/api/workflows/{workflow_id}/runs")
+def workflow_runs(workflow_id: str, limit: int = 20):
+    """PR89b v3.28.0 — list recent runs of a workflow.
+
+    Parses the PR47 cost telemetry JSONL for rows tagged
+    ``workflow:<workflow_id>`` and groups them by ``session_id``.
+    Returns ``{runs: [{session_id, started_at, ended_at, duration_s,
+    calls, cost_usd, tokens_in, tokens_out}]}`` sorted desc by start.
+
+    Workflows must set ``ARKA_CALL_CATEGORY=workflow:<id>`` before
+    each call for this to populate. Returns an empty list when no
+    matching entries exist (the common case until orchestrators opt in).
+    """
+    target_category = f"workflow:{workflow_id}"
+    try:
+        from core.runtime.llm_cost_telemetry import _load_slice
+    except Exception:
+        return {"runs": []}
+    entries, _ = _load_slice(None, None)
+    sessions: dict[str, dict] = {}
+    for entry in entries:
+        if entry.get("category") != target_category:
+            continue
+        sid = str(entry.get("session_id") or "")
+        if not sid:
+            continue
+        ts = entry.get("ts") or ""
+        bucket = sessions.setdefault(sid, {
+            "session_id": sid,
+            "started_at": ts,
+            "ended_at": ts,
+            "calls": 0,
+            "cost_usd": 0.0,
+            "any_cost_known": False,
+            "tokens_in": 0,
+            "tokens_out": 0,
+        })
+        bucket["calls"] += 1
+        if ts and ts < bucket["started_at"]:
+            bucket["started_at"] = ts
+        if ts and ts > bucket["ended_at"]:
+            bucket["ended_at"] = ts
+        bucket["tokens_in"] += int(entry.get("tokens_in") or 0)
+        bucket["tokens_out"] += int(entry.get("tokens_out") or 0)
+        cost = entry.get("estimated_cost_usd")
+        if isinstance(cost, (int, float)):
+            bucket["cost_usd"] += float(cost)
+            bucket["any_cost_known"] = True
+
+    runs = list(sessions.values())
+    for r in runs:
+        r["cost_usd"] = round(r["cost_usd"], 6) if r.pop("any_cost_known") else None
+        r["duration_s"] = _iso_duration_s(r["started_at"], r["ended_at"])
+    runs.sort(key=lambda r: str(r.get("started_at") or ""), reverse=True)
+    return {"runs": runs[: max(0, int(limit))]}
+
+
+def _iso_duration_s(start_iso: str, end_iso: str) -> Optional[int]:
+    if not start_iso or not end_iso:
+        return None
+    try:
+        from datetime import datetime
+        start = datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
+        end = datetime.fromisoformat(end_iso.replace("Z", "+00:00"))
+        return max(0, int((end - start).total_seconds()))
+    except (ValueError, TypeError):
+        return None
+
+
 @app.get("/api/workflows")
 def workflows_list():
     """Scan departments/*/workflows/*.yaml and return metadata + content."""

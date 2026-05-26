@@ -5,6 +5,41 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.28.0] - 2026-05-26
+
+### Added (Workflow run history — PR89b)
+
+The `/workflows` side panel gains a **Runs** tab next to YAML.
+Workflows that tag their LLM calls with
+`ARKA_CALL_CATEGORY=workflow:<id>` (new convention) get a session
+roll-up showing recent runs with calls / cost / duration.
+
+### Backend
+
+- `GET /api/workflows/{id}/runs` (NEW) — parses PR47 telemetry JSONL
+  filtered by `category == "workflow:<id>"`, groups by `session_id`,
+  returns `{runs: [{session_id, started_at, ended_at, duration_s,
+  calls, cost_usd, tokens_in, tokens_out}]}` sorted desc by start.
+- Empty list when no matching telemetry exists (the common case
+  until orchestrators opt in).
+- `_iso_duration_s` helper handles both `+00:00` and `Z` suffixes.
+- `_current_category` docstring updated to document the new form.
+- 7 unit tests cover empty result, payload shape, limit=0, duration
+  math (3 scenarios), malformed inputs.
+
+### Frontend
+
+- `dashboard/app/pages/workflows.vue` — side panel header now has
+  YAML / Runs tabs. Picking a row pre-fetches its runs. Empty state
+  surfaces the exact env var the operator needs to set.
+
+### Files changed
+
+- `core/runtime/llm_provider.py` — docstring extension
+- `scripts/dashboard-api.py` — GET /api/workflows/{id}/runs + helper
+- `tests/python/test_workflow_runs.py` (NEW, 7 tests)
+- `dashboard/app/pages/workflows.vue` — Runs tab + loader
+
 ## [3.27.0] - 2026-05-26
 
 ### Added (Department pages — PR89a)
