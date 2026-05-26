@@ -5,6 +5,59 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-05-26
+
+### Added (AI draft from description on /agents/new — PR82b)
+
+The /agents/new form now has a "Draft with AI" card at the top: paste a
+free-text description of the agent, click Generate, and the LLM fills
+in DISC primary/secondary, Enneagram type+wing, MBTI, all five Big Five
+axes, expertise domains + frameworks + depth + years, mental models,
+and the whole communication block.
+
+The operator still owns the create — every field is editable after the
+draft is applied, and Save only fires on explicit click.
+
+### New backend
+
+- `core/agents/draft_builder.py` (NEW) — provider-agnostic module with
+  `draft_agent(description, name, role, department, tier, provider)`.
+  Validates the LLM output before returning: DISC primary ≠ secondary,
+  DISC letters in {D,I,S,C}, Big Five 0..100, `behavioral_dna` block
+  present. Bad LLM output surfaces as a `DraftError` instead of
+  silently breaking the form.
+- `POST /api/agents/draft` — thin endpoint that wraps `draft_agent`.
+  Defaults tier to 2 on bad input. `LLMUnavailable` is converted to
+  `DraftError` and surfaces as a toast.
+- 13 new unit tests cover JSON parsing, fence stripping, prompt
+  composition, validation rules (DISC equality, invalid letters, out
+  -of-range Big Five), and provider failure.
+
+### New frontend
+
+- `dashboard/app/pages/agents/new.vue` — primary-tinted "Draft with AI"
+  card above the form with a 3-row UTextarea + Generate button.
+  Button refuses to run on descriptions < 20 chars. On success the
+  draft is applied to every field that the LLM filled, untouched fields
+  keep their defaults. Toast confirms the provider name.
+
+### Why this matters
+
+- One-click agent creation for non-technical operators
+- Operators no longer have to think about DISC theory or Enneagram
+  numbers to onboard a new agent — they describe the human and the
+  system does the framework translation
+- Pairs with the PR81 ✨ Suggest buttons on the list fields so even
+  after the draft, individual lists can be expanded with one more
+  click
+
+### Files changed
+
+- `core/agents/draft_builder.py` (NEW)
+- `tests/python/test_agent_draft_builder.py` (NEW, 13 tests)
+- `scripts/dashboard-api.py` — POST /api/agents/draft
+- `dashboard/app/pages/agents/new.vue` — Draft card + applyDraft logic
+
 ## [3.0.0] - 2026-05-26
 
 ### Added (Agent create flow — PR82a)
