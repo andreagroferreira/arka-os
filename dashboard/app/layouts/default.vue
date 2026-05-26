@@ -49,6 +49,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Workflows',
+  icon: 'i-lucide-workflow',
+  to: '/workflows',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Knowledge',
   icon: 'i-lucide-brain',
   to: '/knowledge',

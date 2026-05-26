@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.24.0] - 2026-05-26
+
+### Added (Workflows page with YAML preview — PR88b)
+
+A new `/workflows` route lists every workflow under
+`departments/*/workflows/*.yaml` in a UTable + side-panel YAML
+preview. Filter by department and search by name / command /
+description / id.
+
+### Backend
+
+- `GET /api/workflows` (NEW) — scans every YAML, returns
+  `{id, name, description, department, tier, command, phases_count,
+  file, content}` per entry. Content ships in the payload so the
+  side-panel renders without a second round-trip. 5 unit tests.
+
+### Frontend
+
+- `dashboard/app/pages/workflows.vue` (NEW) — UTable + side panel
+  split. Filter bar (search + department). Tier badges tinted
+  (enterprise → primary, focused → success, specialist → warning).
+- Sidebar nav gains a "Workflows" entry between Tasks and Knowledge.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/workflows
+- `tests/python/test_workflows_endpoint.py` (NEW, 5 tests)
+- `dashboard/app/pages/workflows.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — Workflows nav item
+
 ## [3.23.0] - 2026-05-26
 
 ### Added (Persona vs Agent comparison — PR88a)
