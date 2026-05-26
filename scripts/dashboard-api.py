@@ -218,6 +218,90 @@ def agents_activity(period: str = "week"):
     return {"by_department": out, "period": period}
 
 
+@app.get("/api/agents/{agent_id}/activity-strip")
+def agent_activity_strip(agent_id: str, period: str = "month"):
+    """PR83d v3.6.0 — compact activity payload for the agent hero strip.
+
+    Returns:
+      {
+        "period": "month",
+        "department": "<dept>",
+        "calls": <int>,
+        "cost_usd": <float|null>,
+        "tokens_in": <int>, "tokens_out": <int>,
+        "last_used": "<ISO ts>"|null,
+        "dept_rank": <1-based int>|null,
+        "dept_count": <int>
+      }
+
+    All values reflect the agent's DEPARTMENT (per-agent attribution
+    isn't tracked yet — see PR47 telemetry).
+    """
+    agents = _load_agents()
+    base = None
+    for a in agents:
+        if a.get("id") == agent_id:
+            base = dict(a)
+            break
+    if not base:
+        return {"error": "Agent not found"}
+    dept = base.get("department") or ""
+    try:
+        from core.runtime.llm_cost_telemetry import (
+            VALID_PERIODS,
+            _load_slice,
+            _period_cutoff,
+            summarise,
+        )
+    except Exception:
+        return {"error": "telemetry unavailable"}
+    if period not in VALID_PERIODS:
+        period = "month"
+
+    summary = summarise(period=period)
+    dept_costs: list[tuple[str, float]] = []
+    target_row: dict | None = None
+    for category, row in (summary.by_category or {}).items():
+        if not isinstance(category, str) or not category.startswith("subagent:"):
+            continue
+        cat_dept = category.split(":", 1)[1] or "unknown"
+        cost = row.get("total_cost_usd")
+        dept_costs.append((cat_dept, float(cost) if isinstance(cost, (int, float)) else 0.0))
+        if cat_dept == dept:
+            target_row = row
+
+    dept_costs.sort(key=lambda t: t[1], reverse=True)
+    dept_rank: Optional[int] = None
+    for idx, (d, _) in enumerate(dept_costs, start=1):
+        if d == dept:
+            dept_rank = idx
+            break
+
+    entries, _ = _load_slice(None, _period_cutoff(period, now=None))
+    last_used: Optional[str] = None
+    for entry in reversed(entries):
+        cat = entry.get("category") or ""
+        if isinstance(cat, str) and cat == f"subagent:{dept}":
+            last_used = entry.get("ts")
+            break
+
+    return {
+        "period": period,
+        "department": dept,
+        "calls": int(target_row.get("call_count", 0)) if target_row else 0,
+        "cost_usd": (
+            float(target_row.get("total_cost_usd"))
+            if target_row and isinstance(target_row.get("total_cost_usd"), (int, float))
+            else None
+        ),
+        "tokens_in": int(target_row.get("total_tokens_in", 0)) if target_row else 0,
+        "tokens_out": int(target_row.get("total_tokens_out", 0)) if target_row else 0,
+        "last_used": last_used,
+        "dept_rank": dept_rank,
+        "dept_count": len(dept_costs),
+    }
+
+
 @app.get("/api/agents/{agent_id}")
 def agent_detail(agent_id: str):
     """Get full agent detail including YAML data."""

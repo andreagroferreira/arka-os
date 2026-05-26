@@ -27,6 +27,38 @@ const deptActivity = computed<ActivityRow | null>(() =>
   (activityData.value?.by_department?.[agent.value?.department ?? ''] ?? null),
 )
 
+// PR83d v3.6.0 — activity strip (30d, dept-level + last_used + rank)
+interface ActivityStrip {
+  period: string
+  department: string
+  calls: number
+  cost_usd: number | null
+  tokens_in: number
+  tokens_out: number
+  last_used: string | null
+  dept_rank: number | null
+  dept_count: number
+}
+const { data: activityStrip } = fetchApi<ActivityStrip>(
+  `/api/agents/${agentId}/activity-strip?period=month`,
+)
+
+function formatRelative(iso: string | null): string {
+  if (!iso) return 'never'
+  const ts = Date.parse(iso)
+  if (Number.isNaN(ts)) return 'never'
+  const diff = Date.now() - ts
+  const minutes = Math.floor(diff / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}d ago`
+  const months = Math.floor(days / 30)
+  return `${months}mo ago`
+}
+
 // PR76 — edit drawer state
 const editOpen = ref(false)
 
@@ -288,6 +320,49 @@ function formatTokens(n: number): string {
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
             <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Linked personas</p>
             <p class="text-2xl font-bold">{{ agent.linked_personas?.length ?? 0 }}</p>
+          </div>
+        </section>
+
+        <!-- ===== ACTIVITY STRIP (PR83d) ===== -->
+        <section
+          v-if="activityStrip"
+          class="rounded-xl border border-default bg-elevated/10 p-4"
+        >
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+            <div class="flex items-center gap-2">
+              <UIcon name="i-lucide-activity" class="size-4 text-primary" />
+              <span class="font-semibold uppercase tracking-wide text-muted text-xs">
+                30d activity (dept)
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-muted">Calls</span>
+              <span class="font-mono font-semibold">{{ activityStrip.calls }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-muted">Cost</span>
+              <span class="font-mono font-semibold">{{ formatCost(activityStrip.cost_usd) }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-muted">Tokens</span>
+              <span class="font-mono">
+                {{ formatTokens(activityStrip.tokens_in) }} /
+                {{ formatTokens(activityStrip.tokens_out) }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-muted">Last used</span>
+              <span class="font-mono">{{ formatRelative(activityStrip.last_used) }}</span>
+            </div>
+            <div v-if="activityStrip.dept_rank" class="flex items-center gap-2">
+              <span class="text-muted">Dept rank</span>
+              <UBadge
+                :label="`#${activityStrip.dept_rank} of ${activityStrip.dept_count}`"
+                :color="activityStrip.dept_rank <= 3 ? 'primary' : 'neutral'"
+                variant="subtle"
+                size="sm"
+              />
+            </div>
           </div>
         </section>
 
