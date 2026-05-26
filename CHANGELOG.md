@@ -5,6 +5,49 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-05-26
+
+### Added (Bulk actions on /agents and /personas tables — PR83b)
+
+Operators can now select multiple rows in either table and delete them
+in one click. Selection state lives in the page; the floating action
+bar slides in from below as soon as anything is checked.
+
+### Backend
+
+- `DELETE /api/agents/{agent_id}` (NEW) — atomic YAML unlink. Refuses
+  to delete **Tier 0 (C-Suite)** agents to keep the constitutional
+  fixtures intact. Resolves the YAML file via the cached registry
+  AND a filesystem scan, so freshly-created agents (which aren't in
+  the registry yet) can also be deleted. 3 unit tests.
+- `_resolve_agent_yaml` + `_agent_tier_from_yaml` helpers extracted.
+
+### Frontend
+
+- `agents/index.vue` — first column is now a UCheckbox. Header
+  checkbox toggles all-visible selection. Floating action bar at
+  bottom shows count + Clear + Delete. Confirm dialog uses the
+  PR75 `useConfirmDialog` with `variant: 'danger'`.
+- `personas/index.vue` — same pattern using the existing persona
+  DELETE endpoint.
+- Bulk delete fires N parallel DELETEs via `Promise.allSettled` so
+  one failure doesn't block the rest. Toast summarises success /
+  partial failure / total failure.
+
+### Safety
+
+- Tier 0 protection enforced server-side, surfaced to the operator
+  in the toast: "N skipped (Tier 0 or missing)".
+- Confirm dialog is `variant: 'danger'` and shows the exact count.
+- Selection clears on completion.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — DELETE /api/agents/{id} + helpers
+- `tests/python/test_agent_delete.py` (NEW, 3 tests)
+- `dashboard/app/pages/agents/index.vue` — selection + bar
+- `dashboard/app/pages/personas/index.vue` — selection + bar
+
 ## [3.3.0] - 2026-05-26
 
 ### Added (Persona draft from description — PR83a)

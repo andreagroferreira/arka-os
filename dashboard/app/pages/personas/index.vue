@@ -8,7 +8,7 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { Persona } from '~/types'
 
-const { fetchApi } = useApi()
+const { fetchApi, apiBase } = useApi()
 
 const { data, status, error, refresh } = await fetchApi<{
   personas: Persona[]
@@ -118,6 +118,7 @@ function agentCount(personaId: string): number {
 }
 
 const columns: TableColumn<Persona>[] = [
+  { id: 'select',              header: '' },
   { accessorKey: 'name',       header: 'Name' },
   { accessorKey: 'title',      header: 'Title' },
   { accessorKey: 'source',     header: 'Source' },
@@ -130,6 +131,78 @@ const columns: TableColumn<Persona>[] = [
 
 function goToPersona(id: string) {
   navigateTo(`/personas/${id}`)
+}
+
+// PR83b v3.4.0 — bulk selection + delete.
+const toast = useToast()
+const confirmDialog = useConfirmDialog()
+const selected = ref<Set<string>>(new Set())
+const bulkDeleting = ref(false)
+
+function toggleSelected(id: string) {
+  if (selected.value.has(id)) selected.value.delete(id)
+  else selected.value.add(id)
+  selected.value = new Set(selected.value)
+}
+
+function toggleAllVisible() {
+  const visibleIds = paginatedPersonas.value.map((p) => p.id)
+  const allSelected = visibleIds.every((id) => selected.value.has(id))
+  const next = new Set(selected.value)
+  for (const id of visibleIds) {
+    if (allSelected) next.delete(id)
+    else next.add(id)
+  }
+  selected.value = next
+}
+
+const allVisibleSelected = computed(() => {
+  const visibleIds = paginatedPersonas.value.map((p) => p.id)
+  return visibleIds.length > 0 && visibleIds.every((id) => selected.value.has(id))
+})
+
+function clearSelection() {
+  selected.value = new Set()
+}
+
+async function bulkDelete() {
+  if (selected.value.size === 0) return
+  const ids = Array.from(selected.value)
+  const ok = await confirmDialog({
+    title: `Delete ${ids.length} persona${ids.length === 1 ? '' : 's'}?`,
+    description: 'Personas will be removed from the JSON store and the Obsidian vault. This cannot be undone.',
+    confirmLabel: `Delete ${ids.length}`,
+    cancelLabel: 'Cancel',
+    variant: 'danger',
+  })
+  if (!ok) return
+  bulkDeleting.value = true
+  const results = await Promise.allSettled(
+    ids.map((id) =>
+      $fetch<{ deleted?: boolean, error?: string }>(`${apiBase}/api/personas/${id}`, {
+        method: 'DELETE',
+      }),
+    ),
+  )
+  const successes = results.filter(
+    (r) => r.status === 'fulfilled' && r.value.deleted,
+  ).length
+  const failures = ids.length - successes
+  if (successes > 0) {
+    toast.add({
+      title: `Deleted ${successes} persona${successes === 1 ? '' : 's'}`,
+      description: failures > 0 ? `${failures} failed` : undefined,
+      color: failures > 0 ? 'warning' : 'success',
+    })
+  } else {
+    toast.add({
+      title: 'Nothing deleted',
+      color: 'error',
+    })
+  }
+  clearSelection()
+  bulkDeleting.value = false
+  await refreshAll()
 }
 </script>
 
@@ -218,6 +291,21 @@ function goToPersona(id: string) {
           }"
           @select="(row: Persona) => goToPersona(row.id)"
         >
+          <template #select-header>
+            <UCheckbox
+              :model-value="allVisibleSelected"
+              aria-label="Select all visible"
+              @update:model-value="toggleAllVisible"
+            />
+          </template>
+          <template #select-cell="{ row }">
+            <UCheckbox
+              :model-value="selected.has(row.original.id)"
+              :aria-label="`Select ${row.original.name}`"
+              @update:model-value="() => toggleSelected(row.original.id)"
+              @click.stop
+            />
+          </template>
           <template #name-cell="{ row }">
             <span class="font-medium">{{ row.original.name }}</span>
           </template>
@@ -281,6 +369,39 @@ function goToPersona(id: string) {
             />
           </template>
         </UTable>
+
+        <Transition
+          enter-active-class="transition ease-out duration-150"
+          enter-from-class="translate-y-4 opacity-0"
+          enter-to-class="translate-y-0 opacity-100"
+          leave-active-class="transition ease-in duration-100"
+          leave-from-class="translate-y-0 opacity-100"
+          leave-to-class="translate-y-4 opacity-0"
+        >
+          <div
+            v-if="selected.size > 0"
+            class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-default bg-elevated shadow-lg px-4 py-2"
+          >
+            <span class="text-sm font-semibold">
+              {{ selected.size }} selected
+            </span>
+            <UButton
+              label="Clear"
+              variant="ghost"
+              size="xs"
+              @click="clearSelection"
+            />
+            <div class="h-5 w-px bg-default" />
+            <UButton
+              label="Delete"
+              icon="i-lucide-trash-2"
+              color="error"
+              size="sm"
+              :loading="bulkDeleting"
+              @click="bulkDelete"
+            />
+          </div>
+        </Transition>
 
         <div v-if="totalPages > 1" class="flex items-center justify-center mt-6">
           <UPagination

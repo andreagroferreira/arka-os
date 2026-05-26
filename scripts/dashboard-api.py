@@ -1094,6 +1094,55 @@ def persona_clone(persona_id: str, body: dict = {}):
     return {"agent_id": agent_id, "department": department, "file": f"departments/{department}/agents/{agent_id}.yaml"}
 
 
+@app.delete("/api/agents/{agent_id}")
+def agent_delete(agent_id: str):
+    """PR83b v3.4.0 — delete an agent's YAML file.
+
+    Refuses to delete Tier 0 (C-Suite) agents — those are governance
+    fixtures and need direct YAML removal to make the intent explicit.
+
+    Resolves the YAML location two ways:
+      1. From the cached registry (covers seeded agents)
+      2. By scanning departments/*/agents/<id>.yaml (covers
+         freshly-created agents that aren't in the registry yet)
+    """
+    yaml_file = _resolve_agent_yaml(agent_id)
+    if yaml_file is None:
+        return {"error": "Agent not found"}
+    tier = _agent_tier_from_yaml(yaml_file)
+    if tier == 0:
+        return {"error": "Cannot delete Tier 0 (C-Suite) agents from the dashboard"}
+    try:
+        yaml_file.unlink()
+    except OSError as exc:
+        return {"error": f"delete failed: {exc}"}
+    return {"deleted": True, "id": agent_id, "yaml_path": str(yaml_file)}
+
+
+def _resolve_agent_yaml(agent_id: str) -> Optional[Path]:
+    # 1. Check the cached registry first.
+    for a in _load_agents():
+        if a.get("id") == agent_id:
+            candidate = ARKAOS_ROOT / a.get("file", "")
+            if candidate.exists():
+                return candidate
+    # 2. Filesystem scan — covers freshly-created files.
+    dept_root = ARKAOS_ROOT / "departments"
+    if dept_root.exists():
+        for path in dept_root.glob(f"*/agents/{agent_id}.yaml"):
+            return path
+    return None
+
+
+def _agent_tier_from_yaml(yaml_file: Path) -> int:
+    try:
+        import yaml as _yaml
+        raw = _yaml.safe_load(yaml_file.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return 99
+    return int(raw.get("tier") or 99)
+
+
 @app.delete("/api/personas/{persona_id}")
 def persona_delete(persona_id: str):
     mgr = _get_persona_manager()
