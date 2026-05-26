@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.34.0] - 2026-05-26
+
+### Added (Audit log page — PR90d)
+
+The home page Recent Incidents card only shows the last 8 events.
+PR90d adds a dedicated `/audit` route with filterable history (kind +
+tool) reading the same enforcement telemetry log.
+
+### Backend
+
+- `GET /api/audit?limit=N&kind=...&tool=...` (NEW) — returns
+  `{events: [{ts, tool, reason, cwd, bypass_used, kind}], total}`.
+  `kind` filters by `bypass` / `blocked`, `tool` by exact name.
+  Limit capped at 500. 7 unit tests cover empty log, zero limit,
+  unknown kind, event shape, kind filter, cap enforcement.
+
+### Frontend
+
+- `dashboard/app/pages/audit.vue` (NEW) — filter bar (kind select +
+  tool input), card list with kind-coloured badges, formatted
+  timestamps, cwd path. Empty state confirms quiet workspace.
+- Sidebar gains an "Audit" entry between Settings and Trash.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/audit
+- `tests/python/test_audit_log.py` (NEW, 7 tests)
+- `dashboard/app/pages/audit.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — Audit nav item
+
 ## [3.33.0] - 2026-05-26
 
 ### Changed (Budget trend window selector — PR90c)
