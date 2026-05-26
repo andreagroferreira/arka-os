@@ -658,6 +658,14 @@ function formatTokens(n: number): string {
           </div>
         </section>
 
+        <!-- ===== DEPENDENCY GRAPH (PR98d) ===== -->
+        <AgentDependencyGraph
+          v-if="agent.linked_personas && agent.linked_personas.length > 0"
+          :agent-id="agent.id"
+          :agent-name="agent.name"
+          :linked-personas="agent.linked_personas"
+        />
+
         <!-- ===== BIO (PR86d) ===== -->
         <section
           v-if="(agent as any).bio_md"
