@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.93.0] - 2026-05-26
+
+### Changed (Native `window.confirm` → `<ConfirmDialog>` — PR75)
+
+Per the operator's rule: **"não trabalhamos com alerts tem que ser
+dialogs sempre"**. The whole dashboard now goes through one canonical
+confirm-dialog primitive instead of falling back to the browser's
+ugly native prompt.
+
+- **`dashboard/app/components/ConfirmDialog.vue`** — `UModal`-based
+  confirm dialog with `title`, `description`, `confirmLabel`,
+  `cancelLabel`, and a `variant: 'default' | 'danger'` prop. Per
+  the canonical Nuxt UI v4 pattern from
+  `ui.nuxt.com/docs/composables/use-overlay`.
+- **`dashboard/app/composables/useConfirmDialog.ts`** — `await
+  useConfirmDialog()({...})` returns `Promise<boolean>`. Uses
+  `useOverlay().create(ConfirmDialog, …).open()` under the hood.
+
+### Migrated call sites (3 of 3)
+
+- `PersonaDetailDrawer.vue::deletePersona` — "Delete persona X"
+  with `variant: 'danger'`.
+- `PersonaDetailDrawer.vue::closeDrawer` — "Discard unsaved edits?"
+  shown only when leaving Edit mode with pending changes.
+  Confirm label is `Discard`, cancel is `Keep editing`.
+- `knowledge.vue::askDeleteSource` — "Delete every indexed chunk
+  from this source?" with the source path in the description.
+
+A grep for `window.confirm` / `window.alert` across `dashboard/app/`
+now returns only the documentation comments inside ConfirmDialog +
+useConfirmDialog — no live native calls remain.
+
+### Test coverage
+
+- Vue typecheck clean across new component, new composable, and
+  all 3 migrated call sites
+- Full Python suite: 3818/3818 passing (no backend changes)
+- Preflight: `all_passed: True`
+
 ## [2.92.0] - 2026-05-26
 
 ### Added (Persona detail view + edit — PR74)

@@ -336,14 +336,18 @@ const vectorSearchActive = computed(() =>
 
 const deletingSource = ref<string | null>(null)
 
+const confirmDialog = useConfirmDialog()
+
 async function askDeleteSource(source: string) {
   if (!source) return
-  if (typeof window === 'undefined') return
-  const ok = window.confirm(
-    `Delete every indexed chunk from this source?\n\n${source}\n\n`
-    + 'This removes the source from search results but does not delete the original file. '
-    + 'You can re-ingest the source later if needed.',
-  )
+  const ok = await confirmDialog({
+    title: 'Delete every indexed chunk from this source?',
+    description:
+      `${source}\n\nRemoves the source from search results but does NOT `
+      + 'delete the original file. You can re-ingest later if needed.',
+    confirmLabel: 'Delete chunks',
+    variant: 'danger',
+  })
   if (!ok) return
   await deleteSource(source)
 }
