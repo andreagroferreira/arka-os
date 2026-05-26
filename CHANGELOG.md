@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.59.0] - 2026-05-26
+
+### Added (Department activity sparkline — PR97a)
+
+Sibling to PR96d for departments. /departments/{id} gains a 30-day
+calls-per-day SVG sparkline above the stats row. Counts both
+subagent:<dept> and subagent:<dept>:<agent> rows.
+
+### Backend
+
+- `GET /api/departments/{id}/activity-sparkline?days=N` (NEW). 5
+  new tests.
+
+### Frontend
+
+- `pages/departments/[dept].vue` — inline SVG sparkline above stats.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — endpoint
+- `tests/python/test_department_sparkline.py` (NEW, 5 tests)
+- `dashboard/app/pages/departments/[dept].vue` — sparkline section
+
 ## [3.58.0] - 2026-05-26
 
 ### Added (Agent activity sparkline — PR96d)

@@ -1941,6 +1941,80 @@ def department_merge(src: str, dst: str):
     }
 
 
+@app.get("/api/departments/{dept_id}/activity-sparkline")
+def department_activity_sparkline(dept_id: str, days: int = 30):
+    """PR97a v3.59.0 — daily calls/cost series for a department.
+
+    Returns ``{days: [{date, calls, cost_usd}], period_days, department}``
+    pre-seeded with zeros so the SVG renders without gaps. Counts every
+    telemetry row with ``subagent:<dept>`` or ``subagent:<dept>:<agent>``
+    category. Capped at 90 days.
+    """
+    dept_id = dept_id.strip().lower()
+    try:
+        days_int = int(days) if days is not None else 30
+    except (TypeError, ValueError):
+        days_int = 30
+    capped_days = max(1, min(days_int, 90))
+
+    # Bail early if department has no agents — keep parity with detail endpoint.
+    if not any(a.get("department") == dept_id for a in _load_agents()):
+        return {"error": "Department not found or has no agents"}
+
+    try:
+        from core.runtime.llm_cost_telemetry import read_entries
+    except Exception:
+        return {"days": []}
+
+    from datetime import datetime, timedelta, timezone
+    today = datetime.now(timezone.utc).date()
+    buckets: dict[str, dict] = {}
+    for offset in range(capped_days):
+        d = today - timedelta(days=capped_days - 1 - offset)
+        buckets[d.isoformat()] = {
+            "date": d.isoformat(),
+            "calls": 0,
+            "cost_usd": 0.0,
+            "cost_known": False,
+        }
+    cutoff = today - timedelta(days=capped_days - 1)
+    prefix_dept = f"subagent:{dept_id}"
+    for entry in read_entries():
+        raw_ts = entry.get("ts") or ""
+        if not isinstance(raw_ts, str):
+            continue
+        try:
+            ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if ts.date() < cutoff:
+            continue
+        cat = str(entry.get("category") or "")
+        # subagent:<dept> OR subagent:<dept>:<agent>
+        if cat != prefix_dept and not cat.startswith(prefix_dept + ":"):
+            continue
+        key = ts.date().isoformat()
+        if key not in buckets:
+            continue
+        buckets[key]["calls"] += 1
+        cost = entry.get("estimated_cost_usd")
+        if isinstance(cost, (int, float)):
+            buckets[key]["cost_usd"] += float(cost)
+            buckets[key]["cost_known"] = True
+
+    out: list[dict] = []
+    for k in sorted(buckets.keys()):
+        bucket = buckets[k]
+        out.append({
+            "date": bucket["date"],
+            "calls": bucket["calls"],
+            "cost_usd": (
+                round(bucket["cost_usd"], 6) if bucket["cost_known"] else None
+            ),
+        })
+    return {"days": out, "period_days": capped_days, "department": dept_id}
+
+
 @app.get("/api/departments/{dept_id}")
 def department_detail(dept_id: str):
     """Full department detail: agents, workflows, 30d cost."""
