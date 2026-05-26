@@ -1801,6 +1801,70 @@ def departments_list():
     return {"departments": out, "total": len(out)}
 
 
+@app.post("/api/departments/{src}/merge-into/{dst}")
+def department_merge(src: str, dst: str):
+    """PR95c v3.53.0 — move every agent from `src` department to `dst`.
+
+    Returns ``{src, dst, moved, skipped, failed, results}``. Tier 0
+    agents are skipped (governance fixtures). Refuses self-merge,
+    unknown source / destination, or empty source.
+    """
+    src = src.strip().lower()
+    dst = dst.strip().lower()
+    if not src or not dst:
+        return {"error": "src and dst are required"}
+    if src == dst:
+        return {"error": "src and dst must differ"}
+    src_dir = ARKAOS_ROOT / "departments" / src / "agents"
+    dst_dir = ARKAOS_ROOT / "departments" / dst / "agents"
+    if not src_dir.exists():
+        return {"error": f"department '{src}' not found"}
+    if not dst_dir.exists():
+        return {"error": f"department '{dst}' not found"}
+    # Walk the filesystem directly so freshly-created (not-yet-registered)
+    # agents are also picked up. _load_agents() reads a cached registry
+    # that doesn't refresh during the FastAPI process.
+    try:
+        import yaml as _yaml
+    except ImportError:
+        return {"error": "PyYAML unavailable"}
+    source_ids: list[str] = []
+    for path in sorted(src_dir.glob("*.yaml")):
+        try:
+            raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(raw, dict) and raw.get("id"):
+            source_ids.append(str(raw["id"]))
+    if not source_ids:
+        return {"error": f"department '{src}' has no agents"}
+
+    moved = 0
+    skipped = 0
+    failed = 0
+    results: list[dict] = []
+    for aid in source_ids:
+        res = agent_move(aid, {"department": dst})
+        if res.get("moved"):
+            moved += 1
+            results.append({"id": aid, "status": "moved"})
+        elif "Tier 0" in (res.get("error") or ""):
+            skipped += 1
+            results.append({"id": aid, "status": "skipped", "reason": "Tier 0"})
+        else:
+            failed += 1
+            results.append({"id": aid, "status": "failed", "error": res.get("error", "")})
+
+    return {
+        "src": src,
+        "dst": dst,
+        "moved": moved,
+        "skipped": skipped,
+        "failed": failed,
+        "results": results,
+    }
+
+
 @app.get("/api/departments/{dept_id}")
 def department_detail(dept_id: str):
     """Full department detail: agents, workflows, 30d cost."""
