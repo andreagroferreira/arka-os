@@ -5,6 +5,17 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.63.0] - 2026-05-26
+
+### Added (Inline edit persona name + title — PR98a)
+
+Mirror of PR97d for personas. Click name or title on /personas/{id}
+to swap a UInput. Enter/blur saves via PUT, Esc cancels.
+
+### Files changed
+
+- `dashboard/app/pages/personas/[id].vue` — inline edit state + UI
+
 ## [3.62.0] - 2026-05-26
 
 ### Added (Inline edit name / role on agent detail — PR97d)

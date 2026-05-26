@@ -226,6 +226,59 @@ function csvToList(value: string): string[] {
 type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid' | 'key_quotes'
 const suggestingField = ref<SuggestField | null>(null)
 
+// PR98a v3.63.0 — inline edit for name + title.
+type InlineField = 'name' | 'title'
+const inlineField = ref<InlineField | null>(null)
+const inlineDraft = ref('')
+const inlineSaving = ref(false)
+
+function startInline(field: InlineField, current: string | undefined) {
+  inlineField.value = field
+  inlineDraft.value = current ?? ''
+}
+function cancelInline() {
+  inlineField.value = null
+  inlineDraft.value = ''
+}
+async function commitInline(field: InlineField) {
+  if (!detail.value || inlineField.value !== field) return
+  const next = inlineDraft.value.trim()
+  const current = (field === 'name' ? detail.value.name : detail.value.title) ?? ''
+  if (next === current) {
+    cancelInline()
+    return
+  }
+  if (field === 'name' && !next) {
+    // Names can't be empty — persona schema requires it.
+    cancelInline()
+    return
+  }
+  inlineSaving.value = true
+  try {
+    const res = await $fetch<{ updated?: boolean, error?: string }>(
+      `${apiBase}/api/personas/${personaId}`,
+      { method: 'PUT', body: { [field]: next } },
+    )
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: field === 'name' ? 'Name updated' : 'Title updated',
+      description: next || '(empty)',
+      color: 'success',
+      icon: 'i-lucide-check',
+    })
+    await refresh()
+  } catch (err) {
+    toast.add({
+      title: 'Save failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    inlineSaving.value = false
+    inlineField.value = null
+  }
+}
+
 // PR97b v3.60.0 — weekly usage timeline (when did agents clone from here).
 interface UsageWeek { week_start: string, count: number }
 const { data: usageTimelineData } = fetchApi<{
@@ -552,11 +605,58 @@ const vocabOptions = [
               <div class="flex-1 min-w-0 space-y-2">
                 <div class="flex items-start justify-between gap-3 flex-wrap">
                   <div class="min-w-0">
+                    <!-- PR98a v3.63.0 — inline edit name + title -->
                     <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-highlighted">
-                      {{ detail.name }}
+                      <UInput
+                        v-if="inlineField === 'name'"
+                        v-model="inlineDraft"
+                        autofocus
+                        size="lg"
+                        class="font-bold"
+                        :loading="inlineSaving"
+                        @keydown.enter="commitInline('name')"
+                        @keydown.escape="cancelInline"
+                        @blur="commitInline('name')"
+                      />
+                      <button
+                        v-else
+                        type="button"
+                        class="hover:text-primary transition-colors"
+                        title="Click to edit name"
+                        @click="startInline('name', detail.name)"
+                      >
+                        {{ detail.name }}
+                      </button>
                     </h1>
-                    <p v-if="detail.title" class="text-base md:text-lg text-muted mt-0.5">
-                      {{ detail.title }}
+                    <p class="text-base md:text-lg text-muted mt-0.5">
+                      <UInput
+                        v-if="inlineField === 'title'"
+                        v-model="inlineDraft"
+                        autofocus
+                        size="md"
+                        :loading="inlineSaving"
+                        @keydown.enter="commitInline('title')"
+                        @keydown.escape="cancelInline"
+                        @blur="commitInline('title')"
+                      />
+                      <button
+                        v-else-if="detail.title"
+                        type="button"
+                        class="hover:text-primary transition-colors text-left"
+                        title="Click to edit title"
+                        @click="startInline('title', detail.title)"
+                      >
+                        {{ detail.title }}
+                      </button>
+                      <button
+                        v-else
+                        type="button"
+                        class="hover:text-primary transition-colors text-left italic text-muted/60"
+                        title="Click to add title"
+                        @click="startInline('title', '')"
+                      >
+                        + Add title
+                      </button>
                     </p>
                   </div>
                   <div class="flex items-center gap-2">
