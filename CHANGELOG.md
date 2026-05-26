@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.54.0] - 2026-05-26
+
+### Added (Table keyboard navigation on /agents — PR95d)
+
+`/agents` table gains j/k + arrow up/down cursor navigation. Enter
+opens the highlighted row's detail. Auto-scrolls into view as the
+cursor moves off-screen.
+
+### Frontend
+
+- `agents/index.vue` — `cursorIndex` ref + `defineShortcuts`
+  bindings (j, k, arrowdown, arrowup, enter). Name cell renders a
+  `i-lucide-chevron-right` icon when the row is the cursor target.
+- `scrollCursorIntoView()` defers one tick then locates the
+  `[data-cursor=true]` element to scroll it into view smoothly.
+- Shortcuts respect input focus (Nuxt UI's `defineShortcuts` is
+  filter-aware) so typing in the search box doesn't fire nav keys.
+
+### Files changed
+
+- `dashboard/app/pages/agents/index.vue` — cursor state +
+  shortcuts + chevron indicator in name cell
+
 ## [3.53.1] - 2026-05-26
 
 ### Fixed (PR95c round-trip test was destructive — hotfix)
