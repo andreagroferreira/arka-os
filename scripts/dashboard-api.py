@@ -322,6 +322,17 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
     }
 
 
+@app.get("/api/personas/archetypes")
+def personas_archetypes():
+    """PR93b v3.44.0 — list curated persona archetype templates.
+
+    Used by PersonaWizard step 1 to seed the description field + DNA
+    defaults when the operator picks "Start from archetype".
+    """
+    from core.personas.archetypes import ARCHETYPES
+    return {"archetypes": ARCHETYPES, "total": len(ARCHETYPES)}
+
+
 @app.get("/api/personas/export-all.zip")
 def personas_export_all():
     """PR92a v3.39.0 — stream every persona as Markdown inside a ZIP.
