@@ -5,6 +5,64 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.0] - 2026-05-26
+
+### Added (Trash + Undo for destructive actions — PR85b)
+
+Deleting an agent, deleting a persona, or moving an agent across
+departments is no longer one-shot. Every destructive op now writes a
+trash record, and the operator can restore it from `/trash` (newly
+added route) or inline from the toast.
+
+### Backend
+
+- `core/trash.py` (NEW) — file-based trash store at `~/.arkaos/trash/`.
+  Each entry is two sidecar files: `.payload` (content, optional) and
+  `.meta.json` (kind, item_id, paths, timestamp). Bounded by
+  `MAX_ENTRIES=50` — older entries are pruned on every write.
+- `record_deletion`, `record_move`, `list_trash`, `restore`, `purge`.
+- Restore semantics: `agent-delete` / `persona-delete` recreate the
+  file at `original_path` (refuses overwrite), `agent-move` moves the
+  YAML back AND rewrites the `department:` field.
+- Hooked into:
+  - `DELETE /api/agents/{id}` — writes trash + returns `trash_id`
+  - `POST /api/agents/{id}/move` — same
+  - `DELETE /api/personas/{id}` — best-effort capture from
+    `PersonaManager.get()`
+- New endpoints:
+  - `GET /api/trash?limit=N`
+  - `POST /api/trash/{id}/restore`
+  - `DELETE /api/trash/{id}` (purge without restore)
+- 10 unit tests cover record + scan + restore + purge + prune + the
+  overwrite-refusal invariant.
+
+### Frontend
+
+- `dashboard/app/pages/trash.vue` (NEW) — listing with Restore +
+  Discard per entry, relative timestamps, kind-coloured badges.
+- Sidebar nav gains a Trash link (next to Settings).
+- Bulk delete + bulk move toasts on `/agents` and bulk delete on
+  `/personas` now carry an inline **Undo** action that fan-outs to
+  the restore endpoint for every captured `trash_id`.
+- `undoTrashIds` helper on both pages.
+
+### Safety
+
+- Restore refuses to overwrite an existing file at the target path.
+- Trash entries cap at 50 — anything older is pruned automatically.
+- Tier 0 deletion is still blocked at the source endpoint, so trash
+  never contains C-Suite agents.
+
+### Files changed
+
+- `core/trash.py` (NEW)
+- `tests/python/test_trash.py` (NEW, 10 tests)
+- `scripts/dashboard-api.py` — wire trash + 3 new endpoints
+- `dashboard/app/pages/trash.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — sidebar Trash link
+- `dashboard/app/pages/agents/index.vue` — Undo action + helper
+- `dashboard/app/pages/personas/index.vue` — Undo action + helper
+
 ## [3.11.0] - 2026-05-26
 
 ### Added (Clone Persona → Agent UI — PR85a)

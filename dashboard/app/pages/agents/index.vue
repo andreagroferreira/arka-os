@@ -186,26 +186,32 @@ async function bulkMove(targetDept: string) {
   bulkMoving.value = true
   const results = await Promise.allSettled(
     ids.map((id) =>
-      $fetch<{ moved?: boolean, error?: string }>(`${apiBase}/api/agents/${id}/move`, {
-        method: 'POST',
-        body: { department: targetDept },
-      }),
+      $fetch<{ moved?: boolean, trash_id?: string, error?: string }>(
+        `${apiBase}/api/agents/${id}/move`,
+        { method: 'POST', body: { department: targetDept } },
+      ),
     ),
   )
   const successes = results.filter(
     (r) => r.status === 'fulfilled' && r.value.moved,
-  ).length
-  const failures = ids.length - successes
+  )
+  const trashIds = successes
+    .map((r) => (r.status === 'fulfilled' ? r.value.trash_id : null))
+    .filter((v): v is string => Boolean(v))
+  const failures = ids.length - successes.length
   toast.add({
-    title: successes > 0
-      ? `Moved ${successes} agent${successes === 1 ? '' : 's'}`
+    title: successes.length > 0
+      ? `Moved ${successes.length} agent${successes.length === 1 ? '' : 's'}`
       : 'Nothing moved',
     description: failures > 0
       ? `${failures} skipped (Tier 0, collision, or missing)`
       : undefined,
-    color: successes > 0 && failures === 0
+    color: successes.length > 0 && failures === 0
       ? 'success'
-      : failures > 0 && successes > 0 ? 'warning' : 'error',
+      : failures > 0 && successes.length > 0 ? 'warning' : 'error',
+    actions: trashIds.length > 0
+      ? [{ label: 'Undo', icon: 'i-lucide-rotate-ccw', onClick: () => undoTrashIds(trashIds) }]
+      : undefined,
   })
   clearSelection()
   bulkMoving.value = false
@@ -252,20 +258,27 @@ async function bulkDelete() {
   bulkDeleting.value = true
   const results = await Promise.allSettled(
     ids.map((id) =>
-      $fetch<{ deleted?: boolean, error?: string }>(`${apiBase}/api/agents/${id}`, {
-        method: 'DELETE',
-      }),
+      $fetch<{ deleted?: boolean, trash_id?: string, error?: string }>(
+        `${apiBase}/api/agents/${id}`,
+        { method: 'DELETE' },
+      ),
     ),
   )
   const successes = results.filter(
     (r) => r.status === 'fulfilled' && r.value.deleted,
-  ).length
-  const failures = ids.length - successes
-  if (successes > 0) {
+  )
+  const trashIds = successes
+    .map((r) => (r.status === 'fulfilled' ? r.value.trash_id : null))
+    .filter((v): v is string => Boolean(v))
+  const failures = ids.length - successes.length
+  if (successes.length > 0) {
     toast.add({
-      title: `Deleted ${successes} agent${successes === 1 ? '' : 's'}`,
-      description: failures > 0 ? `${failures} skipped (Tier 0 or missing)` : undefined,
+      title: `Deleted ${successes.length} agent${successes.length === 1 ? '' : 's'}`,
+      description: failures > 0 ? `${failures} skipped (Tier 0 or missing)` : 'Undo from /trash within 50 ops.',
       color: failures > 0 ? 'warning' : 'success',
+      actions: trashIds.length > 0
+        ? [{ label: 'Undo', icon: 'i-lucide-rotate-ccw', onClick: () => undoTrashIds(trashIds) }]
+        : undefined,
     })
   } else {
     toast.add({
@@ -276,6 +289,26 @@ async function bulkDelete() {
   }
   clearSelection()
   bulkDeleting.value = false
+  await refreshAll()
+}
+
+async function undoTrashIds(ids: string[]) {
+  const results = await Promise.allSettled(
+    ids.map((tid) =>
+      $fetch<{ restored?: boolean, error?: string }>(
+        `${apiBase}/api/trash/${tid}/restore`,
+        { method: 'POST' },
+      ),
+    ),
+  )
+  const restored = results.filter(
+    (r) => r.status === 'fulfilled' && r.value.restored,
+  ).length
+  toast.add({
+    title: restored > 0 ? `Restored ${restored}` : 'Undo failed',
+    description: restored < ids.length ? `${ids.length - restored} could not be restored.` : undefined,
+    color: restored === ids.length ? 'success' : restored > 0 ? 'warning' : 'error',
+  })
   await refreshAll()
 }
 </script>

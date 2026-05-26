@@ -1223,9 +1223,20 @@ def agent_move(agent_id: str, body: dict):
             )
             tmp.replace(yaml_file)
         yaml_file.rename(dest_file)
+        from core import trash as _trash
+        trash_id = _trash.record_move(
+            item_id=agent_id,
+            from_path=str(yaml_file),
+            to_path=str(dest_file),
+        )
     except (OSError, ImportError) as exc:
         return {"error": f"move failed: {exc}"}
-    return {"moved": True, "id": agent_id, "yaml_path": str(dest_file)}
+    return {
+        "moved": True,
+        "id": agent_id,
+        "yaml_path": str(dest_file),
+        "trash_id": trash_id,
+    }
 
 
 @app.delete("/api/agents/{agent_id}")
@@ -1247,10 +1258,23 @@ def agent_delete(agent_id: str):
     if tier == 0:
         return {"error": "Cannot delete Tier 0 (C-Suite) agents from the dashboard"}
     try:
+        from core import trash as _trash
+        content = yaml_file.read_text(encoding="utf-8")
+        trash_id = _trash.record_deletion(
+            kind="agent-delete",
+            item_id=agent_id,
+            original_path=str(yaml_file),
+            content=content,
+        )
         yaml_file.unlink()
     except OSError as exc:
         return {"error": f"delete failed: {exc}"}
-    return {"deleted": True, "id": agent_id, "yaml_path": str(yaml_file)}
+    return {
+        "deleted": True,
+        "id": agent_id,
+        "yaml_path": str(yaml_file),
+        "trash_id": trash_id,
+    }
 
 
 def _resolve_agent_yaml(agent_id: str) -> Optional[Path]:
@@ -1282,9 +1306,49 @@ def persona_delete(persona_id: str):
     mgr = _get_persona_manager()
     if not mgr:
         return {"error": "Persona manager unavailable"}
+    # Capture content + path BEFORE delete for trash record (best-effort)
+    trash_id = None
+    try:
+        from core import trash as _trash
+        target = mgr.get(persona_id) if hasattr(mgr, "get") else None
+        if target is not None:
+            import json as _json
+            payload = _json.dumps(
+                target if isinstance(target, dict) else target.model_dump(),
+                indent=2,
+            )
+            store_path = getattr(mgr, "_store_path", None) or "personas.json"
+            trash_id = _trash.record_deletion(
+                kind="persona-delete",
+                item_id=persona_id,
+                original_path=str(store_path) + f"#{persona_id}",
+                content=payload,
+            )
+    except Exception:
+        pass
     if mgr.delete(persona_id):
-        return {"deleted": True}
+        return {"deleted": True, "trash_id": trash_id}
     return {"error": "Persona not found"}
+
+
+# --- Trash / Undo (PR85b v3.12.0) ---
+
+@app.get("/api/trash")
+def trash_list(limit: int = 10):
+    from core import trash as _trash
+    return {"entries": _trash.list_trash(limit=limit)}
+
+
+@app.post("/api/trash/{trash_id}/restore")
+def trash_restore(trash_id: str):
+    from core import trash as _trash
+    return _trash.restore(trash_id)
+
+
+@app.delete("/api/trash/{trash_id}")
+def trash_purge(trash_id: str):
+    from core import trash as _trash
+    return _trash.purge(trash_id)
 
 
 @app.post("/api/personas/build")

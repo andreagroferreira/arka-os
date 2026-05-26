@@ -179,20 +179,27 @@ async function bulkDelete() {
   bulkDeleting.value = true
   const results = await Promise.allSettled(
     ids.map((id) =>
-      $fetch<{ deleted?: boolean, error?: string }>(`${apiBase}/api/personas/${id}`, {
-        method: 'DELETE',
-      }),
+      $fetch<{ deleted?: boolean, trash_id?: string, error?: string }>(
+        `${apiBase}/api/personas/${id}`,
+        { method: 'DELETE' },
+      ),
     ),
   )
   const successes = results.filter(
     (r) => r.status === 'fulfilled' && r.value.deleted,
-  ).length
-  const failures = ids.length - successes
-  if (successes > 0) {
+  )
+  const trashIds = successes
+    .map((r) => (r.status === 'fulfilled' ? r.value.trash_id : null))
+    .filter((v): v is string => Boolean(v))
+  const failures = ids.length - successes.length
+  if (successes.length > 0) {
     toast.add({
-      title: `Deleted ${successes} persona${successes === 1 ? '' : 's'}`,
-      description: failures > 0 ? `${failures} failed` : undefined,
+      title: `Deleted ${successes.length} persona${successes.length === 1 ? '' : 's'}`,
+      description: failures > 0 ? `${failures} failed` : 'Undo from /trash within 50 ops.',
       color: failures > 0 ? 'warning' : 'success',
+      actions: trashIds.length > 0
+        ? [{ label: 'Undo', icon: 'i-lucide-rotate-ccw', onClick: () => undoTrashIds(trashIds) }]
+        : undefined,
     })
   } else {
     toast.add({
@@ -202,6 +209,26 @@ async function bulkDelete() {
   }
   clearSelection()
   bulkDeleting.value = false
+  await refreshAll()
+}
+
+async function undoTrashIds(ids: string[]) {
+  const results = await Promise.allSettled(
+    ids.map((tid) =>
+      $fetch<{ restored?: boolean, error?: string }>(
+        `${apiBase}/api/trash/${tid}/restore`,
+        { method: 'POST' },
+      ),
+    ),
+  )
+  const restored = results.filter(
+    (r) => r.status === 'fulfilled' && r.value.restored,
+  ).length
+  toast.add({
+    title: restored > 0 ? `Restored ${restored}` : 'Undo failed',
+    description: restored < ids.length ? `${ids.length - restored} could not be restored.` : undefined,
+    color: restored === ids.length ? 'success' : restored > 0 ? 'warning' : 'error',
+  })
   await refreshAll()
 }
 </script>
