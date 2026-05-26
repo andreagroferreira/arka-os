@@ -5,6 +5,52 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-05-26
+
+### Added (Persona draft from description — PR83a)
+
+Persona creation no longer requires indexed content. PersonaWizard
+Step 1 gains a 3-mode picker (Ingest sources / Existing chunks /
+From description), and the description path goes straight to a draft
+via a new dedicated endpoint.
+
+### Backend
+
+- `core/personas/description_drafter.py` (NEW) — provider-agnostic
+  `draft_persona_from_description(description, name, source_label,
+  provider)`. Reuses the existing `_PERSONA_SYSTEM_PROMPT` and
+  `_extract_json_object` from the vector builder so the resulting
+  Persona is interchangeable. Validates description ≥ 20 chars,
+  non-empty name, schema match. 12 unit tests.
+- `POST /api/personas/draft` — wraps the drafter. Returns
+  `{persona, provider_name}`. `PersonaDraftError` surfaces as an
+  error payload. Body shape:
+  `{description, name, source_label?}`.
+
+### Frontend
+
+- `PersonaWizard.vue` — Step 1 redesigned with three mode cards:
+  - **Ingest sources** — original flow (URLs → background jobs)
+  - **Existing chunks** — was `skipIngest`, now first-class
+  - **From description** — new path, no vector DB needed
+- The textarea / source list swaps based on mode; CTA label adapts.
+- `runDescriptionBuild()` calls `/api/personas/draft` and routes
+  straight to Step 4 (Review & save) bypassing chunks-used UI.
+
+### Why this matters
+
+- Operators can sketch a synthetic archetype in 30 seconds
+- No vector-DB dependency for the quick-draft path
+- Pairs with PR82c so the operator can then click Suggest with AI
+  to expand each field after the draft lands
+
+### Files changed
+
+- `core/personas/description_drafter.py` (NEW)
+- `tests/python/test_persona_description_drafter.py` (NEW, 12 tests)
+- `scripts/dashboard-api.py` — POST /api/personas/draft
+- `dashboard/app/components/PersonaWizard.vue` — 3-mode picker
+
 ## [3.2.0] - 2026-05-26
 
 ### Added (Extended suggester + persona Avoid/Key quotes editable — PR82c)

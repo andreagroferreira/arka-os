@@ -37,6 +37,12 @@ const sourceLineCount = computed(() =>
     .length,
 )
 
+// PR83a v3.3.0 — Mode 3: build from a free-text description (no chunks).
+type Mode = 'sources' | 'existing' | 'description'
+const mode = ref<Mode>('sources')
+const description = ref('')
+const descriptionLength = computed(() => description.value.trim().length)
+
 // ─── Step 2 state ────────────────────────────────────────────────────────
 const ingestJobs = ref<Array<{
   source: string
@@ -81,7 +87,14 @@ const tierOptions = [
 
 
 async function startIngest() {
-  if (skipIngest.value) {
+  if (mode.value === 'description') {
+    // PR83a — no ingest, no chunks. Build directly from description.
+    if (descriptionLength.value < 20 || !name.value.trim()) return
+    step.value = 3
+    await runDescriptionBuild()
+    return
+  }
+  if (mode.value === 'existing' || skipIngest.value) {
     // Jump straight to step 3 — operator says content is already indexed.
     step.value = 3
     await runBuild()
@@ -164,6 +177,36 @@ onBeforeUnmount(() => {
 
 
 // ─── Step 3: build the persona draft ────────────────────────────────────
+
+
+async function runDescriptionBuild() {
+  building.value = true
+  buildError.value = null
+  draft.value = null
+  try {
+    const res = await $fetch<{ persona: Persona, provider_name: string, error?: string }>(
+      `${apiBase}/api/personas/draft`,
+      {
+        method: 'POST',
+        body: {
+          name: name.value.trim(),
+          description: description.value.trim(),
+          source_label: sourceLabel.value.trim() || name.value.trim(),
+        },
+      },
+    )
+    if ('error' in res && typeof (res as any).error === 'string') {
+      throw new Error((res as any).error)
+    }
+    draft.value = res.persona
+    chunksUsed.value = 0
+    step.value = 4
+  } catch (err) {
+    buildError.value = err instanceof Error ? err.message : 'unknown error'
+  } finally {
+    building.value = false
+  }
+}
 
 
 async function runBuild() {
@@ -308,7 +351,28 @@ function backToStep1() {
         />
       </UFormField>
 
+      <UFormField label="How should we generate this persona?">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <button
+            v-for="m in ([
+              { key: 'sources',     title: 'Ingest sources',  desc: 'YouTube, articles, PDFs — best fidelity' },
+              { key: 'existing',    title: 'Existing chunks', desc: 'Use what is already indexed' },
+              { key: 'description', title: 'From description', desc: 'No sources — pure description' },
+            ] as const)"
+            :key="m.key"
+            type="button"
+            class="text-left rounded-lg border p-3 transition-colors"
+            :class="mode === m.key ? 'border-primary bg-primary/5' : 'border-default hover:border-primary/40'"
+            @click="mode = m.key"
+          >
+            <p class="text-sm font-semibold">{{ m.title }}</p>
+            <p class="text-xs text-muted mt-1">{{ m.desc }}</p>
+          </button>
+        </div>
+      </UFormField>
+
       <UFormField
+        v-if="mode === 'sources'"
         label="Sources (one URL per line)"
         help="YouTube videos, articles, PDFs, blog posts about this person. The builder will search the indexed chunks and synthesise their behavioural DNA. Up to 50 sources per batch."
       >
@@ -317,28 +381,56 @@ function backToStep1() {
           :rows="6"
           placeholder="https://www.youtube.com/watch?v=...&#10;https://example.com/article&#10;https://example.com/paper.pdf"
           class="w-full font-mono text-sm"
-          :disabled="skipIngest"
         />
       </UFormField>
 
-      <div class="flex items-center justify-between text-xs text-muted">
-        <span>{{ sourceLineCount }} source{{ sourceLineCount === 1 ? '' : 's' }} detected</span>
-        <UCheckbox
-          v-model="skipIngest"
-          label="Skip ingest — content for this person is already in the knowledge base"
+      <UFormField
+        v-else-if="mode === 'description'"
+        label="Description"
+        help="Plain-text description of the person — their style, beliefs, what they do, how they talk. The LLM uses this verbatim. Minimum 20 characters."
+      >
+        <UTextarea
+          v-model="description"
+          :rows="6"
+          placeholder="A direct-response copywriter who treats offers as the only true growth lever. Punchy, allergic to fluff. Loves Hormozi-style hooks."
+          class="w-full"
         />
+      </UFormField>
+
+      <div
+        v-if="mode === 'sources'"
+        class="flex items-center justify-between text-xs text-muted"
+      >
+        <span>{{ sourceLineCount }} source{{ sourceLineCount === 1 ? '' : 's' }} detected</span>
+      </div>
+
+      <div v-else-if="mode === 'existing'" class="text-xs text-muted">
+        We will search the vector DB for chunks tagged with this name and synthesise from what we find. Make sure you've ingested content for this person first.
+      </div>
+
+      <div v-else-if="mode === 'description'" class="text-xs text-muted">
+        {{ descriptionLength }} character{{ descriptionLength === 1 ? '' : 's' }} ·
+        {{ descriptionLength >= 20 ? 'ready' : `${20 - descriptionLength} more needed` }}
       </div>
 
       <div class="flex justify-end gap-2 pt-4">
         <UButton
-          :label="skipIngest ? 'Generate from existing knowledge' : `Index ${sourceLineCount} source${sourceLineCount === 1 ? '' : 's'} & build`"
+          :label="(
+            mode === 'sources' ? `Index ${sourceLineCount} source${sourceLineCount === 1 ? '' : 's'} & build`
+            : mode === 'existing' ? 'Generate from existing knowledge'
+            : 'Generate from description'
+          )"
           icon="i-lucide-arrow-right"
-          :disabled="!name.trim() || (!skipIngest && sourceLineCount === 0) || sourceLineCount > 50"
+          :disabled="(
+            !name.trim()
+            || (mode === 'sources' && (sourceLineCount === 0 || sourceLineCount > 50))
+            || (mode === 'description' && descriptionLength < 20)
+          )"
           size="md"
           @click="startIngest"
         />
       </div>
-      <p v-if="sourceLineCount > 50" class="text-xs text-red-400">
+      <p v-if="mode === 'sources' && sourceLineCount > 50" class="text-xs text-red-400">
         Over the 50-source cap. Trim the list before continuing.
       </p>
     </div>

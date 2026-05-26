@@ -1827,6 +1827,43 @@ def _build_agent_yaml(
     return payload
 
 
+# --- AI persona draft from description (PR83a v3.3.0) ---
+
+@app.post("/api/personas/draft")
+def personas_draft(body: dict):
+    """Generate a Persona draft from a free-text description (no vector DB).
+
+    Body: {
+        "description": "...",    # min 20 chars
+        "name": "Alex Carter",   # required
+        "source_label": "..."    # optional
+    }
+    Returns: {"persona": {...}, "provider_name": "..."}
+
+    Sibling to /api/personas/build (which requires indexed chunks). Useful
+    when the operator wants a quick draft without ingesting sources first.
+    The result is NOT saved — operator reviews + POSTs to /api/personas.
+    """
+    from core.personas.description_drafter import (
+        PersonaDraftError,
+        draft_persona_from_description,
+    )
+
+    description = (body.get("description") or "").strip()
+    name = (body.get("name") or "").strip()
+    source_label = (body.get("source_label") or "").strip()
+    try:
+        res = draft_persona_from_description(
+            description, name=name, source_label=source_label,
+        )
+    except PersonaDraftError as exc:
+        return {"error": str(exc)}
+    return {
+        "persona": res.persona.model_dump(),
+        "provider_name": res.provider_name,
+    }
+
+
 # --- AI agent draft from description (PR82b v3.1.0) ---
 
 @app.post("/api/agents/draft")
