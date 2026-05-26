@@ -451,6 +451,9 @@ def agent_update(agent_id: str, body: dict):
         raw["communication"] = comm
     if "linked_personas" in body:
         raw["linked_personas"] = _agent_str_list(body["linked_personas"])
+    # PR86d v3.18.0 — Markdown bio (long-form free text).
+    if "bio_md" in body and isinstance(body["bio_md"], str):
+        raw["bio_md"] = body["bio_md"]
 
     try:
         tmp = yaml_file.with_suffix(yaml_file.suffix + ".tmp")
@@ -1101,6 +1104,7 @@ def persona_update(persona_id: str, body: dict):
         communication=PersonaCommunication(
             **(merged.get("communication", {}) or {}),
         ),
+        bio_md=merged.get("bio_md", "") or "",
         created_at=merged.get("created_at", ""),
     )
 

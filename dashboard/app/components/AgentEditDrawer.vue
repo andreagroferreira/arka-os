@@ -58,6 +58,7 @@ interface AgentDraft {
     avoid: string[]
   }
   linked_personas: string[]
+  bio_md: string
 }
 
 const draft = ref<AgentDraft | null>(null)
@@ -88,6 +89,7 @@ watch(
           avoid: agent.communication?.avoid ?? [],
         },
         linked_personas: agent.linked_personas ?? [],
+        bio_md: agent.bio_md ?? '',
       }
       dirty.value = false
     } else if (!open) {
@@ -323,6 +325,7 @@ async function save() {
       },
       communication: draft.value.communication,
       linked_personas: draft.value.linked_personas,
+      bio_md: draft.value.bio_md,
     }
     const res = await $fetch<{
       id: string
@@ -651,6 +654,18 @@ const vocabOptions = [
                 class="w-full"
               />
             </UFormField>
+          </section>
+
+          <section class="space-y-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+              Bio (Markdown)
+            </h3>
+            <MarkdownEditor
+              :model-value="draft.bio_md"
+              :rows="10"
+              placeholder="A free-text Markdown bio for this agent — context, voice samples, internal notes."
+              @update:model-value="(v: string) => { if (draft) { draft.bio_md = v; markDirty() } }"
+            />
           </section>
 
           <section class="space-y-3">
