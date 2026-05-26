@@ -111,7 +111,8 @@ function csvToList(value: string): string[] {
 }
 
 // PR81 v2.99.0 — AI list-field suggester.
-type SuggestField = 'mental_models_primary' | 'frameworks' | 'expertise_domains'
+// PR82c v3.2.0 — extended with 'communication_avoid'.
+type SuggestField = 'mental_models_primary' | 'frameworks' | 'expertise_domains' | 'communication_avoid'
 const suggestingField = ref<SuggestField | null>(null)
 
 async function suggest(field: SuggestField) {
@@ -122,7 +123,9 @@ async function suggest(field: SuggestField) {
       ? draft.value.mental_models.primary
       : field === 'frameworks'
         ? draft.value.frameworks
-        : draft.value.expertise_domains
+        : field === 'expertise_domains'
+          ? draft.value.expertise_domains
+          : draft.value.communication.avoid
   suggestingField.value = field
   try {
     const res = await $fetch<{
@@ -159,8 +162,10 @@ async function suggest(field: SuggestField) {
       draft.value.mental_models.primary = merged
     } else if (field === 'frameworks') {
       draft.value.frameworks = merged
-    } else {
+    } else if (field === 'expertise_domains') {
       draft.value.expertise_domains = merged
+    } else {
+      draft.value.communication.avoid = merged
     }
     markDirty()
     toast.add({
@@ -437,6 +442,18 @@ const vocabOptions = [
               </UFormField>
             </div>
             <UFormField label="Avoid (phrases)" help="comma-separated">
+              <template #hint>
+                <UButton
+                  label="Suggest with AI"
+                  icon="i-lucide-sparkles"
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  :loading="suggestingField === 'communication_avoid'"
+                  :disabled="suggestingField !== null"
+                  @click="suggest('communication_avoid')"
+                />
+              </template>
               <UInput
                 :model-value="listToCsv(draft.communication.avoid)"
                 @update:model-value="(v: string) => { if (draft) { draft.communication.avoid = csvToList(v); markDirty() } }"

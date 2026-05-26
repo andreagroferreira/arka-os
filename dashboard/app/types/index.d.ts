@@ -209,9 +209,11 @@ export interface Persona {
   mental_models: string[]
   expertise_domains: string[]
   frameworks: string[]
+  key_quotes?: string[]
   communication: {
     tone: string
     vocabulary_level: string
+    avoid?: string[]
   }
   cloned_to_agents: string[]
 }

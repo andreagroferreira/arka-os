@@ -5,6 +5,49 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-05-26
+
+### Added (Extended suggester + persona Avoid/Key quotes editable — PR82c)
+
+The ✨ Suggest with AI buttons now cover two more list fields, and
+persona edit gains two long-requested editable sections.
+
+### Suggester extended
+
+- `core/agents/field_suggester.py` — `_VALID_FIELDS` now includes:
+  - `communication_avoid` — phrases the profile would never say
+  - `key_quotes` — verbatim/paraphrased sentences (persona only)
+- Per-field length hints: short items (2-5 words) for mental models /
+  frameworks / expertise, mid-length (2-6 words) for avoid, full
+  sentences (8-25 words) for key quotes.
+- 5 new unit tests (23 total) covering the new fields + assertions
+  that legacy fields still get the original length hint.
+
+### Frontend wiring
+
+- `AgentEditDrawer.vue` — Suggest button next to the "Avoid (phrases)"
+  field.
+- `agents/new.vue` — same Suggest button on the create form.
+- `personas/[id].vue` edit slideover gains two NEW editable sections:
+  - **Avoid (phrases)** — CSV input + Suggest button
+  - **Key quotes** — UTextarea (one per line) + Suggest button
+  Both write through the existing `PUT /api/personas/{id}` atomic save.
+
+### Types
+
+- `Persona` interface in `dashboard/app/types/index.d.ts` now declares
+  `key_quotes?: string[]` and `communication.avoid?: string[]` so the
+  editable form fields are type-safe.
+
+### Files changed
+
+- `core/agents/field_suggester.py` — extended fields + length hints
+- `tests/python/test_field_suggester.py` — 5 new tests
+- `dashboard/app/components/AgentEditDrawer.vue` — avoid Suggest
+- `dashboard/app/pages/agents/new.vue` — avoid Suggest
+- `dashboard/app/pages/personas/[id].vue` — Avoid + Key quotes sections
+- `dashboard/app/types/index.d.ts` — Persona type extension
+
 ## [3.1.0] - 2026-05-26
 
 ### Added (AI draft from description on /agents/new — PR82b)
