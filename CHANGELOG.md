@@ -5,6 +5,37 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.39.0] - 2026-05-26
+
+### Added (Persona bulk ZIP export — PR92a)
+
+Operator can now click **Export ZIP** on `/personas` to download every
+persona in one archive. Each entry uses the same renderer as the
+Obsidian vault sync, so the zip is a perfect mirror.
+
+### Backend
+
+- `GET /api/personas/export-all.zip` (NEW) — iterates
+  `PersonaManager.list_all()`, renders each via
+  `ObsidianPersonaStore._render`, packs into an in-memory
+  `zipfile.ZipFile` with `ZIP_DEFLATED`. Filename uses persona name
+  (sanitised + capped at 80 chars), with id-suffix fallback for
+  collisions. Returns `application/zip`.
+- `_zip_persona_slug` helper sanitises arbitrary names for archive
+  members. 5 unit tests cover slug rules, length cap, missing
+  manager, empty store, full archive contents.
+
+### Frontend
+
+- `personas/index.vue` — **Export ZIP** button next to Import in the
+  navbar `#right` slot. Browser-native blob download.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/personas/export-all.zip + helper
+- `tests/python/test_personas_export_zip.py` (NEW, 5 tests)
+- `dashboard/app/pages/personas/index.vue` — Export ZIP button + handler
+
 ## [3.38.0] - 2026-05-26
 
 ### Added (Costs CSV export — PR91d)
