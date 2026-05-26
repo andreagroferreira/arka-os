@@ -84,6 +84,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Audit',
+  icon: 'i-lucide-shield-alert',
+  to: '/audit',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Trash',
   icon: 'i-lucide-trash-2',
   to: '/trash',

@@ -2251,6 +2251,58 @@ def _last_commit_days(project_path: str) -> Optional[int]:
         return None
 
 
+@app.get("/api/audit")
+def audit_log(
+    limit: int = 100,
+    kind: Optional[str] = None,
+    tool: Optional[str] = None,
+):
+    """PR90d v3.34.0 — paginated audit log of bypass/block events.
+
+    Reads the same telemetry file as `_recent_incidents` but returns
+    a larger window and accepts filter params. ``kind`` is one of
+    ``"bypass"`` / ``"blocked"``. ``tool`` filters by tool name
+    (Edit/Write/Bash/…).
+    """
+    log = Path.home() / ".arkaos" / "telemetry" / "enforcement.jsonl"
+    if not log.exists():
+        return {"events": [], "total": 0}
+    try:
+        text = log.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {"events": [], "total": 0}
+    events: list[dict] = []
+    cap = max(0, min(int(limit), 500))
+    for line in reversed(text.splitlines()):
+        if len(events) >= cap:
+            break
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        bypass = bool(entry.get("bypass_used"))
+        allowed = entry.get("allow")
+        if not bypass and allowed is not False:
+            continue
+        row_kind = "bypass" if bypass else "blocked"
+        if kind and kind != row_kind:
+            continue
+        row_tool = entry.get("tool", "")
+        if tool and tool != row_tool:
+            continue
+        events.append({
+            "ts": entry.get("ts", ""),
+            "tool": row_tool,
+            "reason": entry.get("reason", ""),
+            "cwd": entry.get("cwd", ""),
+            "bypass_used": bypass,
+            "kind": row_kind,
+        })
+    return {"events": events, "total": len(events)}
+
+
 def _recent_incidents(limit: int = 8) -> list[dict]:
     """Recent enforcement / bypass events from telemetry.
 
