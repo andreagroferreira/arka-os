@@ -5,6 +5,26 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.19.0] - 2026-05-26
+
+### Added (DNA filters on /agents — PR87a)
+
+`/agents` filter bar gains two new selects:
+
+- **DISC** — all / D / I / S / C (filters by primary DISC letter)
+- **MBTI group** — all / Analysts (NT) / Diplomats (NF) / Sentinels
+  (S__J) / Explorers (S__P)
+
+Both stack with the existing department + tier + favourites filters
+and the search input. Pagination resets to page 1 when any filter
+changes. The MBTI grouping table mirrors the one used on /personas
+for consistency.
+
+### Files changed
+
+- `dashboard/app/pages/agents/index.vue` — two new selects + 2 refs +
+  MBTI grouping map + computed predicate extensions
+
 ## [3.18.0] - 2026-05-26
 
 ### Added (Markdown bio field — PR86d)
