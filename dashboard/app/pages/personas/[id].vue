@@ -222,12 +222,16 @@ function csvToList(value: string): string[] {
 }
 
 // PR81 v2.99.0 — AI list-field suggester for personas.
-type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains'
+// PR82c v3.2.0 — extended with 'communication_avoid' and 'key_quotes'.
+type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid' | 'key_quotes'
 const suggestingField = ref<SuggestField | null>(null)
 
 async function suggest(field: SuggestField) {
   if (!draft.value || !detail.value) return
-  const current = (draft.value as any)[field] as string[]
+  const current
+    = field === 'communication_avoid'
+      ? (draft.value.communication.avoid ?? [])
+      : ((draft.value as any)[field] as string[] ?? [])
   suggestingField.value = field
   try {
     const res = await $fetch<{
@@ -258,7 +262,12 @@ async function suggest(field: SuggestField) {
       })
       return
     }
-    ;(draft.value as any)[field] = [...current, ...additions]
+    const merged = [...current, ...additions]
+    if (field === 'communication_avoid') {
+      draft.value.communication.avoid = merged
+    } else {
+      ;(draft.value as any)[field] = merged
+    }
     markDirty()
     toast.add({
       title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
@@ -751,6 +760,52 @@ const vocabOptions = [
                         <USelect v-model="draft.communication.vocabulary_level" :items="vocabOptions" class="w-full" @update:model-value="markDirty" />
                       </UFormField>
                     </div>
+                    <UFormField label="Avoid (phrases)" help="comma-separated">
+                      <template #hint>
+                        <UButton
+                          label="Suggest with AI"
+                          icon="i-lucide-sparkles"
+                          size="xs"
+                          color="primary"
+                          variant="soft"
+                          :loading="suggestingField === 'communication_avoid'"
+                          :disabled="suggestingField !== null"
+                          @click="suggest('communication_avoid')"
+                        />
+                      </template>
+                      <UInput
+                        :model-value="listToCsv(draft.communication.avoid)"
+                        @update:model-value="(v: string) => { if (draft) { draft.communication.avoid = csvToList(v); markDirty() } }"
+                        class="w-full"
+                      />
+                    </UFormField>
+                  </section>
+
+                  <section class="space-y-3">
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Key quotes</h3>
+                      <UButton
+                        label="Suggest with AI"
+                        icon="i-lucide-sparkles"
+                        size="xs"
+                        color="primary"
+                        variant="soft"
+                        :loading="suggestingField === 'key_quotes'"
+                        :disabled="suggestingField !== null"
+                        @click="suggest('key_quotes')"
+                      />
+                    </div>
+                    <UTextarea
+                      :model-value="(draft.key_quotes ?? []).join('\n')"
+                      :rows="4"
+                      placeholder="One quote per line. Verbatim or paraphrased."
+                      @update:model-value="(v: string) => { if (draft) { draft.key_quotes = v.split('\n').map((q) => q.trim()).filter(Boolean); markDirty() } }"
+                      class="w-full"
+                    />
+                    <p class="text-xs text-muted">
+                      {{ (draft.key_quotes ?? []).length }} quote{{ (draft.key_quotes ?? []).length === 1 ? '' : 's' }}.
+                      One per line.
+                    </p>
                   </section>
                 </div>
 

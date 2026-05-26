@@ -27,6 +27,8 @@ _VALID_FIELDS: tuple[str, ...] = (
     "mental_models",
     "frameworks",
     "expertise_domains",
+    "communication_avoid",
+    "key_quotes",
 )
 _MAX_COUNT = 12
 _DEFAULT_COUNT = 5
@@ -40,6 +42,23 @@ _FIELD_LABELS: dict[str, str] = {
     "mental_models": "mental models",
     "frameworks": "frameworks",
     "expertise_domains": "expertise domains",
+    "communication_avoid": "phrases this profile should AVOID using",
+    "key_quotes": "verbatim or paraphrased key quotes",
+}
+
+# Field-specific length hints — different fields want different item shapes.
+_FIELD_LENGTH_HINT: dict[str, str] = {
+    "mental_models": "Return a JSON array of short strings (2-5 words each).",
+    "frameworks": "Return a JSON array of short strings (2-5 words each).",
+    "expertise_domains": "Return a JSON array of short strings (2-5 words each).",
+    "communication_avoid": (
+        "Return a JSON array of short phrases (2-6 words each) that the "
+        "profile would never say or write."
+    ),
+    "key_quotes": (
+        "Return a JSON array of full sentences (8-25 words each), each "
+        "phrased as if the person said it. No attribution prefixes."
+    ),
 }
 
 
@@ -94,10 +113,8 @@ def _build_prompt(field: str, context: dict, count: int) -> str:
             + ", ".join(current)
             + "."
         )
-    lines.append(
-        "Return a JSON array of short strings (2-5 words each). "
-        "No explanations, no numbering, no surrounding object."
-    )
+    lines.append(_FIELD_LENGTH_HINT[field])
+    lines.append("No explanations, no numbering, no surrounding object.")
     return "\n".join(lines)
 
 

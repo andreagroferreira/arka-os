@@ -178,3 +178,36 @@ def test_strips_bullet_prefixes_in_fallback():
     p = _FakeProvider("• Item one\n* Item two\n- Item three\n1. Item four")
     res = suggest_field("frameworks", {"name": "X"}, provider=p)
     assert res.suggestions == ["Item one", "Item two", "Item three", "Item four"]
+
+
+# --- PR82c v3.2.0: extended fields ---
+
+def test_accepts_communication_avoid_field():
+    p = _FakeProvider('["fluff", "synergy", "circle back"]')
+    res = suggest_field("communication_avoid", {"name": "X"}, provider=p)
+    assert res.suggestions == ["fluff", "synergy", "circle back"]
+
+
+def test_accepts_key_quotes_field():
+    p = _FakeProvider('["You can\'t cheat physics.", "Speed is a moat."]')
+    res = suggest_field("key_quotes", {"name": "X"}, provider=p)
+    assert len(res.suggestions) == 2
+    assert "physics" in res.suggestions[0]
+
+
+def test_communication_avoid_prompt_explains_avoid_semantic():
+    p = _FakeProvider('["X"]')
+    suggest_field("communication_avoid", {"name": "Y"}, provider=p)
+    assert "AVOID" in (p.last_prompt or "")
+
+
+def test_key_quotes_prompt_asks_for_full_sentences():
+    p = _FakeProvider('["X"]')
+    suggest_field("key_quotes", {"name": "Y"}, provider=p)
+    assert "sentences" in (p.last_prompt or "").lower()
+
+
+def test_other_field_length_hints_unchanged():
+    p = _FakeProvider('["X"]')
+    suggest_field("mental_models", {"name": "Y"}, provider=p)
+    assert "2-5 words" in (p.last_prompt or "")

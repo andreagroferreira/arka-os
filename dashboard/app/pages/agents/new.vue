@@ -202,7 +202,8 @@ function csvToList(value: string): string[] {
 }
 
 // PR81 suggest wiring — three list fields.
-type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains'
+// PR82c v3.2.0 — extended with 'communication_avoid'.
+type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid'
 const suggestingField = ref<SuggestField | null>(null)
 
 async function suggest(field: SuggestField) {
@@ -211,7 +212,9 @@ async function suggest(field: SuggestField) {
       ? draft.value.mental_models_primary
       : field === 'frameworks'
         ? draft.value.frameworks
-        : draft.value.expertise_domains
+        : field === 'expertise_domains'
+          ? draft.value.expertise_domains
+          : draft.value.comm_avoid
   if (!draft.value.name.trim() || !draft.value.role.trim()) {
     toast.add({
       title: 'Add a name and role first',
@@ -250,7 +253,8 @@ async function suggest(field: SuggestField) {
     const merged = [...current, ...additions]
     if (field === 'mental_models') draft.value.mental_models_primary = merged
     else if (field === 'frameworks') draft.value.frameworks = merged
-    else draft.value.expertise_domains = merged
+    else if (field === 'expertise_domains') draft.value.expertise_domains = merged
+    else draft.value.comm_avoid = merged
     toast.add({
       title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
       description: `via ${res.provider_name}`,
@@ -553,6 +557,18 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
             </UFormField>
           </div>
           <UFormField label="Avoid (phrases)" help="comma-separated">
+            <template #hint>
+              <UButton
+                label="Suggest with AI"
+                icon="i-lucide-sparkles"
+                size="xs"
+                color="primary"
+                variant="soft"
+                :loading="suggestingField === 'communication_avoid'"
+                :disabled="suggestingField !== null"
+                @click="suggest('communication_avoid')"
+              />
+            </template>
             <UInput
               :model-value="listToCsv(draft.comm_avoid)"
               @update:model-value="(v: string) => { draft.comm_avoid = csvToList(v) }"
