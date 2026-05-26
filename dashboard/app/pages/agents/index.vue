@@ -79,6 +79,12 @@ const tierFilter = ref(String(route.query.tier ?? 'all'))
 const page = ref(1)
 const pageSize = 15
 
+// PR86a + PR92b — favorites refs must exist BEFORE the filter watcher
+// below references them (otherwise TDZ blows up the whole page).
+const favs = useFavorites()
+await favs.load()
+const favoritesOnly = ref(route.query.fav === '1')
+
 const departments = computed(() => {
   const depts = new Set(agents.value.map(a => a.department))
   return [
@@ -261,12 +267,6 @@ defineShortcuts({
   arrowup: () => cursorUp(),
   enter: () => cursorOpen(),
 })
-
-// PR86a v3.15.0 — favorites.
-// PR92b v3.40.0 — favoritesOnly persists in URL (`?fav=1`).
-const favs = useFavorites()
-await favs.load()
-const favoritesOnly = ref(route.query.fav === '1')
 
 // PR83b v3.4.0 — bulk selection + delete.
 // PR84b v3.8.0 — bulk move department.

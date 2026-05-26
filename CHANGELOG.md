@@ -5,6 +5,21 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.66.1] - 2026-05-26
+
+### Fixed (HOTFIX — /agents page 500 — TDZ)
+
+`/agents` returned `Cannot access 'favoritesOnly' before initialization`
+because the filter `watch()` source array referenced `favoritesOnly`
+before its `const` declaration. Moved the favourites refs above the
+watcher so the identifier exists at registration time. Personas page
+already declared its `favoritesOnly` before the watcher (only used
+inside computed bodies that evaluate lazily), so it was unaffected.
+
+### Files changed
+
+- `dashboard/app/pages/agents/index.vue` — declaration reorder
+
 ## [3.66.0] - 2026-05-26
 
 ### Added (Agent dependency graph — PR98d)
