@@ -142,6 +142,56 @@ const favs = useFavorites()
 await favs.load()
 const favoritesOnly = ref(false)
 
+// PR87b v3.20.0 — import .md persona files.
+const importInput = ref<HTMLInputElement | null>(null)
+const importing = ref(false)
+
+function triggerImport() {
+  importInput.value?.click()
+}
+
+async function onImportFiles(event: Event) {
+  const target = event.target as HTMLInputElement
+  const files = Array.from(target.files ?? [])
+  target.value = ''
+  if (files.length === 0) return
+  importing.value = true
+  try {
+    const payload = await Promise.all(
+      files.map(async (f) => ({
+        name: f.name,
+        content: await f.text(),
+      })),
+    )
+    const res = await $fetch<{
+      imported: number
+      failed: number
+      results: Array<{ filename: string, status: string, id?: string, error?: string }>
+      error?: string
+    }>(`${apiBase}/api/personas/import`, { method: 'POST', body: { files: payload } })
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: res.imported > 0
+        ? `Imported ${res.imported} persona${res.imported === 1 ? '' : 's'}`
+        : 'Nothing imported',
+      description: res.failed > 0 ? `${res.failed} failed` : undefined,
+      color: res.imported > 0 && res.failed === 0
+        ? 'success'
+        : res.imported > 0 ? 'warning' : 'error',
+      icon: 'i-lucide-file-down',
+    })
+    await refreshAll()
+  } catch (err) {
+    toast.add({
+      title: 'Import failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    importing.value = false
+  }
+}
+
 // PR83b v3.4.0 — bulk selection + delete.
 const toast = useToast()
 const confirmDialog = useConfirmDialog()
@@ -262,6 +312,22 @@ async function undoTrashIds(ids: string[]) {
           />
         </template>
         <template #right>
+          <UButton
+            label="Import .md"
+            icon="i-lucide-file-up"
+            variant="soft"
+            size="sm"
+            :loading="importing"
+            @click="triggerImport"
+          />
+          <input
+            ref="importInput"
+            type="file"
+            accept=".md,text/markdown"
+            multiple
+            class="hidden"
+            @change="onImportFiles"
+          />
           <UButton
             label="New Persona"
             icon="i-lucide-plus"

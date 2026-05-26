@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.20.0] - 2026-05-26
+
+### Added (Persona Markdown import — PR87b)
+
+The /personas page gains an "Import .md" button next to "New Persona".
+Operator picks one or more `.md` files; the dashboard reads them,
+posts to a new endpoint, and creates personas from the YAML
+frontmatter.
+
+### Backend
+
+- `POST /api/personas/import` (NEW) — accepts
+  `{files: [{name, content}]}`, reuses
+  `ObsidianPersonaStore._parse_frontmatter` +
+  `_frontmatter_to_persona`. Files without `type: persona` are
+  rejected with an explicit error. Returns
+  `{imported, failed, results}`. 8 unit tests.
+
+### Frontend
+
+- `personas/index.vue` — Import button + hidden multi-file input
+  (`accept=".md,text/markdown"`). `FileReader`-based bulk parse.
+  Single summary toast.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — POST /api/personas/import
+- `tests/python/test_personas_import.py` (NEW, 8 tests)
+- `dashboard/app/pages/personas/index.vue` — Import button + handler
+
 ## [3.19.0] - 2026-05-26
 
 ### Added (DNA filters on /agents — PR87a)
