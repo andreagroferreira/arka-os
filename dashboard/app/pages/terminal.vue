@@ -29,11 +29,28 @@ interface HistoryEntry {
   cmd: string
 }
 
+// v3.70.3 — sanitise legacy entries polluted by ANSI ESC sequences
+// that leaked through the v3.69.0 line-buffer before the proper
+// state-machine filter landed.
+function isPlausibleCommand(cmd: string): boolean {
+  if (!cmd || cmd.length < 2) return false
+  // Reject anything that looks like a CSI/SS3 remnant
+  if (/^\[?\?/.test(cmd)) return false
+  if (/\[[\d;?]*[A-Za-z~]/.test(cmd)) return false
+  // Reject anything starting with `[` followed by digits or letter — ESC remnant
+  if (/^\[[\dA-Za-z]/.test(cmd)) return false
+  // Must contain at least one alphanumeric — pure punctuation is suspect
+  if (!/[A-Za-z0-9]/.test(cmd)) return false
+  return true
+}
+
 function loadHistory(): HistoryEntry[] {
   if (typeof localStorage === 'undefined') return []
   try {
     const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as HistoryEntry[]
+    return parsed.filter((e) => e && typeof e.cmd === 'string' && isPlausibleCommand(e.cmd))
   } catch {
     return []
   }
@@ -41,9 +58,18 @@ function loadHistory(): HistoryEntry[] {
 
 const history = ref<HistoryEntry[]>(loadHistory())
 
+function clearHistory() {
+  history.value = []
+  try {
+    localStorage.removeItem(HISTORY_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 function recordCommand(cmd: string) {
   const trimmed = cmd.trim()
-  if (!trimmed || trimmed.length < 2) return
+  if (!isPlausibleCommand(trimmed)) return
   history.value.unshift({ ts: Date.now(), cmd: trimmed })
   if (history.value.length > HISTORY_MAX) {
     history.value = history.value.slice(0, HISTORY_MAX)
@@ -57,9 +83,11 @@ function recordCommand(cmd: string) {
 }
 
 // PR99d v3.70.0 — theme picker + Ctrl+R history search.
+// v3.70.3 — proper command palette UX (keyboard nav, selected row).
 const { themeName, setTheme, options: themeOptions } = useTerminalThemes()
 const searchOpen = ref(false)
 const searchQuery = ref('')
+const searchSelectedIdx = ref(0)
 
 const searchResults = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -69,14 +97,43 @@ const searchResults = computed(() => {
     .slice(0, 30)
 })
 
+watch(searchResults, () => {
+  searchSelectedIdx.value = 0
+})
+
 function openSearch() {
   searchOpen.value = true
   searchQuery.value = ''
+  searchSelectedIdx.value = 0
 }
 
 function pickFromSearch(cmd: string) {
   activeTab.value?.session.sendInput(cmd)
   searchOpen.value = false
+}
+
+function searchKeydown(e: KeyboardEvent) {
+  const total = searchResults.value.length
+  if (total === 0) return
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    searchSelectedIdx.value = (searchSelectedIdx.value + 1) % total
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    searchSelectedIdx.value = (searchSelectedIdx.value - 1 + total) % total
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    const chosen = searchResults.value[searchSelectedIdx.value]
+    if (chosen) pickFromSearch(chosen.cmd)
+  }
+}
+
+function relativeTime(ts: number): string {
+  const diff = (Date.now() - ts) / 1000
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
 }
 
 const editingTabId = ref<string | null>(null)
@@ -289,33 +346,111 @@ const showHistory = ref(false)
       History stays in this browser only. Ctrl+R to search history.
     </footer>
 
-    <UModal v-model:open="searchOpen" :title="`Search history (${history.length})`">
-      <template #body>
-        <div class="space-y-2">
-          <UInput
-            v-model="searchQuery"
-            placeholder="type to filter…"
-            autofocus
-            icon="i-lucide-search"
-            @keydown.enter="searchResults[0] && pickFromSearch(searchResults[0].cmd)"
-          />
-          <div class="max-h-80 overflow-y-auto rounded-md border border-default divide-y divide-default">
-            <button
-              v-for="(entry, i) in searchResults"
-              :key="i"
-              class="w-full text-left px-3 py-2 text-sm font-mono hover:bg-elevated/40 truncate"
-              @click="pickFromSearch(entry.cmd)"
-            >
-              {{ entry.cmd }}
-            </button>
-            <div v-if="searchResults.length === 0" class="px-3 py-4 text-muted text-center text-sm">
-              No matches
+    <UModal
+      v-model:open="searchOpen"
+      :ui="{ content: 'max-w-2xl' }"
+    >
+      <template #content>
+        <UCard :ui="{ body: 'p-0', header: 'px-4 py-3', footer: 'px-4 py-2.5' }">
+          <template #header>
+            <div class="flex items-center gap-3">
+              <UIcon name="i-lucide-history" class="size-5 text-muted shrink-0" />
+              <UInput
+                v-model="searchQuery"
+                placeholder="Filter command history…"
+                size="lg"
+                autofocus
+                :ui="{ root: 'flex-1', base: 'border-0 shadow-none ring-0 focus:ring-0 px-0' }"
+                @keydown="searchKeydown"
+              />
+              <span class="text-xs text-muted shrink-0 tabular-nums">
+                {{ searchResults.length }} / {{ history.length }}
+              </span>
+              <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 text-xs font-mono text-muted shrink-0">
+                esc
+              </kbd>
             </div>
+          </template>
+
+          <div class="max-h-[60vh] overflow-y-auto">
+            <div
+              v-if="history.length === 0"
+              class="p-10 text-center text-sm text-muted"
+            >
+              <UIcon name="i-lucide-terminal" class="size-8 mx-auto mb-3 opacity-50" />
+              <p>No commands yet.</p>
+              <p class="text-xs mt-1">
+                Run something in the terminal — it'll show up here.
+              </p>
+            </div>
+            <div
+              v-else-if="searchResults.length === 0"
+              class="p-10 text-center text-sm text-muted"
+            >
+              No match for
+              <span class="font-mono text-default">{{ searchQuery }}</span>.
+            </div>
+            <ul v-else class="divide-y divide-default">
+              <li
+                v-for="(entry, i) in searchResults"
+                :key="entry.ts"
+                class="px-4 py-2 cursor-pointer transition-colors flex items-center gap-3"
+                :class="i === searchSelectedIdx
+                  ? 'bg-primary/10 border-l-2 border-primary pl-[14px]'
+                  : 'hover:bg-elevated/40 border-l-2 border-transparent'"
+                @click="pickFromSearch(entry.cmd)"
+                @mouseenter="searchSelectedIdx = i"
+              >
+                <UIcon
+                  name="i-lucide-chevron-right"
+                  class="size-3.5 shrink-0"
+                  :class="i === searchSelectedIdx ? 'text-primary' : 'text-muted'"
+                />
+                <span class="flex-1 min-w-0 font-mono text-sm truncate">
+                  {{ entry.cmd }}
+                </span>
+                <span class="text-xs text-muted shrink-0 tabular-nums">
+                  {{ relativeTime(entry.ts) }}
+                </span>
+                <kbd
+                  v-if="i === searchSelectedIdx"
+                  class="px-1.5 py-0.5 rounded bg-primary/20 text-[10px] font-mono text-primary shrink-0"
+                >
+                  ↵ send
+                </kbd>
+              </li>
+            </ul>
           </div>
-          <p class="text-xs text-muted">
-            Enter sends the top match to the active session.
-          </p>
-        </div>
+
+          <template #footer>
+            <div class="text-xs text-muted flex items-center gap-4">
+              <span class="flex items-center gap-1">
+                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">↑</kbd>
+                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">↓</kbd>
+                navigate
+              </span>
+              <span class="flex items-center gap-1">
+                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">↵</kbd>
+                send to active session
+              </span>
+              <span class="flex items-center gap-1">
+                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">esc</kbd>
+                close
+              </span>
+              <UButton
+                v-if="history.length > 0"
+                size="xs"
+                variant="ghost"
+                color="error"
+                icon="i-lucide-trash-2"
+                class="ml-auto"
+                @click="clearHistory"
+              >
+                Clear all
+              </UButton>
+            </div>
+          </template>
+        </UCard>
       </template>
     </UModal>
       </div>
