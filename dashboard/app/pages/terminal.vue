@@ -147,48 +147,54 @@ const showHistory = ref(false)
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 h-full">
-    <header class="flex items-center justify-between gap-3 flex-wrap">
-      <div>
-        <h1 class="text-2xl font-semibold">Terminal</h1>
-        <p class="text-sm text-muted">
-          Real PTY shell — run claude, codex, git, anything. ⌘T new ·
-          ⌘W close · ⌘1–8 switch.
-        </p>
-      </div>
-      <div class="flex items-center gap-2">
-        <UBadge color="warning" variant="soft" size="sm">
-          <UIcon name="i-lucide-shield" class="size-3 mr-1" />
-          localhost only
-        </UBadge>
-        <USelect
-          :model-value="themeName"
-          :items="themeOptions"
-          size="xs"
-          class="w-44"
-          @update:model-value="setTheme($event as string)"
-        />
-        <UButton
-          size="xs"
-          variant="ghost"
-          icon="i-lucide-search"
-          title="Ctrl+R — search history"
-          @click="openSearch"
-        >
-          ⌃R
-        </UButton>
-        <UButton
-          size="xs"
-          variant="ghost"
-          :icon="showHistory ? 'i-lucide-x' : 'i-lucide-history'"
-          @click="showHistory = !showHistory"
-        >
-          History ({{ history.length }})
-        </UButton>
-      </div>
-    </header>
+  <UDashboardPanel id="terminal">
+    <template #header>
+      <UDashboardNavbar title="Terminal">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+        <template #right>
+          <div class="flex items-center gap-2">
+            <UBadge color="warning" variant="soft" size="sm">
+              <UIcon name="i-lucide-shield" class="size-3 mr-1" />
+              localhost only
+            </UBadge>
+            <USelect
+              :model-value="themeName"
+              :items="themeOptions"
+              size="xs"
+              class="w-40"
+              @update:model-value="setTheme($event as string)"
+            />
+            <UButton
+              size="xs"
+              variant="ghost"
+              icon="i-lucide-search"
+              title="Ctrl+R — search history"
+              @click="openSearch"
+            >
+              ⌃R
+            </UButton>
+            <UButton
+              size="xs"
+              variant="ghost"
+              :icon="showHistory ? 'i-lucide-x' : 'i-lucide-history'"
+              @click="showHistory = !showHistory"
+            >
+              History ({{ history.length }})
+            </UButton>
+          </div>
+        </template>
+      </UDashboardNavbar>
+    </template>
 
-    <div class="flex items-center gap-1 border-b border-default pb-2 overflow-x-auto">
+    <template #body>
+      <div class="flex flex-col gap-3 h-full p-4">
+        <p class="text-sm text-muted -mt-1">
+          Real PTY shell — run claude, codex, git, anything. ⌘T new · ⌘W close · ⌘1–8 switch · ⌃R search.
+        </p>
+
+        <div class="flex items-center gap-1 border-b border-default pb-2 overflow-x-auto">
       <div
         v-for="(tab, idx) in tabs"
         :key="tab.id"
@@ -311,5 +317,7 @@ const showHistory = ref(false)
         </div>
       </template>
     </UModal>
-  </div>
+      </div>
+    </template>
+  </UDashboardPanel>
 </template>
