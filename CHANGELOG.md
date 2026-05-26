@@ -5,6 +5,31 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.42.0] - 2026-05-26
+
+### Added (Theme primary color picker — PR92d)
+
+`/settings → Theme` gains a primary color picker. Operator picks one
+of 8 Tailwind palette options (emerald default, plus blue / indigo /
+violet / rose / amber / teal / cyan); the choice tints every primary
+button, badge, link, and active state across the dashboard.
+
+### Frontend
+
+- `useThemeColor()` composable (NEW, `createSharedComposable`) —
+  reads / writes `arkaos_theme_color` in `localStorage`, mutates
+  `useAppConfig().ui.colors.primary` so the change is reactive.
+- `default.vue` layout calls `loadFromStorage()` on mount so the
+  preference applies before the first render flush.
+- `settings.vue` — Theme section gains an 8-button color grid below
+  the appearance picker. Selected button gets a primary border + tint.
+
+### Files changed
+
+- `dashboard/app/composables/useThemeColor.ts` (NEW)
+- `dashboard/app/layouts/default.vue` — apply color on mount
+- `dashboard/app/pages/settings.vue` — picker UI
+
 ## [3.41.0] - 2026-05-26
 
 ### Added (First-visit onboarding tour — PR92c)
