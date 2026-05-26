@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.2] - 2026-05-26
+
+### Fixed (HOTFIX — /terminal auto-import + Vue instance.update crash)
+
+Two errors observed on /terminal after upgrading to v3.70.x:
+- `useTerminalThemes is not defined` (500)
+- `TypeError: instance.update is not a function`
+
+Both have the same root cause: when the dashboard dev server picked
+up the v3.68.0+ changes without picking up the new
+`useTerminalThemes` composable file (a known Nuxt HMR edge case for
+newly added `composables/` files), the call inside `<script setup>`
+threw at runtime. The throw left the Vue component instance with no
+`update` method, which manifests on the next patch as
+`instance.update is not a function` inside `patchKeyedChildren` —
+the cryptic-looking symptom.
+
+Fix: explicit `import` statements for `useTerminalThemes`,
+`useTerminalTabs`, `useTerminalSession`, `XtermTheme`. Removes the
+dependency on auto-import detection for newly added composables.
+
+### Files changed
+
+- `dashboard/app/components/Terminal.vue` — explicit imports.
+- `dashboard/app/pages/terminal.vue` — explicit imports + comment.
+
 ## [3.70.1] - 2026-05-26
 
 ### Fixed (HOTFIX — /terminal layout doesn't match dashboard pattern)

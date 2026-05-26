@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // PR99b v3.68.0 — Real-shell terminal (single session).
 // PR99c v3.69.0 — Multi-session tabs + browser-local command history.
-//
-// Each tab owns its own PTY session. PTYs are NOT persisted across
-// reloads (they're per-process); only tab titles are. The 8-tab cap
-// matches the backend default.
+// v3.70.2 — explicit composable imports (auto-import was missing the
+// newly added useTerminalThemes on dev servers that didn't restart).
+
+import { useTerminalTabs } from '~/composables/useTerminalTabs'
+import { useTerminalThemes } from '~/composables/useTerminalThemes'
 
 definePageMeta({ layout: 'default' })
 
