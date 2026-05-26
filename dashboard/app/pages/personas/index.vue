@@ -143,11 +143,53 @@ await favs.load()
 const favoritesOnly = ref(false)
 
 // PR87b v3.20.0 — import .md persona files.
+// PR91b v3.36.0 — extended with URL import.
 const importInput = ref<HTMLInputElement | null>(null)
 const importing = ref(false)
+const urlImportOpen = ref(false)
+const urlImportText = ref('')
 
 function triggerImport() {
   importInput.value?.click()
+}
+
+async function runUrlImport() {
+  const urls = urlImportText.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (urls.length === 0) return
+  importing.value = true
+  try {
+    const res = await $fetch<{
+      imported: number
+      failed: number
+      results: Array<{ filename: string, status: string, id?: string, error?: string }>
+      error?: string
+    }>(`${apiBase}/api/personas/import`, { method: 'POST', body: { urls } })
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: res.imported > 0
+        ? `Imported ${res.imported} persona${res.imported === 1 ? '' : 's'}`
+        : 'Nothing imported',
+      description: res.failed > 0 ? `${res.failed} failed` : undefined,
+      color: res.imported > 0 && res.failed === 0
+        ? 'success'
+        : res.imported > 0 ? 'warning' : 'error',
+      icon: 'i-lucide-globe',
+    })
+    await refreshAll()
+    urlImportText.value = ''
+    urlImportOpen.value = false
+  } catch (err) {
+    toast.add({
+      title: 'URL import failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    importing.value = false
+  }
 }
 
 async function onImportFiles(event: Event) {
@@ -312,14 +354,21 @@ async function undoTrashIds(ids: string[]) {
           />
         </template>
         <template #right>
-          <UButton
-            label="Import .md"
-            icon="i-lucide-file-up"
-            variant="soft"
-            size="sm"
-            :loading="importing"
-            @click="triggerImport"
-          />
+          <UDropdownMenu
+            :items="[
+              { label: 'Pick .md files…', icon: 'i-lucide-file-up', onSelect: triggerImport },
+              { label: 'From URLs…', icon: 'i-lucide-globe', onSelect: () => urlImportOpen = true },
+            ]"
+          >
+            <UButton
+              label="Import"
+              icon="i-lucide-file-up"
+              variant="soft"
+              size="sm"
+              :loading="importing"
+              trailing-icon="i-lucide-chevron-down"
+            />
+          </UDropdownMenu>
           <input
             ref="importInput"
             type="file"
@@ -328,6 +377,38 @@ async function undoTrashIds(ids: string[]) {
             class="hidden"
             @change="onImportFiles"
           />
+          <UModal v-model:open="urlImportOpen" title="Import from URLs">
+            <template #content>
+              <UCard>
+                <template #header>
+                  <h2 class="text-lg font-bold">Import personas from URLs</h2>
+                  <p class="text-xs text-muted mt-0.5">
+                    One raw .md URL per line. Files must have YAML
+                    frontmatter with <code>type: persona</code>.
+                  </p>
+                </template>
+                <UTextarea
+                  v-model="urlImportText"
+                  :rows="6"
+                  placeholder="https://raw.githubusercontent.com/owner/repo/main/personas/alex.md"
+                  class="w-full font-mono text-sm"
+                />
+                <template #footer>
+                  <div class="flex items-center justify-end gap-2">
+                    <UButton label="Cancel" variant="ghost" :disabled="importing" @click="urlImportOpen = false" />
+                    <UButton
+                      label="Import"
+                      icon="i-lucide-globe"
+                      color="primary"
+                      :loading="importing"
+                      :disabled="!urlImportText.trim()"
+                      @click="runUrlImport"
+                    />
+                  </div>
+                </template>
+              </UCard>
+            </template>
+          </UModal>
           <UButton
             label="New Persona"
             icon="i-lucide-plus"
