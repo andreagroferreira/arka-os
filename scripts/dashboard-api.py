@@ -334,13 +334,11 @@ def personas_archetypes():
 
 
 @app.get("/api/personas/export-all.zip")
-def personas_export_all():
+def personas_export_all(ids: Optional[str] = None):
     """PR92a v3.39.0 — stream every persona as Markdown inside a ZIP.
 
-    Iterates `PersonaManager.list_all()` plus any Obsidian-vault entries
-    surfaced via `persona_detail`, renders each through
-    `ObsidianPersonaStore._render`, and zips them. Filename uses the
-    persona name (sanitised), falling back to id.
+    PR93c v3.45.0 — optional ``?ids=a,b,c`` filter narrows the export
+    to a specific subset.
     """
     mgr = _get_persona_manager()
     if not mgr:
@@ -349,6 +347,13 @@ def personas_export_all():
         items = list(mgr.list_all() or [])
     except Exception as exc:  # noqa: BLE001
         return {"error": f"list failed: {exc}"}
+
+    # PR93c — optional id allow-list.
+    id_filter: Optional[set[str]] = None
+    if ids:
+        id_filter = {s.strip() for s in ids.split(",") if s.strip()}
+    if id_filter is not None:
+        items = [p for p in items if hasattr(p, "id") and p.id in id_filter]
 
     from core.personas.obsidian_store import ObsidianPersonaStore
 
