@@ -5,6 +5,44 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.0] - 2026-05-26
+
+### Added (Persona Auto-fill empty lists — PR84c)
+
+The persona edit slideover gains an "Auto-fill empties" button in the
+header. One click fans out to `/api/personas/suggest` for every list
+that's currently empty and writes the LLM output back into the draft.
+
+Targets all five list fields:
+- mental_models
+- expertise_domains
+- frameworks
+- key_quotes
+- communication.avoid
+
+### Behaviour
+
+- Only fields with zero items are filled — never overwrites operator
+  input.
+- If every list already has items, the toast says "No empty lists" and
+  nothing fires.
+- Parallel fan-out via `Promise.allSettled` so one slow/failed field
+  doesn't block the rest.
+- Final toast: "Filled N lists via <provider>".
+- `markDirty()` so the Save button activates.
+
+### Why
+
+- Operators no longer click Suggest 3-5 times to bootstrap a fresh
+  persona — one button does the whole row.
+- Pairs with PR82c (per-field Suggest) which remains available for
+  expanding lists that already have items.
+
+### Files changed
+
+- `dashboard/app/pages/personas/[id].vue` — autofillEmpties + header
+  button
+
 ## [3.8.0] - 2026-05-26
 
 ### Added (Bulk move department in /agents — PR84b)
