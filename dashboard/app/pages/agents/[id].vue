@@ -261,7 +261,7 @@ function formatTokens(n: number): string {
                   :label="`${agent.expertise_years}y experience`"
                   variant="outline"
                 />
-                <UBadge v-if="agent.mbti" :label="agent.mbti" variant="soft" size="xs" />
+                <UBadge v-if="agent.mbti" :label="agent.mbti" variant="soft" size="sm" />
               </div>
               <p class="text-xs text-muted/60 font-mono select-all pt-2">{{ agent.id }}</p>
             </div>
@@ -271,22 +271,22 @@ function formatTokens(n: number): string {
         <!-- ===== STATS ROW ===== -->
         <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">7d calls (dept)</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">7d calls (dept)</p>
             <p class="text-2xl font-bold">{{ deptActivity?.call_count ?? 0 }}</p>
           </div>
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">7d cost</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">7d cost</p>
             <p class="text-2xl font-bold">{{ formatCost(deptActivity?.total_cost_usd) }}</p>
           </div>
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Tokens (in/out)</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Tokens (in/out)</p>
             <p class="text-lg font-semibold">
               {{ formatTokens(deptActivity?.total_tokens_in ?? 0) }} /
               {{ formatTokens(deptActivity?.total_tokens_out ?? 0) }}
             </p>
           </div>
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Linked personas</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Linked personas</p>
             <p class="text-2xl font-bold">{{ agent.linked_personas?.length ?? 0 }}</p>
           </div>
         </section>
@@ -307,7 +307,7 @@ function formatTokens(n: number): string {
                 <!-- Card 1: MBTI -->
                 <UCard>
                   <div class="space-y-2">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider">MBTI</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">MBTI</p>
                     <p class="text-4xl font-bold font-mono tracking-widest">
                       {{ agent.mbti || '----' }}
                     </p>
@@ -320,7 +320,7 @@ function formatTokens(n: number): string {
                 <!-- Card 2: Enneagram -->
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider">Enneagram</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Enneagram</p>
                     <div>
                       <p class="text-3xl font-bold">
                         Type {{ agent.enneagram?.type ?? '-' }}
@@ -353,7 +353,7 @@ function formatTokens(n: number): string {
                 <!-- Card 3: DISC -->
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider">DISC</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">DISC</p>
                     <div>
                       <p class="text-3xl font-bold font-mono">
                         {{ agent.disc?.primary ?? '' }}{{ agent.disc?.secondary ?? '' }}
@@ -385,7 +385,7 @@ function formatTokens(n: number): string {
               <!-- Big Five -->
               <UCard>
                 <div class="space-y-1">
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-4">
                     Big Five (OCEAN)
                   </p>
                   <div v-if="agent.big_five" class="space-y-3">
@@ -418,15 +418,15 @@ function formatTokens(n: number): string {
                 <UCard>
                   <div class="space-y-4">
                     <div>
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Tone</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Tone</p>
                       <p class="text-sm">{{ agent.communication.tone ?? '-' }}</p>
                     </div>
                     <div>
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Vocabulary Level</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Vocabulary Level</p>
                       <UBadge :label="agent.communication.vocabulary_level ?? '-'" variant="subtle" />
                     </div>
                     <div>
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Language</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Language</p>
                       <p class="text-sm font-mono">{{ agent.communication.language ?? '-' }}</p>
                     </div>
                   </div>
@@ -435,11 +435,11 @@ function formatTokens(n: number): string {
                 <UCard>
                   <div class="space-y-4">
                     <div>
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Preferred Format</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Preferred Format</p>
                       <p class="text-sm">{{ agent.communication.preferred_format ?? '-' }}</p>
                     </div>
                     <div v-if="agent.communication.avoid?.length">
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Avoids</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-2">Avoids</p>
                       <ul class="space-y-1.5">
                         <li
                           v-for="item in agent.communication.avoid"
@@ -458,7 +458,7 @@ function formatTokens(n: number): string {
               <!-- DISC Communication Details -->
               <UCard v-if="agent.disc?.communication_style || agent.disc?.under_pressure || agent.disc?.motivator">
                 <div class="space-y-4">
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider">DISC Communication Profile</p>
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide">DISC Communication Profile</p>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div v-if="agent.disc.communication_style">
                       <p class="text-xs text-muted mb-1">Communication Style</p>
@@ -486,7 +486,7 @@ function formatTokens(n: number): string {
               <div v-if="agent.mental_models" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider">Primary Models</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Primary Models</p>
                     <ul v-if="agent.mental_models.primary?.length" class="space-y-2">
                       <li
                         v-for="model in agent.mental_models.primary"
@@ -503,7 +503,7 @@ function formatTokens(n: number): string {
 
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider">Secondary Models</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Secondary Models</p>
                     <ul v-if="agent.mental_models.secondary?.length" class="space-y-2">
                       <li
                         v-for="model in agent.mental_models.secondary"
@@ -530,7 +530,7 @@ function formatTokens(n: number): string {
                 <UCard>
                   <div class="space-y-5">
                     <div>
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Permissions</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Permissions</p>
                       <div class="flex flex-wrap gap-2">
                         <UBadge v-if="agent.authority.veto" label="Veto" color="error" variant="subtle" />
                         <UBadge v-if="agent.authority.approve_architecture" label="Approve Architecture" color="success" variant="subtle" />
@@ -542,7 +542,7 @@ function formatTokens(n: number): string {
                     </div>
 
                     <div v-if="agent.authority.delegates_to?.length">
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Delegates To</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-2">Delegates To</p>
                       <div class="flex flex-wrap gap-2">
                         <UBadge
                           v-for="d in agent.authority.delegates_to"
@@ -555,7 +555,7 @@ function formatTokens(n: number): string {
                     </div>
 
                     <div v-if="agent.authority.escalates_to">
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Escalates To</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Escalates To</p>
                       <p class="text-sm font-mono">{{ agent.authority.escalates_to }}</p>
                     </div>
 
@@ -576,7 +576,7 @@ function formatTokens(n: number): string {
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider">Domains</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Domains</p>
                     <div v-if="agent.expertise_domains?.length" class="flex flex-wrap gap-2">
                       <UBadge
                         v-for="d in agent.expertise_domains"
@@ -593,7 +593,7 @@ function formatTokens(n: number): string {
 
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider">Frameworks</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Frameworks</p>
                     <ul v-if="agent.frameworks?.length" class="space-y-2">
                       <li
                         v-for="f in agent.frameworks"
@@ -612,7 +612,7 @@ function formatTokens(n: number): string {
               <UCard v-if="agent.expertise_depth || agent.expertise_years">
                 <div class="flex flex-wrap gap-6">
                   <div v-if="agent.expertise_depth">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Depth</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Depth</p>
                     <UBadge
                       :label="agent.expertise_depth"
                       :color="(depthColor[agent.expertise_depth] ?? 'neutral') as any"
@@ -621,7 +621,7 @@ function formatTokens(n: number): string {
                     />
                   </div>
                   <div v-if="agent.expertise_years">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Experience</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Experience</p>
                     <p class="text-2xl font-bold">
                       {{ agent.expertise_years }}
                       <span class="text-sm font-normal text-muted">years</span>

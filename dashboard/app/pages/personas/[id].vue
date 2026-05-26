@@ -315,20 +315,20 @@ const vocabOptions = [
                     icon="i-lucide-file-text"
                     color="primary"
                     variant="subtle"
-                    size="xs"
+                    size="sm"
                   />
                   <UBadge
                     v-else-if="detail._source_store === 'json'"
                     label="JSON store"
                     variant="outline"
-                    size="xs"
+                    size="sm"
                   />
-                  <UBadge v-if="detail.mbti" :label="detail.mbti" variant="soft" size="xs" />
+                  <UBadge v-if="detail.mbti" :label="detail.mbti" variant="soft" size="sm" />
                   <UBadge
                     v-if="detail.disc?.primary"
                     :label="`DISC: ${detail.disc.primary}${detail.disc.secondary ? '/' + detail.disc.secondary : ''}`"
                     variant="subtle"
-                    size="xs"
+                    size="sm"
                   />
                 </div>
                 <p
@@ -345,19 +345,19 @@ const vocabOptions = [
           <!-- STATS -->
           <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Linked agents</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Linked agents</p>
               <p class="text-2xl font-bold">{{ linkedAgentCount }}</p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Mental models</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Mental models</p>
               <p class="text-2xl font-bold">{{ detail.mental_models?.length ?? 0 }}</p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Expertise domains</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Expertise domains</p>
               <p class="text-2xl font-bold">{{ detail.expertise_domains?.length ?? 0 }}</p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Frameworks</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Frameworks</p>
               <p class="text-2xl font-bold">{{ detail.frameworks?.length ?? 0 }}</p>
             </div>
           </section>
@@ -370,7 +370,7 @@ const vocabOptions = [
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <UCard>
                     <div class="space-y-2">
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider">MBTI</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">MBTI</p>
                       <p class="text-4xl font-bold font-mono tracking-widest">
                         {{ detail.mbti || '----' }}
                       </p>
@@ -382,7 +382,7 @@ const vocabOptions = [
 
                   <UCard>
                     <div class="space-y-2">
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider">Enneagram</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">Enneagram</p>
                       <p class="text-3xl font-bold">
                         Type {{ detail.enneagram?.type ?? '-' }}
                         <span v-if="detail.enneagram?.wing" class="text-xl font-normal text-muted">
@@ -394,7 +394,7 @@ const vocabOptions = [
 
                   <UCard>
                     <div class="space-y-3">
-                      <p class="text-xs font-semibold text-muted uppercase tracking-wider">DISC</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">DISC</p>
                       <p class="text-3xl font-bold font-mono">
                         {{ detail.disc?.primary ?? '' }}{{ detail.disc?.secondary ?? '' }}
                       </p>
@@ -418,7 +418,7 @@ const vocabOptions = [
                 </div>
 
                 <UCard>
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-4">
                     Big Five (OCEAN)
                   </p>
                   <div v-if="detail.big_five" class="space-y-3">
@@ -457,25 +457,25 @@ const vocabOptions = [
               <!-- KNOWLEDGE -->
               <div v-else-if="item.value === 'knowledge'" class="space-y-4 mt-6">
                 <UCard v-if="detail.mental_models?.length">
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
                     Mental models ({{ detail.mental_models.length }})
                   </p>
                   <div class="flex flex-wrap gap-1.5">
-                    <UBadge v-for="m in detail.mental_models" :key="m" :label="m" variant="outline" size="xs" />
+                    <UBadge v-for="m in detail.mental_models" :key="m" :label="m" variant="outline" size="sm" />
                   </div>
                 </UCard>
 
                 <UCard v-if="detail.expertise_domains?.length">
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
                     Expertise ({{ detail.expertise_domains.length }})
                   </p>
                   <div class="flex flex-wrap gap-1.5">
-                    <UBadge v-for="e in detail.expertise_domains" :key="e" :label="e" variant="soft" size="xs" />
+                    <UBadge v-for="e in detail.expertise_domains" :key="e" :label="e" variant="soft" size="sm" />
                   </div>
                 </UCard>
 
                 <UCard v-if="detail.frameworks?.length">
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
                     Frameworks ({{ detail.frameworks.length }})
                   </p>
                   <ul class="space-y-2">
@@ -487,7 +487,7 @@ const vocabOptions = [
                 </UCard>
 
                 <UCard v-if="detail.key_quotes?.length">
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
                     Key quotes ({{ detail.key_quotes.length }})
                   </p>
                   <ul class="space-y-2">
@@ -512,7 +512,7 @@ const vocabOptions = [
               <!-- LINKED AGENTS -->
               <div v-else-if="item.value === 'agents'" class="space-y-4 mt-6">
                 <UCard v-if="linkedAgentCount > 0">
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
                     Linked to {{ linkedAgentCount }} agent{{ linkedAgentCount === 1 ? '' : 's' }}
                   </p>
                   <div class="space-y-2">
