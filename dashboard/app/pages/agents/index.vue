@@ -91,6 +91,33 @@ const tierOptions = [
   { label: 'Tier 3 — Support', value: '3' }
 ]
 
+// PR87a v3.19.0 — DNA filters (DISC primary + MBTI group).
+const discFilter = ref<'all' | 'D' | 'I' | 'S' | 'C'>('all')
+const mbtiGroupFilter = ref<'all' | 'analysts' | 'diplomats' | 'sentinels' | 'explorers'>('all')
+
+const discOptions = [
+  { label: 'All DISC', value: 'all' },
+  { label: 'D — Dominance', value: 'D' },
+  { label: 'I — Influence', value: 'I' },
+  { label: 'S — Steadiness', value: 'S' },
+  { label: 'C — Conscientiousness', value: 'C' },
+]
+
+const mbtiGroupOptions = [
+  { label: 'All MBTI groups', value: 'all' },
+  { label: 'Analysts (NT)', value: 'analysts' },
+  { label: 'Diplomats (NF)', value: 'diplomats' },
+  { label: 'Sentinels (S__J)', value: 'sentinels' },
+  { label: 'Explorers (S__P)', value: 'explorers' },
+]
+
+const MBTI_GROUPS: Record<string, string> = {
+  INTJ: 'analysts', INTP: 'analysts', ENTJ: 'analysts', ENTP: 'analysts',
+  INFJ: 'diplomats', INFP: 'diplomats', ENFJ: 'diplomats', ENFP: 'diplomats',
+  ISTJ: 'sentinels', ISFJ: 'sentinels', ESTJ: 'sentinels', ESFJ: 'sentinels',
+  ISTP: 'explorers', ISFP: 'explorers', ESTP: 'explorers', ESFP: 'explorers',
+}
+
 const filteredAgents = computed(() => {
   let result = agents.value
   const query = search.value.toLowerCase()
@@ -111,6 +138,16 @@ const filteredAgents = computed(() => {
     result = result.filter(agent => String(agent.tier) === tierFilter.value)
   }
 
+  if (discFilter.value !== 'all') {
+    result = result.filter(agent => agent.disc?.primary === discFilter.value)
+  }
+
+  if (mbtiGroupFilter.value !== 'all') {
+    result = result.filter(
+      agent => MBTI_GROUPS[(agent.mbti ?? '').toUpperCase()] === mbtiGroupFilter.value,
+    )
+  }
+
   if (favoritesOnly.value) {
     result = result.filter(agent => favs.isAgentFavorite(agent.id))
   }
@@ -127,7 +164,7 @@ const paginatedAgents = computed(() => {
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalFiltered.value / pageSize)))
 
-watch([search, departmentFilter, tierFilter], () => {
+watch([search, departmentFilter, tierFilter, discFilter, mbtiGroupFilter], () => {
   page.value = 1
 })
 
@@ -379,6 +416,22 @@ async function undoTrashIds(ids: string[]) {
             placeholder="Tier"
             class="min-w-44"
             aria-label="Filter by tier"
+          />
+
+          <USelect
+            v-model="discFilter"
+            :items="discOptions"
+            placeholder="DISC"
+            class="min-w-36"
+            aria-label="Filter by DISC primary"
+          />
+
+          <USelect
+            v-model="mbtiGroupFilter"
+            :items="mbtiGroupOptions"
+            placeholder="MBTI group"
+            class="min-w-44"
+            aria-label="Filter by MBTI group"
           />
 
           <UButton
