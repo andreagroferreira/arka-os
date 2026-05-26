@@ -283,15 +283,28 @@ function onCloned(agentId: string) {
 }
 
 // PR88a v3.23.0 — Compare with linked agent.
-const compareWithOptions = computed(() =>
-  linkedAgentIds.value.map((aid) => ({
-    label: `Compare with ${aid}`,
-    icon: 'i-lucide-columns-2',
+// PR96c v3.57.0 — also compare with another persona.
+const { data: otherPersonasData } = fetchApi<{ personas: Array<{ id: string, name: string }> }>(
+  '/api/personas',
+)
+const compareWithOptions = computed(() => {
+  const agentOpts = linkedAgentIds.value.map((aid) => ({
+    label: `Compare with agent ${aid}`,
+    icon: 'i-lucide-user',
     onSelect: () => navigateTo(
       `/personas/compare-with-agent?persona=${personaId}&agent=${aid}`,
     ),
-  })),
-)
+  }))
+  const personaOpts = (otherPersonasData.value?.personas ?? [])
+    .filter((p) => p.id !== personaId)
+    .slice(0, 30)
+    .map((p) => ({
+      label: `Compare with persona ${p.name}`,
+      icon: 'i-lucide-user-plus',
+      onSelect: () => navigateTo(`/personas/compare?a=${personaId}&b=${p.id}`),
+    }))
+  return [...agentOpts, ...personaOpts]
+})
 
 // PR84c v3.9.0 — Auto-fill empty lists in one go.
 const autofilling = ref(false)

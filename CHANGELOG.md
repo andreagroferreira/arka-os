@@ -5,6 +5,20 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.57.0] - 2026-05-26
+
+### Added (Persona vs persona compare — PR96c)
+
+/personas/compare?a=p1&b=p2 page mirrors /agents/compare for two
+personas. Persona hero Compare dropdown now lists both linked agents
+AND other personas.
+
+### Files changed
+
+- `dashboard/app/pages/personas/compare.vue` (NEW)
+- `dashboard/app/pages/personas/[id].vue` — Compare dropdown mixes
+  agent + persona options
+
 ## [3.56.0] - 2026-05-26
 
 ### Added (Terminal commands with custom args — PR96b)
