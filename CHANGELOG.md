@@ -5,6 +5,59 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.99.0] - 2026-05-26
+
+### Added (AI-assist on agent + persona edit forms — PR81)
+
+Non-technical operators can now click ✨ Suggest with AI next to list
+fields to have the configured LLM propose new items that fit the
+entity's existing context — no more staring at an empty comma-separated
+input wondering what mental models a "growth strategist" should have.
+
+### New backend
+
+- `core/agents/field_suggester.py` — provider-agnostic module with
+  `suggest_field(field, context, count, provider)`. Field must be one of
+  `mental_models`, `frameworks`, `expertise_domains`. Context accepts
+  `name`, `role` / `title`, `department`, and `current` (existing items
+  excluded from the suggestion set). Returns `SuggestionResult` with the
+  cleaned list and the provider name that served it.
+- `POST /api/agents/suggest` — wraps `suggest_field` for the agent edit
+  drawer. Reads context from the live agent.
+- `POST /api/personas/suggest` — same for personas (uses `title` in lieu
+  of `role`).
+
+### New frontend
+
+- `AgentEditDrawer.vue` — ✨ Suggest with AI button next to:
+  - Mental models (primary)
+  - Expertise domains
+  - Frameworks
+  Buttons are mutually exclusive (one in-flight at a time), show a
+  spinner, and append deduped suggestions to the field. Toast confirms
+  count + provider name. Triggers the dirty flag.
+- `personas/[id].vue` edit slideover — same three buttons wired to the
+  persona endpoint.
+
+### Safety
+
+- LLM prompt explicitly forbids duplicating items already in `current`.
+- Backend AND frontend dedupe (case-insensitive) against the current
+  list before mutating the draft.
+- `count` is clamped to `[1, 12]` server-side.
+- `LLMUnavailable` is converted to a `SuggestionError` and surfaces as
+  a toast — the form never breaks.
+- 18 new unit tests cover JSON parsing, fences, count clamping,
+  deduplication, prompt construction, and provider-failure fallback.
+
+### Files changed
+
+- `core/agents/field_suggester.py` (NEW)
+- `tests/python/test_field_suggester.py` (NEW, 18 tests)
+- `scripts/dashboard-api.py` — 2 new endpoints + shared helper
+- `dashboard/app/components/AgentEditDrawer.vue` — Suggest buttons
+- `dashboard/app/pages/personas/[id].vue` — Suggest buttons
+
 ## [2.98.0] - 2026-05-26
 
 ### Fixed (Dead "New Persona" link — PR80)
