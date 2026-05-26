@@ -1494,6 +1494,66 @@ def global_search(q: str = "", limit: int = 20):
     return {"results": results[: max(0, int(limit))]}
 
 
+# --- Persona import from Markdown (PR87b v3.20.0) ---
+
+@app.post("/api/personas/import")
+def personas_import(body: dict):
+    """Import persona Markdown files (frontmatter + body) into the store.
+
+    Body: {"files": [{"name": "Alex.md", "content": "<full file body>"}]}
+    Returns: {imported, failed, results: [{filename, status, id?, error?}]}
+
+    Each file MUST have YAML frontmatter with ``type: persona``. Files
+    lacking the frontmatter are flagged as failed without partial
+    side-effects.
+    """
+    files = body.get("files") or []
+    if not isinstance(files, list):
+        return {"error": "files must be a list"}
+    mgr = _get_persona_manager()
+    if not mgr:
+        return {"error": "Persona manager unavailable"}
+
+    from pathlib import Path as _Path
+
+    from core.personas.obsidian_store import ObsidianPersonaStore
+
+    imported = 0
+    failed = 0
+    results: list[dict] = []
+    for entry in files:
+        if not isinstance(entry, dict):
+            failed += 1
+            results.append({"filename": "(invalid)", "status": "failed", "error": "not an object"})
+            continue
+        filename = str(entry.get("name") or "")
+        content = str(entry.get("content") or "")
+        if not content.strip():
+            failed += 1
+            results.append({"filename": filename, "status": "failed", "error": "empty content"})
+            continue
+        fm = ObsidianPersonaStore._parse_frontmatter(content)
+        if not fm or str(fm.get("type", "")).lower() != "persona":
+            failed += 1
+            results.append({
+                "filename": filename, "status": "failed",
+                "error": "missing or invalid frontmatter (type: persona required)",
+            })
+            continue
+        try:
+            persona = ObsidianPersonaStore._frontmatter_to_persona(
+                fm, _Path(filename or "imported.md"),
+            )
+            mgr.create(persona)
+            imported += 1
+            results.append({"filename": filename, "status": "ok", "id": persona.id})
+        except Exception as exc:  # noqa: BLE001
+            failed += 1
+            results.append({"filename": filename, "status": "failed", "error": str(exc)})
+
+    return {"imported": imported, "failed": failed, "results": results}
+
+
 # --- Trash / Undo (PR85b v3.12.0) ---
 
 @app.get("/api/trash")
