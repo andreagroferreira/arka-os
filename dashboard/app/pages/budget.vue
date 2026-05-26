@@ -53,7 +53,8 @@ interface TrendResponse {
 
 type Period = 'today' | 'week' | 'month' | 'all'
 
-const { fetchApi } = useApi()
+const { fetchApi, apiBase } = useApi()
+const toast = useToast()
 const period = ref<Period>('today')
 
 const periodOptions: { label: string; value: Period }[] = [
@@ -72,6 +73,36 @@ const {
   '/api/llm-costs',
   { query: computed(() => ({ period: period.value })) },
 )
+
+// PR91d v3.38.0 — CSV export of the telemetry rows for the current period.
+async function exportCsv() {
+  try {
+    const blob = await $fetch<Blob>(
+      `${apiBase}/api/llm-costs/export.csv`,
+      { query: { period: period.value }, responseType: 'blob' },
+    )
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `arkaos-costs-${period.value}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast.add({
+      title: 'CSV downloaded',
+      description: `arkaos-costs-${period.value}.csv`,
+      color: 'success',
+      icon: 'i-lucide-download',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Export failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  }
+}
 
 // PR90c v3.33.0 — let the operator pick 7d / 14d / 30d.
 const trendDays = ref<7 | 14 | 30>(7)
@@ -203,6 +234,14 @@ async function refreshAll() {
             :items="periodOptions"
             size="sm"
             class="w-32"
+          />
+          <UButton
+            label="Export CSV"
+            icon="i-lucide-download"
+            variant="soft"
+            size="sm"
+            class="ml-2"
+            @click="exportCsv"
           />
           <UButton
             label="Refresh"

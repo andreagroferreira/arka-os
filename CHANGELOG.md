@@ -5,6 +5,35 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.38.0] - 2026-05-26
+
+### Added (Costs CSV export — PR91d)
+
+Operator can now click **Export CSV** in the /budget navbar to
+download every telemetry row for the active period.
+
+### Backend
+
+- `GET /api/llm-costs/export.csv?period=...` (NEW) — streams a
+  `text/csv` with header + one row per telemetry entry. Columns:
+  `ts`, `session_id`, `provider`, `model`, `category`, `tokens_in`,
+  `tokens_out`, `cached_tokens`, `estimated_cost_usd`. Filename
+  embeds the period: `arkaos-costs-month.csv`. Invalid periods fall
+  back to `month`. 4 unit tests cover response shape, fallback
+  behaviour, header presence, filename format.
+
+### Frontend
+
+- `pages/budget.vue` — Export CSV button next to Refresh in the
+  navbar. Uses Blob URL + programmatic anchor click. Toast confirms.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/llm-costs/export.csv
+- `tests/python/test_llm_costs_export.py` (NEW, 4 tests)
+- `dashboard/app/pages/budget.vue` — Export button + handler +
+  `apiBase` / `toast` destructure
+
 ## [3.37.0] - 2026-05-26
 
 ### Added (Workflow phase flow tab — PR91c)
