@@ -5,6 +5,26 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.65.0] - 2026-05-26
+
+### Added (Copy workflow command to clipboard — PR98c)
+
+/workflows side panel header gains a Copy command button. Click →
+workflow's `command` (e.g. `/dev review`) on the clipboard.
+
+### Scope correction
+
+Original PR98c proposed running workflows from the dashboard via
+subprocess. Workflows orchestrate through the runtime's skill system
+(arka-forge, Skill tool), not standalone shell. Dashboard backend
+has no way to dispatch into the active runtime session. Shipped the
+realistic alternative: dashboard helps you FIND the command, you RUN
+it where it matters.
+
+### Files changed
+
+- `dashboard/app/pages/workflows.vue` — copy button + handler
+
 ## [3.64.0] - 2026-05-26
 
 ### Added (Sidebar favourites widget — PR98b)

@@ -103,6 +103,29 @@ function gateColor(gateType: string): 'primary' | 'warning' | 'error' | 'neutral
   return m[gateType] ?? 'neutral'
 }
 
+// PR98c v3.65.0 — copy a workflow's command to the clipboard so the
+// operator can paste it into their runtime (Claude Code / Codex / Gemini).
+// We can't run workflows from the dashboard — they orchestrate through
+// the runtime's skill system, not via subprocess.
+async function copyCommand(cmd: string) {
+  if (!cmd || typeof navigator === 'undefined' || !navigator.clipboard) return
+  try {
+    await navigator.clipboard.writeText(cmd)
+    toast.add({
+      title: 'Command copied',
+      description: `${cmd} — paste into your runtime to run`,
+      color: 'success',
+      icon: 'i-lucide-clipboard-check',
+    })
+  } catch {
+    toast.add({
+      title: 'Clipboard failed',
+      description: 'Browser blocked clipboard access',
+      color: 'error',
+    })
+  }
+}
+
 async function loadRuns(id: string) {
   runsLoading.value = true
   try {
@@ -259,13 +282,24 @@ const columns: TableColumn<Workflow>[] = [
                   <p class="font-semibold truncate">{{ selected.name }}</p>
                   <p class="text-xs text-muted font-mono truncate">{{ selected.file }}</p>
                 </div>
-                <UButton
-                  icon="i-lucide-x"
-                  variant="ghost"
-                  size="xs"
-                  aria-label="Close preview"
-                  @click="selected = null"
-                />
+                <div class="flex items-center gap-1">
+                  <UButton
+                    v-if="selected.command"
+                    label="Copy command"
+                    icon="i-lucide-clipboard-copy"
+                    variant="soft"
+                    color="primary"
+                    size="xs"
+                    @click="copyCommand(selected.command)"
+                  />
+                  <UButton
+                    icon="i-lucide-x"
+                    variant="ghost"
+                    size="xs"
+                    aria-label="Close preview"
+                    @click="selected = null"
+                  />
+                </div>
               </div>
               <p v-if="selected.description" class="text-xs text-muted mt-2">
                 {{ selected.description }}
