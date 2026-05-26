@@ -2024,9 +2024,17 @@ TERMINAL_ALLOWLIST: list[dict] = [
     },
     {
         "id": "git-log",
-        "label": "git log (10)",
-        "cmd": ["git", "log", "-10", "--oneline"],
-        "description": "Most recent 10 commits.",
+        "label": "git log",
+        "cmd_template": ["git", "log", "-{count}", "--oneline"],
+        "args": [
+            {
+                "name": "count",
+                "label": "Commits to show",
+                "choices": ["5", "10", "20", "50"],
+                "default": "10",
+            },
+        ],
+        "description": "Most recent N commits (operator picks N).",
     },
     {
         "id": "npm-version",
@@ -2046,6 +2054,20 @@ TERMINAL_ALLOWLIST: list[dict] = [
         "cmd": ["ls", "-la"],
         "description": "List files in the project root.",
     },
+    {
+        "id": "arka-costs",
+        "label": "ArkaOS costs",
+        "cmd_template": ["python3", "-m", "core.runtime.llm_cost_telemetry_cli", "{period}"],
+        "args": [
+            {
+                "name": "period",
+                "label": "Period",
+                "choices": ["today", "week", "month", "all"],
+                "default": "today",
+            },
+        ],
+        "description": "LLM cost summary for the selected period.",
+    },
 ]
 
 _TERMINAL_TIMEOUT_S = 15
@@ -2054,14 +2076,41 @@ _TERMINAL_MAX_OUTPUT = 20_000  # chars — both stdout and stderr capped
 
 @app.get("/api/terminal/commands")
 def terminal_commands():
-    """List allowlisted commands the dashboard terminal may run."""
-    return {
-        "commands": [
-            {"id": c["id"], "label": c["label"], "description": c["description"]}
-            for c in TERMINAL_ALLOWLIST
-        ],
-        "total": len(TERMINAL_ALLOWLIST),
-    }
+    """List allowlisted commands the dashboard terminal may run.
+
+    PR96b v3.56.0 — includes the `args` schema (label / choices /
+    default) when an entry has parameters. The raw cmd / cmd_template
+    is NEVER returned — defence in depth.
+    """
+    out: list[dict] = []
+    for c in TERMINAL_ALLOWLIST:
+        out.append({
+            "id": c["id"],
+            "label": c["label"],
+            "description": c["description"],
+            "args": _safe_args_schema(c.get("args")),
+        })
+    return {"commands": out, "total": len(out)}
+
+
+def _safe_args_schema(args) -> list[dict]:
+    """Sanitised arg schema for the public API — never leaks cmd/template."""
+    if not isinstance(args, list):
+        return []
+    out: list[dict] = []
+    for a in args:
+        if not isinstance(a, dict):
+            continue
+        choices = a.get("choices")
+        if not isinstance(choices, list) or not choices:
+            continue
+        out.append({
+            "name": str(a.get("name") or ""),
+            "label": str(a.get("label") or a.get("name") or ""),
+            "choices": [str(x) for x in choices],
+            "default": str(a.get("default") or choices[0]),
+        })
+    return out
 
 
 @app.post("/api/terminal/exec")
@@ -2080,11 +2129,20 @@ def terminal_exec(body: dict):
     entry = next((c for c in TERMINAL_ALLOWLIST if c["id"] == cid), None)
     if entry is None:
         return {"error": f"command '{cid}' is not on the allowlist"}
+
+    # PR96b v3.56.0 — resolve template + args, or fall back to fixed cmd.
+    if "cmd_template" in entry:
+        argv, err = _resolve_cmd_template(entry, body.get("args") or {})
+        if err:
+            return {"error": err}
+    else:
+        argv = entry["cmd"]
+
     import time
     started = time.monotonic()
     try:
         result = subprocess.run(
-            entry["cmd"],
+            argv,
             cwd=str(ARKAOS_ROOT),
             capture_output=True,
             text=True,
@@ -2097,7 +2155,7 @@ def terminal_exec(body: dict):
             "stderr": f"command timed out after {_TERMINAL_TIMEOUT_S}s",
             "exit_code": -1,
             "duration_ms": int(_TERMINAL_TIMEOUT_S * 1000),
-            "command": " ".join(entry["cmd"]),
+            "command": " ".join(argv),
         }
     except OSError as exc:
         return {
@@ -2105,7 +2163,7 @@ def terminal_exec(body: dict):
             "stderr": f"command failed to launch: {exc}",
             "exit_code": -1,
             "duration_ms": int((time.monotonic() - started) * 1000),
-            "command": " ".join(entry["cmd"]),
+            "command": " ".join(argv),
         }
     duration_ms = int((time.monotonic() - started) * 1000)
     return {
@@ -2113,8 +2171,47 @@ def terminal_exec(body: dict):
         "stderr": (result.stderr or "")[:_TERMINAL_MAX_OUTPUT],
         "exit_code": result.returncode,
         "duration_ms": duration_ms,
-        "command": " ".join(entry["cmd"]),
+        "command": " ".join(argv),
     }
+
+
+def _resolve_cmd_template(entry: dict, supplied: dict) -> tuple[list[str], "str | None"]:
+    """Substitute `{name}` placeholders in cmd_template with validated args.
+
+    Returns (argv, None) on success, ([], error_msg) on validation failure.
+    Anything supplied that isn't in the schema's choices is rejected.
+    Unknown arg names are also rejected — no silent passthrough.
+    """
+    schema = entry.get("args") or []
+    if not isinstance(schema, list):
+        return [], "command has invalid args schema"
+    by_name: dict[str, dict] = {a["name"]: a for a in schema if isinstance(a, dict)}
+    chosen: dict[str, str] = {}
+    for arg_def in schema:
+        name = arg_def["name"]
+        s = supplied.get(name)
+        if s is None:
+            chosen[name] = str(arg_def.get("default") or arg_def["choices"][0])
+            continue
+        s_str = str(s)
+        if s_str not in arg_def["choices"]:
+            return [], (
+                f"arg '{name}'='{s_str}' is not in the allowed choices "
+                f"({', '.join(arg_def['choices'])})"
+            )
+        chosen[name] = s_str
+    for k in supplied:
+        if k not in by_name:
+            return [], f"unknown arg '{k}'"
+    argv: list[str] = []
+    for tok in entry["cmd_template"]:
+        if not isinstance(tok, str):
+            continue
+        out_tok = tok
+        for name, val in chosen.items():
+            out_tok = out_tok.replace(f"{{{name}}}", val)
+        argv.append(out_tok)
+    return argv, None
 
 
 @app.put("/api/workflows/{workflow_id}/yaml")

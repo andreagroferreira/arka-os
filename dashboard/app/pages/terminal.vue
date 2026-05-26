@@ -9,10 +9,18 @@
 // instead ships a controlled command runner with allowlist + capped
 // output. xterm.js-style PTY can be a later upgrade if needed.
 
+interface CommandArg {
+  name: string
+  label: string
+  choices: string[]
+  default: string
+}
+
 interface CommandEntry {
   id: string
   label: string
   description: string
+  args?: CommandArg[]
 }
 
 interface ExecResult {
@@ -41,12 +49,33 @@ const commands = computed<CommandEntry[]>(() => cmdData.value?.commands ?? [])
 const running = ref<string | null>(null)
 const history = ref<HistoryEntry[]>([])
 
+// PR96b v3.56.0 — per-command arg state. Keyed by command id, holds
+// the operator's current selection for each arg.
+const argState = reactive<Record<string, Record<string, string>>>({})
+
+function ensureArgState(cmd: CommandEntry) {
+  if (!cmd.args || cmd.args.length === 0) return
+  if (!argState[cmd.id]) argState[cmd.id] = {}
+  for (const arg of cmd.args) {
+    if (argState[cmd.id][arg.name] === undefined) {
+      argState[cmd.id][arg.name] = arg.default
+    }
+  }
+}
+
 async function run(cmd: CommandEntry) {
   running.value = cmd.id
+  ensureArgState(cmd)
   try {
     const res = await $fetch<ExecResult & { error?: string }>(
       `${apiBase}/api/terminal/exec`,
-      { method: 'POST', body: { command_id: cmd.id } },
+      {
+        method: 'POST',
+        body: {
+          command_id: cmd.id,
+          args: cmd.args ? argState[cmd.id] : undefined,
+        },
+      },
     )
     if (res.error) throw new Error(res.error)
     history.value = [
@@ -139,22 +168,47 @@ function relative(iso: string): string {
                 </p>
               </div>
             </template>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <UButton
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div
                 v-for="cmd in commands"
                 :key="cmd.id"
-                :label="cmd.label"
-                :description="cmd.description"
-                icon="i-lucide-terminal"
-                variant="soft"
-                color="primary"
-                size="sm"
-                block
-                class="justify-start"
-                :loading="running === cmd.id"
-                :disabled="running !== null && running !== cmd.id"
-                @click="run(cmd)"
-              />
+                class="rounded-lg border border-default p-3 space-y-2"
+              >
+                <div>
+                  <p class="text-sm font-semibold">{{ cmd.label }}</p>
+                  <p class="text-xs text-muted">{{ cmd.description }}</p>
+                </div>
+                <!-- PR96b v3.56.0 — arg pickers for parameterised commands -->
+                <div v-if="cmd.args && cmd.args.length > 0" class="grid grid-cols-2 gap-2">
+                  <UFormField
+                    v-for="arg in cmd.args"
+                    :key="arg.name"
+                    :label="arg.label"
+                    size="xs"
+                  >
+                    <USelect
+                      :model-value="(argState[cmd.id] || {})[arg.name] || arg.default"
+                      :items="arg.choices.map((c) => ({ label: c, value: c }))"
+                      size="xs"
+                      class="w-full"
+                      @update:model-value="(v) => {
+                        ensureArgState(cmd)
+                        argState[cmd.id][arg.name] = String(v)
+                      }"
+                    />
+                  </UFormField>
+                </div>
+                <UButton
+                  label="Run"
+                  icon="i-lucide-play"
+                  color="primary"
+                  size="sm"
+                  block
+                  :loading="running === cmd.id"
+                  :disabled="running !== null && running !== cmd.id"
+                  @click="run(cmd)"
+                />
+              </div>
             </div>
           </UCard>
 

@@ -91,5 +91,81 @@ def test_allowlist_has_no_shell_invocations():
     api = _load_dashboard_api()
     banned = {"bash", "sh", "zsh", "fish", "eval", "exec"}
     for entry in api.TERMINAL_ALLOWLIST:
-        binary = entry["cmd"][0]
+        # PR96b — allowlist now mixes `cmd` and `cmd_template` entries.
+        binary = (entry.get("cmd") or entry.get("cmd_template"))[0]
         assert binary not in banned, f"{entry['id']} uses {binary}"
+
+
+# --- PR96b: parameterised commands ---
+
+def test_list_includes_args_schema():
+    api = _load_dashboard_api()
+    res = api.terminal_commands()
+    parameterised = [c for c in res["commands"] if c.get("args")]
+    assert len(parameterised) >= 1
+    for arg in parameterised[0]["args"]:
+        for key in ("name", "label", "choices", "default"):
+            assert key in arg
+
+
+def test_list_does_not_leak_cmd_template():
+    """cmd_template is internal; the public listing must NEVER expose it."""
+    api = _load_dashboard_api()
+    res = api.terminal_commands()
+    for c in res["commands"]:
+        assert "cmd_template" not in c
+        assert "cmd" not in c
+
+
+def test_exec_uses_default_when_arg_missing():
+    """Calling a parameterised command without args must succeed via default."""
+    api = _load_dashboard_api()
+    res = api.terminal_exec({"command_id": "git-log"})
+    # Successful execution returns shape with `command` populated by default.
+    assert "command" in res
+    assert "10" in res["command"]  # default `count`
+
+
+def test_exec_rejects_invalid_choice():
+    api = _load_dashboard_api()
+    res = api.terminal_exec({"command_id": "git-log", "args": {"count": "999"}})
+    assert "error" in res
+    assert "not in the allowed choices" in res["error"]
+
+
+def test_exec_rejects_unknown_arg():
+    api = _load_dashboard_api()
+    res = api.terminal_exec({
+        "command_id": "git-log",
+        "args": {"count": "10", "evil": "bash -c whoami"},
+    })
+    assert "error" in res
+    assert "unknown arg" in res["error"]
+
+
+def test_exec_rejects_metachar_payload():
+    """Even if the operator slips shell metacharacters into a choice value,
+    the choice-set check rejects them before any substitution."""
+    api = _load_dashboard_api()
+    res = api.terminal_exec({
+        "command_id": "git-log",
+        "args": {"count": "10; rm -rf /"},
+    })
+    assert "error" in res
+    assert "not in the allowed choices" in res["error"]
+
+
+def test_resolve_template_substitutes_validated_value():
+    api = _load_dashboard_api()
+    entry = next(c for c in api.TERMINAL_ALLOWLIST if c["id"] == "git-log")
+    argv, err = api._resolve_cmd_template(entry, {"count": "20"})
+    assert err is None
+    assert "-20" in argv
+
+
+def test_resolve_template_substitutes_default():
+    api = _load_dashboard_api()
+    entry = next(c for c in api.TERMINAL_ALLOWLIST if c["id"] == "git-log")
+    argv, err = api._resolve_cmd_template(entry, {})
+    assert err is None
+    assert "-10" in argv  # default
