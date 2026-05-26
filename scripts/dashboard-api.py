@@ -322,6 +322,68 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
     }
 
 
+@app.get("/api/personas/export-all.zip")
+def personas_export_all():
+    """PR92a v3.39.0 — stream every persona as Markdown inside a ZIP.
+
+    Iterates `PersonaManager.list_all()` plus any Obsidian-vault entries
+    surfaced via `persona_detail`, renders each through
+    `ObsidianPersonaStore._render`, and zips them. Filename uses the
+    persona name (sanitised), falling back to id.
+    """
+    mgr = _get_persona_manager()
+    if not mgr:
+        return {"error": "Persona manager unavailable"}
+    try:
+        items = list(mgr.list_all() or [])
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"list failed: {exc}"}
+
+    from core.personas.obsidian_store import ObsidianPersonaStore
+
+    import io
+    import zipfile
+
+    buffer = io.BytesIO()
+    seen: set[str] = set()
+    written = 0
+    with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for p in items:
+            persona = p if hasattr(p, "model_dump") else None
+            if persona is None:
+                continue
+            slug = _zip_persona_slug(persona.name or persona.id)
+            if slug in seen:
+                slug = f"{slug}-{persona.id[:6]}"
+            seen.add(slug)
+            try:
+                body = ObsidianPersonaStore._render(persona)
+            except Exception:  # noqa: BLE001
+                continue
+            zf.writestr(f"{slug}.md", body)
+            written += 1
+
+    if written == 0:
+        return {"error": "no personas to export"}
+
+    from fastapi import Response
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": 'attachment; filename="arkaos-personas.zip"',
+        },
+    )
+
+
+def _zip_persona_slug(name: str) -> str:
+    """Sanitise a name for use as a zip member filename."""
+    import re
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "-", str(name or ""))
+    cleaned = cleaned.strip("-") or "persona"
+    return cleaned[:80]
+
+
 @app.get("/api/personas/{persona_id}/markdown")
 def persona_download_markdown(persona_id: str):
     """PR90a v3.31.0 — return the persona as a Markdown file.

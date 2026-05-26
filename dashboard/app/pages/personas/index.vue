@@ -142,6 +142,40 @@ const favs = useFavorites()
 await favs.load()
 const favoritesOnly = ref(false)
 
+// PR92a v3.39.0 — bulk export every persona as a zip.
+const exportingZip = ref(false)
+async function exportAllAsZip() {
+  exportingZip.value = true
+  try {
+    const blob = await $fetch<Blob>(
+      `${apiBase}/api/personas/export-all.zip`,
+      { responseType: 'blob' },
+    )
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'arkaos-personas.zip'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast.add({
+      title: 'ZIP downloaded',
+      description: 'arkaos-personas.zip',
+      color: 'success',
+      icon: 'i-lucide-archive',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Export failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    exportingZip.value = false
+  }
+}
+
 // PR87b v3.20.0 — import .md persona files.
 // PR91b v3.36.0 — extended with URL import.
 const importInput = ref<HTMLInputElement | null>(null)
@@ -354,6 +388,14 @@ async function undoTrashIds(ids: string[]) {
           />
         </template>
         <template #right>
+          <UButton
+            label="Export ZIP"
+            icon="i-lucide-archive"
+            variant="ghost"
+            size="sm"
+            :loading="exportingZip"
+            @click="exportAllAsZip"
+          />
           <UDropdownMenu
             :items="[
               { label: 'Pick .md files…', icon: 'i-lucide-file-up', onSelect: triggerImport },
