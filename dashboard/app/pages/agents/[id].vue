@@ -105,6 +105,41 @@ function markedHtml(src: string): string {
   }
 }
 
+// PR89d v3.30.0 — download YAML.
+const downloadingYaml = ref(false)
+async function downloadYaml() {
+  if (!agent.value) return
+  downloadingYaml.value = true
+  try {
+    const blob = await $fetch<Blob>(
+      `${apiBase}/api/agents/${agentId}/yaml`,
+      { responseType: 'blob' },
+    )
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${agentId}.yaml`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast.add({
+      title: 'YAML downloaded',
+      description: `${agentId}.yaml`,
+      color: 'success',
+      icon: 'i-lucide-download',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Download failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    downloadingYaml.value = false
+  }
+}
+
 // PR86c v3.17.0 — export to Obsidian.
 const exporting = ref(false)
 async function exportToVault() {
@@ -358,6 +393,14 @@ function formatTokens(n: number): string {
                     size="sm"
                     :loading="exporting"
                     @click="exportToVault"
+                  />
+                  <UButton
+                    label="YAML"
+                    icon="i-lucide-download"
+                    variant="ghost"
+                    size="sm"
+                    :loading="downloadingYaml"
+                    @click="downloadYaml"
                   />
                   <UButton
                     label="Edit"

@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.30.0] - 2026-05-26
+
+### Added (Agent YAML download — PR89d)
+
+Click **YAML** on the agent hero to save the underlying YAML file
+locally. Useful for cross-vault transfer, manual review, or backup
+before doing aggressive edits.
+
+### Backend
+
+- `GET /api/agents/{id}/yaml` (NEW) — returns the raw YAML file as
+  `application/x-yaml` with `Content-Disposition: attachment;
+  filename="<id>.yaml"`. Refuses unknown agents. 4 unit tests cover
+  error path, response shape, content-disposition format, body
+  contains expected YAML keys.
+
+### Frontend
+
+- `agents/[id].vue` — third action button on the hero (between
+  Export and Edit). Browser-native download via `Blob` URL +
+  programmatic `<a download>` click. Toast confirms.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/agents/{id}/yaml
+- `tests/python/test_agent_yaml_download.py` (NEW, 4 tests)
+- `dashboard/app/pages/agents/[id].vue` — YAML button + handler
+
 ## [3.29.0] - 2026-05-26
 
 ### Added (Vault connection test in Settings — PR89c)
