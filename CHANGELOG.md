@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.4] - 2026-05-26
+
+### Fixed (Terminal history sidebar — same polish level as palette)
+
+The Cmd+R palette got a proper redesign in v3.70.3 but the side
+panel (History button in the navbar) was still the v3.69.0 spartan
+list: uppercase title, bare commands, no metadata, no actions, no
+filter, no empty state, polluted entries leaking through.
+
+Rewritten to match the palette's polish:
+
+- Header: history icon + "History" title + count badge + action row
+  (search opens the palette, trash clears all, X closes the panel)
+- Inline filter input below the header (separate from palette filter
+  so each surface has its own context)
+- Compact rows (~28px) with chevron + mono command + relative time
+  (visible on hover) + send-return icon (visible on hover)
+- Runtime defence: rows pass through `isPlausibleCommand()` even
+  though `loadHistory()` already filters on disk — belt + braces
+  against any future leakage
+- Empty / no-match states with helpful icon + copy
+- Footer hint
+
+Width bumped 288 → 320px so commands fit without truncation.
+
+### Files changed
+
+- `dashboard/app/pages/terminal.vue` — sidebar rewrite, `visibleHistory`
+  computed, `sendToActive` helper.
+
 ## [3.70.3] - 2026-05-26
 
 ### Fixed (Terminal Ctrl+R palette + ESC-sequence pollution in history)
