@@ -226,6 +226,72 @@ function csvToList(value: string): string[] {
 type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid' | 'key_quotes'
 const suggestingField = ref<SuggestField | null>(null)
 
+// PR84c v3.9.0 — Auto-fill empty lists in one go.
+const autofilling = ref(false)
+
+async function autofillEmpties() {
+  if (!draft.value || !detail.value) return
+  type ListKey = 'mental_models' | 'expertise_domains' | 'frameworks' | 'key_quotes' | 'communication_avoid'
+  const targets: ListKey[] = []
+  if ((draft.value.mental_models ?? []).length === 0) targets.push('mental_models')
+  if ((draft.value.expertise_domains ?? []).length === 0) targets.push('expertise_domains')
+  if ((draft.value.frameworks ?? []).length === 0) targets.push('frameworks')
+  if ((draft.value.key_quotes ?? []).length === 0) targets.push('key_quotes')
+  if ((draft.value.communication.avoid ?? []).length === 0) targets.push('communication_avoid')
+  if (targets.length === 0) {
+    toast.add({ title: 'No empty lists', description: 'Every list already has at least one item.', color: 'info' })
+    return
+  }
+  autofilling.value = true
+  const results = await Promise.allSettled(
+    targets.map((field) =>
+      $fetch<{ suggestions: string[], provider_name: string, error?: string }>(
+        `${apiBase}/api/personas/suggest`,
+        {
+          method: 'POST',
+          body: {
+            field,
+            count: 5,
+            context: {
+              name: detail.value!.name,
+              title: detail.value!.title,
+              current: [],
+            },
+          },
+        },
+      ),
+    ),
+  )
+  let filledCount = 0
+  let providerName = ''
+  results.forEach((r, idx) => {
+    if (r.status !== 'fulfilled' || r.value.error) return
+    const items = r.value.suggestions ?? []
+    if (items.length === 0) return
+    const field = targets[idx]
+    if (!draft.value) return
+    if (field === 'communication_avoid') {
+      draft.value.communication.avoid = items
+    } else {
+      ;(draft.value as any)[field] = items
+    }
+    filledCount += 1
+    providerName = r.value.provider_name || providerName
+  })
+  autofilling.value = false
+  if (filledCount > 0) {
+    markDirty()
+    toast.add({
+      title: `Filled ${filledCount} list${filledCount === 1 ? '' : 's'}`,
+      description: `via ${providerName}`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+  } else {
+    toast.add({ title: 'Nothing filled', description: 'LLM returned no items.', color: 'error' })
+  }
+}
+
 // PR83c v3.5.0 — single-string suggester (tone for personas).
 const suggestingString = ref<'tone' | null>(null)
 
@@ -657,15 +723,26 @@ const vocabOptions = [
                 }"
               >
                 <template #header>
-                  <div class="flex items-center justify-between">
+                  <div class="flex items-center justify-between gap-3">
                     <h2 class="text-xl font-bold">Edit {{ draft.name || 'persona' }}</h2>
-                    <UButton
-                      icon="i-lucide-x"
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Close"
-                      @click="tryCloseEdit"
-                    />
+                    <div class="flex items-center gap-2">
+                      <UButton
+                        label="Auto-fill empties"
+                        icon="i-lucide-sparkles"
+                        color="primary"
+                        variant="soft"
+                        size="sm"
+                        :loading="autofilling"
+                        @click="autofillEmpties"
+                      />
+                      <UButton
+                        icon="i-lucide-x"
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Close"
+                        @click="tryCloseEdit"
+                      />
+                    </div>
                   </div>
                 </template>
 
