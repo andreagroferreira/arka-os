@@ -13,7 +13,7 @@ import type { Persona } from '~/types'
 //
 // The wizard NEVER auto-saves — every transition is operator-confirmed.
 
-const { apiBase } = useApi()
+const { apiBase, fetchApi } = useApi()
 const toast = useToast()
 
 const emit = defineEmits<{
@@ -42,6 +42,26 @@ type Mode = 'sources' | 'existing' | 'description'
 const mode = ref<Mode>('sources')
 const description = ref('')
 const descriptionLength = computed(() => description.value.trim().length)
+
+// PR93b v3.44.0 — archetype templates that pre-fill description + name.
+interface Archetype {
+  id: string
+  name: string
+  title: string
+  tagline: string
+  description: string
+}
+const { data: archetypeData } = fetchApi<{ archetypes: Archetype[] }>(
+  '/api/personas/archetypes',
+)
+const archetypes = computed<Archetype[]>(() => archetypeData.value?.archetypes ?? [])
+
+function applyArchetype(arch: Archetype) {
+  if (!name.value.trim()) name.value = arch.name
+  if (!sourceLabel.value.trim()) sourceLabel.value = arch.title
+  description.value = arch.description
+  mode.value = 'description'
+}
 
 // ─── Step 2 state ────────────────────────────────────────────────────────
 const ingestJobs = ref<Array<{
@@ -389,10 +409,28 @@ function backToStep1() {
         label="Description"
         help="Plain-text description of the person — their style, beliefs, what they do, how they talk. The LLM uses this verbatim. Minimum 20 characters."
       >
+        <template #hint>
+          <UDropdownMenu
+            v-if="archetypes.length > 0"
+            :items="archetypes.map((a) => ({
+              label: `${a.name} — ${a.title}`,
+              icon: 'i-lucide-sparkles',
+              onSelect: () => applyArchetype(a),
+            }))"
+          >
+            <UButton
+              label="Start from archetype"
+              icon="i-lucide-sparkles"
+              variant="ghost"
+              size="xs"
+              trailing-icon="i-lucide-chevron-down"
+            />
+          </UDropdownMenu>
+        </template>
         <UTextarea
           v-model="description"
           :rows="6"
-          placeholder="A direct-response copywriter who treats offers as the only true growth lever. Punchy, allergic to fluff. Loves Hormozi-style hooks."
+          placeholder="A direct-response copywriter who treats offers as the only true growth lever. Punchy, allergic to fluff."
           class="w-full"
         />
       </UFormField>

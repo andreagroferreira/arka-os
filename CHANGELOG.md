@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.44.0] - 2026-05-26
+
+### Added (Persona archetype templates — PR93b)
+
+PersonaWizard ships 8 curated starter archetypes (Coach, Skeptic,
+Founder, Operator, Strategist, Storyteller, Architect, Negotiator).
+Pick one in the description mode and the wizard pre-fills name +
+source + description.
+
+### Backend
+
+- `core/personas/archetypes.py` (NEW) — 8 generic archetypes
+- `GET /api/personas/archetypes` (NEW). 7 unit tests.
+
+### Frontend
+
+- `PersonaWizard.vue` description mode gains a "Start from archetype"
+  dropdown.
+
+### Files changed
+
+- `core/personas/archetypes.py` (NEW)
+- `scripts/dashboard-api.py` — GET endpoint
+- `tests/python/test_persona_archetypes.py` (NEW, 7 tests)
+- `dashboard/app/components/PersonaWizard.vue` — dropdown
+
 ## [3.43.0] - 2026-05-26
 
 ### Added (Workflow phase agent links — PR93a)
