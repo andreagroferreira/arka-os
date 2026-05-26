@@ -4,6 +4,10 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 // PR85c v3.13.0 — registers keyboard shortcuts globally.
 useDashboard()
 
+// PR92d v3.42.0 — apply the operator's chosen primary color on boot.
+const theme = useThemeColor()
+onMounted(() => theme.loadFromStorage())
+
 const open = ref(false)
 
 const links = [[{

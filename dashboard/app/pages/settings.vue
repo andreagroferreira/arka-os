@@ -234,6 +234,11 @@ const themeOptions = [
   { label: 'Dark', value: 'dark' },
 ]
 
+// PR92d v3.42.0 — primary color picker.
+import { THEME_COLOR_OPTIONS, useThemeColor } from '~/composables/useThemeColor'
+const themeColor = useThemeColor()
+const themeColorOptions = THEME_COLOR_OPTIONS
+
 function transportColor(transport: string): 'primary' | 'warning' | 'success' | 'neutral' {
   if (transport === 'stdio') return 'primary'
   if (transport === 'http' || transport === 'sse') return 'success'
@@ -750,6 +755,37 @@ const activeSection = ref<SectionId>('profile')
                   Currently rendering as
                   <UBadge :label="colorMode.value" variant="subtle" size="xs" />
                 </p>
+
+                <!-- PR92d v3.42.0 — primary color picker -->
+                <UFormField label="Primary color" help="Tints buttons, badges, links across the dashboard.">
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="opt in themeColorOptions"
+                      :key="opt.value"
+                      type="button"
+                      class="rounded-lg border p-2 transition-colors text-xs flex items-center gap-2"
+                      :class="themeColor.current.value === opt.value
+                        ? 'border-primary bg-primary/10 font-semibold'
+                        : 'border-default hover:border-primary/40'"
+                      @click="themeColor.setAndPersist(opt.value)"
+                    >
+                      <span
+                        class="size-4 rounded-full"
+                        :class="{
+                          'bg-emerald-500': opt.value === 'emerald',
+                          'bg-blue-500': opt.value === 'blue',
+                          'bg-indigo-500': opt.value === 'indigo',
+                          'bg-violet-500': opt.value === 'violet',
+                          'bg-rose-500': opt.value === 'rose',
+                          'bg-amber-500': opt.value === 'amber',
+                          'bg-teal-500': opt.value === 'teal',
+                          'bg-cyan-500': opt.value === 'cyan',
+                        }"
+                      />
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </UFormField>
               </div>
             </UCard>
           </section>
