@@ -218,6 +218,82 @@ def agents_activity(period: str = "week"):
     return {"by_department": out, "period": period}
 
 
+@app.get("/api/agents/{agent_id}/activity-sparkline")
+def agent_activity_sparkline(agent_id: str, days: int = 30):
+    """PR96d v3.58.0 — daily call / cost series for the agent's department.
+
+    Returns ``{days: [{date, calls, cost_usd}]}`` seeded with zeros so
+    the frontend can render a clean N-day bar chart without gaps.
+    Capped at 90 days. Per-agent series falls back to dept series
+    (same convention as activity-strip / PR86b).
+    """
+    try:
+        days_int = int(days) if days is not None else 30
+    except (TypeError, ValueError):
+        days_int = 30
+    capped_days = max(1, min(days_int, 90))
+
+    agents = _load_agents()
+    base = next((a for a in agents if a.get("id") == agent_id), None)
+    if not base:
+        return {"error": "Agent not found"}
+    dept = base.get("department") or ""
+
+    try:
+        from core.runtime.llm_cost_telemetry import read_entries
+    except Exception:
+        return {"days": []}
+
+    from datetime import datetime, timedelta, timezone
+    today = datetime.now(timezone.utc).date()
+    buckets: dict[str, dict] = {}
+    for offset in range(capped_days):
+        d = today - timedelta(days=capped_days - 1 - offset)
+        buckets[d.isoformat()] = {
+            "date": d.isoformat(),
+            "calls": 0,
+            "cost_usd": 0.0,
+            "cost_known": False,
+        }
+    cutoff = today - timedelta(days=capped_days - 1)
+    agent_cat = f"subagent:{dept}:{agent_id}"
+    dept_cat = f"subagent:{dept}"
+    for entry in read_entries():
+        raw_ts = entry.get("ts") or ""
+        if not isinstance(raw_ts, str):
+            continue
+        try:
+            ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if ts.date() < cutoff:
+            continue
+        cat = str(entry.get("category") or "")
+        if cat != agent_cat and cat != dept_cat:
+            continue
+        key = ts.date().isoformat()
+        if key not in buckets:
+            continue
+        buckets[key]["calls"] += 1
+        cost = entry.get("estimated_cost_usd")
+        if isinstance(cost, (int, float)):
+            buckets[key]["cost_usd"] += float(cost)
+            buckets[key]["cost_known"] = True
+
+    out: list[dict] = []
+    for k in sorted(buckets.keys()):
+        bucket = buckets[k]
+        out.append({
+            "date": bucket["date"],
+            "calls": bucket["calls"],
+            "cost_usd": (
+                round(bucket["cost_usd"], 6)
+                if bucket["cost_known"] else None
+            ),
+        })
+    return {"days": out, "period_days": capped_days, "department": dept}
+
+
 @app.get("/api/agents/{agent_id}/activity-strip")
 def agent_activity_strip(agent_id: str, period: str = "month"):
     """PR83d v3.6.0 + PR86b v3.16.0 — compact activity payload.
