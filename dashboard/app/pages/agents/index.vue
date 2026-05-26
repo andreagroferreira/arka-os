@@ -220,6 +220,12 @@ const departmentMoveOptions = [
   onSelect: () => bulkMove(d),
 }))
 
+function openCompare() {
+  if (selected.value.size !== 2) return
+  const ids = Array.from(selected.value).slice(0, 2).join(',')
+  navigateTo(`/agents/compare?ids=${ids}`)
+}
+
 async function bulkMove(targetDept: string) {
   if (selected.value.size === 0) return
   const ids = Array.from(selected.value)
@@ -552,6 +558,14 @@ async function undoTrashIds(ids: string[]) {
               @click="clearSelection"
             />
             <div class="h-5 w-px bg-default" />
+            <UButton
+              label="Compare"
+              icon="i-lucide-columns-2"
+              size="sm"
+              variant="soft"
+              :disabled="selected.size !== 2"
+              @click="openCompare"
+            />
             <UDropdownMenu :items="departmentMoveOptions">
               <UButton
                 label="Move to..."
