@@ -40,6 +40,8 @@ interface AgentDetail {
     preferred_format?: string
     language?: string
   }
+  // PR94c v3.49.0 — diffable free-text field
+  bio_md?: string
 }
 
 const { data: a, status: aStatus } = fetchApi<AgentDetail>(
@@ -216,8 +218,26 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           </div>
         </div>
 
+        <!-- PR94c v3.49.0 — text diff blocks for the free-text fields -->
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Bio (Markdown)</h3>
+        <TextDiff
+          :left="a.bio_md || ''"
+          :right="b.bio_md || ''"
+          :left-label="a.name || a.id"
+          :right-label="b.name || b.id"
+        />
+
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Communication tone</h3>
+        <TextDiff
+          :left="a.communication?.tone || ''"
+          :right="b.communication?.tone || ''"
+          :left-label="a.name || a.id"
+          :right-label="b.name || b.id"
+        />
+
         <p class="text-xs text-muted pt-4 italic">
-          Cells with a yellow tint differ between the two agents.
+          Cells with a yellow tint differ between the two agents. Red lines were
+          removed; green lines were added.
         </p>
       </div>
     </template>

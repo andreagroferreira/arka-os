@@ -29,6 +29,7 @@ interface PersonaDetail {
   expertise_domains?: string[]
   frameworks?: string[]
   communication?: { tone?: string, vocabulary_level?: string, avoid?: string[] }
+  bio_md?: string  // PR94c v3.49.0
 }
 
 interface AgentDetail {
@@ -43,6 +44,7 @@ interface AgentDetail {
   mental_models?: { primary?: string[], secondary?: string[] }
   expertise?: { domains?: string[], frameworks?: string[] }
   communication?: { tone?: string, vocabulary_level?: string, avoid?: string[] }
+  bio_md?: string  // PR94c v3.49.0
 }
 
 const { data: persona, status: pStatus } = fetchApi<PersonaDetail>(
@@ -209,8 +211,26 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           </div>
         </div>
 
+        <!-- PR94c v3.49.0 — free-text diff blocks -->
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Bio (Markdown)</h3>
+        <TextDiff
+          :left="persona.bio_md || ''"
+          :right="agent.bio_md || ''"
+          :left-label="persona.name || persona.id"
+          :right-label="agent.name || agent.id"
+        />
+
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Communication tone</h3>
+        <TextDiff
+          :left="persona.communication?.tone || ''"
+          :right="agent.communication?.tone || ''"
+          :left-label="persona.name || persona.id"
+          :right-label="agent.name || agent.id"
+        />
+
         <p class="text-xs text-muted pt-4 italic">
-          Cells with a yellow tint differ between persona and agent.
+          Cells with a yellow tint differ between persona and agent. Red lines
+          were removed; green lines were added.
         </p>
       </div>
     </template>
