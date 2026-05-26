@@ -241,6 +241,41 @@ function markedHtml(src: string): string {
   }
 }
 
+// PR90a v3.31.0 — download persona as Markdown.
+const downloadingMd = ref(false)
+async function downloadMarkdown() {
+  if (!detail.value) return
+  downloadingMd.value = true
+  try {
+    const blob = await $fetch<Blob>(
+      `${apiBase}/api/personas/${personaId}/markdown`,
+      { responseType: 'blob' },
+    )
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${detail.value.name || personaId}.md`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast.add({
+      title: 'Markdown downloaded',
+      description: `${detail.value.name || personaId}.md`,
+      color: 'success',
+      icon: 'i-lucide-download',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Download failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    downloadingMd.value = false
+  }
+}
+
 // PR85a v3.11.0 — Clone to Agent dialog.
 const cloneOpen = ref(false)
 function onCloned(agentId: string) {
@@ -525,6 +560,14 @@ const vocabOptions = [
                       variant="soft"
                       size="sm"
                       @click="cloneOpen = true"
+                    />
+                    <UButton
+                      label="MD"
+                      icon="i-lucide-download"
+                      variant="ghost"
+                      size="sm"
+                      :loading="downloadingMd"
+                      @click="downloadMarkdown"
                     />
                     <UButton label="Edit" icon="i-lucide-pencil" size="sm" @click="startEdit" />
                     <UButton

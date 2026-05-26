@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.31.0] - 2026-05-26
+
+### Added (Persona Markdown download — PR90a)
+
+Sibling to PR89d for personas. Click **MD** on the persona hero to
+save the full rendered Markdown (frontmatter + body sections) for
+backup, cross-vault transfer, or sharing.
+
+### Backend
+
+- `GET /api/personas/{id}/markdown` (NEW) — rebuilds the Persona
+  object from `persona_detail()` and renders via the same
+  `ObsidianPersonaStore._render` used for vault sync. Output is
+  byte-identical to what the operator would see in their vault.
+  Responds with `text/markdown` and a sanitised filename. 4 unit
+  tests cover error path, response shape, filename, body keys.
+
+### Frontend
+
+- `personas/[id].vue` — new **MD** button on the hero (between
+  Clone and Edit). Browser-native download via Blob URL.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/personas/{id}/markdown
+- `tests/python/test_persona_markdown_download.py` (NEW, 4 tests)
+- `dashboard/app/pages/personas/[id].vue` — MD button + handler
+
 ## [3.30.0] - 2026-05-26
 
 ### Added (Agent YAML download — PR89d)
