@@ -28,6 +28,35 @@ const deptActivity = computed<ActivityRow | null>(() =>
   (activityData.value?.by_department?.[agent.value?.department ?? ''] ?? null),
 )
 
+// PR88d v3.26.0 — agent history (git log + trash entries)
+interface HistoryEvent {
+  kind: string
+  ts: string | null
+  summary: string
+  ref?: string
+  author?: string
+}
+const { data: historyData } = fetchApi<{ events: HistoryEvent[] }>(
+  `/api/agents/${agentId}/history?limit=20`,
+)
+
+const historyEvents = computed<HistoryEvent[]>(() => historyData.value?.events ?? [])
+
+function historyKindIcon(kind: string): string {
+  return ({
+    'git-commit': 'i-lucide-git-commit',
+    'agent-delete': 'i-lucide-trash-2',
+    'agent-move': 'i-lucide-folder-tree',
+  } as Record<string, string>)[kind] ?? 'i-lucide-circle'
+}
+function historyKindColor(kind: string): string {
+  return ({
+    'git-commit': 'text-blue-500',
+    'agent-delete': 'text-red-500',
+    'agent-move': 'text-amber-500',
+  } as Record<string, string>)[kind] ?? 'text-muted'
+}
+
 // PR83d v3.6.0 + PR86b v3.16.0 — activity strip (30d, agent or dept scope)
 interface ActivityStrip {
   period: string
@@ -441,6 +470,43 @@ function formatTokens(n: number): string {
             class="prose prose-sm dark:prose-invert max-w-none"
             v-html="markedHtml((agent as any).bio_md)"
           />
+        </section>
+
+        <!-- ===== HISTORY TIMELINE (PR88d) ===== -->
+        <section
+          v-if="historyEvents.length > 0"
+          class="rounded-xl border border-default bg-elevated/10 p-5"
+        >
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted mb-4">
+            History
+          </h3>
+          <ol class="relative border-l border-default ml-2 space-y-3">
+            <li
+              v-for="(ev, idx) in historyEvents"
+              :key="idx"
+              class="ml-4"
+            >
+              <span
+                class="absolute -left-1.5 size-3 rounded-full bg-elevated border border-default flex items-center justify-center"
+              >
+                <UIcon :name="historyKindIcon(ev.kind)" :class="['size-2', historyKindColor(ev.kind)]" />
+              </span>
+              <div class="rounded-lg border border-default p-3 bg-elevated/20">
+                <div class="flex items-center gap-2 flex-wrap text-xs">
+                  <span class="font-mono text-muted">{{ ev.ts ? formatRelative(ev.ts) : '—' }}</span>
+                  <UBadge
+                    :label="ev.kind"
+                    :color="ev.kind === 'git-commit' ? 'primary' : ev.kind === 'agent-move' ? 'warning' : 'error'"
+                    variant="subtle"
+                    size="xs"
+                  />
+                  <code v-if="ev.ref" class="font-mono text-muted">{{ ev.ref }}</code>
+                  <span v-if="ev.author" class="text-muted">· {{ ev.author }}</span>
+                </div>
+                <p class="text-sm mt-1">{{ ev.summary }}</p>
+              </div>
+            </li>
+          </ol>
         </section>
 
         <AgentEditDrawer
