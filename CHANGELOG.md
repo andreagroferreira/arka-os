@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.98.0] - 2026-05-26
+
+### Fixed (Dead "New Persona" link — PR80)
+
+PR78 moved the "New Persona" CTA into the personas table header but
+pointed it at `/personas/new`, a route that didn't exist. Result: the
+button 404'd. PR80 plugs in the missing route.
+
+### Added
+
+- `dashboard/app/pages/personas/new.vue` — wraps the existing
+  `PersonaWizard` component (4-step AI-assisted flow: Sources → Ingest
+  → Build → Save). The page itself is a thin hosting shell:
+  - `@completed(persona)` → toast + `navigateTo('/personas/{id}')`
+  - `@cancelled` → `navigateTo('/personas')`
+- Back arrow in the navbar leading slot.
+- "AI-assisted" badge in the navbar trailing slot to telegraph the
+  wizard nature of the route.
+
+### Files changed
+
+- `dashboard/app/pages/personas/new.vue` (NEW)
+
 ## [2.97.0] - 2026-05-26
 
 ### Fixed (Detail pages readability — PR79)
