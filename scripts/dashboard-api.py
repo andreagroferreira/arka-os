@@ -1567,6 +1567,63 @@ def agent_export_to_vault(agent_id: str):
     return {"exported": True, "path": str(res.path), "vault_path": str(res.vault_path)}
 
 
+# --- Agent gap suggestions (PR91a v3.35.0) ---
+
+_KNOWN_DEPARTMENTS = (
+    "dev", "marketing", "brand", "finance", "strategy", "ecom", "kb",
+    "ops", "pm", "saas", "landing", "content", "community", "sales",
+    "leadership", "org",
+)
+
+
+@app.get("/api/agents/suggestions")
+def agents_suggestions(limit: int = 6):
+    """PR91a v3.35.0 — recommend agents the operator should consider creating.
+
+    Heuristics:
+      1. Departments with zero agents at all (severity: high).
+      2. Departments missing a Tier 2 specialist (severity: medium).
+
+    Each suggestion includes ``reason`` and ``recommended_tier``. Used
+    by the home page "What's missing?" card.
+    """
+    agents = _load_agents()
+    by_dept: dict[str, dict] = {}
+    for a in agents:
+        dept = a.get("department") or ""
+        if not dept:
+            continue
+        row = by_dept.setdefault(dept, {"count": 0, "tiers": set()})
+        row["count"] += 1
+        try:
+            row["tiers"].add(int(a.get("tier") or 99))
+        except (TypeError, ValueError):
+            pass
+
+    suggestions: list[dict] = []
+    for dept in _KNOWN_DEPARTMENTS:
+        info = by_dept.get(dept)
+        if info is None or info["count"] == 0:
+            suggestions.append({
+                "department": dept,
+                "reason": "no agents — department is empty",
+                "recommended_tier": 1,
+                "severity": "high",
+            })
+            continue
+        if 2 not in info["tiers"]:
+            suggestions.append({
+                "department": dept,
+                "reason": "no Tier 2 specialist",
+                "recommended_tier": 2,
+                "severity": "medium",
+            })
+    return {
+        "suggestions": suggestions[: max(0, int(limit))],
+        "total_gaps": len(suggestions),
+    }
+
+
 # --- Departments (PR89a v3.27.0) ---
 
 @app.get("/api/departments")

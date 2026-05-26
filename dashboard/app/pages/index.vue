@@ -204,6 +204,9 @@ function copyCommand(cmd: string) {
             </div>
           </UCard>
 
+          <!-- PR91a v3.35.0 — Agent gap suggestions -->
+          <AgentSuggestionsCard class="mb-6" />
+
           <!-- PR84d v3.10.0 — Top departments + Recent personas row -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
