@@ -2510,6 +2510,56 @@ def llm_costs(period: str = "today"):
     }
 
 
+@app.get("/api/llm-costs/export.csv")
+def llm_costs_export(period: str = "month"):
+    """PR91d v3.38.0 — stream the telemetry rows for the period as CSV.
+
+    Returns ``text/csv`` with a header row + every row in the selected
+    period. Period values match `summarise()`: today / week / month / all.
+    """
+    try:
+        from core.runtime.llm_cost_telemetry import (
+            VALID_PERIODS,
+            _load_slice,
+            _period_cutoff,
+        )
+    except Exception:
+        return {"error": "telemetry unavailable"}
+    if period not in VALID_PERIODS:
+        period = "month"
+
+    entries, _ = _load_slice(None, _period_cutoff(period, now=None))
+    import csv
+    import io
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow([
+        "ts", "session_id", "provider", "model", "category",
+        "tokens_in", "tokens_out", "cached_tokens", "estimated_cost_usd",
+    ])
+    for entry in entries:
+        writer.writerow([
+            entry.get("ts", ""),
+            entry.get("session_id", ""),
+            entry.get("provider", ""),
+            entry.get("model", ""),
+            entry.get("category", ""),
+            entry.get("tokens_in", ""),
+            entry.get("tokens_out", ""),
+            entry.get("cached_tokens", ""),
+            entry.get("estimated_cost_usd", ""),
+        ])
+    filename = f"arkaos-costs-{period}.csv"
+    from fastapi import Response
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
 @app.get("/api/llm-costs/trend")
 def llm_costs_trend(days: int = 7):
     """Day-by-day rolling totals from the cost telemetry.
