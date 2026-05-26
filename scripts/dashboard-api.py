@@ -785,13 +785,118 @@ def _obsidian_store_available() -> bool:
 
 @app.get("/api/personas/{persona_id}")
 def persona_detail(persona_id: str):
+    """PR74 v2.92.0 — detail endpoint now checks the Obsidian vault
+    in addition to the JSON store, so vault-only personas (Alex
+    Hormozi, Naval, etc.) resolve correctly.
+    """
+    # Try Obsidian first — it's the source of truth on conflicts.
+    try:
+        from core.personas.obsidian_store import ObsidianPersonaStore
+        ob_store = ObsidianPersonaStore()
+        if ob_store.available:
+            for p in ob_store.list_all():
+                if p.id == persona_id:
+                    payload = p.model_dump()
+                    payload["_source_store"] = "obsidian"
+                    payload["_obsidian_path"] = str(
+                        ob_store.personas_dir / f"{p.name}.md"
+                    )
+                    return payload
+    except Exception:
+        pass
+
     mgr = _get_persona_manager()
     if not mgr:
         return {"error": "Persona manager unavailable"}
     p = mgr.get(persona_id)
     if not p:
         return {"error": "Persona not found"}
-    return p.model_dump()
+    payload = p.model_dump()
+    payload["_source_store"] = "json"
+    return payload
+
+
+@app.put("/api/personas/{persona_id}")
+def persona_update(persona_id: str, body: dict):
+    """PR74 v2.92.0 — update an existing persona. Writes to both the
+    JSON store (when the persona exists there) and the Obsidian vault
+    (when configured). Best-effort: a vault write failure does not
+    abort the JSON-side success and vice versa.
+
+    The persona name can change; in that case the old Obsidian file
+    is left in place (operator can delete it manually) and a new one
+    is created with the updated name.
+    """
+    from core.personas.schema import (
+        Persona, PersonaDISC, PersonaEnneagram, PersonaBigFive, PersonaCommunication,
+    )
+
+    # Start from existing data so partial-update bodies don't wipe fields.
+    existing = persona_detail(persona_id)
+    if "error" in existing:
+        return existing
+    merged = {**existing, **{k: v for k, v in body.items() if v is not None}}
+
+    name = merged.get("name", "Unknown")
+    new_id = (
+        merged.get("id")
+        or name.lower().replace(" ", "-").replace(".", "")
+    )
+
+    updated = Persona(
+        id=new_id,
+        name=name,
+        title=merged.get("title", ""),
+        tagline=merged.get("tagline", ""),
+        source=merged.get("source", name),
+        disc=PersonaDISC(**(merged.get("disc", {}) or {})),
+        enneagram=PersonaEnneagram(**(merged.get("enneagram", {}) or {})),
+        big_five=PersonaBigFive(**(merged.get("big_five", {}) or {})),
+        mbti=merged.get("mbti", "INTJ"),
+        mental_models=merged.get("mental_models", []) or [],
+        expertise_domains=merged.get("expertise_domains", []) or [],
+        frameworks=merged.get("frameworks", []) or [],
+        key_quotes=merged.get("key_quotes", []) or [],
+        communication=PersonaCommunication(
+            **(merged.get("communication", {}) or {}),
+        ),
+        created_at=merged.get("created_at", ""),
+    )
+
+    # JSON store — only if the persona originally lived there.
+    json_written = False
+    if existing.get("_source_store") != "obsidian":
+        mgr = _get_persona_manager()
+        if mgr:
+            try:
+                mgr.update(persona_id, updated.model_dump())
+                json_written = True
+            except Exception:
+                # Fall through to create if update isn't supported.
+                try:
+                    mgr.create(updated)
+                    json_written = True
+                except Exception:
+                    json_written = False
+
+    # Obsidian — always overwrite when vault is configured.
+    obsidian_path: str | None = None
+    try:
+        from core.personas.obsidian_store import ObsidianPersonaStore
+        ob_store = ObsidianPersonaStore()
+        if ob_store.available or ob_store._vault_path is not None:
+            written = ob_store.write(updated)
+            if written is not None:
+                obsidian_path = str(written)
+    except Exception:
+        pass
+
+    return {
+        "id": updated.id,
+        "updated": True,
+        "json_written": json_written,
+        "obsidian_path": obsidian_path,
+    }
 
 
 @app.post("/api/personas")
