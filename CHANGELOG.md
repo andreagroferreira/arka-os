@@ -5,6 +5,40 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.46.0] - 2026-05-26
+
+### Added (Notifications bell — PR93d)
+
+Sidebar header gains a bell icon next to the color-mode button.
+Click it to see the last 50 activity events: kind icon, title,
+optional description + link, relative timestamp. Each entry can be
+dismissed individually, and Clear empties the feed.
+
+Persistence is client-only — `localStorage` key
+`arkaos_activity_feed` (capped at 50 entries). No server roundtrip.
+
+### New
+
+- `useActivityFeed()` composable (createSharedComposable) — `push`,
+  `clear`, `remove`, `load`, reactive `events` + `unreadCount`.
+- `NotificationsBell.vue` — UPopover bell with unread badge, icons
+  per kind, dismiss button per row, Clear button in header.
+- Sidebar header layout extended to mount the bell next to the
+  color-mode button (only when sidebar not collapsed).
+
+### First integration
+
+- Agents bulk-delete now pushes an event into the feed in addition
+  to the toast. Routes the link to `/trash` so the operator can undo
+  from one click. More integrations to come as the feed gets used.
+
+### Files changed
+
+- `dashboard/app/composables/useActivityFeed.ts` (NEW)
+- `dashboard/app/components/NotificationsBell.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — mount the bell
+- `dashboard/app/pages/agents/index.vue` — push event on bulk delete
+
 ## [3.45.0] - 2026-05-26
 
 ### Added (Bulk export selected personas — PR93c)

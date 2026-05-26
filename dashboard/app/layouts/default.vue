@@ -133,7 +133,10 @@ const links = [[{
             <span class="text-xl font-bold text-primary">A</span>
             <span v-if="!collapsed" class="font-semibold">ArkaOS</span>
           </div>
-          <UColorModeButton v-if="!collapsed" size="xs" />
+          <div v-if="!collapsed" class="flex items-center gap-1">
+            <NotificationsBell />
+            <UColorModeButton size="xs" />
+          </div>
         </div>
       </template>
 

@@ -360,6 +360,13 @@ async function bulkDelete() {
         ? [{ label: 'Undo', icon: 'i-lucide-rotate-ccw', onClick: () => undoTrashIds(trashIds) }]
         : undefined,
     })
+    // PR93d v3.46.0 — also surface in the notifications bell.
+    useActivityFeed().push({
+      kind: failures > 0 ? 'warning' : 'success',
+      title: `Deleted ${successes.length} agent${successes.length === 1 ? '' : 's'}`,
+      description: failures > 0 ? `${failures} skipped` : 'Undo via /trash',
+      to: '/trash',
+    })
   } else {
     toast.add({
       title: 'Nothing deleted',
