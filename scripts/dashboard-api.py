@@ -2500,6 +2500,44 @@ def settings_plugins():
 
 # --- Profile (PR63 v2.81.0) ---
 
+@app.get("/api/settings/vault")
+def settings_vault():
+    """PR89c v3.29.0 — vault path connection test.
+
+    Reads ``profile.vaultPath`` and reports back whether the path
+    exists, whether ``Personas/`` and ``Agents/`` subdirs are present,
+    and how many ``*.md`` files each contains.
+
+    Returns ``{configured, vault_path, exists, personas: {dir, count},
+    agents: {dir, count}}``.
+    """
+    from core.profile import ProfileManager
+    profile = ProfileManager().read()
+    configured = bool(profile.vaultPath)
+    vault = Path(profile.vaultPath).expanduser() if configured else None
+    exists = bool(vault and vault.exists() and vault.is_dir())
+
+    def _subdir_info(name: str) -> dict:
+        if not exists:
+            return {"dir": "", "count": 0}
+        sub = vault / name
+        if not sub.exists():
+            return {"dir": str(sub), "count": 0}
+        try:
+            count = sum(1 for _ in sub.glob("*.md"))
+        except OSError:
+            count = 0
+        return {"dir": str(sub), "count": count}
+
+    return {
+        "configured": configured,
+        "vault_path": str(vault) if vault else "",
+        "exists": exists,
+        "personas": _subdir_info("Personas"),
+        "agents": _subdir_info("Agents"),
+    }
+
+
 @app.get("/api/profile")
 def profile_get():
     """Return the operator profile from ~/.arkaos/profile.json.

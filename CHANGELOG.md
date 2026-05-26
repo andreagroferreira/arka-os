@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.29.0] - 2026-05-26
+
+### Added (Vault connection test in Settings — PR89c)
+
+`/settings` profile section gains a **Test connection** button next
+to the Vault path field. Click and the page tells you whether the
+path exists and how many `.md` files live under `Personas/` and
+`Agents/`. Tints green when reachable, yellow when not.
+
+### Backend
+
+- `GET /api/settings/vault` (NEW) — reads `profile.vaultPath`,
+  reports `{configured, vault_path, exists, personas:{dir,count},
+  agents:{dir,count}}`. Counts only `*.md` files. 6 unit tests cover
+  unconfigured / missing-dir / configured-with-subdirs / payload
+  shape / subdir invariants.
+
+### Frontend
+
+- `dashboard/app/pages/settings.vue` — Test connection button on the
+  Vault path field. Auto-saves the path before testing so the
+  backend sees the current value. Result card with tier-coloured
+  border + subdir file counts.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/settings/vault
+- `tests/python/test_settings_vault.py` (NEW, 6 tests)
+- `dashboard/app/pages/settings.vue` — Test button + result card
+
 ## [3.28.0] - 2026-05-26
 
 ### Added (Workflow run history — PR89b)

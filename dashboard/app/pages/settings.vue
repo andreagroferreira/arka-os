@@ -50,6 +50,45 @@ watch(profile, (p) => {
 
 const savingProfile = ref(false)
 
+// PR89c v3.29.0 — vault connection test.
+interface VaultStatus {
+  configured: boolean
+  vault_path: string
+  exists: boolean
+  personas: { dir: string, count: number }
+  agents: { dir: string, count: number }
+}
+const vaultStatus = ref<VaultStatus | null>(null)
+const testingVault = ref(false)
+
+async function testVault() {
+  testingVault.value = true
+  try {
+    // Save first so the backend reads the current value
+    if (profileDraft.value.vaultPath !== profile.value?.vaultPath) {
+      await $fetch(`${apiBase}/api/profile`, {
+        method: 'POST',
+        body: { vaultPath: profileDraft.value.vaultPath },
+      })
+    }
+    vaultStatus.value = await $fetch<VaultStatus>(`${apiBase}/api/settings/vault`)
+    toast.add({
+      title: vaultStatus.value.exists ? 'Vault reachable' : 'Vault not found',
+      description: vaultStatus.value.vault_path || 'Set a path first',
+      color: vaultStatus.value.exists ? 'success' : 'warning',
+      icon: vaultStatus.value.exists ? 'i-lucide-check-circle' : 'i-lucide-alert-circle',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Test failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    testingVault.value = false
+  }
+}
+
 async function saveProfile() {
   savingProfile.value = true
   try {
@@ -326,14 +365,68 @@ const activeSection = ref<SectionId>('profile')
 
                   <UFormField
                     label="Vault path"
-                    help="Where your Obsidian vault lives. Used by the KB-first hook."
+                    help="Where your Obsidian vault lives. Used by the KB-first hook + Persona/Agent exporters."
                   >
+                    <template #hint>
+                      <UButton
+                        label="Test connection"
+                        icon="i-lucide-plug-zap"
+                        size="xs"
+                        variant="soft"
+                        :loading="testingVault"
+                        @click="testVault"
+                      />
+                    </template>
                     <UInput
                       v-model="profileDraft.vaultPath"
                       placeholder="/Users/you/Documents/Vault"
                       class="w-full font-mono text-sm"
                     />
                   </UFormField>
+
+                  <!-- PR89c v3.29.0 — vault connection test result -->
+                  <div
+                    v-if="vaultStatus"
+                    class="rounded-lg border p-3 text-xs space-y-1"
+                    :class="
+                      vaultStatus.exists
+                        ? 'border-emerald-500/40 bg-emerald-500/5'
+                        : 'border-yellow-500/40 bg-yellow-500/5'
+                    "
+                  >
+                    <div class="flex items-center gap-2 font-semibold">
+                      <UIcon
+                        :name="vaultStatus.exists ? 'i-lucide-check-circle' : 'i-lucide-alert-circle'"
+                        :class="vaultStatus.exists ? 'text-emerald-500 size-4' : 'text-yellow-500 size-4'"
+                      />
+                      <span v-if="!vaultStatus.configured">Vault not configured</span>
+                      <span v-else-if="!vaultStatus.exists">Path does not exist</span>
+                      <span v-else>Vault reachable</span>
+                    </div>
+                    <p v-if="vaultStatus.exists" class="text-muted font-mono">
+                      {{ vaultStatus.vault_path }}
+                    </p>
+                    <ul v-if="vaultStatus.exists" class="space-y-0.5 pt-1">
+                      <li class="flex items-center gap-2">
+                        <UIcon name="i-lucide-folder" class="size-3 text-muted" />
+                        <span class="font-mono">Personas/</span>
+                        <UBadge
+                          :label="`${vaultStatus.personas.count} files`"
+                          variant="subtle"
+                          size="xs"
+                        />
+                      </li>
+                      <li class="flex items-center gap-2">
+                        <UIcon name="i-lucide-folder" class="size-3 text-muted" />
+                        <span class="font-mono">Agents/</span>
+                        <UBadge
+                          :label="`${vaultStatus.agents.count} files`"
+                          variant="subtle"
+                          size="xs"
+                        />
+                      </li>
+                    </ul>
+                  </div>
 
                   <div class="flex justify-end pt-2">
                     <UButton
