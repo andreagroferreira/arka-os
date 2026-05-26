@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.48.0] - 2026-05-26
+
+### Added (Persona archetypes catalog page — PR94b)
+
+New `/personas/archetypes` route with a browseable card grid of the
+8 starter archetypes from PR93b. Each card shows MBTI / DISC /
+Enneagram badges + description + "Create from this" button that
+deep-links to `/personas/new?archetype=<id>`. The wizard auto-detects
+the query, switches to description mode, and pre-fills.
+
+### Frontend
+
+- `dashboard/app/pages/personas/archetypes.vue` (NEW) — card grid
+  using the existing `/api/personas/archetypes` endpoint.
+- `PersonaWizard.vue` — `watch(archetypes, ...)` reads
+  `route.query.archetype` and applies the matching archetype on
+  first load.
+- `personas/index.vue` — "Archetypes" button in the navbar `#right`
+  slot between Import and Export ZIP.
+
+### Files changed
+
+- `dashboard/app/pages/personas/archetypes.vue` (NEW)
+- `dashboard/app/components/PersonaWizard.vue` — query auto-apply
+- `dashboard/app/pages/personas/index.vue` — Archetypes nav button
+
 ## [3.47.0] - 2026-05-26
 
 ### Added (Read state on notifications — PR94a)
