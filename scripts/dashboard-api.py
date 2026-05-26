@@ -1918,21 +1918,30 @@ def workflows_list():
 
 
 def _summarise_phases(phases: list) -> list[dict]:
-    """PR91c v3.37.0 — distil each phase down to what the flow stepper needs."""
+    """PR91c v3.37.0 — distil each phase down to what the flow stepper needs.
+
+    PR93a v3.43.0 — also surfaces the explicit ``agent_ids`` so the UI
+    can render them as clickable badges.
+    """
     out: list[dict] = []
     for p in phases:
         if not isinstance(p, dict):
             continue
         gate = p.get("gate") if isinstance(p.get("gate"), dict) else {}
         agents = p.get("agents") if isinstance(p.get("agents"), list) else []
+        agent_ids: list[str] = []
+        for a in agents:
+            if isinstance(a, dict):
+                aid = a.get("agent_id")
+                if aid:
+                    agent_ids.append(str(aid))
         out.append({
             "id": str(p.get("id") or ""),
             "name": str(p.get("name") or ""),
             "description": str(p.get("description") or ""),
             "gate_type": str(gate.get("type") or ""),
-            "agent_count": sum(
-                1 for a in agents if isinstance(a, dict) and a.get("agent_id")
-            ),
+            "agent_count": len(agent_ids),
+            "agent_ids": agent_ids,
         })
     return out
 

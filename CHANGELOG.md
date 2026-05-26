@@ -5,6 +5,33 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.43.0] - 2026-05-26
+
+### Added (Workflow phase agent links — PR93a)
+
+Each phase card in the `/workflows` Flow tab now lists the agents
+defined in that phase as small clickable badges. Click → land on
+`/agents/{id}`. Replaces the previous "N agents" count badge.
+
+### Backend
+
+- `_summarise_phases` extended with `agent_ids: string[]` per phase
+  derived from the YAML `agents[].agent_id` field. 1 new unit test
+  (10 total).
+- `agent_count` is now `len(agent_ids)`.
+
+### Frontend
+
+- `workflows.vue` — phase card replaces the count badge with a
+  flex row of `<NuxtLink>` chips, one per agent. Each chip routes
+  to the agent detail.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — phases summary extended
+- `tests/python/test_workflows_endpoint.py` — agent_ids test
+- `dashboard/app/pages/workflows.vue` — phase chips
+
 ## [3.42.0] - 2026-05-26
 
 ### Added (Theme primary color picker — PR92d)
