@@ -26,8 +26,13 @@ export interface TerminalSessionHandle {
   onOutput: (cb: (chunk: Uint8Array) => void) => () => void
 }
 
-export function useTerminalSession(): TerminalSessionHandle {
-  const { apiBase } = useApi()
+export function useTerminalSession(
+  apiBaseOverride?: string,
+): TerminalSessionHandle {
+  // PR99c v3.69.0 — apiBaseOverride lets useTerminalTabs construct
+  // sessions from user-event handlers without re-entering Nuxt's
+  // composable context.
+  const apiBase = apiBaseOverride ?? useApi().apiBase
   const meta = ref<TerminalSessionMeta | null>(null)
   const status = ref<'idle' | 'connecting' | 'open' | 'closed' | 'error'>('idle')
   const error = ref<string | null>(null)
