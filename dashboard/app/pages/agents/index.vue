@@ -225,6 +225,43 @@ function goToAgent(id: string) {
   navigateTo(`/agents/${id}`)
 }
 
+// PR95d v3.54.0 — keyboard nav for the table.
+const cursorIndex = ref(-1)
+
+function cursorDown() {
+  const total = paginatedAgents.value.length
+  if (total === 0) return
+  cursorIndex.value = Math.min(total - 1, Math.max(0, cursorIndex.value + 1))
+  scrollCursorIntoView()
+}
+function cursorUp() {
+  const total = paginatedAgents.value.length
+  if (total === 0) return
+  cursorIndex.value = Math.max(0, cursorIndex.value === -1 ? 0 : cursorIndex.value - 1)
+  scrollCursorIntoView()
+}
+function cursorOpen() {
+  if (cursorIndex.value < 0) return
+  const row = paginatedAgents.value[cursorIndex.value]
+  if (row?.id) goToAgent(row.id)
+}
+function scrollCursorIntoView() {
+  if (typeof document === 'undefined') return
+  // Defer to next tick so the class change has rendered.
+  setTimeout(() => {
+    const el = document.querySelector('[data-cursor="true"]')
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, 0)
+}
+
+defineShortcuts({
+  j: () => cursorDown(),
+  k: () => cursorUp(),
+  arrowdown: () => cursorDown(),
+  arrowup: () => cursorUp(),
+  enter: () => cursorOpen(),
+})
+
 // PR86a v3.15.0 — favorites.
 // PR92b v3.40.0 — favoritesOnly persists in URL (`?fav=1`).
 const favs = useFavorites()
@@ -527,9 +564,16 @@ async function undoTrashIds(ids: string[]) {
             />
           </template>
           <template #name-cell="{ row }">
-            <button class="text-left font-medium text-primary hover:underline" @click="goToAgent(row.original.id)">
-              {{ row.original.name }}
-            </button>
+            <div :data-cursor="row.index === cursorIndex ? 'true' : undefined" class="flex items-center gap-1.5">
+              <UIcon
+                v-if="row.index === cursorIndex"
+                name="i-lucide-chevron-right"
+                class="size-3.5 text-primary shrink-0"
+              />
+              <button class="text-left font-medium text-primary hover:underline" @click="goToAgent(row.original.id)">
+                {{ row.original.name }}
+              </button>
+            </div>
           </template>
           <template #department-cell="{ row }">
             <UBadge :label="row.original.department" variant="subtle" size="sm" />
