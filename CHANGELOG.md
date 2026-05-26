@@ -5,6 +5,19 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.23.0] - 2026-05-26
+
+### Added (Persona vs Agent comparison — PR88a)
+
+Persona detail hero gains a Compare dropdown listing every agent
+linked to that persona. Pick one → land on a diff view at
+`/personas/compare-with-agent?persona=p&agent=a`.
+
+### Files changed
+
+- `dashboard/app/pages/personas/compare-with-agent.vue` (NEW)
+- `dashboard/app/pages/personas/[id].vue` — Compare dropdown
+
 ## [3.22.0] - 2026-05-26
 
 ### Added (Sidebar stats widget — PR87d)

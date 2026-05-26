@@ -247,6 +247,17 @@ function onCloned(agentId: string) {
   navigateTo(`/agents/${agentId}`)
 }
 
+// PR88a v3.23.0 — Compare with linked agent.
+const compareWithOptions = computed(() =>
+  linkedAgentIds.value.map((aid) => ({
+    label: `Compare with ${aid}`,
+    icon: 'i-lucide-columns-2',
+    onSelect: () => navigateTo(
+      `/personas/compare-with-agent?persona=${personaId}&agent=${aid}`,
+    ),
+  })),
+)
+
 // PR84c v3.9.0 — Auto-fill empty lists in one go.
 const autofilling = ref(false)
 
@@ -496,6 +507,18 @@ const vocabOptions = [
                       :aria-label="favs.isPersonaFavorite(detail.id) ? 'Unfavorite' : 'Favorite'"
                       @click="favs.toggle('personas', detail.id)"
                     />
+                    <UDropdownMenu
+                      v-if="compareWithOptions.length > 0"
+                      :items="compareWithOptions"
+                    >
+                      <UButton
+                        label="Compare"
+                        icon="i-lucide-columns-2"
+                        variant="soft"
+                        size="sm"
+                        trailing-icon="i-lucide-chevron-down"
+                      />
+                    </UDropdownMenu>
                     <UButton
                       label="Clone to Agent"
                       icon="i-lucide-copy-plus"
