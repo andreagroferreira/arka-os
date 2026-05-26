@@ -5,6 +5,26 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.32.0] - 2026-05-26
+
+### Added (Department comparison — PR90b)
+
+`/departments/compare?a=dept1&b=dept2` shows two departments
+side-by-side: agent count, workflow count, 30d calls + cost, agent
+list, workflows list. Yellow tint on differing cells.
+
+### Frontend
+
+- `dashboard/app/pages/departments/compare.vue` (NEW) — uses the
+  existing `/api/departments/{id}` endpoint twice, no new backend.
+- `dashboard/app/pages/departments/[dept].vue` — Compare dropdown
+  in the navbar `#right` slot listing every other department.
+
+### Files changed
+
+- `dashboard/app/pages/departments/compare.vue` (NEW)
+- `dashboard/app/pages/departments/[dept].vue` — Compare dropdown
+
 ## [3.31.0] - 2026-05-26
 
 ### Added (Persona Markdown download — PR90a)

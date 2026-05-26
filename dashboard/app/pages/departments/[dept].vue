@@ -37,6 +37,21 @@ const { data, status, error, refresh } = await fetchApi<DeptDetail>(
   `/api/departments/${deptId.value}`,
 )
 
+// PR90b v3.32.0 — Compare with another department.
+const { data: deptListData } = fetchApi<{ departments: Array<{ department: string }> }>(
+  '/api/departments',
+)
+const compareOptions = computed(() =>
+  (deptListData.value?.departments ?? [])
+    .filter((d) => d.department !== deptId.value)
+    .map((d) => ({
+      label: `Compare with ${d.department}`,
+      icon: 'i-lucide-columns-2',
+      onSelect: () =>
+        navigateTo(`/departments/compare?a=${deptId.value}&b=${d.department}`),
+    })),
+)
+
 const errorMsg = computed(() => data.value?.error || error.value?.message || null)
 const detail = computed<DeptDetail | null>(() => {
   if (!data.value || data.value.error) return null
@@ -64,6 +79,17 @@ const tierColor = (tier: number | undefined) => {
       <UDashboardNavbar :title="`Department · ${deptId}`">
         <template #leading>
           <UButton icon="i-lucide-arrow-left" variant="ghost" size="sm" to="/departments" aria-label="Back" />
+        </template>
+        <template #right>
+          <UDropdownMenu v-if="compareOptions.length > 0" :items="compareOptions">
+            <UButton
+              label="Compare"
+              icon="i-lucide-columns-2"
+              variant="soft"
+              size="sm"
+              trailing-icon="i-lucide-chevron-down"
+            />
+          </UDropdownMenu>
         </template>
       </UDashboardNavbar>
     </template>
