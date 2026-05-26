@@ -137,6 +137,42 @@ function goToPersona(id: string) {
   navigateTo(`/personas/${id}`)
 }
 
+// PR96a v3.55.0 — keyboard nav, mirror of PR95d on /agents.
+const cursorIndex = ref(-1)
+
+function cursorDown() {
+  const total = paginatedPersonas.value.length
+  if (total === 0) return
+  cursorIndex.value = Math.min(total - 1, Math.max(0, cursorIndex.value + 1))
+  scrollCursorIntoView()
+}
+function cursorUp() {
+  const total = paginatedPersonas.value.length
+  if (total === 0) return
+  cursorIndex.value = Math.max(0, cursorIndex.value === -1 ? 0 : cursorIndex.value - 1)
+  scrollCursorIntoView()
+}
+function cursorOpen() {
+  if (cursorIndex.value < 0) return
+  const row = paginatedPersonas.value[cursorIndex.value]
+  if (row?.id) goToPersona(row.id)
+}
+function scrollCursorIntoView() {
+  if (typeof document === 'undefined') return
+  setTimeout(() => {
+    const el = document.querySelector('[data-cursor="true"]')
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, 0)
+}
+
+defineShortcuts({
+  j: () => cursorDown(),
+  k: () => cursorUp(),
+  arrowdown: () => cursorDown(),
+  arrowup: () => cursorUp(),
+  enter: () => cursorOpen(),
+})
+
 // PR86a v3.15.0 — favorites.
 const favs = useFavorites()
 await favs.load()
@@ -593,7 +629,14 @@ async function undoTrashIds(ids: string[]) {
             />
           </template>
           <template #name-cell="{ row }">
-            <span class="font-medium">{{ row.original.name }}</span>
+            <div :data-cursor="row.index === cursorIndex ? 'true' : undefined" class="flex items-center gap-1.5">
+              <UIcon
+                v-if="row.index === cursorIndex"
+                name="i-lucide-chevron-right"
+                class="size-3.5 text-primary shrink-0"
+              />
+              <span class="font-medium">{{ row.original.name }}</span>
+            </div>
           </template>
           <template #title-cell="{ row }">
             <span class="text-sm text-muted truncate">{{ row.original.title || '—' }}</span>
