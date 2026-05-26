@@ -60,6 +60,41 @@ def test_phases_count_non_negative():
         assert w["phases_count"] >= 0
 
 
+def test_phases_summary_present():
+    """PR91c — each workflow now ships a `phases` array of distilled stepper data."""
+    api = _load_dashboard_api()
+    res = api.workflows_list()
+    if not res["workflows"]:
+        return
+    w = next((w for w in res["workflows"] if w["phases_count"] > 0), None)
+    if not w:
+        return
+    assert "phases" in w
+    assert isinstance(w["phases"], list)
+    assert len(w["phases"]) == w["phases_count"]
+    for ph in w["phases"]:
+        assert "id" in ph
+        assert "name" in ph
+        assert "gate_type" in ph
+        assert "agent_count" in ph
+        assert isinstance(ph["agent_count"], int)
+
+
+def test_summarise_phases_skips_non_dicts():
+    api = _load_dashboard_api()
+    out = api._summarise_phases(["not a dict", {"id": "x", "name": "X"}])
+    assert len(out) == 1
+    assert out[0]["id"] == "x"
+
+
+def test_summarise_phases_handles_missing_keys():
+    api = _load_dashboard_api()
+    out = api._summarise_phases([{}])
+    assert out[0]["id"] == ""
+    assert out[0]["agent_count"] == 0
+    assert out[0]["gate_type"] == ""
+
+
 def test_content_is_yaml_string():
     api = _load_dashboard_api()
     res = api.workflows_list()
