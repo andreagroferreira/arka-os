@@ -424,6 +424,13 @@ async function undoTrashIds(ids: string[]) {
         </template>
         <template #right>
           <UButton
+            label="Archetypes"
+            icon="i-lucide-sparkles"
+            variant="ghost"
+            size="sm"
+            to="/personas/archetypes"
+          />
+          <UButton
             label="Export ZIP"
             icon="i-lucide-archive"
             variant="ghost"

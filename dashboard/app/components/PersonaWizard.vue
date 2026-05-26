@@ -63,6 +63,16 @@ function applyArchetype(arch: Archetype) {
   mode.value = 'description'
 }
 
+// PR94b v3.48.0 — auto-apply archetype from query string (deep link
+// from the /personas/archetypes catalog).
+const route = useRoute()
+watch(archetypes, (list) => {
+  const slug = String(route.query.archetype ?? '')
+  if (!slug || list.length === 0) return
+  const match = list.find((a) => a.id === slug)
+  if (match) applyArchetype(match)
+}, { immediate: true })
+
 // ─── Step 2 state ────────────────────────────────────────────────────────
 const ingestJobs = ref<Array<{
   source: string
