@@ -158,5 +158,6 @@ const links = [[{
     <slot />
     <KeyboardShortcutsHelp />
     <GlobalSearch />
+    <OnboardingTour />
   </UDashboardGroup>
 </template>
