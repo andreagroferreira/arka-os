@@ -13,6 +13,36 @@ const personas = computed(() => data.value?.personas ?? [])
 const detailOpen = ref(false)
 const detailPersonaId = ref<string | null>(null)
 
+// PR77 v2.95.0 — reverse-usage (which agents link to each persona).
+const { data: usageData } = fetchApi<{
+  by_persona: Record<string, { agent_count: number, agent_ids: string[] }>
+}>('/api/personas/usage')
+
+function personaAgentCount(personaId: string): number {
+  return usageData.value?.by_persona?.[personaId]?.agent_count ?? 0
+}
+
+function mbtiGradient(mbti: string | undefined): string {
+  if (!mbti) return 'bg-gradient-to-br from-muted/20 to-muted/5'
+  const code = mbti.toUpperCase()
+  if (['INTJ', 'INTP', 'ENTJ', 'ENTP'].includes(code))
+    return 'bg-gradient-to-br from-blue-500/25 to-indigo-600/10'
+  if (['INFJ', 'INFP', 'ENFJ', 'ENFP'].includes(code))
+    return 'bg-gradient-to-br from-emerald-500/25 to-teal-600/10'
+  if (['ISTJ', 'ISFJ', 'ESTJ', 'ESFJ'].includes(code))
+    return 'bg-gradient-to-br from-amber-500/25 to-orange-600/10'
+  if (['ISTP', 'ISFP', 'ESTP', 'ESFP'].includes(code))
+    return 'bg-gradient-to-br from-rose-500/25 to-pink-600/10'
+  return 'bg-gradient-to-br from-primary/20 to-primary/5'
+}
+
+function personaInitials(name: string): string {
+  if (!name) return '·'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 function openDetail(persona: Persona) {
   detailPersonaId.value = persona.id
   detailOpen.value = true
@@ -544,27 +574,42 @@ function discColor(disc: string): string {
 
         <!-- Personas Grid -->
         <div v-if="personas.length" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <UCard
+          <div
             v-for="persona in personas"
             :key="persona.id"
-            class="group flex flex-col cursor-pointer hover:border-primary/40 transition-colors"
+            class="group flex flex-col rounded-2xl border border-default overflow-hidden cursor-pointer hover:border-primary/40 hover:shadow-lg transition-all"
             role="button"
             tabindex="0"
             @click="openDetail(persona)"
             @keydown.enter="openDetail(persona)"
           >
-            <div class="flex flex-col gap-3 flex-1">
-              <!-- Header -->
-              <div>
-                <h3 class="text-base font-bold truncate">{{ persona.name }}</h3>
-                <p v-if="persona.title" class="text-sm text-muted truncate mt-0.5">{{ persona.title }}</p>
-                <p v-if="persona.source" class="text-xs text-muted/60 mt-1">
-                  Source: {{ persona.source }}
-                </p>
+            <!-- Gradient header with avatar -->
+            <div
+              class="p-4 flex items-center gap-3"
+              :class="mbtiGradient(persona.mbti)"
+            >
+              <div class="shrink-0 size-12 rounded-xl bg-default/80 border border-default flex items-center justify-center shadow-sm backdrop-blur-sm">
+                <span class="text-sm font-bold tracking-tight text-highlighted">
+                  {{ personaInitials(persona.name) }}
+                </span>
               </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-base font-bold truncate text-highlighted">{{ persona.name }}</h3>
+                <p v-if="persona.title" class="text-xs text-muted truncate mt-0.5">{{ persona.title }}</p>
+              </div>
+              <UBadge
+                v-if="personaAgentCount(persona.id) > 0"
+                :label="`${personaAgentCount(persona.id)} agents`"
+                variant="subtle"
+                color="primary"
+                size="xs"
+                class="shrink-0"
+              />
+            </div>
 
-              <!-- Tagline -->
-              <p v-if="persona.tagline" class="text-sm text-muted italic leading-relaxed">
+            <!-- Body -->
+            <div class="flex flex-col gap-3 flex-1 p-4">
+              <p v-if="persona.tagline" class="text-sm text-muted italic leading-relaxed line-clamp-2">
                 "{{ persona.tagline }}"
               </p>
 
@@ -665,7 +710,7 @@ function discColor(disc: string): string {
                 </div>
               </div>
             </div>
-          </UCard>
+          </div>
         </div>
       </template>
       </div>

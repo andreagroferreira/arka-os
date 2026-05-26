@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.95.0] - 2026-05-26
+
+### Added (Personas page modernization — PR77)
+
+Same visual treatment landed on the agent detail page (PR76),
+applied to personas.
+
+List cards:
+- Gradient header per card by MBTI grouping (Analysts blue,
+  Diplomats emerald, Sentinels amber, Explorers rose)
+- Initials avatar inside gradient header
+- "N agents" badge when persona is linked to agent YAMLs
+- Cards now use rounded-2xl div for cleaner gradient bleed
+
+Detail drawer:
+- Gradient hero matching list tint, size-14 avatar, 2xl name
+- Source badge + MBTI pill + linked-agent count in hero
+- Linked agents section (clickable pills → /agents/{id}) in read mode
+
+Backend:
+- GET /api/personas/usage — reverse lookup walking agent YAMLs,
+  returns by_persona with agent_count + agent_ids per persona.
+  Defensive on missing/malformed YAMLs.
+
+### Test coverage
+- 6 new test_personas_usage_api.py cases
+- Vue typecheck clean
+- Full Python suite: 3824/3824 passing
+- Preflight: all_passed=True
+
 ## [2.94.0] - 2026-05-26
 
 ### Added (Agent detail modernization + edit drawer — PR76)

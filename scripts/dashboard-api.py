@@ -875,6 +875,41 @@ def _obsidian_store_available() -> bool:
         return False
 
 
+@app.get("/api/personas/usage")
+def personas_usage():
+    """PR77 v2.95.0 — reverse lookup: how many agents link to each
+    persona. Reads every agent's YAML once, builds a
+    ``{persona_id: [agent_id, ...]}`` map.
+
+    The detail drawer + list cards use this to show "Linked to N
+    agents" so the operator sees which personas are actually wired.
+    """
+    import yaml as _yaml
+    agents = _load_agents()
+    usage: dict[str, list[str]] = {}
+    for agent in agents:
+        yaml_file = ARKAOS_ROOT / agent.get("file", "")
+        if not yaml_file.exists():
+            continue
+        try:
+            raw = _yaml.safe_load(yaml_file.read_text(encoding="utf-8")) or {}
+        except Exception:
+            continue
+        linked = raw.get("linked_personas") if isinstance(raw, dict) else None
+        if not isinstance(linked, list):
+            continue
+        for persona_id in linked:
+            if not isinstance(persona_id, str):
+                continue
+            usage.setdefault(persona_id, []).append(agent.get("id", ""))
+    return {
+        "by_persona": {
+            pid: {"agent_count": len(aids), "agent_ids": aids}
+            for pid, aids in usage.items()
+        },
+    }
+
+
 @app.get("/api/personas/{persona_id}")
 def persona_detail(persona_id: str):
     """PR74 v2.92.0 — detail endpoint now checks the Obsidian vault
