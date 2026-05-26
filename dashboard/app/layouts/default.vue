@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
+// PR85c v3.13.0 — registers keyboard shortcuts globally.
+useDashboard()
+
 const open = ref(false)
 
 const links = [[{
@@ -129,5 +132,6 @@ const links = [[{
     </UDashboardSidebar>
 
     <slot />
+    <KeyboardShortcutsHelp />
   </UDashboardGroup>
 </template>

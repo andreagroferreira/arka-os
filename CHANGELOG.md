@@ -5,6 +5,42 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.13.0] - 2026-05-26
+
+### Added (Keyboard shortcuts + help overlay — PR85c)
+
+The dashboard already had `g h / g a / g c / g b / g t / g k / g e`
+wired through `defineShortcuts`. PR85c finishes the keymap and adds an
+overlay so operators can discover it without reading the source.
+
+### New shortcuts
+
+- `g p` → /personas (was missing — fills the obvious gap)
+- `g r` → /trash (recycle)
+- `g s` → /settings
+- `n`  → context-aware new: on /agents → /agents/new, on /personas
+        → /personas/new, otherwise /agents/new
+- `?`  → toggle the keyboard-shortcuts help modal
+
+### New component
+
+- `dashboard/app/components/KeyboardShortcutsHelp.vue` — UModal listing
+  every registered shortcut grouped by Navigation / Actions. Triggered
+  by `?` via shared state in the dashboard composable.
+
+### Wiring
+
+- `useDashboard()` composable extended with `contextualNew()`,
+  `shortcutsHelpOpen` shared state, and the four new bindings.
+- `default.vue` layout now invokes `useDashboard()` to register the
+  shortcuts globally and mounts `<KeyboardShortcutsHelp />`.
+
+### Files changed
+
+- `dashboard/app/composables/useDashboard.ts` — keymap + state
+- `dashboard/app/components/KeyboardShortcutsHelp.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — invoke composable + mount help
+
 ## [3.12.0] - 2026-05-26
 
 ### Added (Trash + Undo for destructive actions — PR85b)
