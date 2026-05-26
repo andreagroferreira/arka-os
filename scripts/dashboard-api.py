@@ -1894,6 +1894,120 @@ def _iso_duration_s(start_iso: str, end_iso: str) -> Optional[int]:
         return None
 
 
+# --- Terminal command runner (PR95a v3.51.0) ---
+
+# Allowlist of commands the dashboard terminal can run. Each entry is
+# {id, label, cmd, description}. Server-side enforcement: any request
+# whose `command_id` isn't in this list is rejected. No shell expansion,
+# no globbing, no pipes — subprocess.run with explicit argv only.
+TERMINAL_ALLOWLIST: list[dict] = [
+    {
+        "id": "arka-status",
+        "label": "ArkaOS status",
+        "cmd": ["arkaos", "status"],
+        "description": "System status (version, departments, agents, projects).",
+    },
+    {
+        "id": "git-status",
+        "label": "git status",
+        "cmd": ["git", "status", "--short"],
+        "description": "Working tree status in short form.",
+    },
+    {
+        "id": "git-log",
+        "label": "git log (10)",
+        "cmd": ["git", "log", "-10", "--oneline"],
+        "description": "Most recent 10 commits.",
+    },
+    {
+        "id": "npm-version",
+        "label": "npm view arkaos version",
+        "cmd": ["npm", "view", "arkaos", "version"],
+        "description": "Latest published ArkaOS version on npm.",
+    },
+    {
+        "id": "pytest-collect",
+        "label": "pytest --collect-only",
+        "cmd": ["python3", "-m", "pytest", "--collect-only", "-q", "tests/python/"],
+        "description": "List every Python test without running.",
+    },
+    {
+        "id": "ls",
+        "label": "ls",
+        "cmd": ["ls", "-la"],
+        "description": "List files in the project root.",
+    },
+]
+
+_TERMINAL_TIMEOUT_S = 15
+_TERMINAL_MAX_OUTPUT = 20_000  # chars — both stdout and stderr capped
+
+
+@app.get("/api/terminal/commands")
+def terminal_commands():
+    """List allowlisted commands the dashboard terminal may run."""
+    return {
+        "commands": [
+            {"id": c["id"], "label": c["label"], "description": c["description"]}
+            for c in TERMINAL_ALLOWLIST
+        ],
+        "total": len(TERMINAL_ALLOWLIST),
+    }
+
+
+@app.post("/api/terminal/exec")
+def terminal_exec(body: dict):
+    """PR95a v3.51.0 — run an allowlisted command and return the output.
+
+    Body: ``{"command_id": "<id>"}``. Unknown ids are rejected.
+    Returns ``{stdout, stderr, exit_code, duration_ms, command}``.
+    Output is capped at ``_TERMINAL_MAX_OUTPUT`` chars per stream.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    cid = (body.get("command_id") or "").strip()
+    if not cid:
+        return {"error": "command_id is required"}
+    entry = next((c for c in TERMINAL_ALLOWLIST if c["id"] == cid), None)
+    if entry is None:
+        return {"error": f"command '{cid}' is not on the allowlist"}
+    import time
+    started = time.monotonic()
+    try:
+        result = subprocess.run(
+            entry["cmd"],
+            cwd=str(ARKAOS_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=_TERMINAL_TIMEOUT_S,
+            shell=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "stdout": "",
+            "stderr": f"command timed out after {_TERMINAL_TIMEOUT_S}s",
+            "exit_code": -1,
+            "duration_ms": int(_TERMINAL_TIMEOUT_S * 1000),
+            "command": " ".join(entry["cmd"]),
+        }
+    except OSError as exc:
+        return {
+            "stdout": "",
+            "stderr": f"command failed to launch: {exc}",
+            "exit_code": -1,
+            "duration_ms": int((time.monotonic() - started) * 1000),
+            "command": " ".join(entry["cmd"]),
+        }
+    duration_ms = int((time.monotonic() - started) * 1000)
+    return {
+        "stdout": (result.stdout or "")[:_TERMINAL_MAX_OUTPUT],
+        "stderr": (result.stderr or "")[:_TERMINAL_MAX_OUTPUT],
+        "exit_code": result.returncode,
+        "duration_ms": duration_ms,
+        "command": " ".join(entry["cmd"]),
+    }
+
+
 @app.put("/api/workflows/{workflow_id}/yaml")
 def workflow_update_yaml(workflow_id: str, body: dict):
     """PR94d v3.50.0 — overwrite a workflow's YAML file in place.

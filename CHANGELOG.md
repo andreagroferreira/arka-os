@@ -5,6 +5,49 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.51.0] - 2026-05-26
+
+### Added (Terminal page with allowlist commands — PR95a)
+
+Operator-requested terminal in the dashboard. Ships as a controlled
+command runner with a server-enforced allowlist. xterm.js / vue-termui
+PTY can come as a follow-up if needed.
+
+### Backend
+
+- `TERMINAL_ALLOWLIST` (NEW) — 6 commands shipped (arkaos status,
+  git status, git log, npm view arkaos version, pytest --collect-only,
+  ls -la).
+- `GET /api/terminal/commands` — returns id + label + description.
+  Does NOT leak the underlying argv array.
+- `POST /api/terminal/exec` — accepts `{command_id}`, runs via
+  `subprocess.run(shell=False)` with 15s timeout + 20K chars per
+  stream cap. Rejects anything not on the allowlist.
+- 9 unit tests cover allowlist exposure, body validation, rejection
+  paths, smoke run, and no-shell invariants.
+
+### Frontend
+
+- `/terminal` page (NEW) — UButton grid of allowlisted commands +
+  Recent runs history (last 20) with copy-to-clipboard + stderr
+  highlighting.
+- Sidebar Terminal nav item between Tasks and Workflows.
+
+### Design rationale
+
+- vue-termui is for building Vue TUIs that RUN in a terminal — not
+  for embedding a shell in a browser. The dashboard instead ships a
+  controlled runner: no shell, no PTY, no arbitrary execution.
+- subprocess.run + shell=False + explicit argv kills shell injection.
+  List endpoint omits argv so XSS can't enumerate or rewrite.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — allowlist + 2 endpoints
+- `tests/python/test_terminal_exec.py` (NEW, 9 tests)
+- `dashboard/app/pages/terminal.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — Terminal nav item
+
 ## [3.50.0] - 2026-05-26
 
 ### Added (Inline workflow YAML editor — PR94d)
