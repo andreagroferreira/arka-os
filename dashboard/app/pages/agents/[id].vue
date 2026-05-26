@@ -28,6 +28,26 @@ const deptActivity = computed<ActivityRow | null>(() =>
   (activityData.value?.by_department?.[agent.value?.department ?? ''] ?? null),
 )
 
+// PR96d v3.58.0 — 30d activity sparkline (calls per day).
+interface SparklineDay {
+  date: string
+  calls: number
+  cost_usd: number | null
+}
+const { data: sparklineData } = fetchApi<{
+  days: SparklineDay[]
+  period_days: number
+  department: string
+}>(`/api/agents/${agentId}/activity-sparkline?days=30`)
+const sparkline = computed<SparklineDay[]>(() => sparklineData.value?.days ?? [])
+const sparklineMaxCalls = computed(() => {
+  const max = sparkline.value.reduce((acc, d) => Math.max(acc, d.calls), 0)
+  return Math.max(max, 1)
+})
+const sparklineTotalCalls = computed(() =>
+  sparkline.value.reduce((acc, d) => acc + d.calls, 0),
+)
+
 // PR88d v3.26.0 — agent history (git log + trash entries)
 interface HistoryEvent {
   kind: string
@@ -557,6 +577,36 @@ function formatTokens(n: number): string {
                 size="sm"
               />
             </div>
+          </div>
+          <!-- PR96d v3.58.0 — sparkline of daily calls -->
+          <div
+            v-if="sparkline.length > 0 && sparklineTotalCalls > 0"
+            class="mt-3 pt-3 border-t border-default/60"
+          >
+            <div class="flex items-center justify-between text-xs mb-1.5">
+              <span class="text-muted uppercase tracking-wide">Daily calls</span>
+              <span class="font-mono text-muted">
+                {{ sparklineTotalCalls }} total · max {{ sparklineMaxCalls }}/day
+              </span>
+            </div>
+            <svg
+              :viewBox="`0 0 ${sparkline.length * 6} 32`"
+              class="w-full h-8"
+              preserveAspectRatio="none"
+            >
+              <rect
+                v-for="(day, idx) in sparkline"
+                :key="day.date"
+                :x="idx * 6 + 1"
+                :y="32 - (day.calls / sparklineMaxCalls) * 30"
+                width="4"
+                :height="(day.calls / sparklineMaxCalls) * 30"
+                class="fill-primary"
+                :class="day.calls === 0 ? 'opacity-20' : 'opacity-90'"
+              >
+                <title>{{ day.date }} · {{ day.calls }} calls</title>
+              </rect>
+            </svg>
           </div>
         </section>
 

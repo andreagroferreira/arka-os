@@ -5,6 +5,35 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.58.0] - 2026-05-26
+
+### Added (Agent activity sparkline — PR96d)
+
+The agent detail activity strip gains a 30-day calls-per-day sparkline
+below the stats row. Pure SVG, no chart deps, capped at 90 days. Bars
+get a tooltip with the exact date + call count on hover.
+
+### Backend
+
+- `GET /api/agents/{id}/activity-sparkline?days=N` (NEW) — returns
+  `{days: [{date, calls, cost_usd}], period_days, department}`.
+  Pre-seeds N day buckets with zeros so the chart never shows gaps.
+  Counts both `subagent:<dept>:<agent_id>` and `subagent:<dept>`
+  telemetry, matching the activity-strip convention from PR86b.
+- 7 unit tests cover unknown agent, payload shape, default period,
+  90-day cap, invalid-days fallback, day shape, sort order.
+
+### Frontend
+
+- `agents/[id].vue` — inline SVG sparkline inside the activity strip
+  card. Hides itself when total calls = 0. Header shows total + max.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/agents/{id}/activity-sparkline
+- `tests/python/test_agent_activity_sparkline.py` (NEW, 7 tests)
+- `dashboard/app/pages/agents/[id].vue` — SVG sparkline + state
+
 ## [3.57.0] - 2026-05-26
 
 ### Added (Persona vs persona compare — PR96c)
