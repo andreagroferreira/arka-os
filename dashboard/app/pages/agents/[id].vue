@@ -9,7 +9,8 @@
 const route = useRoute()
 const agentId = route.params.id as string
 
-const { fetchApi } = useApi()
+const { fetchApi, apiBase } = useApi()
+const toast = useToast()
 const { data: agent, status, error, refresh } = fetchApi<any>(`/api/agents/${agentId}`)
 
 // Per-department activity (PR69 endpoint) for the stats row.
@@ -63,6 +64,34 @@ function formatRelative(iso: string | null): string {
 // PR86a v3.15.0 — favorites.
 const favs = useFavorites()
 await favs.load()
+
+// PR86c v3.17.0 — export to Obsidian.
+const exporting = ref(false)
+async function exportToVault() {
+  if (!agent.value) return
+  exporting.value = true
+  try {
+    const res = await $fetch<{ exported?: boolean, path?: string, error?: string }>(
+      `${apiBase}/api/agents/${agentId}/export`,
+      { method: 'POST' },
+    )
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: 'Exported to Obsidian',
+      description: res.path ? res.path.split('/').slice(-3).join('/') : undefined,
+      color: 'success',
+      icon: 'i-lucide-file-text',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Export failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    exporting.value = false
+  }
+}
 
 // PR76 — edit drawer state
 const editOpen = ref(false)
@@ -281,6 +310,14 @@ function formatTokens(n: number): string {
                     size="sm"
                     :aria-label="favs.isAgentFavorite(agent.id) ? 'Unfavorite' : 'Favorite'"
                     @click="favs.toggle('agents', agent.id)"
+                  />
+                  <UButton
+                    label="Export"
+                    icon="i-lucide-file-text"
+                    variant="soft"
+                    size="sm"
+                    :loading="exporting"
+                    @click="exportToVault"
                   />
                   <UButton
                     label="Edit"

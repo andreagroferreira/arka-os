@@ -1361,6 +1361,28 @@ def persona_delete(persona_id: str):
     return {"error": "Persona not found"}
 
 
+# --- Agent → Obsidian export (PR86c v3.17.0) ---
+
+@app.post("/api/agents/{agent_id}/export")
+def agent_export_to_vault(agent_id: str):
+    """Write the agent profile as Markdown under <vault>/Agents/<id>.md."""
+    detail = agent_detail(agent_id)
+    if "error" in detail:
+        return detail
+    try:
+        from core.agents.obsidian_export import (
+            AgentExportError,
+            export_agent_to_vault,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"export module unavailable: {exc}"}
+    try:
+        res = export_agent_to_vault(detail)
+    except AgentExportError as exc:
+        return {"error": str(exc)}
+    return {"exported": True, "path": str(res.path), "vault_path": str(res.vault_path)}
+
+
 # --- Favorites (PR86a v3.15.0) ---
 
 @app.get("/api/favorites")
