@@ -5,6 +5,42 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.94.0] - 2026-05-26
+
+### Added (Agent detail modernization + edit drawer — PR76)
+
+Closes the operator ask: more modern agent detail page + edit
+support for non-technical users.
+
+Visual:
+- **Default tab fixed** — UTabs opens with DNA selected
+- **Modern hero** — department-tinted gradient + initials avatar +
+  full badges row + selectable agent id
+- **Stats row** (4 cards): 7d calls / 7d cost / tokens / linked
+  personas. Pulls from PR69 /api/agents/activity.
+- **16 dept-gradient pairs** so each department always renders the
+  same hero tint.
+
+Edit:
+- New `AgentEditDrawer.vue` with USlideover + full form:
+  identity, mental models, expertise, frameworks, communication,
+  linked_personas (multi-select against /api/personas).
+- Dirty-state tracking; Save disabled until changes; ConfirmDialog
+  (PR75) on close with pending edits.
+- Behavioural DNA (DISC/Enneagram/MBTI/Big-Five) intentionally
+  locked — changing it silently breaks the agent identity model.
+
+Backend:
+- **PUT /api/agents/{id}** — atomic YAML write (.tmp + replace).
+  Partial-update body merged on top so unspecified fields preserve.
+- **GET /api/agents/{id}** extended with `frameworks`,
+  `expertise_domains`, `linked_personas`, `_yaml_path`.
+
+### Test coverage
+- Vue typecheck clean
+- Full Python suite: 3818/3818 passing
+- Preflight: all_passed=True
+
 ## [2.93.0] - 2026-05-26
 
 ### Changed (Native `window.confirm` → `<ConfirmDialog>` — PR75)

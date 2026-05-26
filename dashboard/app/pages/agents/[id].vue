@@ -1,9 +1,42 @@
 <script setup lang="ts">
+// PR76 v2.94.0 — Agent detail modernization.
+// Fixes:
+//  - UTabs now has default-value so DNA opens on entry
+//  - Modern hero: department-tinted gradient + initials avatar + stats
+//  - Activity stats row pulled from PR69 /api/agents/activity
+//  - Edit toggle wired to AgentEditDrawer (PUT /api/agents/{id})
+
 const route = useRoute()
 const agentId = route.params.id as string
 
 const { fetchApi } = useApi()
-const { data: agent, status, error } = fetchApi<any>(`/api/agents/${agentId}`)
+const { data: agent, status, error, refresh } = fetchApi<any>(`/api/agents/${agentId}`)
+
+// Per-department activity (PR69 endpoint) for the stats row.
+interface ActivityRow {
+  call_count: number
+  total_cost_usd: number | null
+  total_tokens_in: number
+  total_tokens_out: number
+}
+const { data: activityData } = fetchApi<{
+  by_department: Record<string, ActivityRow>
+  period: string
+}>('/api/agents/activity?period=week')
+const deptActivity = computed<ActivityRow | null>(() =>
+  (activityData.value?.by_department?.[agent.value?.department ?? ''] ?? null),
+)
+
+// PR76 — edit drawer state
+const editOpen = ref(false)
+
+function openEditor() {
+  editOpen.value = true
+}
+
+async function onAgentSaved() {
+  await refresh()
+}
 
 // --- Labels & mappings ---
 
@@ -94,6 +127,55 @@ const tabs = [
   { label: 'Authority', value: 'authority', icon: 'i-lucide-shield' },
   { label: 'Expertise', value: 'expertise', icon: 'i-lucide-award' },
 ]
+
+// PR76 — hero helpers
+
+const initials = computed<string>(() => {
+  const name = agent.value?.name ?? ''
+  if (!name) return '·'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return (parts[0] ?? '').slice(0, 2).toUpperCase()
+  return ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase()
+})
+
+// Per-department gradient hex pair (from + to). Picked once per dept
+// so the same dept always renders the same hero tint.
+const DEPT_GRADIENTS: Record<string, [string, string]> = {
+  brand:       ['from-fuchsia-500/30', 'to-purple-600/10'],
+  marketing:   ['from-pink-500/30',    'to-rose-600/10'],
+  dev:         ['from-blue-500/30',    'to-cyan-600/10'],
+  ecom:        ['from-amber-500/30',   'to-orange-600/10'],
+  finance:     ['from-emerald-500/30', 'to-green-600/10'],
+  strategy:    ['from-indigo-500/30',  'to-violet-600/10'],
+  kb:          ['from-teal-500/30',    'to-cyan-600/10'],
+  ops:         ['from-slate-500/30',   'to-gray-600/10'],
+  pm:          ['from-sky-500/30',     'to-blue-600/10'],
+  saas:        ['from-violet-500/30',  'to-indigo-600/10'],
+  landing:     ['from-orange-500/30',  'to-red-600/10'],
+  content:     ['from-rose-500/30',    'to-pink-600/10'],
+  community:   ['from-yellow-500/30',  'to-amber-600/10'],
+  sales:       ['from-red-500/30',     'to-orange-600/10'],
+  leadership:  ['from-purple-500/30',  'to-pink-600/10'],
+  org:         ['from-gray-500/30',    'to-slate-600/10'],
+}
+
+const heroGradientClasses = computed(() => {
+  const dept = agent.value?.department ?? ''
+  const [from, to] = DEPT_GRADIENTS[dept] ?? ['from-primary/20', 'to-primary/5']
+  return `bg-gradient-to-br ${from} ${to}`
+})
+
+function formatCost(value: number | null | undefined): string {
+  if (value === null || value === undefined) return 'n/a'
+  if (value === 0) return '$0'
+  if (value < 0.01) return `$${value.toFixed(4)}`
+  return `$${value.toFixed(2)}`
+}
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return n.toString()
+}
 </script>
 
 <template>
@@ -136,37 +218,87 @@ const tabs = [
       </div>
 
       <!-- Content -->
-      <div v-else class="space-y-8 pb-12">
-        <!-- ===== HEADER SECTION ===== -->
-        <section class="space-y-3">
-          <h1 class="text-3xl font-bold tracking-tight">{{ agent.name }}</h1>
-          <p class="text-lg text-muted">{{ agent.role }}</p>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <UBadge :label="agent.department" variant="subtle" />
-            <UBadge
-              :label="`Tier ${agent.tier} — ${tierLabel[agent.tier] ?? ''}`"
-              variant="subtle"
-              :color="(tierColor[agent.tier] ?? 'neutral') as any"
-            />
-            <UBadge
-              v-if="agent.expertise_depth"
-              :label="agent.expertise_depth"
-              variant="subtle"
-              :color="(depthColor[agent.expertise_depth] ?? 'neutral') as any"
-            />
-            <UBadge
-              v-if="agent.expertise_years"
-              :label="`${agent.expertise_years}y experience`"
-              variant="outline"
-            />
+      <div v-else class="space-y-6 pb-12">
+        <!-- ===== HERO ===== -->
+        <section
+          class="relative overflow-hidden rounded-2xl border border-default p-6 md:p-8"
+          :class="heroGradientClasses"
+        >
+          <div class="flex items-start gap-5">
+            <div class="shrink-0 size-20 rounded-2xl bg-default/80 border border-default flex items-center justify-center shadow-lg backdrop-blur-sm">
+              <span class="text-2xl font-bold tracking-tight text-highlighted">{{ initials }}</span>
+            </div>
+            <div class="flex-1 min-w-0 space-y-2">
+              <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div class="min-w-0">
+                  <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-highlighted">
+                    {{ agent.name }}
+                  </h1>
+                  <p class="text-base md:text-lg text-muted mt-0.5">{{ agent.role }}</p>
+                </div>
+                <UButton
+                  label="Edit"
+                  icon="i-lucide-pencil"
+                  size="sm"
+                  @click="openEditor"
+                />
+              </div>
+              <div class="flex flex-wrap items-center gap-2 pt-1">
+                <UBadge :label="agent.department" variant="subtle" />
+                <UBadge
+                  :label="`Tier ${agent.tier} — ${tierLabel[agent.tier] ?? ''}`"
+                  variant="subtle"
+                  :color="(tierColor[agent.tier] ?? 'neutral') as any"
+                />
+                <UBadge
+                  v-if="agent.expertise_depth"
+                  :label="agent.expertise_depth"
+                  variant="subtle"
+                  :color="(depthColor[agent.expertise_depth] ?? 'neutral') as any"
+                />
+                <UBadge
+                  v-if="agent.expertise_years"
+                  :label="`${agent.expertise_years}y experience`"
+                  variant="outline"
+                />
+                <UBadge v-if="agent.mbti" :label="agent.mbti" variant="soft" size="xs" />
+              </div>
+              <p class="text-xs text-muted/60 font-mono select-all pt-2">{{ agent.id }}</p>
+            </div>
           </div>
-
-          <p class="text-xs text-muted/60 font-mono select-all">{{ agent.id }}</p>
         </section>
 
+        <!-- ===== STATS ROW ===== -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-xl border border-default p-4 bg-elevated/20">
+            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">7d calls (dept)</p>
+            <p class="text-2xl font-bold">{{ deptActivity?.call_count ?? 0 }}</p>
+          </div>
+          <div class="rounded-xl border border-default p-4 bg-elevated/20">
+            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">7d cost</p>
+            <p class="text-2xl font-bold">{{ formatCost(deptActivity?.total_cost_usd) }}</p>
+          </div>
+          <div class="rounded-xl border border-default p-4 bg-elevated/20">
+            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Tokens (in/out)</p>
+            <p class="text-lg font-semibold">
+              {{ formatTokens(deptActivity?.total_tokens_in ?? 0) }} /
+              {{ formatTokens(deptActivity?.total_tokens_out ?? 0) }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-default p-4 bg-elevated/20">
+            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Linked personas</p>
+            <p class="text-2xl font-bold">{{ agent.linked_personas?.length ?? 0 }}</p>
+          </div>
+        </section>
+
+        <AgentEditDrawer
+          v-model="editOpen"
+          :agent="agent"
+          @saved="onAgentSaved"
+        />
+
         <!-- ===== TABS ===== -->
-        <UTabs :items="tabs" class="w-full">
+        <UTabs :items="tabs" default-value="dna" class="w-full">
           <template #content="{ item }">
             <!-- ===== TAB: DNA ===== -->
             <div v-if="item.value === 'dna'" class="space-y-6 mt-6">
