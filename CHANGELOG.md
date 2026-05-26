@@ -5,6 +5,42 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.0] - 2026-05-26
+
+### Added (Dashboard home extras: top departments + recent personas — PR84d)
+
+The home page (`/`) command-center grows two new cards above the
+Projects + Incidents row, giving the operator a one-glance summary
+of where spend is going and what's been added to the persona library.
+
+### Backend
+
+- `GET /api/overview/command-center` payload extended with two new
+  keys (existing keys untouched):
+  - `top_departments_30d` — top 5 departments by 30d LLM spend
+    (sorted desc by `cost_usd`)
+  - `recent_personas` — 5 most recently created personas (union of
+    JSON store + Obsidian vault, sorted desc by `created_at`)
+- New helpers `_top_departments_by_cost` and `_recent_personas`
+  isolated from the route handler for testability.
+- 6 unit tests cover the helpers + the payload shape.
+
+### Frontend
+
+- `dashboard/app/pages/index.vue` — new row above the existing
+  Projects + Incidents grid with two columns:
+  - **Top departments (30d)**: ranked list with calls + $ cost per dept
+  - **Recent personas**: clickable cards (link to `/personas/{id}`)
+    with MBTI badge + Obsidian source pill
+- `CommandCenterPayload` extended with `TopDeptRow` and
+  `RecentPersonaRow` interfaces for type safety.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — payload + 2 helpers
+- `tests/python/test_command_center_extras.py` (NEW, 6 tests)
+- `dashboard/app/pages/index.vue` — new row + types
+
 ## [3.9.0] - 2026-05-26
 
 ### Added (Persona Auto-fill empty lists — PR84c)

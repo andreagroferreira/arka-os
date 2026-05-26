@@ -1361,6 +1361,9 @@ def overview_command_center():
         },
         "projects": _scan_projects(parse_projects_dirs(profile.projectsDir)),
         "recent_incidents": _recent_incidents(limit=8),
+        # PR84d v3.10.0 — extra command-center cards
+        "top_departments_30d": _top_departments_by_cost(period="month", top_n=5),
+        "recent_personas": _recent_personas(limit=5),
         "quick_actions": [
             {"command": "/arka update", "description": "Sync projects + skills"},
             {"command": "/arka costs", "description": "View detailed LLM cost breakdown"},
@@ -1368,6 +1371,62 @@ def overview_command_center():
             {"command": "/dev review", "description": "Run a code review on the current branch"},
         ],
     }
+
+
+def _top_departments_by_cost(period: str = "month", top_n: int = 5) -> list[dict]:
+    """Top-N departments ranked by LLM spend over the period."""
+    try:
+        from core.runtime.llm_cost_telemetry import summarise, VALID_PERIODS
+    except Exception:
+        return []
+    if period not in VALID_PERIODS:
+        period = "month"
+    summary = summarise(period=period)
+    rows: list[dict] = []
+    for category, row in (summary.by_category or {}).items():
+        if not isinstance(category, str) or not category.startswith("subagent:"):
+            continue
+        dept = category.split(":", 1)[1] or "unknown"
+        cost = row.get("total_cost_usd")
+        rows.append({
+            "department": dept,
+            "calls": int(row.get("call_count", 0)),
+            "cost_usd": float(cost) if isinstance(cost, (int, float)) else None,
+            "tokens_in": int(row.get("total_tokens_in", 0)),
+            "tokens_out": int(row.get("total_tokens_out", 0)),
+        })
+    rows.sort(key=lambda r: r["cost_usd"] or 0.0, reverse=True)
+    return rows[: max(0, int(top_n))]
+
+
+def _recent_personas(limit: int = 5) -> list[dict]:
+    """Return the N most recently created/modified personas.
+
+    Reads both the JSON store and the Obsidian vault; returns the
+    union sorted by created_at desc (best-effort — entries without
+    a timestamp sort last).
+    """
+    mgr = _get_persona_manager()
+    if not mgr:
+        return []
+    try:
+        personas = mgr.list() or []
+    except Exception:
+        return []
+    def _ts(p: dict) -> str:
+        return str(p.get("created_at") or p.get("_created_at") or "")
+    sorted_p = sorted(personas, key=_ts, reverse=True)
+    out: list[dict] = []
+    for p in sorted_p[: max(0, int(limit))]:
+        out.append({
+            "id": p.get("id"),
+            "name": p.get("name"),
+            "title": p.get("title"),
+            "mbti": p.get("mbti"),
+            "source_store": (p.get("_source_store") or ""),
+            "created_at": _ts(p) or None,
+        })
+    return out
 
 
 def _scan_projects(projects_dirs: list[str]) -> list[dict]:

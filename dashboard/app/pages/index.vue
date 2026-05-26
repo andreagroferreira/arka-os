@@ -29,6 +29,23 @@ interface QuickAction {
   description: string
 }
 
+interface TopDeptRow {
+  department: string
+  calls: number
+  cost_usd: number | null
+  tokens_in: number
+  tokens_out: number
+}
+
+interface RecentPersonaRow {
+  id: string
+  name: string
+  title: string
+  mbti: string
+  source_store: string
+  created_at: string | null
+}
+
 interface CommandCenterPayload {
   greeting: {
     name: string
@@ -45,6 +62,8 @@ interface CommandCenterPayload {
   }
   projects: ProjectRow[]
   recent_incidents: IncidentRow[]
+  top_departments_30d: TopDeptRow[]
+  recent_personas: RecentPersonaRow[]
   quick_actions: QuickAction[]
 }
 
@@ -184,6 +203,82 @@ function copyCommand(cmd: string) {
               </div>
             </div>
           </UCard>
+
+          <!-- PR84d v3.10.0 — Top departments + Recent personas row -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-muted mb-3">
+                Top departments (30d)
+              </h2>
+              <DashboardState
+                :status="status"
+                :empty="!data?.top_departments_30d?.length"
+                empty-title="No telemetry yet"
+                empty-description="Department spend will appear once agents start running."
+                empty-icon="i-lucide-bar-chart"
+              >
+                <div class="space-y-2">
+                  <div
+                    v-for="(d, idx) in data?.top_departments_30d"
+                    :key="d.department"
+                    class="rounded-lg border border-default p-3 flex items-center gap-3"
+                  >
+                    <span class="text-xs font-mono font-semibold text-muted w-6">#{{ idx + 1 }}</span>
+                    <span class="flex-1 font-semibold capitalize">{{ d.department }}</span>
+                    <span class="text-xs font-mono text-muted">{{ d.calls }} calls</span>
+                    <span class="text-sm font-mono font-semibold">
+                      {{ d.cost_usd === null ? '—' : `$${d.cost_usd.toFixed(2)}` }}
+                    </span>
+                  </div>
+                </div>
+              </DashboardState>
+            </div>
+
+            <div>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-muted mb-3">
+                Recent personas
+              </h2>
+              <DashboardState
+                :status="status"
+                :empty="!data?.recent_personas?.length"
+                empty-title="No personas yet"
+                empty-description="Create one from /personas → New Persona."
+                empty-icon="i-lucide-user-plus"
+              >
+                <div class="space-y-2">
+                  <NuxtLink
+                    v-for="p in data?.recent_personas"
+                    :key="p.id"
+                    :to="`/personas/${p.id}`"
+                    class="block rounded-lg border border-default p-3 hover:border-primary/40 transition-colors"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold truncate">{{ p.name }}</p>
+                        <p class="text-xs text-muted truncate">{{ p.title || '—' }}</p>
+                      </div>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <UBadge
+                          v-if="p.mbti"
+                          :label="p.mbti"
+                          variant="subtle"
+                          size="xs"
+                        />
+                        <UBadge
+                          v-if="p.source_store === 'obsidian'"
+                          icon="i-lucide-file-text"
+                          label="Obsidian"
+                          color="primary"
+                          variant="soft"
+                          size="xs"
+                        />
+                      </div>
+                    </div>
+                  </NuxtLink>
+                </div>
+              </DashboardState>
+            </div>
+          </div>
 
           <!-- Two columns: projects + incidents -->
           <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
