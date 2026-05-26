@@ -258,10 +258,102 @@ def agent_detail(agent_id: str):
             expertise = raw.get("expertise", {})
             base["expertise_depth"] = expertise.get("depth", "")
             base["expertise_years"] = expertise.get("years_equivalent", 0)
+            base["frameworks"] = raw.get("frameworks", [])
+            base["expertise_domains"] = raw.get("expertise_domains", [])
+            # PR76 v2.94.0 — linked_personas: persona IDs the agent
+            # draws from. Empty when not yet edited.
+            base["linked_personas"] = raw.get("linked_personas", [])
+            base["_yaml_path"] = str(yaml_file)
         except Exception:
             pass
 
     return base
+
+
+@app.put("/api/agents/{agent_id}")
+def agent_update(agent_id: str, body: dict):
+    """PR76 v2.94.0 — edit an agent. Updates the YAML file with
+    editable fields from body. Preserves untouched fields.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    agents = _load_agents()
+    base = None
+    for a in agents:
+        if a.get("id") == agent_id:
+            base = dict(a)
+            break
+    if not base:
+        return {"error": "Agent not found"}
+    yaml_file = ARKAOS_ROOT / base.get("file", "")
+    if not yaml_file.exists():
+        return {"error": "Agent YAML file missing on disk"}
+    try:
+        import yaml as _yaml
+    except ImportError:
+        return {"error": "PyYAML unavailable"}
+    try:
+        raw = _yaml.safe_load(yaml_file.read_text(encoding="utf-8")) or {}
+    except Exception as exc:
+        return {"error": f"YAML parse failed: {exc}"}
+    if not isinstance(raw, dict):
+        return {"error": "agent YAML is not a mapping"}
+
+    for top_key in ("name", "role"):
+        if top_key in body and isinstance(body[top_key], str):
+            raw[top_key] = body[top_key]
+    if "tier" in body:
+        try:
+            raw["tier"] = int(body["tier"])
+        except (TypeError, ValueError):
+            pass
+    if "mental_models" in body and isinstance(body["mental_models"], dict):
+        mm = raw.setdefault("mental_models", {}) or {}
+        for sub in ("primary", "secondary"):
+            if sub in body["mental_models"]:
+                mm[sub] = _agent_str_list(body["mental_models"][sub])
+        raw["mental_models"] = mm
+    if "frameworks" in body:
+        raw["frameworks"] = _agent_str_list(body["frameworks"])
+    if "expertise_domains" in body:
+        raw["expertise_domains"] = _agent_str_list(body["expertise_domains"])
+    if "expertise" in body and isinstance(body["expertise"], dict):
+        expertise = raw.setdefault("expertise", {}) or {}
+        if "depth" in body["expertise"]:
+            expertise["depth"] = str(body["expertise"]["depth"])
+        if "years_equivalent" in body["expertise"]:
+            try:
+                expertise["years_equivalent"] = int(body["expertise"]["years_equivalent"])
+            except (TypeError, ValueError):
+                pass
+        raw["expertise"] = expertise
+    if "communication" in body and isinstance(body["communication"], dict):
+        comm = raw.setdefault("communication", {}) or {}
+        for key in ("tone", "vocabulary_level", "preferred_format", "language"):
+            if key in body["communication"]:
+                comm[key] = str(body["communication"][key])
+        if "avoid" in body["communication"]:
+            comm["avoid"] = _agent_str_list(body["communication"]["avoid"])
+        raw["communication"] = comm
+    if "linked_personas" in body:
+        raw["linked_personas"] = _agent_str_list(body["linked_personas"])
+
+    try:
+        tmp = yaml_file.with_suffix(yaml_file.suffix + ".tmp")
+        tmp.write_text(
+            _yaml.safe_dump(raw, sort_keys=False, allow_unicode=True, default_flow_style=False),
+            encoding="utf-8",
+        )
+        tmp.replace(yaml_file)
+    except OSError as exc:
+        return {"error": f"write failed: {exc}"}
+    return {"id": agent_id, "updated": True, "yaml_path": str(yaml_file)}
+
+
+def _agent_str_list(value) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if isinstance(item, (str, int, float))]
 
 
 @app.get("/api/commands")

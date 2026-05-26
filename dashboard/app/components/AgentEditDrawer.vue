@@ -1,0 +1,388 @@
+<script setup lang="ts">
+// PR76 v2.94.0 — Agent edit drawer.
+//
+// Opens from the agent detail hero. Lets non-technical operators
+// edit the safe-to-mutate fields without touching YAML directly:
+//
+//   - Identity (name, role, tier)
+//   - Mental models (primary + secondary lists)
+//   - Frameworks list
+//   - Expertise domains + depth + years
+//   - Communication (tone, vocab level, preferred format, avoid)
+//   - Linked personas (multi-select from /api/personas)
+//
+// Save → PUT /api/agents/{id} (atomic YAML write on the backend).
+// NEVER edits: id, department, behavioural DNA (DISC/Enneagram/MBTI/
+// Big-Five). Those are intentionally locked because changing them
+// silently invalidates the agent's identity model.
+
+import type { Persona } from '~/types'
+
+const props = defineProps<{
+  modelValue: boolean
+  agent: any
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: boolean): void
+  (e: 'saved'): void
+}>()
+
+const { apiBase, fetchApi } = useApi()
+const toast = useToast()
+const confirmDialog = useConfirmDialog()
+
+// Persona list — for the linked_personas multi-select.
+const { data: personasData } = fetchApi<{ personas: Persona[] }>('/api/personas')
+const personaOptions = computed(() =>
+  (personasData.value?.personas ?? []).map((p) => ({
+    label: p.name + (p.title ? ` — ${p.title}` : ''),
+    value: p.id,
+  })),
+)
+
+interface AgentDraft {
+  name: string
+  role: string
+  tier: number
+  mental_models: { primary: string[]; secondary: string[] }
+  frameworks: string[]
+  expertise_domains: string[]
+  expertise_depth: string
+  expertise_years: number
+  communication: {
+    tone: string
+    vocabulary_level: string
+    preferred_format: string
+    language: string
+    avoid: string[]
+  }
+  linked_personas: string[]
+}
+
+const draft = ref<AgentDraft | null>(null)
+const saving = ref(false)
+const dirty = ref(false)
+
+watch(
+  () => [props.modelValue, props.agent] as const,
+  ([open, agent]) => {
+    if (open && agent) {
+      draft.value = {
+        name: agent.name ?? '',
+        role: agent.role ?? '',
+        tier: agent.tier ?? 2,
+        mental_models: {
+          primary: agent.mental_models?.primary ?? [],
+          secondary: agent.mental_models?.secondary ?? [],
+        },
+        frameworks: agent.frameworks ?? [],
+        expertise_domains: agent.expertise_domains ?? [],
+        expertise_depth: agent.expertise_depth ?? '',
+        expertise_years: agent.expertise_years ?? 0,
+        communication: {
+          tone: agent.communication?.tone ?? '',
+          vocabulary_level: agent.communication?.vocabulary_level ?? '',
+          preferred_format: agent.communication?.preferred_format ?? '',
+          language: agent.communication?.language ?? '',
+          avoid: agent.communication?.avoid ?? [],
+        },
+        linked_personas: agent.linked_personas ?? [],
+      }
+      dirty.value = false
+    } else if (!open) {
+      draft.value = null
+      dirty.value = false
+    }
+  },
+  { immediate: true },
+)
+
+function markDirty() {
+  dirty.value = true
+}
+
+function listToCsv(list: string[]): string {
+  return (list ?? []).join(', ')
+}
+
+function csvToList(value: string): string[] {
+  return value.split(',').map((s) => s.trim()).filter(Boolean)
+}
+
+async function save() {
+  if (!draft.value || !props.agent?.id) return
+  saving.value = true
+  try {
+    const payload = {
+      name: draft.value.name,
+      role: draft.value.role,
+      tier: draft.value.tier,
+      mental_models: draft.value.mental_models,
+      frameworks: draft.value.frameworks,
+      expertise_domains: draft.value.expertise_domains,
+      expertise: {
+        depth: draft.value.expertise_depth,
+        years_equivalent: draft.value.expertise_years,
+      },
+      communication: draft.value.communication,
+      linked_personas: draft.value.linked_personas,
+    }
+    const res = await $fetch<{
+      id: string
+      updated: boolean
+      yaml_path?: string
+      error?: string
+    }>(`${apiBase}/api/agents/${props.agent.id}`, {
+      method: 'PUT',
+      body: payload,
+    })
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: 'Agent saved',
+      description: res.yaml_path
+        ? `Wrote ${res.yaml_path.split('/').slice(-3).join('/')}`
+        : 'YAML updated',
+      color: 'success',
+    })
+    dirty.value = false
+    emit('saved')
+    emit('update:modelValue', false)
+  } catch (err) {
+    toast.add({
+      title: 'Save failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    saving.value = false
+  }
+}
+
+async function tryClose() {
+  if (dirty.value && !saving.value) {
+    const ok = await confirmDialog({
+      title: 'Discard unsaved edits?',
+      description: 'Any changes you made to this agent will be lost.',
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep editing',
+      variant: 'danger',
+    })
+    if (!ok) return
+  }
+  emit('update:modelValue', false)
+}
+
+const tierOptions = [
+  { label: 'Tier 0 — C-Suite', value: 0 },
+  { label: 'Tier 1 — Squad Lead', value: 1 },
+  { label: 'Tier 2 — Specialist', value: 2 },
+  { label: 'Tier 3 — Support', value: 3 },
+]
+const depthOptions = [
+  { label: 'Intermediate', value: 'intermediate' },
+  { label: 'Advanced', value: 'advanced' },
+  { label: 'Expert', value: 'expert' },
+  { label: 'Master', value: 'master' },
+]
+const vocabOptions = [
+  { label: 'Lay (no jargon)', value: 'lay' },
+  { label: 'Specialist (industry terms)', value: 'specialist' },
+  { label: 'Expert (research-level)', value: 'expert' },
+]
+</script>
+
+<template>
+  <USlideover
+    :open="modelValue"
+    :ui="{ content: 'max-w-2xl w-full' }"
+    @update:open="(v) => v ? null : tryClose()"
+  >
+    <template #content>
+      <UCard
+        :ui="{
+          root: 'h-full flex flex-col rounded-none',
+          body: 'flex-1 overflow-y-auto',
+        }"
+      >
+        <template #header>
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-bold">Edit agent</h2>
+              <p class="text-sm text-muted mt-0.5">
+                {{ props.agent?.name }}
+                <span class="text-xs text-muted/60 ml-1">— {{ props.agent?.id }}</span>
+              </p>
+            </div>
+            <UButton
+              icon="i-lucide-x"
+              variant="ghost"
+              size="sm"
+              aria-label="Close"
+              @click="tryClose"
+            />
+          </div>
+        </template>
+
+        <div v-if="draft" class="space-y-6">
+          <p class="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-muted">
+            <UIcon name="i-lucide-info" class="size-3.5 inline" />
+            Behavioural DNA (DISC, Enneagram, MBTI, Big Five) is locked here
+            on purpose — changing it silently invalidates the agent's
+            identity model. Edit it directly in the YAML file when truly
+            needed.
+          </p>
+
+          <section class="space-y-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Identity</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <UFormField label="Name">
+                <UInput v-model="draft.name" class="w-full" @update:model-value="markDirty" />
+              </UFormField>
+              <UFormField label="Role">
+                <UInput v-model="draft.role" class="w-full" @update:model-value="markDirty" />
+              </UFormField>
+              <UFormField label="Tier">
+                <USelect
+                  v-model="draft.tier"
+                  :items="tierOptions"
+                  class="w-full"
+                  @update:model-value="markDirty"
+                />
+              </UFormField>
+            </div>
+          </section>
+
+          <section class="space-y-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Mental models</h3>
+            <UFormField label="Primary" help="comma-separated">
+              <UInput
+                :model-value="listToCsv(draft.mental_models.primary)"
+                @update:model-value="(v: string) => { if (draft) { draft.mental_models.primary = csvToList(v); markDirty() } }"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Secondary" help="comma-separated">
+              <UInput
+                :model-value="listToCsv(draft.mental_models.secondary)"
+                @update:model-value="(v: string) => { if (draft) { draft.mental_models.secondary = csvToList(v); markDirty() } }"
+                class="w-full"
+              />
+            </UFormField>
+          </section>
+
+          <section class="space-y-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Expertise</h3>
+            <UFormField label="Domains" help="comma-separated">
+              <UInput
+                :model-value="listToCsv(draft.expertise_domains)"
+                @update:model-value="(v: string) => { if (draft) { draft.expertise_domains = csvToList(v); markDirty() } }"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Frameworks" help="comma-separated">
+              <UInput
+                :model-value="listToCsv(draft.frameworks)"
+                @update:model-value="(v: string) => { if (draft) { draft.frameworks = csvToList(v); markDirty() } }"
+                class="w-full"
+              />
+            </UFormField>
+            <div class="grid grid-cols-2 gap-3">
+              <UFormField label="Depth">
+                <USelect
+                  v-model="draft.expertise_depth"
+                  :items="depthOptions"
+                  class="w-full"
+                  @update:model-value="markDirty"
+                />
+              </UFormField>
+              <UFormField label="Years (equivalent)">
+                <UInput
+                  v-model.number="draft.expertise_years"
+                  type="number"
+                  :min="0"
+                  :max="60"
+                  class="w-full"
+                  @update:model-value="markDirty"
+                />
+              </UFormField>
+            </div>
+          </section>
+
+          <section class="space-y-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Communication</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <UFormField label="Tone">
+                <UInput v-model="draft.communication.tone" class="w-full" @update:model-value="markDirty" />
+              </UFormField>
+              <UFormField label="Vocabulary level">
+                <USelect
+                  v-model="draft.communication.vocabulary_level"
+                  :items="vocabOptions"
+                  class="w-full"
+                  @update:model-value="markDirty"
+                />
+              </UFormField>
+              <UFormField label="Preferred format">
+                <UInput v-model="draft.communication.preferred_format" class="w-full" @update:model-value="markDirty" />
+              </UFormField>
+              <UFormField label="Language">
+                <UInput v-model="draft.communication.language" placeholder="en, pt" class="w-full" @update:model-value="markDirty" />
+              </UFormField>
+            </div>
+            <UFormField label="Avoid (phrases)" help="comma-separated">
+              <UInput
+                :model-value="listToCsv(draft.communication.avoid)"
+                @update:model-value="(v: string) => { if (draft) { draft.communication.avoid = csvToList(v); markDirty() } }"
+                class="w-full"
+              />
+            </UFormField>
+          </section>
+
+          <section class="space-y-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+              Linked personas
+              <span class="ml-2 text-[10px] font-normal text-muted normal-case tracking-normal">
+                — agent draws from these persona profiles
+              </span>
+            </h3>
+            <USelectMenu
+              v-model="draft.linked_personas"
+              :items="personaOptions"
+              value-key="value"
+              multiple
+              placeholder="Select personas to link"
+              class="w-full"
+              @update:model-value="markDirty"
+            />
+            <p class="text-xs text-muted">
+              {{ draft.linked_personas.length }} linked.
+              Personas come from the Persona library (auto-synced with your
+              Obsidian vault).
+            </p>
+          </section>
+        </div>
+
+        <template #footer>
+          <div class="flex items-center justify-between gap-2">
+            <span v-if="dirty" class="text-xs text-yellow-400">
+              <UIcon name="i-lucide-circle-dot" class="size-3 inline" />
+              Unsaved changes
+            </span>
+            <span v-else class="text-xs text-muted">No changes</span>
+            <div class="flex gap-2">
+              <UButton label="Cancel" variant="ghost" :disabled="saving" @click="tryClose" />
+              <UButton
+                label="Save"
+                icon="i-lucide-check"
+                :loading="saving"
+                :disabled="!dirty"
+                @click="save"
+              />
+            </div>
+          </div>
+        </template>
+      </UCard>
+    </template>
+  </USlideover>
+</template>
