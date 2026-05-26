@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.1] - 2026-05-26
+
+### Fixed (HOTFIX — /terminal layout doesn't match dashboard pattern)
+
+`/terminal` was using a raw `<div>` wrapper instead of `<UDashboardPanel>`
+with the canonical `#header` (UDashboardNavbar) + `#body` slots that
+every other page uses. Result: the page rendered constrained to the
+content slot's intrinsic width (~half viewport on wide screens), no
+sidebar collapse button, no proper padding, header crammed against the
+top edge.
+
+Wrapped in `<UDashboardPanel id="terminal">`, moved title + chips +
+controls into a `<UDashboardNavbar>` with `#leading` (sidebar collapse)
+and `#right` (chips + theme picker + ⌃R + history). Body now uses
+`#body` slot with `h-full p-4` so the terminal canvas fills the full
+available width and height.
+
+### Files changed
+
+- `dashboard/app/pages/terminal.vue` — template rewrite to canonical
+  `UDashboardPanel + UDashboardNavbar` pattern.
+
 ## [3.70.0] - 2026-05-26
 
 ### Added (Themes + Ctrl+R history search — PR99d)
