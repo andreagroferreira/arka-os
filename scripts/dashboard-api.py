@@ -1827,6 +1827,42 @@ def _build_agent_yaml(
     return payload
 
 
+# --- AI agent draft from description (PR82b v3.1.0) ---
+
+@app.post("/api/agents/draft")
+def agents_draft(body: dict):
+    """Generate a full agent draft from a free-text description.
+
+    Body: {
+        "description": "...",   # min 20 chars
+        "name": "Lucas",         # optional
+        "role": "Market Analyst",# optional
+        "department": "strategy",# optional
+        "tier": 2                # optional, default 2
+    }
+    Returns: {"draft": {...behavioral_dna, expertise, mental_models,
+    communication...}, "provider_name": "..."}
+    """
+    from core.agents.draft_builder import DraftError, draft_agent
+
+    description = (body.get("description") or "").strip()
+    try:
+        tier = int(body.get("tier") or 2)
+    except (TypeError, ValueError):
+        tier = 2
+    try:
+        res = draft_agent(
+            description,
+            name=(body.get("name") or "").strip(),
+            role=(body.get("role") or "").strip(),
+            department=(body.get("department") or "").strip(),
+            tier=tier,
+        )
+    except DraftError as exc:
+        return {"error": str(exc)}
+    return {"draft": res.draft, "provider_name": res.provider_name}
+
+
 # --- AI list-field suggester (PR81 v2.99.0) ---
 
 @app.post("/api/agents/suggest")

@@ -88,6 +88,83 @@ const draft = ref<AgentDraft>({
 
 const saving = ref(false)
 
+// PR82b v3.1.0 — AI draft from description.
+const description = ref('')
+const drafting = ref(false)
+
+async function draftFromDescription() {
+  const desc = description.value.trim()
+  if (desc.length < 20) {
+    toast.add({
+      title: 'Add more detail',
+      description: 'Describe the agent in at least a sentence or two.',
+      color: 'warning',
+    })
+    return
+  }
+  drafting.value = true
+  try {
+    const res = await $fetch<{
+      draft: any
+      provider_name: string
+      error?: string
+    }>(`${apiBase}/api/agents/draft`, {
+      method: 'POST',
+      body: {
+        description: desc,
+        name: draft.value.name,
+        role: draft.value.role,
+        department: draft.value.department,
+        tier: draft.value.tier,
+      },
+    })
+    if (res.error) throw new Error(res.error)
+    applyDraft(res.draft)
+    toast.add({
+      title: 'Draft generated',
+      description: `via ${res.provider_name} — review and edit before creating.`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Draft failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    drafting.value = false
+  }
+}
+
+function applyDraft(d: any) {
+  const dna = d?.behavioral_dna ?? {}
+  const disc = dna.disc ?? {}
+  const enn = dna.enneagram ?? {}
+  const bf = dna.big_five ?? {}
+  if (disc.primary) draft.value.disc_primary = String(disc.primary).toUpperCase()
+  if (disc.secondary) draft.value.disc_secondary = String(disc.secondary).toUpperCase()
+  if (enn.type) draft.value.enneagram_type = Number(enn.type)
+  if (enn.wing) draft.value.enneagram_wing = Number(enn.wing)
+  if (dna.mbti) draft.value.mbti = String(dna.mbti).toUpperCase()
+  for (const key of ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'] as const) {
+    if (typeof bf[key] === 'number') draft.value.big_five[key] = bf[key]
+  }
+  const exp = d?.expertise ?? {}
+  if (Array.isArray(exp.domains)) draft.value.expertise_domains = exp.domains.map(String)
+  if (Array.isArray(exp.frameworks)) draft.value.frameworks = exp.frameworks.map(String)
+  if (exp.depth) draft.value.expertise_depth = String(exp.depth)
+  if (typeof exp.years_equivalent === 'number') draft.value.expertise_years = exp.years_equivalent
+  const mm = d?.mental_models ?? {}
+  if (Array.isArray(mm.primary)) draft.value.mental_models_primary = mm.primary.map(String)
+  const comm = d?.communication ?? {}
+  if (comm.tone) draft.value.comm_tone = String(comm.tone)
+  if (comm.vocabulary_level) draft.value.comm_vocab = String(comm.vocabulary_level)
+  if (comm.preferred_format) draft.value.comm_format = String(comm.preferred_format)
+  if (comm.language) draft.value.comm_language = String(comm.language)
+  if (Array.isArray(comm.avoid)) draft.value.comm_avoid = comm.avoid.map(String)
+}
+
 const departmentOptions = [
   'dev', 'marketing', 'brand', 'finance', 'strategy', 'ecom', 'kb', 'ops',
   'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org',
@@ -298,6 +375,40 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
 
     <template #body>
       <div class="max-w-4xl mx-auto py-2 space-y-6">
+        <section class="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-primary flex items-center gap-2">
+                <UIcon name="i-lucide-sparkles" class="size-4" />
+                Draft with AI
+              </h3>
+              <p class="text-xs text-muted mt-0.5">
+                Describe the agent in plain text — the LLM fills the whole form below.
+                You can still edit everything before saving.
+              </p>
+            </div>
+            <UButton
+              label="Generate draft"
+              icon="i-lucide-wand"
+              color="primary"
+              :loading="drafting"
+              :disabled="description.trim().length < 20"
+              @click="draftFromDescription"
+            />
+          </div>
+          <UTextarea
+            v-model="description"
+            placeholder="A senior strategist who decides fast, demands evidence, and is allergic to fluff. Spent 10 years at McKinsey covering CPG..."
+            :rows="3"
+            class="w-full"
+          />
+          <p class="text-xs text-muted">
+            Tip: fill in <span class="font-mono">Name</span> /
+            <span class="font-mono">Role</span> /
+            <span class="font-mono">Department</span> below first for more precise output.
+          </p>
+        </section>
+
         <section class="space-y-3">
           <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Identity</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
