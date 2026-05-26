@@ -37,6 +37,25 @@ const { data, status, error, refresh } = await fetchApi<DeptDetail>(
   `/api/departments/${deptId.value}`,
 )
 
+// PR97a v3.59.0 — 30d activity sparkline for this department.
+interface SparklineDay {
+  date: string
+  calls: number
+  cost_usd: number | null
+}
+const { data: sparklineData } = fetchApi<{
+  days: SparklineDay[]
+  period_days: number
+  department: string
+}>(() => deptId.value ? `/api/departments/${deptId.value}/activity-sparkline?days=30` : '')
+const sparkline = computed<SparklineDay[]>(() => sparklineData.value?.days ?? [])
+const sparklineMaxCalls = computed(() =>
+  Math.max(1, sparkline.value.reduce((acc, d) => Math.max(acc, d.calls), 0)),
+)
+const sparklineTotalCalls = computed(() =>
+  sparkline.value.reduce((acc, d) => acc + d.calls, 0),
+)
+
 // PR90b v3.32.0 — Compare with another department.
 const { data: deptListData } = fetchApi<{ departments: Array<{ department: string }> }>(
   '/api/departments',
@@ -177,6 +196,39 @@ const tierColor = (tier: number | undefined) => {
         :on-retry="() => refresh()"
       >
         <div v-if="detail" class="space-y-5 max-w-5xl">
+          <!-- PR97a v3.59.0 — 30d sparkline -->
+          <section
+            v-if="sparklineTotalCalls > 0"
+            class="rounded-xl border border-default bg-elevated/10 p-5"
+          >
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span class="font-semibold text-muted uppercase tracking-wide">
+                Daily calls (30d)
+              </span>
+              <span class="font-mono text-muted">
+                {{ sparklineTotalCalls }} total · max {{ sparklineMaxCalls }}/day
+              </span>
+            </div>
+            <svg
+              :viewBox="`0 0 ${sparkline.length * 8} 48`"
+              class="w-full h-12"
+              preserveAspectRatio="none"
+            >
+              <rect
+                v-for="(day, idx) in sparkline"
+                :key="day.date"
+                :x="idx * 8 + 1"
+                :y="48 - (day.calls / sparklineMaxCalls) * 46"
+                width="6"
+                :height="(day.calls / sparklineMaxCalls) * 46"
+                class="fill-primary"
+                :class="day.calls === 0 ? 'opacity-20' : 'opacity-90'"
+              >
+                <title>{{ day.date }} · {{ day.calls }} calls</title>
+              </rect>
+            </svg>
+          </section>
+
           <!-- Stats row -->
           <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
