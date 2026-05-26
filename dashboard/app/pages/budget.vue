@@ -73,13 +73,26 @@ const {
   { query: computed(() => ({ period: period.value })) },
 )
 
+// PR90c v3.33.0 — let the operator pick 7d / 14d / 30d.
+const trendDays = ref<7 | 14 | 30>(7)
+const trendDaysOptions = [
+  { label: '7 days', value: 7 },
+  { label: '14 days', value: 14 },
+  { label: '30 days', value: 30 },
+]
 const {
   data: trend,
   refresh: refreshTrend,
-} = fetchApi<TrendResponse>('/api/llm-costs/trend?days=7')
+} = fetchApi<TrendResponse>(
+  '/api/llm-costs/trend',
+  { query: computed(() => ({ days: trendDays.value })) },
+)
 
 watch(period, async () => {
   await refresh()
+})
+watch(trendDays, async () => {
+  await refreshTrend()
 })
 
 // ─── View tabs ───────────────────────────────────────────────────────────
@@ -248,12 +261,21 @@ async function refreshAll() {
             </div>
           </UCard>
 
-          <!-- 7-day trend (inline bar chart) -->
+          <!-- PR90c v3.33.0 — trend with selectable window -->
           <UCard v-if="trend?.days?.length">
             <div>
-              <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">
-                Last 7 days
-              </p>
+              <div class="flex items-center justify-between mb-4">
+                <p class="text-xs font-semibold text-muted uppercase tracking-wider">
+                  Daily spend
+                </p>
+                <USelect
+                  v-model="trendDays"
+                  :items="trendDaysOptions"
+                  size="xs"
+                  class="min-w-24"
+                  aria-label="Trend window"
+                />
+              </div>
               <div class="flex items-end gap-2 h-32">
                 <div
                   v-for="day in trend.days"
