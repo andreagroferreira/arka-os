@@ -27,9 +27,10 @@ const deptActivity = computed<ActivityRow | null>(() =>
   (activityData.value?.by_department?.[agent.value?.department ?? ''] ?? null),
 )
 
-// PR83d v3.6.0 — activity strip (30d, dept-level + last_used + rank)
+// PR83d v3.6.0 + PR86b v3.16.0 — activity strip (30d, agent or dept scope)
 interface ActivityStrip {
   period: string
+  scope: 'agent' | 'department'
   department: string
   calls: number
   cost_usd: number | null
@@ -346,7 +347,7 @@ function formatTokens(n: number): string {
             <div class="flex items-center gap-2">
               <UIcon name="i-lucide-activity" class="size-4 text-primary" />
               <span class="font-semibold uppercase tracking-wide text-muted text-xs">
-                30d activity (dept)
+                30d activity ({{ activityStrip.scope === 'agent' ? 'agent' : 'dept' }})
               </span>
             </div>
             <div class="flex items-center gap-2">

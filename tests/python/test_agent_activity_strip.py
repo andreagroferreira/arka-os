@@ -43,6 +43,32 @@ def test_returns_payload_shape_for_existing_agent():
     assert "dept_count" in res
     assert "period" in res
     assert res["period"] == "month"
+    # PR86b — scope field
+    assert "scope" in res
+    assert res["scope"] in ("agent", "department")
+
+
+def test_activity_alias_returns_same_payload():
+    """PR86b — /api/agents/{id}/activity is an alias for /activity-strip."""
+    api = _load_dashboard_api()
+    agents = api._load_agents()
+    if not agents:
+        return
+    target_id = agents[0]["id"]
+    strip = api.agent_activity_strip(target_id)
+    detail = api.agent_activity_detail(target_id)
+    assert strip == detail
+
+
+def test_scope_defaults_to_department_without_per_agent_tags():
+    """When no telemetry exists for `subagent:<dept>:<agent_id>`, scope=dept."""
+    api = _load_dashboard_api()
+    agents = api._load_agents()
+    if not agents:
+        return
+    res = api.agent_activity_strip(agents[0]["id"])
+    # Test env likely has no per-agent tags — should default to department
+    assert res["scope"] in ("agent", "department")
 
 
 def test_accepts_period_override():

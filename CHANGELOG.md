@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.16.0] - 2026-05-26
+
+### Added (Per-agent activity attribution — PR86b)
+
+The cost telemetry has long supported a category field
+(`subagent:<dept>`). PR86b finishes the convention: orchestrators may
+now set `ARKA_CALL_CATEGORY=subagent:<dept>:<agent_id>` to record
+**per-agent** spend on top of the existing dept aggregation.
+
+### Backend
+
+- `core/runtime/llm_provider.py` — `_current_category` docstring now
+  documents the extended `subagent:<dept>:<agent_id>` form.
+- `GET /api/agents/{id}/activity-strip` — parses both `subagent:<dept>`
+  AND `subagent:<dept>:<agent_id>` categories. When per-agent telemetry
+  exists for the queried agent, the response prefers it and includes
+  `scope: "agent"`. Otherwise scope falls back to `"department"` —
+  fully backward-compatible with all prior callers.
+- `GET /api/agents/{id}/activity` (NEW) — alias for the strip route
+  with the same payload shape.
+
+### Frontend
+
+- `ActivityStrip` interface gains `scope: 'agent' | 'department'`.
+- Strip label switches between `30D ACTIVITY (AGENT)` and `(DEPT)`.
+
+### Migration
+
+- Existing `subagent:<dept>` rows keep accumulating into dept totals.
+- Per-agent: set `ARKA_CALL_CATEGORY=subagent:<dept>:<agent_id>` and
+  the next strip request surfaces `scope: "agent"`.
+
+### Files changed
+
+- `core/runtime/llm_provider.py` — docstring
+- `scripts/dashboard-api.py` — parser + alias endpoint
+- `tests/python/test_agent_activity_strip.py` — 2 new tests
+- `dashboard/app/pages/agents/[id].vue` — scope label
+
 ## [3.15.0] - 2026-05-26
 
 ### Added (Favorites for agents + personas — PR86a)

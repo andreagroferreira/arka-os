@@ -367,7 +367,8 @@ def _current_category() -> str:
 
     PR60 v2.77.0 — orchestration layers can set
     ``ARKA_CALL_CATEGORY=skill:<slug>`` /
-    ``subagent:<dept>`` / ``plugin:<id>`` / ``mcp:<server>`` before
+    ``subagent:<dept>`` or ``subagent:<dept>:<agent_id>`` /
+    ``plugin:<id>`` / ``mcp:<server>`` before
     invoking the provider so `/arka costs --by-category` (PR47) can
     attribute spend. Returns "" when unset, which lands in the base
     bucket (backward-compatible).
