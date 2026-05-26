@@ -60,6 +60,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Terminal',
+  icon: 'i-lucide-terminal',
+  to: '/terminal',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Workflows',
   icon: 'i-lucide-workflow',
   to: '/workflows',
