@@ -5,6 +5,47 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2026-05-26
+
+### Added (Agent activity strip on /agents/{id} hero — PR83d)
+
+The agent detail page gains a one-line activity strip below the stats
+row: 30d calls + cost + tokens + last-used + dept rank. Operator can
+see at a glance whether the agent's department is actively used and
+where it sits in the cost ranking.
+
+### Backend
+
+- `GET /api/agents/{agent_id}/activity-strip` (NEW) — compact payload
+  derived from PR47 telemetry. Returns `period`, `department`, `calls`,
+  `cost_usd`, `tokens_in`, `tokens_out`, `last_used` (most recent
+  telemetry ts for this dept), `dept_rank` (1-based, by 30d cost),
+  `dept_count`. Defaults to 30-day period. Per-agent attribution
+  isn't tracked yet (telemetry tags at dept level via
+  `subagent:<dept>`) so the strip is dept-level by design.
+- 6 unit tests cover error path + payload shape + period override
+  + invalid-period fallback + rank invariants.
+
+### Frontend
+
+- `agents/[id].vue` — new `<section>` below the stats row showing
+  6 items in a single-line flex row:
+  - icon + "30D ACTIVITY (DEPT)" label
+  - Calls (number)
+  - Cost (formatted via existing `formatCost`)
+  - Tokens (in / out)
+  - Last used (relative — uses new `formatRelative` helper)
+  - Dept rank badge (primary tint for top-3)
+- The strip hides itself when the endpoint returns no data, so the
+  detail page degrades gracefully on a fresh install.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/agents/{id}/activity-strip
+- `tests/python/test_agent_activity_strip.py` (NEW, 6 tests)
+- `dashboard/app/pages/agents/[id].vue` — activity strip section
+  + `formatRelative` helper
+
 ## [3.5.0] - 2026-05-26
 
 ### Added (Single-string AI fill — PR83c)
