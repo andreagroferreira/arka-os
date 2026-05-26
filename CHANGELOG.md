@@ -5,6 +5,44 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.27.0] - 2026-05-26
+
+### Added (Department pages — PR89a)
+
+ArkaOS finally has a first-class view of its 16 departments. `/departments`
+lists every dept with agent counts, tier distribution, 30d calls + cost.
+Click → `/departments/{id}` for the full detail (agents grid, workflows
+list, stats row).
+
+### Backend
+
+- `GET /api/departments` (NEW) — aggregates agent registry by
+  department, merges with PR47 telemetry for 30d cost. Returns
+  `{departments: [{department, agent_count, tier_counts, calls_30d,
+  cost_usd_30d}], total}`.
+- `GET /api/departments/{dept_id}` (NEW) — full detail including
+  agent list (light shape) + workflows under
+  `departments/<dept>/workflows/*.yaml` + 30d cost. Returns
+  `{error: ...}` for unknown departments. 7 unit tests cover
+  payload shape, sort order, required fields, error path, agent
+  list, workflows, cost.
+
+### Frontend
+
+- `dashboard/app/pages/departments/index.vue` (NEW) — UTable with
+  search filter, tier mini-badges, cost formatting.
+- `dashboard/app/pages/departments/[dept].vue` (NEW) — stats row +
+  agent grid (linking to `/agents/{id}`) + workflows list.
+- Sidebar gains a "Departments" entry between Agents and Personas.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — 2 new endpoints
+- `tests/python/test_departments_endpoints.py` (NEW, 7 tests)
+- `dashboard/app/pages/departments/index.vue` (NEW)
+- `dashboard/app/pages/departments/[dept].vue` (NEW)
+- `dashboard/app/layouts/default.vue` — Departments nav item
+
 ## [3.26.0] - 2026-05-26
 
 ### Added (Agent history timeline — PR88d)

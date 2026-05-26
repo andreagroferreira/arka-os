@@ -21,6 +21,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Departments',
+  icon: 'i-lucide-folder-tree',
+  to: '/departments',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Personas',
   icon: 'i-lucide-user-plus',
   to: '/personas',

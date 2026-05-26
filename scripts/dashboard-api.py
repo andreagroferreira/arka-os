@@ -1494,6 +1494,127 @@ def agent_export_to_vault(agent_id: str):
     return {"exported": True, "path": str(res.path), "vault_path": str(res.vault_path)}
 
 
+# --- Departments (PR89a v3.27.0) ---
+
+@app.get("/api/departments")
+def departments_list():
+    """List every department with agent count + 30d cost summary."""
+    agents = _load_agents()
+    by_dept: dict[str, dict] = {}
+    for a in agents:
+        dept = a.get("department") or ""
+        if not dept:
+            continue
+        row = by_dept.setdefault(dept, {
+            "department": dept,
+            "agent_count": 0,
+            "tier_counts": {"0": 0, "1": 0, "2": 0, "3": 0},
+        })
+        row["agent_count"] += 1
+        tier_key = str(a.get("tier") or "")
+        if tier_key in row["tier_counts"]:
+            row["tier_counts"][tier_key] += 1
+    cost_map: dict[str, dict] = {}
+    try:
+        from core.runtime.llm_cost_telemetry import summarise
+        s = summarise(period="month")
+        for category, row in (s.by_category or {}).items():
+            if not isinstance(category, str) or not category.startswith("subagent:"):
+                continue
+            parts = category.split(":", 2)
+            dept = parts[1] if len(parts) >= 2 else "unknown"
+            bucket = cost_map.setdefault(dept, {
+                "calls_30d": 0,
+                "cost_usd_30d": 0.0,
+                "any_cost_known": False,
+            })
+            bucket["calls_30d"] += int(row.get("call_count", 0))
+            cost = row.get("total_cost_usd")
+            if isinstance(cost, (int, float)):
+                bucket["cost_usd_30d"] += float(cost)
+                bucket["any_cost_known"] = True
+    except Exception:  # noqa: BLE001
+        pass
+    out: list[dict] = []
+    for dept in sorted(by_dept.keys()):
+        row = by_dept[dept]
+        cost = cost_map.get(dept, {})
+        row["calls_30d"] = cost.get("calls_30d", 0)
+        row["cost_usd_30d"] = (
+            round(cost.get("cost_usd_30d", 0.0), 6)
+            if cost.get("any_cost_known") else None
+        )
+        out.append(row)
+    return {"departments": out, "total": len(out)}
+
+
+@app.get("/api/departments/{dept_id}")
+def department_detail(dept_id: str):
+    """Full department detail: agents, workflows, 30d cost."""
+    dept_id = dept_id.strip().lower()
+    agents = [a for a in _load_agents() if a.get("department") == dept_id]
+    if not agents:
+        return {"error": "Department not found or has no agents"}
+    workflows: list[dict] = []
+    try:
+        import yaml as _yaml
+        wf_dir = ARKAOS_ROOT / "departments" / dept_id / "workflows"
+        if wf_dir.exists():
+            for path in sorted(wf_dir.glob("*.yaml")):
+                try:
+                    raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+                except Exception:  # noqa: BLE001
+                    raw = {}
+                if not isinstance(raw, dict):
+                    continue
+                workflows.append({
+                    "id": str(raw.get("id") or path.stem),
+                    "name": str(raw.get("name") or path.stem),
+                    "tier": str(raw.get("tier") or ""),
+                    "command": str(raw.get("command") or ""),
+                    "phases_count": len(raw.get("phases") or []),
+                })
+    except ImportError:
+        pass
+    calls_30d = 0
+    cost_usd_30d: Optional[float] = None
+    try:
+        from core.runtime.llm_cost_telemetry import summarise
+        s = summarise(period="month")
+        total_cost = 0.0
+        any_known = False
+        for category, row in (s.by_category or {}).items():
+            if not isinstance(category, str) or not category.startswith("subagent:"):
+                continue
+            parts = category.split(":", 2)
+            if len(parts) >= 2 and parts[1] == dept_id:
+                calls_30d += int(row.get("call_count", 0))
+                cost = row.get("total_cost_usd")
+                if isinstance(cost, (int, float)):
+                    total_cost += float(cost)
+                    any_known = True
+        cost_usd_30d = round(total_cost, 6) if any_known else None
+    except Exception:  # noqa: BLE001
+        pass
+    return {
+        "department": dept_id,
+        "agents": [
+            {
+                "id": a.get("id"),
+                "name": a.get("name"),
+                "role": a.get("role"),
+                "tier": a.get("tier"),
+                "mbti": a.get("mbti"),
+                "disc": a.get("disc"),
+            }
+            for a in agents
+        ],
+        "workflows": workflows,
+        "calls_30d": calls_30d,
+        "cost_usd_30d": cost_usd_30d,
+    }
+
+
 # --- Workflows (PR88b v3.24.0) ---
 
 @app.get("/api/workflows")
