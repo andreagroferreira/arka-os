@@ -5,6 +5,38 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.26.0] - 2026-05-26
+
+### Added (Agent history timeline — PR88d)
+
+Agent detail pages gain a History section showing the YAML file's
+git log + any trash entries (delete / move). Combined into a single
+chronological feed.
+
+### Backend
+
+- `GET /api/agents/{id}/history?limit=N` (NEW) — merges:
+  - `git log --follow` on the agent YAML (hash, ISO date, author,
+    subject) — best-effort, returns empty list on git failure or
+    non-repo runs
+  - Trash entries (`agent-delete`, `agent-move`) filtered by item_id
+- Helpers `_agent_git_log`, `_trash_ts_to_iso`, `_trash_summary`
+  extracted for testability. 7 unit tests cover unknown agent,
+  payload shape, limit truncation, sort order, ts helper round-trip.
+
+### Frontend
+
+- `agents/[id].vue` — new `<section>` after the activity strip with
+  a vertical timeline (UI: left border, dots, badge per kind,
+  relative time, code hash, author). Hides itself when there's no
+  history (e.g. uncommitted agent created via the dashboard).
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/agents/{id}/history + helpers
+- `tests/python/test_agent_history.py` (NEW, 7 tests)
+- `dashboard/app/pages/agents/[id].vue` — timeline section + helpers
+
 ## [3.25.0] - 2026-05-26
 
 ### Added (Knowledge sources list + per-source delete — PR88c)

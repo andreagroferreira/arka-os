@@ -322,6 +322,96 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
     }
 
 
+@app.get("/api/agents/{agent_id}/history")
+def agent_history(agent_id: str, limit: int = 20):
+    """PR88d v3.26.0 — combined history for an agent.
+
+    Sources:
+      - git log of the YAML file (commit hash, date, subject, author)
+      - trash entries (agent-delete + agent-move) where ``item_id``
+        matches
+
+    Returns ``{events: [{kind, ts, summary, ref?, author?}]}`` sorted
+    desc by ts.
+    """
+    events: list[dict] = []
+    yaml_file = _resolve_agent_yaml(agent_id)
+    if yaml_file is not None:
+        events.extend(_agent_git_log(yaml_file, limit=limit))
+    try:
+        from core import trash as _trash
+        for entry in _trash.list_trash(limit=50):
+            if entry.get("item_id") == agent_id and str(entry.get("kind", "")).startswith("agent-"):
+                events.append({
+                    "kind": entry.get("kind"),
+                    "ts": _trash_ts_to_iso(entry.get("timestamp")),
+                    "summary": _trash_summary(entry),
+                    "ref": entry.get("id"),
+                })
+    except Exception:  # noqa: BLE001
+        pass
+    events.sort(key=lambda e: str(e.get("ts") or ""), reverse=True)
+    return {"events": events[: max(0, int(limit))]}
+
+
+def _agent_git_log(yaml_file: Path, limit: int = 20) -> list[dict]:
+    """Run ``git log`` on the YAML file. Best-effort — empty on error."""
+    try:
+        rel = yaml_file.relative_to(ARKAOS_ROOT).as_posix()
+    except ValueError:
+        return []
+    try:
+        result = subprocess.run(
+            [
+                "git", "log", "--follow", f"-n{int(limit)}",
+                "--pretty=format:%H%x09%cI%x09%an%x09%s",
+                "--", rel,
+            ],
+            cwd=str(ARKAOS_ROOT),
+            capture_output=True, text=True, timeout=5,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return []
+    if result.returncode != 0:
+        return []
+    rows: list[dict] = []
+    for line in result.stdout.strip().split("\n"):
+        if not line:
+            continue
+        parts = line.split("\t", 3)
+        if len(parts) < 4:
+            continue
+        sha, iso, author, subject = parts
+        rows.append({
+            "kind": "git-commit",
+            "ts": iso,
+            "summary": subject,
+            "ref": sha[:8],
+            "author": author,
+        })
+    return rows
+
+
+def _trash_ts_to_iso(ts: object) -> str | None:
+    if ts is None:
+        return None
+    try:
+        from datetime import datetime, timezone
+        return datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat()
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def _trash_summary(entry: dict) -> str:
+    kind = entry.get("kind") or ""
+    if kind == "agent-move":
+        new_path = entry.get("new_path") or ""
+        return f"Moved to {Path(new_path).parent.parent.name if new_path else '?'}"
+    if kind == "agent-delete":
+        return "Deleted (restorable from /trash)"
+    return kind
+
+
 @app.get("/api/agents/{agent_id}/activity")
 def agent_activity_detail(agent_id: str, period: str = "month"):
     """PR86b v3.16.0 — alias for /activity-strip. Same payload shape.
