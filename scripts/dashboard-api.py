@@ -449,6 +449,51 @@ def persona_download_markdown(persona_id: str):
     )
 
 
+@app.put("/api/agents/{agent_id}/yaml")
+def agent_update_yaml(agent_id: str, body: dict):
+    """PR95b v3.52.0 — overwrite an agent's YAML file in place.
+
+    Body: ``{"content": "<full YAML>"}``. Mirrors the workflow YAML
+    editor (PR94d): parses the content, requires a dict root + an `id`
+    that matches the URL param. Atomic write via tmp + replace.
+
+    Refuses to mutate Tier 0 agents — those are governance fixtures.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    content = str(body.get("content") or "")
+    if not content.strip():
+        return {"error": "content is required"}
+    yaml_file = _resolve_agent_yaml(agent_id)
+    if yaml_file is None:
+        return {"error": "Agent not found"}
+    if _agent_tier_from_yaml(yaml_file) == 0:
+        return {"error": "Cannot edit Tier 0 (C-Suite) YAML via this endpoint"}
+    try:
+        import yaml as _yaml
+        parsed = _yaml.safe_load(content)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"YAML parse failed: {exc}"}
+    if not isinstance(parsed, dict):
+        return {"error": "YAML root must be a mapping"}
+    if not parsed.get("id"):
+        return {"error": "YAML must include a non-empty 'id' field"}
+    if parsed.get("id") != agent_id:
+        return {
+            "error": (
+                "YAML 'id' must match the URL param "
+                f"({parsed.get('id')!r} vs {agent_id!r})"
+            ),
+        }
+    try:
+        tmp = yaml_file.with_suffix(yaml_file.suffix + ".tmp")
+        tmp.write_text(content, encoding="utf-8")
+        tmp.replace(yaml_file)
+    except OSError as exc:
+        return {"error": f"write failed: {exc}"}
+    return {"updated": True, "id": agent_id, "yaml_path": str(yaml_file)}
+
+
 @app.get("/api/agents/{agent_id}/yaml")
 def agent_download_yaml(agent_id: str):
     """PR89d v3.30.0 — return the raw YAML for the agent.

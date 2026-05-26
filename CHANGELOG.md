@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.52.0] - 2026-05-26
+
+### Added (Inline agent YAML editor — PR95b)
+
+Mirrors PR94d (workflow YAML editor) for agents. **Edit YAML** button
+in the agent detail hero opens a modal with the raw YAML in a
+monospace textarea + Save / Cancel.
+
+### Backend
+
+- `PUT /api/agents/{agent_id}/yaml` (NEW) — accepts
+  `{content: "<YAML>"}`. Validates: dict root + non-empty `id` field
+  + id matches URL param. Refuses Tier 0 (C-Suite) edits — those
+  remain YAML-direct only. Atomic write (tmp + replace).
+- 7 unit tests cover non-object body, empty content, unknown agent,
+  non-dict root, id mismatch, Tier 0 refusal, round-trip preservation.
+
+### Frontend
+
+- `agents/[id].vue` — **Edit YAML** button next to the existing
+  YAML download. Opens a UModal with a 20-row UTextarea. Save calls
+  the PUT endpoint, surfaces parse/validation errors as toasts,
+  refreshes the agent on success.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — PUT /api/agents/{id}/yaml
+- `tests/python/test_agent_yaml_update.py` (NEW, 7 tests)
+- `dashboard/app/pages/agents/[id].vue` — Edit YAML button + modal
+
 ## [3.51.0] - 2026-05-26
 
 ### Added (Terminal page with allowlist commands — PR95a)

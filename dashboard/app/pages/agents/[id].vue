@@ -105,6 +105,58 @@ function markedHtml(src: string): string {
   }
 }
 
+// PR95b v3.52.0 — edit YAML inline (modal).
+const yamlEditorOpen = ref(false)
+const yamlEditorDraft = ref('')
+const yamlEditorSaving = ref(false)
+
+async function openYamlEditor() {
+  if (!agent.value) return
+  // Fetch raw YAML once when opening (already on backend via PR89d).
+  try {
+    const blob = await $fetch<Blob>(
+      `${apiBase}/api/agents/${agentId}/yaml`,
+      { responseType: 'blob' },
+    )
+    yamlEditorDraft.value = await blob.text()
+    yamlEditorOpen.value = true
+  } catch (err) {
+    toast.add({
+      title: 'Failed to load YAML',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  }
+}
+
+async function saveYamlEditor() {
+  if (!agent.value) return
+  yamlEditorSaving.value = true
+  try {
+    const res = await $fetch<{ updated?: boolean, error?: string }>(
+      `${apiBase}/api/agents/${agentId}/yaml`,
+      { method: 'PUT', body: { content: yamlEditorDraft.value } },
+    )
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: 'YAML updated',
+      description: agentId,
+      color: 'success',
+      icon: 'i-lucide-check',
+    })
+    yamlEditorOpen.value = false
+    await refresh()
+  } catch (err) {
+    toast.add({
+      title: 'Save failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    yamlEditorSaving.value = false
+  }
+}
+
 // PR89d v3.30.0 — download YAML.
 const downloadingYaml = ref(false)
 async function downloadYaml() {
@@ -403,6 +455,13 @@ function formatTokens(n: number): string {
                     @click="downloadYaml"
                   />
                   <UButton
+                    label="Edit YAML"
+                    icon="i-lucide-file-code"
+                    variant="ghost"
+                    size="sm"
+                    @click="openYamlEditor"
+                  />
+                  <UButton
                     label="Edit"
                     icon="i-lucide-pencil"
                     size="sm"
@@ -551,6 +610,57 @@ function formatTokens(n: number): string {
             </li>
           </ol>
         </section>
+
+        <!-- PR95b v3.52.0 — YAML editor modal -->
+        <UModal v-model:open="yamlEditorOpen" :ui="{ content: 'max-w-3xl' }">
+          <template #content>
+            <UCard>
+              <template #header>
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-lg font-bold">Edit agent YAML</h2>
+                    <p class="text-xs text-muted mt-0.5 font-mono">{{ agent?.id }}</p>
+                  </div>
+                  <UButton
+                    icon="i-lucide-x"
+                    variant="ghost"
+                    size="sm"
+                    :disabled="yamlEditorSaving"
+                    @click="yamlEditorOpen = false"
+                  />
+                </div>
+              </template>
+              <UTextarea
+                v-model="yamlEditorDraft"
+                :rows="20"
+                class="w-full font-mono text-xs"
+              />
+              <template #footer>
+                <div class="flex items-center justify-between gap-2 text-xs">
+                  <p class="text-muted">
+                    Edits go through the same validator as PUT /api/agents/{id}/yaml —
+                    parse + dict root + matching id. Tier 0 agents are locked.
+                  </p>
+                  <div class="flex gap-2 shrink-0">
+                    <UButton
+                      label="Cancel"
+                      variant="ghost"
+                      :disabled="yamlEditorSaving"
+                      @click="yamlEditorOpen = false"
+                    />
+                    <UButton
+                      label="Save"
+                      icon="i-lucide-check"
+                      color="primary"
+                      :loading="yamlEditorSaving"
+                      @click="saveYamlEditor"
+                    />
+                  </div>
+                </div>
+              </template>
+            </UCard>
+          </template>
+        </UModal>
 
         <AgentEditDrawer
           v-model="editOpen"
