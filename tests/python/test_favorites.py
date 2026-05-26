@@ -83,3 +83,41 @@ def test_corrupt_json_falls_back_to_empty(fav):
     fav._store_path().write_text("not json {{{", encoding="utf-8")
     state = fav.list_favorites()
     assert state == {"agents": [], "personas": []}
+
+
+# --- PR97c: bulk set ---
+
+def test_set_many_adds_all(fav):
+    res = fav.set_many("agents", ["a1", "a2", "a3"], True)
+    assert res == {"kind": "agents", "favorited": True, "applied": 3, "total": 3}
+    assert set(fav.list_favorites()["agents"]) == {"a1", "a2", "a3"}
+
+
+def test_set_many_removes_all(fav):
+    fav.set_many("agents", ["a1", "a2"], True)
+    res = fav.set_many("agents", ["a1", "a2"], False)
+    assert res["applied"] == 2
+    assert fav.list_favorites()["agents"] == []
+
+
+def test_set_many_noop_when_state_matches(fav):
+    fav.set_many("agents", ["a1"], True)
+    res = fav.set_many("agents", ["a1"], True)
+    assert res["applied"] == 0
+    assert res["total"] == 1
+
+
+def test_set_many_rejects_unknown_kind(fav):
+    res = fav.set_many("bogus", ["a1"], True)
+    assert "error" in res
+
+
+def test_set_many_rejects_non_list_ids(fav):
+    res = fav.set_many("agents", "a1", True)  # type: ignore[arg-type]
+    assert "error" in res
+
+
+def test_set_many_skips_invalid_id_entries(fav):
+    res = fav.set_many("agents", ["a1", "", None, "a2"], True)  # type: ignore[list-item]
+    assert res["applied"] == 2
+    assert res["total"] == 2  # blank string + None are skipped
