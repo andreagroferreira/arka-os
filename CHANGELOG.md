@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.35.0] - 2026-05-26
+
+### Added (Agent gap suggestions card — PR91a)
+
+Home page gains a "What's missing?" card listing departments that
+either have no agents at all or are missing a Tier 2 specialist.
+Click any row to jump to `/agents/new`.
+
+### Backend
+
+- `GET /api/agents/suggestions?limit=N` (NEW) — walks the agent
+  registry, compares against the 16 known department slugs, and
+  returns gap rows tagged `high` (empty dept) or `medium` (no T2).
+  7 unit tests cover payload shape, severity rules, limit
+  truncation, known-departments constant.
+
+### Frontend
+
+- `AgentSuggestionsCard.vue` (NEW) — UCard mounted above the
+  existing top-departments / recent-personas grid on the home page.
+  Hides itself when there are no gaps.
+- `pages/index.vue` — mounts the card above the existing row.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/agents/suggestions + constant
+- `tests/python/test_agents_suggestions.py` (NEW, 7 tests)
+- `dashboard/app/components/AgentSuggestionsCard.vue` (NEW)
+- `dashboard/app/pages/index.vue` — mount the card
+
 ## [3.34.0] - 2026-05-26
 
 ### Added (Audit log page — PR90d)
