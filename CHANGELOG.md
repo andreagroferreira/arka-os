@@ -5,6 +5,25 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.41.0] - 2026-05-26
+
+### Added (First-visit onboarding tour — PR92c)
+
+A 6-step modal tour shows up on the first visit to `/` walking through
+Agents → Personas → Workflows → Budget → keyboard shortcuts.
+
+### Frontend
+
+- `OnboardingTour.vue` (NEW) — UModal with progress bar, Back/Next,
+  "Don't show again", per-step CTA. Dismissal persists in
+  `localStorage` as `arkaos_onboarding_dismissed`.
+- `default.vue` layout mounts the tour.
+
+### Files changed
+
+- `dashboard/app/components/OnboardingTour.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — mount the tour
+
 ## [3.40.0] - 2026-05-26
 
 ### Changed (Agent filters persisted in URL — PR92b)
