@@ -112,6 +112,20 @@ function pickFromSearch(cmd: string) {
   searchOpen.value = false
 }
 
+// v3.70.4 — inline filter for the side panel.
+const sidebarFilter = ref('')
+
+const visibleHistory = computed(() => {
+  const q = sidebarFilter.value.trim().toLowerCase()
+  const filtered = history.value.filter((e) => isPlausibleCommand(e.cmd))
+  if (!q) return filtered
+  return filtered.filter((e) => e.cmd.toLowerCase().includes(q))
+})
+
+function sendToActive(cmd: string) {
+  activeTab.value?.session.sendInput(cmd)
+}
+
 function searchKeydown(e: KeyboardEvent) {
   const total = searchResults.value.length
   if (total === 0) return
@@ -319,24 +333,92 @@ const showHistory = ref(false)
       </div>
       <aside
         v-if="showHistory"
-        class="w-72 shrink-0 rounded-lg border border-default bg-elevated/10 overflow-hidden flex flex-col"
+        class="w-80 shrink-0 rounded-lg border border-default bg-elevated/10 overflow-hidden flex flex-col"
       >
-        <div class="px-3 py-2 border-b border-default text-xs uppercase tracking-wide text-muted">
-          Command history
-        </div>
-        <div class="flex-1 overflow-auto text-xs font-mono">
-          <button
-            v-for="(entry, i) in history"
-            :key="i"
-            class="w-full text-left px-3 py-1.5 hover:bg-default/40 truncate"
-            :title="entry.cmd"
-            @click="activeTab?.session.sendInput(entry.cmd)"
-          >
-            {{ entry.cmd }}
-          </button>
-          <div v-if="history.length === 0" class="px-3 py-4 text-muted text-center">
-            No commands yet
+        <div class="px-3 py-2.5 border-b border-default flex items-center gap-2">
+          <UIcon name="i-lucide-history" class="size-4 text-muted shrink-0" />
+          <span class="text-sm font-semibold">History</span>
+          <UBadge :label="String(visibleHistory.length)" size="xs" variant="subtle" />
+          <div class="ml-auto flex items-center gap-1">
+            <UButton
+              size="xs"
+              variant="ghost"
+              icon="i-lucide-search"
+              title="Open full search (⌃R)"
+              @click="openSearch"
+            />
+            <UButton
+              v-if="history.length > 0"
+              size="xs"
+              variant="ghost"
+              color="error"
+              icon="i-lucide-trash-2"
+              title="Clear all"
+              @click="clearHistory"
+            />
+            <UButton
+              size="xs"
+              variant="ghost"
+              icon="i-lucide-x"
+              title="Close panel"
+              @click="showHistory = false"
+            />
           </div>
+        </div>
+
+        <div class="px-3 py-2 border-b border-default">
+          <UInput
+            v-model="sidebarFilter"
+            size="xs"
+            placeholder="Filter…"
+            icon="i-lucide-search"
+            class="w-full"
+          />
+        </div>
+
+        <div class="flex-1 overflow-y-auto">
+          <div
+            v-if="history.length === 0"
+            class="p-6 text-center text-xs text-muted"
+          >
+            <UIcon name="i-lucide-terminal" class="size-6 mx-auto mb-2 opacity-50" />
+            <p>No commands yet.</p>
+          </div>
+          <div
+            v-else-if="visibleHistory.length === 0"
+            class="p-6 text-center text-xs text-muted"
+          >
+            No matches for
+            <span class="font-mono text-default">{{ sidebarFilter }}</span>.
+          </div>
+          <ul v-else class="divide-y divide-default">
+            <li
+              v-for="entry in visibleHistory"
+              :key="entry.ts"
+              class="group px-3 py-1.5 hover:bg-elevated/40 cursor-pointer flex items-center gap-2"
+              :title="`${entry.cmd} — ${relativeTime(entry.ts)}`"
+              @click="sendToActive(entry.cmd)"
+            >
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="size-3 shrink-0 text-muted group-hover:text-primary"
+              />
+              <span class="flex-1 min-w-0 font-mono text-xs truncate">
+                {{ entry.cmd }}
+              </span>
+              <span class="text-[10px] text-muted shrink-0 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">
+                {{ relativeTime(entry.ts) }}
+              </span>
+              <UIcon
+                name="i-lucide-corner-down-left"
+                class="size-3 shrink-0 text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </li>
+          </ul>
+        </div>
+
+        <div class="px-3 py-2 border-t border-default text-[10px] text-muted">
+          Click a command to send it to the active session.
         </div>
       </aside>
     </div>
