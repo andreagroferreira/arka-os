@@ -5,6 +5,47 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.5] - 2026-05-27
+
+### Fixed (Terminal canvas full width — shell wasn't getting the real cols)
+
+The xterm canvas filled the full container width, but the shell
+running inside it was wrapping output at the default 80 cols, leaving
+~30% of empty space on the right. Visible in any Claude CLI / table /
+git log output.
+
+Root cause: `fitAddon.fit()` ran in `onMounted` before the browser
+had laid out the container. With a 0×0 box, fit computed cols
+incorrectly. The initial `sendResize` then propagated the bad value
+to the backend PTY. The ResizeObserver only fires on subsequent
+size changes — never recovered.
+
+Compounding: when an inactive tab (`v-show: false` →
+`display: none`) became active again, the ResizeObserver didn't fire
+(display:none containers don't get observed) so the cols stayed
+stale from whenever the tab was last visible.
+
+### Fix
+
+- `onMounted`: await `nextTick()` + `requestAnimationFrame()` before
+  the first `fit()` so the container has real dimensions.
+- `watch(session.status, 'open')`: re-fit on connection so the
+  backend PTY gets the live cols/rows once the WS handshake completes.
+- New `active` prop + watcher: when a tab becomes active, refit
+  via `nextTick → rAF` to recover from any size drift while hidden.
+- New `refit()` method exposed via `defineExpose` for callers that
+  want to force a refit (e.g. after sidebar collapse).
+- Removed the stale `p-2` on the inner container; moved the visual
+  padding to `padding: 8px 12px` inside the xterm-owned element so
+  cols calculation gets the full container width.
+
+### Files changed
+
+- `dashboard/app/components/Terminal.vue` — fit timing, active prop,
+  refit method, padding rework.
+- `dashboard/app/pages/terminal.vue` — passes `:active` to each
+  Terminal in the tab loop.
+
 ## [3.70.4] - 2026-05-26
 
 ### Fixed (Terminal history sidebar — same polish level as palette)

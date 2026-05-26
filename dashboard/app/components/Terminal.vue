@@ -16,6 +16,7 @@ interface Props {
   session?: ReturnType<typeof useTerminalSession>
   onInputLine?: (line: string) => void
   theme?: XtermTheme
+  active?: boolean
 }
 const props = defineProps<Props>()
 
@@ -58,11 +59,22 @@ onMounted(async () => {
   t.loadAddon(new WebLinksAddon())
   t.loadAddon(searchAddon)
   t.open(container.value)
-  fitAddon.fit()
 
   term.value = t
   fit.value = fitAddon
   search.value = searchAddon
+
+  // v3.70.5 — wait for paint so the container has its final width
+  // before fit() reads it. Without this, fit() ran with a 0x0 box on
+  // first mount and shells started at the default 80 cols, leaving
+  // empty space on the right of the canvas.
+  await nextTick()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  try {
+    fitAddon.fit()
+  } catch (_e) {
+    // dom layout not ready — ResizeObserver below will recover
+  }
 
   await session.open()
 
@@ -123,11 +135,17 @@ onMounted(async () => {
     session.sendInput(data)
   })
 
-  // Initial size sync once the WS is open.
+  // Initial size sync once the WS is open. v3.70.5 — fit *again* on
+  // open because the layout might have changed during the WS round-
+  // trip (sidebar collapse, tab switch, etc.).
   watch(session.status, (s) => {
     if (s === 'open') {
-      const { cols, rows } = t
-      session.sendResize(cols, rows)
+      requestAnimationFrame(() => {
+        try {
+          fitAddon.fit()
+        } catch (_e) { /* layout not ready */ }
+        session.sendResize(t.cols, t.rows)
+      })
     }
   }, { immediate: true })
 
@@ -140,7 +158,32 @@ onMounted(async () => {
     }
   })
   resizeObserver.observe(container.value)
+
+  // v3.70.5 — refit when this tab becomes the active one. v-show keeps
+  // inactive tabs mounted with display:none, where ResizeObserver
+  // doesn't fire. Switching back requires an explicit refit.
+  watch(() => props.active, (isActive) => {
+    if (!isActive || !term.value || !fit.value) return
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        try {
+          fit.value?.fit()
+          session.sendResize(term.value!.cols, term.value!.rows)
+        } catch (_e) { /* layout not ready */ }
+      })
+    })
+  })
 })
+
+function refit() {
+  if (!term.value || !fit.value) return
+  try {
+    fit.value.fit()
+    session.sendResize(term.value.cols, term.value.rows)
+  } catch (_e) {
+    // layout not ready
+  }
+}
 
 onBeforeUnmount(async () => {
   unsubscribeOutput?.()
@@ -157,6 +200,7 @@ defineExpose({
   status: session.status,
   error: session.error,
   meta: session.meta,
+  refit,
 })
 </script>
 
@@ -180,7 +224,7 @@ defineExpose({
       </span>
       <span v-else class="text-muted">closed</span>
     </div>
-    <div ref="container" class="absolute inset-0 p-2" />
+    <div ref="container" class="absolute inset-0" />
   </div>
 </template>
 
@@ -188,7 +232,7 @@ defineExpose({
 :deep(.xterm) {
   height: 100%;
   width: 100%;
-  padding: 4px;
+  padding: 8px 12px;
 }
 :deep(.xterm-viewport) {
   background-color: transparent !important;
