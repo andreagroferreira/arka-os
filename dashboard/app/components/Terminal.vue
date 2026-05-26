@@ -72,20 +72,53 @@ onMounted(async () => {
   })
 
   // PR99c v3.69.0 — line-buffer for command history without server-
-  // side audit. Captures only printable chars up to Enter; ignores
-  // arrow keys, ctrl combos, escape sequences.
+  // side audit. Captures only printable chars up to Enter.
+  // v3.70.3 — proper ANSI ESC-sequence skipper so arrow keys / cursor
+  // queries / function keys never leak into the history. The state
+  // machine handles `\x1b[...<final>` (CSI) and `\x1bO<char>` (SS3).
   let lineBuf = ''
+  let escState: 'none' | 'esc' | 'csi' | 'ss3' = 'none'
   t.onData((data) => {
     for (const ch of data) {
+      if (escState === 'esc') {
+        if (ch === '[') escState = 'csi'
+        else if (ch === 'O') escState = 'ss3'
+        else escState = 'none' // unknown ESC sequence, drop just this byte
+        continue
+      }
+      if (escState === 'csi') {
+        // Final byte of a CSI is in 0x40-0x7E (@A..Z[\]^_`a..z{|}~)
+        if (ch >= '@' && ch <= '~') escState = 'none'
+        continue
+      }
+      if (escState === 'ss3') {
+        // SS3 is ESC O <one-char>
+        escState = 'none'
+        continue
+      }
+      if (ch === '\x1b') {
+        escState = 'esc'
+        continue
+      }
       if (ch === '\r' || ch === '\n') {
         const cmd = lineBuf.trim()
         if (cmd) props.onInputLine?.(cmd)
         lineBuf = ''
-      } else if (ch === '\x7f' || ch === '\b') {
+        continue
+      }
+      if (ch === '\x7f' || ch === '\b') {
         lineBuf = lineBuf.slice(0, -1)
-      } else if (ch >= ' ' && ch < '\x7f') {
+        continue
+      }
+      if (ch === '\x03' || ch === '\x15') {
+        // Ctrl-C or Ctrl-U — operator abandoned the line
+        lineBuf = ''
+        continue
+      }
+      if (ch >= ' ' && ch <= '~') {
         lineBuf += ch
       }
+      // any other control byte is silently dropped
     }
     session.sendInput(data)
   })

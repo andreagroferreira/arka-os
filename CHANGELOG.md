@@ -5,6 +5,44 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.3] - 2026-05-26
+
+### Fixed (Terminal Ctrl+R palette + ESC-sequence pollution in history)
+
+**ESC sequence pollution.** The v3.69.0 line-buffer captured raw
+printable bytes after `[` because it only filtered against the ESC
+byte itself, missing that ANSI CSI sequences like `\x1b[D` (left
+arrow) leave `[D` in the stream after the ESC byte. Arrow keys,
+function keys and terminal cursor queries (`\x1b[?1;2c`) were
+polluting the history as fake commands like `[I[?1;2c[D[B`.
+
+Fixed with a proper state machine in `Terminal.vue` that tracks
+`esc → csi/ss3 → final` and drops every byte inside an ESC sequence.
+Also added handlers for Ctrl+C (`\x03`) and Ctrl+U (`\x15`) so
+abandoning a line clears the buffer instead of recording a partial.
+
+Legacy entries are sanitised at load via `isPlausibleCommand()`
+heuristics (rejects CSI remnants, anything starting with `[`, anything
+with no alphanumerics).
+
+**Ctrl+R command palette UX.** The v3.70.0 UModal was generic and
+amateur (huge rows, no keyboard nav, no selection state, no metadata).
+Rewritten to match the canonical `GlobalSearch.vue` pattern:
+
+- `UModal` with `#content` slot + `UCard` body `p-0`
+- Header: history icon + auto-focused filter input + counter + ESC chip
+- Body: divide-y list, ~40px rows, font-mono command, relative
+  timestamp on the right, `↵ send` chip on the selected row
+- Keyboard navigation: ↑/↓ moves selection (wraps), Enter sends, Esc
+  closes. Hover updates the selection too.
+- Footer: kbd legend (↑↓/↵/esc) + "Clear all" button
+- Empty / no-match states with helpful icon + copy
+
+### Files changed
+
+- `dashboard/app/components/Terminal.vue` — ESC state machine, Ctrl-C/U handling.
+- `dashboard/app/pages/terminal.vue` — full palette rewrite, sanitiser, relativeTime.
+
 ## [3.70.2] - 2026-05-26
 
 ### Fixed (HOTFIX — /terminal auto-import + Vue instance.update crash)
