@@ -839,6 +839,23 @@ def knowledge_search(q: str = Query(...), top_k: int = Query(5)):
     return {"results": results, "query": q, "total": len(results)}
 
 
+@app.get("/api/knowledge/sources")
+def knowledge_list_sources():
+    """PR88c v3.25.0 — list every distinct source + chunk count.
+
+    Returns ``{sources: [{source, chunks}], total: N}``. Sorted
+    descending by chunk count.
+    """
+    store = _get_vector_store()
+    if not store:
+        return {"sources": [], "total": 0, "error": "vector store unavailable"}
+    try:
+        rows = store.list_sources()
+    except Exception as exc:  # noqa: BLE001
+        return {"sources": [], "total": 0, "error": str(exc)}
+    return {"sources": rows, "total": len(rows)}
+
+
 @app.delete("/api/knowledge/sources")
 def knowledge_delete_source(source: str = Query(...)):
     """PR71 v2.88.0 — remove all chunks from a given source.

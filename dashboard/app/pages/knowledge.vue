@@ -906,6 +906,11 @@ function escapeRegex(value: string): string {
               </div>
             </template>
           </div>
+
+          <!-- PR88c v3.25.0 — Indexed sources management -->
+          <div class="mt-6">
+            <KnowledgeSourcesList />
+          </div>
         </template>
       </template>
     </template>

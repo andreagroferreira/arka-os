@@ -5,6 +5,41 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.25.0] - 2026-05-26
+
+### Added (Knowledge sources list + per-source delete — PR88c)
+
+`/knowledge` was ingest-only. PR88c adds visibility: every distinct
+source that contributed chunks now shows up as a list with chunk
+counts and a per-row delete action.
+
+### Backend
+
+- `VectorStore.list_sources()` (NEW) — returns
+  `[{source, chunks}]` sorted desc by chunk count, skipping the
+  empty-source bucket. 5 unit tests covering empty store, distinct
+  counting, sort order, blank-source exclusion + endpoint shape.
+- `GET /api/knowledge/sources` (NEW) — wraps the method. Returns
+  `{sources, total, error?}`.
+
+### Frontend
+
+- `dashboard/app/components/KnowledgeSourcesList.vue` (NEW) — card
+  with search filter, paginated list (15 per page), per-row chunk
+  badge + delete button (uses `useConfirmDialog`, `variant: danger`).
+  Refresh button in the header. Pretty URL labels (host + path
+  without `https://`).
+- `dashboard/app/pages/knowledge.vue` — mounts the component below
+  the existing ingest + search panels.
+
+### Files changed
+
+- `core/knowledge/vector_store.py` — `list_sources()`
+- `scripts/dashboard-api.py` — GET /api/knowledge/sources
+- `tests/python/test_knowledge_sources_list.py` (NEW, 5 tests)
+- `dashboard/app/components/KnowledgeSourcesList.vue` (NEW)
+- `dashboard/app/pages/knowledge.vue` — mount the list card
+
 ## [3.24.0] - 2026-05-26
 
 ### Added (Workflows page with YAML preview — PR88b)

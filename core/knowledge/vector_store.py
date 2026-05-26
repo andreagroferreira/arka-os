@@ -283,6 +283,19 @@ class VectorStore:
             "db_path": self._db_path,
         }
 
+    def list_sources(self) -> list[dict]:
+        """PR88c v3.25.0 — distinct sources with chunk counts.
+
+        Returns rows sorted by chunk count desc so the noisiest
+        sources surface first.
+        """
+        rows = self._db.execute(
+            "SELECT source, COUNT(*) AS chunks FROM chunks "
+            "WHERE source IS NOT NULL AND source != '' "
+            "GROUP BY source ORDER BY chunks DESC"
+        ).fetchall()
+        return [{"source": r["source"], "chunks": int(r["chunks"])} for r in rows]
+
     def clear(self) -> None:
         """Remove all data."""
         if self._vec_available:
