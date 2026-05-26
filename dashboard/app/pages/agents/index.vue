@@ -158,9 +158,59 @@ function goToAgent(id: string) {
 }
 
 // PR83b v3.4.0 — bulk selection + delete.
+// PR84b v3.8.0 — bulk move department.
 const confirmDialog = useConfirmDialog()
 const selected = ref<Set<string>>(new Set())
 const bulkDeleting = ref(false)
+const bulkMoving = ref(false)
+
+const departmentMoveOptions = [
+  'dev', 'marketing', 'brand', 'finance', 'strategy', 'ecom', 'kb', 'ops',
+  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org',
+].map((d) => ({
+  label: `Move to ${d}`,
+  icon: 'i-lucide-arrow-right',
+  onSelect: () => bulkMove(d),
+}))
+
+async function bulkMove(targetDept: string) {
+  if (selected.value.size === 0) return
+  const ids = Array.from(selected.value)
+  const ok = await confirmDialog({
+    title: `Move ${ids.length} agent${ids.length === 1 ? '' : 's'} to ${targetDept}?`,
+    description: 'The YAML files will be relocated and their `department:` field updated. Tier 0 agents and unknown departments are skipped.',
+    confirmLabel: `Move to ${targetDept}`,
+    cancelLabel: 'Cancel',
+  })
+  if (!ok) return
+  bulkMoving.value = true
+  const results = await Promise.allSettled(
+    ids.map((id) =>
+      $fetch<{ moved?: boolean, error?: string }>(`${apiBase}/api/agents/${id}/move`, {
+        method: 'POST',
+        body: { department: targetDept },
+      }),
+    ),
+  )
+  const successes = results.filter(
+    (r) => r.status === 'fulfilled' && r.value.moved,
+  ).length
+  const failures = ids.length - successes
+  toast.add({
+    title: successes > 0
+      ? `Moved ${successes} agent${successes === 1 ? '' : 's'}`
+      : 'Nothing moved',
+    description: failures > 0
+      ? `${failures} skipped (Tier 0, collision, or missing)`
+      : undefined,
+    color: successes > 0 && failures === 0
+      ? 'success'
+      : failures > 0 && successes > 0 ? 'warning' : 'error',
+  })
+  clearSelection()
+  bulkMoving.value = false
+  await refreshAll()
+}
 
 function toggleSelected(id: string) {
   if (selected.value.has(id)) selected.value.delete(id)
@@ -387,6 +437,16 @@ async function bulkDelete() {
               @click="clearSelection"
             />
             <div class="h-5 w-px bg-default" />
+            <UDropdownMenu :items="departmentMoveOptions">
+              <UButton
+                label="Move to..."
+                icon="i-lucide-folder-tree"
+                size="sm"
+                variant="soft"
+                :loading="bulkMoving"
+                trailing-icon="i-lucide-chevron-down"
+              />
+            </UDropdownMenu>
             <UButton
               label="Delete"
               icon="i-lucide-trash-2"

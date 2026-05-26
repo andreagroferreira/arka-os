@@ -5,6 +5,42 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2026-05-26
+
+### Added (Bulk move department in /agents — PR84b)
+
+The /agents bulk action bar gains a "Move to..." dropdown next to
+Delete. Pick a target department, confirm, and every selected agent's
+YAML moves across `departments/<src>/agents/` → `departments/<dst>/
+agents/` with the `department:` field rewritten to match.
+
+### Backend
+
+- `POST /api/agents/{agent_id}/move` (NEW) — atomic YAML rewrite
+  + filesystem rename. Refuses unknown target dept, missing source,
+  Tier 0 agents, and collisions at the destination. 6 unit tests
+  covering all error paths + the happy path.
+
+### Frontend
+
+- `agents/index.vue` — UDropdownMenu listing all 16 departments next
+  to Delete in the bulk action bar. ConfirmDialog before fan-out.
+  Parallel POSTs via `Promise.allSettled`; toast summarises success /
+  partial / total failure.
+
+### Safety
+
+- Same Tier 0 protection as the delete endpoint.
+- Collision detection prevents accidental overwrite of a same-id
+  agent that already lives in the target dept.
+- All operations atomic per-file (tmp + replace pattern).
+
+### Files changed
+
+- `scripts/dashboard-api.py` — POST /api/agents/{id}/move
+- `tests/python/test_agent_move.py` (NEW, 6 tests)
+- `dashboard/app/pages/agents/index.vue` — Move dropdown + handler
+
 ## [3.7.0] - 2026-05-26
 
 ### Added (Rewrite from description in AgentEditDrawer — PR84a)

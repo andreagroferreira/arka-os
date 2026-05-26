@@ -1178,6 +1178,56 @@ def persona_clone(persona_id: str, body: dict = {}):
     return {"agent_id": agent_id, "department": department, "file": f"departments/{department}/agents/{agent_id}.yaml"}
 
 
+@app.post("/api/agents/{agent_id}/move")
+def agent_move(agent_id: str, body: dict):
+    """PR84b v3.8.0 — move an agent's YAML to another department.
+
+    Body: {"department": "<new-dept>"}
+    Mutates the YAML's `department:` field AND moves the file across
+    `departments/<src>/agents/` → `departments/<dst>/agents/`.
+
+    Refuses Tier 0 (C-Suite) like the delete endpoint. Refuses unknown
+    target department. Refuses overwriting an existing file at the
+    destination.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    target_dept = (body.get("department") or "").strip().lower()
+    if not target_dept:
+        return {"error": "department is required"}
+    yaml_file = _resolve_agent_yaml(agent_id)
+    if yaml_file is None:
+        return {"error": "Agent not found"}
+    if _agent_tier_from_yaml(yaml_file) == 0:
+        return {"error": "Cannot move Tier 0 (C-Suite) agents from the dashboard"}
+    dest_dir = ARKAOS_ROOT / "departments" / target_dept / "agents"
+    if not dest_dir.exists():
+        return {"error": f"department '{target_dept}' not found"}
+    dest_file = dest_dir / yaml_file.name
+    if dest_file.exists():
+        return {"error": f"target file already exists: {dest_file.name}"}
+    try:
+        if yaml_file.resolve() == dest_file.resolve():
+            return {"moved": False, "id": agent_id, "yaml_path": str(yaml_file)}
+    except FileNotFoundError:
+        pass
+    try:
+        import yaml as _yaml
+        raw = _yaml.safe_load(yaml_file.read_text(encoding="utf-8")) or {}
+        if isinstance(raw, dict):
+            raw["department"] = target_dept
+            tmp = yaml_file.with_suffix(yaml_file.suffix + ".tmp")
+            tmp.write_text(
+                _yaml.safe_dump(raw, sort_keys=False, allow_unicode=True, default_flow_style=False),
+                encoding="utf-8",
+            )
+            tmp.replace(yaml_file)
+        yaml_file.rename(dest_file)
+    except (OSError, ImportError) as exc:
+        return {"error": f"move failed: {exc}"}
+    return {"moved": True, "id": agent_id, "yaml_path": str(dest_file)}
+
+
 @app.delete("/api/agents/{agent_id}")
 def agent_delete(agent_id: str):
     """PR83b v3.4.0 — delete an agent's YAML file.
