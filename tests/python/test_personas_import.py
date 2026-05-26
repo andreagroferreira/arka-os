@@ -110,6 +110,43 @@ def test_imports_valid_markdown():
         pass
 
 
+def test_urls_rejects_invalid_scheme():
+    api = _load_dashboard_api()
+    if api._get_persona_manager() is None:
+        return
+    res = api.personas_import({"urls": ["ftp://example.com/x.md"]})
+    assert res["imported"] == 0
+    assert res["failed"] == 1
+    assert "scheme" in res["results"][0]["error"]
+
+
+def test_urls_list_can_be_empty():
+    api = _load_dashboard_api()
+    if api._get_persona_manager() is None:
+        return
+    res = api.personas_import({"urls": []})
+    assert res["imported"] == 0
+    assert res["failed"] == 0
+
+
+def test_urls_not_a_list_returns_error():
+    api = _load_dashboard_api()
+    res = api.personas_import({"urls": "not-a-list"})
+    assert "error" in res
+
+
+def test_urls_strips_blanks():
+    api = _load_dashboard_api()
+    if api._get_persona_manager() is None:
+        return
+    # Mix valid scheme URLs (unreachable) with empty strings — only the
+    # empties are skipped, the unreachable hit fetch_error.
+    res = api.personas_import({"urls": ["", "  "]})
+    # Both empties are silently dropped
+    assert res["imported"] == 0
+    assert res["failed"] == 0
+
+
 def test_mixed_batch_partial_success():
     api = _load_dashboard_api()
     if api._get_persona_manager() is None:

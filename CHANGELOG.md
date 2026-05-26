@@ -5,6 +5,36 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.36.0] - 2026-05-26
+
+### Added (Persona import from URLs — PR91b)
+
+`POST /api/personas/import` now accepts a `urls: [...]` array along
+with `files: [...]`. URLs are fetched server-side (10s timeout,
+http(s) only) and processed identically to local files.
+
+### Backend
+
+- `_fetch_url_entries(urls)` helper (NEW) uses `urllib.request` with a
+  custom User-Agent. Bad schemes / fetch failures surface as
+  per-row `fetch_error`. 4 new unit tests covering invalid scheme,
+  empty list, non-list body, blank-string filtering.
+- The endpoint preserves backward compatibility — operators that
+  only send `files` still work.
+
+### Frontend
+
+- `personas/index.vue` — the Import button is now a dropdown with
+  **Pick .md files…** and **From URLs…**. The URL flow opens a
+  UModal with a textarea (one URL per line). Same toast summary on
+  completion.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — URLs accepted on import + helper
+- `tests/python/test_personas_import.py` — 4 new tests (12 total)
+- `dashboard/app/pages/personas/index.vue` — Import dropdown + URL modal
+
 ## [3.35.0] - 2026-05-26
 
 ### Added (Agent gap suggestions card — PR91a)

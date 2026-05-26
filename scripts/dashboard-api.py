@@ -2004,16 +2004,24 @@ def global_search(q: str = "", limit: int = 20):
 def personas_import(body: dict):
     """Import persona Markdown files (frontmatter + body) into the store.
 
-    Body: {"files": [{"name": "Alex.md", "content": "<full file body>"}]}
-    Returns: {imported, failed, results: [{filename, status, id?, error?}]}
+    Body:
+      {"files": [{"name": "Alex.md", "content": "..."}]}  # local picker
+      {"urls":  ["https://example.com/raw.md", ...]}      # remote import
 
-    Each file MUST have YAML frontmatter with ``type: persona``. Files
-    lacking the frontmatter are flagged as failed without partial
-    side-effects.
+    Both keys are accepted; URLs are fetched server-side (PR91b
+    v3.36.0) and converted into the same `{name, content}` shape
+    before processing.
+
+    Returns: {imported, failed, results: [{filename, status, id?, error?}]}
     """
-    files = body.get("files") or []
-    if not isinstance(files, list):
+    raw_files = body.get("files")
+    raw_urls = body.get("urls")
+    if raw_files is not None and not isinstance(raw_files, list):
         return {"error": "files must be a list"}
+    if raw_urls is not None and not isinstance(raw_urls, list):
+        return {"error": "urls must be a list"}
+    files = list(raw_files or [])
+    urls = list(raw_urls or [])
     mgr = _get_persona_manager()
     if not mgr:
         return {"error": "Persona manager unavailable"}
@@ -2021,6 +2029,10 @@ def personas_import(body: dict):
     from pathlib import Path as _Path
 
     from core.personas.obsidian_store import ObsidianPersonaStore
+
+    # Resolve URLs into {name, content} entries.
+    if urls:
+        files.extend(_fetch_url_entries(urls))
 
     imported = 0
     failed = 0
@@ -2032,6 +2044,14 @@ def personas_import(body: dict):
             continue
         filename = str(entry.get("name") or "")
         content = str(entry.get("content") or "")
+        # Carry forward URL-fetch errors so the operator sees them.
+        if entry.get("fetch_error"):
+            failed += 1
+            results.append({
+                "filename": filename, "status": "failed",
+                "error": str(entry["fetch_error"]),
+            })
+            continue
         if not content.strip():
             failed += 1
             results.append({"filename": filename, "status": "failed", "error": "empty content"})
@@ -2056,6 +2076,38 @@ def personas_import(body: dict):
             results.append({"filename": filename, "status": "failed", "error": str(exc)})
 
     return {"imported": imported, "failed": failed, "results": results}
+
+
+def _fetch_url_entries(urls: list[str]) -> list[dict]:
+    """Fetch each URL and return ``{name, content}`` entries. PR91b."""
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    out: list[dict] = []
+    for raw in urls:
+        url = str(raw or "").strip()
+        if not url:
+            continue
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            out.append({"name": url, "fetch_error": "scheme must be http(s)"})
+            continue
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "ArkaOS/persona-import"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                content = resp.read().decode("utf-8", errors="replace")
+        except urllib.error.URLError as exc:
+            out.append({"name": url, "fetch_error": f"fetch failed: {exc.reason}"})
+            continue
+        except (TimeoutError, OSError) as exc:
+            out.append({"name": url, "fetch_error": f"fetch failed: {exc}"})
+            continue
+        # Derive a filename from the URL path.
+        name = (parsed.path.rsplit("/", 1)[-1] or "imported.md").strip()
+        if not name.endswith(".md"):
+            name = f"{name or 'imported'}.md"
+        out.append({"name": name, "content": content})
+    return out
 
 
 # --- Trash / Undo (PR85b v3.12.0) ---
