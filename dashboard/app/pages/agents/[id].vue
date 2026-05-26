@@ -177,6 +177,54 @@ async function saveYamlEditor() {
   }
 }
 
+// PR97d v3.62.0 — inline edit for name / role.
+type InlineField = 'name' | 'role'
+const inlineField = ref<InlineField | null>(null)
+const inlineDraft = ref('')
+const inlineSaving = ref(false)
+
+function startInline(field: InlineField, current: string | undefined) {
+  inlineField.value = field
+  inlineDraft.value = current ?? ''
+}
+function cancelInline() {
+  inlineField.value = null
+  inlineDraft.value = ''
+}
+async function commitInline(field: InlineField) {
+  if (!agent.value || inlineField.value !== field) return
+  const next = inlineDraft.value.trim()
+  const current = (field === 'name' ? agent.value.name : agent.value.role) ?? ''
+  if (!next || next === current) {
+    cancelInline()
+    return
+  }
+  inlineSaving.value = true
+  try {
+    const res = await $fetch<{ updated?: boolean, error?: string }>(
+      `${apiBase}/api/agents/${agentId}`,
+      { method: 'PUT', body: { [field]: next } },
+    )
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: field === 'name' ? 'Name updated' : 'Role updated',
+      description: next,
+      color: 'success',
+      icon: 'i-lucide-check',
+    })
+    await refresh()
+  } catch (err) {
+    toast.add({
+      title: 'Save failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    inlineSaving.value = false
+    inlineField.value = null
+  }
+}
+
 // PR89d v3.30.0 — download YAML.
 const downloadingYaml = ref(false)
 async function downloadYaml() {
