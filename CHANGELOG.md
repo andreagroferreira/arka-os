@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.97.0] - 2026-05-26
+
+### Fixed (Detail pages readability — PR79)
+
+- **Agent + Persona detail pages**: bumped tiny `text-xs uppercase tracking-wider`
+  section labels to `text-sm uppercase tracking-wide` for readability. The
+  previous size was unreadable at standard viewport zoom, especially the
+  stats-row labels (LINKED AGENTS, MENTAL MODELS, EXPERTISE DOMAINS,
+  FRAMEWORKS) and the per-card tab section headers.
+- **Knowledge tab badges**: bumped `size="xs"` UBadge instances to `size="sm"`
+  on `/personas/{id}` and `/agents/{id}`. Operator-flagged: persona detail
+  with 31 expertise badges was effectively a wall of unreadable text.
+- **Hero badges**: same bump applied to source/MBTI/DISC chips in the hero
+  block so they match the new label scale.
+
+No behaviour change — purely a CSS readability fix. Same edit applied to
+both detail pages to keep the agents / personas UX consistent.
+
+### Files changed
+
+- `dashboard/app/pages/personas/[id].vue` — replace_all `text-xs ... tracking-wider` → `text-sm ... tracking-wide`; `size="xs"` → `size="sm"` on UBadge
+- `dashboard/app/pages/agents/[id].vue` — same edits for parity
+
 ## [2.96.0] - 2026-05-26
 
 ### Changed (Personas → table list + dedicated detail page — PR78)
