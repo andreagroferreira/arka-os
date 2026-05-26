@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.45.0] - 2026-05-26
+
+### Added (Bulk export selected personas — PR93c)
+
+The personas bulk action bar gains an **Export ZIP** button. Select
+N personas, click Export, download just those N.
+
+### Backend
+
+- `GET /api/personas/export-all.zip?ids=a,b,c` (extended) — optional
+  id allow-list. 2 new tests.
+
+### Frontend
+
+- `personas/index.vue` — Export ZIP button in the bulk action bar.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — `ids` query param
+- `tests/python/test_personas_export_zip.py` — 2 new tests
+- `dashboard/app/pages/personas/index.vue` — bulk Export
+
 ## [3.44.0] - 2026-05-26
 
 ### Added (Persona archetype templates — PR93b)

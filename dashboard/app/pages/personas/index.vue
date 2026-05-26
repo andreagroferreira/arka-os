@@ -142,6 +142,41 @@ const favs = useFavorites()
 await favs.load()
 const favoritesOnly = ref(false)
 
+// PR93c v3.45.0 — bulk export only selected rows.
+const exportingSelected = ref(false)
+async function exportSelectedZip() {
+  if (selected.value.size === 0) return
+  const ids = Array.from(selected.value).join(',')
+  exportingSelected.value = true
+  try {
+    const blob = await $fetch<Blob>(
+      `${apiBase}/api/personas/export-all.zip`,
+      { query: { ids }, responseType: 'blob' },
+    )
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `arkaos-personas-selected-${selected.value.size}.zip`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast.add({
+      title: `Exported ${selected.value.size} persona${selected.value.size === 1 ? '' : 's'}`,
+      color: 'success',
+      icon: 'i-lucide-archive',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Export failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    exportingSelected.value = false
+  }
+}
+
 // PR92a v3.39.0 — bulk export every persona as a zip.
 const exportingZip = ref(false)
 async function exportAllAsZip() {
@@ -636,6 +671,14 @@ async function undoTrashIds(ids: string[]) {
               @click="clearSelection"
             />
             <div class="h-5 w-px bg-default" />
+            <UButton
+              label="Export ZIP"
+              icon="i-lucide-archive"
+              size="sm"
+              variant="soft"
+              :loading="exportingSelected"
+              @click="exportSelectedZip"
+            />
             <UButton
               label="Delete"
               icon="i-lucide-trash-2"

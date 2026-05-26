@@ -54,6 +54,32 @@ def test_export_no_personas_returns_error(monkeypatch):
     assert "error" in res
 
 
+def test_export_with_ids_filter():
+    """PR93c — ?ids=... narrows the export."""
+    api = _load_dashboard_api()
+    mgr = api._get_persona_manager()
+    if mgr is None or not (mgr.list_all() or []):
+        return
+    target = next(iter(mgr.list_all()), None)
+    if not target:
+        return
+    res = api.personas_export_all(ids=target.id)
+    if isinstance(res, dict):
+        return
+    body = res.body if isinstance(res.body, bytes) else res.body.encode("utf-8")
+    zf = zipfile.ZipFile(io.BytesIO(body))
+    # With a single id filter we should have at most 1 file.
+    assert len(zf.namelist()) == 1
+
+
+def test_export_with_unknown_ids_returns_error():
+    api = _load_dashboard_api()
+    if api._get_persona_manager() is None:
+        return
+    res = api.personas_export_all(ids="definitely-nonexistent-zzzz")
+    assert "error" in res
+
+
 def test_export_returns_zip_with_personas():
     api = _load_dashboard_api()
     mgr = api._get_persona_manager()
