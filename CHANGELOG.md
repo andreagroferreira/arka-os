@@ -5,6 +5,24 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.33.0] - 2026-05-26
+
+### Changed (Budget trend window selector — PR90c)
+
+The /budget trend chart was hard-coded to 7 days. PR90c adds a
+**7 / 14 / 30** day selector right above the bars. Switches refetch
+`/api/llm-costs/trend?days=N` in place — no other backend change.
+
+### Frontend
+
+- `dashboard/app/pages/budget.vue` — `trendDays` ref (7 default) +
+  `USelect` near the chart header. `fetchApi` query is now reactive
+  so a switch triggers a refresh.
+
+### Files changed
+
+- `dashboard/app/pages/budget.vue` — selector + reactive query
+
 ## [3.32.0] - 2026-05-26
 
 ### Added (Department comparison — PR90b)
