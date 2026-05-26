@@ -69,9 +69,13 @@ async function refreshAll() {
   await Promise.all([refresh(), refreshActivity()])
 }
 
-const search = ref('')
-const departmentFilter = ref('all')
-const tierFilter = ref('all')
+// PR92b v3.40.0 — initial values come from ?q=...&dept=...&tier=...
+// so /agents links can deep-link to a filtered view.
+const route = useRoute()
+const router = useRouter()
+const search = ref(String(route.query.q ?? ''))
+const departmentFilter = ref(String(route.query.dept ?? 'all'))
+const tierFilter = ref(String(route.query.tier ?? 'all'))
 const page = ref(1)
 const pageSize = 15
 
@@ -92,8 +96,13 @@ const tierOptions = [
 ]
 
 // PR87a v3.19.0 — DNA filters (DISC primary + MBTI group).
-const discFilter = ref<'all' | 'D' | 'I' | 'S' | 'C'>('all')
-const mbtiGroupFilter = ref<'all' | 'analysts' | 'diplomats' | 'sentinels' | 'explorers'>('all')
+// PR92b v3.40.0 — seed from URL query.
+const discFilter = ref<'all' | 'D' | 'I' | 'S' | 'C'>(
+  (route.query.disc as any) ?? 'all',
+)
+const mbtiGroupFilter = ref<'all' | 'analysts' | 'diplomats' | 'sentinels' | 'explorers'>(
+  (route.query.mbti as any) ?? 'all',
+)
 
 const discOptions = [
   { label: 'All DISC', value: 'all' },
@@ -164,6 +173,23 @@ const paginatedAgents = computed(() => {
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalFiltered.value / pageSize)))
 
+// PR92b v3.40.0 — push filter state to URL so deep-links survive reload
+// and the browser back/forward buttons work as expected.
+watch(
+  [search, departmentFilter, tierFilter, discFilter, mbtiGroupFilter, favoritesOnly],
+  () => {
+    const query: Record<string, string> = {}
+    if (search.value.trim()) query.q = search.value.trim()
+    if (departmentFilter.value !== 'all') query.dept = departmentFilter.value
+    if (tierFilter.value !== 'all') query.tier = tierFilter.value
+    if (discFilter.value !== 'all') query.disc = discFilter.value
+    if (mbtiGroupFilter.value !== 'all') query.mbti = mbtiGroupFilter.value
+    if (favoritesOnly.value) query.fav = '1'
+    router.replace({ query })
+  },
+  { flush: 'post' },
+)
+
 watch([search, departmentFilter, tierFilter, discFilter, mbtiGroupFilter], () => {
   page.value = 1
 })
@@ -200,9 +226,10 @@ function goToAgent(id: string) {
 }
 
 // PR86a v3.15.0 — favorites.
+// PR92b v3.40.0 — favoritesOnly persists in URL (`?fav=1`).
 const favs = useFavorites()
 await favs.load()
-const favoritesOnly = ref(false)
+const favoritesOnly = ref(route.query.fav === '1')
 
 // PR83b v3.4.0 — bulk selection + delete.
 // PR84b v3.8.0 — bulk move department.

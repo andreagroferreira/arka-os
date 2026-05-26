@@ -5,6 +5,31 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.40.0] - 2026-05-26
+
+### Changed (Agent filters persisted in URL — PR92b)
+
+`/agents` filter state (search + department + tier + DISC + MBTI
+group + favorites-only) now lives in the URL query string. Deep
+links survive reload, browser back/forward navigates between filter
+states, and operators can share a filtered view by copying the URL.
+
+### Query shape
+
+- `q=<text>` — search
+- `dept=<slug>` — department filter
+- `tier=<0|1|2|3>` — tier filter
+- `disc=<D|I|S|C>` — DISC primary
+- `mbti=<analysts|diplomats|sentinels|explorers>` — MBTI group
+- `fav=1` — favorites-only
+
+Only non-default values are written, so the URL stays tidy.
+
+### Files changed
+
+- `dashboard/app/pages/agents/index.vue` — refs seeded from
+  `route.query`, watcher pushes via `router.replace({ query })`
+
 ## [3.39.0] - 2026-05-26
 
 ### Added (Persona bulk ZIP export — PR92a)
