@@ -43,6 +43,35 @@ const _useFavorites = () => {
     return state.value.personas.includes(id)
   }
 
+  // PR97c v3.61.0 — bulk set N ids in one POST.
+  async function setMany(
+    kind: 'agents' | 'personas',
+    ids: string[],
+    favorited: boolean,
+  ) {
+    try {
+      const res = await $fetch<{
+        applied?: number
+        total?: number
+        error?: string
+      }>(`${apiBase}/api/favorites/bulk`, {
+        method: 'POST',
+        body: { kind, ids, favorited },
+      })
+      if (res.error) throw new Error(res.error)
+      // Sync local state with the new server truth.
+      await load(true)
+      return res.applied ?? 0
+    } catch (err) {
+      toast.add({
+        title: 'Favorites bulk update failed',
+        description: err instanceof Error ? err.message : 'unknown error',
+        color: 'error',
+      })
+      return null
+    }
+  }
+
   async function toggle(kind: 'agents' | 'personas', id: string) {
     try {
       const res = await $fetch<{ favorited?: boolean, error?: string }>(
@@ -67,7 +96,7 @@ const _useFavorites = () => {
     }
   }
 
-  return { state, load, isAgentFavorite, isPersonaFavorite, toggle, loaded }
+  return { state, load, isAgentFavorite, isPersonaFavorite, toggle, setMany, loaded }
 }
 
 export const useFavorites = createSharedComposable(_useFavorites)

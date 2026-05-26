@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.61.0] - 2026-05-26
+
+### Added (Bulk star/unstar in tables — PR97c)
+
+/agents and /personas bulk action bars gain ⭐ and ☆ buttons. Select N
+rows, click ⭐ or ☆.
+
+### Backend
+
+- `set_many(kind, ids, favorited)` helper in `core/favorites.py`.
+- `POST /api/favorites/bulk` wraps it. 6 new tests.
+
+### Frontend
+
+- `useFavorites()` gains `setMany`.
+- Bulk action bars gain star + unstar icon buttons.
+
+### Files changed
+
+- `core/favorites.py` — set_many
+- `scripts/dashboard-api.py` — POST bulk endpoint
+- `tests/python/test_favorites.py` — 6 new tests
+- `dashboard/app/composables/useFavorites.ts` — setMany
+- `dashboard/app/pages/agents/index.vue` — buttons
+- `dashboard/app/pages/personas/index.vue` — buttons
+
 ## [3.60.0] - 2026-05-26
 
 ### Added (Persona usage timeline — PR97b)

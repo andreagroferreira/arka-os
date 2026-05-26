@@ -89,3 +89,36 @@ def set_favorite(kind: str, item_id: str, favorited: bool) -> dict:
     state[kind] = bucket
     _save(state)
     return {"kind": kind, "id": item_id, "favorited": favorited}
+
+
+def set_many(kind: str, ids: list[str], favorited: bool) -> dict:
+    """PR97c v3.61.0 — bulk-set favourite state for many ids.
+
+    Returns ``{kind, favorited, applied: N, total: N}`` where applied
+    counts how many ids actually changed state.
+    """
+    if kind not in _VALID_KINDS:
+        return {"error": f"unknown kind: {kind!r}", "applied": 0, "total": 0}
+    if not isinstance(ids, list):
+        return {"error": "ids must be a list", "applied": 0, "total": 0}
+    state = _load()
+    bucket = state.setdefault(kind, [])
+    existing = set(bucket)
+    applied = 0
+    for item_id in ids:
+        if not isinstance(item_id, str) or not item_id:
+            continue
+        if favorited and item_id not in existing:
+            existing.add(item_id)
+            applied += 1
+        elif not favorited and item_id in existing:
+            existing.discard(item_id)
+            applied += 1
+    state[kind] = list(existing)
+    _save(state)
+    return {
+        "kind": kind,
+        "favorited": favorited,
+        "applied": applied,
+        "total": len([i for i in ids if isinstance(i, str) and i]),
+    }

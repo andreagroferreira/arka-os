@@ -2607,6 +2607,22 @@ def favorites_toggle(kind: str, item_id: str):
     return _fav.toggle(kind, item_id)
 
 
+@app.post("/api/favorites/bulk")
+def favorites_bulk(body: dict):
+    """PR97c v3.61.0 — bulk star/unstar many ids in one shot.
+
+    Body: ``{"kind": "agents"|"personas", "ids": [...], "favorited": bool}``
+    Returns ``{kind, favorited, applied, total}``.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    kind = (body.get("kind") or "").strip()
+    ids = body.get("ids") or []
+    favorited = bool(body.get("favorited"))
+    from core import favorites as _fav
+    return _fav.set_many(kind, ids if isinstance(ids, list) else [], favorited)
+
+
 # --- Global search (PR85d v3.14.0) ---
 
 @app.get("/api/search")

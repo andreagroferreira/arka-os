@@ -418,6 +418,22 @@ async function bulkDelete() {
   await refreshAll()
 }
 
+// PR97c v3.61.0 — bulk star / unstar selected personas.
+async function bulkStar(favorited: boolean) {
+  if (selected.value.size === 0) return
+  const ids = Array.from(selected.value)
+  const applied = await favs.setMany('personas', ids, favorited)
+  if (applied === null) return
+  toast.add({
+    title: favorited
+      ? `Starred ${applied} persona${applied === 1 ? '' : 's'}`
+      : `Unstarred ${applied} persona${applied === 1 ? '' : 's'}`,
+    description: applied < ids.length ? `${ids.length - applied} already in state` : undefined,
+    color: 'success',
+    icon: favorited ? 'i-lucide-star' : 'i-lucide-star-off',
+  })
+}
+
 async function undoTrashIds(ids: string[]) {
   const results = await Promise.allSettled(
     ids.map((tid) =>
@@ -721,6 +737,22 @@ async function undoTrashIds(ids: string[]) {
               @click="clearSelection"
             />
             <div class="h-5 w-px bg-default" />
+            <UButton
+              icon="i-lucide-star"
+              size="sm"
+              variant="soft"
+              color="warning"
+              aria-label="Star selected"
+              @click="bulkStar(true)"
+            />
+            <UButton
+              icon="i-lucide-star-off"
+              size="sm"
+              variant="ghost"
+              color="neutral"
+              aria-label="Unstar selected"
+              @click="bulkStar(false)"
+            />
             <UButton
               label="Export ZIP"
               icon="i-lucide-archive"
