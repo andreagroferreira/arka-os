@@ -77,6 +77,9 @@ const filteredPersonas = computed<Persona[]>(() => {
       return src === sourceFilter.value
     })
   }
+  if (favoritesOnly.value) {
+    result = result.filter((p) => favs.isPersonaFavorite(p.id))
+  }
   return result
 })
 
@@ -119,6 +122,7 @@ function agentCount(personaId: string): number {
 
 const columns: TableColumn<Persona>[] = [
   { id: 'select',              header: '' },
+  { id: 'favorite',            header: '' },
   { accessorKey: 'name',       header: 'Name' },
   { accessorKey: 'title',      header: 'Title' },
   { accessorKey: 'source',     header: 'Source' },
@@ -132,6 +136,11 @@ const columns: TableColumn<Persona>[] = [
 function goToPersona(id: string) {
   navigateTo(`/personas/${id}`)
 }
+
+// PR86a v3.15.0 — favorites.
+const favs = useFavorites()
+await favs.load()
+const favoritesOnly = ref(false)
 
 // PR83b v3.4.0 — bulk selection + delete.
 const toast = useToast()
@@ -299,6 +308,15 @@ async function undoTrashIds(ids: string[]) {
             aria-label="Filter by source store"
           />
 
+          <UButton
+            :label="favoritesOnly ? 'All' : 'Favorites'"
+            icon="i-lucide-star"
+            :color="favoritesOnly ? 'warning' : 'neutral'"
+            :variant="favoritesOnly ? 'soft' : 'outline'"
+            size="sm"
+            @click="favoritesOnly = !favoritesOnly"
+          />
+
           <span class="ml-auto text-xs text-muted">
             {{ totalFiltered }} persona{{ totalFiltered !== 1 ? 's' : '' }}
           </span>
@@ -331,6 +349,16 @@ async function undoTrashIds(ids: string[]) {
               :aria-label="`Select ${row.original.name}`"
               @update:model-value="() => toggleSelected(row.original.id)"
               @click.stop
+            />
+          </template>
+          <template #favorite-cell="{ row }">
+            <UButton
+              icon="i-lucide-star"
+              :color="favs.isPersonaFavorite(row.original.id) ? 'warning' : 'neutral'"
+              :variant="favs.isPersonaFavorite(row.original.id) ? 'soft' : 'ghost'"
+              size="xs"
+              :aria-label="favs.isPersonaFavorite(row.original.id) ? 'Unfavorite' : 'Favorite'"
+              @click.stop="favs.toggle('personas', row.original.id)"
             />
           </template>
           <template #name-cell="{ row }">
