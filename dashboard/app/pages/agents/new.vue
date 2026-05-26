@@ -1,0 +1,478 @@
+<script setup lang="ts">
+// PR82a v3.0.0 — /agents/new manual create page.
+//
+// Single-page form (sections, no multi-step) that mirrors the safe-to-edit
+// fields from AgentEditDrawer but in "create" mode:
+//   - Identity (name, role, department, tier)
+//   - Behavioural DNA (DISC + Enneagram + MBTI + Big Five, with sensible
+//     defaults — operator can edit)
+//   - Knowledge (mental models, expertise domains, frameworks)
+//   - Communication (tone, vocab, format, language, avoid)
+//
+// AI-assist (PR81) is wired on the three list fields so a draft agent
+// can be filled with one click. On Save → POST /api/agents → navigate
+// to /agents/{slug}.
+
+import type { Persona } from '~/types'
+
+const { fetchApi, apiBase } = useApi()
+const toast = useToast()
+
+const { data: personasData } = fetchApi<{ personas: Persona[] }>('/api/personas')
+const personaOptions = computed(() =>
+  (personasData.value?.personas ?? []).map((p) => ({
+    label: p.name + (p.title ? ` — ${p.title}` : ''),
+    value: p.id,
+  })),
+)
+
+interface AgentDraft {
+  name: string
+  role: string
+  department: string
+  tier: number
+  disc_primary: string
+  disc_secondary: string
+  enneagram_type: number
+  enneagram_wing: number
+  mbti: string
+  big_five: {
+    openness: number
+    conscientiousness: number
+    extraversion: number
+    agreeableness: number
+    neuroticism: number
+  }
+  mental_models_primary: string[]
+  expertise_domains: string[]
+  expertise_depth: string
+  expertise_years: number
+  frameworks: string[]
+  comm_tone: string
+  comm_vocab: string
+  comm_format: string
+  comm_language: string
+  comm_avoid: string[]
+  linked_personas: string[]
+}
+
+const draft = ref<AgentDraft>({
+  name: '',
+  role: '',
+  department: 'dev',
+  tier: 2,
+  disc_primary: 'I',
+  disc_secondary: 'S',
+  enneagram_type: 5,
+  enneagram_wing: 4,
+  mbti: 'INTJ',
+  big_five: {
+    openness: 70,
+    conscientiousness: 70,
+    extraversion: 50,
+    agreeableness: 60,
+    neuroticism: 30,
+  },
+  mental_models_primary: [],
+  expertise_domains: [],
+  expertise_depth: 'advanced',
+  expertise_years: 5,
+  frameworks: [],
+  comm_tone: '',
+  comm_vocab: 'specialist',
+  comm_format: '',
+  comm_language: 'en',
+  comm_avoid: [],
+  linked_personas: [],
+})
+
+const saving = ref(false)
+
+const departmentOptions = [
+  'dev', 'marketing', 'brand', 'finance', 'strategy', 'ecom', 'kb', 'ops',
+  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org',
+].map((d) => ({ label: d, value: d }))
+
+const tierOptions = [
+  { label: 'Tier 1 — Squad Lead', value: 1 },
+  { label: 'Tier 2 — Specialist', value: 2 },
+  { label: 'Tier 3 — Support', value: 3 },
+]
+const discOptions = ['D', 'I', 'S', 'C'].map((v) => ({ label: v, value: v }))
+const depthOptions = [
+  { label: 'Intermediate', value: 'intermediate' },
+  { label: 'Advanced', value: 'advanced' },
+  { label: 'Expert', value: 'expert' },
+  { label: 'Master', value: 'master' },
+]
+const vocabOptions = [
+  { label: 'Lay (no jargon)', value: 'lay' },
+  { label: 'Specialist (industry terms)', value: 'specialist' },
+  { label: 'Expert (research-level)', value: 'expert' },
+]
+const mbtiOptions = [
+  'INTJ', 'INTP', 'ENTJ', 'ENTP',
+  'INFJ', 'INFP', 'ENFJ', 'ENFP',
+  'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+  'ISTP', 'ISFP', 'ESTP', 'ESFP',
+].map((t) => ({ label: t, value: t }))
+
+function listToCsv(list: string[]): string {
+  return list.join(', ')
+}
+function csvToList(value: string): string[] {
+  return value.split(',').map((s) => s.trim()).filter(Boolean)
+}
+
+// PR81 suggest wiring — three list fields.
+type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains'
+const suggestingField = ref<SuggestField | null>(null)
+
+async function suggest(field: SuggestField) {
+  const current
+    = field === 'mental_models'
+      ? draft.value.mental_models_primary
+      : field === 'frameworks'
+        ? draft.value.frameworks
+        : draft.value.expertise_domains
+  if (!draft.value.name.trim() || !draft.value.role.trim()) {
+    toast.add({
+      title: 'Add a name and role first',
+      description: 'AI needs the basics to make useful suggestions.',
+      color: 'warning',
+    })
+    return
+  }
+  suggestingField.value = field
+  try {
+    const res = await $fetch<{
+      suggestions: string[]
+      provider_name: string
+      error?: string
+    }>(`${apiBase}/api/agents/suggest`, {
+      method: 'POST',
+      body: {
+        field,
+        count: 5,
+        context: {
+          name: draft.value.name,
+          role: draft.value.role,
+          department: draft.value.department,
+          current,
+        },
+      },
+    })
+    if (res.error) throw new Error(res.error)
+    const additions = (res.suggestions ?? []).filter(
+      (s) => !current.some((c) => c.toLowerCase() === s.toLowerCase()),
+    )
+    if (additions.length === 0) {
+      toast.add({ title: 'No new suggestions', color: 'info' })
+      return
+    }
+    const merged = [...current, ...additions]
+    if (field === 'mental_models') draft.value.mental_models_primary = merged
+    else if (field === 'frameworks') draft.value.frameworks = merged
+    else draft.value.expertise_domains = merged
+    toast.add({
+      title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
+      description: `via ${res.provider_name}`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Suggestion failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    suggestingField.value = null
+  }
+}
+
+const canSave = computed(() => {
+  return (
+    draft.value.name.trim().length > 0
+    && draft.value.role.trim().length > 0
+    && draft.value.department.trim().length > 0
+    && draft.value.disc_primary !== draft.value.disc_secondary
+  )
+})
+
+async function save() {
+  if (!canSave.value) return
+  saving.value = true
+  try {
+    const body = {
+      name: draft.value.name.trim(),
+      role: draft.value.role.trim(),
+      department: draft.value.department,
+      tier: draft.value.tier,
+      behavioral_dna: {
+        disc: {
+          primary: draft.value.disc_primary,
+          secondary: draft.value.disc_secondary,
+        },
+        enneagram: {
+          type: draft.value.enneagram_type,
+          wing: draft.value.enneagram_wing,
+        },
+        mbti: draft.value.mbti,
+        big_five: draft.value.big_five,
+      },
+      mental_models: { primary: draft.value.mental_models_primary, secondary: [] },
+      expertise: {
+        domains: draft.value.expertise_domains,
+        frameworks: draft.value.frameworks,
+        depth: draft.value.expertise_depth,
+        years_equivalent: draft.value.expertise_years,
+      },
+      communication: {
+        tone: draft.value.comm_tone,
+        vocabulary_level: draft.value.comm_vocab,
+        preferred_format: draft.value.comm_format,
+        language: draft.value.comm_language,
+        avoid: draft.value.comm_avoid,
+      },
+      linked_personas: draft.value.linked_personas,
+    }
+    const res = await $fetch<{
+      id: string
+      created: boolean
+      yaml_path?: string
+      error?: string
+    }>(`${apiBase}/api/agents`, { method: 'POST', body })
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: 'Agent created',
+      description: res.yaml_path?.split('/').slice(-3).join('/') ?? res.id,
+      color: 'success',
+    })
+    navigateTo(`/agents/${res.id}`)
+  } catch (err) {
+    toast.add({
+      title: 'Create failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    saving.value = false
+  }
+}
+
+const bigFiveLabels: Record<string, string> = {
+  openness: 'Openness',
+  conscientiousness: 'Conscientiousness',
+  extraversion: 'Extraversion',
+  agreeableness: 'Agreeableness',
+  neuroticism: 'Neuroticism',
+}
+const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'] as const
+</script>
+
+<template>
+  <UDashboardPanel id="agents-new">
+    <template #header>
+      <UDashboardNavbar title="New Agent">
+        <template #leading>
+          <UButton
+            icon="i-lucide-arrow-left"
+            variant="ghost"
+            size="sm"
+            aria-label="Back to agents"
+            to="/agents"
+          />
+        </template>
+        <template #trailing>
+          <UBadge
+            label="AI-assisted"
+            icon="i-lucide-sparkles"
+            color="primary"
+            variant="soft"
+            size="sm"
+          />
+        </template>
+      </UDashboardNavbar>
+    </template>
+
+    <template #body>
+      <div class="max-w-4xl mx-auto py-2 space-y-6">
+        <section class="space-y-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Identity</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <UFormField label="Name" required>
+              <UInput v-model="draft.name" class="w-full" placeholder="Lucas" />
+            </UFormField>
+            <UFormField label="Role" required>
+              <UInput v-model="draft.role" class="w-full" placeholder="Market & Competitive Intelligence Analyst" />
+            </UFormField>
+            <UFormField label="Department" required>
+              <USelect v-model="draft.department" :items="departmentOptions" class="w-full" />
+            </UFormField>
+            <UFormField label="Tier">
+              <USelect v-model="draft.tier" :items="tierOptions" class="w-full" />
+            </UFormField>
+          </div>
+        </section>
+
+        <section class="space-y-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Behavioural DNA</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <UFormField label="DISC primary">
+              <USelect v-model="draft.disc_primary" :items="discOptions" class="w-full" />
+            </UFormField>
+            <UFormField label="DISC secondary">
+              <USelect v-model="draft.disc_secondary" :items="discOptions" class="w-full" />
+            </UFormField>
+            <UFormField label="Enneagram type">
+              <UInput v-model.number="draft.enneagram_type" type="number" :min="1" :max="9" class="w-full" />
+            </UFormField>
+            <UFormField label="Enneagram wing">
+              <UInput v-model.number="draft.enneagram_wing" type="number" :min="1" :max="9" class="w-full" />
+            </UFormField>
+            <UFormField label="MBTI">
+              <USelect v-model="draft.mbti" :items="mbtiOptions" class="w-full" />
+            </UFormField>
+          </div>
+          <p v-if="draft.disc_primary === draft.disc_secondary" class="text-xs text-error">
+            DISC primary and secondary must differ.
+          </p>
+          <div class="space-y-2">
+            <p class="text-sm font-semibold text-muted">Big Five (OCEAN)</p>
+            <div v-for="key in bigFiveKeys" :key="key" class="flex items-center gap-3">
+              <span class="w-40 text-sm text-muted">{{ bigFiveLabels[key] }}</span>
+              <UInput
+                v-model.number="draft.big_five[key]"
+                type="number"
+                :min="0"
+                :max="100"
+                class="w-20"
+              />
+              <div class="flex-1 h-2 rounded-full bg-muted/20">
+                <div class="h-2 rounded-full bg-primary" :style="{ width: `${draft.big_five[key]}%` }" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Knowledge</h3>
+          <UFormField label="Mental models (primary)" help="comma-separated">
+            <template #hint>
+              <UButton
+                label="Suggest with AI"
+                icon="i-lucide-sparkles"
+                size="xs"
+                color="primary"
+                variant="soft"
+                :loading="suggestingField === 'mental_models'"
+                :disabled="suggestingField !== null"
+                @click="suggest('mental_models')"
+              />
+            </template>
+            <UInput
+              :model-value="listToCsv(draft.mental_models_primary)"
+              @update:model-value="(v: string) => { draft.mental_models_primary = csvToList(v) }"
+              class="w-full"
+            />
+          </UFormField>
+          <UFormField label="Expertise domains" help="comma-separated">
+            <template #hint>
+              <UButton
+                label="Suggest with AI"
+                icon="i-lucide-sparkles"
+                size="xs"
+                color="primary"
+                variant="soft"
+                :loading="suggestingField === 'expertise_domains'"
+                :disabled="suggestingField !== null"
+                @click="suggest('expertise_domains')"
+              />
+            </template>
+            <UInput
+              :model-value="listToCsv(draft.expertise_domains)"
+              @update:model-value="(v: string) => { draft.expertise_domains = csvToList(v) }"
+              class="w-full"
+            />
+          </UFormField>
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField label="Depth">
+              <USelect v-model="draft.expertise_depth" :items="depthOptions" class="w-full" />
+            </UFormField>
+            <UFormField label="Years (equivalent)">
+              <UInput v-model.number="draft.expertise_years" type="number" :min="0" :max="60" class="w-full" />
+            </UFormField>
+          </div>
+          <UFormField label="Frameworks" help="comma-separated">
+            <template #hint>
+              <UButton
+                label="Suggest with AI"
+                icon="i-lucide-sparkles"
+                size="xs"
+                color="primary"
+                variant="soft"
+                :loading="suggestingField === 'frameworks'"
+                :disabled="suggestingField !== null"
+                @click="suggest('frameworks')"
+              />
+            </template>
+            <UInput
+              :model-value="listToCsv(draft.frameworks)"
+              @update:model-value="(v: string) => { draft.frameworks = csvToList(v) }"
+              class="w-full"
+            />
+          </UFormField>
+        </section>
+
+        <section class="space-y-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Communication</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <UFormField label="Tone">
+              <UInput v-model="draft.comm_tone" class="w-full" placeholder="Analytical, calm" />
+            </UFormField>
+            <UFormField label="Vocabulary level">
+              <USelect v-model="draft.comm_vocab" :items="vocabOptions" class="w-full" />
+            </UFormField>
+            <UFormField label="Preferred format">
+              <UInput v-model="draft.comm_format" class="w-full" placeholder="Briefs, tables, charts" />
+            </UFormField>
+            <UFormField label="Language">
+              <UInput v-model="draft.comm_language" class="w-full" placeholder="en" />
+            </UFormField>
+          </div>
+          <UFormField label="Avoid (phrases)" help="comma-separated">
+            <UInput
+              :model-value="listToCsv(draft.comm_avoid)"
+              @update:model-value="(v: string) => { draft.comm_avoid = csvToList(v) }"
+              class="w-full"
+            />
+          </UFormField>
+        </section>
+
+        <section class="space-y-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Linked personas</h3>
+          <USelectMenu
+            v-model="draft.linked_personas"
+            :items="personaOptions"
+            value-key="value"
+            multiple
+            placeholder="Select personas to link"
+            class="w-full"
+          />
+        </section>
+
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-default">
+          <UButton label="Cancel" variant="ghost" :disabled="saving" to="/agents" />
+          <UButton
+            label="Create agent"
+            icon="i-lucide-check"
+            :loading="saving"
+            :disabled="!canSave"
+            @click="save"
+          />
+        </div>
+      </div>
+    </template>
+  </UDashboardPanel>
+</template>
