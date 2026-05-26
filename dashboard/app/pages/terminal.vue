@@ -321,6 +321,7 @@ const showHistory = ref(false)
             v-show="activeId === tab.id"
             :session="tab.session"
             :on-input-line="recordCommand"
+            :active="activeId === tab.id"
             class="absolute inset-0"
           />
         </template>
