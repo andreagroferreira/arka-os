@@ -5,6 +5,40 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.22.0] - 2026-05-26
+
+### Added (Sidebar stats widget — PR87d)
+
+A compact panel pinned above the bottom nav of the sidebar showing
+agent / persona / department counts plus today's LLM spend + call
+count. Polls every 60 seconds via a new lightweight endpoint.
+
+### Backend
+
+- `GET /api/sidebar-stats` (NEW) — returns
+  `{agents, personas, departments, today_cost_usd, today_calls}`.
+  Skips project scanning + incidents + quick actions so it's cheap
+  enough to poll. 3 unit tests covering payload shape, non-negative
+  invariants, and cost-is-float-or-none.
+
+### Frontend
+
+- `dashboard/app/components/SidebarStatsWidget.vue` (NEW) — fetches
+  on mount, refreshes every 60s via `setInterval`. Hides itself on a
+  collapsed sidebar so it doesn't fight for space when the user
+  shrinks the nav. Cost helper handles `<$0.01` and `$0.xxx` /
+  `$x.xx` formatting.
+- `default.vue` layout mounts the widget between the top nav menu
+  and the bottom nav (`mt-auto` so the bottom nav still sticks to
+  the floor when the page is short).
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/sidebar-stats
+- `tests/python/test_sidebar_stats.py` (NEW, 3 tests)
+- `dashboard/app/components/SidebarStatsWidget.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — mount widget above bottom nav
+
 ## [3.21.0] - 2026-05-26
 
 ### Added (Compare two agents side-by-side — PR87c)

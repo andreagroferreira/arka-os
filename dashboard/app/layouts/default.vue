@@ -121,12 +121,15 @@ const links = [[{
           popover
         />
 
+        <!-- PR87d v3.22.0 — quick stats widget above the bottom nav. -->
+        <SidebarStatsWidget v-if="!collapsed" class="mt-auto" />
+
         <UNavigationMenu
           :collapsed="collapsed"
           :items="links[1]"
           orientation="vertical"
           tooltip
-          class="mt-auto"
+          :class="collapsed ? 'mt-auto' : ''"
         />
       </template>
     </UDashboardSidebar>

@@ -1387,6 +1387,43 @@ def agent_export_to_vault(agent_id: str):
     return {"exported": True, "path": str(res.path), "vault_path": str(res.vault_path)}
 
 
+# --- Sidebar stats widget (PR87d v3.22.0) ---
+
+@app.get("/api/sidebar-stats")
+def sidebar_stats():
+    """Compact payload for the sidebar status widget.
+
+    Returns counts the widget actually displays — agents, personas,
+    departments, today's spend. Cheaper than /api/overview/command-center
+    because it skips project scanning, incidents, and quick actions.
+    """
+    agents = _load_agents()
+    departments = {a.get("department") for a in agents if a.get("department")}
+    persona_count = 0
+    mgr = _get_persona_manager()
+    if mgr:
+        try:
+            persona_count = len(mgr.list() or [])
+        except Exception:
+            persona_count = 0
+    today_cost_usd: float | None = None
+    call_count = 0
+    try:
+        from core.runtime.llm_cost_telemetry import summarise
+        s = summarise(period="today")
+        today_cost_usd = s.total_cost_usd
+        call_count = s.call_count
+    except Exception:
+        pass
+    return {
+        "agents": len(agents),
+        "personas": persona_count,
+        "departments": len(departments),
+        "today_cost_usd": today_cost_usd,
+        "today_calls": call_count,
+    }
+
+
 # --- Favorites (PR86a v3.15.0) ---
 
 @app.get("/api/favorites")
