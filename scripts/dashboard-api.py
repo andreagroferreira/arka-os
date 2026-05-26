@@ -322,6 +322,30 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
     }
 
 
+@app.get("/api/agents/{agent_id}/yaml")
+def agent_download_yaml(agent_id: str):
+    """PR89d v3.30.0 — return the raw YAML for the agent.
+
+    Responds with ``application/x-yaml`` and an attachment Content-
+    Disposition so browsers prompt a Save As. Refuses unknown agents.
+    """
+    yaml_file = _resolve_agent_yaml(agent_id)
+    if yaml_file is None:
+        return {"error": "Agent not found"}
+    try:
+        content = yaml_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {"error": f"read failed: {exc}"}
+    from fastapi import Response
+    return Response(
+        content=content,
+        media_type="application/x-yaml",
+        headers={
+            "Content-Disposition": f'attachment; filename="{yaml_file.name}"',
+        },
+    )
+
+
 @app.get("/api/agents/{agent_id}/history")
 def agent_history(agent_id: str, limit: int = 20):
     """PR88d v3.26.0 — combined history for an agent.
