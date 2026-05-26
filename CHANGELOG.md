@@ -5,6 +5,44 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.68.0] - 2026-05-26
+
+### Added (xterm.js terminal frontend — PR99b)
+
+Second slice of PR99. The dashboard `/terminal` page now mounts a real
+xterm.js canvas wired to the PTY backend from v3.67.0. The allowlist
+runner UI is gone — the page is empty until a session connects, then
+behaves exactly like the operator's local shell. PR99c adds tabs,
+PR99d adds themes and removes the dead backend allowlist code.
+
+### New deps (dashboard)
+
+- `@xterm/xterm` 6.0.0
+- `@xterm/addon-fit` 0.11.0
+- `@xterm/addon-web-links` 0.12.0
+- `@xterm/addon-search` 0.16.0
+
+### New files
+
+- `dashboard/app/composables/useTerminalSession.ts` — REST + WS handshake,
+  Uint8Array output subscriptions, idempotent close.
+- `dashboard/app/components/Terminal.vue` — xterm mount, ArkaOS Dark
+  theme (default), `FitAddon` auto-resize, `SearchAddon` ready for
+  PR99d, `WebLinksAddon` to make URLs clickable. ResizeObserver pushes
+  `{type: "resize", cols, rows}` to the backend on container changes.
+
+### Rewritten
+
+- `dashboard/app/pages/terminal.vue` — allowlist UI removed, replaced
+  by a single fullscreen Terminal mount with an expand toggle.
+
+### Operator note
+
+After upgrading you must restart both `pnpm dev` (to pick up xterm
+packages) **and** `python3 scripts/dashboard-api.py` (to expose the
+v3.67.0 endpoints). Until both are restarted the page will hang on
+"Spawning PTY…".
+
 ## [3.67.0] - 2026-05-26
 
 ### Added (Terminal PTY backend — PR99a)
