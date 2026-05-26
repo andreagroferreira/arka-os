@@ -89,7 +89,7 @@ function formatCost(cost: number | null): string {
             th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
             td: 'border-b border-default',
           }"
-          @select="(row: { original: DeptRow }) => navigateTo(`/departments/${row.original.department}`)"
+          @select="(_e: Event, row: { original: DeptRow }) => row?.original && navigateTo(`/departments/${row.original.department}`)"
         >
           <template #department-cell="{ row }">
             <span class="font-semibold capitalize">{{ row.original.department }}</span>

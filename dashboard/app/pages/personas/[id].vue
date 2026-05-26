@@ -308,10 +308,48 @@ function markedHtml(src: string): string {
 }
 
 // PR90a v3.31.0 — download persona as Markdown.
-const downloadingMd = ref(false)
+// v3.70.8 — instead of triggering a download, open a fullscreen
+// dialog with raw markdown + live preview + Edit Bio + Download.
+import { marked } from 'marked'
+
+const mdOpen = ref(false)
+const mdLoading = ref(false)
+const mdRaw = ref('')
+const mdMode = ref<'view' | 'edit'>('view')
+const mdBioDraft = ref('')
+const mdSaving = ref(false)
+
+async function openMdViewer() {
+  if (!detail.value) return
+  mdOpen.value = true
+  mdMode.value = 'view'
+  mdBioDraft.value = detail.value.bio_md || ''
+  if (mdRaw.value) return
+  mdLoading.value = true
+  try {
+    const text = await $fetch<string>(
+      `${apiBase}/api/personas/${personaId}/markdown`,
+      { responseType: 'text' },
+    )
+    mdRaw.value = typeof text === 'string' ? text : String(text ?? '')
+  } catch (err) {
+    toast.add({
+      title: 'Markdown fetch failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+    mdOpen.value = false
+  } finally {
+    mdLoading.value = false
+  }
+}
+
+function closeMdViewer() {
+  mdOpen.value = false
+}
+
 async function downloadMarkdown() {
   if (!detail.value) return
-  downloadingMd.value = true
   try {
     const blob = await $fetch<Blob>(
       `${apiBase}/api/personas/${personaId}/markdown`,
@@ -337,10 +375,59 @@ async function downloadMarkdown() {
       description: err instanceof Error ? err.message : 'unknown error',
       color: 'error',
     })
-  } finally {
-    downloadingMd.value = false
   }
 }
+
+async function copyMd() {
+  if (!mdRaw.value) return
+  try {
+    await navigator.clipboard.writeText(mdRaw.value)
+    toast.add({ title: 'Copied to clipboard', color: 'success', icon: 'i-lucide-check' })
+  } catch {
+    toast.add({ title: 'Copy failed', color: 'error' })
+  }
+}
+
+const mdPreviewHtml = computed<string>(() => {
+  const source = mdMode.value === 'edit' ? mdBioDraft.value : mdRaw.value
+  if (!source) return ''
+  try {
+    return marked.parse(source, { breaks: true, gfm: true }) as string
+  } catch {
+    return ''
+  }
+})
+
+async function saveBio() {
+  if (!detail.value) return
+  mdSaving.value = true
+  try {
+    await $fetch(`${apiBase}/api/personas/${personaId}`, {
+      method: 'PUT',
+      body: { bio_md: mdBioDraft.value },
+    })
+    toast.add({ title: 'Bio updated', color: 'success', icon: 'i-lucide-check' })
+    mdRaw.value = '' // force refetch on next open so the export reflects the new bio
+    mdMode.value = 'view'
+    await refresh()
+    // Re-pull the exported MD now that the bio changed.
+    const text = await $fetch<string>(
+      `${apiBase}/api/personas/${personaId}/markdown`,
+      { responseType: 'text' },
+    )
+    mdRaw.value = typeof text === 'string' ? text : String(text ?? '')
+  } catch (err) {
+    toast.add({
+      title: 'Save failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    mdSaving.value = false
+  }
+}
+
+const downloadingMd = ref(false) // kept for the old button binding
 
 // PR85a v3.11.0 — Clone to Agent dialog.
 const cloneOpen = ref(false)
@@ -689,11 +776,10 @@ const vocabOptions = [
                     />
                     <UButton
                       label="MD"
-                      icon="i-lucide-download"
+                      icon="i-lucide-file-text"
                       variant="ghost"
                       size="sm"
-                      :loading="downloadingMd"
-                      @click="downloadMarkdown"
+                      @click="openMdViewer"
                     />
                     <UButton label="Edit" icon="i-lucide-pencil" size="sm" @click="startEdit" />
                     <UButton
@@ -1265,5 +1351,196 @@ const vocabOptions = [
         </div>
       </DashboardState>
     </template>
+
+    <!-- v3.70.8 — Markdown viewer/editor (fullscreen) -->
+    <UModal
+      v-model:open="mdOpen"
+      :ui="{
+        overlay: 'bg-default/80 backdrop-blur-sm',
+        content: 'sm:max-w-[95vw] w-[95vw] h-[92vh] sm:rounded-xl ring-0 shadow-2xl',
+      }"
+    >
+      <template #content>
+        <div class="flex flex-col h-full bg-default rounded-xl overflow-hidden">
+          <div class="flex items-center gap-3 px-4 py-3 border-b border-default/60 shrink-0">
+            <UIcon name="i-lucide-file-text" class="size-4 text-muted shrink-0" />
+            <span class="text-sm font-semibold">{{ detail?.name || personaId }}.md</span>
+            <UBadge
+              :label="mdMode === 'edit' ? 'editing bio' : 'preview'"
+              :color="mdMode === 'edit' ? 'warning' : 'neutral'"
+              variant="subtle"
+              size="xs"
+              class="ml-1"
+            />
+            <span class="ml-auto flex items-center gap-1">
+              <UButton
+                v-if="mdMode === 'view'"
+                size="sm"
+                variant="ghost"
+                icon="i-lucide-clipboard"
+                @click="copyMd"
+              >
+                Copy
+              </UButton>
+              <UButton
+                v-if="mdMode === 'view'"
+                size="sm"
+                variant="ghost"
+                icon="i-lucide-download"
+                @click="downloadMarkdown"
+              >
+                Download
+              </UButton>
+              <UButton
+                v-if="mdMode === 'view'"
+                size="sm"
+                variant="soft"
+                icon="i-lucide-pencil"
+                @click="mdMode = 'edit'"
+              >
+                Edit bio
+              </UButton>
+              <UButton
+                v-else
+                size="sm"
+                variant="ghost"
+                @click="() => { mdMode = 'view'; mdBioDraft = detail?.bio_md || '' }"
+              >
+                Cancel
+              </UButton>
+              <UButton
+                v-if="mdMode === 'edit'"
+                size="sm"
+                color="primary"
+                icon="i-lucide-check"
+                :loading="mdSaving"
+                @click="saveBio"
+              >
+                Save bio
+              </UButton>
+              <UButton
+                size="sm"
+                variant="ghost"
+                icon="i-lucide-x"
+                aria-label="Close"
+                @click="closeMdViewer"
+              />
+            </span>
+          </div>
+
+          <div
+            v-if="mdLoading"
+            class="flex-1 grid place-items-center text-sm text-muted"
+          >
+            <div class="flex items-center gap-2">
+              <UIcon name="i-lucide-loader-2" class="size-4 animate-spin" />
+              Loading markdown…
+            </div>
+          </div>
+
+          <div v-else class="flex-1 grid grid-cols-2 min-h-0">
+            <!-- Source side: read-only in view mode, textarea in edit mode -->
+            <div class="border-r border-default/60 flex flex-col min-h-0">
+              <div class="px-3 py-1.5 border-b border-default/60 text-[11px] uppercase tracking-wide text-muted shrink-0">
+                {{ mdMode === 'edit' ? 'Bio (editable, supports Markdown)' : 'Source' }}
+              </div>
+              <textarea
+                v-if="mdMode === 'edit'"
+                v-model="mdBioDraft"
+                class="md-editor flex-1 w-full p-4 bg-transparent text-default font-mono text-sm leading-relaxed resize-none focus:outline-none"
+                spellcheck="false"
+                placeholder="Write the persona bio here…"
+              />
+              <pre
+                v-else
+                class="flex-1 min-h-0 overflow-auto p-4 font-mono text-sm leading-relaxed text-default whitespace-pre-wrap"
+              >{{ mdRaw }}</pre>
+            </div>
+
+            <!-- Preview side -->
+            <div class="flex flex-col min-h-0">
+              <div class="px-3 py-1.5 border-b border-default/60 text-[11px] uppercase tracking-wide text-muted shrink-0">
+                Preview
+              </div>
+              <div
+                class="md-preview flex-1 min-h-0 overflow-auto p-6 prose prose-sm prose-invert max-w-none"
+                v-html="mdPreviewHtml"
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </UDashboardPanel>
 </template>
+
+<style scoped>
+.md-editor:focus,
+.md-editor:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.md-preview :deep(h1),
+.md-preview :deep(h2),
+.md-preview :deep(h3) {
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  color: rgb(var(--ui-text));
+}
+.md-preview :deep(h1) { font-size: 1.5rem; }
+.md-preview :deep(h2) { font-size: 1.25rem; }
+.md-preview :deep(h3) { font-size: 1.05rem; }
+.md-preview :deep(p) { margin: 0.5em 0; line-height: 1.6; }
+.md-preview :deep(ul),
+.md-preview :deep(ol) { padding-left: 1.25rem; margin: 0.5em 0; }
+.md-preview :deep(li) { margin: 0.2em 0; }
+.md-preview :deep(code) {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  background-color: rgb(var(--ui-bg-elevated) / 0.6);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.875em;
+}
+.md-preview :deep(pre) {
+  background-color: rgb(var(--ui-bg-elevated) / 0.4);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+.md-preview :deep(pre code) {
+  background: transparent;
+  padding: 0;
+}
+.md-preview :deep(blockquote) {
+  border-left: 3px solid rgb(var(--ui-primary) / 0.5);
+  padding-left: 0.75rem;
+  margin: 0.75em 0;
+  color: rgb(var(--ui-text-muted));
+}
+.md-preview :deep(a) {
+  color: rgb(var(--ui-primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.md-preview :deep(table) {
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.875em;
+}
+.md-preview :deep(th),
+.md-preview :deep(td) {
+  border: 1px solid rgb(var(--ui-border));
+  padding: 0.4em 0.7em;
+}
+.md-preview :deep(th) {
+  background-color: rgb(var(--ui-bg-elevated) / 0.4);
+  font-weight: 600;
+}
+.md-preview :deep(hr) {
+  border: none;
+  border-top: 1px solid rgb(var(--ui-border));
+  margin: 1.25em 0;
+}
+</style>

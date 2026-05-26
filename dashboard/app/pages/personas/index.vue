@@ -133,7 +133,8 @@ const columns: TableColumn<Persona>[] = [
   { id: 'actions',             header: '' },
 ]
 
-function goToPersona(id: string) {
+function goToPersona(id: string | undefined | null) {
+  if (!id) return
   navigateTo(`/personas/${id}`)
 }
 
@@ -617,7 +618,7 @@ async function undoTrashIds(ids: string[]) {
             th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
             td: 'border-b border-default',
           }"
-          @select="(row: { original: Persona }) => goToPersona(row.original.id)"
+          @select="(_e: Event, row: { original: Persona }) => goToPersona(row?.original?.id)"
         >
           <template #select-header>
             <UCheckbox
