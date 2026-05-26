@@ -226,6 +226,10 @@ function csvToList(value: string): string[] {
 type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid' | 'key_quotes'
 const suggestingField = ref<SuggestField | null>(null)
 
+// PR86a v3.15.0 — favorites.
+const favs = useFavorites()
+await favs.load()
+
 // PR85a v3.11.0 — Clone to Agent dialog.
 const cloneOpen = ref(false)
 function onCloned(agentId: string) {
@@ -473,6 +477,14 @@ const vocabOptions = [
                     </p>
                   </div>
                   <div class="flex items-center gap-2">
+                    <UButton
+                      icon="i-lucide-star"
+                      :color="favs.isPersonaFavorite(detail.id) ? 'warning' : 'neutral'"
+                      :variant="favs.isPersonaFavorite(detail.id) ? 'soft' : 'ghost'"
+                      size="sm"
+                      :aria-label="favs.isPersonaFavorite(detail.id) ? 'Unfavorite' : 'Favorite'"
+                      @click="favs.toggle('personas', detail.id)"
+                    />
                     <UButton
                       label="Clone to Agent"
                       icon="i-lucide-copy-plus"

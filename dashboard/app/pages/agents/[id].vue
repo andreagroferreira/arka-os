@@ -59,6 +59,10 @@ function formatRelative(iso: string | null): string {
   return `${months}mo ago`
 }
 
+// PR86a v3.15.0 — favorites.
+const favs = useFavorites()
+await favs.load()
+
 // PR76 — edit drawer state
 const editOpen = ref(false)
 
@@ -268,12 +272,22 @@ function formatTokens(n: number): string {
                   </h1>
                   <p class="text-base md:text-lg text-muted mt-0.5">{{ agent.role }}</p>
                 </div>
-                <UButton
-                  label="Edit"
-                  icon="i-lucide-pencil"
-                  size="sm"
-                  @click="openEditor"
-                />
+                <div class="flex items-center gap-2">
+                  <UButton
+                    icon="i-lucide-star"
+                    :color="favs.isAgentFavorite(agent.id) ? 'warning' : 'neutral'"
+                    :variant="favs.isAgentFavorite(agent.id) ? 'soft' : 'ghost'"
+                    size="sm"
+                    :aria-label="favs.isAgentFavorite(agent.id) ? 'Unfavorite' : 'Favorite'"
+                    @click="favs.toggle('agents', agent.id)"
+                  />
+                  <UButton
+                    label="Edit"
+                    icon="i-lucide-pencil"
+                    size="sm"
+                    @click="openEditor"
+                  />
+                </div>
               </div>
               <div class="flex flex-wrap items-center gap-2 pt-1">
                 <UBadge :label="agent.department" variant="subtle" />

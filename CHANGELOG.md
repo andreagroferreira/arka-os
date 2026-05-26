@@ -5,6 +5,46 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.15.0] - 2026-05-26
+
+### Added (Favorites for agents + personas — PR86a)
+
+Star agents and personas across sessions. Filter tables to favourites
+only. State lives in `~/.arkaos/favorites.json` — no server, no auth.
+
+### Backend
+
+- `core/favorites.py` (NEW) — JSON-backed store at
+  `~/.arkaos/favorites.json`. Atomic writes (`.tmp + replace`).
+  Graceful on missing / corrupt file. Public API: `list_favorites`,
+  `is_favorite`, `toggle`, `set_favorite`. 10 unit tests.
+- `GET /api/favorites` — returns `{agents, personas}`.
+- `POST /api/favorites/{kind}/{item_id}` — toggles; returns
+  `{kind, id, favorited}`.
+
+### Frontend
+
+- `useFavorites()` composable (createSharedComposable) — shared state
+  + `load`, `toggle`, `isAgentFavorite`, `isPersonaFavorite`. Single
+  source of truth across the dashboard.
+- `agents/index.vue` — new favourite column with star toggle, plus
+  "Favorites" pill in the filter bar that narrows the table to
+  starred rows.
+- `personas/index.vue` — same.
+- `agents/[id].vue` hero — star button next to Edit.
+- `personas/[id].vue` hero — star button next to Clone / Edit.
+
+### Files changed
+
+- `core/favorites.py` (NEW)
+- `tests/python/test_favorites.py` (NEW, 10 tests)
+- `scripts/dashboard-api.py` — 2 new endpoints
+- `dashboard/app/composables/useFavorites.ts` (NEW)
+- `dashboard/app/pages/agents/index.vue` — column + filter
+- `dashboard/app/pages/personas/index.vue` — column + filter
+- `dashboard/app/pages/agents/[id].vue` — hero star
+- `dashboard/app/pages/personas/[id].vue` — hero star
+
 ## [3.14.0] - 2026-05-26
 
 ### Added (Global search palette — PR85d)

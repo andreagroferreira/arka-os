@@ -1331,6 +1331,20 @@ def persona_delete(persona_id: str):
     return {"error": "Persona not found"}
 
 
+# --- Favorites (PR86a v3.15.0) ---
+
+@app.get("/api/favorites")
+def favorites_list():
+    from core import favorites as _fav
+    return _fav.list_favorites()
+
+
+@app.post("/api/favorites/{kind}/{item_id}")
+def favorites_toggle(kind: str, item_id: str):
+    from core import favorites as _fav
+    return _fav.toggle(kind, item_id)
+
+
 # --- Global search (PR85d v3.14.0) ---
 
 @app.get("/api/search")

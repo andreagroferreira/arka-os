@@ -111,6 +111,10 @@ const filteredAgents = computed(() => {
     result = result.filter(agent => String(agent.tier) === tierFilter.value)
   }
 
+  if (favoritesOnly.value) {
+    result = result.filter(agent => favs.isAgentFavorite(agent.id))
+  }
+
   return result
 })
 
@@ -139,6 +143,7 @@ const tierColor = (tier: number) => {
 
 const columns: TableColumn<Agent>[] = [
   { id: 'select',              header: '' },
+  { id: 'favorite',            header: '' },
   { accessorKey: 'name',       header: 'Name' },
   { accessorKey: 'role',       header: 'Role' },
   { accessorKey: 'department', header: 'Department' },
@@ -156,6 +161,11 @@ const columns: TableColumn<Agent>[] = [
 function goToAgent(id: string) {
   navigateTo(`/agents/${id}`)
 }
+
+// PR86a v3.15.0 — favorites.
+const favs = useFavorites()
+await favs.load()
+const favoritesOnly = ref(false)
 
 // PR83b v3.4.0 — bulk selection + delete.
 // PR84b v3.8.0 — bulk move department.
@@ -371,6 +381,15 @@ async function undoTrashIds(ids: string[]) {
             aria-label="Filter by tier"
           />
 
+          <UButton
+            :label="favoritesOnly ? 'All' : 'Favorites'"
+            :icon="favoritesOnly ? 'i-lucide-star' : 'i-lucide-star'"
+            :color="favoritesOnly ? 'warning' : 'neutral'"
+            :variant="favoritesOnly ? 'soft' : 'outline'"
+            size="sm"
+            @click="favoritesOnly = !favoritesOnly"
+          />
+
           <span class="ml-auto text-xs text-muted">
             {{ totalFiltered }} agent{{ totalFiltered !== 1 ? 's' : '' }}
           </span>
@@ -402,6 +421,16 @@ async function undoTrashIds(ids: string[]) {
               :aria-label="`Select ${row.original.name}`"
               @update:model-value="() => toggleSelected(row.original.id)"
               @click.stop
+            />
+          </template>
+          <template #favorite-cell="{ row }">
+            <UButton
+              :icon="favs.isAgentFavorite(row.original.id) ? 'i-lucide-star' : 'i-lucide-star'"
+              :color="favs.isAgentFavorite(row.original.id) ? 'warning' : 'neutral'"
+              :variant="favs.isAgentFavorite(row.original.id) ? 'soft' : 'ghost'"
+              size="xs"
+              :aria-label="favs.isAgentFavorite(row.original.id) ? 'Unfavorite' : 'Favorite'"
+              @click.stop="favs.toggle('agents', row.original.id)"
             />
           </template>
           <template #name-cell="{ row }">
