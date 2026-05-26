@@ -5,6 +5,52 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2026-05-26
+
+### Added (Single-string AI fill — PR83c)
+
+The PR81 ✨ Suggest mechanism handles list fields by APPENDING items.
+Tone, preferred format, and language are single strings, so they need
+REPLACE semantics. PR83c builds a sibling module + endpoints + buttons.
+
+### Backend
+
+- `core/agents/string_suggester.py` (NEW) — provider-agnostic
+  `suggest_string_field(field, context, provider)`. Supports `tone`,
+  `preferred_format`, `language`. Field-specific length limits (60/80/
+  20 chars). Strips fences, surrounding quotes, leading bullets, and
+  numbering from the LLM output. 17 unit tests.
+- `POST /api/agents/suggest-string` + `POST /api/personas/suggest-string`
+  — share `_do_string_suggest` helper.
+
+### Frontend
+
+- **AgentEditDrawer**: ✨ Generate buttons next to Tone + Preferred
+  format.
+- **agents/new.vue**: same two buttons. Refuses to fire until name +
+  role are filled.
+- **personas/[id].vue** edit slideover: ✨ Generate next to Tone.
+  (Persona slideover doesn't expose preferred_format yet — that's a
+  separate ask.)
+
+### Semantics
+
+- Unlike list Suggest (APPEND), string Generate REPLACES the field
+  value. Current value is passed to the LLM as a "do not repeat
+  verbatim" hint.
+- One button in flight at a time per form (`suggestingString` ref).
+- Each form has both `suggestingField` (list) and `suggestingString`
+  (string) refs so they don't lock each other.
+
+### Files changed
+
+- `core/agents/string_suggester.py` (NEW)
+- `tests/python/test_string_suggester.py` (NEW, 17 tests)
+- `scripts/dashboard-api.py` — 2 new endpoints + helper
+- `dashboard/app/components/AgentEditDrawer.vue` — 2 Generate buttons
+- `dashboard/app/pages/agents/new.vue` — 2 Generate buttons
+- `dashboard/app/pages/personas/[id].vue` — 1 Generate button (tone)
+
 ## [3.4.0] - 2026-05-26
 
 ### Added (Bulk actions on /agents and /personas tables — PR83b)
