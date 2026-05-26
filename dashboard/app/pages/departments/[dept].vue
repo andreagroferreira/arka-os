@@ -52,6 +52,67 @@ const compareOptions = computed(() =>
     })),
 )
 
+// PR95c v3.53.0 — Merge this department's agents into another.
+const { apiBase } = useApi()
+const toast = useToast()
+const confirmDialog = useConfirmDialog()
+const merging = ref(false)
+
+const mergeOptions = computed(() =>
+  (deptListData.value?.departments ?? [])
+    .filter((d) => d.department !== deptId.value)
+    .map((d) => ({
+      label: `Move all into ${d.department}`,
+      icon: 'i-lucide-folder-input',
+      onSelect: () => mergeInto(d.department),
+    })),
+)
+
+async function mergeInto(target: string) {
+  const ok = await confirmDialog({
+    title: `Merge ${deptId.value} → ${target}?`,
+    description: `Every agent in '${deptId.value}' will be moved to '${target}'. Tier 0 agents are skipped. This is reversible per-agent from /trash.`,
+    confirmLabel: `Move all into ${target}`,
+    cancelLabel: 'Cancel',
+    variant: 'danger',
+  })
+  if (!ok) return
+  merging.value = true
+  try {
+    const res = await $fetch<{
+      moved: number
+      skipped: number
+      failed: number
+      error?: string
+    }>(`${apiBase}/api/departments/${deptId.value}/merge-into/${target}`, {
+      method: 'POST',
+    })
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: res.moved > 0
+        ? `Merged ${res.moved} agent${res.moved === 1 ? '' : 's'} into ${target}`
+        : 'Nothing moved',
+      description: [
+        res.skipped > 0 ? `${res.skipped} skipped (Tier 0)` : '',
+        res.failed > 0 ? `${res.failed} failed` : '',
+      ].filter(Boolean).join(' · ') || undefined,
+      color: res.failed > 0
+        ? 'warning'
+        : res.moved > 0 ? 'success' : 'info',
+      icon: 'i-lucide-folder-input',
+    })
+    if (res.moved > 0) navigateTo('/departments')
+  } catch (err) {
+    toast.add({
+      title: 'Merge failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    merging.value = false
+  }
+}
+
 const errorMsg = computed(() => data.value?.error || error.value?.message || null)
 const detail = computed<DeptDetail | null>(() => {
   if (!data.value || data.value.error) return null
@@ -87,6 +148,17 @@ const tierColor = (tier: number | undefined) => {
               icon="i-lucide-columns-2"
               variant="soft"
               size="sm"
+              trailing-icon="i-lucide-chevron-down"
+            />
+          </UDropdownMenu>
+          <UDropdownMenu v-if="mergeOptions.length > 0" :items="mergeOptions">
+            <UButton
+              label="Merge"
+              icon="i-lucide-folder-input"
+              variant="soft"
+              color="warning"
+              size="sm"
+              :loading="merging"
               trailing-icon="i-lucide-chevron-down"
             />
           </UDropdownMenu>

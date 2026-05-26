@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.53.0] - 2026-05-26
+
+### Added (Department merge — PR95c)
+
+`/departments/{id}` gets a Merge dropdown that moves every agent in
+the current department into another. Reuses agent_move per file.
+Tier 0 skipped, empty src aborts. Atomic + reversible per-agent via
+/trash.
+
+### Backend
+
+- `POST /api/departments/{src}/merge-into/{dst}` (NEW) — fs walks src
+  dir + agent_move per id. Returns moved/skipped/failed counts. 6
+  new tests.
+
+### Frontend
+
+- `/departments/[dept].vue` — warning-tinted Merge dropdown in
+  navbar. Confirm dialog. Navigates to /departments on success.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — POST merge endpoint
+- `tests/python/test_department_merge.py` (NEW, 6 tests)
+- `dashboard/app/pages/departments/[dept].vue` — Merge UI
+
 ## [3.52.0] - 2026-05-26
 
 ### Added (Inline agent YAML editor — PR95b)
