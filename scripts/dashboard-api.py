@@ -220,11 +220,17 @@ def agents_activity(period: str = "week"):
 
 @app.get("/api/agents/{agent_id}/activity-strip")
 def agent_activity_strip(agent_id: str, period: str = "month"):
-    """PR83d v3.6.0 — compact activity payload for the agent hero strip.
+    """PR83d v3.6.0 + PR86b v3.16.0 — compact activity payload.
+
+    When telemetry is tagged ``subagent:<dept>:<agent_id>``, the response
+    prefers per-agent stats and includes a ``scope: "agent"`` flag.
+    Otherwise it falls back to department-level stats with
+    ``scope: "department"`` (the original PR83d behaviour).
 
     Returns:
       {
         "period": "month",
+        "scope": "agent" | "department",
         "department": "<dept>",
         "calls": <int>,
         "cost_usd": <float|null>,
@@ -233,9 +239,6 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
         "dept_rank": <1-based int>|null,
         "dept_count": <int>
       }
-
-    All values reflect the agent's DEPARTMENT (per-agent attribution
-    isn't tracked yet — see PR47 telemetry).
     """
     agents = _load_agents()
     base = None
@@ -259,34 +262,51 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
         period = "month"
 
     summary = summarise(period=period)
-    dept_costs: list[tuple[str, float]] = []
-    target_row: dict | None = None
+    dept_costs_map: dict[str, float] = {}
+    dept_row: dict | None = None
+    agent_row: dict | None = None
     for category, row in (summary.by_category or {}).items():
         if not isinstance(category, str) or not category.startswith("subagent:"):
             continue
-        cat_dept = category.split(":", 1)[1] or "unknown"
+        # subagent:<dept> OR subagent:<dept>:<agent_id>
+        parts = category.split(":", 2)
+        cat_dept = parts[1] if len(parts) >= 2 and parts[1] else "unknown"
+        cat_agent = parts[2] if len(parts) == 3 else None
         cost = row.get("total_cost_usd")
-        dept_costs.append((cat_dept, float(cost) if isinstance(cost, (int, float)) else 0.0))
-        if cat_dept == dept:
-            target_row = row
+        cost_f = float(cost) if isinstance(cost, (int, float)) else 0.0
+        dept_costs_map[cat_dept] = dept_costs_map.get(cat_dept, 0.0) + cost_f
+        if cat_dept == dept and cat_agent is None:
+            dept_row = row
+        if cat_dept == dept and cat_agent == agent_id:
+            agent_row = row
 
-    dept_costs.sort(key=lambda t: t[1], reverse=True)
+    dept_costs = sorted(dept_costs_map.items(), key=lambda t: t[1], reverse=True)
     dept_rank: Optional[int] = None
     for idx, (d, _) in enumerate(dept_costs, start=1):
         if d == dept:
             dept_rank = idx
             break
 
+    use_agent_scope = agent_row is not None
+    scope = "agent" if use_agent_scope else "department"
+    target_row = agent_row if use_agent_scope else dept_row
+
     entries, _ = _load_slice(None, _period_cutoff(period, now=None))
     last_used: Optional[str] = None
+    expect_cats = (
+        {f"subagent:{dept}:{agent_id}"}
+        if use_agent_scope
+        else {f"subagent:{dept}"}
+    )
     for entry in reversed(entries):
         cat = entry.get("category") or ""
-        if isinstance(cat, str) and cat == f"subagent:{dept}":
+        if isinstance(cat, str) and cat in expect_cats:
             last_used = entry.get("ts")
             break
 
     return {
         "period": period,
+        "scope": scope,
         "department": dept,
         "calls": int(target_row.get("call_count", 0)) if target_row else 0,
         "cost_usd": (
@@ -300,6 +320,16 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
         "dept_rank": dept_rank,
         "dept_count": len(dept_costs),
     }
+
+
+@app.get("/api/agents/{agent_id}/activity")
+def agent_activity_detail(agent_id: str, period: str = "month"):
+    """PR86b v3.16.0 — alias for /activity-strip. Same payload shape.
+
+    Exposed so callers can use a more natural name when they want the
+    full activity row rather than the compact hero strip.
+    """
+    return agent_activity_strip(agent_id, period)
 
 
 @app.get("/api/agents/{agent_id}")
