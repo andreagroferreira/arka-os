@@ -5,6 +5,25 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.49.0] - 2026-05-26
+
+### Added (Free-text diff visualisation — PR94c)
+
+Compare views now show side-by-side line diff for bio Markdown and
+communication tone. Red removed, green added.
+
+### Frontend
+
+- `TextDiff.vue` (NEW) — LCS-based line diff, no deps.
+- `agents/compare.vue` — bio + tone diff blocks.
+- `personas/compare-with-agent.vue` — same diff blocks.
+
+### Files changed
+
+- `dashboard/app/components/TextDiff.vue` (NEW)
+- `dashboard/app/pages/agents/compare.vue` — diff sections
+- `dashboard/app/pages/personas/compare-with-agent.vue` — same
+
 ## [3.48.0] - 2026-05-26
 
 ### Added (Persona archetypes catalog page — PR94b)
