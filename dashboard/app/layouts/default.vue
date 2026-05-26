@@ -156,8 +156,11 @@ const links = [[{
           popover
         />
 
+        <!-- PR98b v3.64.0 — favorites quick list -->
+        <SidebarFavoritesWidget v-if="!collapsed" class="mt-auto" />
+
         <!-- PR87d v3.22.0 — quick stats widget above the bottom nav. -->
-        <SidebarStatsWidget v-if="!collapsed" class="mt-auto" />
+        <SidebarStatsWidget v-if="!collapsed" />
 
         <UNavigationMenu
           :collapsed="collapsed"
