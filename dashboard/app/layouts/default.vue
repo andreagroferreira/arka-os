@@ -67,6 +67,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Trash',
+  icon: 'i-lucide-trash-2',
+  to: '/trash',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'GitHub',
   icon: 'i-simple-icons-github',
   to: 'https://github.com/andreagroferreira/arka-os',
