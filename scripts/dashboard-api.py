@@ -1331,6 +1331,99 @@ def persona_delete(persona_id: str):
     return {"error": "Persona not found"}
 
 
+# --- Global search (PR85d v3.14.0) ---
+
+@app.get("/api/search")
+def global_search(q: str = "", limit: int = 20):
+    """Fuzzy substring search across agents, personas, departments, commands.
+
+    Returns a flat list of result objects with a shape the dashboard
+    UCommandPalette can render directly:
+      {results: [{kind, id, label, sublabel, to}]}
+    """
+    query = (q or "").strip().lower()
+    if not query:
+        return {"results": []}
+    results: list[dict] = []
+
+    # Agents
+    for a in _load_agents():
+        haystack = " ".join(filter(None, [
+            str(a.get("name") or ""),
+            str(a.get("role") or ""),
+            str(a.get("department") or ""),
+            str(a.get("id") or ""),
+        ])).lower()
+        if query in haystack:
+            results.append({
+                "kind": "agent",
+                "id": a.get("id"),
+                "label": a.get("name") or a.get("id"),
+                "sublabel": f"{a.get('role') or '—'} · {a.get('department') or '—'}",
+                "to": f"/agents/{a.get('id')}",
+            })
+
+    # Personas
+    mgr = _get_persona_manager()
+    if mgr:
+        try:
+            for p in (mgr.list() or []):
+                haystack = " ".join(filter(None, [
+                    str(p.get("name") or ""),
+                    str(p.get("title") or ""),
+                    str(p.get("source") or ""),
+                    str(p.get("mbti") or ""),
+                    str(p.get("id") or ""),
+                ])).lower()
+                if query in haystack:
+                    results.append({
+                        "kind": "persona",
+                        "id": p.get("id"),
+                        "label": p.get("name") or p.get("id"),
+                        "sublabel": f"{p.get('title') or '—'} · {p.get('mbti') or '—'}",
+                        "to": f"/personas/{p.get('id')}",
+                    })
+        except Exception:
+            pass
+
+    # Departments — derive distinct list from agents
+    seen_depts: set[str] = set()
+    for a in _load_agents():
+        d = a.get("department")
+        if d:
+            seen_depts.add(d)
+    for d in sorted(seen_depts):
+        if query in d.lower():
+            results.append({
+                "kind": "department",
+                "id": d,
+                "label": d.capitalize(),
+                "sublabel": "Department",
+                "to": f"/agents?department={d}",
+            })
+
+    # Commands
+    try:
+        for c in _load_commands():
+            haystack = " ".join(filter(None, [
+                str(c.get("command") or ""),
+                str(c.get("description") or ""),
+                str(c.get("department") or ""),
+            ])).lower()
+            if query in haystack:
+                results.append({
+                    "kind": "command",
+                    "id": c.get("command"),
+                    "label": c.get("command"),
+                    "sublabel": c.get("description") or c.get("department") or "",
+                    "to": "/commands",
+                })
+    except Exception:
+        pass
+
+    return {"results": results[: max(0, int(limit))]}
+
+
 # --- Trash / Undo (PR85b v3.12.0) ---
 
 @app.get("/api/trash")

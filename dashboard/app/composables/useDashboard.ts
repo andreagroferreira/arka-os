@@ -5,6 +5,8 @@ const _useDashboard = () => {
   const router = useRouter()
   const route = useRoute()
   const shortcutsHelpOpen = useState('shortcutsHelpOpen', () => false)
+  // PR85d v3.14.0 — global search palette state.
+  const searchOpen = useState('searchOpen', () => false)
 
   function contextualNew() {
     const path = route.path
@@ -27,9 +29,10 @@ const _useDashboard = () => {
     'g-r': () => router.push('/trash'),
     n: () => contextualNew(),
     '?': () => { shortcutsHelpOpen.value = !shortcutsHelpOpen.value },
+    '/': () => { searchOpen.value = true },
   })
 
-  return { shortcutsHelpOpen }
+  return { shortcutsHelpOpen, searchOpen }
 }
 
 export const useDashboard = createSharedComposable(_useDashboard)

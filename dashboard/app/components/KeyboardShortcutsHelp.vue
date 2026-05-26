@@ -25,6 +25,7 @@ const groups = [
   {
     title: 'Actions',
     items: [
+      { keys: ['/'], label: 'Open global search' },
       { keys: ['n'], label: 'New (context-aware — agent / persona)' },
       { keys: ['?'], label: 'Toggle this help' },
     ],
