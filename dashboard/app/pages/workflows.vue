@@ -7,6 +7,14 @@
 
 import type { TableColumn } from '@nuxt/ui'
 
+interface WorkflowPhase {
+  id: string
+  name: string
+  description: string
+  gate_type: string
+  agent_count: number
+}
+
 interface Workflow {
   id: string
   name: string
@@ -15,6 +23,7 @@ interface Workflow {
   tier: string
   command: string
   phases_count: number
+  phases: WorkflowPhase[]
   file: string
   content: string
 }
@@ -35,7 +44,16 @@ interface WorkflowRun {
 }
 const runs = ref<WorkflowRun[]>([])
 const runsLoading = ref(false)
-const sidePanelTab = ref<'yaml' | 'runs'>('yaml')
+const sidePanelTab = ref<'flow' | 'yaml' | 'runs'>('flow')
+
+function gateColor(gateType: string): 'primary' | 'warning' | 'error' | 'neutral' {
+  const m: Record<string, 'primary' | 'warning' | 'error' | 'neutral'> = {
+    user_approval: 'warning',
+    quality_gate: 'error',
+    automatic: 'primary',
+  }
+  return m[gateType] ?? 'neutral'
+}
 
 async function loadRuns(id: string) {
   runsLoading.value = true
@@ -152,7 +170,7 @@ const columns: TableColumn<Workflow>[] = [
               th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
               td: 'border-b border-default',
             }"
-            @select="(row: { original: Workflow }) => { selected = row.original; sidePanelTab = 'yaml'; runs = []; loadRuns(row.original.id) }"
+            @select="(row: { original: Workflow }) => { selected = row.original; sidePanelTab = 'flow'; runs = []; loadRuns(row.original.id) }"
           >
             <template #name-cell="{ row }">
               <div class="min-w-0">
@@ -208,6 +226,14 @@ const columns: TableColumn<Workflow>[] = [
                 <button
                   type="button"
                   class="px-2 py-1 rounded-md transition-colors"
+                  :class="sidePanelTab === 'flow' ? 'bg-elevated/60 text-default font-semibold' : 'text-muted hover:text-default'"
+                  @click="sidePanelTab = 'flow'"
+                >
+                  Flow
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-1 rounded-md transition-colors"
                   :class="sidePanelTab === 'yaml' ? 'bg-elevated/60 text-default font-semibold' : 'text-muted hover:text-default'"
                   @click="sidePanelTab = 'yaml'"
                 >
@@ -223,7 +249,43 @@ const columns: TableColumn<Workflow>[] = [
                 </button>
               </div>
             </div>
-            <div v-if="sidePanelTab === 'yaml'" class="overflow-x-auto">
+            <div v-if="sidePanelTab === 'flow'" class="p-4">
+              <ol v-if="selected.phases.length > 0" class="relative border-l border-default ml-2 space-y-3">
+                <li
+                  v-for="(ph, idx) in selected.phases"
+                  :key="ph.id || idx"
+                  class="ml-4"
+                >
+                  <span class="absolute -left-1.5 size-3 rounded-full bg-primary border border-primary/60" />
+                  <div class="rounded-lg border border-default p-3 bg-elevated/20">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-mono text-xs text-muted">{{ idx + 1 }}.</span>
+                      <span class="font-semibold">{{ ph.name || ph.id }}</span>
+                      <UBadge
+                        v-if="ph.gate_type"
+                        :label="ph.gate_type"
+                        :color="gateColor(ph.gate_type)"
+                        variant="subtle"
+                        size="xs"
+                      />
+                      <UBadge
+                        v-if="ph.agent_count > 0"
+                        :label="`${ph.agent_count} agent${ph.agent_count === 1 ? '' : 's'}`"
+                        variant="outline"
+                        size="xs"
+                      />
+                    </div>
+                    <p v-if="ph.description" class="text-xs text-muted mt-1">
+                      {{ ph.description }}
+                    </p>
+                  </div>
+                </li>
+              </ol>
+              <div v-else class="py-6 text-center text-sm text-muted">
+                No phases defined.
+              </div>
+            </div>
+            <div v-else-if="sidePanelTab === 'yaml'" class="overflow-x-auto">
               <pre class="p-4 text-xs font-mono whitespace-pre">{{ selected.content }}</pre>
             </div>
             <div v-else class="p-4">

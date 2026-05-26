@@ -5,6 +5,38 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.37.0] - 2026-05-26
+
+### Added (Workflow phase flow tab — PR91c)
+
+`/workflows` side panel gains a **Flow** tab (default-selected) with a
+vertical stepper of phases. Each phase shows name, gate-type badge,
+agent count, and description. Operator can finally eyeball a workflow's
+shape without reading YAML.
+
+### Backend
+
+- `/api/workflows` payload now includes a `phases: [{id, name,
+  description, gate_type, agent_count}]` array per workflow. Distilled
+  via `_summarise_phases` helper (NEW). Gate types tinted in the UI
+  (user_approval → warning, quality_gate → error, automatic → primary).
+- 3 new tests cover the summary shape, non-dict skipping, missing
+  keys.
+
+### Frontend
+
+- `workflows.vue` — new Flow tab (selected by default when picking a
+  row). Vertical stepper UI with left rail + numbered cards. Phase
+  cards include gate + agent-count badges.
+- Switching tabs no longer triggers another fetch — runs are still
+  pre-loaded on row select.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — phases summary + helper
+- `tests/python/test_workflows_endpoint.py` — 3 new tests
+- `dashboard/app/pages/workflows.vue` — Flow tab + stepper
+
 ## [3.36.0] - 2026-05-26
 
 ### Added (Persona import from URLs — PR91b)
