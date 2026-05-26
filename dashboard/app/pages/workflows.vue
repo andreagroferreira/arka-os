@@ -241,7 +241,7 @@ const columns: TableColumn<Workflow>[] = [
               th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
               td: 'border-b border-default',
             }"
-            @select="(row: { original: Workflow }) => { selected = row.original; sidePanelTab = 'flow'; runs = []; editingYaml = false; loadRuns(row.original.id) }"
+            @select="(_e: Event, row: { original: Workflow }) => { if (!row?.original) return; selected = row.original; sidePanelTab = 'flow'; runs = []; editingYaml = false; loadRuns(row.original.id) }"
           >
             <template #name-cell="{ row }">
               <div class="min-w-0">

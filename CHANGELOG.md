@@ -5,6 +5,80 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.8] - 2026-05-27
+
+### Fixed (UTable row-click crash on /personas, /departments, /workflows)
+
+Three tables in the dashboard had a `@select` handler with the wrong
+signature for Nuxt UI v4:
+
+```ts
+@select="(row: { original: Persona }) => goToPersona(row.original.id)"
+```
+
+Reading `@nuxt/ui` 4.6.1's `Table.vue` source confirms the handler
+is called as `props.onSelect(e, row)` — the **event** comes first, the
+TanStack Row comes **second**. So `row` in our handlers was actually
+the click event, and `row.original` was `undefined` → `.id` threw
+`Cannot read properties of undefined`. On `/personas` this crashed
+the page on every row click (the bug the operator reported).
+`/departments` and `/workflows` had the same latent bug.
+
+Fixed all three handlers to the correct signature:
+
+```ts
+@select="(_e: Event, row: { original: X }) => row?.original && action(row.original.id)"
+```
+
+Defensive optional-chaining + early return so future API changes
+won't crash the UI silently. `goToPersona` also now guards against
+`undefined`.
+
+### Fixed (/personas/compare blank) + Added (Markdown viewer/editor dialog)
+
+**/personas/compare blank.** Landing on `/personas/compare` without
+`?a=&b=` query params rendered an empty body — the only fallback was
+a tiny `text-error` error message that was easy to miss and useless
+("Pass two persona ids via ?a=p1&b=p2"). With zero personas in the
+system, even the error message was misleading.
+
+Rewritten with proper empty states + pickers:
+
+- 0 personas → empty card with "Back to personas" CTA
+- 1 persona → empty card with "Create another persona" CTA
+- 2+ personas → twin `USelectMenu` pickers (left + right) with a
+  swap-sides button between them. Pickers write back to the URL so
+  the comparison is bookmark-able.
+- Both pickers empty → dashed-border hint "Pick two personas above"
+- Both selected → the existing side-by-side diff renders unchanged
+
+**Markdown viewer/editor dialog.** The MD button on persona detail
+pages used to trigger a direct file download. Now it opens a
+fullscreen modal with the exported markdown:
+
+- Left pane: raw source (read-only `<pre>` in view mode, editable
+  `<textarea>` in edit mode)
+- Right pane: live rendered preview via `marked` v15 (already in
+  deps from PR91d). Prose-styled with custom dark theme: headings,
+  code blocks, blockquotes, tables, lists all tuned for the
+  ArkaOS palette.
+- Header: filename + mode badge + Copy + Download + Edit-bio
+  toggle + Save + Close
+- Edit mode targets ONLY the `bio_md` field (the rest of the
+  exported markdown is generated from structured fields and can't
+  be edited as freeform text). Saving PUTs `{bio_md}` to
+  `/api/personas/{id}`, then refetches the export so the operator
+  sees the updated full document.
+- Modal sized to 95vw × 92vh — feels native, doesn't fight the rest
+  of the dashboard.
+
+### Files changed
+
+- `dashboard/app/pages/personas/compare.vue` — picker UI + empty
+  states + URL-reactive controls.
+- `dashboard/app/pages/personas/[id].vue` — `openMdViewer`, save,
+  copy, modal markup + scoped prose CSS.
+
 ## [3.70.7] - 2026-05-27
 
 ### Fixed (HOTFIX — /personas was showing the old single-file page)

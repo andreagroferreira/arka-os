@@ -1,16 +1,51 @@
 <script setup lang="ts">
 // PR96c v3.57.0 — Compare two personas side-by-side.
+// v3.70.8 — picker UI when query params are missing (was blank before).
 //
-// Driven by `?a=p1&b=p2`. Mirrors the agents/compare layout but
-// adapts to the persona schema (flat mental_models, no department).
+// Driven by `?a=p1&b=p2`. The page renders pickers when either id is
+// missing so the operator can land on /personas/compare directly.
 
 const route = useRoute()
+const router = useRouter()
 const { fetchApi } = useApi()
 
-const ids = computed<string[]>(() => {
-  const raw = [route.query.a, route.query.b]
-  return raw.map((v) => String(v ?? '').trim()).filter(Boolean).slice(0, 2)
-})
+interface PersonaSummary {
+  id: string
+  name: string
+  title?: string
+}
+
+const { data: listData, status: listStatus } = fetchApi<{ personas: PersonaSummary[] }>(
+  '/api/personas',
+)
+const personaList = computed(() => listData.value?.personas ?? [])
+const loadingList = computed(() => listStatus.value === 'pending')
+
+const personaOptions = computed(() =>
+  personaList.value.map((p) => ({
+    label: p.name + (p.title ? ` — ${p.title}` : ''),
+    value: p.id,
+  })),
+)
+
+const leftId = computed(() => String(route.query.a ?? '').trim())
+const rightId = computed(() => String(route.query.b ?? '').trim())
+
+function setLeft(id: string) {
+  router.replace({ query: { ...route.query, a: id || undefined } })
+}
+function setRight(id: string) {
+  router.replace({ query: { ...route.query, b: id || undefined } })
+}
+function swapSides() {
+  router.replace({
+    query: { ...route.query, a: rightId.value || undefined, b: leftId.value || undefined },
+  })
+}
+
+const ids = computed<string[]>(() =>
+  [leftId.value, rightId.value].filter(Boolean).slice(0, 2),
+)
 
 interface PersonaDetail {
   id: string
@@ -46,11 +81,11 @@ const { data: b, status: bStatus } = fetchApi<PersonaDetail>(
 
 const loading = computed(() => aStatus.value === 'pending' || bStatus.value === 'pending')
 const errorMsg = computed(() => {
-  if (ids.value.length < 2) return 'Pass two persona ids via ?a=p1&b=p2'
   if (a.value?.error) return `Left: ${a.value.error}`
   if (b.value?.error) return `Right: ${b.value.error}`
   return null
 })
+const bothSelected = computed(() => leftId.value && rightId.value)
 
 function diffClass(left: unknown, right: unknown): string {
   return left !== right ? 'bg-yellow-500/10 border-yellow-500/30' : ''
@@ -78,13 +113,95 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
     </template>
 
     <template #body>
-      <div v-if="errorMsg" class="p-6 text-center text-sm text-error">
-        {{ errorMsg }}
-      </div>
-      <div v-else-if="loading" class="p-6 text-center text-sm text-muted">
-        <UIcon name="i-lucide-loader-2" class="size-4 animate-spin inline" /> Loading…
-      </div>
-      <div v-else-if="a && b" class="space-y-4 max-w-6xl">
+      <div class="p-4 space-y-4">
+        <!-- Empty state: no personas at all -->
+        <div
+          v-if="!loadingList && personaList.length === 0"
+          class="rounded-xl border border-default p-12 text-center"
+        >
+          <UIcon name="i-lucide-users" class="size-10 mx-auto mb-3 text-muted opacity-50" />
+          <p class="text-default font-medium">No personas to compare yet.</p>
+          <p class="text-sm text-muted mt-1">
+            Create at least two personas before using the compare view.
+          </p>
+          <UButton to="/personas" class="mt-4" icon="i-lucide-arrow-left">
+            Back to personas
+          </UButton>
+        </div>
+
+        <!-- Empty state: only 1 persona -->
+        <div
+          v-else-if="!loadingList && personaList.length < 2"
+          class="rounded-xl border border-default p-12 text-center"
+        >
+          <UIcon name="i-lucide-users" class="size-10 mx-auto mb-3 text-muted opacity-50" />
+          <p class="text-default font-medium">You need at least 2 personas.</p>
+          <p class="text-sm text-muted mt-1">
+            Currently {{ personaList.length }} persona in the system.
+          </p>
+          <UButton to="/personas/new" class="mt-4" icon="i-lucide-plus">
+            Create another persona
+          </UButton>
+        </div>
+
+        <!-- Pickers (always visible when we have 2+ personas) -->
+        <div v-else class="space-y-4">
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+            <div>
+              <label class="text-xs text-muted uppercase tracking-wide mb-1 block">Left</label>
+              <USelectMenu
+                :model-value="leftId"
+                :items="personaOptions"
+                placeholder="Pick a persona…"
+                value-key="value"
+                class="w-full"
+                @update:model-value="(v: any) => setLeft(typeof v === 'string' ? v : (v?.value ?? ''))"
+              />
+            </div>
+            <UButton
+              icon="i-lucide-arrow-left-right"
+              variant="ghost"
+              size="sm"
+              class="mb-0.5"
+              :disabled="!bothSelected"
+              title="Swap sides"
+              @click="swapSides"
+            />
+            <div>
+              <label class="text-xs text-muted uppercase tracking-wide mb-1 block">Right</label>
+              <USelectMenu
+                :model-value="rightId"
+                :items="personaOptions"
+                placeholder="Pick a persona…"
+                value-key="value"
+                class="w-full"
+                @update:model-value="(v: any) => setRight(typeof v === 'string' ? v : (v?.value ?? ''))"
+              />
+            </div>
+          </div>
+
+          <!-- Hint when not both selected -->
+          <div
+            v-if="!bothSelected"
+            class="rounded-xl border border-default border-dashed p-10 text-center text-sm text-muted"
+          >
+            <UIcon name="i-lucide-columns-2" class="size-7 mx-auto mb-2 opacity-50" />
+            Pick two personas above to see the side-by-side diff.
+          </div>
+
+          <!-- Error from detail fetch -->
+          <div v-else-if="errorMsg" class="p-4 text-sm text-error border border-error/30 rounded-lg">
+            {{ errorMsg }}
+          </div>
+
+          <!-- Loading detail -->
+          <div v-else-if="loading" class="p-6 text-center text-sm text-muted">
+            <UIcon name="i-lucide-loader-2" class="size-4 animate-spin inline mr-2" />
+            Loading personas…
+          </div>
+
+          <!-- Comparison content -->
+          <div v-else-if="a && b" class="space-y-4 max-w-6xl">
         <section class="grid grid-cols-2 gap-3">
           <NuxtLink :to="`/personas/${a.id}`" class="rounded-lg border border-default p-4 hover:border-primary/40">
             <p class="text-xs text-muted uppercase tracking-wide">Left</p>
@@ -207,6 +324,8 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
         <p class="text-xs text-muted pt-4 italic">
           Yellow tint = different. Red removed, green added.
         </p>
+          </div>
+        </div>
       </div>
     </template>
   </UDashboardPanel>
