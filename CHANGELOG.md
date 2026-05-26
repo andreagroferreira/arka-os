@@ -5,6 +5,43 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.92.0] - 2026-05-26
+
+### Added (Persona detail view + edit — PR74)
+
+- **`PersonaDetailDrawer.vue`** — click any persona card on the list
+  to open a side-drawer with **every field** visible: identity,
+  full DNA (DISC + Enneagram + MBTI + Big-Five with horizontal
+  bars), mental models, expertise, frameworks, key quotes,
+  communication style.
+- **Edit mode** — ✏️ in the header flips the drawer to an editable
+  form: text inputs for identity + free-text, dropdowns for
+  MBTI/DISC/vocab, number+range pair for each Big-Five score,
+  comma-separated CSV inputs for the list fields. Cancel restores
+  cleanly (deep-clone on edit start).
+- **Source badge** — every persona shows whether it came from the
+  Obsidian vault (`From Obsidian`) or the JSON store, plus the
+  vault path so the operator can find the file.
+- **Delete from drawer** — explicit confirm; the Obsidian file is
+  not auto-deleted (operator removes it from Obsidian manually).
+
+### Backend changes
+
+- **`GET /api/personas/{id}`** now checks the Obsidian vault first
+  and surfaces `_source_store` + `_obsidian_path` on the response.
+  Previously vault-only personas returned 404; now they resolve.
+- **`PUT /api/personas/{id}`** (new) — atomic update across both
+  stores. Partial-update bodies are merged on top of the existing
+  record so unspecified fields don't get wiped. Returns
+  `{ id, updated, json_written, obsidian_path }` so the UI can
+  show exactly where the save landed.
+
+### Test coverage
+
+- Vue typecheck clean (new component + edits)
+- Full Python suite: 3818/3818 passing
+- Preflight: `all_passed: True`
+
 ## [2.91.0] - 2026-05-25
 
 ### Fixed (SQLite threading + vector-search visibility — PR73)

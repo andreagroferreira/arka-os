@@ -9,6 +9,23 @@ const { data, status, error, refresh } = fetchApi<{ personas: Persona[]; total: 
 
 const personas = computed(() => data.value?.personas ?? [])
 
+// PR74 v2.92.0 — detail/edit drawer state
+const detailOpen = ref(false)
+const detailPersonaId = ref<string | null>(null)
+
+function openDetail(persona: Persona) {
+  detailPersonaId.value = persona.id
+  detailOpen.value = true
+}
+
+async function onDetailSaved() {
+  await refresh()
+}
+
+async function onDetailDeleted(_id: string) {
+  await refresh()
+}
+
 // --- Creation mode ---
 // PR62 v2.79.0 — three modes: list (default), wizard (AI builder), manual.
 // The wizard is the new primary path; manual stays as fallback for
@@ -517,12 +534,24 @@ function discColor(disc: string): string {
           />
         </div>
 
+        <!-- PR74 v2.92.0 — detail/edit drawer -->
+        <PersonaDetailDrawer
+          v-model="detailOpen"
+          :persona-id="detailPersonaId"
+          @saved="onDetailSaved"
+          @deleted="onDetailDeleted"
+        />
+
         <!-- Personas Grid -->
         <div v-if="personas.length" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <UCard
             v-for="persona in personas"
             :key="persona.id"
-            class="group flex flex-col"
+            class="group flex flex-col cursor-pointer hover:border-primary/40 transition-colors"
+            role="button"
+            tabindex="0"
+            @click="openDetail(persona)"
+            @keydown.enter="openDetail(persona)"
           >
             <div class="flex flex-col gap-3 flex-1">
               <!-- Header -->
@@ -583,7 +612,7 @@ function discColor(disc: string): string {
               </div>
 
               <!-- Actions -->
-              <div class="pt-3 mt-auto border-t border-default space-y-3">
+              <div class="pt-3 mt-auto border-t border-default space-y-3" @click.stop>
                 <div class="flex gap-2">
                   <UButton
                     label="Clone to Agent"
@@ -591,7 +620,7 @@ function discColor(disc: string): string {
                     size="sm"
                     variant="solid"
                     class="flex-1"
-                    @click="toggleClone(persona)"
+                    @click.stop="toggleClone(persona)"
                   />
                   <UButton
                     icon="i-lucide-trash-2"
@@ -600,7 +629,7 @@ function discColor(disc: string): string {
                     color="error"
                     :loading="deleting === persona.id"
                     aria-label="Delete persona"
-                    @click="deletePersona(persona)"
+                    @click.stop="deletePersona(persona)"
                   />
                 </div>
 
