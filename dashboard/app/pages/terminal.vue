@@ -55,6 +55,29 @@ function recordCommand(cmd: string) {
   }
 }
 
+// PR99d v3.70.0 — theme picker + Ctrl+R history search.
+const { themeName, setTheme, options: themeOptions } = useTerminalThemes()
+const searchOpen = ref(false)
+const searchQuery = ref('')
+
+const searchResults = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return history.value.slice(0, 30)
+  return history.value
+    .filter((h) => h.cmd.toLowerCase().includes(q))
+    .slice(0, 30)
+})
+
+function openSearch() {
+  searchOpen.value = true
+  searchQuery.value = ''
+}
+
+function pickFromSearch(cmd: string) {
+  activeTab.value?.session.sendInput(cmd)
+  searchOpen.value = false
+}
+
 const editingTabId = ref<string | null>(null)
 const renameDraft = ref('')
 
@@ -94,6 +117,7 @@ defineShortcuts({
     },
     usingInput: false,
   },
+  ctrl_r: { handler: openSearch, usingInput: false },
   meta_1: { handler: () => switchByIndex(0), usingInput: false },
   meta_2: { handler: () => switchByIndex(1), usingInput: false },
   meta_3: { handler: () => switchByIndex(2), usingInput: false },
@@ -137,6 +161,22 @@ const showHistory = ref(false)
           <UIcon name="i-lucide-shield" class="size-3 mr-1" />
           localhost only
         </UBadge>
+        <USelect
+          :model-value="themeName"
+          :items="themeOptions"
+          size="xs"
+          class="w-44"
+          @update:model-value="setTheme($event as string)"
+        />
+        <UButton
+          size="xs"
+          variant="ghost"
+          icon="i-lucide-search"
+          title="Ctrl+R — search history"
+          @click="openSearch"
+        >
+          ⌃R
+        </UButton>
         <UButton
           size="xs"
           variant="ghost"
@@ -239,7 +279,37 @@ const showHistory = ref(false)
 
     <footer class="text-xs text-muted">
       Sessions live on the backend until you close them or 30 min idle.
-      History stays in this browser only.
+      History stays in this browser only. Ctrl+R to search history.
     </footer>
+
+    <UModal v-model:open="searchOpen" :title="`Search history (${history.length})`">
+      <template #body>
+        <div class="space-y-2">
+          <UInput
+            v-model="searchQuery"
+            placeholder="type to filter…"
+            autofocus
+            icon="i-lucide-search"
+            @keydown.enter="searchResults[0] && pickFromSearch(searchResults[0].cmd)"
+          />
+          <div class="max-h-80 overflow-y-auto rounded-md border border-default divide-y divide-default">
+            <button
+              v-for="(entry, i) in searchResults"
+              :key="i"
+              class="w-full text-left px-3 py-2 text-sm font-mono hover:bg-elevated/40 truncate"
+              @click="pickFromSearch(entry.cmd)"
+            >
+              {{ entry.cmd }}
+            </button>
+            <div v-if="searchResults.length === 0" class="px-3 py-4 text-muted text-center text-sm">
+              No matches
+            </div>
+          </div>
+          <p class="text-xs text-muted">
+            Enter sends the top match to the active session.
+          </p>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
