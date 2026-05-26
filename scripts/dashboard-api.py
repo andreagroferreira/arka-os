@@ -322,6 +322,55 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
     }
 
 
+@app.get("/api/personas/{persona_id}/markdown")
+def persona_download_markdown(persona_id: str):
+    """PR90a v3.31.0 — return the persona as a Markdown file.
+
+    Renders via ObsidianPersonaStore._render so the output matches
+    exactly what gets written when the operator clicks Save with a
+    configured vault. Responds with ``text/markdown`` and an
+    attachment Content-Disposition.
+    """
+    detail = persona_detail(persona_id)
+    if "error" in detail:
+        return detail
+    from core.personas.obsidian_store import ObsidianPersonaStore
+    from core.personas.schema import (
+        Persona, PersonaDISC, PersonaEnneagram, PersonaBigFive, PersonaCommunication,
+    )
+    try:
+        persona = Persona(
+            id=detail.get("id", ""),
+            name=detail.get("name", ""),
+            title=detail.get("title", ""),
+            tagline=detail.get("tagline", ""),
+            source=detail.get("source", ""),
+            disc=PersonaDISC(**(detail.get("disc") or {})),
+            enneagram=PersonaEnneagram(**(detail.get("enneagram") or {})),
+            big_five=PersonaBigFive(**(detail.get("big_five") or {})),
+            mbti=detail.get("mbti", "INTJ"),
+            mental_models=detail.get("mental_models") or [],
+            expertise_domains=detail.get("expertise_domains") or [],
+            frameworks=detail.get("frameworks") or [],
+            key_quotes=detail.get("key_quotes") or [],
+            communication=PersonaCommunication(**(detail.get("communication") or {})),
+            bio_md=detail.get("bio_md", "") or "",
+            created_at=detail.get("created_at", ""),
+        )
+    except (TypeError, ValueError) as exc:
+        return {"error": f"persona schema mismatch: {exc}"}
+    content = ObsidianPersonaStore._render(persona)
+    filename = f"{persona.name or persona.id}.md".replace("/", "-")
+    from fastapi import Response
+    return Response(
+        content=content,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
 @app.get("/api/agents/{agent_id}/yaml")
 def agent_download_yaml(agent_id: str):
     """PR89d v3.30.0 — return the raw YAML for the agent.
