@@ -5,6 +5,53 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-05-26
+
+### Added (Agent create flow — PR82a)
+
+ArkaOS finally has a "New Agent" path that doesn't require editing
+YAML by hand. Click "New Agent" from `/agents`, fill the form, click
+Create. Done.
+
+The version bump to 3.0.0 marks the milestone: every agent and persona
+lifecycle action (create / read / update / delete) is now in the
+dashboard with AI assistance built in.
+
+### New backend
+
+- `POST /api/agents` — creates a new agent YAML file under
+  `departments/{dept}/agents/{slug}.yaml`. Refuses to overwrite
+  existing files. 16 unit tests cover slug rules, default
+  composition, tier-based model selection, DISC/MBTI normalisation,
+  and collision handling.
+- Helpers: `_do_agent_create`, `_agent_slugify`, `_build_agent_yaml`.
+
+### New frontend
+
+- `dashboard/app/pages/agents/new.vue` — single-page form with four
+  sections (Identity / Behavioural DNA / Knowledge / Communication)
+  plus Linked Personas. Sensible defaults pre-fill the DNA so
+  non-technical operators don't face a wall of blanks.
+- ✨ Suggest with AI buttons (from PR81) are wired on the three
+  list fields. They refuse to run until name + role are filled —
+  AI needs the basics to make useful suggestions.
+- `dashboard/app/pages/agents/index.vue` — "New Agent" button added
+  to the navbar `#right` slot, mirroring the personas pattern.
+
+### Validation
+
+- Save is disabled until name + role + department are non-empty AND
+  DISC primary ≠ DISC secondary (matches the Pydantic schema rule).
+- On error the toast surfaces the backend message; the form is
+  preserved.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — POST /api/agents + helpers
+- `tests/python/test_agent_create.py` (NEW, 16 tests)
+- `dashboard/app/pages/agents/new.vue` (NEW)
+- `dashboard/app/pages/agents/index.vue` — New Agent button
+
 ## [2.99.0] - 2026-05-26
 
 ### Added (AI-assist on agent + persona edit forms — PR81)

@@ -1683,6 +1683,150 @@ def metrics():
     return {"entries": entries[-50:], "avg_ms": round(avg_ms, 1), "total_calls": len(entries)}
 
 
+# --- Agent create (PR82 v3.0.0) ---
+
+@app.post("/api/agents")
+def agent_create(body: dict):
+    """Create a new agent YAML file from a manual draft.
+
+    Required body keys: name, role, department, tier.
+    Optional: behavioral_dna, expertise, mental_models, communication,
+    linked_personas, authority.
+
+    Slug rule: <name-kebab>-<random-suffix> when no explicit `id` is
+    given. The endpoint refuses to overwrite an existing file.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    return _do_agent_create(body)
+
+
+def _do_agent_create(body: dict) -> dict:
+    import re
+    import uuid
+
+    name = (body.get("name") or "").strip()
+    role = (body.get("role") or "").strip()
+    department = (body.get("department") or "").strip().lower()
+    tier_raw = body.get("tier")
+    if not name or not role or not department:
+        return {"error": "name, role, and department are required"}
+    try:
+        tier = int(tier_raw) if tier_raw is not None else 2
+    except (TypeError, ValueError):
+        return {"error": "tier must be an integer"}
+
+    dept_dir = ARKAOS_ROOT / "departments" / department / "agents"
+    if not dept_dir.exists():
+        return {"error": f"department '{department}' not found"}
+
+    explicit_id = (body.get("id") or "").strip()
+    if explicit_id:
+        slug = _agent_slugify(explicit_id)
+    else:
+        slug = f"{_agent_slugify(name)}-{uuid.uuid4().hex[:6]}"
+    yaml_file = dept_dir / f"{slug}.yaml"
+    if yaml_file.exists():
+        return {"error": f"agent with id '{slug}' already exists"}
+
+    try:
+        import yaml as _yaml
+    except ImportError:
+        return {"error": "PyYAML unavailable"}
+
+    payload = _build_agent_yaml(slug, name, role, department, tier, body)
+    try:
+        tmp = yaml_file.with_suffix(yaml_file.suffix + ".tmp")
+        tmp.write_text(
+            _yaml.safe_dump(payload, sort_keys=False, allow_unicode=True, default_flow_style=False),
+            encoding="utf-8",
+        )
+        tmp.replace(yaml_file)
+    except OSError as exc:
+        return {"error": f"write failed: {exc}"}
+    return {"id": slug, "created": True, "yaml_path": str(yaml_file)}
+
+
+def _agent_slugify(text: str) -> str:
+    import re
+    cleaned = re.sub(r"[^a-z0-9-]+", "-", text.lower())
+    cleaned = re.sub(r"-+", "-", cleaned).strip("-")
+    return cleaned or "agent"
+
+
+def _build_agent_yaml(
+    slug: str, name: str, role: str, department: str, tier: int, body: dict,
+) -> dict:
+    """Compose the YAML payload, applying sensible defaults."""
+    dna = body.get("behavioral_dna") or {}
+    disc = dna.get("disc") or {}
+    enneagram = dna.get("enneagram") or {}
+    big_five = dna.get("big_five") or {}
+    mbti_raw = dna.get("mbti")
+    mbti = mbti_raw.get("type") if isinstance(mbti_raw, dict) else mbti_raw
+
+    expertise = body.get("expertise") or {}
+    mental_models = body.get("mental_models") or {}
+    communication = body.get("communication") or {}
+    authority = body.get("authority") or {}
+
+    payload: dict = {
+        "id": slug,
+        "name": name,
+        "role": role,
+        "department": department,
+        "tier": tier,
+        "model": "opus" if tier == 0 else "sonnet",
+        "behavioral_dna": {
+            "disc": {
+                "primary": (disc.get("primary") or "I").upper(),
+                "secondary": (disc.get("secondary") or "S").upper(),
+                "communication_style": disc.get("communication_style") or "",
+                "under_pressure": disc.get("under_pressure") or "",
+                "motivator": disc.get("motivator") or "",
+            },
+            "enneagram": {
+                "type": int(enneagram.get("type") or 5),
+                "wing": int(enneagram.get("wing") or 4),
+                "core_motivation": enneagram.get("core_motivation") or "",
+                "core_fear": enneagram.get("core_fear") or "",
+                "subtype": enneagram.get("subtype") or "self-preservation",
+            },
+            "big_five": {
+                "openness": int(big_five.get("openness") or 70),
+                "conscientiousness": int(big_five.get("conscientiousness") or 70),
+                "extraversion": int(big_five.get("extraversion") or 50),
+                "agreeableness": int(big_five.get("agreeableness") or 60),
+                "neuroticism": int(big_five.get("neuroticism") or 30),
+            },
+            "mbti": {"type": (mbti or "INTJ").upper()},
+        },
+        "authority": {
+            "delegates_to": _agent_str_list(authority.get("delegates_to") or []),
+            "escalates_to": authority.get("escalates_to") or "",
+        },
+        "expertise": {
+            "domains": _agent_str_list(expertise.get("domains") or []),
+            "frameworks": _agent_str_list(expertise.get("frameworks") or []),
+            "depth": expertise.get("depth") or "advanced",
+            "years_equivalent": int(expertise.get("years_equivalent") or 5),
+        },
+        "mental_models": {
+            "primary": _agent_str_list(mental_models.get("primary") or []),
+            "secondary": _agent_str_list(mental_models.get("secondary") or []),
+        },
+        "communication": {
+            "tone": communication.get("tone") or "",
+            "vocabulary_level": communication.get("vocabulary_level") or "specialist",
+            "preferred_format": communication.get("preferred_format") or "",
+            "language": communication.get("language") or "en",
+            "avoid": _agent_str_list(communication.get("avoid") or []),
+        },
+        "linked_personas": _agent_str_list(body.get("linked_personas") or []),
+    }
+    return payload
+
+
 # --- AI list-field suggester (PR81 v2.99.0) ---
 
 @app.post("/api/agents/suggest")

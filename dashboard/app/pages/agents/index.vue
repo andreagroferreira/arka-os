@@ -167,6 +167,14 @@ function goToAgent(id: string) {
         <template #trailing>
           <UBadge v-if="data?.total" :label="data.total" variant="subtle" />
         </template>
+        <template #right>
+          <UButton
+            label="New Agent"
+            icon="i-lucide-plus"
+            size="sm"
+            to="/agents/new"
+          />
+        </template>
       </UDashboardNavbar>
     </template>
 
