@@ -5,6 +5,19 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.55.0] - 2026-05-26
+
+### Added (Table keyboard navigation on /personas — PR96a)
+
+Mirror of PR95d for /personas. `j`/`k`/arrows move the cursor, Enter
+opens detail. Chevron indicator on the name cell. Auto-scroll into
+view.
+
+### Files changed
+
+- `dashboard/app/pages/personas/index.vue` — cursor state +
+  shortcuts + chevron indicator
+
 ## [3.54.0] - 2026-05-26
 
 ### Added (Table keyboard navigation on /agents — PR95d)
