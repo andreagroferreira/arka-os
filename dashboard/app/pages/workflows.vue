@@ -30,7 +30,54 @@ interface Workflow {
 }
 
 const { fetchApi, apiBase } = useApi()
+const toast = useToast()
 const { data, status, error, refresh } = await fetchApi<{ workflows: Workflow[] }>('/api/workflows')
+
+// PR94d v3.50.0 — inline YAML editor state.
+const editingYaml = ref(false)
+const yamlDraft = ref('')
+const savingYaml = ref(false)
+
+function startEditYaml() {
+  if (!selected.value) return
+  yamlDraft.value = selected.value.content
+  editingYaml.value = true
+}
+
+function cancelEditYaml() {
+  yamlDraft.value = ''
+  editingYaml.value = false
+}
+
+async function saveYaml() {
+  if (!selected.value) return
+  savingYaml.value = true
+  try {
+    const res = await $fetch<{ updated?: boolean, error?: string }>(
+      `${apiBase}/api/workflows/${selected.value.id}/yaml`,
+      { method: 'PUT', body: { content: yamlDraft.value } },
+    )
+    if (res.error) throw new Error(res.error)
+    toast.add({
+      title: 'YAML updated',
+      description: selected.value.file,
+      color: 'success',
+      icon: 'i-lucide-check',
+    })
+    // Patch local content so the preview shows the new YAML immediately.
+    selected.value = { ...selected.value, content: yamlDraft.value }
+    editingYaml.value = false
+    await refresh()
+  } catch (err) {
+    toast.add({
+      title: 'Save failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    savingYaml.value = false
+  }
+}
 
 // PR89b v3.28.0 — recent runs for the selected workflow.
 interface WorkflowRun {
@@ -171,7 +218,7 @@ const columns: TableColumn<Workflow>[] = [
               th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
               td: 'border-b border-default',
             }"
-            @select="(row: { original: Workflow }) => { selected = row.original; sidePanelTab = 'flow'; runs = []; loadRuns(row.original.id) }"
+            @select="(row: { original: Workflow }) => { selected = row.original; sidePanelTab = 'flow'; runs = []; editingYaml = false; loadRuns(row.original.id) }"
           >
             <template #name-cell="{ row }">
               <div class="min-w-0">
@@ -292,8 +339,47 @@ const columns: TableColumn<Workflow>[] = [
                 No phases defined.
               </div>
             </div>
-            <div v-else-if="sidePanelTab === 'yaml'" class="overflow-x-auto">
-              <pre class="p-4 text-xs font-mono whitespace-pre">{{ selected.content }}</pre>
+            <div v-else-if="sidePanelTab === 'yaml'" class="flex flex-col">
+              <div class="px-4 py-2 border-b border-default flex items-center justify-between text-xs">
+                <span class="text-muted font-mono">{{ selected.file }}</span>
+                <div class="flex items-center gap-2">
+                  <template v-if="!editingYaml">
+                    <UButton
+                      label="Edit"
+                      icon="i-lucide-pencil"
+                      size="xs"
+                      variant="soft"
+                      @click="startEditYaml"
+                    />
+                  </template>
+                  <template v-else>
+                    <UButton
+                      label="Cancel"
+                      variant="ghost"
+                      size="xs"
+                      :disabled="savingYaml"
+                      @click="cancelEditYaml"
+                    />
+                    <UButton
+                      label="Save"
+                      icon="i-lucide-check"
+                      color="primary"
+                      size="xs"
+                      :loading="savingYaml"
+                      @click="saveYaml"
+                    />
+                  </template>
+                </div>
+              </div>
+              <div v-if="!editingYaml" class="overflow-x-auto">
+                <pre class="p-4 text-xs font-mono whitespace-pre">{{ selected.content }}</pre>
+              </div>
+              <UTextarea
+                v-else
+                v-model="yamlDraft"
+                :rows="20"
+                class="m-2 font-mono text-xs"
+              />
             </div>
             <div v-else class="p-4">
               <div v-if="runsLoading" class="py-6 text-center text-sm text-muted">
