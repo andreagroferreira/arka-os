@@ -5,6 +5,47 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.17.0] - 2026-05-26
+
+### Added (Export agent profile to Obsidian — PR86c)
+
+Personas have been writing themselves into the Obsidian vault since
+v2.x. Agents finally get the same treatment.
+
+### Backend
+
+- `core/agents/obsidian_export.py` (NEW) — provider-agnostic module
+  with `export_agent_to_vault(agent)`. Renders the agent dict as
+  Markdown with YAML frontmatter (`type: agent`, `id`, `name`, `role`,
+  `department`, `tier`, `model`) and sections for Behavioural DNA,
+  Expertise, Mental Models, Communication, Linked Personas. Writes
+  atomically (`tmp + replace`) to `<vault>/Agents/<id>.md`. 9 unit
+  tests.
+- `POST /api/agents/{id}/export` — thin endpoint wrapping the module.
+  Returns `{exported, path, vault_path}` or `{error}` if the vault is
+  not configured.
+
+### Frontend
+
+- `agents/[id].vue` hero gains an "Export" button (between the star
+  and Edit). Loading state + toast confirms the relative vault path
+  on success.
+
+### Why
+
+- YAML files stay the source of truth, but the operator gets a
+  human-readable artifact in their vault for cross-linking with
+  notes, projects, and personas.
+- Linked personas render as `[[id]]` wikilinks so the vault graph
+  surfaces the agent ↔ persona dependency naturally.
+
+### Files changed
+
+- `core/agents/obsidian_export.py` (NEW)
+- `tests/python/test_agent_obsidian_export.py` (NEW, 9 tests)
+- `scripts/dashboard-api.py` — POST /api/agents/{id}/export
+- `dashboard/app/pages/agents/[id].vue` — Export button + handler
+
 ## [3.16.0] - 2026-05-26
 
 ### Added (Per-agent activity attribution — PR86b)
