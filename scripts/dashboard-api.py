@@ -1894,6 +1894,62 @@ def _iso_duration_s(start_iso: str, end_iso: str) -> Optional[int]:
         return None
 
 
+@app.put("/api/workflows/{workflow_id}/yaml")
+def workflow_update_yaml(workflow_id: str, body: dict):
+    """PR94d v3.50.0 — overwrite a workflow's YAML file in place.
+
+    Body: ``{"content": "<full YAML body>"}``. Validates that the
+    content parses to a dict with a non-empty ``id`` key. Refuses to
+    move the file (operator can't rename via this endpoint — that
+    would invalidate cached references).
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    content = str(body.get("content") or "")
+    if not content.strip():
+        return {"error": "content is required"}
+    target = _resolve_workflow_yaml(workflow_id)
+    if target is None:
+        return {"error": "workflow not found"}
+    try:
+        import yaml as _yaml
+        parsed = _yaml.safe_load(content)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"YAML parse failed: {exc}"}
+    if not isinstance(parsed, dict):
+        return {"error": "YAML root must be a mapping"}
+    if not parsed.get("id"):
+        return {"error": "YAML must include a non-empty 'id' field"}
+    try:
+        tmp = target.with_suffix(target.suffix + ".tmp")
+        tmp.write_text(content, encoding="utf-8")
+        tmp.replace(target)
+    except OSError as exc:
+        return {"error": f"write failed: {exc}"}
+    return {"updated": True, "id": workflow_id, "file": str(target)}
+
+
+def _resolve_workflow_yaml(workflow_id: str):
+    """Return the YAML path for a workflow id, or None when missing."""
+    try:
+        import yaml as _yaml
+    except ImportError:
+        return None
+    dept_root = ARKAOS_ROOT / "departments"
+    if not dept_root.exists():
+        return None
+    for path in dept_root.glob("*/workflows/*.yaml"):
+        try:
+            raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:  # noqa: BLE001
+            continue
+        if not isinstance(raw, dict):
+            continue
+        if str(raw.get("id") or path.stem) == workflow_id:
+            return path
+    return None
+
+
 @app.get("/api/workflows")
 def workflows_list():
     """Scan departments/*/workflows/*.yaml and return metadata + content."""

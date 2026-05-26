@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.50.0] - 2026-05-26
+
+### Added (Inline workflow YAML editor — PR94d)
+
+The `/workflows` side panel YAML tab gains **Edit** / **Save** /
+**Cancel** buttons. Operator can patch a workflow's YAML in place
+without leaving the dashboard.
+
+### Backend
+
+- `PUT /api/workflows/{workflow_id}/yaml` (NEW) — accepts
+  `{content: "<full YAML>"}`, parses it, validates root-must-be-dict
+  + non-empty `id` key, then writes atomically (`tmp + replace`).
+  Refuses unknown workflow / empty content / invalid YAML / missing
+  id. `_resolve_workflow_yaml` helper finds the path by id.
+- 7 unit tests covering invalid body, empty content, unknown id,
+  missing-id YAML, round-trip preservation, resolve helper.
+
+### Frontend
+
+- `workflows.vue` — YAML tab header gains an **Edit** button. While
+  editing, the panel swaps the `<pre>` for a UTextarea with Save /
+  Cancel. Save mutates local state immediately, then refreshes from
+  the backend.
+- Picking a different workflow row resets `editingYaml = false`.
+
+### Safety
+
+- Endpoint refuses to write if YAML doesn't parse or lacks `id`.
+- Atomic write so a partial save can't corrupt the file.
+- No path-traversal risk — the path comes from `_resolve_workflow_yaml`,
+  not from the request body.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — PUT /api/workflows/{id}/yaml + helper
+- `tests/python/test_workflow_yaml_update.py` (NEW, 7 tests)
+- `dashboard/app/pages/workflows.vue` — Edit / Save / Cancel UI
+
 ## [3.49.0] - 2026-05-26
 
 ### Added (Free-text diff visualisation — PR94c)
