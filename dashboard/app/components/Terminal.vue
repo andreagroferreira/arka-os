@@ -9,7 +9,8 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
-import type { XtermTheme } from '~/composables/useTerminalThemes'
+import { useTerminalThemes, type XtermTheme } from '~/composables/useTerminalThemes'
+import { useTerminalSession } from '~/composables/useTerminalSession'
 
 interface Props {
   session?: ReturnType<typeof useTerminalSession>
