@@ -226,6 +226,12 @@ function csvToList(value: string): string[] {
 type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid' | 'key_quotes'
 const suggestingField = ref<SuggestField | null>(null)
 
+// PR85a v3.11.0 — Clone to Agent dialog.
+const cloneOpen = ref(false)
+function onCloned(agentId: string) {
+  navigateTo(`/agents/${agentId}`)
+}
+
 // PR84c v3.9.0 — Auto-fill empty lists in one go.
 const autofilling = ref(false)
 
@@ -467,6 +473,13 @@ const vocabOptions = [
                     </p>
                   </div>
                   <div class="flex items-center gap-2">
+                    <UButton
+                      label="Clone to Agent"
+                      icon="i-lucide-copy-plus"
+                      variant="soft"
+                      size="sm"
+                      @click="cloneOpen = true"
+                    />
                     <UButton label="Edit" icon="i-lucide-pencil" size="sm" @click="startEdit" />
                     <UButton
                       icon="i-lucide-trash-2"
@@ -962,6 +975,14 @@ const vocabOptions = [
               </UCard>
             </template>
           </USlideover>
+
+          <PersonaCloneDialog
+            v-if="detail"
+            v-model="cloneOpen"
+            :persona-id="detail.id"
+            :persona-name="detail.name"
+            @cloned="onCloned"
+          />
         </div>
       </DashboardState>
     </template>

@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.11.0] - 2026-05-26
+
+### Added (Clone Persona → Agent UI — PR85a)
+
+POST /api/personas/{id}/clone has been a backend endpoint forever, but
+the dashboard had no way to drive it. PR85a adds the UI:
+
+- "Clone to Agent" button in the persona detail hero, next to Edit
+- `PersonaCloneDialog.vue` (NEW) — UModal with department + tier
+  pickers
+- On success, navigates to /agents/{new_agent_id}
+- Toast confirms with both names
+
+The agent inherits the persona's behavioural DNA, mental models,
+expertise, and frameworks. Operator can then run the PR84a Rewrite
+flow if they want to specialise it further.
+
+### Files changed
+
+- `dashboard/app/components/PersonaCloneDialog.vue` (NEW)
+- `dashboard/app/pages/personas/[id].vue` — button + dialog mount
+
 ## [3.10.0] - 2026-05-26
 
 ### Added (Dashboard home extras: top departments + recent personas — PR84d)
