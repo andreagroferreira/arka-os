@@ -226,6 +226,48 @@ function csvToList(value: string): string[] {
 type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid' | 'key_quotes'
 const suggestingField = ref<SuggestField | null>(null)
 
+// PR83c v3.5.0 — single-string suggester (tone for personas).
+const suggestingString = ref<'tone' | null>(null)
+
+async function suggestString(field: 'tone') {
+  if (!draft.value || !detail.value) return
+  const current = draft.value.communication.tone
+  suggestingString.value = field
+  try {
+    const res = await $fetch<{ value: string, provider_name: string, error?: string }>(
+      `${apiBase}/api/personas/suggest-string`,
+      {
+        method: 'POST',
+        body: {
+          field,
+          context: {
+            name: detail.value.name,
+            title: detail.value.title,
+            current,
+          },
+        },
+      },
+    )
+    if (res.error) throw new Error(res.error)
+    draft.value.communication.tone = res.value
+    markDirty()
+    toast.add({
+      title: 'Generated',
+      description: `via ${res.provider_name}`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Generate failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    suggestingString.value = null
+  }
+}
+
 async function suggest(field: SuggestField) {
   if (!draft.value || !detail.value) return
   const current
@@ -754,6 +796,18 @@ const vocabOptions = [
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Communication</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <UFormField label="Tone">
+                        <template #hint>
+                          <UButton
+                            label="Generate"
+                            icon="i-lucide-sparkles"
+                            size="xs"
+                            color="primary"
+                            variant="soft"
+                            :loading="suggestingString === 'tone'"
+                            :disabled="suggestingString !== null"
+                            @click="suggestString('tone')"
+                          />
+                        </template>
                         <UInput v-model="draft.communication.tone" class="w-full" @update:model-value="markDirty" />
                       </UFormField>
                       <UFormField label="Vocabulary level">

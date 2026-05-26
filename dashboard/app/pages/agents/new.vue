@@ -88,6 +88,56 @@ const draft = ref<AgentDraft>({
 
 const saving = ref(false)
 
+// PR83c v3.5.0 — single-string suggester.
+type StringField = 'tone' | 'preferred_format'
+const suggestingString = ref<StringField | null>(null)
+
+async function suggestString(field: StringField) {
+  if (!draft.value.name.trim() || !draft.value.role.trim()) {
+    toast.add({
+      title: 'Add a name and role first',
+      color: 'warning',
+    })
+    return
+  }
+  const current = field === 'tone' ? draft.value.comm_tone : draft.value.comm_format
+  suggestingString.value = field
+  try {
+    const res = await $fetch<{ value: string, provider_name: string, error?: string }>(
+      `${apiBase}/api/agents/suggest-string`,
+      {
+        method: 'POST',
+        body: {
+          field,
+          context: {
+            name: draft.value.name,
+            role: draft.value.role,
+            department: draft.value.department,
+            current,
+          },
+        },
+      },
+    )
+    if (res.error) throw new Error(res.error)
+    if (field === 'tone') draft.value.comm_tone = res.value
+    else draft.value.comm_format = res.value
+    toast.add({
+      title: 'Generated',
+      description: `via ${res.provider_name}`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Generate failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    suggestingString.value = null
+  }
+}
+
 // PR82b v3.1.0 — AI draft from description.
 const description = ref('')
 const drafting = ref(false)
@@ -544,12 +594,36 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Communication</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <UFormField label="Tone">
+              <template #hint>
+                <UButton
+                  label="Generate"
+                  icon="i-lucide-sparkles"
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  :loading="suggestingString === 'tone'"
+                  :disabled="suggestingString !== null"
+                  @click="suggestString('tone')"
+                />
+              </template>
               <UInput v-model="draft.comm_tone" class="w-full" placeholder="Analytical, calm" />
             </UFormField>
             <UFormField label="Vocabulary level">
               <USelect v-model="draft.comm_vocab" :items="vocabOptions" class="w-full" />
             </UFormField>
             <UFormField label="Preferred format">
+              <template #hint>
+                <UButton
+                  label="Generate"
+                  icon="i-lucide-sparkles"
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  :loading="suggestingString === 'preferred_format'"
+                  :disabled="suggestingString !== null"
+                  @click="suggestString('preferred_format')"
+                />
+              </template>
               <UInput v-model="draft.comm_format" class="w-full" placeholder="Briefs, tables, charts" />
             </UFormField>
             <UFormField label="Language">

@@ -1949,6 +1949,33 @@ def agents_draft(body: dict):
     return {"draft": res.draft, "provider_name": res.provider_name}
 
 
+# --- AI single-string suggester (PR83c v3.5.0) ---
+
+@app.post("/api/agents/suggest-string")
+def agents_suggest_string(body: dict):
+    """Suggest a single-string value (tone, preferred_format, language)."""
+    return _do_string_suggest(body, source="agent")
+
+
+@app.post("/api/personas/suggest-string")
+def personas_suggest_string(body: dict):
+    return _do_string_suggest(body, source="persona")
+
+
+def _do_string_suggest(body: dict, *, source: str) -> dict:
+    from core.agents.string_suggester import (
+        StringSuggestionError,
+        suggest_string_field,
+    )
+    field = (body.get("field") or "").strip()
+    context = body.get("context") or {}
+    try:
+        res = suggest_string_field(field, context)
+    except StringSuggestionError as exc:
+        return {"error": str(exc)}
+    return {"value": res.value, "provider_name": res.provider_name, "source": source}
+
+
 # --- AI list-field suggester (PR81 v2.99.0) ---
 
 @app.post("/api/agents/suggest")
