@@ -5,6 +5,37 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0] - 2026-05-26
+
+### Added (Rewrite from description in AgentEditDrawer — PR84a)
+
+The agent edit drawer gains a collapsible "Rewrite from description"
+card at the top. Paste a new description, click Rewrite, and the
+expertise / mental models / frameworks / communication blocks
+regenerate from the LLM. Identity (name / role / department) and
+behavioural DNA stay untouched.
+
+Reuses the existing `POST /api/agents/draft` endpoint from PR82b —
+no new backend.
+
+### Why
+
+- Operators no longer have to expand each list field one item at a
+  time when overhauling an agent's profile.
+- Pairs with PR82b: that draft path is for CREATE, this is for EDIT.
+
+### Safety
+
+- Identity, department, and behavioural DNA are NEVER mutated by
+  Rewrite. The function only writes the safe-to-edit fields.
+- Card is collapsed by default — invisible unless the operator opens it.
+- Same validation as PR82b: description must be ≥ 20 chars.
+- `markDirty()` fires so the Save button activates.
+
+### Files changed
+
+- `dashboard/app/components/AgentEditDrawer.vue` — Rewrite card + handler
+
 ## [3.6.1] - 2026-05-26
 
 ### Fixed (Persona row click → /personas/undefined — hotfix)
