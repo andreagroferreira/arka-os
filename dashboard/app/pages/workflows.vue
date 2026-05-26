@@ -13,6 +13,7 @@ interface WorkflowPhase {
   description: string
   gate_type: string
   agent_count: number
+  agent_ids?: string[]
 }
 
 interface Workflow {
@@ -268,16 +269,22 @@ const columns: TableColumn<Workflow>[] = [
                         variant="subtle"
                         size="xs"
                       />
-                      <UBadge
-                        v-if="ph.agent_count > 0"
-                        :label="`${ph.agent_count} agent${ph.agent_count === 1 ? '' : 's'}`"
-                        variant="outline"
-                        size="xs"
-                      />
                     </div>
                     <p v-if="ph.description" class="text-xs text-muted mt-1">
                       {{ ph.description }}
                     </p>
+                    <!-- PR93a v3.43.0 — clickable agent badges -->
+                    <div v-if="ph.agent_ids && ph.agent_ids.length > 0" class="flex flex-wrap gap-1 mt-2">
+                      <NuxtLink
+                        v-for="aid in ph.agent_ids"
+                        :key="aid"
+                        :to="`/agents/${aid}`"
+                        class="inline-flex items-center gap-1 rounded-md border border-default px-1.5 py-0.5 text-[10px] font-mono hover:border-primary/40 hover:text-primary transition-colors"
+                      >
+                        <UIcon name="i-lucide-user" class="size-2.5" />
+                        {{ aid }}
+                      </NuxtLink>
+                    </div>
                   </div>
                 </li>
               </ol>

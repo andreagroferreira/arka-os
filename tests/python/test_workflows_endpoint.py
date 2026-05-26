@@ -87,6 +87,24 @@ def test_summarise_phases_skips_non_dicts():
     assert out[0]["id"] == "x"
 
 
+def test_summarise_phases_captures_agent_ids():
+    """PR93a — agent_ids surface as a string list."""
+    api = _load_dashboard_api()
+    out = api._summarise_phases([
+        {
+            "id": "ph1",
+            "name": "Phase 1",
+            "agents": [
+                {"agent_id": "tomas-strategy"},
+                {"agent_id": "marta-cqo"},
+                {"no_agent_id": True},  # ignored
+            ],
+        },
+    ])
+    assert out[0]["agent_ids"] == ["tomas-strategy", "marta-cqo"]
+    assert out[0]["agent_count"] == 2
+
+
 def test_summarise_phases_handles_missing_keys():
     api = _load_dashboard_api()
     out = api._summarise_phases([{}])
