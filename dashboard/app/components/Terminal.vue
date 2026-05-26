@@ -1,9 +1,8 @@
 <script setup lang="ts">
 // PR99b v3.68.0 — xterm.js terminal mount.
-//
-// Glues @xterm/xterm to a single PTY session from useTerminalSession.
-// One terminal per component instance; the multi-tab page in PR99c
-// will spawn N of these.
+// PR99c v3.69.0 — accepts an external session via prop so the tab
+// manager in /terminal can mount N instances, each bound to its own
+// PTY session.
 
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
@@ -11,8 +10,14 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
 
+interface Props {
+  session?: ReturnType<typeof useTerminalSession>
+  onInputLine?: (line: string) => void
+}
+const props = defineProps<Props>()
+
 const container = ref<HTMLDivElement | null>(null)
-const session = useTerminalSession()
+const session = props.session ?? useTerminalSession()
 const term = shallowRef<XTerm | null>(null)
 const fit = shallowRef<FitAddon | null>(null)
 const search = shallowRef<SearchAddon | null>(null)
@@ -77,7 +82,22 @@ onMounted(async () => {
     t.write(text)
   })
 
+  // PR99c v3.69.0 — line-buffer for command history without server-
+  // side audit. Captures only printable chars up to Enter; ignores
+  // arrow keys, ctrl combos, escape sequences.
+  let lineBuf = ''
   t.onData((data) => {
+    for (const ch of data) {
+      if (ch === '\r' || ch === '\n') {
+        const cmd = lineBuf.trim()
+        if (cmd) props.onInputLine?.(cmd)
+        lineBuf = ''
+      } else if (ch === '\x7f' || ch === '\b') {
+        lineBuf = lineBuf.slice(0, -1)
+      } else if (ch >= ' ' && ch < '\x7f') {
+        lineBuf += ch
+      }
+    }
     session.sendInput(data)
   })
 
@@ -103,7 +123,11 @@ onMounted(async () => {
 onBeforeUnmount(async () => {
   unsubscribeOutput?.()
   resizeObserver?.disconnect()
-  await session.close()
+  // PR99c: only close the session if we created it. When the parent
+  // owns the session (props.session), parent is responsible for close.
+  if (!props.session) {
+    await session.close()
+  }
   term.value?.dispose()
 })
 

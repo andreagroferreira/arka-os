@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.69.0] - 2026-05-26
+
+### Added (Multi-session tabs + command history — PR99c)
+
+Third slice of PR99. `/terminal` now manages up to 8 concurrent PTY
+sessions in a tab strip, each one its own real shell. Tab titles
+persist across reloads (PTYs themselves don't — they're per backend
+process). Command history (last 500) stays in browser localStorage
+and clicking a row re-sends the command to the active session.
+
+### New / changed
+
+- `dashboard/app/composables/useTerminalTabs.ts` (NEW) — array of
+  `useTerminalSession()` handles + active index + open/close/rename
+  + cap enforcement.
+- `dashboard/app/composables/useTerminalSession.ts` — accepts
+  optional `apiBaseOverride` so the tab manager can construct
+  sessions from event handlers.
+- `dashboard/app/components/Terminal.vue` — accepts external
+  `session` prop (single-session mounts still work without it) +
+  `onInputLine` callback for line-buffered command capture. Only
+  closes the session if it owns it.
+- `dashboard/app/pages/terminal.vue` — full tab strip rewrite,
+  rename-on-double-click, activity indicator, history side panel,
+  ⌘T / ⌘W / ⌘1–8 keyboard shortcuts.
+
+### Limits
+
+- 8 concurrent tabs (frontend warns, backend rejects 429).
+- 500 history entries (cap then truncate on quota).
+- Sessions ephemeral across reloads (backend reaper kills after
+  30 min idle).
+
+### Tests
+
+Backend suite still 41/41 (24 PR99a tests + 17 legacy allowlist —
+the latter delete in PR99d). Frontend has no test runner yet;
+composables are pure-logic with localStorage IO.
+
 ## [3.68.0] - 2026-05-26
 
 ### Added (xterm.js terminal frontend — PR99b)
