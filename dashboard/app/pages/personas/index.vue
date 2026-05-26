@@ -289,7 +289,7 @@ async function bulkDelete() {
             th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
             td: 'border-b border-default',
           }"
-          @select="(row: Persona) => goToPersona(row.id)"
+          @select="(row: { original: Persona }) => goToPersona(row.original.id)"
         >
           <template #select-header>
             <UCheckbox
