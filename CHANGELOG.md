@@ -5,6 +5,50 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.96.0] - 2026-05-26
+
+### Changed (Personas → table list + dedicated detail page — PR78)
+
+Operator correction on PR77: "quando disse as personas iguais aos
+agents era ter a table no index e ter uma pagina semelhante, não o
+que fizeste". PR78 fixes the mistake — personas now match the agents
+UX exactly.
+
+#### Replaced
+- **`personas.vue` (card grid + drawer)** → moved into
+  `personas/index.vue` (TABLE) following the `agents/index.vue`
+  pattern.
+- **`PersonaDetailDrawer.vue`** — deleted. The drawer-everywhere
+  pattern is gone; navigation now uses dedicated routes.
+
+#### New
+- **`personas/index.vue`** — sortable / filterable table:
+  - Columns: Name · Title · Source · MBTI · DISC · Expertise · Agents · ▶
+  - Filters: search (name/title/source/expertise) + MBTI group
+    (Analysts/Diplomats/Sentinels/Explorers) + source store
+    (Obsidian / JSON)
+  - Header badge: total count + "Obsidian" pill when the vault is
+    wired
+  - "New Persona" button → `/personas/new` (route for AI builder
+    wizard, lands in PR79)
+- **`personas/[id].vue`** — dedicated detail page mirroring the
+  agent detail layout:
+  - Hero with MBTI-grouping gradient + initials avatar + name +
+    tagline + source/MBTI/DISC badges + obsidian path
+  - Stats row (4 cards): linked agents · mental models · expertise
+    domains · frameworks
+  - 4 tabs (default `dna`): **DNA** (MBTI/Enneagram/DISC/Big-Five
+    bars) · **Communication** (tone, vocab) · **Knowledge** (mental
+    models, expertise, frameworks, key quotes) · **Linked Agents**
+    (clickable cards → /agents/{id})
+  - Edit (✏️) and Delete (🗑️) actions in the hero. Edit opens a
+    USlideover with full form (same fields as the old drawer).
+
+### Test coverage
+- Vue typecheck clean across both new pages
+- Full Python suite: 3824/3824 passing (no backend changes)
+- Preflight: `all_passed: True`
+
 ## [2.95.0] - 2026-05-26
 
 ### Added (Personas page modernization — PR77)
