@@ -101,10 +101,17 @@ watch(searchResults, () => {
   searchSelectedIdx.value = 0
 })
 
+const searchInputEl = ref<HTMLInputElement | null>(null)
+
 function openSearch() {
   searchOpen.value = true
   searchQuery.value = ''
   searchSelectedIdx.value = 0
+  // autofocus on the bare input only fires on initial mount; the modal
+  // is mounted persistently, so we focus explicitly each time it opens.
+  nextTick(() => {
+    requestAnimationFrame(() => searchInputEl.value?.focus())
+  })
 }
 
 function pickFromSearch(cmd: string) {
@@ -392,22 +399,18 @@ const showHistory = ref(false)
             No matches for
             <span class="font-mono text-default">{{ sidebarFilter }}</span>.
           </div>
-          <ul v-else class="divide-y divide-default">
+          <ul v-else class="py-1">
             <li
               v-for="entry in visibleHistory"
               :key="entry.ts"
-              class="group px-3 py-1.5 hover:bg-elevated/40 cursor-pointer flex items-center gap-2"
+              class="group mx-1 px-2.5 py-1 rounded-md cursor-pointer flex items-center gap-2 hover:bg-elevated/40 transition-colors"
               :title="`${entry.cmd} — ${relativeTime(entry.ts)}`"
               @click="sendToActive(entry.cmd)"
             >
-              <UIcon
-                name="i-lucide-chevron-right"
-                class="size-3 shrink-0 text-muted group-hover:text-primary"
-              />
               <span class="flex-1 min-w-0 font-mono text-xs truncate">
                 {{ entry.cmd }}
               </span>
-              <span class="text-[10px] text-muted shrink-0 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">
+              <span class="text-[10px] text-muted/70 shrink-0 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">
                 {{ relativeTime(entry.ts) }}
               </span>
               <UIcon
@@ -431,112 +434,125 @@ const showHistory = ref(false)
 
     <UModal
       v-model:open="searchOpen"
-      :ui="{ content: 'max-w-2xl' }"
+      :ui="{ content: 'max-w-2xl ring-0 shadow-2xl' }"
     >
       <template #content>
-        <UCard :ui="{ body: 'p-0', header: 'px-4 py-3', footer: 'px-4 py-2.5' }">
-          <template #header>
-            <div class="flex items-center gap-3">
-              <UIcon name="i-lucide-history" class="size-5 text-muted shrink-0" />
-              <UInput
-                v-model="searchQuery"
-                placeholder="Filter command history…"
-                size="lg"
-                autofocus
-                :ui="{ root: 'flex-1', base: 'border-0 shadow-none ring-0 focus:ring-0 px-0' }"
-                @keydown="searchKeydown"
-              />
-              <span class="text-xs text-muted shrink-0 tabular-nums">
-                {{ searchResults.length }} / {{ history.length }}
-              </span>
-              <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 text-xs font-mono text-muted shrink-0">
-                esc
-              </kbd>
-            </div>
-          </template>
+        <div class="rounded-xl bg-default overflow-hidden">
+          <div class="flex items-center gap-3 px-4 py-3 border-b border-default/60">
+            <UIcon name="i-lucide-history" class="size-4 text-muted shrink-0" />
+            <input
+              ref="searchInputEl"
+              v-model="searchQuery"
+              type="text"
+              autofocus
+              placeholder="Filter command history…"
+              class="palette-input flex-1 bg-transparent text-default placeholder:text-muted/70 focus:outline-none border-0 ring-0 text-sm"
+              @keydown="searchKeydown"
+            >
+            <span class="text-[11px] text-muted/70 shrink-0 tabular-nums">
+              {{ searchResults.length }} of {{ history.length }}
+            </span>
+          </div>
 
           <div class="max-h-[60vh] overflow-y-auto">
             <div
               v-if="history.length === 0"
-              class="p-10 text-center text-sm text-muted"
+              class="px-6 py-12 text-center text-sm text-muted"
             >
-              <UIcon name="i-lucide-terminal" class="size-8 mx-auto mb-3 opacity-50" />
+              <UIcon name="i-lucide-terminal" class="size-7 mx-auto mb-3 opacity-30" />
               <p>No commands yet.</p>
-              <p class="text-xs mt-1">
+              <p class="text-xs mt-1 opacity-70">
                 Run something in the terminal — it'll show up here.
               </p>
             </div>
             <div
               v-else-if="searchResults.length === 0"
-              class="p-10 text-center text-sm text-muted"
+              class="px-6 py-12 text-center text-sm text-muted"
             >
               No match for
               <span class="font-mono text-default">{{ searchQuery }}</span>.
             </div>
-            <ul v-else class="divide-y divide-default">
+            <ul v-else class="py-1">
               <li
                 v-for="(entry, i) in searchResults"
                 :key="entry.ts"
-                class="px-4 py-2 cursor-pointer transition-colors flex items-center gap-3"
+                class="mx-1 px-3 py-1.5 rounded-md cursor-pointer flex items-center gap-3 transition-colors"
                 :class="i === searchSelectedIdx
-                  ? 'bg-primary/10 border-l-2 border-primary pl-[14px]'
-                  : 'hover:bg-elevated/40 border-l-2 border-transparent'"
+                  ? 'bg-elevated/70'
+                  : 'hover:bg-elevated/30'"
                 @click="pickFromSearch(entry.cmd)"
                 @mouseenter="searchSelectedIdx = i"
               >
-                <UIcon
-                  name="i-lucide-chevron-right"
-                  class="size-3.5 shrink-0"
-                  :class="i === searchSelectedIdx ? 'text-primary' : 'text-muted'"
-                />
                 <span class="flex-1 min-w-0 font-mono text-sm truncate">
                   {{ entry.cmd }}
                 </span>
-                <span class="text-xs text-muted shrink-0 tabular-nums">
+                <span class="text-[11px] text-muted/70 shrink-0 tabular-nums">
                   {{ relativeTime(entry.ts) }}
                 </span>
-                <kbd
-                  v-if="i === searchSelectedIdx"
-                  class="px-1.5 py-0.5 rounded bg-primary/20 text-[10px] font-mono text-primary shrink-0"
-                >
-                  ↵ send
-                </kbd>
+                <UIcon
+                  name="i-lucide-corner-down-left"
+                  class="size-3.5 shrink-0 transition-opacity"
+                  :class="i === searchSelectedIdx ? 'text-default opacity-100' : 'text-muted opacity-0'"
+                />
               </li>
             </ul>
           </div>
 
-          <template #footer>
-            <div class="text-xs text-muted flex items-center gap-4">
-              <span class="flex items-center gap-1">
-                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">↑</kbd>
-                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">↓</kbd>
-                navigate
-              </span>
-              <span class="flex items-center gap-1">
-                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">↵</kbd>
-                send to active session
-              </span>
-              <span class="flex items-center gap-1">
-                <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 font-mono">esc</kbd>
-                close
-              </span>
-              <UButton
-                v-if="history.length > 0"
-                size="xs"
-                variant="ghost"
-                color="error"
-                icon="i-lucide-trash-2"
-                class="ml-auto"
-                @click="clearHistory"
-              >
-                Clear all
-              </UButton>
-            </div>
-          </template>
-        </UCard>
+          <div class="px-4 py-2.5 border-t border-default/60 flex items-center gap-4 text-[11px] text-muted/80">
+            <span class="flex items-center gap-1.5">
+              <kbd class="palette-kbd">↑</kbd><kbd class="palette-kbd">↓</kbd>
+              navigate
+            </span>
+            <span class="flex items-center gap-1.5">
+              <kbd class="palette-kbd">↵</kbd>
+              send
+            </span>
+            <span class="flex items-center gap-1.5">
+              <kbd class="palette-kbd">esc</kbd>
+              close
+            </span>
+            <button
+              v-if="history.length > 0"
+              class="ml-auto text-muted/80 hover:text-red-400 transition-colors flex items-center gap-1"
+              @click="clearHistory"
+            >
+              <UIcon name="i-lucide-trash-2" class="size-3" />
+              Clear
+            </button>
+          </div>
+        </div>
       </template>
     </UModal>
       </div>
     </template>
   </UDashboardPanel>
 </template>
+
+<style scoped>
+.palette-input {
+  /* Defensive: kill any inherited ring/border from Tailwind base */
+  box-shadow: none !important;
+  outline: none !important;
+}
+.palette-input:focus,
+.palette-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+.palette-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  padding: 0 0.3rem;
+  height: 1.1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 1;
+  border-radius: 4px;
+  background-color: rgb(var(--ui-bg-elevated) / 0.5);
+  color: rgb(var(--ui-text-muted));
+  border: 1px solid rgb(var(--ui-border) / 0.4);
+}
+</style>
