@@ -5,6 +5,18 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.64.0] - 2026-05-26
+
+### Added (Sidebar favourites widget — PR98b)
+
+Sidebar gains a Favorites mini-list (up to 4 agents + 4 personas)
+above the stats widget. Hides when no favourites.
+
+### Files changed
+
+- `dashboard/app/components/SidebarFavoritesWidget.vue` (NEW)
+- `dashboard/app/layouts/default.vue` — mount widget
+
 ## [3.63.0] - 2026-05-26
 
 ### Added (Inline edit persona name + title — PR98a)
