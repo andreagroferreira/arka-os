@@ -5,6 +5,47 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.14.0] - 2026-05-26
+
+### Added (Global search palette — PR85d)
+
+Press `/` from anywhere in the dashboard to open a command palette
+that searches across agents, personas, departments, and commands in
+one debounced fetch. Enter (or click) navigates to the target.
+
+### Backend
+
+- `GET /api/search?q=<query>&limit=<N>` (NEW) — case-insensitive
+  substring match across:
+  - Agents (name + role + department + id)
+  - Personas (name + title + source + mbti + id)
+  - Departments (derived from agents)
+  - Commands (command + description + department)
+- Returns a flat list of `{kind, id, label, sublabel, to}` objects
+  ready for the UI to render and route.
+- 6 unit tests cover empty query, whitespace, shape invariants,
+  limit truncation, case insensitivity, and dept matches.
+
+### Frontend
+
+- `dashboard/app/components/GlobalSearch.vue` (NEW) — UModal +
+  UInput + results list with kind-coloured icons and badges.
+  Debounced (180 ms) fetch with `AbortController` cancellation so a
+  fast typer doesn't queue stale requests.
+- `useDashboard()` composable gains `searchOpen` shared state and
+  binds `/` to toggle it.
+- `KeyboardShortcutsHelp` lists `/` under Actions.
+- Layout mounts `<GlobalSearch />` next to the shortcuts help.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/search
+- `tests/python/test_global_search.py` (NEW, 6 tests)
+- `dashboard/app/components/GlobalSearch.vue` (NEW)
+- `dashboard/app/composables/useDashboard.ts` — `/` binding + state
+- `dashboard/app/components/KeyboardShortcutsHelp.vue` — `/` row
+- `dashboard/app/layouts/default.vue` — mount GlobalSearch
+
 ## [3.13.0] - 2026-05-26
 
 ### Added (Keyboard shortcuts + help overlay — PR85c)
