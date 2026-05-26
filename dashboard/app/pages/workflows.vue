@@ -19,8 +19,37 @@ interface Workflow {
   content: string
 }
 
-const { fetchApi } = useApi()
+const { fetchApi, apiBase } = useApi()
 const { data, status, error, refresh } = await fetchApi<{ workflows: Workflow[] }>('/api/workflows')
+
+// PR89b v3.28.0 — recent runs for the selected workflow.
+interface WorkflowRun {
+  session_id: string
+  started_at: string
+  ended_at: string
+  duration_s: number | null
+  calls: number
+  cost_usd: number | null
+  tokens_in: number
+  tokens_out: number
+}
+const runs = ref<WorkflowRun[]>([])
+const runsLoading = ref(false)
+const sidePanelTab = ref<'yaml' | 'runs'>('yaml')
+
+async function loadRuns(id: string) {
+  runsLoading.value = true
+  try {
+    const res = await $fetch<{ runs: WorkflowRun[] }>(
+      `${apiBase}/api/workflows/${id}/runs?limit=10`,
+    )
+    runs.value = res.runs ?? []
+  } catch {
+    runs.value = []
+  } finally {
+    runsLoading.value = false
+  }
+}
 
 const workflows = computed(() => data.value?.workflows ?? [])
 const search = ref('')
@@ -123,7 +152,7 @@ const columns: TableColumn<Workflow>[] = [
               th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
               td: 'border-b border-default',
             }"
-            @select="(row: { original: Workflow }) => selected = row.original"
+            @select="(row: { original: Workflow }) => { selected = row.original; sidePanelTab = 'yaml'; runs = []; loadRuns(row.original.id) }"
           >
             <template #name-cell="{ row }">
               <div class="min-w-0">
@@ -160,7 +189,7 @@ const columns: TableColumn<Workflow>[] = [
             <div class="px-4 py-3 border-b border-default bg-elevated/30">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-xs text-muted uppercase tracking-wide">YAML preview</p>
+                  <p class="text-xs text-muted uppercase tracking-wide">Workflow</p>
                   <p class="font-semibold truncate">{{ selected.name }}</p>
                   <p class="text-xs text-muted font-mono truncate">{{ selected.file }}</p>
                 </div>
@@ -175,8 +204,67 @@ const columns: TableColumn<Workflow>[] = [
               <p v-if="selected.description" class="text-xs text-muted mt-2">
                 {{ selected.description }}
               </p>
+              <div class="flex items-center gap-1 mt-3 text-xs">
+                <button
+                  type="button"
+                  class="px-2 py-1 rounded-md transition-colors"
+                  :class="sidePanelTab === 'yaml' ? 'bg-elevated/60 text-default font-semibold' : 'text-muted hover:text-default'"
+                  @click="sidePanelTab = 'yaml'"
+                >
+                  YAML
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-1 rounded-md transition-colors"
+                  :class="sidePanelTab === 'runs' ? 'bg-elevated/60 text-default font-semibold' : 'text-muted hover:text-default'"
+                  @click="sidePanelTab = 'runs'"
+                >
+                  Runs
+                </button>
+              </div>
             </div>
-            <pre class="p-4 text-xs font-mono overflow-x-auto whitespace-pre">{{ selected.content }}</pre>
+            <div v-if="sidePanelTab === 'yaml'" class="overflow-x-auto">
+              <pre class="p-4 text-xs font-mono whitespace-pre">{{ selected.content }}</pre>
+            </div>
+            <div v-else class="p-4">
+              <div v-if="runsLoading" class="py-6 text-center text-sm text-muted">
+                <UIcon name="i-lucide-loader-2" class="size-4 animate-spin inline" /> Loading…
+              </div>
+              <div v-else-if="!runs.length" class="py-6 text-center text-sm text-muted">
+                <UIcon name="i-lucide-history" class="size-6 mx-auto mb-2" />
+                No recorded runs yet. Set
+                <code class="font-mono text-xs">ARKA_CALL_CATEGORY=workflow:{{ selected.id }}</code>
+                in the orchestrator to populate this.
+              </div>
+              <ul v-else class="space-y-2">
+                <li
+                  v-for="r in runs"
+                  :key="r.session_id"
+                  class="rounded-lg border border-default p-3"
+                >
+                  <div class="flex items-center justify-between gap-3 text-xs">
+                    <span class="font-mono text-muted truncate">{{ r.session_id }}</span>
+                    <span class="text-muted shrink-0">{{ r.started_at }}</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs mt-2">
+                    <span>
+                      <span class="text-muted">Calls</span>
+                      <span class="font-mono font-semibold ml-1">{{ r.calls }}</span>
+                    </span>
+                    <span>
+                      <span class="text-muted">Cost</span>
+                      <span class="font-mono font-semibold ml-1">
+                        {{ r.cost_usd === null ? '—' : `$${r.cost_usd.toFixed(3)}` }}
+                      </span>
+                    </span>
+                    <span v-if="r.duration_s !== null">
+                      <span class="text-muted">Duration</span>
+                      <span class="font-mono font-semibold ml-1">{{ r.duration_s }}s</span>
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
           <div
             v-else
