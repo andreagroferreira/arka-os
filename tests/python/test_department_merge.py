@@ -54,33 +54,35 @@ def test_dryrun_self_merge_returns_error_without_side_effects():
     assert "moved" not in res
 
 
-def test_full_merge_round_trip(tmp_path):
-    """Create a one-off agent in src, merge into dst, verify and clean up."""
+def test_endpoint_signature_returns_status_keys(monkeypatch):
+    """Smoke-test the merge endpoint contract WITHOUT moving real agents.
+
+    Patches agent_move to a no-op stub so we exercise the loop + summary
+    aggregation against a real source directory without ever touching
+    YAML on disk. The earlier version of this test ran a real merge
+    against the dev department — that turned out to be destructive
+    when CI / dev environments shared the same repo. Never again.
+    """
     api = _load_dashboard_api()
-    # Create a throwaway agent in dev department
-    created = api._do_agent_create({
-        "name": "Merge Probe",
-        "role": "Test",
-        "department": "dev",
-        "tier": 2,
-        "id": "dept-merge-probe-agent",
-    })
-    if not created.get("created"):
+
+    calls: list[tuple[str, str]] = []
+
+    def fake_move(agent_id: str, body: dict):
+        calls.append((agent_id, body.get("department", "")))
+        # Pretend Tier 0 to exercise the skipped branch.
+        if "tomas" in agent_id or "marta" in agent_id or "marco" in agent_id:
+            return {"error": "Cannot move Tier 0 (C-Suite) agents from the dashboard"}
+        return {"moved": True, "id": agent_id, "yaml_path": "/tmp/fake.yaml"}
+
+    monkeypatch.setattr(api, "agent_move", fake_move)
+    res = api.department_merge("dev", "ops")
+    if "error" in res:
+        # No `dev` agents in the checkout — env-dependent, skip.
         return
-    src_path = Path(created["yaml_path"])
-    try:
-        res = api.department_merge("dev", "ops")
-        assert "moved" in res
-        # Our probe must have been moved
-        ids_moved = [r["id"] for r in res["results"] if r["status"] == "moved"]
-        assert "dept-merge-probe-agent" in ids_moved
-        # File should be at the new location
-        dst_path = Path(str(src_path).replace("/dev/", "/ops/"))
-        assert dst_path.exists()
-        dst_path.unlink()
-    finally:
-        if src_path.exists():
-            src_path.unlink()
-        candidate = Path(str(src_path).replace("/dev/", "/ops/"))
-        if candidate.exists():
-            candidate.unlink()
+    assert "moved" in res
+    assert "skipped" in res
+    assert "failed" in res
+    assert isinstance(res["results"], list)
+    # Stub was called for every source agent, never against the actual fs
+    assert len(calls) == len(res["results"])
+    assert all(target == "ops" for _, target in calls)

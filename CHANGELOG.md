@@ -5,6 +5,20 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.53.1] - 2026-05-26
+
+### Fixed (PR95c round-trip test was destructive — hotfix)
+
+The merge test ran a real `dev → ops` move and shifted every real
+dev agent into ops. Reverted immediately. Test rewritten with
+`monkeypatch` to stub `agent_move`.
+
+### Lesson
+
+Cross-cutting "do-it-all" endpoint tests (merge, migrate, bulk-delete)
+must stub the destructive primitives. Never assume "the test only
+touches fixtures".
+
 ## [3.53.0] - 2026-05-26
 
 ### Added (Department merge — PR95c)
