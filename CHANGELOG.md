@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.7] - 2026-05-27
+
+### Fixed (HOTFIX — /personas was showing the old single-file page)
+
+The legacy `dashboard/app/pages/personas.vue` (last updated PR77 v2.95.0
+— pre-modular-rewrite) was still tracked in git, shadowing the newer
+`dashboard/app/pages/personas/index.vue`. Nuxt's file-based router
+resolved `/personas` to the OLD file, so every persona feature shipped
+in PR82+ (modular pages: index, [id], compare, compare-with-agent,
+archetypes, new) was invisible.
+
+This was a stash-then-forget-to-commit accident from the v3.66.1
+hotfix work — I stashed the working-tree deletion to keep the TDZ PR
+clean, popped it later, but never committed the deletion. Each
+subsequent pull restored the shadowing file.
+
+Single-file deletion. Now `/personas` resolves to
+`personas/index.vue` with the full PR82–PR98 feature set (drawer,
+inline edit, archetypes, compare, etc.).
+
+### Verified
+
+`for d in pages/*/; do …` — no other route shadows in the repo.
+
+### Files changed
+
+- `dashboard/app/pages/personas.vue` (DELETED — 719 lines)
+
 ## [3.70.6] - 2026-05-27
 
 ### Fixed (Terminal palette + sidebar — kill the forced-looking borders)
