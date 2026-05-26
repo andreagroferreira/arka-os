@@ -25,6 +25,7 @@ const emit = defineEmits<{
 
 const { apiBase } = useApi()
 const toast = useToast()
+const confirmDialog = useConfirmDialog()
 
 const detail = ref<DetailResponse | null>(null)
 const editing = ref(false)
@@ -117,12 +118,14 @@ async function saveEdit() {
 
 async function deletePersona() {
   if (!props.personaId) return
-  if (typeof window === 'undefined') return
-  const ok = window.confirm(
-    `Delete persona "${detail.value?.name}"?\n\n`
-    + 'This removes it from the JSON store. The Obsidian file (if any) '
-    + 'is left in place — delete manually from Obsidian if you want it gone.',
-  )
+  const ok = await confirmDialog({
+    title: `Delete persona "${detail.value?.name ?? 'Unknown'}"?`,
+    description:
+      'Removes it from the JSON store. The Obsidian file (if any) is '
+      + 'left in place — delete manually from Obsidian if you want it gone.',
+    confirmLabel: 'Delete persona',
+    variant: 'danger',
+  })
   if (!ok) return
   deleting.value = true
   try {
@@ -147,12 +150,16 @@ async function deletePersona() {
   }
 }
 
-function closeDrawer() {
+async function closeDrawer() {
   if (editing.value && !saving.value) {
-    if (typeof window !== 'undefined'
-        && !window.confirm('Discard unsaved edits?')) {
-      return
-    }
+    const ok = await confirmDialog({
+      title: 'Discard unsaved edits?',
+      description: 'Any changes you made will be lost.',
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep editing',
+      variant: 'danger',
+    })
+    if (!ok) return
   }
   cancelEdit()
   emit('update:modelValue', false)
