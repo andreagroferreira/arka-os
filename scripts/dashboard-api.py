@@ -1683,6 +1683,49 @@ def metrics():
     return {"entries": entries[-50:], "avg_ms": round(avg_ms, 1), "total_calls": len(entries)}
 
 
+# --- AI list-field suggester (PR81 v2.99.0) ---
+
+@app.post("/api/agents/suggest")
+def agents_suggest(body: dict):
+    """Suggest list items for the agent edit drawer via LLM.
+
+    Body: {
+        "field": "mental_models" | "frameworks" | "expertise_domains",
+        "context": {"name", "role", "department", "current": [...]},
+        "count": <optional, default 5, max 12>
+    }
+    Returns: {"suggestions": [...], "provider_name": "...", "source": "agent"}
+    """
+    return _do_field_suggest(body, source="agent")
+
+
+@app.post("/api/personas/suggest")
+def personas_suggest(body: dict):
+    """Suggest list items for the persona edit slideover via LLM.
+
+    Same shape as /api/agents/suggest. `context.title` may be passed
+    instead of `context.role` for personas.
+    """
+    return _do_field_suggest(body, source="persona")
+
+
+def _do_field_suggest(body: dict, *, source: str) -> dict:
+    from core.agents.field_suggester import SuggestionError, suggest_field
+
+    field = (body.get("field") or "").strip()
+    context = body.get("context") or {}
+    count = body.get("count") or 5
+    try:
+        res = suggest_field(field, context, count=int(count))
+    except SuggestionError as exc:
+        return {"error": str(exc)}
+    return {
+        "suggestions": res.suggestions,
+        "provider_name": res.provider_name,
+        "source": source,
+    }
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()

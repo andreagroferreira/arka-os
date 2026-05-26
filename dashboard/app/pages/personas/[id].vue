@@ -221,6 +221,62 @@ function csvToList(value: string): string[] {
   return value.split(',').map((s) => s.trim()).filter(Boolean)
 }
 
+// PR81 v2.99.0 — AI list-field suggester for personas.
+type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains'
+const suggestingField = ref<SuggestField | null>(null)
+
+async function suggest(field: SuggestField) {
+  if (!draft.value || !detail.value) return
+  const current = (draft.value as any)[field] as string[]
+  suggestingField.value = field
+  try {
+    const res = await $fetch<{
+      suggestions: string[]
+      provider_name: string
+      error?: string
+    }>(`${apiBase}/api/personas/suggest`, {
+      method: 'POST',
+      body: {
+        field,
+        count: 5,
+        context: {
+          name: detail.value.name,
+          title: detail.value.title,
+          current,
+        },
+      },
+    })
+    if (res.error) throw new Error(res.error)
+    const additions = (res.suggestions ?? []).filter(
+      (s) => !current.some((c) => c.toLowerCase() === s.toLowerCase()),
+    )
+    if (additions.length === 0) {
+      toast.add({
+        title: 'No new suggestions',
+        description: 'The model returned only items you already have.',
+        color: 'info',
+      })
+      return
+    }
+    ;(draft.value as any)[field] = [...current, ...additions]
+    markDirty()
+    toast.add({
+      title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
+      description: `via ${res.provider_name}`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Suggestion failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    suggestingField.value = null
+  }
+}
+
 const mbtiOptions = [
   'INTJ', 'INTP', 'ENTJ', 'ENTP',
   'INFJ', 'INFP', 'ENFJ', 'ENFP',
@@ -627,6 +683,18 @@ const vocabOptions = [
                   <section class="space-y-3">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Knowledge</h3>
                     <UFormField label="Mental models" help="comma-separated">
+                      <template #hint>
+                        <UButton
+                          label="Suggest with AI"
+                          icon="i-lucide-sparkles"
+                          size="xs"
+                          color="primary"
+                          variant="soft"
+                          :loading="suggestingField === 'mental_models'"
+                          :disabled="suggestingField !== null"
+                          @click="suggest('mental_models')"
+                        />
+                      </template>
                       <UInput
                         :model-value="listToCsv(draft.mental_models)"
                         @update:model-value="(v: string) => { if (draft) { draft.mental_models = csvToList(v); markDirty() } }"
@@ -634,6 +702,18 @@ const vocabOptions = [
                       />
                     </UFormField>
                     <UFormField label="Expertise domains" help="comma-separated">
+                      <template #hint>
+                        <UButton
+                          label="Suggest with AI"
+                          icon="i-lucide-sparkles"
+                          size="xs"
+                          color="primary"
+                          variant="soft"
+                          :loading="suggestingField === 'expertise_domains'"
+                          :disabled="suggestingField !== null"
+                          @click="suggest('expertise_domains')"
+                        />
+                      </template>
                       <UInput
                         :model-value="listToCsv(draft.expertise_domains)"
                         @update:model-value="(v: string) => { if (draft) { draft.expertise_domains = csvToList(v); markDirty() } }"
@@ -641,6 +721,18 @@ const vocabOptions = [
                       />
                     </UFormField>
                     <UFormField label="Frameworks" help="comma-separated">
+                      <template #hint>
+                        <UButton
+                          label="Suggest with AI"
+                          icon="i-lucide-sparkles"
+                          size="xs"
+                          color="primary"
+                          variant="soft"
+                          :loading="suggestingField === 'frameworks'"
+                          :disabled="suggestingField !== null"
+                          @click="suggest('frameworks')"
+                        />
+                      </template>
                       <UInput
                         :model-value="listToCsv(draft.frameworks)"
                         @update:model-value="(v: string) => { if (draft) { draft.frameworks = csvToList(v); markDirty() } }"

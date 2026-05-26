@@ -110,6 +110,76 @@ function csvToList(value: string): string[] {
   return value.split(',').map((s) => s.trim()).filter(Boolean)
 }
 
+// PR81 v2.99.0 — AI list-field suggester.
+type SuggestField = 'mental_models_primary' | 'frameworks' | 'expertise_domains'
+const suggestingField = ref<SuggestField | null>(null)
+
+async function suggest(field: SuggestField) {
+  if (!draft.value || !props.agent) return
+  const backendField = field === 'mental_models_primary' ? 'mental_models' : field
+  const current
+    = field === 'mental_models_primary'
+      ? draft.value.mental_models.primary
+      : field === 'frameworks'
+        ? draft.value.frameworks
+        : draft.value.expertise_domains
+  suggestingField.value = field
+  try {
+    const res = await $fetch<{
+      suggestions: string[]
+      provider_name: string
+      error?: string
+    }>(`${apiBase}/api/agents/suggest`, {
+      method: 'POST',
+      body: {
+        field: backendField,
+        count: 5,
+        context: {
+          name: props.agent.name,
+          role: props.agent.role,
+          department: props.agent.department,
+          current,
+        },
+      },
+    })
+    if (res.error) throw new Error(res.error)
+    const additions = (res.suggestions ?? []).filter(
+      (s) => !current.some((c) => c.toLowerCase() === s.toLowerCase()),
+    )
+    if (additions.length === 0) {
+      toast.add({
+        title: 'No new suggestions',
+        description: 'The model returned only items you already have.',
+        color: 'info',
+      })
+      return
+    }
+    const merged = [...current, ...additions]
+    if (field === 'mental_models_primary') {
+      draft.value.mental_models.primary = merged
+    } else if (field === 'frameworks') {
+      draft.value.frameworks = merged
+    } else {
+      draft.value.expertise_domains = merged
+    }
+    markDirty()
+    toast.add({
+      title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
+      description: `via ${res.provider_name}`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+  } catch (err) {
+    toast.add({
+      title: 'Suggestion failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    suggestingField.value = null
+  }
+}
+
 async function save() {
   if (!draft.value || !props.agent?.id) return
   saving.value = true
@@ -254,7 +324,19 @@ const vocabOptions = [
           </section>
 
           <section class="space-y-3">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Mental models</h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Mental models</h3>
+              <UButton
+                label="Suggest with AI"
+                icon="i-lucide-sparkles"
+                size="xs"
+                color="primary"
+                variant="soft"
+                :loading="suggestingField === 'mental_models_primary'"
+                :disabled="suggestingField !== null"
+                @click="suggest('mental_models_primary')"
+              />
+            </div>
             <UFormField label="Primary" help="comma-separated">
               <UInput
                 :model-value="listToCsv(draft.mental_models.primary)"
@@ -274,6 +356,18 @@ const vocabOptions = [
           <section class="space-y-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Expertise</h3>
             <UFormField label="Domains" help="comma-separated">
+              <template #hint>
+                <UButton
+                  label="Suggest with AI"
+                  icon="i-lucide-sparkles"
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  :loading="suggestingField === 'expertise_domains'"
+                  :disabled="suggestingField !== null"
+                  @click="suggest('expertise_domains')"
+                />
+              </template>
               <UInput
                 :model-value="listToCsv(draft.expertise_domains)"
                 @update:model-value="(v: string) => { if (draft) { draft.expertise_domains = csvToList(v); markDirty() } }"
@@ -281,6 +375,18 @@ const vocabOptions = [
               />
             </UFormField>
             <UFormField label="Frameworks" help="comma-separated">
+              <template #hint>
+                <UButton
+                  label="Suggest with AI"
+                  icon="i-lucide-sparkles"
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  :loading="suggestingField === 'frameworks'"
+                  :disabled="suggestingField !== null"
+                  @click="suggest('frameworks')"
+                />
+              </template>
               <UInput
                 :model-value="listToCsv(draft.frameworks)"
                 @update:model-value="(v: string) => { if (draft) { draft.frameworks = csvToList(v); markDirty() } }"
