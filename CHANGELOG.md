@@ -5,6 +5,59 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.0] - 2026-05-26
+
+### Added (Themes + Ctrl+R history search — PR99d)
+
+Final slice of the PR99 real-shell series. Wraps the terminal feature
+with theme presets, a Ctrl+R command palette over the browser history,
+and deletes the dead v3.51.0 allowlist code from the backend.
+
+**Themes** — `dashboard/app/composables/useTerminalThemes.ts` (NEW)
+exports 5 presets: ArkaOS Dark (default), Dracula, Solarized Dark,
+Solarized Light, Nord. Active theme persists in localStorage under
+`arka-terminal-theme`. Switching applies live without remounting.
+
+**Ctrl+R search** — `Cmd/Ctrl+R` opens a UModal command palette over
+the localStorage command history. Click or hit Enter on the top
+match to send it to the active session.
+
+### Removed (the allowlist is finally gone)
+
+- `TERMINAL_ALLOWLIST` constant + 7 hard-coded commands
+- `_TERMINAL_TIMEOUT_S`, `_TERMINAL_MAX_OUTPUT` constants
+- `_safe_args_schema`, `_resolve_cmd_template` helpers
+- `GET /api/terminal/commands` endpoint
+- `POST /api/terminal/exec` endpoint
+- `tests/python/test_terminal_exec.py` (17 tests)
+
+Real-shell is the only mode now. 7,208 bytes deleted from
+`scripts/dashboard-api.py`.
+
+### Tests
+
+4127 pass (was 4144 with allowlist tests, minus 17 deletions).
+
+### Files changed
+
+- `dashboard/app/composables/useTerminalThemes.ts` (NEW)
+- `dashboard/app/components/Terminal.vue` — theme prop + reactive
+  theme switch (no remount).
+- `dashboard/app/pages/terminal.vue` — theme USelect in header,
+  Ctrl+R UModal palette, footer hint.
+- `scripts/dashboard-api.py` — allowlist block deleted.
+- `tests/python/test_terminal_exec.py` (DELETED).
+
+### Series totals (PR99a → PR99d)
+
+- 4 PRs, 4 releases (v3.67.0 → v3.70.0)
+- 1 new module (`core/terminal/`)
+- 24 new backend tests
+- 5 new dashboard deps (xterm.js + 3 addons + nothing else)
+- 17 deleted tests, 7,208 bytes of dead backend code removed
+- 1 series-long refactor of `/terminal` from allowlist runner to real
+  multi-session PTY shell
+
 ## [3.69.0] - 2026-05-26
 
 ### Added (Multi-session tabs + command history — PR99c)

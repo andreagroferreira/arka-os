@@ -9,10 +9,12 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
+import type { XtermTheme } from '~/composables/useTerminalThemes'
 
 interface Props {
   session?: ReturnType<typeof useTerminalSession>
   onInputLine?: (line: string) => void
+  theme?: XtermTheme
 }
 const props = defineProps<Props>()
 
@@ -24,29 +26,10 @@ const search = shallowRef<SearchAddon | null>(null)
 
 const decoder = new TextDecoder('utf-8', { fatal: false })
 
-const themeArkaOSDark = {
-  background: '#0a0a0f',
-  foreground: '#e6e6f0',
-  cursor: '#7dd3fc',
-  cursorAccent: '#0a0a0f',
-  selectionBackground: '#1e3a5f',
-  black: '#0a0a0f',
-  red: '#f87171',
-  green: '#86efac',
-  yellow: '#fde68a',
-  blue: '#7dd3fc',
-  magenta: '#f0abfc',
-  cyan: '#67e8f9',
-  white: '#e6e6f0',
-  brightBlack: '#3f3f46',
-  brightRed: '#fca5a5',
-  brightGreen: '#bbf7d0',
-  brightYellow: '#fef3c7',
-  brightBlue: '#bae6fd',
-  brightMagenta: '#f5d0fe',
-  brightCyan: '#a5f3fc',
-  brightWhite: '#fafafa',
-}
+// PR99d v3.70.0 — theme comes from prop or from the composable
+// default (operator's choice stored in localStorage).
+const { activeTheme } = useTerminalThemes()
+const effectiveTheme = computed(() => props.theme ?? activeTheme.value)
 
 let unsubscribeOutput: (() => void) | null = null
 let resizeObserver: ResizeObserver | null = null
@@ -60,9 +43,14 @@ onMounted(async () => {
     fontSize: 13,
     lineHeight: 1.2,
     scrollback: 5000,
-    theme: themeArkaOSDark,
+    theme: effectiveTheme.value,
     allowProposedApi: true,
   })
+
+  // React to theme switches without remounting.
+  watch(effectiveTheme, (next) => {
+    if (term.value) term.value.options.theme = next
+  }, { deep: true })
   const fitAddon = new FitAddon()
   const searchAddon = new SearchAddon()
   t.loadAddon(fitAddon)
