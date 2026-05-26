@@ -192,6 +192,44 @@ const vocabOptions = [
   { label: 'Specialist (industry terms)', value: 'specialist' },
   { label: 'Expert (research-level)', value: 'expert' },
 ]
+
+// PR77 v2.95.0 — hero gradient by MBTI grouping + initials avatar
+// + reverse-usage stat (how many agents link this persona).
+
+const { fetchApi } = useApi()
+const { data: usageData } = fetchApi<{
+  by_persona: Record<string, { agent_count: number, agent_ids: string[] }>
+}>('/api/personas/usage')
+
+const linkedAgentCount = computed(() => {
+  if (!detail.value?.id) return 0
+  return usageData.value?.by_persona?.[detail.value.id]?.agent_count ?? 0
+})
+const linkedAgentIds = computed(() => {
+  if (!detail.value?.id) return []
+  return usageData.value?.by_persona?.[detail.value.id]?.agent_ids ?? []
+})
+
+function heroInitials(name: string | undefined): string {
+  if (!name) return '·'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+function mbtiGradientClass(mbti: string | undefined): string {
+  if (!mbti) return 'bg-gradient-to-br from-muted/20 to-muted/5'
+  const code = mbti.toUpperCase()
+  if (['INTJ', 'INTP', 'ENTJ', 'ENTP'].includes(code))
+    return 'bg-gradient-to-br from-blue-500/30 to-indigo-600/10'
+  if (['INFJ', 'INFP', 'ENFJ', 'ENFP'].includes(code))
+    return 'bg-gradient-to-br from-emerald-500/30 to-teal-600/10'
+  if (['ISTJ', 'ISFJ', 'ESTJ', 'ESFJ'].includes(code))
+    return 'bg-gradient-to-br from-amber-500/30 to-orange-600/10'
+  if (['ISTP', 'ISFP', 'ESTP', 'ESFP'].includes(code))
+    return 'bg-gradient-to-br from-rose-500/30 to-pink-600/10'
+  return 'bg-gradient-to-br from-primary/20 to-primary/5'
+}
 </script>
 
 <template>
@@ -208,61 +246,89 @@ const vocabOptions = [
         }"
       >
         <template #header>
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h2 class="text-xl font-bold truncate">
-                {{ detail?.name ?? 'Persona' }}
-              </h2>
-              <div class="flex items-center gap-2 mt-1 flex-wrap">
-                <UBadge
-                  v-if="detail?._source_store === 'obsidian'"
-                  label="From Obsidian"
-                  icon="i-lucide-file-text"
-                  color="primary"
-                  variant="subtle"
-                  size="xs"
-                />
-                <UBadge
-                  v-else-if="detail?._source_store === 'json'"
-                  label="JSON store"
-                  variant="outline"
-                  size="xs"
-                />
-                <span
-                  v-if="detail?._obsidian_path"
-                  class="text-xs text-muted font-mono truncate"
-                  :title="detail._obsidian_path"
-                >
-                  {{ detail._obsidian_path.split('/').slice(-2).join('/') }}
-                </span>
+          <div
+            class="-m-4 mb-0 p-5 rounded-t-lg"
+            :class="mbtiGradientClass(detail?.mbti)"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-4 min-w-0 flex-1">
+                <div class="shrink-0 size-14 rounded-xl bg-default/80 border border-default flex items-center justify-center shadow-md backdrop-blur-sm">
+                  <span class="text-lg font-bold tracking-tight text-highlighted">
+                    {{ heroInitials(detail?.name) }}
+                  </span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h2 class="text-2xl font-bold truncate text-highlighted">
+                    {{ detail?.name ?? 'Persona' }}
+                  </h2>
+                  <p v-if="detail?.title" class="text-sm text-muted truncate mt-0.5">
+                    {{ detail.title }}
+                  </p>
+                  <div class="flex items-center gap-2 mt-2 flex-wrap">
+                    <UBadge
+                      v-if="detail?._source_store === 'obsidian'"
+                      label="From Obsidian"
+                      icon="i-lucide-file-text"
+                      color="primary"
+                      variant="subtle"
+                      size="xs"
+                    />
+                    <UBadge
+                      v-else-if="detail?._source_store === 'json'"
+                      label="JSON store"
+                      variant="outline"
+                      size="xs"
+                    />
+                    <UBadge
+                      v-if="detail?.mbti"
+                      :label="detail.mbti"
+                      variant="soft"
+                      size="xs"
+                    />
+                    <UBadge
+                      v-if="linkedAgentCount > 0"
+                      :label="`${linkedAgentCount} agent${linkedAgentCount === 1 ? '' : 's'}`"
+                      color="primary"
+                      variant="subtle"
+                      size="xs"
+                    />
+                  </div>
+                  <p
+                    v-if="detail?._obsidian_path"
+                    class="text-[10px] text-muted/70 font-mono truncate mt-2"
+                    :title="detail._obsidian_path"
+                  >
+                    {{ detail._obsidian_path.split('/').slice(-2).join('/') }}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <UButton
-                v-if="!editing"
-                icon="i-lucide-pencil"
-                variant="ghost"
-                size="sm"
-                aria-label="Edit persona"
-                @click="startEdit"
-              />
-              <UButton
-                v-if="!editing"
-                icon="i-lucide-trash-2"
-                color="error"
-                variant="ghost"
-                size="sm"
-                :loading="deleting"
-                aria-label="Delete persona"
-                @click="deletePersona"
-              />
-              <UButton
-                icon="i-lucide-x"
-                variant="ghost"
-                size="sm"
-                aria-label="Close"
-                @click="closeDrawer"
-              />
+              <div class="flex items-center gap-1 shrink-0">
+                <UButton
+                  v-if="!editing"
+                  icon="i-lucide-pencil"
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Edit persona"
+                  @click="startEdit"
+                />
+                <UButton
+                  v-if="!editing"
+                  icon="i-lucide-trash-2"
+                  color="error"
+                  variant="ghost"
+                  size="sm"
+                  :loading="deleting"
+                  aria-label="Delete persona"
+                  @click="deletePersona"
+                />
+                <UButton
+                  icon="i-lucide-x"
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Close"
+                  @click="closeDrawer"
+                />
+              </div>
             </div>
           </div>
         </template>
@@ -394,6 +460,24 @@ const vocabOptions = [
               <dt class="text-muted">Vocabulary</dt>
               <dd class="col-span-2">{{ detail.communication.vocabulary_level || '—' }}</dd>
             </dl>
+          </section>
+
+          <!-- PR77 v2.95.0 — linked agents (reverse from /api/personas/usage) -->
+          <section v-if="linkedAgentCount > 0">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted mb-2">
+              Linked to {{ linkedAgentCount }} agent{{ linkedAgentCount === 1 ? '' : 's' }}
+            </h3>
+            <div class="flex flex-wrap gap-1.5">
+              <NuxtLink
+                v-for="aid in linkedAgentIds"
+                :key="aid"
+                :to="`/agents/${aid}`"
+                class="inline-flex items-center gap-1 rounded-md border border-default px-2 py-1 text-xs font-mono hover:border-primary/40 hover:text-primary transition-colors"
+              >
+                <UIcon name="i-lucide-arrow-right" class="size-3" />
+                {{ aid }}
+              </NuxtLink>
+            </div>
           </section>
         </div>
 
