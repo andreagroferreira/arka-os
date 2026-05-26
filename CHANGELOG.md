@@ -5,6 +5,59 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.67.0] - 2026-05-26
+
+### Added (Terminal PTY backend — PR99a)
+
+First slice of the real-shell-in-browser series. Replaces the v3.51.0
+allowlist runner (still wired in parallel until PR99d) with a proper
+PTY session manager and WebSocket pump.
+
+**New module** `core/terminal/`:
+
+- `session.py` — `TerminalSession` forks a shell on a real PTY,
+  exposes non-blocking read/write/resize, tracks last-activity. The
+  `TerminalSessionManager` caps concurrent sessions (default 8, env
+  `ARKAOS_TERMINAL_MAX_SESSIONS`), reaps dead processes, and kills
+  idle ones (default 30 min, env `ARKAOS_TERMINAL_IDLE_S`).
+- `audit.py` — metadata-only JSONL log at
+  `~/.arkaos/terminal-audit.jsonl`. Never captures input (terminal
+  input frequently carries secrets).
+- `token.py` — per-process bearer token rotated on every restart.
+
+**New endpoints** in `scripts/dashboard-api.py`:
+
+- `GET  /api/terminal/token` — bearer token for WS handshake
+- `GET  /api/terminal/sessions` — list active
+- `POST /api/terminal/sessions` — create (429 when at cap)
+- `DELETE /api/terminal/sessions/{id}` — close
+- `WS   /ws/terminal/{id}?token=<t>` — bidirectional pump
+
+WebSocket enforces origin pinning (localhost / 127.0.0.1 only) and
+constant-time token compare. Closes with 4401/4403/4404 on auth or
+unknown-session failures.
+
+A startup coroutine reaps dead + idle sessions every 60s.
+
+### Tests
+
+- 9 PTY-level unit tests (round-trip echo, kill, cap, idle reap)
+- 6 audit/token tests (JSONL shape, no secret leak)
+- 9 endpoint tests (REST CRUD + WS negative paths)
+
+Total: 4144 pass.
+
+### Files changed
+
+- `core/terminal/__init__.py` (NEW)
+- `core/terminal/session.py` (NEW)
+- `core/terminal/audit.py` (NEW)
+- `core/terminal/token.py` (NEW)
+- `scripts/dashboard-api.py` — PTY endpoints + WS pump + reaper
+- `tests/python/test_terminal_session.py` (NEW)
+- `tests/python/test_terminal_audit.py` (NEW)
+- `tests/python/test_terminal_endpoints.py` (NEW)
+
 ## [3.66.1] - 2026-05-26
 
 ### Fixed (HOTFIX — /agents page 500 — TDZ)
