@@ -5,6 +5,46 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.6] - 2026-05-27
+
+### Fixed (Terminal palette + sidebar — kill the forced-looking borders)
+
+The v3.70.3 palette redesign and v3.70.4 sidebar were functional but
+visually overdone — bright-green focus ring around the filter input,
+thick `border-l` accent on the selected row, fluorescent `↵ send`
+chip, fire-engine-red `Clear all` button. Reads "AI demo", not
+"Raycast/Linear".
+
+Toned everything down:
+
+- **Filter input**: replaced `<UInput>` with a bare `<input>` styled
+  via scoped CSS that hard-disables `outline`, `box-shadow`, and
+  `border` on focus. No more green focus ring.
+- **Modal chrome**: dropped the `<UCard>` wrapper, ditched the
+  default ring, kept only `shadow-2xl`. Borders use `border-default/60`
+  (subtler).
+- **Selected row**: just `bg-elevated/70` (slightly elevated surface),
+  no `border-l`, no `pl-[14px]` compensation, no primary color
+  shouting. Reads like a hover state.
+- **Send hint**: replaced the green chip with a plain
+  `corner-down-left` icon that fades in on the selected row. No
+  text label.
+- **Footer kbd**: scoped CSS class `.palette-kbd` — smaller, subtler
+  border, muted color.
+- **Clear button**: bare `<button>` with `text-muted/80
+  hover:text-red-400`. Goes red only on hover, never sits there
+  shouting.
+- **Sidebar rows**: ditched the always-visible chevron and the
+  `divide-y` ladder. Each row is a rounded button with subtle hover,
+  matching the palette aesthetic.
+- **Focus handling**: programmatic focus on modal open (autofocus
+  only fires once per mount; the modal is persistent).
+
+### Files changed
+
+- `dashboard/app/pages/terminal.vue` — palette + sidebar restyle +
+  scoped CSS for the bare input + kbd token.
+
 ## [3.70.5] - 2026-05-27
 
 ### Fixed (Terminal canvas full width — shell wasn't getting the real cols)

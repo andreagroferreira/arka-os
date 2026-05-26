@@ -1,6 +1,6 @@
 {
   "name": "arkaos",
-  "version": "3.70.5",
+  "version": "3.70.6",
   "description": "The Operating System for AI Agent Teams",
   "type": "module",
   "bin": {
