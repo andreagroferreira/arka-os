@@ -115,6 +115,81 @@ function csvToList(value: string): string[] {
 type SuggestField = 'mental_models_primary' | 'frameworks' | 'expertise_domains' | 'communication_avoid'
 const suggestingField = ref<SuggestField | null>(null)
 
+// PR84a v3.7.0 — AI Rewrite from description.
+const rewriteOpen = ref(false)
+const rewriteDescription = ref('')
+const rewriting = ref(false)
+
+async function rewriteFromDescription() {
+  if (!draft.value || !props.agent) return
+  const desc = rewriteDescription.value.trim()
+  if (desc.length < 20) {
+    toast.add({
+      title: 'Add more detail',
+      description: 'Describe the agent in at least a sentence or two.',
+      color: 'warning',
+    })
+    return
+  }
+  rewriting.value = true
+  try {
+    const res = await $fetch<{
+      draft: any
+      provider_name: string
+      error?: string
+    }>(`${apiBase}/api/agents/draft`, {
+      method: 'POST',
+      body: {
+        description: desc,
+        name: draft.value.name,
+        role: draft.value.role,
+        department: props.agent.department,
+        tier: draft.value.tier,
+      },
+    })
+    if (res.error) throw new Error(res.error)
+    applyRewrite(res.draft)
+    markDirty()
+    toast.add({
+      title: 'Rewritten',
+      description: `via ${res.provider_name} — review and Save when ready.`,
+      color: 'success',
+      icon: 'i-lucide-sparkles',
+    })
+    rewriteOpen.value = false
+    rewriteDescription.value = ''
+  } catch (err) {
+    toast.add({
+      title: 'Rewrite failed',
+      description: err instanceof Error ? err.message : 'unknown error',
+      color: 'error',
+    })
+  } finally {
+    rewriting.value = false
+  }
+}
+
+function applyRewrite(d: any) {
+  if (!draft.value) return
+  // NOTE: identity (id, department) stays. Behavioural DNA is intentionally
+  // not editable here, so we do not touch it. We rewrite the SAFE fields
+  // operators edit through this drawer.
+  const exp = d?.expertise ?? {}
+  if (Array.isArray(exp.domains)) draft.value.expertise_domains = exp.domains.map(String)
+  if (Array.isArray(exp.frameworks)) draft.value.frameworks = exp.frameworks.map(String)
+  if (exp.depth) draft.value.expertise_depth = String(exp.depth)
+  if (typeof exp.years_equivalent === 'number') draft.value.expertise_years = exp.years_equivalent
+  const mm = d?.mental_models ?? {}
+  if (Array.isArray(mm.primary)) draft.value.mental_models.primary = mm.primary.map(String)
+  if (Array.isArray(mm.secondary)) draft.value.mental_models.secondary = mm.secondary.map(String)
+  const comm = d?.communication ?? {}
+  if (comm.tone) draft.value.communication.tone = String(comm.tone)
+  if (comm.vocabulary_level) draft.value.communication.vocabulary_level = String(comm.vocabulary_level)
+  if (comm.preferred_format) draft.value.communication.preferred_format = String(comm.preferred_format)
+  if (comm.language) draft.value.communication.language = String(comm.language)
+  if (Array.isArray(comm.avoid)) draft.value.communication.avoid = comm.avoid.map(String)
+}
+
 // PR83c v3.5.0 — single-string suggester.
 type StringField = 'tone' | 'preferred_format'
 const suggestingString = ref<StringField | null>(null)
@@ -346,6 +421,52 @@ const vocabOptions = [
         </template>
 
         <div v-if="draft" class="space-y-6">
+          <!-- PR84a — AI Rewrite -->
+          <div class="rounded-xl border border-primary/30 bg-primary/5">
+            <button
+              type="button"
+              class="w-full flex items-center justify-between gap-3 p-3 text-left"
+              @click="rewriteOpen = !rewriteOpen"
+            >
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-sparkles" class="size-4 text-primary" />
+                <span class="text-sm font-semibold text-primary">Rewrite from description</span>
+              </div>
+              <UIcon
+                :name="rewriteOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+                class="size-4 text-muted"
+              />
+            </button>
+            <div v-if="rewriteOpen" class="p-3 pt-0 space-y-3">
+              <p class="text-xs text-muted">
+                Paste a new description to regenerate expertise, mental models,
+                frameworks, and communication. Identity (name, role, department)
+                and behavioural DNA are preserved.
+              </p>
+              <UTextarea
+                v-model="rewriteDescription"
+                :rows="3"
+                placeholder="A senior strategist who decides fast and demands evidence. 10 years at McKinsey covering CPG..."
+                class="w-full"
+              />
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-muted">
+                  {{ rewriteDescription.trim().length }} char{{ rewriteDescription.trim().length === 1 ? '' : 's' }}
+                  · {{ rewriteDescription.trim().length >= 20 ? 'ready' : `${20 - rewriteDescription.trim().length} more needed` }}
+                </span>
+                <UButton
+                  label="Rewrite"
+                  icon="i-lucide-wand"
+                  color="primary"
+                  size="sm"
+                  :loading="rewriting"
+                  :disabled="rewriteDescription.trim().length < 20"
+                  @click="rewriteFromDescription"
+                />
+              </div>
+            </div>
+          </div>
+
           <p class="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-muted">
             <UIcon name="i-lucide-info" class="size-3.5 inline" />
             Behavioural DNA (DISC, Enneagram, MBTI, Big Five) is locked here
