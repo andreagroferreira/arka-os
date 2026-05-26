@@ -5,6 +5,20 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.60.0] - 2026-05-26
+
+### Added (Persona usage timeline — PR97b)
+
+Persona detail gains a 12-week histogram of YAML mtimes for agents
+that link to this persona. Approximates clone-over-time without
+needing git history. Cap 52 weeks.
+
+### Files changed
+
+- `scripts/dashboard-api.py` — GET /api/personas/{id}/usage-timeline
+- `tests/python/test_persona_usage_timeline.py` (NEW, 6 tests)
+- `dashboard/app/pages/personas/[id].vue` — timeline SVG
+
 ## [3.59.0] - 2026-05-26
 
 ### Added (Department activity sparkline — PR97a)

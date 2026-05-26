@@ -1371,6 +1371,74 @@ def _obsidian_store_available() -> bool:
         return False
 
 
+@app.get("/api/personas/{persona_id}/usage-timeline")
+def persona_usage_timeline(persona_id: str, weeks: int = 12):
+    """PR97b v3.60.0 — histogram of agent YAML mtimes for agents that
+    link to this persona. Approximation of "when did people clone /
+    create agents from this persona over time".
+
+    Returns ``{weeks: [{week_start, count}], total_agents, period_weeks}``
+    bucketed by ISO week start (Monday). Capped at 52 weeks.
+
+    Uses filesystem mtime for the agent YAML — works even without a
+    git history.
+    """
+    try:
+        weeks_int = int(weeks) if weeks is not None else 12
+    except (TypeError, ValueError):
+        weeks_int = 12
+    capped_weeks = max(1, min(weeks_int, 52))
+
+    try:
+        import yaml as _yaml
+    except ImportError:
+        return {"weeks": [], "total_agents": 0, "period_weeks": capped_weeks}
+
+    dept_root = ARKAOS_ROOT / "departments"
+    if not dept_root.exists():
+        return {"weeks": [], "total_agents": 0, "period_weeks": capped_weeks}
+
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    # Monday of current ISO week.
+    current_monday = today - timedelta(days=today.weekday())
+    buckets: dict[str, int] = {}
+    for offset in range(capped_weeks):
+        m = current_monday - timedelta(weeks=capped_weeks - 1 - offset)
+        buckets[m.isoformat()] = 0
+    cutoff_monday = current_monday - timedelta(weeks=capped_weeks - 1)
+
+    linked_total = 0
+    for path in dept_root.glob("*/agents/*.yaml"):
+        try:
+            raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:  # noqa: BLE001
+            continue
+        if not isinstance(raw, dict):
+            continue
+        linked = raw.get("linked_personas") or []
+        if not isinstance(linked, list) or persona_id not in linked:
+            continue
+        linked_total += 1
+        try:
+            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).date()
+        except OSError:
+            continue
+        if mtime < cutoff_monday:
+            continue
+        monday = mtime - timedelta(days=mtime.weekday())
+        key = monday.isoformat()
+        if key in buckets:
+            buckets[key] += 1
+
+    out = [
+        {"week_start": k, "count": buckets[k]}
+        for k in sorted(buckets.keys())
+    ]
+    return {"weeks": out, "total_agents": linked_total, "period_weeks": capped_weeks}
+
+
 @app.get("/api/personas/usage")
 def personas_usage():
     """PR77 v2.95.0 — reverse lookup: how many agents link to each

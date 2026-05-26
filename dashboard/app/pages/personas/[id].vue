@@ -226,6 +226,19 @@ function csvToList(value: string): string[] {
 type SuggestField = 'mental_models' | 'frameworks' | 'expertise_domains' | 'communication_avoid' | 'key_quotes'
 const suggestingField = ref<SuggestField | null>(null)
 
+// PR97b v3.60.0 — weekly usage timeline (when did agents clone from here).
+interface UsageWeek { week_start: string, count: number }
+const { data: usageTimelineData } = fetchApi<{
+  weeks: UsageWeek[]
+  total_agents: number
+  period_weeks: number
+}>(`/api/personas/${personaId}/usage-timeline?weeks=12`)
+const usageWeeks = computed<UsageWeek[]>(() => usageTimelineData.value?.weeks ?? [])
+const usageMaxCount = computed(() =>
+  Math.max(1, usageWeeks.value.reduce((acc, w) => Math.max(acc, w.count), 0)),
+)
+const usageTotalLinks = computed(() => usageTimelineData.value?.total_agents ?? 0)
+
 // PR86a v3.15.0 — favorites.
 const favs = useFavorites()
 await favs.load()
@@ -648,6 +661,44 @@ const vocabOptions = [
               <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Frameworks</p>
               <p class="text-2xl font-bold">{{ detail.frameworks?.length ?? 0 }}</p>
             </div>
+          </section>
+
+          <!-- PR97b v3.60.0 — usage timeline (when agents linked) -->
+          <section
+            v-if="usageTotalLinks > 0"
+            class="rounded-xl border border-default bg-elevated/10 p-5"
+          >
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span class="font-semibold text-muted uppercase tracking-wide">
+                Usage timeline (12 weeks)
+              </span>
+              <span class="font-mono text-muted">
+                {{ usageTotalLinks }} agent{{ usageTotalLinks === 1 ? '' : 's' }} linking · peak {{ usageMaxCount }}/wk
+              </span>
+            </div>
+            <svg
+              :viewBox="`0 0 ${usageWeeks.length * 16} 48`"
+              class="w-full h-12"
+              preserveAspectRatio="none"
+            >
+              <rect
+                v-for="(w, idx) in usageWeeks"
+                :key="w.week_start"
+                :x="idx * 16 + 2"
+                :y="48 - (w.count / usageMaxCount) * 46"
+                width="12"
+                :height="(w.count / usageMaxCount) * 46"
+                class="fill-primary"
+                :class="w.count === 0 ? 'opacity-20' : 'opacity-90'"
+              >
+                <title>{{ w.week_start }} · {{ w.count }} agent{{ w.count === 1 ? '' : 's' }} linked</title>
+              </rect>
+            </svg>
+            <p class="text-xs text-muted mt-1.5">
+              Buckets reflect the YAML mtime of agents that currently link to
+              this persona — approximation of when they were cloned / edited
+              to depend on this profile.
+            </p>
           </section>
 
           <!-- BIO (PR86d) -->
