@@ -2467,6 +2467,194 @@ def workflow_update_yaml(workflow_id: str, body: dict):
     return {"updated": True, "id": workflow_id, "file": str(target)}
 
 
+# ============================================================================
+# PR99a v3.67.0 — Terminal PTY WebSocket + REST.
+#
+# Replaces the v3.51.0 allowlist runner. Spawns a real PTY per session
+# (`pty.fork` + user's $SHELL), streams bidirectionally over a WS to
+# xterm.js, and exposes thin REST endpoints to list / create / close
+# sessions. Origin pinning + bearer token in handshake. Idle-kill is
+# driven by a 60s background coroutine.
+# ============================================================================
+
+
+import re as _terminal_re
+
+
+def _terminal_origin_ok(origin: str) -> bool:
+    """Allow only http(s)://localhost or 127.0.0.1 (any port)."""
+    if not origin:
+        return False
+    return bool(
+        _terminal_re.match(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$", origin)
+    )
+
+
+@app.get("/api/terminal/token")
+def terminal_token_endpoint():
+    """Return the per-process bearer token used in WS handshakes.
+
+    The token rotates whenever the API restarts. CORS already pins
+    origins to localhost; this is the second factor that protects
+    against a malicious page on another localhost port opening the WS
+    without a CORS preflight.
+    """
+    from core.terminal import token as _token_mod
+    return {"token": _token_mod.current_token()}
+
+
+@app.get("/api/terminal/sessions")
+def terminal_sessions_list():
+    from core.terminal.session import default_manager
+    mgr = default_manager()
+    return {
+        "sessions": mgr.list_all(),
+        "max_sessions": mgr.max_sessions,
+        "idle_timeout_seconds": mgr.idle_timeout_s,
+    }
+
+
+@app.post("/api/terminal/sessions")
+def terminal_sessions_create(body: dict):
+    from core.terminal.session import default_manager, SessionCapacityError
+    from core.terminal import token as _token_mod
+    body = body if isinstance(body, dict) else {}
+    cwd = body.get("cwd")
+    shell = body.get("shell")
+    cols = int(body.get("cols") or 120)
+    rows = int(body.get("rows") or 32)
+    mgr = default_manager()
+    try:
+        s = mgr.create(shell=shell, cwd=cwd, cols=cols, rows=rows)
+    except SessionCapacityError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=429, detail=str(exc))
+    return {
+        "session_id": s.session_id,
+        "shell": s.shell,
+        "cwd": s.cwd,
+        "token": _token_mod.current_token(),
+        "ws_path": f"/ws/terminal/{s.session_id}",
+        "max_sessions": mgr.max_sessions,
+        "active_count": mgr.count(),
+    }
+
+
+@app.delete("/api/terminal/sessions/{session_id}")
+def terminal_sessions_delete(session_id: str):
+    from core.terminal.session import default_manager
+    ok = default_manager().close(session_id, reason="manual-close")
+    return {"closed": ok, "session_id": session_id}
+
+
+@app.websocket("/ws/terminal/{session_id}")
+async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
+    """Bidirectional PTY pump.
+
+    Client → server: either text frames `{"type": "resize", "cols", "rows"}`
+    / `{"type": "input", "data": "..."}` or raw binary frames (input bytes).
+    Server → client: raw binary frames of PTY output.
+
+    Closes with code 4401 on bad token, 4403 on bad origin, 4404 when the
+    session is not found.
+    """
+    origin = ws.headers.get("origin", "")
+    if not _terminal_origin_ok(origin):
+        await ws.close(code=4403, reason="origin not allowed")
+        return
+    from core.terminal import token as _token_mod
+    if not _token_mod.verify(token):
+        await ws.close(code=4401, reason="bad token")
+        return
+    from core.terminal.session import default_manager
+    session = default_manager().get(session_id)
+    if session is None:
+        await ws.close(code=4404, reason="session not found")
+        return
+
+    await ws.accept()
+    loop = asyncio.get_event_loop()
+    output_queue: asyncio.Queue = asyncio.Queue()
+
+    def _on_readable():
+        try:
+            data = session.read(8192)
+        except OSError:
+            data = b""
+        if data:
+            output_queue.put_nowait(data)
+
+    try:
+        loop.add_reader(session.master_fd, _on_readable)
+    except (ValueError, OSError):
+        await ws.close(code=1011, reason="pty unavailable")
+        return
+
+    async def pump_to_client():
+        while True:
+            data = await output_queue.get()
+            try:
+                await ws.send_bytes(data)
+            except Exception:
+                break
+
+    pump_task = asyncio.create_task(pump_to_client())
+
+    try:
+        while True:
+            msg = await ws.receive()
+            mtype = msg.get("type")
+            if mtype == "websocket.disconnect":
+                break
+            text = msg.get("text")
+            data = msg.get("bytes")
+            if text is not None:
+                try:
+                    payload = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(payload, dict):
+                    continue
+                kind = payload.get("type")
+                if kind == "resize":
+                    session.resize(
+                        int(payload.get("cols") or 80),
+                        int(payload.get("rows") or 24),
+                    )
+                elif kind == "input":
+                    session.write(str(payload.get("data") or "").encode("utf-8"))
+            elif data is not None:
+                session.write(data)
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        pump_task.cancel()
+        try:
+            loop.remove_reader(session.master_fd)
+        except (ValueError, OSError):
+            pass
+
+
+@app.on_event("startup")
+async def _terminal_reaper_startup():
+    """Background loop that reaps dead and idle sessions every 60s."""
+    async def _loop():
+        from core.terminal.session import default_manager
+        while True:
+            try:
+                await asyncio.sleep(60)
+                mgr = default_manager()
+                mgr.reap_dead()
+                mgr.reap_idle()
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                continue
+    asyncio.create_task(_loop())
+
+
 def _resolve_workflow_yaml(workflow_id: str):
     """Return the YAML path for a workflow id, or None when missing."""
     try:
