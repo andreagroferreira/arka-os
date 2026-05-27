@@ -2365,6 +2365,20 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
         return
 
     await ws.accept()
+
+    # v3.71.0 — replay recent scrollback so a client reconnecting after
+    # the operator navigated away / reloaded restores its session as it
+    # left it. Sent before the live reader is attached, so the historical
+    # prefix always precedes any new output (no interleave, no dup — these
+    # bytes were already consumed from the kernel buffer when first read).
+    replay = session.scrollback()
+    if replay:
+        try:
+            await ws.send_bytes(replay)
+        except Exception:
+            await ws.close(code=1011, reason="replay failed")
+            return
+
     loop = asyncio.get_event_loop()
     output_queue: asyncio.Queue = asyncio.Queue()
 

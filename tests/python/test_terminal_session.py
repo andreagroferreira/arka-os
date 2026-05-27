@@ -74,7 +74,12 @@ def test_kill_terminates_child(manager):
     session = manager.create(shell="/bin/sh")
     pid = session.pid
     session.kill()
-    time.sleep(0.05)
+    # Poll for teardown — process death + reaping after SIGTERM/SIGKILL
+    # isn't instantaneous, especially under load from the rest of the
+    # suite forking PTYs. A fixed sleep was flaky.
+    deadline = time.monotonic() + 2.0
+    while session.is_alive() and time.monotonic() < deadline:
+        time.sleep(0.02)
     assert not session.is_alive()
     with pytest.raises(OSError):
         os.kill(pid, 0)
@@ -144,6 +149,87 @@ def test_env_overrides(tmp_path, monkeypatch):
     try:
         with pytest.raises(SessionCapacityError):
             mgr.create(shell="/bin/sh")
+    finally:
+        s.kill()
+    mgr.shutdown()
+
+
+# ─── Scrollback ring-buffer (v3.71.0) ────────────────────────────────────
+#
+# In-memory, bounded, transient (never disk, never audit). Feeds the WS
+# replay that lets a reconnecting client restore recent terminal output
+# after navigation / reload.
+
+
+def test_scrollback_records_output(manager):
+    session = manager.create(shell="/bin/sh")
+    try:
+        session.write(b"echo arkaos-scrollback; exit\n")
+        _read_until(session, b"arkaos-scrollback")
+        assert b"arkaos-scrollback" in session.scrollback()
+    finally:
+        session.kill()
+
+
+def test_scrollback_bounded_keeps_recent():
+    # Direct construction so we can pin a tiny cap. 64 bytes is far
+    # smaller than the command echo + loop output, so the head is
+    # evicted and only the most-recent tail survives.
+    session = TerminalSession(
+        session_id="sb-test",
+        shell="/bin/sh",
+        cwd=os.path.expanduser("~"),
+        scrollback_bytes=64,
+    )
+    try:
+        assert session.scrollback_max == 64
+        session.write(
+            b"echo START_MARKER; i=0; while [ $i -lt 40 ]; do echo L$i; "
+            b"i=$((i+1)); done; echo END_MARKER; exit\n"
+        )
+        _read_until(session, b"END_MARKER")
+        sb = session.scrollback()
+        assert len(sb) <= 64
+        assert b"END_MARKER" in sb          # most-recent retained
+        assert b"START_MARKER" not in sb     # oldest evicted
+    finally:
+        session.kill()
+
+
+def test_scrollback_cleared_on_close(manager):
+    session = manager.create(shell="/bin/sh")
+    session.write(b"echo before-close; exit\n")
+    _read_until(session, b"before-close")
+    assert session.scrollback() != b""
+    session.kill()
+    assert session.scrollback() == b""
+
+
+def test_scrollback_disabled_when_zero(manager):
+    # A zero cap must disable recording entirely (no buffer growth).
+    session = TerminalSession(
+        session_id="sb-zero",
+        shell="/bin/sh",
+        cwd=os.path.expanduser("~"),
+        scrollback_bytes=0,
+    )
+    try:
+        assert session.scrollback_max == 0
+        session.write(b"echo nothing-kept; exit\n")
+        _read_until(session, b"nothing-kept")
+        assert session.scrollback() == b""
+    finally:
+        session.kill()
+
+
+def test_scrollback_env_override(tmp_path, monkeypatch):
+    monkeypatch.setenv("ARKAOS_HOME", str(tmp_path))
+    monkeypatch.setenv("ARKAOS_TERMINAL_SCROLLBACK_BYTES", "128")
+    mgr = TerminalSessionManager()
+    assert mgr.scrollback_bytes == 128
+    s = mgr.create(shell="/bin/sh")
+    try:
+        assert s.scrollback_max == 128
     finally:
         s.kill()
     mgr.shutdown()
