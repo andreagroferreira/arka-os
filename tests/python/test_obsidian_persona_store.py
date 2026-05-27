@@ -189,6 +189,34 @@ class TestWrite:
         assert loaded[0].disc.primary == original.disc.primary
         assert set(loaded[0].mental_models) == set(original.mental_models)
 
+    def test_bio_md_round_trips(self, vault_path):
+        """v3.70.10 — long-form bio_md must survive write -> read.
+
+        Regression for the bug where Obsidian-source personas silently
+        dropped operator edits to the MD bio (the store never serialized
+        the field). Uses multi-line Markdown to exercise YAML block scalars.
+        """
+        store = ObsidianPersonaStore(vault_path=vault_path)
+        original = _make_persona()
+        original.bio_md = (
+            "# Test User\n\n"
+            "A multi-paragraph bio.\n\n"
+            "- bullet one\n"
+            "- bullet two\n\n"
+            "> A quote with special chars: é, ç, \"quotes\" & ampersands.\n"
+        )
+        store.write(original)
+        loaded = store.list_all()
+        assert len(loaded) == 1
+        assert loaded[0].bio_md == original.bio_md
+
+    def test_bio_md_absent_when_empty(self, vault_path):
+        """Personas without a bio must not emit a noisy `bio_md:` key."""
+        store = ObsidianPersonaStore(vault_path=vault_path)
+        path = store.write(_make_persona())
+        assert path is not None
+        assert "bio_md" not in path.read_text(encoding="utf-8")
+
 
 # ─── available property ─────────────────────────────────────────────────
 

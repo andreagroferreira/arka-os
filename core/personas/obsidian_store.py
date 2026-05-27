@@ -155,6 +155,7 @@ class ObsidianPersonaStore:
             communication=PersonaCommunication(
                 **_filter_known(PersonaCommunication, comm_fm),
             ),
+            bio_md=str(fm.get("bio_md") or ""),
             created_at=str(fm.get("created_at") or ""),
             updated_at=str(fm.get("updated_at") or ""),
         )
@@ -236,6 +237,12 @@ class ObsidianPersonaStore:
             "created_at": persona.created_at or now,
             "updated_at": now,
         }
+        # v3.70.10 — long-form Markdown bio. Stored as a frontmatter
+        # block scalar so it survives round-trips; only emitted when set
+        # to keep bio-less persona files clean. YAML handles the multi-line
+        # value; the no-yaml fallback below can't, so skip it there.
+        if persona.bio_md and yaml is not None:
+            frontmatter["bio_md"] = persona.bio_md
         if yaml is not None:
             fm_block = yaml.safe_dump(
                 frontmatter,
