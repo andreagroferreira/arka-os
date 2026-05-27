@@ -5,6 +5,43 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.71.0] - 2026-05-27
+
+### Added — Persistent terminal sessions (survive navigation + reload)
+
+The dashboard terminal used to die whenever the operator navigated to
+another page or reloaded the browser — losing any running process (e.g.
+`claude`). It now persists.
+
+**Backend (`core/terminal/session.py`, `scripts/dashboard-api.py`):**
+- Each `TerminalSession` keeps a bounded, in-memory scrollback ring-buffer
+  (512 KB default, `ARKAOS_TERMINAL_SCROLLBACK_BYTES`), recorded at the
+  `read()` choke-point, cleared on close.
+- On WebSocket (re)connect the server replays the buffer before attaching
+  the live reader, so a reattaching client restores its recent view.
+- The buffer is RAM-only — never written to disk, never sent to the
+  metadata-only audit log. See ADR
+  `docs/adr/2026-05-27-terminal-scrollback-ring-buffer.md`.
+
+**Frontend (`dashboard/app/`):**
+- Terminal state moved to a module-level singleton; the terminal UI now
+  lives in an app-wide dock (`TerminalDock.vue`) mounted once in the
+  default layout, outside `<NuxtPage>`. Navigating between pages no longer
+  unmounts it — the PTY WebSocket stays open and the xterm scrollback is
+  preserved.
+- The dock is positioned to the right of the sidebar, so the menu stays
+  visible and clickable even when the terminal is maximized. Toggle with
+  ⌘J / Ctrl+J; `/terminal` opens it maximized.
+- On a full reload, surviving sessions reattach by reconciling persisted
+  session IDs against the live backend sessions (the WS replay restores
+  scrollback). Background tabs with new output show an activity dot.
+
+Tests: 6 new backend tests (scrollback bounds, replay, clear-on-close,
+env override, WS replay). Full suite: 4135 passing. Frontend verified
+live in-browser (navigation keeps the session; 0 console errors). A
+Playwright E2E spec + single-writer-per-session hardening are tracked as
+a follow-up.
+
 ## [3.70.10] - 2026-05-27
 
 ### Fixed (Obsidian-source personas silently dropped bio_md edits)

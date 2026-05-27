@@ -135,3 +135,36 @@ def test_ws_bad_token_closes_4401(api):
             ws.receive()
     except Exception:
         pass
+
+
+def test_ws_replays_scrollback_on_connect(api):
+    """v3.71.0 — a client (re)connecting to a live session receives the
+    recorded scrollback as the first frame, restoring its view after a
+    navigation / reload."""
+    import select
+    import time
+
+    client = TestClient(api.app)
+    created = client.post("/api/terminal/sessions", json={"shell": "/bin/sh"}).json()
+    sid, token = created["session_id"], created["token"]
+
+    from core.terminal.session import default_manager
+    session = default_manager().get(sid)
+    # Produce output and drain it so it lands in the scrollback — this
+    # simulates work done before the operator navigated away.
+    session.write(b"echo replay-marker\n")
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        readable, _, _ = select.select([session.master_fd], [], [], 0.1)
+        if readable:
+            session.read(4096)
+        if b"replay-marker" in session.scrollback():
+            break
+    assert b"replay-marker" in session.scrollback()
+
+    with client.websocket_connect(
+        f"/ws/terminal/{sid}?token={token}",
+        headers={"Origin": "http://localhost:3000"},
+    ) as ws:
+        first = ws.receive_bytes()
+        assert b"replay-marker" in first

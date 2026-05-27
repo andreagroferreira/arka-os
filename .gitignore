@@ -71,3 +71,6 @@ arka/skills/client-*/
 
 # Git worktrees
 .worktrees/
+
+# Playwright MCP verification artifacts
+.playwright-mcp/

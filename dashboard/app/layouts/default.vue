@@ -176,5 +176,11 @@ const links = [[{
     <KeyboardShortcutsHelp />
     <GlobalSearch />
     <OnboardingTour />
+    <!-- v3.71.0 — app-wide terminal dock. Mounted once here (outside
+         <NuxtPage>) so PTY sessions survive route navigation. Client-only
+         because xterm.js + WebSocket have no SSR. -->
+    <ClientOnly>
+      <TerminalDock />
+    </ClientOnly>
   </UDashboardGroup>
 </template>

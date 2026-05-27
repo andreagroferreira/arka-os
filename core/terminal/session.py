@@ -46,6 +46,13 @@ def _default_cwd() -> str:
     return os.path.expanduser("~")
 
 
+# v3.71.0 — in-memory scrollback so a reconnecting client (after the
+# operator navigates away or reloads the dashboard) can replay recent
+# output and find its session as it left it. Bounded, RAM-only, cleared
+# on close, never written to disk and never sent to the audit log.
+DEFAULT_SCROLLBACK_BYTES = 512 * 1024
+
+
 class TerminalSession:
     """A single forked PTY + the bookkeeping needed to drive it.
 
@@ -60,6 +67,7 @@ class TerminalSession:
         cwd: str,
         cols: int = 120,
         rows: int = 32,
+        scrollback_bytes: int = DEFAULT_SCROLLBACK_BYTES,
     ) -> None:
         self.session_id = session_id
         self.shell = shell
@@ -68,6 +76,8 @@ class TerminalSession:
         self.last_activity = time.monotonic()
         self.exit_code: Optional[int] = None
         self.title: str = ""
+        self.scrollback_max = max(0, int(scrollback_bytes))
+        self._scrollback = bytearray()
         self._closed = False
         self.pid, self.master_fd = pty.fork()
         if self.pid == 0:
@@ -104,7 +114,20 @@ class TerminalSession:
             raise
         if data:
             self.last_activity = time.monotonic()
+            self._record(data)
         return data
+
+    def _record(self, data: bytes) -> None:
+        """Append output to the bounded scrollback, evicting the oldest."""
+        if self.scrollback_max <= 0:
+            return
+        self._scrollback += data
+        if len(self._scrollback) > self.scrollback_max:
+            del self._scrollback[: -self.scrollback_max]
+
+    def scrollback(self) -> bytes:
+        """Snapshot of recent output, for replay on (re)connect."""
+        return bytes(self._scrollback)
 
     def write(self, data: bytes) -> int:
         if self._closed or self.master_fd < 0 or not data:
@@ -172,6 +195,7 @@ class TerminalSession:
             except OSError:
                 pass
             self.master_fd = -1
+        self._scrollback.clear()
         self._closed = True
 
     def to_dict(self) -> dict[str, Any]:
@@ -207,6 +231,9 @@ class TerminalSessionManager:
         self.idle_timeout_s = int(
             os.environ.get("ARKAOS_TERMINAL_IDLE_S", idle_default)
         )
+        self.scrollback_bytes = int(
+            os.environ.get("ARKAOS_TERMINAL_SCROLLBACK_BYTES", DEFAULT_SCROLLBACK_BYTES)
+        )
         self._sessions: dict[str, TerminalSession] = {}
 
     def create(
@@ -230,6 +257,7 @@ class TerminalSessionManager:
             cwd=chosen_cwd,
             cols=cols,
             rows=rows,
+            scrollback_bytes=self.scrollback_bytes,
         )
         self._sessions[sid] = session
         audit.log_start(sid, chosen_shell, chosen_cwd)
