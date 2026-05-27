@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.72.0] - 2026-05-27
+
+### Added — Cognition page, autostart, one-click update
+
+Three release features.
+
+**Cognition / Dreaming page** (`dashboard/app/pages/cognition.vue`,
+`/api/cognition/{insights,status}`): a read-only "Dreaming" dashboard page
+surfacing the insights the Cognitive Layer already writes to the vault —
+feed with confidence badges, tags, sources and expandable Markdown bodies;
+window/confidence/tag filters; counts + an Active/Idle freshness pill.
+Spec: `docs/superpowers/specs/2026-05-27-cognition-page-design.md`.
+
+**Cross-OS autostart** (`installer/autostart.js`,
+`npx arkaos autostart <enable|disable|status>`): opt-in boot launcher that
+runs `scripts/start-dashboard.sh` on login via launchd (macOS), systemd
+--user (Linux), or the Startup folder (Windows). Reuses the existing
+dashboard launcher (which prefers the production build).
+
+**One-click update** (`/api/system/{version,update}`, Settings → Updates):
+shows installed vs latest npm version and an "Update now" button that runs
+`npx arkaos@latest update` (step 1), then prompts the operator to run
+`/arka update` in Claude Code for the project sync (step 2). The update
+endpoint is localhost-origin-gated (same trust boundary as the terminal).
+
+Tests: 5 cognition + 5 system + 4 autostart. Full Python suite 4150
+passing; installer suite 70 passing. Quality Gate APPROVED for all three.
+
 ## [3.71.1] - 2026-05-27
 
 ### Hardened — terminal single-writer-per-session + E2E coverage

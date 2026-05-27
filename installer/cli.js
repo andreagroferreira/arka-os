@@ -45,6 +45,7 @@ Usage:
   npx arkaos migrate          Migrate from v1 to v2
   npx arkaos migrate-user-data  Move user data (~/.claude/skills/arka/ → ~/.arkaos/)
   npx arkaos dashboard        Start monitoring dashboard
+  npx arkaos autostart <enable|disable|status>  Start dashboard on boot
   npx arkaos keys             Manage API keys (OpenAI, fal.ai, etc.)
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
@@ -100,6 +101,12 @@ async function main() {
       const { update } = await import("./update.js");
       await update();
       break;
+
+    case "autostart": {
+      const { autostart } = await import("./autostart.js");
+      await autostart(positionals.slice(1));
+      break;
+    }
 
     case "uninstall":
       const { uninstall } = await import("./uninstall.js");

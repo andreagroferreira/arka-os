@@ -80,6 +80,13 @@ const links = [[{
   onSelect: () => {
     open.value = false
   }
+}, {
+  label: 'Dreaming',
+  icon: 'i-lucide-sparkles',
+  to: '/cognition',
+  onSelect: () => {
+    open.value = false
+  }
 }], [{
   label: 'Health',
   icon: 'i-lucide-heart-pulse',
