@@ -310,7 +310,7 @@ function markedHtml(src: string): string {
 // PR90a v3.31.0 — download persona as Markdown.
 // v3.70.8 — instead of triggering a download, open a fullscreen
 // dialog with raw markdown + live preview + Edit Bio + Download.
-import { marked } from 'marked'
+// (marked is already imported above for the bio preview.)
 
 const mdOpen = ref(false)
 const mdLoading = ref(false)
@@ -1350,9 +1350,11 @@ const vocabOptions = [
           />
         </div>
       </DashboardState>
-    </template>
 
-    <!-- v3.70.8 — Markdown viewer/editor (fullscreen) -->
+    <!-- v3.70.8 — Markdown viewer/editor (fullscreen).
+         Must live inside #body slot — DashboardPanel's default slot
+         wraps header+body and a positional child here would override
+         the whole panel and render nothing. -->
     <UModal
       v-model:open="mdOpen"
       :ui="{
@@ -1471,6 +1473,7 @@ const vocabOptions = [
         </div>
       </template>
     </UModal>
+    </template>
   </UDashboardPanel>
 </template>
 

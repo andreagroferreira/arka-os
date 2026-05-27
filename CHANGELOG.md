@@ -5,6 +5,35 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.9] - 2026-05-27
+
+### Fixed (HOTFIX — /personas/<id> was rendering blank after v3.70.8)
+
+v3.70.8 shipped the MD viewer/editor modal but mounted the `<UModal>`
+as a **positional child** of `<UDashboardPanel>`. The panel template
+uses a default `<slot>` that wraps `#header + #body + #footer`, so any
+positional content becomes the default slot and replaces the entire
+panel structure. Result: the persona detail page rendered empty (the
+sidebar showed, the route was correct, no console error — just nothing
+in the body).
+
+Moved the `<UModal>` **inside** the `#body` template slot. Verified via
+browser test:
+
+- `/personas/<id>` → hero + stats + DNA tabs render
+- MD button → modal opens with source/preview split
+- Edit bio → textarea + live preview
+- Save bio → returns to view mode (frontend ok; Obsidian-source bio
+  persistence is a separate pre-existing bug, deferred)
+
+Also removed a duplicate `import { marked } from 'marked'` that Vite
+was deduplicating silently — kept for cleanliness.
+
+### Files changed
+
+- `dashboard/app/pages/personas/[id].vue` — `</template>` moved to
+  the right position; duplicate import removed.
+
 ## [3.70.8] - 2026-05-27
 
 ### Fixed (UTable row-click crash on /personas, /departments, /workflows)
