@@ -74,3 +74,5 @@ arka/skills/client-*/
 
 # Playwright MCP verification artifacts
 .playwright-mcp/
+dashboard/test-results/
+dashboard/playwright-report/

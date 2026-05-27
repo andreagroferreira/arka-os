@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.71.1] - 2026-05-27
+
+### Hardened — terminal single-writer-per-session + E2E coverage
+
+Follow-up to v3.71.0 (PR-T3).
+
+- **Single live WebSocket per session** (`core/terminal/connections.py`,
+  `scripts/dashboard-api.py`): a newer connection (a reload, or a second
+  tab) now supersedes the previous one — the endpoint closes the
+  superseded WS (code 4409) and reader teardown is guarded so it can't
+  evict the replacement. `asyncio` allows one reader per fd, so this
+  removes the only path where concurrent connections could duplicate
+  scrollback. 5 new unit tests for the connection registry.
+- **Playwright E2E** (`dashboard/playwright.config.ts`,
+  `dashboard/e2e/terminal.spec.ts`): codifies and automates the two
+  invariants verified manually on the v3.71.0 ship — navigation keeps the
+  same session, and a full reload reattaches to the same backend PTY with
+  its scrollback replayed (no duplicate session in either case). Both pass.
+  Run with `npm run test:e2e` (needs both servers + `npx playwright
+  install chromium`).
+
+Full Python suite: 4140 passing.
+
 ## [3.71.0] - 2026-05-27
 
 ### Added — Persistent terminal sessions (survive navigation + reload)

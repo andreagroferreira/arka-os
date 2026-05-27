@@ -2282,6 +2282,12 @@ def _terminal_origin_ok(origin: str) -> bool:
     )
 
 
+# v3.71.1 — enforce a single live WebSocket per session (latest wins), so a
+# reload or a second tab can't fight over the one PTY fd reader.
+from core.terminal.connections import ConnectionRegistry as _TerminalConnRegistry
+_terminal_conns = _TerminalConnRegistry()
+
+
 @app.get("/api/terminal/token")
 def terminal_token_endpoint():
     """Return the per-process bearer token used in WS handshakes.
@@ -2366,6 +2372,16 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
 
     await ws.accept()
 
+    # v3.71.1 — single live connection per session: a newer connection
+    # (a reload, or a second tab) supersedes the previous one, which we
+    # close so it stops pumping the shared PTY fd.
+    superseded = _terminal_conns.acquire(session_id, ws)
+    if superseded is not None:
+        try:
+            await superseded.close(code=4409, reason="superseded by a newer connection")
+        except Exception:
+            pass
+
     # v3.71.0 — replay recent scrollback so a client reconnecting after
     # the operator navigated away / reloaded restores its session as it
     # left it. Sent before the live reader is attached, so the historical
@@ -2437,10 +2453,13 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
         pass
     finally:
         pump_task.cancel()
-        try:
-            loop.remove_reader(session.master_fd)
-        except (ValueError, OSError):
-            pass
+        # Only the still-active connection owns the fd reader — a superseded
+        # connection tearing down must not remove its replacement's reader.
+        if _terminal_conns.release(session_id, ws):
+            try:
+                loop.remove_reader(session.master_fd)
+            except (ValueError, OSError):
+                pass
 
 
 @app.on_event("startup")

@@ -35,10 +35,12 @@ This "no duplication" guarantee holds for the **serialized single
 connection per session** that the frontend enforces (the
 `attach()`/`open()` no-op guard prevents a tab from double-connecting).
 `asyncio` allows only one `add_reader` per fd, so two *concurrent*
-WebSockets on the same session id are not supported — the second would
-replace the first's reader and the shared replay snapshot could
-duplicate. Single-writer-per-session enforcement is tracked as a
-follow-up; it is out of scope under the localhost single-operator model.
+WebSockets on the same session id would fight over it. As of **v3.71.1**
+this is enforced: a newer connection supersedes the previous one via
+`core/terminal/connections.py` (the endpoint closes the superseded WS with
+code 4409, and reader teardown is guarded so the old connection can't
+evict the new one's reader). "Latest wins" — concurrent connections can no
+longer duplicate output.
 
 - **Default size:** 512 KB per session (~4 MB across the 8-session cap).
 - **Configurable:** `ARKAOS_TERMINAL_SCROLLBACK_BYTES`.

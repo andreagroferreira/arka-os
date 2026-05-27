@@ -16,6 +16,7 @@ from core.terminal.session import (
 )
 from core.terminal.audit import log_end, log_start
 from core.terminal.token import current_token
+from core.terminal.connections import ConnectionRegistry
 
 __all__ = [
     "TerminalSession",
@@ -24,4 +25,5 @@ __all__ = [
     "log_start",
     "log_end",
     "current_token",
+    "ConnectionRegistry",
 ]
