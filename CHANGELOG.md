@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.70.10] - 2026-05-27
+
+### Fixed (Obsidian-source personas silently dropped bio_md edits)
+
+The MD bio viewer/editor (shipped v3.70.8/v3.70.9) let operators edit a
+persona's long-form Markdown bio, and the PUT `/api/personas/<id>`
+endpoint returned 200 — but for personas sourced from the Obsidian vault
+the edit silently disappeared on the next read. The Obsidian store never
+serialized the `bio_md` field: `_render` omitted it from the frontmatter
+and `_frontmatter_to_persona` never parsed it back. JSON-source personas
+were unaffected.
+
+`core/personas/obsidian_store.py`:
+- `_render` now writes `bio_md` into the frontmatter (only when set, to
+  keep bio-less persona files clean; skipped on the no-yaml fallback
+  path, which can't represent multi-line values).
+- `_frontmatter_to_persona` now reads `bio_md` back into the `Persona`.
+
+Covered by two new round-trip tests (multi-line Markdown with special
+characters; absence of a noisy `bio_md:` key when empty). Full suite:
+4129 passing.
+
 ## [3.70.9] - 2026-05-27
 
 ### Fixed (HOTFIX — /personas/<id> was rendering blank after v3.70.8)
