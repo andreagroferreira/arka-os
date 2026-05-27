@@ -20,7 +20,7 @@ from typing import Optional
 ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(ARKAOS_ROOT))
 
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="ArkaOS Dashboard API", version="2.2.0")
@@ -2257,6 +2257,160 @@ def workflow_update_yaml(workflow_id: str, body: dict):
     except OSError as exc:
         return {"error": f"write failed: {exc}"}
     return {"updated": True, "id": workflow_id, "file": str(target)}
+
+
+# ============================================================================
+# v3.72.0 — Cognition: surface Dreaming insights (read-only) to the dashboard.
+# Reads existing markdown insights from <vault>/Projects/ArkaOS/Dreams via
+# core.cognition.dreams_reader. No new engine — pure read.
+# ============================================================================
+
+
+def _dreams_dir():
+    """Resolve the Dreams folder from the user's vault, or None."""
+    from core.runtime.path_resolver import load_profile, ProfileMissingError
+    try:
+        profile = load_profile()
+    except ProfileMissingError:
+        return None
+    except Exception:  # noqa: BLE001 — never break the endpoint on profile errors
+        return None
+    vault = getattr(profile, "vault_path", None)
+    return (Path(vault) / "Projects" / "ArkaOS" / "Dreams") if vault else None
+
+
+def _insight_to_dict(ins) -> dict:
+    return {
+        "date": ins.date,
+        "title": ins.title,
+        "confidence": ins.confidence,
+        "sources": list(ins.sources),
+        "tags": list(ins.tags),
+        "body": ins.body,
+    }
+
+
+@app.get("/api/cognition/insights")
+def cognition_insights(days: int = 7):
+    """Recent Dreaming insights within the given window. Never 500s."""
+    dreams = _dreams_dir()
+    if dreams is None:
+        return {"insights": [], "available": False}
+    from core.cognition.dreams_reader import list_insights
+    items = list_insights(dreams, since_days=max(1, int(days)))
+    return {"insights": [_insight_to_dict(i) for i in items], "available": True}
+
+
+@app.get("/api/cognition/status")
+def cognition_status():
+    """Insight counts + confidence breakdown + last activity date."""
+    dreams = _dreams_dir()
+    if dreams is None:
+        return {
+            "today": 0, "week": 0, "total": 0,
+            "by_confidence": {"high": 0, "medium": 0, "low": 0},
+            "vault_configured": False, "last_date": None,
+        }
+    from core.cognition.dreams_reader import list_insights
+    all_items = list_insights(dreams, since_days=36500)
+    by_conf = {"high": 0, "medium": 0, "low": 0}
+    for i in all_items:
+        by_conf[i.confidence if i.confidence in by_conf else "medium"] += 1
+    return {
+        "today": len(list_insights(dreams, since_days=1)),
+        "week": len(list_insights(dreams, since_days=7)),
+        "total": len(all_items),
+        "by_confidence": by_conf,
+        "vault_configured": True,
+        "last_date": all_items[0].date if all_items else None,
+    }
+
+
+# ============================================================================
+# v3.72.0 — System: version check + one-click core update (feature #3).
+# ============================================================================
+
+_npm_latest_cache = {"version": None, "ts": 0.0}
+
+
+def _current_version() -> str:
+    root = os.environ.get("ARKAOS_ROOT") or str(Path(__file__).resolve().parent.parent)
+    try:
+        return (Path(root) / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        return "0.0.0"
+
+
+def _npm_latest_version():
+    import subprocess
+    import time
+    now = time.time()
+    if _npm_latest_cache["version"] and now - _npm_latest_cache["ts"] < 600:
+        return _npm_latest_cache["version"]
+    try:
+        out = subprocess.run(
+            ["npm", "view", "arkaos", "version"],
+            capture_output=True, text=True, timeout=20,
+        )
+        latest = (out.stdout or "").strip() or None
+    except Exception:  # noqa: BLE001
+        latest = None
+    if latest:
+        _npm_latest_cache["version"] = latest
+        _npm_latest_cache["ts"] = now
+    return latest
+
+
+def _is_newer(latest: str, current: str) -> bool:
+    import re
+    def _parts(v):
+        nums = [int(n) for n in re.findall(r"\d+", v)[:3]]
+        return nums or [0]
+    try:
+        return _parts(latest) > _parts(current)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _run_core_update() -> dict:
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["npx", "arkaos@latest", "update"],
+            capture_output=True, text=True, timeout=600,
+        )
+        tail = ((out.stdout or "") + (out.stderr or ""))[-2000:]
+        return {"ok": out.returncode == 0, "output": tail}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "output": f"update failed: {exc}"}
+
+
+@app.get("/api/system/version")
+def system_version():
+    """Current installed version vs the latest on npm."""
+    current = _current_version()
+    latest = _npm_latest_version()
+    return {
+        "current": current,
+        "latest": latest,
+        "update_available": bool(latest) and _is_newer(latest, current),
+    }
+
+
+@app.post("/api/system/update")
+def system_update(request: Request):
+    """Run `npx arkaos@latest update` (update step 1). Step 2 (project
+    sync via /arka update) is a Claude Code action the UI prompts for.
+
+    A regular POST is CORS-protected; as defense-in-depth for an endpoint
+    that runs an update, reject any explicitly non-localhost origin (an
+    empty origin — local CLI / same-origin — is allowed).
+    """
+    origin = request.headers.get("origin", "")
+    if origin and not _terminal_origin_ok(origin):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="origin not allowed")
+    return _run_core_update()
 
 
 # ============================================================================

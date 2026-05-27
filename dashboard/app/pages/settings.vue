@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// PR92d v3.42.0 — primary color picker.
+import { THEME_COLOR_OPTIONS, useThemeColor } from '~/composables/useThemeColor'
+
 interface ProfileResponse {
   version: string
   name: string
@@ -22,7 +25,7 @@ const {
   data: profile,
   status: profileStatus,
   error: profileError,
-  refresh: refreshProfile,
+  refresh: refreshProfile
 } = await fetchApi<ProfileResponse>('/api/profile')
 
 const profileDraft = ref({
@@ -32,7 +35,7 @@ const profileDraft = ref({
   market: profile.value?.market ?? '',
   language: profile.value?.language ?? 'en',
   vaultPath: profile.value?.vaultPath ?? '',
-  projectsDir: profile.value?.projectsDir ?? '',
+  projectsDir: profile.value?.projectsDir ?? ''
 })
 
 watch(profile, (p) => {
@@ -44,7 +47,7 @@ watch(profile, (p) => {
     market: p.market,
     language: p.language,
     vaultPath: p.vaultPath,
-    projectsDir: p.projectsDir,
+    projectsDir: p.projectsDir
   }
 }, { immediate: true })
 
@@ -68,7 +71,7 @@ async function testVault() {
     if (profileDraft.value.vaultPath !== profile.value?.vaultPath) {
       await $fetch(`${apiBase}/api/profile`, {
         method: 'POST',
-        body: { vaultPath: profileDraft.value.vaultPath },
+        body: { vaultPath: profileDraft.value.vaultPath }
       })
     }
     vaultStatus.value = await $fetch<VaultStatus>(`${apiBase}/api/settings/vault`)
@@ -76,13 +79,13 @@ async function testVault() {
       title: vaultStatus.value.exists ? 'Vault reachable' : 'Vault not found',
       description: vaultStatus.value.vault_path || 'Set a path first',
       color: vaultStatus.value.exists ? 'success' : 'warning',
-      icon: vaultStatus.value.exists ? 'i-lucide-check-circle' : 'i-lucide-alert-circle',
+      icon: vaultStatus.value.exists ? 'i-lucide-check-circle' : 'i-lucide-alert-circle'
     })
   } catch (err) {
     toast.add({
       title: 'Test failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     testingVault.value = false
@@ -94,19 +97,19 @@ async function saveProfile() {
   try {
     await $fetch<ProfileResponse>(`${apiBase}/api/profile`, {
       method: 'POST',
-      body: profileDraft.value,
+      body: profileDraft.value
     })
     await refreshProfile()
     toast.add({
       title: 'Profile saved',
       description: 'Settings written to ~/.arkaos/profile.json',
-      color: 'success',
+      color: 'success'
     })
   } catch (err) {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     savingProfile.value = false
@@ -115,7 +118,7 @@ async function saveProfile() {
 
 const languageOptions = [
   { label: 'English', value: 'en' },
-  { label: 'Português', value: 'pt' },
+  { label: 'Português', value: 'pt' }
 ]
 
 const roleOptions = [
@@ -125,16 +128,23 @@ const roleOptions = [
   { label: 'Engineer', value: 'engineer' },
   { label: 'Designer', value: 'designer' },
   { label: 'Operator', value: 'operator' },
-  { label: 'Consultant', value: 'consultant' },
+  { label: 'Consultant', value: 'consultant' }
 ]
 
 // ─── API Keys (preserved from earlier) ──────────────────────────────────
 
+interface KeyRow {
+  key: string
+  provider: string
+  configured: boolean
+  used_for?: string
+}
+
 const {
   data: keysData,
   status: keysStatus,
-  refresh: refreshKeys,
-} = fetchApi<any>('/api/keys')
+  refresh: refreshKeys
+} = fetchApi<{ keys: KeyRow[] }>('/api/keys')
 
 const keys = computed(() => keysData.value?.keys ?? [])
 
@@ -154,13 +164,13 @@ async function saveKey() {
   try {
     await $fetch(`${apiBase}/api/keys`, {
       method: 'POST',
-      body: { key: keyName, value: newValue.value },
+      body: { key: keyName, value: newValue.value }
     })
     newKey.value = ''
     newValue.value = ''
     customKeyName.value = ''
     await refreshKeys()
-  } catch {}
+  } catch { /* best-effort; surfaced via list refresh */ }
   saving.value = false
 }
 
@@ -169,7 +179,7 @@ async function deleteKey(keyName: string) {
   try {
     await $fetch(`${apiBase}/api/keys/${keyName}`, { method: 'DELETE' })
     await refreshKeys()
-  } catch {}
+  } catch { /* best-effort; surfaced via list refresh */ }
   deletingKey.value = null
 }
 
@@ -177,7 +187,7 @@ const keyOptions = [
   { label: 'OPENAI_API_KEY', value: 'OPENAI_API_KEY' },
   { label: 'FAL_API_KEY', value: 'FAL_API_KEY' },
   { label: 'GOOGLE_API_KEY', value: 'GOOGLE_API_KEY' },
-  { label: 'Custom...', value: 'custom' },
+  { label: 'Custom...', value: 'custom' }
 ]
 
 // ─── PR63b v2.89.0 — MCPs / Hooks / Plugins / Theme sections ────────────
@@ -231,11 +241,8 @@ const colorMode = useColorMode()
 const themeOptions = [
   { label: 'System (auto)', value: 'system' },
   { label: 'Light', value: 'light' },
-  { label: 'Dark', value: 'dark' },
+  { label: 'Dark', value: 'dark' }
 ]
-
-// PR92d v3.42.0 — primary color picker.
-import { THEME_COLOR_OPTIONS, useThemeColor } from '~/composables/useThemeColor'
 const themeColor = useThemeColor()
 const themeColorOptions = THEME_COLOR_OPTIONS
 
@@ -256,19 +263,52 @@ function formatInstalledAt(iso: string): string {
 
 // ─── Section nav ────────────────────────────────────────────────────────
 
-type SectionId = 'profile' | 'projects' | 'keys' | 'mcps' | 'hooks' | 'plugins' | 'theme'
+type SectionId = 'profile' | 'projects' | 'keys' | 'mcps' | 'hooks' | 'plugins' | 'theme' | 'updates'
 
-const sections: { id: SectionId; label: string; icon: string }[] = [
-  { id: 'profile',  label: 'Profile',   icon: 'i-lucide-user-circle' },
-  { id: 'projects', label: 'Projects',  icon: 'i-lucide-folders' },
-  { id: 'keys',     label: 'API Keys',  icon: 'i-lucide-key' },
-  { id: 'mcps',     label: 'MCPs',      icon: 'i-lucide-plug-2' },
-  { id: 'hooks',    label: 'Hooks',     icon: 'i-lucide-webhook' },
-  { id: 'plugins',  label: 'Plugins',   icon: 'i-lucide-puzzle' },
-  { id: 'theme',    label: 'Theme',     icon: 'i-lucide-palette' },
+const sections: { id: SectionId, label: string, icon: string }[] = [
+  { id: 'profile', label: 'Profile', icon: 'i-lucide-user-circle' },
+  { id: 'projects', label: 'Projects', icon: 'i-lucide-folders' },
+  { id: 'keys', label: 'API Keys', icon: 'i-lucide-key' },
+  { id: 'mcps', label: 'MCPs', icon: 'i-lucide-plug-2' },
+  { id: 'hooks', label: 'Hooks', icon: 'i-lucide-webhook' },
+  { id: 'plugins', label: 'Plugins', icon: 'i-lucide-puzzle' },
+  { id: 'theme', label: 'Theme', icon: 'i-lucide-palette' },
+  { id: 'updates', label: 'Updates', icon: 'i-lucide-download' }
 ]
 
 const activeSection = ref<SectionId>('profile')
+
+// ─── Updates (v3.72.0) — version check + one-click core update ──────────
+const ver = ref<{ current: string, latest: string | null, update_available: boolean } | null>(null)
+const checkingVer = ref(false)
+const updating = ref(false)
+const updateResult = ref<{ ok: boolean, output: string } | null>(null)
+
+async function checkVersion() {
+  checkingVer.value = true
+  try {
+    ver.value = await $fetch(`${apiBase}/api/system/version`)
+  } catch {
+    ver.value = null
+  } finally {
+    checkingVer.value = false
+  }
+}
+
+async function runUpdate() {
+  updating.value = true
+  updateResult.value = null
+  try {
+    updateResult.value = await $fetch(`${apiBase}/api/system/update`, { method: 'POST' })
+  } catch (e) {
+    updateResult.value = { ok: false, output: e instanceof Error ? e.message : String(e) }
+  } finally {
+    updating.value = false
+    checkVersion()
+  }
+}
+
+onMounted(checkVersion)
 </script>
 
 <template>
@@ -299,8 +339,8 @@ const activeSection = ref<SectionId>('profile')
             <span>{{ s.label }}</span>
           </button>
           <p class="text-xs text-muted px-3 mt-6">
-            7 sections. Profile + Projects edit data; everything else is
-            read-only diagnostics until an explicit edit endpoint lands.
+            8 sections. Profile + Projects edit data; Updates runs the core
+            update; everything else is read-only diagnostics.
           </p>
         </nav>
 
@@ -308,7 +348,9 @@ const activeSection = ref<SectionId>('profile')
         <div>
           <!-- Profile -->
           <section v-if="activeSection === 'profile'">
-            <h2 class="text-lg font-semibold mb-1">Profile</h2>
+            <h2 class="text-lg font-semibold mb-1">
+              Profile
+            </h2>
             <p class="text-sm text-muted mb-6">
               Your identity, role, and language. Stored locally at
               <code class="font-mono text-xs">~/.arkaos/profile.json</code>.
@@ -448,7 +490,9 @@ const activeSection = ref<SectionId>('profile')
 
           <!-- Projects -->
           <section v-else-if="activeSection === 'projects'">
-            <h2 class="text-lg font-semibold mb-1">Project directories</h2>
+            <h2 class="text-lg font-semibold mb-1">
+              Project directories
+            </h2>
             <p class="text-sm text-muted mb-6">
               Directories the sync engine scans for projects.
               Comma-separated absolute paths (e.g.
@@ -500,7 +544,9 @@ const activeSection = ref<SectionId>('profile')
 
           <!-- API Keys -->
           <section v-else-if="activeSection === 'keys'">
-            <h2 class="text-lg font-semibold mb-1">API Keys</h2>
+            <h2 class="text-lg font-semibold mb-1">
+              API Keys
+            </h2>
             <p class="text-sm text-muted mb-6">
               Configure API keys for external services. Keys are stored
               locally at <code class="font-mono text-xs">~/.arkaos/keys.json</code>.
@@ -508,11 +554,18 @@ const activeSection = ref<SectionId>('profile')
 
             <UCard class="mb-6">
               <div class="space-y-4">
-                <p class="text-xs font-semibold text-muted uppercase tracking-wider">Add API Key</p>
+                <p class="text-xs font-semibold text-muted uppercase tracking-wider">
+                  Add API Key
+                </p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                   <div>
                     <label class="text-xs text-muted mb-1 block">Provider</label>
-                    <USelect v-model="newKey" :items="keyOptions" class="w-full" placeholder="Select key..." />
+                    <USelect
+                      v-model="newKey"
+                      :items="keyOptions"
+                      class="w-full"
+                      placeholder="Select key..."
+                    />
                   </div>
                   <div v-if="isCustom">
                     <label class="text-xs text-muted mb-1 block">Key Name</label>
@@ -520,7 +573,12 @@ const activeSection = ref<SectionId>('profile')
                   </div>
                   <div :class="isCustom ? '' : 'md:col-span-1'">
                     <label class="text-xs text-muted mb-1 block">Value</label>
-                    <UInput v-model="newValue" type="password" class="w-full" placeholder="sk-..." />
+                    <UInput
+                      v-model="newValue"
+                      type="password"
+                      class="w-full"
+                      placeholder="sk-..."
+                    />
                   </div>
                   <div>
                     <UButton
@@ -560,9 +618,17 @@ const activeSection = ref<SectionId>('profile')
                         variant="subtle"
                         size="xs"
                       />
-                      <UBadge v-else label="Not Set" color="neutral" variant="outline" size="xs" />
+                      <UBadge
+                        v-else
+                        label="Not Set"
+                        color="neutral"
+                        variant="outline"
+                        size="xs"
+                      />
                     </div>
-                    <p v-if="k.used_for" class="text-xs text-muted mt-0.5">{{ k.used_for }}</p>
+                    <p v-if="k.used_for" class="text-xs text-muted mt-0.5">
+                      {{ k.used_for }}
+                    </p>
                     <p v-if="k.masked_value && k.configured" class="text-xs font-mono text-muted/60 mt-0.5">
                       {{ k.masked_value }}
                     </p>
@@ -585,7 +651,9 @@ const activeSection = ref<SectionId>('profile')
           <!-- MCPs -->
           <section v-else-if="activeSection === 'mcps'">
             <div class="flex items-baseline justify-between mb-1">
-              <h2 class="text-lg font-semibold">MCPs</h2>
+              <h2 class="text-lg font-semibold">
+                MCPs
+              </h2>
               <UButton
                 label="Refresh"
                 variant="ghost"
@@ -601,7 +669,9 @@ const activeSection = ref<SectionId>('profile')
             </p>
             <div v-if="!mcps.length" class="rounded-lg border border-default p-6 text-center">
               <UIcon name="i-lucide-plug-2" class="size-10 text-muted mx-auto mb-2" />
-              <p class="text-sm text-muted">No MCP servers configured.</p>
+              <p class="text-sm text-muted">
+                No MCP servers configured.
+              </p>
             </div>
             <div v-else class="space-y-2">
               <div
@@ -632,7 +702,9 @@ const activeSection = ref<SectionId>('profile')
           <!-- Hooks -->
           <section v-else-if="activeSection === 'hooks'">
             <div class="flex items-baseline justify-between mb-1">
-              <h2 class="text-lg font-semibold">Hooks</h2>
+              <h2 class="text-lg font-semibold">
+                Hooks
+              </h2>
               <UButton
                 label="Refresh"
                 variant="ghost"
@@ -657,7 +729,9 @@ const activeSection = ref<SectionId>('profile')
             </div>
             <div v-if="!hooks.length" class="rounded-lg border border-default p-6 text-center">
               <UIcon name="i-lucide-webhook" class="size-10 text-muted mx-auto mb-2" />
-              <p class="text-sm text-muted">No hooks wired in settings.json.</p>
+              <p class="text-sm text-muted">
+                No hooks wired in settings.json.
+              </p>
             </div>
             <div v-else class="space-y-3">
               <div
@@ -691,7 +765,9 @@ const activeSection = ref<SectionId>('profile')
           <!-- Plugins -->
           <section v-else-if="activeSection === 'plugins'">
             <div class="flex items-baseline justify-between mb-1">
-              <h2 class="text-lg font-semibold">Plugins</h2>
+              <h2 class="text-lg font-semibold">
+                Plugins
+              </h2>
               <UButton
                 label="Refresh"
                 variant="ghost"
@@ -707,7 +783,9 @@ const activeSection = ref<SectionId>('profile')
             </p>
             <div v-if="!plugins.length" class="rounded-lg border border-default p-6 text-center">
               <UIcon name="i-lucide-puzzle" class="size-10 text-muted mx-auto mb-2" />
-              <p class="text-sm text-muted">No plugins installed.</p>
+              <p class="text-sm text-muted">
+                No plugins installed.
+              </p>
               <p class="text-xs text-muted mt-2">
                 Try <code class="font-mono">/plugin marketplace add andreagroferreira/arka-os</code>
                 from Claude Code.
@@ -724,8 +802,18 @@ const activeSection = ref<SectionId>('profile')
                   <div class="flex items-center gap-2 mb-0.5">
                     <span class="text-sm font-semibold">{{ p.name }}</span>
                     <UBadge :label="p.marketplace" variant="outline" size="xs" />
-                    <UBadge v-if="p.scope" :label="p.scope" variant="soft" size="xs" />
-                    <UBadge v-if="p.version" :label="`v${p.version}`" variant="subtle" size="xs" />
+                    <UBadge
+                      v-if="p.scope"
+                      :label="p.scope"
+                      variant="soft"
+                      size="xs"
+                    />
+                    <UBadge
+                      v-if="p.version"
+                      :label="`v${p.version}`"
+                      variant="subtle"
+                      size="xs"
+                    />
                   </div>
                   <p v-if="p.installed_at" class="text-xs text-muted">
                     Installed {{ formatInstalledAt(p.installed_at) }}
@@ -737,7 +825,9 @@ const activeSection = ref<SectionId>('profile')
 
           <!-- Theme -->
           <section v-else-if="activeSection === 'theme'">
-            <h2 class="text-lg font-semibold mb-1">Theme</h2>
+            <h2 class="text-lg font-semibold mb-1">
+              Theme
+            </h2>
             <p class="text-sm text-muted mb-6">
               Light / dark / system (follows OS preference).
               Stored locally by your browser.
@@ -779,13 +869,87 @@ const activeSection = ref<SectionId>('profile')
                           'bg-rose-500': opt.value === 'rose',
                           'bg-amber-500': opt.value === 'amber',
                           'bg-teal-500': opt.value === 'teal',
-                          'bg-cyan-500': opt.value === 'cyan',
+                          'bg-cyan-500': opt.value === 'cyan'
                         }"
                       />
                       {{ opt.label }}
                     </button>
                   </div>
                 </UFormField>
+              </div>
+            </UCard>
+          </section>
+
+          <section v-else-if="activeSection === 'updates'">
+            <h2 class="text-lg font-semibold mb-1">
+              Updates
+            </h2>
+            <p class="text-sm text-muted mb-6">
+              Keep ArkaOS current. The button runs the core update
+              (<code class="text-xs">npx arkaos@latest update</code>); finish
+              the project sync by running <code class="text-xs">/arka update</code>
+              in Claude Code.
+            </p>
+            <UCard>
+              <div class="space-y-4">
+                <div class="flex items-center gap-3 flex-wrap">
+                  <div class="text-sm">
+                    Installed:
+                    <UBadge :label="`v${ver?.current ?? '—'}`" variant="subtle" size="sm" />
+                  </div>
+                  <div class="text-sm">
+                    Latest:
+                    <UBadge
+                      :label="ver?.latest ? `v${ver.latest}` : '—'"
+                      :color="ver?.update_available ? 'warning' : 'success'"
+                      variant="subtle"
+                      size="sm"
+                    />
+                  </div>
+                  <UButton
+                    size="xs"
+                    variant="ghost"
+                    icon="i-lucide-refresh-cw"
+                    :loading="checkingVer"
+                    @click="checkVersion"
+                  >
+                    Check
+                  </UButton>
+                </div>
+
+                <div v-if="ver?.update_available" class="flex items-center gap-3">
+                  <UButton
+                    icon="i-lucide-download"
+                    color="primary"
+                    :loading="updating"
+                    @click="runUpdate"
+                  >
+                    {{ updating ? 'Updating…' : `Update to v${ver.latest}` }}
+                  </UButton>
+                  <span class="text-xs text-muted">Runs the core update, then asks you to finish in Claude Code.</span>
+                </div>
+                <p v-else-if="ver && !ver.update_available" class="text-sm text-success flex items-center gap-1.5">
+                  <UIcon name="i-lucide-check-circle" class="size-4" />
+                  You're on the latest version.
+                </p>
+                <p v-else class="text-sm text-muted">
+                  Couldn't reach the version service.
+                </p>
+
+                <div
+                  v-if="updateResult"
+                  class="rounded-lg border p-3 text-xs"
+                  :class="updateResult.ok ? 'border-success/40 bg-success/5' : 'border-error/40 bg-error/5'"
+                >
+                  <div class="flex items-center gap-1.5 font-medium mb-1">
+                    <UIcon :name="updateResult.ok ? 'i-lucide-check-circle' : 'i-lucide-alert-triangle'" class="size-4" />
+                    {{ updateResult.ok ? 'Core updated' : 'Update failed' }}
+                  </div>
+                  <p v-if="updateResult.ok" class="text-muted">
+                    Now run <code>/arka update</code> in Claude Code to sync all projects (step 2).
+                  </p>
+                  <pre class="mt-2 whitespace-pre-wrap font-mono text-[11px] text-muted max-h-48 overflow-y-auto">{{ updateResult.output }}</pre>
+                </div>
               </div>
             </UCard>
           </section>
