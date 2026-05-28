@@ -217,6 +217,11 @@ enforcement_levels:
         rule: "Bottom-line first output. Lead with answer, then why, then how. Confidence tags on assessments."
         enforcement: "See config/standards/communication.md for full standard"
 
+      # ─── Rule added in PR6 Squad Intelligence Upgrade (2026-05-28) ───────
+      - id: design-system-locked
+        rule: "Each project SHOULD declare a `design-system.yaml` at its root listing tokens (colors, spacing, fonts), allowed_components, file_globs to scan, and forbidden_patterns with suggestions. The per-project linter (core.governance.design_system_lint) detects UI/UX drift — hex literals outside the palette, inline style attributes, raw HTML where a Nuxt UI component exists, etc. Adoption is opt-in per project (no YAML at project root → no violations). v3.77.0 is advisory-only; pre-commit hook integration lands in v3.77.x once the rule sets stabilise across the operator's projects."
+        enforcement: "Run via `python -m core.governance.design_system_lint_cli <project_path>` (text or JSON output, optional --exit-on-violations). Example template at `docs/examples/design-system-example.yaml`."
+
       # ─── Rule added in PR5 Squad Intelligence Upgrade (2026-05-28) ───────
       - id: dna-fidelity-warn
         rule: "Agent outputs are compared against the `signature_markers` block in each agent's YAML at the end of every turn. Forbidden patterns (avoid_patterns) and missing opening phrases (opening_phrases) generate FidelityViolation records in ~/.arkaos/telemetry/dna-fidelity.jsonl. v3.76.0 is soft-warn — violations are recorded for telemetry and operator review, not blocked. Hard-block mode lands later once the marker set is calibrated against real production usage."

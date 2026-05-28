@@ -81,6 +81,20 @@ spec why divergence is justified. Manual audit:
 Dispatch specialists via the `Agent` tool. The squad lead from Phase 3
 names them. Specialists run in parallel when work is independent.
 
+**Design-system check on UI work (PR6 v3.77.0, SHOULD `design-system-locked`).**
+Before dispatching frontend/landing specialists, run the per-project
+linter to surface UI/UX drift:
+
+```
+python -m core.governance.design_system_lint_cli <project_path>
+```
+
+If the project has a `design-system.yaml`, violations come back with
+file:line + the suggestion text declared in the YAML. The frontend
+specialist should fix existing violations OR document why the new work
+diverges. Projects without a `design-system.yaml` skip the check.
+Template: `docs/examples/design-system-example.yaml`.
+
 **Experience injection (PR3 v3.74.0).** When a specialist is dispatched,
 Synapse layer `L2.6 AgentExperiences`
 (`core/synapse/agent_experiences_layer.py`) detects the

@@ -1,0 +1,95 @@
+# ============================================================================
+# Example design-system.yaml — Per-Project Design System Lock (PR6 v3.77.0)
+#
+# Copy this file to your project's root as `design-system.yaml` to opt-in
+# to design system linting. Run:
+#
+#   python -m core.governance.design_system_lint_cli /path/to/project
+#
+# Returns violations grouped by file:line with the per-pattern suggestion.
+# Advisory only in v3.77.0 — pre-commit hook integration lands in v3.77.x.
+# ============================================================================
+
+version: 1
+project: "my-project"
+
+# ─── Tokens — declarative palette (informational; not yet enforced) ─────
+# v3.77.0 records these for documentation. v3.77.x will validate that
+# `forbidden_patterns` references match a token here.
+tokens:
+  colors:
+    primary: "#3b82f6"        # blue-500
+    secondary: "#10b981"      # emerald-500
+    danger: "#ef4444"         # red-500
+    neutral_900: "#0f172a"    # slate-900
+    neutral_50: "#f8fafc"     # slate-50
+  spacing:                    # in pixels — Tailwind defaults shown
+    - 4
+    - 8
+    - 12
+    - 16
+    - 24
+    - 32
+    - 48
+    - 64
+  font_sizes:
+    xs: "0.75rem"
+    sm: "0.875rem"
+    base: "1rem"
+    lg: "1.125rem"
+    xl: "1.25rem"
+
+# ─── Allowed components (informational for v3.77.0) ─────────────────────
+# Future versions will validate that templates only import these.
+allowed_components:
+  - UButton
+  - UInput
+  - UCard
+  - UModal
+  - UDashboardPanel
+
+# ─── File globs to scan ─────────────────────────────────────────────────
+# Defaults when omitted: ["**/*.vue", "**/*.tsx", "**/*.jsx"]
+file_globs:
+  - "**/*.vue"
+  - "**/*.tsx"
+  - "**/*.jsx"
+  - "**/*.css"
+
+# ─── Forbidden patterns — the actual lint rules ─────────────────────────
+# Each rule is a regex. `suggestion` is shown in violation output so the
+# developer knows the fix. `exclude_paths` (glob patterns) skips files
+# where the pattern is legitimate (config files, legacy code, etc.).
+#
+# Self-exclusion: the file `design-system.yaml` at the PROJECT ROOT is
+# always excluded automatically (root-only — a `packages/sub/design-
+# system.yaml` in a monorepo would still be scanned by the parent
+# project's linter). The arka-os repo itself ships no root-level
+# `design-system.yaml` by design (operator opt-in only).
+forbidden_patterns:
+  # NOTE: this 6-hex regex catches `#3b82f6` and `#ff0000` style colors
+  # but does NOT catch `#fff` 3-char shorthand and matches a 6-char
+  # prefix of 8-char alpha (`#ff0000ff` → matches `#ff0000`). Tighten
+  # to `#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})\b` if your
+  # codebase uses shorthand or alpha channels.
+  - pattern: '#[a-fA-F0-9]{6}\b'
+    suggestion: "Use a declared color token (e.g., bg-primary, var(--color-primary)) instead of a raw hex literal."
+    exclude_paths:
+      - "tailwind.config.*"
+      - "**/*.config.*"
+
+  - pattern: 'style="[^"]*"'
+    suggestion: "Use Tailwind utility classes (class=\"...\") instead of an inline style attribute."
+    exclude_paths:
+      - "**/legacy/**"
+
+  - pattern: '\b(?:px|rem|em)\b'
+    suggestion: "Use a Tailwind spacing token (p-4, m-8, w-64) instead of a raw px/rem/em unit."
+    exclude_paths:
+      - "**/*.css"          # CSS files legitimately use units
+      - "tailwind.config.*"
+
+  - pattern: '<button\b(?![^>]*\bclass="[^"]*\bu-button\b)'
+    suggestion: "Use <UButton> (Nuxt UI) instead of a raw <button> element."
+    exclude_paths:
+      - "**/legacy/**"
