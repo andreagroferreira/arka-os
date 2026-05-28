@@ -30,8 +30,8 @@ jobs:
           # Without them the whole suite errored at collection. fastembed is
           # intentionally omitted — the knowledge tests insert via SQL to skip
           # the embedding pipeline, and the embedder degrades to keyword search.
-          pip install fastapi uvicorn websockets python-multipart sqlite-vec
-          pip install pytest pytest-cov
+          pip install fastapi uvicorn websockets python-multipart sqlite-vec httpx
+          pip install pytest pytest-cov pytest-asyncio
 
       - name: Run Python tests
         run: python -m pytest tests/python/ -v --tb=short
