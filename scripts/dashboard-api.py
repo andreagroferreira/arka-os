@@ -3008,30 +3008,49 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
     # left it. Sent before the live reader is attached, so the historical
     # prefix always precedes any new output (no interleave, no dup — these
     # bytes were already consumed from the kernel buffer when first read).
-    replay = session.scrollback()
-    if replay:
-        try:
-            await ws.send_bytes(replay)
-        except Exception:
-            await ws.close(code=1011, reason="replay failed")
-            return
-
     loop = asyncio.get_event_loop()
     output_queue: asyncio.Queue = asyncio.Queue()
 
-    def _on_readable():
-        try:
-            data = session.read(8192)
-        except OSError:
-            data = b""
-        if data:
-            output_queue.put_nowait(data)
+    # POSIX exposes a pollable master fd (add_reader); the Windows ConPTY
+    # backend has none (master_fd == -1) and instead pushes output from its
+    # own reader thread into a registered listener.
+    use_fd_reader = getattr(session, "master_fd", -1) >= 0
 
-    try:
-        loop.add_reader(session.master_fd, _on_readable)
-    except (ValueError, OSError):
-        await ws.close(code=1011, reason="pty unavailable")
-        return
+    if use_fd_reader:
+        replay = session.scrollback()
+        if replay:
+            try:
+                await ws.send_bytes(replay)
+            except Exception:
+                await ws.close(code=1011, reason="replay failed")
+                return
+
+        def _on_readable():
+            try:
+                data = session.read(8192)
+            except OSError:
+                data = b""
+            if data:
+                output_queue.put_nowait(data)
+
+        try:
+            loop.add_reader(session.master_fd, _on_readable)
+        except (ValueError, OSError):
+            await ws.close(code=1011, reason="pty unavailable")
+            return
+    else:
+        def _emit(data: bytes):
+            loop.call_soon_threadsafe(output_queue.put_nowait, data)
+
+        # Atomic: snapshot scrollback and start the live feed with no gap.
+        replay = session.attach(_emit)
+        if replay:
+            try:
+                await ws.send_bytes(replay)
+            except Exception:
+                session.set_listener(None)
+                await ws.close(code=1011, reason="replay failed")
+                return
 
     async def pump_to_client():
         while True:
@@ -3074,13 +3093,16 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
         pass
     finally:
         pump_task.cancel()
-        # Only the still-active connection owns the fd reader — a superseded
-        # connection tearing down must not remove its replacement's reader.
+        # Only the still-active connection owns the reader — a superseded
+        # connection tearing down must not detach its replacement's reader.
         if _terminal_conns.release(session_id, ws):
-            try:
-                loop.remove_reader(session.master_fd)
-            except (ValueError, OSError):
-                pass
+            if use_fd_reader:
+                try:
+                    loop.remove_reader(session.master_fd)
+                except (ValueError, OSError):
+                    pass
+            else:
+                session.set_listener(None)
 
 
 @app.on_event("startup")
