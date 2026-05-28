@@ -30,6 +30,7 @@ $arkaosHome   = Join-Path $env:USERPROFILE '.arkaos'
 $pidFile      = Join-Path $arkaosHome 'dashboard.pid'
 $portFile     = Join-Path $arkaosHome 'dashboard.ports'
 $apiLog       = Join-Path $arkaosHome 'api.log'
+$apiErrLog    = Join-Path $arkaosHome 'api.err.log'
 
 $null = New-Item -ItemType Directory -Force -Path $arkaosHome -ErrorAction SilentlyContinue
 
@@ -132,7 +133,7 @@ try {
         -ArgumentList @($dashboardApi, '--port', "$apiPort") `
         -WorkingDirectory $arkaosRoot `
         -RedirectStandardOutput $apiLog `
-        -RedirectStandardError  $apiLog `
+        -RedirectStandardError  $apiErrLog `
         -NoNewWindow `
         -PassThru
 } finally {
@@ -160,10 +161,10 @@ for ($i = 0; $i -lt 20; $i++) {
 if ($apiReady) {
     Write-Host "  API: http://localhost:$apiPort" -ForegroundColor Green
 } else {
-    Write-Host "  ! API may still be starting (check log: $apiLog)" -ForegroundColor Yellow
-    if (Test-Path -LiteralPath $apiLog) {
+    Write-Host "  ! API may still be starting (check log: $apiErrLog)" -ForegroundColor Yellow
+    if (Test-Path -LiteralPath $apiErrLog) {
         try {
-            $lastError = (Get-Content -LiteralPath $apiLog -Tail 3 -ErrorAction SilentlyContinue | Select-Object -First 1)
+            $lastError = (Get-Content -LiteralPath $apiErrLog -Tail 3 -ErrorAction SilentlyContinue | Select-Object -First 1)
             if ($lastError) {
                 Write-Host "  Last error: $lastError" -ForegroundColor DarkGray
             }
@@ -180,11 +181,23 @@ $nuxtServer = Join-Path $nuxtOutput 'server\index.mjs'
 
 function Start-NuxtDev {
     param([int]$Port, [int]$ApiPort, [string]$WorkingDir)
-    # `npx nuxt dev --port <n>` works from cmd.exe; PowerShell resolves npx
-    # via the npx.cmd shim installed with Node.js.
+    # Launch node directly against the Nuxt CLI entry. The 'npx' shim is a
+    # .cmd on Windows, which Start-Process -NoNewWindow cannot exec ("%1 is
+    # not a valid Win32 application"), and wrapping it in cmd.exe yields a
+    # process tree that dies with the launcher. A direct node.exe child
+    # detaches cleanly and survives, like the API process.
     $savedApi = $env:NUXT_PUBLIC_API_BASE
     $env:NUXT_PUBLIC_API_BASE = "http://localhost:$ApiPort"
     try {
+        $nuxtBin = Join-Path $WorkingDir 'node_modules\nuxt\bin\nuxt.mjs'
+        if (Test-Path -LiteralPath $nuxtBin) {
+            return Start-Process -FilePath 'node' `
+                -ArgumentList @($nuxtBin,'dev','--port',"$Port") `
+                -WorkingDirectory $WorkingDir `
+                -NoNewWindow `
+                -PassThru
+        }
+        # Fallback (non-Windows or missing local bin): the npx shim is fine.
         return Start-Process -FilePath 'npx' `
             -ArgumentList @('nuxt','dev','--port',"$Port") `
             -WorkingDirectory $WorkingDir `
@@ -215,18 +228,25 @@ if (Test-Path -LiteralPath $nuxtServer) {
     Write-Host "  Starting UI (dev) on :$uiPort..."
     $uiProc = Start-NuxtDev -Port $uiPort -ApiPort $apiPort -WorkingDir $dashboardDir
 } else {
-    # Auto-install and start
-    Write-Host '  Installing dashboard dependencies...'
-    $installer = if (Get-Command pnpm -ErrorAction SilentlyContinue) { 'pnpm' } else { 'npm' }
+    # Auto-install and start. The dashboard pins pnpm (package.json
+    # packageManager) — npm's flat node_modules layout breaks Nuxt 4's
+    # server-entry resolution ("No entry found in rollupOptions.input"), so
+    # install with the pinned pnpm via corepack (always shipped with Node).
+    # corepack/pnpm are .cmd shims that Start-Process -NoNewWindow cannot
+    # exec directly on Windows, so route through cmd.exe.
+    Write-Host '  Installing dashboard dependencies (pnpm via corepack)...'
+    $savedPrompt = $env:COREPACK_ENABLE_DOWNLOAD_PROMPT
+    $env:COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
     try {
-        Start-Process -FilePath $installer `
-            -ArgumentList @('install','--silent') `
+        Start-Process -FilePath $env:ComSpec `
+            -ArgumentList @('/c','corepack','pnpm','install') `
             -WorkingDirectory $dashboardDir `
             -NoNewWindow `
-            -Wait `
-            -PassThru | Out-Null
+            -Wait | Out-Null
     } catch {
-        Write-Host "  ! Dashboard install failed ($installer). API-only mode." -ForegroundColor Yellow
+        Write-Host "  ! Dashboard install failed. API-only mode." -ForegroundColor Yellow
+    } finally {
+        $env:COREPACK_ENABLE_DOWNLOAD_PROMPT = $savedPrompt
     }
     if (Test-Path -LiteralPath $nuxtNodeModules) {
         Write-Host "  Starting UI (dev) on :$uiPort..."
