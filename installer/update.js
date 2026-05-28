@@ -184,6 +184,8 @@ export async function update() {
     "post-tool-use",
     "pre-compact",
     "cwd-changed",
+    "pre-tool-use",
+    "stop",
   ];
   const hookExt = HOOK_EXT;
   const srcHooksDir = join(ARKAOS_ROOT, "config", "hooks");
