@@ -8,19 +8,36 @@ from typing import Optional
 
 # Lazy import — fastembed is optional
 _model = None
+_model_load_failed = False
 _model_name = "BAAI/bge-small-en-v1.5"  # 384 dims, fast, good quality
 EMBEDDING_DIMS = 384
 
 
 def get_model():
-    """Get or create the embedding model (lazy singleton)."""
-    global _model
-    if _model is None:
-        try:
-            from fastembed import TextEmbedding
-            _model = TextEmbedding(_model_name)
-        except ImportError:
-            return None
+    """Get or create the embedding model (lazy singleton).
+
+    Returns None — so callers degrade to keyword search — when fastembed
+    is not installed OR the model cannot be loaded (missing/partial ONNX
+    download, onnxruntime failure). The failure is cached so a broken
+    model does not re-trigger a slow load on every query.
+    """
+    global _model, _model_load_failed
+    if _model is not None:
+        return _model
+    if _model_load_failed:
+        return None
+    try:
+        from fastembed import TextEmbedding
+    except ImportError:
+        _model_load_failed = True
+        return None
+    try:
+        _model = TextEmbedding(_model_name)
+    except Exception:
+        # Model files missing/corrupt, or onnxruntime cannot load them.
+        # Degrade to keyword search rather than failing the request.
+        _model_load_failed = True
+        return None
     return _model
 
 
