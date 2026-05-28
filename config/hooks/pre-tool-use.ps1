@@ -116,6 +116,83 @@ print(json.dumps({
     }
 }
 
+# --- Specialist-dispatch gate (between KB-gate and flow-gate) ---
+# Blocks Tier-1 leads from writing to specialist-owned files without
+# dispatching first. Only fires for file-mutation tools.
+$specialistPy = Join-Path $env:ARKAOS_ROOT "core/workflow/specialist_enforcer.py"
+if ((Test-Path $specialistPy) -and ($toolName -in @("Write","Edit","MultiEdit","NotebookEdit"))) {
+    $toolInputJson = "{}"
+    if ($inp.tool_input) {
+        $toolInputJson = ($inp.tool_input | ConvertTo-Json -Compress -Depth 10)
+    }
+    $env:TOOL_NAME = $toolName
+    $env:TRANSCRIPT_PATH = $transcriptPath
+    $env:SESSION_ID = $sessionId
+    $env:CWD = $cwd
+    $env:TOOL_INPUT_JSON = $toolInputJson
+
+    $spScript = @'
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from core.workflow.specialist_enforcer import evaluate, record_telemetry
+except Exception:
+    print(json.dumps({"allow": True, "reason": "specialist-import-failed"}))
+    sys.exit(0)
+
+try:
+    tool_input = json.loads(os.environ.get("TOOL_INPUT_JSON", "{}"))
+except json.JSONDecodeError:
+    tool_input = {}
+
+decision = evaluate(
+    tool_name=os.environ.get("TOOL_NAME", ""),
+    transcript_path=os.environ.get("TRANSCRIPT_PATH", ""),
+    session_id=os.environ.get("SESSION_ID", ""),
+    cwd=os.environ.get("CWD", ""),
+    tool_input=tool_input,
+)
+try:
+    record_telemetry(
+        session_id=os.environ.get("SESSION_ID", ""),
+        tool=os.environ.get("TOOL_NAME", ""),
+        decision=decision,
+        cwd=os.environ.get("CWD", ""),
+        target_file=str(tool_input.get("file_path", "")),
+    )
+except Exception:
+    pass
+print(json.dumps({
+    "allow": decision.allow,
+    "reason": decision.reason,
+    "stderr_msg": decision.to_stderr_message(),
+}))
+'@
+
+    $spDecisionJson = $spScript | & $python.Source -
+    if (-not [string]::IsNullOrWhiteSpace($spDecisionJson)) {
+        try {
+            $spDecision = $spDecisionJson | ConvertFrom-Json
+        } catch { $spDecision = $null }
+
+        if ($spDecision -and -not $spDecision.allow) {
+            [Console]::Error.WriteLine($spDecision.stderr_msg)
+            $denyOut = @{
+                hookSpecificOutput = @{
+                    hookEventName = "PreToolUse"
+                    permissionDecision = "deny"
+                    permissionDecisionReason = $spDecision.stderr_msg
+                }
+            } | ConvertTo-Json -Compress -Depth 5
+            Write-Output $denyOut
+            exit 2
+        }
+    }
+}
+
 # --- Fast allow: not a flow-gated tool ---
 if ($toolName -ne "Write" -and $toolName -ne "Edit" -and $toolName -ne "MultiEdit") {
     exit 0

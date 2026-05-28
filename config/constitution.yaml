@@ -121,6 +121,11 @@ enforcement_levels:
         rule: "ArkaOS learns from user corrections via hybrid mechanism: implicit auto-detection with confidence scoring for typical corrections (default), explicit Marta-led confirmation for high-leverage rules (NON-NEGOTIABLE candidates) or rules that contradict existing memory. Marta is the owner of the learning loop. Memory rules carry a confidence field that climbs as the rule is applied without correction."
         enforcement: "Correction signals detected via absolute-language keywords ('sempre', 'nunca', 'no exceptions') and correction magnitude; [arka:learned-rule confidence=X] tag emitted when rule auto-saved; explicit Marta confirmation question fired when rule is high-leverage or conflicts with existing memory."
 
+      # ─── Rule added in PR1 Squad Intelligence Upgrade (2026-05-28) ───────
+      - id: dispatch-must-be-announced
+        rule: "When a squad lead dispatches a specialist via the Agent tool, the lead MUST emit `[arka:dispatch] <from> -> <to>` on a line of its own immediately before the dispatch call. The marker identifies the specialist to the PreToolUse specialist-enforcer so writes from the specialist pass `owner-match` instead of falling through as `no-routing-tag` or blocking the lead. The format is identical to `[arka:routing]` but uses the verb `dispatch` and points from the calling persona to the receiving specialist (e.g., `[arka:dispatch] paulo -> frontend-dev`)."
+        enforcement: "PreToolUse hook (config/hooks/pre-tool-use.sh) reads the dispatch marker via core.workflow.specialist_enforcer._resolve_persona. Dispatch tag overrides routing tag because it is more specific. Without it, lead writes to specialist-owned files are blocked when hooks.specialistEnforcement=true. See ADR docs/adr/2026-05-28-specialist-dispatch-subagent-blindspot.md for the architectural constraint this rule mitigates."
+
   quality_gate:
     description: "Mandatory pre-delivery review. Nothing ships without APPROVED verdict."
     trigger: "After the last execution phase, before delivery to user"

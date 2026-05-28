@@ -1,0 +1,169 @@
+# ============================================================================
+# ArkaOS — Agent File Ownership
+#
+# Maps file path patterns to the specialist agents (Tier 2) who own writes
+# to those files. Squad leads (Tier 1) MUST dispatch the specialist via
+# the Agent tool before writing to owned files — otherwise the PreToolUse
+# hook blocks the write.
+#
+# Read by: core/workflow/specialist_enforcer.py
+# Hook: config/hooks/pre-tool-use.sh (between KB-gate and flow-gate)
+#
+# Bypass: emit `[arka:specialist-bypass <reason>]` in the same assistant
+# message immediately before the Write/Edit. Bypass is logged to
+# ~/.arkaos/telemetry/specialist-dispatch.jsonl for accountability.
+#
+# Feature flag: hooks.specialistEnforcement in ~/.arkaos/config.json
+# (defaults to false during rollout — promote to true after telemetry
+# shows the rule set is stable).
+# ============================================================================
+
+version: 1
+
+# Squad leads (Tier 1) — orchestrate, dispatch specialists, do not implement.
+# The routing tag `[arka:routing] <dept> -> <name>` identifies which lead
+# currently holds the floor. Lead names are normalized to lowercase by
+# the enforcer before comparison.
+leads:
+  - paulo       # dev — Tech Lead
+  - luna        # mkt — Marketing Lead
+  - valentina   # brand — Brand Lead
+  - helena      # fin — CFO (also c_suite)
+  - tomas       # strat — Strategy Lead
+  - ricardo     # ecom — E-commerce Lead
+  - clara       # kb — Knowledge Lead
+  - daniel      # ops — Operations Lead
+  - carolina    # pm — Project Management Lead
+  - tiago       # saas — SaaS Lead
+  - ines        # landing — Landing Lead
+  - rafael      # content — Content Lead
+  - beatriz     # community — Community Lead
+  - miguel      # sales — Sales Lead
+  - rodrigo     # leadership — People Lead
+  - sofia       # org — COO (also c_suite)
+
+# C-Suite (Tier 0) — veto power, may write anywhere without dispatch.
+# Listed here so the enforcer treats them as always-authorized.
+c_suite:
+  - marco       # CTO
+  - marta       # CQO
+  - eduardo     # Copy Director
+  - francisca   # Tech Director
+  - sofia       # COO
+  - helena      # CFO
+
+# Ownership rules — evaluated top-to-bottom, FIRST match wins.
+# Patterns use glob syntax (fnmatch + ** for recursive directory).
+# `owners` lists the specialist agent IDs (kebab-case) authorized to write.
+# A persona currently holding the routing floor must match one of `owners`
+# (case-insensitive). Leads always fail unless they appear in `owners`.
+ownership:
+  # ─── Frontend ────────────────────────────────────────────────────────
+  - pattern: "**/*.vue"
+    owners: [frontend-dev]
+    reason: "Vue templates require frontend specialist"
+
+  - pattern: "**/*.tsx"
+    owners: [frontend-dev]
+    reason: "React TSX requires frontend specialist"
+
+  - pattern: "**/*.jsx"
+    owners: [frontend-dev]
+    reason: "React JSX requires frontend specialist"
+
+  - pattern: "**/components/**"
+    owners: [frontend-dev]
+    reason: "Component layer is frontend specialist territory"
+
+  # ─── Backend (PHP/Laravel) ───────────────────────────────────────────
+  - pattern: "**/app/Services/**"
+    owners: [senior-dev, backend-dev]
+    reason: "Service layer requires backend specialist"
+
+  - pattern: "**/app/Repositories/**"
+    owners: [senior-dev, backend-dev]
+    reason: "Repository layer requires backend specialist"
+
+  - pattern: "**/app/Http/Controllers/**"
+    owners: [senior-dev, backend-dev]
+    reason: "Controllers require backend specialist"
+
+  - pattern: "**/database/migrations/**"
+    owners: [dba, backend-dev]
+    reason: "Migrations require DBA review"
+
+  # ─── Security-sensitive ──────────────────────────────────────────────
+  - pattern: "**/.env*"
+    owners: [security-eng]
+    reason: "Environment files require security specialist"
+
+  - pattern: "**/auth/**"
+    owners: [security-eng, backend-dev]
+    reason: "Auth code requires security review"
+
+  - pattern: "core/security/**"
+    owners: [security-eng]
+    reason: "Core security module is security specialist territory"
+
+  - pattern: "config/hooks/**"
+    owners: [security-eng, devops-eng]
+    reason: "Hooks affect runtime behavior — security + devops review required"
+
+  # ─── DevOps / Infrastructure ─────────────────────────────────────────
+  - pattern: ".github/workflows/**"
+    owners: [devops-eng]
+    reason: "CI/CD workflows are devops specialist territory"
+
+  - pattern: "**/Dockerfile*"
+    owners: [devops-eng]
+    reason: "Container builds require devops specialist"
+
+  - pattern: "infrastructure/**"
+    owners: [devops-eng]
+    reason: "Infrastructure-as-code requires devops specialist"
+
+  # ─── Core architecture ──────────────────────────────────────────────
+  - pattern: "core/workflow/**/*.py"
+    owners: [architect, senior-dev]
+    reason: "Workflow engine requires architecture review"
+
+  - pattern: "core/agents/**/*.py"
+    owners: [architect, senior-dev]
+    reason: "Agent schema/loader requires architecture review"
+
+  - pattern: "core/governance/**/*.py"
+    owners: [architect, security-eng]
+    reason: "Governance code requires architecture + security review"
+
+  - pattern: "docs/adr/**"
+    owners: [architect]
+    reason: "ADRs are architect's responsibility"
+
+  # ─── Open-access (any persona may write) ─────────────────────────────
+  # Tests are written by the specialist who owns the code under test.
+  # qa-eng owns test STRATEGY, not individual test files.
+  - pattern: "**/tests/**"
+    owners: ["*"]
+    reason: "Tests written by specialist who owns code under test"
+
+  - pattern: "**/*.md"
+    owners: ["*"]
+    reason: "Markdown docs are open to any persona"
+
+# Lead-allowed files — leads + c-suite ALWAYS allowed without dispatch.
+# Used for cross-cutting files that touch many specialists.
+lead_allowed:
+  - "CHANGELOG.md"
+  - "VERSION"
+  - "package.json"
+  - "package-lock.json"
+  - "pyproject.toml"
+  - "uv.lock"
+  - "README.md"
+  - "CLAUDE.md"
+  - "CONSTITUTION.md"
+  - "config/agent-ownership.yaml"   # bootstrap — this file
+  - "config/constitution.yaml"
+  - "**/*.yaml"                      # squad/workflow configs
+  - "**/*.yml"
+  - "knowledge/**"                   # KB curation
