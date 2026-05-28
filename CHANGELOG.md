@@ -5,6 +5,87 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.75.0] - 2026-05-28
+
+### Added — Pattern Library (Squad Intelligence Upgrade PR4)
+
+PR4 of the six-PR Squad Intelligence Upgrade. Closes the operator-named
+failures **R1** (no contextual awareness of prior work — "saber se já
+fizemos isto") and **R2.2** (same features re-implemented across
+projects with no canonical pattern, UI/UX drift even inside one
+project). The Pattern Library is the queryable store of "we have
+already built this" so feature specs reuse prior implementations or
+explicitly document why divergence is justified.
+
+New components:
+
+- `core/knowledge/pattern_cards.py` — `PatternCard` dataclass + JSONL
+  store at `~/.arkaos/patterns/cards.jsonl`. `record_pattern()` dedups
+  by id (re-recording REPLACES, not appends, so the library never
+  accumulates duplicates). `query_patterns(keywords=, tags=, limit=)`
+  matches case-insensitive substrings on name + description + keywords
+  AND exact tag overlap (intersection); recency-sorted. Path-traversal
+  safe via the canonical `safe_session_id` allowlist (CWE-22).
+- `core/synapse/pattern_library_layer.py` — Synapse layer **L7.5
+  `PatternLibraryLayer`**. Extracts keywords from `user_input`
+  (alphanumeric ≥4 chars, stopword-filtered EN+PT, deduped, capped at
+  10), queries top-3 cards, formats as `additionalContext`. Priority
+  75 (runs between L7 Time and L8 ForgeContext so prior art is
+  available to plan synthesis).
+- `core/knowledge/pattern_cards_cli.py` — viewer:
+  `python -m core.knowledge.pattern_cards_cli {list, search <keyword>,
+  show <id>} [--tag TAG] [--limit N]`.
+- `scripts/seed_initial_patterns.py` — one-shot seeder for the four
+  patterns shipped in PR1–PR3.5 (`force-specialist-dispatch`,
+  `dashboard-venv-doctor`, `agent-experience-persistence`,
+  `qg-experience-loop-wiring`). The library starts with real day-1
+  data instead of waiting for the operator to record manually.
+
+New governance:
+
+- `config/constitution.yaml` adds SHOULD-level rule
+  `pattern-library-first` (not NON-NEGOTIABLE — phased rollout).
+  Constitution counts: SHOULD 5 → 6, total rules 41 → 42.
+- `arka/skills/flow/SKILL.md` documents the consult-before-design
+  convention. The layer auto-injects; no manual call required.
+- `core/synapse/engine.py` registers `PatternLibraryLayer`. Default
+  engine layer count 11 → 12; with vector store 13 → 14.
+
+Tightened scope:
+
+- v3.75.0: keyword + tag matching (substring on name/description/
+  keywords, exact tag overlap). False-positive risk (`auth` matching
+  `author`) acknowledged and acceptable for a *surfacing* layer.
+- v3.75.x: vector-embedding similarity, pt-PT accent-aware keyword
+  extraction, APPROVED-verdict auto-recorder symmetric to PR3.5's
+  REJECTED auto-recorder, ownership coverage for `core/knowledge/**`
+  and `core/synapse/**`.
+
+Tests:
+
+- 29 new pytest cases (17 storage + 12 layer). Full suite **4268 /
+  4268** green. `npm test` **80 / 80** unchanged.
+- Seeder smoke confirmed end-to-end via
+  `python -m core.knowledge.pattern_cards_cli list`.
+
+Quality Gate APPROVED on the first pass (Marta + Eduardo + Francisca,
+all `opus`). Two trivial cosmetics fixed inline before commit: the
+misleading priority comment (`# surfaces after Forge` → corrected to
+`runs before L8`) and the duplicate `"para"` stopword. Eight legitimate
+backlog items logged for PR5/PR6 and v3.75.x: APPROVED auto-recorder,
+pt-PT keyword normalisation, ownership coverage extension, TOCTOU
+race in `record_pattern` under multi-process callers, pre-existing
+`test_full_context_injection` cold-start flake on master, word-
+boundary matching, and minor doc clarifications.
+
+Upgrade:
+
+```bash
+npx arkaos@latest update
+python -m scripts.seed_initial_patterns      # populate day-1 patterns
+python -m core.knowledge.pattern_cards_cli list
+```
+
 ## [3.74.1] - 2026-05-28
 
 ### Fixed — Wire the QG experience loop (Squad Intelligence Upgrade PR3.5)
