@@ -5,6 +5,78 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.73.0] - 2026-05-28
+
+### Added — Force Specialist Dispatch (Squad Intelligence Upgrade PR1)
+
+PR1 of a six-PR upgrade that closes the long-standing gap between the
+declared squad-of-specialists architecture and the runtime reality of
+Tier-1 squad leads writing specialist code directly. From this release,
+when `hooks.specialistEnforcement=true` is set in `~/.arkaos/config.json`,
+the PreToolUse hook **blocks** `Write` / `Edit` / `MultiEdit` /
+`NotebookEdit` on specialist-owned files (e.g. `**/*.vue`,
+`**/app/Services/**`, `**/.env*`, `core/security/**`) when the current
+persona — parsed from the most recent `[arka:routing]` or
+`[arka:dispatch]` marker in the transcript — is a lead rather than the
+declared owner.
+
+New components:
+
+- `core/workflow/specialist_enforcer.py` — pipeline-style evaluator,
+  per-function `<=30` lines, with an `lru_cache`-backed glob compiler
+  supporting `**`, `?`, brace expansion `{a,b,c}` and Windows path
+  normalisation. Public API: `evaluate(tool_name, transcript_path,
+  session_id, cwd, tool_input) -> Decision` and `record_telemetry(...)`.
+- `config/agent-ownership.yaml` — ownership rules (first-match wins),
+  lead-allowed cross-cutting files (`CHANGELOG.md`, `VERSION`,
+  `package.json`, `**/*.yaml`, ...), and the Tier-0 C-Suite override.
+- `core/governance/specialist_telemetry.py` + `_cli.py` — JSONL
+  aggregator mirroring `enforcement_telemetry`. CLI:
+  `python -m core.governance.specialist_telemetry_cli today|week|month|all`.
+- `config/hooks/pre-tool-use.{sh,ps1}` — new gate slotted between the
+  KB-first gate and the mandatory-flow gate. Fails open if the Python
+  module is unavailable; exits 2 with structured
+  `hookSpecificOutput.permissionDecision=deny` on block.
+
+New governance:
+
+- `config/constitution.yaml` adds NON-NEGOTIABLE rule
+  `dispatch-must-be-announced`. Squad leads MUST emit
+  `[arka:dispatch] <from> -> <to>` immediately before every `Agent` tool
+  dispatch.
+- `arka/skills/flow/SKILL.md` Phase 6 documents the marker format and
+  the consequence of omitting it.
+- `docs/adr/2026-05-28-specialist-dispatch-subagent-blindspot.md`
+  formalises that this enforcer is a **negative gate** on the parent
+  transcript only. Subagents run with isolated transcripts in Claude
+  Code, so specialist writes inside dispatched subagents pass as
+  `no-routing-tag`. PR3 (QG → Agent Memory) and PR5 (DNA Fidelity)
+  must use other identity surfaces (e.g. the `subagent_type` argument
+  captured at dispatch time).
+
+Bypass:
+
+- `[arka:specialist-bypass <reason>]` in the immediately preceding
+  assistant message overrides the gate. Empty reasons are rejected.
+  Bypass count and reason are logged to
+  `~/.arkaos/telemetry/specialist-dispatch.jsonl` for accountability.
+
+Rollout:
+
+- Feature flag defaults **off**. Operator opt-in only. Promotion to
+  default-on follows telemetry stabilisation.
+
+Tests:
+
+- 39 new pytest cases (23 enforcer + 16 telemetry). 225 / 225 across
+  enforcer, telemetry, flow_enforcer (no regression) and
+  enforcement_telemetry suites. Quality Gate APPROVED on the third
+  pass (Marta + Eduardo + Francisca, all `opus`) after two
+  rejection-driven corrections: function-length compliance with the
+  NON-NEGOTIABLE `<=30` line rule, and full governance round-trip for
+  the new `[arka:dispatch]` marker (constitution + flow + Decision
+  stderr message).
+
 ## [3.72.0] - 2026-05-27
 
 ### Added — Cognition page, autostart, one-click update
