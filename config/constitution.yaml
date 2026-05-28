@@ -193,6 +193,11 @@ enforcement_levels:
         rule: "Dispatch subagents only when task requires >3 Reads or >5 Greps or isolated context. Never parallel subagents sharing state. Prefer main thread for trivial tasks."
         enforcement: "warning"
 
+      # ─── Rule added in PR3 Squad Intelligence Upgrade (2026-05-28) ───────
+      - id: agent-experience-persistence
+        rule: "Quality Gate REJECTED verdicts MUST result in an Experience record for the failing agent, written to ~/.arkaos/agents/<agent_id>/experiences.jsonl via core.governance.cqo_experience_recorder. Next dispatch of that agent loads the experiences via the Synapse L2.6 layer (core.synapse.agent_experiences_layer) so the lesson carries across sessions. Without this, REJECTED reports evaporate as conversation turns and the same structural mistakes recur."
+        enforcement: "PR3 v3.74.0 ships the storage, parser, and Synapse layer. v3.74.1 will wire a PostToolUse hook on the Agent tool that auto-records on REJECTED verdicts. Until then orchestrators MUST call cqo_experience_recorder.record_from_verdict() after every CQO dispatch. Audit via python -m core.governance.agent_experiences_cli list <agent_id>."
+
   should:
     description: "Best practices. Encouraged but not enforced."
     rules:
