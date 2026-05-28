@@ -248,7 +248,8 @@ class TestSynapseEngine:
     def test_create_default_engine(self):
         engine = create_default_engine(constitution_compressed="test")
         # PR3.5 v3.74.1 added L2.6 AgentExperiencesLayer: 10 -> 11.
-        assert engine.layer_count == 11
+        # PR4 v3.75.0 added L7.5 PatternLibraryLayer: 11 -> 12.
+        assert engine.layer_count == 12
 
     def test_inject_returns_result(self):
         engine = create_default_engine(constitution_compressed="NON-NEGOTIABLE: a")

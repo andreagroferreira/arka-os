@@ -188,6 +188,7 @@ def create_default_engine(
         SessionContextLayer,
     )
     from core.synapse.agent_experiences_layer import AgentExperiencesLayer
+    from core.synapse.pattern_library_layer import PatternLibraryLayer
 
     engine = SynapseEngine()
 
@@ -215,6 +216,11 @@ def create_default_engine(
     engine.register_layer(QualityGateLayer())
     engine.register_layer(TimeLayer())
     engine.register_layer(ForgeContextLayer())
+    # L7.5 (PR4 v3.75.0) — Pattern Library injection. Surfaces prior
+    # `PatternCard`s when the user prompt has matching keywords, so
+    # specs and dispatched specialists start from prior art rather than
+    # reinventing.
+    engine.register_layer(PatternLibraryLayer())
     engine.register_layer(SessionContextLayer())
 
     return engine
