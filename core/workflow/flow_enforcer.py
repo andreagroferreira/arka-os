@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
+from core.shared.temp_paths import arkaos_temp_dir
 from core.workflow import flow_authorization, marker_cache
 
 try:
@@ -210,7 +211,7 @@ ASSISTANT_WINDOW = 20
 CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 BYPASS_AUDIT_PATH = Path.home() / ".arkaos" / "audit" / "bypass.log"
 TELEMETRY_PATH = Path.home() / ".arkaos" / "telemetry" / "enforcement.jsonl"
-FLOW_REQUIRED_DIR = Path("/tmp/arkaos-wf-required")
+FLOW_REQUIRED_DIR = arkaos_temp_dir("arkaos-wf-required")
 
 
 @dataclass

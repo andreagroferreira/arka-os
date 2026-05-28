@@ -20,6 +20,8 @@ from typing import Optional
 ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(ARKAOS_ROOT))
 
+from core.shared.temp_paths import arkaos_temp_dir
+
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -4233,7 +4235,7 @@ def keys_delete(key_name: str):
 
 @app.get("/api/metrics")
 def metrics():
-    metrics_file = Path("/tmp/arkaos-context-cache/hook-metrics.jsonl")
+    metrics_file = arkaos_temp_dir("arkaos-context-cache", "hook-metrics.jsonl")
     if not metrics_file.exists():
         return {"entries": [], "avg_ms": 0}
     entries = []

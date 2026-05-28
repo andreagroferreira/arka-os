@@ -29,6 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
+from core.shared.temp_paths import arkaos_temp_dir
 from core.synapse import kb_cache
 
 try:
@@ -55,7 +56,7 @@ SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
 CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 BYPASS_AUDIT_PATH = Path.home() / ".arkaos" / "audit" / "kb_first_bypass.log"
 TELEMETRY_PATH = Path.home() / ".arkaos" / "telemetry" / "kb_first.jsonl"
-VIOLATION_DIR = Path("/tmp/arkaos-kb-violation")
+VIOLATION_DIR = arkaos_temp_dir("arkaos-kb-violation")
 
 
 def _violation_dir() -> Path:
