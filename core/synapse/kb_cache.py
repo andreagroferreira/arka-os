@@ -30,11 +30,12 @@ from pathlib import Path
 from typing import Any, Optional
 
 from core.shared import safe_session_id as _safe_session_id_module
+from core.shared.temp_paths import arkaos_temp_dir
 
 
 # Re-export for backward compatibility with any external importers.
 SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
-KB_QUERY_MARKER_DIR = Path("/tmp/arkaos-kb-query")
+KB_QUERY_MARKER_DIR = arkaos_temp_dir("arkaos-kb-query")
 _MAX_QUERIES_PER_TURN = 32
 _MAX_QUERY_LEN = 512
 
@@ -159,7 +160,7 @@ class KBSessionCache:
             self._cache_dir = Path(cache_dir)
         else:
             project_hash = self._hash_project(project_path or "")
-            self._cache_dir = Path("/tmp") / f"arkaos-kb-{project_hash}"
+            self._cache_dir = arkaos_temp_dir(f"arkaos-kb-{project_hash}")
 
         self._cache_file = self._cache_dir / f"{session_id}.json"
         self._ensure_dir()

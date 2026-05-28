@@ -20,13 +20,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
+from core.shared.temp_paths import arkaos_temp_dir
 
 
 def _resolve_cache_dir() -> Path:
     override = os.environ.get("ARKA_MARKER_CACHE_DIR", "").strip()
     if override:
         return Path(override)
-    return Path("/tmp/arkaos-flow-marker")
+    return arkaos_temp_dir("arkaos-flow-marker")
 
 
 MARKER_CACHE_DIR = _resolve_cache_dir()
