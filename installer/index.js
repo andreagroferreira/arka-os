@@ -457,8 +457,12 @@ function installAllPythonDeps(userConfig = {}) {
   // a failure of one does not block the other.
   // Ingest (YouTube, PDF, web, audio)
   const ingestDeps = "yt-dlp pdfplumber beautifulsoup4 requests";
-  // Dashboard API
-  const dashboardDeps = "fastapi uvicorn";
+  // Dashboard API. python-multipart is required by FastAPI for the
+  // knowledge upload endpoint (its absence fails the API import on every
+  // platform). pywinpty backs the dashboard terminal on Windows (ConPTY).
+  const dashboardDeps = process.platform === "win32"
+    ? "fastapi uvicorn python-multipart pywinpty"
+    : "fastapi uvicorn python-multipart";
   // Transcription
   const transcriptionDeps = "faster-whisper";
 
@@ -500,8 +504,8 @@ function installAllPythonDeps(userConfig = {}) {
   // Dashboard deps (optional)
   if (userConfig.installDashboard !== false) {
     console.log("         Installing dashboard dependencies...");
-    if (pipInstall(dashboardDeps, { log, timeout: 60000 })) {
-      ok("Dashboard API installed (fastapi, uvicorn)");
+    if (pipInstall(dashboardDeps, { log, timeout: 120000 })) {
+      ok("Dashboard API installed (fastapi, uvicorn, python-multipart)");
     } else {
       warn("Dashboard API not installed (optional)");
     }
