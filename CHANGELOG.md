@@ -5,6 +5,81 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.75.2] - 2026-05-28
+
+### Fixed — **CRITICAL** installer hookNames parity (re-run update required)
+
+> ⚠ **Re-run required.** After upgrading to v3.75.2, operators MUST
+> run `npx arkaos@latest update` AGAIN to actually receive the
+> hooks that were missing from prior updates.
+
+PR1 (v3.73.0, May 28) shipped Force Specialist Dispatch including a
+substantially rewritten `config/hooks/pre-tool-use.sh` that delegates
+to `core/workflow/specialist_enforcer.py`. PR3.5 (v3.74.1) wired the
+QG experience auto-record in `config/hooks/post-tool-use.sh`. PR4.5
+(v3.75.1) added the APPROVED pattern-stub auto-record in the same
+post-tool-use hook.
+
+`installer/index.js::installHooks` (fresh install) lists 7 hooks:
+`session-start, user-prompt-submit, post-tool-use, pre-compact,
+cwd-changed, pre-tool-use, stop`. `installer/update.js` (`npx arkaos
+update`) listed **5** — missing `pre-tool-use` and `stop`. Fresh
+installs received the PR1 enforcement; `npx arkaos update` silently
+skipped it. Operators upgrading from v3.72.x or earlier carried a
+`pre-tool-use.sh` frozen at install time and never saw PR1 fire.
+
+Discovered during the repo owner's PR1 activation smoke test: their
+`~/.arkaos/config/hooks/pre-tool-use.sh` was dated **April 18**,
+predating PR1 by six weeks. PostToolUse changes from PR3.5 + PR4.5
+DID land (because `post-tool-use` was in the array) — explaining why
+the QG experience loop tested clean while specialist enforcement
+remained dormant.
+
+The fix (2 lines):
+
+- `installer/update.js:181-189` — added `"pre-tool-use"` and `"stop"`
+  to `hookNames`. The array now matches `installer/index.js:566-574`
+  exactly in entries and order.
+
+CI regression guard:
+
+- `tests/installer/hook-list-parity.test.js` (new) — 2 cases:
+  - Bidirectional set-equality + length check between `update.js`
+    and `index.js` `hookNames`.
+  - Explicit regression guards naming `"pre-tool-use"` and `"stop"`
+    so future drift produces a failure message that names the
+    production consequence ("specialist enforcement will be dead on
+    update").
+
+Combined with the existing `tests/installer/hook-consistency.test.js`
+which already covered adapter → index.js → doctor.js parity, the
+four-way chain is now closed: drift in any single file fails CI.
+
+Tests: `npm test` → 80 → **82 / 82**. No regressions.
+
+Quality Gate APPROVED on the first pass (Marta + Eduardo + Francisca,
+all `opus`). First real-world dispatch under live PR1 specialist
+enforcement after activation: `senior-dev` dispatched from `tech-lead-paulo`
+per the `dispatch-must-be-announced` constitution rule. Dispatch
+clean — `installer/**/*.js` is in `senior-dev`'s ownership scope
+(added in PR3.5 v3.74.1). No `[arka:specialist-bypass]` markers
+needed. Three non-blocking polish items logged: failure-message
+copy refinement on the second test (`Eduardo`), `["']` quote
+tolerance on the source regex to match `hook-consistency.test.js`
+convention (`Francisca`), and an ordered-equality assertion if a
+future hook becomes load-order sensitive (`Francisca`, deferred).
+
+Upgrade (TWO steps — do not skip the second):
+
+```bash
+# 1. Install the corrected installer
+npm install -g arkaos@3.75.2   # or wait for npx auto-pull
+# 2. Re-run update to receive the previously-missing hooks
+npx arkaos@latest update
+# 3. (optional) enable specialist enforcement
+#    ~/.arkaos/config.json: {"hooks":{"specialistEnforcement":true}}
+```
+
 ## [3.75.1] - 2026-05-28
 
 ### Fixed — Pattern population loop + PR4 backlog cleanup (Squad Intelligence PR4.5)
