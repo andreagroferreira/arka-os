@@ -6,7 +6,7 @@
  * and guarantees the doctor checks the same interpreter the installer uses.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, platform } from "node:os";
 import { execSync } from "node:child_process";
@@ -93,6 +93,134 @@ export function findSystemPython() {
   }
   return null;
 }
+
+/**
+ * Diagnose a venv directory. Pure read-only — does not modify anything.
+ * Returns { healthy: bool, reason: string, pythonPath?: string }.
+ *
+ * Reasons:
+ *  - "missing"        — venv dir absent OR bin/python absent (no symlink)
+ *  - "broken-symlink" — bin/python is a symlink to a missing target
+ *                       (typical after Homebrew rotates Python patch versions)
+ *  - "version-failed" — python --version exec failed (corrupt binary)
+ *  - "ok"             — venv healthy, python runs
+ */
+export function diagnoseVenv(venvDir) {
+  const isWin = platform() === "win32";
+  const pythonPath = isWin
+    ? join(venvDir, "Scripts", "python.exe")
+    : join(venvDir, "bin", "python");
+
+  // existsSync FOLLOWS symlinks, so a broken symlink returns false here
+  // even when the symlink itself is present on disk. Distinguish via lstat.
+  if (!existsSync(pythonPath)) {
+    let isBroken = false;
+    try {
+      const stat = lstatSync(pythonPath);
+      if (stat.isSymbolicLink()) isBroken = true;
+    } catch {
+      // pythonPath doesn't exist at all — fall through as "missing"
+    }
+    return {
+      healthy: false,
+      reason: isBroken ? "broken-symlink" : "missing",
+    };
+  }
+
+  // pythonPath exists. Try to run it — guards against corrupt-but-present
+  // binaries (e.g., a non-executable file placed at bin/python by accident).
+  try {
+    const out = execSync(`"${pythonPath}" --version 2>&1`, {
+      stdio: "pipe",
+      timeout: 5000,
+    }).toString();
+    if (!/Python 3/.test(out)) {
+      return { healthy: false, reason: "version-failed", pythonPath };
+    }
+    return { healthy: true, reason: "ok", pythonPath };
+  } catch {
+    return { healthy: false, reason: "version-failed", pythonPath };
+  }
+}
+
+
+/**
+ * Ensure the venv is healthy, repairing if needed.
+ * Returns { healthy: bool, repaired: bool, reason: string }.
+ *
+ * Repair strategy: `python -m venv --clear` removes the stale bin/ Scripts
+ * directories (closing the broken-symlink and version-failed cases) and
+ * recreates them against the currently resolvable system Python. The
+ * post-repair venv is re-diagnosed to confirm health before returning.
+ *
+ * Options:
+ *  - venvDir  (default: ~/.arkaos/venv)
+ *  - log      (default: console.log)
+ *  - skipDeps (default: false) — when true, do not attempt pip upgrades
+ *             after repair. Used by tests to keep them fast/offline.
+ */
+export function ensureVenvHealthy(options = {}) {
+  const venvDir = options.venvDir || join(INSTALL_DIR, "venv");
+  const log = options.log || console.log;
+  const skipDeps = !!options.skipDeps;
+
+  const diagnosis = diagnoseVenv(venvDir);
+  if (diagnosis.healthy) {
+    log(`         ✓ Venv healthy at ${venvDir}`);
+    return { healthy: true, repaired: false, reason: "already-healthy" };
+  }
+
+  log(`         ⚠ Venv ${diagnosis.reason} at ${venvDir} — repairing`);
+
+  const systemPython = findSystemPython();
+  if (!systemPython) {
+    return {
+      healthy: false,
+      repaired: false,
+      reason: `${diagnosis.reason}-and-no-system-python`,
+    };
+  }
+
+  try {
+    execSync(`"${systemPython}" -m venv --clear "${venvDir}"`, {
+      stdio: "pipe",
+      timeout: 60000,
+    });
+    log(`         ✓ Venv recreated at ${venvDir}`);
+  } catch (err) {
+    const msg = (err && err.message ? err.message : String(err)).slice(0, 100);
+    return {
+      healthy: false,
+      repaired: false,
+      reason: `recreate-failed: ${msg}`,
+    };
+  }
+
+  const post = diagnoseVenv(venvDir);
+  if (!post.healthy) {
+    return {
+      healthy: false,
+      repaired: true,
+      reason: `repaired-but-still-unhealthy: ${post.reason}`,
+    };
+  }
+
+  if (!skipDeps) {
+    try {
+      execSync(`"${post.pythonPath}" -m pip install --upgrade pip --quiet`, {
+        stdio: "pipe",
+        timeout: 60000,
+      });
+    } catch { /* pip upgrade is non-critical */ }
+  }
+
+  return {
+    healthy: true,
+    repaired: true,
+    reason: `repaired-from-${diagnosis.reason}`,
+  };
+}
+
 
 /**
  * Create the ArkaOS venv if it doesn't exist.

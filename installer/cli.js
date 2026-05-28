@@ -92,10 +92,12 @@ async function main() {
       break;
     }
 
-    case "doctor":
+    case "doctor": {
       const { doctor } = await import("./doctor.js");
-      await doctor();
+      const fixMode = positionals.slice(1).includes("--fix") || values.fix === true;
+      await doctor({ fix: fixMode });
       break;
+    }
 
     case "update":
       const { update } = await import("./update.js");

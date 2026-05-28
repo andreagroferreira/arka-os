@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, copyFileSync, chmodSync, mkdir
 import { join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
-import { ensureVenv, getArkaosPython, pipInstall } from "./python-resolver.js";
+import { ensureVenv, ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
 import { migrateUserData, printMigrationReport } from "./migrate-user-data.js";
@@ -103,10 +103,15 @@ export async function update() {
   // ── 1. Update Python deps (using venv) ──
   console.log("  [1/8] Updating Python dependencies...");
 
-  // Ensure venv exists (creates one if missing — fixes PEP 668)
-  const venvOk = ensureVenv((msg) => console.log(msg));
-  if (!venvOk) {
-    console.log("         \u26a0 Could not create venv — trying system Python with PEP 668 handling");
+  // Ensure venv is healthy (creates, repairs broken symlinks, or no-ops).
+  // PR2 v3.73.1 — previously a stale broken-symlink venv could pass the
+  // existence check, and the dashboard would silently fall back to ambient
+  // python3 without sqlite-vec/fastembed.
+  const venvHealth = ensureVenvHealthy({ log: (msg) => console.log(msg) });
+  if (!venvHealth.healthy) {
+    console.log(`         \u26a0 Venv unhealthy (${venvHealth.reason}) - falling back to system Python with PEP 668 handling`);
+  } else if (venvHealth.repaired) {
+    console.log(`         \u2713 Venv repaired (${venvHealth.reason})`);
   }
 
   const pythonCmd = getArkaosPython();
