@@ -5,6 +5,78 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.75.1] - 2026-05-28
+
+### Fixed — Pattern population loop + PR4 backlog cleanup (Squad Intelligence PR4.5)
+
+PR4 (v3.75.0) shipped the Pattern Library storage + retrieval but
+relied on manual `record_pattern()` calls for population. v3.75.1
+closes that loop and clears 4 of the 8 PR4-QG backlog items.
+
+Wired:
+
+- `config/hooks/post-tool-use.sh` — restructured the `cqo` subagent
+  block to share `_AE_ROOT` resolution between two verdict branches.
+  New APPROVED branch detects `[arka:pattern-suggest <id> <name>]`
+  in the dispatch prompt and creates a stub `PatternCard` via
+  `record_pattern()`. Skips when the id already exists — never
+  overwrites enriched cards. Symmetric to the REJECTED auto-record
+  shipped in PR3.5 v3.74.1.
+- `arka/skills/flow/SKILL.md` Phase 11 documents the
+  `[arka:pattern-suggest]` convention alongside the existing
+  `[arka:reviewing]` convention. Both markers travel in the CQO
+  dispatch prompt; the PostToolUse hook reads the right one for
+  each verdict outcome.
+
+PR4 backlog cleanup (Marta's QG-PR4 follow-ups):
+
+- **#4 ownership coverage** (`config/agent-ownership.yaml`) —
+  `core/knowledge/**/*.py` and `core/synapse/**/*.py` added under
+  `architect` + `senior-dev`. When `hooks.specialistEnforcement`
+  flips on, this surface is now gated.
+- **#6 pt-PT keyword normalisation**
+  (`core/synapse/pattern_library_layer.py`) — `_WORD_RE` extended to
+  `[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9_-]{3,}` so pt-PT operator input like
+  `autenticação`, `paginação`, `implementação` is captured as a
+  single token instead of truncated at the accented character.
+  Latin Extended-A (U+0100+) intentionally excluded — comment notes
+  the extension trigger for CS/PL/HU/TR corpora. Stopword list
+  expanded with 12 pt function words.
+- **#2 pre-existing flake** (`tests/python/test_synapse.py:368-381`) —
+  `test_full_context_injection` replaced the brittle wall-clock
+  budget (`result.total_ms < 100`) with a semantic cache-effect
+  assertion: `warm.cache_stats["hits"] > 0`. Contention-immune,
+  deterministic across CI variance. (Marta's first pass on v3.75.1
+  rejected a `warm < 100ms` "fix" as reproducing the antipattern at
+  a tighter threshold — option (a) per her remediation list.)
+- **#8 cosmetic** — `pattern_library_layer.py` priority comment
+  corrected (PatternLibrary runs BEFORE Forge, not after) and
+  duplicate `"para"` removed from stopwords. Inline fixes shipped in
+  PR4 commit; documented here for completeness.
+
+Tests:
+
+- 2 new pt-PT cases in `test_pattern_library_layer.py`:
+  `test_pt_pt_accented_words_kept_whole` proves `autenticação`,
+  `paginação`, `projeto`, `implementar` survive extraction;
+  `test_pt_pt_mixed_with_english` proves EN + PT can coexist in one
+  prompt.
+- Full pytest **4270 / 4270** green deterministically (verified with
+  and without `-p no:randomly`).
+- `npm test` **80 / 80** unchanged.
+
+Quality Gate APPROVED on the second pass (Marta + Eduardo +
+Francisca, all `opus`). First pass rejected three items, all in this
+PR's scope:
+- **T1** — the wall-clock "flake fix" reproduced the original
+  antipattern at a tighter threshold. Corrected to semantic
+  `cache_stats["hits"] > 0` assertion.
+- **E1** — flow SKILL paragraph-break regression that swallowed the
+  step-5 "specialist missing" sentence and "Fail → back to the
+  todo" bullet into the Pattern auto-stub block. Restored.
+- **T2** — Latin Extended-A exclusion not documented inline.
+  Comment now states the boundary, rationale, and extension trigger.
+
 ## [3.75.0] - 2026-05-28
 
 ### Added — Pattern Library (Squad Intelligence Upgrade PR4)
