@@ -122,6 +122,19 @@ ownership:
     owners: [devops-eng]
     reason: "Infrastructure-as-code requires devops specialist"
 
+  # PR3.5 v3.74.1 — installer + dashboard launcher coverage
+  - pattern: "installer/**/*.js"
+    owners: [devops-eng, senior-dev]
+    reason: "npx arkaos installer surface requires devops + backend review"
+
+  - pattern: "scripts/start-dashboard*"
+    owners: [devops-eng]
+    reason: "Dashboard launcher is operational devops surface"
+
+  - pattern: "scripts/dashboard-api.py"
+    owners: [devops-eng, senior-dev]
+    reason: "Dashboard API backend bridges installer ops + Python service code"
+
   # ─── Core architecture ──────────────────────────────────────────────
   - pattern: "core/workflow/**/*.py"
     owners: [architect, senior-dev]

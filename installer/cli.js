@@ -21,6 +21,10 @@ const { values, positionals } = parseArgs({
     force: { type: "boolean", short: "f" },
     "no-system": { type: "boolean" },
     "with-ollama": { type: "boolean" },
+    // PR3.5 v3.74.1 — declared so `npx arkaos doctor --fix` lands in
+    // `values.fix` rather than as a free positional under strict:false.
+    // Eliminates the dead-branch fallback flagged by Marta in PR2's QG.
+    fix: { type: "boolean" },
   },
   allowPositionals: true,
   strict: false,
@@ -94,8 +98,7 @@ async function main() {
 
     case "doctor": {
       const { doctor } = await import("./doctor.js");
-      const fixMode = positionals.slice(1).includes("--fix") || values.fix === true;
-      await doctor({ fix: fixMode });
+      await doctor({ fix: values.fix === true });
       break;
     }
 

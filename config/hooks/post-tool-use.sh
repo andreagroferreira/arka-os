@@ -72,6 +72,49 @@ except Exception:
   fi
 fi
 
+# ─── CQO REJECTED auto-record (PR3.5 v3.74.1) ────────────────────────
+# When a Task/Agent dispatch to subagent_type=cqo returns
+# `Quality Gate Verdict: REJECTED`, append an Experience to the
+# failing agent's log. The agent under review is identified by the
+# `[arka:reviewing <agent_id>]` marker that the orchestrator MUST
+# include in the CQO dispatch prompt (constitution rule
+# `agent-experience-persistence`). Never blocks the hook.
+if [ "$TOOL_NAME" = "Task" ] || [ "$TOOL_NAME" = "Agent" ]; then
+  SUBAGENT_TYPE=$(echo "$input" | jq -r '.tool_input.subagent_type // ""' 2>/dev/null)
+  if [ "$SUBAGENT_TYPE" = "cqo" ] && echo "$TOOL_OUTPUT" | grep -qE 'Quality Gate Verdict:[[:space:]]*REJECTED'; then
+    TOOL_INPUT_PROMPT=$(echo "$input" | jq -r '.tool_input.prompt // ""' 2>/dev/null)
+    REVIEWING_TARGET=$(printf '%s' "$TOOL_INPUT_PROMPT" \
+      | grep -oE '\[arka:reviewing[[:space:]]+[A-Za-z0-9_.-]+\]' \
+      | head -1 \
+      | sed -E 's/.*\[arka:reviewing[[:space:]]+([A-Za-z0-9_.-]+)\].*/\1/')
+    if [ -n "$REVIEWING_TARGET" ]; then
+      _AE_ROOT="${ARKAOS_ROOT:-}"
+      if [ -z "$_AE_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+        _AE_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+      fi
+      [ -z "$_AE_ROOT" ] && _AE_ROOT="$HOME/.arkaos"
+      VERDICT_TEXT="$TOOL_OUTPUT" \
+      AGENT_ID="$REVIEWING_TARGET" \
+      SESSION_ID="$SESSION_ID_PTU" \
+      ARKAOS_ROOT="$_AE_ROOT" \
+      python3 - <<'PY' 2>/dev/null || true
+import os, sys
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from core.governance.cqo_experience_recorder import record_from_verdict
+    record_from_verdict(
+        verdict_text=os.environ.get("VERDICT_TEXT", ""),
+        agent_id=os.environ.get("AGENT_ID", ""),
+        session_id=os.environ.get("SESSION_ID", ""),
+        context="auto-recorded via PostToolUse hook (cqo dispatch REJECTED)",
+    )
+except Exception:
+    pass
+PY
+    fi
+  fi
+fi
+
 # Only process if there was an error
 if [ "$EXIT_CODE" = "0" ] || [ -z "$EXIT_CODE" ]; then
   # Also check for error patterns in output even with exit code 0
