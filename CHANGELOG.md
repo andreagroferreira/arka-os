@@ -5,6 +5,79 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.74.0] - 2026-05-28
+
+### Added — Agent Experience persistence (Squad Intelligence Upgrade PR3)
+
+PR3 of the six-PR Squad Intelligence Upgrade. Closes the third systemic
+failure the operator named at the start of the session: **the QG
+learning gap** — REJECTED verdicts evaporating as conversation turns,
+the failing agent never recalling the structural mistake on the next
+pass, so the same wrong pattern recurs across PRs. From this release,
+the Quality Gate writes persistent `Experience` records on the failing
+agent's log and a new Synapse layer L2.6 surfaces those records when
+the same agent is dispatched again.
+
+New components:
+
+- `core/governance/agent_experiences.py` — `Experience` dataclass +
+  append-only JSONL store at
+  `~/.arkaos/agents/<agent_id>/experiences.jsonl`. Path-safe agent_id
+  via the canonical allowlist (CWE-22), POSIX `flock` on appends with
+  Windows `O_APPEND` fallback. `patterns: list[str]` (not single
+  string) so a verdict failing on multiple structural issues surfaces
+  every category — primary patterns no longer mask secondary ones.
+- `core/governance/cqo_experience_recorder.py` —
+  `parse_cqo_verdict()` extracts verdict (APPROVED/REJECTED/UNKNOWN),
+  blockers (B/M/N labels with `.`, `:`, or space separator; double-
+  digit labels supported; inline mid-paragraph references documented
+  as out of scope), and ALL matching pattern hints in registry order.
+  `record_from_verdict()` persists exactly one `Experience` per
+  REJECTED verdict; APPROVED + UNKNOWN return `None` without writing.
+- `core/synapse/agent_experiences_layer.py` — Synapse layer L2.6
+  `AgentExperiencesLayer`. Detects `[arka:dispatch]` markers in user
+  input, queries top-5 most-recent experiences for the target agent,
+  formats as `additionalContext`. Standalone class — engine wiring
+  lands in v3.74.x.
+- `core/governance/agent_experiences_cli.py` — viewer:
+  `python -m core.governance.agent_experiences_cli list <agent_id>
+  [--limit N] [--since DATE] [--tag TAG]`.
+
+New governance:
+
+- `config/constitution.yaml` adds MUST-level rule
+  `agent-experience-persistence`. Orchestrators MUST call
+  `record_from_verdict()` after every CQO dispatch until v3.74.1
+  wires the PostToolUse hook that auto-records on REJECTED verdicts.
+- `arka/skills/flow/SKILL.md` Phase 6 (experience injection on
+  dispatch) and Phase 11 (recording on REJECTED) updated.
+
+Constitution test baseline reconciled (`test_has_16_non_negotiable_rules`
+→ 25, `test_has_6_must_rules` → 11, `test_get_all_rule_ids` → 41) for
+both this rule and the PR1 `dispatch-must-be-announced` rule that was
+never reflected in the test counts at the time.
+
+Tests:
+
+- 76 new + updated pytest cases — 14 storage, 12 layer, 21 recorder,
+  29 constitution. Full suite **4236 / 4236** green in 40.5 s.
+
+Quality Gate APPROVED on the second pass (Marta + Eduardo + Francisca,
+all `opus`) after the first pass surfaced six blockers: three
+function-length violations on `query_experiences`, `record_from_verdict`,
+and the CLI `main` (now ≤30 lines via `_read_entries`,
+`_build_experience`, `_build_parser` + `_print_results` extracts), the
+constitution-test baseline drift, blocker regex widening to accept the
+`B1 description` space-separator form and double-digit labels, and the
+`pattern: str` → `patterns: list[str]` migration so a single REJECTED
+verdict that hits multiple categories now surfaces them all.
+
+Rollout — tightened scope:
+
+- v3.74.0: storage + parser + Synapse retrieval (this release).
+- v3.74.1: PostToolUse hook that auto-records on REJECTED verdicts
+  (currently the orchestrator MUST call manually).
+
 ## [3.73.1] - 2026-05-28
 
 ### Fixed — Dashboard venv-doctor (Squad Intelligence Upgrade PR2)
