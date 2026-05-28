@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
-import { getArkaosPython, getVenvPython, canImportCore, getRepoRoot } from "./python-resolver.js";
+import { getArkaosPython, getVenvPython, canImportCore, getRepoRoot, diagnoseVenv, ensureVenvHealthy } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT, CMD_FINDER } from "./platform.js";
 import { checkNode, checkObsidian, checkOllama } from "./system-tools.js";
 
@@ -54,10 +54,21 @@ const checks = [
   },
   {
     name: "venv",
-    description: "ArkaOS virtual environment exists",
-    severity: "warn",
-    check: () => existsSync(getVenvPython()),
-    fix: () => "Run: npx arkaos@latest update (creates venv automatically)",
+    // PR2 v3.73.1: promoted from "warn" to "fail" — without the venv, the
+    // dashboard cannot start at all (start-dashboard.{sh,ps1} now fail fast
+    // instead of falling back to ambient python3 with missing deps).
+    description: "ArkaOS virtual environment exists and is runnable",
+    severity: "fail",
+    check: () => {
+      const venvDir = join(INSTALL_DIR, "venv");
+      const d = diagnoseVenv(venvDir);
+      return d.healthy;
+    },
+    fix: () => {
+      const venvDir = join(INSTALL_DIR, "venv");
+      const d = diagnoseVenv(venvDir);
+      return `Run: npx arkaos doctor --fix  (current state: ${d.reason})`;
+    },
   },
   {
     name: "hooks-dir",
@@ -241,8 +252,33 @@ if (IS_WINDOWS) {
   );
 }
 
-export async function doctor() {
-  console.log("\n  ArkaOS Doctor — Health Checks\n");
+export async function doctor(options = {}) {
+  const fixMode = !!options.fix;
+  console.log(`\n  ArkaOS Doctor — Health Checks${fixMode ? " (--fix)" : ""}\n`);
+
+  // ─── --fix: repair the venv before reporting checks (PR2 v3.73.1) ────
+  // Targeted, idempotent self-heal: detects broken symlinks / version
+  // drift / missing bin/python and recreates the venv with --clear so
+  // the subsequent venv check has a chance of passing.
+  if (fixMode) {
+    const venvDir = join(INSTALL_DIR, "venv");
+    const before = diagnoseVenv(venvDir);
+    if (before.healthy) {
+      console.log("  ℹ Venv already healthy — no repair needed");
+    } else {
+      console.log(`  → Repairing venv (current state: ${before.reason})`);
+      const result = ensureVenvHealthy({
+        venvDir,
+        log: (msg) => console.log("    " + msg.trim()),
+      });
+      if (result.healthy && result.repaired) {
+        console.log("  ✓ Venv repaired");
+      } else if (!result.healthy) {
+        console.log(`  ✗ Venv repair failed (${result.reason})`);
+      }
+    }
+    console.log("");
+  }
 
   let passed = 0;
   let warned = 0;

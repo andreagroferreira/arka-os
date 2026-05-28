@@ -6,8 +6,30 @@ ARKAOS_ROOT="${ARKAOS_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 DASHBOARD_DIR="${ARKAOS_ROOT}/dashboard"
 PID_FILE="$HOME/.arkaos/dashboard.pid"
 PORT_FILE="$HOME/.arkaos/dashboard.ports"
+VENV_PYTHON="$HOME/.arkaos/venv/bin/python"
 
 mkdir -p "$HOME/.arkaos"
+
+# ── Venv guard (PR2 v3.73.1 — Force Specialist Dispatch dogfood) ──
+# Previously the dashboard fell back to ambient `python3` when the venv
+# wasn't available. That hid broken-venv conditions (Homebrew patch
+# rotations leaving dangling symlinks) and produced half-working dashboards
+# without sqlite-vec / fastembed. Now we fail fast with a clear remediation.
+# `[ -x ]` follows symlinks, so a broken symlink correctly fails the test.
+if [ ! -x "$VENV_PYTHON" ]; then
+  echo ""
+  echo "  ✗ ArkaOS venv unavailable at $VENV_PYTHON"
+  echo ""
+  echo "    The dashboard must run from the ArkaOS venv so that"
+  echo "    sqlite-vec, fastembed, fastapi, and uvicorn are present."
+  echo "    The ambient python3 fallback was removed in v3.73.1."
+  echo ""
+  echo "    Fix:"
+  echo "      npx arkaos doctor --fix       (repairs broken venv in place)"
+  echo "      npx arkaos@latest update      (full reinstall, slower)"
+  echo ""
+  exit 1
+fi
 
 # ── Kill existing if running ──
 if [ -f "$PID_FILE" ]; then
@@ -38,7 +60,7 @@ echo "  ─────────────────"
 # ── Start FastAPI backend ──
 API_LOG="$HOME/.arkaos/api.log"
 echo "  Starting API on :${API_PORT}..."
-ARKAOS_ROOT="$ARKAOS_ROOT" python3 "${ARKAOS_ROOT}/scripts/dashboard-api.py" --port "$API_PORT" > "$API_LOG" 2>&1 &
+ARKAOS_ROOT="$ARKAOS_ROOT" "$VENV_PYTHON" "${ARKAOS_ROOT}/scripts/dashboard-api.py" --port "$API_PORT" > "$API_LOG" 2>&1 &
 API_PID=$!
 
 # Wait for API with health check (up to 10 seconds)

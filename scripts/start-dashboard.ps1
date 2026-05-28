@@ -82,10 +82,13 @@ Write-Host ''
 Write-Host '  ArkaOS Dashboard'
 Write-Host '  -----------------'
 
-# --- Locate Python ---------------------------------------------------------
-# Prefer the ArkaOS venv python recorded in the install manifest so the
-# dashboard API runs against the same interpreter the installer uses.
-function Find-Python {
+# --- Locate ArkaOS venv Python (PR2 v3.73.1 — no ambient fallback) --------
+# Previously this function fell back to system python/python3/py when the
+# venv wasn't available. That hid broken-venv conditions and produced
+# half-working dashboards without sqlite-vec/fastembed. Now we look only at
+# the manifest pythonCmd and the venv path, and fail fast with actionable
+# remediation otherwise.
+function Find-VenvPython {
     $manifest = Join-Path $arkaosHome 'install-manifest.json'
     if (Test-Path -LiteralPath $manifest) {
         try {
@@ -97,17 +100,22 @@ function Find-Python {
     }
     $venvPy = Join-Path $arkaosHome 'venv\Scripts\python.exe'
     if (Test-Path -LiteralPath $venvPy) { return $venvPy }
-    foreach ($cmd in 'python','python3','py') {
-        $found = Get-Command $cmd -ErrorAction SilentlyContinue
-        if ($found) { return $found.Source }
-    }
     return $null
 }
 
-$python = Find-Python
+$python = Find-VenvPython
 if (-not $python) {
-    Write-Host '  Error: no usable Python interpreter found.' -ForegroundColor Red
-    Write-Host '  Install Python 3.11+ and rerun.'             -ForegroundColor DarkGray
+    Write-Host ''
+    Write-Host "  X ArkaOS venv unavailable at $arkaosHome\venv\Scripts\python.exe" -ForegroundColor Red
+    Write-Host ''
+    Write-Host '    The dashboard must run from the ArkaOS venv so that'      -ForegroundColor DarkGray
+    Write-Host '    sqlite-vec, fastembed, fastapi, and uvicorn are present.' -ForegroundColor DarkGray
+    Write-Host '    The ambient python fallback was removed in v3.73.1.'      -ForegroundColor DarkGray
+    Write-Host ''
+    Write-Host '    Fix:' -ForegroundColor DarkGray
+    Write-Host '      npx arkaos doctor --fix       (repairs broken venv in place)'    -ForegroundColor DarkGray
+    Write-Host '      npx arkaos@latest update      (full reinstall, slower)'          -ForegroundColor DarkGray
+    Write-Host ''
     exit 1
 }
 
