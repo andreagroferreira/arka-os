@@ -120,6 +120,86 @@ PY
   fi
 fi
 
+# ─── Specialist-dispatch gate (between KB-gate and flow-gate) ──────────
+# Blocks Tier-1 leads from writing to specialist-owned files without
+# dispatching first. Only fires for file-mutation tools. Independent
+# feature flag (`hooks.specialistEnforcement`) — fails open if the
+# Python module is absent or raises.
+if [ -f "$ARKAOS_ROOT/core/workflow/specialist_enforcer.py" ]; then
+  case "$TOOL_NAME" in
+    Write|Edit|MultiEdit|NotebookEdit)
+      TOOL_INPUT_JSON_SP="{}"
+      if command -v jq &>/dev/null; then
+        TOOL_INPUT_JSON_SP=$(echo "$input" | jq -c '.tool_input // {}' 2>/dev/null)
+      fi
+      SP_DECISION_JSON=$(TOOL_NAME="$TOOL_NAME" \
+                         TRANSCRIPT_PATH="$TRANSCRIPT_PATH" \
+                         SESSION_ID="$SESSION_ID" \
+                         CWD="$CWD" \
+                         TOOL_INPUT_JSON="$TOOL_INPUT_JSON_SP" \
+                         ARKAOS_ROOT="$ARKAOS_ROOT" \
+                         python3 - <<'PY' 2>/dev/null
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from core.workflow.specialist_enforcer import evaluate, record_telemetry
+except Exception:
+    print(json.dumps({"allow": True, "reason": "specialist-import-failed"}))
+    sys.exit(0)
+
+try:
+    tool_input = json.loads(os.environ.get("TOOL_INPUT_JSON", "{}"))
+except json.JSONDecodeError:
+    tool_input = {}
+
+decision = evaluate(
+    tool_name=os.environ.get("TOOL_NAME", ""),
+    transcript_path=os.environ.get("TRANSCRIPT_PATH", ""),
+    session_id=os.environ.get("SESSION_ID", ""),
+    cwd=os.environ.get("CWD", ""),
+    tool_input=tool_input,
+)
+try:
+    record_telemetry(
+        session_id=os.environ.get("SESSION_ID", ""),
+        tool=os.environ.get("TOOL_NAME", ""),
+        decision=decision,
+        cwd=os.environ.get("CWD", ""),
+        target_file=str(tool_input.get("file_path", "")),
+    )
+except Exception:
+    pass
+print(json.dumps({
+    "allow": decision.allow,
+    "reason": decision.reason,
+    "stderr_msg": decision.to_stderr_message(),
+}))
+PY
+)
+
+      if [ -n "$SP_DECISION_JSON" ]; then
+        SP_ALLOW=$(echo "$SP_DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('allow', True))" 2>/dev/null)
+        if [ "$SP_ALLOW" != "True" ] && [ "$SP_ALLOW" != "true" ]; then
+          SP_STDERR=$(echo "$SP_DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('stderr_msg',''))" 2>/dev/null)
+          echo "$SP_STDERR" >&2
+          STDERR_MSG="$SP_STDERR" python3 - <<'PY'
+import json, os
+print(json.dumps({"hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": os.environ.get("STDERR_MSG", ""),
+}}))
+PY
+          exit 2
+        fi
+      fi
+      ;;
+  esac
+fi
+
 # ─── Fast allow: not a flow-gated tool ──────────────────────────────────
 # PR11 v2.33.0 expanded the gated set to include all EFFECT tools.
 # Bash is special — handled per-command by the Python enforcer via

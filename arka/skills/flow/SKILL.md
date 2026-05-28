@@ -73,6 +73,26 @@ state the gap explicitly and propose filling it.
 Dispatch specialists via the `Agent` tool. The squad lead from Phase 3
 names them. Specialists run in parallel when work is independent.
 
+**Dispatch must be announced (NON-NEGOTIABLE `dispatch-must-be-announced`).**
+Immediately before each `Agent` tool call, emit on its own line:
+
+```
+[arka:dispatch] <calling-persona> -> <specialist-id>
+```
+
+Example before dispatching a frontend specialist from Paulo's seat:
+
+```
+[arka:dispatch] paulo -> frontend-dev
+```
+
+The PreToolUse specialist-enforcer (`core/workflow/specialist_enforcer.py`)
+reads this marker to identify which specialist holds the floor. Without
+it, the specialist's subsequent `Write`/`Edit` will block when
+`hooks.specialistEnforcement=true`. The marker format mirrors
+`[arka:routing]` exactly but uses the verb `dispatch` and points from
+the caller to the receiver.
+
 ### Phase 7 — Plan and make the spec
 Run six parallel reviewers on the plan:
 
