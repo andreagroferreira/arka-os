@@ -5,6 +5,70 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.74.1] - 2026-05-28
+
+### Fixed — Wire the QG experience loop (Squad Intelligence Upgrade PR3.5)
+
+PR3 (v3.74.0) shipped the `Experience` storage, the `cqo_experience_recorder`
+parser, and the `AgentExperiencesLayer` (Synapse L2.6) — but left the
+layer unregistered in the engine and the recorder uninvoked. The loop
+was theoretical. v3.74.1 closes it.
+
+- **`core/synapse/engine.py`** — `AgentExperiencesLayer` is now
+  registered by `create_default_engine` between L2 `AgentLayer` and
+  L3 `ProjectLayer`. Dispatched specialists named in `[arka:dispatch]`
+  markers now actually receive their past Quality Gate experiences as
+  injected context. Default engine layer count: 10 → 11.
+
+- **`config/hooks/post-tool-use.sh`** — new block detects `Task`/`Agent`
+  tool calls with `subagent_type=cqo` returning `Quality Gate Verdict:
+  REJECTED`, parses `[arka:reviewing <agent_id>]` from the dispatch
+  prompt, and calls `cqo_experience_recorder.record_from_verdict()` to
+  append the `Experience`. Path-traversal-safe by double boundary
+  (shell-side regex + `safe_session_id` at the Python write path).
+  Never blocks the hook.
+
+- **`arka/skills/flow/SKILL.md`** Phase 11 — documents the
+  `[arka:reviewing <agent_id>]` convention. Orchestrators MUST include
+  the marker when dispatching the `cqo` subagent so the auto-recorder
+  knows which agent is under review.
+
+PR1 backlog cleanup (v3.74.1 also clears two items from Marta's PR2-QG
+backlog):
+
+- **`installer/cli.js`** — `fix: { type: "boolean" }` declared in
+  `parseArgs` options; removed the always-false fallback
+  `positionals.slice(1).includes("--fix") || values.fix === true`.
+
+- **`config/agent-ownership.yaml`** — installer + scripts ownership
+  added (`installer/**/*.js` owned by `devops-eng` + `senior-dev`;
+  `scripts/start-dashboard*` owned by `devops-eng`;
+  `scripts/dashboard-api.py` owned by `devops-eng` + `senior-dev`).
+  PR1 enforcement now covers the install/CI surface that the PR2
+  dashboard hotfix had to touch without specialist coverage.
+
+Tests:
+
+- New `tests/python/test_engine_wiring.py` — 3 cases proving L2.6
+  is registered, the instance is present, and the priority slot is
+  correct between L2 (20) and L3 (30).
+- `tests/python/test_synapse.py:250` and
+  `tests/python/test_knowledge.py:211` — `layer_count` expectations
+  reconciled (10 → 11 default, 12 → 13 with vector store).
+- Full pytest **4239 / 4239** green in ~45 s.
+- `npm test` **80 / 80** unchanged.
+
+Manual smoke test: simulated PostToolUse input with `subagent_type=cqo`,
+`Quality Gate Verdict: REJECTED` body, and `[arka:reviewing
+test-agent-paulo]` marker. Hook wrote an `Experience` to
+`~/.arkaos/agents/test-agent-paulo/experiences.jsonl` with parsed
+blockers (`["B1: evaluate() 31 lines."]`) and auto-classified pattern
+(`["function-length-violation"]`). End-to-end loop confirmed live.
+
+Quality Gate APPROVED on first pass (Marta + Eduardo + Francisca, all
+`opus`). The QG learning loop is now operational without manual
+bookkeeping.
+
 ## [3.74.0] - 2026-05-28
 
 ### Added — Agent Experience persistence (Squad Intelligence Upgrade PR3)
