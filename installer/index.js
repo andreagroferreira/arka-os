@@ -460,9 +460,11 @@ function installAllPythonDeps(userConfig = {}) {
   // Dashboard API. python-multipart is required by FastAPI for the
   // knowledge upload endpoint (its absence fails the API import on every
   // platform). pywinpty backs the dashboard terminal on Windows (ConPTY).
+  // websockets backs the terminal WebSocket — plain uvicorn has no WS
+  // implementation and returns 404 on the upgrade without it (every OS).
   const dashboardDeps = process.platform === "win32"
-    ? "fastapi uvicorn python-multipart pywinpty"
-    : "fastapi uvicorn python-multipart";
+    ? "fastapi uvicorn websockets python-multipart pywinpty"
+    : "fastapi uvicorn websockets python-multipart";
   // Transcription
   const transcriptionDeps = "faster-whisper";
 
@@ -505,7 +507,7 @@ function installAllPythonDeps(userConfig = {}) {
   if (userConfig.installDashboard !== false) {
     console.log("         Installing dashboard dependencies...");
     if (pipInstall(dashboardDeps, { log, timeout: 120000 })) {
-      ok("Dashboard API installed (fastapi, uvicorn, python-multipart)");
+      ok("Dashboard API installed (fastapi, uvicorn, websockets, python-multipart)");
     } else {
       warn("Dashboard API not installed (optional)");
     }
