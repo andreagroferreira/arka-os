@@ -5,6 +5,125 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.76.0] - 2026-05-28
+
+### Added — DNA Fidelity + Activation Tracking (Squad Intelligence PR5)
+
+PR5 of the six-PR Squad Intelligence Upgrade. Closes **R4** from the
+diagnosis at session start — "DNA dos agentes é teatro; agentes são
+intercambiáveis na cabeça do operador" — in two halves.
+
+**DNA fidelity (soft-warn mode for v1):**
+
+- `core/governance/dna_fidelity.py` — `SignatureMarkers` dataclass
+  declared in each agent YAML (`opening_phrases`, `typical_patterns`,
+  `closing_style`, `avoid_patterns`). `check_fidelity(agent_id,
+  output)` returns a list of `FidelityViolation` records: forbidden
+  patterns surfacing in the output, or missing opening phrases when
+  the YAML declares any. `record_fidelity` appends to
+  `~/.arkaos/telemetry/dna-fidelity.jsonl` even on zero-violation
+  runs (signal density).
+- The loader builds an index by `id`, `name`, AND the last
+  hyphen-segment of `id` — so `[arka:routing] dev -> Paulo` →
+  persona `paulo` → resolves to `tech-lead.yaml` (which has
+  `id: tech-lead-paulo`). CWE-22 guard at lookup entry.
+
+**Activation tracking:**
+
+- `core/governance/activation_tracker.py` — `record_activation`
+  appends every Task/Agent dispatch to
+  `~/.arkaos/telemetry/agent-activations.jsonl`. `query_top_callers`
+  surfaces the most-used subagents; `query_dead_agents(since_days)`
+  surfaces agents with no activation in the last N days. The
+  feedback loop the operator described for Sofia's monthly "agentes
+  mortos" review now has a data source.
+
+Hooks wired:
+
+- `config/hooks/post-tool-use.sh` — activation tracking block fires
+  for every `Task`/`Agent` dispatch (regardless of `subagent_type`),
+  reusing the existing `_AE_ROOT` resolution. Never blocks.
+- `config/hooks/stop.sh` — DNA fidelity block extracts the current
+  persona from the most recent `[arka:dispatch]` (overrides) or
+  `[arka:routing]` marker, calls check + record. Never blocks.
+
+CLI viewers:
+
+- `python -m core.governance.dna_fidelity_cli {list, summary}`
+  filtered by `--agent`/`--since`/`--limit`. Summary aggregates by
+  agent and shows violation rate.
+- `python -m core.governance.agent_activation_cli {top, dead}`.
+
+Constitution + flow:
+
+- SHOULD rule `dna-fidelity-warn` added to `config/constitution.yaml`
+  (not NON-NEGOTIABLE — phased rollout, hard-block lands later once
+  the marker set is calibrated against real telemetry).
+- `arka/skills/flow/SKILL.md` documents the turn-end check.
+
+Seed YAMLs (v3.76.0 covers 4 of 65):
+
+- `tech-lead-paulo` — avoids sycophant phrases (`you're absolutely
+  right`, `amazing work`, `I appreciate your patience`).
+- `cqo-marta` — opens with `Quality Gate Verdict:` or `Verdict:`;
+  avoids softening (`happy to help`, `great question`, `let me know
+  if`, `softening`).
+- `copy-director-eduardo` — opens with `Copy & Language` or
+  `Reviewed`; avoids AI clichés (`delve into`, `tapestry`,
+  `leverage`, `utilize`, `robust`, `cutting-edge`, `streamline`,
+  `in today's fast-paced`, `navigate the landscape`, `underscore`).
+- `tech-director-francisca` — opens with `Technical & UX`; avoids
+  hedge language (`I think`, `perhaps`, `kind of`, `might be a`,
+  `could be a problem`).
+
+Tightened scope:
+
+- v3.76.0 ships the mechanism + 4 representative YAMLs.
+- v3.76.x: signature_markers for the remaining 61 agents (curation
+  work), persona-alias map for first-name collisions, dashboard
+  "Squad Health" UI tab, hard-block mode.
+
+Tests:
+
+- 27 new pytest cases — 15 `dna_fidelity` (10 unit, 5 integration
+  against the real `departments/` tree) + 12 `activation_tracker`.
+- `test_synapse.py::test_performance_under_100ms` — replaced the
+  brittle 100 ms wall-clock average (measured ≈ 208 ms post-PR3.5 +
+  PR4 under contention) with a semantic `cache.hit_rate >= 50 %`
+  check (62 % measured). Same correction pattern Marta applied to
+  `test_full_context_injection` in PR4.5-T1.
+- Full suite **4302 / 4302** green deterministically.
+
+Quality Gate APPROVED on the second pass (Marta + Eduardo +
+Francisca, all `opus`). First pass REJECTED on a **feature-defining
+bug**: the original `_yaml_path_for` literally searched for
+`<agent_id>.yaml`, never finding the seeded files. The unit tests
+passed because the fixture wrote `<agent_id>.yaml` directly,
+matching the broken loader. Production hook returned empty
+violations forever. Marta caught it; the second pass adds the
+index resolver + 5 integration tests that hit the real tree
+(would-fail-without-the-fix), plus CWE-22 hardening at lookup
+entry. Six non-blocking backlog items deferred to v3.76.x
+(persona-alias map for the other 61 agents, agent-only YAML
+filter, explicit cache helper, Eduardo avoid_patterns expansion,
+CLI summary kind breakdown, dashboard tab).
+
+Three real-world dispatches under live PR1 specialist enforcement:
+`senior-dev` × 2 (dna_fidelity + activation_tracker + CLIs + B1 fix),
+`devops-eng` × 1 (hook wiring). All clean — no
+`[arka:specialist-bypass]` markers used. Constitution rule
+`dispatch-must-be-announced` (PR1) satisfied each time.
+
+Upgrade:
+
+```bash
+npx arkaos@latest update
+# Inspect (will be quiet on first run — telemetry accrues per turn):
+python -m core.governance.dna_fidelity_cli summary
+python -m core.governance.agent_activation_cli top
+python -m core.governance.agent_activation_cli dead --since-days 30
+```
+
 ## [3.75.2] - 2026-05-28
 
 ### Fixed — **CRITICAL** installer hookNames parity (re-run update required)
