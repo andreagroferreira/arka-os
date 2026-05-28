@@ -70,6 +70,23 @@ def _resolve_windows_shell() -> str:
 
 
 def _default_cwd() -> str:
+    """Open new terminals in the user's configured projectsDir, else home.
+
+    The dashboard sends no cwd, so without this a terminal lands in the
+    home directory rather than where the operator actually works. Reads
+    the existing ~/.arkaos/profile.json projectsDir; falls back to home
+    when it is unset or missing (unchanged behaviour for that case).
+    """
+    try:
+        import json
+        profile = os.path.join(os.path.expanduser("~"), ".arkaos", "profile.json")
+        if os.path.isfile(profile):
+            with open(profile, encoding="utf-8") as fh:
+                projects_dir = json.load(fh).get("projectsDir")
+            if projects_dir and os.path.isdir(projects_dir):
+                return projects_dir
+    except Exception:
+        pass
     return os.path.expanduser("~")
 
 
