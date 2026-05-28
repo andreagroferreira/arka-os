@@ -187,6 +187,7 @@ def create_default_engine(
         ForgeContextLayer,
         SessionContextLayer,
     )
+    from core.synapse.agent_experiences_layer import AgentExperiencesLayer
 
     engine = SynapseEngine()
 
@@ -194,6 +195,10 @@ def create_default_engine(
     engine.register_layer(l0)
     engine.register_layer(DepartmentLayer())
     engine.register_layer(AgentLayer(agents_registry=agents_registry))
+    # L2.6 (PR3.5 v3.74.1) — injects past Quality Gate experiences for the
+    # specialist named in `[arka:dispatch]`, so dispatched agents inherit
+    # prior REJECTED lessons across sessions. Closes the PR3 loop.
+    engine.register_layer(AgentExperiencesLayer())
     if vector_store is not None or kb_vault_path:
         engine.register_layer(
             KBContextLayer(

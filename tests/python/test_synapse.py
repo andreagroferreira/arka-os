@@ -247,7 +247,8 @@ class TestTimeLayer:
 class TestSynapseEngine:
     def test_create_default_engine(self):
         engine = create_default_engine(constitution_compressed="test")
-        assert engine.layer_count == 10
+        # PR3.5 v3.74.1 added L2.6 AgentExperiencesLayer: 10 -> 11.
+        assert engine.layer_count == 11
 
     def test_inject_returns_result(self):
         engine = create_default_engine(constitution_compressed="NON-NEGOTIABLE: a")

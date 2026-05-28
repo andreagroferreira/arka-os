@@ -150,12 +150,20 @@ For each item, in order:
    injection, missing auth, data exposure.
    - Fail → back to the todo.
 5. **Quality Gate** — Marta (CQO) orchestrates the right specialists
-   for the area. After Marta returns the verdict, the orchestrator MUST
-   call `core.governance.cqo_experience_recorder.record_from_verdict(...)`
-   when verdict is REJECTED (constitution rule `agent-experience-persistence`,
-   MUST level — PR3 v3.74.0). The recorder parses the blockers and writes
-   one Experience to the failing agent's log so the lesson is visible on
-   the next dispatch via the L2.6 Synapse layer. If a specialist is
+   for the area.
+
+   **CQO dispatch convention (PR3.5 v3.74.1):** when invoking the `cqo`
+   subagent, the orchestrator MUST include the marker
+   `[arka:reviewing <agent_id>]` in the dispatch prompt, naming the
+   agent whose work is under review (e.g.
+   `[arka:reviewing tech-lead-paulo]`). On a REJECTED verdict, the
+   PostToolUse hook `config/hooks/post-tool-use.sh` reads the marker
+   plus the verdict text and auto-appends an `Experience` to that
+   agent's log — closing the QG learning loop without manual
+   bookkeeping. The L2.6 Synapse layer
+   (`core/synapse/agent_experiences_layer.py`) injects the lessons
+   into the next dispatch automatically. APPROVED verdicts produce no
+   record (only failures are lessons). If a specialist is
    missing, stop and advise the user
    to create one via `/arka personas` + provide the knowledge.
    - Fail → back to the todo.
