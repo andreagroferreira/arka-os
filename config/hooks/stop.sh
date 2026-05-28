@@ -20,6 +20,7 @@ TRANSCRIPT_PATH=""
 STOP_HOOK_ACTIVE=""
 CWD=""
 EFFORT_LEVEL=""
+ASSISTANT_MSG_STOP=""
 if command -v jq &>/dev/null; then
   SESSION_ID=$(echo "$input" | jq -r '.session_id // ""' 2>/dev/null)
   TRANSCRIPT_PATH=$(echo "$input" | jq -r '.transcript_path // ""' 2>/dev/null)
@@ -29,6 +30,8 @@ if command -v jq &>/dev/null; then
   # $CLAUDE_EFFORT env var. Soft-block checks (kb-cite, meta-tag) only
   # run at high|xhigh; hard enforcement runs regardless.
   EFFORT_LEVEL=$(echo "$input" | jq -r '.effort.level // ""' 2>/dev/null)
+  # PR5 v3.76.0 — DNA fidelity check needs the closing assistant message.
+  ASSISTANT_MSG_STOP=$(echo "$input" | jq -r '.assistant_message // ""' 2>/dev/null)
 fi
 # Fallback to env var if stdin didn't carry it
 [ -z "$EFFORT_LEVEL" ] && EFFORT_LEVEL="${CLAUDE_EFFORT:-}"
@@ -38,6 +41,60 @@ fi
 # What is effort-gated is the NUDGE SURFACING in user-prompt-submit.sh
 # (whether the next turn sees a [arka:suggest] line). Record the level
 # on the telemetry row so we can later analyze suppression rates.
+
+# ─── DNA Fidelity Check (PR5 v3.76.0) ───────────────────────────────────
+# Fires for every session (no WF_MARKER dependency — fidelity is always
+# worth measuring). Extracts the dispatched persona from the last routing/
+# dispatch marker in the closing message, then calls check_fidelity() +
+# record_fidelity(). Soft-warn only, never blocks. Zero violations are
+# recorded too — absence of violations is signal.
+if [ -n "$ASSISTANT_MSG_STOP" ] && [ -n "$SESSION_ID" ] && command -v python3 &>/dev/null; then
+  _FID_ROOT="${ARKAOS_ROOT:-}"
+  if [ -z "$_FID_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+    _FID_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+  fi
+  [ -z "$_FID_ROOT" ] && _FID_ROOT="$HOME/.arkaos"
+
+  # Extract persona: dispatch marker takes precedence over routing.
+  # Latest match wins (tail -1). Both patterns: [arka:dispatch] X -> Y
+  # and [arka:routing] X -> Y. Persona is the right-hand side, lowercased.
+  _FIDELITY_PERSONA=""
+  _DISPATCH_HIT=$(printf '%s' "$ASSISTANT_MSG_STOP" \
+    | grep -ioE '\[arka:dispatch\][[:space:]]*[A-Za-z0-9_-]+[[:space:]]*->[[:space:]]*[A-Za-z0-9_-]+' \
+    | tail -1)
+  if [ -n "$_DISPATCH_HIT" ]; then
+    _FIDELITY_PERSONA=$(printf '%s' "$_DISPATCH_HIT" \
+      | sed -E 's/.*->[[:space:]]*//' | tr '[:upper:]' '[:lower:]')
+  else
+    _ROUTING_HIT=$(printf '%s' "$ASSISTANT_MSG_STOP" \
+      | grep -ioE '\[arka:routing\][[:space:]]*[A-Za-z0-9_-]+[[:space:]]*->[[:space:]]*[A-Za-z0-9_-]+' \
+      | tail -1)
+    if [ -n "$_ROUTING_HIT" ]; then
+      _FIDELITY_PERSONA=$(printf '%s' "$_ROUTING_HIT" \
+        | sed -E 's/.*->[[:space:]]*//' | tr '[:upper:]' '[:lower:]')
+    fi
+  fi
+
+  if [ -n "$_FIDELITY_PERSONA" ]; then
+    FIDELITY_PERSONA="$_FIDELITY_PERSONA" \
+    FIDELITY_SESSION_ID="$SESSION_ID" \
+    FIDELITY_MSG="$ASSISTANT_MSG_STOP" \
+    ARKAOS_ROOT="$_FID_ROOT" \
+    python3 - <<'PY' 2>/dev/null || true
+import os, sys
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from core.governance.dna_fidelity import check_fidelity, record_fidelity
+    agent_id = os.environ.get("FIDELITY_PERSONA", "")
+    session_id = os.environ.get("FIDELITY_SESSION_ID", "")
+    output = os.environ.get("FIDELITY_MSG", "")
+    violations = check_fidelity(agent_id, output)
+    record_fidelity(agent_id, session_id, violations)
+except Exception:
+    pass
+PY
+  fi
+fi
 
 # Prevent infinite loops when Stop hook was triggered by its own decision.
 if [ "$STOP_HOOK_ACTIVE" = "true" ]; then

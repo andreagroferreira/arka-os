@@ -78,3 +78,24 @@ communication:
     - "vague feedback without specific location"
     - "approving with known technical debt"
     - "skipping test coverage check"
+
+# PR5 v3.76.0 — DNA fidelity markers (soft-warn). Regex case-insensitive.
+signature_markers:
+  opening_phrases:
+    - "Technical & UX"
+    - "Technical & UX Quality"
+  typical_patterns:
+    - "B1."
+    - "M1."
+    - "PASS"
+    - "FAIL"
+    - "30-line"
+  closing_style: null
+  avoid_patterns:
+    - "I think"
+    - "I believe"
+    - "perhaps"
+    - "kind of"
+    - "sort of"
+    - "might be a"
+    - "could be a problem"

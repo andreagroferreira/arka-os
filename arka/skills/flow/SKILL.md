@@ -194,6 +194,18 @@ For each item, in order:
 Do not skip items. Do not batch QA or Security across multiple
 items — each item runs the full gate chain.
 
+**DNA fidelity check at turn end (PR5 v3.76.0, SHOULD `dna-fidelity-warn`).**
+The Stop hook (`config/hooks/stop.sh`) invokes
+`core.governance.dna_fidelity.check_fidelity(agent_id, output)` for the
+current persona (from `[arka:routing]` or `[arka:dispatch]`). Violations
+of `avoid_patterns` or missing `opening_phrases` from the agent's YAML
+`signature_markers` block are recorded to
+`~/.arkaos/telemetry/dna-fidelity.jsonl` — soft-warn only in v3.76.0.
+Operator audit: `python -m core.governance.dna_fidelity_cli summary`.
+Each Agent dispatch also logs to
+`~/.arkaos/telemetry/agent-activations.jsonl`; surface dormant agents
+via `python -m core.governance.agent_activation_cli dead`.
+
 ### Phase 13 — Detailed summary
 When the TODO list is exhausted, emit a final summary: what was done,
 where it lives, how to verify, what is open for next time.
