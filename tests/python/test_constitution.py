@@ -67,7 +67,8 @@ class TestConstitutionRules:
         rules = constitution.get_should_rules()
         # PR4 v3.75.0 added pattern-library-first: 5 -> 6.
         # PR5 v3.76.0 added dna-fidelity-warn: 6 -> 7.
-        assert len(rules) == 7
+        # PR6 v3.77.0 added design-system-locked: 7 -> 8.
+        assert len(rules) == 8
 
     def test_is_rule_non_negotiable(self, constitution):
         assert constitution.is_rule_non_negotiable("branch-isolation")
@@ -82,7 +83,8 @@ class TestConstitutionRules:
         # PR3 Squad Intelligence (v3.74.0) added agent-experience-persistence: 40 → 41.
         # PR4 Squad Intelligence (v3.75.0) added pattern-library-first: 41 → 42.
         # PR5 Squad Intelligence (v3.76.0) added dna-fidelity-warn: 42 → 43.
-        assert len(all_ids) == 43  # 25 + 11 + 7
+        # PR6 Squad Intelligence (v3.77.0) added design-system-locked: 43 → 44.
+        assert len(all_ids) == 44  # 25 + 11 + 8
 
 
 class TestConstitutionQualityGate:
