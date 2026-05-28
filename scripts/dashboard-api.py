@@ -142,10 +142,10 @@ def overview():
 
     skills_count = 0
     try:
-        skills_count = int(subprocess.run(
-            ["find", str(ARKAOS_ROOT / "departments"), "-name", "SKILL.md", "-path", "*/skills/*/SKILL.md"],
-            capture_output=True, text=True, timeout=5,
-        ).stdout.strip().count("\n")) + 1
+        skills_count = sum(
+            1 for p in (ARKAOS_ROOT / "departments").rglob("SKILL.md")
+            if "skills" in p.parts
+        )
     except Exception:
         skills_count = 250
 
@@ -1282,7 +1282,7 @@ def health():
           "npx arkaos install")
 
     try:
-        subprocess.run(["python3", "--version"], capture_output=True, timeout=2)
+        subprocess.run([sys.executable, "--version"], capture_output=True, timeout=2)
         check("python", True)
     except Exception:
         check("python", False, "Install Python 3.11+")
@@ -2343,6 +2343,18 @@ def _current_version() -> str:
         return "0.0.0"
 
 
+def _win_shim(cmd: list) -> list:
+    """Wrap npm/npx-style commands so Windows can execute them.
+
+    npm and npx are ``.cmd`` shims; ``subprocess`` (CreateProcess) cannot
+    run them directly ("%1 is not a valid Win32 application"), so route
+    through ``cmd /c`` on Windows. No-op on POSIX.
+    """
+    if os.name == "nt":
+        return ["cmd", "/c", *cmd]
+    return cmd
+
+
 def _npm_latest_version():
     import subprocess
     import time
@@ -2351,7 +2363,7 @@ def _npm_latest_version():
         return _npm_latest_cache["version"]
     try:
         out = subprocess.run(
-            ["npm", "view", "arkaos", "version"],
+            _win_shim(["npm", "view", "arkaos", "version"]),
             capture_output=True, text=True, timeout=20,
         )
         latest = (out.stdout or "").strip() or None
@@ -2378,7 +2390,7 @@ def _run_core_update() -> dict:
     import subprocess
     try:
         out = subprocess.run(
-            ["npx", "arkaos@latest", "update"],
+            _win_shim(["npx", "arkaos@latest", "update"]),
             capture_output=True, text=True, timeout=600,
         )
         tail = ((out.stdout or "") + (out.stderr or ""))[-2000:]
