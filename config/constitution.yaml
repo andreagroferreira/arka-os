@@ -217,6 +217,11 @@ enforcement_levels:
         rule: "Bottom-line first output. Lead with answer, then why, then how. Confidence tags on assessments."
         enforcement: "See config/standards/communication.md for full standard"
 
+      # ─── Rule added in PR4 Squad Intelligence Upgrade (2026-05-28) ───────
+      - id: pattern-library-first
+        rule: "Before designing any new feature, consult the Pattern Library (core.knowledge.pattern_cards). If a similar pattern exists, reuse it or explicitly document why divergence is justified in the spec. New patterns SHOULD be registered with record_pattern() after Quality Gate APPROVED so future feature work inherits the prior art."
+        enforcement: "Synapse layer L7.5 (core.synapse.pattern_library_layer) auto-injects top matching cards as context. Audit via python -m core.knowledge.pattern_cards_cli list. SHOULD level — promoted from advisory once telemetry shows consistent consultation."
+
 tier_hierarchy:
   description: "Agent authority levels inspired by SpaceX/Google/Anthropic org structures"
   tiers:

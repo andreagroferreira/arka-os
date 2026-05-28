@@ -69,6 +69,14 @@ Query the knowledge base:
 Cite the sources found. If the KB has nothing and the ask is non-trivial,
 state the gap explicitly and propose filling it.
 
+**Pattern Library check (SHOULD `pattern-library-first`, PR4 v3.75.0).**
+Synapse layer L7.5 (`core/synapse/pattern_library_layer.py`) auto-injects
+the top matching `PatternCard`s from `~/.arkaos/patterns/cards.jsonl`
+whenever the user prompt contains substantive keywords. Read the cards
+*before* designing — reuse the prior implementation, or document in the
+spec why divergence is justified. Manual audit:
+`python -m core.knowledge.pattern_cards_cli list` or `search <keyword>`.
+
 ### Phase 6 — Call team
 Dispatch specialists via the `Agent` tool. The squad lead from Phase 3
 names them. Specialists run in parallel when work is independent.
