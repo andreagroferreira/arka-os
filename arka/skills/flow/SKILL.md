@@ -171,9 +171,21 @@ For each item, in order:
    bookkeeping. The L2.6 Synapse layer
    (`core/synapse/agent_experiences_layer.py`) injects the lessons
    into the next dispatch automatically. APPROVED verdicts produce no
-   record (only failures are lessons). If a specialist is
-   missing, stop and advise the user
-   to create one via `/arka personas` + provide the knowledge.
+   `Experience` record (only failures are lessons).
+
+   **Pattern auto-stub convention (PR4.5 v3.75.1):** to populate the
+   Pattern Library on APPROVED outcomes, the orchestrator may include
+   `[arka:pattern-suggest <id> <name>]` in the CQO dispatch prompt
+   (e.g. `[arka:pattern-suggest force-specialist-dispatch Force
+   Specialist Dispatch]`). On APPROVED, the same PostToolUse hook
+   creates a stub `PatternCard` so the library remembers the feature
+   ID and name; the operator enriches it later via `record_pattern()`
+   or by editing `~/.arkaos/patterns/cards.jsonl`. Re-suggesting an
+   existing id is a no-op (never overwrites enriched cards).
+
+   If a specialist is missing, stop and advise the user to create one
+   via `/arka personas` + provide the knowledge.
+
    - Fail → back to the todo.
 6. Document — save the completed work to Obsidian + vector DB.
 7. Next todo.

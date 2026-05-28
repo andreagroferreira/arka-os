@@ -74,6 +74,23 @@ class TestExtract:
         assert _extract_keywords("") == []
         assert _extract_keywords(None) == []
 
+    def test_pt_pt_accented_words_kept_whole(self):
+        """PR4.5 v3.75.1 — Latin-1 Supplement chars must NOT truncate words."""
+        kw = _extract_keywords("implementar autenticação com paginação no projeto")
+        # Whole accented words preserved, not truncated to "autentica"/"pagina"
+        assert "autenticação" in kw
+        assert "paginação" in kw
+        assert "projeto" in kw
+        assert "implementar" in kw
+
+    def test_pt_pt_mixed_with_english(self):
+        kw = _extract_keywords("Build the autenticação flow with magic link")
+        assert "build" in kw
+        assert "autenticação" in kw
+        assert "flow" in kw
+        assert "magic" in kw
+        assert "link" in kw
+
 
 # ─── Layer compute path ────────────────────────────────────────────────
 

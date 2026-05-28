@@ -148,6 +148,15 @@ ownership:
     owners: [architect, security-eng]
     reason: "Governance code requires architecture + security review"
 
+  # PR4.5 v3.75.1 — extend coverage to knowledge + synapse (Marta PR4-QG #4)
+  - pattern: "core/knowledge/**/*.py"
+    owners: [architect, senior-dev]
+    reason: "Knowledge storage + retrieval require architecture review"
+
+  - pattern: "core/synapse/**/*.py"
+    owners: [architect, senior-dev]
+    reason: "Synapse engine + layers require architecture review"
+
   - pattern: "docs/adr/**"
     owners: [architect]
     reason: "ADRs are architect's responsibility"
