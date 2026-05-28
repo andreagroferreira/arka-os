@@ -73,6 +73,16 @@ state the gap explicitly and propose filling it.
 Dispatch specialists via the `Agent` tool. The squad lead from Phase 3
 names them. Specialists run in parallel when work is independent.
 
+**Experience injection (PR3 v3.74.0).** When a specialist is dispatched,
+Synapse layer `L2.6 AgentExperiences`
+(`core/synapse/agent_experiences_layer.py`) detects the
+`[arka:dispatch] <from> -> <to>` marker and loads the top-5 most recent
+`Experience` records for the target agent from
+`~/.arkaos/agents/<agent_id>/experiences.jsonl`. The records list past
+Quality Gate REJECTED verdicts with their blockers and patterns. The
+dispatched specialist must read them and avoid repeating the failure
+modes. Operator-side audit: `python -m core.governance.agent_experiences_cli list <agent_id>`.
+
 **Dispatch must be announced (NON-NEGOTIABLE `dispatch-must-be-announced`).**
 Immediately before each `Agent` tool call, emit on its own line:
 
@@ -140,7 +150,13 @@ For each item, in order:
    injection, missing auth, data exposure.
    - Fail → back to the todo.
 5. **Quality Gate** — Marta (CQO) orchestrates the right specialists
-   for the area. If a specialist is missing, stop and advise the user
+   for the area. After Marta returns the verdict, the orchestrator MUST
+   call `core.governance.cqo_experience_recorder.record_from_verdict(...)`
+   when verdict is REJECTED (constitution rule `agent-experience-persistence`,
+   MUST level — PR3 v3.74.0). The recorder parses the blockers and writes
+   one Experience to the failing agent's log so the lesson is visible on
+   the next dispatch via the L2.6 Synapse layer. If a specialist is
+   missing, stop and advise the user
    to create one via `/arka personas` + provide the knowledge.
    - Fail → back to the todo.
 6. Document — save the completed work to Obsidian + vector DB.

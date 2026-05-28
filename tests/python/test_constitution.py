@@ -28,7 +28,8 @@ class TestConstitutionRules:
         rules = constitution.get_non_negotiable_rules()
         # PR10 v2.32.0 added 7 NON-NEGOTIABLE rules: 16 → 23.
         # PR44 v2.63.0 added mandatory-skill-evaluation: 23 → 24.
-        assert len(rules) == 24
+        # PR1 Squad Intelligence (v3.73.0) added dispatch-must-be-announced: 24 → 25.
+        assert len(rules) == 25
 
     def test_non_negotiable_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_non_negotiable_rules()]
@@ -45,13 +46,16 @@ class TestConstitutionRules:
             "project-design-system-prerequisite",
             "definition-of-done-per-domain", "arkaos-not-yes-man",
             "inter-agent-checkpoints", "hybrid-learning",
+            # PR1 Squad Intelligence Upgrade (v3.73.0)
+            "dispatch-must-be-announced",
         ]
         assert rule_ids == expected
 
     def test_has_6_must_rules(self, constitution):
         rules = constitution.get_must_rules()
         # PR5 v2.27.0 added sub-squad-hierarchy: 9 → 10
-        assert len(rules) == 10
+        # PR3 Squad Intelligence (v3.74.0) added agent-experience-persistence: 10 → 11.
+        assert len(rules) == 11
 
     def test_must_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_must_rules()]
@@ -72,7 +76,9 @@ class TestConstitutionRules:
     def test_get_all_rule_ids(self, constitution):
         all_ids = constitution.get_rule_ids()
         # PR10 v2.32.0 added 7 NON-NEGOTIABLE: 31 → 38. PR44 mandatory-skill-evaluation: 38 → 39.
-        assert len(all_ids) == 39  # 23 + 10 + 5
+        # PR1 Squad Intelligence (v3.73.0) added dispatch-must-be-announced: 39 → 40.
+        # PR3 Squad Intelligence (v3.74.0) added agent-experience-persistence: 40 → 41.
+        assert len(all_ids) == 41  # 25 + 11 + 5
 
 
 class TestConstitutionQualityGate:
