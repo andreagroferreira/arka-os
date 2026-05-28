@@ -21,15 +21,22 @@ Design notes
 from __future__ import annotations
 
 import errno
-import fcntl
 import os
-import pty
 import secrets
+import shutil
 import signal
 import struct
-import termios
 import time
 from typing import Any, Optional
+
+try:  # POSIX-only: the Windows backend lives in session_windows.py
+    import fcntl
+    import pty
+    import termios
+    _PTY_SUPPORTED = True
+except ModuleNotFoundError:
+    fcntl = pty = termios = None  # type: ignore[assignment]
+    _PTY_SUPPORTED = False
 
 from core.terminal import audit
 
@@ -39,7 +46,27 @@ class SessionCapacityError(RuntimeError):
 
 
 def _default_shell() -> str:
+    if os.name == "nt":
+        # Windows PowerShell renders reliably under ConPTY; bare cmd.exe can
+        # emit no prompt when the API is launched without an attached
+        # console, and the WindowsApps "pwsh" alias is a Store reparse point
+        # that misbehaves when spawned programmatically — so resolve the real
+        # System32 powershell.exe first.
+        return _resolve_windows_shell()
     return os.environ.get("SHELL") or "/bin/zsh"
+
+
+def _resolve_windows_shell() -> str:
+    """Pick a Windows shell that works under ConPTY, skipping Store aliases."""
+    candidates = []
+    pwsh = shutil.which("pwsh")
+    if pwsh and "windowsapps" not in pwsh.lower():
+        candidates.append(pwsh)
+    powershell = shutil.which("powershell")
+    if powershell:
+        candidates.append(powershell)
+    candidates.append(os.environ.get("COMSPEC") or "cmd.exe")
+    return candidates[0]
 
 
 def _default_cwd() -> str:
@@ -251,14 +278,25 @@ class TerminalSessionManager:
         sid = secrets.token_urlsafe(8)
         chosen_shell = shell or _default_shell()
         chosen_cwd = cwd or _default_cwd()
-        session = TerminalSession(
-            session_id=sid,
-            shell=chosen_shell,
-            cwd=chosen_cwd,
-            cols=cols,
-            rows=rows,
-            scrollback_bytes=self.scrollback_bytes,
-        )
+        if os.name == "nt":
+            from core.terminal.session_windows import WindowsTerminalSession
+            session = WindowsTerminalSession(
+                session_id=sid,
+                shell=chosen_shell,
+                cwd=chosen_cwd,
+                cols=cols,
+                rows=rows,
+                scrollback_bytes=self.scrollback_bytes,
+            )
+        else:
+            session = TerminalSession(
+                session_id=sid,
+                shell=chosen_shell,
+                cwd=chosen_cwd,
+                cols=cols,
+                rows=rows,
+                scrollback_bytes=self.scrollback_bytes,
+            )
         self._sessions[sid] = session
         audit.log_start(sid, chosen_shell, chosen_cwd)
         return session
