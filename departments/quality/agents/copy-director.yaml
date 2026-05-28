@@ -72,3 +72,26 @@ communication:
     - "approving text with known issues"
     - "subjective opinions without evidence"
     - "AI cliches: leverage, utilize, robust, streamline, cutting-edge"
+
+# PR5 v3.76.0 — DNA fidelity markers (soft-warn). Regex case-insensitive.
+signature_markers:
+  opening_phrases:
+    - "Copy & Language"
+    - "Reviewed"
+  typical_patterns:
+    - "PASS"
+    - "FAIL"
+    - "pt-PT"
+    - "AI cliche"
+  closing_style: null
+  avoid_patterns:
+    - "delve into"
+    - "tapestry"
+    - "in today's fast-paced"
+    - "navigate the landscape"
+    - "underscore"
+    - "leverage"
+    - "utilize"
+    - "robust"
+    - "streamline"
+    - "cutting-edge"

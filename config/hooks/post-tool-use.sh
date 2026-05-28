@@ -165,6 +165,33 @@ PY
       fi
     fi
   fi
+
+  # ─── Activation tracking (PR5 v3.76.0) ─────────────────────────────
+  # Record every Task/Agent dispatch regardless of subagent_type (CQO or
+  # any other). Runs AFTER the cqo branch so verdicts don't block it.
+  # Never blocks — _ACT_ROOT reuses the same resolution as _AE_ROOT.
+  if [ -n "$SUBAGENT_TYPE" ]; then
+    _ACT_ROOT="${ARKAOS_ROOT:-}"
+    if [ -z "$_ACT_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+      _ACT_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+    fi
+    [ -z "$_ACT_ROOT" ] && _ACT_ROOT="$HOME/.arkaos"
+    SUBAGENT_TYPE="$SUBAGENT_TYPE" \
+    SESSION_ID="$SESSION_ID_PTU" \
+    ARKAOS_ROOT="$_ACT_ROOT" \
+    python3 - <<'PY' 2>/dev/null || true
+import os, sys
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from core.governance.activation_tracker import record_activation
+    record_activation(
+        subagent_type=os.environ.get("SUBAGENT_TYPE", ""),
+        session_id=os.environ.get("SESSION_ID", ""),
+    )
+except Exception:
+    pass
+PY
+  fi
 fi
 
 # Only process if there was an error

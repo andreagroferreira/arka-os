@@ -71,3 +71,21 @@ communication:
   avoid:
     - "blame language"
     - "vague task assignments"
+
+# PR5 v3.76.0 — DNA fidelity markers (soft-warn). Regex case-insensitive.
+# Paulo (lead, supportive style) does not gate on opening phrases — only
+# detects sycophant/placeholder language that contradicts his DISC=I
+# servant-leader tone.
+signature_markers:
+  opening_phrases: []
+  typical_patterns:
+    - "vamos"
+    - "alinhamos"
+    - "OK"
+  closing_style: null
+  avoid_patterns:
+    - "you're absolutely right"
+    - "amazing work"
+    - "great job, everyone"
+    - "I appreciate your patience"
+    - "thanks for understanding"

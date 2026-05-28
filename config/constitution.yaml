@@ -217,6 +217,11 @@ enforcement_levels:
         rule: "Bottom-line first output. Lead with answer, then why, then how. Confidence tags on assessments."
         enforcement: "See config/standards/communication.md for full standard"
 
+      # ─── Rule added in PR5 Squad Intelligence Upgrade (2026-05-28) ───────
+      - id: dna-fidelity-warn
+        rule: "Agent outputs are compared against the `signature_markers` block in each agent's YAML at the end of every turn. Forbidden patterns (avoid_patterns) and missing opening phrases (opening_phrases) generate FidelityViolation records in ~/.arkaos/telemetry/dna-fidelity.jsonl. v3.76.0 is soft-warn — violations are recorded for telemetry and operator review, not blocked. Hard-block mode lands later once the marker set is calibrated against real production usage."
+        enforcement: "Stop hook (config/hooks/stop.sh) calls core.governance.dna_fidelity.check_fidelity at turn end. Telemetry inspection: python -m core.governance.dna_fidelity_cli list|summary. Agents in scope for v3.76.0: tech-lead-paulo, cqo-marta, copy-director-eduardo, tech-director-francisca. Remaining 61 agent YAMLs get signature_markers in v3.76.x curation work."
+
       # ─── Rule added in PR4 Squad Intelligence Upgrade (2026-05-28) ───────
       - id: pattern-library-first
         rule: "Before designing any new feature, consult the Pattern Library (core.knowledge.pattern_cards). If a similar pattern exists, reuse it or explicitly document why divergence is justified in the spec. New patterns SHOULD be registered with record_pattern() after Quality Gate APPROVED so future feature work inherits the prior art."
