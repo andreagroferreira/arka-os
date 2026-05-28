@@ -25,6 +25,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyyaml pydantic rich click jinja2
+          # Dashboard deps: 79 test modules import scripts/dashboard-api.py,
+          # which needs fastapi + python-multipart (the upload route) to load.
+          # Without them the whole suite errored at collection. fastembed is
+          # intentionally omitted — the knowledge tests insert via SQL to skip
+          # the embedding pipeline, and the embedder degrades to keyword search.
+          pip install fastapi uvicorn websockets python-multipart sqlite-vec
           pip install pytest pytest-cov
 
       - name: Run Python tests
