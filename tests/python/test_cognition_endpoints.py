@@ -12,6 +12,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+pytest.importorskip("fastapi")  # optional dashboard dependency
 from fastapi.testclient import TestClient
 
 
