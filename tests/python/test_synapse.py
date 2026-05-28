@@ -365,4 +365,16 @@ class TestSynapseIntegration:
         assert "[branch:feature/auth]" in result.context_string
         assert "[hint:/dev feature]" in result.context_string
         assert "[time:" in result.context_string
-        assert result.total_ms < 100
+        # PR4.5 v3.75.1 — replaced the original hard 100ms wall-clock budget
+        # with a SEMANTIC cache-effect check. Any wall-clock budget tighter
+        # than the host's CI variance is brittle (Marta's QG-T1 on the first
+        # cleanup pass: 100ms warm budget reproduced the original flake at
+        # a tighter threshold). The new contract is "the second injection
+        # must benefit from the layer cache" — contention-immune.
+        assert "[Constitution]" in result.context_string  # cold call already verified above
+        warm = engine.inject(ctx)
+        cache_hits = warm.cache_stats.get("hits", 0)
+        assert cache_hits > 0, (
+            f"expected cache to register hits on second inject; "
+            f"got cache_stats={warm.cache_stats}"
+        )

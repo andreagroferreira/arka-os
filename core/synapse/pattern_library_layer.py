@@ -20,17 +20,25 @@ from core.knowledge.pattern_cards import PatternCard, query_patterns
 from core.synapse.layers import Layer, LayerResult, PromptContext
 
 
-# Cheap keyword extractor — alphanumeric runs longer than 3 chars,
-# lowercased, stopword-filtered. Enough for v1 matching; a vector-DB
-# embedder will replace this in v3.75.x.
-_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{3,}")
+# Cheap keyword extractor — letter-led runs of ≥4 chars, lowercased,
+# stopword-filtered. The character class includes Latin-1 Supplement
+# (À-ÿ, U+00C0–U+00FF) so pt-PT input like "autenticação", "paginação",
+# "implementação" is captured whole instead of truncated at the
+# accented character. Latin Extended-A (U+0100+) is intentionally
+# excluded — extend the class when adding CS/PL/HU/TR corpora
+# (š, ý, ě, ą, ł, ő, ı, etc.). Vector-DB embedder lands in v3.75.x.
+_WORD_RE = re.compile(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9_-]{3,}")
 
 _STOPWORDS: frozenset[str] = frozenset({
+    # EN
     "this", "that", "with", "from", "into", "have", "want", "need",
     "should", "would", "could", "make", "made", "thing", "things",
     "there", "their", "about", "what", "when", "where", "which",
-    "while", "also", "just", "like", "para", "como", "isto",
-    "esta", "este", "isso", "essa", "esse", "depois", "antes",
+    "while", "also", "just", "like",
+    # PT
+    "para", "como", "isto", "esta", "este", "isso", "essa", "esse",
+    "depois", "antes", "pode", "deve", "muito", "pelo", "pela",
+    "desde", "ainda", "assim", "porque", "mais", "menos", "sobre",
 })
 
 

@@ -81,23 +81,26 @@ fi
 # `agent-experience-persistence`). Never blocks the hook.
 if [ "$TOOL_NAME" = "Task" ] || [ "$TOOL_NAME" = "Agent" ]; then
   SUBAGENT_TYPE=$(echo "$input" | jq -r '.tool_input.subagent_type // ""' 2>/dev/null)
-  if [ "$SUBAGENT_TYPE" = "cqo" ] && echo "$TOOL_OUTPUT" | grep -qE 'Quality Gate Verdict:[[:space:]]*REJECTED'; then
+  if [ "$SUBAGENT_TYPE" = "cqo" ]; then
     TOOL_INPUT_PROMPT=$(echo "$input" | jq -r '.tool_input.prompt // ""' 2>/dev/null)
-    REVIEWING_TARGET=$(printf '%s' "$TOOL_INPUT_PROMPT" \
-      | grep -oE '\[arka:reviewing[[:space:]]+[A-Za-z0-9_.-]+\]' \
-      | head -1 \
-      | sed -E 's/.*\[arka:reviewing[[:space:]]+([A-Za-z0-9_.-]+)\].*/\1/')
-    if [ -n "$REVIEWING_TARGET" ]; then
-      _AE_ROOT="${ARKAOS_ROOT:-}"
-      if [ -z "$_AE_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
-        _AE_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
-      fi
-      [ -z "$_AE_ROOT" ] && _AE_ROOT="$HOME/.arkaos"
-      VERDICT_TEXT="$TOOL_OUTPUT" \
-      AGENT_ID="$REVIEWING_TARGET" \
-      SESSION_ID="$SESSION_ID_PTU" \
-      ARKAOS_ROOT="$_AE_ROOT" \
-      python3 - <<'PY' 2>/dev/null || true
+    _AE_ROOT="${ARKAOS_ROOT:-}"
+    if [ -z "$_AE_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+      _AE_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+    fi
+    [ -z "$_AE_ROOT" ] && _AE_ROOT="$HOME/.arkaos"
+
+    # ─── REJECTED → experience auto-record ────────────────────────────
+    if echo "$TOOL_OUTPUT" | grep -qE 'Quality Gate Verdict:[[:space:]]*REJECTED'; then
+      REVIEWING_TARGET=$(printf '%s' "$TOOL_INPUT_PROMPT" \
+        | grep -oE '\[arka:reviewing[[:space:]]+[A-Za-z0-9_.-]+\]' \
+        | head -1 \
+        | sed -E 's/.*\[arka:reviewing[[:space:]]+([A-Za-z0-9_.-]+)\].*/\1/')
+      if [ -n "$REVIEWING_TARGET" ]; then
+        VERDICT_TEXT="$TOOL_OUTPUT" \
+        AGENT_ID="$REVIEWING_TARGET" \
+        SESSION_ID="$SESSION_ID_PTU" \
+        ARKAOS_ROOT="$_AE_ROOT" \
+        python3 - <<'PY' 2>/dev/null || true
 import os, sys
 sys.path.insert(0, os.environ["ARKAOS_ROOT"])
 try:
@@ -111,6 +114,55 @@ try:
 except Exception:
     pass
 PY
+      fi
+    fi
+
+    # ─── APPROVED → pattern stub auto-create (PR4.5 v3.75.1) ──────────
+    # When the dispatch prompt contains `[arka:pattern-suggest <id> <name>]`
+    # AND the verdict is APPROVED, create a stub PatternCard. The
+    # operator enriches by editing ~/.arkaos/patterns/cards.jsonl or
+    # calling record_pattern() with the full metadata. Skips when the
+    # id already exists (never overwrites enriched cards).
+    if echo "$TOOL_OUTPUT" | grep -qE 'Quality Gate Verdict:[[:space:]]*APPROVED'; then
+      PATTERN_LINE=$(printf '%s' "$TOOL_INPUT_PROMPT" \
+        | grep -oE '\[arka:pattern-suggest[[:space:]]+[A-Za-z0-9_.-]+[[:space:]]+[^][]+\]' \
+        | head -1)
+      if [ -n "$PATTERN_LINE" ]; then
+        PID=$(printf '%s' "$PATTERN_LINE" | sed -E 's/\[arka:pattern-suggest[[:space:]]+([A-Za-z0-9_.-]+).*/\1/')
+        PNAME=$(printf '%s' "$PATTERN_LINE" | sed -E 's/\[arka:pattern-suggest[[:space:]]+[A-Za-z0-9_.-]+[[:space:]]+([^][]+)\]/\1/')
+        if [ -n "$PID" ] && [ -n "$PNAME" ]; then
+          PATTERN_ID="$PID" \
+          PATTERN_NAME="$PNAME" \
+          ARKAOS_ROOT="$_AE_ROOT" \
+          python3 - <<'PY' 2>/dev/null || true
+import os, sys
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from datetime import datetime, timezone
+    from core.knowledge.pattern_cards import PatternCard, record_pattern, query_patterns
+    pid = os.environ["PATTERN_ID"]
+    existing = [c for c in query_patterns(limit=1000) if c.id == pid]
+    if not existing:
+        ts = datetime.now(timezone.utc).isoformat()
+        record_pattern(PatternCard(
+            id=pid,
+            name=os.environ["PATTERN_NAME"],
+            feature_keywords=[pid.replace("-", " "), os.environ["PATTERN_NAME"].lower()],
+            description="Stub auto-created from APPROVED CQO verdict — enrich via record_pattern() or by editing the JSONL.",
+            stack=[],
+            files=[],
+            acceptance_criteria=[],
+            edge_cases=[],
+            references=[],
+            projects_using=["arkaos"],
+            created_at=ts,
+            last_updated=ts,
+        ))
+except Exception:
+    pass
+PY
+        fi
+      fi
     fi
   fi
 fi
