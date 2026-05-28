@@ -5,6 +5,80 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.73.1] - 2026-05-28
+
+### Fixed — Dashboard venv-doctor (Squad Intelligence Upgrade PR2)
+
+PR2 of the six-PR Squad Intelligence Upgrade. Closes the months-long
+dashboard failure where `npx arkaos@latest update` left a broken-symlink
+venv (typical after Homebrew rotates Python patch versions, e.g.
+`/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13`
+disappearing on a `brew upgrade`) and `scripts/start-dashboard.sh`
+silently fell back to ambient `python3` without `sqlite-vec` /
+`fastembed`, leaving the dashboard half-functional and Vector Search
+broken with no visible cause.
+
+New components:
+
+- `installer/python-resolver.js` — new `diagnoseVenv(venvDir)` returning
+  `{healthy, reason, pythonPath?}` where `reason` is one of `missing`,
+  `broken-symlink`, `version-failed`, `ok`. Uses `lstatSync` to
+  distinguish broken-symlink from truly-missing (because `existsSync`
+  follows symlinks and returns `false` for both).
+- `installer/python-resolver.js` — new `ensureVenvHealthy({venvDir, log,
+  skipDeps})` that recreates with `python -m venv --clear`,
+  re-diagnoses to confirm health, then upgrades pip. Returns
+  `{healthy, repaired, reason}` with traceable reason such as
+  `repaired-from-broken-symlink`.
+- `installer/doctor.js` — venv check promoted from `warn` to `fail`
+  (without the venv, the dashboard cannot start). New `npx arkaos
+  doctor --fix` mode auto-repairs broken venvs in place by calling
+  `ensureVenvHealthy` before reporting checks.
+- `installer/update.js` — replaces `ensureVenv()` with
+  `ensureVenvHealthy()` so `npx arkaos@latest update` itself repairs
+  the broken-symlink failure mode.
+- `installer/cli.js` — wires `--fix` flag through to `doctor()`.
+
+Behavioural changes:
+
+- `scripts/start-dashboard.sh` — fail-fast guard at the top. If
+  `~/.arkaos/venv/bin/python` is unavailable or its symlink is broken
+  (`[ -x ]` follows symlinks per POSIX), exits `1` with actionable
+  remediation pointing to `npx arkaos doctor --fix` or
+  `npx arkaos@latest update`. **Never silently falls back to ambient
+  `python3`.**
+- `scripts/start-dashboard.ps1` — same fail-fast on Windows. `Find-Python`
+  renamed to `Find-VenvPython`. The `python` / `python3` / `py` ambient
+  fallback was removed.
+
+Tests:
+
+- 10 new integration tests in `tests/installer/python-resolver-health.test.js`
+  covering missing dir, missing bin/python, broken-symlink, version-failed,
+  ok, plus the full `ensureVenvHealthy` repair-and-reverify path.
+  Tests create real venvs in `tmpdir` against the system Python — slow
+  (7 s) but regression-proof for the actual failure mode that triggered
+  this PR.
+- `npm test` → **80 / 80** (was 70 in v3.73.0).
+- `python -m pytest tests/python/test_specialist_enforcer.py
+   tests/python/test_specialist_telemetry.py tests/python/test_flow_enforcer*.py
+   tests/python/test_enforcement_telemetry.py` → **225 / 225** (no v3.73.0
+  regressions).
+
+Quality Gate APPROVED on first pass (Marta + Eduardo + Francisca, all
+`opus`). Five cosmetic items logged for the PR3-PR6 backlog:
+`cli.js:97` dead branch, installer ownership coverage in
+`config/agent-ownership.yaml`, PEP 668 fallback UX hint, `canImportCore`
+hardening, doctor broader hardening in PR4.
+
+Upgrade:
+
+```bash
+npx arkaos@latest update
+# If the operator's existing venv is still broken from before v3.73.1:
+npx arkaos doctor --fix
+```
+
 ## [3.73.0] - 2026-05-28
 
 ### Added — Force Specialist Dispatch (Squad Intelligence Upgrade PR1)
