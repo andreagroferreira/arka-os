@@ -56,7 +56,7 @@ def index_directory(
 
         fhash = file_hash(filepath)
 
-        if skip_indexed and store.is_file_indexed(fhash):
+        if skip_indexed and store.is_file_indexed(str(filepath), fhash):
             skipped += 1
             continue
 
