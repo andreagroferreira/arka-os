@@ -5,6 +5,133 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.77.0] - 2026-05-28
+
+### Added — Per-Project Design System Lock (Squad Intelligence PR6 — FINAL PR)
+
+PR6 of the six-PR Squad Intelligence Upgrade. **The final PR.** Closes
+R2.2 (UI/UX consistency across projects). Each project may opt-in by
+declaring a `design-system.yaml` at its root with tokens, allowed
+components, file globs to scan, and forbidden_patterns with
+suggestions. A Python linter scans the project and reports violations
+with file:line + the per-rule suggestion text. No YAML at the project
+root → no violations (the linter is opt-in per project).
+
+New components:
+
+- `core/governance/design_system_lint.py` — `DesignSystem` and
+  `DesignViolation` dataclasses + `load_design_system(project_path)`
+  + `lint_project(project_path)`. The glob engine treats `**/` as
+  zero-or-more directory segments (gitignore convention), so the
+  default `**/*.vue` scans `App.vue` at the project root AND
+  `src/nested/App.vue`, and `**/legacy/**` correctly excludes
+  `legacy/Old.vue` at root.
+
+- `core/governance/design_system_lint_cli.py` — viewer:
+  `python -m core.governance.design_system_lint_cli <project_path>
+  [--format text|json] [--exit-on-violations]`. The
+  `--exit-on-violations` flag makes the command suitable for CI gates
+  (exit 1 when violations found, 0 otherwise).
+
+- `docs/examples/design-system-example.yaml` — operator-facing
+  template. Annotated tokens (colors, spacing, font sizes), allowed
+  components (Nuxt UI defaults), default file globs (`**/*.vue`,
+  `**/*.tsx`, `**/*.jsx`), and four representative forbidden patterns
+  with concrete suggestions:
+  - Hex literals outside the palette (`#[a-fA-F0-9]{6}\b`).
+  - Inline `style="..."` attributes.
+  - Raw `px`/`rem`/`em` units.
+  - Raw `<button>` elements where `<UButton>` exists.
+  Inline NOTE documents the 6-char hex regex trade-off (does not
+  match `#fff` shorthand, accepts 6-char prefix of 8-char alpha) and
+  the root-only self-exclusion semantics.
+
+New governance:
+
+- `config/constitution.yaml` adds SHOULD rule `design-system-locked`
+  (not NON-NEGOTIABLE — phased rollout, pre-commit hook integration
+  lands in v3.77.x once operator project rule sets stabilise).
+- `arka/skills/flow/SKILL.md` Phase 6 documents the linter invocation
+  alongside the dispatch-must-be-announced and pattern-library-first
+  checks.
+- Constitution test baseline reconciled (SHOULD 7 → 8, total 43 → 44).
+
+Tests:
+
+- **23 new pytest cases** — 15 unit + 2 regression (in
+  `test_design_system_lint.py`) + 6 CLI (`test_design_system_lint_cli.py`).
+- Full suite **4325 / 4325** green deterministically.
+- `npm test` **80 / 80** unchanged.
+
+Quality Gate APPROVED on the second pass (Marta + Eduardo + Francisca,
+all `opus`). First pass REJECTED on TWO blockers with the same root
+cause:
+- **B1** — `**/*.vue` produced regex `^.*/[^/]*\.vue$` which requires
+  ≥ 1 directory segment. `App.vue` at the project root was silently
+  missed. The default `file_globs` ship with `**/*.vue` so operators
+  with flat layouts (very common in `pages/`, `app/`, monorepo
+  package roots) would get zero violations and assume their code was
+  clean.
+- **B2** — Same root cause caused `**/legacy/**` (a pattern that
+  ships in the example template's `exclude_paths`) to fail to exclude
+  root-level `legacy/` directories.
+
+Both are gitignore-convention violations and surface immediately on
+the documented happy path. Fix: `_glob_to_regex` was split — when a
+`**` token is followed by `/`, the slash is consumed as part of the
+unit and the pair translates to `(?:[^/]+/)*` (zero-or-more
+`dir/` groups) instead of `.*/` (one-or-more). Marta re-verified the
+truth table live against the function (15/15 cases) instead of
+trusting the senior-dev's report.
+
+Plus four backlog items folded into the second pass:
+- CLI smoke gap closed (6 new `test_design_system_lint_cli` cases
+  exercise `_print_text` and `_print_json` with real violations + both
+  branches of `--exit-on-violations`).
+- Hex regex inline NOTE documents the 3-char shorthand miss and the
+  8-char alpha prefix-match, with a drop-in tighter alternative
+  (`#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})\b`).
+- arka-os opt-out documented (the engine ships no root-level
+  `design-system.yaml` by design).
+- Root-only self-exclusion documented (a monorepo
+  `packages/sub/design-system.yaml` would still be scanned by the
+  parent project's linter unless explicitly excluded).
+
+Two real-world dispatches under live PR1 specialist enforcement:
+`senior-dev` × 2 (linter + B1/B2 fix + CLI). Paulo wrote the example
+YAML, constitution rule, flow SKILL update, regression tests, and CLI
+tests (lead-allowed paths). All clean — no `[arka:specialist-bypass]`
+markers used.
+
+**This release closes the 6-PR Squad Intelligence Upgrade.** R1 + R2.1
++ R2.2 + R3 + R4 from the diagnosis at session start all have
+shipped, operational systems with telemetry:
+
+- **R1** (no contextual awareness of prior work) → Pattern Library
+  (PR4 v3.75.0 + PR4.5 v3.75.1).
+- **R2.1** (leads do specialist work) → Force Specialist Dispatch
+  (PR1 v3.73.0).
+- **R2.2** (no design system, UI/UX drift) → Per-Project Design
+  System Lock (this release).
+- **R3** (squads don't learn from REJECTED) → Agent Experience
+  persistence (PR3 v3.74.0 + PR3.5 v3.74.1 loop wiring).
+- **R4** (agents intercambiáveis, specialists not called) → DNA
+  Fidelity + Activation Tracking (PR5 v3.76.0).
+- Plus operational fixes: Dashboard venv-doctor (PR2 v3.73.1) and
+  installer hookNames parity (PR4.6 v3.75.2 — discovered during PR1
+  activation, which is itself a system success story).
+
+Upgrade:
+
+```bash
+npx arkaos@latest update
+# Copy the template to your project root:
+cp ~/.arkaos/docs/examples/design-system-example.yaml \
+   /path/to/your/project/design-system.yaml
+# Edit it, then run:
+python -m core.governance.design_system_lint_cli /path/to/your/project
+```
+
 ## [3.76.0] - 2026-05-28
 
 ### Added — DNA Fidelity + Activation Tracking (Squad Intelligence PR5)
