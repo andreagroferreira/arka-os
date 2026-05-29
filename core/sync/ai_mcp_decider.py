@@ -76,11 +76,11 @@ def _load_cache(path: Path) -> dict[str, str]:
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
 
 
 def _save_cache(path: Path, data: dict[str, str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, sort_keys=True))
+    path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")

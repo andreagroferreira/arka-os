@@ -117,7 +117,7 @@ def _read_previous_version(arkaos_home: Path) -> str:
     if not state_file.exists():
         return "pending-sync"
     try:
-        data = json.loads(state_file.read_text())
+        data = json.loads(state_file.read_text(encoding="utf-8"))
         return data.get("version", "pending-sync") or "pending-sync"
     except (json.JSONDecodeError, OSError):
         return "pending-sync"
@@ -132,7 +132,7 @@ def _read_current_version(arkaos_home: Path) -> str:
     if not version_file.exists():
         return "unknown"
     try:
-        return version_file.read_text().strip()
+        return version_file.read_text(encoding="utf-8").strip()
     except OSError:
         return "unknown"
 
@@ -143,7 +143,7 @@ def _read_repo_path(arkaos_home: Path) -> Path | None:
     if not repo_path_file.exists():
         return None
     try:
-        raw = repo_path_file.read_text().strip()
+        raw = repo_path_file.read_text(encoding="utf-8").strip()
         return Path(raw) if raw else None
     except OSError:
         return None
@@ -204,7 +204,7 @@ def _load_scan_dirs_from_profile(arkaos_home: Path) -> list[Path]:
     if not profile_file.exists():
         return []
     try:
-        data = json.loads(profile_file.read_text())
+        data = json.loads(profile_file.read_text(encoding="utf-8"))
         projects_dir_str = data.get("projectsDir", "")
         if not projects_dir_str:
             return []

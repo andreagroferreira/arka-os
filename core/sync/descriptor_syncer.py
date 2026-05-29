@@ -47,7 +47,7 @@ def sync_descriptor(project: Project) -> DescriptorSyncResult:
 def _do_sync(project: Project) -> DescriptorSyncResult:
     """Execute the descriptor sync logic for a single project."""
     desc_path = Path(project.descriptor_path)  # type: ignore[arg-type]
-    text = desc_path.read_text()
+    text = desc_path.read_text(encoding="utf-8")
     frontmatter, body = _split_frontmatter(text)
     changes: list[str] = []
 
@@ -193,4 +193,4 @@ def _get_last_commit_days(project_path: str) -> int | None:
 def _write_descriptor(desc_path: Path, frontmatter: dict, body: str) -> None:
     """Write updated frontmatter and preserved body back to the descriptor file."""
     fm_text = yaml.dump(frontmatter, default_flow_style=False, allow_unicode=True)
-    desc_path.write_text(f"---\n{fm_text}---{body}")
+    desc_path.write_text(f"---\n{fm_text}---{body}", encoding="utf-8")

@@ -36,7 +36,7 @@ def sync_project_content(project: Project) -> ContentSyncResult:
 
 def _do_sync(project: Project) -> ContentSyncResult:
     core = _core_root()
-    version = (core / "VERSION").read_text().strip()
+    version = (core / "VERSION").read_text(encoding="utf-8").strip()
     project_claude = Path(project.path) / ".claude"
     project_claude.mkdir(parents=True, exist_ok=True)
 
@@ -73,28 +73,28 @@ def _sync_claude_md(
     unchanged: list[str],
     errored: list[str],
 ) -> None:
-    base = (core / "config" / "user-claude.md").read_text()
+    base = (core / "config" / "user-claude.md").read_text(encoding="utf-8")
     overlays_dir = core / "config" / "standards" / "claude-md-overlays"
     overlays: list[str] = []
     for stack in project.stack:
         overlay = overlays_dir / f"{stack}.md"
         if overlay.exists():
-            overlays.append(overlay.read_text())
+            overlays.append(overlay.read_text(encoding="utf-8"))
 
     managed_content = "\n\n".join([base, *overlays]).strip()
     target_file = project_claude / "CLAUDE.md"
-    target_text = target_file.read_text() if target_file.exists() else ""
+    target_text = target_file.read_text(encoding="utf-8") if target_file.exists() else ""
 
     result = merge_managed_content(target_text, managed_content, version)
     if result.status == "error":
         errored.append(f"CLAUDE.md: {result.error}")
         sidecar = target_file.with_suffix(".md.arkaos-new")
-        sidecar.write_text(managed_content)
+        sidecar.write_text(managed_content, encoding="utf-8")
         return
     if result.status == "unchanged":
         unchanged.append("CLAUDE.md")
         return
-    target_file.write_text(result.new_text)
+    target_file.write_text(result.new_text, encoding="utf-8")
     updated.append("CLAUDE.md")
 
 
@@ -111,11 +111,11 @@ def _sync_rules(
     dst.mkdir(parents=True, exist_ok=True)
     for rule in src.glob("*.md"):
         target = dst / rule.name
-        src_text = rule.read_text()
-        if target.exists() and target.read_text() == src_text:
+        src_text = rule.read_text(encoding="utf-8")
+        if target.exists() and target.read_text(encoding="utf-8") == src_text:
             unchanged.append(f"rules/{rule.name}")
             continue
-        target.write_text(src_text)
+        target.write_text(src_text, encoding="utf-8")
         updated.append(f"rules/{rule.name}")
 
 
@@ -131,8 +131,8 @@ def _sync_hooks(
     dst.mkdir(parents=True, exist_ok=True)
     for hook in src.glob("*.sh"):
         target = dst / hook.name
-        src_text = hook.read_text()
-        if target.exists() and target.read_text() == src_text:
+        src_text = hook.read_text(encoding="utf-8")
+        if target.exists() and target.read_text(encoding="utf-8") == src_text:
             unchanged.append(f"hooks/{hook.name}")
             continue
         shutil.copy2(hook, target)
@@ -149,16 +149,16 @@ def _sync_constitution(
 ) -> None:
     src = core / "config" / "constitution.yaml"
     target = project_claude / "constitution-applicable.md"
-    data = yaml.safe_load(src.read_text()) or {}
+    data = yaml.safe_load(src.read_text(encoding="utf-8")) or {}
     rules = data.get("rules", [])
     lines = ["# ArkaOS Constitution — Applicable Rules", ""]
     for rule in rules:
         lines.append(f"- **{rule.get('name', '?')}** — {rule.get('level', '?')}")
     body = "\n".join(lines) + "\n"
-    if target.exists() and target.read_text() == body:
+    if target.exists() and target.read_text(encoding="utf-8") == body:
         unchanged.append("constitution-applicable.md")
         return
-    target.write_text(body)
+    target.write_text(body, encoding="utf-8")
     updated.append("constitution-applicable.md")
 
 
