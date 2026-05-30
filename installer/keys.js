@@ -8,6 +8,7 @@ const PROVIDERS = {
   OPENAI_API_KEY: { name: "OpenAI", used_for: "Whisper transcription, embeddings, GPT" },
   GOOGLE_API_KEY: { name: "Google", used_for: "Gemini API, Nano Banana, Google Cloud AI" },
   FAL_API_KEY: { name: "fal.ai", used_for: "Image generation, video generation" },
+  MAGIC_API_KEY: { name: "21st.dev Magic", used_for: "Frontend UI/UX component generation (Magic MCP)" },
 };
 
 function loadKeys() {

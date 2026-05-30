@@ -8,6 +8,7 @@
     "laravel-boost",
     "serena",
     "nuxt",
-    "nuxt-ui"
+    "nuxt-ui",
+    "magic"
   ]
 }

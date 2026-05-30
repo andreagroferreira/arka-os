@@ -120,6 +120,16 @@
       "description": "Next.js DevTools: debugging and development assistance",
       "required_env": []
     },
+    "magic": {
+      "command": "npx",
+      "args": ["-y", "@21st-dev/magic@latest"],
+      "env": {
+        "API_KEY": "${MAGIC_API_KEY}"
+      },
+      "category": "frontend",
+      "description": "Magic MCP UI builder by 21st.dev — generates production UI components from natural language, framework-aware (Nuxt UI, Tailwind, shadcn). MANDATORY for frontend UI/UX work.",
+      "required_env": ["MAGIC_API_KEY"]
+    },
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp",

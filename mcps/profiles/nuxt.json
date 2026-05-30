@@ -6,6 +6,7 @@
   },
   "mcps": [
     "nuxt",
-    "nuxt-ui"
+    "nuxt-ui",
+    "magic"
   ]
 }

@@ -5,6 +5,7 @@
     "extends": "base"
   },
   "mcps": [
-    "nuxt-ui"
+    "nuxt-ui",
+    "magic"
   ]
 }
