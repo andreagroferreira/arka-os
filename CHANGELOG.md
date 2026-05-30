@@ -5,6 +5,53 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.78.0] - 2026-05-30
+
+### Added — Frontend UI/UX Squad: Tooling + KB-first Enrichment
+
+Improves the Frontend UI/UX squad's tooling and expertise (PR #213).
+
+**Tooling on install + update:**
+- **Magic MCP** (`@21st-dev/magic`) added to the registry as a frontend-category
+  server, env-gated by `${MAGIC_API_KEY}`, and wired into the
+  `nuxt`/`vue`/`react`/`nextjs`/`full-stack` MCP profiles — mandatory for
+  frontend UI/UX work.
+- New `installer/frontend-tooling.js`: prompts for `MAGIC_API_KEY` when missing
+  (interactive only, headless-safe), registers Magic at Claude **user scope**,
+  and auto-runs the **Motion AI Kit** (`npx motion-ai`) idempotently — a
+  one-time marker in `~/.arkaos/` prevents re-running the 180s kit on every
+  update.
+- `installer/claude-plugins.js`: registers third-party **marketplaces** before
+  install and ships the `ui-ux-pro-max@ui-ux-pro-max-skill` plugin.
+- `installer/keys.js`: `MAGIC_API_KEY` provider; `installer/doctor.js`:
+  `magic-api-key` health check. Wired into both `index.js` (install) and
+  `update.js` (step 7b).
+
+**Agent enrichment (KB-first):**
+- New shared reference `departments/brand/references/uiux-knowledge-and-tools.md`:
+  the **KB-first** rule (Obsidian KB is the canonical primary source, tools only
+  supplement), canonical KB sources, design tokens, the ArkaOS Motion System,
+  the tool map, and the squad validation order.
+- **Validation gate**: Diana (frontend-dev) implements UI only after Sofia D.
+  (UX) → Isabel (visual) → Rafael (motion) analyse and **Valentina validates**
+  against brand strategy. No interface freelancing.
+- `mental_models`/`expertise` enriched within schema; KB-first baked into the
+  `frontend-dev`, `ux-designer`, `visual-designer` and `brand-director` agents.
+
+### Security
+- The Magic API key is never committed — the registry uses the
+  `${MAGIC_API_KEY}` placeholder; the key lives only in `~/.arkaos/keys.json`
+  (chmod 600). A test guards against any literal secret in the registry.
+
+### Tests
+- 111 installer JS tests (`frontend-tooling`, `mcp-registry-integrity`,
+  marketplace registration); 315 agent schema/DNA tests; 50 MCP tests.
+
+### Quality Gate
+- PR-A APPROVED (Francisca — Motion CLI guard + idempotency marker).
+- PR-B APPROVED (Eduardo + Marta — KB-first consistent, gate unambiguous,
+  zero client-name leaks).
+
 ## [3.77.0] - 2026-05-28
 
 ### Added — Per-Project Design System Lock (Squad Intelligence PR6 — FINAL PR)
