@@ -16,10 +16,18 @@ import { execSync, spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+// Third-party marketplaces that must be registered (via
+// `claude plugin marketplace add <repo>`) before their plugins can be
+// installed. Each entry is a GitHub `owner/repo` shorthand.
+export const DEFAULT_CLAUDE_MARKETPLACES = [
+  "nextlevelbuilder/ui-ux-pro-max-skill",
+];
+
 // Each entry is "name@marketplace" matching the `claude plugin install`
 // CLI argument format.
 export const DEFAULT_CLAUDE_PLUGINS = [
   "frontend-design@claude-plugins-official",
+  "ui-ux-pro-max@ui-ux-pro-max-skill",
 ];
 
 const _INSTALLED_REGISTRY = join(
@@ -29,19 +37,40 @@ const _INSTALLED_REGISTRY = join(
 export function installDefaultClaudePlugins({
   runtime = "claude-code",
   plugins = DEFAULT_CLAUDE_PLUGINS,
+  marketplaces = DEFAULT_CLAUDE_MARKETPLACES,
   home = homedir(),
 } = {}) {
   if (runtime !== "claude-code") {
-    return { skipped: "runtime-not-claude-code", results: [] };
+    return { skipped: "runtime-not-claude-code", results: [], marketplaces: [] };
   }
   if (!isClaudeCliAvailable()) {
-    return { skipped: "claude-cli-not-found", results: [] };
+    return { skipped: "claude-cli-not-found", results: [], marketplaces: [] };
   }
+  // Marketplaces must be registered before their plugins can resolve.
+  const marketplaceResults = marketplaces.map((m) => addMarketplace(m));
   const alreadyInstalled = readInstalledRegistry(home);
   const results = plugins.map((p) =>
     installOne(p, alreadyInstalled),
   );
-  return { skipped: null, results };
+  return { skipped: null, results, marketplaces: marketplaceResults };
+}
+
+// Register a third-party plugin marketplace. Idempotent and never-throws:
+// a marketplace that is already known is reported as already-present.
+function addMarketplace(marketplace) {
+  const out = spawnSync("claude", ["plugin", "marketplace", "add", marketplace], {
+    timeout: 60_000,
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf-8",
+  });
+  if (out.status === 0) {
+    return { marketplace, action: "added" };
+  }
+  const msg = (out.stderr || out.error?.message || "").toLowerCase();
+  if (msg.includes("already") || msg.includes("exists")) {
+    return { marketplace, action: "already-present" };
+  }
+  return { marketplace, action: "failed", reason: msg.trim().slice(0, 200) };
 }
 
 function isClaudeCliAvailable() {

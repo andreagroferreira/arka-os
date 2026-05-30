@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   DEFAULT_CLAUDE_PLUGINS,
+  DEFAULT_CLAUDE_MARKETPLACES,
   installDefaultClaudePlugins,
 } = await import(join(ROOT, "installer", "claude-plugins.js"));
 
@@ -22,7 +23,13 @@ const {
 // ─── Mock CLI helpers ───────────────────────────────────────────────────
 
 
-function makeMockClaude({ versionExit = 0, installExit = 0, installStderr = "" } = {}) {
+function makeMockClaude({
+  versionExit = 0,
+  installExit = 0,
+  installStderr = "",
+  marketplaceExit = 0,
+  marketplaceStderr = "",
+} = {}) {
   // Build a temp directory with a `claude` shell script that mimics the CLI.
   // Pre-pend the dir to PATH so child processes resolve it.
   const dir = mkdtempSync(join(tmpdir(), "arkaos-claude-mock-"));
@@ -31,6 +38,10 @@ function makeMockClaude({ versionExit = 0, installExit = 0, installStderr = "" }
 if [ "$1" = "--version" ]; then
   echo "claude mock 0.0.0"
   exit ${versionExit}
+fi
+if [ "$1" = "plugin" ] && [ "$2" = "marketplace" ] && [ "$3" = "add" ]; then
+  ${marketplaceStderr ? `echo "${marketplaceStderr.replace(/"/g, '\\"')}" >&2` : ""}
+  exit ${marketplaceExit}
 fi
 if [ "$1" = "plugin" ] && [ "$2" = "install" ]; then
   ${installStderr ? `echo "${installStderr.replace(/"/g, '\\"')}" >&2` : ""}
@@ -196,8 +207,92 @@ test("DEFAULT_CLAUDE_PLUGINS includes the frontend-design entry", () => {
   );
 });
 
+test("DEFAULT_CLAUDE_PLUGINS includes the ui-ux-pro-max entry", () => {
+  assert.ok(
+    DEFAULT_CLAUDE_PLUGINS.includes("ui-ux-pro-max@ui-ux-pro-max-skill"),
+    "DEFAULT_CLAUDE_PLUGINS must ship ui-ux-pro-max@ui-ux-pro-max-skill",
+  );
+});
+
 test("DEFAULT_CLAUDE_PLUGINS entries follow name@marketplace format", () => {
   for (const entry of DEFAULT_CLAUDE_PLUGINS) {
     assert.match(entry, /^[\w-]+@[\w-]+$/, `entry ${entry} must match name@marketplace`);
+  }
+});
+
+
+// ─── Marketplace registration ───────────────────────────────────────────
+
+
+test("DEFAULT_CLAUDE_MARKETPLACES includes the ui-ux-pro-max marketplace", () => {
+  assert.ok(
+    DEFAULT_CLAUDE_MARKETPLACES.includes("nextlevelbuilder/ui-ux-pro-max-skill"),
+    "DEFAULT_CLAUDE_MARKETPLACES must ship nextlevelbuilder/ui-ux-pro-max-skill",
+  );
+});
+
+test("DEFAULT_CLAUDE_MARKETPLACES entries follow owner/repo format", () => {
+  for (const entry of DEFAULT_CLAUDE_MARKETPLACES) {
+    assert.match(entry, /^[\w.-]+\/[\w.-]+$/, `entry ${entry} must match owner/repo`);
+  }
+});
+
+test("registers each marketplace before installing plugins", () => {
+  const mock = makeMockClaude();
+  const home = makeTmpHome();
+  try {
+    withMockedPath(mock.dir, () => {
+      const result = installDefaultClaudePlugins({
+        runtime: "claude-code",
+        home: home.dir,
+        marketplaces: ["owner/repo"],
+        plugins: ["foo@repo"],
+      });
+      assert.equal(result.marketplaces.length, 1);
+      assert.equal(result.marketplaces[0].marketplace, "owner/repo");
+      assert.equal(result.marketplaces[0].action, "added");
+    });
+  } finally {
+    mock.cleanup();
+    home.cleanup();
+  }
+});
+
+test("treats an already-registered marketplace as already-present", () => {
+  const mock = makeMockClaude({ marketplaceExit: 1, marketplaceStderr: "marketplace already exists" });
+  const home = makeTmpHome();
+  try {
+    withMockedPath(mock.dir, () => {
+      const result = installDefaultClaudePlugins({
+        runtime: "claude-code",
+        home: home.dir,
+        marketplaces: ["owner/repo"],
+        plugins: [],
+      });
+      assert.equal(result.marketplaces[0].action, "already-present");
+    });
+  } finally {
+    mock.cleanup();
+    home.cleanup();
+  }
+});
+
+test("captures marketplace failure as 'failed' with reason", () => {
+  const mock = makeMockClaude({ marketplaceExit: 1, marketplaceStderr: "network unreachable" });
+  const home = makeTmpHome();
+  try {
+    withMockedPath(mock.dir, () => {
+      const result = installDefaultClaudePlugins({
+        runtime: "claude-code",
+        home: home.dir,
+        marketplaces: ["owner/repo"],
+        plugins: [],
+      });
+      assert.equal(result.marketplaces[0].action, "failed");
+      assert.match(result.marketplaces[0].reason, /network/);
+    });
+  } finally {
+    mock.cleanup();
+    home.cleanup();
   }
 });

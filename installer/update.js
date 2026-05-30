@@ -439,6 +439,41 @@ export async function update() {
     console.log("         ✓ Repo path updated (skills alias not present)");
   }
 
+  // ── 7b. Frontend UI/UX tooling + Claude plugins ──
+  // Mirrors installer/index.js: marketplaces + plugins (ui-ux-pro-max,
+  // frontend-design) and Magic MCP + Motion AI Kit. The operator wants
+  // these provisioned on update too, not just fresh install. All steps
+  // are idempotent and never throw; interactive key prompt is skipped
+  // in headless runs.
+  const toolingRuntime = manifest.runtime || "claude-code";
+  try {
+    const { installDefaultClaudePlugins } = await import("./claude-plugins.js");
+    const pluginResult = installDefaultClaudePlugins({ runtime: toolingRuntime });
+    if (!pluginResult.skipped) {
+      for (const m of pluginResult.marketplaces || []) {
+        if (m.action === "added") console.log(`         ✓ marketplace ${m.marketplace} added`);
+        else if (m.action === "failed") console.log(`         ⚠ marketplace ${m.marketplace} failed (${m.reason})`);
+      }
+      for (const r of pluginResult.results) {
+        if (r.action === "installed") console.log(`         ✓ ${r.plugin} installed`);
+        else if (r.action === "failed") console.log(`         ⚠ ${r.plugin} failed (${r.reason})`);
+      }
+    }
+  } catch (err) {
+    console.log(`         ⚠ Could not update Claude plugins (${err.message})`);
+  }
+  try {
+    const { setupFrontendTooling } = await import("./frontend-tooling.js");
+    const ft = await setupFrontendTooling({ runtime: toolingRuntime });
+    if (ft.magicMcp?.action === "registered") console.log("         ✓ Magic MCP registered (user scope)");
+    else if (ft.magicMcp?.action === "already-present") console.log("         ✓ Magic MCP already registered");
+    else if (ft.magicMcp?.action === "failed") console.log(`         ⚠ Magic MCP failed (${ft.magicMcp.reason})`);
+    if (ft.motionKit?.action === "installed") console.log("         ✓ Motion AI Kit installed");
+    else if (ft.motionKit?.action === "failed") console.log(`         ⚠ Motion AI Kit failed (${ft.motionKit.reason})`);
+  } catch (err) {
+    console.log(`         ⚠ Could not set up frontend tooling (${err.message})`);
+  }
+
   // ── 8. Update manifest ──
   console.log("  [8/8] Finalizing...");
   manifest.version = VERSION;

@@ -195,6 +195,21 @@ const checks = [
     },
     fix: () => "Upgrade Claude Code: npm install -g @anthropic-ai/claude-code@latest",
   },
+  {
+    name: "magic-api-key",
+    description: "Magic API key configured (frontend UI/UX — Magic MCP)",
+    severity: "warn",
+    check: () => {
+      if (process.env.MAGIC_API_KEY) return true;
+      const keysPath = join(INSTALL_DIR, "keys.json");
+      if (!existsSync(keysPath)) return false;
+      try {
+        const keys = JSON.parse(readFileSync(keysPath, "utf-8"));
+        return !!keys.MAGIC_API_KEY;
+      } catch { return false; }
+    },
+    fix: () => "Run: npx arkaos keys set MAGIC_API_KEY <your-21st-dev-key>  (or re-run npx arkaos@latest update)",
+  },
 ];
 
 // ─── Windows-only checks ───────────────────────────────────────────────

@@ -352,6 +352,13 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     const { installDefaultClaudePlugins } = await import("./claude-plugins.js");
     const pluginResult = installDefaultClaudePlugins({ runtime });
     if (!pluginResult.skipped) {
+      for (const m of pluginResult.marketplaces || []) {
+        if (m.action === "added") {
+          console.log(`         marketplace ${m.marketplace} added.`);
+        } else if (m.action === "failed") {
+          console.log(`         marketplace ${m.marketplace} failed (${m.reason}).`);
+        }
+      }
       for (const r of pluginResult.results) {
         if (r.action === "installed") {
           console.log(`         ${r.plugin} installed.`);
@@ -364,6 +371,27 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     }
   } catch (err) {
     console.log(`         Warning: could not install default Claude plugins (${err.message})`);
+  }
+
+  // Frontend UI/UX tooling — Magic MCP (user scope, API-key gated) + Motion
+  // AI Kit. Key is prompted when missing (interactive only). Never blocks.
+  try {
+    const { setupFrontendTooling } = await import("./frontend-tooling.js");
+    const ft = await setupFrontendTooling({ runtime });
+    if (ft.magicMcp?.action === "registered") {
+      console.log("         Magic MCP registered (user scope).");
+    } else if (ft.magicMcp?.action === "already-present") {
+      console.log("         Magic MCP already registered (skipped).");
+    } else if (ft.magicMcp?.action === "failed") {
+      console.log(`         Magic MCP registration failed (${ft.magicMcp.reason}).`);
+    }
+    if (ft.motionKit?.action === "installed") {
+      console.log("         Motion AI Kit installed.");
+    } else if (ft.motionKit?.action === "failed") {
+      console.log(`         Motion AI Kit install failed (${ft.motionKit.reason}).`);
+    }
+  } catch (err) {
+    console.log(`         Warning: could not set up frontend tooling (${err.message})`);
   }
 
   const manifest = {

@@ -6,6 +6,7 @@
   },
   "mcps": [
     "next-devtools",
-    "supabase"
+    "supabase",
+    "magic"
   ]
 }
