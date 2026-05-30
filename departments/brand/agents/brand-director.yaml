@@ -36,6 +36,8 @@ mental_models:
     - "StoryBrand SB7 (Miller)"
     - "Positioning (Ries/Trout)"
     - "Design Thinking (IDEO)"
+    - "KB-first (Obsidian canonical source)"
+    - "UI/UX validation gate (squad direction before implementation)"
 
 authority:
   orchestrate: true

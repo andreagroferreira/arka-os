@@ -36,6 +36,8 @@ mental_models:
     - "Laws of UX (Yablonski)"
     - "WCAG Accessibility"
     - "Component-Driven Development"
+    - "Design-system-as-context (Universal Component Language)"
+    - "KB-first (Obsidian canonical source)"
 
 authority:
   push_code: true
@@ -52,12 +54,16 @@ expertise:
     - Design system implementation
     - Accessibility (WCAG 2.1 AA)
     - Core Web Vitals
+    - Magic MCP (21st.dev) component generation
+    - Motion (animation implementation)
   frameworks:
     - Atomic Design
     - Component-Driven Development
     - Laws of UX
     - Nielsen Heuristics
     - CWV Optimization
+    - ArkaOS Motion System
+    - Design Tokens (DTCG)
   depth: expert
   years_equivalent: 9
 
