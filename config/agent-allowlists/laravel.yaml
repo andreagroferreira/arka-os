@@ -1,6 +1,7 @@
 stack: laravel
 baseline:
   - backend-dev
+  - laravel-eng
   - senior-dev
   - architect
   - qa

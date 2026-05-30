@@ -27,7 +27,9 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
     agents = []
     errors = []
 
-    for yaml_file in sorted(departments_dir.glob("*/agents/*.yaml")):
+    # Recursive: also picks up sub-squad subdirectories
+    # (e.g. dev/agents/backend-core/*.yaml, brand/agents/design-ops/*.yaml).
+    for yaml_file in sorted(departments_dir.glob("*/agents/**/*.yaml")):
         try:
             agent = load_agent(yaml_file)
             entry = {
@@ -36,6 +38,8 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
                 "role": agent.role,
                 "department": agent.department,
                 "tier": agent.tier,
+                "parent_squad": agent.parent_squad,
+                "sub_squad_role": agent.sub_squad_role,
                 "disc": {
                     "primary": agent.behavioral_dna.disc.primary.value,
                     "secondary": agent.behavioral_dna.disc.secondary.value,

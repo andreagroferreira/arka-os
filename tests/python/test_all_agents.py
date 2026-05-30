@@ -10,8 +10,9 @@ from core.agents.schema import DISCType
 
 DEPARTMENTS_DIR = Path(__file__).parent.parent.parent / "departments"
 
-# Collect all agent YAML files
-AGENT_FILES = sorted(DEPARTMENTS_DIR.glob("*/agents/*.yaml"))
+# Collect all agent YAML files.
+# Recursive: includes sub-squad subdirectories (e.g. design-ops, backend-core).
+AGENT_FILES = sorted(DEPARTMENTS_DIR.glob("*/agents/**/*.yaml"))
 
 
 class TestAllAgentsLoad:

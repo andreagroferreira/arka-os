@@ -35,7 +35,8 @@ mental_models:
   secondary:
     - "Hexagonal Architecture (Cockburn)"
     - "CQRS/Event Sourcing"
-    - "Conway's Law / Inverse Conway"
+    - "Event Storming (Brandolini)"
+    - "Enterprise Patterns (Fowler PoEAA)"
 
 authority:
   approve_architecture: true
@@ -49,16 +50,21 @@ authority:
 expertise:
   domains:
     - system design
-    - domain modeling
+    - domain modeling (event storming, bounded contexts)
+    - design patterns (GoF, PoEAA)
+    - business / domain analysis
     - API design
     - data architecture
     - integration patterns
     - architecture decision records
   frameworks:
     - DDD (Evans/Vernon)
+    - Strategic DDD (context mapping)
+    - Event Storming (Brandolini)
+    - GoF Design Patterns
+    - Enterprise Patterns (Fowler PoEAA)
     - Clean Architecture
     - Hexagonal (Ports & Adapters)
-    - Vertical Slice
     - Microservices Patterns (Newman)
     - Event-Driven Architecture
   depth: master
