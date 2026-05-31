@@ -177,6 +177,84 @@ function toggleChunk(idx: number) {
   }
   expanded.value = next
 }
+
+// --- Agents: semantic matches + propose-only learning suggestion ---
+interface AgentMatch {
+  id: string
+  name: string
+  department: string
+  role: string
+  score: number
+  matched_terms: string[]
+}
+
+interface AgentMatchesResponse {
+  matches: AgentMatch[]
+  source_id?: string
+  count?: number
+  reason?: string
+}
+
+const agentMatches = ref<AgentMatch[]>([])
+const agentMatchesLoading = ref(false)
+const agentMatchesReason = ref<string | null>(null)
+const proposalPending = ref(false)
+
+async function fetchAgentMatches() {
+  if (!source.value) return
+  agentMatchesLoading.value = true
+  agentMatchesReason.value = null
+  try {
+    const res = await $fetch<AgentMatchesResponse>(
+      `${apiBase}/api/knowledge/sources/${sourceId}/agent-matches`,
+      { params: { top_n: 5 } }
+    )
+    agentMatches.value = res.matches ?? []
+    agentMatchesReason.value = res.reason ?? null
+  } catch {
+    agentMatchesReason.value = 'request failed'
+    agentMatches.value = []
+  } finally {
+    agentMatchesLoading.value = false
+  }
+}
+
+function scorePercent(score: number): number {
+  return Math.round(Math.max(0, Math.min(1, score)) * 100)
+}
+
+async function generateProposal() {
+  if (proposalPending.value) return
+  proposalPending.value = true
+  try {
+    const res = await $fetch<{ proposal_path: string, agents: number }>(
+      `${apiBase}/api/knowledge/sources/${sourceId}/agent-proposal`,
+      {
+        method: 'POST',
+        body: { agent_ids: agentMatches.value.map(m => m.id) }
+      }
+    )
+    toast.add({
+      title: 'Proposal saved',
+      description: res.proposal_path,
+      color: 'success',
+      icon: 'i-lucide-check'
+    })
+  } catch {
+    toast.add({
+      title: 'Could not generate proposal',
+      description: 'The proposal request failed. Please try again.',
+      color: 'error'
+    })
+  } finally {
+    proposalPending.value = false
+  }
+}
+
+// Non-blocking: fetch matches once the source resolves on the client.
+onMounted(() => {
+  if (source.value) fetchAgentMatches()
+})
 </script>
 
 <template>
@@ -472,23 +550,118 @@ function toggleChunk(idx: number) {
           </ul>
         </section>
 
-        <!-- ===== AGENTS (PR3 PLACEHOLDER) ===== -->
-        <section class="rounded-xl border border-dashed border-default bg-elevated/5 p-5">
-          <div class="flex items-center gap-2 mb-2">
-            <UIcon name="i-lucide-users" class="size-4 text-muted" />
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">
-              Agents
-            </h2>
-            <UBadge
-              label="Coming soon"
-              variant="subtle"
-              color="neutral"
-              size="xs"
-            />
+        <!-- ===== AGENTS ===== -->
+        <section class="rounded-xl border border-default bg-elevated/10 p-5">
+          <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
+            <div class="flex-1 min-w-0 space-y-1">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-users" class="size-4 text-muted" />
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">
+                  Agents
+                </h2>
+              </div>
+              <p class="text-sm text-muted">
+                Agents whose expertise matches this source — suggested to learn from it.
+              </p>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <UButton
+                label="Generate proposal"
+                icon="i-lucide-file-output"
+                variant="outline"
+                size="sm"
+                :loading="proposalPending"
+                :disabled="agentMatchesLoading || !agentMatches.length"
+                aria-label="Generate a review-only learning proposal for the matched agents"
+                @click="generateProposal"
+              />
+              <p class="text-xs text-muted/70 max-w-xs text-right">
+                Generates a review-only proposal — it never edits agent files automatically.
+              </p>
+            </div>
           </div>
-          <p class="text-sm text-muted">
-            Agent attribution coming soon — choose which agents should learn from this source.
+
+          <!-- Loading -->
+          <div
+            v-if="agentMatchesLoading"
+            class="flex items-center gap-2 py-4 text-sm text-muted"
+          >
+            <UIcon name="i-lucide-loader-2" class="size-4 animate-spin" />
+            Finding relevant agents…
+          </div>
+
+          <!-- Embedder offline -->
+          <p
+            v-else-if="agentMatchesReason === 'embedder unavailable'"
+            class="text-sm text-muted py-2"
+          >
+            Semantic matching is offline (vector embeddings unavailable). Install fastembed to enable agent suggestions.
           </p>
+
+          <!-- No matches / no source text -->
+          <p
+            v-else-if="!agentMatches.length"
+            class="text-sm text-muted py-2"
+          >
+            No agent suggestions for this source yet.
+          </p>
+
+          <!-- Matches -->
+          <ul v-else class="space-y-2">
+            <li
+              v-for="agent in agentMatches"
+              :key="agent.id"
+              class="rounded-lg border border-default bg-default/30 p-4"
+            >
+              <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div class="min-w-0 space-y-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <NuxtLink
+                      :to="`/agents/${agent.id}`"
+                      class="text-sm font-semibold text-highlighted hover:text-primary transition-colors"
+                    >
+                      {{ agent.name }}
+                    </NuxtLink>
+                    <UBadge
+                      v-if="agent.department"
+                      :label="agent.department"
+                      variant="subtle"
+                      color="neutral"
+                      size="xs"
+                    />
+                  </div>
+                  <p v-if="agent.role" class="text-xs text-muted">
+                    {{ agent.role }}
+                  </p>
+                </div>
+                <div class="flex flex-col items-end gap-1 shrink-0 min-w-32">
+                  <span class="text-xs font-mono text-muted">
+                    {{ scorePercent(agent.score) }}% match
+                  </span>
+                  <UProgress
+                    :value="scorePercent(agent.score)"
+                    :max="100"
+                    size="xs"
+                    class="w-32"
+                    :aria-label="`${agent.name} relevance ${scorePercent(agent.score)} percent`"
+                  />
+                </div>
+              </div>
+              <div
+                v-if="agent.matched_terms?.length"
+                class="mt-3 flex flex-wrap gap-1.5"
+              >
+                <UBadge
+                  v-for="term in agent.matched_terms"
+                  :key="term"
+                  :label="term"
+                  variant="soft"
+                  color="primary"
+                  size="xs"
+                />
+              </div>
+            </li>
+          </ul>
         </section>
       </div>
     </template>

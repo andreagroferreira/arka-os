@@ -1433,6 +1433,134 @@ def knowledge_source_transcript(source_id: str):
     return {"transcript": text, "reconstructed": bool(text)}
 
 
+_AGENT_MATCH_TEXT_CAP = 4000  # representative sample for embedding; not full text
+
+
+def _source_knowledge_text(source_id_: str) -> str:
+    """Best-available knowledge text for a source: title + transcript sample.
+
+    Prepends the registry title (when present) to a capped sample of the
+    transcript. Falls back to joining the first few chunks when no
+    transcript resolves. Returns "" when the source has no text at all.
+    Read-only — never writes.
+    """
+    registry = _get_source_registry()
+    row = registry.get(source_id_) if registry else None
+    title = str((row or {}).get("title") or "").strip()
+    body = (_resolve_transcript(source_id_) or "").strip()
+    if not body:
+        match = _source_str_for_id(source_id_)
+        store = _get_vector_store()
+        if match and store:
+            chunks = store.chunks_for_source(match)[:5]
+            body = " ".join(str(c.get("text") or "") for c in chunks).strip()
+    sample = body[:_AGENT_MATCH_TEXT_CAP]
+    return (f"{title}\n{sample}".strip()) if title else sample
+
+
+@app.get("/api/knowledge/sources/{source_id}/agent-matches")
+def knowledge_source_agent_matches(source_id: str, top_n: int = Query(5)):
+    """Suggest which agents should learn from this source (semantic match).
+
+    READ-ONLY. Resolves the source's knowledge text (title + transcript
+    sample), embeds it against each agent's expertise profile, and returns
+    the top matches. Degrades to ``{matches: [], reason}`` (200, never 500)
+    when there is no source text or the embedder is unavailable.
+    """
+    from core.knowledge import agent_match, embedder
+
+    text = _source_knowledge_text(source_id)
+    if not text:
+        return {"matches": [], "source_id": source_id, "count": 0, "reason": "no source text"}
+    if not embedder.is_available():
+        return {"matches": [], "source_id": source_id, "count": 0, "reason": "embedder unavailable"}
+    matches = agent_match.match_agents(text, _load_agents(), top_n=min(top_n, 10))
+    if not matches:
+        return {"matches": [], "source_id": source_id, "count": 0, "reason": "embedder unavailable"}
+    return {"matches": matches, "source_id": source_id, "count": len(matches)}
+
+
+def _agent_matches_for_proposal(source_id_: str, text: str, body: Optional[dict]) -> list[dict]:
+    """Resolve the agents to include in a proposal: scoped ids or top matches."""
+    from core.knowledge import agent_match
+
+    agents = _load_agents()
+    matches = agent_match.match_agents(text, agents, top_n=10)
+    ids = (body or {}).get("agent_ids") if isinstance(body, dict) else None
+    if ids:
+        wanted = {str(i) for i in ids}
+        return [m for m in matches if m["id"] in wanted]
+    return matches[:5]
+
+
+@app.post("/api/knowledge/sources/{source_id}/agent-proposal")
+def knowledge_source_agent_proposal(source_id: str, body: Optional[dict] = None):
+    """Generate a PROPOSE-ONLY markdown proposal of agents to update.
+
+    Body optional: ``{"agent_ids": [...]}`` scopes to specific agents;
+    absent → top matches. Client identifiers are redacted via the
+    reorganizer's shared ``redact_clients`` so nothing leaks. The ONLY
+    write is the proposal markdown under
+    ``~/.arkaos/reorganize-proposals/`` — NEVER an agent YAML.
+    """
+    from core.knowledge import embedder
+
+    text = _source_knowledge_text(source_id)
+    if not text:
+        return {"error": "no source text", "agents": 0}
+    if not embedder.is_available():
+        return {"error": "embedder unavailable", "agents": 0}
+    matches = _agent_matches_for_proposal(source_id, text, body)
+    registry = _get_source_registry()
+    row = registry.get(source_id) if registry else None
+    title = str((row or {}).get("title") or "").strip() or source_id
+    markdown = _render_agent_proposal(source_id, title, matches)
+    path = _write_agent_proposal(source_id, markdown)
+    return {"proposal_path": str(path), "agents": len(matches)}
+
+
+def _render_agent_proposal(source_id_: str, title: str, matches: list[dict]) -> str:
+    """Render the propose-only markdown. Untrusted fields are redacted then escaped."""
+    from core.cognition.reorganizer import md_escape, redact_clients
+
+    safe_title = md_escape(redact_clients(title))
+    lines = [
+        f"# Agent Attribution Proposal — {safe_title}",
+        "",
+        "> **PROPOSE-ONLY** — review and apply manually; this never edits agent files.",
+        f"> Source: `{source_id_}`",
+        "",
+        "## Suggested agents",
+        "",
+    ]
+    if not matches:
+        lines.append("_(no agent matches)_")
+    else:
+        lines.extend(_agent_proposal_line(m, md_escape) for m in matches)
+    return redact_clients("\n".join(lines))
+
+
+def _agent_proposal_line(m: dict, escape) -> str:
+    """Render one suggested-agent bullet. matched_terms (untrusted) escaped inline."""
+    terms = ", ".join(escape(t) for t in (m.get("matched_terms") or [])) or "n/a"
+    return (
+        f"- **{m.get('name', '')}** ({m.get('department', '')} — "
+        f"{m.get('role', '')}) score: {m.get('score', 0)}; matched: {terms}"
+    )
+
+
+def _write_agent_proposal(source_id_: str, markdown: str) -> Path:
+    """Atomic write to ~/.arkaos/reorganize-proposals/ with a stable name."""
+    safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in source_id_)[:64]
+    out = Path.home() / ".arkaos" / "reorganize-proposals"
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"agent-attribution-{safe}.md"
+    tmp = path.with_suffix(f".tmp-{os.getpid()}.md")
+    tmp.write_text(markdown, encoding="utf-8")
+    os.replace(tmp, path)
+    return path
+
+
 @app.get("/api/knowledge/sources/{source_id}/media")
 def knowledge_source_media(source_id: str):
     """Stream a source's media file with HTTP Range support."""
