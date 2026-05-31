@@ -296,6 +296,22 @@ class VectorStore:
         ).fetchall()
         return [{"source": r["source"], "chunks": int(r["chunks"])} for r in rows]
 
+    def chunks_for_source(self, source: str) -> list[dict]:
+        """Return all chunks for a source as text/heading/metadata dicts."""
+        rows = self._db.execute(
+            "SELECT text, heading, metadata FROM chunks "
+            "WHERE source = ? ORDER BY id",
+            (source,),
+        ).fetchall()
+        return [
+            {
+                "text": r["text"],
+                "heading": r["heading"],
+                "metadata": json.loads(r["metadata"]) if r["metadata"] else {},
+            }
+            for r in rows
+        ]
+
     def clear(self) -> None:
         """Remove all data."""
         if self._vec_available:

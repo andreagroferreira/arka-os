@@ -51,9 +51,11 @@ type SourceType = IngestRequest['type'] | null
 const detectedType = computed<SourceType>(() => {
   const url = ingestUrl.value.trim()
   if (url) {
+    if (url.startsWith('blob:')) return 'video'
     if (/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(url)) return 'youtube'
     if (/\.pdf(\?.*)?$/i.test(url)) return 'pdf'
     if (/\.(mp3|wav|m4a|ogg|flac)(\?.*)?$/i.test(url)) return 'audio'
+    if (/\.(mp4|mov|webm|mkv|avi)(\?.*)?$/i.test(url)) return 'video'
     if (/\.(md|mdx)(\?.*)?$/i.test(url)) return 'markdown'
     if (/^https?:\/\//i.test(url)) return 'web'
   }
@@ -61,6 +63,7 @@ const detectedType = computed<SourceType>(() => {
     const name = ingestFile.value.name.toLowerCase()
     if (name.endsWith('.pdf')) return 'pdf'
     if (/\.(mp3|wav|m4a|ogg|flac)$/.test(name)) return 'audio'
+    if (/\.(mp4|mov|webm|mkv|avi)$/.test(name)) return 'video'
     if (/\.(md|mdx)$/.test(name)) return 'markdown'
   }
   return null
@@ -71,7 +74,8 @@ const typeColorMap: Record<string, 'error' | 'primary' | 'warning' | 'success' |
   web: 'primary',
   pdf: 'warning',
   audio: 'success',
-  markdown: 'neutral'
+  markdown: 'neutral',
+  video: 'error'
 }
 
 const typeIconMap: Record<string, string> = {
@@ -79,7 +83,8 @@ const typeIconMap: Record<string, string> = {
   web: 'i-lucide-globe',
   pdf: 'i-lucide-file-text',
   audio: 'i-lucide-headphones',
-  markdown: 'i-lucide-file-code'
+  markdown: 'i-lucide-file-code',
+  video: 'i-lucide-video'
 }
 
 function handleFileSelect(event: Event) {
@@ -95,6 +100,28 @@ function clearFile() {
   if (ingestFileInputRef.value) {
     ingestFileInputRef.value.value = ''
   }
+}
+
+function extFromMime(mime: string): string {
+  const map: Record<string, string> = {
+    'video/mp4': 'mp4',
+    'video/quicktime': 'mov',
+    'video/webm': 'webm',
+    'video/x-matroska': 'mkv',
+    'video/x-msvideo': 'avi'
+  }
+  return map[mime] ?? 'mp4'
+}
+
+// Upload a File via multipart. handleIngest's post-branch wiring
+// (fetchJobs + connectWebSocket) tracks progress — no WS logic here.
+async function uploadFile(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  await $fetch(`${apiBase}/api/knowledge/upload-file`, {
+    method: 'POST',
+    body: formData
+  })
 }
 
 const canIngest = computed(() => {
@@ -201,12 +228,20 @@ async function handleIngest() {
   try {
     // File upload — use multipart form
     if (activeInputMode.value === 'file' && ingestFile.value) {
-      const formData = new FormData()
-      formData.append('file', ingestFile.value)
-      await $fetch(`${apiBase}/api/knowledge/upload-file`, {
-        method: 'POST',
-        body: formData,
-      })
+      await uploadFile(ingestFile.value)
+    }
+    // blob: URL — fetch the bytes client-side, then upload as a File
+    else if (ingestUrl.value.trim().startsWith('blob:')) {
+      const blobUrl = ingestUrl.value.trim()
+      try {
+        const resp = await fetch(blobUrl)
+        const blob = await resp.blob()
+        const file = new File([blob], `video-${Date.now()}.${extFromMime(blob.type)}`, { type: blob.type })
+        await uploadFile(file)
+      } catch {
+        ingestError.value = 'Could not read the blob: URL (it may have been revoked, cross-origin, or DRM-protected). Download the file and use the File tab instead.'
+        return
+      }
     }
     // Text paste — save to temp file via API
     else if (activeInputMode.value === 'text' && pasteText.value.length > 10) {
@@ -487,7 +522,11 @@ function escapeRegex(value: string): string {
                 <UBadge label="Web" color="primary" variant="outline" size="xs" />
                 <UBadge label="Articles" color="primary" variant="outline" size="xs" />
                 <UBadge label="Docs" color="neutral" variant="outline" size="xs" />
+                <UBadge label="Video" color="error" variant="outline" size="xs" />
               </div>
+              <p class="text-xs text-muted">
+                Direct video links (MP4, MOV, WebM) and <code>blob:</code> URLs are supported.
+              </p>
             </div>
 
             <!-- Mode: File Upload with Drag & Drop -->
@@ -502,14 +541,14 @@ function escapeRegex(value: string): string {
               <input
                 ref="ingestFileInputRef"
                 type="file"
-                accept=".pdf,.mp3,.wav,.m4a,.ogg,.flac,.md,.mdx,.txt"
+                accept=".pdf,.mp3,.wav,.m4a,.ogg,.flac,.md,.mdx,.txt,.mp4,.mov,.webm,.mkv,.avi"
                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 @change="handleFileSelect"
               />
               <div v-if="!ingestFile">
                 <UIcon name="i-lucide-cloud-upload" class="size-10 text-muted mx-auto mb-3" />
                 <p class="text-sm font-medium text-highlighted">Drop files here or click to browse</p>
-                <p class="text-xs text-muted mt-1">PDF, MP3, WAV, Markdown, TXT</p>
+                <p class="text-xs text-muted mt-1">PDF, MP3, WAV, MP4, MOV, WebM, Markdown, TXT</p>
               </div>
               <div v-else class="flex items-center justify-center gap-3">
                 <UIcon :name="typeIconMap[detectedType ?? ''] ?? 'i-lucide-file'" class="size-6 text-primary" />

@@ -22,6 +22,7 @@ sys.path.insert(0, str(ARKAOS_ROOT))
 
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 
 app = FastAPI(title="ArkaOS Dashboard API", version="2.2.0")
 
@@ -128,6 +129,23 @@ def _get_vector_store():
     except Exception:
         pass
     return None
+
+
+_source_registry_cache = None
+
+
+def _get_source_registry():
+    """Lazy singleton SourceRegistry over the shared knowledge.db."""
+    global _source_registry_cache
+    if _source_registry_cache is None:
+        try:
+            from core.knowledge.sources import SourceRegistry
+            db_path = Path.home() / ".arkaos" / "knowledge.db"
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            _source_registry_cache = SourceRegistry(db_path)
+        except Exception:
+            return None
+    return _source_registry_cache
 
 
 # --- Endpoints ---
@@ -971,8 +989,10 @@ async def knowledge_upload_file(file: UploadFile):
     media_dir = Path.home() / ".arkaos" / "media"
     media_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save uploaded file
-    file_path = media_dir / file.filename
+    # Save uploaded file — sanitize filename to block path traversal
+    file_path = _safe_upload_path(media_dir, file.filename)
+    if file_path is None:
+        return {"error": "invalid filename"}
     content = await file.read()
     file_path.write_bytes(content)
 
@@ -995,13 +1015,14 @@ async def knowledge_upload_file(file: UploadFile):
         from core.jobs.manager import JobManager as _JM
         from core.knowledge.ingest import IngestEngine
         local_mgr = _JM()
-        engine = IngestEngine(store)
         def on_progress(pct, msg):
             status = "embedding" if "embed" in msg.lower() or "index" in msg.lower() else "processing"
             local_mgr.update_progress(job_id, pct, msg, status)
             broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": pct, "message": msg, "status": status})
         try:
             local_mgr.start(job_id)
+            reg = _get_source_registry()
+            engine = IngestEngine(store, registry=reg)
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
                 local_mgr.complete(job_id, chunks_created=result.chunks_created)
@@ -1064,7 +1085,6 @@ def knowledge_ingest(body: dict):
         from core.jobs.manager import JobManager as _JM
         local_mgr = _JM()
 
-        engine = IngestEngine(store)
         def on_progress(pct, msg):
             status = "processing"
             if "phase 2" in msg.lower() or "download" in msg.lower():
@@ -1086,6 +1106,8 @@ def knowledge_ingest(body: dict):
         try:
             local_mgr.start(job_id)
             broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": 0, "message": "Starting...", "status": "processing"})
+            reg = _get_source_registry()
+            engine = IngestEngine(store, registry=reg)
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
                 local_mgr.complete(job_id, chunks_created=result.chunks_created)
@@ -1242,6 +1264,79 @@ def knowledge_delete_source(source: str = Query(...)):
     except Exception as exc:  # noqa: BLE001 — surface as 200+error
         return {"error": f"delete failed: {exc}", "deleted": 0}
     return {"deleted": int(deleted), "source": clean}
+
+
+@app.get("/api/knowledge/sources/{source_id}")
+def knowledge_source_detail(source_id: str):
+    """Return a single source's metadata plus its indexed chunks."""
+    registry = _get_source_registry()
+    if registry is None:
+        return JSONResponse({"error": "registry unavailable"}, status_code=503)
+    row = registry.get(source_id)
+    if row is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    row = dict(row)
+    store = _get_vector_store()
+    row["chunks"] = store.chunks_for_source(row["source"]) if store else []
+    return row
+
+
+@app.get("/api/knowledge/sources/{source_id}/transcript")
+def knowledge_source_transcript(source_id: str):
+    """Return the full transcript text for a source."""
+    registry = _get_source_registry()
+    if registry is None:
+        return JSONResponse({"error": "registry unavailable"}, status_code=503)
+    row = registry.get(source_id)
+    if row is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return {"transcript": row["transcript"]}
+
+
+@app.get("/api/knowledge/sources/{source_id}/media")
+def knowledge_source_media(source_id: str):
+    """Stream a source's media file with HTTP Range support."""
+    path = _safe_media_path(source_id)
+    if path is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(str(path))
+
+
+@app.get("/api/knowledge/sources/{source_id}/download")
+def knowledge_source_download(source_id: str):
+    """Download a source's media file as an attachment."""
+    path = _safe_media_path(source_id)
+    if path is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(
+        str(path), filename=path.name,
+        content_disposition_type="attachment",
+    )
+
+
+def _safe_upload_path(media_dir: Path, filename: str) -> Optional[Path]:
+    """Resolve an upload target inside media_dir, blocking path traversal."""
+    safe_name = Path(filename or "").name  # strip any path components
+    if not safe_name:
+        return None
+    file_path = (media_dir / safe_name).resolve()
+    media_root = media_dir.resolve()
+    if media_root not in file_path.parents and file_path != media_root:
+        return None
+    return file_path
+
+
+def _safe_media_path(source_id: str) -> Optional[Path]:
+    """Resolve a source's media path, guarding against path traversal."""
+    registry = _get_source_registry()
+    row = registry.get(source_id) if registry else None
+    if row is None or not row["media_path"]:
+        return None
+    media_root = (Path.home() / ".arkaos" / "media").resolve()
+    path = Path(row["media_path"]).resolve()
+    if not path.exists() or media_root not in path.parents:
+        return None
+    return path
 
 
 @app.get("/api/health")
