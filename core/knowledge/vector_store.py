@@ -296,6 +296,21 @@ class VectorStore:
         ).fetchall()
         return [{"source": r["source"], "chunks": int(r["chunks"])} for r in rows]
 
+    def distinct_sources(self) -> list[str]:
+        """Return the distinct non-empty source strings, noisiest first.
+
+        Read-only reverse-lookup helper: the dashboard only has a
+        sha1-based source_id and must recover the raw source string to
+        serve chunks-only (pre-registry) sources. Reuses the same SELECT
+        shape as :meth:`list_sources`.
+        """
+        rows = self._db.execute(
+            "SELECT source, COUNT(*) AS chunks FROM chunks "
+            "WHERE source IS NOT NULL AND source != '' "
+            "GROUP BY source ORDER BY chunks DESC"
+        ).fetchall()
+        return [r["source"] for r in rows]
+
     def chunks_for_source(self, source: str) -> list[dict]:
         """Return all chunks for a source as text/heading/metadata dicts."""
         rows = self._db.execute(

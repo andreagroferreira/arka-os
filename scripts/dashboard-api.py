@@ -1223,20 +1223,69 @@ def knowledge_search(q: str = Query(...), top_k: int = Query(5)):
     return {"results": results, "query": q, "total": len(results)}
 
 
+def _merge_source_rows(
+    store_rows: list[dict], registry_rows: list[dict]
+) -> list[dict]:
+    """Union chunk-based + registry rows keyed by source string.
+
+    Every emitted row keeps the legacy ``source``/``chunks`` keys and adds
+    ``id`` (always linkable), ``title``, ``type``, ``has_media``,
+    ``duration`` and ``status``. A registry source with 0 chunks still
+    appears. Sorted by chunks desc, then source asc.
+    """
+    from core.knowledge.sources import source_id
+
+    by_source: dict[str, dict] = {}
+    for r in store_rows:
+        src = r.get("source", "")
+        by_source[src] = {"source": src, "chunks": int(r.get("chunks", 0) or 0)}
+    for reg in registry_rows:
+        src = reg.get("source", "")
+        row = by_source.setdefault(src, {"source": src, "chunks": 0})
+        row.update(_registry_fields(reg))
+    for src, row in by_source.items():
+        row.setdefault("id", source_id(src))
+        for key, default in (("title", ""), ("type", ""), ("has_media", False),
+                             ("duration", 0), ("status", "")):
+            row.setdefault(key, default)
+    return sorted(by_source.values(), key=lambda r: (-r["chunks"], r["source"]))
+
+
+def _registry_fields(reg: dict) -> dict:
+    """Project a registry row onto the list-row metadata keys."""
+    from core.knowledge.sources import source_id
+
+    return {
+        "id": reg.get("id") or source_id(reg.get("source", "")),
+        "title": reg.get("title", "") or "",
+        "type": reg.get("type", "") or "",
+        "has_media": bool(reg.get("media_path")),
+        "duration": reg.get("duration", 0) or 0,
+        "status": reg.get("status", "") or "",
+    }
+
+
 @app.get("/api/knowledge/sources")
 def knowledge_list_sources():
-    """PR88c v3.25.0 — list every distinct source + chunk count.
+    """List every distinct source merged from vector store + registry.
 
-    Returns ``{sources: [{source, chunks}], total: N}``. Sorted
-    descending by chunk count.
+    Returns ``{sources: [...], total: N}``. Each row keeps the legacy
+    ``source``/``chunks`` keys and adds ``id``/``title``/``type``/
+    ``has_media``/``duration``/``status`` so the frontend can link each
+    row to ``/knowledge/{id}``. Registry sources with 0 chunks appear too.
     """
     store = _get_vector_store()
-    if not store:
+    registry = _get_source_registry()
+    store_rows: list[dict] = []
+    if store:
+        try:
+            store_rows = store.list_sources()
+        except Exception as exc:  # noqa: BLE001
+            return {"sources": [], "total": 0, "error": str(exc)}
+    registry_rows = registry.list() if registry else []
+    if not store and not registry:
         return {"sources": [], "total": 0, "error": "vector store unavailable"}
-    try:
-        rows = store.list_sources()
-    except Exception as exc:  # noqa: BLE001
-        return {"sources": [], "total": 0, "error": str(exc)}
+    rows = _merge_source_rows(store_rows, registry_rows)
     return {"sources": rows, "total": len(rows)}
 
 
@@ -1266,19 +1315,55 @@ def knowledge_delete_source(source: str = Query(...)):
     return {"deleted": int(deleted), "source": clean}
 
 
+def _detail_from_store(source_id_: str) -> Optional[dict]:
+    """Build a minimal detail dict for a chunks-only (pre-registry) source.
+
+    Reverse-looks-up the raw source string whose ``source_id`` matches the
+    requested id (cold path, O(n) over distinct sources), then returns a
+    dict in the same shape the frontend expects. Returns None when no
+    chunk source matches the id.
+    """
+    from core.knowledge.sources import source_id
+    from core.knowledge.ingest import detect_source_type
+
+    store = _get_vector_store()
+    if store is None:
+        return None
+    match = next(
+        (s for s in store.distinct_sources() if source_id(s) == source_id_),
+        None,
+    )
+    if match is None:
+        return None
+    chunks = store.chunks_for_source(match)
+    return {
+        "id": source_id_, "source": match,
+        "type": detect_source_type(match), "title": "", "duration": 0,
+        "language": "", "thumbnail_path": "", "media_path": "",
+        "transcript": "", "chunk_count": len(chunks), "status": "indexed",
+        "error": "", "created_at": "", "updated_at": "", "chunks": chunks,
+    }
+
+
 @app.get("/api/knowledge/sources/{source_id}")
 def knowledge_source_detail(source_id: str):
-    """Return a single source's metadata plus its indexed chunks."""
+    """Return a single source's metadata plus its indexed chunks.
+
+    Registry row wins (enriched with chunks). When no registry row exists,
+    falls back to the vector store so pre-registry / chunks-only sources
+    still resolve instead of 404ing the list link.
+    """
     registry = _get_source_registry()
-    if registry is None:
-        return JSONResponse({"error": "registry unavailable"}, status_code=503)
-    row = registry.get(source_id)
-    if row is None:
-        return JSONResponse({"error": "not found"}, status_code=404)
-    row = dict(row)
-    store = _get_vector_store()
-    row["chunks"] = store.chunks_for_source(row["source"]) if store else []
-    return row
+    row = registry.get(source_id) if registry else None
+    if row is not None:
+        row = dict(row)
+        store = _get_vector_store()
+        row["chunks"] = store.chunks_for_source(row["source"]) if store else []
+        return row
+    fallback = _detail_from_store(source_id)
+    if fallback is not None:
+        return fallback
+    return JSONResponse({"error": "not found"}, status_code=404)
 
 
 @app.get("/api/knowledge/sources/{source_id}/transcript")

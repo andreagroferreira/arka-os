@@ -9,6 +9,12 @@
 interface SourceRow {
   source: string
   chunks: number
+  id: string
+  title?: string
+  type?: string
+  has_media?: boolean
+  duration?: number
+  status?: string
 }
 
 const { fetchApi, apiBase } = useApi()
@@ -78,6 +84,15 @@ function sourceLabel(src: string): string {
   }
   return src
 }
+
+const typeColorMap: Record<string, 'error' | 'primary' | 'warning' | 'success' | 'neutral'> = {
+  youtube: 'error',
+  web: 'primary',
+  pdf: 'warning',
+  audio: 'success',
+  markdown: 'neutral',
+  video: 'error'
+}
 </script>
 
 <template>
@@ -120,18 +135,30 @@ function sourceLabel(src: string): string {
       <ul class="space-y-1.5">
         <li
           v-for="row in paged"
-          :key="row.source"
-          class="flex items-center gap-3 rounded-lg border border-default p-2.5 hover:border-primary/40 transition-colors"
+          :key="row.id"
+          class="flex items-center gap-2 rounded-lg border border-default p-2.5 hover:border-primary/40 transition-colors"
         >
-          <UIcon
-            :name="row.source.startsWith('http') ? 'i-lucide-link' : 'i-lucide-file-text'"
-            class="size-4 text-muted shrink-0"
-          />
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-mono truncate" :title="row.source">
-              {{ sourceLabel(row.source) }}
-            </p>
-          </div>
+          <NuxtLink
+            :to="`/knowledge/${row.id}`"
+            class="flex items-center gap-3 flex-1 min-w-0"
+          >
+            <UIcon
+              :name="row.source.startsWith('http') ? 'i-lucide-link' : 'i-lucide-file-text'"
+              class="size-4 text-muted shrink-0"
+            />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm truncate text-highlighted" :title="row.source">
+                {{ row.title || sourceLabel(row.source) }}
+              </p>
+            </div>
+            <UBadge
+              v-if="row.type"
+              :label="row.type"
+              :color="typeColorMap[row.type] ?? 'neutral'"
+              variant="subtle"
+              size="xs"
+            />
+          </NuxtLink>
           <UBadge :label="`${row.chunks} chunk${row.chunks === 1 ? '' : 's'}`" variant="subtle" size="xs" />
           <UButton
             icon="i-lucide-trash-2"
@@ -139,7 +166,7 @@ function sourceLabel(src: string): string {
             variant="ghost"
             size="xs"
             aria-label="Delete source"
-            @click="remove(row)"
+            @click.stop.prevent="remove(row)"
           />
         </li>
       </ul>

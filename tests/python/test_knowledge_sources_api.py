@@ -132,3 +132,126 @@ def test_get_source_registry_returns_instance(dashboard_module, monkeypatch, tmp
     reg = dashboard_module._get_source_registry()
     assert reg is not None
     assert isinstance(reg, SourceRegistry)
+
+
+# --- _merge_source_rows pure-helper unit tests (list vs registry divergence) ---
+
+def test_merge_store_only_source_is_linkable(dashboard_module):
+    """A source only in the vector store gets a computed id and empty title."""
+    from core.knowledge.sources import source_id
+    merged = dashboard_module._merge_source_rows(
+        [{"source": "https://example.com/a", "chunks": 3}], []
+    )
+    assert len(merged) == 1
+    row = merged[0]
+    assert row["id"] == source_id("https://example.com/a")
+    assert row["chunks"] == 3
+    assert row["title"] == ""
+    assert row["type"] == ""
+
+
+def test_merge_registry_only_zero_chunk_ready_source_appears(dashboard_module):
+    """A registry source with 0 chunks (status=ready) must appear — the bug fix."""
+    reg_row = {
+        "id": "src-abc123", "source": "https://example.com/b", "type": "video",
+        "title": "Ready But Empty", "media_path": "/m.mp4", "duration": 120,
+        "status": "ready",
+    }
+    merged = dashboard_module._merge_source_rows([], [reg_row])
+    assert len(merged) == 1
+    row = merged[0]
+    assert row["chunks"] == 0
+    assert row["id"] == "src-abc123"
+    assert row["title"] == "Ready But Empty"
+    assert row["has_media"] is True
+    assert row["duration"] == 120
+
+
+def test_merge_source_in_both_is_single_row(dashboard_module):
+    """A source in store + registry yields one row: chunks from store, meta from registry."""
+    store_rows = [{"source": "https://example.com/c", "chunks": 7}]
+    reg_rows = [{"id": "src-c", "source": "https://example.com/c",
+                 "title": "Both", "type": "article", "status": "ready"}]
+    merged = dashboard_module._merge_source_rows(store_rows, reg_rows)
+    assert len(merged) == 1
+    row = merged[0]
+    assert row["chunks"] == 7
+    assert row["id"] == "src-c"
+    assert row["title"] == "Both"
+
+
+def test_merge_empty_id_falls_back_to_source_id(dashboard_module):
+    """A registry row with id == '' (or None) must never yield id == ''.
+
+    Facet B: ``setdefault`` was a no-op because ``_registry_fields`` already
+    set the key to ''. The row must link to its computed source_id instead.
+    """
+    from core.knowledge.sources import source_id
+    src = "https://example.com/no-id"
+    for empty in ("", None):
+        reg_row = {"id": empty, "source": src, "title": "No Id", "status": "ready"}
+        merged = dashboard_module._merge_source_rows([], [reg_row])
+        assert len(merged) == 1
+        assert merged[0]["id"] == source_id(src)
+        assert merged[0]["id"] != ""
+
+
+def test_detail_falls_back_to_vector_store_for_chunks_only_source(
+    client, monkeypatch, dashboard_module, tmp_path
+):
+    """A source that exists ONLY in the vector store (no registry row) must
+    resolve via the reverse-lookup fallback instead of 404ing.
+
+    Facet A: the list links every row to /knowledge/{id}; pre-registry
+    sources have chunks but no registry row.
+    """
+    from core.knowledge.sources import source_id
+    from core.knowledge.vector_store import VectorStore
+
+    store = VectorStore(tmp_path / "store.db")
+    src = "https://www.youtube.com/watch?v=ABC"
+    store.index_chunks(texts=["first chunk text", "second chunk text"], source=src)
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+
+    res = client.get(f"/api/knowledge/sources/{source_id(src)}")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["type"] == "youtube"
+    assert body["source"] == src
+    assert body["chunk_count"] > 0
+    assert len(body["chunks"]) == body["chunk_count"]
+
+
+def test_detail_404_when_neither_registry_nor_store_has_it(
+    client, monkeypatch, dashboard_module, tmp_path
+):
+    """An id absent from both registry and store still 404s cleanly."""
+    from core.knowledge.vector_store import VectorStore
+
+    store = VectorStore(tmp_path / "empty-store.db")
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+    res = client.get("/api/knowledge/sources/src-totallyunknown000")
+    assert res.status_code == 404
+    assert res.json().get("error") == "not found"
+
+
+def test_list_sources_includes_zero_chunk_registry_row(client, registry, monkeypatch, dashboard_module):
+    """GET /api/knowledge/sources surfaces a 0-chunk ready registry row with its id+title.
+
+    Every returned row must carry an ``id`` so the frontend can link it.
+    """
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: None)
+    sid = registry.upsert(
+        "https://example.com/empty-but-ready",
+        title="Empty Ready",
+        status="ready",
+        chunk_count=0,
+    )
+    res = client.get("/api/knowledge/sources")
+    assert res.status_code == 200
+    sources = res.json()["sources"]
+    assert all("id" in row for row in sources)
+    match = [r for r in sources if r["id"] == sid]
+    assert len(match) == 1
+    assert match[0]["title"] == "Empty Ready"
+    assert match[0]["chunks"] == 0
