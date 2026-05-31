@@ -3,7 +3,7 @@
 import pytest
 from pathlib import Path
 
-from core.knowledge.chunker import chunk_markdown, Chunk
+from core.knowledge.chunker import chunk_markdown, Chunk, stitch_chunks
 from core.knowledge.vector_store import VectorStore
 from core.knowledge.indexer import index_directory
 
@@ -43,6 +43,51 @@ class TestChunker:
         chunks = chunk_markdown(content, max_tokens=20)
         for i, c in enumerate(chunks):
             assert c.index == i
+
+
+class TestStitchChunks:
+    def test_roundtrip_dedup_removes_overlap_window(self):
+        # Build a real transcript long enough to force multiple overlapping chunks.
+        sentences = [f"Sentence number {i} carries unique content words here." for i in range(80)]
+        content = " ".join(sentences)
+        chunks = chunk_markdown(content, max_tokens=60, overlap_tokens=10)
+        assert len(chunks) > 1, "need multiple chunks to exercise seams"
+        texts = [c.text for c in chunks]
+
+        naive = "\n\n".join(texts)
+        stitched = stitch_chunks(texts)
+
+        # Dedup must shrink the result vs the naive overlap-repeating join.
+        assert len(stitched) < len(naive)
+        # Stitched length must be near the original (only separators differ).
+        assert abs(len(stitched.split()) - len(content.split())) <= 5
+        # A distinctive seam sentence appears exactly once, not duplicated.
+        marker = "Sentence number 40 carries unique content words here."
+        assert stitched.count(marker) == 1
+
+    def test_no_overlap_keeps_both_chunks_joined(self):
+        out = stitch_chunks(["alpha first part", "bravo second part"])
+        assert out == "alpha first part\n\nbravo second part"
+
+    def test_single_chunk_returned_as_is(self):
+        assert stitch_chunks(["only one chunk here"]) == "only one chunk here"
+
+    def test_empty_list_returns_empty_string(self):
+        assert stitch_chunks([]) == ""
+
+    def test_common_short_word_is_not_treated_as_overlap(self):
+        # Both share the token "the" at the seam but are NOT a real overlap.
+        prev = "we discussed the budget for the next quarter the"
+        cur = "the meeting ended after a long and detailed review"
+        out = stitch_chunks([prev, cur])
+        assert out == f"{prev}\n\n{cur}"
+        assert cur in out  # full second chunk preserved, nothing stripped
+
+    def test_real_overlap_window_is_stripped_once(self):
+        prev = "intro words then the shared overlap window tokens"
+        cur = "the shared overlap window tokens then new tail content"
+        out = stitch_chunks([prev, cur])
+        assert out == f"{prev}\n\nthen new tail content"
 
 
 class TestVectorStore:

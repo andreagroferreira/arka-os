@@ -1315,32 +1315,66 @@ def knowledge_delete_source(source: str = Query(...)):
     return {"deleted": int(deleted), "source": clean}
 
 
-def _detail_from_store(source_id_: str) -> Optional[dict]:
-    """Build a minimal detail dict for a chunks-only (pre-registry) source.
+def _source_str_for_id(source_id_: str) -> Optional[str]:
+    """Reverse-resolve the raw source string whose id matches ``source_id_``.
 
-    Reverse-looks-up the raw source string whose ``source_id`` matches the
-    requested id (cold path, O(n) over distinct sources), then returns a
-    dict in the same shape the frontend expects. Returns None when no
-    chunk source matches the id.
+    Cold path, O(n) over the vector store's distinct sources. Returns None
+    when no chunk source matches (or the store is unavailable). Shared by
+    ``_detail_from_store`` and ``_resolve_transcript`` so the reverse-lookup
+    lives in exactly one place.
     """
     from core.knowledge.sources import source_id
-    from core.knowledge.ingest import detect_source_type
 
     store = _get_vector_store()
     if store is None:
         return None
-    match = next(
+    return next(
         (s for s in store.distinct_sources() if source_id(s) == source_id_),
         None,
     )
+
+
+def _resolve_transcript(source_id_: str) -> Optional[str]:
+    """Best-available transcript text for a source id, or None.
+
+    Resolution order:
+      1. Registry row with a non-empty stored ``transcript`` -> that text.
+      2. Else reconstruct from the vector store's chunks (legacy sources).
+      3. Else None (no registry row and no chunk source matched the id).
+    """
+    registry = _get_source_registry()
+    row = registry.get(source_id_) if registry else None
+    if row is not None and (row.get("transcript") or "").strip():
+        return row["transcript"]
+    match = _source_str_for_id(source_id_)
     if match is None:
         return None
-    chunks = store.chunks_for_source(match)
+    store = _get_vector_store()
+    return store.transcript_for_source(match) if store else None
+
+
+def _detail_from_store(source_id_: str) -> Optional[dict]:
+    """Build a minimal detail dict for a chunks-only (pre-registry) source.
+
+    Reverse-looks-up the raw source string whose ``source_id`` matches the
+    requested id, then returns a dict in the same shape the frontend
+    expects — including a transcript reconstructed from the chunks. Returns
+    None when no chunk source matches the id.
+    """
+    from core.knowledge.ingest import detect_source_type
+
+    match = _source_str_for_id(source_id_)
+    if match is None:
+        return None
+    store = _get_vector_store()
+    chunks = store.chunks_for_source(match) if store else []
+    transcript = store.transcript_for_source(match) if store else ""
     return {
         "id": source_id_, "source": match,
         "type": detect_source_type(match), "title": "", "duration": 0,
         "language": "", "thumbnail_path": "", "media_path": "",
-        "transcript": "", "chunk_count": len(chunks), "status": "indexed",
+        "transcript": transcript, "transcript_reconstructed": bool(transcript),
+        "chunk_count": len(chunks), "status": "indexed",
         "error": "", "created_at": "", "updated_at": "", "chunks": chunks,
     }
 
@@ -1359,6 +1393,14 @@ def knowledge_source_detail(source_id: str):
         row = dict(row)
         store = _get_vector_store()
         row["chunks"] = store.chunks_for_source(row["source"]) if store else []
+        stored = (row.get("transcript") or "").strip()
+        if not stored:
+            row["transcript"] = (
+                store.transcript_for_source(row["source"]) if store else ""
+            )
+            row["transcript_reconstructed"] = bool(row["transcript"])
+        else:
+            row["transcript_reconstructed"] = False
         return row
     fallback = _detail_from_store(source_id)
     if fallback is not None:
@@ -1368,14 +1410,27 @@ def knowledge_source_detail(source_id: str):
 
 @app.get("/api/knowledge/sources/{source_id}/transcript")
 def knowledge_source_transcript(source_id: str):
-    """Return the full transcript text for a source."""
+    """Return the full transcript text for a source.
+
+    A stored registry transcript wins. Otherwise the transcript is
+    reconstructed by joining the source's indexed chunks (legacy sources
+    ingested before the registry have chunks but no stored transcript). The
+    response carries ``reconstructed`` so the frontend can badge it.
+
+    404 only when the id matches nothing at all (no registry row and no
+    chunk source). A known source with genuinely zero chunks returns an
+    empty transcript (200) so the page shows "No transcript available."
+    """
     registry = _get_source_registry()
-    if registry is None:
-        return JSONResponse({"error": "registry unavailable"}, status_code=503)
-    row = registry.get(source_id)
-    if row is None:
+    row = registry.get(source_id) if registry else None
+    stored = (row.get("transcript") or "").strip() if row else ""
+    if stored:
+        return {"transcript": row["transcript"], "reconstructed": False}
+    match = _source_str_for_id(source_id)
+    if row is None and match is None:
         return JSONResponse({"error": "not found"}, status_code=404)
-    return {"transcript": row["transcript"]}
+    text = _resolve_transcript(source_id) or ""
+    return {"transcript": text, "reconstructed": bool(text)}
 
 
 @app.get("/api/knowledge/sources/{source_id}/media")

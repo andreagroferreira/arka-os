@@ -312,7 +312,12 @@ class VectorStore:
         return [r["source"] for r in rows]
 
     def chunks_for_source(self, source: str) -> list[dict]:
-        """Return all chunks for a source as text/heading/metadata dicts."""
+        """Return all chunks for a source as text/heading/metadata dicts.
+
+        Ordered by ``id`` ASC (insertion / ingest order) so callers that
+        re-join the text — e.g. :meth:`transcript_for_source` — read the
+        chunks back in their original sequence.
+        """
         rows = self._db.execute(
             "SELECT text, heading, metadata FROM chunks "
             "WHERE source = ? ORDER BY id",
@@ -326,6 +331,22 @@ class VectorStore:
             }
             for r in rows
         ]
+
+    def transcript_for_source(self, source: str) -> str:
+        """Reconstruct a source's transcript from its indexed chunks.
+
+        Read-only. Joins the chunk texts (in ingest order, via
+        :meth:`chunks_for_source`) via :func:`~core.knowledge.chunker.stitch_chunks`,
+        which dedupes the token-overlap window the chunker keeps between
+        consecutive chunks so the seams don't repeat ~50 tokens of text.
+        Returns "" when the source has no chunks. Used to surface a transcript
+        for legacy sources ingested before the SourceRegistry, which have
+        chunks but no stored transcript.
+        """
+        from core.knowledge.chunker import stitch_chunks
+
+        chunks = self.chunks_for_source(source)
+        return stitch_chunks([c["text"] for c in chunks])
 
     def clear(self) -> None:
         """Remove all data."""

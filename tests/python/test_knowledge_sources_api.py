@@ -255,3 +255,140 @@ def test_list_sources_includes_zero_chunk_registry_row(client, registry, monkeyp
     assert len(match) == 1
     assert match[0]["title"] == "Empty Ready"
     assert match[0]["chunks"] == 0
+
+
+# --- transcript reconstruction from chunks (legacy sources) ---
+
+def test_legacy_transcript_reconstructed_in_order(
+    client, monkeypatch, dashboard_module, tmp_path
+):
+    """Legacy source (chunks, no registry row): /transcript reconstructs the
+    full text from chunks joined in ingest order, reconstructed==true."""
+    from core.knowledge.sources import source_id
+    from core.knowledge.vector_store import VectorStore
+
+    store = VectorStore(tmp_path / "legacy-store.db")
+    src = "https://youtu.be/legacyABC"
+    parts = ["alpha first part", "bravo second part", "charlie third part"]
+    store.index_chunks(texts=parts, source=src)
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+
+    res = client.get(f"/api/knowledge/sources/{source_id(src)}/transcript")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["reconstructed"] is True
+    assert body["transcript"] == "\n\n".join(parts)
+    for part in parts:
+        assert part in body["transcript"]
+
+
+def test_legacy_detail_includes_reconstructed_transcript(
+    client, monkeypatch, dashboard_module, tmp_path
+):
+    """Detail for a legacy source carries the reconstructed transcript and
+    transcript_reconstructed==true."""
+    from core.knowledge.sources import source_id
+    from core.knowledge.vector_store import VectorStore
+
+    store = VectorStore(tmp_path / "legacy-detail.db")
+    src = "https://youtu.be/legacyDETAIL"
+    store.index_chunks(texts=["only chunk text here"], source=src)
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+
+    res = client.get(f"/api/knowledge/sources/{source_id(src)}")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["transcript"] == "only chunk text here"
+    assert body["transcript_reconstructed"] is True
+
+
+def test_stored_transcript_wins_over_reconstruction(
+    client, registry, monkeypatch, dashboard_module, tmp_path
+):
+    """A registry row with a real stored transcript returns it with
+    reconstructed==false, even when chunks exist for the same source."""
+    from core.knowledge.vector_store import VectorStore
+
+    src = "https://example.com/stored"
+    store = VectorStore(tmp_path / "stored-store.db")
+    store.index_chunks(texts=["chunk derived text"], source=src)
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+    sid = registry.upsert(src, transcript="the real stored transcript")
+
+    res = client.get(f"/api/knowledge/sources/{sid}/transcript")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["transcript"] == "the real stored transcript"
+    assert body["reconstructed"] is False
+
+
+def test_transcript_preserves_insertion_order(
+    client, monkeypatch, dashboard_module, tmp_path
+):
+    """Chunks indexed in a deliberate sequence must rejoin in that same
+    order (guards the ORDER BY id in chunks_for_source)."""
+    from core.knowledge.sources import source_id
+    from core.knowledge.vector_store import VectorStore
+
+    store = VectorStore(tmp_path / "order-store.db")
+    src = "https://youtu.be/orderTEST"
+    ordered = ["111one", "222two", "333three", "444four"]
+    store.index_chunks(texts=ordered, source=src)
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+
+    res = client.get(f"/api/knowledge/sources/{source_id(src)}/transcript")
+    assert res.status_code == 200
+    transcript = res.json()["transcript"]
+    positions = [transcript.index(p) for p in ordered]
+    assert positions == sorted(positions)
+
+
+def test_transcript_404_when_id_matches_nothing(
+    client, monkeypatch, dashboard_module, tmp_path
+):
+    """Unknown id (no registry row, no chunk source) -> /transcript 404."""
+    from core.knowledge.vector_store import VectorStore
+
+    store = VectorStore(tmp_path / "empty-transcript.db")
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+    res = client.get("/api/knowledge/sources/src-nope000/transcript")
+    assert res.status_code == 404
+    assert res.json().get("error") == "not found"
+
+
+def test_transcript_dedupes_real_chunker_overlap_seams(
+    client, monkeypatch, dashboard_module, tmp_path
+):
+    """A legacy source whose chunks were produced by the REAL chunker (with
+    overlap) reconstructs a transcript with the seam overlap removed: the
+    deduped /transcript is measurably shorter than the naive "\\n\\n".join,
+    reconstructed==true, and no chunk content is lost."""
+    from core.knowledge.chunker import chunk_markdown
+    from core.knowledge.sources import source_id
+    from core.knowledge.vector_store import VectorStore
+
+    content = " ".join(
+        f"Sentence number {i} carries unique content words here." for i in range(80)
+    )
+    chunks = chunk_markdown(content, max_tokens=60, overlap_tokens=10)
+    texts = [c.text for c in chunks]
+    assert len(texts) > 1, "fixture must produce multiple overlapping chunks"
+
+    store = VectorStore(tmp_path / "real-chunker-store.db")
+    src = "https://youtu.be/realChunkerSeams"
+    store.index_chunks(texts=texts, source=src)
+    monkeypatch.setattr(dashboard_module, "_get_vector_store", lambda: store)
+
+    res = client.get(f"/api/knowledge/sources/{source_id(src)}/transcript")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["reconstructed"] is True
+
+    naive = "\n\n".join(texts)
+    assert len(body["transcript"]) < len(naive)
+    # Word count tracks the original content (overlap removed, content kept).
+    assert abs(len(body["transcript"].split()) - len(content.split())) <= 5
+    # A distinctive mid-document sentence survives exactly once (no seam dup).
+    assert body["transcript"].count(
+        "Sentence number 40 carries unique content words here."
+    ) == 1
