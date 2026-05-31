@@ -20,7 +20,7 @@ const pasteTitle = ref('')
 // line) and the backend queues one job per source.
 const bulkUrls = ref('')
 
-const activeInputMode = ref<'url' | 'file' | 'text' | 'research' | 'bulk'>('url')
+const activeInputMode = ref<'url' | 'file' | 'text' | 'research' | 'bulk' | 'record'>('url')
 
 const inputModes = [
   { label: 'URL', value: 'url' as const, icon: 'i-lucide-link' },
@@ -28,6 +28,7 @@ const inputModes = [
   { label: 'File', value: 'file' as const, icon: 'i-lucide-upload' },
   { label: 'Text', value: 'text' as const, icon: 'i-lucide-type' },
   { label: 'Research', value: 'research' as const, icon: 'i-lucide-search' },
+  { label: 'Record', value: 'record' as const, icon: 'i-lucide-mic' },
 ]
 
 const bulkUrlCount = computed(() =>
@@ -118,13 +119,216 @@ function extFromMime(mime: string): string {
 async function uploadFile(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  await $fetch(`${apiBase}/api/knowledge/upload-file`, {
+  return await $fetch(`${apiBase}/api/knowledge/upload-file`, {
     method: 'POST',
     body: formData
   })
 }
 
+// --- Record mode (PR — capture the audio output the player produces) ---
+// We never touch a protected/encrypted stream. We record the audio the
+// machine legitimately plays (the analog hole), same category as Otter or
+// Descript recording a meeting. The resulting .webm flows through the
+// existing upload -> Whisper -> KB pipeline via uploadFile().
+const recordTitle = ref('')
+const recordSource = ref<'tab' | 'device'>('tab')
+const recordDevices = ref<{ label: string, value: string }[]>([])
+const selectedDeviceId = ref('')
+const isRecording = ref(false)
+const recordElapsed = ref(0)
+
+let mediaRecorder: MediaRecorder | null = null
+let recordStream: MediaStream | null = null
+let recordChunks: Blob[] = []
+let recordTimer: ReturnType<typeof setInterval> | null = null
+
+const recordElapsedLabel = computed(() => {
+  const total = recordElapsed.value
+  const mm = String(Math.floor(total / 60)).padStart(2, '0')
+  const ss = String(total % 60).padStart(2, '0')
+  return `${mm}:${ss}`
+})
+
+const canStartRecording = computed(() => {
+  if (isRecording.value) return false
+  if (recordSource.value === 'device' && !selectedDeviceId.value) return false
+  return true
+})
+
+const recordSourceItems = [
+  { label: 'Browser tab audio (share the course tab)', value: 'tab' },
+  { label: 'Audio input device', value: 'device' }
+]
+
+// Sanitize a title into a filename-safe stem. Keeps letters, digits, dash,
+// underscore and space; collapses the rest to a single dash.
+function safeFilename(title: string): string {
+  const stem = (title || 'recording')
+    .trim()
+    .replace(/[^a-zA-Z0-9 _-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80)
+  return stem || 'recording'
+}
+
+function pickRecorderMime(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined
+  const prefs = ['audio/webm;codecs=opus', 'audio/webm']
+  for (const m of prefs) {
+    if (MediaRecorder.isTypeSupported(m)) return m
+  }
+  return undefined
+}
+
+async function loadAudioDevices() {
+  if (!import.meta.client || !navigator.mediaDevices?.enumerateDevices) return
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    recordDevices.value = devices
+      .filter(d => d.kind === 'audioinput')
+      .map(d => ({ label: d.label || 'Microphone', value: d.deviceId }))
+    if (!selectedDeviceId.value && recordDevices.value.length) {
+      selectedDeviceId.value = recordDevices.value[0]!.value
+    }
+  } catch {
+    // enumeration can fail before any permission grant; ignore quietly
+  }
+}
+
+function stopRecordStream() {
+  if (recordStream) {
+    recordStream.getTracks().forEach(t => t.stop())
+    recordStream = null
+  }
+}
+
+function clearRecordTimer() {
+  if (recordTimer) {
+    clearInterval(recordTimer)
+    recordTimer = null
+  }
+}
+
+async function startRecording() {
+  if (!import.meta.client) return
+  ingestError.value = null
+  recordChunks = []
+  try {
+    if (!navigator.mediaDevices) {
+      ingestError.value = 'Recording is not supported in this browser.'
+      return
+    }
+    let audioStream: MediaStream
+    if (recordSource.value === 'tab') {
+      // Chrome only offers tab audio when video is requested; we capture
+      // video then immediately drop the video track and keep audio only.
+      recordStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+      const audioTracks = recordStream.getAudioTracks()
+      if (!audioTracks.length) {
+        stopRecordStream()
+        ingestError.value = `No audio track was shared. Make sure 'Share tab audio' is checked, or use an audio input device.`
+        return
+      }
+      // Drop the video track to keep only audio.
+      recordStream.getVideoTracks().forEach(t => t.stop())
+      audioStream = new MediaStream(audioTracks)
+    } else {
+      recordStream = await navigator.mediaDevices.getUserMedia({
+        audio: { deviceId: selectedDeviceId.value ? { exact: selectedDeviceId.value } : undefined }
+      })
+      audioStream = recordStream
+    }
+
+    const mimeType = pickRecorderMime()
+    mediaRecorder = mimeType
+      ? new MediaRecorder(audioStream, { mimeType })
+      : new MediaRecorder(audioStream)
+    mediaRecorder.ondataavailable = (e: BlobEvent) => {
+      if (e.data && e.data.size > 0) recordChunks.push(e.data)
+    }
+    mediaRecorder.onstop = () => {
+      void finalizeRecording()
+    }
+    mediaRecorder.start()
+
+    isRecording.value = true
+    recordElapsed.value = 0
+    clearRecordTimer()
+    recordTimer = setInterval(() => {
+      recordElapsed.value += 1
+    }, 1000)
+  } catch (err) {
+    stopRecordStream()
+    isRecording.value = false
+    const name = (err as DOMException)?.name
+    ingestError.value = name === 'NotAllowedError'
+      ? 'Permission to capture audio was denied.'
+      : 'Could not start recording. Your browser may not support audio capture.'
+  }
+}
+
+function stopRecording() {
+  if (!isRecording.value) return
+  clearRecordTimer()
+  isRecording.value = false
+  // onstop -> finalizeRecording builds the file and releases tracks.
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  } else {
+    void finalizeRecording()
+  }
+}
+
+// Build a File from the captured chunks and push it through the SAME path
+// the file-upload mode uses (uploadFile + activeTask/WS/jobs wiring).
+async function finalizeRecording() {
+  const mime = mediaRecorder?.mimeType || 'audio/webm'
+  const blob = new Blob(recordChunks, { type: mime })
+  recordChunks = []
+  stopRecordStream()
+  mediaRecorder = null
+  clearRecordTimer()
+
+  if (!blob.size) {
+    ingestError.value = 'No audio was captured.'
+    return
+  }
+
+  const name = `${safeFilename(recordTitle.value)}-${Date.now()}.webm`
+  const file = new File([blob], name, { type: blob.type })
+
+  ingestError.value = null
+  try {
+    const res = await uploadFile(file) as { job_id?: string } | undefined
+    const jobId = res?.job_id
+    if (jobId) {
+      activeTask.value = {
+        id: jobId,
+        title: recordTitle.value || name,
+        source_type: 'audio',
+        status: 'queued',
+        progress_percent: 0,
+        progress_message: 'Queued for transcription...'
+      } as IngestTask
+      isIngesting.value = true
+      localStorage.setItem(ACTIVE_TASK_KEY, jobId)
+    }
+    recordTitle.value = ''
+    fetchJobs()
+    connectWebSocket()
+  } catch (err) {
+    ingestError.value = err instanceof Error ? err.message : 'Failed to queue the recording'
+  }
+}
+
+// Re-enumerate devices when the user picks the device source.
+watch(recordSource, (mode) => {
+  if (mode === 'device') loadAudioDevices()
+})
+
 const canIngest = computed(() => {
+  if (activeInputMode.value === 'record') return false
   if (activeInputMode.value === 'bulk') return bulkUrlCount.value > 0
   return detectedType.value !== null
 })
@@ -214,6 +418,8 @@ function disconnectWebSocket() {
 
 onUnmounted(() => {
   disconnectWebSocket()
+  clearRecordTimer()
+  stopRecordStream()
 })
 
 async function handleIngest() {
@@ -489,468 +695,533 @@ function escapeRegex(value: string): string {
 
       <!-- Content -->
       <template v-else>
-        <!-- Add Content Section -->
-        <UCard>
-          <fieldset class="space-y-5">
-            <!-- Input Mode Tabs -->
-            <div class="flex items-center gap-1 rounded-lg bg-muted/10 p-1 w-fit">
-              <button
-                v-for="mode in inputModes"
-                :key="mode.value"
-                class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-                :class="activeInputMode === mode.value ? 'bg-elevated text-highlighted shadow-sm' : 'text-muted hover:text-highlighted'"
-                @click="activeInputMode = mode.value"
-              >
-                <UIcon :name="mode.icon" class="size-3.5" />
-                {{ mode.label }}
-              </button>
-            </div>
-
-            <!-- Mode: URL -->
-            <div v-if="activeInputMode === 'url'" class="space-y-3">
-              <UInput
-                v-model="ingestUrl"
-                placeholder="Paste a YouTube URL, web page, article, or research link..."
-                icon="i-lucide-link"
-                size="xl"
-                class="w-full"
-                :ui="{ base: 'text-base' }"
-                @keydown.enter.prevent="canIngest && handleIngest()"
-              />
-              <div class="flex items-center gap-1.5">
-                <UBadge label="YouTube" color="error" variant="outline" size="xs" />
-                <UBadge label="Web" color="primary" variant="outline" size="xs" />
-                <UBadge label="Articles" color="primary" variant="outline" size="xs" />
-                <UBadge label="Docs" color="neutral" variant="outline" size="xs" />
-                <UBadge label="Video" color="error" variant="outline" size="xs" />
+        <!-- Single block wrapper: prevents the first card collapsing to
+             height:0 as a bare flex child of UDashboardPanel #body. Mirrors
+             the budget.vue / tasks.vue pattern (one block child per body).
+             No space-y here: children already carry their own mt-* margins. -->
+        <div>
+          <!-- Add Content Section -->
+          <UCard>
+            <fieldset class="space-y-5">
+              <!-- Input Mode Tabs -->
+              <div class="flex items-center gap-1 rounded-lg bg-muted/10 p-1 w-fit">
+                <button
+                  v-for="mode in inputModes"
+                  :key="mode.value"
+                  class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                  :class="activeInputMode === mode.value ? 'bg-elevated text-highlighted shadow-sm' : 'text-muted hover:text-highlighted'"
+                  @click="activeInputMode = mode.value"
+                >
+                  <UIcon :name="mode.icon" class="size-3.5" />
+                  {{ mode.label }}
+                </button>
               </div>
-              <p class="text-xs text-muted">
-                Direct video links (MP4, MOV, WebM) and <code>blob:</code> URLs are supported.
-              </p>
-            </div>
 
-            <!-- Mode: File Upload with Drag & Drop -->
-            <div
-              v-if="activeInputMode === 'file'"
-              class="relative rounded-xl border-2 border-dashed transition-colors p-8 text-center"
-              :class="isDragging ? 'border-primary bg-primary/5' : 'border-default hover:border-primary/40'"
-              @dragover.prevent="isDragging = true"
-              @dragleave.prevent="isDragging = false"
-              @drop.prevent="handleDrop"
-            >
-              <input
-                ref="ingestFileInputRef"
-                type="file"
-                accept=".pdf,.mp3,.wav,.m4a,.ogg,.flac,.md,.mdx,.txt,.mp4,.mov,.webm,.mkv,.avi"
-                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                @change="handleFileSelect"
-              />
-              <div v-if="!ingestFile">
-                <UIcon name="i-lucide-cloud-upload" class="size-10 text-muted mx-auto mb-3" />
-                <p class="text-sm font-medium text-highlighted">Drop files here or click to browse</p>
-                <p class="text-xs text-muted mt-1">PDF, MP3, WAV, MP4, MOV, WebM, Markdown, TXT</p>
-              </div>
-              <div v-else class="flex items-center justify-center gap-3">
-                <UIcon :name="typeIconMap[detectedType ?? ''] ?? 'i-lucide-file'" class="size-6 text-primary" />
-                <div class="text-left">
-                  <p class="text-sm font-medium text-highlighted">{{ ingestFile.name }}</p>
-                  <p class="text-xs text-muted">{{ (ingestFile.size / 1024).toFixed(1) }} KB</p>
+              <!-- Mode: URL -->
+              <div v-if="activeInputMode === 'url'" class="space-y-3">
+                <UInput
+                  v-model="ingestUrl"
+                  placeholder="Paste a YouTube URL, web page, article, or research link..."
+                  icon="i-lucide-link"
+                  size="xl"
+                  class="w-full"
+                  :ui="{ base: 'text-base' }"
+                  @keydown.enter.prevent="canIngest && handleIngest()"
+                />
+                <div class="flex items-center gap-1.5">
+                  <UBadge label="YouTube" color="error" variant="outline" size="xs" />
+                  <UBadge label="Web" color="primary" variant="outline" size="xs" />
+                  <UBadge label="Articles" color="primary" variant="outline" size="xs" />
+                  <UBadge label="Docs" color="neutral" variant="outline" size="xs" />
+                  <UBadge label="Video" color="error" variant="outline" size="xs" />
                 </div>
-                <UButton icon="i-lucide-x" variant="ghost" size="xs" @click.stop="clearFile" />
+                <p class="text-xs text-muted">
+                  Direct video links (MP4, MOV, WebM) and <code>blob:</code> URLs are supported.
+                </p>
               </div>
-            </div>
 
-            <!-- Mode: Text / Paste -->
-            <div v-if="activeInputMode === 'text'" class="space-y-3">
-              <textarea
-                v-model="pasteText"
-                rows="6"
-                placeholder="Paste or write text content here... Notes, excerpts, research findings, transcripts..."
-                class="w-full rounded-lg border border-default bg-transparent px-4 py-3 text-sm text-highlighted placeholder:text-muted/50 focus:border-primary focus:outline-none resize-y"
-              />
-              <UInput
-                v-model="pasteTitle"
-                placeholder="Title (optional) — e.g., 'Meeting Notes Q3', 'Research: Growth Hacking'"
-                icon="i-lucide-type"
-                size="sm"
-                class="w-full"
-              />
-            </div>
-
-            <!-- Mode: Bulk URLs (PR56 v2.73.0) -->
-            <div v-if="activeInputMode === 'bulk'" class="space-y-3">
-              <UTextarea
-                v-model="bulkUrls"
-                placeholder="Paste one URL per line. Up to 50 sources per batch.&#10;&#10;https://www.youtube.com/watch?v=...&#10;https://example.com/article&#10;https://example.com/paper.pdf"
-                :rows="8"
-                size="lg"
-                class="w-full font-mono text-sm"
-              />
-              <div class="flex items-center justify-between text-xs text-muted">
-                <span>{{ bulkUrlCount }} source{{ bulkUrlCount === 1 ? '' : 's' }} detected</span>
-                <span v-if="bulkUrlCount > 50" class="text-red-400">
-                  Over the 50-source cap — extras will be rejected.
-                </span>
+              <!-- Mode: File Upload with Drag & Drop -->
+              <div
+                v-if="activeInputMode === 'file'"
+                class="relative rounded-xl border-2 border-dashed transition-colors p-8 text-center"
+                :class="isDragging ? 'border-primary bg-primary/5' : 'border-default hover:border-primary/40'"
+                @dragover.prevent="isDragging = true"
+                @dragleave.prevent="isDragging = false"
+                @drop.prevent="handleDrop"
+              >
+                <input
+                  ref="ingestFileInputRef"
+                  type="file"
+                  accept=".pdf,.mp3,.wav,.m4a,.ogg,.flac,.md,.mdx,.txt,.mp4,.mov,.webm,.mkv,.avi"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  @change="handleFileSelect"
+                />
+                <div v-if="!ingestFile">
+                  <UIcon name="i-lucide-cloud-upload" class="size-10 text-muted mx-auto mb-3" />
+                  <p class="text-sm font-medium text-highlighted">Drop files here or click to browse</p>
+                  <p class="text-xs text-muted mt-1">PDF, MP3, WAV, MP4, MOV, WebM, Markdown, TXT</p>
+                </div>
+                <div v-else class="flex items-center justify-center gap-3">
+                  <UIcon :name="typeIconMap[detectedType ?? ''] ?? 'i-lucide-file'" class="size-6 text-primary" />
+                  <div class="text-left">
+                    <p class="text-sm font-medium text-highlighted">{{ ingestFile.name }}</p>
+                    <p class="text-xs text-muted">{{ (ingestFile.size / 1024).toFixed(1) }} KB</p>
+                  </div>
+                  <UButton icon="i-lucide-x" variant="ghost" size="xs" @click.stop="clearFile" />
+                </div>
               </div>
-            </div>
 
-            <!-- Mode: Research -->
-            <div v-if="activeInputMode === 'research'" class="space-y-3">
-              <UInput
-                v-model="ingestUrl"
-                placeholder="Enter a topic or URL to research... e.g., 'Alex Hormozi business model'"
-                icon="i-lucide-search"
-                size="xl"
-                class="w-full"
-                :ui="{ base: 'text-base' }"
-                @keydown.enter.prevent="canIngest && handleIngest()"
-              />
-              <p class="text-xs text-muted">ArkaOS will fetch the page, extract the content, and index it into your knowledge base.</p>
-            </div>
+              <!-- Mode: Text / Paste -->
+              <div v-if="activeInputMode === 'text'" class="space-y-3">
+                <textarea
+                  v-model="pasteText"
+                  rows="6"
+                  placeholder="Paste or write text content here... Notes, excerpts, research findings, transcripts..."
+                  class="w-full rounded-lg border border-default bg-transparent px-4 py-3 text-sm text-highlighted placeholder:text-muted/50 focus:border-primary focus:outline-none resize-y"
+                />
+                <UInput
+                  v-model="pasteTitle"
+                  placeholder="Title (optional) — e.g., 'Meeting Notes Q3', 'Research: Growth Hacking'"
+                  icon="i-lucide-type"
+                  size="sm"
+                  class="w-full"
+                />
+              </div>
 
-            <!-- Action Row -->
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex items-center gap-2">
-                <template v-if="detectedType">
-                  <UIcon :name="typeIconMap[detectedType] ?? 'i-lucide-file'" class="size-4 text-primary" />
-                  <UBadge
-                    :label="detectedType.charAt(0).toUpperCase() + detectedType.slice(1)"
-                    :color="typeColorMap[detectedType] ?? 'neutral'"
-                    variant="subtle"
-                    size="sm"
+              <!-- Mode: Bulk URLs (PR56 v2.73.0) -->
+              <div v-if="activeInputMode === 'bulk'" class="space-y-3">
+                <UTextarea
+                  v-model="bulkUrls"
+                  placeholder="Paste one URL per line. Up to 50 sources per batch.&#10;&#10;https://www.youtube.com/watch?v=...&#10;https://example.com/article&#10;https://example.com/paper.pdf"
+                  :rows="8"
+                  size="lg"
+                  class="w-full font-mono text-sm"
+                />
+                <div class="flex items-center justify-between text-xs text-muted">
+                  <span>{{ bulkUrlCount }} source{{ bulkUrlCount === 1 ? '' : 's' }} detected</span>
+                  <span v-if="bulkUrlCount > 50" class="text-red-400">
+                    Over the 50-source cap — extras will be rejected.
+                  </span>
+                </div>
+              </div>
+
+              <!-- Mode: Research -->
+              <div v-if="activeInputMode === 'research'" class="space-y-3">
+                <UInput
+                  v-model="ingestUrl"
+                  placeholder="Enter a topic or URL to research... e.g., 'Alex Hormozi business model'"
+                  icon="i-lucide-search"
+                  size="xl"
+                  class="w-full"
+                  :ui="{ base: 'text-base' }"
+                  @keydown.enter.prevent="canIngest && handleIngest()"
+                />
+                <p class="text-xs text-muted">ArkaOS will fetch the page, extract the content, and index it into your knowledge base.</p>
+              </div>
+
+              <!-- Mode: Record (capture played audio -> Whisper -> KB) -->
+              <div v-if="activeInputMode === 'record'" class="space-y-3">
+                <UInput
+                  v-model="recordTitle"
+                  placeholder="Title for this recording (e.g. Course — Module 3)"
+                  icon="i-lucide-mic"
+                  size="lg"
+                  class="w-full"
+                  :disabled="isRecording"
+                />
+                <USelect
+                  v-model="recordSource"
+                  :items="recordSourceItems"
+                  :disabled="isRecording"
+                  class="w-full"
+                />
+                <USelect
+                  v-if="recordSource === 'device'"
+                  v-model="selectedDeviceId"
+                  :items="recordDevices"
+                  :disabled="isRecording"
+                  placeholder="Pick an audio input device"
+                  class="w-full"
+                />
+                <div class="flex items-center gap-3">
+                  <UButton
+                    v-if="!isRecording"
+                    label="Start recording"
+                    icon="i-lucide-circle"
+                    color="primary"
+                    size="md"
+                    :disabled="!canStartRecording"
+                    @click="startRecording"
                   />
-                </template>
-                <span v-else-if="activeInputMode === 'text' && pasteText" class="text-xs text-muted">
-                  {{ pasteText.split(/\s+/).length }} words
-                </span>
+                  <UButton
+                    v-else
+                    label="Stop & transcribe"
+                    icon="i-lucide-square"
+                    color="error"
+                    size="md"
+                    @click="stopRecording"
+                  />
+                  <div v-if="isRecording" class="flex items-center gap-2">
+                    <span class="relative flex size-2.5">
+                      <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                      <span class="relative inline-flex size-2.5 rounded-full bg-red-500" />
+                    </span>
+                    <span class="text-sm font-mono text-highlighted" aria-live="polite">{{ recordElapsedLabel }}</span>
+                  </div>
+                </div>
+                <p class="text-xs text-muted">
+                  Records the audio your computer plays while you watch content you have access to.
+                  For DRM-protected video, tab audio may be silent — install a virtual audio device
+                  (BlackHole on macOS, VB-Cable on Windows) and pick it under 'Audio input device'.
+                  We never access the protected video stream — only the audio output.
+                </p>
               </div>
 
-              <UButton
-                :label="
-                  activeInputMode === 'research' ? 'Research & Index'
-                  : activeInputMode === 'bulk' ? `Ingest ${bulkUrlCount} source${bulkUrlCount === 1 ? '' : 's'}`
-                  : 'Ingest'
-                "
-                icon="i-lucide-zap"
-                size="md"
-                :disabled="!canIngest && !(activeInputMode === 'text' && pasteText.length > 50)"
-                :loading="false"
-                @click="handleIngest"
-              />
+              <!-- Action Row -->
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                  <template v-if="detectedType">
+                    <UIcon :name="typeIconMap[detectedType] ?? 'i-lucide-file'" class="size-4 text-primary" />
+                    <UBadge
+                      :label="detectedType.charAt(0).toUpperCase() + detectedType.slice(1)"
+                      :color="typeColorMap[detectedType] ?? 'neutral'"
+                      variant="subtle"
+                      size="sm"
+                    />
+                  </template>
+                  <span v-else-if="activeInputMode === 'text' && pasteText" class="text-xs text-muted">
+                    {{ pasteText.split(/\s+/).length }} words
+                  </span>
+                </div>
+
+                <UButton
+                  v-if="activeInputMode !== 'record'"
+                  :label="
+                    activeInputMode === 'research' ? 'Research & Index'
+                    : activeInputMode === 'bulk' ? `Ingest ${bulkUrlCount} source${bulkUrlCount === 1 ? '' : 's'}`
+                    : 'Ingest'
+                  "
+                  icon="i-lucide-zap"
+                  size="md"
+                  :disabled="!canIngest && !(activeInputMode === 'text' && pasteText.length > 50)"
+                  :loading="false"
+                  @click="handleIngest"
+                />
+              </div>
+
+              <!-- Error -->
+              <div v-if="ingestError" class="rounded-md border border-red-500/20 bg-red-500/5 p-3" role="alert">
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-lucide-alert-circle" class="size-4 text-red-500" />
+                  <p class="text-sm text-red-400">{{ ingestError }}</p>
+                </div>
+              </div>
+            </fieldset>
+          </UCard>
+
+          <!-- Active Ingestion Progress -->
+          <div v-if="activeTask" class="mt-4 rounded-lg border border-default p-6">
+            <div class="flex items-center justify-between gap-4 mb-4">
+              <div class="flex items-center gap-2 min-w-0">
+                <UIcon
+                  v-if="activeTask.status === 'queued' || activeTask.status === 'processing'"
+                  name="i-lucide-loader-2"
+                  class="size-5 shrink-0 animate-spin text-primary"
+                />
+                <UIcon
+                  v-else-if="activeTask.status === 'completed'"
+                  name="i-lucide-check-circle"
+                  class="size-5 shrink-0 text-green-500"
+                />
+                <UIcon
+                  v-else-if="activeTask.status === 'failed'"
+                  name="i-lucide-x-circle"
+                  class="size-5 shrink-0 text-red-500"
+                />
+                <span class="text-sm font-medium text-highlighted truncate">{{ activeTask.title }}</span>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <UBadge
+                  v-if="activeTask.source_type"
+                  :label="activeTask.source_type.charAt(0).toUpperCase() + activeTask.source_type.slice(1)"
+                  :color="typeColorMap[activeTask.source_type] ?? 'neutral'"
+                  variant="subtle"
+                  size="sm"
+                />
+                <UBadge
+                  :label="activeTask.status"
+                  :color="activeTask.status === 'completed' ? 'success' : activeTask.status === 'failed' ? 'error' : 'primary'"
+                  variant="subtle"
+                  size="sm"
+                  class="capitalize"
+                />
+              </div>
             </div>
 
-            <!-- Error -->
-            <div v-if="ingestError" class="rounded-md border border-red-500/20 bg-red-500/5 p-3" role="alert">
+            <!-- Progress Bar -->
+            <div v-if="activeTask.status !== 'failed'" class="space-y-2">
+              <UProgress :value="activeTask.progress_percent" :max="100" size="sm" />
+              <div class="flex items-center justify-between">
+                <p class="text-xs text-muted">{{ activeTask.progress_message }}</p>
+                <span class="text-xs font-mono text-muted">{{ activeTask.progress_percent }}%</span>
+              </div>
+            </div>
+
+            <!-- Completed -->
+            <div v-if="activeTask.status === 'completed'" class="mt-3 rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-check" class="size-4 text-green-600" />
+                <p class="text-sm text-green-700 dark:text-green-300">
+                  Ingestion complete.
+                  <span v-if="activeTask.output_data?.chunks_created">
+                    {{ activeTask.output_data.chunks_created }} chunks created.
+                  </span>
+                </p>
+              </div>
+              <div class="mt-2">
+                <UButton label="Dismiss" variant="ghost" size="xs" @click="dismissActiveTask" />
+              </div>
+            </div>
+
+            <!-- Failed -->
+            <div v-if="activeTask.status === 'failed'" class="mt-3 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950" role="alert">
               <div class="flex items-center gap-2">
                 <UIcon name="i-lucide-alert-circle" class="size-4 text-red-500" />
-                <p class="text-sm text-red-400">{{ ingestError }}</p>
+                <p class="text-sm text-red-700 dark:text-red-300">
+                  {{ activeTask.error || 'Ingestion failed.' }}
+                </p>
+              </div>
+              <div class="mt-2 flex gap-2">
+                <UButton label="Retry" variant="outline" size="xs" icon="i-lucide-refresh-cw" @click="retryIngest" />
+                <UButton label="Dismiss" variant="ghost" size="xs" @click="dismissActiveTask" />
               </div>
             </div>
-          </fieldset>
-        </UCard>
-
-        <!-- Active Ingestion Progress -->
-        <div v-if="activeTask" class="mt-4 rounded-lg border border-default p-6">
-          <div class="flex items-center justify-between gap-4 mb-4">
-            <div class="flex items-center gap-2 min-w-0">
-              <UIcon
-                v-if="activeTask.status === 'queued' || activeTask.status === 'processing'"
-                name="i-lucide-loader-2"
-                class="size-5 shrink-0 animate-spin text-primary"
-              />
-              <UIcon
-                v-else-if="activeTask.status === 'completed'"
-                name="i-lucide-check-circle"
-                class="size-5 shrink-0 text-green-500"
-              />
-              <UIcon
-                v-else-if="activeTask.status === 'failed'"
-                name="i-lucide-x-circle"
-                class="size-5 shrink-0 text-red-500"
-              />
-              <span class="text-sm font-medium text-highlighted truncate">{{ activeTask.title }}</span>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <UBadge
-                v-if="activeTask.source_type"
-                :label="activeTask.source_type.charAt(0).toUpperCase() + activeTask.source_type.slice(1)"
-                :color="typeColorMap[activeTask.source_type] ?? 'neutral'"
-                variant="subtle"
-                size="sm"
-              />
-              <UBadge
-                :label="activeTask.status"
-                :color="activeTask.status === 'completed' ? 'success' : activeTask.status === 'failed' ? 'error' : 'primary'"
-                variant="subtle"
-                size="sm"
-                class="capitalize"
-              />
-            </div>
           </div>
 
-          <!-- Progress Bar -->
-          <div v-if="activeTask.status !== 'failed'" class="space-y-2">
-            <UProgress :value="activeTask.progress_percent" :max="100" size="sm" />
-            <div class="flex items-center justify-between">
-              <p class="text-xs text-muted">{{ activeTask.progress_message }}</p>
-              <span class="text-xs font-mono text-muted">{{ activeTask.progress_percent }}%</span>
+          <!-- Jobs Queue Table -->
+          <div v-if="jobs.length" class="mt-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-muted uppercase tracking-wider">Job Queue</h3>
+              <div class="flex items-center gap-3 text-xs text-muted">
+                <span v-if="jobsSummary.active">{{ jobsSummary.active }} active</span>
+                <span>{{ jobsSummary.completed ?? 0 }} completed</span>
+                <span v-if="jobsSummary.total_chunks">{{ jobsSummary.total_chunks }} total chunks</span>
+              </div>
             </div>
-          </div>
 
-          <!-- Completed -->
-          <div v-if="activeTask.status === 'completed'" class="mt-3 rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-check" class="size-4 text-green-600" />
-              <p class="text-sm text-green-700 dark:text-green-300">
-                Ingestion complete.
-                <span v-if="activeTask.output_data?.chunks_created">
-                  {{ activeTask.output_data.chunks_created }} chunks created.
-                </span>
-              </p>
-            </div>
-            <div class="mt-2">
-              <UButton label="Dismiss" variant="ghost" size="xs" @click="dismissActiveTask" />
-            </div>
-          </div>
-
-          <!-- Failed -->
-          <div v-if="activeTask.status === 'failed'" class="mt-3 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950" role="alert">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-alert-circle" class="size-4 text-red-500" />
-              <p class="text-sm text-red-700 dark:text-red-300">
-                {{ activeTask.error || 'Ingestion failed.' }}
-              </p>
-            </div>
-            <div class="mt-2 flex gap-2">
-              <UButton label="Retry" variant="outline" size="xs" icon="i-lucide-refresh-cw" @click="retryIngest" />
-              <UButton label="Dismiss" variant="ghost" size="xs" @click="dismissActiveTask" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Jobs Queue Table -->
-        <div v-if="jobs.length" class="mt-4">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-muted uppercase tracking-wider">Job Queue</h3>
-            <div class="flex items-center gap-3 text-xs text-muted">
-              <span v-if="jobsSummary.active">{{ jobsSummary.active }} active</span>
-              <span>{{ jobsSummary.completed ?? 0 }} completed</span>
-              <span v-if="jobsSummary.total_chunks">{{ jobsSummary.total_chunks }} total chunks</span>
-            </div>
-          </div>
-
-          <div class="rounded-lg border border-default overflow-hidden">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-default bg-elevated/30">
-                  <th class="text-left py-2.5 px-4 text-xs font-semibold text-muted">Source</th>
-                  <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-20">Type</th>
-                  <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-40">Status</th>
-                  <th class="text-right py-2.5 px-3 text-xs font-semibold text-muted w-20">Chunks</th>
-                  <th class="text-right py-2.5 px-4 text-xs font-semibold text-muted w-32">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="job in jobs"
-                  :key="job.id"
-                  class="border-b border-default last:border-b-0 hover:bg-elevated/20 transition-colors"
-                >
-                  <td class="py-2.5 px-4">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <UIcon :name="typeIconMap[job.type] ?? 'i-lucide-file'" class="size-4 shrink-0 text-muted" />
-                      <span class="truncate text-highlighted">{{ job.title }}</span>
-                    </div>
-                  </td>
-                  <td class="py-2.5 px-3">
-                    <UBadge
-                      v-if="job.type"
-                      :label="job.type"
-                      :color="typeColorMap[job.type] ?? 'neutral'"
-                      variant="subtle"
-                      size="xs"
-                    />
-                  </td>
-                  <td class="py-2.5 px-3">
-                    <div class="flex items-center gap-2">
-                      <UIcon
-                        v-if="['queued','processing','downloading','transcribing','embedding'].includes(job.status)"
-                        name="i-lucide-loader-2"
-                        class="size-3.5 animate-spin text-primary shrink-0"
-                      />
-                      <UIcon v-else-if="job.status === 'completed'" name="i-lucide-check-circle" class="size-3.5 text-green-500 shrink-0" />
-                      <UIcon v-else-if="job.status === 'failed'" name="i-lucide-x-circle" class="size-3.5 text-red-500 shrink-0" />
-                      <div class="flex-1 min-w-0">
-                        <div v-if="['processing','downloading','transcribing','embedding'].includes(job.status)" class="space-y-1">
-                          <div class="h-1.5 rounded-full bg-muted/20 overflow-hidden">
-                            <div class="h-1.5 rounded-full bg-primary transition-all" :style="{ width: `${job.progress}%` }" />
-                          </div>
-                          <p class="text-[10px] text-muted truncate">{{ job.message }}</p>
-                        </div>
-                        <span v-else class="text-xs" :class="job.status === 'completed' ? 'text-green-400' : job.status === 'failed' ? 'text-red-400' : 'text-muted'">
-                          {{ job.status }}
-                        </span>
+            <div class="rounded-lg border border-default overflow-hidden">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-default bg-elevated/30">
+                    <th class="text-left py-2.5 px-4 text-xs font-semibold text-muted">Source</th>
+                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-20">Type</th>
+                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-40">Status</th>
+                    <th class="text-right py-2.5 px-3 text-xs font-semibold text-muted w-20">Chunks</th>
+                    <th class="text-right py-2.5 px-4 text-xs font-semibold text-muted w-32">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="job in jobs"
+                    :key="job.id"
+                    class="border-b border-default last:border-b-0 hover:bg-elevated/20 transition-colors"
+                  >
+                    <td class="py-2.5 px-4">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <UIcon :name="typeIconMap[job.type] ?? 'i-lucide-file'" class="size-4 shrink-0 text-muted" />
+                        <span class="truncate text-highlighted">{{ job.title }}</span>
                       </div>
-                    </div>
-                  </td>
-                  <td class="py-2.5 px-3 text-right">
-                    <span v-if="job.chunks_created" class="text-xs font-mono">{{ job.chunks_created }}</span>
-                    <span v-else class="text-xs text-muted">—</span>
-                  </td>
-                  <td class="py-2.5 px-4 text-right text-xs text-muted">
-                    {{ formatDate(job.completed_at || job.created_at) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Stats Section -->
-        <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <div class="rounded-lg border border-default p-4 text-center">
-            <p class="text-2xl font-semibold text-highlighted">{{ stats?.total_chunks ?? 0 }}</p>
-            <p class="text-xs text-muted">Total Chunks</p>
-          </div>
-          <div class="rounded-lg border border-default p-4 text-center">
-            <p class="text-2xl font-semibold text-highlighted">{{ stats?.total_files ?? 0 }}</p>
-            <p class="text-xs text-muted">Total Files</p>
-          </div>
-          <div class="rounded-lg border border-default p-4 text-center">
-            <UBadge
-              :label="vectorSearchActive ? 'Active' : 'Unavailable'"
-              :color="vectorSearchActive ? 'success' : 'warning'"
-              variant="subtle"
-              size="sm"
-            />
-            <p class="text-xs text-muted mt-1">Vector Search</p>
-            <p
-              v-if="!vectorSearchActive && stats?.vec_unavailable_reason"
-              class="text-xs text-yellow-400 mt-2 text-left"
-              :title="stats.vec_unavailable_reason"
-            >
-              {{ stats.vec_unavailable_reason }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Not Indexed State -->
-        <div v-if="!isIndexed" class="mt-8">
-          <div class="rounded-lg border-2 border-dashed border-default p-8 text-center">
-            <UIcon name="i-lucide-database" class="size-16 text-muted mx-auto" />
-            <h3 class="mt-4 text-lg font-semibold text-highlighted">Knowledge base not indexed yet</h3>
-            <p class="mt-2 text-sm text-muted max-w-lg mx-auto">
-              Index your Obsidian vault to enable semantic search across your entire knowledge base.
-            </p>
-            <div class="mt-6 inline-block rounded-lg border border-default bg-elevated/50 px-6 py-4 text-left">
-              <p class="text-xs text-muted mb-2">Run this command to index:</p>
-              <code class="font-mono text-sm text-primary">npx arkaos index</code>
+                    </td>
+                    <td class="py-2.5 px-3">
+                      <UBadge
+                        v-if="job.type"
+                        :label="job.type"
+                        :color="typeColorMap[job.type] ?? 'neutral'"
+                        variant="subtle"
+                        size="xs"
+                      />
+                    </td>
+                    <td class="py-2.5 px-3">
+                      <div class="flex items-center gap-2">
+                        <UIcon
+                          v-if="['queued','processing','downloading','transcribing','embedding'].includes(job.status)"
+                          name="i-lucide-loader-2"
+                          class="size-3.5 animate-spin text-primary shrink-0"
+                        />
+                        <UIcon v-else-if="job.status === 'completed'" name="i-lucide-check-circle" class="size-3.5 text-green-500 shrink-0" />
+                        <UIcon v-else-if="job.status === 'failed'" name="i-lucide-x-circle" class="size-3.5 text-red-500 shrink-0" />
+                        <div class="flex-1 min-w-0">
+                          <div v-if="['processing','downloading','transcribing','embedding'].includes(job.status)" class="space-y-1">
+                            <div class="h-1.5 rounded-full bg-muted/20 overflow-hidden">
+                              <div class="h-1.5 rounded-full bg-primary transition-all" :style="{ width: `${job.progress}%` }" />
+                            </div>
+                            <p class="text-[10px] text-muted truncate">{{ job.message }}</p>
+                          </div>
+                          <span v-else class="text-xs" :class="job.status === 'completed' ? 'text-green-400' : job.status === 'failed' ? 'text-red-400' : 'text-muted'">
+                            {{ job.status }}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="py-2.5 px-3 text-right">
+                      <span v-if="job.chunks_created" class="text-xs font-mono">{{ job.chunks_created }}</span>
+                      <span v-else class="text-xs text-muted">—</span>
+                    </td>
+                    <td class="py-2.5 px-4 text-right text-xs text-muted">
+                      {{ formatDate(job.completed_at || job.created_at) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <p class="mt-4 text-xs text-muted max-w-md mx-auto">
-              This indexes your markdown files into a local vector database for automatic context retrieval.
-              The process runs locally and your data never leaves your machine.
-            </p>
           </div>
-        </div>
 
-        <!-- Indexed State -->
-        <template v-else>
-          <!-- Knowledge Areas -->
-          <div v-if="stats?.areas?.length" class="mt-6">
-            <h3 class="mb-4 text-lg font-semibold text-highlighted">Knowledge Areas</h3>
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div
-                v-for="area in stats.areas"
-                :key="area.name"
-                class="rounded-lg border border-default p-4"
+          <!-- Stats Section -->
+          <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div class="rounded-lg border border-default p-4 text-center">
+              <p class="text-2xl font-semibold text-highlighted">{{ stats?.total_chunks ?? 0 }}</p>
+              <p class="text-xs text-muted">Total Chunks</p>
+            </div>
+            <div class="rounded-lg border border-default p-4 text-center">
+              <p class="text-2xl font-semibold text-highlighted">{{ stats?.total_files ?? 0 }}</p>
+              <p class="text-xs text-muted">Total Files</p>
+            </div>
+            <div class="rounded-lg border border-default p-4 text-center">
+              <UBadge
+                :label="vectorSearchActive ? 'Active' : 'Unavailable'"
+                :color="vectorSearchActive ? 'success' : 'warning'"
+                variant="subtle"
+                size="sm"
+              />
+              <p class="text-xs text-muted mt-1">Vector Search</p>
+              <p
+                v-if="!vectorSearchActive && stats?.vec_unavailable_reason"
+                class="text-xs text-yellow-400 mt-2 text-left"
+                :title="stats.vec_unavailable_reason"
               >
-                <h4 class="font-medium text-highlighted">{{ area.name }}</h4>
-                <div class="mt-2 flex gap-4 text-xs text-muted">
-                  <span>{{ area.chunks }} chunks</span>
-                  <span>{{ area.files }} files</span>
-                </div>
-              </div>
+                {{ stats.vec_unavailable_reason }}
+              </p>
             </div>
           </div>
 
-          <!-- Search -->
-          <div class="mt-6 rounded-lg border border-default p-6">
-            <h3 class="mb-4 text-lg font-semibold text-highlighted">Search Knowledge</h3>
-            <form class="flex gap-2" @submit.prevent="handleSearch">
-              <UInput
-                v-model="searchQuery"
-                class="flex-1"
-                icon="i-lucide-search"
-                placeholder="Search the knowledge base..."
-                aria-label="Search knowledge base"
-              />
-              <UButton
-                type="submit"
-                label="Search"
-                :loading="searching"
-                icon="i-lucide-search"
-              />
-            </form>
-
-            <!-- Search Results -->
-            <div v-if="searching" class="mt-4 flex items-center justify-center py-8">
-              <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-muted" />
+          <!-- Not Indexed State -->
+          <div v-if="!isIndexed" class="mt-8">
+            <div class="rounded-lg border-2 border-dashed border-default p-8 text-center">
+              <UIcon name="i-lucide-database" class="size-16 text-muted mx-auto" />
+              <h3 class="mt-4 text-lg font-semibold text-highlighted">Knowledge base not indexed yet</h3>
+              <p class="mt-2 text-sm text-muted max-w-lg mx-auto">
+                Index your Obsidian vault to enable semantic search across your entire knowledge base.
+              </p>
+              <div class="mt-6 inline-block rounded-lg border border-default bg-elevated/50 px-6 py-4 text-left">
+                <p class="text-xs text-muted mb-2">Run this command to index:</p>
+                <code class="font-mono text-sm text-primary">npx arkaos index</code>
+              </div>
+              <p class="mt-4 text-xs text-muted max-w-md mx-auto">
+                This indexes your markdown files into a local vector database for automatic context retrieval.
+                The process runs locally and your data never leaves your machine.
+              </p>
             </div>
+          </div>
 
-            <template v-else-if="hasSearched">
-              <div v-if="searchResults.length" class="mt-4 space-y-3">
-                <p class="text-xs text-muted">{{ searchTotal }} result{{ searchTotal !== 1 ? 's' : '' }} found</p>
+          <!-- Indexed State -->
+          <template v-else>
+            <!-- Knowledge Areas -->
+            <div v-if="stats?.areas?.length" class="mt-6">
+              <h3 class="mb-4 text-lg font-semibold text-highlighted">Knowledge Areas</h3>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div
-                  v-for="(result, idx) in searchResults"
-                  :key="result.id ?? idx"
+                  v-for="area in stats.areas"
+                  :key="area.name"
                   class="rounded-lg border border-default p-4"
                 >
-                  <div class="mb-2 flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <UBadge v-if="result.area" :label="result.area" variant="subtle" size="sm" />
-                      <span v-if="result.heading" class="text-sm font-medium text-highlighted truncate">
-                        {{ result.heading }}
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                      <span class="text-xs text-muted whitespace-nowrap">
-                        Score: {{ formatScore(result.score) }}
-                      </span>
-                      <UButton
-                        v-if="result.source"
-                        :icon="deletingSource === result.source
-                          ? 'i-lucide-loader-2'
-                          : 'i-lucide-trash-2'"
-                        :loading="deletingSource === result.source"
-                        variant="ghost"
-                        color="error"
-                        size="xs"
-                        aria-label="Delete all chunks from this source"
-                        @click.stop="askDeleteSource(result.source)"
-                      />
-                    </div>
+                  <h4 class="font-medium text-highlighted">{{ area.name }}</h4>
+                  <div class="mt-2 flex gap-4 text-xs text-muted">
+                    <span>{{ area.chunks }} chunks</span>
+                    <span>{{ area.files }} files</span>
                   </div>
-                  <p v-if="result.source" class="text-xs text-muted mb-1 truncate">
-                    <UIcon name="i-lucide-file-text" class="size-3 inline-block mr-1" />
-                    {{ result.source }}
-                  </p>
-                  <!-- PR71 v2.88.0 — highlight query matches in the preview -->
-                  <p class="text-sm text-muted line-clamp-3" v-html="highlightMatches(result.text || result.content, searchQuery)" />
                 </div>
               </div>
+            </div>
 
-              <div v-else class="mt-4 text-center text-sm text-muted py-6">
-                <UIcon name="i-lucide-search-x" class="size-8 text-muted mx-auto mb-2" />
-                <p>No results found for "{{ searchQuery }}".</p>
+            <!-- Search -->
+            <div class="mt-6 rounded-lg border border-default p-6">
+              <h3 class="mb-4 text-lg font-semibold text-highlighted">Search Knowledge</h3>
+              <form class="flex gap-2" @submit.prevent="handleSearch">
+                <UInput
+                  v-model="searchQuery"
+                  class="flex-1"
+                  icon="i-lucide-search"
+                  placeholder="Search the knowledge base..."
+                  aria-label="Search knowledge base"
+                />
+                <UButton
+                  type="submit"
+                  label="Search"
+                  :loading="searching"
+                  icon="i-lucide-search"
+                />
+              </form>
+
+              <!-- Search Results -->
+              <div v-if="searching" class="mt-4 flex items-center justify-center py-8">
+                <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-muted" />
               </div>
-            </template>
-          </div>
 
-          <!-- PR88c v3.25.0 — Indexed sources management -->
-          <div class="mt-6">
-            <KnowledgeSourcesList />
-          </div>
-        </template>
+              <template v-else-if="hasSearched">
+                <div v-if="searchResults.length" class="mt-4 space-y-3">
+                  <p class="text-xs text-muted">{{ searchTotal }} result{{ searchTotal !== 1 ? 's' : '' }} found</p>
+                  <div
+                    v-for="(result, idx) in searchResults"
+                    :key="result.id ?? idx"
+                    class="rounded-lg border border-default p-4"
+                  >
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <UBadge v-if="result.area" :label="result.area" variant="subtle" size="sm" />
+                        <span v-if="result.heading" class="text-sm font-medium text-highlighted truncate">
+                          {{ result.heading }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-xs text-muted whitespace-nowrap">
+                          Score: {{ formatScore(result.score) }}
+                        </span>
+                        <UButton
+                          v-if="result.source"
+                          :icon="deletingSource === result.source
+                            ? 'i-lucide-loader-2'
+                            : 'i-lucide-trash-2'"
+                          :loading="deletingSource === result.source"
+                          variant="ghost"
+                          color="error"
+                          size="xs"
+                          aria-label="Delete all chunks from this source"
+                          @click.stop="askDeleteSource(result.source)"
+                        />
+                      </div>
+                    </div>
+                    <p v-if="result.source" class="text-xs text-muted mb-1 truncate">
+                      <UIcon name="i-lucide-file-text" class="size-3 inline-block mr-1" />
+                      {{ result.source }}
+                    </p>
+                    <!-- PR71 v2.88.0 — highlight query matches in the preview -->
+                    <p class="text-sm text-muted line-clamp-3" v-html="highlightMatches(result.text || result.content, searchQuery)" />
+                  </div>
+                </div>
+
+                <div v-else class="mt-4 text-center text-sm text-muted py-6">
+                  <UIcon name="i-lucide-search-x" class="size-8 text-muted mx-auto mb-2" />
+                  <p>No results found for "{{ searchQuery }}".</p>
+                </div>
+              </template>
+            </div>
+
+            <!-- PR88c v3.25.0 — Indexed sources management -->
+            <div class="mt-6">
+              <KnowledgeSourcesList />
+            </div>
+          </template>
+        </div>
       </template>
     </template>
   </UDashboardPanel>
