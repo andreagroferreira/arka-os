@@ -102,7 +102,7 @@ const typeColorMap: Record<string, 'error' | 'primary' | 'warning' | 'success' |
         <div>
           <h3 class="text-lg font-bold">Indexed sources</h3>
           <p class="text-xs text-muted mt-0.5">
-            Every distinct source contributing chunks to the vector store.
+            Click any source to view its transcript, video, and knowledge.
             <span v-if="data?.total">{{ data.total }} total.</span>
           </p>
         </div>

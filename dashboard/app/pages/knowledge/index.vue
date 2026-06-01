@@ -386,6 +386,7 @@ function connectWebSocket() {
           localStorage.removeItem(ACTIVE_TASK_KEY)
           refresh()
           fetchJobs()
+          fetchKnowledgeSources()
         } else if (data.type === 'job_failed' || data.type === 'task_failed') {
           activeTask.value.status = 'failed'
           activeTask.value.error = data.error
@@ -518,6 +519,37 @@ async function fetchJobs() {
 }
 
 fetchJobs()
+
+// --- Job row -> source detail id (make completed job rows clickable) ---
+// The jobs table only carries the `source` string, not the stable
+// `src-<sha1>` detail id. GET /api/knowledge/sources already returns
+// `{id, source, ...}` for every indexed source, keyed on the SAME source
+// string. We fetch it once and build a source->id lookup so a completed job
+// row can link to /knowledge/{id} — the per-source detail page (player +
+// transcript + download).
+const knowledgeSources = ref<{ source: string, id: string }[]>([])
+
+async function fetchKnowledgeSources() {
+  try {
+    const response = await $fetch<{ sources: { source: string, id: string }[] }>(
+      `${apiBase}/api/knowledge/sources`
+    )
+    knowledgeSources.value = response.sources ?? []
+  } catch {}
+}
+
+fetchKnowledgeSources()
+
+const sourceIdBySource = computed(
+  () => new Map(knowledgeSources.value.map(s => [s.source, s.id]))
+)
+
+// A job row opens its detail page only when it has completed AND a matching
+// indexed source exists. Failed/processing/queued jobs have no detail page.
+function jobDetailId(job: { source?: string, status?: string }): string | null {
+  if (job.status !== 'completed' || !job.source) return null
+  return sourceIdBySource.value.get(job.source) ?? null
+}
 
 function formatDate(dateStr: string | undefined) {
   if (!dateStr) return '-'
@@ -1024,12 +1056,25 @@ function escapeRegex(value: string): string {
                   <tr
                     v-for="job in jobs"
                     :key="job.id"
-                    class="border-b border-default last:border-b-0 hover:bg-elevated/20 transition-colors"
+                    class="border-b border-default last:border-b-0 transition-colors"
+                    :class="jobDetailId(job)
+                      ? 'cursor-pointer hover:bg-primary/5'
+                      : 'hover:bg-elevated/20'"
+                    @click="jobDetailId(job) && navigateTo(`/knowledge/${jobDetailId(job)}`)"
                   >
                     <td class="py-2.5 px-4">
                       <div class="flex items-center gap-2 min-w-0">
                         <UIcon :name="typeIconMap[job.type] ?? 'i-lucide-file'" class="size-4 shrink-0 text-muted" />
-                        <span class="truncate text-highlighted">{{ job.title }}</span>
+                        <NuxtLink
+                          v-if="jobDetailId(job)"
+                          :to="`/knowledge/${jobDetailId(job)}`"
+                          class="truncate text-highlighted hover:text-primary hover:underline"
+                          :aria-label="`Open ${job.title} — transcript, video and knowledge`"
+                          @click.stop
+                        >
+                          {{ job.title }}
+                        </NuxtLink>
+                        <span v-else class="truncate text-highlighted">{{ job.title }}</span>
                       </div>
                     </td>
                     <td class="py-2.5 px-3">
@@ -1068,7 +1113,15 @@ function escapeRegex(value: string): string {
                       <span v-else class="text-xs text-muted">—</span>
                     </td>
                     <td class="py-2.5 px-4 text-right text-xs text-muted">
-                      {{ formatDate(job.completed_at || job.created_at) }}
+                      <div class="flex items-center justify-end gap-1.5">
+                        <span>{{ formatDate(job.completed_at || job.created_at) }}</span>
+                        <UIcon
+                          v-if="jobDetailId(job)"
+                          name="i-lucide-chevron-right"
+                          class="size-3.5 text-muted shrink-0"
+                          aria-hidden="true"
+                        />
+                      </div>
                     </td>
                   </tr>
                 </tbody>
