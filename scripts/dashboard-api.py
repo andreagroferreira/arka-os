@@ -67,7 +67,7 @@ async def ws_tasks(websocket: WebSocket):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://localhost:\d+",
+    allow_origin_regex=r"^(http://localhost:\d+|chrome-extension://[a-p0-9]{32})$",
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )

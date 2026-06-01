@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "ArkaOS Course Recorder (PoC)",
+  "version": "0.1.0",
+  "description": "Captures a G4/Vimeo course lesson's audio and sends it to the ArkaOS dashboard for transcription.",
+  "permissions": [
+    "tabCapture",
+    "offscreen",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://plataforma.g4business.com/*",
+    "http://localhost:3334/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://plataforma.g4business.com/*/courses/*/lessons/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "ArkaOS Course Recorder"
+  }
+}

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ArkaOS Course Recorder — Offscreen</title>
+  </head>
+  <body>
+    <!--
+      Offscreen document. Not visible to the user. It exists solely to run
+      getUserMedia (tab capture stream), MediaRecorder, an audible passthrough
+      AudioContext, and the multipart upload — none of which a service worker
+      can do in MV3.
+    -->
+    <script src="offscreen.js"></script>
+  </body>
+</html>
