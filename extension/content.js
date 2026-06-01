@@ -50,14 +50,14 @@
       let playbackStartedPosted = false; // fire PLAYBACK_STARTED exactly once
 
       function post(msg) {
-        window.postMessage(Object.assign({ source: 'arkaos-bridge' }, msg), '*');
+        window.postMessage(Object.assign({ source: 'arkaos-bridge' }, msg), window.location.origin);
       }
 
       function findIframe() {
-        // Prefer a Vimeo iframe; fall back to the first iframe on the page.
-        const vimeo = document.querySelector('iframe[src*="vimeo.com"], iframe[src*="player.vimeo"]');
-        if (vimeo) return vimeo;
-        return document.querySelector('iframe');
+        // Only attach to a genuine Vimeo iframe. No arbitrary fallback: if
+        // there is no Vimeo player, return null and let the caller surface the
+        // "No Vimeo player found" error rather than driving a random iframe.
+        return document.querySelector('iframe[src*="vimeo.com"], iframe[src*="player.vimeo"]');
       }
 
       function loadPlayerJs() {
@@ -155,6 +155,11 @@
       }
 
       window.addEventListener('message', function (ev) {
+        // Only trust messages from THIS window/origin (bridge and content
+        // script share both). Rejects anything forwarded from cross-origin
+        // frames or injected by other windows.
+        if (ev.source !== window) return;
+        if (ev.origin !== window.location.origin) return;
         const d = ev.data;
         if (!d || d.source !== 'arkaos-content') return;
         handle(d, d.requestId);
@@ -177,6 +182,10 @@
 
   // content <- bridge replies / events
   window.addEventListener('message', function (ev) {
+    // Only trust messages from THIS window/origin (bridge and content script
+    // share both). Rejects forged signals posted from cross-origin frames.
+    if (ev.source !== window) return;
+    if (ev.origin !== window.location.origin) return;
     const d = ev.data;
     if (!d || d.source !== 'arkaos-bridge') return;
 
@@ -213,7 +222,7 @@
         reject(new Error('Vimeo bridge timed out for command: ' + type));
       }, timeoutMs || 8000);
       pending.set(requestId, { resolve: resolve, reject: reject, timer: timer });
-      window.postMessage({ source: 'arkaos-content', type: type, requestId: requestId }, '*');
+      window.postMessage({ source: 'arkaos-content', type: type, requestId: requestId }, window.location.origin);
     });
   }
 

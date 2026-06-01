@@ -299,8 +299,21 @@ async function failSession(message) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || !msg.type) return;
 
+  // SECURITY: only ever act on messages originating from our own extension.
+  // External pages/extensions cannot satisfy sender.id === chrome.runtime.id.
+  if (!sender || sender.id !== chrome.runtime.id) {
+    console.warn(TAG, 'rejected message from foreign sender:', sender && sender.id);
+    return;
+  }
+
   // From popup: begin a one-lesson recording on the given (active) tab.
   if (msg.type === 'START_RECORDING') {
+    // Privileged: must come from the popup/extension page (no sender.tab).
+    // A content script (which always carries sender.tab) must NOT start/stop.
+    if (sender.tab) {
+      console.warn(TAG, 'ignoring START_RECORDING from a tab/content script.');
+      return;
+    }
     const tabId = msg.tabId;
     if (typeof tabId !== 'number') {
       sendResponse({ ok: false, error: 'No active tab id provided.' });
@@ -313,8 +326,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return; // synchronous ack; progress flows via STATUS broadcasts
   }
 
-  // From popup: manual stop.
+  // From popup: manual stop. Privileged — reject tab/content-script senders.
   if (msg.type === 'STOP_RECORDING') {
+    if (sender.tab) {
+      console.warn(TAG, 'ignoring STOP_RECORDING from a tab/content script.');
+      return;
+    }
     stopCapture('manual');
     sendResponse({ ok: true });
     return;
@@ -324,6 +341,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // past ~0.5s). This — not the play() promise — confirms the recording has
   // real content, and flips the popup to "Recording (playing)".
   if (msg.type === 'PLAYBACK_STARTED') {
+    // Authoritative signal: accept ONLY from the tab we are actively
+    // recording. No session or a mismatched tab id => forged/stale; ignore.
+    if (!session || !sender.tab || sender.tab.id !== session.tabId) {
+      console.warn(TAG, 'ignoring PLAYBACK_STARTED from non-recording tab:', sender.tab && sender.tab.id);
+      return;
+    }
     if (session && !session.playbackDetected) {
       session.playbackDetected = true;
       console.log(TAG, 'authoritative PLAYBACK_STARTED at', msg.currentTime, 's.');
@@ -338,8 +361,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return;
   }
 
-  // From content script: the lesson finished playing.
+  // From content script: the lesson finished playing. Accept ONLY from the
+  // tab we are actively recording.
   if (msg.type === 'LESSON_ENDED') {
+    if (!session || !sender.tab || sender.tab.id !== session.tabId) {
+      console.warn(TAG, 'ignoring LESSON_ENDED from non-recording tab:', sender.tab && sender.tab.id);
+      return;
+    }
     stopCapture('vimeo-ended');
     // No response needed.
     return;

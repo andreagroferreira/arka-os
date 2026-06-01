@@ -74,7 +74,7 @@ sourceNode.connect(audioContext.destination); // user hears the lesson
 
 ## Permissions (least privilege)
 
-- `permissions`: `tabCapture`, `offscreen`, `scripting`, `activeTab`
+- `permissions`: `tabCapture`, `offscreen`
 - `host_permissions`: `https://plataforma.g4business.com/*`,
   `http://localhost:3334/*`
 

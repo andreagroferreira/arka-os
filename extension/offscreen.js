@@ -203,8 +203,16 @@ function discardCapture() {
 
 // --- Message router (service worker -> offscreen) ---------------------------
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.target !== 'offscreen' || !msg.type) return;
+
+  // SECURITY: only the service worker drives the offscreen document. Accept
+  // ONLY same-extension messages with no sender.tab (a content script would
+  // carry sender.tab; foreign senders fail the runtime.id check).
+  if (!sender || sender.id !== chrome.runtime.id || sender.tab) {
+    console.warn(TAG, 'rejected offscreen message from unexpected sender:', sender && sender.id);
+    return;
+  }
 
   if (msg.type === 'START_CAPTURE') {
     startCapture(msg.streamId, msg.title, msg.uploadUrl)

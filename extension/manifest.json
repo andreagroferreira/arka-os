@@ -5,9 +5,7 @@
   "description": "Captures a G4/Vimeo course lesson's audio and sends it to the ArkaOS dashboard for transcription.",
   "permissions": [
     "tabCapture",
-    "offscreen",
-    "scripting",
-    "activeTab"
+    "offscreen"
   ],
   "host_permissions": [
     "https://plataforma.g4business.com/*",
