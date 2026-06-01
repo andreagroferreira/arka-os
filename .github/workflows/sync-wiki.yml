@@ -1,0 +1,72 @@
+name: Sync Wiki
+
+# The in-repo wiki/ directory is the single source of truth. This workflow
+# transforms it into flat GitHub Wiki pages (via scripts/tools/sync_wiki.py)
+# and pushes the result to the <repo>.wiki Git remote on every change to
+# wiki/. Editors only ever touch wiki/ in the main repo — the native wiki
+# updates itself, so the two surfaces cannot drift.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'wiki/**'
+      - 'scripts/tools/sync_wiki.py'
+      - '.github/workflows/sync-wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build flat wiki pages
+        env:
+          SERVER: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          python scripts/tools/sync_wiki.py \
+            --src wiki \
+            --out "${RUNNER_TEMP}/wiki-out" \
+            --repo "${SERVER}/${REPO}" \
+            --branch "${BRANCH}"
+
+      - name: Push to GitHub Wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.wiki.git" wiki-repo
+          # Delete only generated content pages; preserve hand-maintained
+          # underscore chrome (_Footer.md, etc.). _Sidebar.md is regenerated
+          # from source below, so overwriting it keeps it in sync.
+          find wiki-repo -maxdepth 1 -name '*.md' ! -name '_Footer.md' ! -name '_Header.md' -delete
+          cp "${RUNNER_TEMP}/wiki-out/"*.md wiki-repo/
+          cd wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No wiki changes to publish."
+          else
+            git commit -m "docs: sync wiki from ${GITHUB_SHA::7}"
+            git push
+          fi
+          # Defense in depth: strip the token from the clone's remote config.
+          git remote set-url origin "https://github.com/${REPO}.wiki.git"
