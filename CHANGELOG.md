@@ -5,6 +5,43 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-06-01
+
+### Added — Knowledge Video Pipeline
+
+- **Video ingest**: links and uploads now store the full media (yt-dlp keeps
+  video, not just audio) with live WebSocket progress.
+- **Per-source detail page** (`/knowledge/{id}`): polymorphic view with a
+  player (YouTube embed / native video+audio / download), the full transcript
+  (copy), the KB chunks the source produced, and agent attribution.
+- **Record tab**: capture the audio output of paid/DRM-protected content you
+  are authorized to access (analog-hole, via `getDisplayMedia`/virtual audio
+  device) → Whisper → KB. Never touches the encrypted stream.
+- **Legacy transcript reconstruction**: sources ingested before the source
+  registry now expose a transcript rebuilt from their chunks in ingest order,
+  with overlap-seam de-duplication.
+- **Agent attribution** (propose-only): semantic match of a source's knowledge
+  against each agent's expertise → suggested agents + a review-only markdown
+  proposal. Never edits agent YAMLs. Markdown rendering HTML-escapes untrusted
+  source titles (stored-XSS fix).
+- **Clickable Job Queue rows** open the source page; the sources list links
+  every row by stable id.
+- Cognition page: fixed a Reka UI empty-value `SelectItem` crash.
+
+### Added — ArkaOS Course Recorder (Chrome extension, PoC)
+
+- MV3 extension (`extension/`) to capture a Vimeo-hosted course lesson's audio
+  via `chrome.tabCapture` and feed the existing Whisper→KB pipeline. Detects
+  lesson end via the official Vimeo Player API (`on('ended')`). Security-
+  hardened (postMessage origin + runtime sender validation, least-privilege
+  permissions). No DRM bypass — captures rendered audio output only.
+
+### Added — Organization
+
+- Backend sub-squads (Backend Core / Data Platform / AI Engineering) and a
+  high-performance org redesign with 8 new agents, mission squads, and
+  transversal squads.
+
 ## [3.78.0] - 2026-05-30
 
 ### Added — Frontend UI/UX Squad: Tooling + KB-first Enrichment
