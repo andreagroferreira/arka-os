@@ -1,0 +1,39 @@
+id: transversal-people-org
+name: People & Org
+description: >
+  Transversal enabling squad that owns organisational health: leadership,
+  culture, talent density, org design and goal alignment — available to every
+  department. Grounded in [[Team Topologies]], [[2026-05-30 G4 Pass - A Neurociencia da Confianca]],
+  [[Empowered - Marty Cagan]] and [[2026-05-30 G4 Pass - Avalie o que Importa (OKRs Doerr)]].
+department: cross-department
+squad_type: enabling
+topology: enabling
+max_size: 10
+quality_gate_required: false
+
+members:
+  - agent_id: leadership-director-rodrigo
+    role: Lead — leadership, empowered teams, coaching
+    is_lead: true
+    borrowed: true
+    source_department: leadership
+  - agent_id: culture-coach-paula
+    role: Culture, trust (oxytocin), Radical Candor
+    borrowed: true
+    source_department: leadership
+  - agent_id: hr-specialist-diana-r
+    role: Talent density, Keeper Test, retention-by-cause
+    borrowed: true
+    source_department: leadership
+  - agent_id: org-designer-pedro-m
+    role: Org design, Team Topologies, cognitive load
+    borrowed: true
+    source_department: org
+  - agent_id: people-ops-carla
+    role: People operations
+    borrowed: true
+    source_department: org
+  - agent_id: okr-steward-matilde
+    role: OKR/CFR alignment cross-department
+    borrowed: true
+    source_department: org

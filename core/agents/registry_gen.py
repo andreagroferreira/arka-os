@@ -64,6 +64,7 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
                 },
                 "expertise_domains": agent.expertise.domains[:5],
                 "frameworks": agent.expertise.frameworks[:5],
+                "knowledge_sources": agent.expertise.knowledge_sources,
                 "file": str(yaml_file.relative_to(departments_dir.parent)),
                 "memory_path": agent.memory_path,
             }

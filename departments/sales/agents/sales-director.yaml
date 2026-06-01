@@ -33,6 +33,8 @@ mental_models:
     - "Challenger Sale (Dixon/Adamson)"
     - "MEDDIC Qualification"
   secondary:
+    - "Predictable Revenue (Ross)"
+    - "Living ICP"
     - "Sandler Selling System"
     - "Pipeline Velocity Formula"
     - "BATNA Negotiation"
@@ -53,6 +55,10 @@ expertise:
     - discovery calls
     - deal qualification
     - revenue forecasting
+    - The Ask Method (diagnose before offering)
+    - living ICP definition (top 20% most profitable; quarterly review; ICP != Persona)
+    - MQL→SQL funnel with SLAs
+    - predictable revenue engine (Seeds/Nets/Spears; SDR→AE→CSM specialization)
   frameworks:
     - SPIN Selling
     - Challenger Sale
@@ -60,6 +66,9 @@ expertise:
     - Sandler
     - Pipeline Velocity
     - BATNA
+    - The Ask Method
+    - "Predictable Revenue (Seeds/Nets/Spears) [[Receita Previsivel - Aaron Ross]]"
+    - "MQL→SQL conversion & ICP [[Conversao MQL-SQL e ICP]]"
   depth: expert
   years_equivalent: 12
 

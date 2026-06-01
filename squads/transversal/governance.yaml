@@ -1,0 +1,36 @@
+id: transversal-governance
+name: Governance
+description: >
+  Transversal platform squad that owns decision quality and governance across
+  the org: meeting cadence, decision records (RACI), premortem/postmortem,
+  board/succession. A governance counterpart to the Quality tier. Grounded in
+  [[Scaling Up - Verne Harnish]], [[2026-05-30 G4 Pass - Cluster Estrategia e Decisao HBR]]
+  and [[2026-05-30 G4 Pass - Cluster Aprendizado e Governanca]].
+department: cross-department
+squad_type: platform
+topology: enabling
+max_size: 10
+quality_gate_required: false
+
+members:
+  - agent_id: chief-of-staff-afonso
+    role: Lead — cadence, decision records, governance, succession
+    is_lead: true
+    borrowed: true
+    source_department: org
+  - agent_id: coo-sofia
+    role: Operations & C-suite decision standard
+    borrowed: true
+    source_department: org
+  - agent_id: okr-steward-matilde
+    role: Goal alignment & metric ownership
+    borrowed: true
+    source_department: org
+  - agent_id: cqo-marta
+    role: Quality gate & blameless postmortem
+    borrowed: true
+    source_department: quality
+  - agent_id: decision-quality-guilherme
+    role: Decision framing, debiasing, premortem
+    borrowed: true
+    source_department: strategy

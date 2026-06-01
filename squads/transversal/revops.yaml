@@ -1,0 +1,43 @@
+id: transversal-revops
+name: RevOps (Revenue Operations)
+description: >
+  Transversal platform squad that owns the unified revenue engine across
+  marketing, sales, CS and ecom — shared metrics, one funnel, no silos.
+  Analogous to the Quality tier but for revenue. Grounded in
+  [[Receita Previsivel - Aaron Ross]] and [[Autonomia Por Missões (Não Departamentos)]].
+department: cross-department
+squad_type: platform
+topology: platform
+max_size: 10
+quality_gate_required: false
+
+members:
+  - agent_id: revops-lead-vicente
+    role: Lead — unified funnel, shared metrics, SLA MQL→SQL
+    is_lead: true
+    borrowed: true
+    source_department: saas
+  - agent_id: sales-ops-ines-s
+    role: Sales operations, CRM hygiene, forecasting
+    borrowed: true
+    source_department: sales
+  - agent_id: metrics-analyst-rita-s
+    role: Revenue & CX metrics, VoC
+    borrowed: true
+    source_department: saas
+  - agent_id: growth-engineer-andre-s
+    role: Growth loops & experimentation
+    borrowed: true
+    source_department: saas
+  - agent_id: cs-manager-patricia
+    role: Net revenue retention
+    borrowed: true
+    source_department: saas
+  - agent_id: retention-manager-catarina
+    role: Lifecycle & retention
+    borrowed: true
+    source_department: ecom
+  - agent_id: sdr-martim
+    role: Top-of-funnel pipeline
+    borrowed: true
+    source_department: sales
