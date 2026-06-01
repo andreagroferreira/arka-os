@@ -15,7 +15,7 @@ and magic link login"
 
 **What ArkaOS does:**
 
-The 9-phase enterprise workflow activates. Paulo (Tech Lead) orchestrates:
+The 13-phase enterprise workflow activates. Paulo (Tech Lead) orchestrates:
 
 1. **Spec phase** -- Paulo and Gabriel create a feature specification with acceptance criteria, data models, and API contracts. You review and approve.
 2. **Research phase** -- Lucas researches Laravel Sanctum vs Passport, OAuth2 libraries, and magic link implementations. Gabriel reviews existing architecture.

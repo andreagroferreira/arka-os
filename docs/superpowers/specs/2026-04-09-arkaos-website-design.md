@@ -78,7 +78,7 @@ The official ArkaOS website: a high-performance Nuxt 4 site that serves as the p
 | `/` | Homepage — terminal hero + 9-section scroll storytelling |
 | `/features` | Detailed features with inline code examples |
 | `/departments` | Interactive grid of 17 departments with expand/detail |
-| `/agents` | Catalog of 65 agents with behavioral DNA profiles |
+| `/agents` | Catalog of 82 agents with behavioral DNA profiles |
 | `/blog` | Articles listing — tutorials, case studies, changelogs |
 | `/blog/:slug` | Individual article |
 | `/changelog` | Release notes |
@@ -112,7 +112,7 @@ The official ArkaOS website: a high-performance Nuxt 4 site that serves as the p
 | 4 | **How it works** | 3 steps: Install, Command, Deliver — with code snippets | Step-by-step on scroll |
 | 5 | **Departments** | Interactive grid of 17 departments — hover shows agents & commands | Staggered grid entrance |
 | 6 | **4-Layer Diff** | Comparison table: ArkaOS vs ChatGPT vs Cursor vs Devin | Slide-in columns |
-| 7 | **Numbers** | 65 agents, 244+ skills, 542 tests, 17 depts, open source | Counter animation |
+| 7 | **Numbers** | 82 agents, 267 skills, 4,500+ tests, 17 depts, open source | Counter animation |
 | 8 | **Community** | Discord widget, GitHub stars, newsletter form | Fade-in |
 | 9 | **Final CTA** | "Ready? One command." — terminal + Get Started / Star on GitHub | Glow pulse |
 

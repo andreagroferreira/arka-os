@@ -1,6 +1,6 @@
 # Getting Started with ArkaOS
 
-ArkaOS is an operating system for AI agent teams. 65 agents across 17 departments handle everything from writing code to building brands to planning finances. You talk in plain language, ArkaOS routes to the right team.
+ArkaOS is an operating system for AI agent teams. 82 agents across 17 departments handle everything from writing code to building brands to planning finances. You talk in plain language, ArkaOS routes to the right team.
 
 This guide gets you running in 5 minutes with real examples for developers, marketers, and founders.
 
@@ -33,8 +33,8 @@ You should see:
 [PASS] Hooks configured for claude-code
 [PASS] Synapse engine responsive (74ms)
 [PASS] Knowledge DB initialized
-[PASS] 65 agents loaded
-[PASS] 244 skills validated
+[PASS] 82 agents loaded
+[PASS] 267 skills validated
 [PASS] 24 workflows registered
 All checks passed.
 ```
@@ -48,7 +48,7 @@ npx arkaos keys set OPENAI_API_KEY sk-proj-...
 npx arkaos keys set ANTHROPIC_API_KEY sk-ant-...
 ```
 
-Keys are stored encrypted at `~/.arkaos/keys.enc`. ArkaOS never sends keys to external services beyond the configured providers.
+Keys are stored at `~/.arkaos/keys.json` with owner-only (600) file permissions. ArkaOS never sends keys to external services beyond the configured providers.
 
 ## Your First Session: Developer Fixing a Bug
 
@@ -168,8 +168,8 @@ Opens at **http://localhost:3333**. The dashboard has 8 pages:
 | Page | What You See |
 |------|-------------|
 | **Overview** | Agent count, skill count, active tasks, budget usage, system health |
-| **Agents** | Browse all 65 agents with full behavioral DNA profiles (DISC, Enneagram, MBTI, Big Five) |
-| **Commands** | Search all 244+ skills across 17 departments with usage examples |
+| **Agents** | Browse all 82 agents with full behavioral DNA profiles (DISC, Enneagram, MBTI, Big Five) |
+| **Commands** | Search all 267 skills across 17 departments with usage examples |
 | **Budget** | Token usage breakdown by department and tier, spending trends |
 | **Tasks** | Active and completed background tasks (knowledge ingestion, analysis jobs) |
 | **Knowledge** | Manage your indexed knowledge base, trigger new ingestions |
@@ -326,13 +326,13 @@ See [MIGRATION-V1-V2.md](MIGRATION-V1-V2.md) for the full migration guide.
 
 | Component | Count |
 |-----------|-------|
-| Agents | 65 across 17 departments |
-| Skills | 244+ backed by enterprise frameworks |
+| Agents | 82 across 17 departments |
+| Skills | 267 backed by enterprise frameworks |
 | Workflows | 24 with mandatory quality gates |
-| Synapse layers | 9 for context injection |
+| Synapse layers | 12 for context injection |
 | Dashboard pages | 8 for monitoring and management |
 | Python CLI tools | 8 for quantitative analysis |
-| Tests | 1836 (pytest) |
+| Tests | 4,500+ (pytest) |
 
 ## Next Steps
 

@@ -16,16 +16,23 @@ You type something in your AI coding tool
 [Bridge] scripts/synapse-bridge.py receives your input as JSON
        |
        v
-[Synapse] 9-layer context engine runs (<200ms total)
-       |-- L0: Constitution     --> governance rules from config/constitution.yaml
-       |-- L1: Department       --> detected department from keyword/intent matching
-       |-- L2: Agent            --> active agent profile (YAML behavioral DNA)
-       |-- L3: Project          --> .arkaos.json stack info (framework, language, version)
-       |-- L3.5: Knowledge      --> vector DB search for relevant indexed content
-       |-- L4: Branch           --> current git branch name and context
-       |-- L5: Command Hints    --> matched skills/commands from input analysis
-       |-- L6: Quality Gate     --> current QG status (active/idle/reviewing)
-       |-- L7: Time             --> time-of-day context (morning/afternoon/evening)
+[Synapse] 12-layer context engine runs (<200ms total)
+       |-- L0:   Constitution       --> governance rules from config/constitution.yaml
+       |-- L1:   Department         --> detected department via keyword/prefix matching (DepartmentLayer)
+       |-- L2:   Agent              --> active agent profile (YAML behavioral DNA)
+       |-- L2.6: AgentExperiences   --> past Quality Gate lessons for the dispatched specialist
+       |-- L3:   Project            --> .arkaos.json stack info (framework, language, version)
+       |-- L4:   Branch             --> current git branch name and context
+       |-- L5:   CommandHints       --> matched skills/commands from input analysis
+       |-- L6:   QualityGate        --> current QG status and recent verdicts
+       |-- L7:   Time               --> time-of-day context (morning/afternoon/evening)
+       |-- L7.5: PatternLibrary     --> prior PatternCards matching prompt keywords
+       |-- L8:   ForgeContext       --> active Forge plan decisions, risks, rejected approaches
+       |-- L9:   SessionMemory      --> restored session context from memory store
+       |
+       |   (added only when a vector store is attached:)
+       |-- L2.5: KBContext          --> relevant Obsidian notes via Jaccard similarity
+       |-- L3.5: KnowledgeRetrieval --> semantic search from vector DB (sqlite-vss)
        |
        v
 [Context] All layers merged into a context string
@@ -59,10 +66,12 @@ The context injection system. Runs on every prompt. Each layer is a Python modul
 |------|---------|
 | `core/synapse/__init__.py` | Layer registry and orchestration |
 | `core/synapse/engine.py` | Main engine: runs all layers, merges output, caches results |
-| `core/synapse/layers/` | Individual layer implementations (L0-L7) |
+| `core/synapse/layers.py` | Core layer implementations (L0-L7, L2.5, L3.5, L8, L9) |
+| `core/synapse/agent_experiences_layer.py` | L2.6: AgentExperiences layer |
+| `core/synapse/pattern_library_layer.py` | L7.5: PatternLibrary layer |
 | `core/synapse/cache.py` | Layer caching with TTL and invalidation |
 
-How caching works: L0 (Constitution) and L2 (Agent) rarely change, so they cache for the session. L4 (Branch) and L7 (Time) refresh on every call. L3.5 (Knowledge) caches by query hash for 5 minutes.
+How caching works: L0 (Constitution) and L2 (Agent) rarely change, so they cache for the session. L4 (Branch) and L7 (Time) refresh on every call. L3.5 (KnowledgeRetrieval) caches by query hash for 30 seconds.
 
 Real output from the Synapse bridge:
 
@@ -72,19 +81,22 @@ echo '{"user_input":"fix the authentication bug in the login controller"}' | pyt
 
 ```json
 {
-  "context_string": "[CONSTITUTION: branch-isolation, solid-clean-code, spec-driven...] [DEPT: dev] [AGENT: backend-dev-andre] [PROJECT: laravel 11.x, php 8.3] [KNOWLEDGE: 3 relevant notes found] [BRANCH: feat/auth-fix] [COMMANDS: /dev debug, /dev code-review, /dev security-audit] [QG: idle] [TIME: afternoon]",
+  "context_string": "[Constitution: branch-isolation, solid-clean-code, spec-driven...] [dept:dev] [agent:backend-dev-andre disc:C+D] [project:my-app stack:laravel 11.x] [branch:feat/auth-fix] [hint:/dev debug] [qg:active] [time:afternoon] [forge:plan-0012] [session:resume]",
   "layers": {
-    "L0_constitution": {"ms": 2, "cached": true},
-    "L1_department": {"ms": 8, "cached": false, "detected": "dev"},
-    "L2_agent": {"ms": 3, "cached": true},
-    "L3_project": {"ms": 5, "cached": true},
-    "L3.5_knowledge": {"ms": 89, "cached": false, "results": 3},
-    "L4_branch": {"ms": 12, "cached": false},
-    "L5_commands": {"ms": 6, "cached": false, "matches": 3},
-    "L6_quality_gate": {"ms": 1, "cached": true},
-    "L7_time": {"ms": 1, "cached": false}
+    "L0_constitution":       {"ms": 2,  "cached": true},
+    "L1_department":         {"ms": 8,  "cached": false, "detected": "dev"},
+    "L2_agent":              {"ms": 3,  "cached": true},
+    "L2.6_agent_experiences":{"ms": 4,  "cached": false},
+    "L3_project":            {"ms": 5,  "cached": true},
+    "L4_branch":             {"ms": 12, "cached": false},
+    "L5_command_hints":      {"ms": 6,  "cached": false, "matches": 1},
+    "L6_quality_gate":       {"ms": 1,  "cached": true},
+    "L7_time":               {"ms": 1,  "cached": false},
+    "L7.5_pattern_library":  {"ms": 9,  "cached": false},
+    "L8_forge_context":      {"ms": 3,  "cached": false},
+    "L9_session_memory":     {"ms": 7,  "cached": false}
   },
-  "total_ms": 127
+  "total_ms": 61
 }
 ```
 
@@ -199,7 +211,10 @@ Manages department squads (permanent) and project squads (ad-hoc, cross-departme
 |------|---------|
 | `core/squads/department.py` | Department squad: lead + specialists for a domain |
 | `core/squads/project.py` | Project squad: cross-department team for a specific project |
-| `core/squads/router.py` | Routes requests to the correct squad |
+| `core/squads/loader.py` | Loads squad definitions from department YAML files |
+| `core/squads/registry.py` | In-memory registry of all loaded squads |
+
+Department detection (routing) is handled by the Synapse `DepartmentLayer` (`core/synapse/layers.py`) via keyword and command-prefix matching — not by a dedicated router module.
 
 Department squads follow Team Topologies patterns: stream-aligned (dev, marketing), platform (ops, knowledge), enabling (strategy, leadership).
 
@@ -295,7 +310,7 @@ Constitution enforcement and quality gate orchestration.
 |------|---------|
 | `core/governance/constitution.py` | Rule loading and enforcement checking |
 | `core/governance/quality_gate.py` | QG orchestration: dispatch Eduardo + Francisca, collect verdicts |
-| `config/constitution.yaml` | The constitution: 13 non-negotiable rules + must/should rules |
+| `config/constitution.yaml` | The constitution: 25 non-negotiable rules + must/should rules |
 
 ### Runtime Adapters (`core/runtime/`)
 
@@ -320,7 +335,7 @@ Hooks are bash scripts that fire at specific points in the AI tool's lifecycle.
 **What it does:**
 1. Captures your input text
 2. Calls `python scripts/synapse-bridge.py` with the input
-3. Receives the context string (all 9 Synapse layers merged)
+3. Receives the context string (all 12 Synapse layers merged)
 4. Injects the context into the prompt as a system-level prefix
 
 **File path:** `~/.arkaos/hooks/user-prompt-submit-v2.sh`
@@ -393,7 +408,7 @@ npx arkaos dashboard
 ```
 ~/.arkaos/                          # Installation directory
 ├── core/                           # Python core engine
-│   ├── synapse/                    # 9-layer context injection
+│   ├── synapse/                    # 12-layer context injection
 │   ├── workflow/                   # YAML workflow engine
 │   ├── agents/                     # Agent schema + validation
 │   ├── squads/                     # Squad framework

@@ -265,7 +265,7 @@ ArkaOS Product
    Version: X.Y.Z
    Latest Release: vX.Y.Z (YYYY-MM-DD)
    Tests: X passed / Y total
-   Departments: 17 | Agents: 65 | Skills: 244+
+   Departments: 17 | Agents: 82 | Skills: 267
    Recent commits: [last 5]
    Reports to: /wiz (WizardingCode Internal)
    ==============================

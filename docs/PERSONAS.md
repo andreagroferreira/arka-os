@@ -1,6 +1,6 @@
 # ArkaOS Personas
 
-The persona system lets you create custom AI personas from real people's content (YouTube, books, podcasts), then optionally clone them as ArkaOS agents that work alongside the built-in 65 agents.
+The persona system lets you create custom AI personas from real people's content (YouTube, books, podcasts), then optionally clone them as ArkaOS agents that work alongside the built-in 82 agents.
 
 ## What Is a Persona
 
