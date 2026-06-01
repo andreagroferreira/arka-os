@@ -1,0 +1,31 @@
+id: mission-retain
+name: Retain & Expand Mission
+description: >
+  Owns the outcome "retain and expand revenue (NRR > 100%)". Stream-aligned
+  mission squad borrowing across saas and ecom. Shared metric: Net Revenue
+  Retention + churn. Grounded in [[Leaky-Bucket Diagnostic]], [[Retention Flywheel]]
+  and [[Autonomia Por Missões (Não Departamentos)]].
+department: cross-department
+squad_type: project
+topology: stream-aligned
+max_size: 10
+quality_gate_required: true
+
+members:
+  - agent_id: revops-lead-vicente
+    role: Mission lead — net revenue retention & expansion
+    is_lead: true
+    borrowed: true
+    source_department: saas
+  - agent_id: cs-manager-patricia
+    role: QBRs, health score, renewals
+    borrowed: true
+    source_department: saas
+  - agent_id: metrics-analyst-rita-s
+    role: Churn/NRR analytics & Voice-of-Customer
+    borrowed: true
+    source_department: saas
+  - agent_id: retention-manager-catarina
+    role: Lifecycle retention & upsell
+    borrowed: true
+    source_department: ecom

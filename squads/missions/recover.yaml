@@ -1,0 +1,31 @@
+id: mission-recover
+name: Recover (Win-Back) Mission
+description: >
+  Owns the outcome "win back a churned customer". Stream-aligned mission squad
+  borrowing across ecom, saas, sales and landing. Shared metric: win-back rate +
+  reactivated revenue. Grounded in [[Atendimento Como Gerador de Receita]] and
+  [[Autonomia Por Missões (Não Departamentos)]].
+department: cross-department
+squad_type: project
+topology: stream-aligned
+max_size: 10
+quality_gate_required: true
+
+members:
+  - agent_id: retention-manager-catarina
+    role: Mission lead — win-back lifecycle
+    is_lead: true
+    borrowed: true
+    source_department: ecom
+  - agent_id: cs-manager-patricia
+    role: Churn-reason analysis & save offers
+    borrowed: true
+    source_department: saas
+  - agent_id: sales-closer-joao
+    role: High-intent reactivation outreach
+    borrowed: true
+    source_department: sales
+  - agent_id: sales-copywriter-teresa
+    role: Win-back copy & offers
+    borrowed: true
+    source_department: landing

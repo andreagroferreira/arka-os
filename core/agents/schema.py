@@ -237,6 +237,10 @@ class Expertise(BaseModel):
     """What the agent knows."""
     domains: list[str] = Field(default_factory=list)
     frameworks: list[str] = Field(default_factory=list)
+    knowledge_sources: list[str] = Field(
+        default_factory=list,
+        description="Obsidian KB notes ([[wikilinks]]) that ground this agent's expertise.",
+    )
     depth: str = "expert"  # novice, intermediate, expert, master
     years_equivalent: int = 10
 

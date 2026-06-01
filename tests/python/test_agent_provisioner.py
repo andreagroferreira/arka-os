@@ -85,6 +85,26 @@ def test_sync_copies_agents_to_project(fake_core: Path, project: Project) -> Non
     assert "backend-dev" in result.agents_added
 
 
+def test_sync_resolves_sub_squad_agent_in_subdirectory(
+    fake_core: Path, project: Project
+) -> None:
+    # Sub-squad specialists live in agents/<sub-squad>/<name>.yaml. The
+    # provisioner must resolve them recursively, not only at agents/ top level.
+    sub_dir = fake_core / "departments" / "dev" / "agents" / "backend-core"
+    sub_dir.mkdir(parents=True)
+    (sub_dir / "laravel-eng.yaml").write_text("name: laravel-eng\nrole: laravel\n")
+    (fake_core / "config" / "agent-allowlists" / "laravel.yaml").write_text(
+        "stack: laravel\nbaseline:\n  - backend-dev\n  - laravel-eng\n  - qa\n"
+    )
+
+    result = sync_project_agents(project)
+
+    agents_dir = Path(project.path) / ".claude" / "agents"
+    assert (agents_dir / "laravel-eng.md").exists()
+    assert "laravel-eng" in result.agents_added
+    assert "name: laravel-eng" in (agents_dir / "laravel-eng.md").read_text()
+
+
 def test_sync_concatenates_yaml_and_md_when_both_exist(
     fake_core: Path, project: Project
 ) -> None:

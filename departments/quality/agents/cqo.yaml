@@ -39,6 +39,8 @@ mental_models:
     - "Deming's PDCA"
     - "Root Cause Analysis (5 Whys)"
     - "Statistical Process Control"
+    - "Blameless postmortem (premortem before / postmortem after)"
+    - "KB-first (Obsidian canonical source)"
 
 authority:
   veto: true
@@ -63,6 +65,12 @@ expertise:
     - Jidoka (Toyota)
     - PDCA (Deming)
     - Shift-Left Testing
+    # Blameless postmortem: run a premortem before the workflow ("assume it
+    # failed — why?") and a no-blame postmortem after. Coca-Cola, Netflix and
+    # Amazon institutionalize cheap failure as a learning ritual. Used as the
+    # post-workflow quality ritual to convert defects into systemic fixes.
+    # Source: [[Cluster Estrategia e Decisao HBR]]
+    - Blameless Postmortem (premortem before / postmortem after)
   depth: master
   years_equivalent: 12
 

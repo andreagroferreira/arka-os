@@ -1,5 +1,6 @@
 stack: python
 baseline:
+  - python-eng
   - senior-dev
   - architect
   - qa

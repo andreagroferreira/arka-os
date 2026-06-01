@@ -1,0 +1,39 @@
+id: mission-acquire
+name: Acquire Mission
+description: >
+  Owns the outcome "turn a stranger into a qualified lead (SQL)" end-to-end.
+  A stream-aligned mission squad (Autonomy by Missions, not Departments) that
+  borrows members across marketing, sales and landing. Shared metric: qualified
+  leads/month + MQL→SQL conversion. Grounded in [[Autonomia Por Missões (Não Departamentos)]].
+department: cross-department
+squad_type: project
+topology: stream-aligned
+max_size: 10
+quality_gate_required: true
+
+members:
+  - agent_id: marketing-director-luna
+    role: Mission lead — demand generation & channel strategy
+    is_lead: true
+    borrowed: true
+    source_department: marketing
+  - agent_id: paid-specialist-pedro
+    role: Paid acquisition & performance
+    borrowed: true
+    source_department: marketing
+  - agent_id: seo-specialist-ana
+    role: Organic acquisition & SEO
+    borrowed: true
+    source_department: marketing
+  - agent_id: content-marketer-mariana
+    role: Content-led demand
+    borrowed: true
+    source_department: marketing
+  - agent_id: sdr-martim
+    role: Top-of-funnel qualification (MQL→SQL)
+    borrowed: true
+    source_department: sales
+  - agent_id: conversion-strategist-ines
+    role: Landing & funnel conversion
+    borrowed: true
+    source_department: landing

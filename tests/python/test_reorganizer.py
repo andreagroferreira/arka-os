@@ -282,3 +282,46 @@ class TestReportShape:
         result = build_proposal(tmp_path, since_days=7, dry_run=True)
         # ISO timestamp like 2026-05-24
         assert _today_iso() in result.generated_at
+
+
+# ─── md_escape: stored-XSS / markdown-injection neutralisation ──────────
+
+
+class TestMdEscape:
+    """md_escape neutralises untrusted titles for HTML-rendering md viewers.
+
+    Titles flow from web/YouTube/PDF metadata into .md files opened in
+    Obsidian, which renders raw HTML. md_escape must HTML-escape <> (CWE-79)
+    while preserving the existing pipe/backtick/newline neutralisation.
+    """
+
+    def test_script_tag_is_html_neutralised(self):
+        from core.cognition.reorganizer import md_escape
+
+        out = md_escape("Course <script>alert(1)</script> | review")
+        assert "<script>" not in out
+        assert "</script>" not in out
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in out
+
+    def test_img_onerror_payload_is_neutralised(self):
+        from core.cognition.reorganizer import md_escape
+
+        out = md_escape('<img src=x onerror="alert(1)">')
+        assert "<img" not in out
+        assert "&lt;img src=x onerror=" in out
+        assert out.endswith("&gt;")
+
+    def test_legitimate_angle_brackets_render_as_literal_text(self):
+        from core.cognition.reorganizer import md_escape
+
+        # "C++ <vector>" must survive as visible literal text, not a swallowed tag.
+        assert md_escape("C++ <vector>") == "C++ &lt;vector&gt;"
+
+    def test_pipe_backtick_newline_neutralisation_unchanged(self):
+        from core.cognition.reorganizer import md_escape
+
+        out = md_escape("a | b `c`\nd\re")
+        assert "\\|" in out          # pipe escaped (table-safe)
+        assert "`" not in out         # backticks stripped
+        assert "\n" not in out and "\r" not in out  # newlines flattened
+        assert "c" in out and "d" in out and "e" in out

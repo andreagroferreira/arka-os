@@ -1,0 +1,35 @@
+id: mission-activate
+name: Activate Mission
+description: >
+  Owns the outcome "turn a new customer into an activated quick-win (48-72h)".
+  Stream-aligned mission squad borrowing across saas, ecom, pm and brand.
+  Shared metric: time-to-first-value + activation rate. Grounded in
+  [[Retention Flywheel]] (onboarding → quick win) and [[Autonomia Por Missões (Não Departamentos)]].
+department: cross-department
+squad_type: project
+topology: stream-aligned
+max_size: 10
+quality_gate_required: true
+
+members:
+  - agent_id: cs-manager-patricia
+    role: Mission lead — onboarding & first value
+    is_lead: true
+    borrowed: true
+    source_department: saas
+  - agent_id: retention-manager-catarina
+    role: Lifecycle onboarding sequences
+    borrowed: true
+    source_department: ecom
+  - agent_id: pm-director-carolina
+    role: Product activation & discovery
+    borrowed: true
+    source_department: pm
+  - agent_id: growth-engineer-andre-s
+    role: Activation experiments
+    borrowed: true
+    source_department: saas
+  - agent_id: ux-researcher-renata
+    role: Onboarding usability & friction research
+    borrowed: true
+    source_department: brand

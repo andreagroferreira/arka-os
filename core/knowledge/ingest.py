@@ -6,12 +6,14 @@ the vector store. Reports progress via callback for real-time UI updates.
 
 import os
 import re
+import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
 
 from core.knowledge.chunker import chunk_markdown
+from core.knowledge.sources import source_id
 from core.knowledge.vector_store import VectorStore
 
 
@@ -25,6 +27,11 @@ class IngestResult:
     title: str = ""
     error: str = ""
     success: bool = True
+    duration: int = 0
+    language: str = ""
+    media_path: str = ""
+    thumbnail_path: str = ""
+    transcript: str = ""
 
 
 ProgressCallback = Callable[[int, str], None]  # (percent, message)
@@ -38,15 +45,20 @@ def detect_source_type(source: str) -> str:
     if any(domain in source_lower for domain in ["youtube.com", "youtu.be"]):
         return "youtube"
 
-    # Web URLs
+    # Video: a URL or file path ending in a video container extension.
+    # Checked *before* the generic web fallback so a non-youtube CDN clip
+    # (https://.../clip.mp4) resolves to "video", per PR1 spec Task 2.3.
+    ext = Path(source.split("?", 1)[0]).suffix.lower()
+    if ext in IngestEngine.VIDEO_EXTS:
+        return "video"
+
+    # Web URLs (no recognised media extension)
     if source_lower.startswith(("http://", "https://")):
         return "web"
 
-    # File extensions
-    ext = Path(source).suffix.lower()
     if ext == ".pdf":
         return "pdf"
-    if ext in (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".webm"):
+    if ext in (".mp3", ".wav", ".m4a", ".ogg", ".flac"):
         return "audio"
     if ext in (".md", ".txt", ".rst"):
         return "markdown"
@@ -57,10 +69,18 @@ def detect_source_type(source: str) -> str:
 class IngestEngine:
     """Processes content from various sources into the vector store."""
 
-    def __init__(self, store: VectorStore, media_dir: str | Path = "") -> None:
+    VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".avi")
+
+    def __init__(self, store: VectorStore, media_dir: str | Path = "", registry=None) -> None:
         self._store = store
+        self._registry = registry
         self._media_dir = Path(media_dir) if media_dir else Path.home() / ".arkaos" / "media"
         self._media_dir.mkdir(parents=True, exist_ok=True)
+
+    @staticmethod
+    def detect_source_type(source: str) -> str:
+        """Detect the source type for a URL or file path (class-level alias)."""
+        return detect_source_type(source)
 
     def ingest(
         self,
@@ -87,6 +107,7 @@ class IngestEngine:
             "youtube": self._process_youtube,
             "pdf": self._process_pdf,
             "audio": self._process_audio,
+            "video": self._process_video,
             "web": self._process_web,
             "markdown": self._process_markdown,
         }
@@ -96,11 +117,13 @@ class IngestEngine:
             return IngestResult(source=source, source_type=source_type, error=f"Unsupported type: {source_type}", success=False)
 
         try:
-            text, title = processor(source, progress)
+            text, title, extra = self._invoke_processor(processor, source, progress)
         except Exception as e:
+            self._register_failure(source, source_type, str(e))
             return IngestResult(source=source, source_type=source_type, error=str(e), success=False)
 
         if not text or len(text.strip()) < 50:
+            self._register_failure(source, source_type, "Extracted text too short")
             return IngestResult(source=source, source_type=source_type, error="Extracted text too short", success=False)
 
         # Chunk and index
@@ -110,7 +133,9 @@ class IngestEngine:
 
         if total_chunks == 0:
             progress(100, "No chunks to index")
-            return IngestResult(source=source, source_type=source_type, text_length=len(text), chunks_created=0, title=title, success=True)
+            empty = self._make_result(source, source_type, text, title, 0, extra)
+            self._register_success(empty)
+            return empty
 
         # Index in batches with granular progress (85→99%)
         texts = [c.text for c in chunks]
@@ -149,100 +174,153 @@ class IngestEngine:
         except Exception:
             pass
 
+        result = self._make_result(source, source_type, text, title, count, extra)
+        self._register_success(result)
+        return result
+
+    @staticmethod
+    def _invoke_processor(
+        processor: Callable, source: str, progress: ProgressCallback
+    ) -> tuple[str, str, dict]:
+        """Call a processor, normalizing 2-tuple and 3-tuple returns."""
+        out = processor(source, progress)
+        if len(out) == 3:
+            return out[0], out[1], out[2] or {}
+        return out[0], out[1], {}
+
+    @staticmethod
+    def _make_result(
+        source: str, source_type: str, text: str, title: str,
+        count: int, extra: dict,
+    ) -> IngestResult:
+        """Assemble a successful IngestResult including media metadata."""
         return IngestResult(
-            source=source,
-            source_type=source_type,
-            text_length=len(text),
-            chunks_created=count,
-            title=title,
-            success=True,
+            source=source, source_type=source_type, text_length=len(text),
+            chunks_created=count, title=title, success=True, transcript=text,
+            duration=int(extra.get("duration", 0)),
+            language=extra.get("language", ""),
+            media_path=extra.get("media_path", ""),
+            thumbnail_path=extra.get("thumbnail_path", ""),
         )
 
-    def _process_youtube(self, url: str, progress: ProgressCallback) -> tuple[str, str]:
-        """Download YouTube video and transcribe audio.
+    def _register_success(self, result: IngestResult) -> None:
+        """Persist a successful ingest to the source registry, if present."""
+        if self._registry is None:
+            return
+        self._registry.upsert(
+            result.source, type=result.source_type, title=result.title,
+            duration=result.duration, language=result.language,
+            thumbnail_path=result.thumbnail_path, media_path=result.media_path,
+            transcript=result.transcript, chunk_count=result.chunks_created,
+            status="ready",
+        )
 
-        5 distinct phases with clear progress:
-        Phase 1: Fetch video info (0-5%)
-        Phase 2: Download video (5-25%)
-        Phase 3: Extract audio (25-35%)
-        Phase 4: Transcribe audio (35-65%)
-        Phase 5: Return text for chunking/indexing (handled by caller, 75-100%)
+    def _register_failure(self, source: str, stype: str, error: str) -> None:
+        """Persist a failed ingest to the source registry, if present."""
+        if self._registry is None:
+            return
+        self._registry.upsert(source, type=stype, status="failed", error=error)
+
+    def _process_youtube(self, url: str, progress: ProgressCallback) -> tuple[str, str, dict]:
+        """Download a YouTube video (kept as media) and transcribe it.
+
+        Phase 1: Fetch info (title, duration, language, thumbnail).
+        Phase 2: Download best video+audio merged to mp4 (kept as media).
+        Phase 3: Extract a WAV audio track for transcription.
+        Phase 4: Transcribe. Returns (text, title, extra-metadata).
         """
         try:
-            import yt_dlp
+            import yt_dlp  # noqa: F401
         except ImportError:
             raise RuntimeError("yt-dlp not installed. Run: pip install yt-dlp")
 
-        # === Phase 1: Fetch video info ===
         progress(2, "Phase 1/4 — Fetching video info...")
+        info = self._youtube_info(url, progress)
+        title = info.get("title", "YouTube Video")
+
+        progress(8, "Phase 2/4 — Downloading video...")
+        video_path = self._download_video(url, progress)
+
+        progress(40, "Phase 3/4 — Extracting audio from video...")
+        audio_path = self._extract_audio(video_path)
+
+        progress(50, "Phase 4/4 — Transcribing audio (this may take a while)...")
+        text = self._transcribe_audio(str(audio_path))
+        if not text or len(text.strip()) < 20:
+            raise RuntimeError("Transcription produced no usable text")
+        progress(70, f"Phase 4/4 — Transcribed: {len(text.split())} words")
+
+        return text, title, self._youtube_extra(info, video_path)
+
+    @staticmethod
+    def _youtube_extra(info: dict, video_path: Path) -> dict:
+        """Build the extra-metadata dict from yt-dlp info + saved video."""
+        return {
+            "duration": int(info.get("duration") or 0),
+            "language": info.get("language") or "",
+            "thumbnail_path": info.get("thumbnail") or "",
+            "media_path": str(video_path),
+        }
+
+    def _youtube_info(self, url: str, progress: ProgressCallback) -> dict:
+        """Fetch YouTube metadata without downloading."""
+        import yt_dlp
         try:
             with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
                 info = ydl.extract_info(url, download=False)
-                title = info.get("title", "YouTube Video")
-                duration = info.get("duration", 0)
-                progress(5, f"Phase 1/4 — Found: {title} ({duration}s)")
+                progress(5, f"Phase 1/4 — Found: {info.get('title')}")
+                return info
         except Exception as e:
             raise RuntimeError(f"YouTube access failed: {str(e)[:200]}")
 
-        # === Phase 2: Download video + extract audio ===
-        progress(8, f"Phase 2/4 — Downloading video...")
-        audio_path = str(self._media_dir / "yt_audio.wav")
+    def _download_video(self, url: str, progress: ProgressCallback) -> Path:
+        """Download best video+audio merged to mp4, keyed by stable id."""
+        import yt_dlp
+        stable_id = source_id(url)
+        out = self._media_dir / stable_id
         ydl_opts = {
-            "format": "bestaudio/best",
-            "outtmpl": str(self._media_dir / "yt_audio.%(ext)s"),
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "wav",
-                "preferredquality": "16",
-            }],
+            "format": "bestvideo*+bestaudio/best",
+            "merge_output_format": "mp4",
+            "outtmpl": str(out) + ".%(ext)s",
             "quiet": True,
             "no_warnings": True,
-            "progress_hooks": [lambda d: progress(
-                8 + int((d.get("downloaded_bytes", 0) / max(d.get("total_bytes", 1), 1)) * 17),
-                f"Phase 2/4 — Downloading... {d.get('_percent_str', '').strip()}"
-            ) if d.get("status") == "downloading" else None],
+            "progress_hooks": [self._dl_hook(progress)],
         }
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.extract_info(url, download=True)
+        return self._media_dir / f"{stable_id}.mp4"
 
-        # === Phase 3: Extract audio (FFmpeg post-processing) ===
-        progress(28, "Phase 3/4 — Extracting audio from video...")
+    @staticmethod
+    def _dl_hook(progress: ProgressCallback) -> Callable:
+        """Build a yt-dlp progress hook mapping download % to 8-38%."""
+        def hook(d: dict) -> None:
+            if d.get("status") != "downloading":
+                return
+            ratio = d.get("downloaded_bytes", 0) / max(d.get("total_bytes", 1), 1)
+            progress(8 + int(ratio * 30),
+                     f"Phase 2/4 — Downloading... {d.get('_percent_str', '').strip()}")
+        return hook
 
-        # Verify audio file exists
-        if not os.path.exists(audio_path):
-            # Try to find the downloaded file with different extension
-            for ext in ["wav", "m4a", "webm", "mp3", "opus"]:
-                alt = str(self._media_dir / f"yt_audio.{ext}")
-                if os.path.exists(alt):
-                    audio_path = alt
-                    break
-            else:
-                raise RuntimeError("Audio extraction failed — no output file found")
+    def _extract_audio(self, video_path: Path) -> Path:
+        """Extract a 16kHz mono WAV track from a video via ffmpeg."""
+        audio_path = video_path.with_suffix(".wav")
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(video_path), "-vn",
+             "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+             str(audio_path)],
+            check=True, capture_output=True,
+        )
+        return audio_path
 
-        audio_size_mb = os.path.getsize(audio_path) / (1024 * 1024)
-        progress(35, f"Phase 3/4 — Audio extracted ({audio_size_mb:.1f} MB)")
-
-        # === Phase 4: Transcribe audio ===
-        progress(38, "Phase 4/4 — Transcribing audio (this may take a while)...")
-        text = self._transcribe_audio(audio_path)
-
-        if not text or len(text.strip()) < 20:
-            raise RuntimeError("Transcription produced no usable text")
-
-        word_count = len(text.split())
-        progress(70, f"Phase 4/4 — Transcribed: {word_count} words")
-
-        # Rename audio to include title for easy identification
-        safe_title = "".join(c if c.isalnum() or c in " -_" else "" for c in title)[:50].strip()
-        final_audio = self._media_dir / f"{safe_title}.wav"
-        try:
-            import shutil
-            shutil.move(audio_path, str(final_audio))
-        except Exception:
-            final_audio = Path(audio_path)
-
-        return text, title
+    def _process_video(self, path: str, progress: ProgressCallback) -> tuple[str, str, dict]:
+        """Ingest a local video file; the video itself is the media."""
+        filepath = Path(path)
+        if not filepath.exists():
+            raise FileNotFoundError(f"Video not found: {path}")
+        progress(30, "Transcribing video...")
+        text = self._transcribe_audio(str(filepath))
+        title = filepath.stem.replace("-", " ").replace("_", " ")
+        return text, title, {"media_path": str(filepath)}
 
     def _process_pdf(self, path: str, progress: ProgressCallback) -> tuple[str, str]:
         """Extract text from PDF."""

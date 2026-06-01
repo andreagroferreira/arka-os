@@ -1,6 +1,7 @@
 stack: node
 baseline:
   - backend-dev
+  - node-ts-eng
   - senior-dev
   - architect
   - qa

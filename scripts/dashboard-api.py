@@ -22,6 +22,7 @@ sys.path.insert(0, str(ARKAOS_ROOT))
 
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 
 app = FastAPI(title="ArkaOS Dashboard API", version="2.2.0")
 
@@ -66,7 +67,7 @@ async def ws_tasks(websocket: WebSocket):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://localhost:\d+",
+    allow_origin_regex=r"^(http://localhost:\d+|chrome-extension://[a-p0-9]{32})$",
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
@@ -128,6 +129,23 @@ def _get_vector_store():
     except Exception:
         pass
     return None
+
+
+_source_registry_cache = None
+
+
+def _get_source_registry():
+    """Lazy singleton SourceRegistry over the shared knowledge.db."""
+    global _source_registry_cache
+    if _source_registry_cache is None:
+        try:
+            from core.knowledge.sources import SourceRegistry
+            db_path = Path.home() / ".arkaos" / "knowledge.db"
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            _source_registry_cache = SourceRegistry(db_path)
+        except Exception:
+            return None
+    return _source_registry_cache
 
 
 # --- Endpoints ---
@@ -971,8 +989,10 @@ async def knowledge_upload_file(file: UploadFile):
     media_dir = Path.home() / ".arkaos" / "media"
     media_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save uploaded file
-    file_path = media_dir / file.filename
+    # Save uploaded file — sanitize filename to block path traversal
+    file_path = _safe_upload_path(media_dir, file.filename)
+    if file_path is None:
+        return {"error": "invalid filename"}
     content = await file.read()
     file_path.write_bytes(content)
 
@@ -995,13 +1015,14 @@ async def knowledge_upload_file(file: UploadFile):
         from core.jobs.manager import JobManager as _JM
         from core.knowledge.ingest import IngestEngine
         local_mgr = _JM()
-        engine = IngestEngine(store)
         def on_progress(pct, msg):
             status = "embedding" if "embed" in msg.lower() or "index" in msg.lower() else "processing"
             local_mgr.update_progress(job_id, pct, msg, status)
             broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": pct, "message": msg, "status": status})
         try:
             local_mgr.start(job_id)
+            reg = _get_source_registry()
+            engine = IngestEngine(store, registry=reg)
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
                 local_mgr.complete(job_id, chunks_created=result.chunks_created)
@@ -1064,7 +1085,6 @@ def knowledge_ingest(body: dict):
         from core.jobs.manager import JobManager as _JM
         local_mgr = _JM()
 
-        engine = IngestEngine(store)
         def on_progress(pct, msg):
             status = "processing"
             if "phase 2" in msg.lower() or "download" in msg.lower():
@@ -1086,6 +1106,8 @@ def knowledge_ingest(body: dict):
         try:
             local_mgr.start(job_id)
             broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": 0, "message": "Starting...", "status": "processing"})
+            reg = _get_source_registry()
+            engine = IngestEngine(store, registry=reg)
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
                 local_mgr.complete(job_id, chunks_created=result.chunks_created)
@@ -1201,20 +1223,69 @@ def knowledge_search(q: str = Query(...), top_k: int = Query(5)):
     return {"results": results, "query": q, "total": len(results)}
 
 
+def _merge_source_rows(
+    store_rows: list[dict], registry_rows: list[dict]
+) -> list[dict]:
+    """Union chunk-based + registry rows keyed by source string.
+
+    Every emitted row keeps the legacy ``source``/``chunks`` keys and adds
+    ``id`` (always linkable), ``title``, ``type``, ``has_media``,
+    ``duration`` and ``status``. A registry source with 0 chunks still
+    appears. Sorted by chunks desc, then source asc.
+    """
+    from core.knowledge.sources import source_id
+
+    by_source: dict[str, dict] = {}
+    for r in store_rows:
+        src = r.get("source", "")
+        by_source[src] = {"source": src, "chunks": int(r.get("chunks", 0) or 0)}
+    for reg in registry_rows:
+        src = reg.get("source", "")
+        row = by_source.setdefault(src, {"source": src, "chunks": 0})
+        row.update(_registry_fields(reg))
+    for src, row in by_source.items():
+        row.setdefault("id", source_id(src))
+        for key, default in (("title", ""), ("type", ""), ("has_media", False),
+                             ("duration", 0), ("status", "")):
+            row.setdefault(key, default)
+    return sorted(by_source.values(), key=lambda r: (-r["chunks"], r["source"]))
+
+
+def _registry_fields(reg: dict) -> dict:
+    """Project a registry row onto the list-row metadata keys."""
+    from core.knowledge.sources import source_id
+
+    return {
+        "id": reg.get("id") or source_id(reg.get("source", "")),
+        "title": reg.get("title", "") or "",
+        "type": reg.get("type", "") or "",
+        "has_media": bool(reg.get("media_path")),
+        "duration": reg.get("duration", 0) or 0,
+        "status": reg.get("status", "") or "",
+    }
+
+
 @app.get("/api/knowledge/sources")
 def knowledge_list_sources():
-    """PR88c v3.25.0 — list every distinct source + chunk count.
+    """List every distinct source merged from vector store + registry.
 
-    Returns ``{sources: [{source, chunks}], total: N}``. Sorted
-    descending by chunk count.
+    Returns ``{sources: [...], total: N}``. Each row keeps the legacy
+    ``source``/``chunks`` keys and adds ``id``/``title``/``type``/
+    ``has_media``/``duration``/``status`` so the frontend can link each
+    row to ``/knowledge/{id}``. Registry sources with 0 chunks appear too.
     """
     store = _get_vector_store()
-    if not store:
+    registry = _get_source_registry()
+    store_rows: list[dict] = []
+    if store:
+        try:
+            store_rows = store.list_sources()
+        except Exception as exc:  # noqa: BLE001
+            return {"sources": [], "total": 0, "error": str(exc)}
+    registry_rows = registry.list() if registry else []
+    if not store and not registry:
         return {"sources": [], "total": 0, "error": "vector store unavailable"}
-    try:
-        rows = store.list_sources()
-    except Exception as exc:  # noqa: BLE001
-        return {"sources": [], "total": 0, "error": str(exc)}
+    rows = _merge_source_rows(store_rows, registry_rows)
     return {"sources": rows, "total": len(rows)}
 
 
@@ -1242,6 +1313,298 @@ def knowledge_delete_source(source: str = Query(...)):
     except Exception as exc:  # noqa: BLE001 — surface as 200+error
         return {"error": f"delete failed: {exc}", "deleted": 0}
     return {"deleted": int(deleted), "source": clean}
+
+
+def _source_str_for_id(source_id_: str) -> Optional[str]:
+    """Reverse-resolve the raw source string whose id matches ``source_id_``.
+
+    Cold path, O(n) over the vector store's distinct sources. Returns None
+    when no chunk source matches (or the store is unavailable). Shared by
+    ``_detail_from_store`` and ``_resolve_transcript`` so the reverse-lookup
+    lives in exactly one place.
+    """
+    from core.knowledge.sources import source_id
+
+    store = _get_vector_store()
+    if store is None:
+        return None
+    return next(
+        (s for s in store.distinct_sources() if source_id(s) == source_id_),
+        None,
+    )
+
+
+def _resolve_transcript(source_id_: str) -> Optional[str]:
+    """Best-available transcript text for a source id, or None.
+
+    Resolution order:
+      1. Registry row with a non-empty stored ``transcript`` -> that text.
+      2. Else reconstruct from the vector store's chunks (legacy sources).
+      3. Else None (no registry row and no chunk source matched the id).
+    """
+    registry = _get_source_registry()
+    row = registry.get(source_id_) if registry else None
+    if row is not None and (row.get("transcript") or "").strip():
+        return row["transcript"]
+    match = _source_str_for_id(source_id_)
+    if match is None:
+        return None
+    store = _get_vector_store()
+    return store.transcript_for_source(match) if store else None
+
+
+def _detail_from_store(source_id_: str) -> Optional[dict]:
+    """Build a minimal detail dict for a chunks-only (pre-registry) source.
+
+    Reverse-looks-up the raw source string whose ``source_id`` matches the
+    requested id, then returns a dict in the same shape the frontend
+    expects — including a transcript reconstructed from the chunks. Returns
+    None when no chunk source matches the id.
+    """
+    from core.knowledge.ingest import detect_source_type
+
+    match = _source_str_for_id(source_id_)
+    if match is None:
+        return None
+    store = _get_vector_store()
+    chunks = store.chunks_for_source(match) if store else []
+    transcript = store.transcript_for_source(match) if store else ""
+    return {
+        "id": source_id_, "source": match,
+        "type": detect_source_type(match), "title": "", "duration": 0,
+        "language": "", "thumbnail_path": "", "media_path": "",
+        "transcript": transcript, "transcript_reconstructed": bool(transcript),
+        "chunk_count": len(chunks), "status": "indexed",
+        "error": "", "created_at": "", "updated_at": "", "chunks": chunks,
+    }
+
+
+@app.get("/api/knowledge/sources/{source_id}")
+def knowledge_source_detail(source_id: str):
+    """Return a single source's metadata plus its indexed chunks.
+
+    Registry row wins (enriched with chunks). When no registry row exists,
+    falls back to the vector store so pre-registry / chunks-only sources
+    still resolve instead of 404ing the list link.
+    """
+    registry = _get_source_registry()
+    row = registry.get(source_id) if registry else None
+    if row is not None:
+        row = dict(row)
+        store = _get_vector_store()
+        row["chunks"] = store.chunks_for_source(row["source"]) if store else []
+        stored = (row.get("transcript") or "").strip()
+        if not stored:
+            row["transcript"] = (
+                store.transcript_for_source(row["source"]) if store else ""
+            )
+            row["transcript_reconstructed"] = bool(row["transcript"])
+        else:
+            row["transcript_reconstructed"] = False
+        return row
+    fallback = _detail_from_store(source_id)
+    if fallback is not None:
+        return fallback
+    return JSONResponse({"error": "not found"}, status_code=404)
+
+
+@app.get("/api/knowledge/sources/{source_id}/transcript")
+def knowledge_source_transcript(source_id: str):
+    """Return the full transcript text for a source.
+
+    A stored registry transcript wins. Otherwise the transcript is
+    reconstructed by joining the source's indexed chunks (legacy sources
+    ingested before the registry have chunks but no stored transcript). The
+    response carries ``reconstructed`` so the frontend can badge it.
+
+    404 only when the id matches nothing at all (no registry row and no
+    chunk source). A known source with genuinely zero chunks returns an
+    empty transcript (200) so the page shows "No transcript available."
+    """
+    registry = _get_source_registry()
+    row = registry.get(source_id) if registry else None
+    stored = (row.get("transcript") or "").strip() if row else ""
+    if stored:
+        return {"transcript": row["transcript"], "reconstructed": False}
+    match = _source_str_for_id(source_id)
+    if row is None and match is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    text = _resolve_transcript(source_id) or ""
+    return {"transcript": text, "reconstructed": bool(text)}
+
+
+_AGENT_MATCH_TEXT_CAP = 4000  # representative sample for embedding; not full text
+
+
+def _source_knowledge_text(source_id_: str) -> str:
+    """Best-available knowledge text for a source: title + transcript sample.
+
+    Prepends the registry title (when present) to a capped sample of the
+    transcript. Falls back to joining the first few chunks when no
+    transcript resolves. Returns "" when the source has no text at all.
+    Read-only — never writes.
+    """
+    registry = _get_source_registry()
+    row = registry.get(source_id_) if registry else None
+    title = str((row or {}).get("title") or "").strip()
+    body = (_resolve_transcript(source_id_) or "").strip()
+    if not body:
+        match = _source_str_for_id(source_id_)
+        store = _get_vector_store()
+        if match and store:
+            chunks = store.chunks_for_source(match)[:5]
+            body = " ".join(str(c.get("text") or "") for c in chunks).strip()
+    sample = body[:_AGENT_MATCH_TEXT_CAP]
+    return (f"{title}\n{sample}".strip()) if title else sample
+
+
+@app.get("/api/knowledge/sources/{source_id}/agent-matches")
+def knowledge_source_agent_matches(source_id: str, top_n: int = Query(5)):
+    """Suggest which agents should learn from this source (semantic match).
+
+    READ-ONLY. Resolves the source's knowledge text (title + transcript
+    sample), embeds it against each agent's expertise profile, and returns
+    the top matches. Degrades to ``{matches: [], reason}`` (200, never 500)
+    when there is no source text or the embedder is unavailable.
+    """
+    from core.knowledge import agent_match, embedder
+
+    text = _source_knowledge_text(source_id)
+    if not text:
+        return {"matches": [], "source_id": source_id, "count": 0, "reason": "no source text"}
+    if not embedder.is_available():
+        return {"matches": [], "source_id": source_id, "count": 0, "reason": "embedder unavailable"}
+    matches = agent_match.match_agents(text, _load_agents(), top_n=min(top_n, 10))
+    if not matches:
+        return {"matches": [], "source_id": source_id, "count": 0, "reason": "embedder unavailable"}
+    return {"matches": matches, "source_id": source_id, "count": len(matches)}
+
+
+def _agent_matches_for_proposal(source_id_: str, text: str, body: Optional[dict]) -> list[dict]:
+    """Resolve the agents to include in a proposal: scoped ids or top matches."""
+    from core.knowledge import agent_match
+
+    agents = _load_agents()
+    matches = agent_match.match_agents(text, agents, top_n=10)
+    ids = (body or {}).get("agent_ids") if isinstance(body, dict) else None
+    if ids:
+        wanted = {str(i) for i in ids}
+        return [m for m in matches if m["id"] in wanted]
+    return matches[:5]
+
+
+@app.post("/api/knowledge/sources/{source_id}/agent-proposal")
+def knowledge_source_agent_proposal(source_id: str, body: Optional[dict] = None):
+    """Generate a PROPOSE-ONLY markdown proposal of agents to update.
+
+    Body optional: ``{"agent_ids": [...]}`` scopes to specific agents;
+    absent → top matches. Client identifiers are redacted via the
+    reorganizer's shared ``redact_clients`` so nothing leaks. The ONLY
+    write is the proposal markdown under
+    ``~/.arkaos/reorganize-proposals/`` — NEVER an agent YAML.
+    """
+    from core.knowledge import embedder
+
+    text = _source_knowledge_text(source_id)
+    if not text:
+        return {"error": "no source text", "agents": 0}
+    if not embedder.is_available():
+        return {"error": "embedder unavailable", "agents": 0}
+    matches = _agent_matches_for_proposal(source_id, text, body)
+    registry = _get_source_registry()
+    row = registry.get(source_id) if registry else None
+    title = str((row or {}).get("title") or "").strip() or source_id
+    markdown = _render_agent_proposal(source_id, title, matches)
+    path = _write_agent_proposal(source_id, markdown)
+    return {"proposal_path": str(path), "agents": len(matches)}
+
+
+def _render_agent_proposal(source_id_: str, title: str, matches: list[dict]) -> str:
+    """Render the propose-only markdown. Untrusted fields are redacted then escaped."""
+    from core.cognition.reorganizer import md_escape, redact_clients
+
+    safe_title = md_escape(redact_clients(title))
+    lines = [
+        f"# Agent Attribution Proposal — {safe_title}",
+        "",
+        "> **PROPOSE-ONLY** — review and apply manually; this never edits agent files.",
+        f"> Source: `{source_id_}`",
+        "",
+        "## Suggested agents",
+        "",
+    ]
+    if not matches:
+        lines.append("_(no agent matches)_")
+    else:
+        lines.extend(_agent_proposal_line(m, md_escape) for m in matches)
+    return redact_clients("\n".join(lines))
+
+
+def _agent_proposal_line(m: dict, escape) -> str:
+    """Render one suggested-agent bullet. matched_terms (untrusted) escaped inline."""
+    terms = ", ".join(escape(t) for t in (m.get("matched_terms") or [])) or "n/a"
+    return (
+        f"- **{m.get('name', '')}** ({m.get('department', '')} — "
+        f"{m.get('role', '')}) score: {m.get('score', 0)}; matched: {terms}"
+    )
+
+
+def _write_agent_proposal(source_id_: str, markdown: str) -> Path:
+    """Atomic write to ~/.arkaos/reorganize-proposals/ with a stable name."""
+    safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in source_id_)[:64]
+    out = Path.home() / ".arkaos" / "reorganize-proposals"
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"agent-attribution-{safe}.md"
+    tmp = path.with_suffix(f".tmp-{os.getpid()}.md")
+    tmp.write_text(markdown, encoding="utf-8")
+    os.replace(tmp, path)
+    return path
+
+
+@app.get("/api/knowledge/sources/{source_id}/media")
+def knowledge_source_media(source_id: str):
+    """Stream a source's media file with HTTP Range support."""
+    path = _safe_media_path(source_id)
+    if path is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(str(path))
+
+
+@app.get("/api/knowledge/sources/{source_id}/download")
+def knowledge_source_download(source_id: str):
+    """Download a source's media file as an attachment."""
+    path = _safe_media_path(source_id)
+    if path is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(
+        str(path), filename=path.name,
+        content_disposition_type="attachment",
+    )
+
+
+def _safe_upload_path(media_dir: Path, filename: str) -> Optional[Path]:
+    """Resolve an upload target inside media_dir, blocking path traversal."""
+    safe_name = Path(filename or "").name  # strip any path components
+    if not safe_name:
+        return None
+    file_path = (media_dir / safe_name).resolve()
+    media_root = media_dir.resolve()
+    if media_root not in file_path.parents and file_path != media_root:
+        return None
+    return file_path
+
+
+def _safe_media_path(source_id: str) -> Optional[Path]:
+    """Resolve a source's media path, guarding against path traversal."""
+    registry = _get_source_registry()
+    row = registry.get(source_id) if registry else None
+    if row is None or not row["media_path"]:
+        return None
+    media_root = (Path.home() / ".arkaos" / "media").resolve()
+    path = Path(row["media_path"]).resolve()
+    if not path.exists() or media_root not in path.parents:
+        return None
+    return path
 
 
 @app.get("/api/health")

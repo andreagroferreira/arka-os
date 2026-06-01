@@ -22,7 +22,10 @@ does not replace the vault.
 
 # Product Discovery — `/pm discover <opportunity>`
 
-> **Agent:** Carolina (Product Manager) | **Framework:** Continuous Discovery (Teresa Torres)
+> **Agent:** Carolina (Product Manager) + Renata (UX Researcher) | **Framework:** Continuous Discovery (Teresa Torres) + Dual-Track (Cagan)
+> KB: [[Habitos de Descoberta Continua - Teresa Torres]] · [[Inspirado - Marty Cagan]] · [[Personas/Teresa Torres]] · [[Personas/Marty Cagan]]
+>
+> Discovery is a **habit, not a phase**. Map every solution back to an opportunity back to the outcome — **no orphan features**. Ask about specific past behaviour, not hypotheticals (**behavior > self-report**) — pair with Renata's research methods.
 
 ## Opportunity Solution Tree
 
@@ -58,5 +61,8 @@ does not replace the vault.
 - **Viability:** Can we sustain this business-wise?
 - **Feasibility:** Can we build this?
 - **Usability:** Can customers figure this out?
+
+## Dual-Track (Cagan)
+Run discovery for cycle N+1 **in parallel** with delivery shipping cycle N — never sequential phases. Teams get **problems to solve**, not features to build (the 4 product risks above must be tested before a solution is "ready").
 
 ## Output → OST diagram + assumption map + experiment backlog

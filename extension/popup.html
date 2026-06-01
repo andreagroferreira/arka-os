@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ArkaOS Course Recorder</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1117;
+        --panel: #171a22;
+        --text: #e7e9ee;
+        --muted: #9aa3b2;
+        --accent: #6d5efc;
+        --accent-press: #5a4ee0;
+        --ok: #3ecf8e;
+        --err: #ff6b6b;
+        --rec: #ff5a5a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        width: 300px;
+        margin: 0;
+        padding: 16px;
+        font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+      header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+      header h1 { font-size: 14px; font-weight: 600; margin: 0; }
+      .panel {
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .timer {
+        font-variant-numeric: tabular-nums;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-align: center;
+        margin: 4px 0 2px;
+      }
+      .lesson-title {
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+        min-height: 16px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .status .led { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
+      .status.idle .led { background: var(--muted); }
+      .status.recording .led { background: var(--rec); animation: pulse 1s ease-in-out infinite; }
+      .status.uploading .led { background: var(--accent); }
+      .status.done .led { background: var(--ok); }
+      .status.failed .led { background: var(--err); }
+      .status.failed { color: var(--err); }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+      button {
+        width: 100%;
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 12px;
+        font: inherit;
+        font-weight: 600;
+        color: #fff;
+        background: var(--accent);
+        cursor: pointer;
+        transition: background 0.15s ease, opacity 0.15s ease;
+      }
+      button:hover:not(:disabled) { background: var(--accent-press); }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      button.stop { background: var(--rec); }
+      .hint { margin-top: 10px; font-size: 11px; color: var(--muted); text-align: center; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="dot" aria-hidden="true"></span>
+      <h1>ArkaOS Course Recorder</h1>
+    </header>
+
+    <div class="panel">
+      <div id="timer" class="timer" aria-live="off">00:00</div>
+      <div id="lessonTitle" class="lesson-title"></div>
+    </div>
+
+    <div class="panel">
+      <div id="status" class="status idle" role="status" aria-live="polite">
+        <span class="led" aria-hidden="true"></span>
+        <span id="statusText">Idle — open a G4 lesson and press Start.</span>
+      </div>
+    </div>
+
+    <button id="actionBtn" type="button">Start recording</button>
+    <p class="hint">PoC: records this lesson and sends it to ArkaOS for transcription. If the video does not auto-start, press Play on it — recording is already running. Use Stop &amp; upload to finish at any time.</p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

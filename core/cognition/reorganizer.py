@@ -291,26 +291,56 @@ def _safe_int(value: object) -> int:
         return 0
 
 
-def _redact(text: str) -> str:
+def redact_clients(text: str) -> str:
+    """Redact configured client identifiers from arbitrary text.
+
+    Public, reusable wrapper around the module's compiled redaction regex
+    (loaded from ``~/.arkaos/redaction-clients.json``). Returns the text
+    unchanged when no patterns are configured. Used by any propose-only
+    producer — the reorganizer report and the agent-attribution proposal —
+    so client names never leak into a generated artifact.
+    """
     if _REDACT_RE is None:
         return text
     return _REDACT_RE.sub(_REDACT_TOKEN, text)
 
 
-def _md_escape(text: str) -> str:
-    """Escape markdown control characters that would distort a table row.
+def _redact(text: str) -> str:
+    return redact_clients(text)
 
-    Titles and excerpts come from frontmatter the operator controls, but
-    a `|` in a title silently shifts table columns and corrupts the raw-
-    artifact table. Escape pipes, newlines, and stray backticks.
+
+def md_escape(text: str) -> str:
+    """Neutralise untrusted text for an HTML-rendering markdown viewer.
+
+    Public, reusable wrapper. Titles and excerpts come from untrusted
+    sources (web page titles, YouTube/PDF metadata) and land in .md files
+    that the user opens in viewers such as Obsidian, which render raw HTML
+    inside markdown. To prevent stored HTML/JS injection (CWE-79) we
+    HTML-escape ``<``/``>`` to ``&lt;``/``&gt;`` so any tag renders as
+    literal text. We also escape pipes/backslashes (a ``|`` silently shifts
+    table columns), strip backticks, and flatten newlines so an untrusted
+    title can never distort or execute inside the rendered artifact. Used by
+    the reorganizer report and the agent-attribution proposal.
+
+    Callers redact client names *before* escaping, so the trusted
+    ``<redacted-client>`` marker may already be present; it is preserved
+    verbatim while every other angle bracket is neutralised.
     """
-    return (
+    escaped = (
         text.replace("\\", "\\\\")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
             .replace("|", "\\|")
             .replace("\n", " ")
             .replace("\r", " ")
             .replace("`", "")
     )
+    escaped_token = _REDACT_TOKEN.replace("<", "&lt;").replace(">", "&gt;")
+    return escaped.replace(escaped_token, _REDACT_TOKEN)
+
+
+def _md_escape(text: str) -> str:
+    return md_escape(text)
 
 
 def _body_excerpt(body: str) -> str:

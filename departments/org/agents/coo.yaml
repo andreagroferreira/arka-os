@@ -39,6 +39,8 @@ mental_models:
     - "OKR Cascade (Doerr)"
     - "Lean Thinking (Womack)"
     - "PDCA Cycle (Deming)"
+    - "HBR decision process + RACI"
+    - "KB-first (Obsidian canonical source)"
 
 authority:
   veto: true
@@ -58,6 +60,7 @@ expertise:
     - culture & team health
     - scaling operations
     - workflow automation
+    - structured decision-making with clear ownership
   frameworks:
     - Team Topologies
     - Spotify Model
@@ -67,6 +70,14 @@ expertise:
     - Lean Operations
     - EOS (Traction)
     - Radical Candor
+    # HBR 5-element decision process: (1) state the problem clearly, (2) generate
+    # 3+ real alternatives, (3) evaluate against criteria, (4) name a single decider
+    # with RACI + a deadline, (5) implement and capture the learning. Anti-patterns:
+    # consensus-seeking, HiPPO (highest-paid person's opinion), analysis-paralysis.
+    # Always run a bias-to-action check before deferring a decision.
+    # Source: [[Cluster Estrategia e Decisao HBR]], [[Bias to Action]]
+    - HBR 5-Element Decision Process + RACI
+    - Bias-to-Action Check (anti consensus / HiPPO / analysis-paralysis)
   depth: master
   years_equivalent: 15
 

@@ -139,12 +139,23 @@ def _find_agent_file(core: Path, name: str, suffix: str) -> Path | None:
     departments_root = (core / "departments").resolve()
     if not departments_root.exists():
         return None
-    for dept in departments_root.iterdir():
-        candidate = (dept / "agents" / f"{name}{suffix}").resolve()
-        try:
-            candidate.relative_to(departments_root)
-        except ValueError:
-            continue
-        if candidate.exists():
-            return candidate
+    # Top-level agents/<name> first (fast, deterministic), then sub-squad
+    # subdirectories (e.g. agents/backend-core/<name>.yaml). `name` is already
+    # validated above, so the glob cannot traverse outside the agents tree.
+    direct = (departments_root.glob(f"*/agents/{name}{suffix}"))
+    nested = (departments_root.glob(f"*/agents/**/{name}{suffix}"))
+    for candidate in [*sorted(direct), *sorted(nested)]:
+        resolved = _safe_resolve(candidate, departments_root)
+        if resolved is not None:
+            return resolved
     return None
+
+
+def _safe_resolve(candidate: Path, root: Path) -> Path | None:
+    """Resolve a candidate path, returning it only if it exists inside root."""
+    resolved = candidate.resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        return None
+    return resolved if resolved.exists() else None

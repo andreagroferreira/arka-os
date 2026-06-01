@@ -26,9 +26,14 @@ interface Status {
 
 const { apiBase } = useApi()
 
+// Sentinel for the "All tags" option. Reka UI forbids an empty-string
+// SelectItem value (it is reserved for clearing the selection), so the
+// "show everything" choice needs a non-empty, collision-safe value.
+const ALL_TAGS = '__all__'
+
 const days = ref(7)
 const confidenceFilter = ref<'all' | 'high' | 'medium' | 'low'>('all')
-const tagFilter = ref('')
+const tagFilter = ref(ALL_TAGS)
 const insights = ref<Insight[]>([])
 const status = ref<Status | null>(null)
 const available = ref(true)
@@ -70,7 +75,7 @@ onMounted(refresh)
 // Reset the tag filter when the window changes — a tag may not exist in the
 // new window, which would otherwise strand the user on an empty result.
 watch(days, () => {
-  tagFilter.value = ''
+  tagFilter.value = ALL_TAGS
   refresh()
 })
 
@@ -82,7 +87,7 @@ const allTags = computed(() => {
 
 const filtered = computed(() => insights.value.filter((i) => {
   if (confidenceFilter.value !== 'all' && i.confidence !== confidenceFilter.value) return false
-  if (tagFilter.value && !i.tags.includes(tagFilter.value)) return false
+  if (tagFilter.value !== ALL_TAGS && !i.tags.includes(tagFilter.value)) return false
   return true
 }))
 
@@ -204,7 +209,7 @@ const isActive = computed(() => {
           <USelect
             v-if="allTags.length"
             v-model="tagFilter"
-            :items="[{ label: 'All tags', value: '' }, ...allTags.map(t => ({ label: '#' + t, value: t }))]"
+            :items="[{ label: 'All tags', value: ALL_TAGS }, ...allTags.map(t => ({ label: '#' + t, value: t }))]"
             size="sm"
             class="w-40"
           />

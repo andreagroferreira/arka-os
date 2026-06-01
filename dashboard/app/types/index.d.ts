@@ -151,7 +151,7 @@ export interface KnowledgeSearchResult {
 
 export interface IngestRequest {
   source: string
-  type: 'youtube' | 'web' | 'pdf' | 'audio' | 'markdown'
+  type: 'youtube' | 'web' | 'pdf' | 'audio' | 'markdown' | 'video'
 }
 
 export interface IngestResponse {

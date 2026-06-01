@@ -1,38 +1,39 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-04-05T00:50:24.536983",
-    "total_agents": 62,
+    "generated": "2026-05-31T22:40:34.814061",
+    "total_agents": 82,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
-      "1": 15,
-      "2": 41,
-      "0": 6
+      "1": 18,
+      "2": 55,
+      "0": 6,
+      "3": 3
     },
     "departments": {
-      "brand": 4,
+      "brand": 10,
       "community": 3,
       "content": 4,
-      "dev": 9,
+      "dev": 15,
       "ecom": 4,
       "finance": 3,
-      "kb": 3,
+      "kb": 4,
       "landing": 4,
       "leadership": 3,
       "marketing": 4,
-      "ops": 2,
-      "org": 3,
-      "pm": 3,
+      "ops": 3,
+      "org": 5,
+      "pm": 4,
       "quality": 3,
-      "saas": 4,
-      "sales": 3,
-      "strategy": 3
+      "saas": 5,
+      "sales": 4,
+      "strategy": 4
     },
     "disc_distribution": {
-      "S": 10,
-      "C": 21,
-      "I": 16,
-      "D": 15
+      "S": 11,
+      "C": 36,
+      "D": 18,
+      "I": 17
     }
   },
   "agents": [
@@ -42,6 +43,8 @@
       "role": "Creative Director",
       "department": "brand",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "I",
@@ -78,6 +81,7 @@
         "Wheeler Process",
         "Atomic Design (Frost)"
       ],
+      "knowledge_sources": [],
       "file": "departments/brand/agents/brand-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-brand-director-valentina/MEMORY.md"
     },
@@ -87,6 +91,8 @@
       "role": "Brand Strategist",
       "department": "brand",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "I",
@@ -120,8 +126,192 @@
         "SMILE/SCRATCH Naming (Watkins)",
         "Golden Circle (Sinek)"
       ],
+      "knowledge_sources": [],
       "file": "departments/brand/agents/brand-strategist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-brand-strategist-mateus/MEMORY.md"
+    },
+    {
+      "id": "design-ops-lead-iris",
+      "name": "Iris",
+      "role": "Design Ops Lead",
+      "department": "brand",
+      "tier": 1,
+      "parent_squad": "brand",
+      "sub_squad_role": "lead",
+      "disc": {
+        "primary": "D",
+        "secondary": "C",
+        "label": "Driver-Analyst"
+      },
+      "enneagram": {
+        "type": 8,
+        "wing": 9,
+        "label": "8w9 — The Challenger"
+      },
+      "big_five": {
+        "O": 60,
+        "C": 88,
+        "E": 52,
+        "A": 55,
+        "N": 28
+      },
+      "mbti": "ESTJ",
+      "authority": {
+        "approve_quality": true,
+        "orchestrate": true
+      },
+      "expertise_domains": [
+        "design tokens (JSON + CSS variables)",
+        "component libraries (shadcn/ui, Radix, Headless UI)",
+        "design system governance",
+        "figma → code pipelines",
+        "accessibility compliance (WCAG 2.2 AA/AAA)"
+      ],
+      "frameworks": [
+        "Atomic Design (Frost)",
+        "Design Tokens Community Group",
+        "WCAG 2.2",
+        "Style Dictionary",
+        "shadcn/ui conventions"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/brand/agents/design-ops/design-ops-lead.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-design-ops-lead-iris/MEMORY.md"
+    },
+    {
+      "id": "extraction-script-writer-nia",
+      "name": "Nia",
+      "role": "Design Extraction Engineer",
+      "department": "brand",
+      "tier": 2,
+      "parent_squad": "brand",
+      "sub_squad_role": "extraction-script-writer",
+      "disc": {
+        "primary": "C",
+        "secondary": "D",
+        "label": "Analyst-Driver"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 78,
+        "C": 82,
+        "E": 35,
+        "A": 50,
+        "N": 30
+      },
+      "mbti": "INTP",
+      "authority": {},
+      "expertise_domains": [
+        "CSS extraction (computed styles, custom properties)",
+        "color palette reverse-engineering from screenshots / live DOM",
+        "typography token harvesting (font-family, size, weight, line-height scales)",
+        "spacing and grid token inference",
+        "figma file parsing"
+      ],
+      "frameworks": [
+        "W3C Design Tokens spec",
+        "Style Dictionary",
+        "Tailwind CSS token format",
+        "shadcn/ui CSS variable convention",
+        "DTCG JSON schema"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/brand/agents/design-ops/extraction-script-writer.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-extraction-script-writer-nia/MEMORY.md"
+    },
+    {
+      "id": "shadcn-padronizer-leo",
+      "name": "Leo",
+      "role": "Component Library Padronizer",
+      "department": "brand",
+      "tier": 2,
+      "parent_squad": "brand",
+      "sub_squad_role": "shadcn-padronizer",
+      "disc": {
+        "primary": "C",
+        "secondary": "I",
+        "label": "Analyst-Inspirer"
+      },
+      "enneagram": {
+        "type": 1,
+        "wing": 9,
+        "label": "1w9 — The Reformer"
+      },
+      "big_five": {
+        "O": 65,
+        "C": 84,
+        "E": 50,
+        "A": 58,
+        "N": 30
+      },
+      "mbti": "ISTP",
+      "authority": {},
+      "expertise_domains": [
+        "shadcn/ui component generation and customisation",
+        "Radix UI primitives integration",
+        "Tailwind configuration and theme tokens",
+        "CVA variants and slot patterns",
+        "dark mode and theme switching"
+      ],
+      "frameworks": [
+        "shadcn/ui",
+        "Radix UI",
+        "React Aria (Adobe)",
+        "Tailwind CSS",
+        "class-variance-authority"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/brand/agents/design-ops/shadcn-padronizer.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-shadcn-padronizer-leo/MEMORY.md"
+    },
+    {
+      "id": "wcag-auditor-oren",
+      "name": "Oren",
+      "role": "Accessibility Auditor",
+      "department": "brand",
+      "tier": 2,
+      "parent_squad": "brand",
+      "sub_squad_role": "wcag-auditor",
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 1,
+        "wing": 2,
+        "label": "1w2 — The Reformer"
+      },
+      "big_five": {
+        "O": 55,
+        "C": 92,
+        "E": 38,
+        "A": 68,
+        "N": 32
+      },
+      "mbti": "ISTJ",
+      "authority": {},
+      "expertise_domains": [
+        "WCAG 2.2 AA / AAA conformance auditing",
+        "color contrast ratio analysis (4.5:1 text, 3:1 large text and UI)",
+        "keyboard navigation and focus management",
+        "screen reader compatibility (NVDA, JAWS, VoiceOver)",
+        "ARIA pattern review (no-redundant-roles, correct landmarks)"
+      ],
+      "frameworks": [
+        "WCAG 2.2",
+        "WAI-ARIA 1.2",
+        "ATAG 2.0",
+        "EAA / EN 301 549",
+        "axe-core ruleset"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/brand/agents/design-ops/wcag-auditor.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-wcag-auditor-oren/MEMORY.md"
     },
     {
       "id": "ux-designer-sofia-d",
@@ -129,6 +319,8 @@
       "role": "UX/UI Designer",
       "department": "brand",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "I",
@@ -149,21 +341,122 @@
       "mbti": "INFJ",
       "authority": {},
       "expertise_domains": [
+        "product design (end-to-end, problem → outcome)",
+        "human-centered design (Norman — affordances, signifiers, mental models)",
         "UX research & user testing",
-        "wireframing & prototyping",
-        "information architecture",
-        "interaction design",
-        "design systems"
+        "guerrilla / lightweight usability testing (Krug)",
+        "wireframing & prototyping"
       ],
       "frameworks": [
+        "Don Norman — Human-Centered Design (affordances, signifiers, feedback, mapping)",
         "Nielsen 10 Heuristics",
-        "Laws of UX (Yablonski)",
-        "Double Diamond",
-        "Design Thinking (IDEO)",
-        "Atomic Design"
+        "Steve Krug — Don't Make Me Think (self-evidence, guerrilla testing)",
+        "Dieter Rams — 10 Principles of Good Design",
+        "Laws of UX (Yablonski)"
+      ],
+      "knowledge_sources": [
+        "[[Area 02 - Design]]",
+        "[[Design Studio - Colaboração Multidisciplinar]]"
       ],
       "file": "departments/brand/agents/ux-designer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-ux-designer-sofia-d/MEMORY.md"
+    },
+    {
+      "id": "ux-researcher-renata",
+      "name": "Renata",
+      "role": "UX Researcher",
+      "department": "brand",
+      "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 82,
+        "C": 82,
+        "E": 40,
+        "A": 60,
+        "N": 26
+      },
+      "mbti": "INFJ",
+      "authority": {},
+      "expertise_domains": [
+        "moderated & unmoderated usability testing",
+        "user interviews & ethnography",
+        "surveys (n >= 2000) & guerrilla research",
+        "research ops & insight repositories",
+        "consent & research ethics"
+      ],
+      "frameworks": [
+        "6 UX Research Methods (Trade-Off Matrix)",
+        "Guerrilla UX Research",
+        "Provisional Personas & Validation",
+        "Jobs-to-be-Done"
+      ],
+      "knowledge_sources": [
+        "[[Personas/Stephanie Marsh]]",
+        "[[6 Métodos de UX Research (Trade-Off Matrix)]]",
+        "[[Pesquisa de Guerrilha (Guerrilla UX Research)]]",
+        "[[Personas Provisórias e Validação com Usuários]]"
+      ],
+      "file": "departments/brand/agents/ux-researcher.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-ux-researcher-renata/MEMORY.md"
+    },
+    {
+      "id": "ux-strategist-julia",
+      "name": "Júlia",
+      "role": "UX Strategist",
+      "department": "brand",
+      "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "I",
+        "label": "Analyst-Inspirer"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 4,
+        "label": "5w4 — The Investigator"
+      },
+      "big_five": {
+        "O": 88,
+        "C": 80,
+        "E": 48,
+        "A": 48,
+        "N": 28
+      },
+      "mbti": "INTJ",
+      "authority": {},
+      "expertise_domains": [
+        "UX strategy (business value + innovation before UI)",
+        "value proposition design",
+        "provisional personas & validation",
+        "competitive value innovation (blue ocean)",
+        "storyboard & concept before pixels"
+      ],
+      "frameworks": [
+        "4 Elements of UX Strategy (Levy)",
+        "Blue Ocean / Value Innovation",
+        "Provisional Personas",
+        "Lean UX"
+      ],
+      "knowledge_sources": [
+        "[[Personas/Jaime Levy]]",
+        "[[4 Elementos Centrais da UX Strategy]]",
+        "[[Topics/Estratégia de UX e Design Centrado no Usuário]]"
+      ],
+      "file": "departments/brand/agents/ux-strategist.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-ux-strategist-julia/MEMORY.md"
     },
     {
       "id": "visual-designer-isabel",
@@ -171,6 +464,8 @@
       "role": "Visual Designer",
       "department": "brand",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "S",
@@ -204,6 +499,7 @@
         "Typography Hierarchy",
         "Brand Identity Process (Wheeler)"
       ],
+      "knowledge_sources": [],
       "file": "departments/brand/agents/visual-designer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-visual-designer-isabel/MEMORY.md"
     },
@@ -213,6 +509,8 @@
       "role": "Community Manager",
       "department": "community",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "S",
@@ -245,6 +543,7 @@
         "Moderation Rules & Escalation",
         "Event Formats (AMA, workshop, challenge)"
       ],
+      "knowledge_sources": [],
       "file": "departments/community/agents/community-manager.yaml",
       "memory_path": "~/.claude/agent-memory/arka-community-manager-maria/MEMORY.md"
     },
@@ -254,6 +553,8 @@
       "role": "Community Strategist",
       "department": "community",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "S",
@@ -289,6 +590,7 @@
         "1000 True Fans (Kelly)",
         "Membership Economy (Baxter)"
       ],
+      "knowledge_sources": [],
       "file": "departments/community/agents/community-strategist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-community-strategist-beatriz/MEMORY.md"
     },
@@ -298,6 +600,8 @@
       "role": "Engagement & Gamification Designer",
       "department": "community",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "C",
@@ -330,6 +634,7 @@
         "Engagement Loop Design",
         "Event Formats Matrix"
       ],
+      "knowledge_sources": [],
       "file": "departments/community/agents/engagement-designer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-engagement-designer-tania/MEMORY.md"
     },
@@ -339,6 +644,8 @@
       "role": "Content Strategist",
       "department": "content",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -374,6 +681,7 @@
         "Platform Algorithms (YouTube/TikTok/IG/LinkedIn)",
         "Content-to-Revenue Pipeline"
       ],
+      "knowledge_sources": [],
       "file": "departments/content/agents/content-strategist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-content-strategist-rafael/MEMORY.md"
     },
@@ -383,6 +691,8 @@
       "role": "Repurpose & Distribution Specialist",
       "department": "content",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -415,6 +725,7 @@
         "Platform Algorithm Signals",
         "Content-to-Revenue Pipeline"
       ],
+      "knowledge_sources": [],
       "file": "departments/content/agents/repurpose-distributor.yaml",
       "memory_path": "~/.claude/agent-memory/arka-repurpose-distributor-nuno/MEMORY.md"
     },
@@ -424,6 +735,8 @@
       "role": "Scriptwriter",
       "department": "content",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "C",
@@ -456,6 +769,7 @@
         "AIDA for video",
         "MrBeast Retention Techniques"
       ],
+      "knowledge_sources": [],
       "file": "departments/content/agents/scriptwriter.yaml",
       "memory_path": "~/.claude/agent-memory/arka-scriptwriter-joana/MEMORY.md"
     },
@@ -465,6 +779,8 @@
       "role": "Viral Content Engineer",
       "department": "content",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -497,8 +813,57 @@
         "MrBeast Title/Thumb Method",
         "Platform-Specific Signals"
       ],
+      "knowledge_sources": [],
       "file": "departments/content/agents/viral-engineer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-viral-engineer-filipe/MEMORY.md"
+    },
+    {
+      "id": "ai-engineering-lead-salvador",
+      "name": "Salvador",
+      "role": "AI Engineering Specialist",
+      "department": "dev",
+      "tier": 2,
+      "parent_squad": "dev",
+      "sub_squad_role": "lead",
+      "disc": {
+        "primary": "D",
+        "secondary": "C",
+        "label": "Driver-Analyst"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 90,
+        "C": 72,
+        "E": 50,
+        "A": 48,
+        "N": 28
+      },
+      "mbti": "INTJ",
+      "authority": {
+        "push_code": true,
+        "orchestrate": true
+      },
+      "expertise_domains": [
+        "RAG pipelines (chunking, embeddings, rerank)",
+        "Vector stores (sqlite-vec, pgvector, Qdrant)",
+        "Agent flows & tool orchestration",
+        "MCP server design & implementation",
+        "Laravel AI SDK / Prism & echolabs"
+      ],
+      "frameworks": [
+        "RAG",
+        "Model Context Protocol (MCP)",
+        "Eval-driven development",
+        "Agentic patterns (ReAct, handoffs)",
+        "Prism / Laravel AI SDK"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/dev/agents/ai-engineering/ai-engineering-lead.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-ai-engineering-lead-salvador/MEMORY.md"
     },
     {
       "id": "architect-gabriel",
@@ -506,6 +871,8 @@
       "role": "Software Architect",
       "department": "dev",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -529,27 +896,171 @@
       },
       "expertise_domains": [
         "system design",
-        "domain modeling",
-        "API design",
-        "data architecture",
-        "integration patterns"
+        "domain modeling (event storming, bounded contexts)",
+        "design patterns (GoF, PoEAA)",
+        "business / domain analysis",
+        "API design"
       ],
       "frameworks": [
         "DDD (Evans/Vernon)",
-        "Clean Architecture",
-        "Hexagonal (Ports & Adapters)",
-        "Vertical Slice",
-        "Microservices Patterns (Newman)"
+        "Strategic DDD (context mapping)",
+        "Event Storming (Brandolini)",
+        "GoF Design Patterns",
+        "Enterprise Patterns (Fowler PoEAA)"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/architect.yaml",
       "memory_path": "~/.claude/agent-memory/arka-architect-gabriel/MEMORY.md"
     },
     {
-      "id": "backend-dev-andre",
-      "name": "Andre",
-      "role": "Senior Backend Developer",
+      "id": "laravel-eng-goncalo",
+      "name": "Gonçalo",
+      "role": "Laravel Specialist",
       "department": "dev",
       "tier": 2,
+      "parent_squad": "dev",
+      "sub_squad_role": "laravel-specialist",
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 72,
+        "C": 90,
+        "E": 30,
+        "A": 55,
+        "N": 22
+      },
+      "mbti": "INTJ",
+      "authority": {
+        "push_code": true
+      },
+      "expertise_domains": [
+        "Laravel 11/12 & PHP 8.3/8.4",
+        "Eloquent, migrations, query optimization",
+        "Form Requests, API Resources, Policies",
+        "Queues & Horizon, Events, Jobs, Pennant",
+        "Pest / PHPUnit feature testing"
+      ],
+      "frameworks": [
+        "Laravel Conventions",
+        "Clean Architecture",
+        "DDD Tactical",
+        "TDD (Pest)",
+        "PSR standards"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/dev/agents/backend-core/laravel-eng.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-laravel-eng-goncalo/MEMORY.md"
+    },
+    {
+      "id": "node-ts-eng-vera",
+      "name": "Vera",
+      "role": "Node.js / TypeScript Backend Specialist",
+      "department": "dev",
+      "tier": 2,
+      "parent_squad": "dev",
+      "sub_squad_role": "node-ts-specialist",
+      "disc": {
+        "primary": "C",
+        "secondary": "D",
+        "label": "Analyst-Driver"
+      },
+      "enneagram": {
+        "type": 3,
+        "wing": 4,
+        "label": "3w4 — The Achiever"
+      },
+      "big_five": {
+        "O": 75,
+        "C": 82,
+        "E": 45,
+        "A": 50,
+        "N": 25
+      },
+      "mbti": "INTJ",
+      "authority": {
+        "push_code": true
+      },
+      "expertise_domains": [
+        "Node.js & Bun runtimes",
+        "TypeScript (strict, generics, inference)",
+        "NestJS / Hono / Express / Fastify",
+        "Drizzle / Prisma ORM",
+        "Zod validation & type-safe contracts"
+      ],
+      "frameworks": [
+        "NestJS",
+        "Hono",
+        "TypeScript strict",
+        "Zod",
+        "Clean Architecture"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/dev/agents/backend-core/node-ts-eng.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-node-ts-eng-vera/MEMORY.md"
+    },
+    {
+      "id": "python-eng-diogo",
+      "name": "Diogo",
+      "role": "Python Backend Specialist",
+      "department": "dev",
+      "tier": 2,
+      "parent_squad": "dev",
+      "sub_squad_role": "python-specialist",
+      "disc": {
+        "primary": "C",
+        "secondary": "I",
+        "label": "Analyst-Inspirer"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 4,
+        "label": "5w4 — The Investigator"
+      },
+      "big_five": {
+        "O": 85,
+        "C": 80,
+        "E": 40,
+        "A": 58,
+        "N": 28
+      },
+      "mbti": "INTP",
+      "authority": {
+        "push_code": true
+      },
+      "expertise_domains": [
+        "Python 3.12 (type hints, async/await)",
+        "FastAPI & Django / DRF",
+        "Pydantic v2 data modeling",
+        "SQLAlchemy / asyncpg",
+        "Celery / task queues"
+      ],
+      "frameworks": [
+        "FastAPI",
+        "Django",
+        "Pydantic",
+        "Clean Architecture",
+        "TDD (pytest)"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/dev/agents/backend-core/python-eng.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-python-eng-diogo/MEMORY.md"
+    },
+    {
+      "id": "backend-dev-andre",
+      "name": "Andre",
+      "role": "Backend Core Lead",
+      "department": "dev",
+      "tier": 2,
+      "parent_squad": "dev",
+      "sub_squad_role": "lead",
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -585,6 +1096,7 @@
         "Laravel Conventions",
         "API Resources"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/backend-dev.yaml",
       "memory_path": "~/.claude/agent-memory/arka-backend-dev-andre/MEMORY.md"
     },
@@ -594,6 +1106,8 @@
       "role": "Chief Technology Officer",
       "department": "dev",
       "tier": 0,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "C",
@@ -632,15 +1146,65 @@
         "Accelerate",
         "Wardley Maps"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/cto.yaml",
       "memory_path": "~/.claude/agent-memory/arka-cto-marco/MEMORY.md"
     },
     {
-      "id": "dba-data-eng",
-      "name": "Vasco",
-      "role": "Database & Data Engineer",
+      "id": "etl-eng-duarte",
+      "name": "Duarte",
+      "role": "Data / ETL Engineer",
       "department": "dev",
       "tier": 2,
+      "parent_squad": "dev",
+      "sub_squad_role": "etl-specialist",
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 6,
+        "wing": 5,
+        "label": "6w5 — The Loyalist"
+      },
+      "big_five": {
+        "O": 60,
+        "C": 92,
+        "E": 28,
+        "A": 60,
+        "N": 20
+      },
+      "mbti": "ISTJ",
+      "authority": {
+        "push_code": true
+      },
+      "expertise_domains": [
+        "Batch & streaming pipelines",
+        "dbt transformations & tests",
+        "Airflow / Dagster orchestration",
+        "CDC & incremental loads",
+        "Data quality & validation (Great Expectations)"
+      ],
+      "frameworks": [
+        "dbt",
+        "Medallion Architecture",
+        "Data Contracts",
+        "Kimball dimensional modeling",
+        "Idempotent pipeline design"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/dev/agents/data-platform/etl-eng.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-etl-eng-duarte/MEMORY.md"
+    },
+    {
+      "id": "dba-data-eng",
+      "name": "Vasco",
+      "role": "Data Platform Lead (Database & Data Engineer)",
+      "department": "dev",
+      "tier": 2,
+      "parent_squad": "dev",
+      "sub_squad_role": "lead",
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -674,6 +1238,7 @@
         "Event Sourcing Data Model",
         "RLS Policies"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/dba.yaml",
       "memory_path": "~/.claude/agent-memory/arka-dba-data-eng/MEMORY.md"
     },
@@ -683,6 +1248,8 @@
       "role": "DevOps Lead",
       "department": "dev",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "C",
@@ -719,6 +1286,7 @@
         "12-Factor App",
         "SRE Principles (Google)"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/devops-eng.yaml",
       "memory_path": "~/.claude/agent-memory/arka-devops-eng-carlos/MEMORY.md"
     },
@@ -728,6 +1296,8 @@
       "role": "Senior Frontend Developer",
       "department": "dev",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "C",
@@ -763,6 +1333,7 @@
         "Nielsen Heuristics",
         "CWV Optimization"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/frontend-dev.yaml",
       "memory_path": "~/.claude/agent-memory/arka-frontend-dev-diana/MEMORY.md"
     },
@@ -772,6 +1343,8 @@
       "role": "QA Engineer",
       "department": "dev",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -807,8 +1380,51 @@
         "Contract Testing (Pact)",
         "Mutation Testing (Stryker/Infection)"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/qa-eng.yaml",
       "memory_path": "~/.claude/agent-memory/arka-qa-eng-rita/MEMORY.md"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Maria",
+      "role": "Research Assistant",
+      "department": "dev",
+      "tier": 3,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 90,
+        "C": 85,
+        "E": 30,
+        "A": 70,
+        "N": 35
+      },
+      "mbti": "INTP",
+      "authority": {},
+      "expertise_domains": [
+        "research",
+        "documentation",
+        "analysis",
+        "literature-review"
+      ],
+      "frameworks": [
+        "Systematic Review",
+        "PRISMA",
+        "Research Methodology"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/dev/agents/research-assistant.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-research-assistant/MEMORY.md"
     },
     {
       "id": "security-eng-bruno",
@@ -816,6 +1432,8 @@
       "role": "Security Engineer",
       "department": "dev",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -851,6 +1469,7 @@
         "NIST Cybersecurity Framework",
         "Zero Trust"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/security-eng.yaml",
       "memory_path": "~/.claude/agent-memory/arka-security-eng-bruno/MEMORY.md"
     },
@@ -860,6 +1479,8 @@
       "role": "Tech Lead",
       "department": "dev",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "S",
@@ -896,6 +1517,7 @@
         "Shape Up",
         "Code Review Best Practices"
       ],
+      "knowledge_sources": [],
       "file": "departments/dev/agents/tech-lead.yaml",
       "memory_path": "~/.claude/agent-memory/arka-tech-lead-paulo/MEMORY.md"
     },
@@ -905,6 +1527,8 @@
       "role": "Commerce Engineer",
       "department": "ecom",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -939,6 +1563,7 @@
         "Shopify APIs",
         "Commerce Performance Budget"
       ],
+      "knowledge_sources": [],
       "file": "departments/ecom/agents/commerce-engineer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-commerce-engineer-david/MEMORY.md"
     },
@@ -948,6 +1573,8 @@
       "role": "CRO Specialist",
       "department": "ecom",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -980,6 +1607,7 @@
         "PIE/ICE Prioritization",
         "Statistical Significance Testing"
       ],
+      "knowledge_sources": [],
       "file": "departments/ecom/agents/cro-specialist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-cro-specialist-ecom-alice/MEMORY.md"
     },
@@ -989,6 +1617,8 @@
       "role": "E-Commerce Director",
       "department": "ecom",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -1024,15 +1654,18 @@
         "MACH Architecture",
         "Baymard UX Guidelines"
       ],
+      "knowledge_sources": [],
       "file": "departments/ecom/agents/ecom-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-ecom-director-ricardo/MEMORY.md"
     },
     {
       "id": "retention-manager-catarina",
       "name": "Catarina",
-      "role": "Retention & Email Manager",
+      "role": "Lifecycle & Retention Manager",
       "department": "ecom",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "I",
@@ -1066,6 +1699,7 @@
         "Customer Lifecycle Stages",
         "Subscription Models"
       ],
+      "knowledge_sources": [],
       "file": "departments/ecom/agents/retention-manager.yaml",
       "memory_path": "~/.claude/agent-memory/arka-retention-manager-catarina/MEMORY.md"
     },
@@ -1075,6 +1709,8 @@
       "role": "Chief Financial Officer",
       "department": "finance",
       "tier": 0,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "C",
@@ -1112,6 +1748,7 @@
         "COSO ERM",
         "FP&A Cycle"
       ],
+      "knowledge_sources": [],
       "file": "departments/finance/agents/cfo.yaml",
       "memory_path": "~/.claude/agent-memory/arka-cfo-helena/MEMORY.md"
     },
@@ -1121,6 +1758,8 @@
       "role": "Financial Analyst",
       "department": "finance",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -1154,6 +1793,7 @@
         "Monte Carlo Simulation",
         "Scenario Analysis"
       ],
+      "knowledge_sources": [],
       "file": "departments/finance/agents/financial-analyst.yaml",
       "memory_path": "~/.claude/agent-memory/arka-financial-analyst-leonor/MEMORY.md"
     },
@@ -1163,6 +1803,8 @@
       "role": "Investment & Fundraising Strategist",
       "department": "finance",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -1196,8 +1838,50 @@
         "Pitch Deck Framework (10 slides)",
         "BATNA Negotiation"
       ],
+      "knowledge_sources": [],
       "file": "departments/finance/agents/investment-strategist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-investment-strategist-rui/MEMORY.md"
+    },
+    {
+      "id": "data-collector",
+      "name": "Tomas Jr",
+      "role": "Data Collector",
+      "department": "kb",
+      "tier": 3,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "D",
+        "label": "Analyst-Driver"
+      },
+      "enneagram": {
+        "type": 6,
+        "wing": 5,
+        "label": "6w5 — The Loyalist"
+      },
+      "big_five": {
+        "O": 70,
+        "C": 88,
+        "E": 35,
+        "A": 65,
+        "N": 40
+      },
+      "mbti": "ISTJ",
+      "authority": {},
+      "expertise_domains": [
+        "data-collection",
+        "web-scraping",
+        "API-integration",
+        "data-validation"
+      ],
+      "frameworks": [
+        "ETL",
+        "Data Quality Framework"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/kb/agents/data-collector.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-data-collector/MEMORY.md"
     },
     {
       "id": "knowledge-curator-helena-c",
@@ -1205,6 +1889,8 @@
       "role": "Knowledge Curator",
       "department": "kb",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "C",
@@ -1238,6 +1924,7 @@
         "LYT/MOCs (Nick Milo)",
         "Evergreen Notes (Matuschak)"
       ],
+      "knowledge_sources": [],
       "file": "departments/kb/agents/knowledge-curator.yaml",
       "memory_path": "~/.claude/agent-memory/arka-knowledge-curator-helena-c/MEMORY.md"
     },
@@ -1247,6 +1934,8 @@
       "role": "Knowledge Director",
       "department": "kb",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "C",
@@ -1282,6 +1971,7 @@
         "LYT (Linking Your Thinking)",
         "CRAAP Test (source evaluation)"
       ],
+      "knowledge_sources": [],
       "file": "departments/kb/agents/knowledge-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-knowledge-director-clara/MEMORY.md"
     },
@@ -1291,6 +1981,8 @@
       "role": "Research Analyst",
       "department": "kb",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "I",
@@ -1324,6 +2016,7 @@
         "Competitive Intelligence Framework",
         "AI Research Workflow (Elicit, Perplexity, Claude)"
       ],
+      "knowledge_sources": [],
       "file": "departments/kb/agents/research-analyst.yaml",
       "memory_path": "~/.claude/agent-memory/arka-research-analyst-francisco/MEMORY.md"
     },
@@ -1333,6 +2026,8 @@
       "role": "Affiliate & Partnerships Manager",
       "department": "landing",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "D",
@@ -1365,6 +2060,7 @@
         "Commission Models (CPA, RevShare)",
         "JV Launch (Jeff Walker)"
       ],
+      "knowledge_sources": [],
       "file": "departments/landing/agents/affiliate-manager.yaml",
       "memory_path": "~/.claude/agent-memory/arka-affiliate-manager-sergio/MEMORY.md"
     },
@@ -1374,6 +2070,8 @@
       "role": "Conversion Strategist",
       "department": "landing",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -1409,6 +2107,7 @@
         "PLF (Walker)",
         "AIDA/PAS/PASTOR"
       ],
+      "knowledge_sources": [],
       "file": "departments/landing/agents/conversion-strategist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-conversion-strategist-ines/MEMORY.md"
     },
@@ -1418,6 +2117,8 @@
       "role": "CRO Specialist",
       "department": "landing",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -1451,6 +2152,7 @@
         "Statistical Significance Testing",
         "Heuristic Analysis"
       ],
+      "knowledge_sources": [],
       "file": "departments/landing/agents/cro-specialist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-cro-specialist-landing-hugo/MEMORY.md"
     },
@@ -1460,6 +2162,8 @@
       "role": "Sales Copywriter",
       "department": "landing",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "D",
@@ -1493,6 +2197,7 @@
         "StoryBrand SB7",
         "Schwartz 5 Awareness Levels"
       ],
+      "knowledge_sources": [],
       "file": "departments/landing/agents/sales-copywriter.yaml",
       "memory_path": "~/.claude/agent-memory/arka-sales-copywriter-teresa/MEMORY.md"
     },
@@ -1502,6 +2207,8 @@
       "role": "Culture & Performance Coach",
       "department": "leadership",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "I",
@@ -1535,6 +2242,7 @@
         "Keeper Test",
         "DISC Communication Adaptation"
       ],
+      "knowledge_sources": [],
       "file": "departments/leadership/agents/culture-coach.yaml",
       "memory_path": "~/.claude/agent-memory/arka-culture-coach-paula/MEMORY.md"
     },
@@ -1544,6 +2252,8 @@
       "role": "HR & Talent Specialist",
       "department": "leadership",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "C",
@@ -1577,6 +2287,7 @@
         "Structured Interview Rubrics",
         "Career Ladder Framework"
       ],
+      "knowledge_sources": [],
       "file": "departments/leadership/agents/hr-specialist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-hr-specialist-diana-r/MEMORY.md"
     },
@@ -1586,6 +2297,8 @@
       "role": "Leadership & People Director",
       "department": "leadership",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "S",
@@ -1621,6 +2334,7 @@
         "Netflix Culture",
         "Who Method (hiring)"
       ],
+      "knowledge_sources": [],
       "file": "departments/leadership/agents/leadership-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-leadership-director-rodrigo/MEMORY.md"
     },
@@ -1630,6 +2344,8 @@
       "role": "Content Marketing Specialist",
       "department": "marketing",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "S",
@@ -1663,6 +2379,7 @@
         "Content Operating System",
         "Editorial Calendar"
       ],
+      "knowledge_sources": [],
       "file": "departments/marketing/agents/content-marketer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-content-marketer-mariana/MEMORY.md"
     },
@@ -1672,6 +2389,8 @@
       "role": "Marketing Director",
       "department": "marketing",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "D",
@@ -1707,6 +2426,7 @@
         "STEPPS",
         "PLG"
       ],
+      "knowledge_sources": [],
       "file": "departments/marketing/agents/marketing-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-marketing-director-luna/MEMORY.md"
     },
@@ -1716,6 +2436,8 @@
       "role": "Performance Marketing Specialist",
       "department": "marketing",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "C",
@@ -1748,6 +2470,7 @@
         "Creative Testing Framework",
         "Attribution Models"
       ],
+      "knowledge_sources": [],
       "file": "departments/marketing/agents/paid-specialist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-paid-specialist-pedro/MEMORY.md"
     },
@@ -1757,6 +2480,8 @@
       "role": "SEO Specialist",
       "department": "marketing",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "I",
@@ -1789,6 +2514,7 @@
         "E-E-A-T (Google)",
         "Technical SEO Audit"
       ],
+      "knowledge_sources": [],
       "file": "departments/marketing/agents/seo-specialist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-seo-specialist-ana/MEMORY.md"
     },
@@ -1798,6 +2524,8 @@
       "role": "Automation Engineer",
       "department": "ops",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "C",
@@ -1831,8 +2559,50 @@
         "Event-Driven Patterns",
         "Temporal.io Workflows"
       ],
+      "knowledge_sources": [],
       "file": "departments/ops/agents/automation-engineer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-automation-engineer-tomas-a/MEMORY.md"
+    },
+    {
+      "id": "doc-writer",
+      "name": "Isabel",
+      "role": "Documentation Writer",
+      "department": "ops",
+      "tier": 3,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "S",
+        "secondary": "C",
+        "label": "Supporter-Analyst"
+      },
+      "enneagram": {
+        "type": 1,
+        "wing": 2,
+        "label": "1w2 — The Reformer"
+      },
+      "big_five": {
+        "O": 75,
+        "C": 92,
+        "E": 40,
+        "A": 80,
+        "N": 30
+      },
+      "mbti": "ISFJ",
+      "authority": {},
+      "expertise_domains": [
+        "technical-writing",
+        "API-docs",
+        "user-guides",
+        "SOPs"
+      ],
+      "frameworks": [
+        "Diátaxis",
+        "Google Developer Documentation Style"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/ops/agents/doc-writer.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-doc-writer/MEMORY.md"
     },
     {
       "id": "ops-lead-daniel",
@@ -1840,6 +2610,8 @@
       "role": "Operations Lead",
       "department": "ops",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -1875,8 +2647,61 @@
         "PARA (Forte)",
         "PDCA (Deming)"
       ],
+      "knowledge_sources": [],
       "file": "departments/ops/agents/ops-lead.yaml",
       "memory_path": "~/.claude/agent-memory/arka-ops-lead-daniel/MEMORY.md"
+    },
+    {
+      "id": "chief-of-staff-afonso",
+      "name": "Afonso",
+      "role": "Chief of Staff & Governance Lead",
+      "department": "org",
+      "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "D",
+        "label": "Analyst-Driver"
+      },
+      "enneagram": {
+        "type": 1,
+        "wing": 9,
+        "label": "1w9 — The Reformer"
+      },
+      "big_five": {
+        "O": 68,
+        "C": 90,
+        "E": 48,
+        "A": 48,
+        "N": 24
+      },
+      "mbti": "INTJ",
+      "authority": {
+        "orchestrate": true
+      },
+      "expertise_domains": [
+        "meeting cadence (daily/weekly/quarterly/annual)",
+        "OKR & CFR orchestration cross-department",
+        "decision records & RACI",
+        "premortem / blameless postmortem rituals",
+        "governance, board & founder-CEO succession"
+      ],
+      "frameworks": [
+        "Rockefeller Habits (Harnish)",
+        "OKRs (Doerr)",
+        "HBR 5-Element Decision Process",
+        "RACI",
+        "Working Backwards (Amazon)"
+      ],
+      "knowledge_sources": [
+        "[[Scaling Up - Verne Harnish]]",
+        "[[2026-05-30 G4 Pass - Avalie o que Importa (OKRs Doerr)]]",
+        "[[2026-05-30 G4 Pass - Cluster Aprendizado e Governanca]]",
+        "[[2026-05-30 G4 Pass - Cluster Estrategia e Decisao HBR]]"
+      ],
+      "file": "departments/org/agents/chief-of-staff.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-chief-of-staff-afonso/MEMORY.md"
     },
     {
       "id": "coo-sofia",
@@ -1884,6 +2709,8 @@
       "role": "Chief Operations Officer",
       "department": "org",
       "tier": 0,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "C",
@@ -1921,8 +2748,57 @@
         "OKRs",
         "Netflix Culture"
       ],
+      "knowledge_sources": [],
       "file": "departments/org/agents/coo.yaml",
       "memory_path": "~/.claude/agent-memory/arka-coo-sofia/MEMORY.md"
+    },
+    {
+      "id": "okr-steward-matilde",
+      "name": "Matilde",
+      "role": "Alignment & OKR Steward",
+      "department": "org",
+      "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 6,
+        "wing": 5,
+        "label": "6w5 — The Loyalist"
+      },
+      "big_five": {
+        "O": 60,
+        "C": 88,
+        "E": 35,
+        "A": 62,
+        "N": 24
+      },
+      "mbti": "ISTJ",
+      "authority": {},
+      "expertise_domains": [
+        "quarterly OKR cycle (top-down + bottom-up)",
+        "cross-department goal alignment",
+        "KR-as-outcome (vs KPI/operation)",
+        "metric ownership & anti-vanity hygiene",
+        "CFR cadence (check-ins, feedback, recognition)"
+      ],
+      "frameworks": [
+        "OKRs (Doerr/Grove)",
+        "Measure What Matters",
+        "CFRs",
+        "Avalie o que Importa (3 questions)"
+      ],
+      "knowledge_sources": [
+        "[[2026-05-30 G4 Pass - Avalie o que Importa (OKRs Doerr)]]",
+        "[[Measure What Matters - OKRs]]",
+        "[[2026-05-30 G4 Pass - Cluster Lideranca e Mudanca]]"
+      ],
+      "file": "departments/org/agents/okr-steward.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-okr-steward-matilde/MEMORY.md"
     },
     {
       "id": "org-designer-pedro-m",
@@ -1930,6 +2806,8 @@
       "role": "Organizational Designer",
       "department": "org",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -1963,6 +2841,7 @@
         "Cognitive Load Theory",
         "RACI Matrix"
       ],
+      "knowledge_sources": [],
       "file": "departments/org/agents/org-designer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-org-designer-pedro-m/MEMORY.md"
     },
@@ -1972,6 +2851,8 @@
       "role": "People Operations Specialist",
       "department": "org",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "I",
@@ -2004,6 +2885,7 @@
         "Netflix Keeper Test",
         "Career Ladder Design"
       ],
+      "knowledge_sources": [],
       "file": "departments/org/agents/people-ops.yaml",
       "memory_path": "~/.claude/agent-memory/arka-people-ops-carla/MEMORY.md"
     },
@@ -2013,6 +2895,8 @@
       "role": "Product Manager",
       "department": "pm",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "C",
@@ -2035,18 +2919,22 @@
         "orchestrate": true
       },
       "expertise_domains": [
-        "product discovery",
-        "backlog management",
-        "sprint/cycle planning",
-        "stakeholder management",
-        "roadmapping"
+        "continuous product discovery (daily habit)",
+        "weekly customer interviewing",
+        "dual-track agile (discovery + delivery)",
+        "product risk assessment (value/usability/feasibility/viability)",
+        "framing problems for empowered teams (not features)"
       ],
       "frameworks": [
         "Continuous Discovery (Torres)",
-        "Shape Up (Singer)",
-        "Scrum (Sutherland)",
-        "Kanban (Anderson)",
-        "OST (Opportunity Solution Tree)"
+        "Opportunity Solution Tree (Torres)",
+        "Empowered / 4 Product Risks (Cagan)",
+        "Dual-Track Agile (Cagan)",
+        "Shape Up (Singer)"
+      ],
+      "knowledge_sources": [
+        "[[Inspirado - Marty Cagan]]",
+        "[[Habitos de Descoberta Continua - Teresa Torres]]"
       ],
       "file": "departments/pm/agents/pm-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-pm-director-carolina/MEMORY.md"
@@ -2057,6 +2945,8 @@
       "role": "Product Owner",
       "department": "pm",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "C",
@@ -2079,16 +2969,21 @@
       "expertise_domains": [
         "backlog management & prioritization",
         "user story writing (INVEST)",
+        "hypothesis-driven story framing (Lean UX)",
         "acceptance criteria definition",
-        "stakeholder management",
-        "sprint scope negotiation"
+        "weekly hypothesis test cadence"
       ],
       "frameworks": [
         "INVEST Criteria",
+        "Lean UX Hypothesis (Gothelf) - \"We believe that offering [FEATURE] for [PERSONA] will achieve [OUTCOME]\"",
+        "OKRs (Doerr)",
         "RICE/WSJF Prioritization",
-        "MoSCoW Scoping",
-        "User Story Mapping (Patton)",
-        "Impact Mapping (Adzic)"
+        "MoSCoW Scoping"
+      ],
+      "knowledge_sources": [
+        "[[3 Pilares do Lean UX...]]",
+        "[[Hipótese Lean UX (Resultado + Persona + Recurso)]]",
+        "[[Avalie o que Importa (OKRs Doerr)]]"
       ],
       "file": "departments/pm/agents/product-owner.yaml",
       "memory_path": "~/.claude/agent-memory/arka-product-owner-sara/MEMORY.md"
@@ -2099,6 +2994,8 @@
       "role": "Scrum Master / Agile Coach",
       "department": "pm",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "I",
@@ -2120,20 +3017,72 @@
       "authority": {},
       "expertise_domains": [
         "Scrum facilitation",
-        "Kanban flow management",
-        "retrospective facilitation",
-        "impediment removal",
-        "flow metrics (cycle time, throughput)"
+        "Rockefeller meeting rhythm ownership (Daily/Weekly/Quarterly)",
+        "daily huddle facilitation (15 min, 3 questions)",
+        "quarterly rocks tracking",
+        "blameless post-mortem facilitation"
       ],
       "frameworks": [
         "Scrum Guide 2020",
-        "Kanban Method (Anderson)",
-        "Flow Metrics (Vacanti)",
-        "Monte Carlo Forecasting",
-        "Retrospective Formats"
+        "Rockefeller Habits / Meeting Rhythm (Harnish)",
+        "Daily Huddle - 3 questions (Harnish)",
+        "Quarterly Rocks (Harnish)",
+        "Blameless Post-Mortem"
+      ],
+      "knowledge_sources": [
+        "[[Scaling Up - Verne Harnish]]",
+        "[[Cluster Estrategia e Decisao HBR]]"
       ],
       "file": "departments/pm/agents/scrum-master.yaml",
       "memory_path": "~/.claude/agent-memory/arka-scrum-master-jorge/MEMORY.md"
+    },
+    {
+      "id": "strategic-pm-barbara",
+      "name": "Bárbara",
+      "role": "Strategic Program Manager",
+      "department": "pm",
+      "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 1,
+        "wing": 2,
+        "label": "1w2 — The Reformer"
+      },
+      "big_five": {
+        "O": 62,
+        "C": 90,
+        "E": 38,
+        "A": 60,
+        "N": 22
+      },
+      "mbti": "ISTJ",
+      "authority": {},
+      "expertise_domains": [
+        "strategic project planning (goal→purpose→outcomes→activities)",
+        "explicit assumptions & risk",
+        "stakeholder analysis & co-creation",
+        "program phasing (plan→build→implement→close)",
+        "learning cadence (monitor/review/evaluate)"
+      ],
+      "frameworks": [
+        "LogFrame (Schmidt)",
+        "4 Phases of Project Management",
+        "Stakeholder Analysis",
+        "Learning Cycles"
+      ],
+      "knowledge_sources": [
+        "[[Topics/Gestão Estratégica de Projetos]]",
+        "[[2026-05-30 G4 Pass - As Quatro Fases do Gerenciamento de Projetos]]",
+        "[[Ciclos de Aprendizagem (Monitorar-Revisar-Avaliar)]]"
+      ],
+      "file": "departments/pm/agents/strategic-pm.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-strategic-pm-barbara/MEMORY.md"
     },
     {
       "id": "copy-director-eduardo",
@@ -2141,6 +3090,8 @@
       "role": "Copy & Language Director",
       "department": "quality",
       "tier": 0,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -2177,6 +3128,7 @@
         "Schwartz Awareness Levels",
         "AIDA/PAS copywriting"
       ],
+      "knowledge_sources": [],
       "file": "departments/quality/agents/copy-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-copy-director-eduardo/MEMORY.md"
     },
@@ -2186,6 +3138,8 @@
       "role": "Chief Quality Officer",
       "department": "quality",
       "tier": 0,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "D",
@@ -2222,8 +3176,10 @@
         "Quality Gate Process",
         "Jidoka (Toyota)",
         "PDCA (Deming)",
-        "Shift-Left Testing"
+        "Shift-Left Testing",
+        "Blameless Postmortem (premortem before / postmortem after)"
       ],
+      "knowledge_sources": [],
       "file": "departments/quality/agents/cqo.yaml",
       "memory_path": "~/.claude/agent-memory/arka-cqo-marta/MEMORY.md"
     },
@@ -2233,6 +3189,8 @@
       "role": "Technical & UX Quality Director",
       "department": "quality",
       "tier": 0,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "C",
@@ -2271,15 +3229,18 @@
         "Nielsen 10 Heuristics",
         "Core Web Vitals"
       ],
+      "knowledge_sources": [],
       "file": "departments/quality/agents/tech-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-tech-director-francisca/MEMORY.md"
     },
     {
       "id": "cs-manager-patricia",
       "name": "Patricia",
-      "role": "Customer Success Manager",
+      "role": "Head of Customer Success",
       "department": "saas",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "S",
         "secondary": "I",
@@ -2309,18 +3270,22 @@
       "frameworks": [
         "Customer Success Lifecycle (onboard→adopt→expand→renew→advocate)",
         "Health Score Framework",
-        "NRR Optimization",
-        "Churn Analysis (Lincoln Murphy)"
+        "NRR Optimization (>100%)",
+        "Churn Analysis (Lincoln Murphy)",
+        "Retention Flywheel (Hormozi) [[Retention Flywheel]]"
       ],
+      "knowledge_sources": [],
       "file": "departments/saas/agents/cs-manager.yaml",
       "memory_path": "~/.claude/agent-memory/arka-cs-manager-patricia/MEMORY.md"
     },
     {
       "id": "growth-engineer-andre-s",
       "name": "Andre S.",
-      "role": "Growth Engineer",
+      "role": "Growth Lead",
       "department": "saas",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -2354,15 +3319,18 @@
         "Growth Loops (Reforge)",
         "Activation Framework"
       ],
+      "knowledge_sources": [],
       "file": "departments/saas/agents/growth-engineer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-growth-engineer-andre-s/MEMORY.md"
     },
     {
       "id": "metrics-analyst-rita-s",
       "name": "Rita S.",
-      "role": "SaaS Metrics Analyst",
+      "role": "SaaS Metrics & Voice-of-Customer Analyst",
       "department": "saas",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -2396,8 +3364,60 @@
         "T2D3 Growth Trajectory",
         "Magic Number / Burn Multiple"
       ],
+      "knowledge_sources": [],
       "file": "departments/saas/agents/metrics-analyst.yaml",
       "memory_path": "~/.claude/agent-memory/arka-metrics-analyst-rita-s/MEMORY.md"
+    },
+    {
+      "id": "revops-lead-vicente",
+      "name": "Vicente",
+      "role": "RevOps Lead",
+      "department": "saas",
+      "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "D",
+        "secondary": "C",
+        "label": "Driver-Analyst"
+      },
+      "enneagram": {
+        "type": 3,
+        "wing": 2,
+        "label": "3w2 — The Achiever"
+      },
+      "big_five": {
+        "O": 72,
+        "C": 82,
+        "E": 58,
+        "A": 45,
+        "N": 26
+      },
+      "mbti": "ENTJ",
+      "authority": {
+        "orchestrate": true
+      },
+      "expertise_domains": [
+        "revenue operations (cross mkt + sales + CS)",
+        "unified funnel & CRM hygiene",
+        "SLA MQL→SQL between marketing and sales",
+        "revenue metrics (LTV/CAC, NRR, payback)",
+        "lead scoring & routing"
+      ],
+      "frameworks": [
+        "Predictable Revenue (Ross)",
+        "Loops > Funnels",
+        "Unit Economics (LTV/CAC, NRR)",
+        "RevOps"
+      ],
+      "knowledge_sources": [
+        "[[Receita Previsivel - Aaron Ross]]",
+        "[[2026-05-30 G4 Pass - Metricas Comerciais Cluster]]",
+        "[[2026-05-30 G4 Pass - Loops de Crescimento Sao Novos Funis]]",
+        "[[Autonomia Por Missões (Não Departamentos)]]"
+      ],
+      "file": "departments/saas/agents/revops-lead.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-revops-lead-vicente/MEMORY.md"
     },
     {
       "id": "saas-strategist-tiago",
@@ -2405,6 +3425,8 @@
       "role": "SaaS Strategist",
       "department": "saas",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "C",
@@ -2440,6 +3462,7 @@
         "T2D3 (Janz)",
         "Van Westendorp Pricing"
       ],
+      "knowledge_sources": [],
       "file": "departments/saas/agents/saas-strategist.yaml",
       "memory_path": "~/.claude/agent-memory/arka-saas-strategist-tiago/MEMORY.md"
     },
@@ -2449,6 +3472,8 @@
       "role": "Sales Closer",
       "department": "sales",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -2482,6 +3507,7 @@
         "Objection Handling Matrix",
         "Sales Follow-Up Cadence"
       ],
+      "knowledge_sources": [],
       "file": "departments/sales/agents/sales-closer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-sales-closer-joao/MEMORY.md"
     },
@@ -2491,6 +3517,8 @@
       "role": "Sales Director",
       "department": "sales",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "D",
         "secondary": "I",
@@ -2526,6 +3554,7 @@
         "Sandler",
         "Pipeline Velocity"
       ],
+      "knowledge_sources": [],
       "file": "departments/sales/agents/sales-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-sales-director-miguel/MEMORY.md"
     },
@@ -2535,6 +3564,8 @@
       "role": "Sales Operations Analyst",
       "department": "sales",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "S",
@@ -2567,8 +3598,57 @@
         "Revenue Forecasting Models",
         "Sales Funnel Analysis"
       ],
+      "knowledge_sources": [],
       "file": "departments/sales/agents/sales-ops.yaml",
       "memory_path": "~/.claude/agent-memory/arka-sales-ops-ines-s/MEMORY.md"
+    },
+    {
+      "id": "sdr-martim",
+      "name": "Martim",
+      "role": "SDR / Pre-Sales",
+      "department": "sales",
+      "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "I",
+        "secondary": "D",
+        "label": "Inspirer-Driver"
+      },
+      "enneagram": {
+        "type": 3,
+        "wing": 2,
+        "label": "3w2 — The Achiever"
+      },
+      "big_five": {
+        "O": 66,
+        "C": 68,
+        "E": 78,
+        "A": 60,
+        "N": 28
+      },
+      "mbti": "ESFP",
+      "authority": {},
+      "expertise_domains": [
+        "top-of-funnel prospecting & outreach",
+        "lead qualification (MQL→SQL)",
+        "cold email & cold calling 2.0",
+        "ICP fit scoring & disqualification",
+        "cadence / sequence design"
+      ],
+      "frameworks": [
+        "Predictable Revenue (Seeds/Nets/Spears)",
+        "MQL/SQL + SLA",
+        "The Ask Method",
+        "ICP (top 20% most profitable)"
+      ],
+      "knowledge_sources": [
+        "[[Receita Previsivel - Aaron Ross]]",
+        "[[2026-05-30 G4 Pass - MQL e SQL]]",
+        "[[2026-05-30 G4 Pass - Conversao MQL-SQL e ICP]]"
+      ],
+      "file": "departments/sales/agents/sdr.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-sdr-martim/MEMORY.md"
     },
     {
       "id": "business-model-designer-marta-s",
@@ -2576,6 +3656,8 @@
       "role": "Business Model Designer",
       "department": "strategy",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "C",
@@ -2609,8 +3691,57 @@
         "Revenue Model Patterns",
         "Wardley Maps"
       ],
+      "knowledge_sources": [],
       "file": "departments/strategy/agents/business-model-designer.yaml",
       "memory_path": "~/.claude/agent-memory/arka-business-model-designer-marta-s/MEMORY.md"
+    },
+    {
+      "id": "decision-quality-guilherme",
+      "name": "Guilherme",
+      "role": "Decision Quality & Strategic Foresight",
+      "department": "strategy",
+      "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
+      "disc": {
+        "primary": "C",
+        "secondary": "D",
+        "label": "Analyst-Driver"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 85,
+        "C": 82,
+        "E": 32,
+        "A": 45,
+        "N": 26
+      },
+      "mbti": "INTJ",
+      "authority": {},
+      "expertise_domains": [
+        "decision framing & 3+ alternatives",
+        "reversible vs irreversible (two-way doors)",
+        "cognitive debiasing (HiPPO, consensus, anchoring)",
+        "premortem / postmortem facilitation",
+        "scenario planning & strategic foresight"
+      ],
+      "frameworks": [
+        "HBR 5-Element Decision Process",
+        "Premortem (Klein)",
+        "Two-Way Doors (Bezos)",
+        "4 Strategic Insight Techniques"
+      ],
+      "knowledge_sources": [
+        "[[2026-05-30 G4 Pass - Cluster Estrategia e Decisao HBR]]",
+        "[[2026-05-30 G4 Pass - Bias to Action]]",
+        "[[Vieses - Erros para Decisao]]"
+      ],
+      "file": "departments/strategy/agents/decision-quality.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-decision-quality-guilherme/MEMORY.md"
     },
     {
       "id": "market-analyst-lucas",
@@ -2618,6 +3749,8 @@
       "role": "Market & Competitive Intelligence Analyst",
       "department": "strategy",
       "tier": 2,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "C",
         "secondary": "I",
@@ -2651,6 +3784,7 @@
         "BCG Matrix",
         "Perceptual Mapping"
       ],
+      "knowledge_sources": [],
       "file": "departments/strategy/agents/market-analyst.yaml",
       "memory_path": "~/.claude/agent-memory/arka-market-analyst-lucas/MEMORY.md"
     },
@@ -2660,6 +3794,8 @@
       "role": "Chief Strategist",
       "department": "strategy",
       "tier": 1,
+      "parent_squad": null,
+      "sub_squad_role": null,
       "disc": {
         "primary": "I",
         "secondary": "D",
@@ -2694,6 +3830,10 @@
         "Blue Ocean (Kim/Mauborgne)",
         "BMC (Osterwalder)",
         "Wardley Maps"
+      ],
+      "knowledge_sources": [
+        "[[Scaling Up - Verne Harnish]]",
+        "[[Cluster Estrategia e Decisao HBR]]"
       ],
       "file": "departments/strategy/agents/strategy-director.yaml",
       "memory_path": "~/.claude/agent-memory/arka-strategy-director-tomas/MEMORY.md"
