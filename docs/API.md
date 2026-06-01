@@ -14,9 +14,9 @@ curl http://localhost:3334/api/overview
 
 ```json
 {
-  "agents": 65,
+  "agents": 82,
   "departments": 17,
-  "skills": 244,
+  "skills": 267,
   "workflows": 24,
   "budget": {
     "total_tokens_today": 847320,
@@ -131,7 +131,7 @@ curl http://localhost:3334/api/commands
       "usage": "/dev feature \"description\""
     }
   ],
-  "total": 244
+  "total": 267
 }
 ```
 
@@ -413,8 +413,8 @@ curl http://localhost:3334/api/health
     "synapse": {"status": "ok", "avg_ms": 127},
     "knowledge_db": {"status": "ok", "size_mb": 4.2},
     "hooks": {"status": "ok", "count": 3},
-    "agents": {"status": "ok", "loaded": 65},
-    "skills": {"status": "ok", "validated": 244},
+    "agents": {"status": "ok", "loaded": 82},
+    "skills": {"status": "ok", "validated": 267},
     "workflows": {"status": "ok", "registered": 24},
     "budget": {"status": "ok", "utilization_pct": 16.9},
     "tasks": {"status": "ok", "active": 2}

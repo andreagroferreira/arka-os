@@ -1,0 +1,115 @@
+{
+  "environment": {
+    "python": "3.13.13",
+    "platform": "macOS-26.5-arm64-arm-64bit-Mach-O",
+    "machine": "arm64"
+  },
+  "results": {
+    "synapse_latency": {
+      "layer_count": 12,
+      "cold_ms": {
+        "runs": 50,
+        "min": 80.695,
+        "p50": 83.995,
+        "mean": 85.38,
+        "max": 100.422
+      },
+      "warm_ms": {
+        "runs": 50,
+        "min": 80.219,
+        "p50": 83.225,
+        "mean": 84.515,
+        "max": 98.064
+      },
+      "injection_profile": {
+        "layers_computed": 8,
+        "layers_skipped": 4,
+        "tokens_injected": 11
+      }
+    },
+    "subagent_handoff": {
+      "documented_claim": 379,
+      "measured_tokens": 82,
+      "prompt_chars": 660
+    },
+    "routing_accuracy": {
+      "total": 12,
+      "correct": 10,
+      "accuracy_pct": 83.3,
+      "details": [
+        {
+          "prompt": "fix the authentication bug in the login controller",
+          "expected": "dev",
+          "detected": "dev",
+          "ok": true
+        },
+        {
+          "prompt": "refactor the payment service and add unit tests",
+          "expected": "dev",
+          "detected": "dev",
+          "ok": true
+        },
+        {
+          "prompt": "create a go-to-market plan for our new SaaS",
+          "expected": "saas",
+          "detected": "strategy",
+          "ok": false
+        },
+        {
+          "prompt": "design a brand identity with logo and color palette",
+          "expected": "brand",
+          "detected": "brand",
+          "ok": true
+        },
+        {
+          "prompt": "write viral content hooks for our TikTok channel",
+          "expected": "content",
+          "detected": "marketing",
+          "ok": false
+        },
+        {
+          "prompt": "build a high-converting landing page funnel",
+          "expected": "landing",
+          "detected": "landing",
+          "ok": true
+        },
+        {
+          "prompt": "audit our online store conversion rate",
+          "expected": "ecom",
+          "detected": "ecom",
+          "ok": true
+        },
+        {
+          "prompt": "model our Q3 budget and cash flow forecast",
+          "expected": "finance",
+          "detected": "finance",
+          "ok": true
+        },
+        {
+          "prompt": "run a competitive analysis with Porter's Five Forces",
+          "expected": "strategy",
+          "detected": "strategy",
+          "ok": true
+        },
+        {
+          "prompt": "plan the next sprint and groom the backlog",
+          "expected": "pm",
+          "detected": "pm",
+          "ok": true
+        },
+        {
+          "prompt": "set up an SEO and paid ads growth campaign",
+          "expected": "marketing",
+          "detected": "marketing",
+          "ok": true
+        },
+        {
+          "prompt": "automate our client onboarding with an SOP",
+          "expected": "ops",
+          "detected": "ops",
+          "ok": true
+        }
+      ]
+    }
+  }
+}

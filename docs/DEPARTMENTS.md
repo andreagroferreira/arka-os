@@ -1,6 +1,6 @@
 # ArkaOS Departments
 
-17 departments. 65 agents. 244 skills. Every department has a lead, specialized agents, and framework-backed skills. The Quality Gate reviews everything before it reaches you.
+17 departments. 82 agents. 267 skills. Every department has a lead, specialized agents, and framework-backed skills. The Quality Gate reviews everything before it reaches you.
 
 ## How Departments Work
 

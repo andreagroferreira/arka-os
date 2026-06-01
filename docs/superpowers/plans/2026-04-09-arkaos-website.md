@@ -657,8 +657,8 @@ const script = [
   { text: '$ npx arkaos install', type: 'command' as const, delay: 80 },
   { text: 'Installing ArkaOS v2.10.1...', type: 'output' as const, delay: 30 },
   { text: '\u2713 17 departments configured', type: 'output' as const, delay: 30 },
-  { text: '\u2713 65 agents activated', type: 'output' as const, delay: 30 },
-  { text: '\u2713 244 skills loaded', type: 'output' as const, delay: 30 },
+  { text: '\u2713 82 agents activated', type: 'output' as const, delay: 30 },
+  { text: '\u2713 267 skills loaded', type: 'output' as const, delay: 30 },
   { text: 'Ready. Your AI workforce is online.', type: 'success' as const, delay: 30 },
   { text: '', type: 'output' as const, delay: 0 },
   { text: '$ /do "create a brand for my startup"', type: 'command' as const, delay: 60 },
@@ -793,8 +793,8 @@ Replace `app/pages/index.vue`:
 useSeoMeta({
   title: 'ArkaOS - The Operating System for AI Agent Teams',
   ogTitle: 'ArkaOS - Your AI Workforce',
-  description: '65 agents. 17 departments. One command. An operating system for AI agent teams.',
-  ogDescription: '65 agents. 17 departments. One command. An operating system for AI agent teams.'
+  description: '82 agents. 17 departments. One command. An operating system for AI agent teams.',
+  ogDescription: '82 agents. 17 departments. One command. An operating system for AI agent teams.'
 })
 </script>
 
@@ -1082,8 +1082,8 @@ useScrollReveal()
 useSeoMeta({
   title: 'ArkaOS - The Operating System for AI Agent Teams',
   ogTitle: 'ArkaOS - Your AI Workforce',
-  description: '65 agents. 17 departments. One command. An operating system for AI agent teams.',
-  ogDescription: '65 agents. 17 departments. One command. An operating system for AI agent teams.'
+  description: '82 agents. 17 departments. One command. An operating system for AI agent teams.',
+  ogDescription: '82 agents. 17 departments. One command. An operating system for AI agent teams.'
 })
 </script>
 
@@ -1248,10 +1248,10 @@ Create `app/components/home/HomeNumbers.vue`:
 import { useCountUp } from '~/composables/useCountUp'
 
 const stats = [
-  { label: 'Agents', value: 65, suffix: '' },
-  { label: 'Skills', value: 244, suffix: '+' },
+  { label: 'Agents', value: 82, suffix: '' },
+  { label: 'Skills', value: 267, suffix: '' },
   { label: 'Departments', value: 17, suffix: '' },
-  { label: 'Tests', value: 542, suffix: '+' }
+  { label: 'Tests', value: 4500, suffix: '+' }
 ]
 </script>
 
@@ -1402,8 +1402,8 @@ useScrollReveal()
 useSeoMeta({
   title: 'ArkaOS - The Operating System for AI Agent Teams',
   ogTitle: 'ArkaOS - Your AI Workforce',
-  description: '65 agents. 17 departments. One command. An operating system for AI agent teams.',
-  ogDescription: '65 agents. 17 departments. One command. An operating system for AI agent teams.'
+  description: '82 agents. 17 departments. One command. An operating system for AI agent teams.',
+  ogDescription: '82 agents. 17 departments. One command. An operating system for AI agent teams.'
 })
 </script>
 
@@ -1559,9 +1559,9 @@ npx arkaos install --runtime gemini
 The installer will:
 1. Detect your runtime automatically
 2. Install the Python core engine
-3. Configure 17 departments with 65 agents
+3. Configure 17 departments with 82 agents
 4. Set up hooks for your runtime
-5. Load 244+ skills
+5. Load 267 skills
 
 ## Verify Installation
 
@@ -1662,7 +1662,7 @@ Create `content/docs/2.concepts/1.architecture.md`:
 ```markdown
 ---
 title: Architecture
-description: How ArkaOS organizes 65 agents across 17 departments with enterprise workflows.
+description: How ArkaOS organizes 82 agents across 17 departments with enterprise workflows.
 ---
 
 ArkaOS is structured as a 4-layer operating system for AI agent teams. No other framework covers all 4 layers with multi-domain support.
@@ -1673,7 +1673,7 @@ ArkaOS is structured as a 4-layer operating system for AI agent teams. No other 
 |-------|---------|-----------------|
 | **Spec Framework** | Define what to build before building it | Living Specs with bidirectional sync |
 | **Planning System** | Coordinate multi-step work | YAML workflow engine with phases and gates |
-| **Execution Agents** | Do the actual work | 65 agents across 17 domains |
+| **Execution Agents** | Do the actual work | 82 agents across 17 domains |
 | **Runtime Engine** | Run on any AI coding tool | Claude Code, Codex, Gemini, Cursor adapters |
 
 ## Core Systems
@@ -1963,7 +1963,7 @@ git commit -m "feat: add docs auto-generation script from ArkaOS YAMLs
 
 - Node.js script converts department/agent YAMLs to markdown
 - Generates 17 department pages with agent tables
-- Generates 65 agent pages with behavioral DNA profiles
+- Generates 82 agent pages with behavioral DNA profiles
 - Runs at build time via generate-docs script
 - Generated content gitignored (built from source)"
 ```
@@ -2159,7 +2159,7 @@ Create `app/pages/features.vue`:
 <script setup lang="ts">
 useSeoMeta({
   title: 'Features',
-  description: 'ArkaOS features: 17 departments, 65 agents, enterprise workflows, multi-runtime, and more.'
+  description: 'ArkaOS features: 17 departments, 82 agents, enterprise workflows, multi-runtime, and more.'
 })
 
 const features = [
@@ -2450,7 +2450,7 @@ Create `public/llms.txt`:
 ```
 # ArkaOS — The Operating System for AI Agent Teams
 
-> 65 agents. 17 departments. 244+ skills. Multi-runtime.
+> 82 agents. 17 departments. 267 skills. Multi-runtime.
 
 ArkaOS organizes specialized AI agents into business departments with enterprise workflows, quality gates, and framework-backed knowledge. Install with `npx arkaos install`.
 

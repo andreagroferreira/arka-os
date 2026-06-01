@@ -9,18 +9,18 @@ If you used ArkaOS v1 (the bash-only version installed via `git clone`), this gu
 | **Core engine** | Bash scripts only | Python + Node.js + Bash |
 | **Agents** | 22 | 65 (3x more) |
 | **Departments** | 9 | 17 (8 new departments) |
-| **Skills** | ~30 (SKILL.md files) | 244+ (validated, framework-backed) |
+| **Skills** | ~30 (SKILL.md files) | 267 (validated, framework-backed) |
 | **Workflows** | None (ad-hoc execution) | 24 YAML workflows with phases and gates |
 | **Runtimes** | Claude Code only | Claude Code, Codex CLI, Gemini CLI, Cursor |
 | **Installation** | `git clone` to `~/.claude/skills/` | `npx arkaos install` to `~/.arkaos/` |
 | **Install location** | `~/.claude/skills/arka-os` | `~/.arkaos/` |
-| **Context injection** | 5-layer Bash Synapse | 9-layer Python Synapse (<200ms, cached) |
+| **Context injection** | 5-layer Bash Synapse | 12-layer Python Synapse (<200ms, cached) |
 | **Knowledge base** | Manual notes only | Vector DB with semantic search (sqlite-vss) |
 | **Dashboard** | None | Nuxt 4 + FastAPI (8 pages, localhost:3333) |
 | **Quality Gate** | Optional | Mandatory on every workflow (non-negotiable) |
 | **Agent profiles** | Basic role descriptions | 4-framework behavioral DNA (DISC, Enneagram, MBTI, Big Five) |
 | **Token tracking** | None | Budget system with per-department limits |
-| **Testing** | Minimal | 1836 tests (pytest) |
+| **Testing** | Minimal | 4,500+ tests (pytest) |
 
 ### New Departments in v2
 
@@ -63,8 +63,8 @@ ArkaOS Migration: v1 --> v2
 [3/5] Installing v2...
   Installing to ~/.arkaos
   Core engine: Python 3.12.4
-  Agents: 65 loaded
-  Skills: 244 validated
+  Agents: 82 loaded
+  Skills: 267 validated
   Workflows: 24 registered
 
 [4/5] Updating hooks...
@@ -115,7 +115,7 @@ If you forget to migrate, the v2 hooks detect v1 installations automatically. Yo
 
 ```
 [MIGRATION] ArkaOS v1 detected at ~/.claude/skills/arka-os.
-Run 'npx arkaos migrate' to upgrade to v2 (65 agents, 244 skills, dashboard).
+Run 'npx arkaos migrate' to upgrade to v2 (82 agents, 267 skills, dashboard).
 Your data will be preserved.
 ```
 
@@ -134,8 +134,8 @@ All 9 checks should pass:
 [PASS] Hooks configured for claude-code
 [PASS] Synapse engine responsive
 [PASS] Knowledge DB initialized
-[PASS] 65 agents loaded
-[PASS] 244 skills validated
+[PASS] 82 agents loaded
+[PASS] 267 skills validated
 [PASS] 24 workflows registered
 All checks passed.
 ```
