@@ -25,9 +25,10 @@ ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent
 sys.path.insert(0, str(ARKAOS_ROOT))
 
 # Layer tags carrying the actually-injected KB counts (ground truth for
-# reconciling the model's self-reported `[arka:meta] kb=N`).
-_KB_CONTEXT_TAG_RE = re.compile(r"\[kb-context:(\d+)\]")
-_KNOWLEDGE_TAG_RE = re.compile(r"\[knowledge:(\d+) chunks?\]")
+# reconciling the model's self-reported `[arka:meta] kb=N`). The optional
+# ` degraded=keyword` suffix (RAG honesty, PR-3 v4.1) must still count.
+_KB_CONTEXT_TAG_RE = re.compile(r"\[kb-context:(\d+)[^\]]*\]")
+_KNOWLEDGE_TAG_RE = re.compile(r"\[knowledge:(\d+) chunks?[^\]]*\]")
 _KB_INJECTED_DIR = Path("/tmp/arkaos-kb-injected")
 
 

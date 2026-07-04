@@ -594,7 +594,10 @@ async function handleSearch() {
   }
 }
 
-function formatScore(score: number): string {
+// RAG honesty (PR-3 v4.1): keyword-degraded results carry score=null —
+// there is no similarity to show, so label them instead of faking "0%".
+function formatScore(score: number | null): string {
+  if (score === null || score === undefined) return 'keyword match'
   return `${(score * 100).toFixed(0)}%`
 }
 

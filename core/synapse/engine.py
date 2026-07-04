@@ -188,6 +188,7 @@ def create_default_engine(
         SessionContextLayer,
     )
     from core.synapse.agent_experiences_layer import AgentExperiencesLayer
+    from core.synapse.graph_context_layer import GraphContextLayer
     from core.synapse.pattern_library_layer import PatternLibraryLayer
 
     engine = SynapseEngine()
@@ -208,6 +209,12 @@ def create_default_engine(
                 max_notes=kb_max_notes,
             )
         )
+    # L2.7 (PR-3 v4.1) — Graphify grounding. Injects code-graph nodes
+    # (EXTRACTED confidence + source_location) matching the prompt so
+    # answers about a codebase cite real structure. Registered
+    # unconditionally: without a graphify-out/graph.json the layer is
+    # inert and contributes zero tokens.
+    engine.register_layer(GraphContextLayer())
     engine.register_layer(ProjectLayer())
     if vector_store is not None:
         engine.register_layer(KnowledgeRetrievalLayer(vector_store=vector_store))

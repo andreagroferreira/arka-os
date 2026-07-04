@@ -394,6 +394,26 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     console.log(`         Warning: could not set up frontend tooling (${err.message})`);
   }
 
+  // Graphify grounding layer — code knowledge graphs (PyPI `graphifyy`,
+  // CLI `graphify`). Best-effort: a missing binary or failed install can
+  // NEVER fail `npx arkaos install`; we degrade to a one-line hint.
+  try {
+    const { ensureGraphify } = await import("./graphify.js");
+    const gf = ensureGraphify();
+    if (gf.binary?.installed) {
+      console.log(`         Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}.`);
+      if (gf.skillInstall?.action === "installed") {
+        console.log("         Graphify skill registered (graphify install).");
+      } else if (gf.skillInstall?.action === "failed") {
+        console.log(`         Graphify skill registration failed (${gf.skillInstall.reason}).`);
+      }
+    } else if (gf.binary?.hint) {
+      console.log(`         ${gf.binary.hint}`);
+    }
+  } catch (err) {
+    console.log(`         Warning: could not set up Graphify (${err.message})`);
+  }
+
   const manifest = {
     version: VERSION,
     runtime,

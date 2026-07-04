@@ -478,6 +478,25 @@ export async function update() {
     console.log(`         ⚠ Could not set up frontend tooling (${err.message})`);
   }
 
+  // Graphify grounding layer — same wiring as installer/index.js. Best
+  // effort: `npx arkaos update` never fails because of Graphify.
+  try {
+    const { ensureGraphify } = await import("./graphify.js");
+    const gf = ensureGraphify();
+    if (gf.binary?.installed) {
+      console.log(`         ✓ Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}`);
+      if (gf.skillInstall?.action === "installed") {
+        console.log("         ✓ Graphify skill registered (graphify install)");
+      } else if (gf.skillInstall?.action === "failed") {
+        console.log(`         ⚠ Graphify skill registration failed (${gf.skillInstall.reason})`);
+      }
+    } else if (gf.binary?.hint) {
+      console.log(`         ⚠ ${gf.binary.hint}`);
+    }
+  } catch (err) {
+    console.log(`         ⚠ Could not set up Graphify (${err.message})`);
+  }
+
   // ── 8. Update manifest ──
   console.log("  [8/8] Finalizing...");
   manifest.version = VERSION;

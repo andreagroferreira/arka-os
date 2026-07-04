@@ -1,19 +1,29 @@
 """Vector store — SQLite-vec backed semantic search.
 
 Stores document chunks with embeddings for fast similarity search.
-Graceful degradation: works without sqlite-vec (brute-force fallback).
+Graceful degradation: works without sqlite-vec (keyword fallback) — but
+HONESTLY (PR-3 v4.1): degraded results carry ``retrieval:
+"keyword-degraded"`` and ``score: None`` instead of a fake similarity
+score, and the first degraded search per process emits a visible
+stderr warning explaining why semantic search is unavailable.
 """
 
 import json
+import logging
+import re
 import sqlite3
+import sys
 import time
 from pathlib import Path
 from typing import Any, Optional
 
-from core.knowledge.embedder import embed, embed_batch, EMBEDDING_DIMS
+from core.knowledge.embedder import embed, embed_batch, embedding_dims
 
+logger = logging.getLogger(__name__)
 
 _VEC_UNAVAILABLE_REASON: str = ""  # set by _load_vec on failure
+_DEGRADED_WARNED: bool = False  # one-time per-process degradation warning
+_VEC_DIMS_RE = re.compile(r"float\[(\d+)\]")
 
 
 def _load_vec(db: sqlite3.Connection) -> bool:
@@ -59,6 +69,32 @@ def _load_vec(db: sqlite3.Connection) -> bool:
 def vec_unavailable_reason() -> str:
     """Public accessor for the last vec-load failure reason."""
     return _VEC_UNAVAILABLE_REASON
+
+
+def _parse_vec_dims(create_sql: str | None) -> Optional[int]:
+    """Extract the float[N] dimension from a vec0 CREATE statement."""
+    if not create_sql:
+        return None
+    match = _VEC_DIMS_RE.search(create_sql)
+    return int(match.group(1)) if match else None
+
+
+def _warn_degraded_once(reason: str) -> None:
+    """Emit the one-time visible degradation warning (stderr + log)."""
+    global _DEGRADED_WARNED
+    if _DEGRADED_WARNED:
+        return
+    _DEGRADED_WARNED = True
+    msg = (
+        f"[arka:kb-degraded] semantic search unavailable ({reason}) — "
+        "results are keyword matches, NOT similarity-ranked. "
+        "Fix: pip install fastembed sqlite-vec (or: npx arkaos doctor)."
+    )
+    try:
+        sys.stderr.write(msg + "\n")
+    except OSError:
+        pass
+    logger.warning(msg)
 
 
 class VectorStore:
@@ -108,14 +144,39 @@ class VectorStore:
             CREATE INDEX IF NOT EXISTS idx_chunks_hash ON chunks(file_hash);
         """)
         self._migrate_vss_to_vec()
+        self._vec_dims = embedding_dims()  # derived from the active model
         if self._vec_available:
             try:
-                self._db.execute(
-                    f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(embedding float[{EMBEDDING_DIMS}])"
-                )
+                stored = self._stored_vec_dims()
+                if stored is not None and stored != self._vec_dims:
+                    # An existing index was built with a different model
+                    # dimension. NEVER corrupt it — keep the stored dim
+                    # and let dimension guards route mismatched vectors
+                    # to the degraded path until the user re-indexes.
+                    logger.warning(
+                        "vec_chunks dimension %d differs from configured "
+                        "embed model dimension %d — keeping the stored "
+                        "index. Re-index (/arka index) to switch models.",
+                        stored, self._vec_dims,
+                    )
+                    self._vec_dims = stored
+                else:
+                    self._db.execute(
+                        f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(embedding float[{self._vec_dims}])"
+                    )
             except Exception:
                 self._vec_available = False
         self._db.commit()
+
+    def _stored_vec_dims(self) -> Optional[int]:
+        """Dimension of an existing vec_chunks table, if any."""
+        try:
+            row = self._db.execute(
+                "SELECT sql FROM sqlite_master WHERE name = 'vec_chunks'"
+            ).fetchone()
+        except sqlite3.Error:
+            return None
+        return _parse_vec_dims(row["sql"] if row else None)
 
     def _migrate_vss_to_vec(self) -> None:
         """Drop legacy sqlite-vss tables if present.
@@ -176,7 +237,15 @@ class VectorStore:
                     (text, heading, source, file_hash, meta_json, emb_blob),
                 )
 
-                if self._vec_available and emb_blob:
+                # Dimension guard: a vector produced by a differently-sized
+                # model must never be inserted into the vec0 table (it
+                # would poison distance queries). The raw embedding is
+                # still stored on the chunk row for a later re-index.
+                if (
+                    self._vec_available
+                    and emb_blob
+                    and len(embeddings[i]) == self._vec_dims
+                ):
                     self._db.execute(
                         "INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)",
                         (cursor.lastrowid, emb_blob),
@@ -199,13 +268,24 @@ class VectorStore:
         query_emb = embed(query)
 
         if query_emb and self._vec_available:
+            if len(query_emb) != self._vec_dims:
+                return self._keyword_search(
+                    query, top_k,
+                    reason="embed model dimension differs from the stored "
+                           "index — re-index to switch models",
+                )
             try:
                 return self._vec_search(query_emb, top_k)
             except Exception:
-                return self._keyword_search(query, top_k)
+                return self._keyword_search(query, top_k, reason="vector query failed")
 
-        # Fallback: keyword search
-        return self._keyword_search(query, top_k)
+        # Fallback: keyword search — labeled, never presented as semantic.
+        return self._keyword_search(query, top_k, reason=self._degradation_reason(query_emb))
+
+    def _degradation_reason(self, query_emb: Optional[list[float]]) -> str:
+        if query_emb is None:
+            return "fastembed missing or embedding failed"
+        return vec_unavailable_reason() or "sqlite-vec unavailable"
 
     def _vec_search(self, query_emb: list[float], top_k: int) -> list[dict]:
         """Vector similarity search via sqlite-vec."""
@@ -224,19 +304,31 @@ class VectorStore:
                 "heading": r["heading"],
                 "source": r["source"],
                 "score": 1.0 / (1.0 + r["distance"]),  # Convert distance to similarity
+                "retrieval": "semantic",
                 "metadata": json.loads(r["metadata"]),
             }
             for r in rows
         ]
 
-    def _keyword_search(self, query: str, top_k: int) -> list[dict]:
-        """Fallback keyword search when VSS unavailable."""
-        words = query.lower().split()
+    def _keyword_search(self, query: str, top_k: int, reason: str = "") -> list[dict]:
+        """Fallback keyword search when semantic retrieval is unavailable.
+
+        HONESTY CONTRACT (PR-3 v4.1): these results are substring matches,
+        not similarity-ranked. ``score`` is None (there is no similarity)
+        and ``retrieval`` is ``"keyword-degraded"`` so every consumer can
+        label them. The previous behaviour — a hardcoded fake ``0.5``
+        score — silently impersonated semantic search.
+        """
+        words = query.lower().split()[:5]  # Max 5 keywords
         if not words:
             return []
 
+        _warn_degraded_once(reason or "semantic retrieval unavailable")
+
+        # Placeholders and params MUST come from the same capped list —
+        # previously a 6+ word query produced more `?` than bindings.
         conditions = " OR ".join(["lower(text) LIKE ?" for _ in words])
-        params = [f"%{w}%" for w in words[:5]]  # Max 5 keywords
+        params = [f"%{w}%" for w in words]
 
         rows = self._db.execute(
             f"SELECT text, heading, source, metadata FROM chunks WHERE {conditions} LIMIT ?",
@@ -248,7 +340,8 @@ class VectorStore:
                 "text": r["text"],
                 "heading": r["heading"],
                 "source": r["source"],
-                "score": 0.5,  # No real score for keyword search
+                "score": None,  # keyword match — NO similarity score exists
+                "retrieval": "keyword-degraded",
                 "metadata": json.loads(r["metadata"]),
             }
             for r in rows
@@ -274,12 +367,16 @@ class VectorStore:
 
     def get_stats(self) -> dict:
         """Get store statistics."""
+        from core.knowledge.embedder import is_available as _embedder_available
+
         total = self._db.execute("SELECT COUNT(*) as cnt FROM chunks").fetchone()["cnt"]
         sources = self._db.execute("SELECT COUNT(DISTINCT source) as cnt FROM chunks").fetchone()["cnt"]
+        semantic = self._vec_available and _embedder_available()
         return {
             "total_chunks": total,
             "total_files": sources,
             "vec_available": self._vec_available,
+            "retrieval_mode": "semantic" if semantic else "keyword-degraded",
             "db_path": self._db_path,
         }
 

@@ -5,6 +5,7 @@ import { execSync } from "node:child_process";
 import { getArkaosPython, getVenvPython, canImportCore, getRepoRoot, diagnoseVenv, ensureVenvHealthy } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT, CMD_FINDER } from "./platform.js";
 import { checkNode, checkObsidian, checkOllama } from "./system-tools.js";
+import { graphifyDoctor } from "./graphify.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
 
@@ -194,6 +195,13 @@ const checks = [
       }
     },
     fix: () => "Upgrade Claude Code: npm install -g @anthropic-ai/claude-code@latest",
+  },
+  {
+    name: "graphify",
+    description: "Graphify CLI present (grounding layer — code knowledge graphs)",
+    severity: "warn",
+    check: () => graphifyDoctor().installed,
+    fix: () => graphifyDoctor().hint || "Run: uv tool install graphifyy  (or pipx install graphifyy)",
   },
   {
     name: "magic-api-key",

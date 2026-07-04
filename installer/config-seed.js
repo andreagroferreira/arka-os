@@ -1,13 +1,19 @@
-// ~/.arkaos/config.json seed/migration (PR19 v2.41.0).
+// ~/.arkaos/config.json seed/migration (PR19 v2.41.0, extended PR-3 v4.1).
 //
 // Run on every `npx arkaos install` and `npx arkaos@latest update`.
-// Idempotent: writes `hooks.hardEnforcement = true` only when the key
-// is unset. Explicit user choice (true OR false) is preserved.
+// Idempotent: seeds each template key only when it is unset. Explicit
+// user choice (true OR false) is always preserved.
+//
+// Seeded template keys (operator decisions):
+//   hooks.hardEnforcement = true   (PR19 v2.41.0)
+//   hooks.kbFirst         = true   (PR-3 v4.1 — KB-first ON out of the box)
 //
 // Returns a status object:
 //   { action: "created" | "added-key" | "noop"
 //          | "preserved-user-false" | "rewrote-corrupt" }
 // so the installer caller can log a human-readable line per run.
+// Precedence when several keys differ: created/rewrote-corrupt >
+// added-key > preserved-user-false > noop.
 
 import {
   existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, copyFileSync,
@@ -15,11 +21,20 @@ import {
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 
+// Template: every hooks.* key seeded to `true` when unset.
+const SEEDED_HOOK_KEYS = ["hardEnforcement", "kbFirst"];
+
+function defaultConfig() {
+  const hooks = {};
+  for (const key of SEEDED_HOOK_KEYS) hooks[key] = true;
+  return { hooks };
+}
+
 export function seedArkaosConfig({ home = homedir() } = {}) {
   const cfgPath = join(home, ".arkaos", "config.json");
 
   if (!existsSync(cfgPath)) {
-    writeConfig(cfgPath, { hooks: { hardEnforcement: true } });
+    writeConfig(cfgPath, defaultConfig());
     return { action: "created", path: cfgPath };
   }
 
@@ -33,24 +48,34 @@ export function seedArkaosConfig({ home = homedir() } = {}) {
     // Corrupt JSON — keep the broken copy for recovery, write safe default.
     const backup = `${cfgPath}.broken-${Date.now()}`;
     try { copyFileSync(cfgPath, backup); } catch { /* best effort */ }
-    writeConfig(cfgPath, { hooks: { hardEnforcement: true } });
+    writeConfig(cfgPath, defaultConfig());
     return { action: "rewrote-corrupt", path: cfgPath, backup };
   }
 
   config.hooks = config.hooks && typeof config.hooks === "object" ? config.hooks : {};
-  const current = config.hooks.hardEnforcement;
 
-  if (current === true) {
-    return { action: "noop", path: cfgPath };
+  let added = false;
+  let preservedFalse = false;
+  for (const key of SEEDED_HOOK_KEYS) {
+    const current = config.hooks[key];
+    if (current === true) continue;
+    if (current === false) {
+      preservedFalse = true; // explicit user choice — never overwrite
+      continue;
+    }
+    // Key unset (undefined, null, or any non-boolean) — set to true.
+    config.hooks[key] = true;
+    added = true;
   }
-  if (current === false) {
+
+  if (added) {
+    writeConfig(cfgPath, config);
+    return { action: "added-key", path: cfgPath };
+  }
+  if (preservedFalse) {
     return { action: "preserved-user-false", path: cfgPath };
   }
-
-  // Key unset (undefined, null, or any non-boolean) — set to true.
-  config.hooks.hardEnforcement = true;
-  writeConfig(cfgPath, config);
-  return { action: "added-key", path: cfgPath };
+  return { action: "noop", path: cfgPath };
 }
 
 function writeConfig(cfgPath, payload) {

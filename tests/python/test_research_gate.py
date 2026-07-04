@@ -83,6 +83,51 @@ def test_feature_flag_off_allows(tmp_path, monkeypatch):
     assert decision.reason == "feature-flag-off"
 
 
+def _isolate_gate_paths(tmp_path, monkeypatch, home: Path) -> None:
+    monkeypatch.setattr(research_gate, "CONFIG_PATH", home / "config.json")
+    monkeypatch.setattr(research_gate, "VIOLATION_DIR", tmp_path / "kb-v")
+    monkeypatch.setenv("ARKA_KB_QUERY_DIR", str(tmp_path / "kb-q"))
+    vault = tmp_path / "vault"
+    vault.mkdir(exist_ok=True)
+    monkeypatch.setenv("ARKAOS_VAULT", str(vault))
+    monkeypatch.delenv("ARKA_BYPASS_KB_FIRST", raising=False)
+
+
+def test_missing_config_defaults_gate_on(tmp_path, monkeypatch):
+    """v4.1: KB-first is ON out of the box — no config file means gate active."""
+    home = tmp_path / "home"
+    home.mkdir()
+    _isolate_gate_paths(tmp_path, monkeypatch, home)
+
+    decision = evaluate_research_gate("WebSearch", session_id="s-d1", query="laravel")
+    assert decision.allow is True
+    assert decision.reason == "first-violation-nudge"
+
+
+def test_missing_kbfirst_key_defaults_gate_on(tmp_path, monkeypatch):
+    """v4.1: config present but key unset — matches the seeded template (true)."""
+    home = tmp_path / "home"
+    home.mkdir()
+    _isolate_gate_paths(tmp_path, monkeypatch, home)
+    (home / "config.json").write_text(json.dumps({"hooks": {}}), encoding="utf-8")
+
+    decision = evaluate_research_gate("WebSearch", session_id="s-d2", query="laravel")
+    assert decision.allow is True
+    assert decision.reason == "first-violation-nudge"
+
+
+def test_corrupt_config_fails_open(tmp_path, monkeypatch):
+    """Corrupt config → gate off: never deny based on unreadable intent."""
+    home = tmp_path / "home"
+    home.mkdir()
+    _isolate_gate_paths(tmp_path, monkeypatch, home)
+    (home / "config.json").write_text("{ not json", encoding="utf-8")
+
+    decision = evaluate_research_gate("WebSearch", session_id="s-d3", query="laravel")
+    assert decision.allow is True
+    assert decision.reason == "feature-flag-off"
+
+
 def test_bypass_env_allows_and_audits(isolated_env, monkeypatch):
     monkeypatch.setenv("ARKA_BYPASS_KB_FIRST", "1")
     monkeypatch.setenv("ARKA_BYPASS_KB_FIRST_REASON", "installer-refresh")

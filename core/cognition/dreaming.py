@@ -54,6 +54,11 @@ class Insight:
             "date": date_str,
             "status": "surfaced",
             "confidence": self.confidence,
+            # Grounding quarantine (PR-3 v4.1): Dreaming output is
+            # LLM-inferred, not extracted from authoritative sources.
+            # Synapse L2.5 reads this marker and excludes (or explicitly
+            # labels) these notes so they never masquerade as grounded KB.
+            "grounding": "inferred",
             "sources": [f"[[{s}]]" for s in self.sources],
             "tags": ["arkaos-dream", *self.tags],
             "plugin_compat_version": "1.0",
