@@ -115,6 +115,11 @@ if [ -n "$ADD_MCP" ]; then
     # Single MCP mode
     MCP_NAMES+=("$ADD_MCP")
     echo -e "${CYAN}Adding MCP: ${ADD_MCP} to ${PROJECT_DIR}${NC}"
+    # Per-MCP account warnings for MCPs that require external accounts.
+    if [ "$ADD_MCP" = "higgsfield" ]; then
+        echo -e "${YELLOW}⚠ Higgsfield requires a Higgsfield account + HIGGSFIELD_API_KEY to connect (https://higgsfield.ai).${NC}"
+        echo -e "${YELLOW}  Set the key in the project .mcp.json env block or your shell before launching the runtime.${NC}"
+    fi
 elif [ -n "$PROFILE" ]; then
     # Profile mode — resolve base + profile MCPs
     BASE_PROFILE="$MCPS_DIR/profiles/base.json"

@@ -854,6 +854,10 @@ function installSkill(config, installDir) {
     }
 
     ok("MCP infrastructure deployed (profiles, stacks, scripts, arka-prompts server)");
+
+    // Higgsfield MCP is registered but requires an account + API key to connect.
+    // Non-blocking warning: the install succeeds even without a Higgsfield account.
+    warn("Higgsfield MCP installed in registry — requires a Higgsfield account + HIGGSFIELD_API_KEY to connect (https://higgsfield.ai). Add per-project: bash apply-mcps.sh --add higgsfield");
   }
 }
 
