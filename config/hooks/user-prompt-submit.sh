@@ -157,8 +157,10 @@ if command -v python3 &>/dev/null && [ -f "$BRIDGE_SCRIPT" ]; then
     fi
   else
     _bridge_start=$(date +%s%N 2>/dev/null || echo "0")
+    # ARKAOS_SESSION_ID lets the bridge persist the injected-KB count for
+    # kb=N reconciliation at Stop time (structural honesty PR-2).
     bridge_output=$(echo "{\"user_input\":$(echo "$user_input" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')}" \
-      | ARKAOS_ROOT="$ARKAOS_ROOT" python3 "$BRIDGE_SCRIPT" --root "$ARKAOS_ROOT" 2>/dev/null)
+      | ARKAOS_ROOT="$ARKAOS_ROOT" ARKAOS_SESSION_ID="$SESSION_ID" python3 "$BRIDGE_SCRIPT" --root "$ARKAOS_ROOT" 2>/dev/null)
     _bridge_status=$?
 
     if [ -n "${ARKAOS_DEBUG:-}" ]; then

@@ -67,6 +67,7 @@ from core.forge.orchestrator import (
 
 from core.forge.runtime_dispatcher import (
     ForgeTaskDispatcher,
+    ForgeDispatchUnavailableError,
     ClaudeCodeForgeDispatcher,
     ExplorerDispatchRequest,
     CriticDispatchRequest,
@@ -131,6 +132,7 @@ __all__ = [
     "CONSTITUTION_PHASES",
     # runtime dispatcher
     "ForgeTaskDispatcher",
+    "ForgeDispatchUnavailableError",
     "ClaudeCodeForgeDispatcher",
     "ExplorerDispatchRequest",
     "CriticDispatchRequest",

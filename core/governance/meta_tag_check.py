@@ -61,3 +61,39 @@ def _has_bypass_marker(text: str, markers: tuple[str, ...]) -> bool:
 
 def _is_trivial_length(text: str) -> bool:
     return len(text.split()) < _TRIVIAL_WORD_THRESHOLD
+
+
+# ─── kb=N reconciliation (structural honesty PR-2) ──────────────────────
+
+_KB_REPORTED_RE: re.Pattern[str] = re.compile(
+    r"\[arka:meta\][^\n]*?\bkb=(\d+)", re.IGNORECASE
+)
+
+
+def parse_reported_kb(response_text: str) -> int | None:
+    """Extract the self-reported kb=N from a closing [arka:meta] line.
+
+    Returns None when the tag or the kb field is absent.
+    """
+    match = _KB_REPORTED_RE.search(response_text or "")
+    return int(match.group(1)) if match else None
+
+
+def reconcile_kb_count(
+    reported: int | None, injected: int | None
+) -> dict[str, int | bool | None]:
+    """Reconcile the self-reported kb=N against the Synapse-injected count.
+
+    ``injected`` is ground truth (written by synapse-bridge from the L2.5
+    layer result); ``reported`` is the model's claim. Warn-only contract:
+    ``kb_inflated`` is True only when BOTH values are known and the claim
+    exceeds reality. Unknown on either side never flags inflation.
+    """
+    inflated = (
+        reported is not None and injected is not None and reported > injected
+    )
+    return {
+        "kb_reported": reported,
+        "kb_injected": injected,
+        "kb_inflated": inflated,
+    }

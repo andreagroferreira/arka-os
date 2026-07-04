@@ -35,6 +35,8 @@ from core.forge.orchestrator import (
 )
 from core.forge.runtime_dispatcher import (
     ForgeTaskDispatcher,
+    ForgeDispatchUnavailableError,
+    ClaudeCodeForgeDispatcher,
     ExplorerDispatchRequest,
     CriticDispatchRequest,
     DispatchResult,
@@ -389,6 +391,23 @@ class TestStep5LaunchExplorers:
 
         assert orch._approaches == []
 
+    def test_collects_dispatch_errors_instead_of_silent_pass(self):
+        mock_dispatcher = MagicMock(spec=ForgeTaskDispatcher)
+        mock_dispatcher.dispatch_explorer_and_parse.side_effect = Exception("dispatch error")
+
+        orch = ForgeOrchestrator(dispatcher=mock_dispatcher)
+        orch._confirmed_tier = ForgeTier.STANDARD
+        orch._forge_context = _make_context()
+        orch._similar_plans = []
+        orch._reused_patterns = []
+
+        orch._step5_launch_explorers()
+
+        assert len(orch._dispatch_errors) == 2
+        assert any("pragmatic" in e for e in orch._dispatch_errors)
+        assert any("architectural" in e for e in orch._dispatch_errors)
+        assert all("Exception" in e and "dispatch error" in e for e in orch._dispatch_errors)
+
 
 class TestStep6CriticSynthesis:
     def test_calls_dispatcher_critic(self):
@@ -403,7 +422,8 @@ class TestStep6CriticSynthesis:
         assert len(mock_dispatcher.critic_calls) == 1
         assert mock_dispatcher.critic_calls[0].original_prompt == orch._forge_context.prompt
 
-    def test_fallback_on_critic_error(self):
+    def test_no_fabricated_verdict_on_critic_error(self):
+        """Critic failure must yield None — never a synthetic 0.5-confidence verdict."""
         mock_dispatcher = MagicMock(spec=ForgeTaskDispatcher)
         mock_dispatcher.dispatch_critic_and_parse.side_effect = Exception("critic error")
 
@@ -414,8 +434,8 @@ class TestStep6CriticSynthesis:
 
         orch._step6_critic_synthesis()
 
-        assert orch._critic_verdict is not None
-        assert orch._critic_verdict.confidence == 0.5
+        assert orch._critic_verdict is None
+        assert any("critic:" in e for e in orch._dispatch_errors)
 
     def test_revision_request_appended(self):
         mock_dispatcher = MockDispatcher()
@@ -1170,6 +1190,116 @@ class TestFinalPhasesFromCritic:
         phases = orch._final_phases_from_critic()
 
         assert len(phases) == 4
+
+    def test_empty_base_when_verdict_is_none(self):
+        orch = ForgeOrchestrator()
+        orch._critic_verdict = None
+        orch._enforced_phases = [
+            PlanPhase(name="Quality Gate", department="quality"),
+        ]
+
+        phases = orch._final_phases_from_critic()
+
+        assert [p.name for p in phases] == ["Quality Gate"]
+
+    def test_empty_base_when_verdict_has_no_content(self):
+        orch = ForgeOrchestrator()
+        orch._critic_verdict = CriticVerdict(confidence=0.0, estimated_phases=0)
+        orch._enforced_phases = []
+
+        phases = orch._final_phases_from_critic()
+
+        assert phases == []
+
+    def test_constitution_phases_still_enforced_on_empty_base(self):
+        """With no critic verdict, step 7 must still add all 4 constitution phases."""
+        orch = ForgeOrchestrator()
+        orch._critic_verdict = None
+        orch._confirmed_tier = ForgeTier.STANDARD
+        orch._enforced_phases = []
+
+        orch._step7_enforce_constitution()
+        phases = orch._final_phases_from_critic()
+
+        names = [p.name.lower() for p in phases]
+        assert len(phases) == 4
+        assert any("branch" in n for n in names)
+        assert any("spec" in n for n in names)
+        assert any("quality" in n for n in names)
+        assert any("obsidian" in n for n in names)
+
+
+# =============================================================================
+# TestDegradedPlan — honest dispatch failure (structural honesty PR-2)
+# =============================================================================
+
+
+class TestDegradedPlan:
+    def test_claude_code_dispatcher_raises_unavailable(self):
+        dispatcher = ClaudeCodeForgeDispatcher()
+        req = ExplorerDispatchRequest(
+            lens=ExplorerLens.PRAGMATIC,
+            prompt="test",
+            context=_make_context(),
+        )
+
+        with pytest.raises(ForgeDispatchUnavailableError, match="arka-forge SKILL"):
+            dispatcher.dispatch_explorer(req)
+
+    def test_plan_marked_degraded_when_critic_missing(self):
+        orch = ForgeOrchestrator()
+        _setup_orchestrator(orch)
+        orch._critic_verdict = None
+        orch._dispatch_errors = ["critic: ForgeDispatchUnavailableError: unavailable"]
+        orch._step7_enforce_constitution()
+
+        orch._step8_build_plan()
+
+        plan = orch._current_plan
+        assert plan.degraded is True
+        assert plan.critic.confidence == 0.0
+        assert plan.dispatch_errors == orch._dispatch_errors
+
+    def test_plan_not_degraded_with_real_verdict(self):
+        orch = ForgeOrchestrator()
+        _setup_orchestrator(orch)
+
+        orch._step8_build_plan()
+
+        assert orch._current_plan.degraded is False
+        assert orch._current_plan.dispatch_errors == []
+
+    def test_full_forge_with_unavailable_dispatch_is_degraded(self):
+        """End-to-end: real dispatcher raises, plan degrades honestly."""
+        orch = ForgeOrchestrator(dispatcher=ClaudeCodeForgeDispatcher())
+
+        plan = orch.forge("build auth module")
+
+        assert plan.degraded is True
+        assert plan.critic.confidence == 0.0
+        assert plan.approaches == []
+        assert len(plan.dispatch_errors) >= 2  # explorer(s) + critic
+        # Only constitution-enforced phases remain.
+        names = [p.name.lower() for p in plan.plan_phases]
+        assert all(
+            "branch" in n or "spec" in n or "quality" in n or "obsidian" in n
+            for n in names
+        )
+
+    def test_degraded_plan_renders_warning(self):
+        from core.forge.renderer import render_terminal, DEGRADED_NOTICE
+
+        orch = ForgeOrchestrator()
+        _setup_orchestrator(orch)
+        orch._critic_verdict = None
+        orch._dispatch_errors = ["explorer[pragmatic]: RuntimeError: boom"]
+        orch._step7_enforce_constitution()
+        orch._step8_build_plan()
+
+        output = render_terminal(orch._current_plan)
+
+        assert DEGRADED_NOTICE in output
+        assert "explorer[pragmatic]" in output
 
 
 # =============================================================================

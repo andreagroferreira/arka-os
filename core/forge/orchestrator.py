@@ -157,6 +157,8 @@ class ForgeOrchestrator:
         self._dispatcher = dispatcher or ClaudeCodeForgeDispatcher()
         self._current_plan: Optional[ForgePlan] = None
         self._current_step: Optional[ForgeStep] = None
+        self._critic_verdict: Optional[CriticVerdict] = None
+        self._dispatch_errors: list[str] = []
 
     # -------------------------------------------------------------------------
     # Main Commands
@@ -554,12 +556,15 @@ class ForgeOrchestrator:
             for lens in lenses
         ]
 
+        self._dispatch_errors = []
         for req in requests:
             try:
                 approach = self._dispatcher.dispatch_explorer_and_parse(req)
                 self._approaches.append(approach)
             except Exception as e:
-                pass
+                self._dispatch_errors.append(
+                    f"explorer[{req.lens.value}]: {type(e).__name__}: {e}"
+                )
 
     def _step6_critic_synthesis(self, revision_request: Optional[str] = None) -> None:
         """Step 6: Launch critic subagent for synthesis.
@@ -576,16 +581,13 @@ class ForgeOrchestrator:
 
         try:
             self._critic_verdict = self._dispatcher.dispatch_critic_and_parse(critic_req)
-        except Exception:
-            self._critic_verdict = CriticVerdict(
-                synthesis={"approach_1": [a.summary for a in self._approaches]},
-                rejected_elements=[],
-                risks=[],
-                confidence=0.5,
-                estimated_phases=len(self._approaches[0].phases) if self._approaches else 3,
-            )
+        except Exception as e:
+            # Honest failure: NEVER fabricate a synthetic verdict. A missing
+            # critic means the plan is degraded and must say so.
+            self._critic_verdict = None
+            self._dispatch_errors.append(f"critic: {type(e).__name__}: {e}")
 
-        if revision_request:
+        if revision_request and self._critic_verdict is not None:
             self._critic_verdict.synthesis["revision_request"] = [revision_request]
 
     def _step7_enforce_constitution(self) -> None:
@@ -596,7 +598,7 @@ class ForgeOrchestrator:
         has_branch = any("branch" in n or "feature" in n for n in phase_names)
         has_spec = any("spec" in n or "specification" in n for n in phase_names)
         has_qg = any("quality" in n or "gate" in n or "qg" in n for n in phase_names)
-        has_obsidian = any("obsidian" in n or "persist" in n or "persist" in n for n in phase_names)
+        has_obsidian = any("obsidian" in n or "persist" in n or "document" in n for n in phase_names)
 
         enforced = []
         if not has_branch:
@@ -643,9 +645,16 @@ class ForgeOrchestrator:
         self._enforced_phases = enforced
 
     def _step8_build_plan(self) -> None:
-        """Step 8: Build the ForgePlan object."""
+        """Step 8: Build the ForgePlan object.
+
+        When explorer/critic dispatch failed, the plan is marked
+        ``degraded`` with confidence 0.0 and carries the dispatch errors —
+        never a fabricated verdict.
+        """
         plan_id = self._generate_plan_id(self._forge_context.prompt)
-        execution_path = select_execution_path(self._final_phases_from_critic())
+        phases = self._final_phases_from_critic()
+        execution_path = select_execution_path(phases)
+        degraded = self._critic_verdict is None
 
         self._current_plan = ForgePlan(
             id=plan_id,
@@ -656,8 +665,8 @@ class ForgeOrchestrator:
             context=self._forge_context,
             complexity=self._complexity,
             approaches=self._approaches,
-            critic=self._critic_verdict,
-            plan_phases=self._final_phases_from_critic(),
+            critic=self._critic_verdict or CriticVerdict(confidence=0.0),
+            plan_phases=phases,
             goal=self._forge_context.prompt,
             execution_path=execution_path,
             governance=ForgeGovernance(
@@ -665,6 +674,8 @@ class ForgeOrchestrator:
                 quality_gate_required=True,
                 branch_strategy=f"feature/{plan_id}",
             ),
+            degraded=degraded,
+            dispatch_errors=list(self._dispatch_errors),
             status=ForgeStatus.REVIEWING,
         )
 
@@ -700,20 +711,32 @@ class ForgeOrchestrator:
             pass
 
     def _final_phases_from_critic(self) -> list[PlanPhase]:
-        """Build final phases list from critic verdict + constitution enforcement."""
-        phases = []
-        for i, p in enumerate(range(self._critic_verdict.estimated_phases or 3)):
-            phases.append(
-                PlanPhase(
-                    name=f"Phase {i + 1}",
-                    department="dev",
-                )
-            )
+        """Build final phases: critic-derived base + constitution enforcement.
 
-        for ep in self._enforced_phases:
-            phases.append(ep)
-
+        When the critic verdict is missing (dispatch failed) or carries no
+        real content, the base list is EMPTY — the plan then contains only
+        the constitution-enforced phases and is marked degraded downstream.
+        """
+        phases = self._critic_base_phases()
+        phases.extend(self._enforced_phases)
         return phases
+
+    def _critic_base_phases(self) -> list[PlanPhase]:
+        """Phases derived from the critic verdict; [] when absent/empty."""
+        verdict = self._critic_verdict
+        if verdict is None or not self._verdict_has_content(verdict):
+            return []
+        return [
+            PlanPhase(name=f"Phase {i + 1}", department="dev")
+            for i in range(verdict.estimated_phases)
+        ]
+
+    @staticmethod
+    def _verdict_has_content(verdict: CriticVerdict) -> bool:
+        """A verdict counts as real only when it estimated phases AND synthesized something."""
+        return verdict.estimated_phases > 0 and bool(
+            verdict.synthesis or verdict.rejected_elements or verdict.risks
+        )
 
     def _generate_plan_id(self, prompt: str) -> str:
         """Generate a forge plan ID."""

@@ -288,6 +288,30 @@ try:
 except Exception:
     pass
 
+# Structural honesty PR-2 — kb=N reconciliation (warn-only, never blocks).
+# The closing `[arka:meta] kb=N` is self-reported by the model. Reconcile
+# it against the count Synapse L2.5 actually injected, persisted by
+# scripts/synapse-bridge.py to /tmp/arkaos-kb-injected/<session>.json.
+# One small JSON read — stays well inside the hook budget.
+kb_reported = None
+kb_injected = None
+kb_inflated = False
+try:
+    from core.governance.meta_tag_check import parse_reported_kb, reconcile_kb_count
+    kb_reported = parse_reported_kb(last)
+    if safe_sid:
+        injected_path = Path("/tmp/arkaos-kb-injected") / f"{safe_sid}.json"
+        if injected_path.exists():
+            injected_data = json.loads(injected_path.read_text(encoding="utf-8"))
+            raw_injected = injected_data.get("kb_injected")
+            kb_injected = int(raw_injected) if raw_injected is not None else None
+    reconciled = reconcile_kb_count(kb_reported, kb_injected)
+    kb_reported = reconciled["kb_reported"]
+    kb_injected = reconciled["kb_injected"]
+    kb_inflated = reconciled["kb_inflated"]
+except Exception:
+    pass
+
 # PR59 v2.76.0 — Closing-marker soft block. Telemetry analysis showed
 # 0% [arka:phase:13]/[arka:trivial] rate on flow-required turns. Persist
 # result to /tmp/arkaos-closing/<session>.json so the next
@@ -338,6 +362,10 @@ entry = {
     "kb_cite_topic_score": cite_topic_score,
     "meta_tag_check_passed": meta_passed,
     "meta_tag_check_reason": meta_reason,
+    # Structural honesty PR-2 — kb=N reconciliation (warn-only).
+    "kb_reported": kb_reported,
+    "kb_injected": kb_injected,
+    "kb_inflated": kb_inflated,
     # PR59 v2.76.0 — Closing-marker soft-block telemetry.
     "closing_marker_check_passed": closing_check_passed,
     "closing_marker_check_reason": closing_check_reason,

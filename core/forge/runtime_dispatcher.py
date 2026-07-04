@@ -84,6 +84,29 @@ Be adversarial but constructive. Your job is to stress-test assumptions, not to 
 }
 
 
+class ForgeDispatchUnavailableError(RuntimeError):
+    """Raised when Python-side subagent dispatch is attempted.
+
+    Python-side agent dispatch does not exist: there is no in-process
+    bridge to the runtime's Agent/Task tool. The runtime executes the
+    explorer and critic prompts (built by ``_build_explorer_prompt`` /
+    ``_build_critic_prompt``) via the arka-forge SKILL, not via this
+    module. Callers that invoke the dispatcher directly MUST handle
+    degraded planning: no explorer approaches, no critic verdict, and
+    a plan that only carries constitution-enforced phases.
+    """
+
+    def __init__(self, agent_type: str, model: str) -> None:
+        super().__init__(
+            f"Cannot dispatch '{agent_type}' subagent (model={model}): "
+            "Python-side agent dispatch does not exist. The runtime "
+            "executes explorer/critic prompts via the arka-forge SKILL. "
+            "Callers must handle degraded planning."
+        )
+        self.agent_type = agent_type
+        self.model = model
+
+
 @dataclass
 class DispatchResult:
     """Result from a dispatcher call."""
@@ -384,22 +407,23 @@ class ForgeTaskDispatcher(ABC):
 
 
 class ClaudeCodeForgeDispatcher(ForgeTaskDispatcher):
-    """Claude Code implementation using the Task tool with model parameter.
+    """Claude Code dispatcher — prompt builder only, no in-process dispatch.
 
-    Claude Code supports the Agent tool with model routing:
-    - haiku: fast, cost-optimized
-    - sonnet: balanced
-    - opus: highest capability
+    This class builds the full explorer/critic prompts. Actual subagent
+    execution happens in the runtime via the arka-forge SKILL, never in
+    Python. ``_call_agent`` therefore raises
+    ``ForgeDispatchUnavailableError`` — callers must catch it and degrade
+    honestly instead of fabricating results.
     """
 
     def dispatch_explorer(self, request: ExplorerDispatchRequest) -> DispatchResult:
-        """Dispatch explorer using Claude Code's Agent tool."""
+        """Build the explorer prompt and attempt dispatch (raises)."""
         prompt = _build_explorer_prompt(request)
         raw_response = self._call_agent(prompt, model=request.model, agent_type="explorer")
         return DispatchResult(success=True, raw_response=raw_response, output=raw_response)
 
     def dispatch_critic(self, request: CriticDispatchRequest) -> DispatchResult:
-        """Dispatch critic using Claude Code's Agent tool."""
+        """Build the critic prompt and attempt dispatch (raises)."""
         prompt = _build_critic_prompt(request)
         raw_response = self._call_agent(prompt, model=request.model, agent_type="critic")
         return DispatchResult(success=True, raw_response=raw_response, output=raw_response)
@@ -411,20 +435,11 @@ class ClaudeCodeForgeDispatcher(ForgeTaskDispatcher):
         agent_type: str,
         timeout: int = 120,
     ) -> str:
-        """Call the Claude Code Agent tool.
+        """Always raises — Python cannot call the runtime's Agent tool.
 
-        This method should be overridden in tests to mock the actual
-        Task tool call. The real implementation uses the Agent tool
-        from Claude Code's toolkit.
+        Tests may override this method to simulate a working runtime.
         """
-        from agentTool import Agent  # type: ignore
-
-        task_result = Agent(
-            prompt=prompt,
-            model=model,
-            task_type=agent_type,
-        )
-        return task_result.output
+        raise ForgeDispatchUnavailableError(agent_type=agent_type, model=model)
 
 
 def create_dispatcher(runtime: str | None = None) -> ForgeTaskDispatcher:
