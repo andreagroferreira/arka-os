@@ -34,6 +34,14 @@ class ClaudeCodeAdapter(RuntimeAdapter):
             max_context_tokens=1_000_000,
         )
 
+    def capabilities(self) -> dict[str, bool]:
+        return {
+            "agent_dispatch": True,   # Agent tool — real subagent dispatch
+            "headless": True,         # claude -p
+            "file_ops": True,         # native Read/Write/Edit tools
+            "hooks": True,            # 5 lifecycle hooks
+        }
+
     def inject_context(self, layers: dict[str, str]) -> str:
         """Claude Code receives context via UserPromptSubmit hook.
 

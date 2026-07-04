@@ -73,21 +73,31 @@ def _usage_from_record(record: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def extract_last_usage(transcript_path: str) -> dict[str, Any] | None:
+def extract_last_usage(
+    transcript_path: str, raw_text: str | None = None
+) -> dict[str, Any] | None:
     """Return the last assistant `message.usage` in the transcript.
 
     The returned dict carries `uuid` (record uuid, or `line:<n>` when the
     record has none — the dedupe cursor key), `model`, and the four
     token counts. Malformed lines are skipped; returns None when no
     assistant record with usage exists or the file is unreadable.
+
+    ``raw_text`` (PR-6 hook consolidation): pre-read transcript contents;
+    when None the file at ``transcript_path`` is read.
     """
-    path = Path(transcript_path) if transcript_path else None
-    if path is None or not path.exists():
-        return None
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return None
+    if raw_text is not None:
+        lines = raw_text.splitlines()
+    else:
+        path = Path(transcript_path) if transcript_path else None
+        if path is None or not path.exists():
+            return None
+        try:
+            lines = path.read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines()
+        except OSError:
+            return None
     found: dict[str, Any] | None = None
     for index, line in enumerate(lines):
         if not line.strip():
@@ -130,14 +140,17 @@ def record_native_usage(
     transcript_path: str,
     session_id: str,
     cursor_dir: Path | str | None = None,
+    raw_text: str | None = None,
 ) -> bool:
     """Record the last native turn's usage once. Returns True if recorded.
 
     False on: no usage in transcript, unsafe session id, already
     recorded (cursor hit), or any internal error (never raises).
+
+    ``raw_text`` (PR-6 hook consolidation): pre-read transcript contents.
     """
     try:
-        usage = extract_last_usage(transcript_path)
+        usage = extract_last_usage(transcript_path, raw_text=raw_text)
         if usage is None:
             return False
         sid = safe_session_id(session_id)

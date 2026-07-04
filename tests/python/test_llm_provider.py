@@ -420,8 +420,13 @@ class TestAdapterHeadless:
         with pytest.raises(NotImplementedError, match="claude CLI not found"):
             ClaudeCodeAdapter().headless_complete("hi")
 
-    def test_codex_adapter_refuses_until_verified(self):
-        with pytest.raises(NotImplementedError):
+    def test_codex_adapter_refuses_when_cli_missing(self, monkeypatch):
+        # PR-6 v4.1.0: codex headless is implemented (codex exec --json);
+        # the adapter only refuses when the binary is absent from PATH.
+        monkeypatch.setattr(
+            "core.runtime.codex_cli.shutil.which", lambda _name: None
+        )
+        with pytest.raises(NotImplementedError, match="codex CLI not found"):
             CodexCliAdapter().headless_complete("hi")
 
     def test_gemini_adapter_refuses_when_cli_missing(self, monkeypatch):

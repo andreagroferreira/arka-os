@@ -31,6 +31,14 @@ class CursorAdapter(RuntimeAdapter):
             max_context_tokens=200_000,
         )
 
+    def capabilities(self) -> dict[str, bool]:
+        return {
+            "agent_dispatch": False,  # single-agent mode only
+            "headless": False,        # no headless CLI as of 2026-07
+            "file_ops": True,         # IDE agent mode edits files
+            "hooks": False,           # no PreToolUse/Stop equivalent
+        }
+
     def inject_context(self, layers: dict[str, str]) -> str:
         """Cursor receives context via .cursorrules files."""
         parts = []

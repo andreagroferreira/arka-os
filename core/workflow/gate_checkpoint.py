@@ -102,11 +102,23 @@ def _persist_session_snapshot(
 
 
 def checkpoint(
-    transcript_path: str, session_id: str, project: str = ""
+    transcript_path: str,
+    session_id: str,
+    project: str = "",
+    messages: list[str] | None = None,
 ) -> dict | None:
-    """Persist the furthest observed gate. Returns a summary dict or None."""
+    """Persist the furthest observed gate. Returns a summary dict or None.
+
+    ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages;
+    when None the transcript is read from ``transcript_path``.
+    """
     try:
-        messages = _load_last_assistant_messages(transcript_path, _SCAN_WINDOW)
+        if messages is None:
+            messages = _load_last_assistant_messages(
+                transcript_path, _SCAN_WINDOW
+            )
+        else:
+            messages = messages[-_SCAN_WINDOW:]
         latest = extract_latest_gate(messages)
         if latest is None:
             return None

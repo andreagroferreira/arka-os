@@ -145,6 +145,35 @@ class RuntimeAdapter(ABC):
         }
         return feature_map.get(feature, False)
 
+    def capabilities(self) -> dict[str, bool]:
+        """Honest, static support matrix for this adapter (PR-6 v4.1.0).
+
+        Single source of truth for the multi-runtime story — consumed by
+        ``python -m core.runtime.capabilities_cli`` and wiki/08.
+
+        Keys (all bool):
+        - ``agent_dispatch``: the runtime can dispatch ArkaOS agents /
+          subagents natively (Claude Code Agent tool). False when
+          ``dispatch_agent`` only returns a descriptor for a runtime that
+          cannot actually spawn ArkaOS agents.
+        - ``headless``: the adapter implements a real one-shot
+          ``headless_complete`` against the runtime's CLI (static — use
+          ``headless_supported()`` for binary-on-PATH detection).
+        - ``file_ops``: the runtime performs file operations natively
+          when driven interactively (single-agent use counts).
+        - ``hooks``: the runtime exposes lifecycle hooks that ArkaOS
+          enforcement (PreToolUse/Stop/...) can attach to.
+
+        Default: conservative all-False except hooks, which mirrors the
+        runtime config — unknown adapters must not overclaim.
+        """
+        return {
+            "agent_dispatch": False,
+            "headless": False,
+            "file_ops": False,
+            "hooks": self.get_config().supports_hooks,
+        }
+
     def headless_supported(self) -> bool:
         """Whether this adapter can perform a headless CLI completion.
 

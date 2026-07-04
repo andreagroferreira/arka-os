@@ -120,25 +120,20 @@ def load_commands_registry(root: Path) -> list:
         return []
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Synapse Bridge — context injection for hooks")
-    parser.add_argument(
-        "--layers-only",
-        action="store_true",
-        help="Output layer breakdown instead of context string",
-    )
-    parser.add_argument("--root", type=str, default=str(ARKAOS_ROOT), help="ArkaOS root directory")
-    args = parser.parse_args()
+def run_bridge(
+    input_data: dict,
+    root: Path,
+    layers_only: bool = False,
+    raw: str = "",
+) -> tuple[dict, int]:
+    """Run the Synapse engine for a hook payload. Returns (output, exit_code).
 
-    root = Path(args.root)
+    Extracted from ``main()`` (PR-6 hook consolidation) so
+    ``core.hooks.user_prompt_submit`` can call the bridge in-process
+    instead of spawning a second python3. Exit codes match the script:
+    0 = success, 1 = degraded (import error), 2 = error.
+    """
     start = time.time()
-
-    # Read input from stdin
-    try:
-        raw = sys.stdin.read().strip()
-        input_data = json.loads(raw) if raw else {}
-    except (json.JSONDecodeError, Exception):
-        input_data = {}
 
     # Extract context fields
     user_input = input_data.get("user_input", "")
@@ -242,7 +237,7 @@ def main() -> int:
         except Exception:
             pass  # Never block on budget tracking
 
-        if args.layers_only:
+        if layers_only:
             output = {
                 "context_string": result.context_string,
                 "layers": [
@@ -263,19 +258,41 @@ def main() -> int:
         else:
             output = {"context_string": result.context_string, "total_ms": total_ms}
 
-        print(json.dumps(output))
-        return 0
+        return output, 0
 
     except ImportError as e:
         # Python dependencies not available — output minimal context
         sys.stderr.write(f"synapse-bridge: import error: {e}\n")
-        print(json.dumps({"context_string": "", "error": str(e)}))
-        return 1
+        return {"context_string": "", "error": str(e)}, 1
 
     except Exception as e:
         sys.stderr.write(f"synapse-bridge: error: {e}\n")
-        print(json.dumps({"context_string": "", "error": str(e)}))
-        return 2
+        return {"context_string": "", "error": str(e)}, 2
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Synapse Bridge — context injection for hooks")
+    parser.add_argument(
+        "--layers-only",
+        action="store_true",
+        help="Output layer breakdown instead of context string",
+    )
+    parser.add_argument("--root", type=str, default=str(ARKAOS_ROOT), help="ArkaOS root directory")
+    args = parser.parse_args()
+
+    # Read input from stdin
+    try:
+        raw = sys.stdin.read().strip()
+        input_data = json.loads(raw) if raw else {}
+    except (json.JSONDecodeError, Exception):
+        input_data = {}
+        raw = ""
+
+    output, code = run_bridge(
+        input_data, Path(args.root), layers_only=args.layers_only, raw=raw
+    )
+    print(json.dumps(output))
+    return code
 
 
 if __name__ == "__main__":
