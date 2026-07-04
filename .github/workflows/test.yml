@@ -30,7 +30,11 @@ jobs:
           # (heavy; their code paths degrade gracefully and are covered by
           # the labeled-degradation tests).
           pip install -e ".[dashboard]" sqlite-vec
+          # starlette's TestClient needs an httpx client lib: recent
+          # starlette wants httpx2, older wants httpx — install whichever
+          # resolves (httpx2 first, fallback httpx).
           pip install pytest pytest-cov
+          pip install httpx2 || pip install httpx
 
       - name: Run Python tests
         run: python -m pytest tests/python/ -v --tb=short
