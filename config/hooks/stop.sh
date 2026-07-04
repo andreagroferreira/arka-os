@@ -3,9 +3,11 @@
 # ArkaOS v2 — Stop Hook (Flow Completion Validator, WARN mode v1)
 #
 # When the classifier marked the session as flow-required, this hook checks
-# whether the final assistant message contains [arka:phase:13] or
-# [arka:trivial]. If absent, a structured warning is appended to
-# ~/.arkaos/telemetry/enforcement.jsonl. The hook NEVER blocks in v1.
+# whether the final assistant message contains [arka:gate:4] (or the legacy
+# [arka:phase:13]) or [arka:trivial]. If absent, a structured warning is
+# appended to ~/.arkaos/telemetry/enforcement.jsonl. The hook NEVER blocks
+# in v1. It also persists [arka:gate:N] transitions via
+# core/workflow/gate_checkpoint.py for structured resume (v4.1.0).
 #
 # Promotion to strict mode is planned for v2.21.0 after ≥ 2 weeks of clean
 # telemetry. Until then, this hook is observation only.
@@ -157,9 +159,19 @@ cwd = os.environ.get("CWD_VAL", "")
 messages = _load_last_assistant_messages(transcript_path, n=1)
 last = messages[-1] if messages else ""
 
+# v4.1.0 evidence flow: [arka:gate:4] is the closing marker. The legacy
+# [arka:phase:13] stays accepted during the deprecation window.
+gate4 = bool(re.search(r"\[arka:gate:4\]", last, re.IGNORECASE))
 phase13 = bool(re.search(r"\[arka:phase:13\]", last, re.IGNORECASE))
 trivial = bool(re.search(r"\[arka:trivial\]", last, re.IGNORECASE))
-closing_ok = phase13 or trivial
+closing_ok = gate4 or phase13 or trivial
+
+# v4.1.0 — persist gate transitions for structured resume (never raises).
+try:
+    from core.workflow.gate_checkpoint import checkpoint as _gate_checkpoint
+    _gate_checkpoint(transcript_path, session_id, project=cwd)
+except Exception:
+    pass
 
 # PR12 v2.34.0 — Transparency tag measurement (warn-only).
 # The [arka:meta] tag should appear on every substantive response that

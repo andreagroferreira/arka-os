@@ -2,7 +2,7 @@
 # ============================================================================
 # ArkaOS v2 — Shared Workflow Classifier
 #
-# Decides whether a user prompt triggers the mandatory 13-phase flow.
+# Decides whether a user prompt triggers the 4-gate evidence flow.
 # Used by: user-prompt-submit.sh, pre-tool-use.sh, stop.sh.
 #
 # Contract:

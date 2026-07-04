@@ -1,9 +1,10 @@
-"""[arka:phase:13] / [arka:trivial] closing-marker soft-block (PR59 v2.76.0).
+"""Closing-marker soft-block (PR59 v2.76.0; evidence flow v4.1.0).
 
 Response-side classifier. Inspects the closing assistant message of a
-flow-required turn for the mandatory closure marker — either
-``[arka:phase:13]`` (full flow completed) or ``[arka:trivial]``
-(trivial bypass). Mirrors the contract of
+flow-required turn for the mandatory closure marker — ``[arka:gate:4]``
+(evidence flow review gate), the legacy ``[arka:phase:13]`` (accepted
+during the v4.1 deprecation window), or ``[arka:trivial]`` (trivial
+bypass). Mirrors the contract of
 ``core.governance.meta_tag_check`` (PR30 v2.49.0) and
 ``core.governance.kb_cite_check`` (PR18 v2.40.0).
 
@@ -23,12 +24,13 @@ import re
 from dataclasses import dataclass
 
 
+_GATE4_RE: re.Pattern[str] = re.compile(r"\[arka:gate:4\]", re.IGNORECASE)
 _PHASE13_RE: re.Pattern[str] = re.compile(r"\[arka:phase:13\]", re.IGNORECASE)
 _TRIVIAL_RE: re.Pattern[str] = re.compile(r"\[arka:trivial\]", re.IGNORECASE)
 _TRIVIAL_WORD_THRESHOLD: int = 15
 _SUGGESTION_TEXT: str = (
     "Closing marker missing — end every flow-required turn with "
-    "`[arka:phase:13] <label>` (full canonical flow) or "
+    "`[arka:gate:4] <label>` (evidence flow review gate) or "
     "`[arka:trivial] <reason>` (single-file edit < 10 lines, "
     "imperative verb). Without the marker, telemetry can't confirm "
     "the turn closed cleanly."
@@ -52,6 +54,8 @@ def check_closing_marker(response_text: str) -> ClosingMarkerResult:
     marker is found.
     """
     text = response_text or ""
+    if _GATE4_RE.search(text):
+        return ClosingMarkerResult(True, "gate4", None)
     if _PHASE13_RE.search(text):
         return ClosingMarkerResult(True, "phase13", None)
     if _TRIVIAL_RE.search(text):

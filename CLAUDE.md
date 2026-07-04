@@ -187,7 +187,7 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `config/constitution.yaml` defines governance with 4 enforcement levels:
 
-**NON-NEGOTIABLE (25 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, mandatory-flow, quality-over-speed, always-research, project-design-system-prerequisite, definition-of-done-per-domain, arkaos-not-yes-man, inter-agent-checkpoints, hybrid-learning, dispatch-must-be-announced
+**NON-NEGOTIABLE (25 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, evidence-flow, quality-over-speed, always-research, project-design-system-prerequisite, definition-of-done-per-domain, arkaos-not-yes-man, inter-agent-checkpoints, hybrid-learning, dispatch-must-be-announced
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
@@ -228,39 +228,38 @@ Every request routes through a department squad. ArkaOS never responds as a gene
 
 Routing: Synapse L1 (keyword detection) + L5 (command hints) + hook context tags.
 
-## Mandatory 13-phase flow (NON-NEGOTIABLE)
+## Evidence flow — 4 gates (NON-NEGOTIABLE)
 
-Every non-trivial request runs the canonical flow. Full spec:
-`arka/skills/flow/SKILL.md`. Constitution rule: `mandatory-flow`.
+Every non-trivial request runs the canonical evidence flow. Full spec:
+`arka/skills/flow/SKILL.md`. Constitution rule: `evidence-flow`.
+ADR: `docs/adr/2026-07-04-evidence-flow.md`. Gates pass on evidence read
+from disk (command output, exit codes, files), never on narration.
 
 ```
-1  Input — verbatim
-2  Get context — profile, repo, git, cwd tag, session digests
-3  Decide route — emit [arka:routing] <dept> -> <lead>
-4  Call hierarchy — Tier 0 when strategic / cross-dept / security / financial
-5  Research — Obsidian + vector DB, cite sources or declare gap
-6  Call team — dispatch specialists via Agent tool
-7  Plan — six parallel reviewers: positive / devil's advocate / Q&A /
-        KB research / best-solution validator / pessimistic
-8  Present plan — save to Obsidian + vector DB + ~/.arkaos/plans/
-9  Wait approval — EXPLICIT user go, silence is not approval
-10 TODO list — atomic, ordered, independently verifiable
-11 Per-todo loop — team call -> complete -> QA (all tests, E2E, Playwright)
-        -> Security -> Quality Gate (Marta + Eduardo + Francisca, Opus)
-        -> Document (Obsidian + vector DB)
-12 Loop until TODO is exhausted
-13 Detailed summary — what was done, where, how to verify, what is open
+G1 CONTEXT  — [arka:routing] <dept> -> <lead> + KB/graph grounding
+              (cite or declare the gap)
+G2 PLAN     — short plan (scope, files, verification commands)
+              -> EXPLICIT user approval; silence is not approval
+G3 EXECUTE  — atomic steps; closes ONLY with a real test run on record:
+              [arka:gate:3] evidence: <command> -> exit 0 (<summary>)
+G4 REVIEW   — executable checks (lint/type/coverage/security/spell)
+              -> honest summary: what changed, how verified, what is open
 ```
 
-Emit `[arka:phase:N] <label>` before every step. Only bypass:
-`[arka:trivial] <reason>` for single-file edits under 10 lines.
+Emit `[arka:gate:N]` at each gate start. The Stop hook persists gate
+transitions (`core/workflow/gate_checkpoint.py`) to
+`~/.arkaos/workflow-state.json` + the per-session `SessionStore`
+snapshot, so a rate-limit or context interruption resumes at the right
+gate. Only bypass: `[arka:trivial] <reason>` for single-file edits under
+10 lines.
 
 No runtime, task type, context, or convenience can opt out. Sessions start
-with `[ARKA:MANDATORY-FLOW]` injected as systemMessage; turns matching
+with `[ARKA:EVIDENCE-FLOW]` injected as systemMessage; turns matching
 creation/implementation verbs get `[ARKA:WORKFLOW-REQUIRED]` as
-additionalContext. Skipping the flow violates: `mandatory-flow`,
+additionalContext. Skipping the flow violates: `evidence-flow`,
 `squad-routing`, `spec-driven`, `mandatory-qa`, `sequential-validation`,
-`full-visibility`, `arka-supremacy`.
+`full-visibility`, `arka-supremacy`. Legacy `[arka:phase:N]` markers stay
+accepted during the v4.1 deprecation window.
 
 ## Knowledge Base
 

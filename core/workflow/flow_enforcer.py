@@ -1,4 +1,4 @@
-"""Mandatory 13-phase flow enforcement for write-mutation tools.
+"""Evidence-flow enforcement for write-mutation tools.
 
 Invoked by the Claude Code `PreToolUse` hook. Decides whether a `Write`,
 `Edit`, or `MultiEdit` tool call may proceed, based on markers observed
@@ -8,7 +8,9 @@ Design contract:
 - Stateless transcript parse (no /tmp state for decisions).
 - Side effects limited to reading the transcript path supplied by the hook.
 - Signals permission when the assistant has emitted one of the flow markers:
-  `[arka:routing]`, `[arka:trivial]`, or `[arka:phase:`.
+  `[arka:routing]`, `[arka:trivial]`, or `[arka:gate:` (v4.1 evidence flow).
+  The legacy 13-phase `[arka:phase:` marker remains accepted during the
+  v4.1 deprecation window.
 - Respects `ARKA_BYPASS_FLOW=1` env var (installer/`/arka update` internal).
 - Honors feature flag `hooks.hardEnforcement` in `~/.arkaos/config.json`.
 - Gated tool list is closed: anything outside it is always allowed.
@@ -186,7 +188,9 @@ def bash_is_effect(command: str) -> bool:
 
 ROUTING_RE = re.compile(r"\[arka:routing\]\s*[\w-]+\s*->\s*\w+", re.IGNORECASE)
 TRIVIAL_RE = re.compile(r"\[arka:trivial\]\s*\S+", re.IGNORECASE)
-PHASE_RE = re.compile(r"\[arka:phase:\d+\]", re.IGNORECASE)
+GATE_RE = re.compile(r"\[arka:gate:[1-4]\]", re.IGNORECASE)
+# Legacy 13-phase marker — accepted during the v4.1 deprecation window.
+PHASE_RE = re.compile(r"\[arka:phase:\d+(\.\d+)?\]", re.IGNORECASE)
 
 # Re-export for backward compatibility with any external importers that
 # relied on the module-level symbols before the core.shared extraction.
@@ -329,14 +333,19 @@ def _scan_markers(messages: list[str]) -> tuple[str | None, str | None]:
     phase_observed: str | None = None
     for text in messages:
         if phase_observed is None:
+            gate_match = GATE_RE.search(text)
             phase_match = PHASE_RE.search(text)
-            if phase_match:
+            if gate_match:
+                phase_observed = gate_match.group(0)
+            elif phase_match:
                 phase_observed = phase_match.group(0)
         if marker_found is None:
             if ROUTING_RE.search(text):
                 marker_found = "routing"
             elif TRIVIAL_RE.search(text):
                 marker_found = "trivial"
+            elif GATE_RE.search(text):
+                marker_found = "gate"
             elif PHASE_RE.search(text):
                 marker_found = "phase"
     return marker_found, phase_observed

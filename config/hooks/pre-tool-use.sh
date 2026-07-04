@@ -2,10 +2,10 @@
 # ============================================================================
 # ArkaOS v2 — PreToolUse Hook (Flow Enforcement Gate)
 #
-# Blocks Write/Edit/MultiEdit when the mandatory 13-phase flow is required
+# Blocks Write/Edit/MultiEdit when the 4-gate evidence flow is required
 # for the session AND the assistant has not emitted a flow marker
-# (`[arka:routing]`, `[arka:trivial]`, or `[arka:phase:`) in its last
-# 3 messages of the transcript.
+# (`[arka:routing]`, `[arka:trivial]`, `[arka:gate:`, or the legacy
+# `[arka:phase:`) in its recent transcript messages.
 #
 # Delegates the decision to core/workflow/flow_enforcer.py (single source
 # of truth, pytest-covered). This shell script is a thin wrapper — anti

@@ -67,26 +67,17 @@ enforcement_levels:
         enforcement: "Plan Critic validates constitution compliance; PostToolUse monitors execution"
 
       - id: mandatory-skill-evaluation
-        rule: "After every completed substantive task (Phase 13 marker fires), the system MUST evaluate whether the work just done represents a repeatable capability that should be captured as a permanent skill. Proposals are written to ~/.arkaos/skill-proposals/<date>-<slug>.md for operator review. Bypass via [arka:trivial] or [arka:skill-skip]."
+        rule: "After every completed substantive task (Gate 4 marker fires), the system MUST evaluate whether the work just done represents a repeatable capability that should be captured as a permanent skill. Proposals are written to ~/.arkaos/skill-proposals/<date>-<slug>.md for operator review. Bypass via [arka:trivial] or [arka:skill-skip]."
         enforcement: "Stop hook calls core.governance.skill_proposer.evaluate on the closing transcript tail. When the classifier returns should_propose=True a SKILL.md draft is written. Operator promotes via /arka skill-promote (PR45) or manual scaffold under departments/<dept>/skills/<slug>/."
 
-      - id: mandatory-flow
-        rule: "Every non-trivial request executes the 13-phase canonical flow defined in arka/skills/flow/SKILL.md. No task type, no context, no runtime setting can opt out. The only bypass is [arka:trivial] for single-file edits under 10 lines."
-        enforcement: "UserPromptSubmit hook classifies the turn; SessionStart systemMessage embeds the flow at system-prompt priority; arka/SKILL.md references it as default; violation is a constitution breach, not a style issue."
+      - id: evidence-flow
+        rule: "Every non-trivial request executes the 4-gate evidence flow defined in arka/skills/flow/SKILL.md. Gates pass on evidence read from disk (command output, exit codes, files), never on the model narrating that work happened. No task type, no context, no runtime setting can opt out. The only bypass is [arka:trivial] for single-file edits under 10 lines. Replaced the 13-phase mandatory-flow in v4.1.0 (operator decision 2026-07-04; ADR docs/adr/2026-07-04-evidence-flow.md)."
+        enforcement: "UserPromptSubmit hook classifies the turn; SessionStart systemMessage embeds the flow at system-prompt priority; Stop hook persists [arka:gate:N] transitions via core/workflow/gate_checkpoint.py for structured resume; Gate 3 closes only with a real test run on record; violation is a constitution breach, not a style issue."
         phases:
-          - "1. Input (verbatim)"
-          - "2. Get context (profile, repo, KB, session digests)"
-          - "3. Decide context and route ([arka:routing] tag)"
-          - "4. Call hierarchy (Tier 0 when strategic/cross-dept)"
-          - "5. Understand and research (Obsidian + vector DB)"
-          - "6. Call team (squad + specialists via Agent)"
-          - "7. Plan with six parallel reviewers"
-          - "8. Present plan (save to Obsidian + vector DB + cache)"
-          - "9. Wait for explicit approval"
-          - "10. TODO list"
-          - "11. Per-todo loop: team call -> complete -> QA -> Security -> Quality Gate -> Document"
-          - "12. Loop until TODO exhausted"
-          - "13. Detailed summary"
+          - "Gate 1. CONTEXT — [arka:routing] + KB/graph grounding with citations"
+          - "Gate 2. PLAN — short plan + EXPLICIT user approval (silence is not approval)"
+          - "Gate 3. EXECUTE — atomic steps; closes only with test suite run + exit 0 evidence"
+          - "Gate 4. REVIEW — executable checks (lint/type/coverage/security/spell) + honest summary"
 
       # ─── Rules added in PR10 v2.32.0 (2026-05-13 Conclave Phase 5) ───────
       # The 7 below codify the operational doctrine surfaced in the

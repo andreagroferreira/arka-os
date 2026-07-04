@@ -149,6 +149,20 @@ def test_phase_marker_allows(tmp_config, tmp_path):
     assert d.phase_observed == "[arka:phase:11]"
 
 
+def test_gate_marker_allows(tmp_config, tmp_path):
+    """v4.1.0 evidence flow: [arka:gate:N] unlocks effect tools."""
+    _write_config(tmp_config, True)
+    mark_flow_required("session-5g")
+    transcript = _write_transcript(
+        tmp_path / "t.jsonl",
+        ["[arka:gate:3] implementing the approved plan now."],
+    )
+    d = evaluate("Write", str(transcript), "session-5g", "/tmp")
+    assert d.allow is True
+    assert d.marker_found == "gate"
+    assert d.phase_observed == "[arka:gate:3]"
+
+
 def test_marker_in_any_of_last_three_messages(tmp_config, tmp_path):
     """Marker in message N-2 is still valid if N-1 and N lack it."""
     _write_config(tmp_config, True)

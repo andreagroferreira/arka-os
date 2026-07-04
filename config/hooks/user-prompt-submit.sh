@@ -336,38 +336,12 @@ if [ -n "$user_input" ] && command -v arka_wf_classify &>/dev/null; then
       arka_wf_mark_required "$SESSION_ID"
     fi
     _WORKFLOW_DIRECTIVE="
-[ARKA:WORKFLOW-REQUIRED] Your user request matched a CREATION/IMPLEMENTATION pattern.
-The ArkaOS mandatory 13-phase flow applies. It is NON-NEGOTIABLE (constitution rule
-mandatory-flow). You MUST walk every phase, in order, emitting a [arka:phase:N] tag
-before each:
-  1. Input — restate the request verbatim.
-  2. Get context — profile, repo, git, cwd tag, session digests.
-  3. Decide route — emit [arka:routing] <dept> -> <lead>.
-  4. Call hierarchy — escalate to Tier 0 if strategic/cross-dept/security/financial.
-  5. Research — query Obsidian + vector DB, cite sources or declare the gap.
-  6. Call team — dispatch specialists via Agent tool.
-  7. Plan — run six parallel reviewers: positive, devil's advocate, Q&A, KB research,
-     best-solution validator, pessimistic. Synthesise into a spec.
-  8. Present plan — save to Obsidian + vector DB + ~/.arkaos/plans/, print inline.
-  9. Wait approval — EXPLICIT user go. Silence is NOT approval.
- 10. TODO list — atomic, ordered, independently verifiable.
- 11. Per-todo loop — team call -> complete -> QA (all tests, E2E, Playwright) ->
-     Security review -> Quality Gate (Marta + Eduardo + Francisca, Opus) -> Document.
-     Each step loops back on fail. No compound gates.
- 12. Loop until TODO is exhausted.
- 13. Detailed summary — what was done, where, how to verify, what is still open.
-
-No Write, Edit, Bash-with-side-effects, or Agent dispatch before Phase 7 completes
-for the affected item. No advancing a todo until QA AND Security AND Quality Gate
-all pass for it. Phase 5 and Phase 8 require Obsidian/KB writes, not just reads.
-
-Trivial override: single-file edit under 10 lines with imperative verb
-(rename X, fix typo in Y). Emit [arka:trivial] <reason> as first line and proceed.
-Anything else runs the full 13 phases. Source: arka/skills/flow/SKILL.md.
-
-This is enforced by the hook and the session-start systemMessage, not by convention.
-Skipping violates: mandatory-flow, squad-routing, spec-driven, mandatory-qa,
-sequential-validation, full-visibility, arka-supremacy."
+[ARKA:WORKFLOW-REQUIRED] CREATION/IMPLEMENTATION detected — the 4-gate evidence
+flow applies (constitution rule evidence-flow; source arka/skills/flow/SKILL.md).
+G1 CONTEXT ([arka:routing] + grounding) -> G2 PLAN (explicit approval) ->
+G3 EXECUTE (real test run + exit 0 on record) -> G4 REVIEW (executable checks).
+Emit [arka:gate:N] at each gate start. No writes before G2 approval.
+Trivial bypass: [arka:trivial] <reason>, single file, under 10 lines."
   fi
 fi
 
@@ -427,7 +401,7 @@ if [ -n "$SESSION_ID" ] && [ "$_ARKA_SURFACE_NUDGES" = "true" ]; then
 fi
 
 # ─── Closing-marker nudge (PR59 v2.76.0) ─────────────────────────────────
-# Mirror of meta-tag nudge but for [arka:phase:13] / [arka:trivial]
+# Mirror of meta-tag nudge but for [arka:gate:4] / [arka:trivial]
 # closing markers. One-shot; deleted after read.
 _CLOSING_MARKER_NUDGE=""
 if [ -n "$SESSION_ID" ] && [ "$_ARKA_SURFACE_NUDGES" = "true" ]; then
