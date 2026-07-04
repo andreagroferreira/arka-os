@@ -24,7 +24,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml pydantic rich click jinja2
+          # Core deps + dashboard extra (fastapi/uvicorn — the API endpoint
+          # test modules import them at collection time) + sqlite-vec so the
+          # vector-store test isn't skipped. fastembed/ingest extras stay out
+          # (heavy; their code paths degrade gracefully and are covered by
+          # the labeled-degradation tests).
+          pip install -e ".[dashboard]" sqlite-vec
           pip install pytest pytest-cov
 
       - name: Run Python tests

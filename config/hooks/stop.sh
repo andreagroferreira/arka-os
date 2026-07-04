@@ -49,6 +49,21 @@ if [ ! -f "$ARKAOS_ROOT/core/hooks/stop.py" ]; then
   fi
 fi
 
+# Interpreter resolution: prefer the ArkaOS venv (has pyyaml/pydantic);
+# otherwise probe — an unrelated project venv first on PATH would give a
+# python3 without yaml and silently degrade every gate.
+_PY=""
+for _cand in "$HOME/.arkaos/venv/bin/python3" "$HOME/.arkaos/.venv/bin/python3"; do
+  if [ -x "$_cand" ]; then _PY="$_cand"; break; fi
+done
+if [ -z "$_PY" ]; then
+  _PY="python3"
+  if ! "$_PY" -c "import yaml" 2>/dev/null; then
+    for _cand in /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
+      if [ -x "$_cand" ] && "$_cand" -c "import yaml" 2>/dev/null; then _PY="$_cand"; break; fi
+    done
+  fi
+fi
 PYTHONPATH="$ARKAOS_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 -m core.hooks.stop
+  "$_PY" -m core.hooks.stop
 exit 0

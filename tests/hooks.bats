@@ -37,11 +37,9 @@ load helpers/setup
   input='{"prompt":"hello","cwd":"/tmp","session_id":"test123"}'
   run bash -c "export ARKA_OS='$TEST_ARKA_OS' && echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
   [ "$status" -eq 0 ]
+  # Real Synapse engine emits the compact "[Constitution]" tag (token-lean,
+  # v4.1.1); the bash fallback emits the full rule list. Both carry the word.
   [[ "$output" == *"Constitution"* ]]
-  [[ "$output" == *"solid-clean-code"* ]]
-  [[ "$output" == *"spec-driven"* ]]
-  [[ "$output" == *"human-writing"* ]]
-  [[ "$output" == *"squad-routing"* ]]
 }
 
 @test "user-prompt-submit.sh includes time context" {
