@@ -56,6 +56,17 @@ export async function init({ path }) {
     console.log(`  Created: .claude/settings.local.json`);
   }
 
+  // Deploy Quality Gate / squad-lead subagent definitions (.claude/agents/)
+  try {
+    const { deployProjectAgents } = await import("./adapters/claude-code.js");
+    const agentCount = deployProjectAgents(projectDir);
+    if (agentCount > 0) {
+      console.log(`  Created: .claude/agents/ (${agentCount} subagent definitions)`);
+    }
+  } catch {
+    // Best-effort — init must not fail on optional agent deployment.
+  }
+
   console.log(`
   Project initialized for ArkaOS.
 

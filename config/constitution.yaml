@@ -121,6 +121,10 @@ enforcement_levels:
     description: "Mandatory pre-delivery review. Nothing ships without APPROVED verdict."
     trigger: "After the last execution phase, before delivery to user"
     frequency: "Once per workflow execution, not per phase"
+    model_policy:
+      default: sonnet
+      opus_scope: "Tier 0 diffs only: constitution, security-relevant changes, release pipeline, installer auth — or deliverables explicitly security-flagged"
+      note: "Marta's veto is model-independent: the verdict derives from the evidence report (core.governance.evidence_checks), not from model size."
     agents:
       orchestrator:
         id: cqo-marta
@@ -134,9 +138,10 @@ enforcement_levels:
           scope: "All technical: code quality, tests, UX/UI, data integrity, security, performance"
           veto_power: true
     process:
-      - "Marta receives all output from execution phase"
-      - "Marta dispatches Eduardo (text) and Francisca (technical) in parallel"
-      - "Each reviewer returns APPROVED or REJECTED with specific issues"
+      - "Evidence engine runs first: python -m core.governance.evidence_checks — the verdict derives from its report"
+      - "Marta receives all output from execution phase plus the evidence report"
+      - "Marta dispatches Eduardo (text) and Francisca (technical) in parallel to interpret the report"
+      - "Each reviewer returns a structured QGVerdict (APPROVED or REJECTED) with specific issues; evidence overall=fail forces REJECTED"
       - "If ANY reviewer rejects: work loops back to execution with issue list"
       - "If ALL approve: Marta issues final APPROVED verdict"
       - "Nothing reaches the user without APPROVED from all three"
@@ -177,7 +182,7 @@ enforcement_levels:
         enforcement: "persistence.py exports on status change; audit detects missing exports"
 
       - id: model-routing
-        rule: "Per-tier model assignment enforced: Tier 0 opus, Tier 1/2 sonnet, mechanical haiku. Quality Gate ALWAYS opus."
+        rule: "Per-tier model assignment enforced: Tier 0 opus, Tier 1/2 sonnet, mechanical haiku. Quality Gate reviewers run sonnet by default; opus ONLY for Tier 0/security-scope diffs (constitution, security, release pipeline, installer auth). Marta keeps her veto regardless of model tier."
         enforcement: "warning"
 
       - id: subagent-discipline

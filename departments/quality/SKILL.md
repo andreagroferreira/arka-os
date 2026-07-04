@@ -15,18 +15,54 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 The Quality Gate is NOT invoked by the user directly. It runs automatically as the
 second-to-last phase of EVERY workflow in EVERY department.
 
+The gate is EVIDENCE INTERPRETATION, not persona role-play. The verdict DERIVES
+from executable check output; reviewers interpret the report, they never
+override it with narrative.
+
 ```
 Any Department Workflow:
   ...
   Phase N-1: QUALITY GATE
-    1. Marta receives ALL output from execution phases
-    2. Marta dispatches Eduardo (text) + Francisca (tech) in parallel
-    3. Each reviewer returns APPROVED or REJECTED with specific issues
-    4. If ANY reviewer rejects → work loops back with issue list
+    1. Run the evidence engine over the project/diff:
+         python -m core.governance.evidence_checks <project_dir> \
+           [--changed-files f1,f2] [--test-command '...'] --json
+    2. Marta dispatches Eduardo + Francisca to INTERPRET the report:
+       - Eduardo: spellcheck section + prose review of changed copy
+       - Francisca: lint / typecheck / tests / coverage / security-grep
+    3. Verdict rules (binary, evidence-floored):
+       - overall == "fail"  → REJECTED. Always. No persona can override
+         failing evidence with narrative.
+       - overall == "pass"  → APPROVED only if reviewers find no blocker
+         the checks cannot see (logic, copy, UX).
+       - overall == "insufficient-evidence" → APPROVED only with an
+         explicit justification in the verdict notes; otherwise REJECTED.
+    4. If ANY reviewer rejects → work loops back with the blockers list
     5. If ALL approve → Marta issues final APPROVED verdict
   Phase N: DELIVERY
     → Only reaches user after APPROVED from all three
 ```
+
+## Reviewer Dispatch Contract
+
+Reviewers are dispatched via the Agent tool with STRUCTURED OUTPUT. The output
+schema is `QG_VERDICT_JSON_SCHEMA` from `core.governance.qg_verdict` (the JSON
+Schema of the `QGVerdict` pydantic model):
+
+    from core.governance.qg_verdict import QG_VERDICT_JSON_SCHEMA
+
+    Agent(
+        subagent_type="francisca-tech",       # .claude/agents/francisca-tech.md
+        model="sonnet",                        # opus ONLY for Tier 0/security scope
+        prompt="<evidence report JSON> + <diff summary> — interpret and return QGVerdict",
+        output_schema=QG_VERDICT_JSON_SCHEMA,  # structured-output param
+    )
+
+Each reviewer MUST return a `QGVerdict` JSON object: `verdict`
+(APPROVED|REJECTED), `evidence_report` (embedded summary), `blockers`
+(`[{check, detail, file}]`), `reviewer`, `model_used`, `notes`. The pydantic
+model rejects APPROVED-with-failing-evidence at validation time, and
+`core.governance.review_workflow` raises `ValueError` on any attempt to record
+an approval over `evidence_overall == "fail"`.
 
 ## Squad
 
@@ -70,7 +106,11 @@ There is no "APPROVED WITH CAVEATS". It's binary. Fix issues first.
 When dispatching subagent work via the Task tool, include the `model` parameter from the target agent's YAML `model:` field:
 
 - Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | haiku`
-- Quality Gate dispatch (Marta/Eduardo/Francisca) ALWAYS uses `model: opus` — NON-NEGOTIABLE
+- Quality Gate reviewers (Eduardo/Francisca) run on `sonnet` by DEFAULT.
+  `opus` is used ONLY when the diff is Tier 0 scope (constitution, security,
+  release pipeline, installer auth) or the deliverable is security-flagged.
+- Marta keeps her veto regardless of the model tier the review ran on —
+  the verdict derives from evidence, not from model size.
 - Default to `sonnet` if the agent YAML has no `model` field
 - Mechanical tasks (commit messages, routing, keyword extraction) use `model: haiku`
 

@@ -438,11 +438,17 @@ def record_telemetry(
     decision: Decision,
     cwd: str = "",
     target_file: str = "",
+    model_requested: str = "",
 ) -> None:
     """Append a structured record to the specialist-dispatch telemetry log.
 
     Drops the record silently when session_id fails the safe-id check
     (path-traversal mitigation, CWE-22).
+
+    ``model_requested`` carries the ``model`` param of the dispatched tool
+    call when the caller has one (Agent dispatches), so ``/arka costs`` can
+    later cross-check requested vs billed model tiers. Warn-only metadata —
+    empty string when the tool has no model concept (Write/Edit).
     """
     safe = _safe_session_id_module.safe_session_id(session_id)
     if safe is None:
@@ -453,6 +459,7 @@ def record_telemetry(
         "tool": tool,
         "cwd": cwd,
         "target_file": target_file or decision.target_file or "",
+        "model_requested": model_requested,
         **asdict(decision),
     }
     try:

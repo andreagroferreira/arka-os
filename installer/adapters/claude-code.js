@@ -1,8 +1,52 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, statSync } from "node:fs";
+import { join, dirname, resolve } from "node:path";
 import { platform } from "node:os";
+import { fileURLToPath } from "node:url";
 
 const IS_WINDOWS = platform() === "win32";
+const ARKAOS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+/**
+ * Deploy the packaged Quality Gate / squad-lead subagent definitions
+ * (`config/claude-agents/*.md` in the ArkaOS package: marta-cqo,
+ * eduardo-copy, francisca-tech, paulo-tech-lead) into a project's
+ * `.claude/agents/` directory, so Claude Code can dispatch them as real
+ * subagent types with structured QGVerdict output (PR-4 evidence
+ * Quality Gate). Source lives under config/ because `.claude/` is
+ * gitignored in the ArkaOS repo itself.
+ *
+ * Same merge philosophy as configureHooks: never delete user files,
+ * overwrite only the ArkaOS-owned definitions by name. Best-effort —
+ * a missing source dir (older package) is a silent no-op.
+ *
+ * @param {string} projectDir - project root (contains or gets .claude/)
+ * @param {string} [sourceRoot] - override for tests; defaults to package root
+ * @returns {number} count of agent definitions deployed
+ */
+export function deployProjectAgents(projectDir, sourceRoot = ARKAOS_ROOT) {
+  const agentsSrc = join(sourceRoot, "config", "claude-agents");
+  if (!existsSync(agentsSrc)) return 0;
+
+  const agentsDest = join(projectDir, ".claude", "agents");
+  let deployed = 0;
+  try {
+    mkdirSync(agentsDest, { recursive: true });
+    for (const file of readdirSync(agentsSrc)) {
+      if (!file.endsWith(".md")) continue;
+      const srcFile = join(agentsSrc, file);
+      try {
+        if (!statSync(srcFile).isFile()) continue;
+        copyFileSync(srcFile, join(agentsDest, file));
+        deployed++;
+      } catch {
+        // Best-effort — a single unreadable agent file shouldn't break init.
+      }
+    }
+  } catch {
+    return deployed;
+  }
+  return deployed;
+}
 
 /**
  * Build a complete inner hook-entry object for Claude Code's settings.json.

@@ -54,6 +54,7 @@ class ReviewerVote:
     comments: str = ""
     flagged_rules: list[str] = field(default_factory=list)
     voted_at: str = ""
+    evidence_overall: str | None = None  # "pass" | "fail" | "insufficient-evidence"
 
 
 @dataclass
@@ -209,6 +210,7 @@ class ReviewWorkflowEngine:
         opinion: ReviewerOpinion,
         comments: str = "",
         flagged_rules: list[str] | None = None,
+        evidence_overall: str | None = None,
     ) -> bool:
         """Record a reviewer's vote.
 
@@ -218,9 +220,15 @@ class ReviewWorkflowEngine:
             opinion: Their vote
             comments: Optional comments
             flagged_rules: Constitution rules that were violated
+            evidence_overall: EvidenceReport.overall the vote interprets
+                ("pass" | "fail" | "insufficient-evidence")
 
         Returns:
             True if vote recorded successfully
+
+        Raises:
+            ValueError: APPROVE vote against evidence_overall == "fail" —
+                a reviewer cannot approve over failing executable evidence.
         """
         workflow = self._workflows.get(workflow_id)
         if not workflow:
@@ -229,12 +237,19 @@ class ReviewWorkflowEngine:
         if workflow.phase not in (ReviewPhase.REVIEW, ReviewPhase.DELIBERATION):
             return False
 
+        if opinion == ReviewerOpinion.APPROVE and evidence_overall == "fail":
+            raise ValueError(
+                f"reviewer {reviewer} voted APPROVE with evidence "
+                "overall='fail' — evidence floor violated"
+            )
+
         vote = ReviewerVote(
             reviewer=reviewer,
             opinion=opinion,
             comments=comments,
             flagged_rules=flagged_rules or [],
             voted_at=datetime.now(timezone.utc).isoformat(),
+            evidence_overall=evidence_overall,
         )
         workflow.votes.append(vote)
         return True
@@ -276,17 +291,35 @@ class ReviewWorkflowEngine:
         self._announce_phase_complete(ReviewPhase.DELIBERATION, result)
         return result
 
-    def reach_verdict(self, workflow_id: str, verdict: Verdict, feedback: str = "") -> PhaseResult:
+    def reach_verdict(
+        self,
+        workflow_id: str,
+        verdict: Verdict,
+        feedback: str = "",
+        evidence_overall: str | None = None,
+    ) -> PhaseResult:
         """Record the final verdict.
 
         Args:
             workflow_id: ID of the workflow
             verdict: Final verdict
             feedback: Feedback for the submitter
+            evidence_overall: EvidenceReport.overall the verdict derives
+                from ("pass" | "fail" | "insufficient-evidence")
 
         Returns:
             PhaseResult with verdict outcome
+
+        Raises:
+            ValueError: APPROVED with evidence_overall == "fail" — the
+                bookkeeping enforces the evidence floor.
         """
+        if verdict == Verdict.APPROVED and evidence_overall == "fail":
+            raise ValueError(
+                "APPROVED verdict with evidence overall='fail' — evidence "
+                "floor violated; failing checks force REJECTED"
+            )
+
         workflow = self._workflows.get(workflow_id)
         if not workflow:
             return PhaseResult(

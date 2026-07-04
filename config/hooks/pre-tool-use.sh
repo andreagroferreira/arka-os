@@ -169,6 +169,7 @@ try:
         decision=decision,
         cwd=os.environ.get("CWD", ""),
         target_file=str(tool_input.get("file_path", "")),
+        model_requested=str(tool_input.get("model", "")),
     )
 except Exception:
     pass

@@ -108,7 +108,9 @@ class TestConstitutionQualityGate:
 
     def test_quality_gate_process_steps(self, constitution):
         qg = constitution.enforcement_levels["quality_gate"]
-        assert len(qg["process"]) == 6
+        # v4.1.0: evidence engine prepended as step 1 (7 steps total)
+        assert len(qg["process"]) == 7
+        assert "evidence" in qg["process"][0].lower()
         assert "APPROVED" in qg["process"][-1]
 
 

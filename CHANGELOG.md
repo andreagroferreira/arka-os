@@ -29,6 +29,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   correct gate after rate-limit or context interruptions. First real
   caller of `core/workflow/state.py`.
 
+### Changed — Structural honesty (PR-2)
+
+- `core/workflow/rules_registry.py` pruned to disk-verifiable rules only
+  (branch-isolation, spec-driven, mandatory-qa). Checks that trusted
+  caller-supplied booleans (`tests_run`, `spec_status`, ...) were deleted,
+  not stubbed — self-reported state was enforcement theater.
+- `mandatory-qa` now reads real test evidence from disk (coverage.xml /
+  junit.xml / .pytest_cache) and blocks delivery below 80% coverage.
+
+### Changed — Graphify grounding + honest RAG (PR-3)
+
+- Synapse L2.7 (`core/synapse/graph_context_layer.py`) injects Graphify
+  code-graph nodes matched to the prompt, with confidence tags and exact
+  `source_location`. Honesty contract: `EXTRACTED` as-is, `INFERRED`
+  suffixed `(inferred)`, `AMBIGUOUS` never injected, citations never
+  truncated. Feature flag `synapse.graphContext`.
+- RAG honesty in Synapse KB layers: keyword-degraded retrieval is labeled
+  as such; Dreaming-inferred notes are excluded by default and marked
+  when included.
+
+### Changed — Evidence Quality Gate + model routing (PR-4)
+
+- `core/governance/evidence_checks.py` — executable check engine (lint,
+  typecheck, tests, coverage, security-grep, optional codespell) with
+  auto-detection per stack, 300s timeout, read-only subprocesses and a
+  CLI (`python -m core.governance.evidence_checks ... --json`). The QG
+  verdict now DERIVES from this report: `overall=fail` forces REJECTED.
+- `core/governance/qg_verdict.py` — pydantic `QGVerdict` +
+  `QG_VERDICT_JSON_SCHEMA` for structured reviewer subagent output;
+  APPROVED-over-failing-evidence rejected at validation time.
+- `core/governance/review_workflow.py` — `record_vote`/`reach_verdict`
+  accept `evidence_overall` and raise on approval over failing evidence.
+- Coverage/junit parsing extracted to `core/shared/test_evidence.py`
+  (shared by rules_registry and evidence_checks).
+- QG personas as real subagent types in `.claude/agents/` (marta-cqo,
+  eduardo-copy, francisca-tech, paulo-tech-lead), deployed into projects
+  by `npx arkaos init` via `installer/adapters/claude-code.js`.
+- Model routing: QG reviewers run sonnet by default; opus ONLY for
+  Tier 0/security-scope diffs (constitution `model-routing` rule,
+  `quality_gate.model_policy`, CLAUDE.md). Marta's veto is
+  model-independent. Specialist-dispatch telemetry records
+  `model_requested` for later `/arka costs` cross-checks.
+
 ## [4.0.0] - 2026-06-01
 
 ### Added — Knowledge Video Pipeline
