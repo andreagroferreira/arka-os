@@ -302,13 +302,21 @@ def _extract_text(content: object) -> str:
     return ""
 
 
-def _load_last_assistant_messages(transcript_path: str, n: int) -> list[str]:
-    """Read the last `n` assistant messages from a JSONL transcript."""
-    path = Path(transcript_path) if transcript_path else None
-    if path is None or not path.exists():
-        return []
+def _load_last_assistant_messages(
+    transcript_path: str, n: int, raw_text: str | None = None
+) -> list[str]:
+    """Read the last `n` assistant messages from a JSONL transcript.
+
+    ``raw_text`` lets callers that already read the transcript (PR-6 hook
+    consolidation — parse once per hook invocation) skip the disk read.
+    """
+    if raw_text is None:
+        path = Path(transcript_path) if transcript_path else None
+        if path is None or not path.exists():
+            return []
+        raw_text = path.read_text(encoding="utf-8", errors="replace")
     messages: list[str] = []
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in raw_text.splitlines():
         if not line.strip():
             continue
         try:
@@ -357,6 +365,7 @@ def evaluate(
     session_id: str = "",
     cwd: str = "",
     tool_input: dict | None = None,
+    messages: list[str] | None = None,
 ) -> Decision:
     """Decide whether a tool call may proceed.
 
@@ -366,6 +375,10 @@ def evaluate(
     PR11 v2.33.0 expanded the gated set beyond Write/Edit/MultiEdit to
     cover all EFFECT tools (NotebookEdit, Task, Skill) and to classify
     Bash commands per-command via ``bash_is_effect``.
+
+    ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages.
+    When None (default) the transcript is read from ``transcript_path`` —
+    backward compatible with all existing callers.
     """
     is_gated = tool_name in EFFECT_TOOLS_ALWAYS
     if not is_gated and tool_name == "Bash":
@@ -395,7 +408,10 @@ def evaluate(
             marker_found=cached_type or None,
         )
 
-    messages = _load_last_assistant_messages(transcript_path, ASSISTANT_WINDOW)
+    if messages is None:
+        messages = _load_last_assistant_messages(
+            transcript_path, ASSISTANT_WINDOW
+        )
     marker_found, phase_observed = _scan_markers(messages)
 
     if marker_found is None:

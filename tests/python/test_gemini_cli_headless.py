@@ -160,13 +160,13 @@ class TestHeadlessComplete:
         assert response.tokens_out == 99
 
 
-class TestImprovedCodexTodoMessage:
-    """The Codex TODO error must surface actionable guidance.
+class TestCodexHeadlessStatus:
+    """Codex headless status after PR-6 v4.1.0 (implemented, real).
 
-    PR60 v2.77.0: the install hint lives on the missing-binary path
-    (the first NotImplementedError); the verify-syntax hint lives on
-    the present-binary path (the TODO raise). Two distinct error
-    shapes for two distinct operator situations.
+    The PR60 TODO (refuse-until-verified) is gone — `codex exec --json`
+    was verified against codex-cli 0.142.5 on 2026-07-04. Full behaviour
+    coverage lives in test_codex_cli_headless.py; this class keeps the
+    two invariants that predate the implementation.
     """
 
     def test_missing_binary_path_mentions_install(self):
@@ -182,25 +182,9 @@ class TestImprovedCodexTodoMessage:
         assert "codex CLI not found" in message
         assert "install" in message.lower()
 
-    def test_present_binary_path_mentions_syntax_verification(self):
-        """When `codex` IS on PATH, the error must guide the operator
-        to verify the invocation syntax and update the adapter."""
-        from core.runtime.codex_cli import CodexCliAdapter
-
-        adapter = CodexCliAdapter()
-        with patch("shutil.which", return_value="/usr/local/bin/codex"):
-            with pytest.raises(NotImplementedError) as exc_info:
-                adapter.headless_complete("hi")
-        message = str(exc_info.value)
-        assert "codex --help" in message
-        assert "SubagentProvider" in message
-        assert "verified invocation syntax" in message
-
     def test_headless_supported_reflects_binary_presence(self):
-        """PR60 v2.77.0 — headless_supported now auto-detects PATH so
-        installing Codex CLI later lights up the adapter without code
-        changes (the headless_complete call still raises until syntax
-        is verified)."""
+        """headless_supported auto-detects PATH so installing Codex CLI
+        later lights up the adapter without code changes."""
         from core.runtime.codex_cli import CodexCliAdapter
 
         adapter = CodexCliAdapter()

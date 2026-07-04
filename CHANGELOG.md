@@ -109,6 +109,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   watching (Monitor)" sections: prefer the runtime Monitor tool over
   polling loops (zero idle tokens), with a polling fallback note.
 
+### Changed — Hook hygiene + multi-runtime truth (PR-6)
+
+- **Hook consolidation** — the four per-turn hooks (`pre-tool-use.sh`,
+  `post-tool-use.sh`, `stop.sh`, `user-prompt-submit.sh`) are now thin
+  wrappers around ONE python process each (`core/hooks/{pre_tool_use,
+  post_tool_use,stop,user_prompt_submit}.py`). Spawn-site mentions
+  (grep -c 'python3\|jq ' per file) drop from 29/38/16/31 to 4/4/3/3
+  (remaining hits are comments + the single call); each event now runs
+  exactly ONE foreground python process — process fan-out per full turn
+  falls from ~110 to well under 20.
+  Every behavior contract is preserved: exit codes (2 = deny),
+  `permissionDecision` JSON, `additionalContext` output, telemetry rows,
+  `/tmp` state files, feature flags, env bypasses, and the PyYAML-less
+  degradation (yaml-needing modules import lazily; the stdlib-only
+  budget check still fires). The transcript is parsed at most ONCE per
+  hook event and shared via new optional `messages=`/`raw_text=` params
+  on `flow_enforcer`, `specialist_enforcer`, `gate_checkpoint`, and
+  `native_usage` (default self-read — backward compatible). The Synapse
+  bridge exposes `run_bridge()` and is called in-process. Yaml-needing
+  PostToolUse sections (enforcer, forge, violation persistence) delegate
+  once to the ArkaOS venv python when ambient python3 lacks PyYAML —
+  mirroring the old `ARKAOS_PY` resolution. Wrappers gained a self-root
+  fallback for installs whose `~/.arkaos/.repo-path` predates PR-6.
+- **Codex CLI headless implemented** — `CodexCliAdapter.headless_complete`
+  now runs `codex exec --json --skip-git-repo-check --sandbox read-only`
+  (verified against codex-cli 0.142.5, live JSONL probe 2026-07-04):
+  last `agent_message` wins, token usage from `turn.completed`
+  (input/cached/output), legacy `msg` event shapes accepted, plain-text
+  fallback with `len//4` estimate, `LLMUnavailable` on non-zero exit or
+  timeout (120s), stdin explicitly closed. Closes the TODO open since
+  2026-05-25 (PR60).
+- **Runtime capabilities matrix** — `RuntimeAdapter.capabilities()`
+  (agent_dispatch / headless / file_ops / hooks) implemented by all four
+  adapters with a conservative all-False default, plus
+  `python -m core.runtime.capabilities_cli [--json]` as the single
+  source of truth. `wiki/08-Multi-Runtime.md` rewritten: parity claims
+  replaced by the honest matrix (Claude Code first-class; Gemini
+  headless; Codex headless (new); Cursor single-agent/experimental) and
+  a "Modern orchestration primitives" section (background subagents,
+  Agent Teams + SendMessage, structured QG verdicts, workflow YAMLs).
+- Tests: `tests/python/test_core_hooks_entrypoints.py` (24 tests —
+  fixture stdin JSON, tmp HOME, per-event contracts),
+  `test_codex_cli_headless.py` (mocked subprocess),
+  `test_runtime_capabilities.py` (matrix + CLI). The live hook tests
+  (`test_pre_tool_use_hook.py`, `test_stop_hook.py`,
+  `test_flow_enforcer_v2.py`) keep their exact pre-existing pass/fail
+  pattern.
+
 ## [4.0.0] - 2026-06-01
 
 ### Added — Knowledge Video Pipeline

@@ -140,6 +140,7 @@ class _Ctx:
     persona: str | None = None
     marker: str | None = None
     config: dict = field(default_factory=dict)
+    preloaded_messages: list[str] | None = None
 
 
 # ─── Config + Ownership loaders ────────────────────────────────────────
@@ -305,9 +306,12 @@ def _populate_context(ctx: _Ctx) -> None:
             or ""
         )
     ctx.config = _load_ownership()
-    ctx.messages = _load_last_assistant_messages(
-        ctx.transcript_path, ASSISTANT_WINDOW
-    )
+    if ctx.preloaded_messages is not None:
+        ctx.messages = ctx.preloaded_messages[-ASSISTANT_WINDOW:]
+    else:
+        ctx.messages = _load_last_assistant_messages(
+            ctx.transcript_path, ASSISTANT_WINDOW
+        )
     ctx.persona, ctx.marker = _resolve_persona(ctx.messages)
 
 
@@ -414,11 +418,17 @@ def evaluate(
     session_id: str = "",
     cwd: str = "",
     tool_input: dict | None = None,
+    messages: list[str] | None = None,
 ) -> Decision:
-    """Decide whether a Write/Edit/MultiEdit/NotebookEdit may proceed."""
+    """Decide whether a Write/Edit/MultiEdit/NotebookEdit may proceed.
+
+    ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages;
+    when None the transcript is read from ``transcript_path``.
+    """
     ctx = _Ctx(
         tool_name=tool_name, transcript_path=transcript_path,
         session_id=session_id, cwd=cwd, tool_input=tool_input or {},
+        preloaded_messages=messages,
     )
     for early_check in (_check_tool_gated, _check_feature_flag):
         decision = early_check(ctx)

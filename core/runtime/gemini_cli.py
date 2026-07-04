@@ -53,6 +53,14 @@ class GeminiCliAdapter(RuntimeAdapter):
             max_context_tokens=1_000_000,
         )
 
+    def capabilities(self) -> dict[str, bool]:
+        return {
+            "agent_dispatch": False,  # descriptor only — no ArkaOS agents
+            "headless": True,         # gemini -p --output-format json
+            "file_ops": True,         # native, interactive use
+            "hooks": False,
+        }
+
     def inject_context(self, layers: dict[str, str]) -> str:
         """Gemini receives context via GEMINI.md instruction file."""
         parts = []

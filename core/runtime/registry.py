@@ -13,6 +13,9 @@ _ADAPTERS: dict[str, type[RuntimeAdapter]] = {
     "cursor": CursorAdapter,
 }
 
+# Public read-only alias (PR-6) — used by core.runtime.capabilities_cli.
+RUNTIME_ADAPTERS: dict[str, type[RuntimeAdapter]] = _ADAPTERS
+
 
 def get_adapter(runtime_id: str) -> RuntimeAdapter:
     """Get an adapter instance for the given runtime ID.

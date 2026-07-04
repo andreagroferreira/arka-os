@@ -2,20 +2,55 @@
 
 ← [Intelligence Loop](07-Intelligence-Loop.md) · [Home](Home.md) · Next: [Knowledge Base →](09-Knowledge-Base.md)
 
-ArkaOS runs on four AI coding tools. Every department, every skill, and every
-workflow works regardless of which runtime you use. The only things that differ
-are how hooks attach and which native capabilities are available.
+ArkaOS targets four AI coding tools, but they are NOT at parity — and this
+page is honest about it. Claude Code is the first-class runtime (hooks,
+agent dispatch, enforcement gates). The other three run ArkaOS knowledge
+and skills with a reduced feature set.
+
+The single source of truth is the adapter capabilities matrix:
+
+```bash
+python -m core.runtime.capabilities_cli          # table
+python -m core.runtime.capabilities_cli --json   # machine-readable
+```
 
 ---
 
-## Runtime overview
+## Runtime support matrix (honest)
 
-| Runtime | Status | Key capabilities |
-|---|---|---|
-| **Claude Code** | Primary | Hooks (5 lifecycle points), subagents, MCP, 1 M context |
-| **Gemini CLI** | Supported | Subagents, MCP, 1 M context, headless via `gemini -p` |
-| **Codex CLI** | Supported | Subagents, sandboxed execution |
-| **Cursor** | Supported | Agent mode, MCP |
+| Runtime | Status | agent dispatch | headless | file ops | hooks |
+|---|---|---|---|---|---|
+| **Claude Code** | First-class | ✅ Agent tool | ✅ `claude -p` | ✅ | ✅ 5 lifecycle points |
+| **Gemini CLI** | Headless | ❌ | ✅ `gemini -p --output-format json` | ✅ interactive | ❌ |
+| **Codex CLI** | Headless (new, v4.1) | ❌ | ✅ `codex exec --json` | ✅ sandboxed | ❌ |
+| **Cursor** | Single-agent / experimental | ❌ | ❌ | ✅ IDE agent mode | ❌ |
+
+What the columns mean: *agent dispatch* — the runtime can spawn ArkaOS
+agents/subagents natively; *headless* — the adapter implements a real
+one-shot CLI completion (used by the cognitive layer); *file ops* — the
+runtime edits files natively when driven interactively; *hooks* — ArkaOS
+enforcement (PreToolUse/Stop gates) can attach. Squad orchestration,
+quality gates, and the evidence flow are only hard-enforced on Claude
+Code; elsewhere they rely on injected instructions.
+
+---
+
+## Modern orchestration primitives
+
+How ArkaOS maps to the current Claude Code orchestration surface:
+
+- **Background subagents (default):** squads ARE background subagents —
+  leads dispatch specialists via the Agent tool and keep working while
+  they run.
+- **Agent Teams + SendMessage:** leads may message a running specialist
+  via SendMessage (course-correct without a fresh dispatch) where the
+  runtime exposes it.
+- **Structured outputs for subagent verdicts:** Quality Gate verdicts
+  are structured outputs (APPROVED/REJECTED schema, PR-4 v4.1) — no
+  regex-parsing of prose verdicts.
+- **Workflow / ultracode:** ArkaOS workflow YAMLs play the same role as
+  harness-native workflows — phases, gates, and parallelization declared
+  declaratively, executed by the runtime that is available.
 
 ---
 
@@ -31,7 +66,7 @@ ArkaOS installs five lifecycle hooks into `~/.claude/settings.json`:
 |---|---|---|
 | `SessionStart` | On session open | Injects `[ARKA:EVIDENCE-FLOW]`; runs the reorganization auto-trigger if today's proposal is missing |
 | `Stop` | After every assistant turn | Compliance checks (closing marker, `[arka:meta]`, KB citation, sycophancy) + persists `[arka:gate:N]` transitions via `core/workflow/gate_checkpoint.py` for structured resume |
-| `UserPromptSubmit` | Before every prompt | Calls `scripts/synapse-bridge.py` — runs all 12 Synapse layers and injects the resulting context string; adds `[ARKA:WORKFLOW-REQUIRED]` on creation/implementation verbs; runs the 4-check token hygiene pass |
+| `UserPromptSubmit` | Before every prompt | Runs all 12 Synapse layers in-process (`core/hooks/user_prompt_submit.py` → `scripts/synapse-bridge.py::run_bridge`) and injects the resulting context string; adds `[ARKA:WORKFLOW-REQUIRED]` on creation/implementation verbs; runs the 4-check token hygiene pass |
 | `PostToolUse` | After every tool call | Tracks error patterns to `gotchas.json`; records tool usage for budget accounting |
 | `PreCompact` | Before context compaction | Saves a session digest to Obsidian; preserves agent memory and task state |
 | `CwdChanged` | On directory change | Reloads project context (`CLAUDE.md`, `.arkaos.json`, stack detection) |
@@ -67,41 +102,46 @@ hook fires when compaction is unavoidable, preserving continuity.
 
 ## Gemini CLI
 
-Gemini CLI is a fully supported runtime. It is invoked headlessly for
-cognitive-layer tasks (auto-documentor, Dreaming, Research) via:
+Gemini CLI is a headless runtime. It is invoked for cognitive-layer tasks
+(auto-documentor, Dreaming, Research) via:
 
 ```bash
 gemini -p "<prompt>" --output-format json
 ```
 
 The adapter at `core/runtime/gemini_cli.py` wraps this invocation and surfaces
-the same `LLMResponse` dataclass used by all providers. Skills and workflows
-work without modification — the runtime choice is transparent to department
-logic.
-
-Gemini CLI also supports MCP and a 1 M context window, making it a capable
-primary runtime for teams that prefer it.
+the same `LLMResponse` dataclass used by all providers. MCP and the 1 M
+context window are available in interactive use, but there is no hook
+lifecycle and no ArkaOS agent dispatch — enforcement is instruction-only.
 
 ---
 
 ## Codex CLI
 
-The Codex CLI adapter (`core/runtime/codex.py`) runs ArkaOS in a sandboxed
-execution environment. Subagents work, but the sandbox limits some shell
-operations. Suitable for teams where network isolation is a requirement.
+Headless support shipped in v4.1 (PR-6). The adapter
+(`core/runtime/codex_cli.py`) runs one-shot completions via:
+
+```bash
+codex exec --json --skip-git-repo-check --sandbox read-only "<prompt>"
+```
+
+verified against codex-cli 0.142.5 (2026-07-04). The JSONL event stream is
+parsed defensively (`item.completed`/`agent_message` for text,
+`turn.completed`/`usage` for token counts, legacy `msg` shapes accepted,
+plain-text fallback). Execution is sandboxed read-only; there are no hooks
+and no ArkaOS agent dispatch.
 
 ---
 
 ## Cursor
 
-The Cursor adapter (`core/runtime/cursor.py`) uses Cursor's native agent mode
-and injects ArkaOS rules via `.cursor/rules`. MCP is supported, so Obsidian,
-Context7, and the knowledge vector store connect normally.
-
-The `PreToolUse` enforcement gate is not available in Cursor's hook model;
-`hooks.hardEnforcement` has no effect there. The 4-gate evidence flow still runs — it
-just relies on the model following the injected instructions rather than a hard
-code gate.
+Single-agent, experimental. The Cursor adapter (`core/runtime/cursor.py`)
+injects ArkaOS rules via `.cursor/rules` and relies on Cursor's native
+agent mode. MCP is supported, so Obsidian, Context7, and the knowledge
+vector store connect normally — but there is no subagent spawning, no
+headless CLI, and no hook model. `hooks.hardEnforcement` has no effect;
+the 4-gate evidence flow relies entirely on the model following the
+injected instructions rather than a hard code gate.
 
 ---
 
@@ -151,10 +191,11 @@ is available on your `PATH` and in your home directory.
 
 | File | Runtime |
 |---|---|
-| `core/runtime/claude_code.py` | Claude Code (hooks, CLAUDE.md injection) |
+| `core/runtime/claude_code.py` | Claude Code (hooks, agent dispatch, headless) |
 | `core/runtime/gemini_cli.py` | Gemini CLI (headless + MCP) |
-| `core/runtime/codex_cli.py` | Codex CLI (sandboxed) |
-| `core/runtime/cursor.py` | Cursor (rules injection) |
+| `core/runtime/codex_cli.py` | Codex CLI (headless via `codex exec --json`, sandboxed) |
+| `core/runtime/cursor.py` | Cursor (rules injection, single-agent) |
+| `core/runtime/capabilities_cli.py` | Support matrix CLI (single source of truth) |
 | `core/runtime/llm_provider.py` | LLM provider resolution + fallback chain |
 | `core/runtime/subagent.py` | Subagent dispatch (~82 word-token handoff) |
 | `core/runtime/ollama_provider.py` | Ollama local provider |
