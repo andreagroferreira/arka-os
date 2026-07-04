@@ -14,13 +14,59 @@ Exit codes: 0 = success, 1 = degraded (partial layers), 2 = error
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 # Resolve ArkaOS root from environment or script location
 ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(ARKAOS_ROOT))
+
+# Layer tags carrying the actually-injected KB counts (ground truth for
+# reconciling the model's self-reported `[arka:meta] kb=N`).
+_KB_CONTEXT_TAG_RE = re.compile(r"\[kb-context:(\d+)\]")
+_KNOWLEDGE_TAG_RE = re.compile(r"\[knowledge:(\d+) chunks?\]")
+_KB_INJECTED_DIR = Path("/tmp/arkaos-kb-injected")
+
+
+def _count_injected_kb(result: Any) -> tuple[int, int]:
+    """Count KB notes (L2.5) and knowledge chunks (L3.5) actually injected."""
+    kb_notes = 0
+    chunks = 0
+    for lr in result.layers:
+        tag = lr.tag or ""
+        if lr.layer_id == "L2.5":
+            match = _KB_CONTEXT_TAG_RE.search(tag)
+            kb_notes = int(match.group(1)) if match else 0
+        elif lr.layer_id == "L3.5":
+            match = _KNOWLEDGE_TAG_RE.search(tag)
+            chunks = int(match.group(1)) if match else 0
+    return kb_notes, chunks
+
+
+def write_kb_injected_state(result: Any, session_id: str) -> None:
+    """Persist injected KB counts so the Stop hook can reconcile kb=N.
+
+    Skips silently when no real session id is available (a pid-derived
+    fallback id would never match the runtime's session id at Stop time).
+    """
+    from core.shared.safe_session_id import safe_session_id
+
+    sid = safe_session_id(session_id)
+    if not sid:
+        return
+    kb_notes, chunks = _count_injected_kb(result)
+    prev_umask = os.umask(0o077)
+    try:
+        _KB_INJECTED_DIR.mkdir(parents=True, exist_ok=True)
+        payload = {"kb_injected": kb_notes, "l35_chunks": chunks, "ts": time.time()}
+        (_KB_INJECTED_DIR / f"{sid}.json").write_text(
+            json.dumps(payload), encoding="utf-8"
+        )
+    finally:
+        os.umask(prev_umask)
 
 
 def load_constitution(root: Path) -> str:
@@ -141,12 +187,15 @@ def main() -> int:
         except Exception:
             branch = ""
 
-        session_id = (
+        # Real runtime session id (used for kb=N reconciliation); the
+        # pid-derived fallback below is only for cache scoping and is
+        # deliberately excluded from reconciliation state.
+        runtime_session_id = (
             input_data.get("session_id")
             or os.environ.get("ARKAOS_SESSION_ID", "")
             or os.environ.get("CLAUDE_SESSION_ID", "")
-            or f"bridge-{os.getpid()}"
         )
+        session_id = runtime_session_id or f"bridge-{os.getpid()}"
 
         ctx = PromptContext(
             user_input=user_input,
@@ -161,6 +210,15 @@ def main() -> int:
 
         result = engine.inject(ctx)
         total_ms = int((time.time() - start) * 1000)
+
+        # Structural honesty: record how many KB notes L2.5 actually
+        # injected. Never raise — reconciliation is telemetry-only and
+        # must not degrade context injection itself.
+        try:
+            if runtime_session_id:
+                write_kb_injected_state(result, runtime_session_id)
+        except Exception:
+            pass
 
         # Record token usage in budget tracker
         try:

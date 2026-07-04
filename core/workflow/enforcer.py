@@ -1,15 +1,16 @@
 """Workflow enforcement engine.
 
-Central enforcement engine that evaluates all 14 NON-NEGOTIABLE
-Constitution rules against tool operations. Returns violations
-with severity classification (BLOCK, ESCALATE, WARN).
+Evaluates the disk-verifiable Constitution rules in
+``core.workflow.rules_registry`` against tool operations. Only rules
+whose state can be read from disk live in that registry; behavioral
+rules are enforced by hooks/telemetry (see the registry docstring).
+Returns violations with severity classification (BLOCK, ESCALATE, WARN).
 
 BLOCK severity = operation is halted until resolved
 ESCALATE severity = operation continues but alerts Tier 0
 WARN severity = non-blocking advisory
 """
 
-import re
 from typing import Any
 
 from core.workflow.rules_registry import RULES_REGISTRY, RuleDefinition
@@ -92,18 +93,6 @@ def _build_context(
         "user_input": user_input,
         **extra,
     }
-
-
-def _is_code_file(file_path: str) -> bool:
-    """Check if file is a code file subject to enforcement."""
-    code_extensions = {".py", ".js", ".ts", ".vue", ".php", ".jsx", ".tsx"}
-    return any(file_path.endswith(ext) for ext in code_extensions)
-
-
-def _is_text_file(file_path: str) -> bool:
-    """Check if file is a text file subject to human-writing checks."""
-    text_extensions = {".md", ".txt", ".json", ".yml", ".yaml"}
-    return any(file_path.endswith(ext) for ext in text_extensions)
 
 
 def enforce(tool_name: str, context: dict[str, Any]) -> EnforcementResult:

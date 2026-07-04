@@ -206,6 +206,18 @@ class ForgePlan(BaseModel):
 
     governance: ForgeGovernance = Field(default_factory=ForgeGovernance)
 
+    degraded: bool = Field(
+        default=False,
+        description=(
+            "True when explorer/critic dispatch was unavailable — the plan "
+            "contains only constitution-enforced phases and confidence is 0.0."
+        ),
+    )
+    dispatch_errors: List[str] = Field(
+        default_factory=list,
+        description="Dispatch failures collected during forge (lens: error class: message).",
+    )
+
     status: ForgeStatus = ForgeStatus.DRAFT
     approved_at: Optional[str] = None
     approved_by: Optional[str] = None

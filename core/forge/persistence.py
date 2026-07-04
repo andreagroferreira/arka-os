@@ -123,9 +123,25 @@ def _render_obsidian_frontmatter(plan: ForgePlan) -> list[str]:
         f"complexity: {plan.complexity.score}",
         f"created: {plan.created_at or ''}",
     ]
+    if plan.degraded:
+        lines.append("degraded: true")
     if plan.executed_at:
         lines.append(f"executed: {plan.executed_at}")
     lines += ["---", "", f"# {plan.name}", ""]
+    if plan.degraded:
+        lines += _render_obsidian_degraded(plan)
+    return lines
+
+
+def _render_obsidian_degraded(plan: ForgePlan) -> list[str]:
+    """Render the degraded-plan warning block."""
+    lines = [
+        "> [!warning] DEGRADED: explorer/critic dispatch unavailable — "
+        "plan contains only constitution-enforced phases",
+    ]
+    for err in plan.dispatch_errors:
+        lines.append(f"> - {err}")
+    lines.append("")
     return lines
 
 

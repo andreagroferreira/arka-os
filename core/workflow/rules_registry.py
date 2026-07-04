@@ -1,20 +1,34 @@
-"""Workflow enforcement rules registry.
+"""Workflow enforcement rules registry — disk-verifiable rules only.
 
-Defines all 14 NON-NEGOTIABLE Constitution rules with their
-violation triggers, auto-recovery suggestions, and severity classification.
+Only rules whose state CAN be read from disk (or from the operation
+being evaluated) live here; behavioral rules (human-writing,
+squad-routing, full-visibility, context-verification, ...) are enforced
+by hooks/telemetry, not by this in-process registry.
+
+History (structural honesty PR-2): this registry once narrated 14
+NON-NEGOTIABLE rules, but every check trusted caller-supplied booleans
+(`tests_run`, `spec_status`, `claude_md_read`, ...) — self-reported
+state that made enforcement theater, not enforcement. Rules that could
+not be verified from disk were deleted, not stubbed. The three rules
+that remain read real state:
+
+  - branch-isolation: reads the current branch from git (read-only)
+  - spec-driven:      checks an approved spec file exists on disk
+  - mandatory-qa:     checks test evidence (coverage/junit) on disk
 
 Each rule has:
-  - id: Unique identifier
-  - name: Human-readable name
-  - trigger: What causes a violation
-  - check: Function to evaluate violation
-  - recovery: Function to attempt auto-fix
-  - severity: BLOCK | ESCALATE
-  - description: What the rule enforces
+  - id: unique identifier
+  - name: human-readable name
+  - trigger_patterns: what causes a violation
+  - check_fn: function evaluating the violation against real state
+  - severity: BLOCK | ESCALATE | WARN
 """
 
+import re
+import subprocess
 from dataclasses import dataclass
-from typing import Callable, Optional, Any
+from pathlib import Path
+from typing import Callable, Optional
 
 
 @dataclass
@@ -31,287 +45,153 @@ class RuleDefinition:
     auto_recoverable: bool = True
 
 
+_PROTECTED_BRANCHES: tuple[str, ...] = ("main", "master", "dev")
+_CODE_EXTENSIONS: tuple[str, ...] = (".py", ".js", ".ts", ".vue", ".php", ".jsx", ".tsx")
+_ACTIVE_SPEC_STATUSES: tuple[str, ...] = ("approved", "in_progress", "completed")
+_TEST_EVIDENCE_FILES: tuple[str, ...] = ("coverage.xml", ".coverage", "junit.xml")
+_SPEC_STATUS_RE = re.compile(r"^status:\s*['\"]?(\w+)", re.MULTILINE)
+_COVERAGE_LINE_RATE_RE = re.compile(r'<coverage[^>]*\bline-rate="([\d.]+)"')
+
+
+def _context_cwd(context: dict) -> Path:
+    """Working directory the operation runs in (defaults to process cwd)."""
+    return Path(context.get("cwd") or ".")
+
+
+# ---------------------------------------------------------------------------
+# branch-isolation — real branch read from git, never a supplied string
+# ---------------------------------------------------------------------------
+
+def _read_current_branch(cwd: Path) -> Optional[str]:
+    """Read the current branch from git (read-only). None when unavailable."""
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            cwd=str(cwd),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.strip() or None
+
+
 def _check_branch_isolation(context: dict) -> tuple[bool, str]:
-    """Check if commit was made on protected branch while workflow active."""
-    tool = context.get("tool_name", "")
-    output = context.get("tool_output", "")
-    command = context.get("command", "")
-
-    if tool == "Bash" and "git commit" in command:
-        branch = context.get("git_branch", "")
-        if branch in ("main", "master", "dev", ""):
-            return (
-                True,
-                f"VIOLATION [branch-isolation]: Commit on {branch} while workflow active. Use feature branch.",
-            )
-    return False, ""
-
-
-def _check_obsidian_output(context: dict) -> tuple[bool, str]:
-    """Check if code was modified without vault save step."""
-    tool = context.get("tool_name", "")
-    if tool in ("Write", "Edit"):
-        file_path = context.get("file_path", "")
-        if any(
-            file_path.endswith(ext) for ext in [".py", ".js", ".ts", ".vue", ".php", ".jsx", ".tsx"]
-        ):
-            if not context.get("vault_saved", False):
-                return (
-                    True,
-                    f"VIOLATION [obsidian-output]: {file_path} modified without vault save.",
-                )
-    return False, ""
-
-
-def _check_authority_boundaries(context: dict) -> tuple[bool, str]:
-    """Check if Tier 2 agent attempted privileged operation."""
-    agent_tier = context.get("agent_tier", 2)
+    """Block `git commit` on protected branches — branch read from disk."""
     tool = context.get("tool_name", "")
     command = context.get("command", "")
-
-    privileged_tools = {"sudo", "chmod", "chown", "delete_branch", "force_push"}
-    privileged_commands = {"DROP TABLE", "TRUNCATE", "rm -rf /", "git push --force"}
-
-    if agent_tier > 0:
-        if tool in privileged_tools:
-            return (
-                True,
-                f"VIOLATION [authority-boundaries]: Tier {agent_tier} agent attempted privileged operation: {tool}",
-            )
-        if any(cmd in command.upper() for cmd in privileged_commands):
-            return (
-                True,
-                f"VIOLATION [authority-boundaries]: Tier {agent_tier} agent attempted privileged command",
-            )
-
-    if agent_tier > 0 and "Bash" in tool and ("sudo" in command or "chmod 777" in command):
-        return True, f"VIOLATION [authority-boundaries]: Privileged shell command attempted"
-
+    if tool != "Bash" or "git commit" not in command:
+        return False, ""
+    branch = _read_current_branch(_context_cwd(context))
+    if branch in _PROTECTED_BRANCHES:
+        return (
+            True,
+            f"VIOLATION [branch-isolation]: Commit on {branch}. Use a feature branch.",
+        )
     return False, ""
 
 
-def _check_security_gate(context: dict) -> tuple[bool, str]:
-    """Check if code shipped without security audit."""
-    tool = context.get("tool_name", "")
-    output = context.get("tool_output", "")
-    phase = context.get("workflow_phase", "")
+# ---------------------------------------------------------------------------
+# spec-driven — an approved spec file must exist on disk
+# ---------------------------------------------------------------------------
 
-    if phase == "delivery" and tool in ("Write", "Edit"):
-        if not context.get("security_reviewed", False):
-            return True, "VIOLATION [security-gate]: Code shipping without OWASP security audit"
-    return False, ""
+def _spec_dir(context: dict) -> Path:
+    """Resolve the spec directory for the current operation.
 
-
-def _check_context_first(context: dict) -> tuple[bool, str]:
-    """Check if project context was read before code modification."""
-    tool = context.get("tool_name", "")
-    if tool in ("Write", "Edit"):
-        file_path = context.get("file_path", "")
-        if any(
-            file_path.endswith(ext) for ext in [".py", ".js", ".ts", ".vue", ".php", ".jsx", ".tsx"]
-        ):
-            if not context.get("claude_md_read", False):
-                return (
-                    True,
-                    f"VIOLATION [context-first]: {file_path} modified without reading CLAUDE.md first",
-                )
-    return False, ""
+    Path contract: approved Living Specs are YAML files saved via
+    ``core.specs.manager.SpecManager.save_to_yaml`` under
+    ``<project>/.arkaos/specs/``. ``context['specs_dir']`` overrides the
+    default for callers that persist specs elsewhere.
+    """
+    override = context.get("specs_dir", "")
+    if override:
+        return Path(override)
+    return _context_cwd(context) / ".arkaos" / "specs"
 
 
-def _check_solid_clean_code(context: dict) -> tuple[bool, str]:
-    """Check for SOLID/Clean Code violations."""
-    tool = context.get("tool_name", "")
-    output = context.get("tool_output", "")
+def _spec_file_is_active(path: Path) -> bool:
+    """True when the spec YAML carries status approved/in_progress/completed."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    match = _SPEC_STATUS_RE.search(text)
+    return bool(match and match.group(1).lower() in _ACTIVE_SPEC_STATUSES)
 
-    code_smells = [
-        ("God Class", r"class \w{50,}"),
-        ("Long Method", r"def \w+\([^)]{100,}\)"),
-        ("Magic Number", r"[0-9]{5,}"),
-        ("Nested Ifs", r"if .+:\s+if .+:\s+if .+:"),
-    ]
 
-    if tool in ("Write", "Edit"):
-        for smell_name, pattern in code_smells:
-            import re
-
-            if re.search(pattern, output):
-                return True, f"VIOLATION [solid-clean-code]: Code smell detected: {smell_name}"
-
-    return False, ""
+def _has_approved_spec_on_disk(context: dict) -> bool:
+    spec_dir = _spec_dir(context)
+    if not spec_dir.is_dir():
+        return False
+    return any(
+        _spec_file_is_active(path)
+        for pattern in ("*.yaml", "*.yml")
+        for path in spec_dir.glob(pattern)
+    )
 
 
 def _check_spec_driven(context: dict) -> tuple[bool, str]:
-    """Check if code modified without completed spec."""
+    """Block code modification when no approved spec exists on disk."""
     tool = context.get("tool_name", "")
-    if tool in ("Write", "Edit"):
-        file_path = context.get("file_path", "")
-        if any(
-            file_path.endswith(ext) for ext in [".py", ".js", ".ts", ".vue", ".php", ".jsx", ".tsx"]
-        ):
-            spec_status = context.get("spec_status", "missing")
-            if spec_status != "completed":
-                return (
-                    True,
-                    f"VIOLATION [spec-driven]: {file_path} modified without completed spec (status: {spec_status})",
-                )
-    return False, ""
+    file_path = context.get("file_path", "")
+    if tool not in ("Write", "Edit") or not file_path.endswith(_CODE_EXTENSIONS):
+        return False, ""
+    if _has_approved_spec_on_disk(context):
+        return False, ""
+    return (
+        True,
+        f"VIOLATION [spec-driven]: {file_path} modified without an approved "
+        f"spec on disk (looked in {_spec_dir(context)}).",
+    )
 
 
-def _check_human_writing(context: dict) -> tuple[bool, str]:
-    """Check for AI patterns in text output."""
-    tool = context.get("tool_name", "")
+# ---------------------------------------------------------------------------
+# mandatory-qa — test evidence must exist on disk, booleans are not trusted
+# ---------------------------------------------------------------------------
 
-    if tool in ("Write", "Edit"):
-        file_path = context.get("file_path", "")
-        if file_path.endswith((".md", ".txt", ".json")):
-            content = context.get("tool_output", "")
-            ai_patterns = [
-                "As an AI language model",
-                "I'm sorry, but I cannot",
-                "Please note that",
-                "It is important to note",
-                "Additionally,",
-                "In conclusion,",
-                "Furthermore,",
-                "Moreover,",
-            ]
-            for pattern in ai_patterns:
-                if pattern.lower() in content.lower():
-                    return True, f"VIOLATION [human-writing]: AI pattern detected: '{pattern}'"
-
-    return False, ""
+def _find_test_evidence(cwd: Path) -> Optional[Path]:
+    """Locate a test-evidence artifact (coverage/junit report or pytest cache)."""
+    for name in _TEST_EVIDENCE_FILES:
+        candidate = cwd / name
+        if candidate.is_file():
+            return candidate
+    cache = cwd / ".pytest_cache"
+    return cache if cache.is_dir() else None
 
 
-def _check_squad_routing(context: dict) -> tuple[bool, str]:
-    """Check if non-department command was executed without routing."""
-    command = context.get("command", "")
-    user_input = context.get("user_input", "")
-
-    explicit_prefixes = {
-        "/dev",
-        "/mkt",
-        "/fin",
-        "/strat",
-        "/ops",
-        "/ecom",
-        "/kb",
-        "/brand",
-        "/saas",
-        "/landing",
-        "/content",
-        "/community",
-        "/sales",
-        "/lead",
-        "/org",
-        "/do",
-        "/arka",
-        "/qa",
-    }
-
-    if user_input.startswith("/"):
-        prefix = user_input.split()[0] if " " in user_input else user_input
-        if prefix not in explicit_prefixes and not any(
-            user_input.startswith(p) for p in explicit_prefixes
-        ):
-            return (
-                True,
-                f"VIOLATION [squad-routing]: Command '{prefix}' executed without squad routing",
-            )
-
-    return False, ""
-
-
-def _check_full_visibility(context: dict) -> tuple[bool, str]:
-    """Check if phase announcements were made."""
-    phase = context.get("workflow_phase", "")
-    announcements = context.get("announcements_made", [])
-
-    required_announcements = ["starting", "completing"]
-    if phase and not all(ann in announcements for ann in required_announcements):
-        return True, f"VIOLATION [full-visibility]: Phase '{phase}' missing required announcements"
-
-    return False, ""
-
-
-def _check_sequential_validation(context: dict) -> tuple[bool, str]:
-    """Check if tasks executed in correct order."""
-    current_phase = context.get("workflow_phase", "")
-    completed_phases = context.get("completed_phases", [])
-
-    phase_order = ["spec", "planning", "implementation", "review", "qa", "delivery"]
-
-    if current_phase:
-        current_idx = phase_order.index(current_phase) if current_phase in phase_order else -1
-        for completed in completed_phases:
-            if completed in phase_order:
-                completed_idx = phase_order.index(completed)
-                if completed_idx > current_idx:
-                    return (
-                        True,
-                        f"VIOLATION [sequential-validation]: Phase '{current_phase}' started before '{completed}' completed",
-                    )
-
-    return False, ""
+def _coverage_percent_from_xml(path: Path) -> Optional[float]:
+    """Parse total line-rate from a coverage.xml report as a percentage."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = _COVERAGE_LINE_RATE_RE.search(text)
+    return float(match.group(1)) * 100 if match else None
 
 
 def _check_mandatory_qa(context: dict) -> tuple[bool, str]:
-    """Check if full test suite was run before delivery."""
-    phase = context.get("workflow_phase", "")
-    if phase == "delivery":
-        if not context.get("tests_run", False):
-            return (
-                True,
-                "VIOLATION [mandatory-qa]: Delivery attempted without running full test suite",
-            )
-        if context.get("test_coverage", 0) < 80:
-            return (
-                True,
-                f"VIOLATION [mandatory-qa]: Test coverage {context.get('test_coverage')}% below 80% threshold",
-            )
-    return False, ""
-
-
-def _check_arka_supremacy(context: dict) -> tuple[bool, str]:
-    """Check if ArkaOS context was used over runtime defaults."""
-    context_injected = context.get("arkos_context_injected", True)
-    if not context_injected:
-        return True, "VIOLATION [arka-supremacy]: Operation without ArkaOS context override"
-    return False, ""
-
-
-def _check_context_verification(context: dict) -> tuple[bool, str]:
-    """Check if clarifying questions were asked before execution."""
-    user_input = context.get("user_input", "")
-    clarifying_asked = context.get("clarifying_questions_asked", False)
-
-    complex_commands = {"implement", "create", "build", "design", "architect", "develop"}
-    if any(cmd in user_input.lower() for cmd in complex_commands):
-        if not clarifying_asked:
-            return (
-                True,
-                "VIOLATION [context-verification]: Complex task executed without clarifying questions",
-            )
-    return False, ""
-
-
-def _check_forge_governance(context: dict) -> tuple[bool, str]:
-    """Check if Forge plan violations occurred."""
-    forge_active = context.get("forge_active", False)
-    tool = context.get("tool_name", "")
-    file_path = context.get("file_path", "")
-
-    if forge_active and tool in ("Write", "Edit"):
-        forge_deliverables = context.get("forge_deliverables", [])
-        if forge_deliverables:
-            is_deliverable = any(
-                file_path.endswith(d) or d in file_path for d in forge_deliverables
-            )
-            if not is_deliverable:
-                return (
-                    True,
-                    f"VIOLATION [forge-governance]: {file_path} outside Forge plan deliverables",
-                )
-
+    """Block delivery without test evidence on disk (or coverage < 80%)."""
+    if context.get("workflow_phase", "") != "delivery":
+        return False, ""
+    cwd = _context_cwd(context)
+    evidence = _find_test_evidence(cwd)
+    if evidence is None:
+        return (
+            True,
+            "VIOLATION [mandatory-qa]: no test evidence on disk "
+            "(expected coverage.xml, .coverage, junit.xml or .pytest_cache/).",
+        )
+    coverage_xml = cwd / "coverage.xml"
+    coverage = _coverage_percent_from_xml(coverage_xml) if coverage_xml.is_file() else None
+    if coverage is not None and coverage < 80:
+        return (
+            True,
+            f"VIOLATION [mandatory-qa]: coverage {coverage:.1f}% below 80% "
+            "threshold (coverage.xml).",
+        )
     return False, ""
 
 
@@ -326,102 +206,12 @@ RULES_REGISTRY: dict[str, RuleDefinition] = {
         severity="BLOCK",
         auto_recoverable=False,
     ),
-    "obsidian-output": RuleDefinition(
-        id="obsidian-output",
-        name="Obsidian Output",
-        description="All department output is saved to the Obsidian vault",
-        trigger_patterns=["code modification without vault save"],
-        check_fn=_check_obsidian_output,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=True,
-    ),
-    "authority-boundaries": RuleDefinition(
-        id="authority-boundaries",
-        name="Authority Boundaries",
-        description="Agents operate within their tier authority",
-        trigger_patterns=["privileged operations by Tier 2+"],
-        check_fn=_check_authority_boundaries,
-        recovery_fn=None,
-        severity="ESCALATE",
-        auto_recoverable=False,
-    ),
-    "security-gate": RuleDefinition(
-        id="security-gate",
-        name="Security Gate",
-        description="No code ships without OWASP security audit",
-        trigger_patterns=["delivery without security review"],
-        check_fn=_check_security_gate,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=False,
-    ),
-    "context-first": RuleDefinition(
-        id="context-first",
-        name="Context First",
-        description="Always read project context before modifying code",
-        trigger_patterns=["code modification without reading CLAUDE.md"],
-        check_fn=_check_context_first,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=True,
-    ),
-    "solid-clean-code": RuleDefinition(
-        id="solid-clean-code",
-        name="SOLID/Clean Code",
-        description="SOLID principles and Clean Code enforced on all code",
-        trigger_patterns=["code smells detected"],
-        check_fn=_check_solid_clean_code,
-        recovery_fn=None,
-        severity="WARN",
-        auto_recoverable=False,
-    ),
     "spec-driven": RuleDefinition(
         id="spec-driven",
         name="Spec Driven",
-        description="No code is written until a detailed spec exists",
-        trigger_patterns=["code modification without completed spec"],
+        description="No code is written until an approved spec exists on disk",
+        trigger_patterns=["code modification without approved spec on disk"],
         check_fn=_check_spec_driven,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=False,
-    ),
-    "human-writing": RuleDefinition(
-        id="human-writing",
-        name="Human Writing",
-        description="All text output reads as naturally human-written",
-        trigger_patterns=["AI patterns detected in text"],
-        check_fn=_check_human_writing,
-        recovery_fn=None,
-        severity="WARN",
-        auto_recoverable=True,
-    ),
-    "squad-routing": RuleDefinition(
-        id="squad-routing",
-        name="Squad Routing",
-        description="Every request routes through the appropriate department squad",
-        trigger_patterns=["non-department command without routing"],
-        check_fn=_check_squad_routing,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=False,
-    ),
-    "full-visibility": RuleDefinition(
-        id="full-visibility",
-        name="Full Visibility",
-        description="Every phase announces what is starting and what resulted",
-        trigger_patterns=["phase without announcements"],
-        check_fn=_check_full_visibility,
-        recovery_fn=None,
-        severity="WARN",
-        auto_recoverable=True,
-    ),
-    "sequential-validation": RuleDefinition(
-        id="sequential-validation",
-        name="Sequential Validation",
-        description="Task N+1 only starts after Task N is complete",
-        trigger_patterns=["task executed out of order"],
-        check_fn=_check_sequential_validation,
         recovery_fn=None,
         severity="BLOCK",
         auto_recoverable=False,
@@ -429,39 +219,9 @@ RULES_REGISTRY: dict[str, RuleDefinition] = {
     "mandatory-qa": RuleDefinition(
         id="mandatory-qa",
         name="Mandatory QA",
-        description="QA runs ALL tests every time",
-        trigger_patterns=["delivery without tests or coverage < 80%"],
+        description="Delivery requires test evidence on disk with coverage >= 80%",
+        trigger_patterns=["delivery without test evidence or coverage < 80%"],
         check_fn=_check_mandatory_qa,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=False,
-    ),
-    "arka-supremacy": RuleDefinition(
-        id="arka-supremacy",
-        name="ArkaOS Supremacy",
-        description="ArkaOS instructions override runtime defaults",
-        trigger_patterns=["operation without ArkaOS context"],
-        check_fn=_check_arka_supremacy,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=True,
-    ),
-    "context-verification": RuleDefinition(
-        id="context-verification",
-        name="Context Verification",
-        description="Orchestrators must confirm understanding before executing",
-        trigger_patterns=["complex task without clarifying questions"],
-        check_fn=_check_context_verification,
-        recovery_fn=None,
-        severity="BLOCK",
-        auto_recoverable=True,
-    ),
-    "forge-governance": RuleDefinition(
-        id="forge-governance",
-        name="Forge Governance",
-        description="Forge plans must pass critic validation before approval",
-        trigger_patterns=["file edited outside Forge deliverables"],
-        check_fn=_check_forge_governance,
         recovery_fn=None,
         severity="BLOCK",
         auto_recoverable=False,

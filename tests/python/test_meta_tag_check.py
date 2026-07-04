@@ -15,6 +15,8 @@ import pytest
 from core.governance.meta_tag_check import (
     MetaTagResult,
     check_meta_tag,
+    parse_reported_kb,
+    reconcile_kb_count,
 )
 
 
@@ -112,3 +114,63 @@ class TestResultShape:
         result = check_meta_tag("ok")
         assert result.passed is True
         assert result.suggestion is None
+
+
+# ─── kb=N reconciliation (structural honesty PR-2) ──────────────────────
+
+
+class TestParseReportedKb:
+    def test_extracts_kb_count(self):
+        text = "Done.\n[arka:meta] kb=3 research=none persona=Marta gap=none critic=passed"
+        assert parse_reported_kb(text) == 3
+
+    def test_zero_is_valid(self):
+        text = "[arka:meta] kb=0 research=none persona=orchestrator gap=none critic=skipped"
+        assert parse_reported_kb(text) == 0
+
+    def test_case_insensitive(self):
+        text = "[ARKA:META] kb=7 research=none persona=Paulo gap=none critic=passed"
+        assert parse_reported_kb(text) == 7
+
+    def test_none_when_tag_absent(self):
+        assert parse_reported_kb("No meta tag here at all.") is None
+
+    def test_none_when_kb_field_absent(self):
+        assert parse_reported_kb("[arka:meta] research=none persona=x") is None
+
+    def test_none_on_empty_input(self):
+        assert parse_reported_kb("") is None
+
+    def test_kb_on_other_line_not_matched(self):
+        text = "[arka:meta] research=none\nkb=9 unrelated line"
+        assert parse_reported_kb(text) is None
+
+
+class TestReconcileKbCount:
+    def test_inflated_when_reported_exceeds_injected(self):
+        result = reconcile_kb_count(reported=5, injected=2)
+        assert result == {"kb_reported": 5, "kb_injected": 2, "kb_inflated": True}
+
+    def test_not_inflated_when_equal(self):
+        result = reconcile_kb_count(reported=2, injected=2)
+        assert result["kb_inflated"] is False
+
+    def test_not_inflated_when_reported_below_injected(self):
+        result = reconcile_kb_count(reported=1, injected=3)
+        assert result["kb_inflated"] is False
+
+    def test_unknown_reported_never_flags(self):
+        result = reconcile_kb_count(reported=None, injected=3)
+        assert result == {"kb_reported": None, "kb_injected": 3, "kb_inflated": False}
+
+    def test_unknown_injected_never_flags(self):
+        result = reconcile_kb_count(reported=5, injected=None)
+        assert result == {"kb_reported": 5, "kb_injected": None, "kb_inflated": False}
+
+    def test_both_unknown(self):
+        result = reconcile_kb_count(reported=None, injected=None)
+        assert result["kb_inflated"] is False
+
+    def test_zero_reported_zero_injected(self):
+        result = reconcile_kb_count(reported=0, injected=0)
+        assert result["kb_inflated"] is False

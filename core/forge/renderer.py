@@ -60,6 +60,12 @@ def render_plan_overview(phases: list[PlanPhase], execution_path: ExecutionPath)
     return "\n".join(lines)
 
 
+DEGRADED_NOTICE = (
+    "DEGRADED: explorer/critic dispatch unavailable — "
+    "plan contains only constitution-enforced phases"
+)
+
+
 def render_terminal(plan: ForgePlan) -> str:
     """Render a complete forge plan for terminal display."""
     lines = [
@@ -70,6 +76,10 @@ def render_terminal(plan: ForgePlan) -> str:
         "▸ Complexity Analysis",
         render_complexity(plan.complexity), "",
     ]
+    if plan.degraded:
+        lines.extend([f"⚠ {DEGRADED_NOTICE}"])
+        lines.extend(f"  - {err}" for err in plan.dispatch_errors)
+        lines.append("")
     if plan.critic.confidence > 0:
         lines.extend(["▸ Critic Verdict", render_critic_summary(plan.critic), ""])
     if plan.plan_phases:
@@ -115,6 +125,11 @@ def render_html(plan: ForgePlan) -> str:
     phases_html = _render_phases_html(plan.plan_phases)
     critic_html = _render_critic_html(plan.critic)
     approaches_html = _render_approaches_html(plan.approaches)
+    degraded_html = (
+        f'<p><span class="badge badge-red">⚠ {_esc(DEGRADED_NOTICE)}</span></p>'
+        if plan.degraded
+        else ""
+    )
     ctx = plan.context
     meta = (
         f"{_esc(ctx.repo)} @ {_esc(ctx.commit_at_forge)} | Branch: {_esc(ctx.branch)} "
@@ -128,6 +143,7 @@ def render_html(plan: ForgePlan) -> str:
         f"<style>\n{_COMPANION_CSS}\n</style></head><body>"
         f"<h1>\u2692 {_esc(plan.name)}</h1>"
         f'<div class="meta">{meta}</div>'
+        f"{degraded_html}"
         f'<div class="grid">'
         f'<div class="card"><h2>Complexity Radar</h2>{radar_svg}</div>'
         f'<div class="card"><h2>Critic Verdict</h2>{critic_html}</div>'
