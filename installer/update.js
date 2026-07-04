@@ -395,6 +395,10 @@ export async function update() {
     }
 
     console.log("         ✓ MCP infrastructure updated (profiles, stacks, scripts, arka-prompts server)");
+
+    // Higgsfield MCP is registered but requires an account + API key to connect.
+    // Non-blocking warning: the update succeeds even without a Higgsfield account.
+    console.log("         ⚠ Higgsfield MCP in registry — requires a Higgsfield account + HIGGSFIELD_API_KEY to connect (https://higgsfield.ai). Add per-project: bash apply-mcps.sh --add higgsfield");
   }
 
   // ── 6b. Copy feature registry for sync engine ──

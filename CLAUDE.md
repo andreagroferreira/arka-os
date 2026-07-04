@@ -5,7 +5,7 @@
 
 ## Version
 
-- **Current:** 4.0.1
+- **Current:** 4.0.2
 - **Branch:** master
 
 ## Identity

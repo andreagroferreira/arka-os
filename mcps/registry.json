@@ -253,6 +253,16 @@
       "category": "comms",
       "description": "Per-agent email inbox via Agent Mail. Gives every agent a real address it can read and send from. Recommended baseline per the Orgo 2026-05-13 pattern.",
       "required_env": ["AGENTMAIL_API_KEY"]
+    },
+    "higgsfield": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.higgsfield.ai/mcp"],
+      "env": {
+        "HIGGSFIELD_API_KEY": "${HIGGSFIELD_API_KEY}"
+      },
+      "category": "design",
+      "description": "Higgsfield AI design/video generation. Requires a Higgsfield account + HIGGSFIELD_API_KEY to connect. Add per-project: apply-mcps.sh --add higgsfield",
+      "required_env": ["HIGGSFIELD_API_KEY"]
     }
   }
 }
