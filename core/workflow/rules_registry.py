@@ -30,6 +30,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
+from core.shared.test_evidence import (
+    TEST_EVIDENCE_FILES as _TEST_EVIDENCE_FILES,
+    coverage_percent_from_xml as _coverage_percent_from_xml,
+    find_test_evidence as _find_test_evidence,
+)
+
 
 @dataclass
 class RuleDefinition:
@@ -48,9 +54,7 @@ class RuleDefinition:
 _PROTECTED_BRANCHES: tuple[str, ...] = ("main", "master", "dev")
 _CODE_EXTENSIONS: tuple[str, ...] = (".py", ".js", ".ts", ".vue", ".php", ".jsx", ".tsx")
 _ACTIVE_SPEC_STATUSES: tuple[str, ...] = ("approved", "in_progress", "completed")
-_TEST_EVIDENCE_FILES: tuple[str, ...] = ("coverage.xml", ".coverage", "junit.xml")
 _SPEC_STATUS_RE = re.compile(r"^status:\s*['\"]?(\w+)", re.MULTILINE)
-_COVERAGE_LINE_RATE_RE = re.compile(r'<coverage[^>]*\bline-rate="([\d.]+)"')
 
 
 def _context_cwd(context: dict) -> Path:
@@ -152,24 +156,8 @@ def _check_spec_driven(context: dict) -> tuple[bool, str]:
 # mandatory-qa — test evidence must exist on disk, booleans are not trusted
 # ---------------------------------------------------------------------------
 
-def _find_test_evidence(cwd: Path) -> Optional[Path]:
-    """Locate a test-evidence artifact (coverage/junit report or pytest cache)."""
-    for name in _TEST_EVIDENCE_FILES:
-        candidate = cwd / name
-        if candidate.is_file():
-            return candidate
-    cache = cwd / ".pytest_cache"
-    return cache if cache.is_dir() else None
-
-
-def _coverage_percent_from_xml(path: Path) -> Optional[float]:
-    """Parse total line-rate from a coverage.xml report as a percentage."""
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    match = _COVERAGE_LINE_RATE_RE.search(text)
-    return float(match.group(1)) * 100 if match else None
+# _find_test_evidence / _coverage_percent_from_xml live in
+# core.shared.test_evidence (shared with core.governance.evidence_checks).
 
 
 def _check_mandatory_qa(context: dict) -> tuple[bool, str]:

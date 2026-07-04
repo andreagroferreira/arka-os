@@ -256,6 +256,86 @@ class TestReviewerOpinions:
         assert ReviewerOpinion.ABSTAIN.value == "ABSTAIN"
 
 
+class TestEvidenceFloor:
+    """PR-4: bookkeeping enforces the evidence floor on votes and verdicts."""
+
+    def _reviewed_workflow(self, engine):
+        workflow = engine.submit("Feature", "code", "dev")
+        engine.start_triage(workflow.id)
+        engine.start_review(workflow.id)
+        return workflow
+
+    def test_approve_vote_over_failing_evidence_raises(self):
+        engine = ReviewWorkflowEngine()
+        workflow = self._reviewed_workflow(engine)
+        with pytest.raises(ValueError, match="evidence floor"):
+            engine.record_vote(
+                workflow.id,
+                reviewer="tech-director-francisca",
+                opinion=ReviewerOpinion.APPROVE,
+                evidence_overall="fail",
+            )
+        assert workflow.votes == []
+
+    def test_reject_vote_over_failing_evidence_is_recorded(self):
+        engine = ReviewWorkflowEngine()
+        workflow = self._reviewed_workflow(engine)
+        assert engine.record_vote(
+            workflow.id,
+            reviewer="tech-director-francisca",
+            opinion=ReviewerOpinion.REJECT,
+            evidence_overall="fail",
+        )
+        assert workflow.votes[0].evidence_overall == "fail"
+
+    def test_approved_verdict_over_failing_evidence_raises(self):
+        engine = ReviewWorkflowEngine()
+        workflow = self._reviewed_workflow(engine)
+        engine.record_vote(
+            workflow.id, "cqo-marta", ReviewerOpinion.REJECT,
+            evidence_overall="fail",
+        )
+        with pytest.raises(ValueError, match="evidence floor"):
+            engine.reach_verdict(
+                workflow.id, Verdict.APPROVED, evidence_overall="fail",
+            )
+        assert workflow.verdict is None
+
+    def test_approved_verdict_with_passing_evidence_succeeds(self):
+        engine = ReviewWorkflowEngine()
+        workflow = self._reviewed_workflow(engine)
+        engine.record_vote(
+            workflow.id, "cqo-marta", ReviewerOpinion.APPROVE,
+            evidence_overall="pass",
+        )
+        result = engine.reach_verdict(
+            workflow.id, Verdict.APPROVED, evidence_overall="pass",
+        )
+        assert result.success is True
+        assert workflow.verdict == Verdict.APPROVED
+
+    def test_rejected_verdict_over_failing_evidence_succeeds(self):
+        engine = ReviewWorkflowEngine()
+        workflow = self._reviewed_workflow(engine)
+        engine.record_vote(
+            workflow.id, "cqo-marta", ReviewerOpinion.REJECT,
+            evidence_overall="fail",
+        )
+        result = engine.reach_verdict(
+            workflow.id, Verdict.REJECTED, "tests failed",
+            evidence_overall="fail",
+        )
+        assert result.success is True
+        assert workflow.verdict == Verdict.REJECTED
+
+    def test_verdict_without_evidence_param_is_backwards_compatible(self):
+        engine = ReviewWorkflowEngine()
+        workflow = self._reviewed_workflow(engine)
+        engine.record_vote(workflow.id, "cqo-marta", ReviewerOpinion.APPROVE)
+        result = engine.reach_verdict(workflow.id, Verdict.APPROVED)
+        assert result.success is True
+
+
 class TestDeliverableTypes:
     """Tests for deliverable type detection."""
 

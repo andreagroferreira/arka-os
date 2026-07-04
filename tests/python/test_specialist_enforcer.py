@@ -523,6 +523,61 @@ def test_telemetry_records_bypass(tmp_path, tmp_config):
     assert "urgent hotfix" in entry["bypass_reason"]
 
 
+def test_telemetry_records_model_requested(tmp_path, tmp_config):
+    """PR-4: dispatch records carry model_requested for /arka costs checks."""
+    _write_config(tmp_config["home"], True)
+    _write_ownership(tmp_config["ownership_yaml"])
+    transcript = _write_transcript(
+        tmp_path / "tx.jsonl",
+        ["[arka:routing] dev -> Paulo"],
+    )
+    d = evaluate(
+        tool_name="Write",
+        transcript_path=str(transcript),
+        session_id="s-model",
+        tool_input={"file_path": "/proj/src/App.vue"},
+    )
+    specialist_enforcer.record_telemetry(
+        session_id="s-model",
+        tool="Write",
+        decision=d,
+        cwd="/proj",
+        target_file="/proj/src/App.vue",
+        model_requested="sonnet",
+    )
+    line = specialist_enforcer.TELEMETRY_PATH.read_text(
+        encoding="utf-8"
+    ).strip().splitlines()[-1]
+    entry = json.loads(line)
+    assert entry["model_requested"] == "sonnet"
+
+
+def test_telemetry_model_requested_defaults_empty(tmp_path, tmp_config):
+    _write_config(tmp_config["home"], True)
+    _write_ownership(tmp_config["ownership_yaml"])
+    transcript = _write_transcript(
+        tmp_path / "tx.jsonl",
+        ["[arka:routing] dev -> Paulo"],
+    )
+    d = evaluate(
+        tool_name="Write",
+        transcript_path=str(transcript),
+        session_id="s-nomodel",
+        tool_input={"file_path": "/proj/src/App.vue"},
+    )
+    specialist_enforcer.record_telemetry(
+        session_id="s-nomodel",
+        tool="Write",
+        decision=d,
+        cwd="/proj",
+        target_file="/proj/src/App.vue",
+    )
+    line = specialist_enforcer.TELEMETRY_PATH.read_text(
+        encoding="utf-8"
+    ).strip().splitlines()[-1]
+    assert json.loads(line)["model_requested"] == ""
+
+
 # ─── Path-traversal safety ────────────────────────────────────────────
 
 

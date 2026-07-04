@@ -3,7 +3,9 @@ name: Eduardo
 role: Copy & Language Director
 department: quality
 tier: 0
-model: opus
+# PR-4 evidence QG (v4.1): reviewers run sonnet by default; dispatch on
+# opus ONLY for Tier 0/security-scope diffs (see constitution model-routing).
+model: sonnet
 
 behavioral_dna:
   disc:

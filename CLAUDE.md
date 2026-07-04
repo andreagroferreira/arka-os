@@ -138,13 +138,16 @@ Per-tier default model assignment for cost optimization without quality loss:
 
 | Tier | Model | Who |
 |---|---|---|
-| 0 | opus | C-Suite + Quality Gate (Marta, Eduardo, Francisca) |
+| 0 | opus | C-Suite (Marco, Helena, Sofia, Marta) |
 | 1 | sonnet | 18 Squad Leads |
-| 2 | sonnet | Specialists (default) |
+| 2 | sonnet | Specialists (default) + QG reviewers (Eduardo, Francisca) |
 | 2/3 | haiku | Mechanical roles (commit writers, routing, data fetchers) |
 
 **Task-type overrides:**
-- Quality Gate phases: ALWAYS opus (NON-NEGOTIABLE)
+- Quality Gate reviews: sonnet by default; opus ONLY when the diff is Tier 0
+  scope (constitution, security, release pipeline, installer auth) or
+  security-flagged. Marta's veto is model-independent — the verdict derives
+  from the evidence report (`core.governance.evidence_checks`).
 - Architecture/design/spec/ADR phases: opus
 - Forge complex/super tiers: opus
 - Commit messages, changelog, keyword extraction: haiku
