@@ -36,6 +36,13 @@ _STOPWORDS = frozenset({
 })
 
 
+# Jaccard between full documents rarely exceeds ~0.3 even for clearly
+# related notes, while cosine similarity of embeddings sits comfortably
+# above 0.5. A single threshold calibrated for cosine silently disabled
+# the relator on every machine without fastembed (v4.1.1 fix).
+_KEYWORD_MIN_SIMILARITY = 0.15
+
+
 def find_related(
     content: str,
     vault: Path,
@@ -48,8 +55,9 @@ def find_related(
     candidates = _collect_notes(vault, exclude)
     if not candidates:
         return []
-    scored = _score_candidates(content, candidates)
-    filtered = [r for r in scored if r.score >= min_similarity]
+    scored, method = _score_candidates(content, candidates)
+    threshold = min_similarity if method == "semantic" else _KEYWORD_MIN_SIMILARITY
+    filtered = [r for r in scored if r.score >= threshold]
     filtered.sort(key=lambda r: r.score, reverse=True)
     return filtered[:top_n]
 
@@ -70,22 +78,24 @@ def _collect_notes(vault: Path, exclude: Optional[Path]) -> list[tuple[Path, str
 
 def _score_candidates(
     content: str, candidates: list[tuple[Path, str]]
-) -> list[RelatedNote]:
+) -> tuple[list[RelatedNote], str]:
+    """Score candidates, returning (results, method) so the caller can
+    apply a threshold appropriate to the scoring space."""
     try:
         return _semantic_score(content, candidates)
     except Exception:
-        return _keyword_score(content, candidates)
+        return _keyword_score(content, candidates), "keyword"
 
 
 def _semantic_score(
     content: str, candidates: list[tuple[Path, str]]
-) -> list[RelatedNote]:
+) -> tuple[list[RelatedNote], str]:
     from core.knowledge.embedder import embed, is_available
     if not is_available():
-        return _keyword_score(content, candidates)
+        return _keyword_score(content, candidates), "keyword"
     query_emb = embed(content)
     if query_emb is None:
-        return _keyword_score(content, candidates)
+        return _keyword_score(content, candidates), "keyword"
     results = []
     for path, text in candidates:
         note_emb = embed(text[:2000])
@@ -96,7 +106,7 @@ def _semantic_score(
             path=path, title=_title_from_path(path),
             score=score, excerpt=text[:160],
         ))
-    return results
+    return results, "semantic"
 
 
 def _keyword_score(
