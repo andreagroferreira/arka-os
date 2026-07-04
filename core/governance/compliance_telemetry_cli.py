@@ -27,7 +27,7 @@ def _render(summary: ComplianceSummary) -> str:
         "",
         "| Contract | Compliance rate |",
         "|---|---|",
-        f"| `[arka:phase:13]` / `[arka:trivial]` closing marker "
+        f"| `[arka:gate:4]` / `[arka:trivial]` closing marker "
         f"| {_fmt_rate(summary.closing_marker_rate)} |",
         f"| `[arka:meta]` one-liner (PR12 v2.34.0) "
         f"| {_fmt_rate(summary.meta_tag_rate)} |",

@@ -5,6 +5,30 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - Unreleased
+
+### Changed — Evidence Flow replaces the 13-phase flow
+
+- **4-gate evidence flow** (constitution rule `evidence-flow`, replacing
+  `mandatory-flow`; NON-NEGOTIABLE level unchanged): G1 CONTEXT → G2 PLAN
+  (explicit approval) → G3 EXECUTE (real test run + exit 0 on record) →
+  G4 REVIEW (executable checks). Gates pass on evidence read from disk,
+  never on narration. ADR: `docs/adr/2026-07-04-evidence-flow.md`.
+- New `[arka:gate:N]` markers; legacy `[arka:phase:N]` accepted during the
+  v4.1 deprecation window (removal target v4.3.0).
+- Per-turn `[ARKA:WORKFLOW-REQUIRED]` injection shrunk from ~450 to ~80
+  tokens; SessionStart flow banner compacted. Six-reviewer role-play and
+  the per-todo QA/Security/Quality-Gate opus chain removed from the
+  contract.
+
+### Added
+
+- `core/workflow/gate_checkpoint.py` — Stop hook persists gate transitions
+  (plus Gate-3 test evidence) to `~/.arkaos/workflow-state.json` and the
+  per-session `SessionStore` snapshot, enabling structured resume at the
+  correct gate after rate-limit or context interruptions. First real
+  caller of `core/workflow/state.py`.
+
 ## [4.0.0] - 2026-06-01
 
 ### Added — Knowledge Video Pipeline

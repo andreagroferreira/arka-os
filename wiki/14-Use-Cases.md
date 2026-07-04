@@ -2,7 +2,7 @@
 
 ← [Home](Home.md)
 
-End-to-end scenarios organized by role. Each one shows the plain-language request, which department(s) engage, how the 13-phase flow and Quality Gate apply, and what you receive at the end.
+End-to-end scenarios organized by role. Each one shows the plain-language request, which department(s) engage, how the 4-gate evidence flow and Quality Gate apply, and what you receive at the end.
 
 Numbers, frameworks, and agent names are canonical. The system has 82 agents across 17 departments, 267 skills, and a mandatory Quality Gate (Marta + Eduardo + Francisca) on every workflow.
 
@@ -30,14 +30,14 @@ and magic-link login"
 
 **Departments engaged:** Development (Paulo)
 
-**What happens across the 13 phases:**
+**What happens across the 4 gates:**
 
-| Phase | What ArkaOS does |
+| Gate | What ArkaOS does |
 |---|---|
-| 1–3 | Input captured; Synapse reads project context (stack, branch, recent commits); routes to Development → Paulo |
-| 4 | Marco (CTO) is called because this touches security architecture |
-| 5 | KB queried for prior auth patterns; Laravel Sanctum, Passport, and Socialite compared |
-| 6–7 | Paulo dispatches backend and frontend specialists in parallel; six-lens planning runs (positive, devil's advocate, Q&A, KB research, validator, pessimist) |
+| G1 CONTEXT | Synapse reads project context (stack, branch, recent commits); routes to Development → Paulo; Marco (CTO) is called because this touches security architecture; KB queried for prior auth patterns — Laravel Sanctum, Passport, and Socialite compared, with citations |
+| G2 PLAN | Short plan: scope, files touched, the exact verification commands. Presented for your explicit approval |
+| G3 EXECUTE | Paulo dispatches backend and frontend specialists in parallel; the gate closes only with `[arka:gate:3] evidence: php artisan test -> exit 0 (…)` on record |
+| G4 REVIEW | Linter, type-checker, coverage report, and security grep run over the diff; the Quality Gate verdict derives from that output |
 | 8–9 | Plan presented (ADR drafted: Sanctum + Socialite + signed URLs); you approve |
 | 10 | TODO list: migrations → models → AuthService → controllers → FormRequests → feature tests → security review |
 | 11 | Each TODO runs: implement → full test suite → OWASP security check → Quality Gate |
@@ -68,7 +68,7 @@ and magic-link login"
 
 **What happens:**
 
-Rita scans the entire codebase against OWASP Top 10. The 13-phase flow runs at a focused depth: context injection (phase 2) reads all controllers, middleware, and route files; planning (phase 7) maps the audit scope; execution (phase 11) runs each check and collects findings.
+Rita scans the entire codebase against OWASP Top 10. The evidence flow runs at a focused depth: Gate 1 reads all controllers, middleware, and route files; Gate 2 maps the audit scope for approval; Gate 3 runs each check and collects findings as raw tool output.
 
 **Checks performed:**
 
@@ -111,14 +111,13 @@ just raised seed rounds. $500/mo per startup, CFO earns $400, we keep $100.
 US market."
 ```
 
-**Department engaged:** SaaS (Tiago), with Finance (Helena) and Strategy (Tomas) pulled in at phase 4 for cross-department inputs.
+**Department engaged:** SaaS (Tiago), with Finance (Helena) and Strategy (Tomas) pulled in at Gate 1 for cross-department inputs.
 
-**13-phase highlights:**
+**Evidence-flow highlights:**
 
-- Phase 5 (Research): KB queried for marketplace unit economics patterns and fractional-executive market data.
-- Phase 7 (Plan): Six lenses. The devil's advocate lens flags thin margins; the best-solution validator suggests pricing adjustments.
-- Phase 9: Plan presented with three pivot options before execution begins.
-- Phase 11: Validation scorecard built with quantified assumptions stated inline.
+- Gate 1 (CONTEXT): KB queried for marketplace unit economics patterns and fractional-executive market data, cited inline.
+- Gate 2 (PLAN): The not-yes-man rule applies — thin margins are flagged with reference-company evidence and pricing adjustments proposed; the plan ships with three pivot options for a single approval.
+- Gate 3 (EXECUTE): Validation scorecard built with quantified assumptions stated inline.
 
 **Deliverable — example scorecard:**
 
@@ -169,12 +168,12 @@ checkout flow."
 | E-Commerce | Ricardo | Checkout flow, plan-upgrade UX, pricing anchoring |
 | SaaS | Tiago | PLG metrics for the new tier, trial-to-paid conversion targets |
 
-**How the 13-phase flow handles cross-department work:**
+**How the evidence flow handles cross-department work:**
 
-- Phase 4: Sofia (COO) is called to coordinate the squad matrix.
-- Phase 6: Leads work in parallel tracks; dependencies are made explicit before execution starts.
-- Phase 9: A consolidated plan across all departments is presented for a single approval gate.
-- Phase 11: Each department's TODO list runs independently; the Quality Gate aggregates final approval.
+- Gate 1: Sofia (COO) is called to coordinate the squad matrix.
+- Gate 2: A consolidated plan across all departments — with dependencies made explicit — is presented for a single approval gate.
+- Gate 3: Each department's TODO list runs independently in parallel tracks.
+- Gate 4: The Quality Gate aggregates final approval from each track's check results.
 
 **Deliverable:**
 
@@ -202,7 +201,7 @@ a tech switch"
 
 **What happens:**
 
-Luna's team maps the emotional journey from initial awareness through purchase decision, then writes each email using Brunson's launch formula layered with the AIDA framework. Phase 7 (planning) specifically tests messaging against the target audience's known objections.
+Luna's team maps the emotional journey from initial awareness through purchase decision, then writes each email using Brunson's launch formula layered with the AIDA framework. Gate 2 (PLAN) specifically tests messaging against the target audience's known objections before asking for approval.
 
 **Deliverable — email structure:**
 
@@ -244,11 +243,11 @@ corporate and intimidating"
 
 **Department engaged:** Brand (Valentina), with Quality (Marta) as mandatory gate.
 
-**13-phase highlights:**
+**Evidence-flow highlights:**
 
-- Phase 5 (Research): KB queried for brand archetype patterns and competitor visual audits. Any prior Clearlaw context from the ecosystem is injected automatically.
-- Phase 6: Valentina dispatches a brand strategist and visual designer in parallel. The strategist runs the Primal Branding + 12 Archetypes analysis; the designer builds the color system and typography direction.
-- Phase 11: WCAG contrast ratios are verified on every color pair before the Quality Gate runs.
+- Gate 1 (CONTEXT): KB queried for brand archetype patterns and competitor visual audits. Any prior Clearlaw context from the ecosystem is injected automatically.
+- Gate 3 (EXECUTE): Valentina dispatches a brand strategist and visual designer in parallel. The strategist runs the Primal Branding + 12 Archetypes analysis; the designer builds the color system and typography direction.
+- Gate 4 (REVIEW): WCAG contrast ratios are verified on every color pair — the check output feeds the Quality Gate verdict.
 
 **Deliverable:**
 
@@ -299,4 +298,4 @@ Saved to `Brand/Clearlaw/identity-system.md` in your Obsidian vault with full ra
 
 ---
 
-Related: [03 · The 13-Phase Flow](03-The-13-Phase-Flow.md) · [04 · Departments](04-Departments/README.md) · [10 · Quality Gate](10-Quality-Gate.md) · [15 · Ecosystems](15-Ecosystems.md) · [Home](Home.md)
+Related: [03 · The Evidence Flow (4 Gates)](03-The-13-Phase-Flow.md) · [04 · Departments](04-Departments/README.md) · [10 · Quality Gate](10-Quality-Gate.md) · [15 · Ecosystems](15-Ecosystems.md) · [Home](Home.md)

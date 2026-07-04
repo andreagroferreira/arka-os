@@ -15,7 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 _COMPLETION_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\[arka:phase:13\]", re.IGNORECASE),
+    re.compile(r"\[arka:gate:4\]", re.IGNORECASE),
+    re.compile(r"\[arka:phase:13\]", re.IGNORECASE),  # legacy, v4.1 window
     re.compile(r"\barc complete\b", re.IGNORECASE),
 )
 

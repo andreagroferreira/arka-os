@@ -26,7 +26,7 @@ For the broader data-flow picture (hooks, bridge, dashboard) see [ARCHITECTURE.m
 | `core/tasks/` | Background SQLite job queue for async operations |
 | `core/obsidian/` | Vault writer, taxonomy, cataloger, relator |
 | `core/specs/` | Living spec manager and schema |
-| `core/conclave/` | Multi-advisor planning session (Plan phase 7) |
+| `core/conclave/` | Multi-advisor planning session (Gate 2 PLAN) |
 | `core/terminal/` | Persistent terminal session tracking |
 | `core/sync/` | Project sync and install-state management |
 | `core/registry/` | Unified agent/skill/command registry |
@@ -84,10 +84,11 @@ The workflow engine executes declarative YAML workflows: sequences of phases eac
 | `schema.py` | Pydantic models: `Workflow`, `Phase`, `Gate`, `AgentAssignment`, `PhaseOutput`, `GateType` (auto, user\_approval, quality\_gate, condition, budget\_check), `WorkflowTier` |
 | `engine.py` | `WorkflowEngine`: sequential phase executor, gate evaluator, dependency checks, Obsidian output saving |
 | `loader.py` | `load_workflow(path)` — YAML to `Workflow` via Pydantic; `load_all_squads` variant unused here |
-| `state.py` | JSON state file at `~/.arkaos/workflow-state.json`: atomic writes (temp-rename), `init_workflow`, `update_phase`, `add_violation`, `is_phase_completed` |
+| `state.py` | JSON state file at `~/.arkaos/workflow-state.json`: atomic writes (temp-rename), `init_workflow`, `update_phase`, `add_violation`, `is_phase_completed`. Fed by `gate_checkpoint.py` since v4.1.0 |
+| `gate_checkpoint.py` | Stop-hook checkpointer (v4.1.0): scans the turn for `[arka:gate:N]` markers and persists the furthest gate + Gate-3 test evidence to `state.py` AND the per-session `SessionStore` snapshot, enabling structured resume after rate-limit/context interruptions |
 | `announcer.py` | `PhaseAnnouncer`: formats `[PHASE] Starting:` / `[PHASE] Completed:` messages, tracks per-phase durations |
 | `enforcer.py` | `WorkflowEnforcer`: evaluates all 14 NON-NEGOTIABLE Constitution rules, returns violations with BLOCK/ESCALATE/WARN severity |
-| `flow_enforcer.py` | `evaluate()`: PreToolUse gate — checks EFFECT tools require a flow marker (`[arka:routing]`, `[arka:trivial]`, `[arka:phase:N]`) in the last 20 assistant messages; feature-flagged via `hooks.hardEnforcement` |
+| `flow_enforcer.py` | `evaluate()`: PreToolUse gate — checks EFFECT tools require a flow marker (`[arka:routing]`, `[arka:trivial]`, `[arka:gate:N]`, legacy `[arka:phase:N]`) in the last 20 assistant messages; feature-flagged via `hooks.hardEnforcement` |
 | `research_gate.py` | KB-first gate for external research tools (Context7, WebSearch, Firecrawl); first violation nudges, second denies; feature-flagged via `hooks.kbFirst` |
 | `rules_registry.py` | Static `RULES_REGISTRY` mapping rule IDs to `RuleDefinition` objects |
 | `marker_cache.py` | Per-session flow marker cache (avoids repeated transcript reads) |
@@ -150,7 +151,7 @@ Governance enforces the Constitution at runtime. The Quality Gate (Marta orchest
 | `specialist_telemetry.py` | Telemetry for specialist dispatch events |
 | `activation_tracker.py` | Tracks which agents have been activated per session |
 | `dna_fidelity.py` | Validates that agent output style is consistent with its YAML DNA |
-| `closing_marker_check.py` | Checks that workflows end with a `[arka:phase:13]` closing marker |
+| `closing_marker_check.py` | Checks that workflows end with a `[arka:gate:4]` closing marker (legacy `[arka:phase:13]` accepted during the v4.1 window) |
 | `kb_cite_check.py` | Verifies that deliverables cite KB sources when relevant notes were injected |
 | `meta_tag_check.py` | Checks that Obsidian output notes have required frontmatter tags |
 | `leak_scanner.py` | Scans output for client names and confidential strings before publish |

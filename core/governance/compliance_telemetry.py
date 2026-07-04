@@ -4,7 +4,7 @@ Reads the stop-hook entries in ``~/.arkaos/telemetry/enforcement.jsonl``
 and reports compliance with the four contracts the session-start hook
 establishes:
 
-  - closing_marker_found  — [arka:phase:13] or [arka:trivial] present
+  - closing_marker_found  — [arka:gate:4] (or legacy [arka:phase:13]) or [arka:trivial] present
   - meta_tag_found        — [arka:meta] one-liner present (PR12)
   - kb_cite_passed        — KB citation soft block result (PR18)
   - sycophancy clean      — inverse of sycophancy_is_flagged (PR13)

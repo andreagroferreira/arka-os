@@ -40,7 +40,8 @@ class TestConstitutionRules:
             "full-visibility", "sequential-validation", "mandatory-qa",
             "arka-supremacy", "context-verification", "forge-governance",
             "mandatory-skill-evaluation",
-            "mandatory-flow",
+            # v4.1.0 evidence flow (replaced mandatory-flow; ADR 2026-07-04)
+            "evidence-flow",
             # PR10 v2.32.0 Conclave Phase 5 additions
             "quality-over-speed", "always-research",
             "project-design-system-prerequisite",

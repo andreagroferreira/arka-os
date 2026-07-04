@@ -21,6 +21,22 @@ from core.governance.closing_marker_check import (
 
 
 class TestPresent:
+    def test_gate4_marker_passes(self):
+        text = (
+            "Shipped v4.1.0. Lint, type-check, and coverage all green.\n\n"
+            "[arka:gate:4] review complete — evidence attached above"
+        )
+        result = check_closing_marker(text)
+        assert result.passed is True
+        assert result.reason == "gate4"
+        assert result.suggestion is None
+
+    def test_gate4_case_insensitive(self):
+        text = "[ARKA:GATE:4] done with " + ("more text " * 20)
+        result = check_closing_marker(text)
+        assert result.passed is True
+        assert result.reason == "gate4"
+
     def test_phase13_marker_passes(self):
         text = (
             "Shipped v2.76.0 to npm. Tests green, preflight passed.\n\n"
@@ -99,7 +115,7 @@ class TestMissing:
         assert result.passed is False
         assert result.reason == "missing"
         assert result.suggestion is not None
-        assert "[arka:phase:13]" in result.suggestion
+        assert "[arka:gate:4]" in result.suggestion
         assert "[arka:trivial]" in result.suggestion
 
     def test_partial_marker_does_not_pass(self):

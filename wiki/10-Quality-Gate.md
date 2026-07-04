@@ -3,8 +3,10 @@
 ← [Departments](04-Departments/) · [Home](Home.md)
 
 Nothing reaches you without passing the Quality Gate. It is a NON-NEGOTIABLE
-constitutional rule (`mandatory-qa`) and runs in phase 11 of every workflow,
-for every TODO, with no exceptions.
+constitutional rule (`mandatory-qa`) and runs as Gate 4 (REVIEW) of the
+evidence flow, with no exceptions. The verdict derives from executable
+checks — linter, type-checker, test run, coverage report, security grep —
+not from narrated approval.
 
 ---
 
@@ -82,5 +84,5 @@ is produced.
 
 ---
 
-Related: [The 13-Phase Flow](03-The-13-Phase-Flow.md) (the gate is phase 11),
+Related: [The Evidence Flow (4 Gates)](03-The-13-Phase-Flow.md) (the gate is Gate 4 REVIEW),
 [Core Concepts](02-Core-Concepts.md) (the constitution and tiers).

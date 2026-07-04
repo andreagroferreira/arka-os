@@ -39,11 +39,14 @@ The [Cognitive Layer](06-Cognitive-Layer.md) captures every solution and
 critiques it overnight. The benefit grows over time: **work on project N is
 faster because the system remembers projects 1…N-1**.
 
-### 4. Discipline — the 13-phase flow
+### 4. Discipline — the evidence flow
 
-Routing, research, planning, approval, testing, security, and documentation
-happen in order, every time. The benefit is **predictability** — you are not
-relying on the model to "remember" to test or document.
+Grounded context, an explicit approval gate, a real test run, and executable
+review checks happen in order, every time. Gates pass on **evidence** —
+command output, exit codes, report files — not on the model narrating that
+work happened. The benefit is **predictability without ceremony tax**: you are
+not relying on the model to "remember" to test, and you are not paying tokens
+for role-played rigor either.
 
 ## An illustrative ROI model
 

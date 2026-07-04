@@ -1,9 +1,9 @@
 ---
 name: arka-flow
 description: >
-  ArkaOS canonical mandatory workflow. 13 phases. This is the default
-  execution contract for every user request inside an ArkaOS-managed
-  context. Not optional. Not overridable.
+  ArkaOS canonical evidence flow. 4 gates. This is the default execution
+  contract for every user request inside an ArkaOS-managed context.
+  Gates pass on evidence read from disk, not on narration.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
@@ -21,244 +21,118 @@ treat them as your default source. External research supplements, it
 does not replace the vault.
 <!-- arka:kb-first-prefix end -->
 
-# ArkaOS — Mandatory Workflow
+# ArkaOS — Evidence Flow (4 gates)
 
-> This flow runs on **every** user request inside an ArkaOS-managed context.
-> There is no "simple mode". There is no "skip the workflow this time".
-> The only exception is a single-file <10-line trivial edit, which may emit
-> `[arka:trivial] <reason>` and bypass. Everything else runs the 13 phases.
+> This flow runs on **every** non-trivial user request inside an
+> ArkaOS-managed context. It replaced the 13-phase flow in v4.1.0
+> (constitution rule `evidence-flow`, ADR
+> `docs/adr/2026-07-04-evidence-flow.md`). A gate passes on **evidence**
+> — command output, exit codes, files on disk — never on the model
+> asserting that work happened.
+>
+> Bypass: single-file edit under 10 lines may emit
+> `[arka:trivial] <reason>` as its first line and proceed directly.
 
-## The 13 phases (strict sequence)
+## The 4 gates (strict sequence)
 
-### Phase 1 — Input
-Receive the user request verbatim. Do not paraphrase before Phase 2.
+Emit the gate marker on its own line when the gate STARTS. The Stop hook
+persists every observed gate transition to the session's
+`WorkflowSnapshot` (see Checkpointing below), so an interrupted session
+resumes at the right gate.
 
-### Phase 2 — Get context
-Read the active context. Sources, in order:
-- `~/.arkaos/profile.json` (who, what company, what language)
-- Current working directory + `.claude/CLAUDE.md` + `.claude/rules/`
-- Git branch and recent commits
-- `cwd-changed` tag from the hook (ecosystem, stack, descriptor)
-- Most recent `~/.arkaos/sessions/` digest if present
+### Gate 1 — CONTEXT `[arka:gate:1]`
 
-### Phase 3 — Decide context and route
-State the target department explicitly:
+- Route the request: emit `[arka:routing] <department-slug> -> <lead>`
+  (mapping in `arka/SKILL.md`). Escalate to Tier 0 only when the request
+  is strategic, cross-department, security-sensitive, or financial.
+- Ground before asserting: Synapse has already injected KB matches
+  (`[arka:kb-context:N]`) and, when a project graph exists, graph facts.
+  Read them. Query `mcp__obsidian__search_notes` / the project graph for
+  anything substantive they do not cover. Cite what you use with
+  `[[wikilinks]]` or `file:line`; declare gaps explicitly.
+- Read the live context: profile, CLAUDE.md, git branch, cwd tag,
+  pattern cards (L7.5), agent experiences (L2.6).
 
-```
-[arka:routing] <department-slug> -> <lead-agent>
-```
+### Gate 2 — PLAN `[arka:gate:2]`
 
-Mapping (full list in `arka/SKILL.md`): dev→Paulo, brand→Valentina,
-kb→Clara, mkt→Luna, content→Rafael, landing→Ines, ecom→Ricardo,
-saas→Tiago, sales→Miguel, pm→Carolina, ops→Daniel, strat→Tomas,
-fin→Helena, lead→Rodrigo, org→Sofia, community→Beatriz.
+- Produce a short plan: scope, files touched, how each change will be
+  verified (the exact commands), what is explicitly out of scope.
+- Complexity is scored by `core/forge/complexity.py`: LOW → a plan
+  inline in the reply; MEDIUM/HIGH → persist the plan to
+  `~/.arkaos/plans/` + Obsidian and consider `/arka-forge`.
+- **Wait for EXPLICIT user approval. Silence is not approval.** This is
+  the one human gate and it never disappears.
 
-### Phase 4 — Call hierarchy
-Escalate to Tier 0 (C-Suite) for review when the request is strategic,
-cross-department, security-sensitive, or financial. Tier 0 = Marco (CTO),
-Helena (CFO), Sofia (COO), Marta (CQO), Eduardo (Copy Director),
-Francisca (Tech & UX Director). Otherwise, squad lead owns.
+### Gate 3 — EXECUTE `[arka:gate:3]`
 
-### Phase 5 — Understand and research the context
-Query the knowledge base:
-- `mcp__obsidian__search_notes` for prior work on the topic
-- Vector DB semantic search when installed
-- Prior session digests at `~/.arkaos/session-digests/`
-- Relevant Forge plans at `~/.arkaos/plans/`
+- Implement in atomic, independently verifiable steps (task tracker for
+  3+ steps).
+- Dispatch specialists via the Agent tool only when the work genuinely
+  needs isolated context or parallelism (`subagent-discipline`).
+  Announce every dispatch: `[arka:dispatch] <caller> -> <specialist>`.
+- **Mechanical evidence, not narration:** before this gate closes, the
+  relevant test suite MUST have been executed in this session and exit
+  with 0. Report the real command and its result, e.g.:
 
-Cite the sources found. If the KB has nothing and the ask is non-trivial,
-state the gap explicitly and propose filling it.
+  ```
+  [arka:gate:3] evidence: pytest tests/python -q -> exit 0 (4521 passed)
+  ```
 
-**Pattern Library check (SHOULD `pattern-library-first`, PR4 v3.75.0).**
-Synapse layer L7.5 (`core/synapse/pattern_library_layer.py`) auto-injects
-the top matching `PatternCard`s from `~/.arkaos/patterns/cards.jsonl`
-whenever the user prompt contains substantive keywords. Read the cards
-*before* designing — reuse the prior implementation, or document in the
-spec why divergence is justified. Manual audit:
-`python -m core.knowledge.pattern_cards_cli list` or `search <keyword>`.
+  A failing suite loops back into implementation. Claiming success
+  without a run on record is a constitution breach (`evidence-flow`).
 
-### Phase 6 — Call team
-Dispatch specialists via the `Agent` tool. The squad lead from Phase 3
-names them. Specialists run in parallel when work is independent.
+### Gate 4 — REVIEW `[arka:gate:4]`
 
-**Design-system check on UI work (PR6 v3.77.0, SHOULD `design-system-locked`).**
-Before dispatching frontend/landing specialists, run the per-project
-linter to surface UI/UX drift:
+- Run the evidence checks that apply to the diff: linter, type-checker,
+  coverage read from the report file, security grep, spell-check for
+  copy. Reviewers (Quality Gate personas) interpret tool output; they do
+  not replace it. APPROVED/REJECTED derives from evidence.
+- Close with an honest summary: what changed, where, how it was
+  verified (real commands + results), what remains open.
 
-```
-python -m core.governance.design_system_lint_cli <project_path>
-```
+## Checkpointing and resume
 
-If the project has a `design-system.yaml`, violations come back with
-file:line + the suggestion text declared in the YAML. The frontend
-specialist should fix existing violations OR document why the new work
-diverges. Projects without a `design-system.yaml` skip the check.
-Template: `docs/examples/design-system-example.yaml`.
+`core/workflow/gate_checkpoint.py` (invoked by the Stop hook) scans the
+turn for gate markers and persists them to BOTH stores:
 
-**Experience injection (PR3 v3.74.0).** When a specialist is dispatched,
-Synapse layer `L2.6 AgentExperiences`
-(`core/synapse/agent_experiences_layer.py`) detects the
-`[arka:dispatch] <from> -> <to>` marker and loads the top-5 most recent
-`Experience` records for the target agent from
-`~/.arkaos/agents/<agent_id>/experiences.jsonl`. The records list past
-Quality Gate REJECTED verdicts with their blockers and patterns. The
-dispatched specialist must read them and avoid repeating the failure
-modes. Operator-side audit: `python -m core.governance.agent_experiences_cli list <agent_id>`.
+- `~/.arkaos/workflow-state.json` (`core/workflow/state.py`)
+- `~/.arkaos/sessions/<id>/workflow-state.json` (`SessionStore`, read by
+  `core/memory/rehydrator.py` at SessionStart)
 
-**Dispatch must be announced (NON-NEGOTIABLE `dispatch-must-be-announced`).**
-Immediately before each `Agent` tool call, emit on its own line:
+If a session dies mid-Gate-3 (rate limit, context exhaustion, crash),
+the next SessionStart injects `[SESSION] Resuming at gate 3` with the
+pending items. Do not restart from Gate 1 when a snapshot exists —
+verify the snapshot against `git status` and continue.
 
-```
-[arka:dispatch] <calling-persona> -> <specialist-id>
-```
+## Visibility
 
-Example before dispatching a frontend specialist from Paulo's seat:
-
-```
-[arka:dispatch] paulo -> frontend-dev
-```
-
-The PreToolUse specialist-enforcer (`core/workflow/specialist_enforcer.py`)
-reads this marker to identify which specialist holds the floor. Without
-it, the specialist's subsequent `Write`/`Edit` will block when
-`hooks.specialistEnforcement=true`. The marker format mirrors
-`[arka:routing]` exactly but uses the verb `dispatch` and points from
-the caller to the receiver.
-
-### Phase 7 — Plan and make the spec
-Run six parallel reviewers on the plan:
-
-| Reviewer | Question it owns |
-|---|---|
-| Positive analyst | Why this solution is the right one |
-| Devil's advocate | Strongest case against the chosen path |
-| Q&A / input collector | What is still unknown and must be answered |
-| Obsidian + DB researcher | What the knowledge base already says |
-| Best-solution validator | Is there a better option we have not tried |
-| Pessimistic analyst | What breaks, at what scale, in what scenario |
-
-Synthesise into a spec. Reference the Conclave (`arka-conclave`) or
-the Forge (`arka-forge`) when complexity warrants.
-
-### Phase 8 — Present the plan
-Save the spec to:
-- Obsidian (`docs/superpowers/specs/` or vault equivalent)
-- Vector DB (when available via cache or KB cache)
-- Session cache at `~/.arkaos/plans/`
-
-Print the plan inline for the user.
-
-### Phase 9 — Wait for approval
-Two branches:
-
-- **Approve** → Phase 10
-- **More input** → loop to Phase 7
-
-Approval must be explicit. Silence is not approval.
-
-### Phase 10 — TODO list
-Break the approved plan into atomic, ordered items. Persist to the
-task tracker. Each item must be independently verifiable.
-
-### Phase 11 — Per-todo loop
-For each item, in order:
-
-1. Organise a call with all team members relevant to that item.
-2. Complete the todo.
-3. **QA** — all tests, end-to-end, Playwright browser tests when the
-   item touches UI, report saved to Obsidian + vector DB + cache.
-   - Fail → back to the todo. Do not advance.
-4. **Security review** — Tier 0 security specialist checks for flaws,
-   injection, missing auth, data exposure.
-   - Fail → back to the todo.
-5. **Quality Gate** — Marta (CQO) orchestrates the right specialists
-   for the area.
-
-   **CQO dispatch convention (PR3.5 v3.74.1):** when invoking the `cqo`
-   subagent, the orchestrator MUST include the marker
-   `[arka:reviewing <agent_id>]` in the dispatch prompt, naming the
-   agent whose work is under review (e.g.
-   `[arka:reviewing tech-lead-paulo]`). On a REJECTED verdict, the
-   PostToolUse hook `config/hooks/post-tool-use.sh` reads the marker
-   plus the verdict text and auto-appends an `Experience` to that
-   agent's log — closing the QG learning loop without manual
-   bookkeeping. The L2.6 Synapse layer
-   (`core/synapse/agent_experiences_layer.py`) injects the lessons
-   into the next dispatch automatically. APPROVED verdicts produce no
-   `Experience` record (only failures are lessons).
-
-   **Pattern auto-stub convention (PR4.5 v3.75.1):** to populate the
-   Pattern Library on APPROVED outcomes, the orchestrator may include
-   `[arka:pattern-suggest <id> <name>]` in the CQO dispatch prompt
-   (e.g. `[arka:pattern-suggest force-specialist-dispatch Force
-   Specialist Dispatch]`). On APPROVED, the same PostToolUse hook
-   creates a stub `PatternCard` so the library remembers the feature
-   ID and name; the operator enriches it later via `record_pattern()`
-   or by editing `~/.arkaos/patterns/cards.jsonl`. Re-suggesting an
-   existing id is a no-op (never overwrites enriched cards).
-
-   If a specialist is missing, stop and advise the user to create one
-   via `/arka personas` + provide the knowledge.
-
-   - Fail → back to the todo.
-6. Document — save the completed work to Obsidian + vector DB.
-7. Next todo.
-
-### Phase 12 — Loop until TODO list is fully done
-Do not skip items. Do not batch QA or Security across multiple
-items — each item runs the full gate chain.
-
-**DNA fidelity check at turn end (PR5 v3.76.0, SHOULD `dna-fidelity-warn`).**
-The Stop hook (`config/hooks/stop.sh`) invokes
-`core.governance.dna_fidelity.check_fidelity(agent_id, output)` for the
-current persona (from `[arka:routing]` or `[arka:dispatch]`). Violations
-of `avoid_patterns` or missing `opening_phrases` from the agent's YAML
-`signature_markers` block are recorded to
-`~/.arkaos/telemetry/dna-fidelity.jsonl` — soft-warn only in v3.76.0.
-Operator audit: `python -m core.governance.dna_fidelity_cli summary`.
-Each Agent dispatch also logs to
-`~/.arkaos/telemetry/agent-activations.jsonl`; surface dormant agents
-via `python -m core.governance.agent_activation_cli dead`.
-
-### Phase 13 — Detailed summary
-When the TODO list is exhausted, emit a final summary: what was done,
-where it lives, how to verify, what is open for next time.
-
-## Visibility requirements
-
-Every phase MUST emit a visibility tag the user can see:
-
-```
-[arka:phase:2] get-context
-[arka:phase:3] route -> dev -> Paulo
-[arka:phase:7] plan+6-reviewers
-[arka:phase:11.3] qa -> all pass
-[arka:phase:11.5] quality-gate -> approved
-```
-
-No silent phases. No compound steps.
+Gate markers are the only mandatory ceremony. Inside a gate, work in
+normal prose — no per-step phase tags, no verbatim echo of the request,
+no six-reviewer role-play. One marker per gate transition.
 
 ## Hard no-go list
 
-- No Write / Edit before Phase 7 completes for the affected item.
-- No Agent dispatch before Phase 6.
-- No "pushing to master" without passing Phase 11.4 and 11.5 on every
-  changed item.
-- No `[arka:trivial]` claim when the change spans more than one file or
-  exceeds 10 lines in total.
-- No skipping Phase 9 (approval). The user is the gate, not a hint.
+- No Write/Edit/effect-Bash before Gate 2 approval for the affected
+  scope (`[arka:gate:1]`/`[arka:routing]` alone does not unlock writes).
+- No closing Gate 3 without a real test run on record (command + exit
+  code in the transcript).
+- No pushing to master without Gate 4 evidence on every changed item.
+- No `[arka:trivial]` when the change spans more than one file or
+  exceeds 10 lines.
+- No skipping Gate 2 approval. The user is the gate, not a hint.
 
 ## Related skills
 
-- `/arka-forge` — complexity-aware planning when the request is large.
-- `/arka-conclave` — 20-advisor deliberation for strategic decisions.
-- `/arka-spec` — spec gate for Phase 7.
-- `/arka-quality` — Quality Gate orchestration for Phase 11.5.
+- `/arka-forge` — complexity-aware planning for MEDIUM/HIGH Gate 2.
+- `/arka-spec` — spec gate when Gate 2 scope needs a full spec.
+- `/arka-quality` — Gate 4 orchestration.
+- `/arka-checkpoint` — user-in-the-loop fragmentation for >30s dispatches.
 
 ## Non-negotiable
 
 The UserPromptSubmit hook classifies every turn. When it injects
-`[ARKA:WORKFLOW-REQUIRED]`, this flow is the contract. The session-start
-hook embeds it as `systemMessage` so it sits at system-prompt priority
-from turn 1. CLAUDE.md references it. Constitution rule
-`mandatory-flow` codifies it. There is no override.
+`[ARKA:WORKFLOW-REQUIRED]`, this flow is the contract. The SessionStart
+hook embeds it as `systemMessage`. Constitution rule `evidence-flow`
+codifies it. Legacy `[arka:phase:N]` markers remain accepted by the
+enforcer during the v4.1 deprecation window but new work emits
+`[arka:gate:N]`.

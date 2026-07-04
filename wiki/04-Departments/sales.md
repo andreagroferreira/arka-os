@@ -44,4 +44,4 @@ This is not a broadcast-and-hope department. Every engagement starts with rigoro
 
 Use the Sales department any time you need to move a prospect toward a decision: qualifying inbound leads, structuring outbound sequences, preparing for a live sales call, writing a proposal, negotiating a contract, or diagnosing pipeline stall. It also covers operational work — CRM hygiene, stage conversion analysis, and quarterly forecasting.
 
-Related: [Core Concepts](../02-Core-Concepts.md) · [The 13-Phase Flow](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)
+Related: [Core Concepts](../02-Core-Concepts.md) · [The Evidence Flow (4 Gates)](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)

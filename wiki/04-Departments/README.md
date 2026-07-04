@@ -1,6 +1,6 @@
 # 04 · Departments
 
-← [The 13-Phase Flow](../03-The-13-Phase-Flow.md) · [Home](../Home.md) · Next: [Commands Reference →](../05-Commands-Reference.md)
+← [The Evidence Flow (4 Gates)](../03-The-13-Phase-Flow.md) · [Home](../Home.md) · Next: [Commands Reference →](../05-Commands-Reference.md)
 
 ArkaOS has **82 agents across 17 departments**. Sixteen are domain departments
 with a command prefix; the seventeenth, the Quality Gate, is cross-cutting and

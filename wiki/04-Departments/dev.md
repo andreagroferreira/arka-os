@@ -66,7 +66,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 5. **Security review** — Bruno audits against OWASP Top 10 and STRIDE threat model.
 6. **Quality Gate** — Marta (CQO) orchestrates Eduardo (copy/language) and Francisca (technical/UX). Binary APPROVED/REJECTED. Nothing ships without this gate.
 
-The full [13-Phase Flow](../03-The-13-Phase-Flow.md) governs every non-trivial request, including approval gates before implementation begins.
+The full [Evidence Flow](../03-The-13-Phase-Flow.md) governs every non-trivial request, including approval gates before implementation begins.
 
 ## When to use it
 
@@ -74,4 +74,4 @@ Reach for `/dev` any time a request involves code — new features, refactoring,
 
 ---
 
-Related: [Core Concepts](../02-Core-Concepts.md) · [The 13-Phase Flow](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)
+Related: [Core Concepts](../02-Core-Concepts.md) · [The Evidence Flow (4 Gates)](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)

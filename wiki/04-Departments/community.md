@@ -47,4 +47,4 @@ Tania handles gamification and engagement loops — points, levels, challenges, 
 
 Use the Communities department when you are launching a new community from scratch, trying to reactivate a stalled one, designing a monetization model, or solving a retention problem. It is also the right department for platform migration decisions, gamification design, and event planning within an existing community.
 
-Related: [Core Concepts](../02-Core-Concepts.md) · [The 13-Phase Flow](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)
+Related: [Core Concepts](../02-Core-Concepts.md) · [The Evidence Flow (4 Gates)](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)
