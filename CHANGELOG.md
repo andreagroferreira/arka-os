@@ -5,6 +5,20 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.1] - 2026-07-04
+
+### Fixed — Full test suite green
+
+- CI installs the `dashboard` extra + `sqlite-vec` (API endpoint modules
+  collected again — broken since v4.0.1); `dashboard` extra declares
+  `python-multipart`/`websockets`; `httpx2` for starlette's TestClient.
+- Hook wrappers probe for a python that can `import yaml` — an unrelated
+  project venv first on PATH silently degraded every gate.
+- Relator: per-method similarity threshold (keyword Jaccard 0.15) — the
+  cosine-calibrated 0.5 cutoff silently disabled Related-notes linking on
+  machines without fastembed.
+- Local suite: 4758 passed / 0 failed (was 179 failed + 78 errors).
+
 ## [4.1.0] - 2026-07-04
 
 ### Changed — Evidence Flow replaces the 13-phase flow
