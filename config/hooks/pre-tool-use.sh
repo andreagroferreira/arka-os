@@ -233,10 +233,34 @@ import os
 import sys
 
 sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+
+
+# ─── CostGovernor gate (PR-5 v4.1.0, docs/adr/2026-07-04-cost-governor.md)
+# Piggy-backs on this heredoc (no extra python process). WARN-first:
+# exceeded caps emit `[arka:warn] budget cap exceeded ($X of $Y)`;
+# HARD deny only when `budget.hardDeny=true` in ~/.arkaos/config.json.
+# Independent of the flow_enforcer import (cost_governor is stdlib-only,
+# flow_enforcer may need PyYAML) — must fire even when the flow gate
+# degrades. Fails open on its own import/telemetry errors.
+def _budget_fields():
+    out = {"budget_allow": True, "budget_reason": "", "budget_warning": ""}
+    try:
+        from core.runtime.cost_governor import check as _budget_check
+        gov = _budget_check(os.environ.get("SESSION_ID", ""))
+        out["budget_allow"] = gov.allow
+        out["budget_reason"] = gov.reason
+        out["budget_warning"] = gov.to_warning()
+    except Exception:
+        pass
+    return out
+
+
 try:
     from core.workflow.flow_enforcer import evaluate, record_telemetry
 except Exception:
-    print(json.dumps({"allow": True, "reason": "enforcer-import-failed"}))
+    print(json.dumps({
+        "allow": True, "reason": "enforcer-import-failed", **_budget_fields()
+    }))
     sys.exit(0)
 
 try:
@@ -260,16 +284,40 @@ try:
     )
 except Exception:
     pass
+
 print(json.dumps({
     "allow": decision.allow,
     "reason": decision.reason,
     "stderr_msg": decision.to_stderr_message(),
+    **_budget_fields(),
 }))
 PY
 )
 
 if [ -z "$DECISION_JSON" ]; then
   exit 0
+fi
+
+# ─── CostGovernor result (WARN-first; deny only with budget.hardDeny) ───
+BUDGET_ALLOW=$(echo "$DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('budget_allow', True))" 2>/dev/null)
+BUDGET_WARNING=$(echo "$DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('budget_warning',''))" 2>/dev/null)
+
+if [ -n "$BUDGET_WARNING" ]; then
+  # Soft signal, same surface as the KB-gate nudge: stderr is visible to
+  # the model per the Claude Code hook spec.
+  echo "$BUDGET_WARNING" >&2
+fi
+
+if [ "$BUDGET_ALLOW" != "True" ] && [ "$BUDGET_ALLOW" != "true" ]; then
+  STDERR_MSG="$BUDGET_WARNING" python3 - <<'PY'
+import json, os
+print(json.dumps({"hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": os.environ.get("STDERR_MSG", ""),
+}}))
+PY
+  exit 2
 fi
 
 ALLOW=$(echo "$DECISION_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('allow', True))" 2>/dev/null)

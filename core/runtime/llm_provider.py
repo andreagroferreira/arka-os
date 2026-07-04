@@ -27,6 +27,7 @@ from typing import Protocol, runtime_checkable
 from core.runtime import registry
 from core.runtime.base import RuntimeAdapter
 from core.runtime.llm_cost_telemetry import record_cost
+from core.runtime.llm_retry import retry_completion
 from core.runtime.pricing import estimate_cost_usd
 
 
@@ -116,18 +117,27 @@ class SubagentProvider:
         system: str = "",
     ) -> LLMResponse:
         adapter = self._resolve_adapter()
-        try:
-            response = adapter.headless_complete(
-                prompt, max_tokens=max_tokens, system=system
-            )
-        except NotImplementedError as exc:
-            raise LLMUnavailable(str(exc)) from exc
-        except LLMUnavailable:
-            raise
-        except Exception as exc:  # noqa: BLE001
-            raise LLMUnavailable(
-                f"headless_complete failed: {exc.__class__.__name__}: {exc}"
-            ) from exc
+
+        def _attempt() -> LLMResponse:
+            try:
+                return adapter.headless_complete(
+                    prompt, max_tokens=max_tokens, system=system
+                )
+            except NotImplementedError as exc:
+                raise LLMUnavailable(str(exc)) from exc
+            except LLMUnavailable:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                raise LLMUnavailable(
+                    f"headless_complete failed: {exc.__class__.__name__}: {exc}"
+                ) from exc
+
+        # Rate-limit-looking CLI failures (non-zero exit with 429/rate
+        # limit/overloaded stderr) surface as LLMUnavailable messages the
+        # default classifier recognises as retryable; everything else
+        # fails fast. Exhaustion re-raises LLMUnavailable (attempt count
+        # + last error) preserving the fallback-chain semantics.
+        response = retry_completion(_attempt, provider=self.name())
 
         _record(
             session_id=os.environ.get("ARKA_SESSION_ID", ""),
@@ -227,8 +237,17 @@ class AnthropicDirectProvider:
             )
         client = self._build_client()
         payload = self._build_anthropic_payload(prompt, system, max_tokens, model)
+        # Retry the raw SDK call (not a pre-wrapped LLMUnavailable) so the
+        # classifier can inspect status_code / response.headers for 429 +
+        # retry-after. Non-retryable SDK errors convert to LLMUnavailable
+        # below; exhaustion already raises LLMUnavailable inside the layer.
         try:
-            raw = client.messages.create(**payload)  # type: ignore[attr-defined]
+            raw = retry_completion(
+                lambda: client.messages.create(**payload),  # type: ignore[attr-defined]
+                provider=self.name(),
+            )
+        except LLMUnavailable:
+            raise
         except Exception as exc:  # noqa: BLE001
             raise LLMUnavailable(
                 f"anthropic.messages.create failed: {exc.__class__.__name__}: {exc}"

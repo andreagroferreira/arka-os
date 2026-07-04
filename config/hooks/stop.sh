@@ -103,6 +103,36 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
   exit 0
 fi
 
+# ─── Native usage cost capture (PR-5 v4.1.0) ─────────────────────────────
+# Native Claude Code turns never touch llm_provider, so llm-cost.jsonl
+# under-reports real spend. Record the last assistant turn's message.usage
+# as a `native:session` row (per-session cursor dedupes re-stops). Runs
+# BEFORE the WF_MARKER gate on purpose — the blind spot covers ALL
+# sessions, not just flow-required ones. Never blocks, never raises.
+if [ -n "$TRANSCRIPT_PATH" ] && [ -n "$SESSION_ID" ] && command -v python3 &>/dev/null; then
+  _NU_ROOT="${ARKAOS_ROOT:-}"
+  if [ -z "$_NU_ROOT" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+    _NU_ROOT=$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)
+  fi
+  [ -z "$_NU_ROOT" ] && _NU_ROOT="$HOME/.arkaos"
+
+  NU_TRANSCRIPT="$TRANSCRIPT_PATH" \
+  NU_SESSION_ID="$SESSION_ID" \
+  ARKAOS_ROOT="$_NU_ROOT" \
+  python3 - <<'PY' 2>/dev/null || true
+import os, sys
+sys.path.insert(0, os.environ["ARKAOS_ROOT"])
+try:
+    from core.runtime.native_usage import record_native_usage
+    record_native_usage(
+        os.environ.get("NU_TRANSCRIPT", ""),
+        os.environ.get("NU_SESSION_ID", ""),
+    )
+except Exception:
+    pass
+PY
+fi
+
 # Only evaluate sessions where the classifier flagged a creation intent.
 WF_MARKER="/tmp/arkaos-wf-required/$SESSION_ID"
 if [ -z "$SESSION_ID" ] || [ ! -f "$WF_MARKER" ]; then

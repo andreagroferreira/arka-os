@@ -29,3 +29,18 @@ schedules:
     retry_on_fail: true
     max_retries: 2
     timeout_minutes: 90
+    # ── Goal mode (v4.1.0, opt-in — Claude Code /goal primitive) ──────
+    # Uncomment BOTH lines to make the research cycle run until the model
+    # judges the condition met, bounded by task_budget tasks. NEVER set
+    # goal_condition without task_budget — the daemon raises ValueError
+    # (infinite-loop / metered-burn guard, Claude Code v2.1.139 caveat).
+    # goal_condition: "research digest written to vault with >=3 cited sources"
+    # task_budget: 25
+
+# ── Goal mode for dreaming (opt-in) ──────────────────────────────────
+# The dreaming entry above uses python_module (Dreaming v2), and goal
+# flags only apply to the Claude-CLI prompt path — python_module entries
+# ignore them. To run dreaming in goal mode, remove `python_module` /
+# `module_args` (falling back to prompt_file) and add, paired:
+#   goal_condition: "insights drafted, critic-passed, written to vault"
+#   task_budget: 15

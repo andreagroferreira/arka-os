@@ -72,6 +72,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   model-independent. Specialist-dispatch telemetry records
   `model_requested` for later `/arka costs` cross-checks.
 
+### Added — Provider resilience + cost bounding (PR-5)
+
+- `core/runtime/llm_retry.py` — retry layer for LLM completions:
+  exponential backoff + jitter (default 4 attempts, 2s base, 60s max),
+  `retry-after` honored when extractable from SDK exceptions (defensive
+  getattr chains, no SDK-internal dependency), total sleep hard-capped
+  at 180s. Classifier: 429/rate-limit and 5xx/overloaded/connection are
+  retryable; auth/other-4xx/unknown fail fast. Wired into
+  `AnthropicDirectProvider.complete` and `SubagentProvider.complete`
+  (rate-limit-looking `claude -p` stderr retries too). Exhaustion raises
+  `LLMUnavailable` with attempt count + last error (fallback-chain
+  semantics preserved). Each retry appends to
+  `~/.arkaos/telemetry/llm-retries.jsonl` (fcntl-locked, never raises).
+- `core/runtime/cost_governor.py` — enforceable, opt-in budget caps
+  (`budget.hardCapUsd` per session, `budget.dailyCapUsd` per day in
+  `~/.arkaos/config.json`; absent = no cap). WARN-first gate inside the
+  pre-tool-use flow_enforcer heredoc: exceeded caps emit
+  `[arka:warn] budget cap exceeded ($X of $Y)`; hard deny (exit 2) ONLY
+  with `budget.hardDeny=true`. Fails open on missing config/telemetry.
+  CLI: `python -m core.runtime.cost_governor <session_id> [--json]`,
+  exit 0 allow / 3 deny. ADR: `docs/adr/2026-07-04-cost-governor.md`
+  (extends ADR-011 without revoking its advisory default).
+- `core/runtime/native_usage.py` — closes the native-usage cost blind
+  spot: the Stop hook now records the last assistant turn's
+  `message.usage` (input/output/cache tokens + real model id) as a
+  `native:session` row in llm-cost.jsonl, deduped via a per-session
+  cursor in `/tmp/arkaos-native-cost/`. Unknown models keep null-cost
+  rows (tokens still recorded). Pricing gains the undated
+  `claude-haiku-4-5` alias (same published price as the dated row).
+- Goal-mode examples for Research/Dreaming cycles in
+  `config/cognition/schedules.yaml` (commented-out, operator opt-in;
+  `goal_condition` + `task_budget` pairing mandatory) and documented in
+  the scheduler daemon docstring.
+- `departments/ops/skills/{workflow-automate,n8n-flow}` — "Event-driven
+  watching (Monitor)" sections: prefer the runtime Monitor tool over
+  polling loops (zero idle tokens), with a polling fallback note.
+
 ## [4.0.0] - 2026-06-01
 
 ### Added — Knowledge Video Pipeline

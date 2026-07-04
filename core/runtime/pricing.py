@@ -38,6 +38,15 @@ PRICING: dict[str, dict[str, float]] = {
         "cache_read": 0.08,
         "cache_write": 1.00,
     },
+    # Generic (undated) alias of the dated haiku row above — native
+    # transcripts sometimes report the tier id without the date suffix.
+    # Same published price; NOT an invented number.
+    "claude-haiku-4-5": {
+        "input": 0.80,
+        "output": 4.00,
+        "cache_read": 0.08,
+        "cache_write": 1.00,
+    },
     "gpt-4": {
         "input": 30.00,
         "output": 60.00,

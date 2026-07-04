@@ -71,4 +71,20 @@ Follow the [Computer Use Availability Check](/arka) for availability checking.
 /schedule hourly — monitor all active automations and report error rate
 ```
 
+## Event-driven watching (Monitor)
+
+Prefer the runtime's Monitor tool over polling loops — it blocks on a
+condition and burns zero idle tokens, while `/loop` re-invokes the model
+every interval even when nothing changed.
+
+Pattern (watch logs, act on first match):
+
+```
+Monitor: tail the automation log until /ERROR|failed/ matches,
+then diagnose that execution and alert the operator.
+```
+
+Use polling (`/loop`) only as fallback on runtimes without Monitor, and
+pick the widest interval the SLA tolerates.
+
 ## Output → Workflow diagram + platform config + error handling spec
