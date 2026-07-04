@@ -2,6 +2,16 @@
 
 Reads a YAML schedule config, acquires a file lock to prevent duplicate runs,
 and executes Claude CLI commands with logging per task.
+
+Goal mode (opt-in, v4.1.0): a schedule may pair `goal_condition` with
+`task_budget` to append `--goal <condition> --task-budget <N>` to the
+Claude CLI argv, so Research/Dreaming cycles run until the condition is
+met instead of stopping when the prompt's phases run out. The pairing is
+mandatory (`_goal_argv` raises otherwise) and only applies to the
+prompt_file path — `python_module` entries ignore it. Commented-out
+examples live in the installer-seeded template `config/cognition/
+schedules.yaml` (deployed to `~/.arkaos/schedules.yaml`); nothing
+goal-based auto-runs without the operator uncommenting it.
 """
 
 import os
