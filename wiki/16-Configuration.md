@@ -133,7 +133,7 @@ automatically. The template lives at `config/settings-template.json`.
 
 | Hook | Timeout | Purpose |
 |---|---|---|
-| `SessionStart` | 5 s | Mandatory-flow injection, reorganization auto-trigger |
+| `SessionStart` | 5 s | Evidence-flow contract injection, reorganization auto-trigger |
 | `UserPromptSubmit` | 10 s | Synapse context injection, workflow-required tag, token hygiene |
 | `PostToolUse` | 5 s | Error pattern tracking, budget accounting |
 | `PreCompact` | 30 s | Session digest save, agent memory preservation |
@@ -173,7 +173,8 @@ ArkaOS writes operational data to `~/.arkaos/`:
 | `telemetry/enforcement.jsonl` | One record per tool-call gate decision: tool name, reason, allowed/blocked. Used by `/arka enforcement`. |
 | `telemetry/compliance.jsonl` | One record per stop-hook check: closing marker, `[arka:meta]` tag, KB citation, sycophancy verdict. Used by `/arka compliance`. |
 | `reorganize-proposals/<date>.md` | Daily reorganization proposals from `/arka reorganize`. Never auto-applied. |
-| `plans/` | Plans saved during phase 8 of the 13-phase flow. |
+| `plans/` | Plans saved during Gate 2 (PLAN) of the evidence flow. |
+| `workflow-state.json` | Gate checkpoints written by the Stop hook (`core/workflow/gate_checkpoint.py`): current gate, per-gate status, Gate-3 test evidence. A per-session copy lives under `sessions/<id>/` and powers resume after interruptions. |
 
 ---
 

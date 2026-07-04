@@ -4,7 +4,7 @@
 
 > **Lead:** Marta (CQO, Tier 0) · **Agents:** 3 · Runs automatically on every workflow
 
-The Quality Gate is not a department you invoke — it is a mandatory review layer that fires automatically at phase 11 of every non-trivial workflow. Marta (CQO) orchestrates two specialist directors: Eduardo reviews copy, language, tone, and AI pattern detection; Francisca reviews code quality, test coverage, and UX heuristics. All three agents operate at Tier 0 and carry absolute veto authority. A workflow cannot reach the user until the Quality Gate returns a binary APPROVED or REJECTED verdict.
+The Quality Gate is not a department you invoke — it is a mandatory review layer that fires automatically as Gate 4 (REVIEW) of every non-trivial workflow. Marta (CQO) orchestrates two specialist directors: Eduardo reviews copy, language, tone, and AI pattern detection; Francisca reviews code quality, test coverage, and UX heuristics. All three agents operate at Tier 0 and carry absolute veto authority. A workflow cannot reach the user until the Quality Gate returns a binary APPROVED or REJECTED verdict.
 
 This three-agent structure reflects a deliberate separation of concerns: language quality and technical quality require different expertise, and the same work must pass both lenses independently before it is considered done. The gate is the last line of defence against regressions, off-brand copy, accessibility failures, and SOLID violations shipping to production.
 
@@ -42,7 +42,7 @@ This three-agent structure reflects a deliberate separation of concerns: languag
 
 ## How it runs
 
-The Quality Gate triggers automatically in phase 11 of the [13-Phase Flow](../03-The-13-Phase-Flow.md). After each TODO item is completed and the per-item QA check passes, Marta orchestrates a parallel review:
+The Quality Gate runs as Gate 4 (REVIEW) of the [Evidence Flow](../03-The-13-Phase-Flow.md). Once Gate 3 closes with a real test run on record, Marta orchestrates the review over the executable check results:
 
 1. Eduardo receives all written output — copy, documentation, user-facing strings, notifications.
 2. Francisca receives all technical output — code, architecture decisions, UX flows, component designs.
@@ -60,4 +60,4 @@ The Quality Gate matters on every output, but it is most critical when:
 - A UX flow ships to users for the first time (Nielsen heuristics catch what usability testing would catch too late)
 - A dependency or third-party integration is added (supply chain security check)
 
-Related: [Quality Gate](../10-Quality-Gate.md) · [Core Concepts](../02-Core-Concepts.md) · [The 13-Phase Flow](../03-The-13-Phase-Flow.md)
+Related: [Quality Gate](../10-Quality-Gate.md) · [Core Concepts](../02-Core-Concepts.md) · [The Evidence Flow (4 Gates)](../03-The-13-Phase-Flow.md)

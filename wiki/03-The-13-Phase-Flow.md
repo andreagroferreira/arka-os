@@ -1,90 +1,76 @@
-# 03 · The 13-Phase Flow
+# 03 · The Evidence Flow (4 Gates)
 
 ← [Core Concepts](02-Core-Concepts.md) · [Home](Home.md) · Next: [Departments →](04-Departments/)
 
 Every non-trivial request inside ArkaOS runs the same canonical sequence. There
 is no "simple mode" and no "skip it this time". The single exception is a
 trivial one-file edit under 10 lines, which may emit `[arka:trivial] <reason>`
-and bypass. Everything else runs all 13 phases.
+and bypass. Everything else runs the 4 gates.
 
-This is constitutional (`mandatory-flow`, NON-NEGOTIABLE). The full spec lives
+This is constitutional (`evidence-flow`, NON-NEGOTIABLE). The full spec lives
 at `arka/skills/flow/SKILL.md`.
+
+> **History:** the evidence flow replaced the 13-phase flow in v4.1.0
+> (ADR `docs/adr/2026-07-04-evidence-flow.md`). A July 2026 audit showed the
+> 13 phases burned ~110-150k tokens per feature while most of the rigor was
+> narrated, not enforced. The legacy `[arka:phase:N]` markers remain accepted
+> during a deprecation window (removal target v4.3.0).
 
 ---
 
-## Why a fixed flow
+## Why evidence, not ceremony
 
-A single AI assistant improvises: it sometimes plans, sometimes tests,
-sometimes documents. ArkaOS makes the right behavior *structural* instead of
-optional. The flow guarantees that every substantive piece of work is routed,
-researched, planned, approved, executed, tested, security-checked,
-quality-gated, and documented — in that order, every time.
+A gate passes on **evidence read from disk** — command output, exit codes,
+report files — never on the model asserting that work happened. The flow keeps
+the three things that demonstrably protect quality (grounded context, explicit
+human approval, a real test run) and drops the narrated ceremony that only
+consumed tokens.
 
-Before each step, ArkaOS emits `[arka:phase:N] <label>` so you can see exactly
-where it is.
+At each gate start, ArkaOS emits `[arka:gate:N]` so you can see exactly where
+it is — and so the Stop hook can checkpoint progress for resume.
 
-## The 13 phases
+## The 4 gates
 
-| # | Phase | What happens |
-|---|---|---|
-| 1 | **Input** | Your request is captured verbatim — no paraphrasing yet. |
-| 2 | **Get context** | Reads profile, working directory, `CLAUDE.md`, git branch/commits, ecosystem tags, recent session digests. |
-| 3 | **Decide route** | Emits `[arka:routing] <dept> -> <lead>`. The department and lead are now committed. |
-| 4 | **Call hierarchy** | Escalates to the C-Suite (Tier 0) when the request is strategic, cross-department, security-sensitive, or financial. |
-| 5 | **Research** | Queries the knowledge base (Obsidian + vector DB), prior session digests, Forge plans, and the Pattern Library. Cites sources or declares a gap. |
-| 6 | **Call team** | The lead dispatches specialists via the Agent tool, in parallel when work is independent. |
-| 7 | **Plan** | Six parallel reviewer lenses: positive analyst, devil's advocate, Q&A, KB research, best-solution validator, pessimist. |
-| 8 | **Present plan** | The plan is saved (Obsidian + vector DB + `~/.arkaos/plans/`) and shown to you. |
-| 9 | **Wait for approval** | Explicit user "go". Silence is not approval. |
-| 10 | **TODO list** | Atomic, ordered, independently verifiable tasks. |
-| 11 | **Per-todo loop** | For each task: team call → complete → QA (all tests, E2E, Playwright) → Security → Quality Gate → Document. |
-| 12 | **Loop** | Repeat phase 11 until the TODO list is exhausted. |
-| 13 | **Summary** | What was done, where, how to verify, and what remains open. |
+| # | Gate | Marker | Passes on |
+|---|---|---|---|
+| 1 | **CONTEXT** | `[arka:gate:1]` | `[arka:routing] <dept> -> <lead>` + KB/graph grounding with citations (`[[wikilinks]]` / `file:line`) or an explicit gap declaration. |
+| 2 | **PLAN** | `[arka:gate:2]` | A short plan (scope, files touched, verification commands) + **explicit user approval**. Silence is not approval. |
+| 3 | **EXECUTE** | `[arka:gate:3]` | Atomic implementation steps. Closes ONLY with a real test run on record: `[arka:gate:3] evidence: <command> -> exit 0 (<summary>)`. A failing suite loops back. |
+| 4 | **REVIEW** | `[arka:gate:4]` | Executable checks for the diff — linter, type-checker, coverage read from the report, security grep, spell-check for copy — plus an honest closing summary. |
 
-## The transparency tags
+Specialist dispatches inside Gate 3 are still announced with
+`[arka:dispatch] <caller> -> <specialist>` (constitution rule
+`dispatch-must-be-announced`).
 
-ArkaOS narrates itself with a small tag vocabulary. You'll see these in real
-responses:
+## Checkpointing and resume
 
-| Tag | Meaning |
-|---|---|
-| `[arka:routing] dev -> Paulo` | Phase 3 — the request was routed here |
-| `[arka:phase:N] <label>` | The flow is entering phase N |
-| `[arka:trivial] <reason>` | The trivial bypass was taken (1-file, <10 lines) |
-| `[arka:meta] kb=N research=X persona=Y gap=Z critic=W` | End-of-turn transparency: how many KB notes were read, which research tools ran, who drove the answer, and the self-critic verdict |
+The Stop hook runs `core/workflow/gate_checkpoint.py` after every assistant
+turn. Each observed gate transition is persisted to two stores:
 
-## The per-todo loop (phase 11) in detail
+- `~/.arkaos/workflow-state.json` (global, `core/workflow/state.py`)
+- `~/.arkaos/sessions/<id>/workflow-state.json` (per-session `SessionStore`,
+  read by `core/memory/rehydrator.py` at SessionStart)
 
-This is where work actually ships. Each TODO runs the full gauntlet:
-
-```
-team call    -> the right specialists implement the task
-complete     -> the change is made
-QA           -> the ENTIRE test suite runs (never a subset), plus E2E/Playwright
-Security     -> OWASP-style review where relevant
-Quality Gate -> Marta + Eduardo + Francisca (Opus) — APPROVED or REJECTED
-Document     -> the work is written back to Obsidian + the vector DB
-```
-
-If any gate fails, the loop does not advance. A REJECTED Quality Gate sends the
-task back, not forward.
+If a session dies mid-Gate-3 — provider rate limit, context exhaustion, crash —
+the next SessionStart injects the snapshot (current gate, pending items) and
+work continues from where it stopped instead of restarting the flow.
 
 ## Enforcement
 
-The flow is enforced by hooks, not goodwill:
+- The UserPromptSubmit classifier marks creation/implementation turns as
+  flow-required; with `hooks.hardEnforcement=true`, PreToolUse blocks effect
+  tools (Write/Edit/Task/Skill/effect-Bash) until a flow marker
+  (`[arka:routing]`, `[arka:gate:N]`, `[arka:trivial]`, or legacy
+  `[arka:phase:N]`) appears in recent assistant messages.
+- SessionStart injects the `[ARKA:EVIDENCE-FLOW]` contract as a systemMessage.
+- The Stop hook checks the closing marker (`[arka:gate:4]` or
+  `[arka:trivial]`) and records compliance telemetry.
 
-- The **SessionStart** hook injects `[ARKA:MANDATORY-FLOW]`.
-- The **UserPromptSubmit** hook adds `[ARKA:WORKFLOW-REQUIRED]` on
-  creation/implementation verbs.
-- A **PreToolUse** gate blocks `Write`/`Edit`/`MultiEdit`/`Task` when no
-  `[arka:routing]` or `[arka:trivial]` marker is present (when hard enforcement
-  is on). Bypass once with `ARKA_BYPASS_FLOW=1`.
-
-Skipping the flow violates `mandatory-flow`, `squad-routing`, `spec-driven`,
-`mandatory-qa`, `sequential-validation`, `full-visibility`, and
-`arka-supremacy`.
+**Hard no-go list:** no writes before Gate 2 approval for the affected scope;
+no closing Gate 3 without a test run on record; no pushing to master without
+Gate 4 evidence; no `[arka:trivial]` beyond one file / 10 lines; no skipping
+Gate 2 approval.
 
 ---
 
-Next: [Departments](04-Departments/) — the teams that execute inside this flow.
-Related: [Quality Gate](10-Quality-Gate.md), the gate that runs in phase 11.
+← [Core Concepts](02-Core-Concepts.md) · [Home](Home.md) · Next: [Departments →](04-Departments/)

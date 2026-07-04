@@ -43,4 +43,4 @@ Diana R. handles the hiring process end-to-end: scorecard design, sourcing, stru
 
 Use the Leadership department when you need to assess or improve team health, design a hiring process, prepare a difficult conversation, set OKRs, delegate more effectively, or navigate a conflict. It is also the right department when rolling out a culture change, building a feedback system, or coaching a manager who is struggling with performance conversations.
 
-Related: [Core Concepts](../02-Core-Concepts.md) · [The 13-Phase Flow](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)
+Related: [Core Concepts](../02-Core-Concepts.md) · [The Evidence Flow (4 Gates)](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)

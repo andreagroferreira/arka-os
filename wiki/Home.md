@@ -24,7 +24,7 @@ npx arkaos install
 |---|---|
 | [01 · Getting Started](01-Getting-Started.md) | Install, verify, and run your first command in 5 minutes |
 | [02 · Core Concepts](02-Core-Concepts.md) | Squads, agents, tiers, behavioral DNA, the constitution |
-| [03 · The 13-Phase Flow](03-The-13-Phase-Flow.md) | How every non-trivial request is handled, end to end |
+| [03 · The Evidence Flow (4 Gates)](03-The-13-Phase-Flow.md) | How every non-trivial request is handled, end to end |
 | [10 · Quality Gate](10-Quality-Gate.md) | The mandatory review that nothing ships without |
 
 ## Departments

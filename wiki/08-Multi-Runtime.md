@@ -29,7 +29,8 @@ ArkaOS installs five lifecycle hooks into `~/.claude/settings.json`:
 
 | Hook | Fires | What it does |
 |---|---|---|
-| `SessionStart` | On session open | Injects `[ARKA:MANDATORY-FLOW]`; runs the reorganization auto-trigger if today's proposal is missing |
+| `SessionStart` | On session open | Injects `[ARKA:EVIDENCE-FLOW]`; runs the reorganization auto-trigger if today's proposal is missing |
+| `Stop` | After every assistant turn | Compliance checks (closing marker, `[arka:meta]`, KB citation, sycophancy) + persists `[arka:gate:N]` transitions via `core/workflow/gate_checkpoint.py` for structured resume |
 | `UserPromptSubmit` | Before every prompt | Calls `scripts/synapse-bridge.py` — runs all 12 Synapse layers and injects the resulting context string; adds `[ARKA:WORKFLOW-REQUIRED]` on creation/implementation verbs; runs the 4-check token hygiene pass |
 | `PostToolUse` | After every tool call | Tracks error patterns to `gotchas.json`; records tool usage for budget accounting |
 | `PreCompact` | Before context compaction | Saves a session digest to Obsidian; preserves agent memory and task state |
@@ -58,7 +59,7 @@ inside the session. The installer writes per-project `.mcp.json` files during
 
 ### 1 M context
 
-The extended context window is used by the 13-phase flow to hold large specs,
+The extended context window is used by the evidence flow to hold large specs,
 full test suites, and multi-file diffs without compaction. The `PreCompact`
 hook fires when compaction is unavoidable, preserving continuity.
 
@@ -98,7 +99,7 @@ and injects ArkaOS rules via `.cursor/rules`. MCP is supported, so Obsidian,
 Context7, and the knowledge vector store connect normally.
 
 The `PreToolUse` enforcement gate is not available in Cursor's hook model;
-`hooks.hardEnforcement` has no effect there. The 13-phase flow still runs — it
+`hooks.hardEnforcement` has no effect there. The 4-gate evidence flow still runs — it
 just relies on the model following the injected instructions rather than a hard
 code gate.
 

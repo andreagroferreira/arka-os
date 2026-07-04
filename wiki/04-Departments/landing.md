@@ -47,4 +47,4 @@ Use the Landing department when the goal is conversion — turning traffic into 
 
 ---
 
-Related: [Core Concepts](../02-Core-Concepts.md) · [The 13-Phase Flow](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)
+Related: [Core Concepts](../02-Core-Concepts.md) · [The Evidence Flow (4 Gates)](../03-The-13-Phase-Flow.md) · [Quality Gate](../10-Quality-Gate.md)

@@ -1,6 +1,6 @@
 # 02 · Core Concepts
 
-← [Getting Started](01-Getting-Started.md) · [Home](Home.md) · Next: [The 13-Phase Flow →](03-The-13-Phase-Flow.md)
+← [Getting Started](01-Getting-Started.md) · [Home](Home.md) · Next: [The Evidence Flow (4 Gates) →](03-The-13-Phase-Flow.md)
 
 Five ideas explain almost everything about how ArkaOS behaves: **departments**,
 **agents**, **tiers**, **behavioral DNA**, and the **constitution**. Understand
@@ -90,8 +90,9 @@ enforcement levels:
 | **SHOULD** | 8 | Recommended — research-first, self-critique, KB contribution, etc. |
 
 Some non-negotiables you'll feel immediately: **squad-routing** (every request
-goes through a department), **mandatory-flow** (the 13-phase flow runs on every
-non-trivial request), **mandatory-qa** (nothing ships without the Quality Gate),
+goes through a department), **evidence-flow** (the 4-gate evidence flow runs on
+every non-trivial request — gates pass on command output and exit codes, not
+narration), **mandatory-qa** (nothing ships without the Quality Gate),
 **spec-driven** (no code without an approved spec), and **arkaos-not-yes-man**.
 
 ---
@@ -110,5 +111,5 @@ C-Suite (Tier 0) reviews when strategic / cross-dept / security / financial
 Quality Gate (Marta + Eduardo + Francisca) approves before delivery
 ```
 
-Next: [The 13-Phase Flow](03-The-13-Phase-Flow.md) shows this in motion, step
+Next: [The Evidence Flow (4 Gates)](03-The-13-Phase-Flow.md) shows this in motion, step
 by step.

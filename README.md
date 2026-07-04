@@ -294,7 +294,7 @@ Soft advisory when a single session exceeds $5 equivalent. No hard caps.
 
 ### Flow Marker v2 (v2.21.0)
 
-The constitutional 13-phase flow enforcement (binding in v2.20) got a turn-scoped marker cache, eliminating the cross-turn false positives that triggered on subagent dispatch and short user continuations. ADR-compliant: cache accelerates ALLOW decisions only; the transcript remains authoritative for DENY.
+The constitutional flow enforcement (binding in v2.20, then covering the 13-phase flow) got a turn-scoped marker cache, eliminating the cross-turn false positives that triggered on subagent dispatch and short user continuations. ADR-compliant: cache accelerates ALLOW decisions only; the transcript remains authoritative for DENY. Since v4.1.0 the enforcer gates on the evidence-flow `[arka:gate:N]` markers (legacy `[arka:phase:N]` accepted during the deprecation window).
 
 ### Polish & Consolidation (v2.22.1)
 
@@ -446,7 +446,7 @@ Full documentation lives in two places in this repository:
 - [Home](wiki/Home.md) — the index of everything
 - [Getting Started](wiki/01-Getting-Started.md) — install and run your first command
 - [Core Concepts](wiki/02-Core-Concepts.md) — squads, agents, tiers, behavioral DNA
-- [The 13-Phase Flow](wiki/03-The-13-Phase-Flow.md) — how every request is handled
+- [The Evidence Flow (4 Gates)](wiki/03-The-13-Phase-Flow.md) — how every request is handled
 - [Departments](wiki/04-Departments/) — one page per department
 - [Commands Reference](wiki/05-Commands-Reference.md)
 - [Cognitive Layer](wiki/06-Cognitive-Layer.md) — memory, dreaming, research
