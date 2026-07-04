@@ -49,7 +49,8 @@ def main() -> int:
         else:
             print(f"Chunks:     {stats['total_chunks']}")
             print(f"Files:      {stats['total_files']}")
-            print(f"VSS:        {'enabled' if stats['vss_available'] else 'disabled (keyword fallback)'}")
+            print(f"Retrieval:  {stats.get('retrieval_mode', 'unknown')}")
+            print(f"Vec:        {'enabled' if stats.get('vec_available') else 'disabled (keyword fallback)'}")
             print(f"DB:         {stats['db_path']}")
         return 0
 
@@ -62,7 +63,12 @@ def main() -> int:
                 print("No results found.")
             for i, r in enumerate(results, 1):
                 src = Path(r.get("source", "")).name if r.get("source") else "unknown"
-                print(f"\n[{i}] Score: {r['score']:.3f} | {src}")
+                # RAG honesty: degraded keyword matches have NO similarity
+                # score — never print one.
+                if r.get("score") is None:
+                    print(f"\n[{i}] Match: keyword-degraded (no similarity) | {src}")
+                else:
+                    print(f"\n[{i}] Score: {r['score']:.3f} | {src}")
                 if r.get("heading"):
                     print(f"    Heading: {r['heading']}")
                 print(f"    {r['text'][:200]}...")

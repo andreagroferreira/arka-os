@@ -2,7 +2,8 @@
 
 Intercepts calls to Context7, WebSearch, WebFetch and Firecrawl MCP tools.
 Runs AFTER flow_enforcer in the PreToolUse hook chain. Independent gate:
-both must pass. Feature-flagged behind `hooks.kbFirst` (default false).
+both must pass. Feature-flagged behind `hooks.kbFirst` (default TRUE
+since v4.1 — see `_feature_flag_on`).
 
 Behaviour contract (plan 2026-04-20-intelligence-v2, §Épico B):
     1. Tool not in RESEARCH_EXTERNAL_TOOLS   → allow.
@@ -106,13 +107,24 @@ _safe_session_id = _safe_session_id_module.safe_session_id
 
 
 def _feature_flag_on() -> bool:
+    """Resolve the `hooks.kbFirst` flag.
+
+    Default-when-missing semantics (operator decision, PR-3 v4.1):
+    KB-first is ON out of the box. The installer template
+    (installer/config-seed.js) seeds `hooks.kbFirst = true`, so a missing
+    config file or a missing key now defaults to TRUE — matching the
+    seeded template instead of contradicting it. An explicit
+    `"kbFirst": false` in the user's config always wins. A corrupt/
+    unreadable config returns False (fail-open): the gate must never
+    deny tool calls based on intent it could not read.
+    """
     if not CONFIG_PATH.exists():
-        return False
+        return True
     try:
         data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return False
-    return bool(data.get("hooks", {}).get("kbFirst", False))
+    return bool(data.get("hooks", {}).get("kbFirst", True))
 
 
 def _bypass_env_active() -> bool:

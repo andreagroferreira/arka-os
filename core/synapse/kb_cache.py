@@ -248,7 +248,10 @@ class KBSessionCache:
                     "text": r.get("text", "")[:300],
                     "source": r.get("source", ""),
                     "heading": r.get("heading", ""),
+                    # None = keyword-degraded hit (no similarity exists);
+                    # preserved as-is so cached entries stay honest.
                     "score": r.get("score", 0.0),
+                    "retrieval": r.get("retrieval", ""),
                 }
                 for r in results
             ],

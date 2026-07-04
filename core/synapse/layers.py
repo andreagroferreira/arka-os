@@ -661,7 +661,12 @@ class KnowledgeRetrievalLayer(Layer):
 
         content = " | ".join(parts)
         chunk_count = len(snippets) + (len(overlapping) if overlapping else 0)
+        # RAG honesty (PR-3 v4.1): keyword-degraded results must never be
+        # presented as semantic similarity — label the tag explicitly.
+        degraded = any(r.get("retrieval") == "keyword-degraded" for r in results)
         tag = f"[knowledge:{chunk_count} chunks]"
+        if degraded:
+            tag = f"[knowledge:{chunk_count} chunks degraded=keyword]"
         ms = int((time.time() - start) * 1000)
         tokens_est = len(content.split())
 
@@ -879,19 +884,27 @@ def _extract_wikilinks(raw: str, limit: int = 3) -> list[str]:
     return seen
 
 
-def _format_kb_block(notes: list[dict]) -> str:
+def _format_kb_block(notes: list[dict], degraded: bool = False) -> str:
     lines: list[str] = [
         f"[arka:kb-context] O teu cérebro (Obsidian) tem {len(notes)} "
         f"nota{'s' if len(notes) != 1 else ''} relevante{'s' if len(notes) != 1 else ''} "
         f"para este pedido:",
         "",
     ]
+    if degraded:
+        lines.insert(1, "")
+        lines.insert(
+            1,
+            "Atenção: correspondência por palavras-chave (pesquisa semântica "
+            "indisponível) — NÃO é similaridade semântica.",
+        )
     for note in notes:
         title = note.get("title", "")
         path = note.get("path", "")
         excerpt = note.get("excerpt", "")
         relates = note.get("relates", []) or []
-        lines.append(f"- [[{title}]] (path: `{path}`)")
+        suffix = " (inferred — not authoritative)" if note.get("inferred") else ""
+        lines.append(f"- [[{title}]]{suffix} (path: `{path}`)")
         if excerpt:
             lines.append(f"  Excerto: {excerpt}")
         if relates:
@@ -950,13 +963,53 @@ def _load_fallback_notes(vault_path: Optional[Path]) -> list[dict]:
     return notes
 
 
-def _build_note_entry(raw: str, title: str, path: str, score: float) -> dict:
+_GROUNDING_INFERRED_RE = re.compile(r"^grounding:\s*inferred\s*$", re.MULTILINE)
+
+
+def _frontmatter_marks_inferred(raw: str) -> bool:
+    """Cheap check: does the YAML frontmatter carry `grounding: inferred`?
+
+    Parses ONLY the frontmatter block (the note content is already in
+    hand) — no YAML library, no full-document scan. Dreaming-written
+    notes carry this marker (see core/cognition/dreaming.py, PR-3 v4.1).
+    """
+    match = _FRONTMATTER_RE.match(raw or "")
+    if not match:
+        return False
+    return bool(_GROUNDING_INFERRED_RE.search(match.group(0)))
+
+
+def _hit_is_inferred(hit: dict) -> bool:
+    """Inferred check for a vector-store hit.
+
+    Chunk text has frontmatter stripped by the chunker, so check the hit
+    metadata first, then read just the head of the source file (cheap:
+    frontmatter lives in the first bytes).
+    """
+    metadata = hit.get("metadata") or {}
+    if isinstance(metadata, dict) and metadata.get("grounding") == "inferred":
+        return True
+    source = hit.get("source", "") or ""
+    if not source:
+        return False
+    try:
+        with open(source, "r", encoding="utf-8", errors="ignore") as fh:
+            head = fh.read(2048)
+    except OSError:
+        return False
+    return _frontmatter_marks_inferred(head)
+
+
+def _build_note_entry(
+    raw: str, title: str, path: str, score: float, inferred: bool = False
+) -> dict:
     return {
         "title": title,
         "path": path,
         "excerpt": _extract_excerpt(raw),
         "relates": _extract_wikilinks(raw),
         "score": float(score),
+        "inferred": inferred,
     }
 
 
@@ -965,7 +1018,24 @@ def _note_from_vector_hit(hit: dict) -> dict:
     raw = hit.get("text", "") or ""
     title = hit.get("heading") or Path(source).stem or "note"
     score_val = hit.get("score", 0.0) or 0.0
-    return _build_note_entry(raw, str(title), str(source), float(score_val))
+    return _build_note_entry(
+        raw, str(title), str(source), float(score_val),
+        inferred=_hit_is_inferred(hit),
+    )
+
+
+def _apply_grounding_policy(notes: list[dict], max_notes: int) -> list[dict]:
+    """Quarantine inferred notes (Dreaming output) from grounded context.
+
+    Policy (PR-3 v4.1): inferred notes are EXCLUDED by default; they are
+    only included — explicitly suffixed `(inferred — not authoritative)`
+    by the formatter — when fewer than 2 grounded notes matched.
+    """
+    grounded = [n for n in notes if not n.get("inferred")]
+    if len(grounded) >= 2:
+        return grounded[:max_notes]
+    inferred = [n for n in notes if n.get("inferred")]
+    return (grounded + inferred)[:max_notes]
 
 
 class KBContextLayer(Layer):
@@ -1034,54 +1104,68 @@ class KBContextLayer(Layer):
         except Exception:
             pass
 
-    def _retrieve(self, prompt: str) -> list[dict]:
+    def _retrieve(self, prompt: str) -> tuple[list[dict], bool]:
+        """Return (notes, degraded). Degraded = keyword-only retrieval.
+
+        Degraded hits carry no similarity score, so the min_similarity
+        threshold does not apply to them — they are included but labeled
+        (never presented as semantic matches).
+        """
         hits = _vector_search(self._store, prompt, top_k=self._max_notes * 2)
+        degraded = any(h.get("retrieval") == "keyword-degraded" for h in hits)
         notes: list[dict] = []
         for h in hits:
-            score = float(h.get("score", 0.0) or 0.0)
-            if score < self._min_similarity:
-                continue
+            if not degraded:
+                score = float(h.get("score", 0.0) or 0.0)
+                if score < self._min_similarity:
+                    continue
             notes.append(_note_from_vector_hit(h))
-            if len(notes) >= self._max_notes:
-                break
+        notes = _apply_grounding_policy(notes, self._max_notes)
         if notes:
-            return notes
+            return notes, degraded
         candidates = _load_fallback_notes(self._vault_path)
         if not candidates:
-            return []
+            return [], False
         picked = _jaccard_fallback(
-            prompt, candidates, self._max_notes, self._min_similarity
+            prompt, candidates, self._max_notes * 2, self._min_similarity
         )
-        return [
-            _build_note_entry(n["raw"], n["title"], n["path"], 0.0)
+        fallback_notes = [
+            _build_note_entry(
+                n["raw"], n["title"], n["path"], 0.0,
+                inferred=_frontmatter_marks_inferred(n["raw"]),
+            )
             for n in picked
         ]
+        return _apply_grounding_policy(fallback_notes, self._max_notes), False
 
     def build(self, prompt: str) -> Optional[str]:
         """Public entrypoint — returns the formatted block or None."""
         if not prompt or not _l25_feature_flag_on():
             return None
-        notes = self._retrieve(prompt[:2000])
+        notes, degraded = self._retrieve(prompt[:2000])
         if not notes:
             return None
-        return _format_kb_block(notes[: self._max_notes])
+        return _format_kb_block(notes[: self._max_notes], degraded=degraded)
 
     def compute(self, ctx: PromptContext) -> LayerResult:
         start = time.time()
         if not ctx.user_input or not _l25_feature_flag_on():
             return self._empty(start)
         try:
-            notes = self._retrieve(ctx.user_input[:2000])
+            notes, degraded = self._retrieve(ctx.user_input[:2000])
         except Exception:
             return self._empty(start)
         self._record(ctx, len(notes))
         if not notes:
             return self._empty(start)
-        block = _format_kb_block(notes[: self._max_notes])
+        block = _format_kb_block(notes[: self._max_notes], degraded=degraded)
         ms = int((time.time() - start) * 1000)
+        tag = f"[kb-context:{len(notes)}]"
+        if degraded:
+            tag = f"[kb-context:{len(notes)} degraded=keyword]"
         return LayerResult(
             layer_id=self.id,
-            tag=f"[kb-context:{len(notes)}]",
+            tag=tag,
             content=block,
             tokens_est=len(block.split()),
             compute_ms=ms,

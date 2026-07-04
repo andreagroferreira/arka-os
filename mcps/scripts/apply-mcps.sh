@@ -120,6 +120,10 @@ if [ -n "$ADD_MCP" ]; then
         echo -e "${YELLOW}⚠ Higgsfield requires a Higgsfield account + HIGGSFIELD_API_KEY to connect (https://higgsfield.ai).${NC}"
         echo -e "${YELLOW}  Set the key in the project .mcp.json env block or your shell before launching the runtime.${NC}"
     fi
+    if [ "$ADD_MCP" = "graphify" ]; then
+        echo -e "${YELLOW}⚠ Graphify requires the graphify CLI on PATH (uv tool install graphifyy) and a generated graph:${NC}"
+        echo -e "${YELLOW}  run \`graphify .\` in the project root first (incremental refresh: graphify . --update).${NC}"
+    fi
 elif [ -n "$PROFILE" ]; then
     # Profile mode — resolve base + profile MCPs
     BASE_PROFILE="$MCPS_DIR/profiles/base.json"
