@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.1] - 2026-07-05
+
+### Fixed — Flow enforcer resilience
+
+- The flow enforcer no longer produces false blocks. Root causes (found
+  by systematic debugging): the marker cache was never written
+  (PostToolUse read a non-existent `assistant_message` field), the
+  current turn's marker is structurally invisible to its own tool calls,
+  and the advertised `ARKA_BYPASS_FLOW` never reached the hook process.
+- New `core/workflow/flow_authorization.py`: two-tier authorization —
+  CONFIRMED (persists a marker seen in the transcript, survives
+  compaction) + TURN GRACE (first turn is allowed with a warning; a
+  never-routing session escalates to a hard block after 3 graced turns).
+- `hooks.hardEnforcement` can be re-enabled safely after
+  `npx arkaos update`.
+
+### Added — Model Fabric consumption layer
+
+- The Models dashboard dropdown lists the real runtime models (Fable 5,
+  Opus 4.8, Sonnet 5, Haiku 4.5), each role carries a plain-language
+  description, and the save bug (`apiBase.value` → `/undefined/…`) is
+  fixed.
+- `core/runtime/model_routing_context.py` + SessionStart injection of
+  `[ARKA:MODEL-FABRIC]`: the operator's `~/.arkaos/models.yaml` routing
+  now governs agent dispatch (overrides the agent YAML default).
+- Fusion is runnable: `npx arkaos fusion [--save|--show] "question"`
+  builds a default panel from the machine and runs panel→judge→synthesis.
+
 ## [4.3.0] - 2026-07-05
 
 ### Added — Model Fabric observability + fusion (PR-C + PR-D)
