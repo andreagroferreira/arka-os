@@ -25,6 +25,9 @@ const { values, positionals } = parseArgs({
     // `values.fix` rather than as a free positional under strict:false.
     // Eliminates the dead-branch fallback flagged by Marta in PR2's QG.
     fix: { type: "boolean" },
+    // Model Fabric PR-A — `npx arkaos models [--json] [set ... --effort max]`
+    json: { type: "boolean" },
+    effort: { type: "string" },
   },
   allowPositionals: true,
   strict: false,
@@ -51,6 +54,8 @@ Usage:
   npx arkaos dashboard        Start monitoring dashboard
   npx arkaos autostart <enable|disable|status>  Start dashboard on boot
   npx arkaos keys             Manage API keys (OpenAI, fal.ai, etc.)
+  npx arkaos models           Model Fabric: which model runs each role
+  npx arkaos models set <role> <provider>/<model>  Re-route a role
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
@@ -149,6 +154,24 @@ async function main() {
         execDash(dashCmd, {
           stdio: "inherit",
           env: { ...process.env, ARKAOS_ROOT: repoRootDash },
+        });
+      } catch { process.exit(1); }
+      break;
+    }
+
+    case "models": {
+      const { execSync } = await import("node:child_process");
+      const repoRootModels = join(__dirname, "..");
+      const pyModels = getArkaosPython();
+      if (!pyModels) { console.error("No Python found. Run: npx arkaos install"); process.exit(1); }
+      const modelArgs = positionals.slice(1).map((a) => `"${a}"`).join(" ");
+      const effortFlag = values.effort ? ` --effort "${values.effort}"` : "";
+      const jsonFlag = values.json ? " --json" : "";
+      try {
+        execSync(`"${pyModels}" -m core.runtime.model_router_cli ${modelArgs}${effortFlag}${jsonFlag}`, {
+          stdio: "inherit",
+          cwd: repoRootModels,
+          env: { ...process.env, ARKAOS_ROOT: repoRootModels, PYTHONPATH: repoRootModels },
         });
       } catch { process.exit(1); }
       break;

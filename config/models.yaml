@@ -1,0 +1,70 @@
+# ═══════════════════════════════════════════════════════════════════════
+# ArkaOS Model Fabric — who runs what.
+#
+# Your copy lives at ~/.arkaos/models.yaml (created by `npx arkaos models
+# init`; this file is the packaged default). Edit it directly or use:
+#
+#   npx arkaos models                 show every role and what it resolves to
+#   npx arkaos models set review anthropic/best
+#   npx arkaos models set mechanical ollama/qwen3:8b
+#
+# The interactive runtime (Claude Code, Codex, Gemini, Cursor) keeps its
+# own main-loop model — roles govern everything ArkaOS itself dispatches:
+# subagents, Quality Gate, Forge, fusion, cognition, daemons.
+#
+# Constitution `model-routing` (Excellence Reform 2026-07-05): quality-
+# critical roles run the BEST model available by default; only genuinely
+# mechanical work economises. Change the mapping, not the posture.
+# ═══════════════════════════════════════════════════════════════════════
+version: 1
+
+# ─── Providers ──────────────────────────────────────────────────────────
+# type must match a provider in core/runtime/llm_provider.py.
+providers:
+  runtime:
+    type: subagent          # shell out to the active runtime CLI
+  anthropic:
+    type: anthropic-direct  # SDK; needs ANTHROPIC_API_KEY
+  ollama:
+    type: ollama            # local models, http://localhost:11434
+  # openrouter:             # one key -> hundreds of models (Model Fabric PR-B)
+  #   type: openrouter
+
+# ─── Aliases ────────────────────────────────────────────────────────────
+# `best` / `default` / `fast` resolve per provider, so roles stay readable.
+aliases:
+  runtime:
+    best: opus
+    default: sonnet
+    fast: haiku
+  anthropic:
+    best: claude-opus-4-8
+    default: claude-sonnet-5
+    fast: claude-haiku-4-5-20251001
+  ollama:
+    best: ""                # set your strongest local model, e.g. kimi-k2.6
+    default: ""
+    fast: ""
+
+# ─── Roles ──────────────────────────────────────────────────────────────
+# provider/model per kind of work. `model` is an alias above or a literal
+# model id. `effort`: low | medium | high | max.
+roles:
+  design:       {provider: runtime, model: best,    effort: max}
+  review:       {provider: runtime, model: best,    effort: max}
+  architecture: {provider: runtime, model: best,    effort: max}
+  strategy:     {provider: runtime, model: best,    effort: max}
+  quality_gate: {provider: runtime, model: best,    effort: max}
+  execution:    {provider: runtime, model: default, effort: high}
+  mechanical:   {provider: runtime, model: fast,    effort: low}
+
+# ─── Fusion (Model Fabric PR-D) ─────────────────────────────────────────
+# Panel answers in parallel; the judge analyses consensus, contradictions
+# and blind spots, then synthesises. Empty panel = fusion disabled.
+fusion:
+  judge: {provider: runtime, model: best, effort: max}
+  panel: []
+  # panel:
+  #   - {provider: ollama, model: kimi-k2.6}
+  #   - {provider: openrouter, model: deepseek/deepseek-v4-pro}
+  #   - {provider: anthropic, model: best}
