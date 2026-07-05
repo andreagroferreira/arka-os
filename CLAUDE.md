@@ -150,6 +150,8 @@ posture, not a fixed vendor lock.
 
 When dispatching subagents, the orchestrator MUST pass the `model` parameter to the Task tool based on the agent's YAML `model:` field, upgraded (never downgraded) by the table above.
 
+**Consumption layer (v4.3.1+):** `~/.arkaos/models.yaml` is the source of truth — the SessionStart hook injects `[ARKA:MODEL-FABRIC]` with the operator's resolved role→model routing (`core/runtime/model_routing_context.py`). When that block is present, the orchestrator resolves an agent's model from the config by the KIND of work it does (design/review/architecture/strategy/quality_gate/execution/mechanical), which OVERRIDES the agent YAML default. This is what makes the dashboard / `npx arkaos models` choices actually govern dispatch. Fusion: `npx arkaos fusion "question"` runs a panel→judge→synthesis; `--save` persists a panel to `models.yaml`.
+
 ## Token Hygiene
 
 The `UserPromptSubmit` hook runs 4 proactive checks before every turn and

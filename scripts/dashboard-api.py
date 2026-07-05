@@ -867,8 +867,14 @@ def commands(dept: Optional[str] = Query(None), q: Optional[str] = Query(None)):
 @app.get("/api/models")
 def models_overview():
     """Model Fabric: roles, providers, Ollama discovery, key presence."""
-    from core.runtime.model_router import USER_CONFIG_PATH, load_config, resolve_all
+    from core.runtime.model_router import (
+        USER_CONFIG_PATH,
+        load_config,
+        resolve_all,
+        role_description,
+    )
     from core.runtime.ollama_discovery import discover
+    from core.runtime.runtime_models import detect_runtime_models
 
     config, source = load_config()
     keys_path = Path.home() / ".arkaos" / "keys.json"
@@ -876,16 +882,21 @@ def models_overview():
         keys = json.loads(keys_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         keys = {}
+    runtime_id, runtime_models = detect_runtime_models()
     return {
         "source": source,
         "config_path": str(USER_CONFIG_PATH),
-        "roles": [item.model_dump() for item in resolve_all()],
+        "roles": [
+            {**item.model_dump(), "description": role_description(item.role)}
+            for item in resolve_all()
+        ],
         "providers": {
             name: {"type": spec.get("type", "")}
             for name, spec in config.providers.items()
         },
         "aliases": config.aliases,
         "fusion": config.fusion.model_dump(),
+        "runtime": {"id": runtime_id, "models": runtime_models},
         "ollama": discover().to_dict(),
         "keys": {
             "openrouter": bool(

@@ -28,6 +28,9 @@ const { values, positionals } = parseArgs({
     // Model Fabric PR-A — `npx arkaos models [--json] [set ... --effort max]`
     json: { type: "boolean" },
     effort: { type: "string" },
+    // Fusion — `npx arkaos fusion [--save|--show] "question"`
+    save: { type: "boolean" },
+    show: { type: "boolean" },
   },
   allowPositionals: true,
   strict: false,
@@ -172,6 +175,24 @@ async function main() {
           stdio: "inherit",
           cwd: repoRootModels,
           env: { ...process.env, ARKAOS_ROOT: repoRootModels, PYTHONPATH: repoRootModels },
+        });
+      } catch { process.exit(1); }
+      break;
+    }
+
+    case "fusion": {
+      const { execSync } = await import("node:child_process");
+      const repoRootFusion = join(__dirname, "..");
+      const pyFusion = getArkaosPython();
+      if (!pyFusion) { console.error("No Python found. Run: npx arkaos install"); process.exit(1); }
+      const fusionArgs = positionals.slice(1).map((a) => `"${a}"`).join(" ");
+      const saveFlag = values.save ? " --save" : "";
+      const showFlag = values.show ? " --show" : "";
+      try {
+        execSync(`"${pyFusion}" -m core.fusion.cli${saveFlag}${showFlag} ${fusionArgs}`, {
+          stdio: "inherit",
+          cwd: repoRootFusion,
+          env: { ...process.env, ARKAOS_ROOT: repoRootFusion, PYTHONPATH: repoRootFusion },
         });
       } catch { process.exit(1); }
       break;

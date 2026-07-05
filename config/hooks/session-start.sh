@@ -105,6 +105,29 @@ MSG+="\\nFields: kb=N (Obsidian/KB notes consulted), research=X (MCPs invoked: p
 MSG+="\\nMandatory after: EFFECT tool calls, plan/recommendation outputs, QG verdicts. Optional for pure read-only status replies."
 MSG+="\\nAbsence is measured by the Stop hook (warn-only in v2.34.0) before promotion to hard enforcement."
 
+# ─── Model Fabric routing (consumption layer) ───────────────────────────
+# Feed the operator's ~/.arkaos/models.yaml back to the orchestrator so
+# dashboard/CLI model choices actually govern agent dispatch. Cheap
+# (single python read); skipped silently if the config can't be resolved.
+if [ -n "$REPO" ]; then
+  # Prefer the ArkaOS venv python (has pydantic + yaml); the ambient
+  # python3 usually lacks them and routing_directive() would return "".
+  _MF_PY="python3"
+  [ -x "$HOME/.arkaos/venv/bin/python3" ] && _MF_PY="$HOME/.arkaos/venv/bin/python3"
+  if command -v "$_MF_PY" &>/dev/null || [ -x "$_MF_PY" ]; then
+    _MF_DIRECTIVE=$(cd "$REPO" && PYTHONPATH="$REPO" "$_MF_PY" -c "
+try:
+    from core.runtime.model_routing_context import routing_directive
+    print(routing_directive())
+except Exception:
+    pass
+" 2>/dev/null)
+    if [ -n "$_MF_DIRECTIVE" ]; then
+      MSG+="\\n\\n${_MF_DIRECTIVE}"
+    fi
+  fi
+fi
+
 # ─── Stale-aware reorganizer trigger (PR24 v2.46.0) ─────────────────────
 # If today's proposal file is missing, fire the reorganizer in the
 # background with a 30s timeout. Best-effort, never blocks session

@@ -33,6 +33,23 @@ USER_CONFIG_PATH = Path.home() / ".arkaos" / "models.yaml"
 QUALITY_ROLES = frozenset({
     "design", "review", "architecture", "strategy", "quality_gate",
 })
+
+# Plain-language explanation of each role, surfaced in the dashboard and
+# `npx arkaos models` so the operator knows what "execution" etc. drive.
+ROLE_DESCRIPTIONS: dict[str, str] = {
+    "design": "UI/UX and visual design — layout, typography, aesthetics.",
+    "review": "Code review, Quality Gate reviewers, adversarial verification.",
+    "architecture": "System design, API contracts, ADRs, technical decisions.",
+    "strategy": "Business and product strategy, market analysis, planning.",
+    "quality_gate": "The mandatory Quality Gate (Marta, Eduardo, Francisca).",
+    "execution": "Implementation — specialists writing code and running build tasks.",
+    "mechanical": "Rote work — commit messages, changelog, formatting, data fetch.",
+}
+
+
+def role_description(role: str) -> str:
+    """Human-readable description of a role, or empty if unknown."""
+    return ROLE_DESCRIPTIONS.get(role, "")
 KNOWN_EFFORTS = ("low", "medium", "high", "max")
 
 _ALIAS_NAMES = frozenset({"best", "default", "fast"})
