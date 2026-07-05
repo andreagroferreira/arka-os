@@ -864,6 +864,85 @@ def commands(dept: Optional[str] = Query(None), q: Optional[str] = Query(None)):
     return {"commands": data, "total": len(data)}
 
 
+@app.get("/api/models")
+def models_overview():
+    """Model Fabric: roles, providers, Ollama discovery, key presence."""
+    from core.runtime.model_router import USER_CONFIG_PATH, load_config, resolve_all
+    from core.runtime.ollama_discovery import discover
+
+    config, source = load_config()
+    keys_path = Path.home() / ".arkaos" / "keys.json"
+    try:
+        keys = json.loads(keys_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        keys = {}
+    return {
+        "source": source,
+        "config_path": str(USER_CONFIG_PATH),
+        "roles": [item.model_dump() for item in resolve_all()],
+        "providers": {
+            name: {"type": spec.get("type", "")}
+            for name, spec in config.providers.items()
+        },
+        "aliases": config.aliases,
+        "fusion": config.fusion.model_dump(),
+        "ollama": discover().to_dict(),
+        "keys": {
+            "openrouter": bool(
+                os.environ.get("OPENROUTER_API_KEY")
+                or keys.get("OPENROUTER_API_KEY")
+            ),
+            "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        },
+    }
+
+
+@app.post("/api/models/role")
+async def models_set_role(request: Request):
+    """Re-route a role: {role, target: 'provider/model', effort?}."""
+    from core.runtime.model_router import set_role
+
+    body = await request.json()
+    role = str(body.get("role", "")).strip()
+    target = str(body.get("target", "")).strip()
+    effort = body.get("effort") or None
+    if not role or not target:
+        return JSONResponse(
+            {"error": "role and target (provider/model) are required"},
+            status_code=422,
+        )
+    try:
+        item = set_role(role, target, effort=effort)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=422)
+    return item.model_dump()
+
+
+@app.get("/api/models/usage")
+def models_usage(period: str = "today"):
+    """Per-model/provider/category token + cost aggregation."""
+    from core.runtime.llm_cost_telemetry import VALID_PERIODS, summarise
+
+    if period not in VALID_PERIODS:
+        return JSONResponse(
+            {"error": f"period must be one of {list(VALID_PERIODS)}"},
+            status_code=422,
+        )
+    summary = summarise(period=period)
+    return {
+        "period": summary.period,
+        "call_count": summary.call_count,
+        "total_cost_usd": summary.total_cost_usd,
+        "total_tokens_in": summary.total_tokens_in,
+        "total_tokens_out": summary.total_tokens_out,
+        "total_cached_tokens": summary.total_cached_tokens,
+        "cache_hit_rate": summary.cache_hit_rate,
+        "by_model": summary.by_model,
+        "by_provider": summary.by_provider,
+        "by_category": summary.by_category,
+    }
+
+
 @app.get("/api/budget")
 def budget_all():
     mgr = _get_budget_manager()

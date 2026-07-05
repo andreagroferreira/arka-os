@@ -24,7 +24,7 @@ does not replace the vault.
 # ArkaOS — Main Orchestrator
 
 > **The Operating System for AI Agent Teams**
-> 82 agents. 17 departments. 267 skills. Multi-runtime. Dashboard. Knowledge RAG.
+> 82 agents. 17 departments. 268 skills. Multi-runtime. Dashboard. Knowledge RAG.
 
 ## ⛔ Evidence flow — 4 gates (NON-NEGOTIABLE)
 
