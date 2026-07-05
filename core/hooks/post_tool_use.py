@@ -111,19 +111,29 @@ def _unlocked(fh) -> None:
 # ─── Section 1: flow marker cache ────────────────────────────────────────
 
 
-def _write_flow_marker(session_id: str, assistant_msg: str) -> None:
-    if not session_id or not assistant_msg:
-        return
-    routing = _ROUTING_RE.search(assistant_msg)
-    if routing:
-        kind, dept, lead = "routing", routing.group(1), routing.group(2)
-    elif _TRIVIAL_RE.search(assistant_msg):
-        kind, dept, lead = "trivial", "", ""
-    else:
+def _confirm_flow_authorization(session_id: str, transcript_path: str) -> None:
+    """Confirm persistent flow authorization from the transcript.
+
+    Replaces the dead ``_write_flow_marker`` that read a non-existent
+    ``assistant_message`` payload field. Reads the same transcript the
+    enforcer trusts and, when a flow marker is present, writes a confirmed
+    authorization that survives compaction and the 20-message window.
+    """
+    if not session_id:
         return
     try:
-        from core.workflow.marker_cache import write_marker
-        write_marker(session_id, kind, dept, lead)
+        from core.workflow.flow_authorization import confirm
+        from core.workflow.flow_enforcer import (
+            _load_last_assistant_messages,
+            _scan_markers,
+        )
+    except Exception:
+        return
+    try:
+        messages = _load_last_assistant_messages(transcript_path, 20)
+        marker_found, _ = _scan_markers(messages)
+        if marker_found is not None:
+            confirm(session_id, marker_found)
     except Exception:
         pass
 
@@ -614,9 +624,13 @@ def main(stdin_json: dict | None = None) -> int:
     exit_code = get_str(stdin_json, "exit_code") or "0"
     cwd = get_str(stdin_json, "cwd")
     session_id = get_str(stdin_json, "session_id")
-    assistant_msg = get_str(stdin_json, "assistant_message")
+    transcript_path = get_str(stdin_json, "transcript_path")
 
-    _write_flow_marker(session_id, assistant_msg)
+    # Claude Code sends no `assistant_message` field (confirmed against the
+    # hook docs, 2026-07-05) — the old read was dead and the marker cache
+    # was never written. Scan the transcript (the only source hooks have)
+    # and confirm persistent authorization when a marker is present.
+    _confirm_flow_authorization(session_id, transcript_path)
 
     if tool_name in ("Task", "Agent"):
         subagent_type = get_str(stdin_json, "tool_input", "subagent_type")

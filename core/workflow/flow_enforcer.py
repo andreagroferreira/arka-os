@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
-from core.workflow import marker_cache
+from core.workflow import flow_authorization, marker_cache
 
 try:
     import fcntl  # POSIX only
@@ -222,15 +222,24 @@ class Decision:
     marker_found: str | None = None
     phase_observed: str | None = None
     bypass_used: bool = False
+    warning: str = ""
 
     def to_stderr_message(self) -> str:
         if self.allow:
-            return ""
+            return self.warning
+        # Recovery that actually works, given Claude Code exposes no
+        # current-message text to hooks (the inline `ARKA_BYPASS_FLOW=1`
+        # never reached this separate hook process — a documented trap).
         return (
-            f"[ARKA:ENFORCEMENT] Missing `[arka:routing] <dept> -> <lead>` or "
-            f"`[arka:trivial] <reason>` before "
-            f"Write/Edit/MultiEdit/NotebookEdit/Task/Skill/Bash-effect. "
-            f"Bypass once with `ARKA_BYPASS_FLOW=1`. Reason: {self.reason}."
+            f"[ARKA:ENFORCEMENT] No routing marker for "
+            f"{flow_authorization.GRACE_CAP}+ turns. Emit "
+            f"`[arka:routing] <dept> -> <lead>` (or `[arka:trivial] "
+            f"<reason>`) at the START of your reply — it authorises this "
+            f"turn and every turn after. To turn enforcement off set "
+            f"hooks.hardEnforcement=false in ~/.arkaos/config.json; to "
+            f"bypass programmatically export ARKA_BYPASS_FLOW=1 in Claude "
+            f"Code's own environment (settings.json env), not inline on a "
+            f"command. Reason: {self.reason}."
         )
 
 
@@ -414,18 +423,54 @@ def evaluate(
         )
     marker_found, phase_observed = _scan_markers(messages)
 
-    if marker_found is None:
+    if marker_found is not None:
+        # Persist a confirmed authorization so this survives compaction and
+        # the 20-message window rolling — the fix for the 652 false blocks.
+        flow_authorization.confirm(session_id, marker_found)
         return Decision(
-            allow=False,
-            reason=f"no-flow-marker-in-last-{ASSISTANT_WINDOW}-assistant-messages",
+            allow=True,
+            reason=f"marker-found:{marker_found}",
+            marker_found=marker_found,
             phase_observed=phase_observed,
         )
 
+    # No marker in the transcript window. The current turn's marker is
+    # structurally invisible to hooks, so fall back to persistent auth
+    # before ever blocking.
+    if flow_authorization.is_confirmed(session_id):
+        return Decision(
+            allow=True, reason="session-authorized", phase_observed=phase_observed
+        )
+
+    # Same turn, already graced: let the rest of the turn's tools through.
+    if flow_authorization.has_turn_grace(session_id):
+        return Decision(
+            allow=True, reason="turn-grace", phase_observed=phase_observed
+        )
+
+    # First effect-tool of a turn with no confirmed auth. A hard deny here
+    # is a false positive (the assistant may have routed in this very
+    # message — invisible to us). Grace it with a warning; escalate to a
+    # real block only after GRACE_CAP consecutive graced turns without any
+    # confirmation (a normally-routing session confirms by turn 2).
+    grace = flow_authorization.register_grace(session_id)
+    if grace.escalate:
+        return Decision(
+            allow=False,
+            reason=f"no-marker-and-grace-exhausted-after-{grace.count}-turns",
+            phase_observed=phase_observed,
+        )
+    flow_authorization.grant_turn_grace(session_id)
     return Decision(
         allow=True,
-        reason=f"marker-found:{marker_found}",
-        marker_found=marker_found,
+        reason=f"first-tool-grace:{grace.count}",
         phase_observed=phase_observed,
+        warning=(
+            f"[arka:suggest] Effect tool allowed without an observable "
+            f"routing marker (grace {grace.count}/{flow_authorization.GRACE_CAP}). "
+            f"Emit `[arka:routing] <dept> -> <lead>` at the start of your "
+            f"reply to authorise this session."
+        ),
     )
 
 
