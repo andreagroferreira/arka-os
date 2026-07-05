@@ -29,7 +29,8 @@ class TestConstitutionRules:
         # PR10 v2.32.0 added 7 NON-NEGOTIABLE rules: 16 → 23.
         # PR44 v2.63.0 added mandatory-skill-evaluation: 23 → 24.
         # PR1 Squad Intelligence (v3.73.0) added dispatch-must-be-announced: 24 → 25.
-        assert len(rules) == 25
+        # Excellence Reform (v4.2.0) added excellence-mandate: 25 → 26.
+        assert len(rules) == 26
 
     def test_non_negotiable_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_non_negotiable_rules()]
@@ -49,6 +50,8 @@ class TestConstitutionRules:
             "inter-agent-checkpoints", "hybrid-learning",
             # PR1 Squad Intelligence Upgrade (v3.73.0)
             "dispatch-must-be-announced",
+            # Excellence Reform (v4.2.0, operator mandate 2026-07-05)
+            "excellence-mandate",
         ]
         assert rule_ids == expected
 
@@ -71,9 +74,41 @@ class TestConstitutionRules:
         # PR6 v3.77.0 added design-system-locked: 7 -> 8.
         assert len(rules) == 8
 
+    def test_excellence_mandate_content(self, constitution):
+        """The Excellence Reform rule must keep its executable criteria:
+        anti-theatre question, cost-never-an-argument, frontend skill duty."""
+        rule = next(
+            r for r in constitution.get_non_negotiable_rules()
+            if r.id == "excellence-mandate"
+        )
+        assert "excellence, not acceptance" in rule.rule
+        assert "NEVER arguments against quality" in rule.rule
+        assert "what is unfinished, what is default" in rule.rule
+        assert "frontend-design" in rule.rule
+        assert "maximum effort" in rule.rule
+
+    def test_model_routing_is_quality_first(self, constitution):
+        """Excellence Reform inverted the cost-optimised tier table."""
+        rule = next(
+            r for r in constitution.get_must_rules() if r.id == "model-routing"
+        )
+        assert "Quality-first" in rule.rule
+        assert "BEST model available" in rule.rule
+        assert "models.yaml" in rule.rule
+        assert "mechanical" in rule.rule
+
+    def test_subagent_discipline_exempts_quality_dispatches(self, constitution):
+        rule = next(
+            r for r in constitution.get_must_rules()
+            if r.id == "subagent-discipline"
+        )
+        assert "EXEMPT" in rule.rule
+        assert "Quality Gate reviewers" in rule.rule
+
     def test_is_rule_non_negotiable(self, constitution):
         assert constitution.is_rule_non_negotiable("branch-isolation")
         assert constitution.is_rule_non_negotiable("arka-supremacy")
+        assert constitution.is_rule_non_negotiable("excellence-mandate")
         assert not constitution.is_rule_non_negotiable("conventional-commits")
         assert not constitution.is_rule_non_negotiable("nonexistent")
 
@@ -85,7 +120,8 @@ class TestConstitutionRules:
         # PR4 Squad Intelligence (v3.75.0) added pattern-library-first: 41 → 42.
         # PR5 Squad Intelligence (v3.76.0) added dna-fidelity-warn: 42 → 43.
         # PR6 Squad Intelligence (v3.77.0) added design-system-locked: 43 → 44.
-        assert len(all_ids) == 44  # 25 + 11 + 8
+        # Excellence Reform (v4.2.0) added excellence-mandate: 44 → 45.
+        assert len(all_ids) == 45  # 26 + 11 + 8
 
 
 class TestConstitutionQualityGate:
@@ -108,10 +144,31 @@ class TestConstitutionQualityGate:
 
     def test_quality_gate_process_steps(self, constitution):
         qg = constitution.enforcement_levels["quality_gate"]
-        # v4.1.0: evidence engine prepended as step 1 (7 steps total)
-        assert len(qg["process"]) == 7
+        # v4.1.0: evidence engine prepended as step 1 (7 steps).
+        # v4.2.0 Excellence Reform: redo-loop cap step added (8 steps).
+        assert len(qg["process"]) == 8
         assert "evidence" in qg["process"][0].lower()
         assert "APPROVED" in qg["process"][-1]
+
+    def test_quality_gate_reviewers_are_independent_and_cite_benchmark(self, constitution):
+        """Excellence Reform: reviewers run in clean subagent context and
+        every verdict names the benchmark it judged against."""
+        qg = constitution.enforcement_levels["quality_gate"]
+        process_text = " ".join(qg["process"])
+        assert "INDEPENDENT" in process_text
+        assert "benchmark" in process_text.lower()
+        assert "reference_companies" in process_text
+
+    def test_quality_gate_redo_loop_capped(self, constitution):
+        qg = constitution.enforcement_levels["quality_gate"]
+        process_text = " ".join(qg["process"])
+        assert "capped at 2" in process_text
+        assert "escalates to the operator" in process_text
+
+    def test_quality_gate_model_policy_is_best_available(self, constitution):
+        """Excellence Reform inverted the sonnet-default cost posture."""
+        qg = constitution.enforcement_levels["quality_gate"]
+        assert qg["model_policy"]["default"] == "best-available"
 
 
 class TestConclavePhase5Sections:

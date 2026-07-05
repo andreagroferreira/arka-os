@@ -5,10 +5,12 @@ with ONE python process. Gate order is preserved exactly:
 
     1. KB-first research gate  (core/workflow/research_gate.py)
     2. Specialist-dispatch gate (core/workflow/specialist_enforcer.py)
-    3. Fast allow for non-flow-gated tools
-    4. CostGovernor budget check (stdlib-only — MUST run even when the
+    3. Frontend excellence gate (core/workflow/frontend_gate.py — v4.2.0
+       excellence-mandate: UI edits require [arka:design] evidence)
+    4. Fast allow for non-flow-gated tools
+    5. CostGovernor budget check (stdlib-only — MUST run even when the
        yaml-needing enforcers degrade; see ADR 2026-07-04-cost-governor)
-    5. Evidence-flow gate (core/workflow/flow_enforcer.py)
+    6. Evidence-flow gate (core/workflow/flow_enforcer.py)
 
 Behavior contract (unchanged from the bash version):
     - allow  → no stdout, exit 0 (nudges/warnings on stderr)
@@ -165,6 +167,50 @@ def _specialist_gate(
     return None
 
 
+def _frontend_gate(
+    root: str,
+    tool_name: str,
+    transcript_path: str,
+    session_id: str,
+    cwd: str,
+    tool_input: dict,
+    messages: _MessagesOnce,
+) -> int | None:
+    """Frontend excellence gate (excellence-mandate). 2 on deny, None to continue."""
+    if tool_name not in _SPECIALIST_TOOLS:
+        return None
+    if not (Path(root) / "core" / "workflow" / "frontend_gate.py").is_file():
+        return None
+    try:
+        from core.workflow.frontend_gate import (
+            evaluate,
+            is_ui_file,
+            record_telemetry,
+        )
+    except Exception:
+        return None  # frontend-gate-import-failed → allow
+    # Zero-read fast path: only UI files ever need the transcript.
+    if not is_ui_file(str(tool_input.get("file_path", ""))):
+        return None
+    decision = evaluate(
+        tool_name=tool_name,
+        transcript_path=transcript_path,
+        session_id=session_id,
+        cwd=cwd,
+        tool_input=tool_input,
+        messages=messages.load(),
+    )
+    try:
+        record_telemetry(session_id=session_id, tool=tool_name, decision=decision)
+    except Exception:
+        pass
+    if not decision.allow:
+        return _deny(decision.to_stderr_message())
+    if decision.to_stderr_message():
+        print(decision.to_stderr_message(), file=sys.stderr)
+    return None
+
+
 def _budget_check(session_id: str) -> tuple[bool, str]:
     """CostGovernor gate (stdlib-only). Returns (allow, warning)."""
     try:
@@ -239,6 +285,12 @@ def main(stdin_json: dict | None = None) -> int:
         return code
 
     code = _specialist_gate(
+        root, tool_name, transcript_path, session_id, cwd, tool_input, messages
+    )
+    if code is not None:
+        return code
+
+    code = _frontend_gate(
         root, tool_name, transcript_path, session_id, cwd, tool_input, messages
     )
     if code is not None:

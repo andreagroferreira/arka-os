@@ -37,7 +37,14 @@ class TestGetElapsed:
 class TestWorkflowDashboard:
     """Tests for WorkflowDashboard."""
 
-    def test_inactive_when_no_state(self):
+    def test_inactive_when_no_state(self, tmp_path, monkeypatch):
+        # state=None falls back to read_state() — point it at an empty tmp
+        # dir so a live ~/.arkaos/workflow-state.json cannot leak in.
+        import core.workflow.dashboard as dashboard_module
+        monkeypatch.setattr(
+            dashboard_module, "_state_path",
+            lambda: tmp_path / "workflow-state.json",
+        )
         dashboard = WorkflowDashboard(state=None)
         assert dashboard.is_active() is False
 
@@ -112,7 +119,12 @@ class TestWorkflowDashboard:
         assert any("VIOLATIONS (1)" in line for line in lines)
         assert any("🔴" in line for line in lines)
 
-    def test_render_no_state(self):
+    def test_render_no_state(self, tmp_path, monkeypatch):
+        import core.workflow.dashboard as dashboard_module
+        monkeypatch.setattr(
+            dashboard_module, "_state_path",
+            lambda: tmp_path / "workflow-state.json",
+        )
         dashboard = WorkflowDashboard(state=None)
         lines = dashboard.render()
         assert "No active workflow" in lines
