@@ -117,13 +117,41 @@ class TestFuse:
 
 
 class TestCli:
-    def test_cli_reports_unavailable_cleanly(self, capsys):
-        from core.fusion.cli import main
-        with patch("core.fusion.cli.fuse",
-                   side_effect=FusionUnavailable("panel is empty")):
-            assert main(["question"]) == 1
-        assert "panel is empty" in capsys.readouterr().err
+    def test_cli_reports_fuse_unavailable_cleanly(self, capsys):
+        # With a 2-seat panel the CLI reaches fuse(); if fuse raises, the
+        # error is reported and exit is 1. (default_panel is mocked so the
+        # test is hermetic — no Ollama on CI.)
+        from core.fusion import cli
+        from core.runtime.model_router import RoleChoice
+        panel = [
+            RoleChoice(provider="runtime", model="default", effort="high"),
+            RoleChoice(provider="ollama", model="k", effort="max"),
+        ]
+        judge = RoleChoice(provider="runtime", model="best", effort="max")
+        with patch.object(cli, "default_panel", return_value=(panel, judge)), \
+             patch.object(cli, "fuse",
+                          side_effect=FusionUnavailable("every seat failed")):
+            assert cli.main(["question"]) == 1
+        assert "every seat failed" in capsys.readouterr().err
 
-    def test_cli_requires_prompt(self):
-        from core.fusion.cli import main
-        assert main([]) == 1
+    def test_cli_reports_no_panel_when_machine_offers_nothing(self, capsys):
+        # No Ollama, no configured panel → default_panel returns 1 seat →
+        # the CLI reports "No panel available" and never calls fuse.
+        from core.fusion import cli
+        from core.runtime.model_router import RoleChoice
+        solo = [RoleChoice(provider="runtime", model="default", effort="high")]
+        judge = RoleChoice(provider="runtime", model="best", effort="max")
+        with patch.object(cli, "default_panel", return_value=(solo, judge)):
+            assert cli.main(["question"]) == 1
+        assert "No panel available" in capsys.readouterr().err
+
+    def test_cli_requires_prompt(self, capsys):
+        from core.fusion import cli
+        from core.runtime.model_router import RoleChoice
+        panel = [
+            RoleChoice(provider="runtime", model="default", effort="high"),
+            RoleChoice(provider="ollama", model="k", effort="max"),
+        ]
+        judge = RoleChoice(provider="runtime", model="best", effort="max")
+        with patch.object(cli, "default_panel", return_value=(panel, judge)):
+            assert cli.main([]) == 1
