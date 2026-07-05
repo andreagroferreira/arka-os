@@ -61,6 +61,7 @@ def hook_home(tmp_path):
         "ARKAOS_VAULT": str(vault),
         "ARKA_MARKER_CACHE_DIR": str(tmp_path / "flow-marker"),
         "ARKA_WF_REQUIRED_DIR": str(tmp_path / "wf-required"),
+        "ARKA_FLOW_AUTH_DIR": str(tmp_path / "flow-auth"),
         "_tmp": tmp_path,
     }
 
@@ -119,7 +120,15 @@ class TestPreToolUse:
         transcript.write_text(json.dumps(
             {"role": "assistant", "content": "plain prose, no markers"}
         ) + "\n", encoding="utf-8")
+        # Exhaust the grace budget in the isolated auth dir so the hard
+        # deny path fires (resilience fix graces the first turns).
+        import os as _os
+        from core.workflow import flow_authorization
+        _prev = _os.environ.get("ARKA_FLOW_AUTH_DIR")
+        _os.environ["ARKA_FLOW_AUTH_DIR"] = hook_home["ARKA_FLOW_AUTH_DIR"]
         try:
+            for _ in range(flow_authorization.GRACE_CAP + 1):
+                flow_authorization.register_grace(session_id)
             result = _run_module("core.hooks.pre_tool_use", {
                 "tool_name": "Write", "session_id": session_id,
                 "transcript_path": str(transcript), "cwd": "/tmp",
@@ -127,6 +136,10 @@ class TestPreToolUse:
             }, _env(hook_home))
         finally:
             marker.unlink(missing_ok=True)
+            if _prev is None:
+                _os.environ.pop("ARKA_FLOW_AUTH_DIR", None)
+            else:
+                _os.environ["ARKA_FLOW_AUTH_DIR"] = _prev
         assert result.returncode == 2, result.stderr
         assert "[ARKA:ENFORCEMENT]" in result.stderr
         out = json.loads(result.stdout)
@@ -162,20 +175,26 @@ class TestPreToolUse:
 
 
 class TestPostToolUse:
-    def test_writes_marker_cache_on_routing(self, hook_home):
+    def test_confirms_auth_from_transcript_on_routing(self, hook_home):
+        # Claude Code sends no `assistant_message`; the hook reads the
+        # transcript and confirms persistent flow authorization.
+        transcript = hook_home["_tmp"] / "post-t.jsonl"
+        transcript.write_text("\n".join([
+            json.dumps({"message": {"role": "assistant", "content": [
+                {"type": "text", "text": "[arka:routing] dev -> paulo\ntask #2"}
+            ]}}),
+        ]), encoding="utf-8")
         result = _run_module("core.hooks.post_tool_use", {
             "tool_name": "Write", "tool_output": "ok", "exit_code": "0",
             "cwd": "/tmp", "session_id": "post-marker",
-            "assistant_message": "[arka:routing] dev -> paulo\ntask #2",
+            "transcript_path": str(transcript),
         }, _env(hook_home))
         assert result.returncode == 0
         assert json.loads(result.stdout) == {}
-        cache = Path(hook_home["ARKA_MARKER_CACHE_DIR"]) / "post-marker.json"
-        assert cache.is_file()
-        data = json.loads(cache.read_text(encoding="utf-8"))
+        auth = Path(hook_home["ARKA_FLOW_AUTH_DIR"]) / "post-marker.json"
+        assert auth.is_file()
+        data = json.loads(auth.read_text(encoding="utf-8"))
         assert data["marker_type"] == "routing"
-        assert data["dept"] == "dev"
-        assert data["lead"] == "paulo"
 
     def test_clean_output_short_circuits(self, hook_home):
         result = _run_module("core.hooks.post_tool_use", {

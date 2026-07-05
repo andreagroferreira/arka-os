@@ -172,6 +172,13 @@ def _invalidate_turn_caches(session_id: str) -> None:
     except Exception:
         pass
     try:
+        # Reset only the per-turn grace flag; confirmed authorization and
+        # the grace counter persist across turns (enforcer resilience).
+        from core.workflow.flow_authorization import reset_turn
+        reset_turn(session_id)
+    except Exception:
+        pass
+    try:
         from core.synapse.kb_cache import invalidate_obsidian_query
         invalidate_obsidian_query(session_id)
     except Exception:

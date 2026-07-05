@@ -260,6 +260,10 @@ def _flow_gate(
     except Exception:
         pass
     if decision.allow:
+        # Grace path: allow, but surface the non-blocking warning so the
+        # operator sees the routing nudge instead of a silent pass.
+        if decision.warning:
+            print(decision.warning, file=sys.stderr)
         return 0
     return _deny(decision.to_stderr_message())
 

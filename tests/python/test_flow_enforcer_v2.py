@@ -265,15 +265,16 @@ def test_evaluate_ignores_stale_marker_from_previous_turn(
     enforcement_env, tmp_path, monkeypatch
 ):
     """When invalidate_marker fires on new user prompt, evaluate must fall
-    back to the transcript scan. If the transcript also lacks a marker, deny.
-    """
+    back to the transcript scan. With no marker in the transcript and no
+    confirmed auth, the first turn is graced (resilience fix)."""
+    monkeypatch.setenv("ARKA_FLOW_AUTH_DIR", str(tmp_path / "flow-auth"))
     mark_flow_required("session-stale")
     marker_cache.write_marker("session-stale", "routing", "dev", "paulo")
     marker_cache.invalidate_marker("session-stale")
     transcript = _write_transcript(tmp_path / "t.jsonl", ["no fresh marker"])
     d = evaluate("Write", str(transcript), "session-stale", "/tmp")
-    assert d.allow is False
-    assert "no-flow-marker" in d.reason
+    assert d.allow is True
+    assert d.reason.startswith("first-tool-grace")
 
 
 # ─── Hook parity: bash + PowerShell ────────────────────────────────────
@@ -342,15 +343,23 @@ def test_post_tool_use_sh_no_marker_when_absent(tmp_path, monkeypatch):
         assert list(cache_dir.iterdir()) == []
 
 
-def test_post_tool_use_sh_writes_marker_live(tmp_path, monkeypatch):
-    """End-to-end: pipe a payload containing [arka:routing] into the bash
-    hook and confirm a cache file is written for the session.
-    """
-    cache_dir = tmp_path / "flow-marker"
-    monkeypatch.setenv("ARKA_MARKER_CACHE_DIR", str(cache_dir))
+def test_post_tool_use_sh_confirms_auth_from_transcript(tmp_path, monkeypatch):
+    """End-to-end: the bash hook reads the TRANSCRIPT (Claude Code sends no
+    `assistant_message` field) and confirms persistent flow authorization
+    when a marker is present (resilience fix, 2026-07-05)."""
+    auth_dir = tmp_path / "flow-auth"
+    monkeypatch.setenv("ARKA_FLOW_AUTH_DIR", str(auth_dir))
     monkeypatch.setenv("PYTHONPATH", str(REPO_ROOT))
     monkeypatch.setenv("ARKAOS_ROOT", str(REPO_ROOT))
     script = REPO_ROOT / "config" / "hooks" / "post-tool-use.sh"
+
+    transcript = tmp_path / "t.jsonl"
+    transcript.write_text("\n".join([
+        json.dumps({"message": {"role": "user", "content": "go"}}),
+        json.dumps({"message": {"role": "assistant", "content": [
+            {"type": "text", "text": "[arka:routing] dev -> paulo\nstarting"}
+        ]}}),
+    ]), encoding="utf-8")
 
     payload = json.dumps({
         "tool_name": "Write",
@@ -358,7 +367,7 @@ def test_post_tool_use_sh_writes_marker_live(tmp_path, monkeypatch):
         "exit_code": "0",
         "cwd": str(tmp_path),
         "session_id": "session-livemarker",
-        "assistant_message": "[arka:routing] dev -> paulo\nkicking off task #2",
+        "transcript_path": str(transcript),
     })
     subprocess.run(
         ["bash", str(script)],
@@ -368,12 +377,7 @@ def test_post_tool_use_sh_writes_marker_live(tmp_path, monkeypatch):
         timeout=10,
         check=False,
     )
-    assert cache_dir.exists(), "hook did not create cache dir"
-    entries = list(cache_dir.iterdir())
-    assert any(e.name == "session-livemarker.json" for e in entries), (
-        f"expected session-livemarker.json, got {[e.name for e in entries]}"
-    )
-    data = json.loads((cache_dir / "session-livemarker.json").read_text())
+    auth_file = auth_dir / "session-livemarker.json"
+    assert auth_file.exists(), "hook did not confirm authorization from transcript"
+    data = json.loads(auth_file.read_text())
     assert data["marker_type"] == "routing"
-    assert data["dept"] == "dev"
-    assert data["lead"] == "paulo"

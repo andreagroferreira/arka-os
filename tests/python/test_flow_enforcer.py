@@ -34,6 +34,7 @@ def tmp_config(tmp_path, monkeypatch):
     monkeypatch.setattr(flow_enforcer, "TELEMETRY_PATH", home / "telemetry" / "enforcement.jsonl")
     monkeypatch.setattr(flow_enforcer, "FLOW_REQUIRED_DIR", tmp_flow_required)
     monkeypatch.setattr(marker_cache, "MARKER_CACHE_DIR", tmp_marker_cache)
+    monkeypatch.setenv("ARKA_FLOW_AUTH_DIR", str(tmp_path / "flow-auth"))
     return home
 
 
@@ -99,7 +100,10 @@ def test_classifier_no_match_allows(tmp_config):
 # ─── Marker detection paths ────────────────────────────────────────────
 
 
-def test_write_without_marker_denies(tmp_config, tmp_path):
+def test_write_without_marker_graces_first_turn(tmp_config, tmp_path):
+    """No marker + flow required: the current turn's marker is invisible
+    to hooks, so the first turn is graced with a warning, not blocked
+    (enforcer resilience fix, 2026-07-05)."""
     _write_config(tmp_config, True)
     mark_flow_required("session-2")
     transcript = _write_transcript(
@@ -107,9 +111,49 @@ def test_write_without_marker_denies(tmp_config, tmp_path):
         ["Just writing without any flow marker."],
     )
     d = evaluate("Write", str(transcript), "session-2", "/tmp")
-    assert d.allow is False
-    assert d.reason == f"no-flow-marker-in-last-{flow_enforcer.ASSISTANT_WINDOW}-assistant-messages"
-    assert d.marker_found is None
+    assert d.allow is True
+    assert d.reason.startswith("first-tool-grace")
+    assert "[arka:suggest]" in d.warning
+
+
+def test_write_without_marker_blocks_after_grace_cap(tmp_config, tmp_path):
+    """A session that NEVER routes escalates to a hard block once the
+    consecutive-grace cap is exhausted."""
+    from core.workflow import flow_authorization
+
+    _write_config(tmp_config, True)
+    mark_flow_required("session-nomarker")
+    transcript = _write_transcript(
+        tmp_path / "t.jsonl", ["still no marker"],
+    )
+    last = None
+    for _ in range(flow_authorization.GRACE_CAP + 1):
+        # Each "turn" clears the per-turn grace flag.
+        flow_authorization.reset_turn("session-nomarker")
+        last = evaluate("Write", str(transcript), "session-nomarker", "/tmp")
+    assert last.allow is False
+    assert "grace-exhausted" in last.reason
+    assert "[ARKA:ENFORCEMENT]" in last.to_stderr_message()
+
+
+def test_confirmed_auth_survives_transcript_window_loss(tmp_config, tmp_path):
+    """Once a marker is observed, a later scan with NO marker in the
+    window (compaction / window roll) still allows via confirmed auth."""
+    _write_config(tmp_config, True)
+    mark_flow_required("session-persist")
+    with_marker = _write_transcript(
+        tmp_path / "t1.jsonl", ["[arka:routing] dev -> Paulo"],
+    )
+    first = evaluate("Write", str(with_marker), "session-persist", "/tmp")
+    assert first.allow is True and first.marker_found == "routing"
+
+    # Simulate compaction: the marker is gone from the transcript window.
+    without_marker = _write_transcript(
+        tmp_path / "t2.jsonl", ["compaction summary, no marker here"],
+    )
+    second = evaluate("Write", str(without_marker), "session-persist", "/tmp")
+    assert second.allow is True
+    assert second.reason == "session-authorized"
 
 
 def test_routing_marker_allows(tmp_config, tmp_path):
@@ -180,8 +224,9 @@ def test_marker_in_any_of_last_three_messages(tmp_config, tmp_path):
     assert d.marker_found == "routing"
 
 
-def test_marker_older_than_window_denies(tmp_config, tmp_path):
-    """Marker beyond the configured window is stale → deny."""
+def test_marker_older_than_window_graces_first_turn(tmp_config, tmp_path):
+    """Marker beyond the window is invisible to the scan, but a first-turn
+    hard block is a false positive — grace it (resilience fix)."""
     _write_config(tmp_config, True)
     mark_flow_required("session-7")
     filler = [f"Step {i}." for i in range(flow_enforcer.ASSISTANT_WINDOW + 1)]
@@ -190,7 +235,8 @@ def test_marker_older_than_window_denies(tmp_config, tmp_path):
         ["[arka:routing] dev -> Paulo", *filler],
     )
     d = evaluate("Write", str(transcript), "session-7", "/tmp")
-    assert d.allow is False
+    assert d.allow is True
+    assert d.reason.startswith("first-tool-grace")
 
 
 def test_pr53_marker_at_position_15_still_found(tmp_config, tmp_path):
@@ -418,13 +464,15 @@ def test_assistant_window_after_pr53_widening():
     assert flow_enforcer.ASSISTANT_WINDOW == 20
 
 
-def test_deny_reason_reflects_current_window(tmp_config, tmp_path):
+def test_first_turn_grace_reason_and_warning(tmp_config, tmp_path):
+    """First effect-tool with no observable marker graces with a nudge."""
     _write_config(tmp_config, True)
     mark_flow_required("session-v2-deny")
     transcript = _write_transcript(tmp_path / "t.jsonl", ["no marker here"])
     d = evaluate("Write", str(transcript), "session-v2-deny", "/tmp")
-    assert d.allow is False
-    assert f"last-{flow_enforcer.ASSISTANT_WINDOW}" in d.reason
+    assert d.allow is True
+    assert d.reason.startswith("first-tool-grace")
+    assert "routing" in d.warning.lower()
 
 
 def test_cache_hit_does_not_break_transcript_fallback(tmp_config, tmp_path):

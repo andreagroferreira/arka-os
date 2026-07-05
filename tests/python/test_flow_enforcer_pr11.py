@@ -17,6 +17,15 @@ from core.workflow.flow_enforcer import (
 )
 
 
+def _exhaust_grace(flow_enforcer, monkeypatch, tmp_path, session_id):
+    """Isolate the auth dir and burn through the grace budget so the next
+    evaluate() escalates to a hard deny (resilience fix, 2026-07-05)."""
+    from core.workflow import flow_authorization
+    monkeypatch.setenv("ARKA_FLOW_AUTH_DIR", str(tmp_path / "flow-auth"))
+    for _ in range(flow_authorization.GRACE_CAP + 1):
+        flow_authorization.register_grace(session_id)
+
+
 class TestEffectToolsAlwaysSet:
     def test_includes_legacy_write_edit_multiedit(self):
         assert "Write" in EFFECT_TOOLS_ALWAYS
@@ -201,6 +210,7 @@ class TestEvaluatePassesToolInput:
         monkeypatch.setattr(
             flow_enforcer.marker_cache, "read_marker", lambda sid: None
         )
+        _exhaust_grace(flow_enforcer, monkeypatch, tmp_path, "test-bash-mutating")
         decision = evaluate(
             tool_name="Bash",
             transcript_path=str(tmp_path / "no-transcript.jsonl"),
@@ -208,9 +218,9 @@ class TestEvaluatePassesToolInput:
             cwd="",
             tool_input={"command": "rm -rf /tmp/x"},
         )
-        # Without a marker, mutating Bash should be denied
+        # Mutating Bash is gated; with grace exhausted it is denied.
         assert decision.allow is False
-        assert "no-flow-marker" in decision.reason
+        assert "grace-exhausted" in decision.reason
 
     def test_bash_without_tool_input_treats_command_as_empty(self, tmp_path):
         """No tool_input means empty Bash command — not effect, allowed."""
@@ -232,6 +242,7 @@ class TestEvaluatePassesToolInput:
         monkeypatch.setattr(
             flow_enforcer.marker_cache, "read_marker", lambda sid: None
         )
+        _exhaust_grace(flow_enforcer, monkeypatch, tmp_path, "test-notebook")
         decision = evaluate(
             tool_name="NotebookEdit",
             transcript_path=str(tmp_path / "no-transcript.jsonl"),
@@ -250,6 +261,7 @@ class TestEvaluatePassesToolInput:
         monkeypatch.setattr(
             flow_enforcer.marker_cache, "read_marker", lambda sid: None
         )
+        _exhaust_grace(flow_enforcer, monkeypatch, tmp_path, "test-task")
         decision = evaluate(
             tool_name="Task",
             transcript_path=str(tmp_path / "no-transcript.jsonl"),
@@ -270,6 +282,7 @@ class TestStderrMessageUpdated:
         monkeypatch.setattr(
             flow_enforcer.marker_cache, "read_marker", lambda sid: None
         )
+        _exhaust_grace(flow_enforcer, monkeypatch, tmp_path, "test-msg")
         decision = evaluate(
             tool_name="Write",
             transcript_path=str(tmp_path / "no-transcript.jsonl"),
@@ -278,7 +291,7 @@ class TestStderrMessageUpdated:
             tool_input={},
         )
         msg = decision.to_stderr_message()
-        assert "NotebookEdit" in msg
-        assert "Task" in msg
-        assert "Skill" in msg
-        assert "Bash" in msg
+        # Bug 3 fix: the message points to recovery that actually works.
+        assert "[arka:routing]" in msg
+        assert "hardEnforcement" in msg
+        assert "not inline" in msg  # the ARKA_BYPASS_FLOW inline trap
