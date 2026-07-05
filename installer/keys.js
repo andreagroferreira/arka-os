@@ -6,6 +6,7 @@ const KEYS_PATH = join(homedir(), ".arkaos", "keys.json");
 
 const PROVIDERS = {
   OPENAI_API_KEY: { name: "OpenAI", used_for: "Whisper transcription, embeddings, GPT" },
+  OPENROUTER_API_KEY: { name: "OpenRouter", used_for: "Model Fabric: one key, hundreds of models (Kimi, DeepSeek, GPT, Gemini) for roles + fusion" },
   GOOGLE_API_KEY: { name: "Google", used_for: "Gemini API, Nano Banana, Google Cloud AI" },
   FAL_API_KEY: { name: "fal.ai", used_for: "Image generation, video generation" },
   MAGIC_API_KEY: { name: "21st.dev Magic", used_for: "Frontend UI/UX component generation (Magic MCP)" },

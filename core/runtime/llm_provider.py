@@ -32,7 +32,9 @@ from core.runtime.pricing import estimate_cost_usd
 
 
 _DEFAULT_CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
-_FALLBACK_ORDER: tuple[str, ...] = ("subagent", "ollama", "anthropic-direct", "stub")
+_FALLBACK_ORDER: tuple[str, ...] = (
+    "subagent", "ollama", "openrouter", "anthropic-direct", "stub"
+)
 
 
 # ─── Public dataclass ─────────────────────────────────────────────────
@@ -330,9 +332,16 @@ def _import_ollama_provider() -> type:
     return OllamaProvider
 
 
+def _import_openrouter_provider() -> type:
+    """Lazy import to keep the OpenRouter provider optional at runtime."""
+    from core.runtime.openrouter_provider import OpenRouterProvider
+    return OpenRouterProvider
+
+
 _PROVIDERS: dict[str, type] = {
     "subagent": SubagentProvider,
     "ollama": _import_ollama_provider(),
+    "openrouter": _import_openrouter_provider(),
     "anthropic-direct": AnthropicDirectProvider,
     "stub": StubProvider,
 }
