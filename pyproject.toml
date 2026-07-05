@@ -1,6 +1,6 @@
 [project]
 name = "arkaos-core"
-version = "4.1.1"
+version = "4.2.0"
 description = "Core engine for ArkaOS — The Operating System for AI Agent Teams"
 readme = "README.md"
 license = {text = "MIT"}

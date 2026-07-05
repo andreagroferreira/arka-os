@@ -5,6 +5,59 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-07-05
+
+### Added — Excellence Reform (operator mandate)
+
+- `excellence-mandate` NON-NEGOTIABLE constitution rule #26: every
+  deliverable targets excellence, not acceptance — no default-looking
+  output, no unfinished edges, no delivery theatre; time and token cost
+  are never arguments against quality.
+- Frontend excellence gate (`core/workflow/frontend_gate.py`, wired into
+  the PreToolUse chain): UI file edits require `[arka:design]` evidence;
+  `hooks.frontendGate` flag (warn default / hard); telemetry to
+  `~/.arkaos/telemetry/frontend-gate.jsonl`.
+- Quality Gate: reviewers run in independent subagent context, verdicts
+  must cite a named benchmark (`reference_companies.application`),
+  REJECTED redo loop capped at 2 cycles then operator escalation;
+  model policy inverted sonnet-default → best-available.
+- Gate 4 excellence check in the flow skill: three anti-theatre
+  questions answered with evidence before any close.
+
+### Added — Model Fabric (PR-A + PR-B)
+
+- `~/.arkaos/models.yaml` (packaged default `config/models.yaml`):
+  user-owned role → provider/model/effort routing with per-provider
+  aliases and a fusion (judge + panel) section.
+- `core/runtime/model_router.py`: pydantic-validated resolution with
+  provenance (user → packaged → builtin); unknown roles resolve to the
+  quality tier, never the cheap one.
+- `npx arkaos models` CLI: table view, `set <role> <provider>/<model>`,
+  `init`, `--json`.
+- OpenRouter provider (`core/runtime/openrouter_provider.py`): one key,
+  hundreds of models (Kimi, DeepSeek, GPT, Gemini) via OpenAI-compatible
+  API; registered in the fallback chain; exact usage accounting
+  including cached tokens; `OPENROUTER_API_KEY` in `npx arkaos keys`.
+
+### Changed
+
+- `model-routing` MUST rule inverted from cost-optimised per-tier table
+  to quality-first: best model for design/review/architecture/strategy
+  by default, haiku-class only for genuinely mechanical work.
+- `subagent-discipline` exempts quality dispatches (QG reviewers,
+  adversarial verification, design review).
+
+### Fixed
+
+- Dashboard autostart: launchd plist gains `AbandonProcessGroup=true`
+  (dashboard died seconds after boot), headless mode, and the new
+  idempotent `ensure` mode; systemd unit `Type=oneshot` +
+  `RemainAfterExit`; SessionStart hook ensures the dashboard is running
+  (~50ms health check when healthy, toggle
+  `dashboard.ensure_on_session`).
+- test_dashboard hermeticity: no longer reads the live
+  `~/.arkaos/workflow-state.json`.
+
 ## [4.1.1] - 2026-07-04
 
 ### Fixed — Full test suite green
