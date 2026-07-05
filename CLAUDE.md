@@ -132,27 +132,23 @@ Inspired by SpaceX (flat, mission-driven), Google (matrix), Anthropic (small tea
 | 2 | Specialists | 55 domain experts | Execute |
 | 3 | Support | 3 | Research, document, validate |
 
-## Model Routing
+## Model Routing (quality-first — Excellence Reform 2026-07-05)
 
-Per-tier default model assignment for cost optimization without quality loss:
+Quality-critical work runs the BEST model available at maximum effort BY
+DEFAULT. Cost optimisation never downgrades a quality phase; the
+CostGovernor hard budget is the only ceiling. User overrides per role live
+in `~/.arkaos/models.yaml` (Model Fabric) — this table is the default
+posture, not a fixed vendor lock.
 
-| Tier | Model | Who |
+| Work | Model tier | Rationale |
 |---|---|---|
-| 0 | opus | C-Suite (Marco, Helena, Sofia, Marta) |
-| 1 | sonnet | 18 Squad Leads |
-| 2 | sonnet | Specialists (default) + QG reviewers (Eduardo, Francisca) |
-| 2/3 | haiku | Mechanical roles (commit writers, routing, data fetchers) |
+| Design, review, architecture, strategy, specs, ADRs | best available (frontier) | quality-critical — never the place to save tokens |
+| Quality Gate reviews (Marta, Eduardo, Francisca) | best available (frontier) | inverted from sonnet-default; veto stays model-independent |
+| Forge complex/super tiers | best available (frontier) | planning quality compounds downstream |
+| Squad Leads / specialists (execution) | sonnet-class or better | per agent YAML `model:` field |
+| Genuinely mechanical (commit messages, changelog, keyword extraction, data fetching, formatting) | haiku-class / local | the ONLY tier where economy is the right call |
 
-**Task-type overrides:**
-- Quality Gate reviews: sonnet by default; opus ONLY when the diff is Tier 0
-  scope (constitution, security, release pipeline, installer auth) or
-  security-flagged. Marta's veto is model-independent — the verdict derives
-  from the evidence report (`core.governance.evidence_checks`).
-- Architecture/design/spec/ADR phases: opus
-- Forge complex/super tiers: opus
-- Commit messages, changelog, keyword extraction: haiku
-
-When dispatching subagents, the orchestrator MUST pass the `model` parameter to the Task tool based on the agent's YAML `model:` field.
+When dispatching subagents, the orchestrator MUST pass the `model` parameter to the Task tool based on the agent's YAML `model:` field, upgraded (never downgraded) by the table above.
 
 ## Token Hygiene
 
@@ -174,7 +170,10 @@ UserPromptSubmit budget and never block (exit 0 only).
 Subagent discipline (MUST rule `subagent-discipline`): dispatch subagents
 only when a task requires >3 Reads, >5 Greps, or isolated context. Never
 run parallel subagents that share state. Trivial tasks stay on the main
-thread to avoid handoff token overhead.
+thread to avoid handoff token overhead. EXEMPT: quality dispatches (QG
+reviewers, adversarial verification, design review) are never suppressed
+by this rule — independent review context is a correctness requirement
+under `excellence-mandate`.
 
 ## Behavioral DNA (4 Frameworks per Agent)
 
@@ -190,7 +189,9 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `config/constitution.yaml` defines governance with 4 enforcement levels:
 
-**NON-NEGOTIABLE (25 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, evidence-flow, quality-over-speed, always-research, project-design-system-prerequisite, definition-of-done-per-domain, arkaos-not-yes-man, inter-agent-checkpoints, hybrid-learning, dispatch-must-be-announced
+**NON-NEGOTIABLE (26 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, evidence-flow, quality-over-speed, always-research, project-design-system-prerequisite, definition-of-done-per-domain, arkaos-not-yes-man, inter-agent-checkpoints, hybrid-learning, dispatch-must-be-announced, excellence-mandate
+
+**excellence-mandate (Excellence Reform 2026-07-05):** every deliverable targets excellence, not acceptance. No default-looking output, no unfinished edges, no lazy implementations, no delivery-for-the-sake-of-delivering. Time and token cost are NEVER arguments against quality (CostGovernor hard budget is the only ceiling). Before any gate closes: "what is unfinished, what is default, what would a top-tier lead reject here?" — non-empty answer loops back or escalates, never ships silently. UI work MUST load the frontend design skills (frontend-design, ui-ux-pro-max, project design system) at maximum effort and pass visual review against a named benchmark; the PreToolUse frontend gate (`core/workflow/frontend_gate.py`, flag `hooks.frontendGate`) enforces the `[arka:design]` evidence marker on UI file edits.
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 

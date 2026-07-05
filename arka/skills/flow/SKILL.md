@@ -87,6 +87,21 @@ resumes at the right gate.
   coverage read from the report file, security grep, spell-check for
   copy. Reviewers (Quality Gate personas) interpret tool output; they do
   not replace it. APPROVED/REJECTED derives from evidence.
+- **Excellence check (`excellence-mandate`, mandatory):** before closing,
+  answer three questions with evidence, not narration:
+  1. What is **unfinished** in this delivery (trimmed scope, TODO left
+     behind, parity skipped)?
+  2. What is **default** (template look, boilerplate copy, unstyled
+     component, generic strategy)?
+  3. What would a **top-tier lead reject** here? Name the benchmark
+     (`reference_companies.application` — e.g. Linear/Stripe for
+     frontend) and judge against it.
+  A non-empty answer loops the work back into Gate 3 or is escalated to
+  the operator as an explicit open-items decision. Shipping with a
+  non-empty list and no operator decision is a constitution breach.
+  Time and token cost are not acceptable answers to any of the three.
+- Quality Gate REJECTED loops back at most twice; a third REJECTED
+  escalates to the operator with the full verdict.
 - Close with an honest summary: what changed, where, how it was
   verified (real commands + results), what remains open.
 

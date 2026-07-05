@@ -117,14 +117,18 @@ enforcement_levels:
         rule: "When a squad lead dispatches a specialist via the Agent tool, the lead MUST emit `[arka:dispatch] <from> -> <to>` on a line of its own immediately before the dispatch call. The marker identifies the specialist to the PreToolUse specialist-enforcer so writes from the specialist pass `owner-match` instead of falling through as `no-routing-tag` or blocking the lead. The format is identical to `[arka:routing]` but uses the verb `dispatch` and points from the calling persona to the receiving specialist (e.g., `[arka:dispatch] paulo -> frontend-dev`)."
         enforcement: "PreToolUse hook (config/hooks/pre-tool-use.sh) reads the dispatch marker via core.workflow.specialist_enforcer._resolve_persona. Dispatch tag overrides routing tag because it is more specific. Without it, lead writes to specialist-owned files are blocked when hooks.specialistEnforcement=true. See ADR docs/adr/2026-05-28-specialist-dispatch-subagent-blindspot.md for the architectural constraint this rule mitigates."
 
+      # ─── Rule added in Excellence Reform (2026-07-05, operator mandate) ──
+      - id: excellence-mandate
+        rule: "Every deliverable targets excellence, not acceptance. Supervisors (leads, C-Suite, Quality Gate) and specialists are REQUIRED to be maximally critical and meticulous: no default-looking output, no unfinished edges, no lazy implementations, no delivery-for-the-sake-of-delivering. Latency and token cost are NEVER arguments against quality work — the CostGovernor hard budget is the only ceiling. Before any gate closes, the closing agent answers with evidence: 'what is unfinished, what is default, what would a top-tier lead (see reference_companies.application) reject here?' — a non-empty answer loops the work back or escalates to the operator; it is never silently shipped. UI work MUST load the frontend design skills (frontend-design, ui-ux-pro-max, project design system) at maximum effort and pass visual review against a named benchmark before reaching the Quality Gate."
+        enforcement: "G4 excellence check in arka/skills/flow/SKILL.md; frontend gate core/workflow/frontend_gate.py (flag hooks.frontendGate); QG reviewers must cite the named benchmark and enumerate concrete rejections; REJECTED redo loop capped at 2 cycles then operator escalation. Operator mandate 2026-07-05: 'não interessa se demora — o goal é excelência'."
+
   quality_gate:
     description: "Mandatory pre-delivery review. Nothing ships without APPROVED verdict."
     trigger: "After the last execution phase, before delivery to user"
     frequency: "Once per workflow execution, not per phase"
     model_policy:
-      default: sonnet
-      opus_scope: "Tier 0 diffs only: constitution, security-relevant changes, release pipeline, installer auth — or deliverables explicitly security-flagged"
-      note: "Marta's veto is model-independent: the verdict derives from the evidence report (core.governance.evidence_checks), not from model size."
+      default: best-available
+      note: "Quality Gate reviews run the best model available (frontier tier) at maximum effort by default — the Excellence Reform (2026-07-05) inverted the former sonnet-default cost posture; review quality is never the place to save tokens. User overrides per role live in ~/.arkaos/models.yaml (Model Fabric). Marta's veto is model-independent: the verdict derives from the evidence report (core.governance.evidence_checks), not from model size."
     agents:
       orchestrator:
         id: cqo-marta
@@ -140,9 +144,10 @@ enforcement_levels:
     process:
       - "Evidence engine runs first: python -m core.governance.evidence_checks — the verdict derives from its report"
       - "Marta receives all output from execution phase plus the evidence report"
-      - "Marta dispatches Eduardo (text) and Francisca (technical) in parallel to interpret the report"
-      - "Each reviewer returns a structured QGVerdict (APPROVED or REJECTED) with specific issues; evidence overall=fail forces REJECTED"
+      - "Marta dispatches Eduardo (text) and Francisca (technical) in parallel, each in an INDEPENDENT subagent context (clean context, no stake in the work being approved)"
+      - "Each reviewer returns a structured QGVerdict (APPROVED or REJECTED) with specific issues; the verdict MUST name the benchmark used (reference_companies.application) and enumerate the concrete rejections a top-tier lead would raise; evidence overall=fail forces REJECTED"
       - "If ANY reviewer rejects: work loops back to execution with issue list"
+      - "Redo loop is capped at 2 cycles: a third REJECTED escalates to the operator with the full verdict instead of another silent retry (excellence-mandate)"
       - "If ALL approve: Marta issues final APPROVED verdict"
       - "Nothing reaches the user without APPROVED from all three"
 
@@ -182,11 +187,11 @@ enforcement_levels:
         enforcement: "persistence.py exports on status change; audit detects missing exports"
 
       - id: model-routing
-        rule: "Per-tier model assignment enforced: Tier 0 opus, Tier 1/2 sonnet, mechanical haiku. Quality Gate reviewers run sonnet by default; opus ONLY for Tier 0/security-scope diffs (constitution, security, release pipeline, installer auth). Marta keeps her veto regardless of model tier."
+        rule: "Quality-first model routing: design, review, architecture, strategy, and Quality Gate phases run the BEST model available for the task (frontier tier) at maximum effort BY DEFAULT. Cheaper/smaller models (haiku, local) are reserved for genuinely mechanical work: commit messages, keyword extraction, data fetching, formatting. Cost optimisation NEVER downgrades a quality-critical phase — the CostGovernor hard budget is the only ceiling. User-owned overrides live in ~/.arkaos/models.yaml (Model Fabric): the user decides which provider/model serves each role; this rule sets the default posture, not a fixed vendor table. Replaced the cost-optimised per-tier table in the Excellence Reform (2026-07-05)."
         enforcement: "warning"
 
       - id: subagent-discipline
-        rule: "Dispatch subagents only when task requires >3 Reads or >5 Greps or isolated context. Never parallel subagents sharing state. Prefer main thread for trivial tasks."
+        rule: "Dispatch subagents only when task requires >3 Reads or >5 Greps or isolated context. Never parallel subagents sharing state. Prefer main thread for trivial tasks. EXEMPT: quality dispatches (Quality Gate reviewers, adversarial verification, design review) are never suppressed by this rule — independent review context is a correctness requirement under excellence-mandate, not an optimisation choice."
         enforcement: "warning"
 
       # ─── Rule added in PR3 Squad Intelligence Upgrade (2026-05-28) ───────
@@ -436,3 +441,6 @@ amendments:
     - version: "2.32.0"
       date: "2026-05-13"
       changes: "PR10 Conclave Phase 5 — added 7 NON-NEGOTIABLE rules (quality-over-speed, always-research, project-design-system-prerequisite, definition-of-done-per-domain, arkaos-not-yes-man, inter-agent-checkpoints, hybrid-learning) and 3 new top-level sections (definition_of_done per domain, reference_companies, tone_guide)."
+    - version: "4.2.0"
+      date: "2026-07-05"
+      changes: "Excellence Reform (operator mandate) — added excellence-mandate NON-NEGOTIABLE rule; inverted model-routing from cost-optimised tiers to quality-first (best model for design/review/architecture/strategy, user overrides in ~/.arkaos/models.yaml); QG model_policy sonnet-default → best-available; QG reviewers independent + benchmark-cited verdicts + redo loop capped at 2; subagent-discipline exempts quality dispatches."
