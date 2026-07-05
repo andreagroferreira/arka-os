@@ -75,11 +75,18 @@ Produce a table: role → provider/model + ONE-line rationale each. Rules:
 
 ```bash
 npx arkaos models set <role> <provider>/<model> --effort <effort>
+npx arkaos fusion --save "<a first question>"   # persist a panel + run it
 ```
 
-For fusion panel/judge and aliases, edit `~/.arkaos/models.yaml` directly
-(keep comments). Show the final `npx arkaos models` table as proof and
-remind: the dashboard Models page shows the same state + live usage.
+`npx arkaos fusion --show` prints the panel that would run (a sensible
+default is built from the machine's models when none is configured);
+`npx arkaos fusion --save "question"` writes the panel into
+`~/.arkaos/models.yaml` and runs it; `npx arkaos fusion "question"` runs
+without persisting. For fine-grained panel/judge edits, edit
+`~/.arkaos/models.yaml` directly (keep comments). Show the final
+`npx arkaos models` table as proof and remind: the dashboard Models page
+shows the same state + live usage, and the SessionStart hook now injects
+the routing so it governs agent dispatch.
 
 ## Hard rules
 

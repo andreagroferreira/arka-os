@@ -8,6 +8,14 @@ interface ResolvedRole {
   model: string
   effort: string
   source: string
+  description?: string
+}
+
+interface RuntimeModel {
+  value: string
+  label: string
+  tier: string
+  note: string
 }
 
 interface OllamaModel {
@@ -24,6 +32,7 @@ interface ModelsOverview {
   providers: Record<string, { type: string }>
   aliases: Record<string, Record<string, string>>
   fusion: { judge: Record<string, string>, panel: Array<Record<string, string>> }
+  runtime: { id: string, models: RuntimeModel[] }
   ollama: { installed: boolean, running: boolean, host: string, models: OllamaModel[] }
   keys: { openrouter: boolean, anthropic: boolean }
 }
@@ -119,8 +128,13 @@ const targetOptions = computed(() => {
   const o = overview.value
   if (!o) return []
   const options: { label: string, value: string }[] = []
+  // Concrete runtime models first (Fable 5, Opus, Sonnet, Haiku) so the
+  // operator picks a real model, not just an abstract alias.
+  for (const m of o.runtime?.models ?? []) {
+    options.push({ label: `runtime / ${m.label} · ${m.note}`, value: `runtime/${m.value}` })
+  }
   for (const alias of ['best', 'default', 'fast']) {
-    options.push({ label: `runtime / ${alias}`, value: `runtime/${alias}` })
+    options.push({ label: `runtime / ${alias} (alias)`, value: `runtime/${alias}` })
   }
   for (const m of o.ollama?.models ?? []) {
     options.push({ label: `ollama / ${m.name}`, value: `ollama/${m.name}` })
@@ -148,7 +162,7 @@ async function saveEdit(role: string) {
   }
   saving.value = true
   try {
-    await $fetch(`${apiBase.value}/api/models/role`, {
+    await $fetch(`${apiBase}/api/models/role`, {
       method: 'POST',
       body: { role, target: editTarget.value },
     })
@@ -269,10 +283,15 @@ function formatCost(value: number | null): string {
               >
                 <UIcon
                   :name="QUALITY_ROLES.has(row.role) ? 'i-lucide-gem' : 'i-lucide-cog'"
-                  class="size-4 shrink-0"
+                  class="size-4 shrink-0 mt-0.5 self-start"
                   :class="QUALITY_ROLES.has(row.role) ? 'text-primary' : 'text-muted'"
                 />
-                <span class="w-32 shrink-0 text-sm font-medium">{{ row.role }}</span>
+                <div class="w-56 shrink-0">
+                  <p class="text-sm font-medium">{{ row.role }}</p>
+                  <p v-if="row.description" class="text-xs text-muted leading-snug">
+                    {{ row.description }}
+                  </p>
+                </div>
                 <template v-if="editingRole === row.role">
                   <UInputMenu
                     v-model="editTarget"
