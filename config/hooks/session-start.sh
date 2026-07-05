@@ -120,6 +120,28 @@ if [ -n "$REPO" ] && command -v python3 &>/dev/null; then
   fi
 fi
 
+# ─── Dashboard ensure (v4.1.2) ──────────────────────────────────────────
+# Safety net for the login autostart (`npx arkaos autostart enable`): if the
+# dashboard is healthy this is two curl health checks (~50ms); if not, it
+# starts API+UI. Background + disown so it never touches the 5s budget.
+# Toggle off: ~/.arkaos/config.json -> {"dashboard": {"ensure_on_session": false}}
+if [ -n "$REPO" ] && [ -f "$REPO/scripts/start-dashboard.sh" ]; then
+  _DASH_ENSURE=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/config.json')).get('dashboard',{}).get('ensure_on_session', True))" 2>/dev/null || echo "True")
+  if [ "$_DASH_ENSURE" = "True" ] || [ "$_DASH_ENSURE" = "true" ]; then
+    mkdir -p "$HOME/.arkaos/logs"
+    (
+      # GNU `timeout` is absent on stock macOS — degrade to an unbounded
+      # run; the launcher itself is bounded (health wait + start).
+      if command -v timeout >/dev/null 2>&1; then
+        ARKAOS_NO_BROWSER=1 timeout 90s bash "$REPO/scripts/start-dashboard.sh" ensure >> "$HOME/.arkaos/logs/dashboard-ensure.log" 2>&1
+      else
+        ARKAOS_NO_BROWSER=1 bash "$REPO/scripts/start-dashboard.sh" ensure >> "$HOME/.arkaos/logs/dashboard-ensure.log" 2>&1
+      fi
+    ) &
+    disown 2>/dev/null || true
+  fi
+fi
+
 # --- Session Memory Resume Context ---
 if command -v python3 &>/dev/null && [ -n "$REPO" ]; then
   _SESSION_CTX=$(cd "$REPO" && python3 -c "

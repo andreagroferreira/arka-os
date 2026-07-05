@@ -10,6 +10,30 @@ VENV_PYTHON="$HOME/.arkaos/venv/bin/python"
 
 mkdir -p "$HOME/.arkaos"
 
+# ── Args ──
+# `ensure`       — idempotent mode: exit 0 if API+UI already healthy,
+#                  otherwise fall through to a full start. Safe to call from
+#                  SessionStart hooks and launchd/systemd boot units.
+# `--no-browser` — do not open the browser after start (also via
+#                  ARKAOS_NO_BROWSER=1 env, for boot/hook contexts).
+MODE="start"
+for arg in "$@"; do
+  case "$arg" in
+    ensure) MODE="ensure" ;;
+    --no-browser) ARKAOS_NO_BROWSER=1 ;;
+  esac
+done
+
+if [ "$MODE" = "ensure" ] && [ -f "$PORT_FILE" ]; then
+  # shellcheck disable=SC1090
+  source "$PORT_FILE"
+  if curl -sf --max-time 2 "http://localhost:${API_PORT:-0}/api/overview" >/dev/null 2>&1 \
+     && curl -sf --max-time 2 "http://localhost:${UI_PORT:-0}/" >/dev/null 2>&1; then
+    echo "  ✓ Dashboard already running (API :${API_PORT}, UI :${UI_PORT})"
+    exit 0
+  fi
+fi
+
 # ── Venv guard (PR2 v3.73.1 — Force Specialist Dispatch dogfood) ──
 # Previously the dashboard fell back to ambient `python3` when the venv
 # wasn't available. That hid broken-venv conditions (Homebrew patch
@@ -133,7 +157,7 @@ echo "        or kill \$(cat $PID_FILE)"
 echo ""
 
 # Wait for UI to be ready
-if [ -n "$UI_PID" ]; then
+if [ -n "$UI_PID" ] && [ -z "${ARKAOS_NO_BROWSER:-}" ]; then
   sleep 5
   # Open browser
   if command -v open >/dev/null 2>&1; then
