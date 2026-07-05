@@ -53,6 +53,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Models',
+  icon: 'i-lucide-layers',
+  to: '/models',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Tasks',
   icon: 'i-lucide-list-checks',
   to: '/tasks',
