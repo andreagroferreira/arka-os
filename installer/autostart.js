@@ -29,6 +29,9 @@ export function unitFor(os, { repoRoot, home }) {
   if (os === "darwin") {
     const startScript = `${repoRoot}/scripts/start-dashboard.sh`;
     const log = `${home}/.arkaos/logs/dashboard-autostart.log`;
+    // AbandonProcessGroup: the launcher backgrounds the API/UI and exits;
+    // without it launchd kills the whole process group on exit and the
+    // dashboard dies seconds after boot. `ensure` keeps re-loads idempotent.
     const content = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -39,13 +42,18 @@ export function unitFor(os, { repoRoot, home }) {
   <array>
     <string>/bin/bash</string>
     <string>${startScript}</string>
+    <string>ensure</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>ARKAOS_ROOT</key>
     <string>${repoRoot}</string>
+    <key>ARKAOS_NO_BROWSER</key>
+    <string>1</string>
   </dict>
   <key>RunAtLoad</key>
+  <true/>
+  <key>AbandonProcessGroup</key>
   <true/>
   <key>StandardOutPath</key>
   <string>${log}</string>
@@ -63,14 +71,19 @@ export function unitFor(os, { repoRoot, home }) {
 
   if (os === "linux") {
     const startScript = `${repoRoot}/scripts/start-dashboard.sh`;
+    // oneshot + RemainAfterExit: the launcher backgrounds the API/UI and
+    // exits; Type=simple would mark the unit dead on exit and systemd would
+    // reap the children with the cgroup. `ensure` keeps restarts idempotent.
     const content = `[Unit]
 Description=ArkaOS Dashboard (Python API + UI)
 After=network.target
 
 [Service]
-Type=simple
+Type=oneshot
+RemainAfterExit=yes
 Environment=ARKAOS_ROOT=${repoRoot}
-ExecStart=/bin/bash ${startScript}
+Environment=ARKAOS_NO_BROWSER=1
+ExecStart=/bin/bash ${startScript} ensure
 Restart=on-failure
 
 [Install]
@@ -87,6 +100,7 @@ WantedBy=default.target
     const ps1 = join(repoRoot, "scripts", "start-dashboard.ps1");
     const content = `@echo off
 rem ArkaOS dashboard autostart (login).
+set ARKAOS_NO_BROWSER=1
 powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${ps1}"
 `;
     return {
