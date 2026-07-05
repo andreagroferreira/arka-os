@@ -5,6 +5,33 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-07-05
+
+### Added — Model Fabric observability + fusion (PR-C + PR-D)
+
+- Ollama discovery (`core/runtime/ollama_discovery.py`): detects the
+  binary, the running daemon, and the locally installed models
+  (name, family, parameter size, GB) via `/api/tags`; two-layer so
+  "installed but stopped" yields actionable advice.
+- Dashboard **Models** page: live provider-availability lanes, inline
+  role re-routing fed by the machine's real Ollama models, one-click
+  "use for mechanical", per-model usage bars. Browser-verified.
+- Model Fabric API: `GET /api/models`, `POST /api/models/role`,
+  `GET /api/models/usage`.
+- `npx arkaos models usage [--period]` and `discover`; a live Ollama
+  line under the routing table.
+- `/arka-fusion` skill: interactive advisor — discovers the machine's
+  models and keys, interviews the user, recommends role routing + a
+  fusion panel with rationale, and applies it.
+- Fusion engine (`core/fusion/`): panel → judge → synthesis. Diverse
+  models answer in parallel; a dead seat is skipped, never fatal; an
+  empty panel raises cleanly; the judge analyses consensus,
+  contradictions and blind spots then synthesises. Live-verified with
+  a local Ollama panel + judge.
+- Quality Gate redo-loop counter (`core/governance/redo_counter.py`):
+  the excellence-mandate cap is now mechanical — cycles 1-2 loop back,
+  the 3rd REJECTED escalates to the operator.
+
 ## [4.2.0] - 2026-07-05
 
 ### Added — Excellence Reform (operator mandate)
