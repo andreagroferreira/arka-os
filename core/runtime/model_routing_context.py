@@ -57,7 +57,7 @@ def routing_summary() -> str:
 
 
 def routing_directive() -> str:
-    """Full SessionStart block: the config plus how to honor it.
+    """Full SessionStart block: the config plus how to honour it.
 
     Returns '' when the config cannot be read, so the hook can skip the
     block entirely rather than inject an empty directive.

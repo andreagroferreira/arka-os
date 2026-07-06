@@ -37,6 +37,20 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 mkdir -p "$GW_DIR"
+health() { curl -fsS -m 2 "http://127.0.0.1:$PORT/health/liveliness" >/dev/null 2>&1; }
+
+# ─── Reuse a healthy proxy WITHOUT rotating its key ───────────────────────
+# The running proxy validates the ARKA_GATEWAY_KEY it started with; the
+# client reads that same value from the existing launch.env. Minting a new
+# key on reuse would 401 every request, so the reuse path touches neither
+# the key nor launch.env. Changing models.yaml needs ARKA_GATEWAY_RESTART=1.
+if [ "${ARKA_GATEWAY_RESTART:-0}" != "1" ] && health && [ -f "$ENV_FILE" ]; then
+  exit 0
+fi
+if health; then                      # RESTART path — old proxy must go
+  pkill -f "litellm .*--port $PORT" 2>/dev/null || true
+  sleep 1
+fi
 
 # ─── Render config from models.yaml ───────────────────────────────────────
 if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway > "$CONFIG" 2>/dev/null; then
@@ -44,7 +58,7 @@ if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway > "$CONFIG" 2>
   exit 1
 fi
 
-# ─── Master key (per launch) + client launch env ──────────────────────────
+# ─── Fresh master key + client launch env (created for THIS proxy) ────────
 MASTER_KEY="$("$ARKA_PY" -c 'import secrets; print("sk-arka-" + secrets.token_hex(16))')"
 export ARKA_GATEWAY_KEY="$MASTER_KEY"
 
@@ -54,19 +68,7 @@ if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway --env "$MASTER
 fi
 # The proxy reads ANTHROPIC_API_KEY + ARKA_GATEWAY_KEY from its own env.
 printf 'ARKA_GATEWAY_KEY=%s\n' "$MASTER_KEY" >> "$ENV_FILE"
-
-# ─── Reuse a healthy proxy, else start one ────────────────────────────────
-health() { curl -fsS -m 2 "http://127.0.0.1:$PORT/health/liveliness" >/dev/null 2>&1; }
-
-if health; then
-  # Already up. Changing models.yaml needs ARKA_GATEWAY_RESTART=1 to re-read.
-  if [ "${ARKA_GATEWAY_RESTART:-0}" = "1" ]; then
-    pkill -f "litellm .*--port $PORT" 2>/dev/null || true
-    sleep 1
-  else
-    exit 0
-  fi
-fi
+chmod 600 "$ENV_FILE" 2>/dev/null || true   # bearer token — owner-only
 
 # Start in the background; ARKA_GATEWAY_KEY + ANTHROPIC_API_KEY inherited.
 ( ARKA_GATEWAY_KEY="$MASTER_KEY" nohup "$LITELLM" --config "$CONFIG" --port "$PORT" \

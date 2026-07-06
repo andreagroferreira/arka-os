@@ -68,7 +68,6 @@ def test_gateway_plan_maps_slots_to_upstreams(models_path: Path):
     assert plan.slots["haiku"].kind == "ollama"
     assert plan.slots["haiku"].model_id == "kimi-k2.7-code:cloud"
     assert plan.slots["haiku"].api_base == "http://localhost:11434"
-    assert plan.main_model == "claude-fable-5"
 
 
 def test_litellm_config_routes(models_path: Path):

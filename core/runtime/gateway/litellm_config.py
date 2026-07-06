@@ -83,10 +83,14 @@ class Upstream(BaseModel):
 
 
 class GatewayPlan(BaseModel):
-    """Resolved routing: one upstream per alias slot + the main model."""
+    """Resolved routing: one upstream per subagent alias slot.
+
+    The strategy role rides the interactive main-loop model (set by
+    ``--model`` / the operator's ``/model``), which reaches Anthropic via
+    the wildcard passthrough route — it is not a gateway-controlled slot.
+    """
 
     slots: dict[str, Upstream]  # keyed by "opus"/"sonnet"/"haiku"
-    main_model: str
     source: str
 
 
@@ -109,9 +113,7 @@ def build_gateway_plan(user_path=None) -> GatewayPlan:
     for slot, role in _SLOT_ROLE.items():
         r = resolve(role, user_path)
         slots[slot] = _upstream_for(r.provider, r.model, ollama_base)
-    main = resolve("strategy", user_path)
-    main_model = _RUNTIME_TO_ANTHROPIC.get(main.model, main.model)
-    return GatewayPlan(slots=slots, main_model=main_model, source=source)
+    return GatewayPlan(slots=slots, source=source)
 
 
 def _litellm_params(up: Upstream) -> dict:

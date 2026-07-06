@@ -61,6 +61,44 @@ setup_gateway() {
   grep -q "arka-haiku" "$ARKAOS_HOME/gateway/config.yaml"
 }
 
+@test "gateway-ensure reuse keeps the same key (no 401 on relaunch)" {
+  setup_gateway
+  export ANTHROPIC_API_KEY="sk-test"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$ARKAOS_HOME/venv/bin/litellm"
+  chmod +x "$ARKAOS_HOME/venv/bin/litellm"
+  local stubdir="$TEST_TEMP_DIR/stub"
+  mkdir -p "$stubdir"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$stubdir/curl"   # always healthy
+  chmod +x "$stubdir/curl"
+  # First launch mints the key + writes launch.env.
+  PATH="$stubdir:$PATH" run bash "$REPO_DIR/scripts/gateway-ensure.sh"
+  [ "$status" -eq 0 ]
+  key1=$(grep '^ARKA_GATEWAY_KEY=' "$ARKAOS_HOME/gateway/launch.env")
+  # Second launch sees a healthy proxy + existing env -> reuse, key unchanged.
+  PATH="$stubdir:$PATH" run bash "$REPO_DIR/scripts/gateway-ensure.sh"
+  [ "$status" -eq 0 ]
+  key2=$(grep '^ARKA_GATEWAY_KEY=' "$ARKAOS_HOME/gateway/launch.env")
+  [ "$key1" = "$key2" ]
+}
+
+@test "gateway-ensure restart rotates the key (ARKA_GATEWAY_RESTART=1)" {
+  setup_gateway
+  export ANTHROPIC_API_KEY="sk-test"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$ARKAOS_HOME/venv/bin/litellm"
+  chmod +x "$ARKAOS_HOME/venv/bin/litellm"
+  local stubdir="$TEST_TEMP_DIR/stub"
+  mkdir -p "$stubdir"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$stubdir/curl"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$stubdir/pkill"
+  chmod +x "$stubdir/curl" "$stubdir/pkill"
+  PATH="$stubdir:$PATH" run bash "$REPO_DIR/scripts/gateway-ensure.sh"
+  key1=$(grep '^ARKA_GATEWAY_KEY=' "$ARKAOS_HOME/gateway/launch.env")
+  PATH="$stubdir:$PATH" ARKA_GATEWAY_RESTART=1 run bash "$REPO_DIR/scripts/gateway-ensure.sh"
+  [ "$status" -eq 0 ]
+  key2=$(grep '^ARKA_GATEWAY_KEY=' "$ARKAOS_HOME/gateway/launch.env")
+  [ "$key1" != "$key2" ]
+}
+
 @test "launch.env never contains the real Anthropic key" {
   setup_gateway
   export ANTHROPIC_API_KEY="sk-ant-REALSECRET"
