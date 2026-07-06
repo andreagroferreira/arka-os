@@ -5,6 +5,37 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.5] - 2026-07-06
+
+### Security — OWASP A03 injection in session hooks (PR #238)
+
+- `cwd-changed.sh` `eval`'d a Python snippet that interpolated the
+  untrusted harness `cwd` into its source and re-evaluated the
+  `ecosystems.json` `name` field — a directory whose basename closed the
+  string, or a `name` carrying `$(cmd)`, reached command execution when
+  the working directory changed. Values now pass through the environment
+  (`ARKA_CWD`/`ARKA_ECO_FILE`), the resolver emits JSON read by `jq`,
+  `eval` is gone, and the envelope is built with `jq -nc --arg`.
+- `session-start.sh` no longer interpolates the profile-derived message
+  into `msg = '''...'''`; it passes `ARKA_MSG` via the environment.
+- PowerShell ports already used `ConvertFrom-Json`/`ConvertTo-Json` and
+  were verified safe. 5 bats tests, each proven to fire on the
+  vulnerable hook via git-stash.
+
+### Changed — CI hardening follow-ups (PR #239)
+
+- Node 18 CI leg now runs a runtime smoke that imports and **calls**
+  `copyHookLib`, exercising the function body on the `engines>=18` floor.
+- New `.github/dependabot.yml` scans npm, pip (pyproject deps), and
+  github-actions weekly.
+- `package.json` `files` enumerates the 12 first-party bins and omits
+  `bin/arka-registry-gen` (maintainer-only); two load-bearing npm-pack
+  tests guard the shims-present / tool-omitted invariant and the
+  #234 forgotten-shim class.
+- Branch protection on `master` now requires all 8 CI checks (strict off).
+
+---
+
 ## [4.3.4] - 2026-07-06
 
 ### Changed — Quality Gate follow-up batch (PRs #235, #236, #237)
