@@ -2,9 +2,10 @@ name: workflow-tiers
 added_in: "2.12.0"
 mandatory: true
 section_title: "Workflow Tiers"
-detection_pattern: "Enterprise.*phase|Focused.*phase|Specialist.*phase"
+detection_pattern: "arka:feature:workflow-tiers|## Workflow Tiers"
 deprecated_in: null
 content: |
+  <!-- arka:feature:workflow-tiers:start -->
   ## Workflow Tiers
 
   Three workflow tiers based on task complexity:
@@ -17,3 +18,4 @@ content: |
 
   Tier selection is automatic based on complexity assessment.
   Quality Gate phase is mandatory on ALL tiers.
+  <!-- arka:feature:workflow-tiers:end -->

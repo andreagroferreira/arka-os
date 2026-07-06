@@ -2,9 +2,10 @@ name: forge-integration
 added_in: "2.14.0"
 mandatory: true
 section_title: "Forge Integration"
-detection_pattern: "arka-forge"
+detection_pattern: "arka:feature:forge-integration|## Forge Integration|arka-forge"
 deprecated_in: null
 content: |
+  <!-- arka:feature:forge-integration:start -->
   ## Forge Integration
 
   Complex requests (complexity score >= 5) are automatically routed to
@@ -14,3 +15,4 @@ content: |
   - Complexity assessment: automatic via Synapse L8 (ForgeContextLayer)
   - Manual invocation: `/forge` command
   - Handoff: Forge outputs structured plan → squad executes phases
+  <!-- arka:feature:forge-integration:end -->
