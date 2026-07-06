@@ -7,6 +7,13 @@
 
 set -euo pipefail
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+# The resolver guards its own ARKA_PY assignment with `|| true`, so sourcing
+# is set -e-safe even on the last-resort fallback. The trailing `|| true`
+# here is belt-and-suspenders for a partially-updated lib.
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB" || true; else ARKA_PY="python3"; fi
+
 # Hook contract: stdin is a JSON payload with fields tool_name + tool_input.
 payload="$(cat)"
 
@@ -44,7 +51,7 @@ fi
 if [ -d "$core_root/departments" ]; then
     mkdir -p "$project_agents_dir"
     set +e
-    python3 - "$core_root" "$subagent_type" "$target" <<'PY'
+    "$ARKA_PY" - "$core_root" "$subagent_type" "$target" <<'PY'
 import os, re, sys
 from pathlib import Path
 

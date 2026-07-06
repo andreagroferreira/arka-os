@@ -39,9 +39,11 @@ if ([string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
     }
 }
 
-$python = Get-Command python3 -ErrorAction SilentlyContinue
-if (-not $python) { $python = Get-Command python -ErrorAction SilentlyContinue }
-if (-not $python) { exit 0 }
+# Shared resolver (venv-first, yaml-verified). Mirrors _lib/arka_python.sh.
+$arkaLib = Join-Path $PSScriptRoot "_lib\arka_python.ps1"
+if (Test-Path -LiteralPath $arkaLib) { . $arkaLib }
+$pythonExe = $env:ARKA_PY
+if (-not $pythonExe) { exit 0 }
 
 # --- KB-first gate (Task #6, runs before flow-marker gate) ---
 $queryHint = ""
@@ -91,7 +93,7 @@ print(json.dumps({
 }))
 '@
 
-    $kbDecisionJson = $kbScript | & $python.Source -
+    $kbDecisionJson = $kbScript | & $pythonExe -
     if (-not [string]::IsNullOrWhiteSpace($kbDecisionJson)) {
         try {
             $kbDecision = $kbDecisionJson | ConvertFrom-Json
@@ -172,7 +174,7 @@ print(json.dumps({
 }))
 '@
 
-    $spDecisionJson = $spScript | & $python.Source -
+    $spDecisionJson = $spScript | & $pythonExe -
     if (-not [string]::IsNullOrWhiteSpace($spDecisionJson)) {
         try {
             $spDecision = $spDecisionJson | ConvertFrom-Json
@@ -241,7 +243,7 @@ print(json.dumps({
 }))
 '@
 
-$decisionJson = $pyScript | & $python.Source -
+$decisionJson = $pyScript | & $pythonExe -
 if ([string]::IsNullOrWhiteSpace($decisionJson)) { exit 0 }
 
 try {

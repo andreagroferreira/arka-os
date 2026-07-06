@@ -353,7 +353,7 @@ arkaos/
 
 | Step | Command | Notes |
 |------|---------|-------|
-| **0. Preflight** | `python -m core.release.preflight_cli --expected-npm-user wizardingcode` | **NON-NEGOTIABLE step 0** (PR21 v2.43.0). Exit 1 = STOP, fix every remediation, re-run. Catches: version-misalignment, npm/gh auth expired, missing remote. Prevents the v2.40.0 friction (60-min release because expired token only surfaced after merge). |
+| **0. Preflight** | `~/.arkaos/bin/arka-py -m core.release.preflight_cli --expected-npm-user wizardingcode` | **NON-NEGOTIABLE step 0** (PR21 v2.43.0). Exit 1 = STOP, fix every remediation, re-run. Catches: version-misalignment, npm/gh auth expired, missing remote. Prevents the v2.40.0 friction (60-min release because expired token only surfaced after merge). |
 | 1. Bump version | Update `VERSION`, `package.json`, `pyproject.toml` | All three must match |
 | 2. Commit | `git commit -m "chore: bump to vX.Y.Z"` | |
 | 3. Push | `git push origin master` | |

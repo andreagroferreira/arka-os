@@ -34,9 +34,13 @@ if [ -z "${ARKAOS_ROOT:-}" ]; then
 fi
 export ARKAOS_ROOT
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
 _ARKA_L0_FALLBACK='{"additionalContext": "[Constitution] NON-NEGOTIABLE: branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST: conventional-commits, test-coverage, pattern-matching, actionable-output, memory-persistence"}'
 
-if ! command -v python3 &>/dev/null; then
+if ! command -v "$ARKA_PY" >/dev/null 2>&1; then
   echo "$_ARKA_L0_FALLBACK"
   exit 0
 fi
@@ -54,20 +58,7 @@ if [ ! -f "$ARKAOS_ROOT/core/hooks/user_prompt_submit.py" ]; then
   fi
 fi
 
-# Interpreter resolution: prefer the ArkaOS venv (has pyyaml/pydantic);
-# otherwise probe — an unrelated project venv first on PATH would give a
-# python3 without yaml and silently degrade every gate.
-_PY=""
-for _cand in "$HOME/.arkaos/venv/bin/python3" "$HOME/.arkaos/.venv/bin/python3"; do
-  if [ -x "$_cand" ]; then _PY="$_cand"; break; fi
-done
-if [ -z "$_PY" ]; then
-  _PY="python3"
-  if ! "$_PY" -c "import yaml" 2>/dev/null; then
-    for _cand in /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
-      if [ -x "$_cand" ] && "$_cand" -c "import yaml" 2>/dev/null; then _PY="$_cand"; break; fi
-    done
-  fi
-fi
+# Interpreter resolution handled by the shared resolver (ARKA_PY): prefers
+# the ArkaOS venv (has pyyaml/pydantic), falls back to a yaml-capable python3.
 PYTHONPATH="$ARKAOS_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  exec "$_PY" -m core.hooks.user_prompt_submit
+  exec "$ARKA_PY" -m core.hooks.user_prompt_submit

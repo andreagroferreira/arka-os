@@ -5,6 +5,13 @@
 # Dependencies: jq (required)
 # ============================================================================
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+# The lib is not a sibling here; try the in-repo path then the installed tree.
+for _l in "$(dirname "${BASH_SOURCE[0]:-$0}")/../../config/hooks/_lib/arka_python.sh" "$HOME/.arkaos/config/hooks/_lib/arka_python.sh"; do
+  if [ -f "$_l" ]; then . "$_l"; break; fi
+done
+: "${ARKA_PY:=python3}"
+
 STATE_FILE="$HOME/.arkaos/workflow-state.json"
 
 if [ ! -f "$STATE_FILE" ]; then
@@ -73,11 +80,11 @@ case "$CMD" in
       echo "none"
       exit 0
     fi
-    if command -v python3 &>/dev/null; then
-      _F_NAME=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('name',''))" 2>/dev/null)
-      _F_STATUS=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
-      _F_PHASES=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(len(d.get('plan_phases',[])))" 2>/dev/null)
-      _F_BRANCH=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
+    if command -v "$ARKA_PY" >/dev/null 2>&1; then
+      _F_NAME=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('name',''))" 2>/dev/null)
+      _F_STATUS=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
+      _F_PHASES=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(len(d.get('plan_phases',[])))" 2>/dev/null)
+      _F_BRANCH=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
       echo "${_FORGE_ID}|${_F_NAME}|${_F_STATUS}|${_F_PHASES}|${_F_BRANCH}"
     else
       echo "${_FORGE_ID}|||0|"

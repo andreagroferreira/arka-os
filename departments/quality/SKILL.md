@@ -24,7 +24,7 @@ Any Department Workflow:
   ...
   Phase N-1: QUALITY GATE
     1. Run the evidence engine over the project/diff:
-         python -m core.governance.evidence_checks <project_dir> \
+         ~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> \
            [--changed-files f1,f2] [--test-command '...'] --json
     2. Marta dispatches Eduardo + Francisca to INTERPRET the report:
        - Eduardo: spellcheck section + prose review of changed copy

@@ -33,7 +33,11 @@ if [ -z "${ARKAOS_ROOT:-}" ]; then
 fi
 export ARKAOS_ROOT
 
-if ! command -v python3 &>/dev/null; then
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
+if ! command -v "$ARKA_PY" >/dev/null 2>&1; then
   exit 0
 fi
 # Self-root fallback: the wrapper ships next to its python entrypoint, so
@@ -49,21 +53,8 @@ if [ ! -f "$ARKAOS_ROOT/core/hooks/stop.py" ]; then
   fi
 fi
 
-# Interpreter resolution: prefer the ArkaOS venv (has pyyaml/pydantic);
-# otherwise probe — an unrelated project venv first on PATH would give a
-# python3 without yaml and silently degrade every gate.
-_PY=""
-for _cand in "$HOME/.arkaos/venv/bin/python3" "$HOME/.arkaos/.venv/bin/python3"; do
-  if [ -x "$_cand" ]; then _PY="$_cand"; break; fi
-done
-if [ -z "$_PY" ]; then
-  _PY="python3"
-  if ! "$_PY" -c "import yaml" 2>/dev/null; then
-    for _cand in /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
-      if [ -x "$_cand" ] && "$_cand" -c "import yaml" 2>/dev/null; then _PY="$_cand"; break; fi
-    done
-  fi
-fi
+# Interpreter resolution handled by the shared resolver (ARKA_PY): prefers
+# the ArkaOS venv (has pyyaml/pydantic), falls back to a yaml-capable python3.
 PYTHONPATH="$ARKAOS_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  "$_PY" -m core.hooks.stop
+  "$ARKA_PY" -m core.hooks.stop
 exit 0

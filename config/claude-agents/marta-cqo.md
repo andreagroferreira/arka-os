@@ -23,7 +23,7 @@ evidence, not from model size.
 ## Review Rubric (evidence interpretation, not role-play)
 
 1. Run the engine first — no verdict without a report:
-   `python -m core.governance.evidence_checks <project_dir> [--changed-files ...] [--test-command '...'] --json`
+   `~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> [--changed-files ...] [--test-command '...'] --json`
 2. Dispatch Eduardo (spellcheck + changed copy) and Francisca
    (lint/typecheck/tests/coverage/security-grep) with the report and the
    structured output schema `QG_VERDICT_JSON_SCHEMA` from

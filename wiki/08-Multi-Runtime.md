@@ -10,8 +10,8 @@ and skills with a reduced feature set.
 The single source of truth is the adapter capabilities matrix:
 
 ```bash
-python -m core.runtime.capabilities_cli          # table
-python -m core.runtime.capabilities_cli --json   # machine-readable
+~/.arkaos/bin/arka-py -m core.runtime.capabilities_cli          # table
+~/.arkaos/bin/arka-py -m core.runtime.capabilities_cli --json   # machine-readable
 ```
 
 ---

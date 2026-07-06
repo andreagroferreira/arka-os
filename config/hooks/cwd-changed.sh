@@ -8,6 +8,10 @@
 input=$(cat)
 NEW_CWD=$(echo "$input" | jq -r '.cwd // ""' 2>/dev/null)
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
 if [ -z "$NEW_CWD" ] || [ ! -d "$NEW_CWD" ]; then
   exit 0
 fi
@@ -23,8 +27,8 @@ fi
 ECOSYSTEM=""
 ECOSYSTEM_NAME=""
 
-if [ -f "$ECOSYSTEMS_FILE" ] && command -v python3 &>/dev/null; then
-  eval "$(python3 -c "
+if [ -f "$ECOSYSTEMS_FILE" ] && command -v "$ARKA_PY" >/dev/null 2>&1; then
+  eval "$("$ARKA_PY" -c "
 import json, os, sys
 
 cwd = '$NEW_CWD'

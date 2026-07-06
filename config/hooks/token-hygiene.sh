@@ -13,6 +13,10 @@
 
 set +e  # never fail
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
 _prompt="${ARKA_PROMPT:-}"
 _transcript="${ARKA_TRANSCRIPT_PATH:-}"
 _suggestions=""
@@ -64,7 +68,7 @@ if [ -n "$_transcript" ] && [ -f "$_transcript" ] && [ -n "$_prompt" ]; then
   _cur_kw=$(_kw "$_prompt" | head -20)
   # pull last 3 user messages from transcript jsonl
   _prior=$(tail -n 200 "$_transcript" 2>/dev/null \
-    | python3 -c "
+    | "$ARKA_PY" -c "
 import sys, json
 msgs=[]
 for line in sys.stdin:

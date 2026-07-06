@@ -7,6 +7,10 @@
 
 input=$(cat)
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
 # ─── V1 Migration Detection ─────────────────────────────────────────────
 V1_PATHS=("$HOME/.claude/skills/arka-os" "$HOME/.claude/skills/arkaos")
 MIGRATION_MARKER="$HOME/.arkaos/migrated-from-v1"
@@ -27,12 +31,12 @@ if [ -f "$ARKAOS_VERSION_FILE" ]; then
   if [ -f "$_REPO_PATH/VERSION" ]; then
     _CURRENT_VERSION=$(cat "$_REPO_PATH/VERSION")
   elif [ -f "$_REPO_PATH/package.json" ]; then
-    _CURRENT_VERSION=$(python3 -c "import json; print(json.load(open('$_REPO_PATH/package.json'))['version'])" 2>/dev/null || echo "")
+    _CURRENT_VERSION=$("$ARKA_PY" -c "import json; print(json.load(open('$_REPO_PATH/package.json'))['version'])" 2>/dev/null || echo "")
   fi
 
   if [ -n "${_CURRENT_VERSION:-}" ]; then
     if [ -f "$SYNC_STATE" ]; then
-      _SYNCED_VERSION=$(python3 -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
+      _SYNCED_VERSION=$("$ARKA_PY" -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
     else
       _SYNCED_VERSION="none"
     fi
@@ -53,9 +57,9 @@ if [ ! -f "$_SESSION_MARKER" ] && [ ! -f "/tmp/arkaos-greeted-today" ]; then
   _GREETING_COMPANY=""
   _GREETING_VERSION=""
 
-  if [ -f "$HOME/.arkaos/profile.json" ] && command -v python3 &>/dev/null; then
-    _GREETING_NAME=$(python3 -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null)
-    _GREETING_COMPANY=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', ''))" 2>/dev/null)
+  if [ -f "$HOME/.arkaos/profile.json" ] && command -v "$ARKA_PY" >/dev/null 2>&1; then
+    _GREETING_NAME=$("$ARKA_PY" -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null)
+    _GREETING_COMPANY=$("$ARKA_PY" -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', ''))" 2>/dev/null)
   fi
 
   if [ -f "$HOME/.arkaos/.repo-path" ]; then
@@ -111,12 +115,12 @@ fi
 python_result=""
 BRIDGE_SCRIPT="${ARKAOS_ROOT}/scripts/synapse-bridge.py"
 
-if command -v python3 &>/dev/null && [ -f "$BRIDGE_SCRIPT" ]; then
-  bridge_output=$(echo "{\"user_input\":$(echo "$user_input" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')}" \
-    | ARKAOS_ROOT="$ARKAOS_ROOT" python3 "$BRIDGE_SCRIPT" --root "$ARKAOS_ROOT" 2>/dev/null)
+if command -v "$ARKA_PY" >/dev/null 2>&1 && [ -f "$BRIDGE_SCRIPT" ]; then
+  bridge_output=$(echo "{\"user_input\":$(echo "$user_input" | "$ARKA_PY" -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || echo '""')}" \
+    | ARKAOS_ROOT="$ARKAOS_ROOT" "$ARKA_PY" "$BRIDGE_SCRIPT" --root "$ARKAOS_ROOT" 2>/dev/null)
 
   if [ -n "$bridge_output" ]; then
-    python_result=$(echo "$bridge_output" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('context_string',''))" 2>/dev/null)
+    python_result=$(echo "$bridge_output" | "$ARKA_PY" -c "import sys,json; print(json.loads(sys.stdin.read()).get('context_string',''))" 2>/dev/null)
   fi
 fi
 

@@ -1,0 +1,15 @@
+{
+  "root": true,
+  "env": { "node": true, "es2022": true },
+  "parserOptions": { "ecmaVersion": 2022, "sourceType": "module" },
+  "rules": {
+    "no-undef": "error",
+    "no-dupe-keys": "error",
+    "no-dupe-args": "error",
+    "no-unreachable": "error",
+    "no-func-assign": "error",
+    "no-cond-assign": ["error", "except-parens"],
+    "no-unused-vars": "warn",
+    "no-empty": ["warn", { "allowEmptyCatch": true }]
+  }
+}

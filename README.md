@@ -491,7 +491,7 @@ npx arkaos uninstall           # Remove ArkaOS
 **Release pipeline (operator-side, headless):**
 
 ```
-python -m core.release.preflight_cli --expected-npm-user <user>
+~/.arkaos/bin/arka-py -m core.release.preflight_cli --expected-npm-user <user>
 # Step 0 NON-NEGOTIABLE before any tag/push/publish (v2.43.0+).
 # Six checks: version-alignment / npm-auth / npm-publish-capability /
 # gh-auth / git-remote / git-clean. Plus no-client-name-leaks

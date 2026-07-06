@@ -9,9 +9,13 @@ NAME="founder"
 COMPANY="WizardingCode"
 VERSION="2.x"
 
-if [ -f "$HOME/.arkaos/profile.json" ] && command -v python3 &>/dev/null; then
-  NAME=$(python3 -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null || echo "founder")
-  COMPANY=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', 'WizardingCode'))" 2>/dev/null || echo "WizardingCode")
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
+if [ -f "$HOME/.arkaos/profile.json" ] && command -v "$ARKA_PY" >/dev/null 2>&1; then
+  NAME=$("$ARKA_PY" -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null || echo "founder")
+  COMPANY=$("$ARKA_PY" -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', 'WizardingCode'))" 2>/dev/null || echo "WizardingCode")
 fi
 
 if [ -f "$HOME/.arkaos/.repo-path" ]; then
@@ -29,7 +33,7 @@ SYNC_STATE="$HOME/.arkaos/sync-state.json"
 DRIFT=""
 
 if [ -f "$SYNC_STATE" ]; then
-  SYNCED=$(python3 -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
+  SYNCED=$("$ARKA_PY" -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
   if [ "$SYNCED" != "$VERSION" ]; then
     DRIFT="\\n[arka:update-available] Core v${VERSION} != synced v${SYNCED}. Run /arka update."
   fi
@@ -71,11 +75,11 @@ _FORGE_LINE=""
 if [ -f "$_FORGE_ACTIVE" ]; then
   _FORGE_ID=$(cat "$_FORGE_ACTIVE" 2>/dev/null)
   _FORGE_FILE="$_FORGE_PLANS/${_FORGE_ID}.yaml"
-  if [ -f "$_FORGE_FILE" ] && command -v python3 &>/dev/null; then
-    _FORGE_NAME=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('name',''))" 2>/dev/null)
-    _FORGE_STATUS=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
-    _FORGE_PHASES=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(len(d.get('plan_phases',[])))" 2>/dev/null)
-    _FORGE_BRANCH=$(FORGE_FILE="$_FORGE_FILE" python3 -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
+  if [ -f "$_FORGE_FILE" ] && command -v "$ARKA_PY" >/dev/null 2>&1; then
+    _FORGE_NAME=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('name',''))" 2>/dev/null)
+    _FORGE_STATUS=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('status',''))" 2>/dev/null)
+    _FORGE_PHASES=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(len(d.get('plan_phases',[])))" 2>/dev/null)
+    _FORGE_BRANCH=$(FORGE_FILE="$_FORGE_FILE" "$ARKA_PY" -c "import yaml,os; d=yaml.safe_load(open(os.environ['FORGE_FILE'])); print(d.get('governance',{}).get('branch_strategy',''))" 2>/dev/null)
 
     if [ "$_FORGE_STATUS" = "approved" ]; then
       _FORGE_LINE="  ⚒ Forge plan pending: ${_FORGE_NAME} | Phases: ${_FORGE_PHASES} | /forge resume"
@@ -110,12 +114,10 @@ MSG+="\\nAbsence is measured by the Stop hook (warn-only in v2.34.0) before prom
 # dashboard/CLI model choices actually govern agent dispatch. Cheap
 # (single python read); skipped silently if the config can't be resolved.
 if [ -n "$REPO" ]; then
-  # Prefer the ArkaOS venv python (has pydantic + yaml); the ambient
-  # python3 usually lacks them and routing_directive() would return "".
-  _MF_PY="python3"
-  [ -x "$HOME/.arkaos/venv/bin/python3" ] && _MF_PY="$HOME/.arkaos/venv/bin/python3"
-  if command -v "$_MF_PY" &>/dev/null || [ -x "$_MF_PY" ]; then
-    _MF_DIRECTIVE=$(cd "$REPO" && PYTHONPATH="$REPO" "$_MF_PY" -c "
+  # ARKA_PY already resolves to the venv python (has pydantic + yaml); the
+  # ambient python3 usually lacks them and routing_directive() would return "".
+  if command -v "$ARKA_PY" >/dev/null 2>&1 || [ -x "$ARKA_PY" ]; then
+    _MF_DIRECTIVE=$(cd "$REPO" && PYTHONPATH="$REPO" "$ARKA_PY" -c "
 try:
     from core.runtime.model_routing_context import routing_directive
     print(routing_directive())
@@ -132,12 +134,12 @@ fi
 # If today's proposal file is missing, fire the reorganizer in the
 # background with a 30s timeout. Best-effort, never blocks session
 # start. Multiple sessions per day no-op because the file now exists.
-if [ -n "$REPO" ] && command -v python3 &>/dev/null; then
+if [ -n "$REPO" ] && command -v "$ARKA_PY" >/dev/null 2>&1; then
   _PROPOSAL_DIR="$HOME/.arkaos/reorganize-proposals"
   _TODAY="$(date -u +%Y-%m-%d).md"
   if [ ! -f "$_PROPOSAL_DIR/$_TODAY" ]; then
     (
-      cd "$REPO" && timeout 30s python3 -m core.cognition.reorganizer_cli >/dev/null 2>&1
+      cd "$REPO" && timeout 30s "$ARKA_PY" -m core.cognition.reorganizer_cli >/dev/null 2>&1
     ) &
     disown 2>/dev/null || true
   fi
@@ -149,7 +151,7 @@ fi
 # starts API+UI. Background + disown so it never touches the 5s budget.
 # Toggle off: ~/.arkaos/config.json -> {"dashboard": {"ensure_on_session": false}}
 if [ -n "$REPO" ] && [ -f "$REPO/scripts/start-dashboard.sh" ]; then
-  _DASH_ENSURE=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/config.json')).get('dashboard',{}).get('ensure_on_session', True))" 2>/dev/null || echo "True")
+  _DASH_ENSURE=$("$ARKA_PY" -c "import json; print(json.load(open('$HOME/.arkaos/config.json')).get('dashboard',{}).get('ensure_on_session', True))" 2>/dev/null || echo "True")
   if [ "$_DASH_ENSURE" = "True" ] || [ "$_DASH_ENSURE" = "true" ]; then
     mkdir -p "$HOME/.arkaos/logs"
     (
@@ -166,8 +168,8 @@ if [ -n "$REPO" ] && [ -f "$REPO/scripts/start-dashboard.sh" ]; then
 fi
 
 # --- Session Memory Resume Context ---
-if command -v python3 &>/dev/null && [ -n "$REPO" ]; then
-  _SESSION_CTX=$(cd "$REPO" && python3 -c "
+if command -v "$ARKA_PY" >/dev/null 2>&1 && [ -n "$REPO" ]; then
+  _SESSION_CTX=$(cd "$REPO" && "$ARKA_PY" -c "
 import sys
 sys.path.insert(0, '$REPO')
 try:
@@ -182,7 +184,7 @@ except Exception:
 fi
 
 # ─── Output as systemMessage (same protocol as claude-mem) ─────────────
-python3 -c "
+"$ARKA_PY" -c "
 import json
 msg = '''$(echo -e "$MSG")'''
 print(json.dumps({'systemMessage': msg}))
