@@ -13,6 +13,7 @@ interpreter invocation.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -170,6 +171,57 @@ def test_sourcing_resolver_survives_errexit():
 def test_windows_shim_and_resolver_exist():
     for rel in ("config/hooks/_lib/arka_python.ps1", "bin/arka-py.ps1", "bin/arka-py.cmd"):
         assert (_ROOT / rel).exists(), f"missing Windows counterpart: {rel}"
+
+
+# ── npm packaging (v4.3.2 regression: shims never reached npm installs) ──
+# package.json `files` only shipped `bin/arkaos`, so the installer's
+# existsSync() on bin/arka-py* and bin/arka-claude* silently skipped the
+# shim deploy on every published install — the exact multi-user failure
+# the resolver consolidation exists to fix.
+
+_REQUIRED_IN_TARBALL = [
+    "bin/arka-py",
+    "bin/arka-py.ps1",
+    "bin/arka-py.cmd",
+    "bin/arka-claude",
+    "bin/arka-claude.ps1",
+    "bin/arka-claude.cmd",
+    "config/hooks/_lib/arka_python.sh",
+    "config/hooks/_lib/arka_python.ps1",
+]
+
+
+def _npm_files_cover(rel: str, entries: list[str]) -> bool:
+    for entry in entries:
+        clean = entry.rstrip("/")
+        if rel == clean or rel.startswith(clean + "/"):
+            return True
+    return False
+
+
+def test_npm_files_whitelist_ships_shims_and_resolver():
+    pkg = json.loads((_ROOT / "package.json").read_text(encoding="utf-8"))
+    entries = pkg.get("files", [])
+    missing = [r for r in _REQUIRED_IN_TARBALL if not _npm_files_cover(r, entries)]
+    assert not missing, (
+        "package.json `files` does not ship interpreter shims/resolver — "
+        "npm installs silently skip the shim deploy:\n" + "\n".join(missing)
+    )
+
+
+def test_update_flow_deploys_hook_lib():
+    """installer/update.js has its own hook-deploy loop (not
+    index.js::installHooks). It must also copy config/hooks/_lib/
+    recursively, or updated installs keep hooks that source a resolver
+    which was never deployed to ~/.arkaos/config/hooks/_lib/."""
+    body = (_ROOT / "installer" / "update.js").read_text(encoding="utf-8")
+    assert re.search(r'join\(srcHooksDir,\s*"_lib"\)', body), (
+        "installer/update.js never copies config/hooks/_lib/ — the shared "
+        "resolver does not reach ~/.arkaos on update"
+    )
+    assert re.search(
+        r"cpSync\(\s*srcLibDir\s*,\s*destLibDir\s*,\s*\{\s*recursive:\s*true", body
+    ), "installer/update.js must copy _lib recursively (cpSync srcLibDir -> destLibDir)"
 
 
 def test_windows_flow_hooks_use_shared_resolver():
