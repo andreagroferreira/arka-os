@@ -184,8 +184,11 @@ except Exception:
 fi
 
 # ─── Output as systemMessage (same protocol as claude-mem) ─────────────
-"$ARKA_PY" -c "
-import json
-msg = '''$(echo -e "$MSG")'''
-print(json.dumps({'systemMessage': msg}))
+# OWASP A03: MSG carries profile-derived NAME/COMPANY. Pass it through the
+# environment (with \n already expanded) rather than interpolating it into
+# the Python source, so a name containing quotes or ''' cannot break the
+# script or the JSON envelope.
+ARKA_MSG="$(echo -e "$MSG")" "$ARKA_PY" -c "
+import json, os
+print(json.dumps({'systemMessage': os.environ['ARKA_MSG']}))
 "
