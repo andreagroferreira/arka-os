@@ -102,9 +102,30 @@ jobs:
 
       - name: Run installer tests
         # The node --test glob form ("tests/installer/**/*.test.js") is
-        # stable since Node 22; the 18 leg covers syntax + lint only.
+        # stable since Node 22.
         if: matrix.node-version == 22
         run: npm test
+
+      - name: Runtime smoke (engines floor)
+        # The 18 leg's other steps only parse/lint — they never execute
+        # installer runtime code, so the engines>=18 promise was untested.
+        # Import a real ESM module and CALL it against temp dirs: exercises
+        # the function body (fs cpSync/chmod/mkdir), not just resolution.
+        if: matrix.node-version == 18
+        run: |
+          node --input-type=module -e "
+            import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
+            import { join } from 'node:path';
+            import { tmpdir } from 'node:os';
+            import { copyHookLib } from './installer/hook-lib.js';
+            const src = mkdtempSync(join(tmpdir(), 'smoke-src-'));
+            mkdirSync(join(src, '_lib'));
+            writeFileSync(join(src, '_lib', 'x.sh'), '#!/usr/bin/env bash\n');
+            const dest = mkdtempSync(join(tmpdir(), 'smoke-dest-'));
+            if (copyHookLib(src, dest) !== true) { throw new Error('copyHookLib did not report success on Node 18'); }
+            if (!existsSync(join(dest, '_lib', 'x.sh'))) { throw new Error('copyHookLib did not deploy _lib on Node 18'); }
+            console.log('runtime smoke OK on', process.version);
+          "
 
   skill-validation:
     runs-on: ubuntu-latest
