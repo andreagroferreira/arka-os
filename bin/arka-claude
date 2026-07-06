@@ -13,14 +13,24 @@ CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 RESET='\033[0m'
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_self="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+for _lib in \
+    "$_self/../config/hooks/_lib/arka_python.sh" \
+    "$HOME/.arkaos/config/hooks/_lib/arka_python.sh"; do
+  # shellcheck source=/dev/null
+  [ -f "$_lib" ] && { . "$_lib"; break; }
+done
+: "${ARKA_PY:=python3}"
+
 # ─── Profile ───────────────────────────────────────────────────────────
 NAME="founder"
 COMPANY="WizardingCode"
 VERSION="2.x"
 
-if [ -f "$HOME/.arkaos/profile.json" ] && command -v python3 &>/dev/null; then
-  NAME=$(python3 -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null || echo "founder")
-  COMPANY=$(python3 -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', 'WizardingCode'))" 2>/dev/null || echo "WizardingCode")
+if [ -f "$HOME/.arkaos/profile.json" ]; then
+  NAME=$("$ARKA_PY" -c "import json; p=json.load(open('$HOME/.arkaos/profile.json')); print(p.get('name', p.get('role', 'founder')))" 2>/dev/null || echo "founder")
+  COMPANY=$("$ARKA_PY" -c "import json; print(json.load(open('$HOME/.arkaos/profile.json')).get('company', 'WizardingCode'))" 2>/dev/null || echo "WizardingCode")
 fi
 
 if [ -f "$HOME/.arkaos/.repo-path" ]; then
@@ -38,7 +48,7 @@ else GREETING="Boa noite"; fi
 DRIFT_MSG=""
 SYNC_STATE="$HOME/.arkaos/sync-state.json"
 if [ -f "$SYNC_STATE" ]; then
-  SYNCED=$(python3 -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
+  SYNCED=$("$ARKA_PY" -c "import json; print(json.load(open('$SYNC_STATE'))['version'])" 2>/dev/null || echo "none")
   if [ "$SYNCED" != "$VERSION" ]; then
     DRIFT_MSG="\n  ${YELLOW}⚠  Update available: run /arka update to sync${RESET}"
   fi
@@ -59,6 +69,27 @@ echo -e "  ${CYAN}${GREETING}, ${NAME}${RESET} ${DIM}(${COMPANY})${RESET}"
 echo -e "  ${DIM}ArkaOS v${VERSION} │ 65 agents │ 17 departments │ 244+ skills${RESET}"
 echo -e "${DRIFT_MSG}"
 echo ""
+
+# ─── Model-routing gateway (opt-in: ARKA_GATEWAY=1) ────────────────────
+# Renders the LiteLLM proxy from ~/.arkaos/models.yaml and launches Claude
+# Code against it, so per-role model choices (execution→Ollama, quality→
+# Anthropic) actually take effect. Any failure degrades to a plain launch.
+if [ "${ARKA_GATEWAY:-0}" = "1" ] && [ -n "${REPO:-}" ]; then
+  _GW="$REPO/scripts/gateway-ensure.sh"
+  _ENV_FILE="$HOME/.arkaos/gateway/launch.env"
+  if [ -f "$_GW" ] && ARKAOS_ROOT="$REPO" ARKAOS_HOME="$HOME/.arkaos" bash "$_GW"; then
+    # Source the generated env without eval (values are ArkaOS-controlled).
+    set -a
+    # shellcheck source=/dev/null
+    . "$_ENV_FILE"
+    set +a
+    echo -e "  ${GREEN}⚡ Model Fabric gateway active${RESET} ${DIM}(execution→Ollama, quality→Anthropic)${RESET}"
+    echo ""
+  else
+    echo -e "  ${DIM}(gateway off — plain Claude launch)${RESET}"
+    echo ""
+  fi
+fi
 
 # ─── Launch Claude ─────────────────────────────────────────────────────
 exec claude "$@"

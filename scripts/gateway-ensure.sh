@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# ============================================================================
+# ArkaOS — Model-routing gateway ensure
+#
+# Renders the LiteLLM proxy config from ~/.arkaos/models.yaml, ensures the
+# proxy is running, and writes the Claude Code launch env to a file the
+# caller sources. Best-effort: any failure returns non-zero so arka-claude
+# degrades to a plain `claude` launch — a broken gateway never blocks work.
+#
+# Contract:
+#   in : $ARKA_PY (interpreter), $ARKAOS_ROOT (repo), env ARKA_GATEWAY_PORT
+#   out: writes $ARKAOS_HOME/gateway/launch.env on success; exit 0
+#        exit non-zero on any failure (caller must degrade)
+# ============================================================================
+set -uo pipefail
+
+ARKAOS_HOME="${ARKAOS_HOME:-$HOME/.arkaos}"
+PORT="${ARKA_GATEWAY_PORT:-4000}"
+GW_DIR="$ARKAOS_HOME/gateway"
+CONFIG="$GW_DIR/config.yaml"
+ENV_FILE="$GW_DIR/launch.env"
+LOG="$GW_DIR/litellm.log"
+LITELLM="$ARKAOS_HOME/venv/bin/litellm"
+
+warn() { printf '  \033[1;33m⚠  gateway: %s\033[0m\n' "$1" >&2; }
+
+# ─── Preconditions ────────────────────────────────────────────────────────
+[ -n "${ARKA_PY:-}" ] || { warn "ARKA_PY unset"; exit 1; }
+[ -n "${ARKAOS_ROOT:-}" ] || { warn "ARKAOS_ROOT unset"; exit 1; }
+if [ ! -x "$LITELLM" ]; then
+  warn "LiteLLM not installed in the ArkaOS venv — run: ~/.arkaos/venv/bin/pip install 'litellm[proxy]'"
+  exit 1
+fi
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+  warn "ANTHROPIC_API_KEY unset — Anthropic routes (quality/review) would fail; not starting gateway"
+  exit 1
+fi
+
+mkdir -p "$GW_DIR"
+
+# ─── Render config from models.yaml ───────────────────────────────────────
+if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway > "$CONFIG" 2>/dev/null; then
+  warn "could not render gateway config from models.yaml"
+  exit 1
+fi
+
+# ─── Master key (per launch) + client launch env ──────────────────────────
+MASTER_KEY="$("$ARKA_PY" -c 'import secrets; print("sk-arka-" + secrets.token_hex(16))')"
+export ARKA_GATEWAY_KEY="$MASTER_KEY"
+
+if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway --env "$MASTER_KEY" > "$ENV_FILE" 2>/dev/null; then
+  warn "could not render launch env"
+  exit 1
+fi
+# The proxy reads ANTHROPIC_API_KEY + ARKA_GATEWAY_KEY from its own env.
+printf 'ARKA_GATEWAY_KEY=%s\n' "$MASTER_KEY" >> "$ENV_FILE"
+
+# ─── Reuse a healthy proxy, else start one ────────────────────────────────
+health() { curl -fsS -m 2 "http://127.0.0.1:$PORT/health/liveliness" >/dev/null 2>&1; }
+
+if health; then
+  # Already up. Changing models.yaml needs ARKA_GATEWAY_RESTART=1 to re-read.
+  if [ "${ARKA_GATEWAY_RESTART:-0}" = "1" ]; then
+    pkill -f "litellm .*--port $PORT" 2>/dev/null || true
+    sleep 1
+  else
+    exit 0
+  fi
+fi
+
+# Start in the background; ARKA_GATEWAY_KEY + ANTHROPIC_API_KEY inherited.
+( ARKA_GATEWAY_KEY="$MASTER_KEY" nohup "$LITELLM" --config "$CONFIG" --port "$PORT" \
+    >> "$LOG" 2>&1 & disown 2>/dev/null || true )
+
+# ─── Health-wait (bounded) ────────────────────────────────────────────────
+for _ in $(seq 1 30); do
+  if health; then exit 0; fi
+  sleep 1
+done
+warn "gateway did not become healthy within 30s (see $LOG)"
+exit 1
