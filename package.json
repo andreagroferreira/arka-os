@@ -71,6 +71,6 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "eslint": "^8.57.1"
+    "eslint": "^10.6.0"
   }
 }
