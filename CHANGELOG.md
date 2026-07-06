@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.2] - 2026-07-06
+
+### Fixed — Python interpreter consolidation
+
+- One interpreter contract across shell, agent, and Windows so multi-user
+  installs never run a bare `python` lacking ArkaOS deps (pyyaml/pydantic)
+  — the failure that broke `/arka update`.
+- New shared resolvers `config/hooks/_lib/arka_python.sh` (+ `.ps1` for
+  Windows), mirroring `installer/python-resolver.js`: venv-first with a
+  yaml-verified fallback. 13 shell hooks + `pre-tool-use.ps1`/`stop.ps1`
+  now route through `$ARKA_PY`; no bare `python3` remains.
+- New `bin/arka-py` shim (+ `.ps1`/`.cmd`) that SKILL.md commands invoke;
+  12 live docs (incl. `constitution.yaml`, README, agent instructions)
+  swapped to `~/.arkaos/bin/arka-py -m core…`. Archival records untouched.
+- Fixed a `set -e` silent-crash in the resolver fallback path (`|| true`
+  guard, reproduced and verified on bash 3.2.57).
+- Installer installs/updates the shim on Unix + Windows; the declared
+  `eslint installer/` lint gate now executes (eslint devDep + minimal
+  `.eslintrc.json`).
+- New locking test `tests/python/test_python_resolver_consolidation.py`
+  (9 tests: static grep, `set -e` runtime regression, Windows parity,
+  governance). Quality Gate APPROVED across three rounds.
+
 ## [4.3.1] - 2026-07-05
 
 ### Fixed — Flow enforcer resilience
