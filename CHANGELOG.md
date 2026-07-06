@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.3] - 2026-07-06
+
+### Fixed — npm tarball ships the interpreter shims (PR #234)
+
+- v4.3.2's interpreter consolidation never reached npm installs:
+  `package.json` `files` only whitelisted `bin/arkaos`, so the
+  `bin/arka-py*` shims and `bin/arka-claude*` wrappers were absent from
+  the tarball and the installer's `existsSync()` silently skipped the
+  deploy. `files` now ships the whole first-party `bin/` (+12 files,
+  leak-scanned clean).
+- `installer/update.js` never copied `config/hooks/_lib/` on update
+  (unlike `index.js::installHooks`), leaving deployed hooks without the
+  shared resolver and falling back to a bare `python3`. The update flow
+  now mirrors the `_lib/` copy.
+- 2 new locking tests (the resolver-consolidation suite is now 11):
+  the npm `files` whitelist must cover every shim + resolver, and
+  `update.js` must copy `_lib/` recursively. Verified end-to-end:
+  `npx arkaos@file:. update` re-deploys `arka-py` + `_lib/`;
+  `arka-py -c "import yaml, pydantic"` exits 0. Quality Gate APPROVED.
+
+---
+
 ## [4.3.2] - 2026-07-06
 
 ### Fixed — Python interpreter consolidation
