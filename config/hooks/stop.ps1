@@ -43,9 +43,11 @@ if ([string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
 $enforcerPy = Join-Path $env:ARKAOS_ROOT "core/workflow/flow_enforcer.py"
 if (-not (Test-Path $enforcerPy)) { exit 0 }
 
-$python = Get-Command python3 -ErrorAction SilentlyContinue
-if (-not $python) { $python = Get-Command python -ErrorAction SilentlyContinue }
-if (-not $python) { exit 0 }
+# Shared resolver (venv-first, yaml-verified). Mirrors _lib/arka_python.sh.
+$arkaLib = Join-Path $PSScriptRoot "_lib\arka_python.ps1"
+if (Test-Path -LiteralPath $arkaLib) { . $arkaLib }
+$pythonExe = $env:ARKA_PY
+if (-not $pythonExe) { exit 0 }
 
 $env:SESSION_ID_VAL = $sessionId
 $env:TRANSCRIPT_PATH_VAL = $transcriptPath
@@ -102,7 +104,7 @@ except Exception:
     pass
 '@
 
-$pyScript | & $python.Source - | Out-Null
+$pyScript | & $pythonExe - | Out-Null
 
 # ─── Auto-documentor enqueue (fire-and-forget) ─────────────────────────
 # Queues a background job when classifier flagged flow, QG approved, and
@@ -178,7 +180,7 @@ except Exception:
 '@
 
 try {
-    $autoDocScript | & $python.Source - | Out-Null
+    $autoDocScript | & $pythonExe - | Out-Null
 } catch {
     # Swallow — enqueue is fire-and-forget.
 }

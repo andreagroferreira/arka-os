@@ -142,7 +142,7 @@ enforcement_levels:
           scope: "All technical: code quality, tests, UX/UI, data integrity, security, performance"
           veto_power: true
     process:
-      - "Evidence engine runs first: python -m core.governance.evidence_checks — the verdict derives from its report"
+      - "Evidence engine runs first: ~/.arkaos/bin/arka-py -m core.governance.evidence_checks — the verdict derives from its report"
       - "Marta receives all output from execution phase plus the evidence report"
       - "Marta dispatches Eduardo (text) and Francisca (technical) in parallel, each in an INDEPENDENT subagent context (clean context, no stake in the work being approved)"
       - "Each reviewer returns a structured QGVerdict (APPROVED or REJECTED) with specific issues; the verdict MUST name the benchmark used (reference_companies.application) and enumerate the concrete rejections a top-tier lead would raise; evidence overall=fail forces REJECTED"
@@ -197,7 +197,7 @@ enforcement_levels:
       # ─── Rule added in PR3 Squad Intelligence Upgrade (2026-05-28) ───────
       - id: agent-experience-persistence
         rule: "Quality Gate REJECTED verdicts MUST result in an Experience record for the failing agent, written to ~/.arkaos/agents/<agent_id>/experiences.jsonl via core.governance.cqo_experience_recorder. Next dispatch of that agent loads the experiences via the Synapse L2.6 layer (core.synapse.agent_experiences_layer) so the lesson carries across sessions. Without this, REJECTED reports evaporate as conversation turns and the same structural mistakes recur."
-        enforcement: "PR3 v3.74.0 ships the storage, parser, and Synapse layer. v3.74.1 will wire a PostToolUse hook on the Agent tool that auto-records on REJECTED verdicts. Until then orchestrators MUST call cqo_experience_recorder.record_from_verdict() after every CQO dispatch. Audit via python -m core.governance.agent_experiences_cli list <agent_id>."
+        enforcement: "PR3 v3.74.0 ships the storage, parser, and Synapse layer. v3.74.1 will wire a PostToolUse hook on the Agent tool that auto-records on REJECTED verdicts. Until then orchestrators MUST call cqo_experience_recorder.record_from_verdict() after every CQO dispatch. Audit via ~/.arkaos/bin/arka-py -m core.governance.agent_experiences_cli list <agent_id>."
 
   should:
     description: "Best practices. Encouraged but not enforced."
@@ -221,17 +221,17 @@ enforcement_levels:
       # ─── Rule added in PR6 Squad Intelligence Upgrade (2026-05-28) ───────
       - id: design-system-locked
         rule: "Each project SHOULD declare a `design-system.yaml` at its root listing tokens (colors, spacing, fonts), allowed_components, file_globs to scan, and forbidden_patterns with suggestions. The per-project linter (core.governance.design_system_lint) detects UI/UX drift — hex literals outside the palette, inline style attributes, raw HTML where a Nuxt UI component exists, etc. Adoption is opt-in per project (no YAML at project root → no violations). v3.77.0 is advisory-only; pre-commit hook integration lands in v3.77.x once the rule sets stabilise across the operator's projects."
-        enforcement: "Run via `python -m core.governance.design_system_lint_cli <project_path>` (text or JSON output, optional --exit-on-violations). Example template at `docs/examples/design-system-example.yaml`."
+        enforcement: "Run via `~/.arkaos/bin/arka-py -m core.governance.design_system_lint_cli <project_path>` (text or JSON output, optional --exit-on-violations). Example template at `docs/examples/design-system-example.yaml`."
 
       # ─── Rule added in PR5 Squad Intelligence Upgrade (2026-05-28) ───────
       - id: dna-fidelity-warn
         rule: "Agent outputs are compared against the `signature_markers` block in each agent's YAML at the end of every turn. Forbidden patterns (avoid_patterns) and missing opening phrases (opening_phrases) generate FidelityViolation records in ~/.arkaos/telemetry/dna-fidelity.jsonl. v3.76.0 is soft-warn — violations are recorded for telemetry and operator review, not blocked. Hard-block mode lands later once the marker set is calibrated against real production usage."
-        enforcement: "Stop hook (config/hooks/stop.sh) calls core.governance.dna_fidelity.check_fidelity at turn end. Telemetry inspection: python -m core.governance.dna_fidelity_cli list|summary. Agents in scope for v3.76.0: tech-lead-paulo, cqo-marta, copy-director-eduardo, tech-director-francisca. Remaining 61 agent YAMLs get signature_markers in v3.76.x curation work."
+        enforcement: "Stop hook (config/hooks/stop.sh) calls core.governance.dna_fidelity.check_fidelity at turn end. Telemetry inspection: ~/.arkaos/bin/arka-py -m core.governance.dna_fidelity_cli list|summary. Agents in scope for v3.76.0: tech-lead-paulo, cqo-marta, copy-director-eduardo, tech-director-francisca. Remaining 61 agent YAMLs get signature_markers in v3.76.x curation work."
 
       # ─── Rule added in PR4 Squad Intelligence Upgrade (2026-05-28) ───────
       - id: pattern-library-first
         rule: "Before designing any new feature, consult the Pattern Library (core.knowledge.pattern_cards). If a similar pattern exists, reuse it or explicitly document why divergence is justified in the spec. New patterns SHOULD be registered with record_pattern() after Quality Gate APPROVED so future feature work inherits the prior art."
-        enforcement: "Synapse layer L7.5 (core.synapse.pattern_library_layer) auto-injects top matching cards as context. Audit via python -m core.knowledge.pattern_cards_cli list. SHOULD level — promoted from advisory once telemetry shows consistent consultation."
+        enforcement: "Synapse layer L7.5 (core.synapse.pattern_library_layer) auto-injects top matching cards as context. Audit via ~/.arkaos/bin/arka-py -m core.knowledge.pattern_cards_cli list. SHOULD level — promoted from advisory once telemetry shows consistent consultation."
 
 tier_hierarchy:
   description: "Agent authority levels inspired by SpaceX/Google/Anthropic org structures"

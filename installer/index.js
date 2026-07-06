@@ -165,6 +165,12 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
       copyFileSync(cmdSrc, join(binDir, "arka-claude.cmd"));
       installed = true;
     }
+    // arka-py — the ArkaOS Python entrypoint SKILL.md commands invoke.
+    const pyPsSrc  = join(ARKAOS_ROOT, "bin", "arka-py.ps1");
+    const pyCmdSrc = join(ARKAOS_ROOT, "bin", "arka-py.cmd");
+    if (existsSync(pyPsSrc))  copyFileSync(pyPsSrc,  join(binDir, "arka-py.ps1"));
+    if (existsSync(pyCmdSrc)) copyFileSync(pyCmdSrc, join(binDir, "arka-py.cmd"));
+    if (existsSync(pyPsSrc) || existsSync(pyCmdSrc)) ok("arka-py interpreter shim installed (.cmd + .ps1)");
     if (installed) {
       ok("arka-claude wrapper installed (.cmd + .ps1)");
       console.log(`         Add to PATH: setx PATH "%PATH%;%USERPROFILE%\\.arkaos\\bin"`);
@@ -178,6 +184,14 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
       ok("arka-claude wrapper installed");
       console.log(`         Add to PATH: export PATH="$HOME/.arkaos/bin:$PATH"`);
       console.log(`         Optional alias: alias claude="arka-claude"`);
+    }
+    // arka-py — the ArkaOS Python entrypoint SKILL.md commands invoke so the
+    // agent never runs a bare `python` that lacks ArkaOS deps (pyyaml, ...).
+    const arkaPySrc = join(ARKAOS_ROOT, "bin", "arka-py");
+    if (existsSync(arkaPySrc)) {
+      copyFileSync(arkaPySrc, join(binDir, "arka-py"));
+      try { chmodSync(join(binDir, "arka-py"), 0o755); } catch {}
+      ok("arka-py interpreter shim installed");
     }
   }
   const claudeMdSrc = join(ARKAOS_ROOT, "config", "user-claude.md");

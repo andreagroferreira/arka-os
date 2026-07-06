@@ -7,6 +7,10 @@
 
 input=$(cat)
 
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
 ARKAOS_HOME="${HOME}/.arkaos"
 GOTCHAS_FILE="$ARKAOS_HOME/gotchas.json"
 
@@ -74,8 +78,8 @@ project=$(basename "$cwd")
     echo "[]" > "$GOTCHAS_FILE"
   fi
 
-  if command -v python3 &>/dev/null; then
-    python3 -c "
+  if command -v "$ARKA_PY" >/dev/null 2>&1; then
+    "$ARKA_PY" -c "
 import json, sys
 try:
     with open('$GOTCHAS_FILE') as f:

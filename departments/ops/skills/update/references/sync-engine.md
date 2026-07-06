@@ -7,7 +7,7 @@ Referenced from SKILL.md. Read only when needed.
 Run the sync engine from the ArkaOS repo root:
 
 ```bash
-cd $ARKAOS_ROOT && python -m core.sync.engine --home ~/.arkaos --skills ~/.claude/skills --output json
+cd $ARKAOS_ROOT && ~/.arkaos/bin/arka-py -m core.sync.engine --home ~/.arkaos --skills ~/.claude/skills --output json
 ```
 
 The engine handles deterministic operations and returns a JSON report.

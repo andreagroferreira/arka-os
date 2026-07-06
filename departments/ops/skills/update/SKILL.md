@@ -23,7 +23,7 @@ Hybrid sync engine: Python handles deterministic operations (MCPs, settings, des
 
 1. **One-stop: npm refresh + engine (PR61 v2.78.0 orchestrator).**
    ```bash
-   cd $ARKAOS_ROOT && python -m core.sync.update_orchestrator --home ~/.arkaos --skills ~/.claude/skills --output json
+   cd $ARKAOS_ROOT && ~/.arkaos/bin/arka-py -m core.sync.update_orchestrator --home ~/.arkaos --skills ~/.claude/skills --output json
    ```
    The orchestrator detects whether the running ArkaOS is behind npm
    latest. When stale, it shells out to `npx arkaos@latest update`
@@ -38,7 +38,7 @@ Hybrid sync engine: Python handles deterministic operations (MCPs, settings, des
    silently skips the npm step and falls through to the engine.
 
    Fallback (no orchestrator): the underlying engine still runs the
-   same way via `python -m core.sync.engine ...` for callers that
+   same way via `~/.arkaos/bin/arka-py -m core.sync.engine ...` for callers that
    don't need the version-drift gate.
 
 2. **Phase 4 (intelligent, AI subagent):** After the engine completes, dispatch ONE subagent with the engine's JSON report + the feature registry (`core/sync/features/*.yaml`). The subagent injects/removes feature sections in each `~/.claude/skills/arka-{ecosystem}/SKILL.md` while preserving all custom content.

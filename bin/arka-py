@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# ============================================================================
+# ArkaOS — Python entrypoint for agents and scripts.
+#
+# Resolves the ArkaOS interpreter (venv-first, via the shared resolver) and
+# execs it, so callers never depend on the ambient `python` having ArkaOS
+# deps (pyyaml, pydantic, ...). This is what SKILL.md commands invoke instead
+# of a bare `python -m core...` — the failure mode that broke `/arka update`
+# when the session's `python` had no yaml.
+#
+# Usage:  arka-py -m core.sync.update_orchestrator ...
+#         arka-py path/to/script.py ...
+#         arka-py -c "import core; ..."
+# ============================================================================
+set -euo pipefail
+
+# ─── Source the shared resolver, from the repo or the installed location ──
+_self="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+for _lib in \
+    "$_self/../config/hooks/_lib/arka_python.sh" \
+    "$HOME/.arkaos/config/hooks/_lib/arka_python.sh"; do
+  if [ -f "$_lib" ]; then
+    # shellcheck source=/dev/null
+    # The resolver's ARKA_PY assignment is `|| true`-guarded internally, so
+    # sourcing never aborts under `set -e` even when it falls back.
+    . "$_lib"
+    break
+  fi
+done
+: "${ARKA_PY:=python3}"
+
+# ─── Make `-m core.*` resolvable regardless of cwd ────────────────────────
+# ARKAOS_ROOT (env) wins; else the installed repo pointer; else the repo this
+# shim lives in (dev checkout: bin/ -> repo root).
+_root="${ARKAOS_ROOT:-}"
+if [ -z "$_root" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
+  _root="$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null || true)"
+fi
+if [ -z "$_root" ] && [ -f "$_self/../core/hooks/__init__.py" ]; then
+  _root="$(cd "$_self/.." && pwd)"
+fi
+if [ -n "$_root" ] && [ -d "$_root" ]; then
+  export PYTHONPATH="${_root}${PYTHONPATH:+:$PYTHONPATH}"
+fi
+
+exec "$ARKA_PY" "$@"

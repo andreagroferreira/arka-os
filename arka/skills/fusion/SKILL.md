@@ -24,9 +24,9 @@ mechanical work economises.
 Run and read all three:
 
 ```bash
-python -m core.runtime.model_router_cli discover        # Ollama + local models
-python -m core.runtime.model_router_cli --json          # current routing
-python -m core.runtime.model_router_cli usage --period week --json
+~/.arkaos/bin/arka-py -m core.runtime.model_router_cli discover        # Ollama + local models
+~/.arkaos/bin/arka-py -m core.runtime.model_router_cli --json          # current routing
+~/.arkaos/bin/arka-py -m core.runtime.model_router_cli usage --period week --json
 ```
 
 Also check key presence (never print values): `OPENROUTER_API_KEY` /

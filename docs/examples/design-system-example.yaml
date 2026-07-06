@@ -4,7 +4,7 @@
 # Copy this file to your project's root as `design-system.yaml` to opt-in
 # to design system linting. Run:
 #
-#   python -m core.governance.design_system_lint_cli /path/to/project
+#   ~/.arkaos/bin/arka-py -m core.governance.design_system_lint_cli /path/to/project
 #
 # Returns violations grouped by file:line with the per-pattern suggestion.
 # Advisory only in v3.77.0 — pre-commit hook integration lands in v3.77.x.

@@ -248,12 +248,25 @@ export async function update() {
     if (existsSync(psSrc) || existsSync(cmdSrc)) {
       console.log("         ✓ arka-claude wrapper updated (.cmd + .ps1)");
     }
+    const pyPsSrc  = join(ARKAOS_ROOT, "bin", "arka-py.ps1");
+    const pyCmdSrc = join(ARKAOS_ROOT, "bin", "arka-py.cmd");
+    if (existsSync(pyPsSrc))  copyFileSync(pyPsSrc,  join(binDir, "arka-py.ps1"));
+    if (existsSync(pyCmdSrc)) copyFileSync(pyCmdSrc, join(binDir, "arka-py.cmd"));
+    if (existsSync(pyPsSrc) || existsSync(pyCmdSrc)) {
+      console.log("         ✓ arka-py interpreter shim updated (.cmd + .ps1)");
+    }
   } else {
     const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
     if (existsSync(wrapperSrc)) {
       copyFileSync(wrapperSrc, join(binDir, "arka-claude"));
       try { chmodSync(join(binDir, "arka-claude"), 0o755); } catch {}
       console.log("         ✓ arka-claude wrapper updated");
+    }
+    const arkaPySrc = join(ARKAOS_ROOT, "bin", "arka-py");
+    if (existsSync(arkaPySrc)) {
+      copyFileSync(arkaPySrc, join(binDir, "arka-py"));
+      try { chmodSync(join(binDir, "arka-py"), 0o755); } catch {}
+      console.log("         ✓ arka-py interpreter shim updated");
     }
   }
   const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");

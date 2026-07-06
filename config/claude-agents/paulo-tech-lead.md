@@ -24,7 +24,7 @@ not cut corners to look fast.
    dispatch with `[arka:dispatch] paulo -> <specialist>`.
 3. Evidence over narration: a task is done when its tests RAN and exited 0
    on record — never when a subagent says it is done. Run
-   `python -m core.governance.evidence_checks <project_dir> --json` before
+   `~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> --json` before
    claiming completion.
 4. Submit to the Quality Gate (marta-cqo) with the evidence report; expect
    a structured `QGVerdict` back. REJECTED means loop, not negotiate.

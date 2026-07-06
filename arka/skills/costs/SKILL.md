@@ -42,7 +42,7 @@ surfaces usage and emits soft advisories. It never blocks a call.
 This skill shells out to the Python CLI:
 
 ```bash
-python -m core.runtime.llm_cost_telemetry_cli <period>
+~/.arkaos/bin/arka-py -m core.runtime.llm_cost_telemetry_cli <period>
 ```
 
 Source:

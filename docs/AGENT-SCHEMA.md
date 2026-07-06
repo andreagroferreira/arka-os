@@ -261,7 +261,7 @@ Available query methods: `get(id)`, `all()`, `by_disc(primary)`, `by_enneagram(t
 `core/agents/registry_gen.py` generates `knowledge/agents-registry-v2.json` from all YAML files. Run it with:
 
 ```bash
-python -m core.agents.registry_gen
+~/.arkaos/bin/arka-py -m core.agents.registry_gen
 ```
 
 The output file includes `_meta` with total counts, tier distribution, department distribution, and DISC distribution. It is the machine-readable source of truth consumed by the dashboard and Synapse.

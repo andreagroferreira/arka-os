@@ -58,5 +58,8 @@
     "CONSTITUTION.md",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "devDependencies": {
+    "eslint": "^8.57.1"
+  }
 }

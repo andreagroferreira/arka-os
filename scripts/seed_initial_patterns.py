@@ -175,7 +175,7 @@ def main() -> int:
     for card in _INITIAL_PATTERNS:
         record_pattern(card)
     print(f"Seeded {len(_INITIAL_PATTERNS)} pattern cards.")
-    print("Inspect: python -m core.knowledge.pattern_cards_cli list")
+    print("Inspect: ~/.arkaos/bin/arka-py -m core.knowledge.pattern_cards_cli list")
     return 0
 
 
