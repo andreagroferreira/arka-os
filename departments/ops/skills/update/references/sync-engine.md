@@ -74,9 +74,11 @@ Returns JSON report for downstream consumption.
 ## Feature Registry
 
 YAML files under `core/sync/features/*.yaml` (or `~/.arkaos/config/sync/features/*.yaml`). Each feature has:
-- `detection_pattern` — regex/string searched in ecosystem SKILL.md to decide if the feature is already present
-- `content` — the section to inject if missing
-- `deprecated_in` — if set, the matching section is removed
+- `detection_pattern` — regex searched in ecosystem SKILL.md to decide if the feature is already present. Matches any of: the `arka:feature:<name>` marker, the bare `## <section_title>` heading (legacy/customized sections), or — only where a token is unique enough to never appear in unrelated prose (e.g. `arka-forge`) — a historical keyword
+- `content` — the section to inject if missing, wrapped in `<!-- arka:feature:<name>:start -->` / `<!-- arka:feature:<name>:end -->` markers so future runs detect it and deprecation can remove it precisely
+- `deprecated_in` — if set, the matching section is removed (marker pair preferred; fall back to the `## <section_title>` heading block)
+
+The registry is self-detecting by contract: `detection_pattern` MUST match the feature's own `content` (locked by `tests/python/test_sync_features_registry.py`), otherwise every naive sync re-injects a duplicate section.
 
 ## Key Paths
 
