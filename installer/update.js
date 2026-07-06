@@ -3,6 +3,7 @@ import { join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { ensureVenv, ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
+import { copyHookLib } from "./hook-lib.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
 import { migrateUserData, printMigrationReport } from "./migrate-user-data.js";
@@ -218,20 +219,10 @@ export async function update() {
   console.log("         ✓ Hook scripts updated");
 
   // Shared hook libraries (config/hooks/_lib/ — the Python interpreter
-  // resolver lives here). Keep in lockstep with index.js::installHooks:
-  // the hooks deployed above source _lib/arka_python.sh from the install
-  // dir, so skipping this copy leaves them falling back to a bare
-  // `python3` without ArkaOS deps.
-  const srcLibDir = join(srcHooksDir, "_lib");
-  if (existsSync(srcLibDir)) {
-    const destLibDir = join(destHooksDir, "_lib");
-    mkdirSync(destLibDir, { recursive: true });
-    cpSync(srcLibDir, destLibDir, { recursive: true });
-    try {
-      for (const f of readdirSync(destLibDir)) {
-        if (f.endsWith(".sh")) chmodSync(join(destLibDir, f), 0o755);
-      }
-    } catch {}
+  // resolver lives here). The hooks deployed above source
+  // _lib/arka_python.sh from the install dir, so skipping this copy
+  // leaves them falling back to a bare `python3` without ArkaOS deps.
+  if (copyHookLib(srcHooksDir, destHooksDir)) {
     console.log("         ✓ Hook lib updated (_lib/)");
   }
 

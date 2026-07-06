@@ -210,18 +210,20 @@ def test_npm_files_whitelist_ships_shims_and_resolver():
 
 
 def test_update_flow_deploys_hook_lib():
-    """installer/update.js has its own hook-deploy loop (not
-    index.js::installHooks). It must also copy config/hooks/_lib/
-    recursively, or updated installs keep hooks that source a resolver
-    which was never deployed to ~/.arkaos/config/hooks/_lib/."""
-    body = (_ROOT / "installer" / "update.js").read_text(encoding="utf-8")
-    assert re.search(r'join\(srcHooksDir,\s*"_lib"\)', body), (
-        "installer/update.js never copies config/hooks/_lib/ — the shared "
-        "resolver does not reach ~/.arkaos on update"
-    )
+    """Both installer flows (fresh install and update) must deploy
+    config/hooks/_lib/ through the single shared helper, or updated
+    installs keep hooks that source a resolver which was never deployed
+    to ~/.arkaos/config/hooks/_lib/ — the v4.3.2 drift regression."""
+    helper = (_ROOT / "installer" / "hook-lib.js").read_text(encoding="utf-8")
     assert re.search(
-        r"cpSync\(\s*srcLibDir\s*,\s*destLibDir\s*,\s*\{\s*recursive:\s*true", body
-    ), "installer/update.js must copy _lib recursively (cpSync srcLibDir -> destLibDir)"
+        r"cpSync\(\s*srcLibDir\s*,\s*destLibDir\s*,\s*\{\s*recursive:\s*true", helper
+    ), "installer/hook-lib.js must copy _lib recursively (cpSync srcLibDir -> destLibDir)"
+    for flow in ("update.js", "index.js"):
+        body = (_ROOT / "installer" / flow).read_text(encoding="utf-8")
+        assert re.search(r"\bcopyHookLib\(", body), (
+            f"installer/{flow} does not call copyHookLib() — the shared "
+            "resolver does not reach ~/.arkaos on that flow"
+        )
 
 
 def test_windows_flow_hooks_use_shared_resolver():

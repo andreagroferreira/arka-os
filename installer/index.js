@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { findSystemPython, ensureVenv, getArkaosPython, getArkaosPip, pipInstall } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
+import { copyHookLib } from "./hook-lib.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -665,16 +666,7 @@ function installHooks(installDir) {
     }
   }
 
-  const srcLibDir = join(srcHooksDir, "_lib");
-  if (existsSync(srcLibDir)) {
-    const destLibDir = join(hooksDir, "_lib");
-    ensureDir(destLibDir);
-    cpSync(srcLibDir, destLibDir, { recursive: true });
-    try {
-      for (const f of readdirSync(destLibDir)) {
-        if (f.endsWith(".sh")) chmodSync(join(destLibDir, f), 0o755);
-      }
-    } catch {}
+  if (copyHookLib(srcHooksDir, hooksDir)) {
     ok("Hook lib: _lib/");
   }
 }
