@@ -5,6 +5,35 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.4] - 2026-07-06
+
+### Changed — Quality Gate follow-up batch (PRs #235, #236, #237)
+
+- **Installer (#235):** `_lib/` deploy extracted to a shared
+  `installer/hook-lib.js::copyHookLib()` used by both the fresh-install
+  and update flows — eliminates the duplicate-loop drift class that
+  caused the v4.3.2 regression. Drift locks on both the pytest and
+  node:test sides (3 executable temp-dir tests).
+- **Sync registry (#236):** feature registry is now self-detecting.
+  `content` wrapped in `<!-- arka:feature:<name>:start/end -->` markers;
+  `detection_pattern` = `marker|## <section_title>` (+ unique keywords
+  only where over-match is impossible). 17 locking tests including a
+  negative over-match suite — over-broad branches like `Marta.*CQO`
+  matched real summary-line prose and would suppress injection of
+  mandatory sections (QG round-1 finding).
+- **CI (#237):** node-check now runs `npm run lint` + the 128 installer
+  tests on a Node [18, 22] matrix with a pinned `npm ci` from a
+  committed `package-lock.json` (supply-chain fail-closed, QG round-1
+  blocker); python-tests enforce `--cov=core --cov-fail-under=80` on
+  the 3.12 leg (constitution MUST rule; 80.44% at introduction,
+  confirmed identical on ubuntu); new `codespell` job over
+  English-primary code paths with a documented `.codespellrc` lexicon.
+- Quality Gate across the batch: 6 review rounds total, 2 first-round
+  REJECTEDs with verified blockers (OWASP A08 unpinned install; stale
+  factual comment) — all closed with evidence before merge.
+
+---
+
 ## [4.3.3] - 2026-07-06
 
 ### Fixed — npm tarball ships the interpreter shims (PR #234)
