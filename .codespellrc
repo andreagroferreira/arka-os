@@ -1,0 +1,19 @@
+# Codespell config — CI runs `codespell core/ installer/ scripts/ tests/`
+# (English-primary code paths only; departments/ and wiki/ carry bilingual
+# pt-PT content and framework/person/brand proper nouns that drown the
+# signal in false positives).
+#
+# ignore-words-list entries are all verified false positives:
+#   te/vai/ser/erro/cliente/relevante — pt-PT fixtures (sycophancy detector,
+#     synapse L2.5 tests, checkpoint tests)
+#   strat — the /strat department command
+#   ines — Ines, Landing squad lead agent
+#   infp — MBTI type in agent DNA
+#   skool — the Skool community platform
+#   coo — Chief Operations Officer
+#   sive — sive.rs (Derek Sivers' site)
+#   fo — schtasks /FO output-format flag (Windows scheduler)
+#   unparseable/implementor — accepted English variants
+[codespell]
+ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor
+skip = *.lock,*.svg,*/node_modules,*/__pycache__

@@ -37,7 +37,16 @@ jobs:
           pip install httpx2 || pip install httpx
 
       - name: Run Python tests
-        run: python -m pytest tests/python/ -v --tb=short
+        # Coverage gate (constitution MUST rule: test-coverage >= 80%) runs
+        # on one matrix leg only — a single source of truth avoids tripling
+        # the flake surface on platform-dependent branches. Measured 80.44%
+        # on core/ at gate introduction.
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.12" ]; then
+            python -m pytest tests/python/ -v --tb=short --cov=core --cov-report=term --cov-fail-under=80
+          else
+            python -m pytest tests/python/ -v --tb=short
+          fi
 
       - name: Check test count
         run: |
@@ -65,19 +74,37 @@ jobs:
 
   node-check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 18 = engines floor in package.json; 22 = newer Node LTS line above the floor.
+        node-version: [18, 22]
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
 
       - name: Validate package.json
         run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
 
       - name: Check installer syntax
         run: node --check installer/cli.js
+
+      - name: Install dev dependencies
+        # Pinned, reproducible install from the committed lockfile — fails
+        # closed on drift (supply-chain gate; only devDep is eslint).
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint installer
+        run: npm run lint
+
+      - name: Run installer tests
+        # The node --test glob form ("tests/installer/**/*.test.js") is
+        # stable since Node 22; the 18 leg covers syntax + lint only.
+        if: matrix.node-version == 22
+        run: npm test
 
   skill-validation:
     runs-on: ubuntu-latest
@@ -91,3 +118,21 @@ jobs:
 
       - name: Validate all skills
         run: python scripts/skill_validator.py departments/ --summary
+
+  codespell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install codespell
+        run: pip install codespell
+
+      - name: Spellcheck code paths
+        # English-primary paths only; departments/ and wiki/ carry pt-PT
+        # content and proper nouns. False-positive lexicon in .codespellrc.
+        run: codespell core/ installer/ scripts/ tests/

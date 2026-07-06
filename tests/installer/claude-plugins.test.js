@@ -31,7 +31,7 @@ function makeMockClaude({
   marketplaceStderr = "",
 } = {}) {
   // Build a temp directory with a `claude` shell script that mimics the CLI.
-  // Pre-pend the dir to PATH so child processes resolve it.
+  // Prepend the dir to PATH so child processes resolve it.
   const dir = mkdtempSync(join(tmpdir(), "arkaos-claude-mock-"));
   const script = join(dir, "claude");
   const body = `#!/usr/bin/env bash
