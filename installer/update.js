@@ -217,6 +217,24 @@ export async function update() {
   }
   console.log("         ✓ Hook scripts updated");
 
+  // Shared hook libraries (config/hooks/_lib/ — the Python interpreter
+  // resolver lives here). Keep in lockstep with index.js::installHooks:
+  // the hooks deployed above source _lib/arka_python.sh from the install
+  // dir, so skipping this copy leaves them falling back to a bare
+  // `python3` without ArkaOS deps.
+  const srcLibDir = join(srcHooksDir, "_lib");
+  if (existsSync(srcLibDir)) {
+    const destLibDir = join(destHooksDir, "_lib");
+    mkdirSync(destLibDir, { recursive: true });
+    cpSync(srcLibDir, destLibDir, { recursive: true });
+    try {
+      for (const f of readdirSync(destLibDir)) {
+        if (f.endsWith(".sh")) chmodSync(join(destLibDir, f), 0o755);
+      }
+    } catch {}
+    console.log("         ✓ Hook lib updated (_lib/)");
+  }
+
   // Re-register hooks in the runtime's settings file.
   // Without this, updating from an older version leaves settings.json
   // frozen at the previous hook spec (missing new hooks, stale timeouts).
