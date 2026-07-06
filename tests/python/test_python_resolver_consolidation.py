@@ -209,6 +209,64 @@ def test_npm_files_whitelist_ships_shims_and_resolver():
     )
 
 
+_NPM = shutil.which("npm")
+
+
+# Bins deliberately kept OUT of the published tarball. Maintainer-only,
+# not referenced by installer/ or any runtime path. Excluded by omission
+# from the package.json `files` whitelist (npm's files array is the sole
+# allow-list — .npmignore cannot trim a whitelisted set).
+_TARBALL_BIN_DENYLIST = {"bin/arka-registry-gen"}
+
+
+@pytest.mark.skipif(_NPM is None, reason="npm unavailable")
+def test_npm_pack_ships_shims_and_omits_maintainer_tool():
+    """Empirical tarball check (stronger than reading package.json): the
+    real `npm pack` output must contain every interpreter shim/resolver
+    and must omit the maintainer-only bins."""
+    out = subprocess.run(
+        [_NPM, "pack", "--dry-run", "--json"],
+        cwd=_ROOT, capture_output=True, text=True, timeout=180,
+    )
+    assert out.returncode == 0, f"npm pack failed: {out.stderr}"
+    files = {f["path"] for f in json.loads(out.stdout)[0]["files"]}
+    missing = [r for r in _REQUIRED_IN_TARBALL if r not in files]
+    assert not missing, "npm pack tarball missing shims/resolver:\n" + "\n".join(missing)
+    for denied in _TARBALL_BIN_DENYLIST:
+        assert denied not in files, (
+            f"{denied} (maintainer-only) leaked into the published tarball — "
+            "it must stay out of the package.json `files` whitelist"
+        )
+
+
+@pytest.mark.skipif(_NPM is None, reason="npm unavailable")
+def test_npm_pack_ships_every_first_party_bin():
+    """Guard against the #234 forgotten-shim class the explicit `files`
+    enumeration reintroduces: every tracked bin/ file except the known
+    maintainer-only denylist MUST reach the tarball. A new first-party
+    shim added to bin/ without a matching `files` entry fails here."""
+    ls = subprocess.run(
+        ["git", "ls-files", "bin/"],
+        cwd=_ROOT, capture_output=True, text=True, timeout=30,
+    )
+    assert ls.returncode == 0, f"git ls-files failed: {ls.stderr}"
+    tracked = ls.stdout.split()
+    assert tracked, "git ls-files bin/ returned nothing — guard would be vacuous"
+    expected = {b for b in tracked if b and b not in _TARBALL_BIN_DENYLIST}
+    out = subprocess.run(
+        [_NPM, "pack", "--dry-run", "--json"],
+        cwd=_ROOT, capture_output=True, text=True, timeout=180,
+    )
+    assert out.returncode == 0, f"npm pack failed: {out.stderr}"
+    files = {f["path"] for f in json.loads(out.stdout)[0]["files"]}
+    missing = sorted(expected - files)
+    assert not missing, (
+        "first-party bin(s) missing from the tarball — add them to the "
+        "package.json `files` whitelist (or the denylist if maintainer-only):\n"
+        + "\n".join(missing)
+    )
+
+
 def test_update_flow_deploys_hook_lib():
     """Both installer flows (fresh install and update) must deploy
     config/hooks/_lib/ through the single shared helper, or updated

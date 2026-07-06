@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # Root npm surface (installer devDependency: eslint). The dashboard/ npm
+  # surface is managed separately by dashboard/renovate.json, so it is not
+  # scanned here. Weekly, grouped so a single PR carries all bumps.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-dev:
+        patterns:
+          - "*"
+
+  # Python deps declared in pyproject.toml. Covers core [project.dependencies]
+  # (pydantic, pyyaml, rich, click, jinja2) plus the optional extras
+  # (fastapi/dashboard, fastembed/knowledge, …) under the same pip entry.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      pip:
+        patterns:
+          - "*"
+
+  # GitHub Actions pinned by major (actions/checkout@v4, setup-node@v4, …).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
