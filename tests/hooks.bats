@@ -169,3 +169,80 @@ load helpers/setup
   [[ "$output" == *"PreCompact"* ]]
   [[ "$output" == *"PostToolUse"* ]]
 }
+
+
+# ─── OWASP A03 — injection hardening (cwd-changed / session-start) ──────
+# Inputs are written to a file and piped via cat, so single quotes in the
+# malicious payload don't break the test harness itself. The RCE tests use
+# REAL directories (the hook exits at its `-d` guard otherwise) whose
+# basename carries a valid-Python payload, and set HOME so the resolver
+# actually executes — each is proven to fire on the stashed vulnerable hook.
+
+@test "cwd-changed.sh: cwd interpolated into Python source cannot execute (no eval)" {
+  # Reproduces the headline vector: the pre-fix hook interpolated the cwd
+  # straight into the Python source (`cwd = '$NEW_CWD'`). A real directory
+  # whose basename closes that string and runs os.system fires the sentinel
+  # on the vulnerable hook; the fix reads cwd from ARKA_CWD so it cannot.
+  # The payload uses os.environ['S'] for the sentinel path so the directory
+  # basename stays slash-free (a path with '/' can't be one dir name).
+  local sentinel="$TEST_TEMP_DIR/src-pwned"
+  local base="x'; import os; os.system('touch ' + os.environ['S']); y='"
+  local d="$TEST_TEMP_DIR/$base"
+  mkdir -p "$d"
+  # A present ecosystems.json makes the resolver run (the injection point).
+  mkdir -p "$TEST_HOME/.arkaos"
+  echo '{"ecosystems":{}}' > "$TEST_HOME/.arkaos/ecosystems.json"
+  local inf="$TEST_TEMP_DIR/in.json"
+  jq -nc --arg c "$d" '{cwd:$c,session_id:"a03"}' > "$inf"
+  run bash -c "export HOME='$TEST_HOME' S='$sentinel'; cat '$inf' | bash '$REPO_DIR/config/hooks/cwd-changed.sh'"
+  [ "$status" -eq 0 ]
+  [ ! -f "$sentinel" ]
+  [ -z "$output" ] || echo "$output" | jq empty
+}
+
+@test "cwd-changed.sh: emits valid JSON or nothing for a normal cwd" {
+  local inf="$TEST_TEMP_DIR/in.json"
+  echo '{"cwd":"/tmp","session_id":"a03"}' > "$inf"
+  run bash -c "export HOME='$TEST_HOME'; cat '$inf' | bash '$REPO_DIR/config/hooks/cwd-changed.sh'"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ] || echo "$output" | jq empty
+}
+
+@test "cwd-changed.sh: cwd with a single quote does not crash the resolver" {
+  local d="$TEST_TEMP_DIR/it's a dir"
+  mkdir -p "$d"
+  local inf="$TEST_TEMP_DIR/in.json"
+  jq -nc --arg c "$d" '{cwd:$c,session_id:"a03"}' > "$inf"
+  run bash -c "cat '$inf' | bash '$REPO_DIR/config/hooks/cwd-changed.sh'"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ] || echo "$output" | jq empty
+}
+
+@test "cwd-changed.sh: command-substitution in ecosystem name is not eval'd" {
+  # The real eval RCE vector: a poisoned ecosystems.json whose name carries
+  # a command substitution. The pre-fix hook eval'd the Python output, so
+  # $(touch sentinel) fired the moment cwd matched the project. Post-fix the
+  # value is read as JSON via jq and never re-evaluated.
+  local sentinel="$TEST_TEMP_DIR/eco-pwned"
+  local eco="$TEST_HOME/.arkaos/ecosystems.json"
+  mkdir -p "$(dirname "$eco")"
+  jq -nc --arg n "x\$(touch $sentinel)" \
+    '{ecosystems:{evil:{name:$n,projects:["a03proj"]}}}' > "$eco"
+  local d="$TEST_TEMP_DIR/a03proj"
+  mkdir -p "$d"
+  local inf="$TEST_TEMP_DIR/in.json"
+  jq -nc --arg c "$d" '{cwd:$c,session_id:"a03"}' > "$inf"
+  run bash -c "export HOME='$TEST_HOME'; cat '$inf' | bash '$REPO_DIR/config/hooks/cwd-changed.sh'"
+  [ "$status" -eq 0 ]
+  [ ! -f "$sentinel" ]
+  [ -z "$output" ] || echo "$output" | jq empty
+}
+
+@test "session-start.sh: profile name with triple quotes yields valid JSON" {
+  local prof="$TEST_HOME/.arkaos/profile.json"
+  mkdir -p "$(dirname "$prof")"
+  jq -nc '{name:"a'\'''\'''\''b\"c",company:"W"}' > "$prof"
+  run bash -c "export HOME='$TEST_HOME'; echo '{}' | bash '$REPO_DIR/config/hooks/session-start.sh'"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq empty
+}

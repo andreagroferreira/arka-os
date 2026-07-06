@@ -28,40 +28,43 @@ ECOSYSTEM=""
 ECOSYSTEM_NAME=""
 
 if [ -f "$ECOSYSTEMS_FILE" ] && command -v "$ARKA_PY" >/dev/null 2>&1; then
-  eval "$("$ARKA_PY" -c "
+  # OWASP A03: NEW_CWD is untrusted harness input. It is passed through the
+  # environment (never interpolated into the Python source), and the result
+  # is emitted as JSON read by jq — no `eval`, so a crafted cwd can neither
+  # break the source string nor inject a shell command.
+  _ECO_JSON=$(ARKA_CWD="$NEW_CWD" ARKA_ECO_FILE="$ECOSYSTEMS_FILE" "$ARKA_PY" -c '
 import json, os, sys
 
-cwd = '$NEW_CWD'
-eco_file = os.path.expanduser('$ECOSYSTEMS_FILE')
+cwd = os.environ["ARKA_CWD"]
+eco_file = os.path.expanduser(os.environ["ARKA_ECO_FILE"])
+
+
+def emit(eco_id, name):
+    print(json.dumps({"ecosystem": eco_id, "name": name}))
+    sys.exit(0)
+
 
 try:
     data = json.load(open(eco_file))
-    ecosystems = data.get('ecosystems', {})
+    ecosystems = data.get("ecosystems", {})
 
     for eco_id, eco in ecosystems.items():
-        projects = eco.get('projects', [])
-        for proj in projects:
-            # Check if cwd contains the project name
+        for proj in eco.get("projects", []):
             if proj in cwd:
-                print(f'ECOSYSTEM=\"{eco_id}\"')
-                print(f'ECOSYSTEM_NAME=\"{eco.get(\"name\", eco_id)}\"')
-                sys.exit(0)
+                emit(eco_id, eco.get("name", eco_id))
 
-    # No match by project name, try by path patterns
-    if '/herd/' in cwd or '/Herd/' in cwd:
-        dir_name = os.path.basename(cwd.rstrip('/'))
+    if "/herd/" in cwd or "/Herd/" in cwd:
+        dir_name = os.path.basename(cwd.rstrip("/"))
         for eco_id, eco in ecosystems.items():
-            for proj in eco.get('projects', []):
-                if proj == dir_name:
-                    print(f'ECOSYSTEM=\"{eco_id}\"')
-                    print(f'ECOSYSTEM_NAME=\"{eco.get(\"name\", eco_id)}\"')
-                    sys.exit(0)
+            if dir_name in eco.get("projects", []):
+                emit(eco_id, eco.get("name", eco_id))
 except Exception:
     pass
 
-print('ECOSYSTEM=\"\"')
-print('ECOSYSTEM_NAME=\"\"')
-" 2>/dev/null)"
+print(json.dumps({"ecosystem": "", "name": ""}))
+' 2>/dev/null)
+  ECOSYSTEM=$(echo "$_ECO_JSON" | jq -r '.ecosystem // ""' 2>/dev/null)
+  ECOSYSTEM_NAME=$(echo "$_ECO_JSON" | jq -r '.name // ""' 2>/dev/null)
 fi
 
 # ─── Detect stack ──────────────────────────────────────────────────────
@@ -113,5 +116,7 @@ if [ -n "$DESCRIPTOR" ]; then
 fi
 
 if [ -n "$CONTEXT" ]; then
-  echo "{\"additionalContext\": \"${CONTEXT}\"}"
+  # Build the JSON with jq so any quote/backslash in the ecosystem name or
+  # descriptor path is escaped, never breaking the envelope (OWASP A03).
+  jq -nc --arg ctx "$CONTEXT" '{additionalContext: $ctx}'
 fi
