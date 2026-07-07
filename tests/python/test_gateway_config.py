@@ -125,6 +125,26 @@ def test_local_only_config_has_no_anthropic_route(models_path: Path):
     assert _route(cfg, "*")["model"] == "ollama_chat/kimi-k2.7-code:cloud"
 
 
+def test_local_only_fallback_uses_a_non_haiku_ollama_slot(tmp_path: Path):
+    """When execution (haiku) is NOT ollama but another role is, the local
+    fallback picks that ollama slot — exercises the _local_fallback loop."""
+    p = tmp_path / "m.yaml"
+    p.write_text(
+        "version: 1\n"
+        "providers: {ollama: {type: ollama, base_url: 'http://localhost:11434'}}\n"
+        "aliases: {runtime: {best: opus, default: sonnet, fast: haiku}}\n"
+        "roles:\n"
+        "  execution:    {provider: runtime, model: best, effort: high}\n"
+        "  mechanical:   {provider: ollama, model: 'qwen3:local', effort: low}\n"
+        "  quality_gate: {provider: runtime, model: best, effort: max}\n",
+        encoding="utf-8",
+    )
+    plan = build_gateway_plan(p, local_only=True)
+    for slot, up in plan.slots.items():
+        assert up.kind == "ollama", f"slot {slot} not local"
+        assert up.model_id == "qwen3:local"
+
+
 def test_local_only_without_ollama_route_raises(tmp_path: Path):
     """local-only is impossible when no role points at Ollama."""
     p = tmp_path / "m.yaml"

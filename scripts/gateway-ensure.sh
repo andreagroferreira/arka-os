@@ -60,7 +60,11 @@ fi
 # ─── Render config from models.yaml ───────────────────────────────────────
 # shellcheck disable=SC2086  # LOCAL_FLAG is a single controlled token
 if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway $LOCAL_FLAG > "$CONFIG" 2>/dev/null; then
-  warn "could not render gateway config (local-only needs at least one ollama route in models.yaml)"
+  if [ -n "$LOCAL_FLAG" ]; then
+    warn "could not render gateway config — local-only needs at least one ollama route in models.yaml"
+  else
+    warn "could not render gateway config from models.yaml"
+  fi
   exit 1
 fi
 
