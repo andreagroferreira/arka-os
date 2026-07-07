@@ -105,15 +105,43 @@ def _ollama_base(config: ModelsConfig) -> str:
     return (config.providers.get("ollama", {}) or {}).get("base_url") or _DEFAULT_OLLAMA_BASE
 
 
-def build_gateway_plan(user_path=None) -> GatewayPlan:
-    """Resolve every alias slot to its upstream from the operator's config."""
+def build_gateway_plan(user_path=None, local_only: bool = False) -> GatewayPlan:
+    """Resolve every alias slot to its upstream from the operator's config.
+
+    ``local_only`` (for subscription users with no ANTHROPIC_API_KEY):
+    every slot that would hit Anthropic is redirected to the local Ollama
+    model instead, so the whole session runs keyless on local models. Raises
+    if the config has no Ollama route to fall back to.
+    """
     config, source = load_config(user_path)
     ollama_base = _ollama_base(config)
     slots: dict[str, Upstream] = {}
     for slot, role in _SLOT_ROLE.items():
         r = resolve(role, user_path)
         slots[slot] = _upstream_for(r.provider, r.model, ollama_base)
+    if local_only:
+        fallback = _local_fallback(slots)
+        if fallback is None:
+            raise ValueError(
+                "local-only gateway requested but models.yaml has no Ollama "
+                "route to fall back to — point at least one role at ollama/<model>"
+            )
+        slots = {
+            slot: (up if up.kind == "ollama" else fallback)
+            for slot, up in slots.items()
+        }
     return GatewayPlan(slots=slots, source=source)
+
+
+def _local_fallback(slots: dict[str, Upstream]) -> Upstream | None:
+    """The local Ollama upstream to redirect Anthropic routes to (prefer
+    execution/haiku), or None when no slot is local."""
+    if slots.get("haiku", Upstream(kind="anthropic", model_id="")).kind == "ollama":
+        return slots["haiku"]
+    for up in slots.values():
+        if up.kind == "ollama":
+            return up
+    return None
 
 
 def _litellm_params(up: Upstream) -> dict:
@@ -124,24 +152,28 @@ def _litellm_params(up: Upstream) -> dict:
     return {"model": up.model_id, "api_key": _ANTHROPIC_KEY_REF}
 
 
-def build_litellm_config(user_path=None) -> dict:
+def build_litellm_config(user_path=None, local_only: bool = False) -> dict:
     """The LiteLLM proxy config.yaml structure (regenerated per launch).
 
-    One ``arka-<slot>`` route per alias slot, plus a wildcard passthrough
-    so the interactive main-loop model and any direct model id still reach
-    Anthropic. The Anthropic key is referenced via ``os.environ`` — never
-    inlined — and the client authenticates with the gateway master key.
+    One ``arka-<slot>`` route per alias slot, plus a wildcard route for the
+    interactive main-loop model and any raw model id. In the default mixed
+    mode the wildcard forwards to Anthropic (key via ``os.environ``, never
+    inlined); in ``local_only`` mode it forwards to the local Ollama model
+    so the whole session is keyless. The client authenticates with the
+    gateway master key either way.
     """
-    plan = build_gateway_plan(user_path)
+    plan = build_gateway_plan(user_path, local_only=local_only)
     model_list = [
         {"model_name": f"arka-{slot}", "litellm_params": _litellm_params(plan.slots[slot])}
         for slot in _SLOTS
     ]
-    # Wildcard last: LiteLLM matches explicit names first, this catches the
-    # main-loop model and any raw claude-* id and forwards it to Anthropic.
-    model_list.append(
-        {"model_name": "*", "litellm_params": {"model": "anthropic/*", "api_key": _ANTHROPIC_KEY_REF}}
-    )
+    if local_only:
+        wildcard = _litellm_params(_local_fallback(plan.slots))
+    else:
+        # LiteLLM matches explicit names first; this catches the main-loop
+        # model and any raw claude-* id and forwards it to Anthropic.
+        wildcard = {"model": "anthropic/*", "api_key": _ANTHROPIC_KEY_REF}
+    model_list.append({"model_name": "*", "litellm_params": wildcard})
     return {
         "model_list": model_list,
         "litellm_settings": {"drop_params": True},
@@ -164,8 +196,10 @@ def build_launch_env(master_key: str, port: int = _DEFAULT_PORT, user_path=None)
     }
 
 
-def render_config_yaml(user_path=None) -> str:
+def render_config_yaml(user_path=None, local_only: bool = False) -> str:
     """The LiteLLM config as a YAML string (what arka-claude writes to disk)."""
     import yaml
 
-    return yaml.safe_dump(build_litellm_config(user_path), sort_keys=False)
+    return yaml.safe_dump(
+        build_litellm_config(user_path, local_only=local_only), sort_keys=False
+    )

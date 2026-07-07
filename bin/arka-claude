@@ -83,7 +83,7 @@ if [ "${ARKA_GATEWAY:-0}" = "1" ] && [ -n "${REPO:-}" ]; then
     # shellcheck source=/dev/null
     . "$_ENV_FILE"
     set +a
-    echo -e "  ${GREEN}⚡ Model Fabric gateway active${RESET} ${DIM}(execution→Ollama, quality→Anthropic)${RESET}"
+    echo -e "  ${GREEN}⚡ Model Fabric gateway active${RESET} ${DIM}(per-role routing — see gateway note above)${RESET}"
     echo ""
   else
     echo -e "  ${DIM}(gateway off — plain Claude launch)${RESET}"

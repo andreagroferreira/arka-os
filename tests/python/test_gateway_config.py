@@ -104,3 +104,34 @@ def test_launch_env_never_carries_anthropic_key(models_path: Path):
     """ANTHROPIC_API_KEY belongs to the proxy, not the client env."""
     env = build_launch_env(master_key="sentinel-key", user_path=models_path)
     assert "ANTHROPIC_API_KEY" not in env
+
+
+def test_local_only_redirects_anthropic_slots_to_ollama(models_path: Path):
+    """Subscription users (no API key): every slot runs on local Ollama."""
+    plan = build_gateway_plan(models_path, local_only=True)
+    for slot, up in plan.slots.items():
+        assert up.kind == "ollama", f"slot {slot} still hits Anthropic in local-only"
+        assert up.model_id == "kimi-k2.7-code:cloud"
+
+
+def test_local_only_config_has_no_anthropic_route(models_path: Path):
+    """No Anthropic route and no os.environ/ANTHROPIC_API_KEY reference —
+    the whole session is keyless. Wildcard also falls to the local model."""
+    cfg = build_litellm_config(models_path, local_only=True)
+    for entry in cfg["model_list"]:
+        params = entry["litellm_params"]
+        assert "os.environ/ANTHROPIC_API_KEY" not in params.values()
+        assert params["model"].startswith("ollama_chat/"), params
+    assert _route(cfg, "*")["model"] == "ollama_chat/kimi-k2.7-code:cloud"
+
+
+def test_local_only_without_ollama_route_raises(tmp_path: Path):
+    """local-only is impossible when no role points at Ollama."""
+    p = tmp_path / "m.yaml"
+    p.write_text(
+        "version: 1\naliases: {runtime: {best: opus, default: sonnet, fast: haiku}}\n"
+        "roles:\n  execution: {provider: runtime, model: best, effort: high}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="no Ollama route"):
+        build_gateway_plan(p, local_only=True)

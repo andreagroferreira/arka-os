@@ -29,14 +29,25 @@ setup_gateway() {
   [[ "$output" == *"LiteLLM not installed"* ]]
 }
 
-@test "gateway-ensure degrades when ANTHROPIC_API_KEY is unset" {
+@test "gateway-ensure runs local-only (keyless) when ANTHROPIC_API_KEY is unset" {
   setup_gateway
+  # Local-only needs at least one ollama route (the operator's real config
+  # has execution→ollama; the packaged default does not).
+  printf 'version: 1\nproviders:\n  ollama: {type: ollama, base_url: "http://localhost:11434"}\nroles:\n  execution: {provider: ollama, model: "kimi-k2.7-code:cloud", effort: high}\n' > "$ARKAOS_HOME/models.yaml"
   printf '#!/usr/bin/env bash\nexit 0\n' > "$ARKAOS_HOME/venv/bin/litellm"
   chmod +x "$ARKAOS_HOME/venv/bin/litellm"
+  local stubdir="$TEST_TEMP_DIR/stub"
+  mkdir -p "$stubdir"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$stubdir/curl"
+  chmod +x "$stubdir/curl"
   unset ANTHROPIC_API_KEY
-  run bash "$REPO_DIR/scripts/gateway-ensure.sh"
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"ANTHROPIC_API_KEY unset"* ]]
+  PATH="$stubdir:$PATH" run bash "$REPO_DIR/scripts/gateway-ensure.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"local-only"* ]]
+  # Config must carry NO Anthropic route (keyless) — every route is ollama.
+  [ -f "$ARKAOS_HOME/gateway/config.yaml" ]
+  ! grep -q "anthropic" "$ARKAOS_HOME/gateway/config.yaml"
+  grep -q "ollama_chat" "$ARKAOS_HOME/gateway/config.yaml"
 }
 
 @test "gateway-ensure renders config + launch.env with a stubbed healthy proxy" {

@@ -31,9 +31,14 @@ if [ ! -x "$LITELLM" ]; then
   warn "LiteLLM not installed in the ArkaOS venv — run: ~/.arkaos/venv/bin/pip install 'litellm[proxy]'"
   exit 1
 fi
+
+# Mode: with an API key -> mixed (quality→Anthropic, execution→Ollama).
+# Without one (subscription users) -> local-only: every route runs on the
+# local Ollama model, keyless. The main arka-claude keeps the subscription.
+LOCAL_FLAG=""
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-  warn "ANTHROPIC_API_KEY unset — Anthropic routes (quality/review) would fail; not starting gateway"
-  exit 1
+  LOCAL_FLAG="--local"
+  warn "no ANTHROPIC_API_KEY — local-only mode: the whole session runs on the local Ollama model (use plain arka-claude for subscription/quality work)"
 fi
 
 mkdir -p "$GW_DIR"
@@ -53,8 +58,9 @@ if health; then                      # RESTART path — old proxy must go
 fi
 
 # ─── Render config from models.yaml ───────────────────────────────────────
-if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway > "$CONFIG" 2>/dev/null; then
-  warn "could not render gateway config from models.yaml"
+# shellcheck disable=SC2086  # LOCAL_FLAG is a single controlled token
+if ! PYTHONPATH="$ARKAOS_ROOT" "$ARKA_PY" -m core.runtime.gateway $LOCAL_FLAG > "$CONFIG" 2>/dev/null; then
+  warn "could not render gateway config (local-only needs at least one ollama route in models.yaml)"
   exit 1
 fi
 
