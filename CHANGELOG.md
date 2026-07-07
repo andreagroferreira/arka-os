@@ -5,6 +5,39 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.6] - 2026-07-07
+
+### Added — Model Fabric gateway: real per-role model routing (PR #244)
+
+- The dashboard's role→model choices now physically take effect. Launch
+  with `ARKA_GATEWAY=1 arka-claude`: a LiteLLM proxy is rendered from
+  `models.yaml` and Claude Code is pointed at it via `ANTHROPIC_BASE_URL`,
+  so each subagent alias routes to its upstream (`core/runtime/gateway/`,
+  `scripts/gateway-ensure.sh`). Plain `arka-claude` is untouched.
+- **Two modes**, chosen by whether `ANTHROPIC_API_KEY` is set:
+  - **Mixed** (key present): quality/review → Anthropic-direct, execution
+    → local Ollama, in one session. The key stays server-side in the proxy.
+  - **Local-only** (no key — subscription users): every route incl. the
+    main loop runs on the local Ollama model, keyless. `ANTHROPIC_BASE_URL`
+    is one endpoint per process and the Claude Code subscription OAuth
+    cannot be proxied, so mixed Anthropic+local in one session needs a real
+    API key; subscription users get the fully-local session instead.
+- `core/runtime/model_routing_check.py`: the previously-promised telemetry
+  (gateway live/off + resolved routes + served counts), surfaced in
+  `/arka status`.
+- `litellm[proxy]` ships as an optional `gateway` extra
+  (`pip install 'arkaos[gateway]'`) — not in the base install.
+- Verified end-to-end (real, incl. keyless `env -u ANTHROPIC_API_KEY`).
+  Quality Gate APPROVED over 4 rounds.
+
+### Fixed
+
+- Two pre-existing midnight-UTC-boundary test flakes
+  (`test_cognition_integration`, `test_llm_cost_telemetry_cli`) that failed
+  when the suite ran in the first hour after 00:00 UTC.
+
+---
+
 ## [4.3.5] - 2026-07-06
 
 ### Security — OWASP A03 injection in session hooks (PR #238)
