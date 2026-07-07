@@ -31,7 +31,11 @@ def populated_telemetry(tmp_path, monkeypatch) -> Path:
             "estimated_cost_usd": 0.075,
         },
         {
-            "ts": (now - timedelta(hours=1)).isoformat(),
+            # Second "today" entry. Stamped at `now` (not now-1h): the today
+            # cutoff is start-of-day UTC, so a sub-day offset falls into
+            # yesterday when the suite runs in the first hour after 00:00 UTC
+            # — a midnight-boundary flake. `now` is always within today.
+            "ts": now.isoformat(),
             "session_id": "sess-a",
             "provider": "anthropic",
             "model": "claude-sonnet-4-6",

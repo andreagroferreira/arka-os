@@ -3,7 +3,7 @@
 Covers the full cognitive cycle: capture → store → dual-write → insight → query.
 """
 
-from datetime import date, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -77,8 +77,11 @@ class TestCognitionIntegration:
         capture = make_capture()
         capture_store.save(capture)
 
-        # b. Verify capture is stored by date
-        today = date.today()
+        # b. Verify capture is stored by date. Captures are stamped with
+        # _utc_now() and get_by_date() windows on the UTC day, so the query
+        # must use the UTC date — local date.today() flakes between 23:00
+        # and 00:00 UTC when the two dates disagree.
+        today = datetime.now(timezone.utc).date()
         captures_today = capture_store.get_by_date(today)
         assert len(captures_today) == 1
         assert captures_today[0].id == capture.id

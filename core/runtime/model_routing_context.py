@@ -57,7 +57,7 @@ def routing_summary() -> str:
 
 
 def routing_directive() -> str:
-    """Full SessionStart block: the config plus how to honor it.
+    """Full SessionStart block: the config plus how to honour it.
 
     Returns '' when the config cannot be read, so the hook can skip the
     block entirely rather than inject an empty directive.
@@ -65,6 +65,26 @@ def routing_directive() -> str:
     summary = routing_summary()
     if not summary:
         return ""
+
+    # When the LiteLLM gateway is live, the alias a subagent is dispatched
+    # with is what physically selects the upstream (opus→Anthropic,
+    # haiku→Ollama for execution), so the directive names the concrete
+    # alias per role. Off, it stays advisory context injection.
+    gateway_line = ""
+    try:
+        from core.runtime.model_routing_check import gateway_healthy
+
+        if gateway_healthy():
+            gateway_line = (
+                "\nGateway LIVE: the Task model param physically routes the "
+                "upstream. Dispatch execution with model=haiku (→ Ollama), "
+                "mechanical with model=sonnet, and design/review/architecture/"
+                "quality_gate with model=opus (→ Anthropic). strategy is the "
+                "main loop model."
+            )
+    except Exception:
+        gateway_line = ""
+
     # No backticks: this string is embedded in session-start.sh which
     # passes it through $(echo -e "$MSG") — backticks would trigger shell
     # command substitution. Use plain quotes.
@@ -79,4 +99,5 @@ def routing_directive() -> str:
         "the agent YAML default. Quality roles never downgrade below the "
         "configured model (excellence-mandate). Genuinely mechanical "
         "dispatches (commit messages, formatting) use the mechanical role."
+        f"{gateway_line}"
     )
