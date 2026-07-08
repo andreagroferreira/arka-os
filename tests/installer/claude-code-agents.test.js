@@ -24,6 +24,16 @@ const EXPECTED_AGENTS = [
   "eduardo-copy.md",
   "francisca-tech.md",
   "paulo-tech-lead.md",
+  // PR-4 prompt-surface (2026-07-08): behavioral-compiler pilot output —
+  // generated from departments/dev/agents/*.yaml, single source there.
+  "architect.md",
+  "backend-dev.md",
+  "dba.md",
+  "devops-eng.md",
+  "frontend-dev.md",
+  "qa-eng.md",
+  "research-assistant.md",
+  "security-eng.md",
 ];
 
 function makeTmpDir(prefix) {
@@ -31,7 +41,7 @@ function makeTmpDir(prefix) {
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-test("repo ships the four QG/lead agent definitions", () => {
+test("repo ships the QG/lead + compiled dev-squad agent definitions", () => {
   for (const file of EXPECTED_AGENTS) {
     const path = join(ROOT, "config", "claude-agents", file);
     assert.ok(existsSync(path), `${file} must exist in config/claude-agents/`);
