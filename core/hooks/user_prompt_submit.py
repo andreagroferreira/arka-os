@@ -36,6 +36,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from core.shared.temp_paths import arkaos_temp_dir
 from core.hooks._shared import (
     ensure_root_on_path,
     get_str,
@@ -45,7 +46,7 @@ from core.hooks._shared import (
     safe_session_id,
 )
 
-_CACHE_DIR = Path("/tmp/arkaos-context-cache")
+_CACHE_DIR = arkaos_temp_dir("arkaos-context-cache")
 _CACHE_TTL = 300  # Constitution cache: 5 minutes
 
 _L0_FALLBACK = (
@@ -439,7 +440,7 @@ def _wf_mark_required(session_id: str) -> None:
     if safe_session_id(session_id) is None:
         return
     marker_dir = Path(
-        os.environ.get("ARKA_WF_REQUIRED_DIR", "/tmp/arkaos-wf-required")
+        os.environ.get("ARKA_WF_REQUIRED_DIR", str(arkaos_temp_dir("arkaos-wf-required")))
     )
     try:
         marker_dir.mkdir(parents=True, exist_ok=True)

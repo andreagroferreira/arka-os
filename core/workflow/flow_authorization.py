@@ -42,6 +42,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
+from core.shared.temp_paths import arkaos_temp_dir
 
 _safe_session_id = _safe_session_id_module.safe_session_id
 
@@ -63,7 +64,7 @@ class GraceState:
 
 def _base_dir() -> Path:
     override = os.environ.get("ARKA_FLOW_AUTH_DIR", "").strip()
-    return Path(override) if override else Path("/tmp/arkaos-flow-auth")
+    return Path(override) if override else arkaos_temp_dir("arkaos-flow-auth")
 
 
 def _auth_path(session_id: str) -> Path | None:
