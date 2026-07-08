@@ -40,4 +40,35 @@ function Resolve-ArkaPython {
     return "python"
 }
 
+# Windows mirror of arka_resolve_root() in arka_python.sh: env override wins
+# unconditionally; guessed candidates must contain core/sync/__init__.py
+# (the full-package marker — `.repo-path` points at an npx cache that
+# `npm cache clean` can purge; ~/.arkaos/lib is the installer's snapshot).
+function Resolve-ArkaRoot {
+    if (-not [string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
+        return $env:ARKAOS_ROOT
+    }
+    $base = if ($env:USERPROFILE) { $env:USERPROFILE } elseif ($HOME) { $HOME } else { "" }
+    $repo = ""
+    $repoPathFile = Join-Path $base ".arkaos\.repo-path"
+    if ($base -and (Test-Path -LiteralPath $repoPathFile)) {
+        $repo = (Get-Content $repoPathFile -Raw).Trim()
+    }
+    if ($repo -and (Test-Path -LiteralPath (Join-Path $repo "core\sync\__init__.py"))) {
+        return $repo
+    }
+    $lib = Join-Path $base ".arkaos\lib"
+    if ($base -and (Test-Path -LiteralPath (Join-Path $lib "core\sync\__init__.py"))) {
+        return $lib
+    }
+    if ($repo -and (Test-Path -LiteralPath $repo)) {
+        return $repo
+    }
+    if ($base -and (Test-Path -LiteralPath (Join-Path $base ".arkaos"))) {
+        return (Join-Path $base ".arkaos")
+    }
+    if ($env:ARKA_OS) { return $env:ARKA_OS }
+    return (Join-Path $base ".claude\skills\arkaos")
+}
+
 $env:ARKA_PY = Resolve-ArkaPython

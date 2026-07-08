@@ -99,15 +99,20 @@ const checks = [
   },
   {
     name: "repo-path",
-    description: "Repo path reference exists",
+    description: "Python core reachable (.repo-path or ~/.arkaos/lib snapshot)",
     severity: "warn",
     check: () => {
+      // The stable snapshot keeps arka-py working even after
+      // `npm cache clean` purges the npx dir .repo-path points at.
+      if (existsSync(join(INSTALL_DIR, "lib", "core", "sync", "__init__.py"))) {
+        return true;
+      }
       const p = join(INSTALL_DIR, ".repo-path");
       if (!existsSync(p)) return false;
       const root = readFileSync(p, "utf-8").trim();
-      return existsSync(root);
+      return existsSync(join(root, "core", "sync", "__init__.py"));
     },
-    fix: () => "Run: npx arkaos install --force",
+    fix: () => "Run: npx arkaos@latest update (recreates the ~/.arkaos/lib core snapshot)",
   },
   {
     name: "profile",

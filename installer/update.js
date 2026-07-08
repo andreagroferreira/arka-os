@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { ensureVenv, ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { copyHookLib } from "./hook-lib.js";
+import { deployCoreSnapshot } from "./core-snapshot.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
 import { migrateUserData, printMigrationReport } from "./migrate-user-data.js";
@@ -455,6 +456,18 @@ export async function update() {
   // different clone than the original install.
   console.log("  [7/8] Updating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
+  // .repo-path points at the npx cache, which `npm cache clean` can purge;
+  // refresh the ~/.arkaos/lib snapshot so arka-py and the Python hooks
+  // always keep a validated fallback (see installer/core-snapshot.js).
+  // A failed snapshot must never fail the update — resolvers degrade to
+  // .repo-path (and any previous snapshot is preserved by the safe swap).
+  try {
+    if (deployCoreSnapshot(ARKAOS_ROOT, installDir)) {
+      console.log("         ✓ Core snapshot refreshed in ~/.arkaos/lib");
+    }
+  } catch (err) {
+    console.log(`         ⚠ Core snapshot skipped (${err.message}) — arka-py falls back to .repo-path`);
+  }
   const skillsArkaosDir = join(homedir(), ".claude", "skills", "arkaos");
   if (existsSync(skillsArkaosDir)) {
     writeFileSync(join(skillsArkaosDir, ".arkaos-root"), ARKAOS_ROOT);

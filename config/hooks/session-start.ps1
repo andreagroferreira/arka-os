@@ -46,6 +46,16 @@ if (Test-Path -LiteralPath $repoPathFile) {
         }
     } catch { }
 }
+# .repo-path may point at a purged npx cache — the installer's snapshot
+# keeps the drift banner alive ('2.x' is the untouched default above).
+if ($version -eq '2.x') {
+    $libVersionFile = Join-Path $arkaosHome 'lib\VERSION'
+    if (Test-Path -LiteralPath $libVersionFile) {
+        try {
+            $version = (Get-Content -Raw -LiteralPath $libVersionFile -Encoding UTF8).Trim()
+        } catch { }
+    }
+}
 
 # ─── Time greeting ─────────────────────────────────────────────────────
 $hour = [int](Get-Date -Format 'HH')

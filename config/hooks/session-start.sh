@@ -22,6 +22,11 @@ if [ -f "$HOME/.arkaos/.repo-path" ]; then
   REPO=$(cat "$HOME/.arkaos/.repo-path")
   [ -f "$REPO/VERSION" ] && VERSION=$(cat "$REPO/VERSION" | tr -d '[:space:]')
 fi
+# .repo-path may point at a purged npx cache — the installer's snapshot
+# keeps the drift banner alive ("2.x" is the untouched default above).
+if [ "$VERSION" = "2.x" ] && [ -f "$HOME/.arkaos/lib/VERSION" ]; then
+  VERSION=$(tr -d '[:space:]' < "$HOME/.arkaos/lib/VERSION")
+fi
 
 # ─── Static greeting (cache-friendly) ──────────────────────────────────
 # Time-of-day branching removed: it invalidated prompt cache 3x/day without
