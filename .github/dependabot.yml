@@ -12,6 +12,12 @@ updates:
       npm-dev:
         patterns:
           - "*"
+    ignore:
+      # eslint >=10 requires Node >=20.19; our support matrix (and the CI
+      # node-check job) still includes Node 18. Re-enable when Node 18 is
+      # dropped from the matrix. Context: PR #243 (EBADENGINE on node 18).
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
 
   # Python deps declared in pyproject.toml. Covers core [project.dependencies]
   # (pydantic, pyyaml, rich, click, jinja2) plus the optional extras
