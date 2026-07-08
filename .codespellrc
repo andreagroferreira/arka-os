@@ -14,6 +14,8 @@
 #   sive — sive.rs (Derek Sivers' site)
 #   fo — schtasks /FO output-format flag (Windows scheduler)
 #   unparseable/implementor — accepted English variants
+#   componentes/comandos/classe/meu/fases — pt-PT effect-object lexicon and
+#     test fixtures in core/governance/phantom_action_check.py (P0 2026-07-08)
 [codespell]
-ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor
+ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fases
 skip = *.lock,*.svg,*/node_modules,*/__pycache__
