@@ -15,7 +15,6 @@ from core.synapse.layers import (
     BranchLayer,
     CommandHintsLayer,
     QualityGateLayer,
-    TimeLayer,
 )
 from core.synapse.engine import SynapseEngine, create_default_engine
 
@@ -234,13 +233,6 @@ class TestCommandHintsLayer:
         assert hint_count <= 2
 
 
-class TestTimeLayer:
-    def test_returns_time_period(self):
-        layer = TimeLayer()
-        result = layer.compute(PromptContext())
-        assert result.tag in ("[time:morning]", "[time:afternoon]", "[time:evening]")
-
-
 # --- Engine Tests ---
 
 
@@ -250,7 +242,8 @@ class TestSynapseEngine:
         # PR3.5 v3.74.1 added L2.6 AgentExperiencesLayer: 10 -> 11.
         # PR4 v3.75.0 added L7.5 PatternLibraryLayer: 11 -> 12.
         # PR-3 v4.1 added L2.7 GraphContextLayer: 12 -> 13.
-        assert engine.layer_count == 13
+        # Prompt-surface P0 2026-07-08 removed L7 TimeLayer: 13 -> 12.
+        assert engine.layer_count == 12
 
     def test_inject_returns_result(self):
         engine = create_default_engine(constitution_compressed="NON-NEGOTIABLE: a")
@@ -274,10 +267,12 @@ class TestSynapseEngine:
         result = engine.inject(PromptContext(git_branch="feature/auth"))
         assert "[branch:feature/auth]" in result.context_string
 
-    def test_inject_contains_time(self):
+    def test_inject_excludes_time_tag(self):
+        # L7 TimeLayer removed (prompt-surface P0 2026-07-08): per-turn
+        # cache-buster with no consumer rule.
         engine = create_default_engine()
         result = engine.inject(PromptContext())
-        assert "[time:" in result.context_string
+        assert "[time:" not in result.context_string
 
     def test_performance_under_100ms(self):
         # PR5 v3.76.0 — replaced wall-clock budget with semantic cache-effect
@@ -318,13 +313,13 @@ class TestSynapseEngine:
         engine = SynapseEngine()
         assert engine.layer_count == 0
 
-        engine.register_layer(TimeLayer())
+        engine.register_layer(BranchLayer())
         assert engine.layer_count == 1
 
     def test_remove_layer(self):
         engine = create_default_engine()
         initial = engine.layer_count
-        engine.remove_layer("L7")  # Remove Time layer
+        engine.remove_layer("L4")  # Remove Branch layer
         assert engine.layer_count == initial - 1
 
     def test_metrics_recorded(self):
@@ -376,7 +371,7 @@ class TestSynapseIntegration:
         assert "stack:laravel" in result.context_string
         assert "[branch:feature/auth]" in result.context_string
         assert "[hint:/dev feature]" in result.context_string
-        assert "[time:" in result.context_string
+        assert "[time:" not in result.context_string  # L7 removed (P0 2026-07-08)
         # PR4.5 v3.75.1 — replaced the original hard 100ms wall-clock budget
         # with a SEMANTIC cache-effect check. Any wall-clock budget tighter
         # than the host's CI variance is brittle (Marta's QG-T1 on the first

@@ -255,11 +255,11 @@ class TestKnowledgeRetrievalLayer:
         store.index_chunks(texts=["ArkaOS deployment guide"], source="deploy.md")
 
         engine = create_default_engine(vector_store=store)
-        # 13 default (includes L2.6 AgentExperiences from PR3.5, L7.5
-        # PatternLibrary from PR4, and L2.7 GraphContext from PR-3 v4.1)
-        # + L3.5 KnowledgeRetrieval + L2.5 KBContext (both gated on
-        # vector_store/vault being present).
-        assert engine.layer_count == 15
+        # 12 default (L2.6 AgentExperiences, L7.5 PatternLibrary, L2.7
+        # GraphContext; L7 TimeLayer removed in prompt-surface P0
+        # 2026-07-08) + L3.5 KnowledgeRetrieval + L2.5 KBContext (both
+        # gated on vector_store/vault being present).
+        assert engine.layer_count == 14
 
         ctx = PromptContext(user_input="how to deploy")
         result = engine.inject(ctx)

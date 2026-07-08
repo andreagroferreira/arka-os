@@ -56,9 +56,11 @@ class TestSynapseBridge:
         output = self._run_bridge({"user_input": "test"})
         assert "[Constitution]" in output["context_string"]
 
-    def test_bridge_includes_time(self):
+    def test_bridge_excludes_time_tag(self):
+        # L7 TimeLayer removed (prompt-surface P0 2026-07-08): the tag was a
+        # per-turn cache-buster with no consumer rule.
         output = self._run_bridge({"user_input": "test"})
-        assert "[time:" in output["context_string"]
+        assert "[time:" not in output["context_string"]
 
     def test_bridge_includes_quality_gate(self):
         output = self._run_bridge({"user_input": "test"})
@@ -71,7 +73,7 @@ class TestSynapseBridge:
         assert "cache_stats" in output
         layer_ids = [l["id"] for l in output["layers"]]
         assert "L0" in layer_ids  # Constitution
-        assert "L7" in layer_ids  # Time
+        assert "L7" not in layer_ids  # TimeLayer removed (prompt-surface P0)
 
     def test_bridge_command_hints(self):
         output = self._run_bridge({"user_input": "validate my saas idea"})
@@ -127,6 +129,7 @@ class TestHookIntegration:
         output = self._run_hook("test")
         assert "[Constitution]" in output["additionalContext"]
 
-    def test_hook_includes_time(self):
+    def test_hook_excludes_time_tag(self):
+        # L7 TimeLayer removed (prompt-surface P0 2026-07-08).
         output = self._run_hook("test")
-        assert "[time:" in output["additionalContext"]
+        assert "[time:" not in output["additionalContext"]

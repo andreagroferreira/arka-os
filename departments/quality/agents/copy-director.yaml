@@ -88,14 +88,20 @@ signature_markers:
     - "pt-PT"
     - "AI cliche"
   closing_style: null
+  # Canonical AI-cliche list: constitution rule `no-ai-cliches` — keep
+  # verbatim in sync (prompt-surface P0 2026-07-08).
   avoid_patterns:
     - "delve into"
-    - "tapestry"
-    - "in today's fast-paced"
-    - "navigate the landscape"
-    - "underscore"
     - "leverage"
     - "utilize"
     - "robust"
+    - "comprehensive"
     - "streamline"
+    - "unlock"
+    - "tapestry"
+    - "dive deep"
+    - "navigate"
+    - "realm of"
     - "cutting-edge"
+    - "in today's fast-paced"
+    - "underscore"

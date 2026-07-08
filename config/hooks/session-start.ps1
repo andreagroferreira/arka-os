@@ -110,7 +110,9 @@ $lines = @(
     $bottomLine
     ''
     "$greeting, $name ($company)"
-    "ArkaOS v$version | 65 agents | 17 departments | 244+ skills$drift"
+    # Counts intentionally omitted (prompt-surface P0 2026-07-08): hand-typed
+    # numbers drift from docs_stats.py truth and change no model behavior.
+    "ArkaOS v$version$drift"
 )
 
 $msg = "`n" + ($lines -join "`n")
