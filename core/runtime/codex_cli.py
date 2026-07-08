@@ -170,6 +170,8 @@ def _run_codex_cli(cmd: list[str]) -> subprocess.CompletedProcess:
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=_TIMEOUT_SECONDS,
             check=False,
             # CRITICAL: with a prompt arg AND piped stdin, codex exec
