@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.7.0] - 2026-07-08
 
-First two PRs of the prompt-surface plan (frontier system-prompts audit,
-2026-07-08): restore coherence across the prompt surface, then lock it
-in CI. Both passed the evidence Quality Gate (each after one
-REJECTED→fix cycle with independently reproduced blockers).
+First three PRs of the prompt-surface plan (frontier system-prompts
+audit, 2026-07-08): restore coherence across the prompt surface, lock it
+in CI, then bring the skill layer up to the canonical template. All
+passed the evidence Quality Gate (each after one REJECTED→fix cycle
+with independently reproduced blockers).
+
+### Added — skill template + KB-first compaction + TRIGGER/SKIP pilot (PR #257)
+
+- `arka/templates/skill-template.md`: canonical skill anatomy
+  (TRIGGER/SKIP description contract, filled-example output contracts,
+  verbatim blocks, "what to leave out").
+- KB-first prefix compacted from the ~90-word doctrine to a 3-line
+  pointer in 208 SKILL.md files (-1614 net lines on the installed
+  surface); the full doctrine lives once in `arka/SKILL.md`; the
+  migration script gained an idempotent replace mode + 13 tests (92%).
+- TRIGGER/SKIP pilot: 17 skill descriptions rewritten as deterministic
+  routing contracts (same-name `growth-plan` collision, review family,
+  `research` pair, spec-vs-forge). NON-NEGOTIABLE ratchet lowered
+  47 → 28.
 
 ### Fixed — prompt-surface P0 coherence (PR #255)
 
