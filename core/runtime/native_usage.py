@@ -33,9 +33,10 @@ from typing import Any
 from core.runtime.llm_cost_telemetry import record_cost
 from core.runtime.pricing import estimate_cost_usd
 from core.shared.safe_session_id import safe_session_id
+from core.shared.temp_paths import arkaos_temp_dir
 
 
-DEFAULT_CURSOR_DIR = Path("/tmp/arkaos-native-cost")
+DEFAULT_CURSOR_DIR = arkaos_temp_dir("arkaos-native-cost")
 
 _USAGE_KEYS = (
     "input_tokens",

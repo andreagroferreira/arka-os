@@ -131,9 +131,14 @@ function formatIncidentTs(iso: string): string {
   }
 }
 
+const toast = useToast()
 function copyCommand(cmd: string) {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    navigator.clipboard.writeText(cmd).catch(() => { /* ignore */ })
+    navigator.clipboard.writeText(cmd)
+      .then(() => toast.add({ title: 'Copied to clipboard', description: cmd, icon: 'i-lucide-clipboard-check' }))
+      .catch(() => toast.add({ title: 'Copy failed', description: cmd, color: 'error', icon: 'i-lucide-clipboard-x' }))
+  } else {
+    toast.add({ title: 'Clipboard unavailable', description: cmd, color: 'warning' })
   }
 }
 </script>

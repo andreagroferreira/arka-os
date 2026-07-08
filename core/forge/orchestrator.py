@@ -23,6 +23,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from core.shared.temp_paths import arkaos_temp_dir
 from core.forge.schema import (
     ForgeContext,
     ForgePlan,
@@ -361,7 +362,7 @@ class ForgeOrchestrator:
             raise RuntimeError("No active forge plan.")
 
         html = render_html(self._current_plan)
-        path = f"/tmp/forge-{self._current_plan.id}.html"
+        path = str(arkaos_temp_dir(f"forge-{self._current_plan.id}.html"))
         Path(path).write_text(html, encoding="utf-8")
         return path
 

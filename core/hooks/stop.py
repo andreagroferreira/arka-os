@@ -30,6 +30,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.shared.temp_paths import arkaos_temp_dir
 from core.hooks._shared import (
     ensure_root_on_path,
     get_str,
@@ -104,7 +105,7 @@ def _write_tmp_state(subdir: str, safe_sid: str, payload: dict) -> None:
     """Owner-only /tmp state file (umask 0o077 — PR25 v2.46.1)."""
     prev_umask = os.umask(0o077)
     try:
-        state_dir = Path("/tmp") / subdir
+        state_dir = arkaos_temp_dir(subdir)
         state_dir.mkdir(parents=True, exist_ok=True)
         (state_dir / f"{safe_sid}.json").write_text(
             json.dumps(payload), encoding="utf-8"
@@ -220,7 +221,7 @@ def _flow_checks(
         kb_reported = parse_reported_kb(last)
         if safe_sid:
             injected_path = (
-                Path("/tmp/arkaos-kb-injected") / f"{safe_sid}.json"
+                arkaos_temp_dir("arkaos-kb-injected") / f"{safe_sid}.json"
             )
             if injected_path.exists():
                 injected_data = json.loads(
@@ -369,7 +370,7 @@ def main(stdin_json: dict | None = None) -> int:
     _native_usage(transcript_path, session_id, raw)
 
     # Only evaluate sessions where the classifier flagged creation intent.
-    wf_marker = Path("/tmp/arkaos-wf-required") / session_id if session_id else None
+    wf_marker = arkaos_temp_dir("arkaos-wf-required") / session_id if session_id else None
     if wf_marker is None or not safe_session_id(session_id) or not wf_marker.is_file():
         return 0
 

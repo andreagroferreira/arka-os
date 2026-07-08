@@ -37,6 +37,7 @@ dashboard = [
     "uvicorn>=0.32.0",
     "python-multipart>=0.0.9",
     "websockets>=12.0",
+    "pywinpty>=2.0.0; sys_platform == 'win32'",
 ]
 ingest = [
     "yt-dlp>=2024.0",

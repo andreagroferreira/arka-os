@@ -377,6 +377,9 @@ def test_document_session_relator_failure_does_not_crash(
 def test_document_session_appends_related_block_when_matches(
     tmp_path, vault, monkeypatch
 ):
+    # Real embeddings are needed here: the keyword fallback does not rank
+    # the seeded note high enough to emit a Related block for these texts.
+    pytest.importorskip("fastembed")
     monkeypatch.setattr(ad, "_call_llm", lambda learning: "")
     # Seed vault with a very similar note so relator returns matches.
     seed = vault / "existing.md"

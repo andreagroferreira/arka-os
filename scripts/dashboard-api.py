@@ -20,6 +20,8 @@ from typing import Optional
 ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(ARKAOS_ROOT))
 
+from core.shared.temp_paths import arkaos_temp_dir
+
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -158,10 +160,10 @@ def overview():
 
     skills_count = 0
     try:
-        skills_count = int(subprocess.run(
-            ["find", str(ARKAOS_ROOT / "departments"), "-name", "SKILL.md", "-path", "*/skills/*/SKILL.md"],
-            capture_output=True, text=True, timeout=5,
-        ).stdout.strip().count("\n")) + 1
+        skills_count = sum(
+            1 for p in (ARKAOS_ROOT / "departments").rglob("SKILL.md")
+            if "skills" in p.parts
+        )
     except Exception:
         skills_count = 250
 
@@ -1733,7 +1735,7 @@ def health():
           "npx arkaos install")
 
     try:
-        subprocess.run(["python3", "--version"], capture_output=True, timeout=2)
+        subprocess.run([sys.executable, "--version"], capture_output=True, timeout=2)
         check("python", True)
     except Exception:
         check("python", False, "Install Python 3.11+")
@@ -2794,6 +2796,18 @@ def _current_version() -> str:
         return "0.0.0"
 
 
+def _win_shim(cmd: list) -> list:
+    """Wrap npm/npx-style commands so Windows can execute them.
+
+    npm and npx are ``.cmd`` shims; ``subprocess`` (CreateProcess) cannot
+    run them directly ("%1 is not a valid Win32 application"), so route
+    through ``cmd /c`` on Windows. No-op on POSIX.
+    """
+    if os.name == "nt":
+        return ["cmd", "/c", *cmd]
+    return cmd
+
+
 def _npm_latest_version():
     import subprocess
     import time
@@ -2802,7 +2816,7 @@ def _npm_latest_version():
         return _npm_latest_cache["version"]
     try:
         out = subprocess.run(
-            ["npm", "view", "arkaos", "version"],
+            _win_shim(["npm", "view", "arkaos", "version"]),
             capture_output=True, text=True, timeout=20,
         )
         latest = (out.stdout or "").strip() or None
@@ -2829,7 +2843,7 @@ def _run_core_update() -> dict:
     import subprocess
     try:
         out = subprocess.run(
-            ["npx", "arkaos@latest", "update"],
+            _win_shim(["npx", "arkaos@latest", "update"]),
             capture_output=True, text=True, timeout=600,
         )
         tail = ((out.stdout or "") + (out.stderr or ""))[-2000:]
@@ -2994,30 +3008,49 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
     # left it. Sent before the live reader is attached, so the historical
     # prefix always precedes any new output (no interleave, no dup — these
     # bytes were already consumed from the kernel buffer when first read).
-    replay = session.scrollback()
-    if replay:
-        try:
-            await ws.send_bytes(replay)
-        except Exception:
-            await ws.close(code=1011, reason="replay failed")
-            return
-
     loop = asyncio.get_event_loop()
     output_queue: asyncio.Queue = asyncio.Queue()
 
-    def _on_readable():
-        try:
-            data = session.read(8192)
-        except OSError:
-            data = b""
-        if data:
-            output_queue.put_nowait(data)
+    # POSIX exposes a pollable master fd (add_reader); the Windows ConPTY
+    # backend has none (master_fd == -1) and instead pushes output from its
+    # own reader thread into a registered listener.
+    use_fd_reader = getattr(session, "master_fd", -1) >= 0
 
-    try:
-        loop.add_reader(session.master_fd, _on_readable)
-    except (ValueError, OSError):
-        await ws.close(code=1011, reason="pty unavailable")
-        return
+    if use_fd_reader:
+        replay = session.scrollback()
+        if replay:
+            try:
+                await ws.send_bytes(replay)
+            except Exception:
+                await ws.close(code=1011, reason="replay failed")
+                return
+
+        def _on_readable():
+            try:
+                data = session.read(8192)
+            except OSError:
+                data = b""
+            if data:
+                output_queue.put_nowait(data)
+
+        try:
+            loop.add_reader(session.master_fd, _on_readable)
+        except (ValueError, OSError):
+            await ws.close(code=1011, reason="pty unavailable")
+            return
+    else:
+        def _emit(data: bytes):
+            loop.call_soon_threadsafe(output_queue.put_nowait, data)
+
+        # Atomic: snapshot scrollback and start the live feed with no gap.
+        replay = session.attach(_emit)
+        if replay:
+            try:
+                await ws.send_bytes(replay)
+            except Exception:
+                session.set_listener(None)
+                await ws.close(code=1011, reason="replay failed")
+                return
 
     async def pump_to_client():
         while True:
@@ -3060,13 +3093,16 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
         pass
     finally:
         pump_task.cancel()
-        # Only the still-active connection owns the fd reader — a superseded
-        # connection tearing down must not remove its replacement's reader.
+        # Only the still-active connection owns the reader — a superseded
+        # connection tearing down must not detach its replacement's reader.
         if _terminal_conns.release(session_id, ws):
-            try:
-                loop.remove_reader(session.master_fd)
-            except (ValueError, OSError):
-                pass
+            if use_fd_reader:
+                try:
+                    loop.remove_reader(session.master_fd)
+                except (ValueError, OSError):
+                    pass
+            else:
+                session.set_listener(None)
 
 
 @app.on_event("startup")
@@ -4233,7 +4269,7 @@ def keys_delete(key_name: str):
 
 @app.get("/api/metrics")
 def metrics():
-    metrics_file = Path("/tmp/arkaos-context-cache/hook-metrics.jsonl")
+    metrics_file = arkaos_temp_dir("arkaos-context-cache", "hook-metrics.jsonl")
     if not metrics_file.exists():
         return {"entries": [], "avg_ms": 0}
     entries = []

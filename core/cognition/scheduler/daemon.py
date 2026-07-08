@@ -275,11 +275,15 @@ class ArkaScheduler:
         extra_paths = [
             os.path.join(home, ".local", "bin"),
             os.path.join(home, ".arkaos", "bin"),
-            "/usr/local/bin",
         ]
+        if os.name != "nt":
+            extra_paths.append("/usr/local/bin")
         env = os.environ.copy()
-        existing = env.get("PATH", "/usr/bin:/bin")
-        env["PATH"] = ":".join(extra_paths) + ":" + existing
+        existing = env.get("PATH", "" if os.name == "nt" else "/usr/bin:/bin")
+        # os.pathsep is ';' on Windows (where drive-letter entries contain
+        # ':') and ':' on POSIX, so the joined PATH stays valid on both.
+        parts = extra_paths + ([existing] if existing else [])
+        env["PATH"] = os.pathsep.join(parts)
         return env
 
     def _run_attempt(

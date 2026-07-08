@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("fastapi")  # optional dashboard dependency
 from fastapi.testclient import TestClient
 
 
