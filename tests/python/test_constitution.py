@@ -59,7 +59,8 @@ class TestConstitutionRules:
         rules = constitution.get_must_rules()
         # PR5 v2.27.0 added sub-squad-hierarchy: 9 → 10
         # PR3 Squad Intelligence (v3.74.0) added agent-experience-persistence: 10 → 11.
-        assert len(rules) == 11
+        # PR-4 prompt-surface (2026-07-08) added persona-vs-artifact: 11 → 12.
+        assert len(rules) == 12
 
     def test_must_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_must_rules()]
@@ -121,7 +122,8 @@ class TestConstitutionRules:
         # PR5 Squad Intelligence (v3.76.0) added dna-fidelity-warn: 42 → 43.
         # PR6 Squad Intelligence (v3.77.0) added design-system-locked: 43 → 44.
         # Excellence Reform (v4.2.0) added excellence-mandate: 44 → 45.
-        assert len(all_ids) == 45  # 26 + 11 + 8
+        # PR-4 prompt-surface (2026-07-08) added persona-vs-artifact: 45 → 46.
+        assert len(all_ids) == 46  # 26 + 12 + 8
 
 
 class TestConstitutionQualityGate:

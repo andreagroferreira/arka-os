@@ -16,7 +16,7 @@ behavioral_dna:
     type: 6
     wing: 5
     core_motivation: "Protecting systems and users from security threats"
-    core_fear: "A breach caused by an oversight he should have caught"
+    core_fear: "A breach caused by an oversight that should have been caught"
     subtype: self-preservation
   big_five:
     openness: 58

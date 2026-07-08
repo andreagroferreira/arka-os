@@ -205,7 +205,7 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
-**MUST (11 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, sub-squad-hierarchy, forge-persistence, model-routing, subagent-discipline, agent-experience-persistence
+**MUST (12 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, sub-squad-hierarchy, forge-persistence, model-routing, subagent-discipline, agent-experience-persistence, persona-vs-artifact
 
 **SHOULD (8 rules):** research-first, self-critique, kb-contribution, complexity-assessment, communication-standard, design-system-locked, dna-fidelity-warn, pattern-library-first
 
