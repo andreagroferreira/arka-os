@@ -144,7 +144,7 @@ if [ -z "$python_result" ]; then
   fi
 
   # L7 Time removed (prompt-surface P0 2026-07-08): no rule consumes the
-  # [time:X] tag and it invalidated the prompt cache at 5h/12h/18h.
+  # time-of-day tag and it invalidated the prompt cache at 5h/12h/18h.
 
   python_result="$L0 $L4"
 fi

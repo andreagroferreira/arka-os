@@ -220,7 +220,7 @@ def create_default_engine(
     engine.register_layer(BranchLayer())
     engine.register_layer(CommandHintsLayer(commands=commands))
     engine.register_layer(QualityGateLayer())
-    # L7 TimeLayer removed (prompt-surface P0 2026-07-08): the [time:X] tag
+    # L7 TimeLayer removed (prompt-surface P0 2026-07-08): the time-of-day tag
     # had no consumer rule and invalidated the prompt cache at every
     # 5h/12h/18h boundary — same rationale as the session-start hook's
     # time-of-day removal.

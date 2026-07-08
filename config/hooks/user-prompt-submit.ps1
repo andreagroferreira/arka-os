@@ -323,7 +323,7 @@ if (-not $pythonResult) {
     } catch { }
 
     # L7 Time removed (prompt-surface P0 2026-07-08): no rule consumes the
-    # [time:X] tag and it invalidated the prompt cache at 5h/12h/18h.
+    # time-of-day tag and it invalidated the prompt cache at 5h/12h/18h.
 
     $pythonResult = (@($l0, $l4) | Where-Object { $_ }) -join ' '
 }
