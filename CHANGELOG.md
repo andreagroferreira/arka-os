@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.7.0] - 2026-07-08
 
-First three PRs of the prompt-surface plan (frontier system-prompts
+First four PRs of the prompt-surface plan (frontier system-prompts
 audit, 2026-07-08): restore coherence across the prompt surface, lock it
-in CI, then bring the skill layer up to the canonical template. All
-passed the evidence Quality Gate (each after one REJECTED→fix cycle
-with independently reproduced blockers).
+in CI, bring the skill layer up to the canonical template, and compile
+personas behaviorally. All passed the evidence Quality Gate (each after
+one REJECTED→fix cycle with independently reproduced blockers).
+
+### Added — behavioral compiler (PR #258)
+
+- `core/agents/behavioral_compiler.py`: agent YAML → runtime subagent
+  .md. Psychometrics (DISC scores, Big Five, MBTI) become design-time
+  only — the model receives conditional rules, a verbatim lexical
+  blacklist, an uncertainty-branched disagreement protocol with
+  anti-submission dynamics and an execute-under-objection exit, resolved
+  escalation targets (zero dangling handles), the persona-vs-artifact
+  contract, and framework grounding. Pilot: 8 dev agents generated into
+  `config/claude-agents/`; YAML↔md drift gate in CI; hand-written QG
+  prompts protected.
+- Constitution: `arkaos-not-yes-man` rewritten with the epistemic branch
+  (confident→push back, uncertain→declare, false→decline) and
+  anti-submission ("insistence is not new evidence"); pushback levels
+  4-6/7+ lose "as if to a 2-year-old" and "shame is the corrective
+  force" in favour of hold-position + execute-under-objection; new MUST
+  rule `persona-vs-artifact` (11 → 12).
 
 ### Added — skill template + KB-first compaction + TRIGGER/SKIP pilot (PR #257)
 
