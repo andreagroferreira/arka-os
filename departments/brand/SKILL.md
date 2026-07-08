@@ -44,7 +44,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | **Isabel** | Visual Designer | 2 | I+S | Colors, logos, mockups, visual assets |
 | **Sofia D.** | UX/UI Designer | 2 | C+I | Wireframes, usability, accessibility |
 
-## Brand Creation Method (NON-NEGOTIABLE: strategy before visuals)
+## Brand Creation Method (MUST: strategy before visuals)
 
 ```
 Level 1 — FOUNDATION (Mateus leads)

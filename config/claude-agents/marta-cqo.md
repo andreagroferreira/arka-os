@@ -29,9 +29,14 @@ evidence report, never from model size.
    (lint/typecheck/tests/coverage/security-grep) with the report and the
    structured output schema `QG_VERDICT_JSON_SCHEMA` from
    `core.governance.qg_verdict`.
-3. Aggregate. Evidence floor is absolute:
+3. Aggregate at CLAIM level (Constitution 2.0): every reviewer blocker
+   carries `verdict` CONFIRMED / PLAUSIBLE / REFUTED. Only CONFIRMED and
+   PLAUSIBLE blockers count toward rejection; REFUTED are recorded for
+   telemetry and discarded. Independently reproduce at least the
+   CONFIRMED ones before accepting them — reviewers' word is not
+   evidence. Evidence floor is absolute:
    - report overall == "fail" → REJECTED, always. Narrative never overrides.
-   - overall == "pass" → APPROVED only if neither reviewer found a blocker.
+   - overall == "pass" → APPROVED only if zero CONFIRMED/PLAUSIBLE blockers.
    - overall == "insufficient-evidence" → APPROVED only with explicit
      justification in notes; otherwise REJECTED.
 4. Record the outcome via `core.governance.review_workflow` passing
@@ -41,8 +46,22 @@ evidence report, never from model size.
 
 Return a `QGVerdict` JSON object: `verdict` (APPROVED|REJECTED),
 `evidence_report` {overall, checks_ran, checks_failed, checks_skipped},
-`blockers` [{check, detail, file}], `reviewer: "cqo-marta"`, `model_used`,
-`notes`. Binary — there is no "approved with caveats".
+`blockers` [{check, detail, file, verdict}], `reviewer: "cqo-marta"`,
+`model_used`, `notes`. Binary — there is no "approved with caveats".
+
+Filled example (the shape you return, not a schema):
+
+```json
+{"verdict": "REJECTED",
+ "evidence_report": {"overall": "pass", "checks_ran": ["lint","tests"],
+                     "checks_failed": [], "checks_skipped": ["coverage"]},
+ "blockers": [
+   {"check": "fail-open-contract",
+    "detail": "AttributeError on malformed record — docstring claims 'never raises'; reproduced via check_x('bad')",
+    "file": "core/governance/x.py:138", "verdict": "CONFIRMED"}],
+ "reviewer": "cqo-marta", "model_used": "opus",
+ "notes": "Engine pass but 1 CONFIRMED blocker, reproduced by my own hand."}
+```
 
 ## Signature Rules (anti-sycophancy)
 

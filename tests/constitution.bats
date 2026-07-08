@@ -5,11 +5,11 @@
 
 load helpers/setup
 
-@test "constitution has 13 NON-NEGOTIABLE rules" {
-  count=$(grep -c '^\d\+\.' "$REPO_DIR/CONSTITUTION.md" | head -1 || true)
-  # Count numbered items under NON-NEGOTIABLE section (before Quality Gate section)
+@test "constitution has 6 NON-NEGOTIABLE rules" {
+  # Constitution 2.0 (PR-5, 2026-07-08): 26 -> 6 by the gate-verifiability
+  # admission test; 16 -> MUST, 4 -> SHOULD.
   count=$(sed -n '/^## NON-NEGOTIABLE/,/^## Quality Gate/p' "$REPO_DIR/CONSTITUTION.md" | grep -c '^\d\+\.')
-  [ "$count" -eq 13 ]
+  [ "$count" -eq 6 ]
 }
 
 @test "constitution includes solid-clean-code rule" {
@@ -24,8 +24,8 @@ load helpers/setup
   grep -q "Human Writing" "$REPO_DIR/CONSTITUTION.md"
 }
 
-@test "constitution L0 string includes new rules" {
-  grep -q "solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy" "$REPO_DIR/CONSTITUTION.md"
+@test "constitution L0 string includes the Constitution 2.0 top-level rules" {
+  grep -q "branch-isolation, security-gate, mandatory-qa, evidence-flow, arkaos-not-yes-man, excellence-mandate" "$REPO_DIR/CONSTITUTION.md"
 }
 
 @test "constitution includes squad-routing rule" {
@@ -77,18 +77,21 @@ load helpers/setup
   jq -e '.commands[] | select(.id == "dev-spec-list")' "$REPO_DIR/knowledge/commands-registry.json" > /dev/null
 }
 
-@test "hook L0 injection includes new NON-NEGOTIABLE rules" {
+@test "hook L0 injection includes the Constitution 2.0 top-level rules" {
+  # Constitution 2.0 (PR-5, 2026-07-08): 6 NON-NEGOTIABLE; squad-routing
+  # and spec-driven now appear in the MUST excerpt of the L0 string.
   input='{"prompt":"hello","cwd":"/tmp","session_id":"test123"}'
   run bash -c "export ARKA_OS='$TEST_ARKA_OS' && echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"solid-clean-code"* ]]
-  [[ "$output" == *"spec-driven"* ]]
-  [[ "$output" == *"human-writing"* ]]
+  [[ "$output" == *"branch-isolation"* ]]
+  [[ "$output" == *"evidence-flow"* ]]
+  [[ "$output" == *"excellence-mandate"* ]]
   [[ "$output" == *"squad-routing"* ]]
 }
 
-@test "arka SKILL.md has Squad Routing NON-NEGOTIABLE section" {
-  grep -q "Squad Routing (NON-NEGOTIABLE)" "$REPO_DIR/arka/SKILL.md"
+@test "arka SKILL.md has Squad Routing MUST section" {
+  # Constitution 2.0 (PR-5, 2026-07-08): squad-routing demoted to MUST.
+  grep -q "Squad Routing (MUST)" "$REPO_DIR/arka/SKILL.md"
 }
 
 @test "arka SKILL.md forbids generic assistant responses" {
@@ -157,13 +160,14 @@ load helpers/setup
 }
 
 @test "hook L0 injection includes quality gate and new rules" {
+  # Constitution 2.0 (PR-5): full-visibility/sequential-validation/
+  # arka-supremacy demoted to MUST and no longer in the L0 excerpt.
   input='{"prompt":"hello","cwd":"/tmp","session_id":"test123"}'
   run bash -c "export ARKA_OS='$TEST_ARKA_OS' && echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"full-visibility"* ]]
-  [[ "$output" == *"sequential-validation"* ]]
   [[ "$output" == *"mandatory-qa"* ]]
-  [[ "$output" == *"arka-supremacy"* ]]
+  [[ "$output" == *"arkaos-not-yes-man"* ]]
+  [[ "$output" == *"persona-vs-artifact"* ]]
   [[ "$output" == *"QUALITY-GATE"* ]]
 }
 

@@ -211,7 +211,7 @@ Users don't need to memorize commands. Just describe what you need:
 3. Resolution: single match → announce + execute | multiple → top 3 + ask | ambiguous → ask department
 4. Code-modifying → preview + confirm | non-code → auto-execute
 
-### Squad Routing (NON-NEGOTIABLE)
+### Squad Routing (MUST)
 
 EVERY request routes through the appropriate department squad. ArkaOS never responds
 as a generic assistant. Even a one-line task goes through the correct squad workflow.

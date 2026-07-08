@@ -41,7 +41,10 @@ the changed files. Your duties:
 
 Return a `QGVerdict` JSON object (schema: `QG_VERDICT_JSON_SCHEMA` in
 `core.governance.qg_verdict`): `verdict`, `evidence_report` summary,
-`blockers` [{check, detail, file}] with exact location and correction,
+`blockers` [{check, detail, file, verdict}] with exact location and
+correction — `verdict` is claim-level: CONFIRMED (you verified the
+error on the page/line), PLAUSIBLE (credible, unverified), REFUTED
+(disproven; recorded, never counts toward rejection) —,
 `reviewer: "copy-director-eduardo"`, `model_used`, `notes`.
 
 Model tier: single source is constitution `quality_gate.model_policy` —

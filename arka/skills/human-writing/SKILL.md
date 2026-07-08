@@ -1,7 +1,7 @@
 ---
 name: arka-human-writing
 description: >
-  NON-NEGOTIABLE human-writing standard (Constitution rule #8, reviewed
+  Human-writing standard, constitution MUST rule (Constitution rule #8, reviewed
   by Eduardo, Copy Director Tier 0) — bans AI-sounding patterns and
   enforces natural language, tone matching, and flawless orthography
   across ALL ArkaOS output; violation aborts the operation.
@@ -20,7 +20,7 @@ description: >
 
 # Human Writing Standard — ARKA OS Core Skill
 
-All text produced by ARKA OS must read as if written by a skilled human professional. NON-NEGOTIABLE rule — Constitution #8.
+All text produced by ARKA OS must read as if written by a skilled human professional. Constitution MUST rule #8 — violation aborts the operation.
 
 ## Scope
 

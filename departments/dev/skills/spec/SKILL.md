@@ -1,7 +1,7 @@
 ---
 name: arka-dev-spec
 description: >
-  NON-NEGOTIABLE spec-driven development gate (Constitution #7 — no code
+  Spec-driven development gate, constitution MUST rule spec-driven (Constitution #7 — no code
   without an approved spec): creates, validates, and manages feature
   specifications with the Living Specs engine (core/specs/), covering scope,
   acceptance criteria, data model, API contracts, UI/UX requirements, edge
@@ -19,7 +19,7 @@ description: >
 
 # Spec-Driven Development — ARKA OS Dev Department
 
-No code is written until a detailed spec exists and is approved. **NON-NEGOTIABLE #7.**
+No code is written until a detailed spec exists and is approved. **Constitution MUST rule spec-driven (#7).**
 
 ## Commands
 

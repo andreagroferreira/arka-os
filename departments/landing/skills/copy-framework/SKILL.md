@@ -45,7 +45,7 @@ allowed-tools: [Read, Write, Edit, Agent]
 - Ask a question the reader wants answered
 - Write 10+ headlines, pick the best
 
-## Human Writing Standard (NON-NEGOTIABLE)
+## Human Writing Standard (constitution MUST rule)
 - No AI patterns: no "leverage", "utilize", "robust", "streamline"
 - No em-dashes as sentence connectors
 - Active voice by default

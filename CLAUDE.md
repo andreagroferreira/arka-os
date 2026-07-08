@@ -199,15 +199,15 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `config/constitution.yaml` defines governance with 4 enforcement levels:
 
-**NON-NEGOTIABLE (26 rules):** branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, evidence-flow, quality-over-speed, always-research, project-design-system-prerequisite, definition-of-done-per-domain, arkaos-not-yes-man, inter-agent-checkpoints, hybrid-learning, dispatch-must-be-announced, excellence-mandate
+**NON-NEGOTIABLE (6 rules — Constitution 2.0, 2026-07-08):** branch-isolation, security-gate, mandatory-qa, evidence-flow, arkaos-not-yes-man, excellence-mandate. Admission test: only rules verifiable by evidence at a gate (or standing operator mandates) hold the top level. The former 26 kept their text — 16 moved to MUST, 4 to SHOULD; scope unchanged, gradient restored.
 
 **excellence-mandate (Excellence Reform 2026-07-05):** every deliverable targets excellence, not acceptance. No default-looking output, no unfinished edges, no lazy implementations, no delivery-for-the-sake-of-delivering. Time and token cost are NEVER arguments against quality (CostGovernor hard budget is the only ceiling). Before any gate closes: "what is unfinished, what is default, what would a top-tier lead reject here?" — non-empty answer loops back or escalates, never ships silently. UI work MUST load the frontend design skills (frontend-design, ui-ux-pro-max, project design system) at maximum effort and pass visual review against a named benchmark; the PreToolUse frontend gate (`core/workflow/frontend_gate.py`, flag `hooks.frontendGate`) enforces the `[arka:design]` evidence marker on UI file edits.
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
-**MUST (12 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, sub-squad-hierarchy, forge-persistence, model-routing, subagent-discipline, agent-experience-persistence, persona-vs-artifact
+**MUST (28 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, sub-squad-hierarchy, forge-persistence, model-routing, subagent-discipline, agent-experience-persistence, persona-vs-artifact, plus the 16 demoted in Constitution 2.0 (obsidian-output, authority-boundaries, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, project-design-system-prerequisite, definition-of-done-per-domain, dispatch-must-be-announced)
 
-**SHOULD (8 rules):** research-first, self-critique, kb-contribution, complexity-assessment, communication-standard, design-system-locked, dna-fidelity-warn, pattern-library-first
+**SHOULD (12 rules):** research-first, self-critique, kb-contribution, complexity-assessment, communication-standard, design-system-locked, dna-fidelity-warn, pattern-library-first, quality-over-speed, always-research, inter-agent-checkpoints, hybrid-learning
 
 ## Core Systems
 
@@ -236,7 +236,7 @@ Specialist workflows (1-2 phases, for simple tasks).
 
 Workflow YAML files: `departments/*/workflows/*.yaml`
 
-## Squad Routing (NON-NEGOTIABLE)
+## Squad Routing (MUST)
 
 Every request routes through a department squad. ArkaOS never responds as a generic assistant. Plain text input is resolved via `/do` orchestrator.
 
@@ -284,8 +284,8 @@ single-file edit under 10 lines.
 - **Vue/Nuxt:** Composition API only, TypeScript, composables
 - **React/Next.js:** TypeScript, Server Components, App Router, shadcn/ui
 - **Python:** Type hints, Pydantic, virtual environments
-- **SOLID** (NON-NEGOTIABLE): SRP, OCP, LSP, ISP, DIP
-- **Clean Code** (NON-NEGOTIABLE): Self-documenting names, no dead code, max 3 nesting, functions under 30 lines
+- **SOLID** (MUST): SRP, OCP, LSP, ISP, DIP
+- **Clean Code** (MUST): Self-documenting names, no dead code, max 3 nesting, functions under 30 lines
 - **Git:** Conventional commits, feature branches
 
 ## File Structure (v2)
@@ -343,7 +343,7 @@ arkaos/
 
 | Step | Command | Notes |
 |------|---------|-------|
-| **0. Preflight** | `~/.arkaos/bin/arka-py -m core.release.preflight_cli --expected-npm-user wizardingcode` | **NON-NEGOTIABLE step 0** (PR21 v2.43.0). Exit 1 = STOP, fix every remediation, re-run. Catches: version-misalignment, npm/gh auth expired, missing remote. Prevents the v2.40.0 friction (60-min release because expired token only surfaced after merge). |
+| **0. Preflight** | `~/.arkaos/bin/arka-py -m core.release.preflight_cli --expected-npm-user wizardingcode` | **Mandatory step 0** (PR21 v2.43.0). Exit 1 = STOP, fix every remediation, re-run. Catches: version-misalignment, npm/gh auth expired, missing remote. Prevents the v2.40.0 friction (60-min release because expired token only surfaced after merge). |
 | 1. Bump version | Update `VERSION`, `package.json`, `pyproject.toml` | All three must match |
 | 2. Commit | `git commit -m "chore: bump to vX.Y.Z"` | |
 | 3. Push | `git push origin master` | |
