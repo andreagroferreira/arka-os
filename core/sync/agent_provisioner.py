@@ -55,7 +55,7 @@ def _extend_from_file(path: Path, agents: set[str]) -> None:
     if not path.exists():
         return
     try:
-        data = yaml.safe_load(path.read_text()) or {}
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError:
         return
     for name in data.get("baseline", []) or []:
@@ -95,10 +95,10 @@ def _apply_allowlist(
             continue
 
         target = agents_dir / f"{name}.md"
-        if target.exists() and target.read_text() == rendered:
+        if target.exists() and target.read_text(encoding="utf-8") == rendered:
             unchanged.append(name)
             continue
-        target.write_text(rendered)
+        target.write_text(rendered, encoding="utf-8")
         added.append(name)
 
     return added, unchanged, errored
@@ -124,10 +124,10 @@ def _render_agent(core: Path, name: str) -> str | None:
     parts: list[str] = []
     if yaml_path is not None:
         parts.append("---")
-        parts.append(yaml_path.read_text().strip())
+        parts.append(yaml_path.read_text(encoding="utf-8").strip())
         parts.append("---")
     if md_path is not None:
-        parts.append(md_path.read_text().rstrip())
+        parts.append(md_path.read_text(encoding="utf-8").rstrip())
 
     return "\n".join(parts) + "\n"
 

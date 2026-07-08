@@ -18,7 +18,7 @@ def load_features(features_dir: Path) -> list[FeatureSpec]:
     for path in sorted(features_dir.iterdir()):
         if path.suffix != ".yaml":
             continue
-        data = yaml.safe_load(path.read_text())
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
         features.append(FeatureSpec(**data))
 
     return features

@@ -92,7 +92,7 @@ def _load_override(project_path: Path) -> tuple[dict, list[str]]:
     if not override.exists():
         return {}, []
     try:
-        return yaml.safe_load(override.read_text()) or {}, []
+        return yaml.safe_load(override.read_text(encoding="utf-8")) or {}, []
     except (yaml.YAMLError, OSError) as exc:
         return {}, [f"override YAML parse error: {exc}"]
 
@@ -123,7 +123,7 @@ def _inject_env_vars(project_path: Path, vault_path: Path | None, project_name: 
         return []
 
     try:
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return [".mcp.json malformed; skipped env injection"]
 
@@ -137,7 +137,7 @@ def _inject_env_vars(project_path: Path, vault_path: Path | None, project_name: 
     changed, missing = _merge_env(servers, merged_env)
 
     if changed:
-        mcp_file.write_text(json.dumps(data, indent=2) + "\n")
+        mcp_file.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
     if missing:
         _write_env_example(project_path, missing)
@@ -157,7 +157,7 @@ def _load_vault(path: Path) -> tuple[dict, list[str]]:
     if st.st_mode & (stat.S_IRWXG | stat.S_IRWXO):
         return {}, ["vault permissions too permissive (group/world readable); secrets not injected"]
     try:
-        return json.loads(path.read_text()), []
+        return json.loads(path.read_text(encoding="utf-8")), []
     except (json.JSONDecodeError, OSError):
         return {}, ["vault JSON parse error; secrets not injected"]
 
@@ -167,7 +167,7 @@ def _write_env_example(project_path: Path, missing: dict[str, str]) -> None:
     for var, server in sorted(missing.items()):
         lines.append(f"# required by {server}")
         lines.append(f"{var}=")
-    (project_path / ".env.arkaos.example").write_text("\n".join(lines) + "\n")
+    (project_path / ".env.arkaos.example").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def optimize_all_mcps(

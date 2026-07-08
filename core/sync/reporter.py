@@ -74,7 +74,7 @@ def write_sync_state(state_file: Path, report: SyncReport) -> None:
         "skills_synced": len(report.skill_results),
         "errors": report.errors,
     }
-    state_file.write_text(json.dumps(state, indent=2))
+    state_file.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
 def format_report(report: SyncReport) -> str:
