@@ -295,7 +295,7 @@ class TerminalSessionManager:
         sid = secrets.token_urlsafe(8)
         chosen_shell = shell or _default_shell()
         chosen_cwd = cwd or _default_cwd()
-        if os.name == "nt":
+        if not _PTY_SUPPORTED:
             from core.terminal.session_windows import WindowsTerminalSession
             session = WindowsTerminalSession(
                 session_id=sid,

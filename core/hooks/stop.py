@@ -105,7 +105,7 @@ def _write_tmp_state(subdir: str, safe_sid: str, payload: dict) -> None:
     """Owner-only /tmp state file (umask 0o077 — PR25 v2.46.1)."""
     prev_umask = os.umask(0o077)
     try:
-        state_dir = Path("/tmp") / subdir
+        state_dir = arkaos_temp_dir(subdir)
         state_dir.mkdir(parents=True, exist_ok=True)
         (state_dir / f"{safe_sid}.json").write_text(
             json.dumps(payload), encoding="utf-8"

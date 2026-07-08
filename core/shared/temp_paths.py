@@ -8,11 +8,12 @@ and cache files: workflow-required markers (``stop.sh`` ->
 under ``/tmp/arkaos-*``; the Python side MUST resolve to the *same*
 directory or the coordination silently breaks.
 
-Why this lives in ``core.shared``: six modules (flow_enforcer,
-marker_cache, research_gate, kb_cache, forge.orchestrator and the
-dashboard API) hardcoded the literal string ``/tmp``. ``/tmp`` does not
-exist on Windows, so every one of those features failed there. A single
-helper keeps the resolution in one place.
+Why this lives in ``core.shared``: every module that coordinates through
+these files (flow_enforcer, marker_cache, research_gate, kb_cache,
+forge.orchestrator, the consolidated hooks, native_usage, the synapse
+bridge, the dashboard API, …) used to hardcode the literal string
+``/tmp``. ``/tmp`` does not exist on Windows, so every one of those
+features failed there. A single helper keeps the resolution in one place.
 
 POSIX keeps the literal ``/tmp`` the bash hooks use (avoiding a
 ``$TMPDIR`` divergence on macOS where ``tempfile.gettempdir()`` returns

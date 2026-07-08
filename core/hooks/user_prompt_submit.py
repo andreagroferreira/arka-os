@@ -283,7 +283,7 @@ def _kb_auto_inject(root: str, user_input: str) -> str:
     project_hash = hashlib.md5(
         root.encode(), usedforsecurity=False
     ).hexdigest()[:12]
-    cache_dir = Path("/tmp") / f"arkaos-kb-{project_hash}"
+    cache_dir = arkaos_temp_dir(f"arkaos-kb-{project_hash}")
     if not cache_dir.is_dir():
         return ""
     try:
@@ -470,7 +470,7 @@ def _cognitive_hits(session_id: str) -> str:
 
 def _one_shot_nudge(subdir: str, session_id: str) -> str:
     """Read + delete a /tmp/<subdir>/<session>.json nudge state file."""
-    nudge_file = Path("/tmp") / subdir / f"{session_id}.json"
+    nudge_file = arkaos_temp_dir(subdir) / f"{session_id}.json"
     if not nudge_file.is_file():
         return ""
     nudge = ""
