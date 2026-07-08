@@ -199,13 +199,14 @@ async function main() {
     }
 
     case "index": {
-      const { execSync } = await import("node:child_process");
-      const indexArgs = positionals.slice(1).join(" ");
+      const { execFileSync } = await import("node:child_process");
       const repoRoot = join(__dirname, "..");
       const pyIndex = getArkaosPython();
       if (!pyIndex) { console.error("No Python found. Run: npx arkaos install"); process.exit(1); }
       try {
-        execSync(`"${pyIndex}" "${join(repoRoot, "scripts", "knowledge-index.py")}" ${indexArgs || ""}`, {
+        // argv array, not a joined string: vault paths with spaces
+        // ("C:\Users\Ana Maria\vault") broke the quoted-string form.
+        execFileSync(pyIndex, [join(repoRoot, "scripts", "knowledge-index.py"), ...positionals.slice(1)], {
           stdio: "inherit",
           env: { ...process.env, ARKAOS_ROOT: repoRoot },
         });
