@@ -115,3 +115,19 @@ load helpers/setup
   [ "$status" -ne 0 ]
   [[ "$output" == *"not found"* ]]
 }
+
+@test "apply-mcps.sh never writes runtime-managed entries to .mcp.json" {
+  PROJECT_DIR="$TEST_TEMP_DIR/test-project"
+  mkdir -p "$PROJECT_DIR"
+
+  run bash "$REPO_DIR/mcps/scripts/apply-mcps.sh" --add claude-in-chrome --project "$PROJECT_DIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"runtime-managed"* ]]
+
+  # The managed entry must not exist in the generated .mcp.json
+  run jq -e '.mcpServers."claude-in-chrome"' "$PROJECT_DIR/.mcp.json"
+  [ "$status" -ne 0 ]
+
+  # And no corrupt "command": "null" artefact anywhere in the file
+  ! grep -q '"command": *"null"' "$PROJECT_DIR/.mcp.json"
+}

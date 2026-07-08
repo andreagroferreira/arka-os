@@ -16,13 +16,13 @@ policies:
       - obsidian
       - context7
       - gh-grep
-      - memory-bank
       - postgres
       - supabase
       - laravel-boost
       - serena
       - sentry
     deferred:
+      - memory-bank
       - playwright
       - nuxt
       - nuxt-ui
@@ -46,12 +46,12 @@ policies:
       - obsidian
       - context7
       - gh-grep
-      - memory-bank
       - playwright
       - nuxt
       - nuxt-ui
       - sentry
     deferred:
+      - memory-bank
       - postgres
       - supabase
       - laravel-boost
@@ -76,11 +76,11 @@ policies:
       - obsidian
       - context7
       - gh-grep
-      - memory-bank
       - playwright
       - next-devtools
       - sentry
     deferred:
+      - memory-bank
       - postgres
       - supabase
       - laravel-boost
@@ -106,12 +106,12 @@ policies:
       - obsidian
       - context7
       - gh-grep
-      - memory-bank
       - playwright
       - shopify-dev
       - mirakl
       - sentry
     deferred:
+      - memory-bank
       - postgres
       - supabase
       - laravel-boost
@@ -136,9 +136,9 @@ policies:
       - obsidian
       - context7
       - gh-grep
-      - memory-bank
       - sentry
     deferred:
+      - memory-bank
       - playwright
       - postgres
       - supabase
@@ -165,11 +165,11 @@ policies:
       - arka-prompts
       - obsidian
       - context7
-      - memory-bank
       - canva
       - firecrawl
       - clickup
     deferred:
+      - memory-bank
       - gh-grep
       - postgres
       - supabase
@@ -195,10 +195,10 @@ policies:
       - arka-prompts
       - obsidian
       - context7
-      - memory-bank
       - canva
       - firecrawl
     deferred:
+      - memory-bank
       - gh-grep
       - postgres
       - supabase
@@ -226,8 +226,8 @@ policies:
       - obsidian
       - context7
       - gh-grep
-      - memory-bank
     deferred:
+      - memory-bank
       - postgres
       - supabase
       - playwright

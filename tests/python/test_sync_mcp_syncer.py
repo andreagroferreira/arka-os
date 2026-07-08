@@ -126,6 +126,19 @@ class TestResolveMcpsForStack:
         assert "laravel-boost" not in names
         assert "arka-prompts" in names  # base MCPs are still included
 
+    def test_managed_entries_never_resolved(self) -> None:
+        """Runtime-managed servers (extension/plugin) are governance-and-
+        telemetry registry entries with no launchable command — they must
+        never be written to a project .mcp.json, whatever their category says."""
+        registry = {
+            "arka-prompts": {"command": "uv", "args": [], "category": "base"},
+            "claude-in-chrome": {"managed": "extension", "category": "runtime"},
+            "claude-mem": {"managed": "plugin", "category": "base"},
+        }
+        result = resolve_mcps_for_stack(registry, ["laravel"])
+        names = [name for name, _ in result]
+        assert names == ["arka-prompts"]
+
     def test_nuxt_maps_to_nuxt_category(self) -> None:
         registry = {
             "nuxt-mcp": {"command": "npx", "args": ["nuxt-mcp"], "category": "nuxt"},

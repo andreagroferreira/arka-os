@@ -27,7 +27,6 @@ _CORE_ACTIVE = {
     "arka-prompts",
     "obsidian",
     "context7",
-    "memory-bank",
     "gh-grep",
 }
 
@@ -80,14 +79,29 @@ def test_no_ambiguous_for_common_stacks(policy, stack):
     [["laravel"], ["nuxt"], ["react"], ["python"], ["vue"], ["shopify"]],
 )
 def test_core_mcps_always_active(policy, stack):
-    """`arka-prompts`, `obsidian`, `context7`, `memory-bank`, and `gh-grep` must be active for any dev stack.
+    """`arka-prompts`, `obsidian`, `context7`, and `gh-grep` must be active for any dev stack.
 
-    These power the department command registry, vault access, docs, memory,
-    and code search — losing any of them breaks the orchestrator.
+    These power the department command registry, vault access, docs, and
+    code search — losing any of them breaks the orchestrator.
     """
     d = decide(policy, list(_CORE_ACTIVE), stack, None)
     assert set(d.active) == _CORE_ACTIVE, (
         f"stack={stack} missing core MCPs: {_CORE_ACTIVE - set(d.active)}"
+    )
+
+
+@pytest.mark.parametrize(
+    "stack",
+    [["laravel"], ["nuxt"], ["react"], ["python"], ["vue"], ["shopify"]],
+)
+def test_memory_bank_deferred_on_all_stacks(policy, stack):
+    """memory-bank was demoted from core (audit E2E v4.3.6: 0 invocations/30d).
+
+    It must stay deferred everywhere so it never loads eagerly again.
+    """
+    d = decide(policy, ["memory-bank"], stack, None)
+    assert d.deferred == ["memory-bank"], (
+        f"stack={stack} unexpectedly activated memory-bank: active={d.active}"
     )
 
 

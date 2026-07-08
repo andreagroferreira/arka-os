@@ -2,7 +2,12 @@
   "_meta": {
     "description": "ARKA OS — Central MCP Registry",
     "format": "Claude Code .mcp.json compatible",
-    "updated": "2026-03-15"
+    "updated": "2026-07-08",
+    "categories": {
+      "base": "synced into every project's .mcp.json",
+      "optional": "in the registry but not resolved for any stack — installed only by explicit user action",
+      "runtime": "managed by the runtime (extension/plugin) — registered for governance and telemetry, never written to .mcp.json"
+    }
   },
   "mcpServers": {
     "arka-prompts": {
@@ -39,9 +44,21 @@
       "env": {
         "MEMORY_BANK_ROOT": "{home}/memory-bank"
       },
-      "category": "base",
-      "description": "Persistent memory across sessions",
+      "category": "optional",
+      "description": "Persistent memory across sessions (demoted from base 2026-07-08: 0 invocations/30d — audit E2E v4.3.6; claude-mem covers session memory)",
       "required_env": ["MEMORY_BANK_ROOT"]
+    },
+    "claude-in-chrome": {
+      "managed": "extension",
+      "category": "runtime",
+      "description": "Chrome browser automation via the Claude in Chrome extension (top MCP by real usage: 1323 invocations/30d — audit E2E v4.3.6)",
+      "required_env": []
+    },
+    "claude-mem": {
+      "managed": "plugin",
+      "category": "runtime",
+      "description": "Session memory search/timeline via the claude-mem plugin (thedotmack marketplace; 65 invocations/30d — audit E2E v4.3.6)",
+      "required_env": []
     },
     "clickup": {
       "command": "npx",

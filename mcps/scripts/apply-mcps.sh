@@ -171,6 +171,15 @@ for mcp_name in "${MCP_NAMES[@]}"; do
         continue
     fi
 
+    # Runtime-managed servers (extension/plugin) are registered for
+    # governance and telemetry — no launchable command, never written
+    # to .mcp.json (mirrors core/sync/mcp_syncer.py resolve guard).
+    MCP_MANAGED=$(echo "$MCP_ENTRY" | jq -r '.managed // empty')
+    if [ -n "$MCP_MANAGED" ]; then
+        echo -e "  ${YELLOW}⚠${NC} $mcp_name is runtime-managed (${MCP_MANAGED}) — not writable to .mcp.json (skipped)"
+        continue
+    fi
+
     # Check if it's HTTP or command type
     MCP_TYPE=$(echo "$MCP_ENTRY" | jq -r '.type // "command"')
 
