@@ -5,6 +5,49 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-07-08
+
+First two PRs of the prompt-surface plan (frontier system-prompts audit,
+2026-07-08): restore coherence across the prompt surface, then lock it
+in CI. Both passed the evidence Quality Gate (each after one
+REJECTED→fix cycle with independently reproduced blockers).
+
+### Fixed — prompt-surface P0 coherence (PR #255)
+
+- QG model policy single-sourced in constitution
+  `quality_gate.model_policy` (was 4 contradictory versions across 19
+  surfaces: "ALWAYS opus" vs "best-available" vs "reviewers on sonnet");
+  eduardo/francisca aligned to the Excellence Reform posture.
+- Evidence-flow restatements in CLAUDE.md and arka/SKILL.md reduced to
+  pointers at the canonical `arka/skills/flow/SKILL.md`; trivial-bypass
+  wording unified (removed the "imperative verb" drift).
+- Hand-typed agent/skill counts removed from session-start greetings
+  (sh + ps1) — they drifted from `docs_stats.py` truth.
+- Single canonical AI-cliche list (constitution `no-ai-cliches`, 14
+  items) synced verbatim into eduardo-copy.md and copy-director.yaml.
+- `[time:X]` cache-buster removed: Synapse L7 TimeLayer deleted, L7
+  blocks dropped from the bash/ps1 fallback hooks (no consumer rule;
+  invalidated the prompt cache at 5h/12h/18h boundaries).
+
+### Added — phantom-action warn check (PR #255)
+
+- `core/governance/phantom_action_check.py`: prose narrating completed
+  effects in a turn with zero tool_use blocks is flagged in Stop-hook
+  telemetry ("the action did not happen"). Warn-only, fail-open on any
+  input, precision-first pt-PT/EN claim regex, 95% coverage. Recorded
+  QG condition: resolve the false-positive residual before promoting
+  from warn-only to enforcement.
+
+### Added — prompt-surface linter (PR #256)
+
+- `scripts/tools/prompt_lint.py` + `tests/python/test_prompt_consistency.py`:
+  7 deterministic checks lock the #255 invariants in CI — model-policy
+  single-source, cliche-list sync, bypass-wording drift, retired counts
+  (digit-anchored), 4-gate restatement containment (block-form
+  heuristic), value-independent time-tag ban, and a case-insensitive
+  NON-NEGOTIABLE inflation ratchet (honest baseline 47, may only
+  decrease; the constitution-compaction PR lowers it).
+
 ## [4.6.0] - 2026-07-08
 
 Closes two P1 items from the E2E audit (v4.3.6): dashboard template
