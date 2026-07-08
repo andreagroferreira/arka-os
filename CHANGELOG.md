@@ -5,6 +5,33 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0] - 2026-07-08
+
+Closes two P1 items from the E2E audit (v4.3.6): dashboard template
+hygiene with browser coverage on the critical pages, and real MCP usage
+telemetry. Both passed the evidence Quality Gate.
+
+### Added — MCP usage telemetry (PR #254)
+
+- `core/runtime/mcp_telemetry.py` + CLI: the PostToolUse hook records
+  every `mcp__<server>__<tool>` call to
+  `~/.arkaos/telemetry/mcp-usage.jsonl` (before the error early-exit,
+  never blocking); `summarise()` mirrors the enforcement telemetry
+  pattern. New `/arka mcps [period]` command and an "MCP usage (24h)"
+  section in `/arka status`. Closes the loop opened by the
+  runtime-managed registry entries in #250 — usage is now measured,
+  not estimated from transcript greps.
+
+### Changed — dashboard template cleanup + E2E (PR #253)
+
+- Deleted the 4 Nuxt UI template demo stubs
+  (`server/api/{customers,mails,members,notifications}.ts`): fake data,
+  zero consumers, dead type import (-2 TS errors).
+- Package renamed `nuxt-ui-template-dashboard` → `arkaos-dashboard`.
+- New Playwright E2E on the 3 critical pages (agents, knowledge,
+  models): real-data assertions, console-error guards, anti-regression
+  assert on the removed demo data.
+
 ## [4.5.0] - 2026-07-08
 
 Closes both P0 items from the E2E audit (v4.3.6): the agents registry now
