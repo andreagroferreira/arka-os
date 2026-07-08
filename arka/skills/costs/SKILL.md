@@ -1,10 +1,19 @@
 ---
 name: arka-costs
 description: >
-  LLM cost visibility — aggregates `~/.arkaos/telemetry/llm-cost.jsonl` by
-  day/week/month/all, breaks down by provider/model/session, surfaces top
-  expensive sessions and cache hit rate. Visibility-only per ADR-011;
-  never imposes hard caps.
+  LLM cost visibility — aggregates `~/.arkaos/telemetry/llm-cost.jsonl`
+  by day/week/month/all, breaks down by provider/model/session, surfaces
+  top expensive sessions and cache hit rate. Visibility-only per
+  ADR-011; never imposes hard caps.
+  TRIGGER: user types "/arka costs", "quanto gastei", "quanto custou",
+  "custos de tokens", "gasto em LLM", "how much did we/I spend", "token
+  spend", "cost per model", "most expensive sessions", "cache hit
+  rate", or asks for a spend breakdown for today/this week/this month.
+  SKIP: telemetry that is not LLM spend — MCP usage stats go to
+  "/arka mcps", hook/gate enforcement stats go to "/arka enforcement",
+  system health to "/arka status"; business budgeting or pricing
+  strategy ("orçamento", "pricing") routes to the Finance department,
+  not this read-only telemetry view.
 allowed-tools: [Bash, Read]
 ---
 

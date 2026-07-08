@@ -1,24 +1,26 @@
 ---
 name: arka-flow
 description: >
-  ArkaOS canonical evidence flow. 4 gates. This is the default execution
-  contract for every user request inside an ArkaOS-managed context.
-  Gates pass on evidence read from disk, not on narration.
+  ArkaOS canonical evidence flow — the 4-gate (CONTEXT/PLAN/EXECUTE/REVIEW)
+  default execution contract; gates pass on evidence read from disk
+  (commands, exit codes, files), never on narration.
+  TRIGGER: loads on EVERY non-trivial request inside an ArkaOS-managed
+  context — any implementation/creation/change verb ("implementa",
+  "cria", "corrige", "altera", "refactoriza", "implement", "build",
+  "fix", "add", "refactor", "deploy"), and always when the hook injects
+  [ARKA:WORKFLOW-REQUIRED]; load BEFORE the first Write/Edit/effect-Bash,
+  not after.
+  SKIP: single-file edits under 10 lines — emit "[arka:trivial] <reason>"
+  and proceed; pure planning requests where arka-forge wins (this flow
+  still wraps the eventual execution); spec authoring where arka-dev-spec
+  wins at Gate 2.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
 <!-- arka:kb-first-prefix begin -->
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 <!-- arka:kb-first-prefix end -->
 
 # ArkaOS — Evidence Flow (4 gates)

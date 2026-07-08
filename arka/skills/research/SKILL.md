@@ -1,15 +1,28 @@
 ---
 name: arka-research
 description: >
-  Fan-out research workflow. Spawns 5 parallel subagents — Perplexity,
-  Exa AI, Context7, Firecrawl, XMCP — synthesises their findings into
-  a single report, and writes a Knowledge Base note to the Obsidian
-  vault. Inspired by the multi-source research pattern surfaced in the
-  2026-05-13 Orgo podcast (Nick Saraev): "I tell Claude Code, hey,
-  spawn five sub-agents — one for Perplexity, one for Exa, one for
-  Context7, one for Firecrawl, one for XMCP — and we get best practices."
+  General fan-out research — spawns 5 parallel subagents (Perplexity,
+  Exa AI, Context7, Firecrawl, XMCP), synthesises their findings into a
+  single cited report, and writes a Knowledge Base note to the Obsidian
+  vault (multi-source pattern from the 2026-05-13 Orgo podcast, Nick
+  Saraev). KB-first: Obsidian is searched before any external call.
+  TRIGGER: user types "/arka research", "pesquisa sobre", "investiga",
+  "faz research", "research <topic>", "best practices for", "state of
+  the art", "o que se sabe sobre" — for general, market, tooling, or
+  knowledge-base topics where the deliverable is a synthesised KB note.
+  SKIP: dev-scoped technical research — library evaluation, framework
+  or package choice, code pattern comparison, "que lib uso", "avalia a
+  biblioteca", "which library/framework" — dev/research (Lucas, /dev
+  research) wins; planning a task — arka-forge wins (Forge plans,
+  this skill informs).
 allowed-tools: [Agent, Read, Write, mcp__obsidian__search_notes]
 ---
+
+<!-- arka:kb-first-prefix begin -->
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
+<!-- arka:kb-first-prefix end -->
 
 # /arka research — one prompt, five parallel sources
 

@@ -1,24 +1,25 @@
 ---
 name: strat/growth-strategy
 description: >
-  Growth strategy using Ansoff Matrix + adjacency framework + Greiner growth
-  phases. Picks the next growth vector with risk-adjusted feasibility and a
-  12-month execution roadmap.
+  Strategic growth-vector selection (Ansoff Matrix + Zook adjacencies +
+  Greiner phases): decides WHERE to grow next with risk-adjusted
+  feasibility and a 12-month roadmap with decision gates.
+  TRIGGER: "estratégia de crescimento", "para onde crescer", "entrar num
+  novo mercado", "diversificar", "growth strategy", "growth vector",
+  "expand to a new market/segment/geo", "adjacency", "Ansoff", "moat",
+  "defensibilidade", positioning-horizon questions about the business.
+  SKIP: the vector is already chosen and the ask is the execution
+  roadmap -> saas/growth-plan (SaaS product, stage metrics) or
+  community/growth-plan (community/audience) wins; the ask is one
+  compounding acquisition mechanism (viral/paid/content loop, K-factor,
+  AARRR) -> mkt/growth-loop wins.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
 <!-- arka:kb-first-prefix begin -->
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 <!-- arka:kb-first-prefix end -->
 
 # Growth Strategy — `/strat growth <business>`

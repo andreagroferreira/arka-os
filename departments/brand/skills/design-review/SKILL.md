@@ -1,9 +1,17 @@
 ---
 name: brand/design-review
 description: >
-  Open a design tool (Figma, Sketch, Canva desktop) and compare live designs
-  against brand guidelines. Screenshot and annotate differences.
-  Requires Computer Use (/mcp → computer-use).
+  Visual review of live designs against brand guidelines — opens Figma,
+  Sketch, or Canva desktop via Computer Use, screenshots each artboard, and
+  annotates palette, typography, spacing, and logo deviations. Requires
+  Computer Use (/mcp -> computer-use). TRIGGER: "/brand design-review",
+  "design review", "visual review", "revê o design", "compara com o
+  brandbook", "está on-brand?", "visual QA", "UI review" of mockups or
+  screenshots, design file paths (*.fig, *.sketch, Canva links). SKIP:
+  reviewing the CODE behind a UI (components, CSS, diffs, PRs) ->
+  dev/code-review wins; SOLID/style sweep of frontend code ->
+  dev/clean-code-review wins; trying to break flows or find abuse vectors ->
+  dev/adversarial-review wins.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

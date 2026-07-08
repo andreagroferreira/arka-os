@@ -1,23 +1,23 @@
 ---
 name: saas/validate-idea
 description: >
-  30-day SaaS idea validation using Rob Walling's Micro-SaaS playbook.
-  Market check, niche evaluation, competitor analysis, unit economics projection.
+  30-day validation of ONE concrete SaaS idea (Rob Walling Micro-SaaS
+  playbook): problem/demand validation, customer interviews (Mom Test),
+  competitor analysis, unit economics projection, go/no-go verdict.
+  TRIGGER: "validar ideia", "validar esta ideia de SaaS", "será que vale
+  a pena construir", "validate idea", "is this idea worth building",
+  "does anyone have this problem", "will people pay for X", "mom test",
+  "customer interviews", go/no-go on a NAMED product idea.
+  SKIP: no concrete product yet — comparing, sizing, or picking a
+  market/niche (TAM/SAM/SOM, "que nicho atacar", audience reachability
+  scorecard) -> saas/niche-evaluate wins.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 
 <!-- arka:kb-first-prefix begin -->
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 <!-- arka:kb-first-prefix end -->
 
 # SaaS Idea Validation — `/saas validate <idea>`

@@ -1,12 +1,21 @@
 ---
 name: arka-human-writing
 description: >
-  NON-NEGOTIABLE core writing quality gate. Enforces human-like writing across ALL ArkaOS output.
-  Every text, copy, report, documentation, email, social post, and analysis must follow these rules.
-  Reviewed by Eduardo (Copy Director, Tier 0). Constitution rule #8.
-  No AI-sounding patterns. Natural language with proper punctuation, tone matching, and flawless
-  orthography. Applied automatically to all departments, all agents, all output types.
-  This is a Constitution rule (NON-NEGOTIABLE #8) — violation aborts the operation.
+  NON-NEGOTIABLE human-writing standard (Constitution rule #8, reviewed
+  by Eduardo, Copy Director Tier 0) — bans AI-sounding patterns and
+  enforces natural language, tone matching, and flawless orthography
+  across ALL ArkaOS output; violation aborts the operation.
+  TRIGGER: load BEFORE writing any prose a human will read or ship —
+  copy, reports, documentation, emails, social posts, landing pages,
+  PR descriptions, client deliverables, analyses; user words "escreve",
+  "redige", "texto", "copy", "artigo", "email", "post", "write",
+  "draft", "reescreve isto", "soa a IA", "sounds like AI", "make it
+  sound human". Applies automatically to every department, agent, and
+  output type — don't skip because the text looks short.
+  SKIP: code-only diffs with no user-facing prose (identifiers and
+  syntax are not prose); the final APPROVED/REJECTED copy verdict —
+  arka-quality (Quality Gate, Eduardo) wins there; this skill is the
+  standard applied WHILE writing, not the review that judges it.
 ---
 
 # Human Writing Standard — ARKA OS Core Skill

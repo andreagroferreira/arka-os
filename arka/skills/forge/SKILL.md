@@ -1,25 +1,29 @@
 ---
 name: arka-forge
 description: >
-  The Forge — ArkaOS intelligent multi-agent planning engine. Complexity-based
-  escalation, critic synthesis, visual companion, Obsidian persistence.
-  Analyses any prompt across 5 dimensions, routes to 1-3 explorer subagents,
-  runs a critic synthesis, and produces an approved ForgePlan before execution.
+  The Forge — ArkaOS multi-agent planning engine: complexity-based
+  escalation across 5 dimensions, 1-3 explorer subagents, critic
+  synthesis, visual companion, and an approved ForgePlan persisted to
+  Obsidian before execution.
+  TRIGGER: load BEFORE implementation planning of MEDIUM/HIGH complexity
+  work (evidence-flow Gate 2 scores via core/forge/complexity.py) —
+  never start executing complex work without a ForgePlan; user types
+  "/forge", "/arka-forge", "planeia", "faz um plano", "plano de
+  implementação", "compara abordagens", "plan this", "plan before
+  coding", "forge a plan", or a plan-lifecycle command (resume, status,
+  history, show, compare, patterns, cancel).
+  SKIP: requirements, acceptance criteria, or "spec/especificação"
+  definition — arka-dev-spec wins (Forge plans HOW, spec defines WHAT);
+  knowledge gathering or "pesquisa/research" — arka-research wins;
+  LOW-complexity tasks — a short inline Gate 2 plan in arka-flow is
+  enough, no Forge ceremony.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
 <!-- arka:kb-first-prefix begin -->
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 <!-- arka:kb-first-prefix end -->
 
 # The Forge — ArkaOS Intelligent Planning Engine

@@ -70,12 +70,15 @@ _GATE_BLOCK_ALLOWED: frozenset[str] = frozenset({
     "config/hooks/session-start.ps1",
     "core/hooks/user_prompt_submit.py",
 })
-# Ratchet: measured 2026-07-08 after PR-1 (#255) across the governed
-# globs, CASE-INSENSITIVE (QG M5: a lowercase "non-negotiable" in prose
-# dilutes instruction strength exactly like the shouted marker). May only
-# DECREASE — the constitution-compaction PR (PR-5) lowers it. Never raise
-# it to make CI pass; remove a marker instead.
-_NON_NEGOTIABLE_BASELINE = 47
+# Ratchet: CASE-INSENSITIVE count across the governed globs (QG M5: a
+# lowercase "non-negotiable" in prose dilutes instruction strength
+# exactly like the shouted marker). May only DECREASE, with ZERO slack —
+# the baseline equals the measured count so adding a single marker fails
+# CI. History: 47 after PR-1 (#255); 28 after PR-3's KB-first pointer
+# compaction removed the marker from ~200 skill prefixes. The
+# constitution-compaction PR (PR-5) lowers it further. Never raise it to
+# make CI pass; remove a marker instead.
+_NON_NEGOTIABLE_BASELINE = 28
 
 
 def _governed_files(root: Path) -> list[Path]:

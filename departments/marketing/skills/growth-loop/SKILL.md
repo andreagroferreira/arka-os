@@ -1,23 +1,25 @@
 ---
 name: mkt/growth-loop
 description: >
-  Design sustainable growth loops (viral, paid, content, product, community) that compound over time.
-  Replaces linear funnels with self-reinforcing cycles. Spec + math + instrumentation + 30-day experiment plan.
+  Mechanistic design of ONE self-reinforcing growth loop (viral, paid,
+  content, product, community) that compounds: spec + math +
+  instrumentation + 30-day experiment plan. Replaces linear funnels.
+  TRIGGER: "growth loop", "loop de crescimento", "viralidade",
+  "K-factor", "AARRR", "referral loop", "flywheel de aquisição",
+  "compounding acquisition", "substituir o funil", "make growth
+  self-sustaining", CAC-payback/reinvest-ratio loop math.
+  SKIP: a full stage-by-stage product roadmap (PMF, T2D3, team,
+  channels) -> saas/growth-plan wins; community member growth (1000
+  True Fans, membership) -> community/growth-plan wins; choosing the
+  growth DIRECTION (new market, Ansoff, adjacency, moats) ->
+  strat/growth-strategy wins.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 
 <!-- arka:kb-first-prefix begin -->
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 <!-- arka:kb-first-prefix end -->
 
 # Growth Loop Design — `/mkt growth-loop`
