@@ -31,7 +31,8 @@ Deduplicate by absolute path. Skip projects whose path does not exist.
 ### Phase 3a — MCP Sync
 For each project: regenerate `.mcp.json` based on the registry + detected stack.
 
-Base MCPs (all projects): `arka-prompts`, `context7`, `obsidian`, `clickup`, `memory-bank`, `playwright`, `gh-grep`.
+Base MCPs (all projects): `arka-prompts`, `context7`, `obsidian`, `clickup`, `playwright`, `gh-grep`.
+Runtime-managed entries (`claude-in-chrome`, `claude-mem`) are registered for governance and telemetry only and are never written to `.mcp.json`; `memory-bank` is `optional` (demoted from base 2026-07-08).
 
 Stack additions:
 - Laravel: `laravel-boost`, `serena`, `sentry`

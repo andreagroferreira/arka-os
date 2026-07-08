@@ -60,6 +60,10 @@ def resolve_mcps_for_stack(
 
     result: list[tuple[str, dict]] = []
     for name, config in registry.items():
+        if "managed" in config:
+            # Runtime-managed servers (extension/plugin) are registered for
+            # governance and telemetry — they have no launchable command to write.
+            continue
         if config.get("category") in allowed:
             result.append((name, config))
     return result

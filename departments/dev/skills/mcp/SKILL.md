@@ -40,7 +40,7 @@ Manage Model Context Protocol (MCP) servers for projects. MCPs extend Claude Cod
 
 | Profile | MCPs Included | Use For |
 |---------|---------------|---------|
-| `base` | obsidian, context7, playwright, memory-bank, sentry, gh-grep, clickup, firecrawl, supabase | All projects |
+| `base` | obsidian, context7, playwright, sentry, gh-grep, clickup, firecrawl, supabase | All projects |
 | `laravel` | base + laravel-boost, serena | Laravel backends |
 | `nuxt` | base + nuxt, nuxt-ui | Nuxt 3/4 apps |
 | `vue` | base + nuxt-ui | Vue 3 SPAs |
@@ -49,6 +49,8 @@ Manage Model Context Protocol (MCP) servers for projects. MCPs extend Claude Cod
 | `ecommerce` | base + laravel-boost, serena, mirakl, shopify-dev | E-commerce projects |
 | `full-stack` | base + laravel-boost, serena, nuxt, nuxt-ui | Laravel + Nuxt apps |
 | `comms` | base + slack, discord, whatsapp, teams | Messaging platforms |
+
+> Runtime-managed MCPs (not a profile): `claude-in-chrome` (extension) and `claude-mem` (plugin) are registered in the registry for governance and telemetry only — they have no launchable command and are never written to `.mcp.json`.
 
 ## How It Works
 
