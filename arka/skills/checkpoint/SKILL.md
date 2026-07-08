@@ -4,7 +4,7 @@ description: >
   Inter-agent checkpoint pattern for ArkaOS long-running multi-agent
   work. Fragments work into 2-3min sub-dispatches and emits proactive
   [arka:checkpoint] prompts so the user can inject context mid-task or
-  abort cleanly. Implements the inter-agent-checkpoints NON-NEGOTIABLE
+  abort cleanly. Implements the inter-agent-checkpoints SHOULD
   rule from the v2.32.0 Constitution.
 allowed-tools: [Read]
 ---

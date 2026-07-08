@@ -24,34 +24,22 @@ class TestConstitutionRules:
         path = Path(__file__).parent.parent.parent / "config" / "constitution.yaml"
         return load_constitution(path)
 
-    def test_has_16_non_negotiable_rules(self, constitution):
+    def test_has_6_non_negotiable_rules(self, constitution):
         rules = constitution.get_non_negotiable_rules()
-        # PR10 v2.32.0 added 7 NON-NEGOTIABLE rules: 16 → 23.
-        # PR44 v2.63.0 added mandatory-skill-evaluation: 23 → 24.
-        # PR1 Squad Intelligence (v3.73.0) added dispatch-must-be-announced: 24 → 25.
-        # Excellence Reform (v4.2.0) added excellence-mandate: 25 → 26.
-        assert len(rules) == 26
+        # Constitution 2.0 (PR-5 prompt-surface, 2026-07-08): 26 → 6.
+        # Archaeology test — NON-NEGOTIABLE only when verifiable by
+        # evidence at a gate; 16 demoted to MUST, 4 to SHOULD. Scope
+        # unchanged (total rule count constant).
+        assert len(rules) == 6
 
     def test_non_negotiable_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_non_negotiable_rules()]
+        # Constitution 2.0 (PR-5): the 6 gate-verifiable rules
+        # (+ the two operator mandates arkaos-not-yes-man and
+        # excellence-mandate).
         expected = [
-            "branch-isolation", "obsidian-output", "authority-boundaries",
-            "security-gate", "context-first", "solid-clean-code",
-            "spec-driven", "human-writing", "squad-routing",
-            "full-visibility", "sequential-validation", "mandatory-qa",
-            "arka-supremacy", "context-verification", "forge-governance",
-            "mandatory-skill-evaluation",
-            # v4.1.0 evidence flow (replaced mandatory-flow; ADR 2026-07-04)
-            "evidence-flow",
-            # PR10 v2.32.0 Conclave Phase 5 additions
-            "quality-over-speed", "always-research",
-            "project-design-system-prerequisite",
-            "definition-of-done-per-domain", "arkaos-not-yes-man",
-            "inter-agent-checkpoints", "hybrid-learning",
-            # PR1 Squad Intelligence Upgrade (v3.73.0)
-            "dispatch-must-be-announced",
-            # Excellence Reform (v4.2.0, operator mandate 2026-07-05)
-            "excellence-mandate",
+            "branch-isolation", "security-gate", "mandatory-qa",
+            "evidence-flow", "arkaos-not-yes-man", "excellence-mandate",
         ]
         assert rule_ids == expected
 
@@ -60,7 +48,8 @@ class TestConstitutionRules:
         # PR5 v2.27.0 added sub-squad-hierarchy: 9 → 10
         # PR3 Squad Intelligence (v3.74.0) added agent-experience-persistence: 10 → 11.
         # PR-4 prompt-surface (2026-07-08) added persona-vs-artifact: 11 → 12.
-        assert len(rules) == 12
+        # Constitution 2.0 (PR-5) demoted 16 NON-NEGOTIABLE to MUST: 12 → 28.
+        assert len(rules) == 28
 
     def test_must_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_must_rules()]
@@ -73,7 +62,8 @@ class TestConstitutionRules:
         # PR4 v3.75.0 added pattern-library-first: 5 -> 6.
         # PR5 v3.76.0 added dna-fidelity-warn: 6 -> 7.
         # PR6 v3.77.0 added design-system-locked: 7 -> 8.
-        assert len(rules) == 8
+        # Constitution 2.0 (PR-5) demoted 4 NON-NEGOTIABLE to SHOULD: 8 -> 12.
+        assert len(rules) == 12
 
     def test_excellence_mandate_content(self, constitution):
         """The Excellence Reform rule must keep its executable criteria:
@@ -108,7 +98,8 @@ class TestConstitutionRules:
 
     def test_is_rule_non_negotiable(self, constitution):
         assert constitution.is_rule_non_negotiable("branch-isolation")
-        assert constitution.is_rule_non_negotiable("arka-supremacy")
+        # arka-supremacy demoted to MUST in Constitution 2.0 (PR-5).
+        assert not constitution.is_rule_non_negotiable("arka-supremacy")
         assert constitution.is_rule_non_negotiable("excellence-mandate")
         assert not constitution.is_rule_non_negotiable("conventional-commits")
         assert not constitution.is_rule_non_negotiable("nonexistent")

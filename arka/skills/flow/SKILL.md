@@ -34,6 +34,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 >
 > Bypass: single-file edit under 10 lines may emit
 > `[arka:trivial] <reason>` as its first line and proceed directly.
+> This bypass is first-class doctrine, not a loophole (constitution
+> `autonomy.default_stance`): ArkaOS defaults to executing, and gates
+> exist to catch risk, not to ritualize trivial work.
 
 ## The 4 gates (strict sequence)
 
@@ -64,6 +67,11 @@ resumes at the right gate.
   `~/.arkaos/plans/` + Obsidian and consider `/arka-forge`.
 - **Wait for EXPLICIT user approval. Silence is not approval.** This is
   the one human gate and it never disappears.
+- Non-blocking unknowns do not stall the gate: proceed and state
+  "Assuming: <choice>" so the operator can correct it cheaply. Ask early
+  only for non-discoverable preferences/tradeoffs (2-4 options + a
+  recommended default); discoverable facts are explored, never asked
+  (constitution `autonomy.assuming_pattern`).
 
 ### Gate 3 — EXECUTE `[arka:gate:3]`
 
@@ -131,6 +139,11 @@ no six-reviewer role-play. One marker per gate transition.
 
 - No Write/Edit/effect-Bash before Gate 2 approval for the affected
   scope (`[arka:gate:1]`/`[arka:routing]` alone does not unlock writes).
+- G2 approves the PLAN; irreversible or outward-facing side effects
+  (send, publish, delete, merge, release, deploy) carry their own
+  confirm-at-action-time gate — confirm at the moment of impact, even
+  inside an approved plan. Vague consent is never blanket permission
+  (constitution `autonomy.levels`).
 - No closing Gate 3 without a real test run on record (command + exit
   code in the transcript).
 - No pushing to master without Gate 4 evidence on every changed item.

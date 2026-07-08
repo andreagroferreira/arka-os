@@ -75,10 +75,10 @@ _GATE_BLOCK_ALLOWED: frozenset[str] = frozenset({
 # exactly like the shouted marker). May only DECREASE, with ZERO slack —
 # the baseline equals the measured count so adding a single marker fails
 # CI. History: 47 after PR-1 (#255); 28 after PR-3's KB-first pointer
-# compaction removed the marker from ~200 skill prefixes. The
-# constitution-compaction PR (PR-5) lowers it further. Never raise it to
+# compaction (#257); 17 after Constitution 2.0 (PR-5) demoted 20 rules
+# and realigned stale markers with the new levels. Never raise it to
 # make CI pass; remove a marker instead.
-_NON_NEGOTIABLE_BASELINE = 28
+_NON_NEGOTIABLE_BASELINE = 17
 
 
 def _governed_files(root: Path) -> list[Path]:

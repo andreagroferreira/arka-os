@@ -28,6 +28,18 @@ class QGBlocker(BaseModel):
     file: str | None = Field(
         default=None, description="File (and line if known) of the issue"
     )
+    # Constitution 2.0 (PR-5, 2026-07-08): claim-level verdict vocabulary
+    # imported from the frontier review pattern — findings are judged
+    # individually, not only the deliverable as a whole.
+    verdict: Literal["CONFIRMED", "PLAUSIBLE", "REFUTED"] | None = Field(
+        default=None,
+        description=(
+            "Claim-level verdict after attempting reproduction: CONFIRMED "
+            "(reproduced from the code/output), PLAUSIBLE (credible but not "
+            "reproduced), REFUTED (disproven — recorded for telemetry, must "
+            "NOT count toward rejection)"
+        ),
+    )
 
 
 class QGEvidenceSummary(BaseModel):

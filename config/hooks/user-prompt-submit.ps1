@@ -303,7 +303,7 @@ if (-not $pythonResult) {
         } catch { }
     }
     if (-not $cacheFresh) {
-        $l0 = '[Constitution] NON-NEGOTIABLE: branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST: conventional-commits, test-coverage, pattern-matching, actionable-output, memory-persistence'
+        $l0 = '[Constitution] NON-NEGOTIABLE: branch-isolation, security-gate, mandatory-qa, evidence-flow, arkaos-not-yes-man, excellence-mandate | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST (28) incl.: squad-routing, spec-driven, conventional-commits, test-coverage, subagent-discipline, persona-vs-artifact'
         try {
             $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
             [System.IO.File]::WriteAllText($l0CacheFile, $l0, $utf8NoBom)
