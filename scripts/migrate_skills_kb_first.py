@@ -1,9 +1,17 @@
-"""Idempotent migration: inject KB-first prefix into SKILL.md files.
+"""Idempotent migration: inject/compact the KB-first prefix in SKILL.md.
 
 Targets SKILL.md files in arka/ and departments/ that reference external
 research tools (Context7, WebSearch, WebFetch, Firecrawl). Each file gets
 a standard KB-first block prepended after its frontmatter or H1, wrapped
 in HTML-comment delimiters so re-runs are no-ops.
+
+PR-3 of the prompt-surface plan (2026-07-08): the block is now a 2-line
+POINTER instead of the full ~90-word doctrine — the doctrine lives once
+in arka/SKILL.md (orchestrator) and is enforced by the Stop-hook kb-cite
+check; cloning it into ~200 skills cost tokens on every co-loaded skill
+and drifted on every edit. Re-running this script REPLACES any old-form
+block with the compact one (delimiters preserved so marketplace_export
+keeps stripping it).
 """
 
 from __future__ import annotations
@@ -17,6 +25,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 SCAN_ROOTS = [REPO_ROOT / "arka", REPO_ROOT / "departments"]
 SKIP_ROOTS = [REPO_ROOT / "docs", REPO_ROOT / "config" / "cognition"]
+# The orchestrator SKILL.md is the canonical HOME of the KB-first
+# doctrine (the compact pointers reference it) — never inject/compact it.
+EXCLUDE_FILES = {REPO_ROOT / "arka" / "SKILL.md"}
 
 EXTERNAL_TOOL_RE = re.compile(
     r"mcp__context7|WebSearch|WebFetch|firecrawl",
@@ -26,20 +37,20 @@ EXTERNAL_TOOL_RE = re.compile(
 BEGIN_DELIM = "<!-- arka:kb-first-prefix begin -->"
 END_DELIM = "<!-- arka:kb-first-prefix end -->"
 
+# No "(non-negotiable)" marker in the pointer: the normative force lives
+# once in the canonical doctrine; repeating the marker ~200x is exactly
+# the instruction-strength inflation the prompt-lint ratchet blocks.
 PREFIX_BLOCK = f"""{BEGIN_DELIM}
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 {END_DELIM}
 """
+
+_BLOCK_RE = re.compile(
+    re.escape(BEGIN_DELIM) + r".*?" + re.escape(END_DELIM) + r"\n?",
+    re.DOTALL,
+)
 
 
 @dataclass
@@ -55,7 +66,7 @@ def _discover_skill_files() -> list[Path]:
         if not root.exists():
             continue
         files.extend(root.rglob("SKILL.md"))
-    return sorted(set(files))
+    return sorted(set(files) - EXCLUDE_FILES)
 
 
 def _references_external_tool(text: str) -> bool:
@@ -86,17 +97,23 @@ def _process_one(path: Path) -> FileResult:
     except OSError as exc:
         return FileResult(path, "error", str(exc))
 
+    if _already_migrated(text):
+        new_text = _BLOCK_RE.sub(PREFIX_BLOCK, text, count=1)
+        if new_text == text:
+            return FileResult(path, "skipped-already-compact")
+        return _write(path, new_text, "compacted")
+
     if not _references_external_tool(text):
         return FileResult(path, "skipped-no-external-ref")
-    if _already_migrated(text):
-        return FileResult(path, "skipped-already-migrated")
+    return _write(path, _inject(text), "migrated")
 
-    new_text = _inject(text)
+
+def _write(path: Path, text: str, status: str) -> FileResult:
     try:
-        path.write_text(new_text, encoding="utf-8")
+        path.write_text(text, encoding="utf-8")
     except OSError as exc:
         return FileResult(path, "error", str(exc))
-    return FileResult(path, "migrated")
+    return FileResult(path, status)
 
 
 def run(dry_run: bool = False) -> list[FileResult]:
@@ -105,10 +122,13 @@ def run(dry_run: bool = False) -> list[FileResult]:
     for path in files:
         if dry_run:
             text = path.read_text(encoding="utf-8", errors="replace")
-            if not _references_external_tool(text):
+            if _already_migrated(text):
+                if _BLOCK_RE.sub(PREFIX_BLOCK, text, count=1) == text:
+                    results.append(FileResult(path, "skipped-already-compact"))
+                else:
+                    results.append(FileResult(path, "would-compact"))
+            elif not _references_external_tool(text):
                 results.append(FileResult(path, "skipped-no-external-ref"))
-            elif _already_migrated(text):
-                results.append(FileResult(path, "skipped-already-migrated"))
             else:
                 results.append(FileResult(path, "would-migrate"))
         else:

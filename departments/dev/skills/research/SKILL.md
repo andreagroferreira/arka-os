@@ -1,22 +1,26 @@
 ---
 name: dev/research
 description: >
-  Research a technical topic: library evaluation, pattern comparison, best practice discovery.
+  Dev-scoped technical research (Lucas, Analyst): library evaluation,
+  framework/package selection, code pattern comparison, and engineering
+  best-practice discovery via Context7 official docs + web research,
+  ending in a trade-off report with a recommendation.
+  TRIGGER: user types "/dev research", "avalia a biblioteca", "que
+  lib/framework usamos", "compara X vs Y" for code dependencies,
+  "library evaluation", "which package/ORM/framework should we use",
+  "best practice" questions about implementation choices — load BEFORE
+  adding a new dependency or committing to an architecture-relevant
+  library.
+  SKIP: general, market, or knowledge-base research whose deliverable
+  is an Obsidian KB note — arka-research (/arka research, 5-source
+  fan-out) wins; requirements definition — arka-dev-spec wins.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
 <!-- arka:kb-first-prefix begin -->
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 <!-- arka:kb-first-prefix end -->
 
 # Research — `/dev research <topic>`

@@ -11,6 +11,12 @@ description: >
 allowed-tools: [Agent, Read, Write, Bash]
 ---
 
+<!-- arka:kb-first-prefix begin -->
+> **KB-first:** query `mcp__obsidian__search_notes` and cite
+> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
+<!-- arka:kb-first-prefix end -->
+
 # /arka bootstrap-agent — agents that set up agents
 
 > Pattern source: Nick Saraev (Orgo) interview, 2026-05-13. ArkaOS already

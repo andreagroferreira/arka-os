@@ -1,8 +1,16 @@
 ---
 name: dev/adversarial-review
 description: >
-  Adversarial code review with 3 hostile personas: Saboteur, New Hire,
-  Security Auditor. Finds edge cases, race conditions, and abuse vectors.
+  Adversarial code review with 3 hostile personas (Saboteur, New Hire,
+  Security Auditor) that hunts edge cases, race conditions, and abuse
+  vectors and issues a BLOCK/CONCERNS/CLEAN merge verdict. TRIGGER:
+  "/dev adversarial-review", "red team", "adversarial", "try to break
+  this", "tenta partir isto", "ataca este código", "encontra falhas",
+  "abuse cases", "threat model this diff", "refuta isto", or any diff
+  touching auth, payments, or concurrency; run AFTER implementation on
+  the real diff, never on a plan. SKIP: routine pre-merge pass on
+  ordinary changes -> dev/code-review wins; style/SOLID-only sweep ->
+  dev/clean-code-review wins; visual/brand compliance -> brand/design-review wins.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 
