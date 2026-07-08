@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-05-31T22:40:34.814061",
+    "generated": "2026-07-08T13:22:14.370645",
     "total_agents": 82,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -43,6 +43,7 @@
       "role": "Creative Director",
       "department": "brand",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -72,14 +73,18 @@
         "visual design direction",
         "UX/UI strategy",
         "design systems",
-        "brand voice & tone"
+        "brand voice & tone",
+        "creative direction"
       ],
       "frameworks": [
         "Primal Branding (Hanlon)",
         "StoryBrand (Miller)",
         "Brand Archetypes (Jung)",
         "Wheeler Process",
-        "Atomic Design (Frost)"
+        "Atomic Design (Frost)",
+        "Nielsen Heuristics",
+        "Dieter Rams 10 Principles",
+        "Double Diamond"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/brand-director.yaml",
@@ -91,6 +96,7 @@
       "role": "Brand Strategist",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -117,14 +123,16 @@
         "competitive brand analysis",
         "naming & verbal identity",
         "brand voice & tone",
-        "brand architecture"
+        "brand architecture",
+        "market perception research"
       ],
       "frameworks": [
         "Positioning (Ries/Trout)",
         "Primal Branding (Hanlon)",
         "StoryBrand (Miller)",
         "SMILE/SCRATCH Naming (Watkins)",
-        "Golden Circle (Sinek)"
+        "Golden Circle (Sinek)",
+        "Brand Archetypes (Jung)"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/brand-strategist.yaml",
@@ -136,6 +144,7 @@
       "role": "Design Ops Lead",
       "department": "brand",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": "brand",
       "sub_squad_role": "lead",
       "disc": {
@@ -165,14 +174,16 @@
         "component libraries (shadcn/ui, Radix, Headless UI)",
         "design system governance",
         "figma → code pipelines",
-        "accessibility compliance (WCAG 2.2 AA/AAA)"
+        "accessibility compliance (WCAG 2.2 AA/AAA)",
+        "cross-platform tokenisation (Style Dictionary, Tailwind)"
       ],
       "frameworks": [
         "Atomic Design (Frost)",
         "Design Tokens Community Group",
         "WCAG 2.2",
         "Style Dictionary",
-        "shadcn/ui conventions"
+        "shadcn/ui conventions",
+        "Tailwind CSS configuration"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/design-ops/design-ops-lead.yaml",
@@ -184,6 +195,7 @@
       "role": "Design Extraction Engineer",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "brand",
       "sub_squad_role": "extraction-script-writer",
       "disc": {
@@ -210,7 +222,8 @@
         "color palette reverse-engineering from screenshots / live DOM",
         "typography token harvesting (font-family, size, weight, line-height scales)",
         "spacing and grid token inference",
-        "figma file parsing"
+        "figma file parsing",
+        "chromium-headless capture pipelines"
       ],
       "frameworks": [
         "W3C Design Tokens spec",
@@ -229,6 +242,7 @@
       "role": "Component Library Padronizer",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "brand",
       "sub_squad_role": "shadcn-padronizer",
       "disc": {
@@ -255,14 +269,17 @@
         "Radix UI primitives integration",
         "Tailwind configuration and theme tokens",
         "CVA variants and slot patterns",
-        "dark mode and theme switching"
+        "dark mode and theme switching",
+        "component API surface design (props, slots, polymorphic components)",
+        "migration from MUI / Chakra / Ant Design to shadcn"
       ],
       "frameworks": [
         "shadcn/ui",
         "Radix UI",
         "React Aria (Adobe)",
         "Tailwind CSS",
-        "class-variance-authority"
+        "class-variance-authority",
+        "tailwind-merge"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/design-ops/shadcn-padronizer.yaml",
@@ -274,6 +291,7 @@
       "role": "Accessibility Auditor",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "brand",
       "sub_squad_role": "wcag-auditor",
       "disc": {
@@ -300,14 +318,17 @@
         "color contrast ratio analysis (4.5:1 text, 3:1 large text and UI)",
         "keyboard navigation and focus management",
         "screen reader compatibility (NVDA, JAWS, VoiceOver)",
-        "ARIA pattern review (no-redundant-roles, correct landmarks)"
+        "ARIA pattern review (no-redundant-roles, correct landmarks)",
+        "cognitive accessibility (reading level, error recovery)",
+        "accessibility statement drafting"
       ],
       "frameworks": [
         "WCAG 2.2",
         "WAI-ARIA 1.2",
         "ATAG 2.0",
         "EAA / EN 301 549",
-        "axe-core ruleset"
+        "axe-core ruleset",
+        "Section 508"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/design-ops/wcag-auditor.yaml",
@@ -319,6 +340,7 @@
       "role": "UX/UI Designer",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -345,14 +367,29 @@
         "human-centered design (Norman — affordances, signifiers, mental models)",
         "UX research & user testing",
         "guerrilla / lightweight usability testing (Krug)",
-        "wireframing & prototyping"
+        "wireframing & prototyping",
+        "information architecture",
+        "interaction design",
+        "design systems",
+        "accessibility (WCAG 2.1 AA)",
+        "usability heuristic evaluation",
+        "collaborative design facilitation (Design Studio method)"
       ],
       "frameworks": [
         "Don Norman — Human-Centered Design (affordances, signifiers, feedback, mapping)",
         "Nielsen 10 Heuristics",
         "Steve Krug — Don't Make Me Think (self-evidence, guerrilla testing)",
         "Dieter Rams — 10 Principles of Good Design",
-        "Laws of UX (Yablonski)"
+        "Laws of UX (Yablonski)",
+        "Garrett's 5 Planes (strategy, scope, structure, skeleton, surface)",
+        "Design Studio (Gothelf — collaborative multidisciplinary ideation, sketch → critique → converge)",
+        "Double Diamond",
+        "Design Thinking (IDEO)",
+        "Atomic Design",
+        "WCAG 2.1 AA",
+        "Two-Part Conversion Formula",
+        "Microinteractions (trigger-rules-feedback-loops)",
+        "runtime:frontend-design (Anthropic skill)"
       ],
       "knowledge_sources": [
         "[[Area 02 - Design]]",
@@ -367,6 +404,7 @@
       "role": "UX Researcher",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -393,7 +431,8 @@
         "user interviews & ethnography",
         "surveys (n >= 2000) & guerrilla research",
         "research ops & insight repositories",
-        "consent & research ethics"
+        "consent & research ethics",
+        "assumption / hypothesis testing"
       ],
       "frameworks": [
         "6 UX Research Methods (Trade-Off Matrix)",
@@ -416,6 +455,7 @@
       "role": "UX Strategist",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -442,7 +482,8 @@
         "value proposition design",
         "provisional personas & validation",
         "competitive value innovation (blue ocean)",
-        "storyboard & concept before pixels"
+        "storyboard & concept before pixels",
+        "product-market fit framing"
       ],
       "frameworks": [
         "4 Elements of UX Strategy (Levy)",
@@ -464,6 +505,7 @@
       "role": "Visual Designer",
       "department": "brand",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -490,14 +532,20 @@
         "typography selection",
         "logo concepts & iteration",
         "mockup generation",
-        "AI image generation prompts"
+        "AI image generation prompts",
+        "brand guidelines execution",
+        "social media visual kits"
       ],
       "frameworks": [
         "Dieter Rams 10 Principles",
         "Atomic Design (visual layer)",
         "Color Theory",
         "Typography Hierarchy",
-        "Brand Identity Process (Wheeler)"
+        "Brand Identity Process (Wheeler)",
+        "ArkaOS Design Tokens",
+        "WCAG AA contrast",
+        "runtime:frontend-design (Anthropic skill)",
+        "runtime:ui-ux-pro-max (community skill)"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/visual-designer.yaml",
@@ -509,6 +557,7 @@
       "role": "Community Manager",
       "department": "community",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -535,7 +584,9 @@
         "member engagement & activation",
         "content calendar execution",
         "moderation & conflict resolution",
-        "event planning & hosting"
+        "event planning & hosting",
+        "metrics tracking (DAU, engagement rate)",
+        "platform operations (Discord, Telegram, Skool)"
       ],
       "frameworks": [
         "Member Lifecycle Stages",
@@ -553,6 +604,7 @@
       "role": "Community Strategist",
       "department": "community",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -581,14 +633,18 @@
         "platform selection (Discord, Telegram, Skool, Circle)",
         "member onboarding & retention",
         "monetization (membership, courses, coaching)",
-        "gamification & engagement"
+        "gamification & engagement",
+        "niche communities (betting, AI, vertical)",
+        "community-led growth"
       ],
       "frameworks": [
         "SPACES (Spinks)",
         "Community BMC",
         "Member Lifecycle",
         "1000 True Fans (Kelly)",
-        "Membership Economy (Baxter)"
+        "Membership Economy (Baxter)",
+        "TRIBE Method (McLaren)",
+        "Platform Selection Matrix"
       ],
       "knowledge_sources": [],
       "file": "departments/community/agents/community-strategist.yaml",
@@ -600,6 +656,7 @@
       "role": "Engagement & Gamification Designer",
       "department": "community",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -626,7 +683,8 @@
         "engagement loops",
         "challenge and streak mechanics",
         "leaderboards and badges",
-        "event format design (AMA, workshop, challenge)"
+        "event format design (AMA, workshop, challenge)",
+        "onboarding experience"
       ],
       "frameworks": [
         "Hook Model (Nir Eyal)",
@@ -644,6 +702,7 @@
       "role": "Content Strategist",
       "department": "content",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -672,14 +731,18 @@
         "hook writing & packaging",
         "script structure",
         "content operating systems",
-        "platform-specific optimization"
+        "platform-specific optimization",
+        "repurposing (1→30+ pieces)",
+        "AI-augmented content creation",
+        "creator monetization"
       ],
       "frameworks": [
         "STEPPS (Berger)",
         "Hook Architecture",
         "Content OS (GaryVee model)",
         "Platform Algorithms (YouTube/TikTok/IG/LinkedIn)",
-        "Content-to-Revenue Pipeline"
+        "Content-to-Revenue Pipeline",
+        "AI Content Workflow"
       ],
       "knowledge_sources": [],
       "file": "departments/content/agents/content-strategist.yaml",
@@ -691,6 +754,7 @@
       "role": "Repurpose & Distribution Specialist",
       "department": "content",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -717,7 +781,9 @@
         "platform-native formatting",
         "content calendar management",
         "newsletter writing",
-        "distribution strategy"
+        "distribution strategy",
+        "AI-assisted content workflows",
+        "analytics & performance tracking"
       ],
       "frameworks": [
         "GaryVee Pillar→30+ Model",
@@ -735,6 +801,7 @@
       "role": "Scriptwriter",
       "department": "content",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -761,7 +828,8 @@
         "narrative structure (hook-bridge-body-CTA)",
         "storytelling frameworks",
         "audience retention scripting",
-        "podcast scripts"
+        "podcast scripts",
+        "webinar scripts"
       ],
       "frameworks": [
         "Hook-Bridge-Body-CTA",
@@ -779,6 +847,7 @@
       "role": "Viral Content Engineer",
       "department": "content",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -805,7 +874,8 @@
         "hook writing (7 types)",
         "thumbnail & title packaging",
         "platform algorithm optimization",
-        "trend analysis & riding"
+        "trend analysis & riding",
+        "short-form content (Reels, TikTok, Shorts)"
       ],
       "frameworks": [
         "STEPPS (Berger)",
@@ -823,6 +893,7 @@
       "role": "AI Engineering Specialist",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "dev",
       "sub_squad_role": "lead",
       "disc": {
@@ -852,14 +923,17 @@
         "Vector stores (sqlite-vec, pgvector, Qdrant)",
         "Agent flows & tool orchestration",
         "MCP server design & implementation",
-        "Laravel AI SDK / Prism & echolabs"
+        "Laravel AI SDK / Prism & echolabs",
+        "LLM evaluation & guardrails",
+        "Prompt & context engineering"
       ],
       "frameworks": [
         "RAG",
         "Model Context Protocol (MCP)",
         "Eval-driven development",
         "Agentic patterns (ReAct, handoffs)",
-        "Prism / Laravel AI SDK"
+        "Prism / Laravel AI SDK",
+        "context7 (live docs)"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/ai-engineering/ai-engineering-lead.yaml",
@@ -871,6 +945,7 @@
       "role": "Software Architect",
       "department": "dev",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -899,14 +974,21 @@
         "domain modeling (event storming, bounded contexts)",
         "design patterns (GoF, PoEAA)",
         "business / domain analysis",
-        "API design"
+        "API design",
+        "data architecture",
+        "integration patterns",
+        "architecture decision records"
       ],
       "frameworks": [
         "DDD (Evans/Vernon)",
         "Strategic DDD (context mapping)",
         "Event Storming (Brandolini)",
         "GoF Design Patterns",
-        "Enterprise Patterns (Fowler PoEAA)"
+        "Enterprise Patterns (Fowler PoEAA)",
+        "Clean Architecture",
+        "Hexagonal (Ports & Adapters)",
+        "Microservices Patterns (Newman)",
+        "Event-Driven Architecture"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/architect.yaml",
@@ -918,6 +1000,7 @@
       "role": "Laravel Specialist",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "dev",
       "sub_squad_role": "laravel-specialist",
       "disc": {
@@ -946,14 +1029,18 @@
         "Eloquent, migrations, query optimization",
         "Form Requests, API Resources, Policies",
         "Queues & Horizon, Events, Jobs, Pennant",
-        "Pest / PHPUnit feature testing"
+        "Pest / PHPUnit feature testing",
+        "Laravel ecosystem (Sanctum, Pulse, Reverb, Prism, Boost)",
+        "Laravel AI SDK & MCP (php-mcp/laravel)"
       ],
       "frameworks": [
         "Laravel Conventions",
         "Clean Architecture",
         "DDD Tactical",
         "TDD (Pest)",
-        "PSR standards"
+        "PSR standards",
+        "laravel-boost MCP",
+        "context7 (live docs)"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/backend-core/laravel-eng.yaml",
@@ -965,6 +1052,7 @@
       "role": "Node.js / TypeScript Backend Specialist",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "dev",
       "sub_squad_role": "node-ts-specialist",
       "disc": {
@@ -993,14 +1081,18 @@
         "TypeScript (strict, generics, inference)",
         "NestJS / Hono / Express / Fastify",
         "Drizzle / Prisma ORM",
-        "Zod validation & type-safe contracts"
+        "Zod validation & type-safe contracts",
+        "Vitest / integration testing",
+        "tRPC / REST / GraphQL APIs"
       ],
       "frameworks": [
         "NestJS",
         "Hono",
         "TypeScript strict",
         "Zod",
-        "Clean Architecture"
+        "Clean Architecture",
+        "TDD (Vitest)",
+        "context7 (live docs)"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/backend-core/node-ts-eng.yaml",
@@ -1012,6 +1104,7 @@
       "role": "Python Backend Specialist",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "dev",
       "sub_squad_role": "python-specialist",
       "disc": {
@@ -1040,14 +1133,18 @@
         "FastAPI & Django / DRF",
         "Pydantic v2 data modeling",
         "SQLAlchemy / asyncpg",
-        "Celery / task queues"
+        "Celery / task queues",
+        "pytest (fixtures, parametrize)",
+        "packaging & virtual environments (uv, poetry)"
       ],
       "frameworks": [
         "FastAPI",
         "Django",
         "Pydantic",
         "Clean Architecture",
-        "TDD (pytest)"
+        "TDD (pytest)",
+        "12-Factor App",
+        "context7 (live docs)"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/backend-core/python-eng.yaml",
@@ -1059,6 +1156,7 @@
       "role": "Backend Core Lead",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "dev",
       "sub_squad_role": "lead",
       "disc": {
@@ -1087,14 +1185,16 @@
         "PostgreSQL / Supabase",
         "REST API design",
         "Service + Repository pattern",
-        "Database migrations & indexing"
+        "Database migrations & indexing",
+        "Queue systems (Horizon)"
       ],
       "frameworks": [
         "Clean Architecture",
         "DDD Tactical",
         "TDD",
         "Laravel Conventions",
-        "API Resources"
+        "API Resources",
+        "Form Requests"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/backend-dev.yaml",
@@ -1106,6 +1206,7 @@
       "role": "Chief Technology Officer",
       "department": "dev",
       "tier": 0,
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1156,6 +1257,7 @@
       "role": "Data / ETL Engineer",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "dev",
       "sub_squad_role": "etl-specialist",
       "disc": {
@@ -1184,7 +1286,9 @@
         "dbt transformations & tests",
         "Airflow / Dagster orchestration",
         "CDC & incremental loads",
-        "Data quality & validation (Great Expectations)"
+        "Data quality & validation (Great Expectations)",
+        "Warehouse modeling (star/snowflake, partitioning)",
+        "CSV/Excel/API ingestion at scale"
       ],
       "frameworks": [
         "dbt",
@@ -1203,6 +1307,7 @@
       "role": "Data Platform Lead (Database & Data Engineer)",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": "dev",
       "sub_squad_role": "lead",
       "disc": {
@@ -1229,7 +1334,11 @@
         "Supabase",
         "schema design & normalization",
         "migration planning",
-        "query optimization"
+        "query optimization",
+        "indexing strategy",
+        "row-level security (RLS)",
+        "data modeling",
+        "replication & partitioning"
       ],
       "frameworks": [
         "Normalization (1NF-BCNF)",
@@ -1248,6 +1357,7 @@
       "role": "DevOps Lead",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1277,14 +1387,17 @@
         "container orchestration (Docker, Kubernetes)",
         "infrastructure as code (Terraform, Pulumi)",
         "cloud platforms (Vercel, Azure, AWS)",
-        "monitoring & alerting (Grafana, Prometheus)"
+        "monitoring & alerting (Grafana, Prometheus)",
+        "deployment strategies",
+        "Laravel Herd (local dev)"
       ],
       "frameworks": [
         "Three Ways (Gene Kim)",
         "DORA Metrics",
         "GitOps",
         "12-Factor App",
-        "SRE Principles (Google)"
+        "SRE Principles (Google)",
+        "Chaos Engineering"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/devops-eng.yaml",
@@ -1296,6 +1409,7 @@
       "role": "Senior Frontend Developer",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1324,14 +1438,23 @@
         "Nuxt 3",
         "React 19 / Next.js 15",
         "TypeScript",
-        "Tailwind CSS"
+        "Tailwind CSS",
+        "Design system implementation",
+        "Accessibility (WCAG 2.1 AA)",
+        "Core Web Vitals",
+        "Magic MCP (21st.dev) component generation",
+        "Motion (animation implementation)"
       ],
       "frameworks": [
         "Atomic Design",
         "Component-Driven Development",
         "Laws of UX",
         "Nielsen Heuristics",
-        "CWV Optimization"
+        "CWV Optimization",
+        "ArkaOS Motion System",
+        "Design Tokens (DTCG)",
+        "runtime:frontend-design (Anthropic skill)",
+        "runtime:ui-ux-pro-max (community skill)"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/frontend-dev.yaml",
@@ -1343,6 +1466,7 @@
       "role": "QA Engineer",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1371,14 +1495,18 @@
         "unit / integration / e2e testing",
         "test automation (Playwright, Jest, PHPUnit, pytest)",
         "coverage analysis",
-        "mutation testing"
+        "mutation testing",
+        "contract testing",
+        "quality gates",
+        "regression testing"
       ],
       "frameworks": [
         "Testing Pyramid",
         "TDD (Beck)",
         "FIRST Principles",
         "Contract Testing (Pact)",
-        "Mutation Testing (Stryker/Infection)"
+        "Mutation Testing (Stryker/Infection)",
+        "Exploratory Testing"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/qa-eng.yaml",
@@ -1390,6 +1518,7 @@
       "role": "Research Assistant",
       "department": "dev",
       "tier": 3,
+      "model": "haiku",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1432,6 +1561,7 @@
       "role": "Security Engineer",
       "department": "dev",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1460,14 +1590,18 @@
         "threat modeling (STRIDE, DREAD)",
         "SAST/DAST/SCA scanning",
         "DevSecOps pipeline",
-        "dependency vulnerability scanning"
+        "dependency vulnerability scanning",
+        "security headers",
+        "authentication & authorization",
+        "supply chain security"
       ],
       "frameworks": [
         "OWASP Top 10 (2025)",
         "STRIDE Threat Model",
         "DevSecOps Pipeline",
         "NIST Cybersecurity Framework",
-        "Zero Trust"
+        "Zero Trust",
+        "CIS Benchmarks"
       ],
       "knowledge_sources": [],
       "file": "departments/dev/agents/security-eng.yaml",
@@ -1479,6 +1613,7 @@
       "role": "Tech Lead",
       "department": "dev",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1527,6 +1662,7 @@
       "role": "Commerce Engineer",
       "department": "ecom",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1555,7 +1691,9 @@
         "headless commerce (Hydrogen/Oxygen)",
         "checkout optimization (technical)",
         "payment integration (Stripe, Mollie)",
-        "commerce API design"
+        "commerce API design",
+        "performance optimization",
+        "inventory & fulfillment systems"
       ],
       "frameworks": [
         "MACH Architecture",
@@ -1573,6 +1711,7 @@
       "role": "CRO Specialist",
       "department": "ecom",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1599,7 +1738,8 @@
         "heatmap & session recording analysis",
         "funnel analysis & drop-off diagnosis",
         "user testing for e-commerce",
-        "product page optimization"
+        "product page optimization",
+        "checkout UX optimization"
       ],
       "frameworks": [
         "ResearchXL (Peep Laja / CXL)",
@@ -1617,6 +1757,7 @@
       "role": "E-Commerce Director",
       "department": "ecom",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1645,14 +1786,17 @@
         "conversion optimization",
         "marketplace operations",
         "pricing strategy",
-        "fulfillment & logistics"
+        "fulfillment & logistics",
+        "email & retention",
+        "Shopify & headless commerce"
       ],
       "frameworks": [
         "E-Commerce Metrics Stack",
         "ResearchXL (CXL)",
         "RFM Analysis",
         "MACH Architecture",
-        "Baymard UX Guidelines"
+        "Baymard UX Guidelines",
+        "Subscription Models"
       ],
       "knowledge_sources": [],
       "file": "departments/ecom/agents/ecom-director.yaml",
@@ -1664,6 +1808,7 @@
       "role": "Lifecycle & Retention Manager",
       "department": "ecom",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1690,14 +1835,21 @@
         "email flow design (Klaviyo, Mailchimp)",
         "cart abandonment sequences",
         "win-back campaigns",
-        "loyalty programs"
+        "loyalty programs",
+        "subscription management",
+        "CLV maximization",
+        "post-purchase experience",
+        "full lifecycle orchestration (onboarding→quick win→habit→win-back)",
+        "service as a revenue generator (proactive upsell/cross-sell/renewal; KPI = value per interaction)"
       ],
       "frameworks": [
         "RFM Analysis (Sanocki)",
         "Whale Curve",
         "Email Flow Architecture",
         "Customer Lifecycle Stages",
-        "Subscription Models"
+        "Subscription Models",
+        "Retention Flywheel [[Retention Flywheel]]",
+        "Service as a Revenue Generator [[Atendimento Como Gerador de Receita]]"
       ],
       "knowledge_sources": [],
       "file": "departments/ecom/agents/retention-manager.yaml",
@@ -1709,6 +1861,7 @@
       "role": "Chief Financial Officer",
       "department": "finance",
       "tier": 0,
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1739,14 +1892,16 @@
         "valuation & investment",
         "unit economics & SaaS metrics",
         "risk management & ERM",
-        "fundraising & cap tables"
+        "fundraising & cap tables",
+        "cash flow management"
       ],
       "frameworks": [
         "3-Statement Model",
         "DCF Valuation (Damodaran)",
         "Unit Economics (CAC/LTV/Rule of 40)",
         "COSO ERM",
-        "FP&A Cycle"
+        "FP&A Cycle",
+        "VC Framework (Brad Feld)"
       ],
       "knowledge_sources": [],
       "file": "departments/finance/agents/cfo.yaml",
@@ -1758,6 +1913,7 @@
       "role": "Financial Analyst",
       "department": "finance",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1784,7 +1940,9 @@
         "unit economics (CAC, LTV, Rule of 40)",
         "valuation (DCF, comparables)",
         "SaaS metrics & benchmarking",
-        "scenario analysis"
+        "scenario analysis",
+        "variance analysis",
+        "KPI dashboards"
       ],
       "frameworks": [
         "3-Statement Model",
@@ -1803,6 +1961,7 @@
       "role": "Investment & Fundraising Strategist",
       "department": "finance",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1829,7 +1988,9 @@
         "term sheet analysis",
         "cap table management",
         "pitch deck financial modeling",
-        "investor targeting & outreach"
+        "investor targeting & outreach",
+        "due diligence preparation",
+        "M&A analysis"
       ],
       "frameworks": [
         "Venture Deals (Brad Feld)",
@@ -1848,6 +2009,7 @@
       "role": "Data Collector",
       "department": "kb",
       "tier": 3,
+      "model": "haiku",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1889,6 +2051,7 @@
       "role": "Knowledge Curator",
       "department": "kb",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1915,7 +2078,10 @@
         "Zettelkasten workflow",
         "PARA organization",
         "progressive summarization",
-        "MOC creation & maintenance"
+        "MOC creation & maintenance",
+        "taxonomy & tagging",
+        "knowledge review cycles",
+        "digital garden maintenance"
       ],
       "frameworks": [
         "Zettelkasten (Luhmann/Ahrens)",
@@ -1934,6 +2100,7 @@
       "role": "Knowledge Director",
       "department": "kb",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1962,14 +2129,16 @@
         "research methodology",
         "persona building",
         "content curation",
-        "taxonomy & ontology"
+        "taxonomy & ontology",
+        "Obsidian vault management"
       ],
       "frameworks": [
         "Zettelkasten",
         "BASB (Building a Second Brain)",
         "SECI Model",
         "LYT (Linking Your Thinking)",
-        "CRAAP Test (source evaluation)"
+        "CRAAP Test (source evaluation)",
+        "Progressive Summarization"
       ],
       "knowledge_sources": [],
       "file": "departments/kb/agents/knowledge-director.yaml",
@@ -1981,6 +2150,7 @@
       "role": "Research Analyst",
       "department": "kb",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2007,7 +2177,9 @@
         "source evaluation (CRAAP test)",
         "competitive intelligence",
         "AI-augmented research",
-        "literature review"
+        "literature review",
+        "data synthesis",
+        "trend analysis"
       ],
       "frameworks": [
         "Research Methodology (5-step)",
@@ -2026,6 +2198,7 @@
       "role": "Affiliate & Partnerships Manager",
       "department": "landing",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2052,7 +2225,9 @@
         "bridge page creation",
         "commission structures",
         "JV partnerships",
-        "review & comparison pages"
+        "review & comparison pages",
+        "affiliate recruitment",
+        "performance tracking"
       ],
       "frameworks": [
         "Affiliate Bridge Funnel",
@@ -2070,6 +2245,7 @@
       "role": "Conversion Strategist",
       "department": "landing",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2098,14 +2274,18 @@
         "landing page optimization",
         "offer creation",
         "copywriting (direct response)",
-        "launch sequences"
+        "launch sequences",
+        "affiliate marketing",
+        "A/B testing"
       ],
       "frameworks": [
         "Grand Slam Offer (Hormozi)",
         "Value Ladder (Brunson)",
         "Schwartz 5 Levels",
         "PLF (Walker)",
-        "AIDA/PAS/PASTOR"
+        "AIDA/PAS/PASTOR",
+        "ResearchXL CRO",
+        "Crossing the Chasm"
       ],
       "knowledge_sources": [],
       "file": "departments/landing/agents/conversion-strategist.yaml",
@@ -2117,6 +2297,7 @@
       "role": "CRO Specialist",
       "department": "landing",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2143,7 +2324,9 @@
         "heatmap & session analysis",
         "funnel analysis",
         "landing page optimization",
-        "checkout optimization"
+        "checkout optimization",
+        "user testing",
+        "statistical significance"
       ],
       "frameworks": [
         "ResearchXL (Peep Laja / CXL)",
@@ -2162,6 +2345,7 @@
       "role": "Sales Copywriter",
       "department": "landing",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2188,14 +2372,18 @@
         "sales page writing",
         "email sequence copy",
         "headline writing & testing",
-        "ad copy (Meta, Google, TikTok)"
+        "ad copy (Meta, Google, TikTok)",
+        "launch copy (PLF sequences)",
+        "objection handling in copy"
       ],
       "frameworks": [
         "AIDA",
         "PAS (Problem-Agitate-Solve)",
         "PASTOR",
         "StoryBrand SB7",
-        "Schwartz 5 Awareness Levels"
+        "Schwartz 5 Awareness Levels",
+        "Star-Story-Solution",
+        "Halbert Headline Formulas"
       ],
       "knowledge_sources": [],
       "file": "departments/landing/agents/sales-copywriter.yaml",
@@ -2207,6 +2395,7 @@
       "role": "Culture & Performance Coach",
       "department": "leadership",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2233,14 +2422,21 @@
         "1-on-1 facilitation",
         "feedback culture building",
         "conflict mediation",
-        "team health assessment"
+        "team health assessment",
+        "career development",
+        "change management",
+        "trust-building rituals (oxytocin behaviors)",
+        "rockstars vs superstars career-path matching"
       ],
       "frameworks": [
         "Radical Candor (Kim Scott)",
         "Five Dysfunctions (Lencioni)",
         "Netflix Culture (talent density)",
         "Keeper Test",
-        "DISC Communication Adaptation"
+        "DISC Communication Adaptation",
+        "Coaching GROW Model",
+        "Neuroscience of Trust (Zak — 8 oxytocin behaviors)",
+        "Radical Candor (Scott — Care Personally + Challenge Directly, 4 quadrants)"
       ],
       "knowledge_sources": [],
       "file": "departments/leadership/agents/culture-coach.yaml",
@@ -2252,6 +2448,7 @@
       "role": "HR & Talent Specialist",
       "department": "leadership",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2278,14 +2475,19 @@
         "structured interviews",
         "onboarding program design",
         "performance review facilitation",
-        "compensation benchmarking"
+        "compensation benchmarking",
+        "talent retention strategies",
+        "retention-by-cause analysis (exit interviews, top-5 departure reasons)",
+        "talent density management"
       ],
       "frameworks": [
         "Who Method (Geoff Smart)",
         "Topgrading",
         "Netflix Keeper Test",
         "Structured Interview Rubrics",
-        "Career Ladder Framework"
+        "Career Ladder Framework",
+        "Talent Density + Keeper Test (Netflix)",
+        "Retention-by-Cause (top-5 departure reasons; manager is cause"
       ],
       "knowledge_sources": [],
       "file": "departments/leadership/agents/hr-specialist.yaml",
@@ -2297,6 +2499,7 @@
       "role": "Leadership & People Director",
       "department": "leadership",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2325,14 +2528,21 @@
         "leadership development",
         "hiring & onboarding",
         "performance management",
-        "feedback & 1-on-1s"
+        "feedback & 1-on-1s",
+        "culture building",
+        "conflict resolution",
+        "coaching as primary leadership skill",
+        "empowered team design (problems not features)"
       ],
       "frameworks": [
         "Five Dysfunctions (Lencioni)",
         "Radical Candor (Scott)",
         "OKRs (Doerr)",
         "Netflix Culture",
-        "Who Method (hiring)"
+        "Who Method (hiring)",
+        "DISC Adaptation",
+        "Empowered (Cagan — missionaries not mercenaries, outcomes over outputs)",
+        "6 Roles of the Leader"
       ],
       "knowledge_sources": [],
       "file": "departments/leadership/agents/leadership-director.yaml",
@@ -2344,6 +2554,7 @@
       "role": "Content Marketing Specialist",
       "department": "marketing",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2370,7 +2581,9 @@
         "blog writing & SEO content",
         "email marketing (sequences, newsletters)",
         "social media content",
-        "audience research"
+        "audience research",
+        "content repurposing",
+        "brand voice writing"
       ],
       "frameworks": [
         "Content Pillar-Cluster",
@@ -2389,6 +2602,7 @@
       "role": "Marketing Director",
       "department": "marketing",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2417,14 +2631,18 @@
         "content marketing",
         "SEO",
         "paid acquisition",
-        "social media"
+        "social media",
+        "email marketing",
+        "analytics & attribution"
       ],
       "frameworks": [
         "AARRR",
         "Growth Loops",
         "Schwartz 5 Levels",
         "STEPPS",
-        "PLG"
+        "PLG",
+        "SEO Pillar-Cluster",
+        "ICE Scoring"
       ],
       "knowledge_sources": [],
       "file": "departments/marketing/agents/marketing-director.yaml",
@@ -2436,6 +2654,7 @@
       "role": "Performance Marketing Specialist",
       "department": "marketing",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2462,7 +2681,10 @@
         "Google Ads (Search, Shopping, PMax)",
         "TikTok Ads",
         "LinkedIn Ads",
-        "attribution modeling"
+        "attribution modeling",
+        "creative testing",
+        "ROAS optimization",
+        "budget allocation"
       ],
       "frameworks": [
         "AARRR (acquisition focus)",
@@ -2480,6 +2702,7 @@
       "role": "SEO Specialist",
       "department": "marketing",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2506,7 +2729,9 @@
         "on-page SEO",
         "technical SEO (Core Web Vitals, crawlability)",
         "link building (Skyscraper Technique)",
-        "content cluster strategy (Pillar-Cluster)"
+        "content cluster strategy (Pillar-Cluster)",
+        "E-E-A-T compliance",
+        "SEO analytics (GSC, Ahrefs, Semrush)"
       ],
       "frameworks": [
         "Pillar-Cluster SEO (HubSpot)",
@@ -2524,6 +2749,7 @@
       "role": "Automation Engineer",
       "department": "ops",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2550,7 +2776,9 @@
         "Zapier/Make automation",
         "API integration design",
         "webhook & event-driven flows",
-        "error handling & retry logic"
+        "error handling & retry logic",
+        "AI-augmented workflows (LangChain)",
+        "data pipeline automation"
       ],
       "frameworks": [
         "Automation Design Patterns (trigger-action, conditional, loop)",
@@ -2569,6 +2797,7 @@
       "role": "Documentation Writer",
       "department": "ops",
       "tier": 3,
+      "model": "haiku",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2610,6 +2839,7 @@
       "role": "Operations Lead",
       "department": "ops",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2638,14 +2868,16 @@
         "process mapping & optimization",
         "SOP creation & management",
         "bottleneck analysis",
-        "integration design"
+        "integration design",
+        "operational metrics"
       ],
       "frameworks": [
         "Lean/TPS (Ohno)",
         "Theory of Constraints (Goldratt)",
         "GTD (Allen)",
         "PARA (Forte)",
-        "PDCA (Deming)"
+        "PDCA (Deming)",
+        "EOS (Wickman)"
       ],
       "knowledge_sources": [],
       "file": "departments/ops/agents/ops-lead.yaml",
@@ -2657,6 +2889,7 @@
       "role": "Chief of Staff & Governance Lead",
       "department": "org",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2685,7 +2918,8 @@
         "OKR & CFR orchestration cross-department",
         "decision records & RACI",
         "premortem / blameless postmortem rituals",
-        "governance, board & founder-CEO succession"
+        "governance, board & founder-CEO succession",
+        "strategic alignment & single-threaded leadership"
       ],
       "frameworks": [
         "Rockefeller Habits (Harnish)",
@@ -2709,6 +2943,7 @@
       "role": "Chief Operations Officer",
       "department": "org",
       "tier": 0,
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2739,14 +2974,21 @@
         "process optimization",
         "cross-department coordination",
         "culture & team health",
-        "scaling operations"
+        "scaling operations",
+        "workflow automation",
+        "structured decision-making with clear ownership"
       ],
       "frameworks": [
         "Team Topologies",
         "Spotify Model",
         "Five Dysfunctions of a Team",
         "OKRs",
-        "Netflix Culture"
+        "Netflix Culture",
+        "Lean Operations",
+        "EOS (Traction)",
+        "Radical Candor",
+        "HBR 5-Element Decision Process + RACI",
+        "Bias-to-Action Check (anti consensus / HiPPO / analysis-paralysis)"
       ],
       "knowledge_sources": [],
       "file": "departments/org/agents/coo.yaml",
@@ -2758,6 +3000,7 @@
       "role": "Alignment & OKR Steward",
       "department": "org",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2806,6 +3049,7 @@
       "role": "Organizational Designer",
       "department": "org",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2832,14 +3076,20 @@
         "team topologies",
         "cognitive load management",
         "Conway's Law analysis",
-        "squad/tribe/chapter design"
+        "squad/tribe/chapter design",
+        "decision framework design",
+        "single-threaded leadership / two-pizza team sizing"
       ],
       "frameworks": [
         "Team Topologies (Skelton/Pais)",
         "Spotify Model (Kniberg)",
         "Inverse Conway Maneuver",
         "Cognitive Load Theory",
-        "RACI Matrix"
+        "RACI Matrix",
+        "Team Topologies (4 team types + 3 interaction modes)",
+        "Five Dysfunctions (Lencioni)",
+        "Two-Pizza Teams + Single-Threaded Leadership (Amazon)",
+        "10 Principles of Effective Organizations"
       ],
       "knowledge_sources": [],
       "file": "departments/org/agents/org-designer.yaml",
@@ -2851,6 +3101,7 @@
       "role": "People Operations Specialist",
       "department": "org",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2877,7 +3128,8 @@
         "employee onboarding",
         "compensation benchmarking",
         "performance review systems",
-        "remote work policies"
+        "remote work policies",
+        "employee handbook"
       ],
       "frameworks": [
         "Who Method (Smart/Street)",
@@ -2895,6 +3147,7 @@
       "role": "Product Manager",
       "department": "pm",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2923,14 +3176,25 @@
         "weekly customer interviewing",
         "dual-track agile (discovery + delivery)",
         "product risk assessment (value/usability/feasibility/viability)",
-        "framing problems for empowered teams (not features)"
+        "framing problems for empowered teams (not features)",
+        "backlog management",
+        "sprint/cycle planning",
+        "stakeholder management",
+        "roadmapping",
+        "estimation & forecasting",
+        "user story writing"
       ],
       "frameworks": [
         "Continuous Discovery (Torres)",
         "Opportunity Solution Tree (Torres)",
         "Empowered / 4 Product Risks (Cagan)",
         "Dual-Track Agile (Cagan)",
-        "Shape Up (Singer)"
+        "Shape Up (Singer)",
+        "Scrum (Sutherland)",
+        "Kanban (Anderson)",
+        "RICE/WSJF Prioritization",
+        "Monte Carlo Forecasting",
+        "User Story Mapping (Patton)"
       ],
       "knowledge_sources": [
         "[[Inspirado - Marty Cagan]]",
@@ -2945,6 +3209,7 @@
       "role": "Product Owner",
       "department": "pm",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -2971,14 +3236,23 @@
         "user story writing (INVEST)",
         "hypothesis-driven story framing (Lean UX)",
         "acceptance criteria definition",
-        "weekly hypothesis test cadence"
+        "weekly hypothesis test cadence",
+        "outcome definition (KRs as verifiable outcomes)",
+        "separating KPIs (health) from OKRs (change)",
+        "stakeholder management",
+        "sprint scope negotiation",
+        "release planning",
+        "story mapping"
       ],
       "frameworks": [
         "INVEST Criteria",
         "Lean UX Hypothesis (Gothelf) - \"We believe that offering [FEATURE] for [PERSONA] will achieve [OUTCOME]\"",
         "OKRs (Doerr)",
         "RICE/WSJF Prioritization",
-        "MoSCoW Scoping"
+        "MoSCoW Scoping",
+        "User Story Mapping (Patton)",
+        "Impact Mapping (Adzic)",
+        "Stakeholder Power/Interest Grid"
       ],
       "knowledge_sources": [
         "[[3 Pilares do Lean UX...]]",
@@ -2994,6 +3268,7 @@
       "role": "Scrum Master / Agile Coach",
       "department": "pm",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3020,14 +3295,26 @@
         "Rockefeller meeting rhythm ownership (Daily/Weekly/Quarterly)",
         "daily huddle facilitation (15 min, 3 questions)",
         "quarterly rocks tracking",
-        "blameless post-mortem facilitation"
+        "blameless post-mortem facilitation",
+        "lessons-learned documentation",
+        "Kanban flow management",
+        "retrospective facilitation",
+        "impediment removal",
+        "flow metrics (cycle time, throughput)",
+        "team health assessments",
+        "agile coaching"
       ],
       "frameworks": [
         "Scrum Guide 2020",
         "Rockefeller Habits / Meeting Rhythm (Harnish)",
         "Daily Huddle - 3 questions (Harnish)",
         "Quarterly Rocks (Harnish)",
-        "Blameless Post-Mortem"
+        "Blameless Post-Mortem",
+        "Kanban Method (Anderson)",
+        "Flow Metrics (Vacanti)",
+        "Monte Carlo Forecasting",
+        "Retrospective Formats",
+        "Five Dysfunctions (Lencioni)"
       ],
       "knowledge_sources": [
         "[[Scaling Up - Verne Harnish]]",
@@ -3042,6 +3329,7 @@
       "role": "Strategic Program Manager",
       "department": "pm",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3068,7 +3356,8 @@
         "explicit assumptions & risk",
         "stakeholder analysis & co-creation",
         "program phasing (plan→build→implement→close)",
-        "learning cadence (monitor/review/evaluate)"
+        "learning cadence (monitor/review/evaluate)",
+        "cross-team dependency management"
       ],
       "frameworks": [
         "LogFrame (Schmidt)",
@@ -3090,6 +3379,7 @@
       "role": "Copy & Language Director",
       "department": "quality",
       "tier": 0,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3120,7 +3410,8 @@
         "tone and voice consistency",
         "AI pattern detection and removal",
         "accentuation and orthography",
-        "copywriting quality"
+        "copywriting quality",
+        "factual accuracy in text"
       ],
       "frameworks": [
         "Human Writing Standard",
@@ -3138,6 +3429,7 @@
       "role": "Chief Quality Officer",
       "department": "quality",
       "tier": 0,
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3189,6 +3481,7 @@
       "role": "Technical & UX Quality Director",
       "department": "quality",
       "tier": 0,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3220,14 +3513,19 @@
         "test coverage and quality",
         "UX/UI review (heuristics, accessibility)",
         "security review (OWASP)",
-        "performance review (CWV, API latency)"
+        "performance review (CWV, API latency)",
+        "data integrity and API contracts",
+        "product data accuracy"
       ],
       "frameworks": [
         "Clean Code (Uncle Bob)",
         "SOLID Principles",
         "OWASP Top 10",
         "Nielsen 10 Heuristics",
-        "Core Web Vitals"
+        "Core Web Vitals",
+        "WCAG 2.1 AA",
+        "Testing Pyramid",
+        "DORA Metrics"
       ],
       "knowledge_sources": [],
       "file": "departments/quality/agents/tech-director.yaml",
@@ -3239,6 +3537,7 @@
       "role": "Head of Customer Success",
       "department": "saas",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3265,14 +3564,23 @@
         "onboarding program design",
         "health score modeling",
         "churn prevention & win-back",
-        "expansion revenue (upsell/cross-sell)"
+        "expansion revenue (upsell/cross-sell)",
+        "NPS & customer feedback",
+        "QBR preparation",
+        "NRR optimization (target >100%)",
+        "retention flywheel orchestration (onboarding→quick win 48-72h→habit→community→identity→advocacy)",
+        "leaky-bucket churn diagnostics"
       ],
       "frameworks": [
         "Customer Success Lifecycle (onboard→adopt→expand→renew→advocate)",
         "Health Score Framework",
         "NRR Optimization (>100%)",
         "Churn Analysis (Lincoln Murphy)",
-        "Retention Flywheel (Hormozi) [[Retention Flywheel]]"
+        "Retention Flywheel (Hormozi) [[Retention Flywheel]]",
+        "Leaky-Bucket Diagnostic [[Leaky-Bucket Diagnostic]]",
+        "Predictable Revenue [[Receita Previsivel - Aaron Ross]]",
+        "QBR cadence + health-score reviews",
+        "CSM compensated on NRR"
       ],
       "knowledge_sources": [],
       "file": "departments/saas/agents/cs-manager.yaml",
@@ -3284,6 +3592,7 @@
       "role": "Growth Lead",
       "department": "saas",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3310,14 +3619,19 @@
         "PLG implementation (freemium, trial, activation)",
         "onboarding optimization (time-to-value)",
         "viral loop design",
-        "growth hacking"
+        "growth hacking",
+        "analytics & instrumentation",
+        "Product-Process-People growth model (PMF→North Star→weekly experiment engine→cross-functional team)",
+        "growth loop engineering (viral / UGC / marketplace / paid)"
       ],
       "frameworks": [
         "ICE Scoring",
         "PLG Flywheel",
         "AARRR/RARRA",
         "Growth Loops (Reforge)",
-        "Activation Framework"
+        "Activation Framework",
+        "Product-Process-People [[Construindo Growth Produto Processo Equipe]]",
+        "Growth Loops are the new Funnels [[Loops de Crescimento Sao Novos Funis]]"
       ],
       "knowledge_sources": [],
       "file": "departments/saas/agents/growth-engineer.yaml",
@@ -3329,6 +3643,7 @@
       "role": "SaaS Metrics & Voice-of-Customer Analyst",
       "department": "saas",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3355,14 +3670,22 @@
         "cohort analysis",
         "dashboard design",
         "benchmark comparison (KeyBanc, Meritech, OpenView)",
-        "financial modeling for SaaS"
+        "financial modeling for SaaS",
+        "retention curve analysis",
+        "8-metric CX dashboard (Churn, NPS, CSAT, CES, ART, LTV, FCR, Retention+Cohort)",
+        "NPS/CSAT/CES diagnostics (loyalty vs interaction vs friction)",
+        "Voice of Customer programs (collect→close the loop→cluster→PDCA)",
+        "unit economics (LTV/CAC >= 3)"
       ],
       "frameworks": [
         "SaaS Metrics Stack (Janz)",
         "Rule of 40 (Brad Feld)",
         "Cohort Analysis",
         "T2D3 Growth Trajectory",
-        "Magic Number / Burn Multiple"
+        "Magic Number / Burn Multiple",
+        "8 CX Metrics (Nardon-Siqueira) [[8 Métricas de CX (Nardon-Siqueira)]]",
+        "Voice of Customer (VoC) process [[Processo Voice of Customer (VoC)]]",
+        "Unit Economics (LTV/CAC >= 3)"
       ],
       "knowledge_sources": [],
       "file": "departments/saas/agents/metrics-analyst.yaml",
@@ -3374,6 +3697,7 @@
       "role": "RevOps Lead",
       "department": "saas",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3402,7 +3726,8 @@
         "unified funnel & CRM hygiene",
         "SLA MQL→SQL between marketing and sales",
         "revenue metrics (LTV/CAC, NRR, payback)",
-        "lead scoring & routing"
+        "lead scoring & routing",
+        "commission & forecast modeling"
       ],
       "frameworks": [
         "Predictable Revenue (Ross)",
@@ -3425,6 +3750,7 @@
       "role": "SaaS Strategist",
       "department": "saas",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3453,14 +3779,18 @@
         "product-led growth",
         "pricing strategy",
         "customer success",
-        "micro-SaaS validation"
+        "micro-SaaS validation",
+        "go-to-market for SaaS",
+        "churn analysis"
       ],
       "frameworks": [
         "SaaS Metrics Stack",
         "PLG (Bush)",
         "Micro-SaaS Playbook (Walling)",
         "T2D3 (Janz)",
-        "Van Westendorp Pricing"
+        "Van Westendorp Pricing",
+        "Rule of 40",
+        "AARRR/RARRA"
       ],
       "knowledge_sources": [],
       "file": "departments/saas/agents/saas-strategist.yaml",
@@ -3472,6 +3802,7 @@
       "role": "Sales Closer",
       "department": "sales",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3498,7 +3829,9 @@
         "objection handling",
         "proposal presentation",
         "pricing negotiation",
-        "discovery call execution"
+        "discovery call execution",
+        "demo delivery",
+        "follow-up cadence management"
       ],
       "frameworks": [
         "SPIN Selling (closing)",
@@ -3517,6 +3850,7 @@
       "role": "Sales Director",
       "department": "sales",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3545,14 +3879,24 @@
         "pipeline management",
         "proposal writing",
         "negotiation",
-        "discovery calls"
+        "discovery calls",
+        "deal qualification",
+        "revenue forecasting",
+        "The Ask Method (diagnose before offering)",
+        "living ICP definition (top 20% most profitable; quarterly review; ICP != Persona)",
+        "MQL→SQL funnel with SLAs",
+        "predictable revenue engine (Seeds/Nets/Spears; SDR→AE→CSM specialization)"
       ],
       "frameworks": [
         "SPIN Selling",
         "Challenger Sale",
         "MEDDIC/BANT",
         "Sandler",
-        "Pipeline Velocity"
+        "Pipeline Velocity",
+        "BATNA",
+        "The Ask Method",
+        "Predictable Revenue (Seeds/Nets/Spears) [[Receita Previsivel - Aaron Ross]]",
+        "MQL→SQL conversion & ICP [[Conversao MQL-SQL e ICP]]"
       ],
       "knowledge_sources": [],
       "file": "departments/sales/agents/sales-director.yaml",
@@ -3564,6 +3908,7 @@
       "role": "Sales Operations Analyst",
       "department": "sales",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3590,7 +3935,8 @@
         "CRM administration",
         "revenue forecasting",
         "sales process optimization",
-        "deal stage definitions"
+        "deal stage definitions",
+        "territory planning"
       ],
       "frameworks": [
         "Pipeline Velocity (# Opps x Win Rate x ACV / Cycle)",
@@ -3608,6 +3954,7 @@
       "role": "SDR / Pre-Sales",
       "department": "sales",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3634,7 +3981,8 @@
         "lead qualification (MQL→SQL)",
         "cold email & cold calling 2.0",
         "ICP fit scoring & disqualification",
-        "cadence / sequence design"
+        "cadence / sequence design",
+        "hand-off to Account Executive"
       ],
       "frameworks": [
         "Predictable Revenue (Seeds/Nets/Spears)",
@@ -3656,6 +4004,7 @@
       "role": "Business Model Designer",
       "department": "strategy",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3682,14 +4031,16 @@
         "value proposition design",
         "revenue model architecture",
         "pricing strategy",
-        "lean validation"
+        "lean validation",
+        "platform & marketplace models"
       ],
       "frameworks": [
         "Business Model Canvas (Osterwalder)",
         "Value Proposition Canvas",
         "Lean Canvas (Ash Maurya)",
         "Revenue Model Patterns",
-        "Wardley Maps"
+        "Wardley Maps",
+        "Blue Ocean ERRC Grid"
       ],
       "knowledge_sources": [],
       "file": "departments/strategy/agents/business-model-designer.yaml",
@@ -3701,6 +4052,7 @@
       "role": "Decision Quality & Strategic Foresight",
       "department": "strategy",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3727,7 +4079,8 @@
         "reversible vs irreversible (two-way doors)",
         "cognitive debiasing (HiPPO, consensus, anchoring)",
         "premortem / postmortem facilitation",
-        "scenario planning & strategic foresight"
+        "scenario planning & strategic foresight",
+        "bias-to-action check"
       ],
       "frameworks": [
         "HBR 5-Element Decision Process",
@@ -3749,6 +4102,7 @@
       "role": "Market & Competitive Intelligence Analyst",
       "department": "strategy",
       "tier": 2,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3775,14 +4129,16 @@
         "competitive intelligence",
         "industry analysis",
         "trend analysis",
-        "data synthesis & visualization"
+        "data synthesis & visualization",
+        "research methodology"
       ],
       "frameworks": [
         "TAM/SAM/SOM",
         "Porter's Five Forces",
         "PESTLE",
         "BCG Matrix",
-        "Perceptual Mapping"
+        "Perceptual Mapping",
+        "Competitive Battlecards"
       ],
       "knowledge_sources": [],
       "file": "departments/strategy/agents/market-analyst.yaml",
@@ -3794,6 +4150,7 @@
       "role": "Chief Strategist",
       "department": "strategy",
       "tier": 1,
+      "model": "sonnet",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -3822,14 +4179,24 @@
         "market analysis",
         "business model design",
         "positioning",
-        "innovation strategy"
+        "innovation strategy",
+        "scenario planning",
+        "trade-off framing (explicit choose A / NOT B)",
+        "strategic foresight (scenarios, trend anticipation)",
+        "long-range vision setting (BHAGs)"
       ],
       "frameworks": [
         "Five Forces (Porter)",
         "Playing to Win (Martin)",
         "Blue Ocean (Kim/Mauborgne)",
         "BMC (Osterwalder)",
-        "Wardley Maps"
+        "Wardley Maps",
+        "7 Powers (Helmer)",
+        "TAM/SAM/SOM",
+        "SWOT/PESTLE",
+        "7 Strata of Strategy (Scaling Up / Harnish)",
+        "BHAG - Big Hairy Audacious Goal (Collins/Harnish)",
+        "One-Page Strategic Plan (Scaling Up / Harnish)"
       ],
       "knowledge_sources": [
         "[[Scaling Up - Verne Harnish]]",

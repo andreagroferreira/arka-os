@@ -38,6 +38,7 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
                 "role": agent.role,
                 "department": agent.department,
                 "tier": agent.tier,
+                "model": agent.get_model(),
                 "parent_squad": agent.parent_squad,
                 "sub_squad_role": agent.sub_squad_role,
                 "disc": {
@@ -62,8 +63,8 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
                     k: v for k, v in agent.authority.model_dump().items()
                     if v and v != [] and k not in ("delegates_to", "escalates_to")
                 },
-                "expertise_domains": agent.expertise.domains[:5],
-                "frameworks": agent.expertise.frameworks[:5],
+                "expertise_domains": agent.expertise.domains,
+                "frameworks": agent.expertise.frameworks,
                 "knowledge_sources": agent.expertise.knowledge_sources,
                 "file": str(yaml_file.relative_to(departments_dir.parent)),
                 "memory_path": agent.memory_path,
