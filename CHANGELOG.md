@@ -5,6 +5,37 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2026-07-08
+
+Closes both P0 items from the E2E audit (v4.3.6): the agents registry now
+carries the model-routing contract, and the MCP registry matches real usage.
+Both changes passed the evidence Quality Gate (Marta/opus, adversarial
+rounds with reproduced defects).
+
+### Added — model field in the agents registry (PR #249)
+
+- `core/agents/registry_gen.py` exports the resolved `model` per agent
+  (`get_model()`, tier fallback) so dispatch can honour the MUST
+  `model-routing` rule from `knowledge/agents-registry-v2.json`.
+- Full `frameworks` and `expertise_domains` export (the old `[:5]` cap
+  degraded the agent-match embedding for 75/82 agents).
+- New anti-drift test: committed registry must be content-identical to a
+  fresh regeneration from the YAMLs.
+
+### Fixed — MCP registry aligned with real usage (PR #250)
+
+- `claude-in-chrome` (extension) and `claude-mem` (plugin) registered as
+  runtime-managed entries: governance and telemetry only, never written
+  to `.mcp.json`.
+- `memory-bank` demoted `base` → `optional` (0 invocations/30d) and moved
+  to `deferred` in all 8 mcp-policy blocks; removed from base/brand
+  profiles — the next sync drops it from every project.
+- Managed-entry guard on both registry-sourcing `.mcp.json` writers;
+  `apply-mcps.sh` previously wrote a corrupt `{"command": "null"}` entry
+  for command-less registry entries and reported success.
+- Live docs (`/dev mcp` SKILL, sync-engine reference) aligned with the
+  new contract; pytest + bats regression coverage added.
+
 ## [4.4.0] - 2026-07-08
 
 Consolidation release: every open PR and issue triaged, salvaged or closed
