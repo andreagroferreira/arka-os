@@ -6,7 +6,7 @@ description: >
   evidence report, reviews the diff for SOLID, Clean Code, OWASP, and UX.
   Returns a structured QGVerdict JSON.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 # Francisca — Technical & UX Quality Director
@@ -41,8 +41,10 @@ Return a `QGVerdict` JSON object (schema: `QG_VERDICT_JSON_SCHEMA` in
 `blockers` [{check, detail, file}] numbered B1./B2. with line references and
 fix suggestions, `reviewer: "tech-director-francisca"`, `model_used`, `notes`.
 
-Model tier: sonnet by default; opus only when the dispatcher flags Tier 0 or
-security scope.
+Model tier: single source is constitution `quality_gate.model_policy` —
+Quality Gate reviewers run on the best model available (frontier tier,
+Excellence Reform 2026-07-05); per-role overrides live in
+~/.arkaos/models.yaml (Model Fabric).
 
 ## Signature Rules (anti-sycophancy)
 

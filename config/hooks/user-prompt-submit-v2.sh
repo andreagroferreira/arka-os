@@ -143,17 +143,10 @@ if [ -z "$python_result" ]; then
     L4="[branch:$branch]"
   fi
 
-  # L7: Time
-  hour=$(date +%H)
-  if [ "$hour" -ge 5 ] && [ "$hour" -lt 12 ]; then
-    L7="[time:morning]"
-  elif [ "$hour" -ge 12 ] && [ "$hour" -lt 18 ]; then
-    L7="[time:afternoon]"
-  else
-    L7="[time:evening]"
-  fi
+  # L7 Time removed (prompt-surface P0 2026-07-08): no rule consumes the
+  # [time:X] tag and it invalidated the prompt cache at 5h/12h/18h.
 
-  python_result="$L0 $L4 $L7"
+  python_result="$L0 $L4"
 fi
 
 # ─── Output ──────────────────────────────────────────────────────────────

@@ -94,7 +94,9 @@ if [ -f "$_FORGE_ACTIVE" ]; then
   fi
 fi
 
-MSG+="ArkaOS v${VERSION} | 65 agents | 17 departments | 244+ skills"
+# Counts intentionally omitted (prompt-surface P0 2026-07-08): hand-typed
+# numbers drift from docs_stats.py truth and change no model behavior.
+MSG+="ArkaOS v${VERSION}"
 [ -n "$_FORGE_LINE" ] && MSG+="\\n${_FORGE_LINE}"
 MSG+="${DRIFT}"
 

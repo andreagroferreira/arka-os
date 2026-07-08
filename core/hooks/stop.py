@@ -254,6 +254,28 @@ def _flow_checks(
     except Exception:
         pass
 
+    # Prompt-surface P0 2026-07-08 — phantom-action check (warn-only).
+    # Narrated effects without a tool call in the turn = the action did
+    # not happen (evidence-flow: evidence, never narration).
+    phantom_passed = True
+    phantom_reason = "no-claims"
+    phantom_claims: list = []
+    try:
+        from core.governance.phantom_action_check import check_phantom_actions
+        pr = check_phantom_actions(last, raw)
+        phantom_passed = pr.passed
+        phantom_reason = pr.reason
+        phantom_claims = pr.claims
+        if safe_sid:
+            _write_tmp_state("arkaos-phantom", safe_sid, {
+                "passed": pr.passed,
+                "reason": pr.reason,
+                "claims": pr.claims,
+                "suggestion": pr.suggestion,
+            })
+    except Exception:
+        pass
+
     entry = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "session_id": session_id,
@@ -277,6 +299,9 @@ def _flow_checks(
         "kb_inflated": kb_inflated,
         "closing_marker_check_passed": closing_check_passed,
         "closing_marker_check_reason": closing_check_reason,
+        "phantom_check_passed": phantom_passed,
+        "phantom_check_reason": phantom_reason,
+        "phantom_claims": phantom_claims,
         "effort_level": effort_level,
         "mode": "warn",
     }

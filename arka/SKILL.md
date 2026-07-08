@@ -28,31 +28,16 @@ does not replace the vault.
 
 ## ⛔ Evidence flow — 4 gates (NON-NEGOTIABLE)
 
-Every non-trivial request runs the canonical evidence flow. Full spec:
-`arka/skills/flow/SKILL.md`. Constitution rule: `evidence-flow`.
-ADR: `docs/adr/2026-07-04-evidence-flow.md`. Gates pass on evidence
-read from disk (command output, exit codes, files), never on narration.
-
-```
-G1 CONTEXT  — [arka:routing] <dept> -> <lead> + KB/graph grounding
-              (cite [[wikilinks]]/file:line or declare the gap)
-G2 PLAN     — short plan (scope, files, verification commands)
-              -> EXPLICIT user approval; silence is not approval
-G3 EXECUTE  — atomic steps; closes ONLY with a real test run on record:
-              [arka:gate:3] evidence: <command> -> exit 0 (<summary>)
-G4 REVIEW   — executable checks (lint/type/coverage/security/spell)
-              -> honest summary: what changed, how verified, what is open
-```
-
-Emit `[arka:gate:N]` on its own line at each gate start. The Stop hook
-persists gate transitions (`core/workflow/gate_checkpoint.py`) so an
-interrupted session resumes at the right gate.
-
-**Trivial bypass** (the only bypass): single-file edit under 10 lines
-with an imperative verb. Emit `[arka:trivial] <reason>` as the first
-line and proceed directly.
-
-No task type, no context, no runtime setting overrides this flow.
+Every non-trivial request runs the canonical 4-gate evidence flow: G1
+CONTEXT (`[arka:routing]` + grounding) → G2 PLAN (EXPLICIT user approval)
+→ G3 EXECUTE (real test run on record: command + exit 0) → G4 REVIEW
+(executable checks + honest summary). Emit `[arka:gate:N]` on its own
+line at each gate start; gates pass on evidence read from disk, never on
+narration. **Single source of the full spec: `arka/skills/flow/SKILL.md`**
+(constitution rule `evidence-flow`) — do not restate it elsewhere. Only
+bypass: `[arka:trivial] <reason>` as the first line for a single-file
+edit under 10 lines. No task type, context, or runtime setting overrides
+this flow.
 
 ## Transparency tag contract (`[arka:meta]`)
 
@@ -261,4 +246,4 @@ All output: YAML frontmatter · wikilinks · department paths · MOC organizatio
 
 ## Model Selection
 
-Use `model` parameter from agent YAML (`departments/*/agents/*.yaml`). Quality Gate (Marta/Eduardo/Francisca) ALWAYS `model: opus` — NON-NEGOTIABLE. Default: `sonnet`. Mechanical tasks: `haiku`.
+Use `model` parameter from agent YAML (`departments/*/agents/*.yaml`), upgraded by the Model Fabric routing when `[ARKA:MODEL-FABRIC]` is present. Quality Gate model: constitution `quality_gate.model_policy` is the single source (best-available/frontier tier; veto is model-independent). Default: `sonnet`. Mechanical tasks: `haiku`.

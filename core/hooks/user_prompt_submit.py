@@ -72,7 +72,7 @@ flow applies (constitution rule evidence-flow; source arka/skills/flow/SKILL.md)
 G1 CONTEXT ([arka:routing] + grounding) -> G2 PLAN (explicit approval) ->
 G3 EXECUTE (real test run + exit 0 on record) -> G4 REVIEW (executable checks).
 Emit [arka:gate:N] at each gate start. No writes before G2 approval.
-Trivial bypass: [arka:trivial] <reason>, single file, under 10 lines."""
+Trivial bypass: [arka:trivial] <reason> for a single-file edit under 10 lines."""
 
 # Keep in sync with ARKA_WF_VERB_PATTERN in _lib/workflow-classifier.sh.
 _WF_VERB_PATTERN = (

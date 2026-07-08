@@ -322,13 +322,10 @@ if (-not $pythonResult) {
         }
     } catch { }
 
-    # L7 Time
-    $hour = [int](Get-Date -Format 'HH')
-    if     ($hour -ge 5  -and $hour -lt 12) { $l7 = '[time:morning]' }
-    elseif ($hour -ge 12 -and $hour -lt 18) { $l7 = '[time:afternoon]' }
-    else                                     { $l7 = '[time:evening]' }
+    # L7 Time removed (prompt-surface P0 2026-07-08): no rule consumes the
+    # [time:X] tag and it invalidated the prompt cache at 5h/12h/18h.
 
-    $pythonResult = (@($l0, $l4, $l7) | Where-Object { $_ }) -join ' '
+    $pythonResult = (@($l0, $l4) | Where-Object { $_ }) -join ' '
 }
 
 # --- Persistent Routing Reminder -------------------------------------------

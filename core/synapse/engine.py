@@ -181,7 +181,6 @@ def create_default_engine(
         BranchLayer,
         CommandHintsLayer,
         QualityGateLayer,
-        TimeLayer,
         KnowledgeRetrievalLayer,
         KBContextLayer,
         ForgeContextLayer,
@@ -221,7 +220,10 @@ def create_default_engine(
     engine.register_layer(BranchLayer())
     engine.register_layer(CommandHintsLayer(commands=commands))
     engine.register_layer(QualityGateLayer())
-    engine.register_layer(TimeLayer())
+    # L7 TimeLayer removed (prompt-surface P0 2026-07-08): the [time:X] tag
+    # had no consumer rule and invalidated the prompt cache at every
+    # 5h/12h/18h boundary — same rationale as the session-start hook's
+    # time-of-day removal.
     engine.register_layer(ForgeContextLayer())
     # L7.5 (PR4 v3.75.0) — Pattern Library injection. Surfaces prior
     # `PatternCard`s when the user prompt has matching keywords, so

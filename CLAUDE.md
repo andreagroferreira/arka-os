@@ -244,36 +244,18 @@ Routing: Synapse L1 (keyword detection) + L5 (command hints) + hook context tags
 
 ## Evidence flow — 4 gates (NON-NEGOTIABLE)
 
-Every non-trivial request runs the canonical evidence flow. Full spec:
-`arka/skills/flow/SKILL.md`. Constitution rule: `evidence-flow`.
-ADR: `docs/adr/2026-07-04-evidence-flow.md`. Gates pass on evidence read
-from disk (command output, exit codes, files), never on narration.
-
-```
-G1 CONTEXT  — [arka:routing] <dept> -> <lead> + KB/graph grounding
-              (cite or declare the gap)
-G2 PLAN     — short plan (scope, files, verification commands)
-              -> EXPLICIT user approval; silence is not approval
-G3 EXECUTE  — atomic steps; closes ONLY with a real test run on record:
-              [arka:gate:3] evidence: <command> -> exit 0 (<summary>)
-G4 REVIEW   — executable checks (lint/type/coverage/security/spell)
-              -> honest summary: what changed, how verified, what is open
-```
-
-Emit `[arka:gate:N]` at each gate start. The Stop hook persists gate
-transitions (`core/workflow/gate_checkpoint.py`) to
-`~/.arkaos/workflow-state.json` + the per-session `SessionStore`
-snapshot, so a rate-limit or context interruption resumes at the right
-gate. Only bypass: `[arka:trivial] <reason>` for single-file edits under
-10 lines.
-
-No runtime, task type, context, or convenience can opt out. Sessions start
-with `[ARKA:EVIDENCE-FLOW]` injected as systemMessage; turns matching
-creation/implementation verbs get `[ARKA:WORKFLOW-REQUIRED]` as
-additionalContext. Skipping the flow violates: `evidence-flow`,
-`squad-routing`, `spec-driven`, `mandatory-qa`, `sequential-validation`,
-`full-visibility`, `arka-supremacy`. Legacy `[arka:phase:N]` markers stay
-accepted during the v4.1 deprecation window.
+Every non-trivial request runs the canonical 4-gate evidence flow: G1
+CONTEXT (`[arka:routing]` + grounding) → G2 PLAN (EXPLICIT user approval)
+→ G3 EXECUTE (real test run on record: command + exit 0) → G4 REVIEW
+(executable checks + honest summary). Gates pass on evidence read from
+disk, never on narration. **Single source of the full spec:
+`arka/skills/flow/SKILL.md`** (constitution rule `evidence-flow`, ADR
+`docs/adr/2026-07-04-evidence-flow.md`) — this section is a pointer, not
+a restatement. Runtime delivery: SessionStart injects the contract as
+systemMessage; creation/implementation turns get `[ARKA:WORKFLOW-REQUIRED]`;
+the Stop hook (`core/workflow/gate_checkpoint.py`) persists gate
+transitions for resume. Only bypass: `[arka:trivial] <reason>` for a
+single-file edit under 10 lines.
 
 ## Knowledge Base
 

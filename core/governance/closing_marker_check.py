@@ -31,8 +31,8 @@ _TRIVIAL_WORD_THRESHOLD: int = 15
 _SUGGESTION_TEXT: str = (
     "Closing marker missing — end every flow-required turn with "
     "`[arka:gate:4] <label>` (evidence flow review gate) or "
-    "`[arka:trivial] <reason>` (single-file edit < 10 lines, "
-    "imperative verb). Without the marker, telemetry can't confirm "
+    "`[arka:trivial] <reason>` (single-file edit under 10 lines). "
+    "Without the marker, telemetry can't confirm "
     "the turn closed cleanly."
 )
 

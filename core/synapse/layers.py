@@ -496,55 +496,6 @@ class QualityGateLayer(Layer):
         )
 
 
-# --- L7: Time Signal ---
-
-
-class TimeLayer(Layer):
-    """L7: Time-of-day signal for context-aware behavior."""
-
-    @property
-    def id(self) -> str:
-        return "L7"
-
-    @property
-    def name(self) -> str:
-        return "Time"
-
-    @property
-    def cache_ttl(self) -> int:
-        # 1 hour — time-of-day period only changes at 5/12/18 boundaries.
-        # Cache bucket drift of up to 1h is acceptable for a low-signal tag
-        # and dramatically improves prompt-cache hit rate.
-        return 3600
-
-    @property
-    def priority(self) -> int:
-        return 70
-
-    def compute(self, ctx: PromptContext) -> LayerResult:
-        start = time.time()
-        import datetime
-
-        hour = datetime.datetime.now().hour
-        if 5 <= hour < 12:
-            period = "morning"
-        elif 12 <= hour < 18:
-            period = "afternoon"
-        else:
-            period = "evening"
-
-        tag = f"[time:{period}]"
-        ms = int((time.time() - start) * 1000)
-        return LayerResult(
-            layer_id=self.id,
-            tag=tag,
-            content=period,
-            tokens_est=1,
-            compute_ms=ms,
-            cached=False,
-        )
-
-
 # --- L3.5: Knowledge Retrieval ---
 
 

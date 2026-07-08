@@ -357,7 +357,10 @@ definition_of_done:
         rule: "Fact-check passes — all numerical and factual claims have cited source"
         hard: true
       - id: no-ai-cliches
-        rule: "Zero AI cliches: 'delve into', 'leverage', 'robust', 'comprehensive', 'streamline', 'unlock', 'tapestry', 'dive deep', 'navigate', 'realm of'"
+        # CANONICAL AI-cliche list. Any prompt that polices cliches
+        # (.claude/agents/eduardo-copy.md AI-pattern sweep) must match this
+        # list verbatim — single source (prompt-surface P0 2026-07-08).
+        rule: "Zero AI cliches: 'delve into', 'leverage', 'utilize', 'robust', 'comprehensive', 'streamline', 'unlock', 'tapestry', 'dive deep', 'navigate', 'realm of', 'cutting-edge', 'in today's fast-paced', 'underscore'"
         hard: true
       - id: locale-correct
         rule: "Translation and locale correct for target market"
