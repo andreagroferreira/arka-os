@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.7.0] - 2026-07-08
 
-First four PRs of the prompt-surface plan (frontier system-prompts
-audit, 2026-07-08): restore coherence across the prompt surface, lock it
-in CI, bring the skill layer up to the canonical template, and compile
-personas behaviorally. All passed the evidence Quality Gate (each after
-one REJECTED→fix cycle with independently reproduced blockers).
+The complete five-PR prompt-surface plan (frontier system-prompts audit,
+2026-07-08): restore coherence, lock it in CI, bring the skill layer up
+to the canonical template, compile personas behaviorally, and recalibrate
+the constitution. All passed the evidence Quality Gate (10 REJECTED→fix
+blocker cycles total, every blocker independently reproduced).
+
+### Changed — Constitution 2.0 (PR #259)
+
+- Re-tiered the top enforcement level 26 → 6 by the admission test
+  "verifiable by evidence at a gate, or a standing operator mandate"
+  (branch-isolation, security-gate, mandatory-qa, evidence-flow,
+  arkaos-not-yes-man, excellence-mandate); 16 rules → MUST, 4 → SHOULD,
+  rule text preserved verbatim, total 46 unchanged. Re-tiering policy +
+  fixed floor codified in .claude/rules/constitution.md; amendment
+  logged; CONSTITUTION.md rebuilt; L0 fallbacks aligned.
+- New `autonomy` section: 4-level confirmation taxonomy (vague consent
+  is never blanket permission), Assuming pattern, default_stance
+  ([arka:trivial] as first-class doctrine).
+- QG claim-level verdicts: optional CONFIRMED/PLAUSIBLE/REFUTED on
+  QGBlocker; Marta aggregates at claim level (filled example in her
+  prompt); Francisca gains the named anti-green-manufacturing sweep.
+- prompt-lint NON-NEGOTIABLE ratchet lowered 28 → 17 (session total
+  47 → 17).
 
 ### Added — behavioral compiler (PR #258)
 
