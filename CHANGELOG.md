@@ -5,6 +5,47 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-07-08
+
+Consolidation release: every open PR and issue triaged, salvaged or closed
+with rationale. All changes passed the evidence Quality Gate.
+
+### Fixed — survive `npm cache clean` (PR #245)
+
+- `.repo-path` points at the npx cache; purging it broke `arka-py -m core.*`
+  (`/arka update`) and made every hook gate silently fail open. The installer
+  now deploys a stable core snapshot to `~/.arkaos/lib` (crash-safe swap),
+  and all resolvers — `bin/arka-py`, the 10 hook wrappers (.sh + .ps1),
+  `core/hooks/_shared.py`, `installer/doctor.js` — validate candidates on
+  `core/sync/__init__.py` and fall through to the snapshot.
+
+### Fixed — Windows installer + indexer consolidation (PR #246, closes #228, #47)
+
+- Fresh-install crash on every OS: `copyConfigFiles` broke on the
+  `config/standards/claude-md-overlays/` subdirectory (salvaged from PR #46,
+  credit @marlonoliveira182, plus migrate/cli/indexer-dedupe fixes).
+- `arkaos index`: vault resolved from `profile.json` via the canonical path
+  resolver, argv passed as array (paths with spaces), UTF-8 stdout.
+- `core/sync`: `encoding="utf-8"` declared on all 44 text I/O call sites +
+  AST-based guard test that fails the suite on regressions (cp1252 corruption).
+
+### Added — Windows support foundation (PR #248, closes #202; rebase of #203)
+
+- `core/shared/temp_paths.py`: cross-platform base for `/tmp/arkaos-*`
+  coordination files (POSIX keeps literal `/tmp`; Windows uses `%TEMP%`),
+  migrated across every consumer including writer/reader pairs.
+- ConPTY terminal backend (`session_windows.py`, pywinpty), cross-platform
+  dashboard API shell-outs, fixed `start-dashboard.ps1` launcher, scheduler
+  PATH via `os.pathsep`.
+- Note: Windows-only paths are code-reviewed, not yet executed — real smoke
+  + CI lane tracked in #247 before announcing official support.
+
+### Changed
+
+- GitHub Actions bumped (checkout v7, setup-node v6, setup-python v6).
+- eslint pinned to majors <10 in dependabot until Node 18 leaves the support
+  matrix (PR #243 closed with rationale).
+
 ## [4.3.6] - 2026-07-07
 
 ### Added — Model Fabric gateway: real per-role model routing (PR #244)
