@@ -27,8 +27,17 @@ $transcriptPath = [string]$inp.transcript_path
 $sessionId = [string]$inp.session_id
 $cwd = [string]$inp.cwd
 
-# --- Resolve ARKAOS_ROOT ---
-if ([string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
+# Shared resolver (venv-first, yaml-verified). Mirrors _lib/arka_python.sh.
+$arkaLib = Join-Path $PSScriptRoot "_lib\arka_python.ps1"
+if (Test-Path -LiteralPath $arkaLib) { . $arkaLib }
+
+# --- Resolve ARKAOS_ROOT (validated — see Resolve-ArkaRoot in _lib) ---
+# .repo-path can point at a purged npx cache; the shared resolver falls
+# through to the ~/.arkaos/lib snapshot instead of exporting a dead root.
+if (Get-Command Resolve-ArkaRoot -ErrorAction SilentlyContinue) {
+    $env:ARKAOS_ROOT = Resolve-ArkaRoot
+} elseif ([string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
+    # Legacy chain (pre-snapshot _lib deployment)
     $repoPathFile = Join-Path $HOME ".arkaos/.repo-path"
     if (Test-Path $repoPathFile) {
         $env:ARKAOS_ROOT = (Get-Content $repoPathFile -Raw).Trim()
@@ -38,10 +47,6 @@ if ([string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
         $env:ARKAOS_ROOT = if ($env:ARKA_OS) { $env:ARKA_OS } else { Join-Path $HOME ".claude/skills/arkaos" }
     }
 }
-
-# Shared resolver (venv-first, yaml-verified). Mirrors _lib/arka_python.sh.
-$arkaLib = Join-Path $PSScriptRoot "_lib\arka_python.ps1"
-if (Test-Path -LiteralPath $arkaLib) { . $arkaLib }
 $pythonExe = $env:ARKA_PY
 if (-not $pythonExe) { exit 0 }
 

@@ -150,6 +150,14 @@ if ($shouldProcessGotchas -and $null -ne $payload) {
                             $arkaosRootPtu = (Get-Content -Raw -LiteralPath $repoPathFile -Encoding UTF8).Trim()
                         } catch { }
                     }
+                    # .repo-path may point at a purged npx cache — fall through
+                    # to the ~/.arkaos/lib snapshot when core is missing.
+                    if (-not ($arkaosRootPtu -and (Test-Path -LiteralPath (Join-Path $arkaosRootPtu 'core\sync\__init__.py')))) {
+                        $libPtu = Join-Path $env:USERPROFILE '.arkaos\lib'
+                        if (Test-Path -LiteralPath (Join-Path $libPtu 'core\sync\__init__.py')) {
+                            $arkaosRootPtu = $libPtu
+                        }
+                    }
                 }
                 if (-not $arkaosRootPtu) {
                     $arkaosRootPtu = Join-Path $env:USERPROFILE '.arkaos'

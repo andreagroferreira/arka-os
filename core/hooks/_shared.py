@@ -51,21 +51,41 @@ def get_str(data: dict, *keys: str) -> str:
     return str(cur)
 
 
-def resolve_arkaos_root() -> str:
-    """Resolve ARKAOS_ROOT with the same precedence as the bash hooks.
+def _has_core_package(root: str) -> bool:
+    # core/sync/__init__.py distinguishes the full package from the
+    # cognitive scheduler's minimal core/ copy (cognition + workflow only).
+    try:
+        return (Path(root) / "core" / "sync" / "__init__.py").is_file()
+    except OSError:
+        return False
 
-    env ARKAOS_ROOT → ~/.arkaos/.repo-path → ~/.arkaos → ARKA_OS env →
-    ~/.claude/skills/arkaos (portable fallback).
+
+def resolve_arkaos_root() -> str:
+    """Resolve ARKAOS_ROOT with the hook wrappers' validated chain.
+
+    env ARKAOS_ROOT (unconditional operator override) → ~/.arkaos/.repo-path
+    (validated) → ~/.arkaos/lib stable snapshot (validated) → .repo-path
+    even without the core package (legacy VERSION readers) → ~/.arkaos →
+    ARKA_OS env → ~/.claude/skills/arkaos (portable fallback).
+
+    Mirrors arka_resolve_root() in config/hooks/_lib/arka_python.sh;
+    bin/arka-py adds one extra step (its own dev checkout) between
+    .repo-path and the snapshot.
+
+    Validation matters because .repo-path points at an npx cache that
+    `npm cache clean` can purge at any time.
     """
     env_root = os.environ.get("ARKAOS_ROOT", "").strip()
     if env_root:
         return env_root
-    repo_file = Path.home() / ".arkaos" / ".repo-path"
-    if repo_file.is_file():
-        try:
-            return repo_file.read_text(encoding="utf-8").strip()
-        except OSError:
-            pass
+    repo = repo_path()
+    if repo and _has_core_package(repo):
+        return repo
+    lib = Path.home() / ".arkaos" / "lib"
+    if _has_core_package(str(lib)):
+        return str(lib)
+    if repo and Path(repo).is_dir():
+        return repo
     if (Path.home() / ".arkaos").is_dir():
         return str(Path.home() / ".arkaos")
     return os.environ.get(

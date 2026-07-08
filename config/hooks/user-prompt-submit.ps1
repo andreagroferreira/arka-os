@@ -80,6 +80,14 @@ try {
                     $arkaosRootUps = (Get-Content -Raw -LiteralPath $repoPathFileUps -Encoding UTF8).Trim()
                 } catch { }
             }
+            # .repo-path may point at a purged npx cache — fall through to
+            # the ~/.arkaos/lib snapshot when the core package is missing.
+            if (-not ($arkaosRootUps -and (Test-Path -LiteralPath (Join-Path $arkaosRootUps 'core\sync\__init__.py')))) {
+                $libUps = Join-Path $env:USERPROFILE '.arkaos\lib'
+                if (Test-Path -LiteralPath (Join-Path $libUps 'core\sync\__init__.py')) {
+                    $arkaosRootUps = $libUps
+                }
+            }
         }
         if (-not $arkaosRootUps) {
             $arkaosRootUps = Join-Path $env:USERPROFILE '.arkaos'
@@ -158,6 +166,16 @@ if ($env:ARKAOS_ROOT) {
         $arkaosRoot = (Get-Content -Raw -LiteralPath $repoPathFile -Encoding UTF8).Trim()
     } catch {
         $arkaosRoot = $null
+    }
+}
+# .repo-path may point at a purged npx cache — prefer the ~/.arkaos/lib
+# snapshot over a root without the core package (env override untouched).
+if (-not $env:ARKAOS_ROOT) {
+    if (-not ($arkaosRoot -and (Test-Path -LiteralPath (Join-Path $arkaosRoot 'core\sync\__init__.py')))) {
+        $libRoot = Join-Path $arkaosHome 'lib'
+        if (Test-Path -LiteralPath (Join-Path $libRoot 'core\sync\__init__.py')) {
+            $arkaosRoot = $libRoot
+        }
     }
 }
 if (-not $arkaosRoot) {

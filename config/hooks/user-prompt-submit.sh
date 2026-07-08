@@ -23,7 +23,17 @@
 # Timeout: 10s | Output: JSON to stdout | Target: <100ms
 # ============================================================================
 
-if [ -z "${ARKAOS_ROOT:-}" ]; then
+# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
+_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
+if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+
+# ─── Resolve ARKAOS_ROOT (validated — see arka_resolve_root in _lib) ────
+# .repo-path can point at a purged npx cache; the shared resolver falls
+# through to the ~/.arkaos/lib snapshot instead of exporting a dead root.
+if command -v arka_resolve_root >/dev/null 2>&1; then
+  ARKAOS_ROOT="$(arka_resolve_root)"
+elif [ -z "${ARKAOS_ROOT:-}" ]; then
+  # Legacy chain (pre-snapshot _lib deployment)
   if [ -f "$HOME/.arkaos/.repo-path" ]; then
     ARKAOS_ROOT=$(cat "$HOME/.arkaos/.repo-path")
   elif [ -d "$HOME/.arkaos" ]; then
@@ -33,10 +43,6 @@ if [ -z "${ARKAOS_ROOT:-}" ]; then
   fi
 fi
 export ARKAOS_ROOT
-
-# ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
-_ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
-if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
 
 _ARKA_L0_FALLBACK='{"additionalContext": "[Constitution] NON-NEGOTIABLE: branch-isolation, obsidian-output, authority-boundaries, security-gate, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, mandatory-qa, arka-supremacy | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST: conventional-commits, test-coverage, pattern-matching, actionable-output, memory-persistence"}'
 

@@ -29,7 +29,15 @@ if ([string]::IsNullOrWhiteSpace($sessionId) -or -not (Test-Path $wfMarker)) {
     exit 0
 }
 
-if ([string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
+# Resolve ARKAOS_ROOT via the validated shared resolver: .repo-path can
+# point at a purged npx cache; fall through to the ~/.arkaos/lib snapshot
+# instead of exporting a dead root.
+$arkaLibEarly = Join-Path $PSScriptRoot "_lib\arka_python.ps1"
+if (Test-Path -LiteralPath $arkaLibEarly) { . $arkaLibEarly }
+if (Get-Command Resolve-ArkaRoot -ErrorAction SilentlyContinue) {
+    $env:ARKAOS_ROOT = Resolve-ArkaRoot
+} elseif ([string]::IsNullOrWhiteSpace($env:ARKAOS_ROOT)) {
+    # Legacy chain (pre-snapshot _lib deployment)
     $repoPathFile = Join-Path $HOME ".arkaos/.repo-path"
     if (Test-Path $repoPathFile) {
         $env:ARKAOS_ROOT = (Get-Content $repoPathFile -Raw).Trim()

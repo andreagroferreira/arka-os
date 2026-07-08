@@ -7,6 +7,7 @@ import { getRuntimeConfig } from "./detect-runtime.js";
 import { findSystemPython, ensureVenv, getArkaosPython, getArkaosPip, pipInstall } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
 import { copyHookLib } from "./hook-lib.js";
+import { deployCoreSnapshot } from "./core-snapshot.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -211,6 +212,17 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
   // ═══ Step 11: Create references and profile ═══
   step(11, 14, "Creating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
+  // .repo-path points at the npx cache, which `npm cache clean` can purge;
+  // the ~/.arkaos/lib snapshot is the validated fallback for arka-py and
+  // the Python hooks (see installer/core-snapshot.js). A failed snapshot
+  // must never fail the install — the resolvers degrade to .repo-path.
+  try {
+    if (deployCoreSnapshot(ARKAOS_ROOT, installDir)) {
+      ok("Core snapshot deployed to ~/.arkaos/lib (survives npx cache purges)");
+    }
+  } catch (err) {
+    console.log(`         ⚠ Core snapshot skipped (${err.message}) — arka-py falls back to .repo-path`);
+  }
   const skillsDir = join(config.skillsDir || join(homedir(), ".claude", "skills"), "arkaos");
   ensureDir(skillsDir);
   writeFileSync(join(skillsDir, ".arkaos-root"), ARKAOS_ROOT);

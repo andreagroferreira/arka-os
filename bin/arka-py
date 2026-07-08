@@ -30,14 +30,29 @@ done
 : "${ARKA_PY:=python3}"
 
 # ─── Make `-m core.*` resolvable regardless of cwd ────────────────────────
-# ARKAOS_ROOT (env) wins; else the installed repo pointer; else the repo this
-# shim lives in (dev checkout: bin/ -> repo root).
+# ARKAOS_ROOT (env) wins unconditionally — an explicit operator override is
+# honored even if wrong, so misconfiguration stays loud and debuggable.
+# The guessed candidates are validated before winning: `.repo-path` points
+# at an npx cache that `npm cache clean` can purge, and ~/.arkaos/core is
+# the cognitive scheduler's minimal copy (no core/sync). A candidate only
+# counts when it holds the full package (core/sync/__init__.py marker).
+# Chain: .repo-path → dev checkout (bin/ -> repo root) → ~/.arkaos/lib
+# (stable snapshot written by the installer, survives cache purges).
 _root="${ARKAOS_ROOT:-}"
-if [ -z "$_root" ] && [ -f "$HOME/.arkaos/.repo-path" ]; then
-  _root="$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null || true)"
-fi
-if [ -z "$_root" ] && [ -f "$_self/../core/hooks/__init__.py" ]; then
-  _root="$(cd "$_self/.." && pwd)"
+if [ -z "$_root" ]; then
+  _repo_ptr=""
+  if [ -f "$HOME/.arkaos/.repo-path" ]; then
+    _repo_ptr="$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null || true)"
+  fi
+  for _cand in \
+      "$_repo_ptr" \
+      "$_self/.." \
+      "$HOME/.arkaos/lib"; do
+    if [ -n "$_cand" ] && [ -f "$_cand/core/sync/__init__.py" ]; then
+      _root="$(cd "$_cand" && pwd)"
+      break
+    fi
+  done
 fi
 if [ -n "$_root" ] && [ -d "$_root" ]; then
   export PYTHONPATH="${_root}${PYTHONPATH:+:$PYTHONPATH}"

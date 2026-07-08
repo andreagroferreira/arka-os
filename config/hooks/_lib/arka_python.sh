@@ -61,3 +61,41 @@ arka_resolve_python() {
 # keep the export unconditional.
 ARKA_PY="$(arka_resolve_python)" || true
 export ARKA_PY
+
+# Contract of arka_resolve_root():
+#   Echoes the ArkaOS root for `-m core.*` execution. env ARKAOS_ROOT wins
+#   unconditionally (explicit operator override stays loud and debuggable).
+#   Guessed candidates are validated on core/sync/__init__.py — the marker
+#   that distinguishes the full package from the cognitive scheduler's
+#   partial ~/.arkaos/core copy — because `.repo-path` points at an npx
+#   cache that `npm cache clean` can purge at any time. Chain:
+#   .repo-path (validated) → ~/.arkaos/lib snapshot (validated, written by
+#   the installer) → .repo-path even without core (legacy VERSION readers)
+#   → ~/.arkaos → ARKA_OS env → ~/.claude/skills/arkaos.
+arka_resolve_root() {
+  if [ -n "${ARKAOS_ROOT:-}" ]; then
+    printf '%s\n' "$ARKAOS_ROOT"
+    return 0
+  fi
+  local repo=""
+  if [ -f "$HOME/.arkaos/.repo-path" ]; then
+    repo="$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null || true)"
+  fi
+  if [ -n "$repo" ] && [ -f "$repo/core/sync/__init__.py" ]; then
+    printf '%s\n' "$repo"
+    return 0
+  fi
+  if [ -f "$HOME/.arkaos/lib/core/sync/__init__.py" ]; then
+    printf '%s\n' "$HOME/.arkaos/lib"
+    return 0
+  fi
+  if [ -n "$repo" ] && [ -d "$repo" ]; then
+    printf '%s\n' "$repo"
+    return 0
+  fi
+  if [ -d "$HOME/.arkaos" ]; then
+    printf '%s\n' "$HOME/.arkaos"
+    return 0
+  fi
+  printf '%s\n' "${ARKA_OS:-$HOME/.claude/skills/arkaos}"
+}
