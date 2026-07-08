@@ -5,6 +5,8 @@ department: quality
 tier: 0
 # PR-4 evidence QG (v4.1): reviewers run sonnet by default; dispatch on
 # opus ONLY for Tier 0/security-scope diffs (see constitution model-routing).
+# Excellence Reform (v4.2): the Model Fabric quality_gate role upgrades this
+# at dispatch time (~/.arkaos/models.yaml) — sonnet here is the floor, not the route.
 model: sonnet
 
 behavioral_dna:
