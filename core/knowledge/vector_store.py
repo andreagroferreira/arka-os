@@ -351,9 +351,9 @@ class VectorStore:
         """Check if a file (identified by source path + content hash) is indexed.
 
         The source path is part of the key so identical content in two
-        different locations (e.g. two npx cache directories) each get
+        different locations (e.g. two npx cache directories) each gets
         indexed — a hash-only check would skip every subsequent cache
-        and leave the new location un-searchable.
+        and leave the new location unsearchable.
         """
         row = self._db.execute(
             "SELECT COUNT(*) as cnt FROM chunks WHERE source = ? AND file_hash = ?",

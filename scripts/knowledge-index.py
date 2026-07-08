@@ -99,6 +99,8 @@ def main() -> int:
                     vault = ""
             if vault and Path(vault).exists():
                 directory = vault
+                if not args.json_output:
+                    print(f"Vault from config: {directory}", file=sys.stderr)
 
     if not directory:
         # profile.json vaultPath — set by `npx arkaos install` and the
@@ -113,7 +115,8 @@ def main() -> int:
                 vault = ""
             if vault and Path(vault).exists():
                 directory = vault
-                print(f"Vault from profile: {directory}" if not args.json_output else "", file=sys.stderr)
+                if not args.json_output:
+                    print(f"Vault from profile: {directory}", file=sys.stderr)
 
     if not directory:
         # Try common vault locations

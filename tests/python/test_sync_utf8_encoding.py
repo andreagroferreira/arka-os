@@ -17,6 +17,16 @@ SYNC_DIR = Path(__file__).resolve().parents[2] / "core" / "sync"
 SYNC_FILES = sorted(SYNC_DIR.rglob("*.py"))
 
 
+def _is_binary_mode(node: ast.Call) -> bool:
+    mode = None
+    if len(node.args) >= 2 and isinstance(node.args[1], ast.Constant):
+        mode = node.args[1].value
+    for kw in node.keywords:
+        if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
+            mode = kw.value.value
+    return isinstance(mode, str) and "b" in mode
+
+
 def _offending_calls(source: str) -> list[tuple[int, str]]:
     tree = ast.parse(source)
     offenders: list[tuple[int, str]] = []
@@ -24,18 +34,22 @@ def _offending_calls(source: str) -> list[tuple[int, str]]:
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        if not isinstance(func, ast.Attribute):
-            continue
-        if func.attr not in ("read_text", "write_text"):
+        name = func.attr if isinstance(func, ast.Attribute) else (
+            func.id if isinstance(func, ast.Name) else ""
+        )
+        if name not in ("read_text", "write_text", "open"):
             continue
         if any(kw.arg == "encoding" for kw in node.keywords):
             continue
         # read_text("utf-8") positional also counts as declared.
-        if func.attr == "read_text" and len(node.args) >= 1:
+        if name == "read_text" and len(node.args) >= 1:
             continue
-        if func.attr == "write_text" and len(node.args) >= 2:
+        if name == "write_text" and len(node.args) >= 2:
             continue
-        offenders.append((node.lineno, func.attr))
+        # Binary opens carry no text encoding by definition.
+        if name == "open" and _is_binary_mode(node):
+            continue
+        offenders.append((node.lineno, name))
     return offenders
 
 
