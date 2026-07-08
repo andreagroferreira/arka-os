@@ -632,6 +632,16 @@ def main(stdin_json: dict | None = None) -> int:
     # and confirm persistent authorization when a marker is present.
     _confirm_flow_authorization(session_id, transcript_path)
 
+    # MCP usage telemetry — must run BEFORE the error-signal early exit
+    # below (MCP calls normally succeed). record() is a no-op for
+    # non-MCP tools and never raises on I/O; the guard covers import
+    # failures on stripped installs.
+    try:
+        from core.runtime.mcp_telemetry import record as _record_mcp_usage
+        _record_mcp_usage(tool_name, session_id=session_id)
+    except Exception:  # noqa: BLE001 — telemetry must never break the hook
+        pass
+
     if tool_name in ("Task", "Agent"):
         subagent_type = get_str(stdin_json, "tool_input", "subagent_type")
         if subagent_type == "cqo":
