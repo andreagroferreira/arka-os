@@ -82,7 +82,7 @@ def _read_current_settings(settings_file: Path) -> dict:
     if not settings_file.exists():
         return {}
     try:
-        return json.loads(settings_file.read_text())
+        return json.loads(settings_file.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
 
@@ -118,4 +118,4 @@ def _build_merged_settings(current: dict, target_servers: list[str]) -> dict:
 def _write_settings(settings_file: Path, data: dict) -> None:
     """Create parent dirs if needed and write settings as 2-space JSON."""
     settings_file.parent.mkdir(parents=True, exist_ok=True)
-    settings_file.write_text(json.dumps(data, indent=2) + "\n")
+    settings_file.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

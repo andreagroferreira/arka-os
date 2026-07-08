@@ -39,7 +39,7 @@ def load_registry(registry_path: Path) -> dict:
     if not registry_path.exists():
         return {}
     try:
-        data = json.loads(registry_path.read_text())
+        data = json.loads(registry_path.read_text(encoding="utf-8"))
         return data.get("mcpServers", {})
     except (json.JSONDecodeError, OSError):
         return {}
@@ -142,7 +142,7 @@ def _read_current_mcps(mcp_file: Path) -> dict:
     if not mcp_file.exists():
         return {}
     try:
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         return data.get("mcpServers", {})
     except (json.JSONDecodeError, OSError):
         return {}
@@ -252,4 +252,4 @@ def _build_merged(
 def _write_mcp_json(mcp_file: Path, servers: dict) -> None:
     """Write the mcpServers dict to .mcp.json with 2-space indentation."""
     payload = {"mcpServers": servers}
-    mcp_file.write_text(json.dumps(payload, indent=2) + "\n")
+    mcp_file.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

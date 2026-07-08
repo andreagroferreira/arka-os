@@ -21,7 +21,7 @@ def _detect_from_composer(project_path: Path) -> list[str]:
     if not composer.exists():
         return []
     try:
-        data = json.loads(composer.read_text())
+        data = json.loads(composer.read_text(encoding="utf-8"))
         require = data.get("require", {})
         if "laravel/framework" in require:
             return ["php", "laravel"]
@@ -35,7 +35,7 @@ def _detect_from_package_json(project_path: Path) -> list[str]:
     if not pkg.exists():
         return []
     try:
-        data = json.loads(pkg.read_text())
+        data = json.loads(pkg.read_text(encoding="utf-8"))
         deps = {
             **data.get("dependencies", {}),
             **data.get("devDependencies", {}),
@@ -100,7 +100,7 @@ def _parse_descriptor_frontmatter(text: str) -> dict:
 def _read_descriptor_item(item: Path) -> dict:
     """Read a descriptor file and return its frontmatter as a dict."""
     try:
-        return _parse_descriptor_frontmatter(item.read_text())
+        return _parse_descriptor_frontmatter(item.read_text(encoding="utf-8"))
     except OSError:
         return {}
 
@@ -187,7 +187,7 @@ def discover_from_ecosystems(ecosystems_file: Path) -> list[Project]:
     if not ecosystems_file.exists():
         return []
     try:
-        data = json.loads(ecosystems_file.read_text())
+        data = json.loads(ecosystems_file.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return []
 

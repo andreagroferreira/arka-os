@@ -14,6 +14,12 @@ import os
 import sys
 from pathlib import Path
 
+# Windows consoles default to cp1252; progress lines with non-ASCII vault
+# names would raise UnicodeEncodeError and kill the index run silently.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(ARKAOS_ROOT))
 
@@ -77,13 +83,40 @@ def main() -> int:
     # Index mode
     directory = args.vault or args.dir
     if not directory:
-        # Auto-detect vault from config
+        # Auto-detect vault from config. vault_path may be a template like
+        # "${VAULT_PATH}" — resolve it through the canonical path resolver
+        # (ARKAOS_VAULT_PATH env / profile.json vaultPath) before testing.
         config_path = ARKAOS_ROOT / "knowledge" / "obsidian-config.json"
         if config_path.exists():
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding="utf-8"))
             vault = config.get("vault_path", "")
+            if vault and "${" in vault:
+                try:
+                    from core.runtime.path_resolver import resolve
+
+                    vault = resolve(vault)
+                except Exception:
+                    vault = ""
             if vault and Path(vault).exists():
                 directory = vault
+                if not args.json_output:
+                    print(f"Vault from config: {directory}", file=sys.stderr)
+
+    if not directory:
+        # profile.json vaultPath — set by `npx arkaos install` and the
+        # authoritative answer to "where is the user's vault".
+        profile_path = Path.home() / ".arkaos" / "profile.json"
+        if profile_path.exists():
+            try:
+                vault = json.loads(
+                    profile_path.read_text(encoding="utf-8")
+                ).get("vaultPath", "")
+            except (json.JSONDecodeError, OSError):
+                vault = ""
+            if vault and Path(vault).exists():
+                directory = vault
+                if not args.json_output:
+                    print(f"Vault from profile: {directory}", file=sys.stderr)
 
     if not directory:
         # Try common vault locations

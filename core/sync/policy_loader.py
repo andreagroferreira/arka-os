@@ -30,7 +30,7 @@ class PolicyDecision:
 
 def load_policy(path: Path) -> Policy:
     """Load and parse an mcp-policy.yaml file."""
-    data = yaml.safe_load(path.read_text()) or {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     rules = [
         PolicyRule(
             match=r.get("match", {}),
