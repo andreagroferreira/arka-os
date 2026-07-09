@@ -137,7 +137,11 @@ case "${1:-}" in
     REGISTRY="$REPO_DIR/knowledge/commands-registry.json"
     case "${1:-}" in
       rebuild)
-        bash "$REPO_DIR/bin/arka-registry-gen"
+        # Shared resolver (venv-first) with plain python3 fallback —
+        # the generator is stdlib-only.
+        _ARKA_LIB="$REPO_DIR/config/hooks/_lib/arka_python.sh"
+        if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
+        (cd "$REPO_DIR" && "$ARKA_PY" -m core.registry.generator)
         echo "Registry rebuilt: $(jq '._meta.total_commands' "$REGISTRY") commands."
         ;;
       --json)

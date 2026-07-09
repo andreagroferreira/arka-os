@@ -11,7 +11,7 @@ load helpers/setup
   [ -f "$REGISTRY" ]
   run jq '._meta.version' "$REGISTRY"
   [ "$status" -eq 0 ]
-  [[ "$output" == '"1.0.0"' ]]
+  [[ "$output" == '"3.0.0"' ]]
   run jq '.commands | type' "$REGISTRY"
   [ "$status" -eq 0 ]
   [[ "$output" == '"array"' ]]
@@ -55,13 +55,19 @@ load helpers/setup
   [ "$TOTAL" -eq "$UNIQUE" ]
 }
 
-@test "arka-registry-gen produces valid output" {
-  # Run generator and check it produces valid JSON
-  run bash "$REPO_DIR/bin/arka-registry-gen"
+@test "registry generator produces valid output" {
+  # M2 consolidation: the generator is the stdlib-only python module;
+  # regenerate to a temp path so the committed file stays untouched
+  # (the drift lock in test_commands_registry.py compares content).
+  run bash -c "cd '$REPO_DIR' && python3 -c \"
+from pathlib import Path
+from core.registry.generator import generate_commands_registry
+reg = generate_commands_registry(Path('.'), Path('$BATS_TEST_TMPDIR/regen.json'))
+print(f'Registry generated: {reg[\\\"_meta\\\"][\\\"total_commands\\\"]} commands')
+\""
   [ "$status" -eq 0 ]
   [[ "$output" == *"Registry generated"* ]]
-  # Verify output file
-  run jq '._meta.total_commands' "$REPO_DIR/knowledge/commands-registry.json"
+  run jq '._meta.total_commands' "$BATS_TEST_TMPDIR/regen.json"
   [ "$status" -eq 0 ]
   [ "$output" -gt 0 ]
 }

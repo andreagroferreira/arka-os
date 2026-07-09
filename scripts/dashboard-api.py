@@ -95,7 +95,7 @@ def _load_agents() -> list[dict]:
 def _load_commands() -> list[dict]:
     global _commands_cache
     if _commands_cache is None:
-        path = ARKAOS_ROOT / "knowledge" / "commands-registry-v2.json"
+        path = ARKAOS_ROOT / "knowledge" / "commands-registry.json"
         if path.exists():
             data = json.loads(path.read_text())
             _commands_cache = data.get("commands", [])
@@ -1730,7 +1730,7 @@ def health():
     check("agents_registry",
           (ARKAOS_ROOT / "knowledge" / "agents-registry-v2.json").exists())
     check("commands_registry",
-          (ARKAOS_ROOT / "knowledge" / "commands-registry-v2.json").exists())
+          (ARKAOS_ROOT / "knowledge" / "commands-registry.json").exists())
     check("hooks_dir", (arkaos_home / "config" / "hooks").exists(),
           "npx arkaos install")
 

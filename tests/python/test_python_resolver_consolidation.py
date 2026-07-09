@@ -215,8 +215,10 @@ _NPM = shutil.which("npm")
 # Bins deliberately kept OUT of the published tarball. Maintainer-only,
 # not referenced by installer/ or any runtime path. Excluded by omission
 # from the package.json `files` whitelist (npm's files array is the sole
-# allow-list — .npmignore cannot trim a whitelisted set).
-_TARBALL_BIN_DENYLIST = {"bin/arka-registry-gen"}
+# allow-list — .npmignore cannot trim a whitelisted set). Empty since the
+# M2 consolidation retired bin/arka-registry-gen (the generator is now
+# core/registry/generator.py, shipped with core/).
+_TARBALL_BIN_DENYLIST: set[str] = set()
 
 
 @pytest.mark.skipif(_NPM is None, reason="npm unavailable")
