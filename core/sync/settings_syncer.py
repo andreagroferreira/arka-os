@@ -88,10 +88,14 @@ def _read_current_settings(settings_file: Path) -> dict:
 
 
 def _is_already_correct(current: dict, target_servers: list[str]) -> bool:
-    """Return True when servers and flag already match the target."""
+    """Return True when servers, flag and outputStyle already match."""
     current_servers = sorted(current.get("enabledMcpjsonServers", []))
     flag = current.get("enableAllProjectMcpServers", False)
-    return current_servers == target_servers and flag is True
+    return (
+        current_servers == target_servers
+        and flag is True
+        and bool(current.get("outputStyle"))
+    )
 
 
 def _compute_diff(
@@ -112,6 +116,9 @@ def _build_merged_settings(current: dict, target_servers: list[str]) -> dict:
         merged["permissions"] = _DEFAULT_PERMISSIONS
     merged["enabledMcpjsonServers"] = target_servers
     merged["enableAllProjectMcpServers"] = True
+    # Interaction Reform PR1: seed-if-absent — an explicit operator
+    # choice (any value, including "default") is never overridden.
+    merged.setdefault("outputStyle", "ArkaOS")
     return merged
 
 

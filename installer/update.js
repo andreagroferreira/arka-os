@@ -174,6 +174,25 @@ export async function update() {
     copyFileSync(statuslineSrc, join(installDir, "config", statuslineFile));
     console.log("         ✓ Statusline updated");
   }
+  // Interaction Reform PR1 — refresh the ArkaOS output style file and
+  // seed the default (if-absent; explicit operator choice preserved).
+  try {
+    const { installOutputStyles, seedOutputStyleDefault } = await import("./output-style.js");
+    const styleResult = installOutputStyles({
+      sourceDir: join(ARKAOS_ROOT, "config", "output-styles"),
+    });
+    if (styleResult.copied > 0) {
+      console.log("         ✓ Output style updated");
+    }
+    const seedResult = seedOutputStyleDefault({
+      runtime: manifest.runtime || "claude-code",
+    });
+    if (!seedResult.skipped && seedResult.action === "created") {
+      console.log(`         ✓ outputStyle default set to "${seedResult.value}"`);
+    }
+  } catch (err) {
+    console.log(`         ⚠ Output style update failed (${err.message})`);
+  }
 
   // ── 3. Update hooks ──
   console.log("  [3/8] Updating hooks...");
