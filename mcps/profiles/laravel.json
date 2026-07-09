@@ -6,6 +6,7 @@
   },
   "mcps": [
     "laravel-boost",
-    "serena"
+    "serena",
+    "codebase-memory"
   ]
 }

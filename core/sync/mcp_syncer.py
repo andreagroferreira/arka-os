@@ -8,22 +8,26 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 from pathlib import Path
 
 from core.sync.schema import McpSyncResult, Project
 
 # Maps stack item names to registry categories
 _STACK_TO_CATEGORIES: dict[str, list[str]] = {
-    "laravel": ["laravel"],
-    "nuxt": ["nuxt"],
-    "vue": ["nuxt"],
-    "next": ["react"],
-    "react": ["react"],
+    "laravel": ["laravel", "grounding-code"],
+    "nuxt": ["nuxt", "grounding-code"],
+    "vue": ["nuxt", "grounding-code"],
+    "next": ["react", "grounding-code"],
+    "react": ["react", "grounding-code"],
+    "python": ["grounding-code"],
     "shopify": ["ecommerce"],
 }
 
 # Keys that are registry metadata — stripped when writing .mcp.json
-_REGISTRY_META_KEYS = {"category", "description", "required_env"}
+_REGISTRY_META_KEYS = {
+    "category", "description", "required_env", "requires_binary",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +73,39 @@ def resolve_mcps_for_stack(
     return result
 
 
+def _split_missing_binaries(
+    target: list[tuple[str, dict]],
+) -> tuple[list[tuple[str, dict]], list[str]]:
+    """Drop entries whose `requires_binary` is not on PATH.
+
+    An MCP entry pointing at an absent binary is a dead server that
+    errors on every session start — the sync never writes one. The
+    skipped names are reported (mcps_deferred) so the operator knows
+    installing the binary + re-sync activates it (Interaction Reform
+    PR6, codebase-memory-mcp).
+    """
+    available: list[tuple[str, dict]] = []
+    missing: list[str] = []
+    for name, config in target:
+        binary = config.get("requires_binary", "")
+        if binary and shutil.which(binary) is None:
+            missing.append(name)
+            continue
+        available.append((name, config))
+    return available, missing
+
+
+def _missing_binary_warnings(registry: dict, missing: list[str]) -> list[str]:
+    return [
+        (
+            f"{name}: requires binary "
+            f"'{registry.get(name, {}).get('requires_binary', '?')}' not on "
+            f"PATH — install it and re-run /arka update to activate"
+        )
+        for name in missing
+    ]
+
+
 def sync_project_mcp(
     project: Project, registry: dict, home_path: str
 ) -> McpSyncResult:
@@ -97,6 +134,7 @@ def _do_sync_mcp(
 
     current = _read_current_mcps(mcp_file)
     target_raw = resolve_mcps_for_stack(registry, project.stack)
+    target_raw, missing_binary = _split_missing_binaries(target_raw)
     target = _resolve_placeholders(target_raw, home_path, project.path)
     registry_names = set(registry.keys())
 
@@ -104,11 +142,15 @@ def _do_sync_mcp(
         current, target, registry_names, registry
     )
 
+    binary_warnings = _missing_binary_warnings(registry, missing_binary)
+
     if not added and not removed and not updated:
         return McpSyncResult(
             path=project.path,
             status="unchanged",
             final_mcp_list=sorted(current.keys()),
+            mcps_deferred=sorted(missing_binary),
+            optimizer_warnings=binary_warnings,
         )
 
     merged = _build_merged(current, target, registry_names, registry)
@@ -122,6 +164,8 @@ def _do_sync_mcp(
         mcps_removed=sorted(removed),
         mcps_updated=sorted(updated),
         mcps_preserved=sorted(preserved),
+        mcps_deferred=sorted(missing_binary),
+        optimizer_warnings=binary_warnings,
         final_mcp_list=sorted(merged.keys()),
     )
 

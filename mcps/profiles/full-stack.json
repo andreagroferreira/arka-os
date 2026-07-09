@@ -9,6 +9,7 @@
     "serena",
     "nuxt",
     "nuxt-ui",
-    "magic"
+    "magic",
+    "codebase-memory"
   ]
 }

@@ -44,8 +44,12 @@ The onboard flow is a 12-step pipeline, split across two reference files:
 8. Generate `PROJECT.md` in project root
 9. Register in `$ARKA_OS/projects/<name>/`
 10. Apply MCP profile — generate `.mcp.json` + `.claude/settings.local.json`
-11. Create Obsidian docs — Home, Architecture, Projects MOC, Ecosystem MOC
-12. Report — summary + next steps
+11. Index the codebase graph — when the `codebase-memory-mcp` binary
+    exists, run `codebase-memory-mcp cli index_repository
+    '{"repo_path": "<abs project path>"}'` so the consistency layer is
+    warm from day one; skip silently when the binary is absent
+12. Create Obsidian docs — Home, Architecture, Projects MOC, Ecosystem MOC
+13. Report — summary + next steps (mention the graph index status)
 
 The `ecosystem` subcommands (list/create/add) and error handling also live in mcp-config.md.
 

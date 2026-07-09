@@ -70,6 +70,16 @@ Phase 7: QUALITY GATE → Marta + Eduardo (copy) + Francisca (tech) → APPROVED
 Phase 8: DOCUMENTATION → ADR + docs to Obsidian
 ```
 
+## Codebase grounding (codebase-memory MCP)
+
+When the `codebase-memory` MCP is active in the project, consult it
+BEFORE touching complex code — in Phase 1 RESEARCH and in every
+Diagnose step: `get_architecture` for the structural map,
+`search_graph`/`get_code_snippet` to locate the real implementations,
+`trace_path` for impact analysis before a refactor. The graph is a
+PRIOR, not ground truth: verify with Read before editing. When the MCP
+is absent the phases run as before (Grep/Read exploration).
+
 ## Focused Workflow (4 Phases)
 
 For `/dev debug`, `/dev refactor`, `/dev db`, `/dev performance`, `/dev pipeline`: Diagnose → Implement with tests → Rita validates → Quality Gate (Marta).

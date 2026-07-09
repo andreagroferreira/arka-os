@@ -12,6 +12,7 @@ policies:
   - match:
       stack_includes: [laravel, php]
     active:
+      - codebase-memory
       - arka-prompts
       - obsidian
       - context7
@@ -42,6 +43,7 @@ policies:
   - match:
       stack_includes: [nuxt, vue]
     active:
+      - codebase-memory
       - arka-prompts
       - obsidian
       - context7
@@ -72,6 +74,7 @@ policies:
   - match:
       stack_includes: [next, react]
     active:
+      - codebase-memory
       - arka-prompts
       - obsidian
       - context7
@@ -111,6 +114,7 @@ policies:
       - mirakl
       - sentry
     deferred:
+      - codebase-memory
       - memory-bank
       - postgres
       - supabase
@@ -132,6 +136,7 @@ policies:
   - match:
       stack_includes: [python]
     active:
+      - codebase-memory
       - arka-prompts
       - obsidian
       - context7
@@ -169,6 +174,7 @@ policies:
       - firecrawl
       - clickup
     deferred:
+      - codebase-memory
       - memory-bank
       - gh-grep
       - postgres
@@ -198,6 +204,7 @@ policies:
       - canva
       - firecrawl
     deferred:
+      - codebase-memory
       - memory-bank
       - gh-grep
       - postgres
@@ -227,6 +234,7 @@ policies:
       - context7
       - gh-grep
     deferred:
+      - codebase-memory
       - memory-bank
       - postgres
       - supabase

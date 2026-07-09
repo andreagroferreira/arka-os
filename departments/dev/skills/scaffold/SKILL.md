@@ -109,6 +109,12 @@ Profile mapping:
 
 This generates `.mcp.json` and `.claude/settings.local.json`.
 
+After the profile is applied, warm the consistency layer: when the
+`codebase-memory-mcp` binary exists, run
+`codebase-memory-mcp cli index_repository '{"repo_path": "<abs path>"}'`
+so the graph is available from the first feature. Skip silently when
+the binary is absent (the sync defers the MCP entry until installed).
+
 ### Step 6: Generate PROJECT.md
 
 Create `PROJECT.md` in the project root with:

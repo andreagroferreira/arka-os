@@ -12,41 +12,59 @@
   "mcpServers": {
     "arka-prompts": {
       "command": "uv",
-      "args": ["--directory", "{home}/.claude/skills/arka/mcp-server", "run", "server.py"],
+      "args": [
+        "--directory",
+        "{home}/.claude/skills/arka/mcp-server",
+        "run",
+        "server.py"
+      ],
       "category": "base",
       "description": "ARKA OS department commands as MCP prompts (Claude Code + Claude Desktop)",
       "required_env": []
     },
     "obsidian": {
       "command": "npx",
-      "args": ["@bitbonsai/mcpvault@latest", "{home}/Documents/Personal"],
+      "args": [
+        "@bitbonsai/mcpvault@latest",
+        "{home}/Documents/Personal"
+      ],
       "category": "base",
       "description": "Obsidian vault integration: read/write notes, personas, knowledge",
       "required_env": []
     },
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"],
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
       "category": "base",
       "description": "Up-to-date library and framework documentation",
       "required_env": []
     },
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@latest"],
+      "args": [
+        "@playwright/mcp@latest"
+      ],
       "category": "base",
       "description": "Browser automation and testing",
       "required_env": []
     },
     "memory-bank": {
       "command": "npx",
-      "args": ["-y", "@allpepper/memory-bank-mcp"],
+      "args": [
+        "-y",
+        "@allpepper/memory-bank-mcp"
+      ],
       "env": {
         "MEMORY_BANK_ROOT": "{home}/memory-bank"
       },
       "category": "optional",
       "description": "Persistent memory across sessions (demoted from base 2026-07-08: 0 invocations/30d — audit E2E v4.3.6; claude-mem covers session memory)",
-      "required_env": ["MEMORY_BANK_ROOT"]
+      "required_env": [
+        "MEMORY_BANK_ROOT"
+      ]
     },
     "claude-in-chrome": {
       "managed": "extension",
@@ -62,24 +80,36 @@
     },
     "clickup": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.clickup.com/mcp"],
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.clickup.com/mcp"
+      ],
       "env": {
         "CLICKUP_API_KEY": "${CLICKUP_API_KEY}",
         "CLICKUP_TEAM_ID": "${CLICKUP_TEAM_ID}"
       },
       "category": "base",
       "description": "Task management and project tracking",
-      "required_env": ["CLICKUP_API_KEY", "CLICKUP_TEAM_ID"]
+      "required_env": [
+        "CLICKUP_API_KEY",
+        "CLICKUP_TEAM_ID"
+      ]
     },
     "firecrawl": {
       "command": "npx",
-      "args": ["-y", "firecrawl-mcp"],
+      "args": [
+        "-y",
+        "firecrawl-mcp"
+      ],
       "env": {
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
       },
       "category": "base",
       "description": "Web crawling and scraping",
-      "required_env": ["FIRECRAWL_API_KEY"]
+      "required_env": [
+        "FIRECRAWL_API_KEY"
+      ]
     },
     "sentry": {
       "type": "http",
@@ -97,14 +127,26 @@
     },
     "laravel-boost": {
       "command": "php",
-      "args": ["artisan", "boost:mcp"],
+      "args": [
+        "artisan",
+        "boost:mcp"
+      ],
       "category": "laravel",
       "description": "Laravel Boost: AI-powered Laravel development tools",
       "required_env": []
     },
     "serena": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "ide-assistant", "--project", "{cwd}"],
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "{cwd}"
+      ],
       "category": "laravel",
       "description": "Code intelligence: type-aware code analysis and refactoring",
       "required_env": []
@@ -132,20 +174,28 @@
     },
     "next-devtools": {
       "command": "npx",
-      "args": ["-y", "next-devtools-mcp@latest"],
+      "args": [
+        "-y",
+        "next-devtools-mcp@latest"
+      ],
       "category": "react",
       "description": "Next.js DevTools: debugging and development assistance",
       "required_env": []
     },
     "magic": {
       "command": "npx",
-      "args": ["-y", "@21st-dev/magic@latest"],
+      "args": [
+        "-y",
+        "@21st-dev/magic@latest"
+      ],
       "env": {
         "API_KEY": "${MAGIC_API_KEY}"
       },
       "category": "frontend",
       "description": "Magic MCP UI builder by 21st.dev — generates production UI components from natural language, framework-aware (Nuxt UI, Tailwind, shadcn). MANDATORY for frontend UI/UX work.",
-      "required_env": ["MAGIC_API_KEY"]
+      "required_env": [
+        "MAGIC_API_KEY"
+      ]
     },
     "supabase": {
       "type": "http",
@@ -156,7 +206,10 @@
     },
     "postgres": {
       "command": "npx",
-      "args": ["-y", "mcp-postgres-server"],
+      "args": [
+        "-y",
+        "mcp-postgres-server"
+      ],
       "env": {
         "PG_HOST": "${PG_HOST}",
         "PG_PORT": "${PG_PORT}",
@@ -166,11 +219,20 @@
       },
       "category": "base",
       "description": "PostgreSQL direct database access",
-      "required_env": ["PG_HOST", "PG_PORT", "PG_USER", "PG_PASSWORD", "PG_DATABASE"]
+      "required_env": [
+        "PG_HOST",
+        "PG_PORT",
+        "PG_USER",
+        "PG_PASSWORD",
+        "PG_DATABASE"
+      ]
     },
     "shopify-dev": {
       "command": "npx",
-      "args": ["-y", "@shopify/dev-mcp@latest"],
+      "args": [
+        "-y",
+        "@shopify/dev-mcp@latest"
+      ],
       "category": "ecommerce",
       "description": "Shopify development tools and API access",
       "required_env": []
@@ -184,35 +246,52 @@
     },
     "discord": {
       "command": "npx",
-      "args": ["-y", "discord-mcp"],
+      "args": [
+        "-y",
+        "discord-mcp"
+      ],
       "env": {
         "DISCORD_TOKEN": "${DISCORD_TOKEN}"
       },
       "category": "comms",
       "description": "Discord bot and messaging integration",
-      "required_env": ["DISCORD_TOKEN"]
+      "required_env": [
+        "DISCORD_TOKEN"
+      ]
     },
     "whatsapp": {
       "command": "npx",
-      "args": ["-y", "whatsapp-mcp"],
+      "args": [
+        "-y",
+        "whatsapp-mcp"
+      ],
       "env": {
         "WHATSAPP_API_TOKEN": "${WHATSAPP_API_TOKEN}",
         "WHATSAPP_PHONE_ID": "${WHATSAPP_PHONE_ID}"
       },
       "category": "comms",
       "description": "WhatsApp Business API messaging",
-      "required_env": ["WHATSAPP_API_TOKEN", "WHATSAPP_PHONE_ID"]
+      "required_env": [
+        "WHATSAPP_API_TOKEN",
+        "WHATSAPP_PHONE_ID"
+      ]
     },
     "teams": {
       "command": "npx",
-      "args": ["-y", "teams-mcp"],
+      "args": [
+        "-y",
+        "teams-mcp"
+      ],
       "env": {
         "TEAMS_APP_ID": "${TEAMS_APP_ID}",
         "TEAMS_APP_SECRET": "${TEAMS_APP_SECRET}"
       },
       "category": "comms",
       "description": "Microsoft Teams messaging integration",
-      "required_env": ["TEAMS_APP_ID", "TEAMS_APP_SECRET"]
+      "required_env": [
+        "TEAMS_APP_ID",
+        "TEAMS_APP_SECRET"
+      ]
     },
     "canva": {
       "type": "http",
@@ -223,69 +302,110 @@
     },
     "perplexity": {
       "command": "npx",
-      "args": ["-y", "@perplexity-ai/mcp-server"],
+      "args": [
+        "-y",
+        "@perplexity-ai/mcp-server"
+      ],
       "env": {
         "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
       },
       "category": "research",
       "description": "Real-time web search with citations via Perplexity. Used by /arka research fan-out.",
-      "required_env": ["PERPLEXITY_API_KEY"]
+      "required_env": [
+        "PERPLEXITY_API_KEY"
+      ]
     },
     "exa": {
       "command": "npx",
-      "args": ["-y", "exa-mcp-server"],
+      "args": [
+        "-y",
+        "exa-mcp-server"
+      ],
       "env": {
         "EXA_API_KEY": "${EXA_API_KEY}"
       },
       "category": "research",
       "description": "Semantic vector search across the web via Exa AI. Used by /arka research fan-out.",
-      "required_env": ["EXA_API_KEY"]
+      "required_env": [
+        "EXA_API_KEY"
+      ]
     },
     "x": {
       "command": "npx",
-      "args": ["-y", "@x/mcp-server"],
+      "args": [
+        "-y",
+        "@x/mcp-server"
+      ],
       "env": {
         "X_BEARER_TOKEN": "${X_BEARER_TOKEN}"
       },
       "category": "research",
       "description": "Twitter / X official MCP — community wisdom, threads, real-time discourse. Used by /arka research fan-out.",
-      "required_env": ["X_BEARER_TOKEN"]
+      "required_env": [
+        "X_BEARER_TOKEN"
+      ]
     },
     "composio": {
       "command": "npx",
-      "args": ["-y", "@composio/mcp-server"],
+      "args": [
+        "-y",
+        "@composio/mcp-server"
+      ],
       "env": {
         "COMPOSIO_API_KEY": "${COMPOSIO_API_KEY}"
       },
       "category": "integrations",
       "description": "Composio universal connector — one auth surface for Gmail, Slack, Notion, GitHub and 250+ apps. Recommended baseline per the Orgo 2026-05-13 pattern.",
-      "required_env": ["COMPOSIO_API_KEY"]
+      "required_env": [
+        "COMPOSIO_API_KEY"
+      ]
     },
     "agent-mail": {
       "command": "npx",
-      "args": ["-y", "@agentmail/mcp-server"],
+      "args": [
+        "-y",
+        "@agentmail/mcp-server"
+      ],
       "env": {
         "AGENTMAIL_API_KEY": "${AGENTMAIL_API_KEY}"
       },
       "category": "comms",
       "description": "Per-agent email inbox via Agent Mail. Gives every agent a real address it can read and send from. Recommended baseline per the Orgo 2026-05-13 pattern.",
-      "required_env": ["AGENTMAIL_API_KEY"]
+      "required_env": [
+        "AGENTMAIL_API_KEY"
+      ]
     },
     "higgsfield": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.higgsfield.ai/mcp"],
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.higgsfield.ai/mcp"
+      ],
       "env": {
         "HIGGSFIELD_API_KEY": "${HIGGSFIELD_API_KEY}"
       },
       "category": "design",
       "description": "Higgsfield AI design/video generation. Requires a Higgsfield account + HIGGSFIELD_API_KEY to connect. Add per-project: apply-mcps.sh --add higgsfield",
-      "required_env": ["HIGGSFIELD_API_KEY"]
+      "required_env": [
+        "HIGGSFIELD_API_KEY"
+      ]
     },
     "graphify": {
       "command": "graphify",
-      "args": [".", "--mcp"],
+      "args": [
+        ".",
+        "--mcp"
+      ],
       "category": "grounding",
       "description": "Graphify code knowledge graph over stdio — grounds answers in graphify-out/graph.json (EXTRACTED/INFERRED confidence + source locations). Local/free tree-sitter extraction. Requires the graphify CLI (uv tool install graphifyy). OPT-IN — add per-project: apply-mcps.sh --add graphify"
+    },
+    "codebase-memory": {
+      "command": "codebase-memory-mcp",
+      "args": [],
+      "category": "grounding-code",
+      "requires_binary": "codebase-memory-mcp",
+      "description": "Codebase knowledge graph over stdio (SQLite, tree-sitter, Cypher) — index_repository/search_graph/trace_path/get_architecture ground complex-code work in real structure. Requires the codebase-memory-mcp binary (install script in the project README: github.com/DeusData/codebase-memory-mcp). Skipped gracefully by the sync when the binary is absent."
     }
   }
 }

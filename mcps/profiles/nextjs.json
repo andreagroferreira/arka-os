@@ -7,6 +7,7 @@
   "mcps": [
     "next-devtools",
     "supabase",
-    "magic"
+    "magic",
+    "codebase-memory"
   ]
 }
