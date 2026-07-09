@@ -5,6 +5,34 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.0] - 2026-07-09
+
+### Added
+
+- **Evals follow-up tooling** (#274, closes the three follow-ups from
+  the evals ADR) — `core/evals/runner_cli.py` (list/status/prompt; the
+  deterministic half of an eval run — the Quality Gate judges, the CLI
+  never invokes models; `status` tracks progress toward the 500-label
+  distillation gate), `core/evals/record_cli.py` wired into the Quality
+  Gate skill as step 6 (every verdict feeds the label corpus, loud
+  failure on invalid JSON), and `core/evals/sanitizer.py` — fail-closed
+  client-identifier redaction sharing the release leak-scanner's config
+  (nothing hardcoded), single-pass longest-first alternation proven
+  order-independent by the QG after it reproduced a suffix leak in the
+  first draft's positional loop.
+
+### Fixed
+
+- **Phantom-action check M2/M3 residual classes closed** (#273) — the
+  analytic-synonym false-positive tail ("my read(s) on", "my take(s)
+  on", "leitura(s)", "interpretação/ões") no longer invents claims, and
+  the coordinated-verb recall loss ("I ran through the plan, then ran
+  the test suite") is detected without letting embedded third-party
+  clauses bridge the I anchor (the first draft did exactly that and was
+  QG-REJECTED with 4 reproduced false positives). Suite drops to 0
+  xfailed. Promotion to hard enforcement stays gated on the ADR
+  telemetry criterion (≥5 flagged claims + manual precision review).
+
 ## [4.10.0] - 2026-07-09
 
 ### Changed
