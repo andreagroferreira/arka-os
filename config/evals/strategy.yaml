@@ -1,0 +1,26 @@
+# Strategy department reference eval tasks (seed set).
+- id: strat-five-forces-entry
+  department: strategy
+  prompt: >
+    Avalia com Porter's Five Forces a entrada de um novo player no
+    mercado de ferramentas de orquestração de agentes AI.
+  expected_properties:
+    - As 5 forças analisadas com evidência específica do mercado, não genérica
+    - Intensidade classificada por força com justificação
+    - Conclusão acionável (entrar/não entrar/entrar com que moat)
+  rubric: >
+    Rejeitar análise que apenas define as forças sem as aplicar ao
+    mercado concreto.
+  tags: [porter, market-entry]
+
+- id: strat-moat-audit
+  department: strategy
+  prompt: >
+    Audita os moats de um produto dev-tools open-source com dashboard
+    pago, usando 7 Powers.
+  expected_properties:
+    - Cada power avaliada como presente/ausente/construível
+    - Pelo menos um trade-off identificado (ex. open-source vs counter-positioning)
+    - Recomendação priorizada de qual power investir primeiro
+  rubric: Rejeitar se citar 7 Powers sem mapear ao produto.
+  tags: [7-powers, moat]
