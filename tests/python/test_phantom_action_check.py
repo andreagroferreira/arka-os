@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from core.governance.phantom_action_check import (
     check_phantom_actions,
     count_turn_tool_uses,
@@ -70,6 +72,56 @@ class TestFindActionClaims:
         assert find_action_claims("Atualizei o meu entendimento sobre o problema.") == []
         assert find_action_claims("I wrote a summary of the findings below.") == []
         assert find_action_claims("Adicionei alguns pontos que faltavam.") == []
+
+    # Residual pack (QG condition on #255 before enforcement promotion):
+    # the proximity heuristic must not cross analytic nouns or idioms.
+    def test_analytic_noun_between_verb_and_object_not_flagged(self):
+        assert find_action_claims("I ran into a problem with the commit.") == []
+        assert find_action_claims("I updated my understanding of the file.") == []
+        assert find_action_claims("Adicionei contexto sobre os testes.") == []
+        assert find_action_claims("Escrevi notas sobre o módulo de sync.") == []
+        assert find_action_claims("I added a summary of the test results.") == []
+
+    def test_true_positives_survive_the_residual_fix(self):
+        assert find_action_claims("I updated the config file.")
+        assert find_action_claims("Adicionei os testes ao módulo.")
+        assert find_action_claims("I ran the test suite.")
+
+    # QG second-sweep pack (#followups review): the analytic-noun CLASS,
+    # not just the 3 named residuals — Marta's 6 reproduced leaks.
+    def test_analytic_class_extension_not_flagged(self):
+        for text in (
+            "I updated my thoughts on the module.",
+            "I updated my takeaways from the tests.",
+            "I updated my mental model of the file.",
+            "Criei uma imagem mental do módulo.",
+            "Atualizei a minha noção do ficheiro.",
+            "Atualizei a minha perspetiva sobre o módulo.",
+        ):
+            assert find_action_claims(text) == [], text
+
+    # Known-residual tracker (QG M2/M3): visible in the suite, not hidden.
+    # Promotion to enforcement stays blocked until the telemetry cycle
+    # plus this tracker say otherwise.
+    @pytest.mark.xfail(
+        reason="known recall loss: idiom exclusion anchors on the subject, "
+        "so a second bare 'ran' in the same clause is missed (QG M2 — "
+        "telemetry undercount, not user-facing harm)",
+        strict=True,
+    )
+    def test_known_residual_recall_second_ran_in_clause(self):
+        assert find_action_claims(
+            "I ran through the plan, then ran the test suite."
+        )
+
+    @pytest.mark.xfail(
+        reason="known FP tail: analytic-noun synonyms outside the list "
+        "(e.g. 'my read on') — extend from warn-only telemetry before "
+        "any enforcement promotion",
+        strict=True,
+    )
+    def test_known_residual_analytic_synonym_tail(self):
+        assert find_action_claims("I updated my read on the file.") == []
 
     def test_analysis_prose_not_flagged(self):
         assert find_action_claims("Analisei o código e o plano parece sólido.") == []
