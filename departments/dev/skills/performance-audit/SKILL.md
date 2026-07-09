@@ -1,8 +1,14 @@
 ---
 name: dev/performance-audit
 description: >
-  Performance audit covering Core Web Vitals, API latency, database queries,
-  and caching strategy. Targets and budgets based on Google/industry standards.
+  Performance audit against Google/industry budgets: Core Web Vitals (LCP,
+  INP, CLS), API latency percentiles, database query analysis (EXPLAIN
+  ANALYZE, N+1, indexes), caching strategy, and infrastructure (CDN,
+  compression) — outputs prioritized fixes. TRIGGER: "performance audit", "o
+  site está lento", "core web vitals", "lighthouse", "API lenta", "queries
+  lentas", "/dev performance". SKIP: iterative measure-fix-remeasure work on
+  one bottleneck -> dev/performance-profiler (deep-dive; this is the broad
+  audit); SLO and alerting design -> dev/observability.
 allowed-tools: [Read, Bash, Grep, Glob, Agent, WebFetch]
 ---
 

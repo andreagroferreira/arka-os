@@ -1,9 +1,13 @@
 ---
 name: org/okr-cadence
 description: >
-  The OKR operating cadence — quarterly cycle + weekly CFR check-ins, public
-  scoring (0.0-1.0), stretch at 60-70%, never tied to compensation, every metric
-  owned. Complements /lead okr-define (which writes OKRs). Owned by the OKR Steward.
+  Runs the OKR operating cadence (Doerr CFRs): quarterly set-score-reflect
+  cycle, weekly check-ins, public 0.0-1.0 scoring with 70% as success, never
+  tied to compensation, every KR owned. TRIGGER: "cadência de OKRs", "check-in
+  semanal de OKRs", "score the OKRs", "OKR review", "CFR", "/org okr-cadence".
+  SKIP: writing or cascading the OKRs themselves -> lead/okr-define (defines
+  the goals; this skill runs them); pay and reward questions ->
+  org/compensation-plan (OKRs must never drive comp).
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

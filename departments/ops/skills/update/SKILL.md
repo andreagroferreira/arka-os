@@ -1,6 +1,13 @@
 ---
 name: arka-update
-description: ArkaOS project sync orchestrator. Detects what changed in core since last sync and updates all ecosystem skills, MCPs, settings, and project descriptors.
+description: >
+  ArkaOS project sync orchestrator: detects what changed in core since the last sync and
+  updates ecosystem skills, MCP configs, settings, and project descriptors via the hybrid
+  Python engine plus AI subagent. TRIGGER: "/arka update", "sync projects", "atualiza os
+  projetos", "update ArkaOS projects", or when SessionStart shows "[arka:update-available]";
+  run AFTER `npx arkaos@latest update`. SKIP: updating the core itself -> `npx
+  arkaos@latest update` in the terminal (this skill only syncs projects); day-to-day
+  operational requests -> ops/operations.
 ---
 
 # /arka update — Project Sync Engine

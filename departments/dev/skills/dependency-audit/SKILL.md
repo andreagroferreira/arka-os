@@ -1,7 +1,14 @@
 ---
 name: dev/dependency-audit
 description: >
-  Audit project dependencies for vulnerabilities, license compliance, outdated packages, and supply chain risks.
+  Audit project dependencies across ecosystems (npm, Composer, pip, Go, Cargo)
+  for known CVEs, license compliance (GPL/AGPL risk), outdated packages,
+  unused packages, and supply chain risks like typosquatting. TRIGGER:
+  "dependency audit", "audita as dependências", "npm audit", "vulnerabilidades
+  nos packages", "licenças das libs", "outdated packages", "/dev
+  dependency-audit". SKIP: full application security review (OWASP Top 10,
+  headers, injection) -> dev/security-audit (dependencies are one section
+  there); whole-stack version and upgrade-path review -> dev/stack-check.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

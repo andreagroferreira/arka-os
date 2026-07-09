@@ -1,7 +1,13 @@
 ---
 name: mkt/ab-test
 description: >
-  A/B test plan: hypothesis, variants, sample size, duration, success criteria.
+  A/B test plan: hypothesis, variants, sample size, duration, and success
+  criteria, prioritised with ICE scoring and statistical significance.
+  TRIGGER: "A/B test", "teste A/B", "testa duas variantes", "split test",
+  "qual variante ganha", "/mkt ab-test <element>". SKIP: testing
+  landing-page copy or layout inside a funnel -> landing/ab-test (owns
+  on-page conversion experiments); redesigning the page itself ->
+  landing/optimize-page.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

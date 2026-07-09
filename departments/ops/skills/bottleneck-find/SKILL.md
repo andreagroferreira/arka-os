@@ -1,8 +1,12 @@
 ---
 name: ops/bottleneck-find
 description: >
-  Identify system bottleneck using Goldratt's Theory of Constraints.
-  5 Focusing Steps to find AND resolve the constraint.
+  Identifies the system constraint with Goldratt's Theory of Constraints and applies the
+  5 Focusing Steps (identify, exploit, subordinate, elevate, repeat) into a resolution
+  plan with metrics. TRIGGER: "onde está o gargalo", "bottleneck", "work keeps piling up",
+  "o processo está lento", "find the constraint", "/ops bottleneck <area>". SKIP:
+  waste elimination across a whole value stream -> ops/lean-audit (7-wastes sweep, not a
+  single-constraint hunt); defining the metrics that expose queues -> ops/metrics-dashboard.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch]
 ---
 

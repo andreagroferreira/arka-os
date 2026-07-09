@@ -1,7 +1,14 @@
 ---
 name: brand/wireframe
 description: >
-  Wireframe design: layout, navigation, content hierarchy, interaction notes.
+  Designs wireframes — layout, navigation, content hierarchy, and interaction
+  notes — using Garrett's 5 Planes and information architecture, delivered as
+  an annotated spec with component references and responsive notes. TRIGGER:
+  "wireframe", "esboça a página", "estrutura da página", "low-fi layout",
+  "wireframe the dashboard", "/brand wireframe <page>". SKIP: full
+  landing-page conversion structure -> landing/page-architect
+  (conversion-driven section architecture); pixel-level brand-applied visuals
+  -> brand/mockup-generate (wireframes come first).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,8 +1,16 @@
 ---
 name: strategy/board-advisor
 description: >
-  Board meeting preparation, deck structure, stakeholder management,
-  and structured multi-perspective executive deliberation.
+  Board meeting preparation and structured multi-perspective executive
+  deliberation: 6-phase protocol (context, independent contributions,
+  critic, synthesis, founder review, extraction), board deck structure,
+  stakeholder management, and a decision brief with action items.
+  TRIGGER: "board meeting", "reunião de board", "prepara o board deck",
+  "conselho de administração", "decisão executiva multi-perspetiva",
+  "stakeholder management", "/strat board-advisor". SKIP: purely technical
+  decisions (build-vs-buy, architecture bets) -> strat/cto-advisor;
+  stress-testing one irreversible bet for failure modes ->
+  strat/premortem.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

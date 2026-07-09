@@ -1,7 +1,14 @@
 ---
 name: brand/identity-system
 description: >
-  Full brand identity: strategy, verbal, visual in the correct order (never skip to visuals).
+  Builds a full brand identity in the correct order — strategy, then verbal,
+  then visual (never skips to visuals) — via the Wheeler process and Primal
+  Branding, verifying live brand elements through browser and Computer Use
+  steps. TRIGGER: "cria a identidade da marca", "brand identity", "identidade
+  visual completa", "rebranding completo", "build the brand from scratch",
+  "/brand identity <name>". SKIP: only a logo -> brand/logo-brief; only
+  positioning -> brand/positioning-statement; measuring an EXISTING brand's
+  strength -> brand/primal-audit (audit, not creation).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

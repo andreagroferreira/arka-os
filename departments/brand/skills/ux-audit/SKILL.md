@@ -1,7 +1,14 @@
 ---
 name: brand/ux-audit
 description: >
-  UX heuristic audit: evaluate interface against Nielsen's 10 heuristics.
+  UX heuristic audit of a live interface against Nielsen's 10 heuristics and
+  Laws of UX — navigates real user flows in the browser, checks accessibility
+  and responsive breakpoints, and delivers severity-rated findings with fixes.
+  TRIGGER: "ux audit", "audita a usabilidade", "auditoria de UX", "heuristic
+  evaluation", "porque é que os users se perdem", "/brand ux-audit <url>".
+  SKIP: on-brand visual compliance (palette, typography vs brandbook) ->
+  brand/design-review; slow pages or Core Web Vitals -> dev/performance-audit;
+  brand strength, not interface -> brand/primal-audit.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

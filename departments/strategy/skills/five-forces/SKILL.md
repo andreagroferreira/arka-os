@@ -1,8 +1,15 @@
 ---
 name: strat/five-forces
 description: >
-  Porter's Five Forces industry analysis. Evaluates competitive dynamics
-  and industry attractiveness.
+  Porter's Five Forces industry analysis: rates rivalry, threat of new
+  entrants, supplier power, buyer power, and substitutes to produce an
+  industry attractiveness verdict with strategic implications, optionally
+  grounded in live competitor browsing. TRIGGER: "five forces", "cinco
+  forças de Porter", "análise da indústria", "industry attractiveness",
+  "atratividade do setor", "/strat five-forces". SKIP: deep dive on one
+  competitor -> marketing/competitor-analysis (company-level, not
+  industry-level); escaping competition into new market space ->
+  strat/blue-ocean.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

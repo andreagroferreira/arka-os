@@ -1,7 +1,15 @@
 ---
 name: dev/skill-audit
 description: >
-  Audit AI agent skills for security vulnerabilities: prompt injection, code execution, data leakage, supply chain risks.
+  Audit AI agent skill directories for security risks BEFORE installation
+  (OWASP LLM Top 10): code execution patterns (eval, shell injection,
+  exfiltration), prompt injection in SKILL.md, supply chain risks
+  (typosquatting, unpinned deps), and filesystem violations — PASS/WARN/FAIL
+  verdict. TRIGGER: "skill audit", "audita esta skill", "is this skill safe",
+  "verifica a skill antes de instalar", "scan the skill", "/dev skill-audit".
+  SKIP: securing your own AI application or agents -> dev/ai-security (your
+  system, not third-party skills); project dependency CVEs ->
+  dev/dependency-audit.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

@@ -1,8 +1,14 @@
 ---
 name: dev/mcp-builder
 description: >
-  Build production-ready MCP servers from API contracts. Scaffold from OpenAPI,
-  validate tool manifests, design auth and versioning strategies.
+  Build production-ready MCP servers from API contracts: scaffold from OpenAPI
+  specs, generate typed tool manifests, design auth/safety/versioning
+  strategies, and validate in strict mode before publishing (Python or
+  TypeScript runtimes). TRIGGER: "mcp builder", "cria um servidor MCP", "build
+  MCP server", "expose my API as tools", "converte OpenAPI em MCP", "/dev
+  mcp-builder". SKIP: applying or managing existing MCP servers in a project
+  (.mcp.json, profiles) -> dev/mcp (configuration, not creation); designing
+  the underlying API itself -> dev/api-design.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

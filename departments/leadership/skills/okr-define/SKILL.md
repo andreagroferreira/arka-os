@@ -1,8 +1,14 @@
 ---
 name: lead/okr-define
 description: >
-  Define OKRs using John Doerr's framework. Cascading from company to team level.
-  Objectives are qualitative, Key Results are quantitative.
+  Defines OKRs with John Doerr's framework, cascading company -> team:
+  qualitative Objectives, quantitative Key Results, scoring criteria and
+  check-in schedule. TRIGGER: "define OKRs", "objetivos do trimestre", "OKRs
+  da equipa", "key results", "quarterly goals", "/lead okr <scope>". SKIP:
+  running the quarterly/weekly ritual on OKRs that already exist ->
+  org/okr-cadence (operates the cadence; this skill writes the OKRs);
+  individual performance goals -> lead/performance-review (person-level, not
+  team objectives).
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

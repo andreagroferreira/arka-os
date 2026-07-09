@@ -1,7 +1,14 @@
 ---
 name: ecom/cart-recovery
 description: >
-  Cart abandonment email sequence: 3 emails (1h, 24h, 72h) with urgency escalation.
+  Designs a cart abandonment recovery email sequence — 3 emails at 1h, 24h,
+  and 72h with urgency escalation — delivering subject lines, body copy,
+  timing, and incentive strategy. TRIGGER: "carrinho abandonado", "recupera
+  carrinhos abandonados", "abandoned cart emails", "sequência de recuperação
+  de carrinho", "/ecom cart-recovery". SKIP: broader nurture or promotional
+  email flows -> landing/email-sequence (persuasion sequences beyond cart
+  abandonment); deciding WHICH customers to target by value first
+  -> ecom/rfm-segment (segmentation precedes the flow).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

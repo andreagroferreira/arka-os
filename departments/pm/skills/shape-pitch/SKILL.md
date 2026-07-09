@@ -1,8 +1,14 @@
 ---
 name: pm/shape-pitch
 description: >
-  Shape Up pitch for the betting table. Defines problem, appetite, solution sketch,
-  rabbit holes, and no-gos. Based on Ryan Singer's Shape Up methodology.
+  Shape Up pitch (Ryan Singer) for the betting table: problem, appetite as
+  a time budget, fat-marker solution sketch, rabbit holes, and explicit
+  no-gos, with hill-chart tracking. TRIGGER: "shape this feature", "escreve
+  o pitch", "prepara a betting table", "define o appetite", "Shape Up
+  pitch", "/pm shape". SKIP: detailed requirements and acceptance criteria
+  -> dev/spec (spec defines the buildable WHAT; a pitch sells a bet);
+  sprint-based commitment -> pm/sprint-plan; deciding which bets enter
+  which quarter -> pm/roadmap-build.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

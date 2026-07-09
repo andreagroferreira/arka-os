@@ -1,7 +1,15 @@
 ---
 name: ecom/store-audit
 description: >
-  Full store audit: UX, SEO, performance, content, conversion with 5 parallel agents.
+  Full store audit with 5 parallel agents — UX, SEO, performance, content, and
+  conversion — including live browser checks of the checkout flow, mobile
+  responsiveness, and page speed, delivering a scored report with prioritized
+  fixes. TRIGGER: "audita a minha loja", "store audit", "analisa a loja
+  completa", "health check da loja", "/ecom audit <url>". SKIP: deep
+  conversion research with an A/B test backlog -> ecom/cro-optimize
+  (ResearchXL goes deeper than the audit's conversion pass); auditing a
+  competitor's store -> ecom/browse-competitor (their store, not yours); SEO-
+  only pass -> marketing/seo-audit.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

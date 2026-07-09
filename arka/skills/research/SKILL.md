@@ -4,17 +4,15 @@ description: >
   General fan-out research — spawns 5 parallel subagents (Perplexity,
   Exa AI, Context7, Firecrawl, XMCP), synthesises their findings into a
   single cited report, and writes a Knowledge Base note to the Obsidian
-  vault (multi-source pattern from the 2026-05-13 Orgo podcast, Nick
-  Saraev). KB-first: Obsidian is searched before any external call.
-  TRIGGER: user types "/arka research", "pesquisa sobre", "investiga",
+  vault. KB-first: Obsidian is searched before any external call.
+  TRIGGER: "/arka research", "pesquisa sobre", "investiga",
   "faz research", "research <topic>", "best practices for", "state of
-  the art", "o que se sabe sobre" — for general, market, tooling, or
-  knowledge-base topics where the deliverable is a synthesised KB note.
-  SKIP: dev-scoped technical research — library evaluation, framework
-  or package choice, code pattern comparison, "que lib uso", "avalia a
-  biblioteca", "which library/framework" — dev/research (Lucas, /dev
-  research) wins; planning a task — arka-forge wins (Forge plans,
-  this skill informs).
+  the art", "o que se sabe sobre" — general, market, tooling, or KB
+  topics whose deliverable is a synthesised KB note.
+  SKIP: dev-scoped technical research — library or framework evaluation,
+  "que lib uso", "which library/framework" —
+  /dev research (Lucas) wins; planning a task — arka-forge wins (Forge
+  plans, this skill informs).
 allowed-tools: [Agent, Read, Write, mcp__obsidian__search_notes]
 ---
 

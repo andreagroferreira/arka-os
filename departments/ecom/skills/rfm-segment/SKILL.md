@@ -1,8 +1,15 @@
 ---
 name: ecom/rfm-segment
 description: >
-  RFM customer segmentation: Recency, Frequency, Monetary analysis.
-  Identify Champions, At-Risk, and Hibernating customers with action plans.
+  RFM customer segmentation (Recency, Frequency, Monetary — Drew Sanocki):
+  scores customers 1-5 per dimension, identifies Champions, Loyal, At-Risk,
+  and Hibernating segments, applies the whale curve, and delivers an RFM
+  matrix with segment counts and an action plan plus automated flow per
+  segment. TRIGGER: "segmenta os clientes", "quem são os meus melhores
+  clientes", "RFM analysis", "clientes em risco", "/ecom rfm". SKIP:
+  demographic audience building for campaigns -> marketing/audience-segment
+  (targeting, not purchase-behaviour scoring); mapping the experience per
+  stage -> ecom/customer-journey; executing win-back emails -> ecom/cart-recovery.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch]
 ---
 

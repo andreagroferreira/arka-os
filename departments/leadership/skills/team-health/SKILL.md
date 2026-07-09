@@ -1,8 +1,14 @@
 ---
 name: lead/team-health
 description: >
-  Team health assessment using Lencioni's Five Dysfunctions model.
-  Diagnoses trust, conflict, commitment, accountability, and results focus.
+  Team health assessment with Lencioni's Five Dysfunctions: diagnoses trust,
+  conflict, commitment, accountability and results focus into a scorecard with
+  fix-order actions. TRIGGER: "team health", "a equipa está disfuncional",
+  "saúde da equipa", "falta de confiança na equipa", "five dysfunctions",
+  "/lead team-build <context>". SKIP: broader capability and staffing
+  assessment -> org/team-assess (competencies, not dysfunction diagnosis); a
+  dispute between two individuals -> lead/conflict-resolve (person-level
+  mediation).
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

@@ -1,7 +1,12 @@
 ---
 name: ops/n8n-flow
 description: >
-  n8n workflow design: AI nodes, webhooks, branching, error handling.
+  Designs n8n workflows — AI/LangChain nodes, webhooks, branching, error handling — and
+  validates deployed flows via event-driven monitoring of execution logs. TRIGGER: "cria
+  um workflow n8n", "n8n flow", "automatiza com n8n", "AI workflow in n8n", "self-hosted
+  automation", "/ops n8n <flow>". SKIP: automation platform not yet chosen ->
+  ops/workflow-automate (selects n8n vs Zapier vs Make first); Zapier-specific builds ->
+  ops/zapier-flow.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

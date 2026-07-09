@@ -1,7 +1,13 @@
 ---
 name: org/sop-process
 description: >
-  SOP creation: step-by-step procedures with roles, tools, exceptions.
+  Creates a Standard Operating Procedure: numbered step-by-step procedure with
+  roles, tools, exceptions, ownership, and a review schedule (SOP Lifecycle).
+  TRIGGER: "documenta este processo", "cria um SOP de RH", "SOP for
+  onboarding", "procedimento passo-a-passo", "process documentation", "/org
+  sop <process>". SKIP: operational and Lean procedures owned by the ops
+  department -> ops/sop-create (same artifact, ops-domain processes);
+  automating the process instead of documenting it -> ops/workflow-automate.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

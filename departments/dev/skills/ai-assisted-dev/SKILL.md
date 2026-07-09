@@ -1,7 +1,13 @@
 ---
 name: dev/ai-assisted-dev
 description: >
-  AI-assisted development: prompt engineering for code, review AI output, TDD with AI.
+  AI-assisted development practice: prompt engineering for code generation,
+  structured review of AI output, and TDD with AI in the loop. TRIGGER: "ai
+  dev", "prompt engineering", "gera código com IA", "review AI output",
+  "programar com IA", "code with AI", "/dev ai-dev". SKIP: securing AI/LLM
+  systems (prompt injection, guardrails) -> dev/ai-security (assessment, not
+  development practice); building MCP servers -> dev/mcp-builder; plain TDD
+  without AI in the loop -> dev/tdd-cycle.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,7 +1,14 @@
 ---
 name: dev/release
 description: >
-  Release planning and execution: versioning strategy, readiness checklists, deployment coordination, rollback procedures, and hotfix management.
+  Release planning and execution with SemVer and DORA practice: version bump
+  detection from conventional commits, readiness checklists (CI, coverage,
+  audits, approvals), deployment sequencing with code freeze, rollback
+  triggers, and hotfix management. TRIGGER: "release", "faz o release", "ship
+  version", "lança a versão", "prepara a release", "hotfix", "/dev release".
+  SKIP: only generating the changelog -> dev/changelog (one artifact of the
+  release); executing the deployment step itself -> dev/deploy; live failure
+  during rollout -> dev/incident.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

@@ -1,7 +1,13 @@
 ---
 name: community/ai-community
 description: >
-  AI/tech community setup: Discord channels, roles, bots, content strategy.
+  AI/tech community setup on Discord: channel architecture, roles, bots, and
+  content strategy, delivered as an AI community blueprint with growth plan.
+  TRIGGER: "comunidade de IA", "cria um Discord de AI", "AI community",
+  "Discord for my AI product", "setup tech community", "/community ai".
+  SKIP: niche undecided or non-AI vertical -> community/niche-setup (full
+  blueprint for any niche); platform still undecided ->
+  community/platform-select (compares Discord vs Telegram vs Skool first).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

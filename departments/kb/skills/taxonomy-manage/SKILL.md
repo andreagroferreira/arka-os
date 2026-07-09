@@ -1,7 +1,13 @@
 ---
 name: kb/taxonomy-manage
 description: >
-  Manage knowledge taxonomy: tags, categories, naming conventions, hierarchy.
+  Manages the knowledge base taxonomy: tags, categories, naming conventions,
+  and hierarchy, delivering an updated taxonomy document with tag guidelines
+  and category structure. TRIGGER: "organiza as tags do vault", "normaliza a
+  taxonomia", "clean up the KB tags", "define naming conventions",
+  "/kb taxonomy". SKIP: building an index page for one topic cluster ->
+  kb/moc-create (a MOC, not vault-wide structure); finding stale notes or
+  broken links -> kb/knowledge-review (content health, not classification).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

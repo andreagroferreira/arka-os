@@ -1,8 +1,13 @@
 ---
 name: landing/copy-framework
 description: >
-  Select and apply the right copywriting framework based on audience awareness level.
-  8 frameworks: AIDA, PAS, PASTOR, PPPP, BAB, StoryBrand, Star-Story-Solution, 4 U's.
+  Select and apply the right copywriting framework for a landing page by
+  awareness level — 8 frameworks (AIDA, PAS, PASTOR, PPPP, BAB, StoryBrand,
+  Star-Story-Solution, 4 U's) — producing headline variants, body copy and
+  CTA. TRIGGER: "escreve o copy da landing", "sales copy", "aplica AIDA",
+  "copy PAS", "texto persuasivo para a página", "/landing copy". SKIP:
+  headlines only -> landing/headline-write; blog, social or editorial
+  content -> /content (this skill is conversion copy for pages).
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

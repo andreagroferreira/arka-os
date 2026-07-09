@@ -1,10 +1,15 @@
 ---
 name: kb/persona-build
 description: >
-  Build or refine a callable persona from KB content. Extracts beliefs, voice
-  signature, expertise domains, decision patterns, and the 4-framework
-  behavioral DNA (DISC + Enneagram + Big Five + MBTI). Produces a callable
-  advisor YAML.
+  Builds or refines a callable persona from KB content: source inventory, cited
+  belief inventory, voice signature, expertise map, decision patterns, and
+  4-framework behavioral DNA (DISC + Enneagram + Big Five + MBTI), shipped as
+  a callable advisor YAML. TRIGGER: "cria uma persona do X", "constrói o
+  advisor", "build a persona from these sources", "extract his voice and
+  beliefs", "/kb persona <name>". SKIP: writing content in an existing
+  persona's voice -> kb/write-as-persona (uses a persona, does not build one);
+  ingesting new source material first -> kb/learn-content (ingestion precedes
+  persona extraction).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

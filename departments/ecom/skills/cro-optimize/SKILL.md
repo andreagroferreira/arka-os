@@ -1,8 +1,15 @@
 ---
 name: ecom/cro-optimize
 description: >
-  Conversion Rate Optimization using CXL's ResearchXL framework.
-  6-phase research process before testing anything.
+  Conversion Rate Optimization using CXL's ResearchXL framework — 6 research
+  phases (heuristic, technical, analytics, heatmaps, surveys, user testing)
+  before any test, PIE/ICE prioritization, delivering research findings plus a
+  prioritized test backlog and hypotheses for the top 3 tests. TRIGGER:
+  "otimiza a conversão da loja", "a loja não converte", "CRO", "improve store
+  conversion", "porque é que ninguém compra", "/ecom cro <page>". SKIP:
+  optimizing a standalone landing page or funnel step -> landing/optimize-page
+  (page-level persuasion, not store-wide research); measuring funnel metrics
+  without optimizing -> ecom/analytics (measurement, not experimentation).
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

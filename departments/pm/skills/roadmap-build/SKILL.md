@@ -1,10 +1,16 @@
 ---
 name: pm/roadmap-build
 description: >
-  Outcome-driven product roadmap — North Star + outcome tree + 3-horizon
-  map (Now/Next/Later) + bet selection + capacity allocation + audience-
-  specific communication. Replaces feature-list roadmaps with measurable
-  bets.
+  Outcome-driven product roadmap: North Star metric, measurable outcome
+  tree, Now/Next/Later three-horizon map, bets with appetite and kill
+  criteria, capacity allocation, and per-audience views — replaces
+  feature-list roadmaps with measurable bets. TRIGGER: "roadmap do
+  produto", "build the product roadmap", "define a North Star", "planeia os
+  próximos trimestres", "outcome roadmap", "/pm roadmap". SKIP:
+  company-level direction and market bets -> strategy/growth-strategy
+  (business strategy, not product sequencing); discovering which
+  opportunities matter first -> pm/discovery-plan; shaping a single bet
+  into a pitch -> pm/shape-pitch.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

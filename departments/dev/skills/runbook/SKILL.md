@@ -1,7 +1,14 @@
 ---
 name: dev/runbook
 description: >
-  Generate operational runbooks for deployment, incident response, rollback, and scaling procedures.
+  Generate operational runbooks from service analysis (Google SRE): service
+  overview, health checks, step-by-step deployment with verification, rollback
+  procedures, incident response contacts, and scaling triggers — every command
+  copy-pasteable and staging-tested. TRIGGER: "runbook", "procedimento
+  operacional", "how do we deploy this service", "documenta o rollback",
+  "on-call docs", "/dev runbook". SKIP: responding to a live incident ->
+  dev/incident (runbooks are written BEFORE the fire); general project
+  documentation -> dev/docs.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

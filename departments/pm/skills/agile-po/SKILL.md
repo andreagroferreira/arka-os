@@ -1,9 +1,16 @@
 ---
 name: pm/agile-po
 description: >
-  Agile product ownership: user story writing, acceptance criteria,
-  sprint planning, epic breakdown, backlog prioritization, velocity tracking.
-  INVEST-compliant stories with Given-When-Then acceptance criteria.
+  Full agile product ownership: INVEST user stories with Given-When-Then
+  acceptance criteria, epic breakdown into sprint-sized stories, sprint
+  capacity planning, and value/effort backlog prioritization with velocity
+  tracking. TRIGGER: "faz de product owner", "parte este épico em stories",
+  "break down this epic", "plan the sprint and prioritize", "prioriza o
+  backlog e planeia o sprint", "/pm agile-po". SKIP: writing a single
+  standalone story -> pm/story-write (dedicated story-splitting flow);
+  sprint ceremony alone -> pm/sprint-plan (goal + commitment focus);
+  RICE-scored refinement -> pm/backlog-groom (grooming, not the full PO
+  cycle).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

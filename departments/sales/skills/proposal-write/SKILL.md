@@ -1,8 +1,13 @@
 ---
 name: sales/proposal-write
 description: >
-  Write sales proposals that focus on outcomes, not features.
-  Structure: problem → solution → proof → investment → next steps.
+  Writes an outcome-focused sales proposal (max 5-7 pages): executive summary,
+  client challenge, solution with scope and timeline, proof and case studies,
+  investment with ROI calculation, and next steps. TRIGGER: "proposta
+  comercial", "escreve a proposta para o cliente", "sales proposal", "write
+  the proposal", "orçamento para o cliente", "/sales proposal <client>". SKIP:
+  crafting the public offer, value ladder, or guarantee itself ->
+  landing/offer-create; investor fundraising deck -> finance/pitch-deck.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

@@ -1,9 +1,15 @@
 ---
 name: content/youtube-strategy
 description: >
-  YouTube strategy — channel positioning, title × thumbnail architecture,
-  hook + script structure, SEO + metadata, publishing cadence, cross-platform
-  distribution.
+  Full YouTube channel strategy in 7 deliverables: channel positioning, 10
+  title-thumbnail pairs, hook architecture, retention-mapped script
+  structure, SEO metadata stack, 90-day publishing cadence, and
+  cross-platform derivative spec. TRIGGER: "estratégia para o YouTube", "grow
+  my YouTube channel", "lançar canal de YouTube", "YouTube SEO", "CTR e
+  retenção", "/content youtube". SKIP: one video's packaging only ->
+  content/thumbnail-package; one video's script only ->
+  content/script-structure; Shorts-only content -> content/short-form
+  (vertical short-form, not channel strategy).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

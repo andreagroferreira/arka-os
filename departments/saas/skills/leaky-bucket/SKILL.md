@@ -1,9 +1,14 @@
 ---
 name: saas/leaky-bucket
 description: >
-  Leaky-Bucket gate — audit churn and retention BEFORE approving acquisition
-  spend. Every 1% of churn compounds against LTV forever, so fix the bucket
-  before pouring more in. Owned by the RevOps squad.
+  Leaky-Bucket gate — pass/fail audit of churn, NRR, and activation BEFORE
+  approving acquisition spend, with LTV compounding math; every 1% of churn
+  compounds against LTV forever. Owned by the RevOps squad. TRIGGER:
+  "leaky bucket", "podemos aumentar o investimento em aquisição?", "should
+  we scale acquisition", "gate de retenção antes do CAC", "check NRR before
+  spending", "/saas leaky-bucket". SKIP: gate failed and you need root
+  causes -> saas/churn-analysis (cohort diagnosis, not verdict); fixing the
+  activation drop-off itself -> saas/onboarding-optimize.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

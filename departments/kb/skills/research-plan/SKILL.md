@@ -1,8 +1,15 @@
 ---
 name: kb/research-plan
 description: >
-  Plan and execute research with source evaluation (CRAAP test),
-  synthesis, and Obsidian documentation.
+  Plans and executes structured research: defines the question, gathers
+  academic/industry/expert sources, evaluates them with the CRAAP test,
+  synthesizes findings, and documents everything in Obsidian. TRIGGER: "faz
+  research sobre X", "investiga este tema a fundo", "research plan for X",
+  "plan a literature review", "/kb research <topic>". SKIP: AI-tool-driven
+  source gathering (Perplexity, Elicit) -> kb/ai-research (the AI-tooling arm
+  of this process); rating a single source -> kb/source-evaluate (one CRAAP
+  score, not a full study); competitor dossiers -> kb/competitive-intel
+  (battlecards, not open research).
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,9 +1,15 @@
 ---
 name: landing/landing-gen
 description: >
-  Generate high-converting landing pages as complete TSX components.
-  Hero, features, pricing, FAQ, testimonials, CTA sections with
-  proven copy frameworks (PAS, AIDA, BAB) and SEO optimization.
+  Generate a complete, production-ready landing page as TSX + Tailwind
+  components — hero, features, pricing, FAQ, testimonials, CTA, footer —
+  with copy framework (PAS/AIDA/BAB), design style, SEO checklist and Core
+  Web Vitals targets. TRIGGER: "cria uma landing page", "build a landing
+  page", "gera a página do produto", "landing em Next.js", "página de
+  vendas em código", "/landing gen". SKIP: wireframe or section structure
+  without code -> landing/page-architect; e-commerce product and store
+  pages -> /ecom (store pages live in the shop platform, not standalone
+  landings).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

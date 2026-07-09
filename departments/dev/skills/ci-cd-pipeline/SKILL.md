@@ -1,8 +1,13 @@
 ---
 name: dev/ci-cd-pipeline
 description: >
-  Design and generate CI/CD pipelines from detected project stack.
-  GitHub Actions and GitLab CI with caching, matrix builds, and deployment gates.
+  Design and generate CI/CD pipelines from the detected project stack — GitHub
+  Actions or GitLab CI with lint/test/build/deploy stages, dependency caching,
+  matrix builds, and gated production deploys. TRIGGER: "ci/cd", "pipeline",
+  "github actions", "cria o pipeline", "gitlab ci", "automatiza os testes no
+  CI", "/dev ci-cd-pipeline". SKIP: deployment strategy design (blue-green,
+  canary, GitOps, monitoring) -> dev/devops-pipeline (strategy; this generates
+  the config); executing a deploy right now -> dev/deploy.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

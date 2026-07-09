@@ -1,7 +1,15 @@
 ---
 name: fin/pitch-deck
 description: >
-  Investor pitch deck financials: market size, traction, unit economics, ask.
+  Investor pitch deck financials with Rui (Investment Strategist): market
+  size, traction, unit economics, funding ask, projections and cap-table
+  impact, following the 10-slide Pitch Deck Framework + Venture Deals.
+  TRIGGER: "pitch deck", "slides para investidores", "quanto pedir na
+  ronda", "fundraising deck", "investor deck financials", "/fin pitch".
+  SKIP: computing the underlying CAC/LTV numbers -> fin/unit-economics
+  (this skill presents them); defending a valuation number ->
+  fin/valuation-model; building the projection model behind the slides ->
+  fin/financial-model.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,9 +1,14 @@
 ---
 name: mkt/cold-email
 description: >
-  Write and iterate B2B cold email sequences that get replies.
-  First-touch emails, multi-email sequences, and performance iteration.
-  Uses AIDA framework and peer-level voice calibration.
+  Writes and iterates B2B cold email: single first-touch emails, 5-6
+  email sequences with cadence, and performance-driven revisions, using
+  AIDA, peer-level voice calibration, and deliverability checks. TRIGGER:
+  "cold email", "email frio", "escreve um cold email", "sequência de
+  outreach", "prospecção por email", "/mkt cold-email <mode>". SKIP:
+  lifecycle emails to existing subscribers (welcome, nurture, win-back)
+  -> mkt/email-sequence (owned audiences, not cold prospects); the sales
+  proposal after a reply -> sales/proposal-write.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

@@ -1,8 +1,15 @@
 ---
 name: fin/financial-model
 description: >
-  Build 3-statement financial models (P&L, Balance Sheet, Cash Flow) with
-  scenario analysis. Based on Damodaran methodology.
+  Builds 3-statement financial models — P&L, Balance Sheet, Cash Flow —
+  with base/optimistic/pessimistic scenarios, following Damodaran
+  methodology; outputs model tables, scenario comparison and a key-metrics
+  dashboard. TRIGGER: "modelo financeiro", "financial model", "projeções a
+  3 anos", "3-statement model", "modela o P&L", "/fin model". SKIP:
+  company worth or price -> fin/valuation-model (DCF/comps built on top of
+  the model); cash runway only -> fin/cashflow-forecast; standalone
+  what-if sensitivity -> fin/scenario-analysis (stresses assumptions,
+  doesn't build statements).
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

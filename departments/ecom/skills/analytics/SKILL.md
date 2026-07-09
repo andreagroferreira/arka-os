@@ -1,7 +1,15 @@
 ---
 name: ecom/analytics
 description: >
-  E-commerce analytics: AOV, conversion rate, CLV, ROAS, cart abandonment rate.
+  E-commerce metrics analysis — AOV, conversion rate, CLV, ROAS, and cart
+  abandonment — delivered as a dashboard with funnel visualization and
+  benchmark comparison, plus browser verification that GA4, Meta Pixel, and
+  GTM tracking fire correctly. TRIGGER: "métricas da loja", "qual é o AOV",
+  "store analytics", "conversion rate da loja", "verifica o tracking GA4",
+  "/ecom analytics". SKIP: cross-channel campaign reporting ->
+  marketing/analytics-report (campaign-level, not store-level metrics);
+  diagnosing WHY conversion is low and building a test backlog
+  -> ecom/cro-optimize (research-driven optimization, not measurement).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

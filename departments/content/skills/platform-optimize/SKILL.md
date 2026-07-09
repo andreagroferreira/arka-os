@@ -1,7 +1,15 @@
 ---
 name: content/platform-optimize
 description: >
-  Platform-specific optimization: signals, formats, timing per algorithm.
+  Platform-specific content optimization: algorithm signals, best-performing
+  formats, and posting times for a given platform, delivered as a platform
+  guide. TRIGGER: "otimiza para o Instagram", "how does the TikTok algorithm
+  work", "melhor hora para publicar", "platform algorithm", "formatos que
+  funcionam no LinkedIn", "/content platform". SKIP: choosing WHICH platform
+  to build a community on -> community/platform-select (platform choice, not
+  optimization); overall social channel strategy -> marketing/social-strategy;
+  YouTube specifically -> content/youtube-strategy (dedicated deeper
+  playbook).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

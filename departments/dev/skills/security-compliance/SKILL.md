@@ -1,7 +1,14 @@
 ---
 name: dev/security-compliance
 description: >
-  Security audit preparation, ISMS gap analysis, control assessment, and ISO 27001 certification support for engineering teams.
+  Security audit preparation and ISO 27001 certification support: ISMS gap
+  analysis against clauses 4-10, Annex A control assessment (93 controls),
+  maturity scoring, evidence collection, and finding classification
+  (major/minor NC). TRIGGER: "compliance", "ISO 27001", "ISMS", "auditoria de
+  certificação", "gap analysis de segurança", "audit readiness", "/dev
+  security-compliance". SKIP: hands-on technical vulnerability audit ->
+  dev/security-audit (code and config, not the management system); SOC 2 or
+  GDPR programmes -> ops skills arka-soc2-compliance / arka-gdpr-compliance.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

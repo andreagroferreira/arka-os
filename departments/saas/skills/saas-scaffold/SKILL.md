@@ -1,9 +1,14 @@
 ---
 name: saas/saas-scaffold
 description: >
-  Scaffold a production-ready SaaS project with auth, database, billing,
-  API routes, and dashboard. Generates file tree, schema, and env config.
-  Technical scaffolding — for strategy use saas/mvp-build.
+  Scaffolds a production-ready SaaS project (Next.js App Router) with auth
+  (NextAuth/Clerk/Supabase), database (Drizzle), Stripe billing, API routes,
+  and dashboard — generates file tree, schema, env config, and a 5-phase
+  validation checklist. TRIGGER: "scaffold o SaaS", "cria o projeto SaaS",
+  "boilerplate com auth e Stripe", "set up a new SaaS codebase", "/saas
+  scaffold <stack>". SKIP: deciding WHAT goes in the first version ->
+  saas/mvp-build (scope precedes code); generic non-SaaS project setup ->
+  dev/scaffold (stack scaffolding without billing/auth SaaS assumptions).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

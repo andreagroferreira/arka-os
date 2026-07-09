@@ -1,7 +1,15 @@
 ---
 name: ecom/pricing-strategy
 description: >
-  Pricing strategy: value-based analysis, psychological pricing, competitor positioning.
+  E-commerce pricing strategy — value-based analysis, psychological pricing,
+  dynamic pricing, and competitor positioning, delivering a pricing
+  recommendation with competitor comparison and margin analysis. TRIGGER:
+  "define o preço do produto", "quanto devo cobrar", "pricing da loja",
+  "psychological pricing", "preço face à concorrência", "/ecom pricing
+  <product>". SKIP: recurring SaaS plan tiers -> saas/pricing-strategy
+  (subscription software economics, not physical SKUs); pricing inside a full
+  launch package -> ecom/product-launch (ships a 4-tier pricing ladder);
+  recurring commerce subscriptions -> ecom/subscription-model.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

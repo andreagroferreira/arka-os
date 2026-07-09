@@ -1,7 +1,13 @@
 ---
 name: org/team-assess
 description: >
-  Team assessment: topology type, cognitive load, skill gaps, interaction patterns.
+  Assesses a single team with Team Topologies: topology type, cognitive load,
+  skill gaps, and interaction patterns, delivering a topology recommendation
+  and improvement actions. TRIGGER: "avalia esta equipa", "a equipa está
+  sobrecarregada", "team assessment", "cognitive load da equipa", "skill
+  gaps", "/org assess <team>". SKIP: restructuring the whole organization ->
+  org/org-design (multi-team redesign); trust, conflict, or accountability
+  dysfunction -> lead/team-health (Lencioni Five Dysfunctions).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

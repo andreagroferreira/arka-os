@@ -1,7 +1,13 @@
 ---
 name: org/org-design
 description: >
-  Organizational design: team topology, cognitive load, Conway's Law alignment.
+  Designs the organization with Team Topologies (Skelton/Pais): team map,
+  topology types, interaction modes, cognitive-load balance, Conway's Law
+  alignment, and an evolution path. TRIGGER: "desenha o organograma",
+  "reestruturar as equipas", "org design", "team topology", "estrutura da
+  empresa", "/org design <company>". SKIP: diagnosing one existing team rather
+  than redesigning the org -> org/team-assess; trust and conflict dysfunction
+  inside a team -> lead/team-health (Lencioni, not structure).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

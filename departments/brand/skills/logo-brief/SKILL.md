@@ -1,7 +1,13 @@
 ---
 name: brand/logo
 description: >
-  Logo concept generation: brief, mood references, AI-generated concepts.
+  Generates logo concepts from a brief: mood references, AI-generated concept
+  directions, variations, rationale, and usage guidelines. TRIGGER: "logo
+  brief", "cria um logo", "desenha o logótipo", "logo concepts", "preciso de
+  um logo", "/brand logo <brief>". SKIP: logo as part of a whole identity
+  (strategy + verbal + visual) -> brand/identity-system (order matters, the
+  logo comes last); applying an existing logo to product, packaging, or social
+  scenes -> brand/mockup-generate.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

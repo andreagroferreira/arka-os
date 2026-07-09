@@ -6,17 +6,15 @@ description: >
   synthesis, visual companion, and an approved ForgePlan persisted to
   Obsidian before execution.
   TRIGGER: load BEFORE implementation planning of MEDIUM/HIGH complexity
-  work (evidence-flow Gate 2 scores via core/forge/complexity.py) —
-  never start executing complex work without a ForgePlan; user types
-  "/forge", "/arka-forge", "planeia", "faz um plano", "plano de
+  work (evidence-flow Gate 2 scores via core/forge/complexity.py); user
+  types "/forge", "/arka-forge", "planeia", "faz um plano", "plano de
   implementação", "compara abordagens", "plan this", "plan before
   coding", "forge a plan", or a plan-lifecycle command (resume, status,
   history, show, compare, patterns, cancel).
-  SKIP: requirements, acceptance criteria, or "spec/especificação"
-  definition — arka-dev-spec wins (Forge plans HOW, spec defines WHAT);
-  knowledge gathering or "pesquisa/research" — arka-research wins;
-  LOW-complexity tasks — a short inline Gate 2 plan in arka-flow is
-  enough, no Forge ceremony.
+  SKIP: requirements or "spec/especificação" definition — arka-dev-spec
+  wins (Forge plans HOW, spec defines WHAT); knowledge gathering or
+  "pesquisa/research" — arka-research wins; LOW-complexity tasks — an
+  inline Gate 2 plan in arka-flow suffices.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

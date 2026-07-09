@@ -1,7 +1,15 @@
 ---
 name: saas/customer-success
 description: >
-  Customer success playbook: onboard, adopt, expand, renew, advocate.
+  Builds a customer success playbook across the lifecycle — onboard, adopt,
+  expand, renew, advocate — with health score model, touchpoint cadence,
+  and expansion plays (Lincoln Murphy). TRIGGER: "customer success
+  playbook", "plano de sucesso do cliente", "health score dos clientes",
+  "renewal and expansion plan", "gerir contas em risco", "/saas cs
+  <account>". SKIP: aggregate churn numbers and cohorts ->
+  saas/churn-analysis (metrics diagnosis, not account playbooks);
+  self-serve signup activation -> saas/onboarding-optimize (product
+  onboarding, not managed accounts).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,8 +1,14 @@
 ---
 name: mkt/seo-audit
 description: >
-  Full SEO audit covering technical SEO, on-page, content gaps, and link profile.
-  Uses Pillar-Cluster model, E-E-A-T, and Core Web Vitals.
+  Full SEO audit: technical SEO (Core Web Vitals, sitemap, canonicals),
+  on-page, pillar-cluster content gaps, E-E-A-T signals, and link
+  profile. TRIGGER: "SEO audit", "auditoria SEO", "porque não estou a
+  rankear", "revê o SEO do site", "Core Web Vitals", "/mkt seo audit
+  <url>". SKIP: generating new SEO pages at scale -> mkt/programmatic-seo
+  (builds, this audits); content performance and pruning ->
+  mkt/content-audit; competitor SEO comparison ->
+  mkt/competitor-analysis.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

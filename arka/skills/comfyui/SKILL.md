@@ -1,14 +1,17 @@
 ---
 name: arka-comfyui
 description: >
-  ComfyUI ecosystem orchestrator. Two specialized squads: ComfyUI Core (workflow engineering,
-  custom nodes research, model discovery, pipeline optimization, API automation) and
-  Hollywood Cinematographic Production (directing, cinematography, color grading, VFX,
-  sound design, editing, motion graphics). Manages 2 projects: purz-comfyui-workflows
-  (production-ready workflow collection) and lora_tester (LoRA batch testing toolkit).
-  Full AI video production pipeline from concept to final cut.
-  Use when user says "comfyui", "comfy", "workflow", "video production", "cinematography",
-  "generate video", "text to video", "image to video", or wants to work with ComfyUI.
+  ComfyUI ecosystem orchestrator — two squads (ComfyUI Core: workflow
+  engineering, custom nodes, model discovery, VRAM/API optimisation;
+  Cinematographic Production: directing, DP, color grading, VFX, sound,
+  editing) over purz-comfyui-workflows and lora_tester, with full AI video
+  pipelines (t2v/i2v/a2v, upscale, interpolate, mask) from concept to
+  final cut. TRIGGER: "/comfyui" and its subcommands (workflow, node,
+  model, produce, pipeline, lora test), "comfyui", "comfy", "gera um
+  vídeo", "produção de vídeo AI", "text to video", "image to video",
+  "cinematography". SKIP: brand visual identity or static design assets
+  -> /brand (Valentina); design-token extraction or WCAG audits ->
+  arka-design-ops (production rails, not media generation).
 ---
 
 # ComfyUI Ecosystem Orchestrator — ARKA OS

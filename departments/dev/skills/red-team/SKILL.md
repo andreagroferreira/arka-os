@@ -1,7 +1,16 @@
 ---
 name: dev/red-team
 description: >
-  Offensive security engagement planning: MITRE ATT&CK kill-chain, technique scoring, attack path analysis, OPSEC assessment.
+  Offensive security engagement planning with MITRE ATT&CK and the Cyber Kill
+  Chain: technique scoring, attack path analysis, OPSEC assessment, and crown
+  jewel targeting — requires signed Rules of Engagement. TRIGGER: "red team",
+  "adversary simulation", "simula um ataque", "attack path", "kill chain",
+  "planeia o pentest", "/dev red-team". SKIP: adversarially breaking a
+  specific code diff or design (abuse cases, not a campaign) ->
+  dev/adversarial-review (reviews an artifact, not an engagement); defensive
+  code/config audit (OWASP Top 10) -> dev/security-audit (defense, not
+  offense); AI/LLM attack surface -> dev/ai-security; certification evidence
+  -> dev/security-compliance.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

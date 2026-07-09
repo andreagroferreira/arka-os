@@ -1,7 +1,13 @@
 ---
 name: org/onboarding-design
 description: >
-  Onboarding program: first day, first week, first month, 90-day milestones.
+  Designs an employee onboarding program per role: first day, first week,
+  first month, and 90-day milestones with buddies and success metrics.
+  TRIGGER: "programa de onboarding", "plano dos primeiros 90 dias", "employee
+  onboarding", "ramp-up do novo colaborador", "/org onboarding <role>". SKIP:
+  product or user onboarding and activation in a SaaS ->
+  saas/onboarding-optimize (customers, not employees); everything before the
+  offer is signed -> org/hiring-plan.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

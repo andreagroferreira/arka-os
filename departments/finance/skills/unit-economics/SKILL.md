@@ -1,8 +1,15 @@
 ---
 name: fin/unit-economics
 description: >
-  Unit economics analysis: CAC, LTV, payback, Rule of 40, NRR.
-  With SaaS benchmarks from KeyBanc and Meritech.
+  Unit economics analysis: CAC, LTV, LTV:CAC, payback, Rule of 40, NRR,
+  burn multiple and magic number, benchmarked against KeyBanc/Meritech
+  private-SaaS quartiles, with a traffic-light dashboard and improvement
+  recommendations. TRIGGER: "unit economics", "qual é o nosso CAC", "LTV
+  to CAC", "payback period", "Rule of 40", "/fin unit-economics". SKIP:
+  ongoing KPI tracking and dashboard build -> saas/metrics-dashboard
+  (operational dashboard, not one-off diagnosis); fixing churn drivers
+  behind weak NRR -> saas/churn-analysis; setting price points ->
+  saas/pricing-strategy.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

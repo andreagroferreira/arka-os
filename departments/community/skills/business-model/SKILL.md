@@ -1,8 +1,15 @@
 ---
 name: community/business-model
 description: >
-  Design a community business model: purpose, ideal member, value proposition,
-  monetization, platform selection, and growth strategy.
+  Designs a community business model with the Community BMC + SPACES
+  framework: purpose, ideal member, value proposition, engagement model,
+  monetization streams, retention, platform, and 1000-true-fans math.
+  TRIGGER: "modelo de negócio da comunidade", "como ganhar dinheiro com a
+  comunidade", "community business model", "is my community viable",
+  "/community model <niche>". SKIP: company or product business model
+  canvas -> strat/bmc (general BMC, not community); executing the revenue
+  plan -> community/monetize-plan; full launch package ->
+  community/niche-setup.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

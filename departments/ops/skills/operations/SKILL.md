@@ -1,14 +1,14 @@
 ---
 name: arka-operations
 description: >
-  Operations department. Task management via ClickUp, email drafting via Gmail, calendar
-  management via Google Calendar, meeting scheduling and agenda preparation, invoice generation,
-  process automation with SOP creation, operational reports, client onboarding checklists,
-  daily standups, and multi-platform messaging (Slack, Discord, WhatsApp, Teams). Manages
-  notification channels and broadcasts. All output saved to Obsidian vault.
-  Use when user says "ops", "tasks", "email", "calendar", "automate", "invoice", "meeting",
-  "workflow", "process", "schedule", "channel", "notify", "broadcast", "onboard client",
-  "standup", "slack", "discord", "whatsapp", "teams", or any operational task.
+  Operations department orchestrator (Sofia COO squad): ClickUp tasks, Gmail email
+  drafting, Google Calendar and meeting prep, invoices, operational reports, client
+  onboarding, daily standups, and multi-platform notifications/broadcasts (Slack,
+  Discord, WhatsApp, Teams), with all output saved to Obsidian. TRIGGER: "trata das
+  minhas tasks", "envia um email", "agenda uma reunião", "invoice for client X", "daily
+  standup", "/ops <command>". SKIP: designing a reusable automation on n8n/Zapier/Make ->
+  ops/workflow-automate (flow design, not day-to-day execution); writing a formal
+  procedure document -> ops/sop-create.
 ---
 
 # Operations Department — ARKA OS

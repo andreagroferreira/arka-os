@@ -1,8 +1,14 @@
 ---
 name: landing/webinar-funnel
 description: >
-  Webinar funnel design — registration page, reminder sequence, live pitch
-  script structure, replay/cart sequence, conversion targets.
+  Full webinar funnel (Brunson Perfect Webinar + false-belief patterns):
+  registration page, 5-email reminder sequence, timed live pitch script
+  with offer stack, replay/cart sequence, conversion targets and tracking
+  spec. TRIGGER: "webinar funnel", "funil de webinar", "cria um webinar",
+  "webinar pitch script", "perfect webinar", "/landing webinar". SKIP:
+  choosing among funnel types when webinar is not yet decided ->
+  landing/funnel-design (it selects the funnel; this executes the webinar
+  path); non-webinar launch emails -> landing/launch-sequence.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

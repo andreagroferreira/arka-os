@@ -1,9 +1,16 @@
 ---
 name: saas/voc-loop
 description: >
-  Voice of Customer loop — collect signal, close the loop with the customer,
-  cluster the themes, and run PDCA. Only 1 in 26 unhappy customers complains,
-  so closing the loop beats collecting more. Owned by the RevOps squad.
+  Voice of Customer loop — collect signal (NPS, CSAT, CES, tickets, churn
+  reasons), close the loop with the customer, cluster themes, and run PDCA;
+  only 1 in 26 unhappy customers complains, so closing the loop beats
+  collecting more. Owned by the RevOps squad. TRIGGER: "voice of customer",
+  "VoC", "feedback dos clientes", "fecha o loop com o cliente",
+  "NPS/CSAT/CES program", "/saas voc-loop". SKIP: quantitative churn
+  cohorts and retention curves -> saas/churn-analysis (numbers, not
+  voice); acting on
+  one account's feedback -> saas/customer-success (account playbook, not
+  theme clustering).
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

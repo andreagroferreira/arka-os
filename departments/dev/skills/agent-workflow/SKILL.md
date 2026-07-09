@@ -1,8 +1,15 @@
 ---
 name: dev/agent-workflow
 description: >
-  Design production-grade multi-agent workflows with pattern selection,
-  handoff contracts, failure handling, and cost/context controls.
+  Design production-grade multi-agent workflows — pattern selection
+  (sequential, parallel, router, orchestrator, evaluator), handoff contracts,
+  validation gates, failure handling, and cost/context budgets (Workflow
+  Orchestration Patterns). TRIGGER: "agent workflow", "orquestra os agentes",
+  "workflow de agentes", "handoff between agents", "pipeline de subagents",
+  "/dev agent-workflow"; load BEFORE implementing orchestration code. SKIP:
+  defining the agents themselves (roles, tools, guardrails, memory) ->
+  dev/agent-design (it shapes the AGENTS; this wires the FLOW); one-off
+  complex task planning -> /arka-forge.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

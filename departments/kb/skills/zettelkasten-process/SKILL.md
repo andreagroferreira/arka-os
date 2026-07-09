@@ -1,8 +1,15 @@
 ---
 name: kb/zettelkasten-process
 description: >
-  Process content through the Zettelkasten workflow: fleeting → literature → permanent notes.
-  Based on Niklas Luhmann's method, modernized by Sönke Ahrens.
+  Processes content through the Zettelkasten workflow (Luhmann/Ahrens):
+  fleeting -> literature -> permanent notes, enforcing atomic one-idea notes,
+  own-words rephrasing, and 2+ links per note in Obsidian. TRIGGER: "processa
+  estas notas", "transforma em notas permanentes", "zettelkasten this",
+  "make atomic notes from this reading", "/kb zettelkasten <note>". SKIP:
+  ingesting a new external source (video, PDF, URL) -> kb/learn-content
+  (download and transcribe pipeline comes first); creating an index once a
+  cluster reaches 10+ notes -> kb/moc-create (MOCs come after permanent notes
+  accumulate).
 allowed-tools: [Read, Write, Edit, Grep, Glob]
 ---
 

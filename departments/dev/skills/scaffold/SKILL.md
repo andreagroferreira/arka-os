@@ -1,11 +1,14 @@
 ---
 name: arka-dev-scaffold
 description: >
-  Project scaffolding from real git repositories. Creates new Laravel, Nuxt, Vue, React, or
-  Next.js projects with automated dependency installation, mandatory packages, MCP configuration,
-  Laravel Herd linking, Obsidian project pages, and initial git commit. Full-stack monorepo support.
-  Use when user says "scaffold", "new project", "create project", "start project", "bootstrap",
-  "init project", "setup project", or wants to create a new codebase from a template.
+  Project scaffolding from real git starter repos: creates NEW Laravel, Nuxt,
+  Vue, React, or Next.js projects with dependency installation, mandatory
+  packages, MCP configuration, Laravel Herd linking, Obsidian pages, and
+  initial commit; full-stack monorepo support. TRIGGER: "scaffold", "new
+  project", "cria um projeto novo", "bootstrap", "começa um projeto Laravel",
+  "setup project", "/dev scaffold". SKIP: bringing an EXISTING codebase into
+  ARKA OS -> dev/onboard (analysis and registration, not creation); only
+  adding MCPs to a current project -> dev/mcp.
 ---
 
 # Project Scaffolding — ARKA OS Dev Department

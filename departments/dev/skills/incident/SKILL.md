@@ -1,7 +1,14 @@
 ---
 name: dev/incident
 description: >
-  Incident response framework: severity classification, timeline reconstruction, runbook execution, stakeholder communication, and post-incident review.
+  Incident response with Google SRE incident management: severity
+  classification (SEV1-4), incident commander checklist, war room setup,
+  mitigation (rollback vs fix-forward), stakeholder communication templates,
+  and blameless post-incident review. TRIGGER: "incident", "produção em
+  baixo", "outage", "site is down", "SEV1", "estamos com um incidente", "/dev
+  incident"; load IMMEDIATELY when production breaks. SKIP: writing the
+  procedures before anything breaks -> dev/runbook (preparation, not
+  response); planned rollback as part of a release -> dev/release.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

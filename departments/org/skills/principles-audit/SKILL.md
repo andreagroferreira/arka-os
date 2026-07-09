@@ -1,9 +1,14 @@
 ---
 name: org/principles-audit
 description: >
-  Annual audit against the 10 Principles of Effective Organizations. Score 1-5
-  per principle, prioritise the 2-3 weakest, and produce a quarterly plan. The
-  three make-or-break principles are Empowerment, Leadership culture, Reward.
+  Annual org-health audit against the 10 Principles of Effective
+  Organizations: score 1-5 per principle with evidence, flag the make-or-break
+  three (Empowerment, Reward, Leadership culture), and produce a quarterly
+  improvement plan with owners. TRIGGER: "auditoria organizacional", "org
+  health check", "audit the organization", "10 princípios", "principles
+  audit", "/org principles-audit". SKIP: values lived-vs-stated assessment ->
+  lead/culture-audit (culture, not org effectiveness); acting on a
+  weak-structure finding -> org/org-design (the redesign itself).
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

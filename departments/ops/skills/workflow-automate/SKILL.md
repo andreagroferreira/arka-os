@@ -1,8 +1,13 @@
 ---
 name: ops/workflow-automate
 description: >
-  Design workflow automations using n8n, Zapier, or Make.
-  Selects the right platform, designs the flow, handles errors.
+  Designs workflow automations end to end: selects the right platform (n8n, Zapier, or
+  Make), applies the matching design pattern, and specifies mandatory error handling
+  (retries, dead letter queue, alerts, idempotency). TRIGGER: "automatiza este processo",
+  "automate this workflow", "cria uma automação", "que ferramenta de automação uso",
+  "/ops workflow <process>". SKIP: platform already fixed -> ops/n8n-flow or
+  ops/zapier-flow (platform-specific step design); code build-test-deploy pipelines ->
+  dev/ci-cd-pipeline (software delivery, not business-process automation).
 allowed-tools: [Read, Write, Edit, Agent, WebFetch]
 ---
 

@@ -1,8 +1,14 @@
 ---
 name: landing/offer-create
 description: >
-  Create irresistible offers using Hormozi's Grand Slam Offer formula and Value Equation.
-  Outputs: offer breakdown, bonus stack, guarantee, pricing, objection handling.
+  Create an irresistible offer with Hormozi's Grand Slam Offer formula and
+  Value Equation: dream outcome, problem list, solution bundle, bonus
+  stack, guarantee type, value-anchored pricing, and real scarcity.
+  TRIGGER: "cria a oferta", "grand slam offer", "oferta irresistível",
+  "bonus stack", "structure my offer", "garantia e preço da oferta",
+  "/landing offer". SKIP: a client-specific sales proposal document ->
+  sales/proposal-write (proposals sell to ONE prospect; offers are
+  productised); page copy presenting the offer -> landing/copy-framework.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

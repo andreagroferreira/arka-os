@@ -1,7 +1,13 @@
 ---
 name: landing/email-sequence
 description: >
-  Email sequence: cart abandonment, nurture, launch, post-purchase.
+  Standalone email sequence design — cart abandonment, nurture, launch,
+  post-purchase — with subject lines, body copy, timing, and segmentation
+  (PLF + Schwartz). TRIGGER: "email sequence", "sequência de emails",
+  "emails de carrinho abandonado", "nurture emails", "emails pós-compra",
+  "/landing email". SKIP: full PLF product launch with PLC content and cart
+  timeline -> landing/launch-sequence; webinar reminder and replay emails
+  -> landing/webinar-funnel (both own their sequences end-to-end).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

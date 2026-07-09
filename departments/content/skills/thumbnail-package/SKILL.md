@@ -1,7 +1,14 @@
 ---
 name: content/thumbnail-package
 description: >
-  Thumbnail and title packaging: 5+ variants for A/B testing.
+  Thumbnail and title packaging (MrBeast method): 5+ title/thumbnail variants
+  for A/B testing with curiosity-gap scoring. TRIGGER: "faz a thumbnail",
+  "thumbnail ideas", "título para o vídeo", "video title and thumbnail",
+  "packaging do vídeo", "/content thumbnail". SKIP: full channel strategy
+  where packaging is one of seven deliverables -> content/youtube-strategy;
+  spoken or written hooks for the content itself -> content/hook-write;
+  actual image asset production -> brand/mockup-generate (visual design
+  execution).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,7 +1,13 @@
 ---
 name: brand/naming-evaluate
 description: >
-  Generate and evaluate brand names using Alexandra Watkins' SMILE & SCRATCH framework.
+  Generates 30+ brand name candidates across six categories and evaluates them
+  with Alexandra Watkins' SMILE & SCRATCH framework, plus domain and social
+  handle checks, down to a 5-name shortlist. TRIGGER: "nome para a marca",
+  "sugere nomes", "brand naming", "avalia este nome", "is this a good name",
+  "/brand naming <project>". SKIP: the name exists and needs a market position
+  -> brand/positioning-statement; defining the personality behind the name ->
+  brand/archetype-finder.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

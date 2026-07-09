@@ -1,7 +1,14 @@
 ---
 name: saas/mvp-build
 description: >
-  MVP scope definition: core features, activation metric, time-to-value target.
+  Defines MVP scope: core feature set, activation metric, time-to-value
+  target, and acceptance criteria for a SaaS first version. TRIGGER:
+  "define o MVP", "MVP scope", "que features entram na v1", "what goes in
+  the first version", "métrica de ativação do MVP", "/saas mvp <product>".
+  SKIP: generating the actual project code -> saas/saas-scaffold (files and
+  stack, not scope); idea not yet validated -> saas/validate-idea (validate
+  before scoping); formal implementation spec for the dev squad -> dev/spec
+  (engineering requirements, not product scope).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

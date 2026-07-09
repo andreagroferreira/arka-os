@@ -1,11 +1,17 @@
 ---
 name: arka-checkpoint
 description: >
-  Inter-agent checkpoint pattern for ArkaOS long-running multi-agent
-  work. Fragments work into 2-3min sub-dispatches and emits proactive
+  Inter-agent checkpoint pattern for long-running multi-agent work —
+  fragments work into ~3-min sub-dispatches and emits proactive
   [arka:checkpoint] prompts so the user can inject context mid-task or
-  abort cleanly. Implements the inter-agent-checkpoints SHOULD
-  rule from the v2.32.0 Constitution.
+  abort cleanly (inter-agent-checkpoints SHOULD rule,
+  core/orchestration/checkpoint.py). TRIGGER: "/arka checkpoint", any
+  orchestration expected to block the user >30s — multi-reviewer Quality
+  Gate, Forge explorer fan-out, research fan-out, sequential phase
+  dispatches; "quero poder intervir a meio", "avisa-me entre passos",
+  "let me add context mid-task". SKIP: work under 30 seconds or a single
+  dispatch — run directly, fragmentation adds overhead; planning the work
+  itself -> arka-forge (checkpoint paces the run, not the plan).
 allowed-tools: [Read]
 ---
 

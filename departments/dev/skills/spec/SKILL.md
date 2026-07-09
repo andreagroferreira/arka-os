@@ -1,20 +1,17 @@
 ---
 name: arka-dev-spec
 description: >
-  Spec-driven development gate, constitution MUST rule spec-driven (Constitution #7 — no code
-  without an approved spec): creates, validates, and manages feature
-  specifications with the Living Specs engine (core/specs/), covering scope,
-  acceptance criteria, data model, API contracts, UI/UX requirements, edge
-  cases, and test scenarios. TRIGGER: "spec", "specification",
-  "requirements", "requisitos", "define feature", "write spec", "escreve a
-  spec", "critérios de aceitação", "describe what to build", "/dev spec";
-  auto-invoked as Phase 0 of every code-modifying dev workflow (/dev
-  feature, /dev api, /dev db, code-modifying /dev do) — load BEFORE writing
-  any code. SKIP: multi-agent planning, complexity escalation, or "how do
-  we execute this" -> /arka-forge (the Forge plans the WORK; spec defines
-  the WHAT — requirements and acceptance criteria); reviewing existing code
-  -> dev/code-review; /dev debug and /dev refactor operate on existing code
-  and need no new spec.
+  Spec-driven development gate, constitution MUST rule spec-driven
+  (Constitution #7 — no code without an approved spec): creates, validates,
+  and manages feature specifications with the Living Specs engine
+  (core/specs/) — scope, acceptance criteria, data model, API contracts,
+  edge cases, test scenarios. TRIGGER: "spec", "requirements", "requisitos",
+  "write spec", "escreve a spec", "critérios de aceitação", "/dev spec";
+  auto-invoked as Phase 0 of every code-modifying dev workflow — load BEFORE
+  writing any code. SKIP: multi-agent planning or "how do we execute this"
+  -> /arka-forge (the Forge plans the WORK; spec defines the WHAT);
+  reviewing existing code -> dev/code-review; /dev debug and /dev refactor
+  operate on existing code and need no new spec.
 ---
 
 # Spec-Driven Development — ARKA OS Dev Department

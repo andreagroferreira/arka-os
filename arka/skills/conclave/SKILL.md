@@ -1,9 +1,17 @@
 ---
 name: arka-conclave
 description: >
-  The Conclave — Personal AI Advisory Board. 20 real-world advisor personas
-  matched to your behavioral DNA. 5 aligned (think like you) + 5 contrarian
-  (challenge your blind spots). Profiling via 17 structured questions.
+  The Conclave — personal AI advisory board: 20 real-world advisor
+  personas (Munger, Dalio, Naval, Hormozi...) matched to your behavioral
+  DNA via 17-question profiling, 5 aligned + 5 contrarian; ask all ten,
+  debate a topic, deep-dive one advisor, profile persisted at
+  ~/.arkaos/conclave-profile.json. TRIGGER: "/arka conclave" (profile,
+  view, ask, advisor, debate, aligned, contrarian), "pergunta ao meu
+  board", "o que diria o Munger", "ask my advisors", "advisory board",
+  "debate this decision". SKIP: department-grade strategy deliverables
+  (BMC, five forces, positioning) -> /strat commands (real analysis, not
+  persona takes); planning multi-agent execution -> arka-forge (the
+  Conclave advises the human, it does not plan work).
 allowed-tools: [Read, Write, Edit, Bash, Agent, AskUserQuestion]
 ---
 

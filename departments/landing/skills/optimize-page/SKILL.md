@@ -1,7 +1,14 @@
 ---
 name: landing/optimize-page
 description: >
-  Landing page CRO: heuristic analysis, heatmap review, test prioritization.
+  Landing page CRO with ResearchXL: heuristic analysis, heatmap review, and
+  a prioritized test backlog for an existing page. TRIGGER: "otimiza a
+  página", "optimize the landing page", "a página não converte", "CRO",
+  "conversion audit", "/landing optimize". SKIP: planning one specific
+  experiment -> landing/ab-test (this skill decides WHAT to test, that one
+  designs the test); funnel-wide drop-off diagnosis ->
+  landing/funnel-metrics; building a new page from scratch ->
+  landing/landing-gen.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

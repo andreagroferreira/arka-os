@@ -1,7 +1,14 @@
 ---
 name: brand/voice-guide
 description: >
-  Brand voice and tone guide: personality, vocabulary, do's/don'ts, examples per channel.
+  Creates a brand voice and tone guide — personality, vocabulary, do's and
+  don'ts, tone matrix, and channel-specific examples — using StoryBrand and
+  the Primal sacred lexicon. TRIGGER: "brand voice", "tom de voz da marca",
+  "voice guide", "define o tom de comunicação", "como é que a marca fala",
+  "/brand voice <context>". SKIP: writing actual copy with that voice ->
+  landing/copy-framework or content/hook-write (they produce content, this
+  produces the rules); personality still undefined -> brand/archetype-finder
+  first.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

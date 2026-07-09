@@ -1,7 +1,13 @@
 ---
 name: ops/soc2-compliance
 description: >
-  SOC 2 readiness assessment, Trust Services Criteria mapping, control matrix generation, evidence collection, and audit preparation.
+  SOC 2 Type I/II readiness assessment: Trust Services Criteria mapping, control matrix
+  generation, evidence collection planning, and audit preparation with readiness scoring.
+  TRIGGER: "SOC 2", "SOC2", "Trust Services Criteria", "auditoria SOC 2", "clientes
+  enterprise pedem SOC 2", "vendor security questionnaire", "/ops soc2-compliance". SKIP:
+  international ISMS certification -> ops/iso27001 (ISO route, not AICPA attestation); EU
+  personal-data obligations -> ops/gdpr-compliance; technical vulnerability testing ->
+  dev/security-audit.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
