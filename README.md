@@ -2,7 +2,7 @@
 
 **The Operating System for AI Agent Teams.**
 
-82 agents. 17 departments. 268 skills. Enterprise frameworks. Multi-runtime. One install.
+82 agents. 17 departments. 269 skills. Enterprise frameworks. Multi-runtime. One install.
 
 ```bash
 npx arkaos install

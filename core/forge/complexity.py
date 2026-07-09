@@ -107,6 +107,15 @@ def _score_ambiguity(prompt: str, files: list[str]) -> int:
     return max(0, min(100, score))
 
 
+def score_prompt_ambiguity(prompt: str, files: list[str] | None = None) -> int:
+    """Public 0-100 vagueness score for a user prompt.
+
+    Consumed by the UserPromptSubmit hook to suggest `/arka refine`
+    (Interaction Reform PR5) — regex-only, no I/O, hook-budget safe.
+    """
+    return _score_ambiguity(prompt or "", files or [])
+
+
 def _score_risk(prompt: str, files: list[str]) -> int:
     score = 20
     risk_matches = len(_RISK_KEYWORDS.findall(prompt))

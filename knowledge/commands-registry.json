@@ -1,11 +1,11 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-09T15:18:25Z",
-    "total_commands": 262,
+    "generated": "2026-07-09T18:29:02Z",
+    "total_commands": 263,
     "generator": "core/registry/generator.py",
     "departments": {
-      "arka": 19,
+      "arka": 20,
       "brand": 12,
       "community": 14,
       "content": 14,
@@ -309,6 +309,19 @@
       "command": "/arka resume <PR_URL>",
       "department": "arka",
       "description": "Re-enter the Claude Code session that produced a PR (GitHub / GitLab / Bitbucket). Wraps the native `/resume` from Claude Code 2.1.122+. Useful with `arka-dev-spec` and `arka-release` archaeology.",
+      "lead_agent": "arka",
+      "keywords": [],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "arka-refine",
+      "command": "/arka refine <rough idea>",
+      "department": "arka",
+      "description": "Turn a vague or domain-unfamiliar ask into a precise English prompt by asking about the topic first (arka-refine). Auto-suggested on vague requests.",
       "lead_agent": "arka",
       "keywords": [],
       "examples": [],
