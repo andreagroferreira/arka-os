@@ -147,6 +147,8 @@ def _run_gemini_cli(cmd: list[str]) -> subprocess.CompletedProcess:
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=_TIMEOUT_SECONDS,
             check=False,
         )

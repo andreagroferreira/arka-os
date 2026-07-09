@@ -152,7 +152,8 @@ def _run_claude_cli(cmd: list[str]) -> subprocess.CompletedProcess:
 
     try:
         return subprocess.run(
-            cmd, capture_output=True, text=True, timeout=60, check=False
+            cmd, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=60, check=False
         )
     except subprocess.TimeoutExpired as exc:
         raise LLMUnavailable("claude CLI timed out after 60s") from exc
