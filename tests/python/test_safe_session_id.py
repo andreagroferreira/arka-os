@@ -62,6 +62,19 @@ class TestSafeSessionId:
         # form too to keep the allowlist conservative.
         assert safe_session_id("/..") is None
 
+    def test_rejects_dot_only_tokens(self) -> None:
+        # QG 2026-07-09: "." / ".." / "..." pass the char allowlist but
+        # are filesystem traversal/self-reference — a `delete ..` on a
+        # slug-backed store would rmtree the parent. Reject outright.
+        for token in (".", "..", "...", "...."):
+            assert safe_session_id(token) is None, token
+
+    def test_still_accepts_dotted_names(self) -> None:
+        # A name that merely CONTAINS dots stays valid — only the
+        # all-dots forms reject.
+        assert safe_session_id("v1.2.3") == "v1.2.3"
+        assert safe_session_id("bridge-1234.tmp") == "bridge-1234.tmp"
+
     def test_rejects_unicode(self) -> None:
         assert safe_session_id("sessão-ñ") is None
 

@@ -56,7 +56,8 @@ resumes at the right gate.
   anything substantive they do not cover. Cite what you use with
   `[[wikilinks]]` or `file:line`; declare gaps explicitly.
 - Read the live context: profile, CLAUDE.md, git branch, cwd tag,
-  pattern cards (L7.5), agent experiences (L2.6).
+  pattern cards (L7.5), validated recipes (L7.6 — QG-approved prior
+  builds to adapt), agent experiences (L2.6).
 
 ### Gate 2 — PLAN `[arka:gate:2]`
 
