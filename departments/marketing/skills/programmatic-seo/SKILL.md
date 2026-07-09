@@ -1,9 +1,14 @@
 ---
 name: mkt/programmatic-seo
 description: >
-  Build SEO-optimized pages at scale using templates and data.
-  12 playbooks: Templates, Curation, Conversions, Comparisons, Examples,
-  Locations, Personas, Integrations, Glossary, Translations, Directory, Profiles.
+  Builds SEO-optimized pages at scale from templates plus data, using 12
+  playbooks (templates, comparisons, locations, personas, integrations,
+  glossary, directories, more) with demand validation, data-defensibility
+  tiers, and indexation strategy. TRIGGER: "programmatic SEO", "pSEO",
+  "páginas SEO em escala", "gera páginas por template", "uma página por
+  cidade/keyword", "/mkt programmatic-seo <niche>". SKIP: auditing an
+  existing site's SEO health -> mkt/seo-audit (diagnosis, not page
+  generation); hand-written editorial content plan -> mkt/calendar-plan.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

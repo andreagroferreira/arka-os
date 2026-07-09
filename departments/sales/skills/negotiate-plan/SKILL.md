@@ -1,7 +1,13 @@
 ---
 name: sales/negotiate-plan
 description: >
-  Negotiation planning: BATNA, ZOPA, anchoring, concession strategy.
+  Plans a negotiation with the BATNA framework: BATNA and walk-away point,
+  ZOPA mapping, anchoring strategy, and a concession ladder. TRIGGER: "prepara
+  a negociação", "negotiation plan", "BATNA", "qual é o nosso walk-away?",
+  "estratégia de concessões", "/sales negotiate <deal>". SKIP: negotiation
+  purely about price or discount pressure -> sales/pricing-negotiate (value
+  anchors and margin protection); a single objection to answer ->
+  sales/objection-handle.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

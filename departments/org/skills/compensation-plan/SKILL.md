@@ -1,7 +1,13 @@
 ---
 name: org/compensation-plan
 description: >
-  Compensation plan: salary bands, equity/ESOP, benefits, benchmarking methodology.
+  Builds a compensation plan for a role: salary bands, equity/ESOP structure,
+  benefits, and benchmarking methodology, delivered as a total-reward package.
+  TRIGGER: "plano de compensação", "salary bands", "quanto pagar a um dev",
+  "define equity/ESOP", "benchmarking salarial", "/org comp <role>". SKIP:
+  gathering evidence and feedback for an individual's review ->
+  lead/performance-review (person-level, not band-level); full recruitment
+  package with sourcing and sell strategy -> org/hiring-plan.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

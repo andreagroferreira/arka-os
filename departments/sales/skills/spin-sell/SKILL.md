@@ -1,8 +1,14 @@
 ---
 name: sales/spin-sell
 description: >
-  Prepare for sales conversations using SPIN Selling (Neil Rackham).
-  4 question types that uncover needs and build urgency.
+  Prepares SPIN Selling questions (Neil Rackham): Situation, Problem,
+  Implication, and Need-Payoff banks customised to the prospect's industry,
+  weighting Implication and Need-Payoff for large sales. TRIGGER: "SPIN
+  selling", "perguntas SPIN", "perguntas para a call de vendas", "prepara
+  perguntas de implicação", "uncover needs", "/sales spin <context>". SKIP:
+  full call prep with prospect research and agenda -> sales/discovery-call
+  (the SPIN bank is one input to it); insight-led reframing instead of
+  question-led discovery -> sales/challenger-sell.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

@@ -1,7 +1,13 @@
 ---
 name: mkt/marketing-automation
 description: >
-  Marketing automation: trigger-based workflows for lead nurturing and scoring.
+  Marketing automation design: trigger-based workflows for lead nurturing
+  and lead scoring, delivered as a flow diagram with triggers, actions,
+  and conditions. TRIGGER: "automatiza o marketing", "marketing
+  automation", "lead scoring", "workflow de nurturing", "automated drip",
+  "/mkt automate <workflow>". SKIP: generic business-process automation
+  or platform selection -> ops/workflow-automate (picks Zapier vs Make vs
+  n8n); writing the emails inside the flow -> mkt/email-sequence.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

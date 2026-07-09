@@ -1,7 +1,14 @@
 ---
 name: lead/feedback-give
 description: >
-  Structured feedback: care personally + challenge directly. Specific, immediate, behavioral.
+  Structured feedback with Radical Candor (care personally + challenge
+  directly): specific, immediate, behavioural — situation, behaviour, impact
+  and follow-up actions. TRIGGER: "dá feedback à equipa", "como digo isto ao
+  colaborador", "give feedback", "feedback difícil", "radical candor",
+  "/lead feedback <person>". SKIP: formal cycle evaluation with evidence and a
+  development plan -> lead/performance-review (periodic review, not
+  in-the-moment feedback); adapting to the person's behavioural style before
+  the conversation -> lead/disc-assess.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,7 +1,14 @@
 ---
 name: brand/positioning-statement
 description: >
-  Brand positioning: FOR [target] WHO [need] [brand] IS A [category] THAT [benefit].
+  Writes a brand positioning statement in the Ries/Trout format — FOR [target]
+  WHO [need], [brand] IS A [category] THAT [benefit] — with competitive
+  context and validation criteria. TRIGGER: "posicionamento da marca",
+  "positioning statement", "como nos posicionamos", "define o posicionamento",
+  "what makes us different", "/brand positioning <name>". SKIP: market-level
+  strategic positioning and competitive moves -> strategy/position (business
+  strategy, not the brand message); brand still unnamed ->
+  brand/naming-evaluate first.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

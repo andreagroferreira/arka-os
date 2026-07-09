@@ -1,7 +1,12 @@
 ---
 name: sales/discovery-call
 description: >
-  Prepare discovery call: research prospect, prepare SPIN questions, define goals.
+  Prepares a discovery call end to end: prospect research, SPIN question bank,
+  call goals, and agenda. TRIGGER: "prepara a discovery call", "primeira call
+  com o prospect", "discovery call prep", "pesquisa este prospect antes da
+  reunião", "/sales discovery <prospect>". SKIP: question craft or SPIN
+  methodology alone, without research and agenda -> sales/spin-sell; scoring
+  whether the deal is worth pursuing -> sales/deal-qualify.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

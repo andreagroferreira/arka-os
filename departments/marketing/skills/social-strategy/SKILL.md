@@ -1,7 +1,14 @@
 ---
 name: mkt/social-strategy
 description: >
-  Social media strategy: platform selection, content themes, posting cadence, engagement plan.
+  Social media strategy: platform selection, content themes, posting
+  cadence, and engagement plan (STEPPS + platform-native content).
+  TRIGGER: "estratégia de redes sociais", "social media strategy", "em
+  que plataformas apostar", "plano para Instagram/LinkedIn", "cadência de
+  posts", "/mkt social <topic>". SKIP: the week-by-week publishing
+  schedule -> mkt/calendar-plan (executes this strategy); engineering a
+  piece to go viral -> content/viral-design; per-platform algorithm
+  optimisation -> content/platform-optimize.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

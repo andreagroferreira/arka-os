@@ -1,7 +1,14 @@
 ---
 name: mkt/audience-segment
 description: >
-  Audience segmentation: demographics, psychographics, behavior, value segments.
+  Audience segmentation into demographic, psychographic, behavioural, and
+  value segments, with targeting recommendations per channel. TRIGGER:
+  "segmenta a audiência", "audience segmentation", "quem é o meu
+  público", "define os segmentos", "target segments", "/mkt segment
+  <criteria>". SKIP: RFM segmentation of an existing customer base by
+  purchase history -> ecom/rfm-segment (recency/frequency/monetary
+  maths); mapping how segments move through touchpoints ->
+  ecom/customer-journey.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

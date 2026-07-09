@@ -1,7 +1,13 @@
 ---
 name: brand/mockup
 description: >
-  Generate mockups: product, packaging, social, stationery with brand identity applied.
+  Generates brand-applied mockups — product, packaging, social, and stationery
+  — with AI image-generation prompts and brand application guidelines.
+  TRIGGER: "cria mockups", "mockup do produto", "packaging mockup", "aplica a
+  marca no produto", "social media mockup", "/brand mockup <type>". SKIP:
+  low-fidelity screen structure and layout -> brand/wireframe (structure
+  before pixels); creating the logo itself -> brand/logo-brief (concepts, not
+  application).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

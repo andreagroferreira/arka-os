@@ -1,8 +1,13 @@
 ---
 name: brand/primal-audit
 description: >
-  Audit an existing brand against Patrick Hanlon's 7 Primal Code elements.
-  Identifies missing elements and provides recommendations to strengthen the brand.
+  Audits an existing brand against Patrick Hanlon's 7 Primal Code elements
+  using a 21-point evidence-cited rubric, a competitor benchmark, and a ranked
+  remediation plan. TRIGGER: "audita a marca", "brand audit", "primal audit",
+  "quão forte é a nossa marca", "how strong is our brand", "/brand audit".
+  SKIP: auditing the interface, not the brand -> brand/ux-audit (Nielsen
+  heuristics on usability); no brand exists yet to audit ->
+  brand/identity-system (creation, not audit).
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

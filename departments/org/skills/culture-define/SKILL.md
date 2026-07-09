@@ -1,9 +1,14 @@
 ---
 name: org/culture-define
 description: >
-  Culture definition — values (inversion-tested), observable behaviours,
-  reinforcing rituals, decision principles, and operationalisation in hiring
-  + performance + promotion.
+  Ships a production culture document: inversion-tested values, observable
+  behaviour maps, load-bearing ritual catalogue, decision principles, and
+  operationalisation into hiring, performance, and promotion (Netflix Culture,
+  Lencioni, Dalio). TRIGGER: "define a cultura", "valores da empresa",
+  "company values", "culture document", "decision principles", "/org culture".
+  SKIP: checking whether stated values are actually lived ->
+  lead/culture-audit (audits the existing culture; this skill defines it);
+  trust or conflict dysfunction in one team -> lead/team-health.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

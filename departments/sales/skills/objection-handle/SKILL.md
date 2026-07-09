@@ -1,7 +1,13 @@
 ---
 name: sales/objection-handle
 description: >
-  Handle sales objection: acknowledge, clarify, respond with evidence, confirm.
+  Builds an objection-handling playbook for a specific sales objection:
+  acknowledge, clarify, respond with evidence, confirm, plus follow-up moves.
+  TRIGGER: "objection handling", "o cliente diz que é caro", "como respondo a
+  esta objeção?", "handle this objection", "/sales objection <objection>".
+  SKIP: recurring price pushback needing value anchors and margin defence ->
+  sales/pricing-negotiate; full multi-issue negotiation prep with concessions
+  and walk-away -> sales/negotiate-plan.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

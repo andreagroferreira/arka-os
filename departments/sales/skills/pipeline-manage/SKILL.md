@@ -1,7 +1,13 @@
 ---
 name: sales/pipeline-manage
 description: >
-  Pipeline analysis: velocity, conversion by stage, deal aging, forecast accuracy.
+  Analyses pipeline health with the Pipeline Velocity formula: velocity,
+  conversion by stage, deal aging, bottlenecks, and forecast accuracy.
+  TRIGGER: "análise do pipeline", "pipeline review", "onde estão presos os
+  deals?", "conversão por fase", "pipeline velocity", "/sales pipeline". SKIP:
+  the revenue number with confidence intervals -> sales/forecast-revenue;
+  deep-dive on one deal -> sales/deal-qualify; delivery or task boards rather
+  than sales stages -> pm/kanban-setup.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
