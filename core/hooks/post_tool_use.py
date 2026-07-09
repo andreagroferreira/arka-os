@@ -642,6 +642,19 @@ def main(stdin_json: dict | None = None) -> int:
     except Exception:  # noqa: BLE001 — telemetry must never break the hook
         pass
 
+    # Interaction Reform PR3 — the native plan-mode approve button IS
+    # explicit plan approval: a successful ExitPlanMode marks the
+    # session approved (stronger, less ambiguous than a text "sim").
+    if tool_name == "ExitPlanMode" and exit_code in ("0", ""):
+        try:
+            from core.workflow import plan_approval
+            if session_id:
+                plan_approval.mark_approved(
+                    session_id, source="exit-plan-mode"
+                )
+        except Exception:  # noqa: BLE001 — hooks never break the turn
+            pass
+
     if tool_name in ("Task", "Agent"):
         subagent_type = get_str(stdin_json, "tool_input", "subagent_type")
         if subagent_type == "cqo":

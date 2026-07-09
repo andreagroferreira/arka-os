@@ -149,6 +149,17 @@ def _flow_checks(
     except Exception:
         pass
 
+    # Interaction Reform PR3 — a turn that ENDS at Gate 2 means a plan
+    # is on the table awaiting the user; record it so the next user
+    # message can be classified as approval (plan_approval state).
+    try:
+        from core.workflow.gate_checkpoint import extract_latest_gate
+        from core.workflow import plan_approval
+        if session_id and extract_latest_gate([last]) == 2:
+            plan_approval.mark_presented(session_id)
+    except Exception:
+        pass
+
     meta_tag_found = bool(re.search(r"\[arka:meta\]", last, re.IGNORECASE))
 
     sycophancy_signals: list = []
