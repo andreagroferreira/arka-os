@@ -1,7 +1,15 @@
 ---
 name: fin/valuation-model
 description: >
-  Company valuation: DCF with WACC, comparable company analysis, precedent transactions.
+  Company valuation: DCF with WACC (Damodaran), comparable company
+  analysis and precedent transactions, producing a valuation range with
+  multiples and sensitivity analysis. TRIGGER: "quanto vale a empresa",
+  "valuation", "avaliação da empresa", "DCF", "múltiplos comparáveis",
+  "/fin valuation". SKIP: building the projections the DCF discounts ->
+  fin/financial-model (valuation consumes its outputs); designing the
+  business model itself -> strategy/bmc (Business Model Canvas, not
+  enterprise value); presenting the number to investors ->
+  fin/pitch-deck.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

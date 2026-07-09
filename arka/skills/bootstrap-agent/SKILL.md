@@ -1,13 +1,17 @@
 ---
 name: arka-bootstrap-agent
 description: >
-  Formalises the "agents set up agents" pattern surfaced in the 2026-05-13
-  Nick Saraev × Greg Isenberg podcast on the Orgo agent business. When the
-  user asks to spin up a new specialist or an integration that requires
-  research-heavy setup, this skill orchestrates The Forge to dispatch
-  research subagents (Perplexity / Exa / Context7 / Firecrawl / XMCP),
-  synthesises the findings, and produces a ready-to-use agent YAML or
-  installation guide.
+  "Agents set up agents" entry point — orchestrates The Forge to dispatch
+  research subagents (Perplexity/Exa/Context7/Firecrawl/XMCP), synthesises
+  findings, and generates a ready-to-use Tier 2 agent YAML, an integration
+  installation playbook, or an AI persona profile. TRIGGER: "/arka
+  bootstrap-agent" (specialist, integration, persona), "cria um novo
+  especialista", "cria um agente para <domínio>", "create a new specialist
+  agent", "set up an integration with <tool>", "build a persona". SKIP:
+  planning a feature or task rather than new capability -> arka-forge
+  (Forge plans work, this skill generates agents); persona content
+  ingestion -> /kb persona (this skill orchestrates, never bypasses the
+  knowledge pipeline); one-off knowledge questions -> arka-research.
 allowed-tools: [Agent, Read, Write, Bash]
 ---
 

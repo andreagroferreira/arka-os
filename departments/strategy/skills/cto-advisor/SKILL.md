@@ -1,8 +1,15 @@
 ---
 name: strategy/cto-advisor
 description: >
-  CTO-level advisory on tech strategy, build-vs-buy decisions, platform architecture,
-  engineering team scaling, and technical debt management with DORA metrics.
+  CTO-level advisory on technology strategy: build-vs-buy decision matrix,
+  DORA metrics assessment, ADR governance and validation, engineering
+  team scaling ratios, and tech debt management with red-flag triggers.
+  TRIGGER: "build vs buy", "tech strategy", "estratégia tecnológica",
+  "DORA metrics", "dívida técnica", "scaling the engineering team",
+  "/strat cto-advisor". SKIP: designing the actual system (components,
+  APIs, data flow) -> dev/architecture-design (implementation design, not
+  executive advisory); decisions needing multi-role executive
+  deliberation -> strat/board-advisor.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

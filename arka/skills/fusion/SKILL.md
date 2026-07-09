@@ -1,13 +1,17 @@
 ---
 name: arka-fusion
 description: >
-  Model Fabric advisor and fusion configurator. Discovers what the machine
-  can run (Ollama local models, OpenRouter/Anthropic keys), reads the
-  current role routing, interviews the user about goals and constraints,
-  and recommends — with rationale — which model should run each role and
-  which panel+judge combination to use for fusion. Applies the approved
-  configuration via `npx arkaos models`. Trigger: "/arka-fusion", "fusion",
-  "que modelos usar", "configurar modelos", "model routing".
+  Model Fabric advisor and fusion configurator — discovers what the
+  machine can run (Ollama local models, OpenRouter/Anthropic key
+  presence), reads current role routing and usage, interviews the user
+  on goals and constraints, recommends a role -> model mapping plus a
+  diverse panel+judge fusion combo with rationale, and applies it via
+  `npx arkaos models` after explicit approval. TRIGGER: "/arka fusion",
+  "/arka-fusion", "fusion", "que modelos usar", "configurar modelos",
+  "model routing", "which model should each role use". SKIP: LLM spend
+  breakdowns -> arka-costs (visibility, not routing); planning
+  multi-agent work -> arka-forge (fusion configures WHICH models run,
+  Forge plans WHAT work runs).
 allowed-tools: [Read, Bash, AskUserQuestion]
 ---
 

@@ -1,21 +1,19 @@
 ---
 name: arka-human-writing
 description: >
-  Human-writing standard, constitution MUST rule (Constitution rule #8, reviewed
-  by Eduardo, Copy Director Tier 0) — bans AI-sounding patterns and
+  Human-writing standard, constitution MUST rule #8 (reviewed by
+  Eduardo, Copy Director Tier 0) — bans AI-sounding patterns and
   enforces natural language, tone matching, and flawless orthography
   across ALL ArkaOS output; violation aborts the operation.
-  TRIGGER: load BEFORE writing any prose a human will read or ship —
-  copy, reports, documentation, emails, social posts, landing pages,
-  PR descriptions, client deliverables, analyses; user words "escreve",
-  "redige", "texto", "copy", "artigo", "email", "post", "write",
-  "draft", "reescreve isto", "soa a IA", "sounds like AI", "make it
-  sound human". Applies automatically to every department, agent, and
-  output type — don't skip because the text looks short.
-  SKIP: code-only diffs with no user-facing prose (identifiers and
-  syntax are not prose); the final APPROVED/REJECTED copy verdict —
-  arka-quality (Quality Gate, Eduardo) wins there; this skill is the
-  standard applied WHILE writing, not the review that judges it.
+  TRIGGER: load BEFORE writing any prose a human will read —
+  copy, reports, docs, emails, posts, landing pages, PR descriptions,
+  client deliverables; "escreve", "redige", "texto", "copy", "artigo",
+  "email", "post", "write", "draft", "reescreve isto", "soa a IA",
+  "sounds like AI", "make it sound human" — don't skip because the
+  text looks short.
+  SKIP: code-only diffs with no user-facing prose; the APPROVED/REJECTED
+  copy verdict — arka-quality (Quality Gate, Eduardo) wins
+  (standard applies WHILE writing, the review judges after).
 ---
 
 # Human Writing Standard — ARKA OS Core Skill

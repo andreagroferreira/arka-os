@@ -1,9 +1,15 @@
 ---
 name: strat/extract-data
 description: >
-  Navigate a web page and extract structured data: tables, lists, prices,
-  product listings. Supports CSV, markdown, and JSON output formats.
-  Requires browser integration (claude --chrome or /chrome).
+  Navigates a web page via browser integration and extracts structured
+  data (tables, lists, prices, product listings) into CSV, markdown, or
+  JSON, handling JS-rendered content and pagination, with WebFetch
+  fallback for static HTML. TRIGGER: "extrai os dados desta página",
+  "scrape this page", "extract the table", "apanha os preços do site",
+  "export listings to CSV", "/strat extract-data <url>". SKIP: the ask is
+  competitor insight rather than raw data ->
+  marketing/competitor-analysis or kb/competitive-intel (they interpret;
+  this skill only extracts).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

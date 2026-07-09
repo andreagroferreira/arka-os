@@ -1,9 +1,15 @@
 ---
 name: strat/premortem
 description: >
-  Run a premortem before a big bet and a blameless postmortem after.
-  Decision-quality ritual: imagine the failure, surface risks, then learn
-  from the outcome without blame. Owned by the Governance squad.
+  Decision-quality ritual for irreversible bets, owned by the Governance
+  squad: premortem before (assume failure, cluster causes, rank
+  likelihood x impact, add mitigations or kill-criteria) and blameless
+  postmortem after (timeline, 5 Whys to a system cause, lessons with
+  owners). TRIGGER: "premortem", "pré-mortem", "e se esta aposta falhar",
+  "one-way door decision", "blameless postmortem", "aprender do falhanço
+  sem culpas", "/strat premortem". SKIP: maintaining a standing project
+  risk log -> pm/risk-register (continuous register, not a one-off
+  ritual); production outage postmortems -> dev/incident.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

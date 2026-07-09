@@ -1,11 +1,17 @@
 ---
 name: arka-design-ops
 description: >
-  Brand Design Ops sub-squad orchestrator. Routes design-system extraction,
-  WCAG audit, and shadcn padronisation work to Iris (lead) + Nia
-  (extraction) + Oren (WCAG) + Leo (shadcn). Inspired by the AIOX Squad
-  → Sub-Squad pattern documented in the 2026-04-30 KB live and unblocked
-  for ArkaOS by the v2.27.0 Conclave roadmap.
+  Brand Design Ops sub-squad orchestrator — routes design-system token
+  extraction, WCAG 2.2 AA audits, and shadcn/ui padronisation to Iris
+  (lead), Nia (extraction), Oren (WCAG), Leo (shadcn); outputs DTCG token
+  JSON, conformance reports, and canonical components. TRIGGER: "/brand
+  design-ops" (extract, wcag, shadcn, audit), "extrai os design tokens
+  deste site", "auditoria de acessibilidade", "WCAG audit", "padroniza
+  este componente shadcn", "tokens drift audit". SKIP: brand strategy or
+  visual-direction taste calls -> /brand (Valentina owns strategy, Iris
+  escalates to her); implementing the resulting components in product
+  code -> /dev via Paulo (design-ops produces specs/tokens/audits, never
+  opens PRs).
 allowed-tools: [Read, Write, Bash, Edit]
 ---
 

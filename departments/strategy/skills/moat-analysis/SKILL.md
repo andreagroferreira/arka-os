@@ -1,7 +1,14 @@
 ---
 name: strat/moat-analysis
 description: >
-  Competitive moat analysis: which of the 7 Powers applies and how durable.
+  Competitive moat analysis using Hamilton Helmer's 7 Powers: identifies
+  which power applies to a company, scores how durable it is, and
+  recommends concrete strengthening actions. TRIGGER: "moat", "análise de
+  moat", "defensibilidade da vantagem", "vantagem competitiva duradoura",
+  "7 powers", "how defensible are we", "/strat moat". SKIP: choosing
+  WHERE to grow next -> strat/growth-strategy (moat is one input to its
+  vector selection); rating the whole industry's competitive forces ->
+  strat/five-forces.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

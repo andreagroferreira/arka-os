@@ -1,7 +1,15 @@
 ---
 name: fin/cashflow-forecast
 description: >
-  Cash flow forecast: operating, investing, financing flows with runway calculation.
+  Cash flow forecasting across operating, investing and financing flows,
+  with runway, burn rate and working-capital analysis (Leonor, Financial
+  Analyst — Cash Flow Management + FP&A). TRIGGER: "cashflow forecast",
+  "previsão de tesouraria", "quanto runway temos", "burn rate", "fluxo de
+  caixa", "/fin cashflow". SKIP: allocating spend by department or
+  headcount -> fin/budget-plan (budgeting, not cash timing); full
+  3-statement projections -> fin/financial-model (cash flow is one
+  statement of three); stress-testing assumptions best/worst case ->
+  fin/scenario-analysis.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

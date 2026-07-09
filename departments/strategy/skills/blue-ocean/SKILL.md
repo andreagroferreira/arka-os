@@ -1,8 +1,15 @@
 ---
 name: strat/blue-ocean
 description: >
-  Blue Ocean Strategy analysis: Strategy Canvas to map competition, ERRC Grid
-  to find uncontested market space. Based on Kim & Mauborgne.
+  Blue Ocean Strategy analysis (Kim & Mauborgne): Strategy Canvas mapping
+  your offering vs competitors, ERRC Grid (Eliminate/Reduce/Raise/Create),
+  Six Paths exploration, and a value innovation statement with copyability
+  risk assessment. TRIGGER: "blue ocean", "oceano azul", "uncontested
+  market space", "espaço de mercado por explorar", "ERRC", "strategy
+  canvas", "/strat blue-ocean". SKIP: rating industry attractiveness and
+  competitive forces -> strat/five-forces (analyses the red ocean you are
+  in); assessing defensibility of an existing position ->
+  strat/moat-analysis.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

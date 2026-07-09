@@ -1,8 +1,15 @@
 ---
 name: finance/ciso-advisor
 description: >
-  Security budget justification, compliance roadmap, risk quantification
-  using ALE, and board-level security reporting.
+  CFO-side security economics: security budget justification via ALE risk
+  quantification (SLE x ARO), compliance roadmap sequencing (SOC 2 -> ISO
+  27001 -> GDPR), vendor risk tiering, security metrics dashboard, and
+  board-level reporting. TRIGGER: "justificar orçamento de segurança",
+  "security budget", "quanto custa SOC 2", "compliance roadmap", "risco em
+  euros", "ALE", "/fin ciso-advisor". SKIP: hands-on technical security
+  testing or code audit -> dev/security-audit (finds vulnerabilities; this
+  skill prices the risk); implementing compliance controls ->
+  dev/security-compliance.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

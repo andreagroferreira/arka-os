@@ -1,7 +1,16 @@
 ---
 name: strat/position
 description: >
-  Competitive positioning: alternatives, unique capabilities, value, target, category.
+  Competitive positioning (Ries/Trout + April Dunford): maps competitive
+  alternatives, unique capabilities, value, target segment, and market
+  category into a positioning statement, perceptual map, and competitive
+  differentiation, with browser-based competitor positioning scans.
+  TRIGGER: "posicionamento", "positioning", "como nos posicionamos",
+  "market category", "perceptual map", "diferenciação face à
+  concorrência", "/strat position". SKIP: crafting the brand-voice
+  positioning statement for messaging -> brand/positioning-statement
+  (brand expression; this defines the strategic position); moat
+  durability -> strat/moat-analysis.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

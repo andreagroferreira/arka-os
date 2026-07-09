@@ -1,10 +1,16 @@
 ---
 name: arka-dreams
 description: >
-  Surface for Dreaming v2 — the nightly cognitive consolidation engine
-  shipped in PR8 v2.30.0. Lists insights ArkaOS surfaced from the user's
-  recent vault activity and session digests, optionally promotes one
-  into a tracked task via /pm. The cognitive layer's user-facing surface.
+  User-facing surface for Dreaming v2, the nightly cognitive
+  consolidation engine — lists insights ArkaOS surfaced from recent vault
+  activity and session digests, filters by day window, promotes an
+  insight into a /pm backlog item, or triggers a Dreaming pass manually;
+  read-only over the vault. TRIGGER: "/arka dreams" (--since, --all,
+  promote, trigger), "o que descobriste esta noite", "insights de
+  ontem", "what did ArkaOS notice last night", "run a dreaming pass
+  now". SKIP: one-off research questions -> arka-research (same fan-out
+  pattern, different primitive); spend of the Dreaming backend ->
+  arka-costs (this skill surfaces insights, not costs).
 allowed-tools: [Read, Bash, Agent]
 ---
 
