@@ -70,7 +70,9 @@ jobs:
         # bats tests override HOME, which silently drops ~/.local from
         # sys.path and un-installs user-site packages mid-suite. Exposed
         # by the de-swallow.
-        run: sudo pip3 install --break-system-packages pyyaml pydantic || sudo pip3 install pyyaml pydantic
+        # --ignore-installed: pip cannot uninstall debian-managed dist-packages
+        # (typing_extensions RECORD missing); overlay into /usr/local instead.
+        run: sudo pip3 install --break-system-packages --ignore-installed pyyaml pydantic
 
       - name: Make scripts executable
         run: |
