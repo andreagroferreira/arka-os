@@ -154,7 +154,7 @@ no six-reviewer role-play. One marker per gate transition.
 ## Related skills
 
 - `/arka-forge` — complexity-aware planning for MEDIUM/HIGH Gate 2.
-- `/arka-spec` — spec gate when Gate 2 scope needs a full spec.
+- `arka-dev-spec` (`/dev spec`) — spec gate when Gate 2 scope needs a full spec.
 - `/arka-quality` — Gate 4 orchestration.
 - `/arka-checkpoint` — user-in-the-loop fragmentation for >30s dispatches.
 

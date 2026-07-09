@@ -152,7 +152,7 @@ Example first lines (pick the right department for the ask):
 After the routing line, in order:
 
 1. State the workflow name and its phase count.
-2. Run Phase 1 (usually spec via `arka-spec` or plan via `arka-forge`) BEFORE writing any code.
+2. Run Phase 1 (usually spec via `arka-dev-spec` or plan via `arka-forge`) BEFORE writing any code.
 3. Execute sequential phases with visibility (one at a time, report status).
 4. Run the Quality Gate (Marta CQO + Eduardo Copy + Francisca Tech, model Opus) BEFORE marking done.
 
@@ -186,7 +186,7 @@ violation (squad-routing, arka-supremacy, spec-driven, mandatory-qa).
 | `/arka search <query>` | Semantic search in knowledge base |
 | `/arka keys` | Manage API keys (OpenAI, Google, fal.ai) |
 | `/arka personas` | Manage AI personas (create, clone to agent) |
-| `/arka resume <PR_URL>` | Re-enter the Claude Code session that produced a PR (GitHub / GitLab / Bitbucket). Wraps the native `/resume` from Claude Code 2.1.122+. Useful with `arka-spec` and `arka-release` archaeology. |
+| `/arka resume <PR_URL>` | Re-enter the Claude Code session that produced a PR (GitHub / GitLab / Bitbucket). Wraps the native `/resume` from Claude Code 2.1.122+. Useful with `arka-dev-spec` and `arka-release` archaeology. |
 | `/do <description>` | Universal routing — natural language to department command |
 
 ## Universal Orchestrator (/do)

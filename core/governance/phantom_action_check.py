@@ -36,6 +36,19 @@ _EFFECT_OBJECT = (
     r"|commands?|builds?)\b|\.[a-z]{2,4}\b|`[^`]+`)"
 )
 
+# Analytic/mental nouns: a verb whose nearest object is one of these is
+# narrating the RESPONSE, not a tool effect ("updated my understanding of
+# the file", "adicionei contexto sobre os testes") — the effect object
+# match must not cross them (QG condition on #255 before enforcement).
+_ANALYTIC_NOUN = (
+    r"\b(?:understanding|context|summary|notes?|thinking|thoughts?"
+    r"|takeaways?|impressions?|sense|grasp|view|idea|picture"
+    r"|mental\s+model|contexto|resumo|notas?|entendimento"
+    r"|perce[çc][ãa]o|an[áa]lise|analysis|ideia|vis[ãa]o|imagem"
+    r"|no[çc][ãa]o|perspe[ct]?tiva|opini[ãa]o|conhecimento|knowledge)\b"
+)
+_GAP = r"(?:(?!" + _ANALYTIC_NOUN + r")[^.\n!?]){0,60}?"
+
 # Verbs whose completion is unambiguous on its own (git/publish/install).
 _STANDALONE_PT = (
     r"(?<!não )\b(instalei|publiquei|gravei|renomeei|implementei"
@@ -46,15 +59,17 @@ _STANDALONE_EN = (
     r"\bI(?:'ve| have)?\s+(?:just\s+)?(committed|pushed|merged|published"
     r"|released|deployed|installed)\b"
 )
-# Ambiguous verbs — only a claim when bound to an effect object nearby.
+# Ambiguous verbs — only a claim when bound to an effect object nearby,
+# without an analytic noun in between. "ran into"/"ran through" are
+# idioms, never executions.
 _BOUND_PT = (
     r"(?<!não )\b(criei|escrevi|atualizei|editei|apaguei|removi|adicionei"
-    r"|movi|apliquei|corri|executei)\b[^.\n!?]{0,60}?" + _EFFECT_OBJECT
+    r"|movi|apliquei|corri|executei)\b" + _GAP + _EFFECT_OBJECT
 )
 _BOUND_EN = (
     r"\bI(?:'ve| have)?\s+(?:just\s+)?(created|wrote|updated|deleted"
-    r"|added|moved|applied|renamed|ran|executed)\b[^.\n!?]{0,60}?"
-    + _EFFECT_OBJECT
+    r"|added|moved|applied|renamed|ran(?!\s+(?:into|through|over|across))"
+    r"|executed)\b" + _GAP + _EFFECT_OBJECT
 )
 _PASSIVE = (
     r"\b(commit|push|merge|deploy|release|PR)\s+(feito|criado|efetuado"
