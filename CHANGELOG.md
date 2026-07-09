@@ -5,6 +5,60 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.0] - 2026-07-09
+
+Backlog-clearing session: items 1-8 of the standing follow-up backlog
+attacked in order. Five PRs, each through the evidence Quality Gate (two
+REJECTED→fix cycles with independently reproduced blockers).
+
+### Added
+
+- **Eval harness foundation + QG verdicts as labels** (#271) — closes
+  the E2E-audit P2. `core/evals/` ships the `EvalTask` schema and loader
+  for repo-versioned reference tasks (`config/evals/<department>.yaml`,
+  seed set of 2 tasks × 5 core departments). Every structured `QGVerdict`
+  can now be persisted to `~/.arkaos/telemetry/qg-verdicts.jsonl` via the
+  codebase-standard fcntl-locked writer — the free label corpus. ADR
+  `2026-07-09-evals-and-distillation` gates LoRA distillation of local
+  Ollama models on ≥500 labels + provable client-identifier sanitization.
+- **Prompt-surface token benchmark** (#270) — closes the v4.1 Evidence
+  Reform open item. `scripts/tools/prompt_surface_benchmark.py` measures
+  the UserPromptSubmit injected context across 5 canonical prompt classes;
+  `--ref` compares against any git ref via `git archive`. Measured
+  v4.0.2 → HEAD: ~8.2 KB → 1575 B — **80.7% reduction** (plan target
+  ≥60%). Published in `docs/BENCHMARKS.md` §4.
+- **Evidence-flow e2e test** (#270) — full one-prompt→delivery lifecycle
+  with an induced Gate-3 failure: per-turn checkpointing, session resume
+  via rehydrator at the correct gate with the failing evidence visible,
+  and the evidence floor refusing APPROVED over `overall=fail`.
+
+### Changed
+
+- **Agent registries consolidated to a single deterministic v2** (#267) —
+  legacy hand-maintained `knowledge/agents-registry.json` (stale at 22
+  agents since 2026-03, no generator) removed; every consumer
+  (disc-team-validator, disc/brand/constitution bats) migrated to the
+  generated `agents-registry-v2.json` with `_meta`-anchored counts. A
+  guard test blocks resurrection. Stale `commands-registry-v2.json`
+  regenerated (Apr 216 → 211).
+- **dev/research vs arka-research trigger disambiguated** (#267) — the
+  shared "best practices" trigger now has an explicit owner split with
+  mutual SKIP arms: implementation best-practice → `dev/research`,
+  non-code topics → `arka-research`.
+
+### Fixed
+
+- **Synapse cross-session cache leak** (#268) — the layer cache key
+  ignored `session_id`, so within the 30s TTL a concurrent session in the
+  same cwd was served the first session's cached L3.5 result, silently
+  skipping its `KBSessionCache.store()`. New `Layer.session_sensitive`
+  property keys the cache per session for L3.5 only; all other layers
+  keep sharing (QG-audited: immune by construction).
+- **Bogus models in the Usage-by-Model panel** (#269) — provider-fallback
+  diagnostic rows (`provider='fallback:X->Y'`, reason in the model field)
+  no longer leak into `by_model`; `by_provider` keeps them for
+  degraded-chain visibility.
+
 ## [4.8.0] - 2026-07-09
 
 Consolidation session: closed the standing prompt-audit and E2E-audit
