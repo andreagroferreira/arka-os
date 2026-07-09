@@ -75,6 +75,18 @@ class Layer(ABC):
         return 0
 
     @property
+    def input_sensitive(self) -> bool:
+        """True when compute() depends on ctx.user_input.
+
+        Input-sensitive layers get the prompt hashed into their cache
+        key — without it, a cached result from one prompt is served for
+        a DIFFERENT prompt within the TTL window (found 2026-07-09: L5
+        served 'hello' hints for an explicit '/dev feature' command,
+        defeating its own slash-suppression rule).
+        """
+        return False
+
+    @property
     def priority(self) -> int:
         """Layer priority (lower = computed first)."""
         return 50
@@ -165,6 +177,10 @@ class DepartmentLayer(Layer):
     @property
     def name(self) -> str:
         return "Department"
+
+    @property
+    def input_sensitive(self) -> bool:
+        return True
 
     @property
     def priority(self) -> int:
@@ -393,6 +409,10 @@ class CommandHintsLayer(Layer):
         return "CommandHints"
 
     @property
+    def input_sensitive(self) -> bool:
+        return True
+
+    @property
     def cache_ttl(self) -> int:
         return 30
 
@@ -521,6 +541,10 @@ class KnowledgeRetrievalLayer(Layer):
     @property
     def name(self) -> str:
         return "KnowledgeRetrieval"
+
+    @property
+    def input_sensitive(self) -> bool:
+        return True
 
     @property
     def cache_ttl(self) -> int:
@@ -1026,6 +1050,10 @@ class KBContextLayer(Layer):
     @property
     def name(self) -> str:
         return "KBContext"
+
+    @property
+    def input_sensitive(self) -> bool:
+        return True
 
     @property
     def cache_ttl(self) -> int:

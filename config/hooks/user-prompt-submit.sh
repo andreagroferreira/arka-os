@@ -46,6 +46,13 @@ export ARKAOS_ROOT
 
 _ARKA_L0_FALLBACK='{"additionalContext": "[Constitution] NON-NEGOTIABLE: branch-isolation, security-gate, mandatory-qa, evidence-flow, arkaos-not-yes-man, excellence-mandate | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST (28) incl.: squad-routing, spec-driven, conventional-commits, test-coverage, subagent-discipline, persona-vs-artifact"}'
 
+# Test seam: bats asserts the fallback CONTENT deterministically —
+# the shared resolver overwrites ARKA_PY, so an env flag is the only
+# reliable way to force this path (tests/constitution.bats L0 tests).
+if [ -n "${ARKA_HOOK_FORCE_FALLBACK:-}" ]; then
+  echo "$_ARKA_L0_FALLBACK"
+  exit 0
+fi
 if ! command -v "$ARKA_PY" >/dev/null 2>&1; then
   echo "$_ARKA_L0_FALLBACK"
   exit 0

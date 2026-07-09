@@ -8,6 +8,7 @@ Design goals:
 - Relevance filtering (skip irrelevant layers)
 """
 
+import hashlib
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -109,6 +110,14 @@ class SynapseEngine:
     def _compute_layer(self, layer: Layer, ctx: PromptContext) -> LayerResult:
         """Compute a single layer with caching."""
         cache_key = f"{layer.id}:{ctx.cwd}:{ctx.active_agent}"
+        if layer.input_sensitive:
+            # Input-dependent layers (hints, department, KB retrieval)
+            # must not serve one prompt's result to a different prompt
+            # within the TTL window.
+            digest = hashlib.sha1(
+                (ctx.user_input or "").encode("utf-8", "replace")
+            ).hexdigest()[:12]
+            cache_key += f":{digest}"
 
         # Check cache
         if layer.cache_ttl > 0:

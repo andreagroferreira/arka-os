@@ -42,11 +42,13 @@ load helpers/setup
   [[ "$output" == *"Constitution"* ]]
 }
 
-@test "user-prompt-submit.sh includes time context" {
-  input='{"prompt":"hello","cwd":"/tmp","session_id":"test123"}'
-  run bash -c "echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
+@test "user-prompt-submit.sh emits no time-of-day tag" {
+  # [time:X] removed in #255 (prompt-surface P0): cache-buster with no
+  # consumer rule. Locked absent here and by scripts/tools/prompt_lint.py.
+  input='{"prompt":"hello","cwd":"/tmp","session_id":"t-time"}'
+  run bash -c "export ARKA_OS='$TEST_ARKA_OS' && echo '$input' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"time:"* ]]
+  [[ "$output" != *"[time:"* ]]
 }
 
 @test "user-prompt-submit.sh handles empty prompt" {

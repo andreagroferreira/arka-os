@@ -64,13 +64,26 @@ jobs:
       - name: Install bats-core
         run: sudo apt-get update && sudo apt-get install -y bats jq
 
+      - name: Install Python deps for hook/bridge tests
+        # The synapse bridge (dept detection, L5 hints) and gateway-ensure
+        # need pyyaml/pydantic. Must be SYSTEM-wide, not user-site: several
+        # bats tests override HOME, which silently drops ~/.local from
+        # sys.path and un-installs user-site packages mid-suite. Exposed
+        # by the de-swallow.
+        # --ignore-installed: pip cannot uninstall debian-managed dist-packages
+        # (typing_extensions RECORD missing); overlay into /usr/local instead.
+        run: sudo pip3 install --break-system-packages --ignore-installed pyyaml pydantic
+
       - name: Make scripts executable
         run: |
           find . -name "*.sh" -exec chmod +x {} \;
           find bin/ -type f -exec chmod +x {} \; 2>/dev/null || true
 
       - name: Run bats tests
-        run: bats tests/bats/ 2>/dev/null || bats tests/ 2>/dev/null || echo "No bats tests found"
+        # No swallow (was `|| echo`): governance bats failures MUST fail CI.
+        # Fixed 2026-07-09 after the Constitution 2.0 QG flagged that the
+        # constitution's own tests were effectively unenforced.
+        run: bats tests/
 
   node-check:
     runs-on: ubuntu-latest
