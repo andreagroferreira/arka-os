@@ -13,10 +13,12 @@ The phantom-action check (a response-side classifier that flags prose
 claiming a completed EFFECT — "criei o ficheiro X", "I pushed the fix" —
 in a turn with zero tool_use blocks) shipped warn-only, with promotion to
 hard enforcement explicitly deferred "pending telemetry". PR #261 closed
-the known false-positive class (analytic/mental nouns) and left the M2/M3
-residuals as xfail trackers — both are false *negatives* (compound
-sentences under-detected), which under warn-only and under enforcement
-alike can only under-block, never wrongly block.
+the known false-positive class (analytic/mental nouns) and left two
+residuals as strict-xfail trackers: **M2** is a false *negative* (a
+second effect verb in the same clause escapes detection — recall loss,
+harmless under any mode), while **M3** is a residual false *positive*
+(analytic-synonym tail: "I updated my read on the file" still yields a
+claim) — the exact class that would wrongly block under enforcement.
 
 The telemetry verdict, read on 2026-07-09 from
 `~/.arkaos/telemetry/enforcement.jsonl`:
@@ -46,9 +48,13 @@ Rationale:
    does not require and evidence-based governance argues against.
 2. **The post-fix sample is 2 events.** Even if we wanted promotion,
    n=2 cannot certify the #261 FP fix under real load.
-3. **Known residuals are false negatives.** M2/M3 (compound sentences)
-   make the detector miss claims, not invent them — safe under
-   warn-only, and they would silently weaken enforcement anyway.
+3. **A known false-positive residual is still open.** M3 (the
+   analytic-synonym tail, locked as strict xfail in
+   `test_phantom_action_check.py`) proves the detector can still invent
+   a claim from response prose. Under warn-only that costs a log line;
+   under enforcement it would wrongly block a legitimate turn. Promoting
+   before closing M3 would ship a known wrong-block. (M2, the recall
+   residual, only under-detects and gates nothing.)
 
 ## Promotion criterion (when to revisit)
 
@@ -71,4 +77,5 @@ every event proves the classifier ran against a real closing message.
 - The unused `arkaos-phantom` tmp state stays as the pre-built handoff
   point for the future consumer (cheap to keep, documented here).
 - The M2/M3 xfail trackers in the test suite remain the backlog marker
-  for detector completeness work.
+  for detector completeness work; closing M3 (the FP tail) is a hard
+  prerequisite of any future promotion, per the criterion above.
