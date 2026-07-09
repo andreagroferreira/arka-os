@@ -79,7 +79,11 @@ extract_commands() {
 
     # Generate command ID: /dev feature <desc> -> dev-feature
     local id
-    id=$(echo "$command" | sed 's/ *<[^>]*>//g' | sed 's/ *\[.*//g' | sed 's/^\/\([^ ]*\) *\(.*\)/\1-\2/' | sed 's/-$//' | sed 's/ /-/g')
+    # Strip <args>, [optional], and --flag tails BEFORE deriving the id —
+    # without the --flag strip, '/dev onboard <path> --ecosystem <name>'
+    # produced the id 'dev-onboard---ecosystem' (caught by the sanity
+    # lock in tests/python/test_commands_registry.py).
+    id=$(echo "$command" | sed 's/ *<[^>]*>//g' | sed 's/ *--.*//' | sed 's/ *\[.*//g' | sed 's/^\/\([^ ]*\) *\(.*\)/\1-\2/' | sed 's/-$//' | sed 's/ /-/g')
     [ -z "$id" ] && continue
 
     # Get metadata
