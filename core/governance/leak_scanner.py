@@ -93,6 +93,16 @@ def scan_text(
     return [m.group(1).lower() for m in regex.finditer(text)]
 
 
+def load_redaction_patterns(config_path: Path | None = None) -> tuple[str, ...]:
+    """Public accessor for the redaction client list.
+
+    Consumed by core.evals.sanitizer (distillation prerequisite) so the
+    scanner and the sanitizer can never disagree on what a client
+    identifier is. Returns () when the config is missing or empty.
+    """
+    return _load_patterns(config_path or _DEFAULT_CONFIG_PATH)
+
+
 def _load_patterns(config_path: Path) -> tuple[str, ...]:
     try:
         data = json.loads(config_path.read_text(encoding="utf-8"))

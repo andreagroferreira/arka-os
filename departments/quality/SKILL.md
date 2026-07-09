@@ -38,6 +38,14 @@ Any Department Workflow:
          explicit justification in the verdict notes; otherwise REJECTED.
     4. If ANY reviewer rejects → work loops back with the blockers list
     5. If ALL approve → Marta issues final APPROVED verdict
+    6. Record the label (evals ADR 2026-07-09): pipe Marta's final
+       QGVerdict JSON to
+       `arka-py -m core.evals.record_cli --department <dept>
+        [--deliverable <title>] [--eval-task-id <id>] [--session-id <id>]`
+       — every verdict feeds the eval/distillation corpus
+       (~/.arkaos/telemetry/qg-verdicts.jsonl). Applies to EVERY review,
+       not only eval runs; --eval-task-id only when the review judged a
+       config/evals task.
   Phase N: DELIVERY
     → Only reaches user after APPROVED from all three
 ```
