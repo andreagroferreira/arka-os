@@ -232,6 +232,16 @@ def _load_slice(
     return kept, corrupt
 
 
+def _is_fallback_diagnostic(entry: dict[str, Any]) -> bool:
+    """Provider-fallback rows carry the fallback REASON in the model field
+    (_log_fallback in llm_provider.py: model='unavailable'/'selected').
+    They belong in the by-provider view (degraded chains) but leak bogus
+    zero-token rows into any model-keyed breakdown. Totals and by_provider
+    keep counting them, so sum(by_model[*].call_count) < call_count when
+    fallbacks occurred — intentional, not a reconciliation bug."""
+    return str(entry.get("provider") or "").startswith("fallback:")
+
+
 def _group(entries: list[dict[str, Any]], key: str) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for entry in entries:
@@ -298,7 +308,9 @@ def summarise(
         cache_hit_rate=finalised["cache_hit_rate"],
         call_count=finalised["call_count"],
         by_provider=_group(entries, "provider"),
-        by_model=_group(entries, "model"),
+        by_model=_group(
+            [e for e in entries if not _is_fallback_diagnostic(e)], "model"
+        ),
         by_category=_group(entries, "category"),
         by_session=sessions,
         advisories=_build_advisories(sessions, advisory_threshold_usd),

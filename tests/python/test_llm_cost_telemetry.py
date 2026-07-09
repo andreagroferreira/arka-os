@@ -178,6 +178,38 @@ def _entry(
     return row
 
 
+def test_fallback_diagnostic_rows_stay_out_of_by_model(tmp_telemetry: Path):
+    """_log_fallback rows carry the fallback reason in the model field
+    ('unavailable'/'selected'); they must feed by_provider (degraded
+    chains) but never surface as bogus models in by_model."""
+    now = datetime(2026, 7, 9, 14, 0, tzinfo=timezone.utc)
+    _write_entries(
+        tmp_telemetry,
+        [
+            _entry(now, model="claude-opus-4-7", cost=0.20),
+            _entry(
+                now,
+                provider="fallback:claude_code->ollama",
+                model="unavailable",
+                tokens_in=0,
+                tokens_out=0,
+                cost=None,
+            ),
+            _entry(
+                now,
+                provider="fallback:claude_code->ollama",
+                model="selected",
+                tokens_in=0,
+                tokens_out=0,
+                cost=None,
+            ),
+        ],
+    )
+    summary = summarise(period="today", path=tmp_telemetry, now=now)
+    assert set(summary.by_model) == {"claude-opus-4-7"}
+    assert "fallback:claude_code->ollama" in summary.by_provider
+
+
 def test_summarise_today_filters_by_utc_midnight(tmp_telemetry: Path):
     now = datetime(2026, 4, 20, 14, 0, tzinfo=timezone.utc)
     yesterday = now - timedelta(days=1)
