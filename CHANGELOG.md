@@ -5,6 +5,40 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.1] - 2026-07-09
+
+First published version carrying the post-4.7.0 follow-up wave (#260,
+#261, #262) plus two community Windows fixes. All Quality Gate APPROVED.
+
+### Fixed
+
+- **Windows: provider CLI stdout decoded as UTF-8** (PR #251, thanks
+  @marlonoliveira182) — `subprocess.run(text=True)` defaulted to the
+  locale codepage (cp1252) on Windows, crashing or garbling UTF-8 output
+  from the claude/codex/gemini runners. All three now pass
+  `encoding="utf-8", errors="replace"`; exit-code-based failure
+  detection is unaffected.
+- **Windows: `bin/arka-py.ps1` parses under PowerShell 5.1** (PR #252,
+  thanks @marlonoliveira182) — inline `if`-expressions passed as command
+  arguments are a PowerShell 7-only construct; under 5.1 the whole
+  script failed to parse and every `arka-py` call died. Replaced with
+  the 5.1-safe assignment form.
+- **CI: bats suite enforced** (PR #260) — bats failures no longer
+  swallowed by `|| echo`; fixed the Synapse cross-input cache key, the
+  hook prompt key, and the ubuntu live-path python dependency setup
+  exposed by turning enforcement on.
+- **Governance: phantom-check false-positive class closed** (PR #261) —
+  analytic/mental narration ("análise", "avaliação", …) no longer flagged
+  as phantom actions; `arka-spec` shorthand normalized to `arka-dev-spec`
+  across skill docs.
+
+### Changed
+
+- **Commands registry regenerated 135 → 262** (PR #262) — generator now
+  strips `--flags` before kebab-case ID normalization, scaffold command
+  tables restructured to the 2-column format, and a 6-test sanity lock
+  prevents future drift and garbled descriptions.
+
 ## [4.7.0] - 2026-07-08
 
 The complete five-PR prompt-surface plan (frontier system-prompts audit,
