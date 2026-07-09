@@ -278,32 +278,88 @@ def _check_coverage(
     return _skip("coverage", "no coverage.xml or junit.xml on disk")
 
 
+def _grep_lines(path: Path, lines: list[str]) -> list[str]:
+    hits = []
+    for lineno_or_text in lines:
+        for name, pattern in _SECURITY_PATTERNS:
+            if pattern.search(lineno_or_text):
+                hits.append(f"{path} [{name}]: {lineno_or_text.strip()[:120]}")
+    return hits
+
+
 def _grep_file(path: Path) -> list[str]:
     try:
-        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
         return []
     hits = []
-    for lineno, line in enumerate(lines, start=1):
+    for lineno, line in enumerate(text.splitlines(), start=1):
         for name, pattern in _SECURITY_PATTERNS:
             if pattern.search(line):
                 hits.append(f"{path}:{lineno} [{name}]")
     return hits
 
 
+def _diff_base(project_dir: Path) -> str | None:
+    """Merge-base with the default branch, or None outside a usable repo."""
+    for ref in ("origin/master", "master", "origin/main", "main"):
+        proc = subprocess.run(
+            ["git", "merge-base", "HEAD", ref],
+            cwd=project_dir, capture_output=True, text=True, timeout=10,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            return proc.stdout.strip()
+    return None
+
+
+def _added_lines(project_dir: Path, base: str, name: str) -> list[str] | None:
+    """Lines ADDED by this change (committed + working tree) vs base.
+
+    Returns None when git cannot answer — callers fall back to the
+    whole-file scan rather than silently passing.
+    """
+    proc = subprocess.run(
+        ["git", "diff", "-U0", base, "--", name],
+        cwd=project_dir, capture_output=True, text=True, timeout=30,
+    )
+    if proc.returncode != 0:
+        return None
+    return [
+        line[1:]
+        for line in proc.stdout.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+    ]
+
+
 def _check_security_grep(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
+    """Diff-aware security sweep over the changed files.
+
+    Scans only lines ADDED relative to the default-branch merge-base —
+    a pre-existing pattern elsewhere in a touched file is master's
+    debt, not this change's (QG blocker, PR1 Interaction Reform:
+    whole-file scans failed changed files on benign pre-existing
+    lines). Falls back to the whole-file scan when git cannot provide
+    a diff (outside a repo, new file, missing base).
+    """
     if not changed:
         return _skip("security-grep", "no changed files provided")
+    base = _diff_base(project_dir)
     hits: list[str] = []
+    mode = "added-lines" if base else "whole-file"
     for name in changed:
         path = Path(name)
         if not path.is_absolute():
             path = project_dir / name
-        if path.is_file():
+        if not path.is_file():
+            continue
+        added = _added_lines(project_dir, base, name) if base else None
+        if added is None:
             hits.extend(_grep_file(path))
+        else:
+            hits.extend(_grep_lines(path, added))
     summary = (
         "no security patterns matched"
         if not hits
@@ -311,7 +367,7 @@ def _check_security_grep(
     )
     return CheckResult(
         check="security-grep", ran=True, passed=not hits,
-        command=f"security-grep over {len(changed)} changed file(s)",
+        command=f"security-grep ({mode}) over {len(changed)} changed file(s)",
         exit_code=None, summary=_tail(summary),
     )
 

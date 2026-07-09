@@ -372,6 +372,26 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     console.log(`         Warning: could not seed worktree.baseRef (${err.message})`);
   }
 
+  // Interaction Reform PR1 — install the ArkaOS output style and seed
+  // it as the Claude Code default. File copy is unconditional (making
+  // the style available is not a preference); the settings seed is
+  // if-absent only — an explicit operator choice is never overridden.
+  try {
+    const { installOutputStyles, seedOutputStyleDefault } = await import("./output-style.js");
+    const styleResult = installOutputStyles({
+      sourceDir: join(ARKAOS_ROOT, "config", "output-styles"),
+    });
+    if (styleResult.copied > 0) {
+      console.log(`         ${styleResult.copied} output style(s) installed (~/.claude/output-styles/).`);
+    }
+    const seedResult = seedOutputStyleDefault({ runtime });
+    if (!seedResult.skipped && seedResult.action === "created") {
+      console.log(`         outputStyle default set to "${seedResult.value}".`);
+    }
+  } catch (err) {
+    console.log(`         Warning: could not install output style (${err.message})`);
+  }
+
   // PR43 v2.62.0 — auto-install default Claude Code plugins. Only runs
   // when runtime is Claude Code AND the `claude` CLI is available.
   // Idempotent: skips plugins already in installed_plugins.json.

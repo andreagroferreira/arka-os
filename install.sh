@@ -1106,6 +1106,33 @@ else
     echo -e "  ${YELLOW}⚠${NC} jq not found — add statusLine and hooks manually to ~/.claude/settings.json"
 fi
 
+# ─── Output Style (Interaction Reform PR1) ────────────────────────────────
+# Copy is unconditional (availability is not a preference); the settings
+# seed is if-absent only — an explicit operator choice, including
+# "default", is never overridden. NOT part of settings-template.json on
+# purpose: the recursive jq merge above would clobber the user's choice
+# on every update.
+if [ -d "$SOURCE_DIR/config/output-styles" ]; then
+    mkdir -p "$HOME/.claude/output-styles"
+    STYLE_COUNT=0
+    for style_file in "$SOURCE_DIR/config/output-styles/"*.md; do
+        [ -f "$style_file" ] || continue
+        cp "$style_file" "$HOME/.claude/output-styles/" && STYLE_COUNT=$((STYLE_COUNT + 1))
+    done
+    if [ "$STYLE_COUNT" -gt 0 ]; then
+        echo -e "  ${GREEN}✓${NC} ArkaOS output style installed ($STYLE_COUNT file(s))"
+    else
+        echo -e "  ${YELLOW}⚠${NC} No output style files found to install"
+    fi
+    if command -v jq &>/dev/null && [ -f "$CLAUDE_SETTINGS" ]; then
+        if [ "$(jq -r '.outputStyle // empty' "$CLAUDE_SETTINGS")" = "" ]; then
+            jq '.outputStyle = "ArkaOS"' "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && \
+                mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS" && \
+                echo -e "  ${GREEN}✓${NC} outputStyle default set to ArkaOS"
+        fi
+    fi
+fi
+
 # ─── Install Manifest ─────────────────────────────────────────────────────
 echo -e "${BLUE}[Install Manifest]${NC}"
 MANIFEST_FILE="$HOME/.arka-os/install-manifest.json"

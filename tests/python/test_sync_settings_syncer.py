@@ -83,12 +83,13 @@ class TestSyncProjectSettings:
         assert data["enabledMcpjsonServers"] == sorted(new_servers)
 
     def test_unchanged_when_already_correct(self, tmp_path: Path) -> None:
-        """Same servers + flag already set → status is unchanged, no write needed."""
+        """Same servers + flag + outputStyle set → unchanged, no write needed."""
         servers = sorted(["context7", "arka-prompts"])
         existing = {
             "permissions": {"allow": ["Read"]},
             "enabledMcpjsonServers": servers,
             "enableAllProjectMcpServers": True,
+            "outputStyle": "ArkaOS",
         }
         sf = _settings_file(tmp_path)
         sf.parent.mkdir(parents=True, exist_ok=True)
@@ -150,6 +151,54 @@ class TestSyncProjectSettings:
 
         assert (tmp_path / ".claude").is_dir()
         assert _settings_file(tmp_path).exists()
+
+
+# ---------------------------------------------------------------------------
+# TestOutputStyleSeed (Interaction Reform PR1)
+# ---------------------------------------------------------------------------
+
+
+class TestOutputStyleSeed:
+    def test_new_settings_get_arkaos_output_style(self, tmp_path: Path) -> None:
+        sync_project_settings(
+            tmp_path, _make_mcp_result(str(tmp_path), ["arka-prompts"])
+        )
+        assert _read_settings(tmp_path)["outputStyle"] == "ArkaOS"
+
+    def test_missing_output_style_is_seeded_on_update(self, tmp_path: Path) -> None:
+        servers = ["arka-prompts"]
+        existing = {
+            "permissions": {"allow": ["Read"]},
+            "enabledMcpjsonServers": servers,
+            "enableAllProjectMcpServers": True,
+        }
+        sf = _settings_file(tmp_path)
+        sf.parent.mkdir(parents=True, exist_ok=True)
+        sf.write_text(json.dumps(existing, indent=2))
+
+        result = sync_project_settings(
+            tmp_path, _make_mcp_result(str(tmp_path), servers)
+        )
+        assert result.status == "updated"
+        assert _read_settings(tmp_path)["outputStyle"] == "ArkaOS"
+
+    def test_explicit_operator_choice_is_never_overridden(
+        self, tmp_path: Path
+    ) -> None:
+        # Any explicit value — including "default" — survives the sync.
+        for chosen in ("default", "MyStyle"):
+            project = tmp_path / chosen
+            sf = _settings_file(project)
+            sf.parent.mkdir(parents=True, exist_ok=True)
+            sf.write_text(json.dumps({
+                "enabledMcpjsonServers": [],
+                "enableAllProjectMcpServers": True,
+                "outputStyle": chosen,
+            }))
+            sync_project_settings(
+                project, _make_mcp_result(str(project), ["arka-prompts"])
+            )
+            assert _read_settings(project)["outputStyle"] == chosen
 
 
 # ---------------------------------------------------------------------------

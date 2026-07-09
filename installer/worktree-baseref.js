@@ -51,8 +51,14 @@ export function seedWorktreeBaseRef({
   }
   settings.worktree = { ...(existing ?? {}), baseRef: defaultValue };
   const tmp = `${settingsPath}.tmp-${process.pid}`;
-  writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n");
-  renameSync(tmp, settingsPath);
+  try {
+    writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n");
+    renameSync(tmp, settingsPath);
+  } catch {
+    // Keeps the header's "never raises" claim true inside the module
+    // (QG blocker M1 parity, PR1 Interaction Reform).
+    return { skipped: "write-failed", action: null };
+  }
   return {
     skipped: null,
     action: existing ? "merged" : "created",
