@@ -59,6 +59,29 @@ The output reports:
 
 **This benchmark is fully deterministic.** Two successive runs on the same code always produce the same `accuracy_pct`. The set is intentionally small (12 items) and covers one representative prompt per department plus the two known failure cases (SaaS/strategy overlap, content/marketing overlap).
 
+### 4. Prompt-Surface Size — `scripts/tools/prompt_surface_benchmark.py`
+
+Measures the UserPromptSubmit hook's injected context (`additionalContext`)
+across 5 canonical prompt classes (simple, question, code-modifying,
+department-routed, slash-command), in deterministic fallback mode
+(`ARKA_HOOK_FORCE_FALLBACK=1`). With `--ref <git-ref>` it extracts the
+older tree via `git archive` (no worktrees) and reports the reduction.
+
+```bash
+arka-py scripts/tools/prompt_surface_benchmark.py --ref v4.0.2
+```
+
+**Published result (2026-07-09, closes the v4.1 Evidence Reform open
+item):** v4.0.2 → v4.8.0 total surface ~8.2 KB → 1575 B across the 5
+canonical prompts — **80.7% reduction**, exceeding the ≥60% plan target.
+The dominant win is on code-modifying / department-routed prompts
+(2874 B → 315 B each): the 13-phase workflow injection was replaced by
+the compact 4-gate evidence contract. HEAD's fallback output is
+byte-deterministic; the pre-4.1 hook reads per-session prompt history
+under `~/.arkaos`, so its side varies by a few tens of bytes between
+runs (8150–8175 B observed) without moving the ratio. Token estimates
+use the same `bytes/4` heuristic as the Synapse `tokens_est` fields.
+
 ---
 
 ## Running the Benchmarks
