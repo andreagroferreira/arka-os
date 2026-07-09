@@ -116,7 +116,8 @@ class TestClassifyReply:
             assert classify_reply(text) == "reject", text
 
     def test_rejection_wins_over_embedded_approval_token(self):
-        assert classify_reply("não avances já") == "reject"
+        # "avança" alone is an approve token; the leading negation wins.
+        assert classify_reply("não avança já") == "reject"
 
     def test_empty_is_other(self):
         assert classify_reply("") == "other"
