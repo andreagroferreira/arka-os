@@ -26,6 +26,13 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 
 Plan a refactoring: identify code smells, select refactoring patterns, ensure test safety net.
 
+When the `codebase-memory` MCP is active, ground the plan in the real
+structure BEFORE proposing moves: `get_architecture` for the module
+map, `trace_path` for every call-site the refactor touches (impact
+analysis), `search_graph` to find duplicated implementations worth
+consolidating. The graph is a prior — verify with Read before planning
+an edit.
+
 ## Output
 
 Refactoring plan with patterns, risk assessment, and test verification steps

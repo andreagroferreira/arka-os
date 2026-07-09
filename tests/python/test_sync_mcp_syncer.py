@@ -64,6 +64,68 @@ def _make_project(tmp_path: Path, name: str = "test-app", stack: list[str] | Non
 
 
 # ---------------------------------------------------------------------------
+# TestRequiresBinary (Interaction Reform PR6 — codebase-memory)
+# ---------------------------------------------------------------------------
+
+
+class TestRequiresBinary:
+    _REGISTRY = {
+        "arka-prompts": {"command": "uv", "args": [], "category": "base"},
+        "codebase-memory": {
+            "command": "codebase-memory-mcp",
+            "args": [],
+            "category": "grounding-code",
+            "requires_binary": "codebase-memory-mcp",
+        },
+    }
+
+    def test_missing_binary_is_deferred_never_written(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(
+            "core.sync.mcp_syncer.shutil.which", lambda _: None
+        )
+        project = _make_project(tmp_path, stack=["laravel"])
+        result = sync_project_mcp(project, self._REGISTRY, str(tmp_path))
+
+        assert "codebase-memory" in result.mcps_deferred
+        assert any("requires binary" in w for w in result.optimizer_warnings)
+        written = json.loads(
+            (Path(project.path) / ".mcp.json").read_text()
+        )["mcpServers"]
+        assert "codebase-memory" not in written, (
+            "a dead server entry must never reach .mcp.json"
+        )
+        assert "arka-prompts" in written
+
+    def test_present_binary_is_written_without_meta_keys(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(
+            "core.sync.mcp_syncer.shutil.which", lambda _: "/usr/local/bin/x"
+        )
+        project = _make_project(tmp_path, stack=["laravel"])
+        result = sync_project_mcp(project, self._REGISTRY, str(tmp_path))
+
+        assert result.mcps_deferred == []
+        written = json.loads(
+            (Path(project.path) / ".mcp.json").read_text()
+        )["mcpServers"]
+        assert "codebase-memory" in written
+        assert "requires_binary" not in written["codebase-memory"]
+
+    def test_grounding_code_reaches_all_code_stacks(self) -> None:
+        from core.sync.mcp_syncer import resolve_mcps_for_stack
+
+        for stack in (["laravel"], ["nuxt"], ["vue"], ["react"],
+                      ["next"], ["python"]):
+            names = [n for n, _ in resolve_mcps_for_stack(self._REGISTRY, stack)]
+            assert "codebase-memory" in names, stack
+        base_only = [n for n, _ in resolve_mcps_for_stack(self._REGISTRY, [])]
+        assert "codebase-memory" not in base_only
+
+
+# ---------------------------------------------------------------------------
 # TestLoadRegistry
 # ---------------------------------------------------------------------------
 

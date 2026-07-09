@@ -81,7 +81,10 @@ def _do_optimize(
 
     return mcp_result.model_copy(update={
         "final_mcp_list": sorted(active),
-        "mcps_deferred": sorted(deferred),
+        # Merge, never replace: the syncer defers entries whose
+        # requires_binary is absent (never written to .mcp.json) and
+        # that skip must survive into the report (PR6).
+        "mcps_deferred": sorted(deferred | set(mcp_result.mcps_deferred)),
         "optimizer_warnings": warnings,
     })
 

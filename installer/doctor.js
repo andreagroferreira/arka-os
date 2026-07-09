@@ -209,6 +209,13 @@ const checks = [
     fix: () => graphifyDoctor().hint || "Run: uv tool install graphifyy  (or pipx install graphifyy)",
   },
   {
+    name: "codebase-memory",
+    description: "codebase-memory-mcp binary present (default consistency layer for code stacks)",
+    severity: "warn",
+    check: () => commandExists("codebase-memory-mcp"),
+    fix: () => "Install codebase-memory-mcp (see mcps/registry.json entry for the one-liner), then /arka update to activate per project",
+  },
+  {
     name: "magic-api-key",
     description: "Magic API key configured (frontend UI/UX — Magic MCP)",
     severity: "warn",

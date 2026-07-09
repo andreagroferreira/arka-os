@@ -7,6 +7,7 @@
   "mcps": [
     "nuxt",
     "nuxt-ui",
-    "magic"
+    "magic",
+    "codebase-memory"
   ]
 }
