@@ -75,18 +75,16 @@ Note: L2.5 and L3.5 are both conditional — L2.5 is registered when either a ve
 
 ---
 
-## core/workflow — Workflow Execution
+## core/workflow — Workflow Definitions & Flow Enforcement
 
-The workflow engine executes declarative YAML workflows: sequences of phases each carrying agent assignments, a gate, and optional outputs. It enforces the Constitution's `sequential-validation` and `full-visibility` rules by design — no phase starts until its predecessor completes and passes its gate. See [WORKFLOW-ENGINE.md](WORKFLOW-ENGINE.md) for full execution detail.
+Declarative YAML workflows: sequences of phases each carrying agent assignments, a gate, and optional outputs. The schema/loader pair validates the contract; execution is orchestrated by the runtime (hooks + skills + Task tool), which enforces the Constitution's `sequential-validation` and `full-visibility` rules — no phase starts until its predecessor completes and passes its gate. The former Python phase executor was removed as dead code (`docs/adr/2026-07-09-remove-dead-orchestration.md`). See [WORKFLOW-ENGINE.md](WORKFLOW-ENGINE.md) for full detail.
 
 | File | Responsibility |
 |---|---|
 | `schema.py` | Pydantic models: `Workflow`, `Phase`, `Gate`, `AgentAssignment`, `PhaseOutput`, `GateType` (auto, user\_approval, quality\_gate, condition, budget\_check), `WorkflowTier` |
-| `engine.py` | `WorkflowEngine`: sequential phase executor, gate evaluator, dependency checks, Obsidian output saving |
 | `loader.py` | `load_workflow(path)` — YAML to `Workflow` via Pydantic; `load_all_squads` variant unused here |
 | `state.py` | JSON state file at `~/.arkaos/workflow-state.json`: atomic writes (temp-rename), `init_workflow`, `update_phase`, `add_violation`, `is_phase_completed`. Fed by `gate_checkpoint.py` since v4.1.0 |
 | `gate_checkpoint.py` | Stop-hook checkpointer (v4.1.0): scans the turn for `[arka:gate:N]` markers and persists the furthest gate + Gate-3 test evidence to `state.py` AND the per-session `SessionStore` snapshot, enabling structured resume after rate-limit/context interruptions |
-| `announcer.py` | `PhaseAnnouncer`: formats `[PHASE] Starting:` / `[PHASE] Completed:` messages, tracks per-phase durations |
 | `enforcer.py` | `WorkflowEnforcer`: evaluates all 14 NON-NEGOTIABLE Constitution rules, returns violations with BLOCK/ESCALATE/WARN severity |
 | `flow_enforcer.py` | `evaluate()`: PreToolUse gate — checks EFFECT tools require a flow marker (`[arka:routing]`, `[arka:trivial]`, `[arka:gate:N]`, legacy `[arka:phase:N]`) in the last 20 assistant messages; feature-flagged via `hooks.hardEnforcement` |
 | `research_gate.py` | KB-first gate for external research tools (Context7, WebSearch, Firecrawl); first violation nudges, second denies; feature-flagged via `hooks.kbFirst` |
@@ -173,7 +171,7 @@ Runtime adapters translate ArkaOS concepts (agent dispatch, context injection) i
 | `codex_cli.py` | Codex CLI adapter |
 | `gemini_cli.py` | Gemini CLI adapter |
 | `cursor.py` | Cursor adapter: `.cursorrules` injection |
-| `subagent.py` | `HandoffArtifact`, `SubagentResult`, `SubagentDispatcher`; `to_prompt()` serialises to ~82 word-tokens (660 chars) for a representative task |
+| `subagent.py` | `HandoffArtifact` — the compacted dispatch contract; `to_prompt()` serialises to ~82 word-tokens (660 chars) for a representative task. Dispatch runs via the runtime's Task tool |
 | `context_compactor.py` | `ContextCompactor.build()` — compresses prior session content into a `context_summary` for handoff artifacts |
 | `llm_provider.py` | LLM provider abstraction (Claude API, Ollama, etc.) |
 | `ollama_provider.py` | Ollama-specific provider for local inference |
