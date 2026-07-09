@@ -70,7 +70,10 @@ jobs:
           find bin/ -type f -exec chmod +x {} \; 2>/dev/null || true
 
       - name: Run bats tests
-        run: bats tests/bats/ 2>/dev/null || bats tests/ 2>/dev/null || echo "No bats tests found"
+        # No swallow (was `|| echo`): governance bats failures MUST fail CI.
+        # Fixed 2026-07-09 after the Constitution 2.0 QG flagged that the
+        # constitution's own tests were effectively unenforced.
+        run: bats tests/
 
   node-check:
     runs-on: ubuntu-latest

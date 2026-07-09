@@ -18,10 +18,10 @@ load helpers/setup
   [ "$output" = "1.0.0" ]
 }
 
-@test "providers-registry.json has 4 default providers" {
+@test "providers-registry.json has 5 default providers" {
   run jq '.providers | length' "$REPO_DIR/config/providers-registry.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "4" ]
+  [ "$output" = "5" ]
 }
 
 @test "providers-registry.json has routing chains" {
@@ -100,7 +100,7 @@ load helpers/setup
 @test "Brand SKILL.md has valid frontmatter" {
   run sed -n '1,/^---$/p' "$REPO_DIR/departments/brand/SKILL.md"
   [ "$status" -eq 0 ]
-  echo "$output" | grep -q "name: brand"
+  echo "$output" | grep -q "name: arka-brand"
 }
 
 # ─── Brand Agents ──────────────────────────────────────────────────────────

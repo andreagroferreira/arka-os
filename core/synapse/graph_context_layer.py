@@ -142,6 +142,10 @@ class GraphContextLayer(Layer):
         return "GraphContext"
 
     @property
+    def input_sensitive(self) -> bool:
+        return True
+
+    @property
     def cache_ttl(self) -> int:
         return 30
 

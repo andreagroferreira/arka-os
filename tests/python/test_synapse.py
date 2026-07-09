@@ -322,6 +322,21 @@ class TestSynapseEngine:
         engine.remove_layer("L4")  # Remove Branch layer
         assert engine.layer_count == initial - 1
 
+    def test_cache_never_serves_one_prompts_result_to_another(self):
+        # Regression (2026-07-09): the layer cache key ignored user_input,
+        # so within the TTL window L5 served one prompt's hints to a
+        # DIFFERENT prompt — including explicit slash commands whose
+        # hints must be suppressed. Input-sensitive layers now hash the
+        # prompt into the key.
+        engine = create_default_engine(commands=[
+            {"id": "dev-feature", "command": "/dev feature <desc>",
+             "keywords": ["build", "feature"]},
+        ])
+        r1 = engine.inject(PromptContext(user_input="build a feature"))
+        assert "[hint:" in r1.context_string
+        r2 = engine.inject(PromptContext(user_input="/dev feature auth"))
+        assert "[hint:" not in r2.context_string
+
     def test_metrics_recorded(self):
         engine = create_default_engine()
         engine.inject(PromptContext())

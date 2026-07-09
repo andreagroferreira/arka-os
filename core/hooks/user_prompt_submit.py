@@ -531,8 +531,15 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
     except OSError:
         pass
 
-    user_input = get_str(stdin_json, "userInput") or get_str(
-        stdin_json, "message"
+    # Claude Code sends the user's text under "prompt" (UserPromptSubmit
+    # hook schema); "userInput"/"message" cover other runtimes. Missing
+    # "prompt" here meant the raw JSON line fell through as user_input,
+    # so L1/L5/L2.5 computed on JSON garbage every turn (found 2026-07-09
+    # by the un-swallowed orchestrator bats test).
+    user_input = (
+        get_str(stdin_json, "prompt")
+        or get_str(stdin_json, "userInput")
+        or get_str(stdin_json, "message")
     )
     session_id = get_str(stdin_json, "session_id")
     effort_level = get_str(stdin_json, "effort", "level") or os.environ.get(

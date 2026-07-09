@@ -47,6 +47,10 @@ class AgentExperiencesLayer(Layer):
         return "AgentExperiences"
 
     @property
+    def input_sensitive(self) -> bool:
+        return True
+
+    @property
     def cache_ttl(self) -> int:
         return 30
 
