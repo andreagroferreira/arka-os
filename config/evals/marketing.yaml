@@ -1,0 +1,28 @@
+# Marketing department reference eval tasks (seed set).
+- id: mkt-launch-campaign-plan
+  department: marketing
+  prompt: >
+    Desenha o plano de campanha de lançamento (4 semanas) para um
+    micro-SaaS B2B de gestão de inventário, orçamento 2000 EUR.
+  expected_properties:
+    - Estrutura AARRR explícita com métrica alvo por etapa
+    - Canais escolhidos justificados contra o ICP (não lista genérica)
+    - Orçamento alocado por canal soma 2000 EUR
+    - Calendário semanal com owners
+  rubric: >
+    Rejeitar clichés de AI copy e canais sem justificação de fit; o
+    framework citado tem de ser aplicado, não só nomeado.
+  tags: [gtm, aarrr, budget]
+
+- id: mkt-seo-content-brief
+  department: marketing
+  prompt: >
+    Cria um brief SEO para um artigo pilar sobre "supplier sync para
+    Shopify" com intenção de pesquisa comercial.
+  expected_properties:
+    - Keyword primária + secundárias com intenção classificada
+    - Outline H2/H3 cobre as perguntas do SERP
+    - Internal links e CTA definidos
+    - Meta title/description dentro dos limites de caracteres
+  rubric: Rejeitar keyword stuffing ou outline sem lógica de funil.
+  tags: [seo, content]

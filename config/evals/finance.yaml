@@ -1,0 +1,28 @@
+# Finance department reference eval tasks (seed set).
+- id: fin-unit-economics-saas
+  department: finance
+  prompt: >
+    Calcula os unit economics de um SaaS com MRR 8000 EUR, 120 clientes,
+    churn mensal 3%, CAC 250 EUR e margem bruta 80%.
+  expected_properties:
+    - LTV derivado com fórmula explícita (ARPU, churn, margem)
+    - Rácio LTV/CAC calculado e interpretado contra o benchmark 3x
+    - Payback period em meses
+    - Aritmética verificável (números batem certo)
+  rubric: >
+    Rejeitar qualquer erro aritmético — o arkaos-not-yes-man aplica-se a
+    matemática impossível do próprio input.
+  tags: [unit-economics, saas]
+
+- id: fin-cashflow-13-weeks
+  department: finance
+  prompt: >
+    Constrói um forecast de cash flow a 13 semanas para uma agência com
+    3 clientes em retainer e folha salarial fixa.
+  expected_properties:
+    - Entradas por cliente com datas de recebimento realistas
+    - Saídas fixas e variáveis separadas
+    - Saldo semanal acumulado com semana crítica identificada
+    - Cenário pessimista (cliente atrasa 30 dias) incluído
+  rubric: Rejeitar forecast sem cenário de stress.
+  tags: [cashflow, forecast]

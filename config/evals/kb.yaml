@@ -1,0 +1,26 @@
+# Knowledge department reference eval tasks (seed set).
+- id: kb-research-note-synthesis
+  department: kb
+  prompt: >
+    Pesquisa "estratégias de retry para APIs rate-limited" e produz uma
+    nota KB sintetizada com fontes.
+  expected_properties:
+    - KB consultada primeiro (citação [[wikilink]] ou gap declarado)
+    - Fontes externas citadas com claims atribuídos
+    - Nota com frontmatter YAML + wikilinks + estrutura Zettelkasten
+    - Síntese própria, não colagem de excertos
+  rubric: Rejeitar claims sem fonte ou nota sem ligações ao grafo.
+  tags: [research, zettelkasten]
+
+- id: kb-moc-reorganize
+  department: kb
+  prompt: >
+    Organiza 15 notas soltas sobre "pricing" num MOC (Map of Content)
+    coerente no vault.
+  expected_properties:
+    - MOC com agrupamento temático justificado
+    - Todas as 15 notas ligadas (nenhuma órfã)
+    - Hierarquia máxima de 2 níveis
+    - Notas duplicadas identificadas para merge
+  rubric: Rejeitar agrupamento alfabético ou sem lógica temática.
+  tags: [moc, organization]

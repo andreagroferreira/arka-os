@@ -1,0 +1,28 @@
+# Dev department reference eval tasks (seed set).
+# Judged against expected_properties + QG verdict; see core/evals/schema.py.
+- id: dev-feature-auth-endpoint
+  department: dev
+  prompt: >
+    Implementa um endpoint de autenticação por token (login + refresh)
+    num serviço Laravel existente, com testes.
+  expected_properties:
+    - FormRequest valida credenciais (nunca validação inline no controller)
+    - Lógica em Service/Repository, controller fino
+    - Feature tests cobrem sucesso, credenciais inválidas e refresh expirado
+    - Nenhum segredo hardcoded; usa config/env
+  rubric: >
+    Rejeitar se os testes não correram (exit code em registo) ou se o
+    fluxo de refresh não invalida o token antigo.
+  tags: [backend, laravel, security-adjacent]
+
+- id: dev-refactor-n-plus-one
+  department: dev
+  prompt: >
+    Este listing de encomendas faz N+1 queries; corrige sem alterar o
+    contrato JSON da API.
+  expected_properties:
+    - Eager loading ou query única substitui o loop de queries
+    - Contrato de resposta byte-idêntico (teste de regressão prova-o)
+    - Query count coberto por teste (assertQueryCount ou equivalente)
+  rubric: Rejeitar qualquer alteração de schema de resposta.
+  tags: [backend, performance]
