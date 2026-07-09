@@ -53,6 +53,15 @@ Any Department Workflow:
        (~/.arkaos/telemetry/qg-verdicts.jsonl). Applies to EVERY review,
        not only eval runs; --eval-task-id only when the review judged a
        config/evals task.
+    7. Recipe promotion (Interaction Reform PR7, APPROVED reusable
+       features only): when the deliverable is a feature worth reusing
+       across projects (auth flow, payment integration, a standard UI
+       pattern…), PROPOSE to the operator "promote this to a recipe?".
+       On confirmation, capture it —
+       `arka-py -m core.knowledge.recipes_cli capture --spec <spec.json>`
+       (spec = {recipe, narrative, files}). Capture is fail-closed:
+       every field and file is sanitized first, refused without a
+       redaction config. Never silent — always operator-confirmed.
   Phase N: DELIVERY
     → Only reaches user after APPROVED from all three
 ```
