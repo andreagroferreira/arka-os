@@ -66,10 +66,11 @@ jobs:
 
       - name: Install Python deps for hook/bridge tests
         # The synapse bridge (dept detection, L5 hints) and gateway-ensure
-        # need pyyaml/pydantic; without them the live-path bats tests
-        # degrade to the fallback and fail on ubuntu (they passed on dev
-        # macOS where the venv exists). Exposed by the de-swallow.
-        run: pip install pyyaml pydantic
+        # need pyyaml/pydantic. Must be SYSTEM-wide, not user-site: several
+        # bats tests override HOME, which silently drops ~/.local from
+        # sys.path and un-installs user-site packages mid-suite. Exposed
+        # by the de-swallow.
+        run: sudo pip3 install --break-system-packages pyyaml pydantic || sudo pip3 install pyyaml pydantic
 
       - name: Make scripts executable
         run: |
