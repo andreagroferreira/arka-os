@@ -9,6 +9,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync,
+  readdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -19,6 +20,7 @@ const { deployProjectAgents } = await import(
   join(ROOT, "installer", "adapters", "claude-code.js")
 );
 
+// Spot-check list — full-catalog count is asserted dynamically below.
 const EXPECTED_AGENTS = [
   "marta-cqo.md",
   "eduardo-copy.md",
@@ -34,14 +36,29 @@ const EXPECTED_AGENTS = [
   "qa-eng.md",
   "research-assistant.md",
   "security-eng.md",
+  // Full-catalog rollout (2026-07-09): every department compiles; stem
+  // collisions are department-prefixed; sub-squad nesting is included.
+  "cfo.md",
+  "cto.md",
+  "ecom-cro-specialist.md",
+  "landing-cro-specialist.md",
+  "laravel-eng.md",
 ];
+
+const PACKAGED_AGENT_COUNT = readdirSync(join(ROOT, "config", "claude-agents"))
+  .filter((f) => f.endsWith(".md")).length;
 
 function makeTmpDir(prefix) {
   const dir = mkdtempSync(join(tmpdir(), prefix));
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-test("repo ships the QG/lead + compiled dev-squad agent definitions", () => {
+test("repo ships the QG/lead + compiled full-catalog agent definitions", () => {
+  // 82 agent YAMLs → 78 compiled + 4 hand-written.
+  assert.ok(
+    PACKAGED_AGENT_COUNT >= 80,
+    `expected the full compiled catalog, found ${PACKAGED_AGENT_COUNT}`,
+  );
   for (const file of EXPECTED_AGENTS) {
     const path = join(ROOT, "config", "claude-agents", file);
     assert.ok(existsSync(path), `${file} must exist in config/claude-agents/`);
@@ -55,7 +72,7 @@ test("deploys packaged agent definitions into the project", () => {
   const { dir, cleanup } = makeTmpDir("arkaos-agents-test-");
   try {
     const count = deployProjectAgents(dir, ROOT);
-    assert.equal(count, EXPECTED_AGENTS.length);
+    assert.equal(count, PACKAGED_AGENT_COUNT);
     for (const file of EXPECTED_AGENTS) {
       assert.ok(
         existsSync(join(dir, ".claude", "agents", file)),
