@@ -1,9 +1,15 @@
 ---
 name: saas/gtm-strategy
 description: >
-  Cross-departmental go-to-market strategy: ICP, positioning, motion selection,
-  channel mix, 90-day execution plan. Orchestrates SaaS + Strategy + Marketing
-  + Sales + Landing.
+  Cross-departmental go-to-market strategy: ICP profile, Onlyness
+  positioning, GTM motion selection (PLG/SLG/community/partner), channel
+  mix, and 90-day execution plan — orchestrates SaaS + Strategy + Marketing
+  + Sales + Landing. TRIGGER: "go-to-market", "estratégia GTM", "como levar
+  o produto ao mercado", "define o ICP e posicionamento", "which GTM
+  motion", "/saas gtm <product>". SKIP: strategy already approved, time to
+  ship -> saas/launch-execute (executes the launch this skill plans);
+  company-level growth beyond one SaaS product -> strategy/growth-strategy;
+  launch email/funnel mechanics -> landing/launch-sequence.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

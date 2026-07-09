@@ -1,7 +1,14 @@
 ---
 name: community/moderation
 description: >
-  Moderation system: rules, escalation paths, automated filters, ban policies.
+  Builds a community moderation system: rules, escalation paths, automated
+  filters, and ban policies, delivered as a moderation playbook with
+  consequences and escalation matrix. TRIGGER: "modera a comunidade",
+  "regras do grupo", "moderation rules", "ban policy", "spam no Discord",
+  "escalation path para moderadores", "/community moderate". SKIP: welcoming
+  and activating new members -> community/onboarding-flow (positive
+  first-days path, not enforcement); overall engagement design ->
+  community/retention-system.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

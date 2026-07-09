@@ -1,7 +1,14 @@
 ---
 name: saas/churn-analysis
 description: >
-  Churn analysis: cohort breakdown, retention curves, churn reasons, prevention plan.
+  Diagnoses churn with cohort breakdowns, retention curves, and root-cause
+  churn reasons, ending in a prevention plan. TRIGGER: "churn analysis",
+  "análise de churn", "porque estamos a perder clientes", "retention
+  curves", "cohort retention", "/saas churn". SKIP: pass/fail retention
+  check before approving acquisition spend -> saas/leaky-bucket (gate
+  verdict, not diagnosis); collecting qualitative customer feedback ->
+  saas/voc-loop (voice signal, not cohort math); saving individual at-risk
+  accounts -> saas/customer-success.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

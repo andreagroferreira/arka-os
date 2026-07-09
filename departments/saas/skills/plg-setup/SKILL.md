@@ -1,8 +1,15 @@
 ---
 name: saas/plg-setup
 description: >
-  Product-Led Growth setup: freemium/trial model selection, activation metrics,
-  onboarding flow, PQL definition. Framework: Wes Bush PLG Flywheel.
+  Product-Led Growth setup (Wes Bush PLG Flywheel): freemium vs trial vs
+  reverse-trial model selection, flywheel design, activation metrics, PQL
+  definition, and onboarding flow. TRIGGER: "PLG", "product-led growth",
+  "freemium ou trial?", "motion self-serve", "define PQLs", "/saas plg
+  <product>". SKIP: iterating an existing onboarding funnel ->
+  saas/onboarding-optimize (tunes activation inside a PLG motion already
+  chosen); full go-to-market including sales-led motions ->
+  saas/gtm-strategy; viral and referral loop design ->
+  marketing/growth-loop.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

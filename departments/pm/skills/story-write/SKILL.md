@@ -1,7 +1,14 @@
 ---
 name: pm/story-write
 description: >
-  Write user stories with INVEST criteria, acceptance criteria, and story splitting.
+  Writes user stories with Jeff Patton story mapping and INVEST criteria:
+  acceptance criteria, edge cases, test scenarios, and splitting oversized
+  stories. TRIGGER: "escreve as user stories", "write user stories", "user
+  story para esta feature", "parte esta story", "split this story", "/pm
+  story". SKIP: full product-owner cycle (epics, sprints, prioritization)
+  -> pm/agile-po (this is the focused single-story flow); ranking existing
+  stories -> pm/backlog-groom; formal technical spec with API contracts ->
+  dev/spec.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

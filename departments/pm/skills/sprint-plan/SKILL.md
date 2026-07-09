@@ -1,7 +1,14 @@
 ---
 name: pm/sprint-plan
 description: >
-  Sprint planning: select items, define sprint goal, capacity check, commitment.
+  Scrum sprint planning (Scrum Guide 2020): selects backlog items, defines
+  the sprint goal, checks team capacity, and locks the commitment with a
+  definition of done. TRIGGER: "planeia o sprint", "plan the sprint",
+  "sprint planning", "o que entra no próximo sprint", "define o sprint
+  goal", "/pm sprint". SKIP: items not yet refined or prioritized ->
+  pm/backlog-groom (groom before you plan); continuous-flow teams without
+  sprints -> pm/kanban-setup; multi-sprint delivery forecasting ->
+  pm/estimate-forecast.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

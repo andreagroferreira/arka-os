@@ -1,9 +1,15 @@
 ---
 name: ecom/product-launch
 description: >
-  E-commerce product launch plan — positioning + pricing ladder + content
-  assets + channel mix + ad creative + day-by-day launch sequence + post-
-  launch optimisation triggers.
+  End-to-end e-commerce product launch package — positioning frame, 4-tier
+  pricing ladder with margin math, content asset inventory, channel-mix ramp,
+  day-by-day launch sequence (T-30 to T+14), inventory-aware demand curve, and
+  upfront kill-switch criteria. TRIGGER: "lançar um produto na loja", "plano
+  de lançamento do produto", "product launch plan", "launch this SKU", "/ecom
+  launch <product>". SKIP: launching a SaaS product -> saas/launch-execute
+  (software GTM, no physical inventory); a standalone pricing question ->
+  ecom/pricing-strategy; the promotional email/funnel sequence alone ->
+  landing/launch-sequence.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

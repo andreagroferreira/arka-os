@@ -1,8 +1,16 @@
 ---
 name: pm/discovery-plan
 description: >
-  Product discovery using Teresa Torres' Opportunity Solution Tree.
-  Map outcomes to opportunities to solutions to experiments.
+  Product discovery with Teresa Torres' Opportunity Solution Tree: maps a
+  desired outcome to opportunities, solutions, assumptions, and
+  experiments, on a dual-track weekly interview cadence. TRIGGER: "product
+  discovery", "plano de discovery", "opportunity solution tree", "que
+  problema devemos resolver", "which opportunities should we pursue",
+  "valida esta ideia com clientes", "/pm discover". SKIP: goal already set
+  and mapping deliverables to it -> pm/impact-map (goal decomposition, not
+  opportunity exploration); sequencing validated bets over quarters ->
+  pm/roadmap-build; shaping one chosen solution for the betting table ->
+  pm/shape-pitch.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

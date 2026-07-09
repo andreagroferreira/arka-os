@@ -1,14 +1,15 @@
 ---
 name: arka-ecommerce
 description: >
-  E-commerce department. Full store audits with 5 parallel agents (UX, SEO, performance,
-  content, conversion), product listing optimization, pricing strategy analysis, store launch
-  plans, e-commerce ad campaigns, competitor analysis, e-commerce SEO audits, automated email
-  flows (cart abandonment, post-purchase, win-back), and store performance reports. Integrates
-  with Shopify MCP for direct product/order/customer management. All output saved to Obsidian.
-  Use when user says "ecom", "store", "product", "shop", "shopify", "ecommerce", "e-commerce",
-  "sales", "conversion", "pricing", "catalog", "inventory", "cart", "checkout", "listing",
-  or any online store task.
+  E-commerce department orchestrator (Ricardo's squad, 7-phase workflow with
+  mandatory Quality Gate) routing every store task: full audits, product
+  listings, pricing analysis, launch plans, ad campaigns, competitor analysis,
+  SEO, email flows, performance reports, and Shopify MCP management. TRIGGER:
+  "ecom", "a minha loja online", "shopify", "online store", "gere o catálogo",
+  "/ecom <command>". SKIP: an unambiguous single specialised task -> the
+  matching sibling wins directly, e.g. ecom/store-audit, ecom/pricing-
+  strategy, or ecom/cart-recovery (this skill is the department router, not
+  the specialist).
 ---
 
 # E-commerce Department — ARKA OS

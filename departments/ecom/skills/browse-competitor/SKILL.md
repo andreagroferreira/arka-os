@@ -1,9 +1,16 @@
 ---
 name: ecom/browse-competitor
 description: >
-  Navigate a competitor's e-commerce site and extract structured intelligence:
-  product categories, price ranges, promotions, layout patterns, and screenshots.
-  Requires browser integration (claude --chrome or /chrome).
+  Navigates a competitor's e-commerce site with browser integration and
+  extracts structured intelligence — product categories, price ranges,
+  promotions, layout patterns, payment and shipping info — with screenshots
+  into an Obsidian report; falls back to WebFetch when no browser is
+  available. TRIGGER: "espia a loja do concorrente", "analisa o site da
+  concorrência", "browse competitor store", "vê os preços deles", "/ecom
+  browse-competitor <url>". SKIP: strategic competitive landscape without live
+  navigation -> marketing/competitor-analysis (research-based positioning, no
+  browser needed); auditing YOUR OWN store -> ecom/store-audit (5-agent audit
+  of the store you control).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,15 +1,16 @@
 ---
 name: arka-knowledge
 description: >
-  Dynamic knowledge base powered by Obsidian. Async background processing: queues YouTube
-  downloads, transcribes with Whisper (local or API), and pauses for interactive analysis.
-  Runs 5 parallel analysis agents (Frameworks, Strategy, Voice & Style, Principles, Topics)
-  to build expert personas. Learns from articles and URLs. Creates searchable persona profiles,
-  topic cross-references, and source catalogs. Generates content in any learned persona's voice
-  and style. All output organized in Obsidian vault with MOC pages.
-  Use when user says "kb", "learn", "persona", "knowledge", "youtube", "transcribe", "article",
-  "research", "analyze", "source", "topic", "search knowledge", "write as", "queue", "process",
-  "capabilities", or wants to learn from any content source or use a persona's expertise.
+  Knowledge Base department entry point powered by Obsidian: queues YouTube
+  downloads, transcribes with Whisper, runs 5 parallel analysis agents
+  (Frameworks, Strategy, Voice & Style, Principles, Topics) to build expert
+  personas, learns from articles and URLs, and manages the job queue, KB search,
+  and persona-voice content — all output to the vault with MOC pages.
+  TRIGGER: "aprende com este vídeo", "processa este artigo", "mostra a fila",
+  "learn from this URL", "search knowledge", "/kb learn", "/kb queue",
+  "/kb process". SKIP: deep research on an open question -> kb/research-plan
+  (methodology and CRAAP, not ingestion); building a production callable
+  advisor -> kb/persona-build (cited beliefs and DNA beyond quick persona analysis).
 ---
 
 # Knowledge Base — ARKA OS Department

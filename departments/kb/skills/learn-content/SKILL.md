@@ -1,7 +1,14 @@
 ---
 name: kb/learn-content
 description: >
-  Ingest content (YouTube, article, PDF): download, transcribe, analyze with 5 agents.
+  Ingests a content source (YouTube video, article, PDF): downloads, transcribes,
+  and analyzes it with 5 parallel agents, storing frameworks, insights, and
+  cross-references in Obsidian. TRIGGER: "aprende com este vídeo", "ingere este
+  artigo", "learn from this URL", "transcribe and analyze this podcast",
+  "/kb learn <url>". SKIP: turning raw notes into atomic permanent notes ->
+  kb/zettelkasten-process (note workflow, not source ingestion); building a
+  callable advisor from already-ingested content -> kb/persona-build;
+  investigating an open question -> kb/research-plan (research, not ingestion).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,8 +1,15 @@
 ---
 name: saas/pricing-strategy
 description: >
-  SaaS pricing strategy using value-based pricing (Patrick Campbell), Van Westendorp
-  sensitivity analysis, and competitive positioning. Outputs pricing page structure.
+  SaaS pricing strategy via value-based pricing (Patrick Campbell): value
+  metric selection, Van Westendorp willingness-to-pay, competitive
+  positioning, 3-tier structure, and pricing page rules. TRIGGER: "pricing
+  do SaaS", "quanto devo cobrar", "SaaS pricing strategy", "estrutura de
+  planos e tiers", "Van Westendorp", "/saas pricing <product>". SKIP:
+  e-commerce product pricing -> ecom/pricing-strategy; subscription-box
+  commerce models -> ecom/subscription-model; negotiating price inside a
+  live deal -> sales/pricing-negotiate; LTV/CAC and margin math ->
+  finance/unit-economics.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,7 +1,13 @@
 ---
 name: kb/knowledge-review
 description: >
-  Knowledge freshness review: identify stale notes, update summaries, fix broken links.
+  Knowledge freshness review of the Obsidian vault: identifies stale notes,
+  updates progressive summaries, and fixes broken links, producing a review
+  report with actions taken. TRIGGER: "revê a base de conhecimento", "notas
+  desatualizadas", "review the vault", "fix broken links in the KB", "/kb review".
+  SKIP: reorganising tags, categories, or naming -> kb/taxonomy-manage
+  (structure, not freshness); building an index page for a grown topic
+  cluster -> kb/moc-create (creates MOCs rather than auditing note health).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

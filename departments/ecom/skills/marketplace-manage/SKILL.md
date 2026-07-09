@@ -1,7 +1,15 @@
 ---
 name: ecom/marketplace-manage
 description: >
-  Marketplace operations: seller onboarding, commission models, quality control.
+  Marketplace operations (Marketplace Flywheel + Mirakl framework) — seller
+  onboarding, commission model design, and quality control, delivering an
+  operations plan with seller management and growth strategy. TRIGGER: "gerir
+  o marketplace", "onboarding de sellers", "marketplace commission model",
+  "controlo de qualidade dos vendedores", "/ecom marketplace <action>". SKIP:
+  own-store shipping and logistics -> ecom/fulfillment-plan (single-store
+  fulfillment, not multi-vendor operations); selling through TikTok Shop or
+  Instagram -> ecom/social-commerce (social platforms, not your own
+  marketplace).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

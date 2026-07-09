@@ -1,7 +1,13 @@
 ---
 name: pm/kanban-setup
 description: >
-  Kanban board setup: columns, WIP limits, policies, flow metrics.
+  Kanban system design (Anderson method): board columns, WIP limits,
+  explicit policies, and flow metrics with a measurement plan. TRIGGER:
+  "setup kanban", "monta o quadro kanban", "define WIP limits", "limites de
+  WIP", "melhora o fluxo da equipa", "/pm kanban". SKIP: timeboxed Scrum
+  cadence with sprint goals -> pm/sprint-plan (iterations, not continuous
+  flow); running the daily sync on the board -> pm/standup-run;
+  probabilistic delivery dates from throughput -> pm/estimate-forecast.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

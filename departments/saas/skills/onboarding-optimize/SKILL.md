@@ -1,7 +1,15 @@
 ---
 name: saas/onboarding-optimize
 description: >
-  Onboarding optimization: time-to-value, activation metric, drop-off analysis.
+  Optimizes SaaS onboarding (Wes Bush PLG Activation): time-to-value,
+  activation metric, drop-off analysis, and an experiment backlog with
+  activation targets. TRIGGER: "optimiza o onboarding", "utilizadores
+  desistem depois do signup", "users drop off after signup", "melhorar o
+  time-to-value", "activation rate baixa", "/saas onboard <product>".
+  SKIP: designing the whole PLG motion from scratch -> saas/plg-setup
+  (model selection and flywheel; onboarding is one piece); high-touch
+  onboarding of managed accounts -> saas/customer-success (CS lifecycle,
+  not self-serve activation).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

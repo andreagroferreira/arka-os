@@ -1,7 +1,13 @@
 ---
 name: community/betting-setup
 description: >
-  Betting/trading community setup: Telegram VIP, signal delivery, tier pricing.
+  Betting/trading community setup on Telegram: VIP group structure, signal
+  delivery, bot config, and tier pricing, delivered as a launch-ready
+  blueprint. TRIGGER: "comunidade de apostas", "grupo VIP de sinais",
+  "betting community", "trading signals Telegram", "canal de tips",
+  "/community betting". SKIP: any other niche -> community/niche-setup
+  (generic niche blueprint); revenue design beyond tier pricing ->
+  community/monetize-plan (7-stream monetization with projections).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

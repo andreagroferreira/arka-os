@@ -1,7 +1,13 @@
 ---
 name: kb/search-kb
 description: >
-  Search the knowledge base: keyword, semantic, cross-reference across vault.
+  Searches the Obsidian knowledge base: keyword, semantic, and cross-reference
+  search across the vault, returning relevance-ranked results with related
+  notes. TRIGGER: "pesquisa na base de conhecimento", "procura no vault",
+  "search the KB for X", "what do we know about X", "/kb search <query>".
+  SKIP: gathering NEW external information the vault lacks -> kb/research-plan
+  (external research, not retrieval); reviewing or fixing stale notes that
+  search surfaces -> kb/knowledge-review (maintenance, not lookup).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

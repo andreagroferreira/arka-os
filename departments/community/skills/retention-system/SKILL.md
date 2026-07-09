@@ -1,8 +1,14 @@
 ---
 name: community/retention-system
 description: >
-  Design member retention system with engagement loops, gamification,
-  and churn prevention triggers.
+  Designs a member retention system: 6-stage lifecycle triggers, 7 retention
+  habits, churn-signal responses (7/14/30-day win-backs), and gamification
+  elements. TRIGGER: "reter membros", "os membros estão a sair", "member
+  retention", "reduce community churn", "engagement loops", "win-back de
+  membros", "/community retain". SKIP: SaaS revenue churn diagnosis ->
+  saas/churn-analysis (cohorts and MRR, not members); designing the
+  points/badges system itself -> community/gamification-design; measuring
+  health -> community/metrics-track.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 
