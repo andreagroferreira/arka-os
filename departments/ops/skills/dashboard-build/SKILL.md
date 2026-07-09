@@ -1,7 +1,13 @@
 ---
 name: ops/dashboard-build
 description: >
-  Operational dashboard design: select metrics, define targets, build layout.
+  Designs an operational dashboard with Lean Analytics and OMTM: metric selection,
+  targets, data sources, alert thresholds, and layout, with in-browser verification of
+  widgets and real-time data. TRIGGER: "constrói um dashboard", "build a dashboard",
+  "painel de operações", "quero visualizar as métricas", "/ops dashboard <area>". SKIP:
+  deciding WHICH ops metrics and SLAs to track -> ops/metrics-dashboard (picks the
+  numbers; this skill builds the surface); production telemetry, logs, and tracing ->
+  dev/observability.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

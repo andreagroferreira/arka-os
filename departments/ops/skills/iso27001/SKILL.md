@@ -1,7 +1,13 @@
 ---
 name: ops/iso27001
 description: >
-  ISO 27001 ISMS implementation, control mapping, risk treatment planning, and certification audit preparation.
+  ISO 27001 ISMS implementation: scope, Annex A control mapping, Statement of
+  Applicability, risk treatment planning, and Stage 1/2 certification audit preparation.
+  TRIGGER: "ISO 27001", "ISMS", "certificação de segurança da informação", "security
+  certification", "Statement of Applicability", "/ops iso27001". SKIP: AICPA attestation
+  for US SaaS buyers -> ops/soc2-compliance (Trust Services Criteria, not ISMS
+  certification); hands-on codebase security testing -> dev/security-audit; enterprise
+  risk beyond information security -> ops/risk-management.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

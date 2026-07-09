@@ -1,9 +1,13 @@
 ---
 name: dev/app-test
 description: >
-  Build, launch, and click through a native app (macOS or iOS Simulator).
-  Screenshot each screen, report crashes or visual issues.
-  Requires Computer Use (/mcp → computer-use).
+  Build, launch, and click through a native app (macOS or iOS Simulator) via
+  Computer Use — exercises every control systematically, screenshots each
+  screen, reports crashes and visual issues. TRIGGER: "app test", "testa a app
+  nativa", "test the macOS app", "iOS simulator", "clica pela app toda", "/dev
+  app-test"; requires Computer Use (/mcp -> computer-use). SKIP: web app flows
+  in a browser -> dev/demo-gif (browser recording, not native apps); writing
+  automated unit/feature tests -> dev/tdd-cycle.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

@@ -1,8 +1,15 @@
 ---
 name: dev/agent-design
 description: >
-  Design multi-agent architectures with role definitions, communication patterns,
-  tool schemas, guardrails, and evaluation frameworks.
+  Design multi-agent system architectures — supervisor/swarm/pipeline
+  patterns, agent role definitions, tool schemas, communication patterns,
+  guardrails, and memory design (Multi-Agent Architecture Patterns). TRIGGER:
+  "agent design", "desenha um sistema de agentes", "multi-agent architecture",
+  "arquitetura de agentes", "define agent roles", "/dev agent-design"; load
+  BEFORE building any agent system. SKIP: wiring an existing set of agents
+  into a flow with handoffs and failure policies -> dev/agent-workflow (it
+  designs the FLOW; this designs the AGENTS); non-agent system architecture ->
+  dev/architecture-design.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

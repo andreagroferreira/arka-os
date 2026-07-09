@@ -1,8 +1,14 @@
 ---
 name: dev/db-schema
 description: >
-  Design database schemas with normalization, indexing, migrations,
-  RLS policies, ERD generation, and cross-cutting concerns.
+  Design a feature's database schema: normalization to 3NF, relationship
+  mapping, cross-cutting concerns (timestamps, soft deletes, multi-tenancy,
+  audit trail, optimistic locking), index strategy, Laravel migration code,
+  and Mermaid ERD. TRIGGER: "db schema", "tabelas para esta feature", "cria a
+  migração", "schema design", "modelo relacional", "/dev db-schema"; load
+  BEFORE writing migration files. SKIP: database-wide design, RLS planning, or
+  DBA-level work -> dev/db-design (Vasco's DB-wide scope; this is
+  feature-level); query performance tuning -> dev/performance-profiler.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

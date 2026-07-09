@@ -1,8 +1,14 @@
 ---
 name: landing/funnel-design
 description: >
-  Sales funnel architecture using Brunson's Value Ladder. Selects funnel type
-  based on product, audience awareness, and price point.
+  Sales funnel architecture on Brunson's Value Ladder: selects the funnel
+  type (squeeze, tripwire, SLO, webinar, application) by product, audience
+  awareness and price point, then defines every step from traffic source
+  through upsell and thank-you page. TRIGGER: "sales funnel", "desenha o
+  funil", "funil de vendas", "value ladder", "que funil usar para este
+  produto", "/landing funnel". SKIP: webinar-specific funnel with pitch
+  script and sequences -> landing/webinar-funnel; single-page structure
+  only -> landing/page-architect.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

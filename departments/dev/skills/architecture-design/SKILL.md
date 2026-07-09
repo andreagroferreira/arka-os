@@ -1,8 +1,14 @@
 ---
 name: dev/architecture-design
 description: >
-  Design system architecture using Clean Architecture, Hexagonal, or DDD patterns.
-  Produces an ADR (Architecture Decision Record) saved to Obsidian.
+  Design system architecture with Clean Architecture, Hexagonal, or DDD
+  patterns and produce an ADR (Architecture Decision Record) saved to
+  Obsidian, approved by Marco (CTO). TRIGGER: "architecture", "arquitetura do
+  sistema", "ADR", "system design", "desenha a arquitetura", "clean
+  architecture", "/dev architecture"; load BEFORE large structural changes.
+  SKIP: deep domain modeling (bounded contexts, aggregates, events) ->
+  dev/ddd-model (strategic DDD detail); API contract design only ->
+  dev/api-design; feature requirements -> dev/spec.
 allowed-tools: [Read, Write, Edit, Grep, Glob, Agent, WebFetch]
 ---
 

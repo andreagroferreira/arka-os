@@ -1,7 +1,13 @@
 ---
 name: content/repurpose-plan
 description: >
-  Repurpose one pillar piece into 30+ platform-native content pieces.
+  Repurposes one pillar piece into 30+ platform-native derivatives (clips,
+  posts, threads, carousels, newsletter sections) with a scheduling map.
+  TRIGGER: "reaproveita este vídeo", "repurpose this post", "transforma em
+  reels", "atomize my content", "derivados deste artigo", "/content
+  repurpose". SKIP: designing the whole pillar strategy and cadence ->
+  content/content-system (the system that produces pillars, not one piece);
+  scheduling already-made pieces -> content/calendar.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

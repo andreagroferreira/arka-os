@@ -1,8 +1,14 @@
 ---
 name: dev/rag-architect
 description: >
-  Design RAG pipelines with chunking strategies, embedding selection,
-  retrieval optimization, and evaluation frameworks.
+  Design RAG pipelines end-to-end: chunking strategies, embedding model
+  selection, vector database comparison (Pinecone, Qdrant, pgvector...),
+  hybrid retrieval with reranking, query transformation (HyDE, multi-query),
+  and evaluation frameworks. TRIGGER: "RAG", "retrieval augmented generation",
+  "vector database", "chunking", "embeddings", "pesquisa semântica sobre os
+  meus documentos", "/dev rag-architect". SKIP: multi-agent system design
+  around the RAG -> dev/agent-design; securing the pipeline against injection
+  via retrieved content -> dev/ai-security.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

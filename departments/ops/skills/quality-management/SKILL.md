@@ -1,7 +1,12 @@
 ---
 name: ops/quality-management
 description: >
-  Quality management system design, process improvement, internal audit management, and management review per ISO 9001.
+  Designs and assesses a quality management system per ISO 9001:2015 — QMS phases (PDCA),
+  quality KPIs, internal audit program, CAPA process, and management review. TRIGGER:
+  "ISO 9001", "sistema de gestão da qualidade", "QMS", "auditoria interna", "CAPA",
+  "non-conformity process", "/ops quality-management". SKIP: eliminating process waste ->
+  ops/lean-audit (7 wastes and value stream, not a management system); reviewing code
+  quality -> dev/code-review; enterprise risk framework -> ops/risk-management.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

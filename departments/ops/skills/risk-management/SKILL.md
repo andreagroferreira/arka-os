@@ -1,7 +1,13 @@
 ---
 name: ops/risk-management
 description: >
-  Enterprise risk identification, assessment, treatment, and monitoring using ISO 31000 and COSO ERM frameworks.
+  Enterprise risk identification, assessment (5x5 matrix), treatment, and monitoring
+  using ISO 31000 and COSO ERM, producing a risk register with owners and residual
+  scores. TRIGGER: "gestão de risco", "risk assessment", "avalia os riscos", "risk
+  register da empresa", "risk appetite", "/ops risk-management". SKIP: project-scoped
+  risk log -> pm/risk-register (single project, not enterprise ERM); information-security
+  risk for certification -> ops/iso27001; imagining failure modes before a launch ->
+  strategy/premortem.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

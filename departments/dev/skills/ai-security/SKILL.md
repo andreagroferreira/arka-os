@@ -1,8 +1,15 @@
 ---
 name: dev/ai-security
 description: >
-  AI/ML-specific security assessment: prompt injection, model poisoning,
-  data leakage, agent tool abuse, and MITRE ATLAS technique mapping.
+  AI/ML-specific security assessment with OWASP ML Top 10, NIST AI RMF, and
+  MITRE ATLAS technique mapping: prompt injection, jailbreaks, model
+  poisoning, data leakage, agent tool abuse, and guardrail design. TRIGGER:
+  "ai security", "prompt injection", "segurança do modelo", "jailbreak",
+  "guardrails", "audita o agente", "/dev ai-security". SKIP: general
+  application security (OWASP Top 10, headers, dependencies) ->
+  dev/security-audit (web/app scope, not models); vetting a third-party skill
+  before install -> dev/skill-audit; offensive engagement planning ->
+  dev/red-team.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

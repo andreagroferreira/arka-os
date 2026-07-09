@@ -1,8 +1,14 @@
 ---
 name: content/viral-design
 description: >
-  Design viral content using Jonah Berger's STEPPS framework. Score content
-  against 6 viral triggers before publishing.
+  Designs viral content with Jonah Berger's STEPPS framework: scores topic
+  and final piece against the 6 triggers (Social Currency, Triggers, Emotion,
+  Public, Practical Value, Stories), minimum 6/12 to publish. TRIGGER:
+  "conteúdo viral", "make this go viral", "porque não viralizou", "viral
+  content ideas", "quero que isto seja partilhado", "/content viral". SKIP:
+  producing the actual short-form scripts -> content/short-form (production,
+  not virality scoring); only the opening hook -> content/hook-write (hooks
+  are one step of this flow).
 allowed-tools: [Read, Write, Edit, Agent, WebFetch, WebSearch]
 ---
 

@@ -1,7 +1,12 @@
 ---
 name: ops/gdpr-compliance
 description: >
-  GDPR compliance assessment with data mapping, DPIA generation, breach response planning, and data subject rights management.
+  GDPR compliance assessment with data mapping, DPIA generation, breach response planning
+  (72-hour notification), and data subject rights workflows. TRIGGER: "GDPR", "RGPD",
+  "proteção de dados", "are we GDPR compliant", "data mapping", "DPIA", "direito ao
+  esquecimento", "/ops gdpr-compliance". SKIP: security management system or certification
+  -> ops/iso27001 (ISMS scope, not privacy law); US customer attestation -> ops/soc2-compliance;
+  enterprise risk beyond personal data -> ops/risk-management.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

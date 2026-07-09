@@ -1,14 +1,14 @@
 ---
 name: arka-dev-onboard
 description: >
-  Onboard existing projects into ARKA OS with automatic stack detection, codebase analysis,
-  MCP configuration, and Obsidian documentation. Analyzes composer.json, package.json,
-  .env files, directory structure to auto-detect framework, database, auth, payments, and
-  architecture patterns. Generates PROJECT.md, applies MCP profiles, creates Obsidian project
-  pages, and registers in ARKA OS — making any existing codebase "ready to work" with full
-  context. Also manages project ecosystems (groups of related projects like API + frontend).
-  Use when user says "onboard", "register project", "add project", "import project",
-  "existing project", "ecosystem", or wants to bring an existing codebase into ARKA OS.
+  Onboard EXISTING projects into ARKA OS: auto-detects stack from
+  composer.json/package.json/.env, analyzes architecture and git, applies MCP
+  profiles, generates PROJECT.md and Obsidian pages, and manages ecosystems
+  (groups of related projects like API + frontend). TRIGGER: "onboard",
+  "regista o projeto", "add project", "import project", "ecosystem", "traz
+  este projeto para o ArkaOS", "/dev onboard". SKIP: creating a NEW project
+  from a template -> dev/scaffold (greenfield, not existing code);
+  human-readable onboarding docs for developers -> dev/codebase-onboard.
 ---
 
 # Project Onboarding — ARKA OS Dev Department

@@ -1,7 +1,14 @@
 ---
 name: content/ai-workflow
 description: >
-  AI content workflow: ideation, drafting, editing, formatting with AI assistance.
+  AI-augmented content workflow: ideation, drafting, editing, and formatting
+  with AI assistance plus human review checkpoints. TRIGGER: "usa AI para
+  criar conteúdo", "draft this with AI", "AI content workflow", "edita este
+  rascunho com AI", "acelera a produção de conteúdo", "/content ai". SKIP:
+  building the full pillar-to-derivatives operating system ->
+  content/content-system (owns strategy and cadence, not AI-assisted
+  drafting); automating business processes or integrations ->
+  ops/workflow-automate (non-content automation).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

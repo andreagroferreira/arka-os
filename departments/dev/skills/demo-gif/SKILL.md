@@ -1,9 +1,13 @@
 ---
 name: dev/demo-gif
 description: >
-  Record a GIF demo of a user flow in the browser. Navigates to a URL,
-  executes described interactions, and saves the recording as a GIF file.
-  Requires browser integration (claude --chrome or /chrome).
+  Record a GIF demo of a browser user flow: navigates to a URL, executes the
+  described interactions (click, type, scroll) with visual pauses, and saves
+  the recording as a GIF for demos, docs, or bug reports. TRIGGER: "demo gif",
+  "grava um gif", "record the flow", "gravação do fluxo", "gif para o bug
+  report", "/dev demo-gif"; requires browser integration (claude --chrome or
+  /chrome). SKIP: native macOS/iOS app walkthroughs -> dev/app-test (Computer
+  Use, not browser); writing the docs around the demo -> dev/docs.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

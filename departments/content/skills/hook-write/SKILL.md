@@ -1,8 +1,14 @@
 ---
 name: content/hook-write
 description: >
-  Write hooks for the first 3 seconds of any content. 7 hook types with
-  templates and A/B testing variants.
+  Writes hooks for the first 3 seconds of any content: generates 10+ variants
+  across 7 hook types (controversy, curiosity gap, pain point, result,
+  counter-intuitive, story, direct value), scores them, and formats the top 5
+  per platform. TRIGGER: "hook para reels", "escreve um hook", "opening
+  line", "primeiros 3 segundos", "hook for TikTok", "/content hook". SKIP:
+  headlines for landing pages or sales copy -> landing/headline-write
+  (conversion copy, not retention hooks); full video script ->
+  content/script-structure.
 allowed-tools: [Read, Write, Edit, Agent]
 ---
 

@@ -1,7 +1,13 @@
 ---
 name: dev/docs
 description: >
-  Generate or update project documentation: README, API docs, architecture docs.
+  Generate or update project documentation — README, API docs, and
+  architecture docs — saved to the project and Obsidian. TRIGGER: "docs",
+  "documentação", "atualiza o README", "write the docs", "documenta a API",
+  "/dev docs". SKIP: onboarding documentation for new developers on an
+  existing codebase -> dev/codebase-onboard (audience-tuned onboarding, not
+  general docs); changelog and release notes from git history ->
+  dev/changelog; operational procedures for on-call -> dev/runbook.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

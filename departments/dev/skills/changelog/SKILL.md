@@ -1,7 +1,14 @@
 ---
 name: dev/changelog
 description: >
-  Generate changelogs from git history using conventional commits. Lint commit messages, detect version bumps, and render Keep a Changelog format.
+  Generate changelogs from git history using Conventional Commits: lints
+  commit messages, detects the SemVer bump (MAJOR/MINOR/PATCH), groups
+  entries, and renders Keep a Changelog format. TRIGGER: "changelog", "gera o
+  changelog", "release notes", "notas de versão", "what changed since the last
+  tag", "/dev changelog". SKIP: planning and executing the whole release
+  (readiness checklist, deploy sequence, rollback) -> dev/release (the
+  changelog is one artifact of it); shipping the deployment itself ->
+  dev/deploy.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

@@ -1,7 +1,14 @@
 ---
 name: content/calendar
 description: >
-  Content calendar: weekly themes, pillar assignments, derivative scheduling.
+  Content calendar planning: weekly themes, pillar assignments, and derivative
+  scheduling mapped from pillar to platform-native pieces. TRIGGER:
+  "calendário de conteúdo", "content calendar", "planeia a semana de posts",
+  "publishing schedule", "agenda de publicações", "/content calendar". SKIP:
+  campaign and promo timing across channels -> marketing/calendar-plan (owns
+  marketing campaign calendars); community-space programming ->
+  community/content-calendar (owns community engagement calendars); building
+  the whole strategy, not one calendar -> content/content-system.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

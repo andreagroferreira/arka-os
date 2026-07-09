@@ -1,7 +1,14 @@
 ---
 name: dev/ddd-model
 description: >
-  Domain-Driven Design modeling: bounded contexts, aggregates, domain events, context mapping, ubiquitous language.
+  Domain-Driven Design modeling with the Evans/Vernon playbook: bounded
+  contexts, aggregates, domain events, context mapping, and ubiquitous
+  language — outputs a DDD model with context map and domain event catalog.
+  TRIGGER: "DDD", "domain model", "bounded context", "modela o domínio",
+  "aggregates", "linguagem ubíqua", "/dev ddd". SKIP: overall system
+  architecture and ADRs -> dev/architecture-design (strategic DDD is one
+  option there; this goes deeper); persisting the model as tables and
+  migrations -> dev/db-schema.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

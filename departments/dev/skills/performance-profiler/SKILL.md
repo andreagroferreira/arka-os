@@ -1,8 +1,15 @@
 ---
 name: dev/performance-profiler
 description: >
-  Performance profiling with bottleneck identification, before/after measurement,
-  optimization checklists, and load testing guidance.
+  Performance profiling with measure-first discipline: establish a baseline
+  (P50/P95/P99, RPS, memory), identify the bottleneck via flamegraphs,
+  slow-query logs, or heap snapshots, apply one fix at a time, and prove the
+  delta with before/after numbers; includes load testing guidance. TRIGGER:
+  "profile", "profiling", "bottleneck", "porque é que isto está lento",
+  "flamegraph", "mede o antes e depois", "/dev performance-profiler". SKIP:
+  broad health check across frontend/API/DB/caching -> dev/performance-audit
+  (the audit is wide, the profiler is deep); monitoring/SLO design ->
+  dev/observability.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 

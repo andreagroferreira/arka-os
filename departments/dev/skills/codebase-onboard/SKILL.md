@@ -1,7 +1,14 @@
 ---
 name: dev/codebase-onboard
 description: >
-  Analyze an existing codebase and generate onboarding documentation: architecture, patterns, setup, key files.
+  Analyze an existing codebase and generate onboarding documentation for new
+  developers: stack detection, architecture map, patterns, setup instructions,
+  and key files, tuned to the audience (junior/senior/contractor). TRIGGER:
+  "onboarding docs", "explica este codebase", "how does this repo work",
+  "documenta a arquitetura para novos devs", "/dev codebase-onboard". SKIP:
+  registering a project into ARKA OS (PROJECT.md, MCPs, Obsidian pages) ->
+  dev/onboard (system registration, not human docs); general README/API doc
+  updates -> dev/docs.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

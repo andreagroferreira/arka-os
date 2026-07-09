@@ -1,7 +1,14 @@
 ---
 name: dev/deploy
 description: >
-  Deploy to environment: pre-deploy checks, deployment execution, post-deploy verification.
+  Deploy to an environment with blue-green/canary strategy: pre-deploy checks,
+  deployment execution, and post-deploy verification — outputs a deployment
+  report with status, rollback plan, and monitoring links. TRIGGER: "deploy",
+  "faz deploy", "ship to staging", "manda para produção", "release to prod",
+  "/dev deploy". SKIP: designing the pipeline that automates deploys ->
+  dev/ci-cd-pipeline (config generation, not execution); coordinating the
+  whole release (versioning, freeze, sign-offs) -> dev/release; production
+  failure during rollout -> dev/incident.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

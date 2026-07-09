@@ -1,7 +1,15 @@
 ---
 name: dev/security-audit
 description: >
-  OWASP Top 10 (2025) security audit with dependency scanning and security headers check.
+  OWASP Top 10 (2025) security audit: access control, cryptographic failures,
+  injection, misconfiguration, plus dependency scanning (npm/composer/pip
+  audit), secrets detection, and security headers — outputs a severity-ranked
+  report with a block/release recommendation. TRIGGER: "security audit",
+  "audita a segurança", "is this secure", "vulnerabilidades", "OWASP", "revê a
+  segurança antes do release", "/dev security-audit". SKIP: AI/LLM-specific
+  threats (prompt injection, model abuse) -> dev/ai-security; deep
+  dependency/license analysis -> dev/dependency-audit; ISO 27001 certification
+  prep -> dev/security-compliance.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

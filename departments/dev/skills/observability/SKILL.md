@@ -1,7 +1,14 @@
 ---
 name: dev/observability
 description: >
-  Design observability strategies: SLI/SLO frameworks, golden signals, structured logging, distributed tracing, alerting, and dashboards.
+  Design observability strategies with Google SRE practice: SLI/SLO frameworks
+  with error budgets, golden signals (latency, traffic, errors, saturation),
+  structured logging standards, distributed tracing, burn-rate alerting, and
+  dashboard hierarchy. TRIGGER: "observability", "monitoring", "SLO",
+  "alertas", "métricas do serviço", "logging estruturado", "tracing", "/dev
+  observability". SKIP: responding to a live incident -> dev/incident
+  (observability is preparation); measuring and fixing a specific performance
+  bottleneck -> dev/performance-profiler.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

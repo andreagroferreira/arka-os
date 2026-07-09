@@ -1,7 +1,14 @@
 ---
 name: dev/tech-debt
 description: >
-  Identify, classify, score, and prioritize technical debt. Generate remediation plans with cost-of-delay analysis.
+  Identify, classify, score, and prioritize technical debt (Ward Cunningham
+  metaphor + cost-of-delay): six debt categories, weighted severity scoring, a
+  prioritization matrix, and remediation plans tied to velocity and risk.
+  TRIGGER: "tech debt", "dívida técnica", "o código está uma confusão",
+  "prioritize cleanup", "TODOs everywhere", "/dev tech-debt". SKIP: planning
+  one specific refactoring with a test safety net -> dev/refactor-plan (the
+  execution plan; tech-debt is the inventory); dependency staleness only ->
+  dev/dependency-audit.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

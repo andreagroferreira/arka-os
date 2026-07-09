@@ -1,7 +1,14 @@
 ---
 name: content/script-structure
 description: >
-  Long-form script: YouTube, podcast, webinar with retention techniques.
+  Long-form script writing for YouTube, podcast, or webinar: full script with
+  timestamps, hooks, transitions, retention techniques, and CTA placement
+  (Hook-Bridge-Body-CTA). TRIGGER: "escreve o guião do vídeo", "video
+  script", "script para o podcast", "roteiro longo", "webinar script",
+  "/content script-long". SKIP: sub-60-second vertical video ->
+  content/short-form (short-form scripts and algorithm formatting);
+  channel-level positioning and packaging -> content/youtube-strategy; just
+  the opening seconds -> content/hook-write.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

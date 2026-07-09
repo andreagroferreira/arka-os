@@ -1,8 +1,14 @@
 ---
 name: content/content-system
 description: >
-  Set up a Content Operating System: pillar content strategy, batching workflow,
-  1-to-30+ repurposing pipeline, calendar, and analytics tracking.
+  Sets up a full Content Operating System: pillar content strategy (GaryVee
+  model), weekly batching workflow, 1-to-30+ repurposing pipeline, calendar
+  template, and metrics tracking. TRIGGER: "monta o meu sistema de conteúdo",
+  "content operating system", "estratégia de conteúdo completa", "pillar
+  content strategy", "content OS", "/content system". SKIP: only scheduling an
+  existing strategy -> content/calendar (one calendar, not the system); only
+  atomizing one piece -> content/repurpose-plan (single pillar, not the
+  operating system).
 allowed-tools: [Read, Write, Edit, Agent, WebFetch]
 ---
 

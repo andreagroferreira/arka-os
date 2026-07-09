@@ -1,7 +1,13 @@
 ---
 name: dev/env-secrets
 description: >
-  Audit .env files for leaked secrets, validate .env.example sync, and guide vault integration.
+  Audit environment files and source for leaked secrets (OWASP Secrets
+  Management): .gitignore coverage, hardcoded keys, .env/.env.example drift,
+  git history scans (GitLeaks, detect-secrets), vault integration guidance,
+  and emergency rotation. TRIGGER: "secrets", "env audit", "chave exposta",
+  "leaked API key", "segredos no git", "verifica o .env", "/dev env-secrets".
+  SKIP: full OWASP application audit -> dev/security-audit (secrets are one
+  check there); ISO 27001/ISMS evidence work -> dev/security-compliance.
 allowed-tools: [Read, Bash, Grep, Glob, Agent]
 ---
 

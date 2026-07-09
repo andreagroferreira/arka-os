@@ -1,11 +1,14 @@
 ---
 name: arka-dev-mcp
 description: >
-  MCP (Model Context Protocol) management for projects. Apply pre-configured MCP profiles,
-  add or remove individual MCP servers, list all available MCPs from the registry, and check
-  which MCPs are active in a project. Generates .mcp.json and .claude/settings.local.json.
-  Use when user says "mcp", "apply mcp", "add mcp", "mcp status", "mcp list", "remove mcp",
-  "model context protocol", "mcp profile", or wants to configure Claude Code integrations.
+  MCP (Model Context Protocol) management for projects: apply pre-configured
+  MCP profiles (laravel, nuxt, ecommerce, full-stack...), add or remove
+  individual servers, list the registry, check project status — generates
+  .mcp.json and .claude/settings.local.json. TRIGGER: "mcp", "apply mcp",
+  "adiciona um mcp", "mcp status", "configura os MCPs", "model context
+  protocol", "/dev mcp". SKIP: building a NEW MCP server from an API contract
+  -> dev/mcp-builder (creation, not configuration); onboarding a whole project
+  (MCP profile included) -> dev/onboard.
 ---
 
 <!-- arka:kb-first-prefix begin -->
