@@ -8,8 +8,8 @@ description: >
   "store analytics", "conversion rate da loja", "verifica o tracking GA4",
   "/ecom analytics". SKIP: cross-channel campaign reporting ->
   marketing/analytics-report (campaign-level, not store-level metrics);
-  diagnosing WHY conversion is low and building a test backlog -> ecom/cro-
-  optimize (research-driven optimization, not measurement).
+  diagnosing WHY conversion is low and building a test backlog
+  -> ecom/cro-optimize (research-driven optimization, not measurement).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

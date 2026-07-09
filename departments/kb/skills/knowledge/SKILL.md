@@ -8,9 +8,12 @@ description: >
   and persona-voice content — all output to the vault with MOC pages.
   TRIGGER: "aprende com este vídeo", "processa este artigo", "mostra a fila",
   "learn from this URL", "search knowledge", "/kb learn", "/kb queue",
-  "/kb process". SKIP: deep research on an open question -> kb/research-plan
-  (methodology and CRAAP, not ingestion); building a production callable
-  advisor -> kb/persona-build (cited beliefs and DNA beyond quick persona analysis).
+  "/kb process". SKIP: ingesting ONE specific source end-to-end (a single
+  video/article/PDF, no queue or persona build) -> kb/learn-content (this
+  umbrella owns the queue and multi-source flow); deep research on an open
+  question -> kb/research-plan (methodology and CRAAP, not ingestion);
+  building a production callable advisor -> kb/persona-build (cited beliefs
+  and DNA beyond quick persona analysis).
 ---
 
 # Knowledge Base — ARKA OS Department

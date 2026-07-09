@@ -7,8 +7,8 @@ description: >
   carrinhos abandonados", "abandoned cart emails", "sequência de recuperação
   de carrinho", "/ecom cart-recovery". SKIP: broader nurture or promotional
   email flows -> landing/email-sequence (persuasion sequences beyond cart
-  abandonment); deciding WHICH customers to target by value first -> ecom/rfm-
-  segment (segmentation precedes the flow).
+  abandonment); deciding WHICH customers to target by value first
+  -> ecom/rfm-segment (segmentation precedes the flow).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

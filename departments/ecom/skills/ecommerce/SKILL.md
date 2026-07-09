@@ -7,9 +7,9 @@ description: >
   SEO, email flows, performance reports, and Shopify MCP management. TRIGGER:
   "ecom", "a minha loja online", "shopify", "online store", "gere o catálogo",
   "/ecom <command>". SKIP: an unambiguous single specialised task -> the
-  matching sibling wins directly, e.g. ecom/store-audit, ecom/pricing-
-  strategy, or ecom/cart-recovery (this skill is the department router, not
-  the specialist).
+  matching sibling wins directly, e.g. ecom/store-audit,
+  ecom/pricing-strategy, or ecom/cart-recovery (this skill is the
+  department router, not the specialist).
 ---
 
 # E-commerce Department — ARKA OS

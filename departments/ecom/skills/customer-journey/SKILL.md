@@ -7,8 +7,8 @@ description: >
   "jornada do cliente", "mapeia a experiência do cliente", "customer journey
   map", "touchpoints da loja", "/ecom journey <segment>". SKIP: scoring
   customers by purchase behaviour -> ecom/rfm-segment (data segmentation, not
-  experience mapping); fixing a specific conversion drop-off -> ecom/cro-
-  optimize (research and testing, not mapping).
+  experience mapping); fixing a specific conversion drop-off
+  -> ecom/cro-optimize (research and testing, not mapping).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

@@ -5,10 +5,13 @@ description: >
   and analyzes it with 5 parallel agents, storing frameworks, insights, and
   cross-references in Obsidian. TRIGGER: "aprende com este vídeo", "ingere este
   artigo", "learn from this URL", "transcribe and analyze this podcast",
-  "/kb learn <url>". SKIP: turning raw notes into atomic permanent notes ->
-  kb/zettelkasten-process (note workflow, not source ingestion); building a
-  callable advisor from already-ingested content -> kb/persona-build;
-  investigating an open question -> kb/research-plan (research, not ingestion).
+  "/kb learn <url>". SKIP: managing the ingestion QUEUE, KB search, or a
+  multi-source persona build -> kb/knowledge (the department umbrella; this
+  skill handles ONE source end-to-end); turning raw notes into atomic
+  permanent notes -> kb/zettelkasten-process (note workflow, not source
+  ingestion); building a callable advisor from already-ingested content ->
+  kb/persona-build; investigating an open question -> kb/research-plan
+  (research, not ingestion).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

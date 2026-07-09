@@ -9,8 +9,7 @@ description: >
   clientes", "RFM analysis", "clientes em risco", "/ecom rfm". SKIP:
   demographic audience building for campaigns -> marketing/audience-segment
   (targeting, not purchase-behaviour scoring); mapping the experience per
-  stage -> ecom/customer-journey; executing win-back emails -> ecom/cart-
-  recovery.
+  stage -> ecom/customer-journey; executing win-back emails -> ecom/cart-recovery.
 allowed-tools: [Read, Write, Edit, Agent, WebFetch]
 ---
 

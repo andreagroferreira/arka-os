@@ -5,7 +5,9 @@ description: >
   performance breakdown, and CAC trends for a given period. TRIGGER:
   "relatório de marketing", "analytics report", "como estão as métricas
   de marketing", "AARRR", "CAC por canal", "/mkt analytics <period>".
-  SKIP: store or e-commerce sales analytics -> ecom/analytics (owns
+  SKIP: designing or instrumenting the AARRR growth loop itself (not
+  reporting on it) -> mkt/growth-loop (builds the loop; this skill reports
+  the metrics); store or e-commerce sales analytics -> ecom/analytics (owns
   revenue and product metrics); content platform performance ->
   content/analytics; funnel step conversion diagnosis ->
   landing/funnel-metrics.
