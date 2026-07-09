@@ -1,11 +1,11 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-09T18:29:02Z",
-    "total_commands": 263,
+    "generated": "2026-07-09T19:22:12Z",
+    "total_commands": 264,
     "generator": "core/registry/generator.py",
     "departments": {
-      "arka": 20,
+      "arka": 21,
       "brand": 12,
       "community": 14,
       "content": 14,
@@ -325,6 +325,31 @@
       "lead_agent": "arka",
       "keywords": [],
       "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "arka-recipes",
+      "command": "/arka recipes [list\\|show\\|apply] <slug>",
+      "department": "arka",
+      "description": "Reuse validated QG-approved feature builds (arka-recipes). Synapse L7.6 auto-surfaces matches.",
+      "lead_agent": "arka",
+      "keywords": [
+        "recipe",
+        "recipes",
+        "receita",
+        "reuse",
+        "validated build",
+        "apply recipe",
+        "feature template"
+      ],
+      "examples": [
+        "que receitas temos",
+        "apply the laravel login recipe",
+        "reusa a receita de auth"
+      ],
       "source": "builtin",
       "tier": 2,
       "requires_branch": false,

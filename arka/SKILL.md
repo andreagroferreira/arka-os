@@ -25,7 +25,7 @@ measures citation compliance per turn.
 # ArkaOS — Main Orchestrator
 
 > **The Operating System for AI Agent Teams**
-> 82 agents. 17 departments. 269 skills. Multi-runtime. Dashboard. Knowledge RAG.
+> 82 agents. 17 departments. 270 skills. Multi-runtime. Dashboard. Knowledge RAG.
 
 ## ⛔ Evidence flow — 4 gates (NON-NEGOTIABLE)
 
@@ -188,6 +188,7 @@ violation (squad-routing, arka-supremacy, spec-driven, mandatory-qa).
 | `/arka personas` | Manage AI personas (create, clone to agent) |
 | `/arka resume <PR_URL>` | Re-enter the Claude Code session that produced a PR (GitHub / GitLab / Bitbucket). Wraps the native `/resume` from Claude Code 2.1.122+. Useful with `arka-dev-spec` and `arka-release` archaeology. |
 | `/arka refine <rough idea>` | Turn a vague or domain-unfamiliar ask into a precise English prompt by asking about the topic first (arka-refine). Auto-suggested on vague requests. |
+| `/arka recipes [list\|show\|apply] <slug>` | Reuse validated QG-approved feature builds (arka-recipes). Synapse L7.6 auto-surfaces matches. |
 | `/do <description>` | Universal routing — natural language to department command |
 
 ## Universal Orchestrator (/do)

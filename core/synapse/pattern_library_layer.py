@@ -42,8 +42,12 @@ _STOPWORDS: frozenset[str] = frozenset({
 })
 
 
-def _extract_keywords(text: str, max_n: int = 10) -> list[str]:
-    """Return the first `max_n` distinct meaningful words from `text`."""
+def extract_keywords(text: str, max_n: int = 10) -> list[str]:
+    """Return the first `max_n` distinct meaningful words from `text`.
+
+    Public: shared by L7.5 (patterns) and L7.6 (recipes) — a single
+    extractor keeps the two prior-art layers matching on the same tokens.
+    """
     seen: list[str] = []
     seen_set: set[str] = set()
     for word in _WORD_RE.findall(text or ""):
@@ -55,6 +59,10 @@ def _extract_keywords(text: str, max_n: int = 10) -> list[str]:
         if len(seen) >= max_n:
             break
     return seen
+
+
+# Back-compat alias (was private before Interaction Reform PR8).
+_extract_keywords = extract_keywords
 
 
 class PatternLibraryLayer(Layer):

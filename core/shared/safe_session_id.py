@@ -21,15 +21,21 @@ import re
 
 
 SAFE_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+# A token made ONLY of dots ("." / ".." / "...") passes the char
+# allowlist but is a filesystem traversal/self-reference — it must
+# reject (QG 2026-07-09: `safe_session_id('..') == '..'` would let a
+# future `recipes delete ..` rmtree ~/.arkaos).
+_DOT_ONLY_RE = re.compile(r"^\.+$")
 
 
 def safe_session_id(session_id: str) -> str | None:
     """Validate ``session_id`` against the strict allowlist.
 
     Returns the id unchanged when safe, or ``None`` when it contains
-    path separators, ``..`` traversal fragments, whitespace, unicode,
-    NUL bytes, or any character outside ``[A-Za-z0-9._-]``. Length is
-    capped at 128 characters to prevent pathological filesystem paths.
+    path separators, ``..`` traversal fragments, a dot-only token,
+    whitespace, unicode, NUL bytes, or any character outside
+    ``[A-Za-z0-9._-]``. Length is capped at 128 characters to prevent
+    pathological filesystem paths.
 
     Callers MUST treat ``None`` as reject — never construct a path or
     shell argument from the raw input when this returns ``None``.
@@ -37,5 +43,7 @@ def safe_session_id(session_id: str) -> str | None:
     if not session_id or not isinstance(session_id, str):
         return None
     if not SAFE_SESSION_ID_RE.match(session_id):
+        return None
+    if _DOT_ONLY_RE.match(session_id):
         return None
     return session_id

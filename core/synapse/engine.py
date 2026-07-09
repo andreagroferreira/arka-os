@@ -204,6 +204,7 @@ def create_default_engine(
     from core.synapse.agent_experiences_layer import AgentExperiencesLayer
     from core.synapse.graph_context_layer import GraphContextLayer
     from core.synapse.pattern_library_layer import PatternLibraryLayer
+    from core.synapse.recipe_layer import RecipeLayer
 
     engine = SynapseEngine()
 
@@ -245,6 +246,11 @@ def create_default_engine(
     # specs and dispatched specialists start from prior art rather than
     # reinventing.
     engine.register_layer(PatternLibraryLayer())
+    # L7.6 (Interaction Reform PR8) — validated Recipe injection.
+    # Sibling of L7.5: surfaces QG-approved prior BUILDS (reference files
+    # on disk) when the prompt matches, so the build loop reuses proven
+    # work. Inert when no recipes are captured.
+    engine.register_layer(RecipeLayer())
     engine.register_layer(SessionContextLayer())
 
     return engine

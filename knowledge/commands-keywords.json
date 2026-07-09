@@ -462,5 +462,9 @@
   "dev-spec-list": {
     "keywords": ["list specs", "show specs", "existing specs", "all specifications", "project specs"],
     "examples": ["show me all specs for this project", "list existing specifications", "what specs do we have"]
+  },
+  "arka-recipes": {
+    "keywords": ["recipe", "recipes", "receita", "reuse", "validated build", "apply recipe", "feature template"],
+    "examples": ["que receitas temos", "apply the laravel login recipe", "reusa a receita de auth"]
   }
 }
