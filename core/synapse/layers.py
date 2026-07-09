@@ -87,6 +87,19 @@ class Layer(ABC):
         return False
 
     @property
+    def session_sensitive(self) -> bool:
+        """True when compute() has per-session side effects or output.
+
+        Session-sensitive layers get ctx.extra['session_id'] added to
+        their cache key — without it, a cache hit from one session
+        suppresses compute() for a concurrent session in the same cwd,
+        skipping that session's side effects (found 2026-07-09: L3.5's
+        KBSessionCache.store() never ran for the second session, so its
+        KB-injected state and overlap markers belonged to the first).
+        """
+        return False
+
+    @property
     def priority(self) -> int:
         """Layer priority (lower = computed first)."""
         return 50
@@ -544,6 +557,10 @@ class KnowledgeRetrievalLayer(Layer):
 
     @property
     def input_sensitive(self) -> bool:
+        return True
+
+    @property
+    def session_sensitive(self) -> bool:
         return True
 
     @property

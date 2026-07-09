@@ -337,6 +337,51 @@ class TestSynapseEngine:
         r2 = engine.inject(PromptContext(user_input="/dev feature auth"))
         assert "[hint:" not in r2.context_string
 
+    def test_session_sensitive_layer_not_cached_across_sessions(self):
+        # Regression (2026-07-09 E2E audit): the cache key ignored
+        # session_id, so a concurrent session's cache hit suppressed
+        # L3.5's compute() — and with it KBSessionCache.store() — for
+        # the second session. Session-sensitive layers now key on
+        # ctx.extra["session_id"]; everything else still shares.
+        class SessionProbe(Layer):
+            computed = 0
+
+            @property
+            def id(self):
+                return "LTEST"
+
+            @property
+            def name(self):
+                return "SessionProbe"
+
+            @property
+            def cache_ttl(self):
+                return 60
+
+            @property
+            def session_sensitive(self):
+                return True
+
+            def compute(self, ctx):
+                SessionProbe.computed += 1
+                return LayerResult(
+                    layer_id=self.id, tag="[probe]", content="[probe]",
+                    tokens_est=1, compute_ms=0, cached=False,
+                )
+
+        engine = SynapseEngine()
+        engine.register_layer(SessionProbe())
+
+        engine.inject(PromptContext(extra={"session_id": "sess-a"}))
+        engine.inject(PromptContext(extra={"session_id": "sess-b"}))
+        assert SessionProbe.computed == 2, (
+            "session B was served session A's cached result"
+        )
+        engine.inject(PromptContext(extra={"session_id": "sess-a"}))
+        assert SessionProbe.computed == 2, (
+            "repeat injection for the same session must hit the cache"
+        )
+
     def test_metrics_recorded(self):
         engine = create_default_engine()
         engine.inject(PromptContext())

@@ -118,6 +118,12 @@ class SynapseEngine:
                 (ctx.user_input or "").encode("utf-8", "replace")
             ).hexdigest()[:12]
             cache_key += f":{digest}"
+        if getattr(layer, "session_sensitive", False):
+            # Session-sensitive layers (KB retrieval) must recompute per
+            # session: a cross-session cache hit would skip their
+            # per-session side effects (KBSessionCache.store).
+            session_id = (ctx.extra or {}).get("session_id", "default")
+            cache_key += f":{session_id}"
 
         # Check cache
         if layer.cache_ttl > 0:
