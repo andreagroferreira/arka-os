@@ -2,18 +2,15 @@
 name: arka-knowledge
 description: >
   Knowledge Base department entry point powered by Obsidian: queues YouTube
-  downloads, transcribes with Whisper, runs 5 parallel analysis agents
-  (Frameworks, Strategy, Voice & Style, Principles, Topics) to build expert
-  personas, learns from articles and URLs, and manages the job queue, KB search,
-  and persona-voice content — all output to the vault with MOC pages.
-  TRIGGER: "aprende com este vídeo", "processa este artigo", "mostra a fila",
-  "learn from this URL", "search knowledge", "/kb learn", "/kb queue",
-  "/kb process". SKIP: ingesting ONE specific source end-to-end (a single
-  video/article/PDF, no queue or persona build) -> kb/learn-content (this
-  umbrella owns the queue and multi-source flow); deep research on an open
-  question -> kb/research-plan (methodology and CRAAP, not ingestion);
-  building a production callable advisor -> kb/persona-build (cited beliefs
-  and DNA beyond quick persona analysis).
+  downloads, transcribes with Whisper, runs 5 parallel analysis agents to
+  build expert personas, and manages the job queue, KB search, and
+  persona-voice content — all output to the vault with MOC pages.
+  TRIGGER: "processa este artigo", "mostra a fila", "search knowledge",
+  "/kb learn", "/kb queue", "/kb process". SKIP: ingesting ONE specific
+  source end-to-end (a single video/article/PDF, no queue) -> kb/learn-content
+  (this umbrella owns the queue and multi-source flow); deep research on an
+  open question -> kb/research-plan (methodology, not ingestion); building a
+  production callable advisor -> kb/persona-build (cited beliefs and DNA).
 ---
 
 # Knowledge Base — ARKA OS Department
