@@ -5,6 +5,46 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2026-07-09
+
+Consolidation session: closed the standing prompt-audit and E2E-audit
+backlog. Four PRs, each through the evidence Quality Gate (two REJECTED→fix
+cycles with independently reproduced blockers).
+
+### Added
+
+- **Behavioral compiler full-catalog rollout** (#265) — the PR-#258 pilot
+  (dev department, 8 agents) now covers every agent YAML in the catalog:
+  82 agents across 17 departments, sub-squad subdirectories included. 70
+  new compiled `config/claude-agents/*.md`. Stem collisions are
+  department-prefixed on both sides (`ecom-cro-specialist`,
+  `landing-cro-specialist`); hand-written prompts stay untouchable and
+  feed the escalation index so every `escalates_to` renders as a deployed
+  handle.
+- **TRIGGER/SKIP contract across the full skill catalog** (#266) — 233
+  skill descriptions migrated to the canonical routing contract (250/250
+  now carry TRIGGER + SKIP). New `tests/python/test_skill_routing_integrity.py`
+  resolves every SKIP target against disk and sweeps for same-department
+  verbatim-trigger collisions lacking a mutual arm.
+
+### Removed
+
+- **Dead Python orchestration** (#264) — `WorkflowEngine`,
+  `PhaseAnnouncer`, and `SubagentDispatcher` had zero production callers;
+  real orchestration is hooks + skills + the Task tool. Closes the last
+  open P1 of the 2026-07-07 E2E audit. The declarative contract
+  (schema/loader/state) and `HandoffArtifact` are retained. ADR:
+  `docs/adr/2026-07-09-remove-dead-orchestration.md`.
+
+### Changed
+
+- **Phantom-action check stays warn-only** (#263) — telemetry shows zero
+  flagged claims and the `arkaos-phantom` state has no consumer, so
+  promotion would be new machinery, not a flag flip. A promotion criterion
+  is recorded in `docs/adr/2026-07-09-phantom-check-stays-warn-only.md`
+  (≥5 flagged claims → manual review → precision ≥4/5 → close the M3
+  false-positive tail first).
+
 ## [4.7.1] - 2026-07-09
 
 First published version carrying the post-4.7.0 follow-up wave (#260,
