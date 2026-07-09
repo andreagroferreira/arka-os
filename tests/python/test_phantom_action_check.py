@@ -100,28 +100,56 @@ class TestFindActionClaims:
         ):
             assert find_action_claims(text) == [], text
 
-    # Known-residual tracker (QG M2/M3): visible in the suite, not hidden.
-    # Promotion to enforcement stays blocked until the telemetry cycle
-    # plus this tracker say otherwise.
-    @pytest.mark.xfail(
-        reason="known recall loss: idiom exclusion anchors on the subject, "
-        "so a second bare 'ran' in the same clause is missed (QG M2 — "
-        "telemetry undercount, not user-facing harm)",
-        strict=True,
-    )
-    def test_known_residual_recall_second_ran_in_clause(self):
+    # QG M2/M3 residuals closed 2026-07-09 (ADR phantom-check-stays-
+    # warn-only listed M3 as the hard prerequisite of any promotion).
+    def test_m2_closed_second_ran_in_coordinated_clause(self):
         assert find_action_claims(
             "I ran through the plan, then ran the test suite."
         )
 
-    @pytest.mark.xfail(
-        reason="known FP tail: analytic-noun synonyms outside the list "
-        "(e.g. 'my read on') — extend from warn-only telemetry before "
-        "any enforcement promotion",
-        strict=True,
-    )
-    def test_known_residual_analytic_synonym_tail(self):
-        assert find_action_claims("I updated my read on the file.") == []
+    def test_m2_coordination_never_crosses_the_sentence(self):
+        # The coordinated-verb allowance is sentence-bounded: a new
+        # sentence with a non-assistant subject must not inherit the I.
+        assert find_action_claims(
+            "I read the plan. The migration ran and created the table."
+        ) == []
+
+    def test_m2_coordination_never_bridges_embedded_third_party_clause(self):
+        # QG re-review blocker (2026-07-09): a cognition verb introducing
+        # a third-party clause must NOT let the I anchor reach that
+        # clause's effect verb — the chunk only opens with the I-clause's
+        # own ran-idiom.
+        for text in (
+            "I confirmed the hook ran and created the state file.",
+            "I believe the deploy ran and updated the release tag.",
+            "I verified the migration ran and updated the schema file.",
+            "I saw the script ran and wrote the output file.",
+            "I saw that the script, when run, created the file.",
+        ):
+            assert find_action_claims(text) == [], text
+
+    def test_m3_closed_analytic_synonym_tail(self):
+        for text in (
+            "I updated my read on the file.",
+            "I updated my reading of the tests.",
+            "I updated my take on the module.",
+            "I added an interpretation of the tests.",
+            "I updated my assessment of the module.",
+            "Atualizei a minha leitura do ficheiro.",
+            "Atualizei a minha interpretação dos testes.",
+            # Plural forms (QG re-review blocker, 2026-07-09).
+            "I updated my reads on the failing tests.",
+            "I updated my takes on the failing tests.",
+            "I updated my readings of the modules.",
+            "Atualizei as minhas leituras dos ficheiros.",
+            "Atualizei as minhas interpretações dos testes.",
+        ):
+            assert find_action_claims(text) == [], text
+
+    def test_m3_verb_read_still_binds_as_effect_prose(self):
+        # 'read' guarded as a noun only before on/of — verb uses keep
+        # their prior behavior (not an effect verb, never flagged).
+        assert find_action_claims("I updated the read-only file flag.")
 
     def test_analysis_prose_not_flagged(self):
         assert find_action_claims("Analisei o código e o plano parece sólido.") == []
