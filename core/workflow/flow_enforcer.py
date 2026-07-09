@@ -224,6 +224,9 @@ class Decision:
     phase_observed: str | None = None
     bypass_used: bool = False
     warning: str = ""
+    # Interaction Reform PR3 — plan-approval telemetry (WARN phase):
+    # "approved" | "missing" | "no-plan" | "unknown" | "" (not gated).
+    approval_state: str = ""
 
     def to_stderr_message(self) -> str:
         if self.allow:
@@ -369,6 +372,46 @@ def _scan_markers(messages: list[str]) -> tuple[str | None, str | None]:
     return marker_found, phase_observed
 
 
+_APPROVAL_EXEMPT_REASONS: frozenset[str] = frozenset({
+    "tool-not-gated", "feature-flag-off", "env-bypass",
+    "classifier-did-not-match",
+})
+
+
+def _annotate_plan_approval(decision: Decision, session_id: str) -> Decision:
+    """PR3 WARN phase: annotate gated allows with plan-approval state.
+
+    Telemetry only — no deny path exists here (hard enforcement is PR4,
+    gated on this telemetry's false-positive rate). The stderr warning
+    fires only for the interesting case: a plan was PRESENTED and the
+    effect tool ran without the approval landing.
+    """
+    if not decision.allow or decision.reason in _APPROVAL_EXEMPT_REASONS:
+        return decision
+    if decision.marker_found == "trivial" or "trivial" in decision.reason:
+        return decision
+    try:
+        from core.workflow import plan_approval
+        if plan_approval.is_approved(session_id):
+            decision.approval_state = "approved"
+        elif plan_approval.is_presented(session_id):
+            decision.approval_state = "missing"
+            warn = (
+                "[arka:warn] no-plan-approval-warn — effect tool ran with a "
+                "presented Gate-2 plan and no user approval on record "
+                "(telemetry only in this release)."
+            )
+            decision.warning = (
+                f"{decision.warning}\n{warn}".strip()
+                if decision.warning else warn
+            )
+        else:
+            decision.approval_state = "no-plan"
+    except Exception:  # noqa: BLE001 — annotation must never break a hook
+        decision.approval_state = "unknown"
+    return decision
+
+
 def evaluate(
     tool_name: str,
     transcript_path: str,
@@ -389,7 +432,27 @@ def evaluate(
     ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages.
     When None (default) the transcript is read from ``transcript_path`` —
     backward compatible with all existing callers.
+
+    Interaction Reform PR3: every gated allow is annotated with the
+    plan-approval state (``approval_state``) for the WARN-phase
+    telemetry that gates PR4's hard G2 enforcement.
     """
+    return _annotate_plan_approval(
+        _evaluate_flow(
+            tool_name, transcript_path, session_id, cwd, tool_input, messages
+        ),
+        session_id,
+    )
+
+
+def _evaluate_flow(
+    tool_name: str,
+    transcript_path: str,
+    session_id: str = "",
+    cwd: str = "",
+    tool_input: dict | None = None,
+    messages: list[str] | None = None,
+) -> Decision:
     is_gated = tool_name in EFFECT_TOOLS_ALWAYS
     if not is_gated and tool_name == "Bash":
         bash_cmd = ""

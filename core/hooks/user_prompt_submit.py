@@ -577,6 +577,26 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
         _wf_mark_required(session_id)
         workflow_directive = _WORKFLOW_DIRECTIVE
 
+    # Interaction Reform PR3 — when the previous turn ended at Gate 2
+    # (plan on the table), classify THIS message as approval/rejection.
+    # UserPromptSubmit runs before the turn's tool calls, so the token
+    # is visible to the PreToolUse enforcer with no marker-invisibility
+    # problem. Never blocks the hook.
+    try:
+        from core.workflow import plan_approval
+        if session_id and user_input and plan_approval.is_presented(session_id):
+            verdict = plan_approval.classify_reply(
+                user_input, has_creation_verb=_wf_classify(user_input)
+            )
+            if verdict == "approve":
+                plan_approval.mark_approved(
+                    session_id, source="text", excerpt=user_input
+                )
+            elif verdict == "reject":
+                plan_approval.mark_rejected(session_id)
+    except Exception:
+        pass
+
     context_hits = _cognitive_hits(session_id)
 
     kb_cite_nudge = meta_tag_nudge = closing_marker_nudge = ""
