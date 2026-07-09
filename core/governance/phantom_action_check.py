@@ -45,7 +45,12 @@ _ANALYTIC_NOUN = (
     r"|takeaways?|impressions?|sense|grasp|view|idea|picture"
     r"|mental\s+model|contexto|resumo|notas?|entendimento"
     r"|perce[çc][ãa]o|an[áa]lise|analysis|ideia|vis[ãa]o|imagem"
-    r"|no[çc][ãa]o|perspe[ct]?tiva|opini[ãa]o|conhecimento|knowledge)\b"
+    r"|no[çc][ãa]o|perspe[ct]?tiva|opini[ãa]o|conhecimento|knowledge"
+    # Synonym tail (ADR 2026-07-09-phantom M3): noun-reads anchored by
+    # the preposition — plurals included — so verb uses ("read the
+    # file") stay untouched.
+    r"|read(?:ing)?s?(?=\s+(?:on|of)\b)|takes?(?=\s+on\b)"
+    r"|interpretations?|assessments?|interpreta[çc][õã][eo]s?|leituras?)\b"
 )
 _GAP = r"(?:(?!" + _ANALYTIC_NOUN + r")[^.\n!?]){0,60}?"
 
@@ -67,7 +72,17 @@ _BOUND_PT = (
     r"|movi|apliquei|corri|executei)\b" + _GAP + _EFFECT_OBJECT
 )
 _BOUND_EN = (
-    r"\bI(?:'ve| have)?\s+(?:just\s+)?(created|wrote|updated|deleted"
+    # Optional coordinated clause after the I-subject (ADR 2026-07-09-
+    # phantom M2): "I ran through the plan, then ran the tests" — the
+    # second bare verb shares the subject. The chunk must START with the
+    # I-clause's own idiom verb (ran into/through/over/across), so an
+    # embedded clause with a third-party subject ("I confirmed the hook
+    # ran and created…") can never bridge the I anchor to a foreign
+    # effect verb (QG blocker, 2026-07-09 re-review).
+    r"\bI(?:'ve| have)?\s+(?:just\s+)?"
+    r"(?:ran\s+(?:into|through|over|across)\b"
+    r"[^.\n!?]{0,40}?[,;]?\s*\b(?:then|and)\s+)?"
+    r"(created|wrote|updated|deleted"
     r"|added|moved|applied|renamed|ran(?!\s+(?:into|through|over|across))"
     r"|executed)\b" + _GAP + _EFFECT_OBJECT
 )

@@ -73,9 +73,23 @@ every event proves the classifier ran against a real closing message.
 
 ## Consequences
 
-- No new code now; `stop.py` and `phantom_action_check.py` unchanged.
+- No enforcement consumer now; `stop.py` unchanged.
 - The unused `arkaos-phantom` tmp state stays as the pre-built handoff
   point for the future consumer (cheap to keep, documented here).
-- The M2/M3 xfail trackers in the test suite remain the backlog marker
-  for detector completeness work; closing M3 (the FP tail) is a hard
-  prerequisite of any future promotion, per the criterion above.
+- **Update (2026-07-09, same day):** the M2/M3 residuals were closed —
+  M3 (analytic-synonym FP tail) via preposition-anchored noun-reads,
+  singular and plural (`read(s)/reading(s) (on|of)`, `take(s) (on)`,
+  `interpretation(s)`, `assessment(s)`, `leitura(s)`,
+  `interpretação/ões`) in `_ANALYTIC_NOUN`; M2 (coordinated bare verb
+  after an I-subject) via a coordination allowance in `_BOUND_EN` that
+  only opens with the I-clause's own ran-idiom, so an embedded clause
+  with a third-party subject ("I confirmed the hook ran and created…")
+  can never bridge the I anchor — the first draft's free-span allowance
+  did exactly that and was REJECTED by the QG re-review with four
+  reproduced false positives. The xfail trackers became regression
+  tests, plus precision packs for the cross-clause and plural classes.
+  "Closed" means the KNOWN, QG-adversarially-tested classes; the
+  detector remains a heuristic, so promotion still requires the full
+  telemetry criterion above (≥ 5 flagged claims + manual precision
+  review) — completeness of the pattern list alone is not sufficient
+  evidence.
