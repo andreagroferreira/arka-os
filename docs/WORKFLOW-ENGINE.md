@@ -1,8 +1,10 @@
-# ArkaOS Workflow Engine
+# ArkaOS Workflow System
 
-How YAML-defined workflows execute: phase sequencing, gate evaluation, state persistence, and the full dev-feature workflow as a worked example.
+How YAML-defined workflows are structured and executed: phase sequencing, gate evaluation, state persistence, and the full dev-feature workflow as a worked example.
 
-For the engine's place in the broader call chain see [ARCHITECTURE.md](ARCHITECTURE.md). For the Python module map see [CORE-ENGINE.md](CORE-ENGINE.md).
+Execution is orchestrated by the runtime — hooks, skills, and the Task tool — against the declarative YAML contract validated by `core/workflow/schema.py` + `loader.py`. A Python phase executor (`WorkflowEngine`) existed but had no production callers and was removed as dead code (see `docs/adr/2026-07-09-remove-dead-orchestration.md`).
+
+For the workflow system's place in the broader call chain see [ARCHITECTURE.md](ARCHITECTURE.md). For the Python module map see [CORE-ENGINE.md](CORE-ENGINE.md).
 
 ---
 
@@ -81,26 +83,26 @@ A workflow lives in `departments/{dept}/workflows/{name}.yaml`. The Pydantic mod
 
 ## Gate Types
 
-Defined in `core/workflow/schema.py::GateType`. The engine evaluates each gate in `WorkflowEngine._evaluate_gate()`.
+Defined in `core/workflow/schema.py::GateType`. Gates are honoured by the orchestrating runtime per the 4-gate evidence flow (`arka/skills/flow/SKILL.md`).
 
 | Gate type | Value | Behaviour |
 |---|---|---|
 | Auto | `auto` | Phase completes; next phase starts immediately. No user interaction. |
-| User approval | `user_approval` | Engine pauses. ArkaOS announces the gate description and waits for explicit user confirmation before proceeding. Silence is not approval. |
+| User approval | `user_approval` | Orchestration pauses. ArkaOS announces the gate description and waits for explicit user confirmation before proceeding. Silence is not approval. |
 | Quality gate | `quality_gate` | Marta (CQO) dispatches Eduardo (copy director) and Francisca (tech director) in parallel. Both must return `APPROVED`. Any `REJECTED` verdict resets the preceding phase to `pending` for rework. |
-| Budget check | `budget_check` | Engine calls `BudgetManager.check_budget(tier, estimated_tokens)`. If the tier quota is exhausted, the gate fails and Tier 0 is notified. When usage exceeds 80% the gate passes but emits a warning. |
+| Budget check | `budget_check` | `BudgetManager.check_budget(tier, estimated_tokens)` is consulted. If the tier quota is exhausted, the gate fails and Tier 0 is notified. When usage exceeds 80% the gate passes but emits a warning. |
 | Condition | `condition` | Passes when the `condition` expression evaluates to true against the current workflow context. Reserved for branching; not used in shipped workflows. |
 
 ---
 
 ## Phase Execution
 
-`WorkflowEngine.execute(workflow)` processes phases in list order. The engine enforces two Constitution rules unconditionally:
+The orchestrating runtime processes phases in list order, enforcing two Constitution rules unconditionally:
 
 - `sequential-validation`: Phase N+1 does not start until phase N is `completed` or `skipped`.
-- `full-visibility`: Every phase transition emits a structured announcement via `PhaseAnnouncer`.
+- `full-visibility`: Every phase transition is announced to the user before the phase runs.
 
-**Execution loop (simplified from `engine.py`):**
+**Execution semantics (the contract the YAML declares):**
 
 ```
 for each phase in workflow.phases:
@@ -108,31 +110,31 @@ for each phase in workflow.phases:
         mark SKIPPED, announce, continue
 
     if phase.depends_on has unmet phases:
-        mark BLOCKED, announce, break
+        mark BLOCKED, announce, stop
 
-    announce "[PHASE] Starting: {name} (agents: ...)"
+    announce phase start with its agents
     dispatch agents (parallel or sequential per agent.parallel flag)
-    collect PhaseResult
 
-    if result.status == FAILED:
-        mark workflow FAILED, announce, break
+    if the phase fails:
+        mark workflow FAILED, announce, stop
 
     mark phase COMPLETED
-    if phase has outputs and obsidian_writer is set:
-        save each output to vault
-    announce "[PHASE] Completed: {name} ({duration}ms)"
+    save declared outputs to the Obsidian vault
+    announce phase completion
 
     evaluate gate:
         if gate passes: continue to next phase
-        if gate fails:  reset phase to PENDING, mark workflow FAILED, break
+        if gate fails:  reset phase to PENDING for rework
 
 if all phases COMPLETED or SKIPPED:
     mark workflow COMPLETED
 ```
 
+Phase state transitions are persisted by the Stop hook (`gate_checkpoint.py` → `state.py`), which is what makes structured resume possible after an interruption.
+
 **Parallel agents within a phase:**
 
-When multiple agents in a phase carry `parallel: true`, they are logically concurrent — the engine does not block on individual agent completion before starting the next parallel agent. Agents without `parallel: true` run sequentially within the phase. The phase itself is still sequential with respect to the workflow (the next phase does not start until all agents in the current phase are done).
+When multiple agents in a phase carry `parallel: true`, they are logically concurrent — orchestration does not block on individual agent completion before starting the next parallel agent. Agents without `parallel: true` run sequentially within the phase. The phase itself is still sequential with respect to the workflow (the next phase does not start until all agents in the current phase are done).
 
 **Model routing within phases:**
 

@@ -12,7 +12,6 @@ from core.agents.validator import validate_agent_consistency
 from core.squads.loader import load_squad, load_all_squads
 from core.squads.registry import SquadRegistry
 from core.workflow.loader import load_workflow
-from core.workflow.engine import WorkflowEngine, GateResult
 from core.workflow.schema import GateType, PhaseStatus
 from core.synapse.engine import create_default_engine
 from core.synapse.layers import PromptContext
@@ -75,43 +74,29 @@ class TestFullAgentPipeline:
         assert len(missing) < 10, f"Missing agent files: {missing}"
 
 
-class TestFullWorkflowExecution:
-    """Test executing a workflow end-to-end with the engine."""
+class TestWorkflowStructure:
+    """Structural checks on real workflow YAMLs via the loader.
 
-    def test_dev_feature_workflow_executes(self):
+    Execution is orchestrated by the runtime (hooks + skills + Task tool);
+    the Python WorkflowEngine was removed as dead code
+    (docs/adr/2026-07-09-remove-dead-orchestration.md), so these tests
+    lock the declarative contract instead of simulating execution.
+    """
+
+    def test_dev_feature_workflow_structure(self):
         wf = load_workflow(BASE_DIR / "departments" / "dev" / "workflows" / "feature.yaml")
-        messages = []
 
-        def approve_all(gate):
-            return GateResult(passed=True, gate_type=gate.type, message="Auto-approved")
+        assert len(wf.phases) == 9
+        assert wf.status == PhaseStatus.PENDING
+        assert wf.quality_gate_required is True
+        qg_phases = [p for p in wf.phases if p.gate and p.gate.type == GateType.QUALITY_GATE]
+        assert qg_phases, "dev feature workflow must contain a quality-gate phase"
 
-        engine = WorkflowEngine(
-            on_visibility=lambda m: messages.append(m),
-            on_gate_check=approve_all,
-        )
-        results = engine.execute(wf)
-
-        assert wf.status == PhaseStatus.COMPLETED
-        assert len(results) == 9  # 9 phases
-        assert all(r.status == PhaseStatus.COMPLETED for r in results)
-        assert any("Quality Gate" in m for m in messages)
-        assert any("STARTING" in m for m in messages)
-        assert any("COMPLETED" in m for m in messages)
-
-    def test_quality_gate_rejection_loops_back(self):
+    def test_brand_identity_workflow_has_quality_gate(self):
         wf = load_workflow(BASE_DIR / "departments" / "brand" / "workflows" / "identity.yaml")
 
-        def reject_quality(gate):
-            if gate.type == GateType.QUALITY_GATE:
-                return GateResult(passed=False, gate_type=gate.type, message="Copy issues found")
-            return GateResult(passed=True, gate_type=gate.type, message="OK")
-
-        engine = WorkflowEngine(on_gate_check=reject_quality)
-        results = engine.execute(wf)
-
-        assert wf.status == PhaseStatus.FAILED
-        rejected = [r for r in results if r.status == PhaseStatus.FAILED]
-        assert len(rejected) >= 1
+        qg_phases = [p for p in wf.phases if p.gate and p.gate.type == GateType.QUALITY_GATE]
+        assert qg_phases, "brand identity workflow must contain a quality-gate phase"
 
 
 class TestSynapseIntegration:
