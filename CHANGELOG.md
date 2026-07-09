@@ -5,6 +5,26 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.0] - 2026-07-09
+
+### Changed
+
+- **Commands registries consolidated to a single deterministic
+  generator** (#272, M2 follow-up from #267) — the v1/v2 split-brain is
+  closed. `core/registry/generator.py` is now the one canonical
+  generator producing `knowledge/commands-registry.json` (262 commands,
+  bash-parity proven): scans arka + department SKILL.md + all
+  sub-skills, correct id derivation (kills the `arka-costs-[period]`
+  twin ids), per-command keyword merge from `commands-keywords.json`
+  with department fallback — **172 commands that were L5 hint-blind
+  (`keywords:[]`) now match natural-language prompts**. The stale
+  `commands-registry-v2.json` and the bash `bin/arka-registry-gen` are
+  retired with a resurrection guard test; Synapse L5, the dashboard
+  API, `bin/arkaos` and `bin/arka commands rebuild` all read/write the
+  single file. `test_commands_registry.py` upgraded from sanity lock to
+  a real committed-vs-regen drift gate (same pattern as the agents
+  registry).
+
 ## [4.9.0] - 2026-07-09
 
 Backlog-clearing session: items 1-8 of the standing follow-up backlog
