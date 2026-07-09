@@ -49,7 +49,8 @@ class TestConstitutionRules:
         # PR3 Squad Intelligence (v3.74.0) added agent-experience-persistence: 10 → 11.
         # PR-4 prompt-surface (2026-07-08) added persona-vs-artifact: 11 → 12.
         # Constitution 2.0 (PR-5) demoted 16 NON-NEGOTIABLE to MUST: 12 → 28.
-        assert len(rules) == 28
+        # Interaction Reform PR2 (2026-07-09) added gate-judges: 28 → 29.
+        assert len(rules) == 29
 
     def test_must_rule_ids(self, constitution):
         rule_ids = [r.id for r in constitution.get_must_rules()]
@@ -114,7 +115,8 @@ class TestConstitutionRules:
         # PR6 Squad Intelligence (v3.77.0) added design-system-locked: 43 → 44.
         # Excellence Reform (v4.2.0) added excellence-mandate: 44 → 45.
         # PR-4 prompt-surface (2026-07-08) added persona-vs-artifact: 45 → 46.
-        assert len(all_ids) == 46  # 26 + 12 + 8
+        # Interaction Reform PR2 (2026-07-09) added gate-judges: 46 → 47.
+        assert len(all_ids) == 47
 
 
 class TestConstitutionQualityGate:

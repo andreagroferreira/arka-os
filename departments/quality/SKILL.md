@@ -23,6 +23,13 @@ override it with narrative.
 Any Department Workflow:
   ...
   Phase N-1: QUALITY GATE
+    0. Output-judge (constitution gate-judges, MEDIUM/HIGH work only):
+       one judge dispatched via the Agent tool with
+       JUDGE_VERDICT_JSON_SCHEMA (core.governance.judge), frontier
+       model, over deliverable + diff + evidence report. REVISE loops
+       the work back before the personas run (max 2); PASS findings
+       become reviewer input. Record it:
+       arka-py -m core.evals.record_cli --kind judge
     1. Run the evidence engine over the project/diff:
          ~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> \
            [--changed-files f1,f2] [--test-command '...'] --json
