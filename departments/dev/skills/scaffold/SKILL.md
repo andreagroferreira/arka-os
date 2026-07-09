@@ -14,17 +14,21 @@ Create new projects from real git repositories with full automation: dependencie
 
 ## Commands
 
-| Command | Git Repository | Stack |
-|---------|---------------|-------|
-| `/dev scaffold laravel <name>` | `https://${GIT_HOST}/laravel/laravel.git` (override with `ARKAOS_LARAVEL_STARTER_REPO` env) | Laravel + Herd |
-| `/dev scaffold nuxt-saas <name>` | `https://github.com/nuxt-ui-templates/dashboard.git` | Nuxt 3 Dashboard |
-| `/dev scaffold nuxt-landing <name>` | `https://github.com/nuxt-ui-templates/landing.git` | Nuxt 3 Landing |
-| `/dev scaffold nuxt-docs <name>` | `https://github.com/nuxt-ui-templates/docs.git` | Nuxt 3 Docs |
-| `/dev scaffold vue-saas <name>` | `https://github.com/nuxt-ui-templates/dashboard-vue.git` | Vue 3 Dashboard |
-| `/dev scaffold vue-landing <name>` | `https://github.com/nuxt-ui-templates/starter-vue.git` | Vue 3 Landing |
-| `/dev scaffold full-stack <name>` | Laravel + Nuxt (both repos) | Full-stack |
-| `/dev scaffold react <name>` | React starter (TBD) | React SPA |
-| `/dev scaffold nextjs <name>` | Next.js starter (TBD) | Next.js App |
+<!-- Column convention: command | DESCRIPTION | repo. The registry
+     generator (bin/arka-registry-gen) reads column 2 as the user-facing
+     description — a repo URL there ships garbled command help (QG
+     blocker, 2026-07-09). -->
+| Command | Description | Git Repository |
+|---------|-------------|----------------|
+| `/dev scaffold laravel <name>` | Scaffold a Laravel app into ~/Herd from the starter repo | `https://${GIT_HOST}/laravel/laravel.git` (override with `ARKAOS_LARAVEL_STARTER_REPO` env) |
+| `/dev scaffold nuxt-saas <name>` | Scaffold a Nuxt 3 SaaS dashboard into ~/Work | `https://github.com/nuxt-ui-templates/dashboard.git` |
+| `/dev scaffold nuxt-landing <name>` | Scaffold a Nuxt 3 landing page into ~/Work | `https://github.com/nuxt-ui-templates/landing.git` |
+| `/dev scaffold nuxt-docs <name>` | Scaffold a Nuxt 3 docs site into ~/Work | `https://github.com/nuxt-ui-templates/docs.git` |
+| `/dev scaffold vue-saas <name>` | Scaffold a Vue 3 SaaS dashboard into ~/Work | `https://github.com/nuxt-ui-templates/dashboard-vue.git` |
+| `/dev scaffold vue-landing <name>` | Scaffold a Vue 3 landing page into ~/Work | `https://github.com/nuxt-ui-templates/starter-vue.git` |
+| `/dev scaffold full-stack <name>` | Scaffold Laravel (~/Herd) + Nuxt (~/Work) as a linked pair | Laravel + Nuxt starter repos above |
+| `/dev scaffold react <name>` | Scaffold a React SPA — starter repo not yet selected | (not yet selected) |
+| `/dev scaffold nextjs <name>` | Scaffold a Next.js app — starter repo not yet selected | (not yet selected) |
 
 ## Workflow: /dev scaffold <type> <name>
 
