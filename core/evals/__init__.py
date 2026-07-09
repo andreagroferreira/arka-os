@@ -7,13 +7,17 @@ or local-model distillation consumes.
 
 from core.evals.schema import EvalTask, load_eval_tasks
 from core.evals.verdict_labels import (
+    load_judge_labels,
     load_verdict_labels,
+    record_judge_label,
     record_verdict_label,
 )
 
 __all__ = [
     "EvalTask",
     "load_eval_tasks",
+    "load_judge_labels",
     "load_verdict_labels",
+    "record_judge_label",
     "record_verdict_label",
 ]

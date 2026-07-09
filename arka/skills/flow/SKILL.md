@@ -65,6 +65,20 @@ resumes at the right gate.
 - Complexity is scored by `core/forge/complexity.py`: LOW → a plan
   inline in the reply; MEDIUM/HIGH → persist the plan to
   `~/.arkaos/plans/` + Obsidian and consider `/arka-forge`.
+- **Plan-judge (constitution `gate-judges`, MEDIUM/HIGH only):** BEFORE
+  presenting the plan to the user, dispatch one judge via the Agent
+  tool with `JUDGE_VERDICT_JSON_SCHEMA` from `core.governance.judge` as
+  the structured-output schema, frontier model (constitution
+  `quality_gate.model_policy`). The judge receives the original request
+  + the plan and hunts adversarially for what is unfinished, default,
+  or would be rejected by a top-tier lead — the same
+  `arkaos-not-yes-man` standard applied to the AGENT's work. `REVISE`
+  → fix the plan and re-judge (max 2 loops, then escalate the findings
+  to the user). A non-empty `user_challenge` means the USER's request
+  itself is technically wrong — present the challenge alongside the
+  plan, never swallow it. Record every verdict:
+  `arka-py -m core.evals.record_cli --kind judge`. LOW/trivial work
+  skips the judge — gates catch risk, they do not ritualize.
 - **Wait for EXPLICIT user approval. Silence is not approval.** This is
   the one human gate and it never disappears.
 - Non-blocking unknowns do not stall the gate: proceed and state
@@ -97,6 +111,13 @@ resumes at the right gate.
   coverage read from the report file, security grep, spell-check for
   copy. Reviewers (Quality Gate personas) interpret tool output; they do
   not replace it. APPROVED/REJECTED derives from evidence.
+- **Output-judge (constitution `gate-judges`, MEDIUM/HIGH only):**
+  BEFORE dispatching the Quality Gate personas, dispatch one judge
+  (Agent tool, `JUDGE_VERDICT_JSON_SCHEMA`, frontier model) over the
+  deliverable + diff + evidence report. `REVISE` loops the work back
+  into Gate 3 (max 2); `PASS` and its findings become INPUT to the QG
+  reviewers — the judge never replaces the personas or the evidence.
+  Record the verdict: `arka-py -m core.evals.record_cli --kind judge`.
 - **Excellence check (`excellence-mandate`, mandatory):** before closing,
   answer three questions with evidence, not narration:
   1. What is **unfinished** in this delivery (trimmed scope, TODO left

@@ -74,6 +74,37 @@ class TestRecordCli:
         assert rc == 1
         assert load_verdict_labels() == []
 
+    def test_kind_judge_records_to_judge_corpus(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        judge_path = tmp_path / "judge-verdicts.jsonl"
+        monkeypatch.setenv("ARKA_JUDGE_LABELS_PATH", str(judge_path))
+        verdict_file = tmp_path / "j.json"
+        verdict_file.write_text(json.dumps({
+            "gate": "G2", "role": "plan-judge", "verdict": "PASS",
+            "reviewer": "plan-judge-g2", "model_used": "opus",
+        }), encoding="utf-8")
+        rc = record_main([
+            "--kind", "judge", "--file", str(verdict_file),
+            "--department", "dev",
+        ])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out == {"recorded": True, "verdict": "PASS", "gate": "G2"}
+        assert judge_path.exists()
+
+    def test_kind_judge_rejects_qg_shaped_payload(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        monkeypatch.setenv(
+            "ARKA_JUDGE_LABELS_PATH", str(tmp_path / "j.jsonl")
+        )
+        verdict_file = tmp_path / "qg.json"
+        verdict_file.write_text(_verdict_json(), encoding="utf-8")
+        rc = record_main(["--kind", "judge", "--file", str(verdict_file)])
+        assert rc == 1
+        assert "invalid JudgeVerdict" in capsys.readouterr().err
+
 
 class TestRunnerCli:
     def test_list_shows_seed_tasks(self, capsys):
