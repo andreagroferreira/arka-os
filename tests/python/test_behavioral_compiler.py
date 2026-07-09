@@ -1,4 +1,4 @@
-"""Tests for core/agents/behavioral_compiler.py (PR-4 prompt-surface plan)."""
+"""Tests for core/agents/behavioral_compiler.py (PR-4 + full-catalog rollout)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from core.agents.behavioral_compiler import (
     check,
     compile_agent,
     load_agent_yaml,
-    pilot_targets,
+    catalog_targets,
     write,
 )
 
@@ -127,10 +127,33 @@ class TestCompileAgent:
             load_agent_yaml(bad)
 
 
-class TestPilotLock:
+class TestCatalogLock:
     def test_hand_written_prompts_are_never_targets(self):
-        outs = {out.stem for _, out in pilot_targets(_ROOT)}
+        outs = {out.stem for _, out in catalog_targets(_ROOT)}
         assert outs.isdisjoint(_HAND_WRITTEN)
+
+    def test_full_catalog_is_covered(self):
+        # 82 agent YAMLs - 4 hand-written stems = 78 compiled targets.
+        yamls = [
+            p for p in _ROOT.glob("departments/*/agents/**/*.yaml")
+            if p.is_file()
+        ]
+        targets = catalog_targets(_ROOT)
+        assert len(targets) == len(yamls) - 4
+        # Sub-squad subdirectories are included, not just flat agents/.
+        assert any("backend-core" in str(y) for y, _ in targets)
+
+    def test_output_slugs_are_unique(self):
+        outs = [out for _, out in catalog_targets(_ROOT)]
+        assert len(outs) == len(set(outs)), "slug collision in output paths"
+
+    def test_stem_collision_prefixes_both_departments(self):
+        # ecom + landing both ship a cro-specialist; BOTH must be
+        # department-prefixed (prefixing only one is order-dependent).
+        slugs = {out.stem for _, out in catalog_targets(_ROOT)}
+        assert "ecom-cro-specialist" in slugs
+        assert "landing-cro-specialist" in slugs
+        assert "cro-specialist" not in slugs
 
     def test_committed_output_matches_compiler(self):
         # The YAML is the single source: any drift fails CI.
@@ -139,7 +162,7 @@ class TestPilotLock:
     def test_write_is_idempotent_on_clean_tree(self):
         before = {
             out: out.read_text(encoding="utf-8")
-            for _, out in pilot_targets(_ROOT)
+            for _, out in catalog_targets(_ROOT)
         }
         write(_ROOT)
         for out, text in before.items():
@@ -147,26 +170,29 @@ class TestPilotLock:
 
     def test_no_dangling_escalation_handles_in_generated_files(self):
         # QG B3: a backticked escalation handle must resolve to a
-        # DEPLOYED subagent (pilot output or hand-written prompt).
-        deployed = {out.stem for _, out in pilot_targets(_ROOT)} | _HAND_WRITTEN
+        # DEPLOYED subagent (catalog output or hand-written prompt).
+        deployed = {out.stem for _, out in catalog_targets(_ROOT)} | _HAND_WRITTEN
         handle_re = re.compile(r"escalate to `([^`]+)`")
-        for _, out_path in pilot_targets(_ROOT):
+        for _, out_path in catalog_targets(_ROOT):
             for handle in handle_re.findall(
                 out_path.read_text(encoding="utf-8")
             ):
                 assert handle in deployed, f"{out_path.name}: `{handle}` dangling"
 
     def test_generated_grammar_regressions_absent(self):
-        # QG B1/B2/B4 sweep over the real generated pilot files.
-        for _, out_path in pilot_targets(_ROOT):
+        # QG B1/B2/B4 sweep over ALL generated catalog files.
+        for _, out_path in catalog_targets(_ROOT):
             text = out_path.read_text(encoding="utf-8")
             assert "Communicate " not in text, out_path.name
             assert "Never use " not in text, out_path.name
             assert "he should have caught" not in text, out_path.name
 
-    def test_escalation_index_maps_ids_to_deployed_or_role(self):
+    def test_escalation_index_maps_ids_to_deployed_handles(self):
         index = build_escalation_index(_ROOT)
         assert index.get("tech-lead-paulo") == "`paulo-tech-lead`"
         assert index.get("architect-gabriel") == "`architect`"
-        cto = index.get("cto-marco", "")
-        assert "`" not in cto and "Chief Technology Officer" in cto
+        # Full-catalog rollout: the C-suite is deployed too.
+        assert index.get("cto-marco") == "`cto`"
+        # Collided stems map to their department-prefixed handles.
+        assert index.get("cro-specialist-ecom-alice") == "`ecom-cro-specialist`"
+        assert index.get("cro-specialist-landing-hugo") == "`landing-cro-specialist`"

@@ -9,11 +9,16 @@ keeps the 4-framework DNA as the DESIGN-TIME source (it differentiates
 lexical blacklist, a disagreement/escalation protocol with an exit
 condition, and the persona-vs-artifact contract.
 
-Single source: `departments/<dept>/agents/<slug>.yaml`. Output:
+Single source: every `departments/<dept>/agents/**/<stem>.yaml`
+(sub-squad subdirectories included). Output:
 `config/claude-agents/<slug>.md` (what the installer copies into every
 project's `.claude/agents/`). Hand-written prompts in _HAND_WRITTEN are
 never overwritten. `tests/python/test_behavioral_compiler.py` locks
 committed output byte-identical to `compile_agent()` of its YAML.
+
+Rollout history: PR-4 shipped the compiler pilot-scoped to the dev
+department; the 2026-07-09 consolidation session extended it to the
+full 17-department catalog (82 agents).
 
 CLI:
     arka-py -m core.agents.behavioral_compiler --check   # drift check
@@ -34,18 +39,14 @@ _OUT_DIR = _ROOT / "config" / "claude-agents"
 # must never clobber them.
 _HAND_WRITTEN = {"marta-cqo", "eduardo-copy", "francisca-tech", "paulo-tech-lead"}
 
-# Pilot scope: dev department. tech-lead maps to the hand-written
-# paulo-tech-lead.md and is excluded.
-_PILOT_YAMLS: tuple[str, ...] = (
-    "departments/dev/agents/architect.yaml",
-    "departments/dev/agents/backend-dev.yaml",
-    "departments/dev/agents/dba.yaml",
-    "departments/dev/agents/devops-eng.yaml",
-    "departments/dev/agents/frontend-dev.yaml",
-    "departments/dev/agents/qa-eng.yaml",
-    "departments/dev/agents/research-assistant.yaml",
-    "departments/dev/agents/security-eng.yaml",
-)
+# YAML stems whose runtime prompt is one of the hand-written files above.
+# These are skipped by the compiler and aliased in the escalation index.
+_HAND_WRITTEN_STEMS = {
+    "tech-lead": "paulo-tech-lead",         # departments/dev
+    "cqo": "marta-cqo",                     # departments/quality
+    "copy-director": "eduardo-copy",        # departments/quality
+    "tech-director": "francisca-tech",      # departments/quality
+}
 
 # Standard behavioral blocks imported from the frontier audit (Obsidian:
 # "Projects/WizardingCode Internal/ArkaOS/Prompt Audit —
@@ -138,25 +139,54 @@ def _lc(text: str) -> str:
     return text[0].lower() + text[1:] if text else text
 
 
+def _catalog_yamls(base: Path) -> list[Path]:
+    """Every agent YAML in the catalog, sub-squad subdirectories included."""
+    return sorted(
+        p for p in base.glob("departments/*/agents/**/*.yaml") if p.is_file()
+    )
+
+
+def _slug_map(base: Path) -> dict[Path, str]:
+    """Deterministic yaml_path → output slug for the whole catalog.
+
+    Default slug is the YAML stem. When two departments share a stem
+    (e.g. ecom + landing both ship a cro-specialist), BOTH get the
+    department-prefixed form `<dept>-<stem>` — a flat output directory
+    cannot hold two files with the same name, and prefixing only the
+    second would make slugs order-dependent.
+    """
+    yamls = [p for p in _catalog_yamls(base) if p.stem not in _HAND_WRITTEN_STEMS]
+    stem_counts: dict[str, int] = {}
+    for path in yamls:
+        stem_counts[path.stem] = stem_counts.get(path.stem, 0) + 1
+    mapping: dict[Path, str] = {}
+    for path in yamls:
+        if stem_counts[path.stem] > 1:
+            dept = path.relative_to(base / "departments").parts[0]
+            mapping[path] = f"{dept}-{path.stem}"
+        else:
+            mapping[path] = path.stem
+    return mapping
+
+
 def build_escalation_index(base: Path) -> dict[str, str]:
     """Map every agent YAML id to a rendered escalation target.
 
-    Deployed subagents (pilot slugs + hand-written) render as a backtick
-    handle; everyone else renders by role and name — a handle that
-    resolves to no deployed subagent is worse than no handle (QG B3).
+    Deployed subagents (catalog slugs + hand-written) render as a
+    backtick handle; anything else renders by role and name — a handle
+    that resolves to no deployed subagent is worse than no handle (QG B3).
     """
-    deployed = {out.stem for _, out in pilot_targets(base)} | _HAND_WRITTEN
-    slug_alias = {"tech-lead": "paulo-tech-lead"}
+    slug_map = _slug_map(base)
     index: dict[str, str] = {}
-    for yaml_path in sorted(base.glob("departments/*/agents/*.yaml")):
+    for yaml_path in _catalog_yamls(base):
         try:
             data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
         except Exception:
             continue
         if not isinstance(data, dict) or not data.get("id"):
             continue
-        slug = slug_alias.get(yaml_path.stem, yaml_path.stem)
-        if slug in deployed:
+        slug = _HAND_WRITTEN_STEMS.get(yaml_path.stem) or slug_map.get(yaml_path)
+        if slug:
             index[data["id"]] = f"`{slug}`"
         else:
             role = data.get("role", yaml_path.stem)
@@ -230,17 +260,19 @@ def compile_agent(
     return "\n\n".join(s for s in sections if s) + "\n"
 
 
-def pilot_targets(root: Path | None = None) -> list[tuple[Path, Path]]:
-    """(yaml_path, output_path) pairs for the pilot scope."""
+def catalog_targets(root: Path | None = None) -> list[tuple[Path, Path]]:
+    """(yaml_path, output_path) pairs for the full agent catalog.
+
+    Skips YAMLs whose runtime prompt is hand-written (_HAND_WRITTEN_STEMS);
+    slugs come from _slug_map (department-prefixed on stem collision).
+    """
     base = root or _ROOT
-    pairs: list[tuple[Path, Path]] = []
-    for rel in _PILOT_YAMLS:
-        yaml_path = base / rel
-        slug = yaml_path.stem
-        if slug in _HAND_WRITTEN:
-            continue
-        pairs.append((yaml_path, base / "config" / "claude-agents" / f"{slug}.md"))
-    return pairs
+    slug_map = _slug_map(base)
+    return [
+        (yaml_path, base / "config" / "claude-agents" / f"{slug}.md")
+        for yaml_path, slug in slug_map.items()
+        if slug not in _HAND_WRITTEN
+    ]
 
 
 def check(root: Path | None = None) -> list[str]:
@@ -248,7 +280,7 @@ def check(root: Path | None = None) -> list[str]:
     base = root or _ROOT
     index = build_escalation_index(base)
     problems: list[str] = []
-    for yaml_path, out_path in pilot_targets(base):
+    for yaml_path, out_path in catalog_targets(base):
         expected = compile_agent(
             load_agent_yaml(yaml_path), out_path.stem,
             str(yaml_path.relative_to(base)), index,
@@ -263,11 +295,11 @@ def check(root: Path | None = None) -> list[str]:
 
 
 def write(root: Path | None = None) -> list[Path]:
-    """(Re)generate every pilot agent; returns written paths."""
+    """(Re)generate every catalog agent; returns written paths."""
     base = root or _ROOT
     index = build_escalation_index(base)
     written: list[Path] = []
-    for yaml_path, out_path in pilot_targets(base):
+    for yaml_path, out_path in catalog_targets(base):
         content = compile_agent(
             load_agent_yaml(yaml_path), out_path.stem,
             str(yaml_path.relative_to(base)), index,
