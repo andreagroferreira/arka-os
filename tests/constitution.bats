@@ -8,7 +8,7 @@ load helpers/setup
 @test "constitution has 6 NON-NEGOTIABLE rules" {
   # Constitution 2.0 (PR-5, 2026-07-08): 26 -> 6 by the gate-verifiability
   # admission test; 16 -> MUST, 4 -> SHOULD.
-  count=$(sed -n '/^## NON-NEGOTIABLE/,/^## Quality Gate/p' "$REPO_DIR/CONSTITUTION.md" | grep -c '^\d\+\.')
+  count=$(sed -n '/^## NON-NEGOTIABLE/,/^## Quality Gate/p' "$REPO_DIR/CONSTITUTION.md" | grep -c '^[0-9]\+\.')
   [ "$count" -eq 6 ]
 }
 

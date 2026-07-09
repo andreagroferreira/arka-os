@@ -64,6 +64,13 @@ jobs:
       - name: Install bats-core
         run: sudo apt-get update && sudo apt-get install -y bats jq
 
+      - name: Install Python deps for hook/bridge tests
+        # The synapse bridge (dept detection, L5 hints) and gateway-ensure
+        # need pyyaml/pydantic; without them the live-path bats tests
+        # degrade to the fallback and fail on ubuntu (they passed on dev
+        # macOS where the venv exists). Exposed by the de-swallow.
+        run: pip install pyyaml pydantic
+
       - name: Make scripts executable
         run: |
           find . -name "*.sh" -exec chmod +x {} \;
