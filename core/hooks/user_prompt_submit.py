@@ -102,6 +102,26 @@ _VAGUE_PHRASES = (
     "esse ficheiro", "esse erro", "aquele bug",
 )
 
+# A prompt is CONCRETE (never refine-worthy) when it names a real
+# target: a file (foo.py, README.md, path/to/x), a CamelCase or
+# snake_case code identifier (AuthService, user_repo), or a backticked
+# term. Kills the "no files → +20 constant" false positives the scorer
+# alone can't distinguish (QG 2026-07-09).
+# NOTE: NOT case-insensitive — the CamelCase alternation depends on real
+# case (IGNORECASE would match any two-syllable lowercase word like
+# "melhor" and defeat the whole carve-out).
+_CONCRETE_TARGET_RE = re.compile(
+    r"[\w./-]+\.[A-Za-z]{1,5}\b"        # file with a real extension
+    r"|[\w-]+/[\w./-]+"                 # path segments (a/b/c)
+    r"|\b[A-Z][a-z0-9]+[A-Z]\w+\b"      # CamelCase identifier
+    r"|\b[a-z]+_[a-z0-9_]+\b"           # snake_case identifier
+    r"|`[^`]+`"                         # backticked term
+)
+
+
+def _names_concrete_target(text: str) -> bool:
+    return bool(_CONCRETE_TARGET_RE.search(text or ""))
+
 
 # ─── Sections 1-2: migration + sync detection ────────────────────────────
 
@@ -573,9 +593,36 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
     )
 
     workflow_directive = ""
+    refine_hint = ""
     if user_input and _wf_classify(user_input):
         _wf_mark_required(session_id)
         workflow_directive = _WORKFLOW_DIRECTIVE
+        # Interaction Reform PR5 — a vague code-modifying request is a
+        # signal to refine the prompt (ask about the topic) BEFORE the
+        # workflow. SUGGESTION only; /do decides. Not a slash command.
+        # Calibration (QG 2026-07-09): the scorer's +20 "no files" branch
+        # is a constant in the hook context (the hook never has files), so
+        # 70 is the floor for ANY short prompt. Two guards keep clear asks
+        # out — a higher threshold (85, above that constant) AND a
+        # concrete-target carve-out: a prompt that names a file or a code
+        # identifier ("fix the typo in README.md", "add a test to
+        # AuthService") is specific, never refine-worthy.
+        if (
+            not user_input.strip().startswith("/")
+            and not _names_concrete_target(user_input)
+        ):
+            try:
+                from core.forge.complexity import score_prompt_ambiguity
+                score = score_prompt_ambiguity(user_input)
+                if score >= 85:
+                    refine_hint = (
+                        f"[arka:refine-suggested] score={score}/100 — the "
+                        f"request may be vague; consider /arka refine to ask "
+                        f"about the topic and compile a precise prompt "
+                        f"before building."
+                    )
+            except Exception:
+                pass
 
     # Interaction Reform PR3 — when the previous turn ended at Gate 2
     # (plan on the table), classify THIS message as approval/rejection.
@@ -611,6 +658,8 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
     )
     if hygiene:
         out = f"{out} {hygiene}"
+    if refine_hint:
+        out = f"{out}\n{refine_hint}"
     for nudge in (kb_cite_nudge, meta_tag_nudge, closing_marker_nudge):
         if nudge:
             out = f"{out}\n{nudge}"

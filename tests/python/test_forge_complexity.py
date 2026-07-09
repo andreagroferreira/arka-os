@@ -5,7 +5,33 @@ from core.forge.complexity import (
     calculate_weighted_score,
     determine_tier,
     analyze_complexity,
+    score_prompt_ambiguity,
 )
+
+
+class TestScorePromptAmbiguity:
+    """Public wrapper feeding the /arka refine hint (Interaction Reform PR5)."""
+
+    def test_vague_short_no_files_scores_high(self):
+        # "make it better" — < 5 words, no files, no specifics.
+        assert score_prompt_ambiguity("make it better") >= 70
+
+    def test_specific_prompt_with_paths_scores_low(self):
+        score = score_prompt_ambiguity(
+            "Add retry to core/api/client.py with exponential backoff max 3",
+            ["core/api/client.py"],
+        )
+        assert score < 70
+
+    def test_handles_none_inputs(self):
+        assert 0 <= score_prompt_ambiguity("", None) <= 100
+
+    def test_matches_internal_scorer(self):
+        from core.forge.complexity import _score_ambiguity
+
+        assert score_prompt_ambiguity("um site bonito") == _score_ambiguity(
+            "um site bonito", []
+        )
 
 
 class TestScoreDimensions:

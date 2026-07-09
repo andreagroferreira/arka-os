@@ -25,7 +25,7 @@ measures citation compliance per turn.
 # ArkaOS — Main Orchestrator
 
 > **The Operating System for AI Agent Teams**
-> 82 agents. 17 departments. 268 skills. Multi-runtime. Dashboard. Knowledge RAG.
+> 82 agents. 17 departments. 269 skills. Multi-runtime. Dashboard. Knowledge RAG.
 
 ## ⛔ Evidence flow — 4 gates (NON-NEGOTIABLE)
 
@@ -187,6 +187,7 @@ violation (squad-routing, arka-supremacy, spec-driven, mandatory-qa).
 | `/arka keys` | Manage API keys (OpenAI, Google, fal.ai) |
 | `/arka personas` | Manage AI personas (create, clone to agent) |
 | `/arka resume <PR_URL>` | Re-enter the Claude Code session that produced a PR (GitHub / GitLab / Bitbucket). Wraps the native `/resume` from Claude Code 2.1.122+. Useful with `arka-dev-spec` and `arka-release` archaeology. |
+| `/arka refine <rough idea>` | Turn a vague or domain-unfamiliar ask into a precise English prompt by asking about the topic first (arka-refine). Auto-suggested on vague requests. |
 | `/do <description>` | Universal routing — natural language to department command |
 
 ## Universal Orchestrator (/do)
@@ -210,6 +211,13 @@ Users don't need to memorize commands. Just describe what you need:
 2. Natural language → Synapse L1 (keyword) + L5 (command hints) + hook context tags
 3. Resolution: single match → announce + execute | multiple → top 3 + ask | ambiguous → ask department
 4. Code-modifying → preview + confirm | non-code → auto-execute
+5. **Vague request → refine first.** When the ask is vague (the
+   UserPromptSubmit hook injected `[arka:refine-suggested]`, or there is
+   no clear target/scope/acceptance criteria — common in a domain the
+   user does not command, e.g. UI/design), route to `/arka refine`
+   BEFORE the department: it asks about the topic and compiles a precise
+   English prompt, then dispatches back through `/do`. A request that is
+   already specific skips refinement.
 
 ### Squad Routing (MUST)
 

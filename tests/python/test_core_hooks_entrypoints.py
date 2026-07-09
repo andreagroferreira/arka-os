@@ -372,6 +372,52 @@ class TestUserPromptSubmit:
         marker = Path(hook_home["ARKA_WF_REQUIRED_DIR"]) / "ups-slash"
         assert not marker.exists()
 
+    def test_vague_code_request_injects_refine_suggestion(self, hook_home):
+        # Interaction Reform PR5 — vague + code-modifying → refine hint.
+        result = _run_module("core.hooks.user_prompt_submit", {
+            "userInput": "cria um site melhor",
+            "session_id": "ups-refine",
+        }, _env(hook_home))
+        out = json.loads(result.stdout)["additionalContext"]
+        assert "[arka:refine-suggested]" in out
+
+    def test_specific_code_request_has_no_refine_suggestion(self, hook_home):
+        result = _run_module("core.hooks.user_prompt_submit", {
+            "userInput": (
+                "implementa retry com backoff exponencial em "
+                "core/api/client.py com no máximo 3 tentativas e testes"
+            ),
+            "session_id": "ups-no-refine",
+        }, _env(hook_home))
+        out = json.loads(result.stdout)["additionalContext"]
+        assert "[arka:refine-suggested]" not in out
+
+    def test_slash_command_never_gets_refine_suggestion(self, hook_home):
+        result = _run_module("core.hooks.user_prompt_submit", {
+            "userInput": "/arka refine faz um site",
+            "session_id": "ups-refine-slash",
+        }, _env(hook_home))
+        out = json.loads(result.stdout)["additionalContext"]
+        assert "[arka:refine-suggested]" not in out
+
+    @pytest.mark.parametrize("prompt", [
+        "fix the typo in README.md",       # names a file
+        "add a test to AuthService",       # CamelCase identifier
+        "corrige o user_repo agora",       # snake_case identifier
+        "atualiza o `config.yaml`",        # backticked term
+    ])
+    def test_short_but_concrete_request_no_refine_suggestion(
+        self, hook_home, prompt
+    ):
+        # QG calibration blocker (2026-07-09): a short code-modifying ask
+        # that names a concrete target is specific, not vague — the +20
+        # no-files scorer constant must not trip the hint.
+        result = _run_module("core.hooks.user_prompt_submit", {
+            "userInput": prompt, "session_id": "ups-concrete",
+        }, _env(hook_home))
+        out = json.loads(result.stdout)["additionalContext"]
+        assert "[arka:refine-suggested]" not in out, prompt
+
     def test_surfaces_kb_cite_nudge_on_high_effort(self, hook_home):
         sid = "ups-nudge-high-pr6"
         cite_dir = Path("/tmp/arkaos-cite")
