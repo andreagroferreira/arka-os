@@ -1,10 +1,11 @@
-"""Tests for the commands registry generator."""
+"""Tests for the commands registry generator (single canonical, M2)."""
 
 import pytest
 import json
 from pathlib import Path
 
 from core.registry.generator import (
+    derive_command_id,
     extract_commands_from_skill,
     generate_commands_registry,
     DEPARTMENT_KEYWORDS,
@@ -36,19 +37,43 @@ class TestCommandExtraction:
         assert commands == []
 
 
+class TestIdDerivation:
+    def test_plain_command(self):
+        assert derive_command_id("/dev feature") == "dev-feature"
+
+    def test_angle_args_stripped(self):
+        assert derive_command_id("/arka resume <PR_URL>") == "arka-resume"
+
+    def test_optional_args_stripped(self):
+        assert derive_command_id("/arka costs [period]") == "arka-costs"
+
+    def test_flags_stripped(self):
+        assert (
+            derive_command_id("/arka reorganize [--since-days N]")
+            == "arka-reorganize"
+        )
+
+    def test_multiword_subcommand(self):
+        assert derive_command_id("/dev scaffold laravel") == "dev-scaffold-laravel"
+
+
 class TestRegistryGeneration:
     @pytest.fixture(scope="class")
     def registry(self, tmp_path_factory):
         out = tmp_path_factory.mktemp("reg") / "registry.json"
         return generate_commands_registry(BASE_DIR, out)
 
-    def test_total_commands_above_150(self, registry):
-        assert registry["_meta"]["total_commands"] >= 150
+    def test_total_commands_above_200(self, registry):
+        # Sub-skill scanning (M2 consolidation) brought the count to
+        # bash-generator parity: 262 at consolidation time.
+        assert registry["_meta"]["total_commands"] >= 200
 
-    def test_has_all_v2_departments(self, registry):
+    def test_has_all_departments_with_prefix_slugs(self, registry):
+        # Department naming follows the command prefixes (mkt/fin/strat),
+        # matching CLAUDE.md and the runtime consumers.
         depts = set(registry["_meta"]["departments"].keys())
         expected = {
-            "dev", "marketing", "brand", "finance", "strategy", "ecom", "kb",
+            "dev", "mkt", "brand", "fin", "strat", "ecom", "kb",
             "ops", "pm", "saas", "landing", "content", "community", "sales",
             "leadership", "org", "arka",
         }
@@ -61,7 +86,30 @@ class TestRegistryGeneration:
             assert "command" in cmd
             assert "department" in cmd
             assert "description" in cmd
+            assert "keywords" in cmd
+            assert "lead_agent" in cmd
+            assert "source" in cmd
             assert cmd["command"].startswith("/")
+
+    def test_seeded_keywords_win_over_department_fallback(self, registry):
+        # arka-standup has a commands-keywords.json seed entry.
+        standup = next(
+            c for c in registry["commands"] if c["id"] == "arka-standup"
+        )
+        assert "standup" in standup["keywords"]
+        assert standup["examples"], "seeded examples must be preserved"
+
+    def test_unseeded_department_commands_get_keyword_fallback(self, registry):
+        # 172 commands had keywords:[] under the bash generator — L5
+        # hint-blind. The department fallback closes that. arka system
+        # commands are exempt: they are invoked explicitly (/arka ...),
+        # so unseeded ones intentionally carry no natural-language hints.
+        empty = [
+            c["id"]
+            for c in registry["commands"]
+            if not c["keywords"] and c["department"] != "arka"
+        ]
+        assert not empty, f"L5-blind commands (no keywords): {empty[:10]}"
 
     def test_dev_commands_flagged_as_code_modifying(self, registry):
         dev_feature = next(

@@ -1,28 +1,47 @@
-"""Commands registry generator.
+"""Commands registry generator — single canonical source (M2 consolidation).
 
-Scans all SKILL.md files, extracts command tables, and generates
-a machine-readable JSON registry for /do routing and Synapse L5.
+Scans every SKILL.md command table in the repo (arka orchestrator,
+department SKILL.md files, and department sub-skills) and generates
+``knowledge/commands-registry.json`` — the one registry consumed by
+runtime routing (system-prompt.sh), Synapse L5 hints (synapse-bridge),
+``bin/arka commands``, the dashboard API, and ``bin/arkaos`` status.
+
+Replaces the retired bash ``bin/arka-registry-gen`` and the parallel
+``commands-registry-v2.json`` (2026-07-09): one deterministic generator,
+repo sources only — machine-local ``arka-ext-*``/``arka-pro-*`` skills
+are intentionally NOT scanned so the committed file is reproducible;
+``tests/python/test_commands_registry.py`` locks committed-vs-regen
+drift the same way the agents registry is locked.
+
+Department naming follows the command prefixes (``mkt``/``fin``/
+``strat``), matching the runtime tables in CLAUDE.md.
 """
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
+# Directory name → command-prefix department slug.
+DEPT_PREFIX = {
+    "marketing": "mkt",
+    "finance": "fin",
+    "strategy": "strat",
+}
 
-# Keywords map: department → common keywords users might type
+# Fallback keywords per department slug when a command has no entry in
+# knowledge/commands-keywords.json — feeds Synapse L5 hint matching.
 DEPARTMENT_KEYWORDS: dict[str, list[str]] = {
     "dev": ["build", "code", "feature", "deploy", "test", "review", "scaffold", "debug",
             "refactor", "api", "migration", "implement", "fix", "bug", "database", "architecture"],
-    "marketing": ["social", "content", "campaign", "post", "instagram", "linkedin", "twitter",
-                  "tiktok", "seo", "marketing", "ads", "email", "growth", "analytics"],
+    "mkt": ["social", "content", "campaign", "post", "instagram", "linkedin", "twitter",
+            "tiktok", "seo", "marketing", "ads", "email", "growth", "analytics"],
     "brand": ["brand", "logo", "colors", "palette", "mockup", "identity", "naming",
               "positioning", "voice", "guidelines", "ux", "wireframe", "design", "ui"],
-    "finance": ["budget", "invoice", "revenue", "forecast", "profit", "financial", "invest",
-                "valuation", "cashflow", "expense", "pitch", "model", "scenario"],
-    "strategy": ["strategy", "brainstorm", "market", "swot", "competitor", "roadmap",
-                 "position", "blue ocean", "five forces", "tam", "moat", "growth"],
+    "fin": ["budget", "invoice", "revenue", "forecast", "profit", "financial", "invest",
+            "valuation", "cashflow", "expense", "pitch", "model", "scenario"],
+    "strat": ["strategy", "brainstorm", "market", "swot", "competitor", "roadmap",
+              "position", "blue ocean", "five forces", "tam", "moat", "growth"],
     "ecom": ["store", "product", "shop", "shopify", "ecommerce", "catalog", "cart",
              "checkout", "pricing", "marketplace", "rfm", "conversion", "cro"],
     "kb": ["learn", "persona", "knowledge", "youtube", "transcribe", "research",
@@ -41,150 +60,159 @@ DEPARTMENT_KEYWORDS: dict[str, list[str]] = {
                   "circle", "gamification", "engagement", "moderate", "event"],
     "sales": ["pipeline", "proposal", "discovery", "objection", "negotiate", "deal",
               "close", "prospect", "spin", "challenger", "forecast"],
-    "lead": ["leadership", "delegation", "1on1", "feedback", "culture", "hiring",
-             "performance review", "team build", "conflict", "okr"],
+    "leadership": ["leadership", "delegation", "1on1", "feedback", "culture", "hiring",
+                   "performance review", "team build", "conflict", "okr"],
     "org": ["org design", "hiring plan", "onboarding", "remote", "meeting",
             "compensation", "decision", "team assess", "sop"],
 }
+
+# Metadata rules ported verbatim from the retired bin/arka-registry-gen.
+_DEV_BRANCH_WORDS = {"feature", "api", "debug", "refactor", "db"}
+_DEV_MODIFY_WORDS = {"scaffold", "deploy", "test"}
+
+_TABLE_ROW_RE = re.compile(r"\|\s*`([^`]+)`\s*\|\s*([^|]+)\|")
+_FRONTMATTER_NAME_RE = re.compile(r"^name:\s*(\S+)", re.MULTILINE)
+
+
+def derive_command_id(command_text: str) -> str:
+    """``/arka costs [period]`` → ``arka-costs``.
+
+    Drops everything from the first argument token (``<arg>``,
+    ``[optional]``, ``--flag``) onward, so ids never embed argument
+    syntax (the old ``dev-onboard---ecosystem`` class of bug).
+    """
+    tokens: list[str] = []
+    for token in command_text.lstrip("/").split():
+        if token.startswith(("<", "[", "--")):
+            break
+        tokens.append(token)
+    return "-".join(tokens).lower()
+
+
+def extract_lead_agent(text: str) -> str:
+    match = _FRONTMATTER_NAME_RE.search(text)
+    return match.group(1) if match else ""
 
 
 def extract_commands_from_skill(skill_path: Path) -> list[dict]:
     """Extract commands from a SKILL.md file's command table.
 
-    Parses markdown tables with | Command | Description | format.
+    Parses markdown tables with | `/command` | Description | rows.
     """
     if not skill_path.exists():
         return []
 
-    text = skill_path.read_text()
+    text = skill_path.read_text(encoding="utf-8")
+    lead_agent = extract_lead_agent(text)
     commands = []
-
-    # Find command tables (lines with | `/ ... ` | description | ...)
     for line in text.split("\n"):
-        match = re.match(r"\|\s*`([^`]+)`\s*\|\s*([^|]+)\|", line)
-        if match:
-            command = match.group(1).strip()
-            description = match.group(2).strip()
-            if not command.startswith("/") or "Description" in description or description.startswith("-"):
-                continue
-            commands.append({
-                "command": command,
-                "description": description,
-            })
-
+        match = _TABLE_ROW_RE.match(line)
+        if not match:
+            continue
+        command = match.group(1).strip()
+        description = match.group(2).strip()
+        if not command.startswith("/") or "Description" in description or description.startswith("-"):
+            continue
+        commands.append({
+            "command": command,
+            "description": description,
+            "lead_agent": lead_agent,
+        })
     return commands
 
 
-def determine_department(skill_path: Path) -> str:
-    """Determine department from the skill file's directory."""
-    # departments/dev/SKILL.md → dev
-    # arka/SKILL.md → arka
-    parent = skill_path.parent.name
-    return parent
+def command_metadata(command_text: str) -> dict:
+    """tier / requires_branch / modifies_code — bash-generator rules."""
+    if command_text.startswith("/dev "):
+        first_arg = command_text.split()[1] if len(command_text.split()) > 1 else ""
+        if first_arg in _DEV_BRANCH_WORDS:
+            return {"tier": 1, "requires_branch": True, "modifies_code": True}
+        if first_arg in _DEV_MODIFY_WORDS:
+            return {"tier": 2, "requires_branch": False, "modifies_code": True}
+        if first_arg == "security-audit":
+            return {"tier": 1, "requires_branch": False, "modifies_code": False}
+    return {"tier": 2, "requires_branch": False, "modifies_code": False}
 
 
-def extract_tier(description: str) -> int:
-    """Guess command tier from description keywords."""
-    desc_lower = description.lower()
-    if any(w in desc_lower for w in ["full", "enterprise", "comprehensive", "complete"]):
-        return 1
-    if any(w in desc_lower for w in ["audit", "analysis", "strategy", "design"]):
-        return 2
-    return 3
+def _load_keywords_seed(base_dir: Path) -> dict:
+    seed_path = base_dir / "knowledge" / "commands-keywords.json"
+    if not seed_path.exists():
+        return {}
+    return json.loads(seed_path.read_text(encoding="utf-8"))
+
+
+def _department_slug(skill_path: Path) -> str:
+    # departments/<dir>/SKILL.md and departments/<dir>/skills/<s>/SKILL.md
+    parts = skill_path.parts
+    dir_name = parts[parts.index("departments") + 1]
+    return DEPT_PREFIX.get(dir_name, dir_name)
+
+
+def _skill_sources(base_dir: Path) -> list[tuple[Path, str]]:
+    """(skill_path, department) in deterministic scan order.
+
+    Order matters: dedup keeps the FIRST occurrence of an id, so the
+    orchestrator wins over departments, departments over sub-skills.
+    """
+    sources: list[tuple[Path, str]] = [(base_dir / "arka" / "SKILL.md", "arka")]
+    for path in sorted(base_dir.glob("departments/*/SKILL.md")):
+        sources.append((path, _department_slug(path)))
+    for path in sorted(base_dir.glob("departments/*/skills/*/SKILL.md")):
+        sources.append((path, _department_slug(path)))
+    return sources
 
 
 def generate_commands_registry(
     base_dir: str | Path,
     output_path: str | Path,
 ) -> dict:
-    """Generate commands-registry-v2.json from all SKILL.md files.
-
-    Args:
-        base_dir: Project root directory.
-        output_path: Where to write the JSON registry.
-
-    Returns:
-        The registry dict.
-    """
+    """Generate the canonical commands-registry.json from SKILL.md files."""
     base_dir = Path(base_dir)
     output_path = Path(output_path)
+    keywords_seed = _load_keywords_seed(base_dir)
 
-    all_commands = []
-
-    # v2 department directories (exclude v1 legacy dirs)
-    v2_departments = {
-        "dev", "marketing", "brand", "finance", "strategy", "ecom", "kb",
-        "ops", "pm", "saas", "landing", "content", "community", "sales",
-        "leadership", "org", "quality",
-    }
-
-    # Scan department SKILL.md files
-    for skill_file in sorted(base_dir.glob("departments/*/SKILL.md")):
-        if skill_file.parent.name not in v2_departments:
-            continue
-        dept = determine_department(skill_file)
-        raw_commands = extract_commands_from_skill(skill_file)
-        keywords = DEPARTMENT_KEYWORDS.get(dept, [])
-
-        for cmd in raw_commands:
+    all_commands: list[dict] = []
+    seen_ids: set[str] = set()
+    for skill_path, dept in _skill_sources(base_dir):
+        for cmd in extract_commands_from_skill(skill_path):
             command_text = cmd["command"]
-            # Generate ID: /dev feature → dev-feature
-            cmd_id = command_text.lstrip("/").replace(" ", "-").split("<")[0].rstrip("-")
-
-            # Determine if code-modifying
-            modifies_code = dept == "dev" and any(
-                w in command_text for w in ["feature", "api", "debug", "refactor", "db", "scaffold"]
-            )
-
+            cmd_id = derive_command_id(command_text)
+            if not cmd_id or cmd_id in seen_ids:
+                continue
+            seen_ids.add(cmd_id)
+            seed = keywords_seed.get(cmd_id, {})
+            keywords = seed.get("keywords") or DEPARTMENT_KEYWORDS.get(dept, [])[:8]
             all_commands.append({
                 "id": cmd_id,
                 "command": command_text,
                 "department": dept,
                 "description": cmd["description"],
-                "keywords": keywords[:8],
-                "tier": extract_tier(cmd["description"]),
-                "modifies_code": modifies_code,
-                "requires_branch": modifies_code,
+                "lead_agent": cmd["lead_agent"],
+                "keywords": keywords,
+                "examples": seed.get("examples", []),
+                "source": "builtin",
+                **command_metadata(command_text),
             })
 
-    # Scan orchestrator SKILL.md
-    arka_skill = base_dir / "arka" / "SKILL.md"
-    if arka_skill.exists():
-        raw_commands = extract_commands_from_skill(arka_skill)
-        for cmd in raw_commands:
-            command_text = cmd["command"]
-            cmd_id = command_text.lstrip("/").replace(" ", "-").split("<")[0].rstrip("-")
-            all_commands.append({
-                "id": cmd_id,
-                "command": command_text,
-                "department": "arka",
-                "description": cmd["description"],
-                "keywords": [],
-                "tier": 3,
-                "modifies_code": False,
-                "requires_branch": False,
-            })
-
-    # Build department summary
     dept_counts: dict[str, int] = {}
     for cmd in all_commands:
-        d = cmd["department"]
-        dept_counts[d] = dept_counts.get(d, 0) + 1
+        dept_counts[cmd["department"]] = dept_counts.get(cmd["department"], 0) + 1
 
     registry = {
         "_meta": {
-            "version": "2.0.0",
-            "generated": datetime.now().isoformat(),
+            "version": "3.0.0",
+            "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "total_commands": len(all_commands),
             "generator": "core/registry/generator.py",
-            "departments": dept_counts,
+            "departments": dict(sorted(dept_counts.items())),
         },
         "commands": all_commands,
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(registry, f, indent=2, ensure_ascii=False)
+        f.write("\n")
 
     return registry
 
@@ -193,7 +221,7 @@ if __name__ == "__main__":
     base = Path(__file__).parent.parent.parent
     reg = generate_commands_registry(
         base,
-        base / "knowledge" / "commands-registry-v2.json",
+        base / "knowledge" / "commands-registry.json",
     )
-    print(f"Generated: {reg['_meta']['total_commands']} commands")
+    print(f"Registry generated: {reg['_meta']['total_commands']} commands")
     print(f"Departments: {reg['_meta']['departments']}")

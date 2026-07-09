@@ -65,8 +65,8 @@ case "${1:-}" in
       agents=$(jq -r '._meta.total_agents // 0' "$REPO_ROOT/knowledge/agents-registry-v2.json")
       echo "  Agents:       ${agents}"
     fi
-    if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/knowledge/commands-registry-v2.json" ] && command -v jq &>/dev/null; then
-      commands=$(jq -r '._meta.total_commands // 0' "$REPO_ROOT/knowledge/commands-registry-v2.json")
+    if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/knowledge/commands-registry.json" ] && command -v jq &>/dev/null; then
+      commands=$(jq -r '._meta.total_commands // 0' "$REPO_ROOT/knowledge/commands-registry.json")
       echo "  Commands:     ${commands}"
     fi
     echo ""

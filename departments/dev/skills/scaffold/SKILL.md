@@ -18,9 +18,9 @@ Create new projects from real git repositories with full automation: dependencie
 ## Commands
 
 <!-- Column convention: command | DESCRIPTION | repo. The registry
-     generator (bin/arka-registry-gen) reads column 2 as the user-facing
-     description — a repo URL there ships garbled command help (QG
-     blocker, 2026-07-09). -->
+     generator (core/registry/generator.py) reads column 2 as the
+     user-facing description — a repo URL there ships garbled command
+     help (QG blocker, 2026-07-09). -->
 | Command | Description | Git Repository |
 |---------|-------------|----------------|
 | `/dev scaffold laravel <name>` | Scaffold a Laravel app into ~/Herd from the starter repo | `https://${GIT_HOST}/laravel/laravel.git` (override with `ARKAOS_LARAVEL_STARTER_REPO` env) |

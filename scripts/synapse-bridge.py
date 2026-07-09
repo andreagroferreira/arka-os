@@ -112,7 +112,7 @@ def load_agents_registry(root: Path) -> dict:
 
 def load_commands_registry(root: Path) -> list:
     """Load commands registry JSON."""
-    path = root / "knowledge" / "commands-registry-v2.json"
+    path = root / "knowledge" / "commands-registry.json"
     if not path.exists():
         return []
     try:
