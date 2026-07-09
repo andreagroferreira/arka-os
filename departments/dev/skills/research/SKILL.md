@@ -12,8 +12,9 @@ description: >
   adding a new dependency or committing to an architecture-relevant
   library.
   SKIP: general, market, or knowledge-base research whose deliverable
-  is an Obsidian KB note — arka-research (/arka research, 5-source
-  fan-out) wins; requirements definition — arka-dev-spec wins.
+  is an Obsidian KB note, including "best practices for" a non-code
+  topic — arka-research (/arka research, 5-source fan-out) wins;
+  requirements definition — arka-dev-spec wins.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

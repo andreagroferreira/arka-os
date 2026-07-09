@@ -6,13 +6,13 @@ description: >
   single cited report, and writes a Knowledge Base note to the Obsidian
   vault. KB-first: Obsidian is searched before any external call.
   TRIGGER: "/arka research", "pesquisa sobre", "investiga",
-  "faz research", "research <topic>", "best practices for", "state of
-  the art", "o que se sabe sobre" — general, market, tooling, or KB
-  topics whose deliverable is a synthesised KB note.
+  "faz research", "research <topic>", "best practices for" non-code
+  topics, "state of the art", "o que se sabe sobre" — general, market,
+  tooling, or KB topics whose deliverable is a synthesised KB note.
   SKIP: dev-scoped technical research — library or framework evaluation,
-  "que lib uso", "which library/framework" —
-  /dev research (Lucas) wins; planning a task — arka-forge wins (Forge
-  plans, this skill informs).
+  "que lib uso", "which library/framework", best-practice questions
+  about implementation choices — dev/research (Lucas) wins; planning a
+  task — arka-forge wins.
 allowed-tools: [Agent, Read, Write, mcp__obsidian__search_notes]
 ---
 

@@ -1,8 +1,8 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-04-04T22:56:22.122832",
-    "total_commands": 216,
+    "generated": "2026-07-09T15:04:23.205671",
+    "total_commands": 211,
     "generator": "core/registry/generator.py",
     "departments": {
       "brand": 12,
@@ -21,7 +21,7 @@
       "saas": 14,
       "sales": 10,
       "strategy": 10,
-      "arka": 24
+      "arka": 19
     }
   },
   "commands": [
@@ -3587,7 +3587,57 @@
       "id": "arka-status",
       "command": "/arka status",
       "department": "arka",
-      "description": "System status (version, departments, agents, active projects)",
+      "description": "System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period=\"today\")`. Also includes **Enforcement (24h)** section: total calls, block rate, top blocked tools/reasons from `core.governance.enforcement_telemetry.summarise(period=\"today\")` (PR19 v2.41.0). Plus **Reorganization (today)** section: today's proposal path + artifact count from `core.cognition.reorganizer_scheduler.status_summary()` (PR24 v2.46.0). Plus **Model routing** section: gateway live/off + resolved per-slot routes + served counts from `core.runtime.model_routing_check.status_summary()`. Plus **MCP usage (24h)** section: total calls + servers in use + top servers from `core.runtime.mcp_telemetry.summarise(period=\"today\")`.",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-costs-[period]",
+      "command": "/arka costs [period]",
+      "department": "arka",
+      "description": "LLM cost visibility — aggregates telemetry by day/week/month/all, with top expensive sessions. See `arka/skills/costs/SKILL.md`. Shells out to `~/.arkaos/bin/arka-py -m core.runtime.llm_cost_telemetry_cli <period>`.",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-enforcement-[period]",
+      "command": "/arka enforcement [period]",
+      "department": "arka",
+      "description": "Enforcement compliance — aggregates flow-marker enforcement telemetry by day/week/month/all. Shows block rate, top blocked tools, top reasons. Shells out to `~/.arkaos/bin/arka-py -m core.governance.enforcement_telemetry_cli <period>`.",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-mcps-[period]",
+      "command": "/arka mcps [period]",
+      "department": "arka",
+      "description": "MCP usage — aggregates the PostToolUse MCP telemetry (`~/.arkaos/telemetry/mcp-usage.jsonl`) by day/week/month/all. Shows total calls, servers in use, top servers and top tools. Shells out to `~/.arkaos/bin/arka-py -m core.runtime.mcp_telemetry_cli <period>`.",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-compliance-[period]",
+      "command": "/arka compliance [period]",
+      "department": "arka",
+      "description": "Behavior compliance summary (PR29 v2.48.0) — aggregates stop-hook telemetry by day/week/month/all. Shows rates for the four contracts: closing marker, `[arka:meta]` tag, KB citation pass, sycophancy clean. Shells out to `~/.arkaos/bin/arka-py -m core.governance.compliance_telemetry_cli <period>`.",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-reorganize-[--since-days-N]",
+      "command": "/arka reorganize [--since-days N]",
+      "department": "arka",
+      "description": "Dreaming → Agent reorganizer. Aggregates recent KB pattern/anti-pattern/lesson artifacts (default last 7 days) into a markdown proposal at `~/.arkaos/reorganize-proposals/<date>.md`. **Propose-only** — never modifies agent YAMLs. Sanitizes client identifiers from titles and body excerpts; drops `tags:` field entirely to prevent project-name leaks. **Auto-fires on session start when today's proposal is missing** (PR24 v2.46.0 stale-aware trigger, 30s timeout, background). Shells out to `~/.arkaos/bin/arka-py -m core.cognition.reorganizer_cli [--since-days N] [--dry-run]`.",
       "keywords": [],
       "tier": 3,
       "modifies_code": false,
@@ -3654,170 +3704,70 @@
       "requires_branch": false
     },
     {
+      "id": "arka-dashboard",
+      "command": "/arka dashboard",
+      "department": "arka",
+      "description": "Open monitoring dashboard (localhost:3333)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-index",
+      "command": "/arka index",
+      "department": "arka",
+      "description": "Index Obsidian vault into knowledge base",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-search",
+      "command": "/arka search <query>",
+      "department": "arka",
+      "description": "Semantic search in knowledge base",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-keys",
+      "command": "/arka keys",
+      "department": "arka",
+      "description": "Manage API keys (OpenAI, Google, fal.ai)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-personas",
+      "command": "/arka personas",
+      "department": "arka",
+      "description": "Manage AI personas (create, clone to agent)",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
+      "id": "arka-resume",
+      "command": "/arka resume <PR_URL>",
+      "department": "arka",
+      "description": "Re-enter the Claude Code session that produced a PR (GitHub / GitLab / Bitbucket). Wraps the native `/resume` from Claude Code 2.1.122+. Useful with `arka-dev-spec` and `arka-release` archaeology.",
+      "keywords": [],
+      "tier": 3,
+      "modifies_code": false,
+      "requires_branch": false
+    },
+    {
       "id": "do",
       "command": "/do <description>",
       "department": "arka",
       "description": "Universal routing — natural language to department command",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "dev",
-      "command": "/dev",
-      "department": "arka",
-      "description": "Development",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "mkt",
-      "command": "/mkt",
-      "department": "arka",
-      "description": "Marketing & Growth",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "brand",
-      "command": "/brand",
-      "department": "arka",
-      "description": "Brand & Design",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "fin",
-      "command": "/fin",
-      "department": "arka",
-      "description": "Finance & Investment",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "strat",
-      "command": "/strat",
-      "department": "arka",
-      "description": "Strategy & Innovation",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "ecom",
-      "command": "/ecom",
-      "department": "arka",
-      "description": "E-Commerce",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "kb",
-      "command": "/kb",
-      "department": "arka",
-      "description": "Knowledge Management",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "ops",
-      "command": "/ops",
-      "department": "arka",
-      "description": "Operations & Automation",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "pm",
-      "command": "/pm",
-      "department": "arka",
-      "description": "Project Management",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "saas",
-      "command": "/saas",
-      "department": "arka",
-      "description": "SaaS & Micro-SaaS",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "landing",
-      "command": "/landing",
-      "department": "arka",
-      "description": "Landing Pages & Funnels",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "content",
-      "command": "/content",
-      "department": "arka",
-      "description": "Content & Viralization",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "community",
-      "command": "/community",
-      "department": "arka",
-      "description": "Communities & Groups",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "sales",
-      "command": "/sales",
-      "department": "arka",
-      "description": "Sales & Negotiation",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "lead",
-      "command": "/lead",
-      "department": "arka",
-      "description": "Leadership & People",
-      "keywords": [],
-      "tier": 3,
-      "modifies_code": false,
-      "requires_branch": false
-    },
-    {
-      "id": "org",
-      "command": "/org",
-      "department": "arka",
-      "description": "Organization & Teams",
       "keywords": [],
       "tier": 3,
       "modifies_code": false,
