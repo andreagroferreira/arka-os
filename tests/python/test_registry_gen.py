@@ -74,6 +74,19 @@ class TestExpertiseExport:
         )
 
 
+class TestSingleCanonicalRegistry:
+    def test_legacy_v1_registry_does_not_resurrect(self):
+        """knowledge/agents-registry.json (v1, hand-maintained, stale at 22
+        agents) was consolidated into the generated -v2 registry. A v1 file
+        reappearing means a consumer or generator regressed to the dual-
+        registry split."""
+        legacy = REPO_ROOT / "knowledge" / "agents-registry.json"
+        assert not legacy.exists(), (
+            "Legacy knowledge/agents-registry.json resurfaced — the canonical "
+            "registry is agents-registry-v2.json (core/agents/registry_gen.py)."
+        )
+
+
 class TestCommittedRegistryNoDrift:
     def test_committed_registry_content_matches_fresh_regen(self, registry):
         """Full content equality between the committed JSON and a fresh

@@ -1,7 +1,9 @@
-"""Generate agents-registry.json from all agent YAML files.
+"""Generate agents-registry-v2.json from all agent YAML files.
 
-Scans departments/*/agents/*.yaml and produces a machine-readable
-registry with all agent metadata including behavioral DNA.
+Scans departments/*/agents/*.yaml and produces the single canonical
+machine-readable registry with all agent metadata including behavioral
+DNA. The legacy knowledge/agents-registry.json (v1) was removed —
+tests/python/test_registry_gen.py guards against its resurrection.
 """
 
 import json
@@ -12,7 +14,7 @@ from core.agents.loader import load_agent
 
 
 def generate_registry(departments_dir: str | Path, output_path: str | Path) -> dict:
-    """Generate agents-registry.json from YAML agent files.
+    """Generate agents-registry-v2.json from YAML agent files.
 
     Args:
         departments_dir: Path to departments/ directory.

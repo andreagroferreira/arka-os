@@ -149,14 +149,16 @@ load helpers/setup
   grep -q 'combination: "D+C"' "$REPO_DIR/departments/quality/agents/tech-ux-director.md"
 }
 
-@test "agents-registry.json has 22 agents" {
-  count=$(jq '.agents | length' "$REPO_DIR/knowledge/agents-registry.json")
-  [ "$count" -eq 22 ]
+@test "agents-registry-v2.json agent count matches _meta.total_agents" {
+  count=$(jq '.agents | length' "$REPO_DIR/knowledge/agents-registry-v2.json")
+  meta=$(jq '._meta.total_agents' "$REPO_DIR/knowledge/agents-registry-v2.json")
+  [ "$count" -eq "$meta" ]
+  [ "$count" -ge 60 ]
 }
 
-@test "agents-registry.json includes quality department" {
-  jq -e '.agents[] | select(.department == "quality")' "$REPO_DIR/knowledge/agents-registry.json" > /dev/null
-  count=$(jq '[.agents[] | select(.department == "quality")] | length' "$REPO_DIR/knowledge/agents-registry.json")
+@test "agents-registry-v2.json includes quality department" {
+  jq -e '.agents[] | select(.department == "quality")' "$REPO_DIR/knowledge/agents-registry-v2.json" > /dev/null
+  count=$(jq '[.agents[] | select(.department == "quality")] | length' "$REPO_DIR/knowledge/agents-registry-v2.json")
   [ "$count" -eq 3 ]
 }
 

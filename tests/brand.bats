@@ -176,23 +176,25 @@ load helpers/setup
 
 # ─── Integration ───────────────────────────────────────────────────────────
 
-@test "agents-registry.json has 22 agents" {
-  run jq '.agents | length' "$REPO_DIR/knowledge/agents-registry.json"
+@test "agents-registry-v2.json agent count matches _meta.total_agents" {
+  run jq '.agents | length' "$REPO_DIR/knowledge/agents-registry-v2.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "22" ]
+  meta=$(jq '._meta.total_agents' "$REPO_DIR/knowledge/agents-registry-v2.json")
+  [ "$output" = "$meta" ]
 }
 
-@test "agents-registry.json includes all 4 brand agents" {
-  for agent_id in creative-director brand-strategist visual-designer motion-designer; do
-    run jq -e --arg id "$agent_id" '.agents[] | select(.id == $id)' "$REPO_DIR/knowledge/agents-registry.json"
+@test "agents-registry-v2.json includes the core brand agents" {
+  for agent_id in brand-director-valentina brand-strategist-mateus visual-designer-isabel; do
+    run jq -e --arg id "$agent_id" '.agents[] | select(.id == $id)' "$REPO_DIR/knowledge/agents-registry-v2.json"
     [ "$status" -eq 0 ] || fail "Missing agent: $agent_id"
   done
 }
 
-@test "agents-registry.json team_composition counts are correct" {
-  local total
-  total=$(jq '[.team_composition.by_disc_primary | to_entries[].value] | add' "$REPO_DIR/knowledge/agents-registry.json")
-  [ "$total" = "22" ]
+@test "agents-registry-v2.json disc_distribution counts sum to total_agents" {
+  local total meta
+  total=$(jq '[._meta.disc_distribution | to_entries[].value] | add' "$REPO_DIR/knowledge/agents-registry-v2.json")
+  meta=$(jq '._meta.total_agents' "$REPO_DIR/knowledge/agents-registry-v2.json")
+  [ "$total" = "$meta" ]
 }
 
 @test "MCP registry includes canva entry" {

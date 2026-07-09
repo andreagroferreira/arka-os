@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
 # ============================================================================
 # ARKA OS — DISC Team Balance Validator
-# Reads agents-registry.json and validates team DISC distribution
+# Reads agents-registry-v2.json and validates team DISC distribution
 # ============================================================================
 set -e
 
 ARKA_OS="${ARKA_OS:-$HOME/.claude/skills/arka}"
 REPO_DIR="${REPO_DIR:-$(cat "$ARKA_OS/.repo-path" 2>/dev/null || echo "")}"
-REGISTRY="${REGISTRY:-$REPO_DIR/knowledge/agents-registry.json}"
+REGISTRY="${REGISTRY:-$REPO_DIR/knowledge/agents-registry-v2.json}"
 
 if [ ! -f "$REGISTRY" ]; then
-  echo "Error: agents-registry.json not found at $REGISTRY"
+  echo "Error: agents-registry-v2.json not found at $REGISTRY"
   exit 1
 fi
 
 command -v jq &>/dev/null || { echo "Error: jq is required."; exit 1; }
 
 # Read counts from registry
-D_COUNT=$(jq '.team_composition.by_disc_primary.D' "$REGISTRY")
-I_COUNT=$(jq '.team_composition.by_disc_primary.I' "$REGISTRY")
-S_COUNT=$(jq '.team_composition.by_disc_primary.S' "$REGISTRY")
-C_COUNT=$(jq '.team_composition.by_disc_primary.C' "$REGISTRY")
+D_COUNT=$(jq '._meta.disc_distribution.D' "$REGISTRY")
+I_COUNT=$(jq '._meta.disc_distribution.I' "$REGISTRY")
+S_COUNT=$(jq '._meta.disc_distribution.S' "$REGISTRY")
+C_COUNT=$(jq '._meta.disc_distribution.C' "$REGISTRY")
 TOTAL=$(( D_COUNT + I_COUNT + S_COUNT + C_COUNT ))
 
 # Calculate percentages
