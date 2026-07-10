@@ -5,6 +5,22 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.1] - 2026-07-10
+
+### Fixed
+
+- **Installer lib snapshot missing package root dirs** (#292) — the
+  `~/.arkaos/lib` snapshot (the fallback root `resolve_arkaos_root()`
+  serves when `npm cache clean` purges the npx cache) only contained
+  `core/` + `VERSION`, so `/arka update` failed reading
+  `config/user-claude.md` (75× content-phase errors) and `departments/`
+  (704 agent-provisioning errors); `knowledge/` had the same latent
+  exposure. `deployCoreSnapshot` now stages+swaps `config/`,
+  `departments/`, `knowledge/` and `core/` — with `core/` deployed last
+  so its `sync/__init__.py` validation marker only materialises once
+  the full root is in place (a crash mid-deploy fails validation
+  instead of validating an incomplete root).
+
 ## [4.13.0] - 2026-07-10
 
 Two epics in one release: the Anti-Default Design Reform (the installed
