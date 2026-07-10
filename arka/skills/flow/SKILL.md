@@ -124,10 +124,15 @@ resumes at the right gate.
   1. What is **unfinished** in this delivery (trimmed scope, TODO left
      behind, parity skipped)?
   2. What is **default** (template look, boilerplate copy, unstyled
-     component, generic strategy)?
+     component, generic strategy)? For UI work, this answer MUST
+     reference the emitted `[arka:design]` structured marker
+     (`benchmark=… skills=… tokens=…`) — a UI delivery with no marker,
+     or a `skills=degraded:` load that was never disclosed, is itself a
+     non-empty answer.
   3. What would a **top-tier lead reject** here? Name the benchmark
      (`reference_companies.application` — e.g. Linear/Stripe for
-     frontend) and judge against it.
+     frontend; for UI work it is the company named in the
+     `[arka:design]` marker) and judge against it.
   A non-empty answer loops the work back into Gate 3 or is escalated to
   the operator as an explicit open-items decision. Shipping with a
   non-empty list and no operator decision is a constitution breach.
