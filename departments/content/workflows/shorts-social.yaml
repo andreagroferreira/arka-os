@@ -1,0 +1,83 @@
+id: content-shorts-produce
+name: Shorts Batch Production
+description: Batch production of 3-5 rendered short-form videos — trend check, hooks, scripts, assets, vertical render, posting schedule (distinct from /content short, which is script-only)
+department: content
+tier: focused
+command: "/content shorts"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Shorts Brief
+    description: Define niche/topic, platform mix (Reels / TikTok / Shorts), batch size, and capability preflight
+    agents:
+      - agent_id: content-strategist-rafael
+        role: Frame niche, platforms, batch size, cadence
+      - agent_id: video-producer-simao
+        role: Capability preflight — state the asset and render tiers
+        parallel: true
+    gate:
+      type: user_approval
+      description: User confirms the batch brief
+
+  - id: trend-hooks
+    name: Trend Check & Hooks
+    description: Demand-first validation of the batch angles plus hook variants per short
+    agents:
+      - agent_id: trends-analyst-margarida
+        role: Trend check per angle (declared platform skips), STEPPS shortlist
+      - agent_id: viral-engineer-filipe
+        role: Hook variants (3 per short) mapped to the shortlist
+        parallel: true
+    gate:
+      type: auto
+      description: Shortlist and hooks feed the scripts
+
+  - id: script-assets
+    name: Scripts & Assets
+    description: Batch scripts (storyboard-ready, vertical framing) and asset generation per the capability matrix
+    agents:
+      - agent_id: scriptwriter-joana
+        role: Batch scripts — vertical-first scenes, hook in the first 2 seconds, caption-safe framing
+      - agent_id: video-producer-simao
+        role: Assets per short (Higgsfield shorts_studio when live; declared degraded tiers otherwise)
+    gate:
+      type: user_approval
+      description: User approves scripts and generated assets before render — credits are metered
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Mandatory pre-delivery review — binary verdict on the whole batch
+    model_override: opus
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review, aggregate verdicts, issue binary decision
+      - agent_id: copy-director-eduardo
+        role: Scripts, captions, on-screen text
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Render quality, vertical specs, caption sync
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Rendered batch plus posting schedule
+    agents:
+      - agent_id: video-producer-simao
+        role: 3-5 rendered 9:16 MP4s + SRTs + thumbnails
+      - agent_id: repurpose-distributor-nuno
+        role: Posting schedule per platform (native captions, hashtags, timing)
+        parallel: true
+    gate:
+      type: auto
+      description: Batch delivered
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/Shorts/"
+        description: Batch manifest — files, posting schedule, backend tiers used

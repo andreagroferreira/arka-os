@@ -8,7 +8,9 @@ description: >
   10+ minute video or podcast script -> content/script-structure (long-form
   retention structure); engineering shareability of a piece ->
   content/viral-design (STEPPS scoring, not production); hooks alone ->
-  content/hook-write.
+  content/hook-write; a batch of RENDERED short videos ->
+  /content shorts (content-shorts-produce workflow — this skill writes
+  scripts, it does not render).
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 

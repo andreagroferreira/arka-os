@@ -28,6 +28,9 @@ phases:
       - agent_id: brand-strategist-mateus
         role: Differentiation angle, channel identity
         parallel: true
+      - agent_id: trends-analyst-margarida
+        role: Data-backed niche validation (demand volume, competition density)
+        parallel: true
     gate:
       type: user_approval
       description: User approves channel positioning

@@ -1603,5 +1603,22 @@
       "install hyperframes and agent-reach",
       "video-setup"
     ]
+  },
+  "content-shorts": {
+    "keywords": [
+      "shorts batch",
+      "produce shorts",
+      "produz shorts",
+      "reels batch",
+      "tiktok batch",
+      "faz-me uns shorts",
+      "render shorts",
+      "lote de shorts"
+    ],
+    "examples": [
+      "produz um lote de 5 shorts sobre finanças",
+      "produce a batch of shorts for the launch",
+      "faz-me shorts desta masterclass"
+    ]
   }
 }
