@@ -28,6 +28,8 @@ AGENT_ROLE_HINTS: dict[str, str] = {
     "creative-director": "design",
     "visual-designer": "design",
     "frontend-dev": "design",
+    "ux-designer": "design",
+    "motion-designer": "design",
     "marta-cqo": "quality_gate",
     "eduardo-copy": "quality_gate",
     "francisca-tech": "quality_gate",

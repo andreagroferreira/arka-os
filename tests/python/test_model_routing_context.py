@@ -64,5 +64,16 @@ class TestAgentRoleHints:
         assert mrc.AGENT_ROLE_HINTS["marta-cqo"] == "quality_gate"
         assert mrc.AGENT_ROLE_HINTS["frontend-dev"] == "design"
 
+    def test_design_production_agents_map_to_design(self):
+        # PR-D4: every agent that produces visual output routes via the
+        # design role (QUALITY_ROLES → best model under Model Fabric).
+        for slug in (
+            "visual-designer",
+            "ux-designer",
+            "motion-designer",
+            "creative-director",
+        ):
+            assert mrc.AGENT_ROLE_HINTS[slug] == "design"
+
     def test_mechanical_agent_maps_to_mechanical(self):
         assert mrc.AGENT_ROLE_HINTS["analyst"] == "mechanical"
