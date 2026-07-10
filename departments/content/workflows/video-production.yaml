@@ -1,0 +1,142 @@
+id: content-video
+name: Video Production
+description: End-to-end video production — sourced research, Hollywood script, storyboard, Higgsfield asset generation, Hyperframes edit/render, virality QA, quality gate, multi-format delivery
+department: content
+tier: enterprise
+command: "/content video"
+requires_branch: false
+requires_spec: false
+quality_gate_required: true
+
+phases:
+  - id: brief
+    name: Production Brief
+    description: Define target (brand channel / personal / client / new niche), format, platform, length; run the capability preflight and state the backend tier per capability
+    agents:
+      - agent_id: content-strategist-rafael
+        role: Frame target, audience, platform, format, success metric
+      - agent_id: video-producer-simao
+        role: Capability preflight (assets / edit / research tiers) + production constraints
+        parallel: true
+    gate:
+      type: user_approval
+      description: User confirms the production brief and the backend tiers
+
+  - id: research-trends
+    name: Research & Trend Validation
+    description: Sourced research with claim ledger plus demand-first angle validation, compiled into the production brief the script consumes
+    agents:
+      - agent_id: content-researcher-madalena
+        role: Sourced research — CRAAP-rated sources, claim ledger, [UNVERIFIED] fail-closed
+      - agent_id: trends-analyst-margarida
+        role: Demand-first angle validation + STEPPS scoring of the chosen angle
+        parallel: true
+      - agent_id: info-compiler-dinis
+        role: Compile the production brief (angle / audience / proof / hooks / beats / claim-source table)
+    gate:
+      type: user_approval
+      description: User approves the production brief
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/Research/"
+        description: Production brief with claim-source table
+
+  - id: script
+    name: Hollywood Script
+    description: Beat sheet then full script in scene/shot/VO/on-screen-text columns, Hook Architecture on the first 30 seconds, never-default voice
+    agents:
+      - agent_id: scriptwriter-joana
+        role: Beat sheet (Save the Cat / Story Circle adapted to length) + full script with scene/shot/VO/OST columns
+      - agent_id: viral-engineer-filipe
+        role: 3 hook variants + retention-drop map
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the script and picks the hook
+
+  - id: storyboard
+    name: Storyboard & Shot List
+    description: Shot list with per-shot generation prompts, audio/VO plan, and thumbnail package under the brand design doctrine (benchmark named, [arka:design] marker)
+    agents:
+      - agent_id: video-producer-simao
+        role: Shot list + per-shot generation prompts + audio/VO plan + EDL skeleton
+      - agent_id: visual-designer-isabel
+        role: Thumbnail package (anti-default doctrine, benchmark named, structured design marker)
+        parallel: true
+    gate:
+      type: user_approval
+      description: User approves the storyboard — creative lock before credits are spent
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/Video/Storyboards/"
+        description: Shot list, generation prompts, audio plan, thumbnail specs
+
+  - id: asset-generation
+    name: Asset Generation
+    description: Execute per the capability matrix — Higgsfield primary (cost-tier models for routine b-roll, hero models only for hero shots), comfyui or manual asset brief as degraded tiers
+    agents:
+      - agent_id: video-producer-simao
+        role: Generate voice, b-roll, stills per shot list; post-process (remove_background / upscale / reframe); log credits spent
+    gate:
+      type: user_approval
+      description: User reviews generated assets BEFORE render — Higgsfield credits are metered; regeneration requires explicit approval, never a loop
+
+  - id: edit-render
+    name: Edit & Render
+    description: Hyperframes composition (HTML+GSAP motion graphics, word-level captions) and deterministic MP4 render, or the declared degraded path
+    agents:
+      - agent_id: video-producer-simao
+        role: Compose and render — /hyperframes workflow per format, GSAP timeline for motion graphics, embedded captions; state the tier actually used
+    gate:
+      type: auto
+      description: Proceeds to QA when the render (or edit-ready package) exists
+
+  - id: virality-qa
+    name: Virality & Technical QA
+    description: STEPPS audit and virality prediction plus technical quality control before the quality gate
+    agents:
+      - agent_id: viral-engineer-filipe
+        role: STEPPS audit + virality_predictor / video_analysis when Higgsfield is live (hook strength, retention risk)
+      - agent_id: video-producer-simao
+        role: Technical QC — sync, caption accuracy, aspect ratios, loudness
+        parallel: true
+    gate:
+      type: auto
+      description: QA findings attached to the quality-gate input
+
+  - id: quality-gate
+    name: Quality Gate
+    description: Mandatory pre-delivery review — binary verdict
+    model_override: opus
+    agents:
+      - agent_id: cqo-marta
+        role: Orchestrate review, aggregate verdicts, issue binary decision
+      - agent_id: copy-director-eduardo
+        role: Script, captions, title and description copy
+        parallel: true
+      - agent_id: tech-director-francisca
+        role: Render quality, spec compliance, delivery formats
+        parallel: true
+    gate:
+      type: quality_gate
+      required_verdict: APPROVED
+
+  - id: delivery
+    name: Delivery
+    description: Final package and repurposing spec
+    agents:
+      - agent_id: video-producer-simao
+        role: Master MP4 + 9:16 reframe + thumbnail + title/description/tags + SRT
+      - agent_id: repurpose-distributor-nuno
+        role: Repurposing spec (1 → 30+) and distribution calendar
+        parallel: true
+    gate:
+      type: auto
+      description: Package delivered
+    outputs:
+      - type: document
+        format: markdown
+        obsidian_path: "WizardingCode/Content/Video/"
+        description: Delivery manifest — files, metadata, repurposing spec, backend tiers used

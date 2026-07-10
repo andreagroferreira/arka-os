@@ -37,3 +37,9 @@ workflows:
   - workflow_id: content-youtube
     trigger_command: "/content youtube"
     tier: enterprise
+  - workflow_id: content-video
+    trigger_command: "/content video"
+    tier: enterprise
+  - workflow_id: content-shorts-produce
+    trigger_command: "/content shorts"
+    tier: focused

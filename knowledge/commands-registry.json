@@ -1,14 +1,14 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-10T12:59:47Z",
-    "total_commands": 268,
+    "generated": "2026-07-10T13:12:22Z",
+    "total_commands": 269,
     "generator": "core/registry/generator.py",
     "departments": {
       "arka": 21,
       "brand": 12,
       "community": 14,
-      "content": 18,
+      "content": 19,
       "dev": 36,
       "ecom": 18,
       "fin": 10,
@@ -1348,6 +1348,32 @@
         "prepara o ambiente de produção de vídeo",
         "install hyperframes and agent-reach",
         "video-setup"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "content-shorts",
+      "command": "/content shorts <niche>",
+      "department": "content",
+      "description": "Batch production of 3-5 rendered shorts with posting schedule",
+      "lead_agent": "arka-content",
+      "keywords": [
+        "shorts batch",
+        "produce shorts",
+        "produz shorts",
+        "reels batch",
+        "tiktok batch",
+        "faz-me uns shorts",
+        "render shorts",
+        "lote de shorts"
+      ],
+      "examples": [
+        "produz um lote de 5 shorts sobre finanças",
+        "produce a batch of shorts for the launch",
+        "faz-me shorts desta masterclass"
       ],
       "source": "builtin",
       "tier": 2,

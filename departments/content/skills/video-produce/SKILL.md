@@ -7,8 +7,10 @@ description: >
   (never blocks on a missing tool). TRIGGER: "/content video <topic>",
   "produz um vídeo sobre", "faz-me um vídeo", "produce a video", "edit
   this video", "edita este vídeo", "monta o vídeo do episódio". SKIP:
-  script only -> content/script-structure; short-form scripting ->
-  /content short (content/short-form); one-off environment setup ->
+  script only -> content/script-structure; short-form batch of RENDERED
+  videos -> /content shorts (content-shorts-produce workflow); short-form
+  scripting only -> /content short (content/short-form); one-off
+  environment setup ->
   content/video-setup; YouTube channel strategy -> content/youtube-strategy.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
