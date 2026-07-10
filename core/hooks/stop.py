@@ -149,13 +149,25 @@ def _flow_checks(
     except Exception:
         pass
 
-    # Interaction Reform PR3 — a turn that ENDS at Gate 2 means a plan
-    # is on the table awaiting the user; record it so the next user
-    # message can be classified as approval (plan_approval state).
+    # Interaction Reform PR3 — a turn whose furthest gate is Gate 2 means
+    # a plan is on the table awaiting the user; record it so the next
+    # user message can be classified as approval (plan_approval state).
+    # Scope to the CURRENT turn's messages (QG 2026-07-09, PR4
+    # prerequisite #1, re-review): scanning the whole 20-message window
+    # would re-trigger on a PRIOR turn's [arka:gate:2] still in the
+    # window and silently invalidate a live approval. Turn-scoping keeps
+    # the mid-turn fix (gate:2 + a separate marker-less summary in the
+    # same turn) while never spanning turns. Falls back to the last
+    # message only when the transcript can't be turn-parsed.
     try:
+        from core.governance.phantom_action_check import (
+            current_turn_assistant_texts,
+        )
         from core.workflow.gate_checkpoint import extract_latest_gate
         from core.workflow import plan_approval
-        if session_id and extract_latest_gate([last]) == 2:
+        turn = current_turn_assistant_texts(raw)
+        scan = turn if turn is not None else [last]
+        if session_id and extract_latest_gate(scan) == 2:
             plan_approval.mark_presented(session_id)
     except Exception:
         pass

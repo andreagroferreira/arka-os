@@ -50,6 +50,40 @@ class TestStateMachine:
             "an approval must not survive a newer presented plan"
         )
 
+    def test_approval_survives_a_stale_gate2_in_the_window(self):
+        # QG 2026-07-09 (PR4 prerequisite #1 re-review): a prior turn's
+        # gate:2 lingering in the 20-message window must NOT re-present
+        # and invalidate a live approval. The Stop hook scopes to the
+        # CURRENT turn (current_turn_assistant_texts); a marker-less
+        # clarifying-question turn yields NO gate, so mark_presented is
+        # never called and the approval stands.
+        import json as _json
+        from core.governance.phantom_action_check import (
+            current_turn_assistant_texts,
+        )
+        from core.workflow.gate_checkpoint import extract_latest_gate
+
+        mark_presented(SESSION)
+        mark_approved(SESSION)
+        assert is_approved(SESSION)
+
+        raw = "\n".join(_json.dumps(r) for r in (
+            {"role": "user", "content": "plano A"},
+            {"message": {"role": "assistant", "content": [
+                {"type": "text", "text": "[arka:gate:2] plano A"}]}},
+            {"role": "user", "content": "aprovo"},
+            {"message": {"role": "assistant", "content": [
+                {"type": "text", "text": "A perguntar: A ou B?"}]}},
+        ))
+        turn = current_turn_assistant_texts(raw)
+        # The stop hook only marks presented when the CURRENT turn hits
+        # gate 2 — here it does not, so the approval must survive.
+        if extract_latest_gate(turn) == 2:
+            mark_presented(SESSION)
+        assert is_approved(SESSION), (
+            "a stale prior-turn gate:2 must not invalidate the approval"
+        )
+
     def test_rejection_resets(self):
         mark_presented(SESSION)
         mark_rejected(SESSION)
@@ -79,6 +113,21 @@ class TestStateMachine:
         state_file = next((tmp_path / "approval").glob("*.json"))
         state_file.write_text("{not json", encoding="utf-8")
         assert get_state(SESSION).state == "none"
+
+    def test_unwritable_state_dir_never_raises(self, tmp_path, monkeypatch):
+        # PR4 prerequisite #3: a read-only override dir must not
+        # propagate an OSError into the hook — mark/get degrade to noop.
+        blocked = tmp_path / "blocked"
+        blocked.mkdir()
+        blocked.chmod(0o500)
+        monkeypatch.setenv(
+            "ARKA_PLAN_APPROVAL_DIR", str(blocked / "sub")
+        )
+        try:
+            mark_presented(SESSION)  # must not raise
+            assert get_state(SESSION).state == "none"
+        finally:
+            blocked.chmod(0o700)
 
 
 class TestClassifyReply:
