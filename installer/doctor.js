@@ -23,7 +23,7 @@ function commandExists(cmd) {
   }
 }
 
-const checks = [
+export const checks = [
   {
     name: "install-dir",
     description: "ArkaOS installation directory exists",
@@ -229,6 +229,61 @@ const checks = [
       } catch { return false; }
     },
     fix: () => "Run: npx arkaos keys set MAGIC_API_KEY <your-21st-dev-key>  (or re-run npx arkaos@latest update)",
+  },
+  // ─── Content production prerequisites (PR-C2) — all warn-only:
+  // video production is opt-in; the installer never fails on these and
+  // never installs the binaries itself (detect + instruct only).
+  {
+    name: "node-22-video",
+    description: "Node.js 22+ (required by Hyperframes video rendering)",
+    severity: "warn",
+    check: () => {
+      const major = parseInt(process.version.slice(1).split(".")[0], 10);
+      return Number.isFinite(major) && major >= 22;
+    },
+    fix: () => "Install Node.js 22+ (nvm install 22) — only needed for /content video rendering",
+  },
+  {
+    name: "ffmpeg",
+    description: "FFmpeg present (video encode/cut for Hyperframes + transcription workflows)",
+    severity: "warn",
+    check: () => commandExists("ffmpeg"),
+    fix: () => "Install FFmpeg: brew install ffmpeg (macOS) / apt install ffmpeg (Linux) / winget install Gyan.FFmpeg (Windows)",
+  },
+  {
+    name: "agent-reach",
+    description: "Agent-Reach CLI present (multi-platform source pulls for the content trend and research skills)",
+    severity: "warn",
+    check: () => commandExists("agent-reach"),
+    fix: () => "Install: pipx install agent-reach (or uv tool install agent-reach), then run: agent-reach doctor",
+  },
+  {
+    name: "hyperframes-skills",
+    description: "Hyperframes skills installed (video-as-code editing for /content video)",
+    severity: "warn",
+    check: () => {
+      // `npx skills add heygen-com/hyperframes` lands skills under
+      // ~/.claude/skills/<name>; the router skill is the sentinel.
+      return ["hyperframes", "hyperframes-core"].some((name) =>
+        existsSync(join(homedir(), ".claude", "skills", name, "SKILL.md"))
+      );
+    },
+    fix: () => "Run /content video-setup in Claude Code, or: npx skills add heygen-com/hyperframes --full-depth --yes",
+  },
+  {
+    name: "higgsfield-api-key",
+    description: "Higgsfield API key configured (image/video/audio generation engine)",
+    severity: "warn",
+    check: () => {
+      if (process.env.HIGGSFIELD_API_KEY) return true;
+      const keysPath = join(INSTALL_DIR, "keys.json");
+      if (!existsSync(keysPath)) return false;
+      try {
+        const keys = JSON.parse(readFileSync(keysPath, "utf-8"));
+        return !!keys.HIGGSFIELD_API_KEY;
+      } catch { return false; }
+    },
+    fix: () => "Run: npx arkaos keys set HIGGSFIELD_API_KEY <key> (https://higgsfield.ai) — needed for Higgsfield MCP generation",
   },
 ];
 

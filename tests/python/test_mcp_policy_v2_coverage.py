@@ -50,6 +50,7 @@ _REGISTRY_MCPS = [
     "shopify-dev",
     "mirakl",
     "canva",
+    "higgsfield",
     "slack",
     "discord",
     "whatsapp",
@@ -137,3 +138,23 @@ def test_marketing_ecosystem_activates_canva_and_firecrawl(policy):
     assert "firecrawl" in d.active
     assert "clickup" in d.active
     assert "postgres" in d.deferred
+
+
+def test_content_ecosystem_activates_higgsfield(policy):
+    """Content production (PR-C2): the generation engine is active for
+    content projects and stays deferred on every code stack."""
+    d = decide(policy, ["higgsfield", "canva", "postgres"], [], "content")
+    assert "higgsfield" in d.active
+    assert "canva" in d.active
+    assert "postgres" in d.deferred
+
+
+@pytest.mark.parametrize(
+    "stack",
+    [["laravel"], ["nuxt"], ["react"], ["python"], ["vue"], ["shopify"]],
+)
+def test_higgsfield_deferred_on_code_stacks(policy, stack):
+    d = decide(policy, ["higgsfield"], stack, None)
+    assert d.deferred == ["higgsfield"], (
+        f"stack={stack}: higgsfield must never load eagerly on a code stack"
+    )

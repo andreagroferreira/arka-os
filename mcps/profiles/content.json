@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "name": "content",
+    "description": "Content department MCP profile — base + Higgsfield generation engine and Canva for the production pipeline",
+    "extends": "base"
+  },
+  "mcps": [
+    "arka-prompts",
+    "obsidian",
+    "context7",
+    "playwright",
+    "sentry",
+    "gh-grep",
+    "clickup",
+    "firecrawl",
+    "supabase",
+    "canva",
+    "higgsfield"
+  ]
+}
