@@ -36,6 +36,10 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/content monetize` | Creator monetization plan (5 levels) | Focused |
 | `/content calendar <period>` | Content calendar with themes and batching | Focused |
 | `/content thumbnail <video>` | Thumbnail + title packaging (A/B variants) | Specialist |
+| `/content video <topic>` | End-to-end video production (research → script → assets → render) | Enterprise |
+| `/content trends <niche>` | Demand-first trend and niche analysis with STEPPS scoring | Specialist |
+| `/content research <topic>` | Sourced research compiled into a production brief | Focused |
+| `/content video-setup` | Video production environment bootstrap (Hyperframes, Agent-Reach, Higgsfield) | Specialist |
 
 ## Squad
 
