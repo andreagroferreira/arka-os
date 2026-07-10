@@ -5,6 +5,66 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.0] - 2026-07-10
+
+Interaction Reform — closing the gap the operator named after the
+technical backlog was clear: the doctrine existed as instruction, the
+executable enforcement did not. Eight PRs (#275-#282), each through the
+evidence Quality Gate (several with adversarial REJECTED→fix cycles
+that caught real defects — calibration false-positives, confidentiality
+leaks, a `safe_session_id` path-traversal landmine, an approval-
+invalidation regression).
+
+### Added
+
+- **Unified gate judges** (#275) — `core/governance/judge.py`
+  (`JudgeVerdict` PASS/REVISE): a plan-judge at Gate 2 (judges the
+  planning summary before it reaches the user) and an output-judge at
+  Gate 4 (before the Quality Gate personas), frontier tier, MEDIUM/HIGH
+  work only. Applies the `arkaos-not-yes-man` standard to the agent's
+  work and surfaces a `user_challenge` when the request itself is
+  technically wrong. Constitution MUST rule `gate-judges`; verdicts
+  logged to `judge-verdicts.jsonl`.
+- **`/arka refine`** (#279) — turns a vague or domain-unfamiliar ask
+  into a precise English prompt by asking about the topic first (one
+  substantive question per turn, domain vocabulary for UI/design). The
+  UserPromptSubmit hook injects `[arka:refine-suggested]` on a genuinely
+  vague code request (score ≥85, no concrete target named).
+- **codebase-memory-mcp as the default consistency layer** (#278) — the
+  operator's own graph MCP wired into every code stack (grounding-code
+  category, `requires_binary` with graceful skip; ArkaOS configures but
+  never installs the binary). Graphify stays for non-code.
+- **Validated recipes** (#280, #281) — a QG-approved feature captured
+  with its reference files (`~/.arkaos/recipes/<slug>/`), fail-closed:
+  every field sanitized, client-identifier filenames refused. Synapse
+  L7.6 surfaces matches as `[recipes:N]`; `/arka recipes list/show/apply`
+  reuses them through the normal 4-gate flow.
+- **Output style ArkaOS as the Claude Code default** (#276) — tracked in
+  `config/output-styles/arkaos.md`, seeded if-absent (an explicit
+  operator choice is never overridden) + a "Challenge the User" section
+  wiring the pushback protocol into the style itself.
+
+### Changed
+
+- **Plan-approval detection** (#277, #282) — the flow said Gate 2 "waits
+  for EXPLICIT user approval" but nothing verified it. `plan_approval.py`
+  now tracks none→presented→approved per session (ExitPlanMode counts as
+  approval); the enforcer annotates every gated allow with
+  `approval_state` in the enforcement telemetry. **WARN phase — zero new
+  denies.** The `hardEnforcement` default-ON flip (PR4) stays gated on
+  that telemetry showing <2% false positives across the install base.
+- **security-grep is diff-aware** (#276) — the evidence engine scans
+  only lines added vs the default-branch merge-base, so a pre-existing
+  pattern in a touched file is master's debt, not the change's (it was
+  false-failing PR reviews on benign pre-existing lines).
+
+### Fixed
+
+- **`safe_session_id` rejects dot-only tokens** (#281) — `'.'`/`'..'`
+  passed the char allowlist though the docstring claimed otherwise; a
+  future slug-backed `recipes delete ..` would have `rmtree`'d
+  `~/.arkaos`. Fixed at the shared guard used by 40+ call sites.
+
 ## [4.11.0] - 2026-07-09
 
 ### Added
