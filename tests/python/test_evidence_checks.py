@@ -6,16 +6,20 @@ monkeypatched. Never touches ~/.arkaos or this repo's own suite.
 """
 
 import json
+import os
 import subprocess
 import sys
+import time
 
 import pytest
 
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
     ALL_CHECKS,
+    UI_SCREENSHOT_WINDOW_HOURS,
     CheckResult,
     EvidenceReport,
+    _check_ui_screenshot,
     _derive_overall,
     main,
     run_evidence_checks,
@@ -403,3 +407,75 @@ def test_cli_pass_exit_code(tmp_path, capsys):
     ])
     assert exit_code == 0
     assert json.loads(capsys.readouterr().out)["overall"] == "pass"
+
+
+# ─── ui-screenshot (Excellence Reform PR-D3) ────────────────────────────
+
+
+def _png(path, size=20 * 1024, mtime=None):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"\x89PNG" + b"\x00" * size)
+    if mtime is not None:
+        os.utime(path, (mtime, mtime))
+    return path
+
+
+def test_ui_screenshot_skips_without_changed_files(tmp_path):
+    result = _check_ui_screenshot(tmp_path, None, None, 30)
+    assert not result.ran
+    assert "no changed files" in result.summary
+
+
+def test_ui_screenshot_skips_when_no_ui_files_changed(tmp_path):
+    result = _check_ui_screenshot(tmp_path, ["core/state.py"], None, 30)
+    assert not result.ran
+    assert "no UI files changed" in result.summary
+
+
+def test_ui_screenshot_fails_when_ui_changed_without_artifact(tmp_path):
+    result = _check_ui_screenshot(
+        tmp_path, ["app/Hero.vue", "core/state.py"], None, 30
+    )
+    assert result.ran and result.passed is False
+    assert ".arka/evidence/ui" in result.summary
+    assert "design-review" in result.summary
+
+
+def test_ui_screenshot_passes_with_recent_artifact(tmp_path):
+    newest = _png(tmp_path / ".arka" / "evidence" / "ui" / "d" / "hero.png")
+    result = _check_ui_screenshot(tmp_path, ["app/Hero.vue"], None, 30)
+    assert result.ran and result.passed is True
+    assert result.details_path == str(newest)
+    assert "hero.png" in result.summary
+
+
+def test_ui_screenshot_rejects_stale_artifact(tmp_path):
+    stale = time.time() - (UI_SCREENSHOT_WINDOW_HOURS + 2) * 3600
+    _png(tmp_path / ".arka" / "evidence" / "ui" / "old.png", mtime=stale)
+    result = _check_ui_screenshot(tmp_path, ["app/Hero.vue"], None, 30)
+    assert result.ran and result.passed is False
+
+
+def test_ui_screenshot_rejects_undersized_artifact(tmp_path):
+    _png(tmp_path / ".arka" / "evidence" / "ui" / "tiny.png", size=1024)
+    result = _check_ui_screenshot(tmp_path, ["app/Hero.vue"], None, 30)
+    assert result.ran and result.passed is False
+
+
+def test_ui_screenshot_picks_newest_artifact(tmp_path):
+    older = time.time() - 3600
+    _png(tmp_path / ".arka" / "evidence" / "ui" / "a.png", mtime=older)
+    newest = _png(tmp_path / ".arka" / "evidence" / "ui" / "b.png")
+    result = _check_ui_screenshot(tmp_path, ["style.css"], None, 30)
+    assert result.passed is True
+    assert result.details_path == str(newest)
+
+
+def test_ui_screenshot_failure_fails_overall_report(tmp_path):
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "Hero.vue").write_text("<template/>")
+    report = run_evidence_checks(
+        tmp_path, changed_files=["app/Hero.vue"],
+        checks=["ui-screenshot"],
+    )
+    assert report.overall == "fail"

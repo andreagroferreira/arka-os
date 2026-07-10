@@ -68,6 +68,7 @@ enforcement_levels:
       - "Marta receives all output from execution phase plus the evidence report"
       - "Marta dispatches Eduardo (text) and Francisca (technical) in parallel, each in an INDEPENDENT subagent context (clean context, no stake in the work being approved)"
       - "Each reviewer returns a structured QGVerdict (APPROVED or REJECTED) with specific issues; the verdict MUST name the benchmark used (reference_companies.application) and enumerate the concrete rejections a top-tier lead would raise; evidence overall=fail forces REJECTED"
+      - "For UI deliverables, Francisca Reads the screenshot artifact(s) the ui-screenshot evidence check points at (details_path under .arka/evidence/ui/), views them, and judges against the benchmark named in the [arka:design] marker; her QGVerdict MUST cite the screenshot path and that benchmark"
       - "If ANY reviewer rejects: work loops back to execution with issue list"
       - "Redo loop is capped at 2 cycles: a third REJECTED escalates to the operator with the full verdict instead of another silent retry (excellence-mandate)"
       - "If ALL approve: Marta issues final APPROVED verdict"
