@@ -37,6 +37,7 @@ policies:
       - teams
       - shopify-dev
       - mirakl
+      - higgsfield
     ambiguous: []
 
   # --- Frontend: Nuxt / Vue ---
@@ -68,6 +69,7 @@ policies:
       - teams
       - shopify-dev
       - mirakl
+      - higgsfield
     ambiguous: []
 
   # --- Frontend: React / Next ---
@@ -99,6 +101,7 @@ policies:
       - teams
       - shopify-dev
       - mirakl
+      - higgsfield
     ambiguous: []
 
   # --- E-commerce (Shopify / Mirakl) ---
@@ -130,6 +133,7 @@ policies:
       - discord
       - whatsapp
       - teams
+      - higgsfield
     ambiguous: []
 
   # --- Python projects ---
@@ -161,6 +165,7 @@ policies:
       - teams
       - shopify-dev
       - mirakl
+      - higgsfield
     ambiguous: []
 
   # --- Ecosystem: marketing ---
@@ -192,6 +197,7 @@ policies:
       - teams
       - shopify-dev
       - mirakl
+      - higgsfield
     ambiguous: []
 
   # --- Ecosystem: content ---
@@ -203,6 +209,7 @@ policies:
       - context7
       - canva
       - firecrawl
+      - higgsfield
     deferred:
       - codebase-memory
       - memory-bank
@@ -254,4 +261,5 @@ policies:
       - teams
       - shopify-dev
       - mirakl
+      - higgsfield
     ambiguous: []
