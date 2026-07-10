@@ -47,6 +47,18 @@ class TestExtraction:
         messages = ["[arka:gate:1] a", "[arka:gate:3] b", "[arka:gate:2] c"]
         assert extract_latest_gate(messages) == 3
 
+    def test_gate2_mid_window_survives_trailing_prose(self):
+        # PR4 prerequisite #1: a plan presented mid-turn (gate:2) with a
+        # trailing marker-less summary. Over the window this is still 2,
+        # so plan_approval marks 'presented' — last-message-only missed it.
+        window = [
+            "[arka:gate:1] context",
+            "[arka:gate:2] plan: scope, files, verify",
+            "Here is the plan above — waiting for your approval.",
+        ]
+        assert extract_latest_gate(window) == 2
+        assert extract_latest_gate([window[-1]]) is None  # old behaviour
+
     def test_case_insensitive(self):
         assert extract_latest_gate(["[ARKA:GATE:4] review"]) == 4
 

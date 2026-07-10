@@ -51,20 +51,33 @@ _REJECT_RE = re.compile(
 _SHORT_YES_RE = re.compile(r"\b(sim|ok|okay|yes|yep|sure|dale)\b", re.IGNORECASE)
 
 
-def _state_dir() -> Path:
+def _state_dir() -> Path | None:
+    """Resolve the state dir, creating it. None when the mkdir fails.
+
+    The module's never-raises contract must hold in its OWN internals:
+    a read-only override dir or a full disk returns None (callers treat
+    it as "no state") instead of propagating an OSError into a hook
+    (QG 2026-07-09, PR4 prerequisite #3).
+    """
     override = os.environ.get("ARKA_PLAN_APPROVAL_DIR", "").strip()
-    if override:
-        path = Path(override)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-    return arkaos_temp_dir("arkaos-plan-approval")
+    try:
+        if override:
+            path = Path(override)
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+        return arkaos_temp_dir("arkaos-plan-approval")
+    except OSError:
+        return None
 
 
 def _state_file(session_id: str) -> Path | None:
     safe = safe_session_id(session_id)
     if safe is None:
         return None
-    return _state_dir() / f"{safe}.json"
+    state_dir = _state_dir()
+    if state_dir is None:
+        return None
+    return state_dir / f"{safe}.json"
 
 
 @dataclass

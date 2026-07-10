@@ -9,6 +9,7 @@ import pytest
 from core.governance.phantom_action_check import (
     check_phantom_actions,
     count_turn_tool_uses,
+    current_turn_assistant_texts,
     find_action_claims,
 )
 
@@ -195,6 +196,41 @@ class TestCountTurnToolUses:
             _assistant_text("Criei o ficheiro X."),
         )
         assert count_turn_tool_uses(raw) == 0
+
+
+class TestCurrentTurnAssistantTexts:
+    """Turn-scoping for plan-approval (PR4 prerequisite #1 re-review)."""
+
+    def test_only_current_turn_messages(self):
+        raw = _jsonl(
+            _user("plano A"),
+            _assistant_text("[arka:gate:2] plano A"),
+            _user("aprovo"),
+            _assistant_text("A perguntar: A ou B?"),
+        )
+        # Prior turn's gate:2 must NOT be in the current turn's scan —
+        # this is what stops the approval-invalidation false positive.
+        texts = current_turn_assistant_texts(raw)
+        assert texts == ["A perguntar: A ou B?"]
+
+    def test_mid_turn_gate_with_trailing_prose_is_captured(self):
+        raw = _jsonl(
+            _user("faz a feature"),
+            _assistant_text("[arka:gate:2] plano: scope, files"),
+            _assistant_text("Plano acima — espero aprovação."),
+        )
+        texts = current_turn_assistant_texts(raw)
+        assert texts == [
+            "[arka:gate:2] plano: scope, files",
+            "Plano acima — espero aprovação.",
+        ]
+
+    def test_unparseable_or_no_user_returns_none(self):
+        assert current_turn_assistant_texts("not json") is None
+        assert current_turn_assistant_texts(None) is None
+        assert current_turn_assistant_texts(
+            _jsonl(_assistant_text("solo"))
+        ) is None
 
 
 class TestCheckPhantomActions:

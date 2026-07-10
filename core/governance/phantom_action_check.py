@@ -150,6 +150,47 @@ def count_turn_tool_uses(raw_transcript: str | None) -> int | None:
     return count
 
 
+def current_turn_assistant_texts(raw_transcript: str | None) -> list[str] | None:
+    """Assistant message texts of the CURRENT turn (after the last real
+    user message). None when the transcript is unparseable or no real
+    user message is found — callers must fail open on None.
+
+    Shares the turn-boundary logic with ``count_turn_tool_uses`` so
+    turn-scoped consumers (plan-approval's mark_presented) do not span
+    turns and re-trigger on a prior turn's markers.
+    """
+    if not raw_transcript:
+        return None
+    records = _parse_jsonl(raw_transcript)
+    if not records:
+        return None
+    start = _last_real_user_index(records)
+    if start < 0:
+        return None
+    texts: list[str] = []
+    for record in records[start + 1 :]:
+        if _record_role(record) != "assistant":
+            continue
+        text = _assistant_text(_record_content(record))
+        if text:
+            texts.append(text)
+    return texts
+
+
+def _assistant_text(content: object) -> str:
+    """Flatten an assistant record's content to its text blocks."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = [
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        return "\n".join(p for p in parts if p)
+    return ""
+
+
 def check_phantom_actions(
     response_text: str, raw_transcript: str | None
 ) -> PhantomActionResult:
