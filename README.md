@@ -2,7 +2,7 @@
 
 **The Operating System for AI Agent Teams.**
 
-82 agents. 17 departments. 270 skills. Enterprise frameworks. Multi-runtime. One install.
+86 agents. 17 departments. 270 skills. Enterprise frameworks. Multi-runtime. One install.
 
 ```bash
 npx arkaos install
@@ -153,7 +153,7 @@ Every decision, solution, and pattern is captured. The Cognitive Layer curates i
 | **Leadership** | `/lead` | 3 | Team health, OKRs, culture, hiring frameworks |
 | **Quality Gate** | (auto) | 3 | Mandatory review on every workflow. Veto power. |
 
-> 82 agents across 17 departments (81 unique; `cro-specialist` is shared by
+> 86 agents across 17 departments (85 unique; `cro-specialist` is shared by
 > E-Commerce and Landing in the matrix structure).
 
 ---

@@ -15,7 +15,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 
 # Content Creation & Viralization — ArkaOS v2
 
-> **Squad Lead:** Rafael (Content Strategist) | **Agents:** 4
+> **Squad Lead:** Rafael (Content Strategist) | **Agents:** 8
 > **Principle:** Hook in 3 seconds. Create once, distribute 30+ times. Compound over time.
 
 ## Commands
@@ -43,8 +43,17 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 |-------|------|------|------|
 | **Rafael** | Content Strategist — Viral design, platform strategy | 1 | D+I |
 | **Filipe** | Viral Engineer — Hooks, thumbnails, algorithms | 2 | D+I |
-| **Joana** | Scriptwriter — Video, podcast, webinar scripts | 2 | I+C |
+| **Joana** | Scriptwriter — Hollywood-grade narrative, storyboard-ready scenes | 2 | I+C |
 | **Nuno** | Repurpose Specialist — 1 to 30+, distribution | 2 | C+D |
+
+### Production sub-squad (video pipeline)
+
+| Agent | Role | Tier | DISC |
+|-------|------|------|------|
+| **Simão** | Video Producer (lead) — Hyperframes + Higgsfield pipeline, shot lists, render | 1 | D+C |
+| **Madalena** | Content Researcher — sourced research, Agent-Reach, fact verification | 2 | C+S |
+| **Dinis** | Info Compiler — production briefs, claim→source tables | 2 | C+D |
+| **Margarida** | Trends & Niche Analyst — demand-first validation, whitespace | 2 | I+C |
 
 ## Hook Types (first 3 seconds)
 
