@@ -72,6 +72,8 @@ class TestAgentRoleHints:
             "ux-designer",
             "motion-designer",
             "creative-director",
+            "scriptwriter",
+            "video-producer",
         ):
             assert mrc.AGENT_ROLE_HINTS[slug] == "design"
 

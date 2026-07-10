@@ -1,19 +1,19 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-10T11:29:44.295790",
-    "total_agents": 82,
+    "generated": "2026-07-10T13:02:43.898961",
+    "total_agents": 86,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
-      "1": 18,
-      "2": 55,
+      "1": 19,
+      "2": 58,
       "0": 6,
       "3": 3
     },
     "departments": {
       "brand": 10,
       "community": 3,
-      "content": 4,
+      "content": 8,
       "dev": 15,
       "ecom": 4,
       "finance": 3,
@@ -31,9 +31,9 @@
     },
     "disc_distribution": {
       "S": 11,
-      "C": 36,
-      "D": 18,
-      "I": 17
+      "C": 38,
+      "D": 19,
+      "I": 18
     }
   },
   "agents": [
@@ -749,6 +749,193 @@
       "memory_path": "~/.claude/agent-memory/arka-content-strategist-rafael/MEMORY.md"
     },
     {
+      "id": "content-researcher-madalena",
+      "name": "Madalena",
+      "role": "Content Researcher",
+      "department": "content",
+      "tier": 2,
+      "model": "sonnet",
+      "parent_squad": "content",
+      "sub_squad_role": "researcher",
+      "disc": {
+        "primary": "C",
+        "secondary": "S",
+        "label": "Analyst-Supporter"
+      },
+      "enneagram": {
+        "type": 5,
+        "wing": 6,
+        "label": "5w6 — The Investigator"
+      },
+      "big_five": {
+        "O": 85,
+        "C": 88,
+        "E": 30,
+        "A": 60,
+        "N": 30
+      },
+      "mbti": "INTP",
+      "authority": {},
+      "expertise_domains": [
+        "primary-source research and fact verification",
+        "claim-to-source citation discipline ([UNVERIFIED] fail-closed flagging)",
+        "Agent-Reach platform research (X, Reddit, YouTube transcripts, GitHub, RSS, Exa web search)",
+        "competitor content teardown (scripts, hooks, angles from transcripts)",
+        "research handoff briefs for scriptwriting"
+      ],
+      "frameworks": [
+        "CRAAP source evaluation",
+        "Agent-Reach CLI (doctor-checked, fallback firecrawl/WebSearch)",
+        "KB-First doctrine (Obsidian citations before external research)",
+        "Demand-First Content Audit"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/content/agents/production/content-researcher.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-content-researcher-madalena/MEMORY.md"
+    },
+    {
+      "id": "info-compiler-dinis",
+      "name": "Dinis",
+      "role": "Information Compiler",
+      "department": "content",
+      "tier": 2,
+      "model": "sonnet",
+      "parent_squad": "content",
+      "sub_squad_role": "compiler",
+      "disc": {
+        "primary": "C",
+        "secondary": "D",
+        "label": "Analyst-Driver"
+      },
+      "enneagram": {
+        "type": 1,
+        "wing": 9,
+        "label": "1w9 — The Reformer"
+      },
+      "big_five": {
+        "O": 65,
+        "C": 95,
+        "E": 35,
+        "A": 55,
+        "N": 28
+      },
+      "mbti": "ISTJ",
+      "authority": {},
+      "expertise_domains": [
+        "research synthesis into production briefs",
+        "narrative fact-sheets for scriptwriters (angle, audience, proof, hooks, beats)",
+        "claim → source traceability tables",
+        "redundancy elimination and information hierarchy",
+        "brief templates per format (long-form, short, explainer)"
+      ],
+      "frameworks": [
+        "Pyramid Principle (Minto)",
+        "Zettelkasten synthesis",
+        "Content OS brief format",
+        "MECE"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/content/agents/production/info-compiler.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-info-compiler-dinis/MEMORY.md"
+    },
+    {
+      "id": "trends-analyst-margarida",
+      "name": "Margarida",
+      "role": "Trends & Niche Analyst",
+      "department": "content",
+      "tier": 2,
+      "model": "sonnet",
+      "parent_squad": "content",
+      "sub_squad_role": "trends-analyst",
+      "disc": {
+        "primary": "I",
+        "secondary": "C",
+        "label": "Inspirer-Analyst"
+      },
+      "enneagram": {
+        "type": 7,
+        "wing": 6,
+        "label": "7w6 — The Enthusiast"
+      },
+      "big_five": {
+        "O": 90,
+        "C": 70,
+        "E": 72,
+        "A": 58,
+        "N": 35
+      },
+      "mbti": "ENTP",
+      "authority": {},
+      "expertise_domains": [
+        "trend detection across platforms (Agent-Reach: X, Reddit, YouTube, RSS, Exa)",
+        "niche viability scoring (audience size, competition density, monetization path, brand fit)",
+        "platform algorithm shift monitoring",
+        "whitespace analysis for new channels and formats",
+        "content angle validation with hook material"
+      ],
+      "frameworks": [
+        "STEPPS (Berger)",
+        "Demand-First Content Audit",
+        "Agent-Reach CLI (fallback firecrawl/WebSearch, degraded mode declared)",
+        "Blue Ocean whitespace",
+        "Self-Licking Ice Cream Cone (content-to-ads loop)"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/content/agents/production/trends-analyst.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-trends-analyst-margarida/MEMORY.md"
+    },
+    {
+      "id": "video-producer-simao",
+      "name": "Simão",
+      "role": "Video Producer & Production Lead",
+      "department": "content",
+      "tier": 1,
+      "model": "opus",
+      "parent_squad": "content",
+      "sub_squad_role": "lead",
+      "disc": {
+        "primary": "D",
+        "secondary": "C",
+        "label": "Driver-Analyst"
+      },
+      "enneagram": {
+        "type": 3,
+        "wing": 4,
+        "label": "3w4 — The Achiever"
+      },
+      "big_five": {
+        "O": 78,
+        "C": 90,
+        "E": 60,
+        "A": 50,
+        "N": 25
+      },
+      "mbti": "ENTJ",
+      "authority": {
+        "approve_quality": true,
+        "orchestrate": true
+      },
+      "expertise_domains": [
+        "video production pipelines (script → storyboard → assets → edit → render)",
+        "Hyperframes video-as-code editing (HTML/CSS/JS + GSAP → MP4)",
+        "Higgsfield generation orchestration (image, video, audio, motion control, upscale, reframe)",
+        "shot lists and EDLs (scene/shot/VO/on-screen-text columns)",
+        "transcription-synced cuts and word-level captions",
+        "multi-format delivery (16:9, 9:16, 1:1; YouTube, Reels, TikTok)",
+        "backend degradation planning (full → server-side → edit-ready package)"
+      ],
+      "frameworks": [
+        "Hyperframes skill suite (talking-head-recut, faceless-explainer, motion-graphics, embedded-captions)",
+        "Higgsfield MCP toolset (generate_*, motion_control, virality_predictor, video_analysis)",
+        "GSAP timeline sequencing (labels, position params)",
+        "YouTube retention editing",
+        "Hook Architecture (first 30 seconds)"
+      ],
+      "knowledge_sources": [],
+      "file": "departments/content/agents/production/video-producer.yaml",
+      "memory_path": "~/.claude/agent-memory/arka-video-producer-simao/MEMORY.md"
+    },
+    {
       "id": "repurpose-distributor-nuno",
       "name": "Nuno",
       "role": "Repurpose & Distribution Specialist",
@@ -801,7 +988,7 @@
       "role": "Scriptwriter",
       "department": "content",
       "tier": 2,
-      "model": "sonnet",
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -825,13 +1012,21 @@
       "authority": {},
       "expertise_domains": [
         "video scriptwriting (YouTube, Reels, TikTok)",
-        "narrative structure (hook-bridge-body-CTA)",
-        "storytelling frameworks",
+        "cinematic narrative for short and long-form",
+        "storyboard-ready scene writing (scene/shot/VO/on-screen-text columns)",
+        "narrative structure (hook-bridge-body-CTA; beat sheets; story circles)",
         "audience retention scripting",
+        "never-default voice (no AI clichés, no listicle cadence, no template openings)",
         "podcast scripts",
         "webinar scripts"
       ],
       "frameworks": [
+        "Story (McKee)",
+        "Save the Cat beat sheet",
+        "Dan Harmon Story Circle",
+        "Sequence method",
+        "Pixar story rules",
+        "Hook Architecture",
         "Hook-Bridge-Body-CTA",
         "StoryBrand SB7 (adapted for video)",
         "AIDA for video",
