@@ -1,470 +1,1607 @@
 {
   "arka-standup": {
-    "keywords": ["standup", "daily standup", "morning update", "daily update", "what's happening", "status update"],
-    "examples": ["give me a daily standup", "what's the status of everything", "morning update please"]
+    "keywords": [
+      "standup",
+      "daily standup",
+      "morning update",
+      "daily update",
+      "what's happening",
+      "status update"
+    ],
+    "examples": [
+      "give me a daily standup",
+      "what's the status of everything",
+      "morning update please"
+    ]
   },
   "arka-status": {
-    "keywords": ["system status", "arka status", "system info", "version info"],
-    "examples": ["show system status", "what version is arka", "show me the system info"]
+    "keywords": [
+      "system status",
+      "arka status",
+      "system info",
+      "version info"
+    ],
+    "examples": [
+      "show system status",
+      "what version is arka",
+      "show me the system info"
+    ]
   },
   "arka-monitor": {
-    "keywords": ["monitor", "tech updates", "security alerts", "dependency updates", "stack updates"],
-    "examples": ["check for tech updates", "are there any security alerts", "monitor my stack"]
+    "keywords": [
+      "monitor",
+      "tech updates",
+      "security alerts",
+      "dependency updates",
+      "stack updates"
+    ],
+    "examples": [
+      "check for tech updates",
+      "are there any security alerts",
+      "monitor my stack"
+    ]
   },
   "arka-onboard": {
-    "keywords": ["onboard project", "setup project", "initialize project", "new project setup"],
-    "examples": ["onboard this project into arka", "setup my existing project"]
+    "keywords": [
+      "onboard project",
+      "setup project",
+      "initialize project",
+      "new project setup"
+    ],
+    "examples": [
+      "onboard this project into arka",
+      "setup my existing project"
+    ]
   },
   "arka-help": {
-    "keywords": ["help", "commands", "what can you do", "show commands", "available commands"],
-    "examples": ["show me all commands", "what can arka do", "help me find a command"]
+    "keywords": [
+      "help",
+      "commands",
+      "what can you do",
+      "show commands",
+      "available commands"
+    ],
+    "examples": [
+      "show me all commands",
+      "what can arka do",
+      "help me find a command"
+    ]
   },
   "arka-setup": {
-    "keywords": ["setup profile", "configure", "personalize", "update profile", "my settings"],
-    "examples": ["setup my profile", "update my settings", "personalize arka"]
+    "keywords": [
+      "setup profile",
+      "configure",
+      "personalize",
+      "update profile",
+      "my settings"
+    ],
+    "examples": [
+      "setup my profile",
+      "update my settings",
+      "personalize arka"
+    ]
   },
   "dev-feature": {
-    "keywords": ["build", "create", "implement", "add", "new feature", "develop", "make"],
-    "examples": ["add user authentication", "build a payment system", "implement the checkout flow", "create a notification system"]
+    "keywords": [
+      "build",
+      "create",
+      "implement",
+      "add",
+      "new feature",
+      "develop",
+      "make"
+    ],
+    "examples": [
+      "add user authentication",
+      "build a payment system",
+      "implement the checkout flow",
+      "create a notification system"
+    ]
   },
   "dev-api": {
-    "keywords": ["api", "endpoint", "rest api", "api endpoint", "create api", "build api"],
-    "examples": ["create a REST API for users", "build the payments API", "add an endpoint for orders"]
+    "keywords": [
+      "api",
+      "endpoint",
+      "rest api",
+      "api endpoint",
+      "create api",
+      "build api"
+    ],
+    "examples": [
+      "create a REST API for users",
+      "build the payments API",
+      "add an endpoint for orders"
+    ]
   },
   "dev-plan": {
-    "keywords": ["plan", "architecture plan", "design plan", "plan feature", "plan implementation"],
-    "examples": ["plan the authentication architecture", "design the database schema", "plan how to implement notifications"]
+    "keywords": [
+      "plan",
+      "architecture plan",
+      "design plan",
+      "plan feature",
+      "plan implementation"
+    ],
+    "examples": [
+      "plan the authentication architecture",
+      "design the database schema",
+      "plan how to implement notifications"
+    ]
   },
   "dev-debug": {
-    "keywords": ["fix", "bug", "broken", "error", "crash", "not working", "failing", "wrong", "debug"],
-    "examples": ["fix the login crash", "debug why checkout fails", "this button doesn't work", "there's an error in the API"]
+    "keywords": [
+      "fix",
+      "bug",
+      "broken",
+      "error",
+      "crash",
+      "not working",
+      "failing",
+      "wrong",
+      "debug"
+    ],
+    "examples": [
+      "fix the login crash",
+      "debug why checkout fails",
+      "this button doesn't work",
+      "there's an error in the API"
+    ]
   },
   "dev-refactor": {
-    "keywords": ["refactor", "clean up", "reorganize", "restructure", "improve code", "optimize code"],
-    "examples": ["refactor the user controller", "clean up the auth module", "reorganize the services layer"]
+    "keywords": [
+      "refactor",
+      "clean up",
+      "reorganize",
+      "restructure",
+      "improve code",
+      "optimize code"
+    ],
+    "examples": [
+      "refactor the user controller",
+      "clean up the auth module",
+      "reorganize the services layer"
+    ]
   },
   "dev-db": {
-    "keywords": ["database", "migration", "schema", "table", "column", "db change", "add field"],
-    "examples": ["add a status column to orders", "create a notifications table", "database migration for users"]
+    "keywords": [
+      "database",
+      "migration",
+      "schema",
+      "table",
+      "column",
+      "db change",
+      "add field"
+    ],
+    "examples": [
+      "add a status column to orders",
+      "create a notifications table",
+      "database migration for users"
+    ]
   },
   "dev-scaffold": {
-    "keywords": ["scaffold", "bootstrap", "starter", "new project", "create project", "init project"],
-    "examples": ["scaffold a new laravel project", "create a nuxt app", "bootstrap a react project", "start a new nextjs app"]
+    "keywords": [
+      "scaffold",
+      "bootstrap",
+      "starter",
+      "new project",
+      "create project",
+      "init project"
+    ],
+    "examples": [
+      "scaffold a new laravel project",
+      "create a nuxt app",
+      "bootstrap a react project",
+      "start a new nextjs app"
+    ]
   },
   "dev-review": {
-    "keywords": ["review", "code review", "review changes", "check my code", "review PR"],
-    "examples": ["review my current changes", "do a code review", "check the quality of my code"]
+    "keywords": [
+      "review",
+      "code review",
+      "review changes",
+      "check my code",
+      "review PR"
+    ],
+    "examples": [
+      "review my current changes",
+      "do a code review",
+      "check the quality of my code"
+    ]
   },
   "dev-test": {
-    "keywords": ["test", "write tests", "generate tests", "run tests", "test suite", "unit test"],
-    "examples": ["write tests for the auth module", "generate test suite", "add unit tests for UserService"]
+    "keywords": [
+      "test",
+      "write tests",
+      "generate tests",
+      "run tests",
+      "test suite",
+      "unit test"
+    ],
+    "examples": [
+      "write tests for the auth module",
+      "generate test suite",
+      "add unit tests for UserService"
+    ]
   },
   "dev-deploy": {
-    "keywords": ["deploy", "release", "ship", "push to production", "go live", "publish"],
-    "examples": ["deploy to staging", "release to production", "ship this feature", "push to prod"]
+    "keywords": [
+      "deploy",
+      "release",
+      "ship",
+      "push to production",
+      "go live",
+      "publish"
+    ],
+    "examples": [
+      "deploy to staging",
+      "release to production",
+      "ship this feature",
+      "push to prod"
+    ]
   },
   "dev-docs": {
-    "keywords": ["documentation", "docs", "generate docs", "api docs", "technical docs"],
-    "examples": ["generate API documentation", "write technical docs", "document this module"]
+    "keywords": [
+      "documentation",
+      "docs",
+      "generate docs",
+      "api docs",
+      "technical docs"
+    ],
+    "examples": [
+      "generate API documentation",
+      "write technical docs",
+      "document this module"
+    ]
   },
   "dev-stack-check": {
-    "keywords": ["stack check", "dependency check", "outdated packages", "update dependencies"],
-    "examples": ["check for outdated packages", "are my dependencies up to date", "stack version check"]
+    "keywords": [
+      "stack check",
+      "dependency check",
+      "outdated packages",
+      "update dependencies"
+    ],
+    "examples": [
+      "check for outdated packages",
+      "are my dependencies up to date",
+      "stack version check"
+    ]
   },
   "dev-security-audit": {
-    "keywords": ["security audit", "security review", "owasp", "vulnerability scan", "security check"],
-    "examples": ["run a security audit", "check for vulnerabilities", "OWASP security review"]
+    "keywords": [
+      "security audit",
+      "security review",
+      "owasp",
+      "vulnerability scan",
+      "security check"
+    ],
+    "examples": [
+      "run a security audit",
+      "check for vulnerabilities",
+      "OWASP security review"
+    ]
   },
   "dev-research": {
-    "keywords": ["research", "evaluate library", "compare frameworks", "investigate", "look into"],
-    "examples": ["research payment gateways", "compare React vs Vue", "evaluate Stripe vs PayPal", "look into GraphQL"]
+    "keywords": [
+      "research",
+      "evaluate library",
+      "compare frameworks",
+      "investigate",
+      "look into"
+    ],
+    "examples": [
+      "research payment gateways",
+      "compare React vs Vue",
+      "evaluate Stripe vs PayPal",
+      "look into GraphQL"
+    ]
   },
   "dev-mcp-apply": {
-    "keywords": ["apply mcp", "mcp profile", "setup mcps", "configure mcps"],
-    "examples": ["apply the laravel MCP profile", "setup MCPs for this project", "configure nuxt MCPs"]
+    "keywords": [
+      "apply mcp",
+      "mcp profile",
+      "setup mcps",
+      "configure mcps"
+    ],
+    "examples": [
+      "apply the laravel MCP profile",
+      "setup MCPs for this project",
+      "configure nuxt MCPs"
+    ]
   },
   "dev-mcp-add": {
-    "keywords": ["add mcp", "install mcp", "enable mcp"],
-    "examples": ["add the sentry MCP", "install playwright MCP", "enable supabase MCP"]
+    "keywords": [
+      "add mcp",
+      "install mcp",
+      "enable mcp"
+    ],
+    "examples": [
+      "add the sentry MCP",
+      "install playwright MCP",
+      "enable supabase MCP"
+    ]
   },
   "dev-mcp-list": {
-    "keywords": ["list mcps", "show mcps", "available mcps"],
-    "examples": ["show all available MCPs", "list MCPs", "what MCPs are available"]
+    "keywords": [
+      "list mcps",
+      "show mcps",
+      "available mcps"
+    ],
+    "examples": [
+      "show all available MCPs",
+      "list MCPs",
+      "what MCPs are available"
+    ]
   },
   "dev-mcp-status": {
-    "keywords": ["mcp status", "active mcps", "current mcps"],
-    "examples": ["show active MCPs", "what MCPs are configured", "MCP status"]
+    "keywords": [
+      "mcp status",
+      "active mcps",
+      "current mcps"
+    ],
+    "examples": [
+      "show active MCPs",
+      "what MCPs are configured",
+      "MCP status"
+    ]
   },
   "dev-mcp-remove": {
-    "keywords": ["remove mcp", "uninstall mcp", "disable mcp"],
-    "examples": ["remove the discord MCP", "uninstall sentry MCP"]
+    "keywords": [
+      "remove mcp",
+      "uninstall mcp",
+      "disable mcp"
+    ],
+    "examples": [
+      "remove the discord MCP",
+      "uninstall sentry MCP"
+    ]
   },
   "dev-onboard": {
-    "keywords": ["onboard existing", "import project", "add existing project", "onboard codebase"],
-    "examples": ["onboard my existing laravel project", "import this codebase into arka", "add this project to arka"]
+    "keywords": [
+      "onboard existing",
+      "import project",
+      "add existing project",
+      "onboard codebase"
+    ],
+    "examples": [
+      "onboard my existing laravel project",
+      "import this codebase into arka",
+      "add this project to arka"
+    ]
   },
   "dev-ecosystem-list": {
-    "keywords": ["list ecosystems", "show ecosystems", "project groups"],
-    "examples": ["show all ecosystems", "list project groups", "what ecosystems exist"]
+    "keywords": [
+      "list ecosystems",
+      "show ecosystems",
+      "project groups"
+    ],
+    "examples": [
+      "show all ecosystems",
+      "list project groups",
+      "what ecosystems exist"
+    ]
   },
   "dev-ecosystem-create": {
-    "keywords": ["create ecosystem", "new ecosystem", "group projects"],
-    "examples": ["create a new ecosystem for client X", "group these projects together"]
+    "keywords": [
+      "create ecosystem",
+      "new ecosystem",
+      "group projects"
+    ],
+    "examples": [
+      "create a new ecosystem for client X",
+      "group these projects together"
+    ]
   },
   "dev-ecosystem-add": {
-    "keywords": ["add to ecosystem", "assign ecosystem", "move to ecosystem"],
-    "examples": ["add this project to the client-x ecosystem", "assign project to ecosystem"]
+    "keywords": [
+      "add to ecosystem",
+      "assign ecosystem",
+      "move to ecosystem"
+    ],
+    "examples": [
+      "add this project to the client-x ecosystem",
+      "assign project to ecosystem"
+    ]
   },
   "dev-skill-add": {
-    "keywords": ["install skill", "add skill", "get skill"],
-    "examples": ["install the geo-seo skill", "add an external skill from github"]
+    "keywords": [
+      "install skill",
+      "add skill",
+      "get skill"
+    ],
+    "examples": [
+      "install the geo-seo skill",
+      "add an external skill from github"
+    ]
   },
   "dev-skill-list": {
-    "keywords": ["list skills", "show skills", "installed skills"],
-    "examples": ["show installed skills", "list external skills", "what skills are installed"]
+    "keywords": [
+      "list skills",
+      "show skills",
+      "installed skills"
+    ],
+    "examples": [
+      "show installed skills",
+      "list external skills",
+      "what skills are installed"
+    ]
   },
   "dev-skill-remove": {
-    "keywords": ["remove skill", "uninstall skill", "delete skill"],
-    "examples": ["remove the geo-seo skill", "uninstall external skill"]
+    "keywords": [
+      "remove skill",
+      "uninstall skill",
+      "delete skill"
+    ],
+    "examples": [
+      "remove the geo-seo skill",
+      "uninstall external skill"
+    ]
   },
   "dev-skill-create": {
-    "keywords": ["create skill", "scaffold skill", "new skill", "build skill"],
-    "examples": ["create a new skill", "scaffold an external skill", "build a custom skill"]
+    "keywords": [
+      "create skill",
+      "scaffold skill",
+      "new skill",
+      "build skill"
+    ],
+    "examples": [
+      "create a new skill",
+      "scaffold an external skill",
+      "build a custom skill"
+    ]
   },
   "kb-learn": {
-    "keywords": ["learn", "watch video", "youtube", "transcribe video", "learn from video", "process video"],
-    "examples": ["learn from this youtube video", "transcribe this video", "add this video to knowledge base"]
+    "keywords": [
+      "learn",
+      "watch video",
+      "youtube",
+      "transcribe video",
+      "learn from video",
+      "process video"
+    ],
+    "examples": [
+      "learn from this youtube video",
+      "transcribe this video",
+      "add this video to knowledge base"
+    ]
   },
   "kb-learn-text": {
-    "keywords": ["learn text", "learn article", "read article", "learn from article", "process article"],
-    "examples": ["learn from this article", "add this blog post to knowledge", "process this text file"]
+    "keywords": [
+      "learn text",
+      "learn article",
+      "read article",
+      "learn from article",
+      "process article"
+    ],
+    "examples": [
+      "learn from this article",
+      "add this blog post to knowledge",
+      "process this text file"
+    ]
   },
   "kb-queue": {
-    "keywords": ["kb queue", "job queue", "pending jobs", "transcription queue"],
-    "examples": ["show the kb queue", "what jobs are pending", "check transcription status"]
+    "keywords": [
+      "kb queue",
+      "job queue",
+      "pending jobs",
+      "transcription queue"
+    ],
+    "examples": [
+      "show the kb queue",
+      "what jobs are pending",
+      "check transcription status"
+    ]
   },
   "kb-status": {
-    "keywords": ["kb status", "job status", "transcription status"],
-    "examples": ["check job status", "what's the status of my transcription"]
+    "keywords": [
+      "kb status",
+      "job status",
+      "transcription status"
+    ],
+    "examples": [
+      "check job status",
+      "what's the status of my transcription"
+    ]
   },
   "kb-process": {
-    "keywords": ["process job", "analyze transcription", "process transcription", "analyze video"],
-    "examples": ["process the ready transcription", "analyze the transcription for job abc123"]
+    "keywords": [
+      "process job",
+      "analyze transcription",
+      "process transcription",
+      "analyze video"
+    ],
+    "examples": [
+      "process the ready transcription",
+      "analyze the transcription for job abc123"
+    ]
   },
   "kb-process-all": {
-    "keywords": ["process all", "analyze all", "process all ready"],
-    "examples": ["process all ready transcriptions", "analyze everything that's ready"]
+    "keywords": [
+      "process all",
+      "analyze all",
+      "process all ready"
+    ],
+    "examples": [
+      "process all ready transcriptions",
+      "analyze everything that's ready"
+    ]
   },
   "kb-capabilities": {
-    "keywords": ["kb capabilities", "available tools", "what tools", "whisper status"],
-    "examples": ["what transcription tools are available", "show kb capabilities", "do I have whisper installed"]
+    "keywords": [
+      "kb capabilities",
+      "available tools",
+      "what tools",
+      "whisper status"
+    ],
+    "examples": [
+      "what transcription tools are available",
+      "show kb capabilities",
+      "do I have whisper installed"
+    ]
   },
   "kb-cleanup": {
-    "keywords": ["kb cleanup", "clean media", "remove old files", "cleanup transcriptions"],
-    "examples": ["clean up old media files", "remove transcriptions older than 90 days"]
+    "keywords": [
+      "kb cleanup",
+      "clean media",
+      "remove old files",
+      "cleanup transcriptions"
+    ],
+    "examples": [
+      "clean up old media files",
+      "remove transcriptions older than 90 days"
+    ]
   },
   "kb-persona": {
-    "keywords": ["view persona", "persona profile", "show persona", "persona details"],
-    "examples": ["show me the Sabri Suby persona", "view persona profile for Alex Hormozi"]
+    "keywords": [
+      "view persona",
+      "persona profile",
+      "show persona",
+      "persona details"
+    ],
+    "examples": [
+      "show me the Sabri Suby persona",
+      "view persona profile for Alex Hormozi"
+    ]
   },
   "kb-personas": {
-    "keywords": ["list personas", "all personas", "show personas"],
-    "examples": ["list all personas", "show me all knowledge personas", "what personas exist"]
+    "keywords": [
+      "list personas",
+      "all personas",
+      "show personas"
+    ],
+    "examples": [
+      "list all personas",
+      "show me all knowledge personas",
+      "what personas exist"
+    ]
   },
   "kb-search": {
-    "keywords": ["search knowledge", "search kb", "find in knowledge", "knowledge search"],
-    "examples": ["search knowledge base for marketing funnels", "find what we know about pricing strategies"]
+    "keywords": [
+      "search knowledge",
+      "search kb",
+      "find in knowledge",
+      "knowledge search"
+    ],
+    "examples": [
+      "search knowledge base for marketing funnels",
+      "find what we know about pricing strategies"
+    ]
   },
   "kb-write": {
-    "keywords": ["write as persona", "generate content", "write in style", "persona content"],
-    "examples": ["write a blog post as Sabri Suby", "generate content in Alex Hormozi's style"]
+    "keywords": [
+      "write as persona",
+      "generate content",
+      "write in style",
+      "persona content"
+    ],
+    "examples": [
+      "write a blog post as Sabri Suby",
+      "generate content in Alex Hormozi's style"
+    ]
   },
   "kb-topics": {
-    "keywords": ["list topics", "knowledge topics", "all topics", "show topics"],
-    "examples": ["show all knowledge topics", "what topics are in the knowledge base"]
+    "keywords": [
+      "list topics",
+      "knowledge topics",
+      "all topics",
+      "show topics"
+    ],
+    "examples": [
+      "show all knowledge topics",
+      "what topics are in the knowledge base"
+    ]
   },
   "kb-update": {
-    "keywords": ["update persona", "add to persona", "persona update", "more content persona"],
-    "examples": ["add this video to the Sabri Suby persona", "update Alex Hormozi with new content"]
+    "keywords": [
+      "update persona",
+      "add to persona",
+      "persona update",
+      "more content persona"
+    ],
+    "examples": [
+      "add this video to the Sabri Suby persona",
+      "update Alex Hormozi with new content"
+    ]
   },
   "mkt-social": {
-    "keywords": ["social media", "social posts", "instagram", "linkedin", "twitter", "tiktok", "social content"],
-    "examples": ["create social posts about AI", "write instagram content for Black Friday", "linkedin posts about our product"]
+    "keywords": [
+      "social media",
+      "social posts",
+      "instagram",
+      "linkedin",
+      "twitter",
+      "tiktok",
+      "social content"
+    ],
+    "examples": [
+      "create social posts about AI",
+      "write instagram content for Black Friday",
+      "linkedin posts about our product"
+    ]
   },
   "mkt-calendar": {
-    "keywords": ["content calendar", "posting schedule", "content plan", "editorial calendar"],
-    "examples": ["create a content calendar for next month", "plan this week's social media posts"]
+    "keywords": [
+      "content calendar",
+      "posting schedule",
+      "content plan",
+      "editorial calendar"
+    ],
+    "examples": [
+      "create a content calendar for next month",
+      "plan this week's social media posts"
+    ]
   },
   "mkt-reels": {
-    "keywords": ["reels", "tiktok script", "shorts", "video script", "short video"],
-    "examples": ["write scripts for instagram reels about AI", "create tiktok content ideas", "youtube shorts scripts"]
+    "keywords": [
+      "reels",
+      "tiktok script",
+      "shorts",
+      "video script",
+      "short video"
+    ],
+    "examples": [
+      "write scripts for instagram reels about AI",
+      "create tiktok content ideas",
+      "youtube shorts scripts"
+    ]
   },
   "mkt-stories": {
-    "keywords": ["stories", "instagram stories", "facebook stories", "story sequence"],
-    "examples": ["create instagram story sequence for product launch", "write facebook stories content"]
+    "keywords": [
+      "stories",
+      "instagram stories",
+      "facebook stories",
+      "story sequence"
+    ],
+    "examples": [
+      "create instagram story sequence for product launch",
+      "write facebook stories content"
+    ]
   },
   "mkt-email": {
-    "keywords": ["email sequence", "email campaign", "welcome email", "nurture email", "email flow", "newsletter"],
-    "examples": ["create a welcome email sequence", "write a launch email campaign", "design a nurture email flow"]
+    "keywords": [
+      "email sequence",
+      "email campaign",
+      "welcome email",
+      "nurture email",
+      "email flow",
+      "newsletter"
+    ],
+    "examples": [
+      "create a welcome email sequence",
+      "write a launch email campaign",
+      "design a nurture email flow"
+    ]
   },
   "mkt-landing": {
-    "keywords": ["landing page", "landing copy", "sales page", "conversion page"],
-    "examples": ["write landing page copy for our SaaS", "create a sales page for the new product"]
+    "keywords": [
+      "landing page",
+      "landing copy",
+      "sales page",
+      "conversion page"
+    ],
+    "examples": [
+      "write landing page copy for our SaaS",
+      "create a sales page for the new product"
+    ]
   },
   "mkt-ads": {
-    "keywords": ["ad copy", "advertising", "facebook ads", "google ads", "ad campaign", "paid ads"],
-    "examples": ["write facebook ad copy for our product", "create google ads for the sale", "ad campaign for Black Friday"]
+    "keywords": [
+      "ad copy",
+      "advertising",
+      "facebook ads",
+      "google ads",
+      "ad campaign",
+      "paid ads"
+    ],
+    "examples": [
+      "write facebook ad copy for our product",
+      "create google ads for the sale",
+      "ad campaign for Black Friday"
+    ]
   },
   "mkt-affiliate": {
-    "keywords": ["affiliate", "affiliate marketing", "affiliate program", "affiliate content"],
-    "examples": ["analyze this product's affiliate potential", "create affiliate marketing content"]
+    "keywords": [
+      "affiliate",
+      "affiliate marketing",
+      "affiliate program",
+      "affiliate content"
+    ],
+    "examples": [
+      "analyze this product's affiliate potential",
+      "create affiliate marketing content"
+    ]
   },
   "mkt-blog": {
-    "keywords": ["blog", "blog post", "article", "seo article", "blog content", "write article"],
-    "examples": ["write a blog post about AI in business", "create an SEO article about productivity tools"]
+    "keywords": [
+      "blog",
+      "blog post",
+      "article",
+      "seo article",
+      "blog content",
+      "write article"
+    ],
+    "examples": [
+      "write a blog post about AI in business",
+      "create an SEO article about productivity tools"
+    ]
   },
   "mkt-copy": {
-    "keywords": ["copy analysis", "improve copy", "analyze copy", "copywriting review"],
-    "examples": ["analyze and improve our website copy", "review the copy on this page"]
+    "keywords": [
+      "copy analysis",
+      "improve copy",
+      "analyze copy",
+      "copywriting review"
+    ],
+    "examples": [
+      "analyze and improve our website copy",
+      "review the copy on this page"
+    ]
   },
   "mkt-brand": {
-    "keywords": ["brand voice", "brand guidelines", "brand analysis", "brand identity"],
-    "examples": ["analyze our brand voice", "create brand guidelines from our website"]
+    "keywords": [
+      "brand voice",
+      "brand guidelines",
+      "brand analysis",
+      "brand identity"
+    ],
+    "examples": [
+      "analyze our brand voice",
+      "create brand guidelines from our website"
+    ]
   },
   "mkt-audit": {
-    "keywords": ["marketing audit", "marketing review", "marketing analysis", "site marketing"],
-    "examples": ["audit our marketing", "full marketing review of our website", "analyze our marketing strategy"]
+    "keywords": [
+      "marketing audit",
+      "marketing review",
+      "marketing analysis",
+      "site marketing"
+    ],
+    "examples": [
+      "audit our marketing",
+      "full marketing review of our website",
+      "analyze our marketing strategy"
+    ]
   },
   "ops-tasks": {
-    "keywords": ["tasks", "task list", "todo", "to-do", "task management"],
-    "examples": ["show my tasks", "what's on my todo list", "manage tasks in ClickUp"]
+    "keywords": [
+      "tasks",
+      "task list",
+      "todo",
+      "to-do",
+      "task management"
+    ],
+    "examples": [
+      "show my tasks",
+      "what's on my todo list",
+      "manage tasks in ClickUp"
+    ]
   },
   "ops-email": {
-    "keywords": ["send email", "draft email", "write email", "email someone"],
-    "examples": ["draft an email to the client", "send a follow-up email", "write a professional email"]
+    "keywords": [
+      "send email",
+      "draft email",
+      "write email",
+      "email someone"
+    ],
+    "examples": [
+      "draft an email to the client",
+      "send a follow-up email",
+      "write a professional email"
+    ]
   },
   "ops-calendar": {
-    "keywords": ["calendar", "schedule", "my schedule", "today's meetings", "upcoming meetings"],
-    "examples": ["show my calendar", "what meetings do I have today", "check my schedule"]
+    "keywords": [
+      "calendar",
+      "schedule",
+      "my schedule",
+      "today's meetings",
+      "upcoming meetings"
+    ],
+    "examples": [
+      "show my calendar",
+      "what meetings do I have today",
+      "check my schedule"
+    ]
   },
   "ops-meeting": {
-    "keywords": ["meeting", "schedule meeting", "prepare meeting", "meeting agenda"],
-    "examples": ["schedule a meeting with the team", "prepare agenda for client meeting"]
+    "keywords": [
+      "meeting",
+      "schedule meeting",
+      "prepare meeting",
+      "meeting agenda"
+    ],
+    "examples": [
+      "schedule a meeting with the team",
+      "prepare agenda for client meeting"
+    ]
   },
   "ops-invoice": {
-    "keywords": ["invoice", "create invoice", "send invoice", "billing"],
-    "examples": ["create an invoice for client X", "generate invoice for March work"]
+    "keywords": [
+      "invoice",
+      "create invoice",
+      "send invoice",
+      "billing"
+    ],
+    "examples": [
+      "create an invoice for client X",
+      "generate invoice for March work"
+    ]
   },
   "ops-automate": {
-    "keywords": ["automate", "automation", "workflow", "process automation"],
-    "examples": ["automate the onboarding process", "create a workflow for deployments"]
+    "keywords": [
+      "automate",
+      "automation",
+      "workflow",
+      "process automation"
+    ],
+    "examples": [
+      "automate the onboarding process",
+      "create a workflow for deployments"
+    ]
   },
   "ops-report": {
-    "keywords": ["operations report", "weekly report", "monthly report", "ops report"],
-    "examples": ["generate weekly operations report", "create monthly summary report"]
+    "keywords": [
+      "operations report",
+      "weekly report",
+      "monthly report",
+      "ops report"
+    ],
+    "examples": [
+      "generate weekly operations report",
+      "create monthly summary report"
+    ]
   },
   "ops-onboard-client": {
-    "keywords": ["onboard client", "new client", "client onboarding", "client setup"],
-    "examples": ["onboard new client Acme Corp", "start client onboarding process"]
+    "keywords": [
+      "onboard client",
+      "new client",
+      "client onboarding",
+      "client setup"
+    ],
+    "examples": [
+      "onboard new client Acme Corp",
+      "start client onboarding process"
+    ]
   },
   "ops-standup": {
-    "keywords": ["ops standup", "operations standup", "ops daily"],
-    "examples": ["run operations standup", "daily ops update"]
+    "keywords": [
+      "ops standup",
+      "operations standup",
+      "ops daily"
+    ],
+    "examples": [
+      "run operations standup",
+      "daily ops update"
+    ]
   },
   "ops-channel-add": {
-    "keywords": ["add channel", "connect slack", "connect discord", "setup messaging"],
-    "examples": ["add a slack channel", "connect discord for notifications", "setup whatsapp messaging"]
+    "keywords": [
+      "add channel",
+      "connect slack",
+      "connect discord",
+      "setup messaging"
+    ],
+    "examples": [
+      "add a slack channel",
+      "connect discord for notifications",
+      "setup whatsapp messaging"
+    ]
   },
   "ops-channel-list": {
-    "keywords": ["list channels", "show channels", "messaging channels"],
-    "examples": ["show configured messaging channels", "list all notification channels"]
+    "keywords": [
+      "list channels",
+      "show channels",
+      "messaging channels"
+    ],
+    "examples": [
+      "show configured messaging channels",
+      "list all notification channels"
+    ]
   },
   "ops-channel-remove": {
-    "keywords": ["remove channel", "disconnect channel", "delete channel"],
-    "examples": ["remove the slack channel", "disconnect discord notifications"]
+    "keywords": [
+      "remove channel",
+      "disconnect channel",
+      "delete channel"
+    ],
+    "examples": [
+      "remove the slack channel",
+      "disconnect discord notifications"
+    ]
   },
   "ops-notify": {
-    "keywords": ["notify", "send notification", "send message", "alert"],
-    "examples": ["send a notification to the team", "notify about the deployment"]
+    "keywords": [
+      "notify",
+      "send notification",
+      "send message",
+      "alert"
+    ],
+    "examples": [
+      "send a notification to the team",
+      "notify about the deployment"
+    ]
   },
   "ops-broadcast": {
-    "keywords": ["broadcast", "send to all", "announce", "broadcast message"],
-    "examples": ["broadcast a message to all channels", "announce the release to everyone"]
+    "keywords": [
+      "broadcast",
+      "send to all",
+      "announce",
+      "broadcast message"
+    ],
+    "examples": [
+      "broadcast a message to all channels",
+      "announce the release to everyone"
+    ]
   },
   "ecom-audit": {
-    "keywords": ["store audit", "shop audit", "ecommerce audit", "store review", "conversion audit"],
-    "examples": ["audit my shopify store", "review the store's conversion rate", "full ecommerce audit"]
+    "keywords": [
+      "store audit",
+      "shop audit",
+      "ecommerce audit",
+      "store review",
+      "conversion audit"
+    ],
+    "examples": [
+      "audit my shopify store",
+      "review the store's conversion rate",
+      "full ecommerce audit"
+    ]
   },
   "ecom-product": {
-    "keywords": ["product listing", "create product", "product description", "product page", "optimize product"],
-    "examples": ["create a product listing for new shoes", "optimize product descriptions", "write product page copy"]
+    "keywords": [
+      "product listing",
+      "create product",
+      "product description",
+      "product page",
+      "optimize product"
+    ],
+    "examples": [
+      "create a product listing for new shoes",
+      "optimize product descriptions",
+      "write product page copy"
+    ]
   },
   "ecom-pricing": {
-    "keywords": ["pricing strategy", "price analysis", "pricing model", "competitive pricing"],
-    "examples": ["analyze pricing for our SaaS", "create a pricing strategy", "competitive price analysis"]
+    "keywords": [
+      "pricing strategy",
+      "price analysis",
+      "pricing model",
+      "competitive pricing"
+    ],
+    "examples": [
+      "analyze pricing for our SaaS",
+      "create a pricing strategy",
+      "competitive price analysis"
+    ]
   },
   "ecom-launch": {
-    "keywords": ["store launch", "launch store", "new store", "open store", "ecommerce launch"],
-    "examples": ["plan the store launch", "launch a new shopify store", "prepare store for launch"]
+    "keywords": [
+      "store launch",
+      "launch store",
+      "new store",
+      "open store",
+      "ecommerce launch"
+    ],
+    "examples": [
+      "plan the store launch",
+      "launch a new shopify store",
+      "prepare store for launch"
+    ]
   },
   "ecom-ads": {
-    "keywords": ["ecommerce ads", "product ads", "shopping ads", "store advertising"],
-    "examples": ["create ads for our products", "run shopping campaign ads", "product advertising strategy"]
+    "keywords": [
+      "ecommerce ads",
+      "product ads",
+      "shopping ads",
+      "store advertising"
+    ],
+    "examples": [
+      "create ads for our products",
+      "run shopping campaign ads",
+      "product advertising strategy"
+    ]
   },
   "ecom-competitors": {
-    "keywords": ["ecommerce competitors", "store competitors", "competitor stores", "competitive analysis store"],
-    "examples": ["analyze competitor stores", "competitive analysis of similar shops"]
+    "keywords": [
+      "ecommerce competitors",
+      "store competitors",
+      "competitor stores",
+      "competitive analysis store"
+    ],
+    "examples": [
+      "analyze competitor stores",
+      "competitive analysis of similar shops"
+    ]
   },
   "ecom-seo": {
-    "keywords": ["ecommerce seo", "store seo", "product seo", "shop seo"],
-    "examples": ["SEO audit of our store", "optimize store for search engines", "improve product SEO"]
+    "keywords": [
+      "ecommerce seo",
+      "store seo",
+      "product seo",
+      "shop seo"
+    ],
+    "examples": [
+      "SEO audit of our store",
+      "optimize store for search engines",
+      "improve product SEO"
+    ]
   },
   "ecom-email": {
-    "keywords": ["cart abandonment", "post-purchase email", "win-back email", "ecommerce email flow"],
-    "examples": ["create cart abandonment emails", "setup post-purchase email flow", "write win-back email sequence"]
+    "keywords": [
+      "cart abandonment",
+      "post-purchase email",
+      "win-back email",
+      "ecommerce email flow"
+    ],
+    "examples": [
+      "create cart abandonment emails",
+      "setup post-purchase email flow",
+      "write win-back email sequence"
+    ]
   },
   "ecom-report": {
-    "keywords": ["store report", "ecommerce report", "sales report", "store performance"],
-    "examples": ["generate store performance report", "monthly sales report", "ecommerce analytics report"]
+    "keywords": [
+      "store report",
+      "ecommerce report",
+      "sales report",
+      "store performance"
+    ],
+    "examples": [
+      "generate store performance report",
+      "monthly sales report",
+      "ecommerce analytics report"
+    ]
   },
   "fin-report": {
-    "keywords": ["financial report", "quarterly report", "monthly financials", "p&l report"],
-    "examples": ["generate monthly financial report", "create Q1 financial summary"]
+    "keywords": [
+      "financial report",
+      "quarterly report",
+      "monthly financials",
+      "p&l report"
+    ],
+    "examples": [
+      "generate monthly financial report",
+      "create Q1 financial summary"
+    ]
   },
   "fin-forecast": {
-    "keywords": ["forecast", "projection", "predict revenue", "financial forecast", "estimate revenue"],
-    "examples": ["forecast revenue for next 6 months", "project expenses through Q4", "financial projections"]
+    "keywords": [
+      "forecast",
+      "projection",
+      "predict revenue",
+      "financial forecast",
+      "estimate revenue"
+    ],
+    "examples": [
+      "forecast revenue for next 6 months",
+      "project expenses through Q4",
+      "financial projections"
+    ]
   },
   "fin-budget": {
-    "keywords": ["budget", "project budget", "budget planning", "cost estimate", "budgeting"],
-    "examples": ["create a budget for the new project", "plan the Q2 budget", "estimate project costs"]
+    "keywords": [
+      "budget",
+      "project budget",
+      "budget planning",
+      "cost estimate",
+      "budgeting"
+    ],
+    "examples": [
+      "create a budget for the new project",
+      "plan the Q2 budget",
+      "estimate project costs"
+    ]
   },
   "fin-negotiate": {
-    "keywords": ["negotiate", "negotiation", "bank negotiation", "deal terms", "batna"],
-    "examples": ["prepare for bank negotiation", "negotiate better terms", "BATNA analysis for investor meeting"]
+    "keywords": [
+      "negotiate",
+      "negotiation",
+      "bank negotiation",
+      "deal terms",
+      "batna"
+    ],
+    "examples": [
+      "prepare for bank negotiation",
+      "negotiate better terms",
+      "BATNA analysis for investor meeting"
+    ]
   },
   "fin-pitch": {
-    "keywords": ["pitch", "investor pitch", "pitch deck", "funding pitch", "investor presentation"],
-    "examples": ["prepare investor pitch", "create a pitch deck", "pitch to Series A investors"]
+    "keywords": [
+      "pitch",
+      "investor pitch",
+      "pitch deck",
+      "funding pitch",
+      "investor presentation"
+    ],
+    "examples": [
+      "prepare investor pitch",
+      "create a pitch deck",
+      "pitch to Series A investors"
+    ]
   },
   "fin-analyze": {
-    "keywords": ["financial analysis", "analyze financials", "market financial", "sector analysis"],
-    "examples": ["analyze the SaaS market financials", "financial analysis of competitor"]
+    "keywords": [
+      "financial analysis",
+      "analyze financials",
+      "market financial",
+      "sector analysis"
+    ],
+    "examples": [
+      "analyze the SaaS market financials",
+      "financial analysis of competitor"
+    ]
   },
   "fin-invest": {
-    "keywords": ["invest", "investment", "investment opportunity", "evaluate investment"],
-    "examples": ["analyze this investment opportunity", "should we invest in this asset"]
+    "keywords": [
+      "invest",
+      "investment",
+      "investment opportunity",
+      "evaluate investment"
+    ],
+    "examples": [
+      "analyze this investment opportunity",
+      "should we invest in this asset"
+    ]
   },
   "fin-portfolio": {
-    "keywords": ["portfolio", "portfolio review", "investment portfolio", "portfolio balance"],
-    "examples": ["review our investment portfolio", "portfolio performance overview"]
+    "keywords": [
+      "portfolio",
+      "portfolio review",
+      "investment portfolio",
+      "portfolio balance"
+    ],
+    "examples": [
+      "review our investment portfolio",
+      "portfolio performance overview"
+    ]
   },
   "fin-invoice": {
-    "keywords": ["finance invoice", "generate invoice", "client invoice", "bill client"],
-    "examples": ["generate invoice for client work", "create invoice for March deliverables"]
+    "keywords": [
+      "finance invoice",
+      "generate invoice",
+      "client invoice",
+      "bill client"
+    ],
+    "examples": [
+      "generate invoice for client work",
+      "create invoice for March deliverables"
+    ]
   },
   "fin-cashflow": {
-    "keywords": ["cash flow", "cashflow", "cash projection", "liquidity", "cash position"],
-    "examples": ["analyze our cash flow", "cash flow projections for next quarter", "check our liquidity position"]
+    "keywords": [
+      "cash flow",
+      "cashflow",
+      "cash projection",
+      "liquidity",
+      "cash position"
+    ],
+    "examples": [
+      "analyze our cash flow",
+      "cash flow projections for next quarter",
+      "check our liquidity position"
+    ]
   },
   "strat-brainstorm": {
-    "keywords": ["brainstorm", "ideate", "ideas", "think about", "explore ideas", "workshop"],
-    "examples": ["brainstorm new product ideas", "lets think about expansion strategies", "ideation session for new features"]
+    "keywords": [
+      "brainstorm",
+      "ideate",
+      "ideas",
+      "think about",
+      "explore ideas",
+      "workshop"
+    ],
+    "examples": [
+      "brainstorm new product ideas",
+      "lets think about expansion strategies",
+      "ideation session for new features"
+    ]
   },
   "strat-market": {
-    "keywords": ["market analysis", "market research", "market opportunity", "market size", "tam"],
-    "examples": ["analyze the AI tools market", "market opportunity in Portugal", "what's the TAM for our product"]
+    "keywords": [
+      "market analysis",
+      "market research",
+      "market opportunity",
+      "market size",
+      "tam"
+    ],
+    "examples": [
+      "analyze the AI tools market",
+      "market opportunity in Portugal",
+      "what's the TAM for our product"
+    ]
   },
   "strat-prospect": {
-    "keywords": ["prospect", "prospecting", "lead generation", "find clients", "find customers"],
-    "examples": ["prospect for SaaS clients in Europe", "find potential customers in healthcare"]
+    "keywords": [
+      "prospect",
+      "prospecting",
+      "lead generation",
+      "find clients",
+      "find customers"
+    ],
+    "examples": [
+      "prospect for SaaS clients in Europe",
+      "find potential customers in healthcare"
+    ]
   },
   "strat-competitor": {
-    "keywords": ["competitor analysis", "competitive intelligence", "analyze competitor", "competitor deep dive"],
-    "examples": ["deep dive on competitor X", "competitive intelligence report", "analyze our main competitor"]
+    "keywords": [
+      "competitor analysis",
+      "competitive intelligence",
+      "analyze competitor",
+      "competitor deep dive"
+    ],
+    "examples": [
+      "deep dive on competitor X",
+      "competitive intelligence report",
+      "analyze our main competitor"
+    ]
   },
   "strat-swot": {
-    "keywords": ["swot", "strengths weaknesses", "swot analysis"],
-    "examples": ["SWOT analysis of our business", "do a SWOT for the new product line"]
+    "keywords": [
+      "swot",
+      "strengths weaknesses",
+      "swot analysis"
+    ],
+    "examples": [
+      "SWOT analysis of our business",
+      "do a SWOT for the new product line"
+    ]
   },
   "strat-evaluate": {
-    "keywords": ["evaluate idea", "assess idea", "idea evaluation", "pros cons", "feasibility"],
-    "examples": ["evaluate this business idea", "pros and cons of entering new market", "is this idea feasible"]
+    "keywords": [
+      "evaluate idea",
+      "assess idea",
+      "idea evaluation",
+      "pros cons",
+      "feasibility"
+    ],
+    "examples": [
+      "evaluate this business idea",
+      "pros and cons of entering new market",
+      "is this idea feasible"
+    ]
   },
   "strat-pivot": {
-    "keywords": ["pivot", "strategic pivot", "change direction", "pivot strategy"],
-    "examples": ["should we pivot to B2B", "evaluate pivoting our product strategy"]
+    "keywords": [
+      "pivot",
+      "strategic pivot",
+      "change direction",
+      "pivot strategy"
+    ],
+    "examples": [
+      "should we pivot to B2B",
+      "evaluate pivoting our product strategy"
+    ]
   },
   "strat-roadmap": {
-    "keywords": ["roadmap", "strategic roadmap", "product roadmap", "quarterly roadmap"],
-    "examples": ["create a product roadmap for Q2", "strategic roadmap for next year"]
+    "keywords": [
+      "roadmap",
+      "strategic roadmap",
+      "product roadmap",
+      "quarterly roadmap"
+    ],
+    "examples": [
+      "create a product roadmap for Q2",
+      "strategic roadmap for next year"
+    ]
   },
   "strat-trends": {
-    "keywords": ["trends", "industry trends", "market trends", "emerging trends", "what's trending"],
-    "examples": ["what are the trends in AI", "industry trends for SaaS in 2026", "emerging tech trends"]
+    "keywords": [
+      "trends",
+      "industry trends",
+      "market trends",
+      "emerging trends",
+      "what's trending"
+    ],
+    "examples": [
+      "what are the trends in AI",
+      "industry trends for SaaS in 2026",
+      "emerging tech trends"
+    ]
   },
   "brand-identity": {
-    "keywords": ["brand identity", "create brand", "new brand", "brand creation", "full brand"],
-    "examples": ["create a brand identity for my startup", "build a complete brand for Acme", "full brand identity"]
+    "keywords": [
+      "brand identity",
+      "create brand",
+      "new brand",
+      "brand creation",
+      "full brand"
+    ],
+    "examples": [
+      "create a brand identity for my startup",
+      "build a complete brand for Acme",
+      "full brand identity"
+    ]
   },
   "brand-colors": {
-    "keywords": ["color palette", "brand colors", "colors", "palette", "colour scheme"],
-    "examples": ["generate a color palette for a tech startup", "create brand colors for a luxury brand"]
+    "keywords": [
+      "color palette",
+      "brand colors",
+      "colors",
+      "palette",
+      "colour scheme"
+    ],
+    "examples": [
+      "generate a color palette for a tech startup",
+      "create brand colors for a luxury brand"
+    ]
   },
   "brand-logo": {
-    "keywords": ["logo", "logo design", "create logo", "brand logo", "logo concept"],
-    "examples": ["design a logo for my company", "create logo concepts for Acme", "logo ideas for tech brand"]
+    "keywords": [
+      "logo",
+      "logo design",
+      "create logo",
+      "brand logo",
+      "logo concept"
+    ],
+    "examples": [
+      "design a logo for my company",
+      "create logo concepts for Acme",
+      "logo ideas for tech brand"
+    ]
   },
   "brand-mockup": {
-    "keywords": ["mockup", "product mockup", "packaging", "merchandise", "mock up"],
-    "examples": ["create product mockups", "generate packaging mockup for our product"]
+    "keywords": [
+      "mockup",
+      "product mockup",
+      "packaging",
+      "merchandise",
+      "mock up"
+    ],
+    "examples": [
+      "create product mockups",
+      "generate packaging mockup for our product"
+    ]
   },
   "brand-photoshoot": {
-    "keywords": ["photoshoot", "product photography", "product shots", "lifestyle photos", "ai photography"],
-    "examples": ["generate product photography", "AI photoshoot for our clothing line"]
+    "keywords": [
+      "photoshoot",
+      "product photography",
+      "product shots",
+      "lifestyle photos",
+      "ai photography"
+    ],
+    "examples": [
+      "generate product photography",
+      "AI photoshoot for our clothing line"
+    ]
   },
   "brand-video": {
-    "keywords": ["brand video", "intro video", "product video", "video generation", "motion"],
-    "examples": ["create a brand intro video", "generate a product showcase video"]
+    "keywords": [
+      "brand video",
+      "intro video",
+      "product video",
+      "video generation",
+      "motion"
+    ],
+    "examples": [
+      "create a brand intro video",
+      "generate a product showcase video"
+    ]
   },
   "brand-guide": {
-    "keywords": ["brand guidelines", "brand guide", "style guide", "brand book", "brand manual"],
-    "examples": ["create brand guidelines", "write a brand style guide for our company"]
+    "keywords": [
+      "brand guidelines",
+      "brand guide",
+      "style guide",
+      "brand book",
+      "brand manual"
+    ],
+    "examples": [
+      "create brand guidelines",
+      "write a brand style guide for our company"
+    ]
   },
   "brand-audit": {
-    "keywords": ["brand audit", "brand review", "brand analysis", "visual audit"],
-    "examples": ["audit our brand", "brand analysis of competitor.com", "review our brand consistency"]
+    "keywords": [
+      "brand audit",
+      "brand review",
+      "brand analysis",
+      "visual audit"
+    ],
+    "examples": [
+      "audit our brand",
+      "brand analysis of competitor.com",
+      "review our brand consistency"
+    ]
   },
   "brand-moodboard": {
-    "keywords": ["moodboard", "mood board", "visual inspiration", "brand mood", "visual references"],
-    "examples": ["create a mood board for a minimalist brand", "mood board for luxury tech"]
+    "keywords": [
+      "moodboard",
+      "mood board",
+      "visual inspiration",
+      "brand mood",
+      "visual references"
+    ],
+    "examples": [
+      "create a mood board for a minimalist brand",
+      "mood board for luxury tech"
+    ]
   },
   "brand-naming": {
-    "keywords": ["naming", "brand name", "product name", "name ideas", "company name"],
-    "examples": ["help name my startup", "generate brand names for a fitness app", "name ideas for SaaS"]
+    "keywords": [
+      "naming",
+      "brand name",
+      "product name",
+      "name ideas",
+      "company name"
+    ],
+    "examples": [
+      "help name my startup",
+      "generate brand names for a fitness app",
+      "name ideas for SaaS"
+    ]
   },
   "brand-positioning": {
-    "keywords": ["brand positioning", "market positioning", "brand archetype", "differentiation", "brand strategy"],
-    "examples": ["define our brand positioning", "brand positioning for a premium SaaS"]
+    "keywords": [
+      "brand positioning",
+      "market positioning",
+      "brand archetype",
+      "differentiation",
+      "brand strategy"
+    ],
+    "examples": [
+      "define our brand positioning",
+      "brand positioning for a premium SaaS"
+    ]
   },
   "brand-social-kit": {
-    "keywords": ["social kit", "social templates", "social media templates", "visual templates", "brand templates"],
-    "examples": ["create social media templates for our brand", "generate a social kit"]
+    "keywords": [
+      "social kit",
+      "social templates",
+      "social media templates",
+      "visual templates",
+      "brand templates"
+    ],
+    "examples": [
+      "create social media templates for our brand",
+      "generate a social kit"
+    ]
   },
   "dev-spec": {
-    "keywords": ["spec", "specification", "requirements", "define feature", "write spec", "feature spec", "describe what to build"],
-    "examples": ["write a spec for user authentication", "create a specification for the payment system", "define requirements for the dashboard"]
+    "keywords": [
+      "spec",
+      "specification",
+      "requirements",
+      "define feature",
+      "write spec",
+      "feature spec",
+      "describe what to build"
+    ],
+    "examples": [
+      "write a spec for user authentication",
+      "create a specification for the payment system",
+      "define requirements for the dashboard"
+    ]
   },
   "dev-spec-validate": {
-    "keywords": ["validate spec", "check spec", "review spec", "spec complete", "spec ready"],
-    "examples": ["validate the current spec", "is the spec complete", "check the specification"]
+    "keywords": [
+      "validate spec",
+      "check spec",
+      "review spec",
+      "spec complete",
+      "spec ready"
+    ],
+    "examples": [
+      "validate the current spec",
+      "is the spec complete",
+      "check the specification"
+    ]
   },
   "dev-spec-list": {
-    "keywords": ["list specs", "show specs", "existing specs", "all specifications", "project specs"],
-    "examples": ["show me all specs for this project", "list existing specifications", "what specs do we have"]
+    "keywords": [
+      "list specs",
+      "show specs",
+      "existing specs",
+      "all specifications",
+      "project specs"
+    ],
+    "examples": [
+      "show me all specs for this project",
+      "list existing specifications",
+      "what specs do we have"
+    ]
   },
   "arka-recipes": {
-    "keywords": ["recipe", "recipes", "receita", "reuse", "validated build", "apply recipe", "feature template"],
-    "examples": ["que receitas temos", "apply the laravel login recipe", "reusa a receita de auth"]
+    "keywords": [
+      "recipe",
+      "recipes",
+      "receita",
+      "reuse",
+      "validated build",
+      "apply recipe",
+      "feature template"
+    ],
+    "examples": [
+      "que receitas temos",
+      "apply the laravel login recipe",
+      "reusa a receita de auth"
+    ]
+  },
+  "content-video": {
+    "keywords": [
+      "produce video",
+      "video production",
+      "produz um vídeo",
+      "faz um vídeo",
+      "edit video",
+      "edita o vídeo",
+      "render video",
+      "monta o vídeo",
+      "hyperframes"
+    ],
+    "examples": [
+      "produz um vídeo sobre agentes de AI",
+      "produce a video about our launch",
+      "edita este vídeo com legendas e b-roll"
+    ]
+  },
+  "content-trends": {
+    "keywords": [
+      "trends",
+      "trending",
+      "niche analysis",
+      "análise de nicho",
+      "que trends",
+      "what's trending",
+      "encontra um nicho",
+      "trend hunt",
+      "nichos"
+    ],
+    "examples": [
+      "que trends há em fitness agora",
+      "find me a profitable faceless niche",
+      "analisa o nicho de finanças pessoais"
+    ]
+  },
+  "content-research": {
+    "keywords": [
+      "research topic",
+      "pesquisa o tema",
+      "production brief",
+      "brief de produção",
+      "research for video",
+      "pesquisa para o vídeo",
+      "fact check topic"
+    ],
+    "examples": [
+      "faz o research para o vídeo sobre LLMs",
+      "research this topic with sources",
+      "prepara o brief de produção do episódio 3"
+    ]
+  },
+  "content-video-setup": {
+    "keywords": [
+      "video setup",
+      "setup video environment",
+      "instala hyperframes",
+      "configura produção de vídeo",
+      "agent-reach setup",
+      "video prerequisites"
+    ],
+    "examples": [
+      "prepara o ambiente de produção de vídeo",
+      "install hyperframes and agent-reach",
+      "video-setup"
+    ]
   }
 }

@@ -1,14 +1,14 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-09T19:22:12Z",
-    "total_commands": 264,
+    "generated": "2026-07-10T12:59:47Z",
+    "total_commands": 268,
     "generator": "core/registry/generator.py",
     "departments": {
       "arka": 21,
       "brand": 12,
       "community": 14,
-      "content": 14,
+      "content": 18,
       "dev": 36,
       "ecom": 18,
       "fin": 10,
@@ -1246,6 +1246,109 @@
         "shorts"
       ],
       "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "content-video",
+      "command": "/content video <topic>",
+      "department": "content",
+      "description": "End-to-end video production (research → script → assets → render)",
+      "lead_agent": "arka-content",
+      "keywords": [
+        "produce video",
+        "video production",
+        "produz um vídeo",
+        "faz um vídeo",
+        "edit video",
+        "edita o vídeo",
+        "render video",
+        "monta o vídeo",
+        "hyperframes"
+      ],
+      "examples": [
+        "produz um vídeo sobre agentes de AI",
+        "produce a video about our launch",
+        "edita este vídeo com legendas e b-roll"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "content-trends",
+      "command": "/content trends <niche>",
+      "department": "content",
+      "description": "Demand-first trend and niche analysis with STEPPS scoring",
+      "lead_agent": "arka-content",
+      "keywords": [
+        "trends",
+        "trending",
+        "niche analysis",
+        "análise de nicho",
+        "que trends",
+        "what's trending",
+        "encontra um nicho",
+        "trend hunt",
+        "nichos"
+      ],
+      "examples": [
+        "que trends há em fitness agora",
+        "find me a profitable faceless niche",
+        "analisa o nicho de finanças pessoais"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "content-research",
+      "command": "/content research <topic>",
+      "department": "content",
+      "description": "Sourced research compiled into a production brief",
+      "lead_agent": "arka-content",
+      "keywords": [
+        "research topic",
+        "pesquisa o tema",
+        "production brief",
+        "brief de produção",
+        "research for video",
+        "pesquisa para o vídeo",
+        "fact check topic"
+      ],
+      "examples": [
+        "faz o research para o vídeo sobre LLMs",
+        "research this topic with sources",
+        "prepara o brief de produção do episódio 3"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "content-video-setup",
+      "command": "/content video-setup",
+      "department": "content",
+      "description": "Video production environment bootstrap (Hyperframes, Agent-Reach, Higgsfield)",
+      "lead_agent": "arka-content",
+      "keywords": [
+        "video setup",
+        "setup video environment",
+        "instala hyperframes",
+        "configura produção de vídeo",
+        "agent-reach setup",
+        "video prerequisites"
+      ],
+      "examples": [
+        "prepara o ambiente de produção de vídeo",
+        "install hyperframes and agent-reach",
+        "video-setup"
+      ],
       "source": "builtin",
       "tier": 2,
       "requires_branch": false,
