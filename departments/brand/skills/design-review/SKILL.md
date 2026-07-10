@@ -1,10 +1,10 @@
 ---
 name: brand/design-review
 description: >
-  Visual review of live designs against brand guidelines — opens Figma,
-  Sketch, or Canva desktop via Computer Use, screenshots each artboard, and
-  annotates palette, typography, spacing, and logo deviations. Requires
-  Computer Use (/mcp -> computer-use). TRIGGER: "/brand design-review",
+  Visual review of live designs against brand guidelines and a named
+  benchmark — screenshots the real UI (Playwright MCP first, claude-in-chrome
+  second, Computer Use for native design tools), and annotates palette,
+  typography, spacing, and logo deviations. TRIGGER: "/brand design-review",
   "design review", "visual review", "revê o design", "compara com o
   brandbook", "está on-brand?", "visual QA", "UI review" of mockups or
   screenshots, design file paths (*.fig, *.sketch, Canva links). SKIP:
@@ -17,49 +17,98 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 
 # Design Review — `/brand design-review`
 
-> **Agent:** Valentina (Creative Director) | Requires: Computer Use (`/mcp` → `computer-use`)
+> **Agent:** Valentina (Creative Director) | **Framework:** Brand fidelity + benchmark comparison
+> **Squad reference:** `departments/brand/references/uiux-knowledge-and-tools.md` (§3 tokens, §8 anti-default, §9 marker)
 
 ## Command
 
 ```
-/brand design-review <app-or-file>
+/brand design-review <url-or-app-or-file>
 ```
 
-App can be: Figma, Sketch, Canva, or a direct file path to a design file.
+Target can be: a running app URL (preferred), Figma, Sketch, Canva, or a
+direct design-file path.
 
-## What It Does
+## Load design intelligence (MANDATORY — excellence-mandate)
 
-Opens a design tool and compares live designs against brand guidelines. Screenshots and annotates differences.
+Do this BEFORE reviewing, in this order, and record what actually loaded:
 
-## Workflow
+1. **`Skill(frontend-design)`** — the reviewer's calibration: the three
+   AI-default looks are findings when detected; signature-element
+   discipline is the bar.
+2. **`Skill(ui-ux-pro-max)`** — palette/typography/guideline data to
+   make deviations checkable, not vibes-based.
+3. **Read the brand guidelines / design system** — the review compares
+   against the project's OWN tokens (`design-system.yaml`, brandbook,
+   or §3 of the squad reference as fallback).
 
-1. **Check computer-use availability** — follow [Computer Use Availability Check](/arka)
-2. **Open** the design tool or file
-3. **Navigate** to the relevant artboards/pages
-4. **Compare** against brand guidelines:
-   - Color palette accuracy (hex values, contrast)
-   - Typography (font family, sizes, weights)
-   - Spacing and layout consistency
-   - Logo usage and clear space
-   - Icon style consistency
-5. **Screenshot** each artboard with annotations of issues found
-6. **Generate report** with side-by-side comparisons
+### Graceful degradation (honest, never silent)
 
-## Example
+If a plugin skill is NOT installed: say so explicitly, fall back to §3 +
+§8 of the squad reference, and emit the marker with
+`skills=degraded:<missing-name>`. Never claim a load that did not
+happen; never proceed as if it had.
+
+## Benchmark first
+
+NAME the reference company this design is judged against (from the
+`[arka:design]` marker of the work under review when present — hold the
+work to ITS declared benchmark; pick and state one when absent).
+
+## Design marker (before any file edit)
 
 ```
-/brand design-review Figma
-/brand design-review ~/Documents/Homepage-v3.sketch
-/brand design-review "Canva — Social Media Templates"
+[arka:design] benchmark=<Company> skills=<comma,list> tokens=<path|none>
 ```
 
-## Fallback (No Computer Use)
+Emit on its own line BEFORE writing the review. Full contract: §9 of the
+squad reference.
 
-```
-⚠ Computer Use required for design tool interaction.
-Enable via: /mcp → computer-use (macOS only, Pro/Max plan required)
-```
+## Capture order (screenshots are the evidence — no screenshot, no review)
+
+1. **Playwright MCP** (primary, no Computer Use needed):
+   `mcp__playwright__browser_navigate` → `browser_take_screenshot` at
+   1440 and 390 widths for every reviewed surface.
+2. **claude-in-chrome MCP** (second): same capture flow in the user's
+   Chrome when Playwright is unavailable.
+3. **Computer Use** (last, native design tools only): open Figma /
+   Sketch / Canva desktop and screenshot artboards.
+4. **Manual fallback**: ask the operator for screenshots — the review
+   does not proceed on imagination.
+
+Store captures under `.arka/evidence/ui/<yyyy-mm-dd>/<surface>.png` in
+the project — the canonical evidence path this doctrine standardizes.
+(WARN-phase note: the Quality Gate's mechanical `ui-screenshot` evidence
+check that reads this path ships separately; until it lands, reviewers
+verify the captures manually.)
+
+## Review dimensions
+
+For every captured surface, annotate deviations with exact values
+(found vs expected):
+
+- **Palette** — hex fidelity, accent overuse vs the 60/25/15 ratio (§3),
+  contrast (AA minimum).
+- **Typography** — families, sizes, weights vs the type scale; line
+  length and hierarchy integrity.
+- **Spacing/layout** — grid conformity, spacing-scale drift (arbitrary
+  values are findings), alignment.
+- **Logo/iconography** — clear space, min sizes, stroke consistency,
+  forbidden treatments.
+- **Anti-default (§8)** — does any surface read as one of the three
+  AI-default looks? Is there ONE signature element, and is boldness
+  spent only there?
+- **Benchmark contrast** — for each major finding, one line on what the
+  named benchmark does instead.
+
+## Verdict
+
+`ON-BRAND` / `DEVIATIONS (n)` / `OFF-BRAND` — with the annotated
+screenshot list, exact-value deviation table, and fix list ranked by
+visual impact. A review with zero captured screenshots is INVALID.
 
 ## Output
 
-Design review report saved to Obsidian: `Projects/<ecosystem>/Brand/Reviews/<date>.md`
+Design review report saved to Obsidian:
+`Projects/<ecosystem>/Brand/Reviews/<date>.md`, linking every annotated
+capture in `.arka/evidence/ui/<date>/`.

@@ -134,3 +134,76 @@ write material findings back to `[[Area 02 - Design]]`:
 - Microinteractions (trigger→rules→feedback→loops/modes)
 - Color theory & typography science (OKLCH, harmony, modular scale)
 - Gestalt & visual hierarchy (F/Z scanning, proximity, contrast)
+
+---
+
+## 8. Anti-Default Doctrine (NON-NEGOTIABLE — excellence-mandate)
+
+AI-generated design clusters around three default looks. Producing any of
+them WITHOUT a brief that explicitly asks for it is a constitution
+violation (`excellence-mandate`: "no default-looking output"):
+
+1. **Cream + serif + terracotta** — warm cream background (≈ `#F4F1EA`),
+   high-contrast serif display, terracotta accent.
+2. **Dark + acid accent** — near-black background with a single bright
+   acid-green or vermilion accent.
+3. **Broadsheet** — hairline rules, zero border-radius, dense
+   newspaper-like columns.
+
+These are defaults, not choices. Where the brief pins a direction, the
+brief wins — including when it asks for one of these. Where an axis is
+free, never spend it on a default.
+
+**Token-plan-then-critique loop** (before writing any code or asset):
+
+- **Color**: palette as 4–6 NAMED hex values (name = role, not "blue").
+- **Type**: faces for 2+ roles — characterful display used with restraint,
+  complementary body, utility for captions/data when needed.
+- **Layout**: one-sentence concept + ASCII wireframe to compare options.
+- **Signature**: the ONE element this design will be remembered by.
+  Spend your boldness there; keep everything else quiet and disciplined.
+
+Then critique the plan BEFORE building: *"would this exact design appear
+for any other brief?"* If yes, revise and state what changed and why.
+Quality floor, never announced: responsive to mobile, visible keyboard
+focus, `prefers-reduced-motion` respected, WCAG AA contrast.
+
+## 9. Design Marker Contract (`[arka:design]`)
+
+Every UI/design-producing turn MUST emit the structured marker on its own
+line BEFORE the first file edit:
+
+```
+[arka:design] benchmark=<Company> skills=<comma,list> tokens=<path|none>
+```
+
+- `benchmark=` — named reference company (Linear, Stripe, Vercel, Notion,
+  Airbnb…). Pick it FIRST and state what its design lead would reject in
+  your plan.
+- `skills=` — the design skills ACTUALLY loaded this session via the
+  Skill tool (e.g. `frontend-design,ui-ux-pro-max,gsap-core`). If a
+  plugin is not installed, be honest: `skills=degraded:<missing-name>`
+  and fall back to §3 + §8 of this reference. Never claim a load that
+  did not happen; never silently proceed as if it had.
+- `tokens=` — path of the project design-system source
+  (`design-system.yaml`, tokens file), or `none` + one-line justification.
+
+A bare `[arka:design] <token>` is a LEGACY marker: tolerated in WARN mode,
+counted separately in telemetry, and treated as missing once the frontend
+gate goes hard.
+
+## 10. Aesthetic Directions Catalog (optional, curated)
+
+When a project has NO design system yet and the brief leaves the visual
+axis free, seed a direction from the curated TypeUI catalog
+(`npx typeui.sh pull <slug>` — MIT, bergside/awesome-design-skills):
+
+`editorial` · `brutalism` · `neobrutalism` · `bento` · `expressive` ·
+`dramatic` — anti-default directions; `shadcn` · `mono` — clean baselines.
+
+Catalog tokens are a SEED for the project's own token system, never the
+final design system. Motion is absent from the catalog — that is GSAP's
+job: load `gsap-core` + `gsap-timeline` for any animation work,
+`gsap-scrolltrigger`/`gsap-plugins` as the work demands, `gsap-react` on
+React, and treat `gsap-performance` as the review bar
+(`npx skills add https://github.com/greensock/gsap-skills` when absent).

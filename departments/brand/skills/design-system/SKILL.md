@@ -22,6 +22,38 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 # Design System — `/brand design-system`
 
 > **Lead:** Sofia D. (UX Designer) + Isabel (Visual Designer) | **Framework:** Atomic Design (Brad Frost) + Design Tokens + WCAG 2.2 AA
+> **Squad reference:** `departments/brand/references/uiux-knowledge-and-tools.md` (§3 tokens, §8 anti-default, §9 marker)
+
+## Load design intelligence (MANDATORY — excellence-mandate)
+
+Do this BEFORE defining a single token, in this order, and record what
+actually loaded:
+
+1. **`Skill(frontend-design)`** — anti-default doctrine: the token plan
+   (palette, type pairing, signature) is critiqued BEFORE it becomes
+   `design-tokens.json`.
+2. **`Skill(ui-ux-pro-max)`** — 161 palettes + 57 font pairings as
+   comparative evidence for the primitive layer; never a pick-list.
+3. **Motion tokens involved?** Load the GSAP skills (`gsap-core`,
+   `gsap-timeline`; `gsap-performance` as the review bar).
+4. **Aesthetic seed (optional, no visual history only)** — a curated
+   TypeUI direction (`npx typeui.sh pull <slug>`, §10 of the squad
+   reference) may seed primitives; it is never the final system.
+
+### Graceful degradation (honest, never silent)
+
+If a plugin skill is NOT installed: say so explicitly, fall back to §3 +
+§8 of the squad reference, and emit the marker with
+`skills=degraded:<missing-name>`. Never claim a load that did not
+happen; never proceed as if it had.
+
+Then NAME the benchmark company the system is judged against, and emit
+the structured marker before any file edit (full contract: §9 of the
+squad reference):
+
+```
+[arka:design] benchmark=<Company> skills=<comma,list> tokens=<path|none>
+```
 
 ## What ships
 
