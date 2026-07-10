@@ -5,6 +5,80 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.0] - 2026-07-10
+
+Two epics in one release: the Anti-Default Design Reform (the installed
+design intelligence was never loaded; the frontend gate verified a
+string, not behavior) and the Content Production Team (a full video
+pipeline — research, Hollywood scripting, generation, edit/render —
+shipped as a production sub-squad). Eight PRs (#284-#291), each through
+the evidence Quality Gate (three REJECTED→fix cycles caught an
+enforcement over-promise, clone-cadence personas, and a phantom command
+pointer before any merge).
+
+### Added
+
+- **Anti-default design doctrine** (#285) — 7 brand design skills
+  rewritten from stubs: mandatory loading of `frontend-design` +
+  `ui-ux-pro-max` + GSAP skills, named-benchmark-first, structured
+  marker `[arka:design] benchmark=<Company> skills=<list> tokens=<path>`
+  with honest `degraded:` fallback; squad reference gains the
+  three-default-looks doctrine, the marker contract, and a curated
+  TypeUI aesthetic catalog. Locked by `test_design_doctrine.py`.
+- **ui-screenshot evidence check** (#287) — UI-touching changes require
+  a recent capture under `.arka/evidence/ui/` (PNG >10KB, 24h); a miss
+  mechanically fails the evidence report. Constitution
+  `quality_gate.process` gains the judgment half: Francisca views the
+  artifact against the marker's benchmark (process lock 8→9).
+- **Frontend gate telemetry** (#286) —
+  `core.workflow.frontend_gate_telemetry(_cli)`: reason/marker_kind/
+  mode/ui_scope counts + would-have-denied rate, the evidence artifact
+  for the future hard flip (<2% FP, plan-approval precedent).
+- **Content production sub-squad** (#288) — video-producer-simao
+  (tier 1, opus, lead), content-researcher-madalena, info-compiler-dinis,
+  trends-analyst-margarida under content (design-ops pattern); Joana
+  upgraded to Hollywood-grade scriptwriter (opus, McKee/Save the Cat/
+  Story Circle, storyboard-ready scenes). 86 agents (85 unique).
+- **Production skills** (#290) — `/content video` (end-to-end pipeline
+  with approval gates before metered credit spend), `/content trends`
+  (demand-first, STEPPS, declared platform skips), `/content research`
+  ([UNVERIFIED] fail-closed production briefs), `/content video-setup`
+  (per-step user-confirmed bootstrap; never installs system binaries).
+  All on the multi-backend degradation contract (Higgsfield → comfyui →
+  manual brief; Hyperframes → Higgsfield server-side → edit-ready
+  package; agent-reach → firecrawl → KB-only).
+- **Production workflows** (#291) — `content-video` (enterprise, 9
+  phases, creative lock before credits, no regeneration loops) and
+  `content-shorts-produce` (`/content shorts`, rendered 9:16 batch —
+  distinct from script-only `/content short`, cross-referenced both
+  ways).
+- **Content MCP integration** (#289) — `mcps/profiles/content.json`;
+  `higgsfield` explicitly classified in all 8 policy blocks (active
+  only for the content ecosystem); 5 warn-only doctor checks
+  (node-22-video, ffmpeg, agent-reach, hyperframes-skills,
+  higgsfield-api-key) — detect and instruct, never install.
+
+### Changed
+
+- **Design production runs on opus** (#284) — frontend-dev-diana,
+  visual-designer-isabel, ux-designer-sofia-d; `AGENT_ROLE_HINTS` +=
+  ux-designer/motion-designer/scriptwriter/video-producer → design.
+- **Frontend gate hardened** (#286) — structured marker required for
+  hard-mode passage (bare markers become LEGACY: warn+nudge now, deny
+  in hard); scope += `.html/.htm` and a WARN-only `.ts/.js` UI-content
+  heuristic that never denies; stderr teaches the new template. The
+  hard-by-default flip is deliberately NOT in this release.
+- Flow G4 excellence check judges UI work against the emitted design
+  marker; `design-review` captures via Playwright first (Computer Use
+  last), "no screenshot, no review".
+
+### Known debt
+
+- Doctor split-brain: the 5 new checks live in the node doctor
+  (`npx arkaos doctor`); bash `bin/arka-doctor` keeps its 16-check lock.
+- Frontend gate hard flip gated on WARN telemetry; ui-screenshot import
+  guard is fail-open by engine convention (hardening follow-up).
+
 ## [4.12.0] - 2026-07-10
 
 Interaction Reform — closing the gap the operator named after the
