@@ -28,6 +28,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -37,7 +38,15 @@ TIMEOUT_SECONDS = 300
 COVERAGE_THRESHOLD = 80.0
 ALL_CHECKS: tuple[str, ...] = (
     "lint", "typecheck", "tests", "coverage", "security-grep", "spellcheck",
+    "ui-screenshot",
 )
+
+# ui-screenshot artifact contract (Excellence Reform PR-D3): captures land
+# in <project>/.arka/evidence/ui/ per brand/design-review; the check only
+# stats files (read-only), it never runs a browser.
+UI_EVIDENCE_DIR = Path(".arka") / "evidence" / "ui"
+UI_SCREENSHOT_WINDOW_HOURS = 24
+UI_SCREENSHOT_MIN_BYTES = 10 * 1024
 
 _MAX_SUMMARY_CHARS = 800
 _MAX_GREP_HITS = 20
@@ -384,6 +393,66 @@ def _check_spellcheck(
     return _run("spellcheck", ["codespell", *md_files], project_dir, timeout)
 
 
+def _check_ui_screenshot(
+    project_dir: Path, changed: list[str] | None,
+    test_command: str | None, timeout: int,
+) -> CheckResult:
+    """UI-touching changes require a recent screenshot artifact.
+
+    Mechanical half of the visual-review loop (excellence-mandate): a
+    PNG > 10KB captured within the last 24h under
+    ``<project>/.arka/evidence/ui/``. The judgment half — whether the
+    pixels hold up against the benchmark named in the ``[arka:design]``
+    marker — stays with Francisca, who Reads the artifact this check
+    points at. Skips when no UI files changed; read-only (stat only).
+    """
+    if not changed:
+        return _skip("ui-screenshot", "no changed files provided")
+    try:
+        from core.workflow.frontend_gate import is_ui_file
+    except Exception:
+        return _skip("ui-screenshot", "frontend_gate unavailable")
+    ui_changed = [f for f in changed if is_ui_file(f)]
+    if not ui_changed:
+        return _skip("ui-screenshot", "no UI files changed")
+    command_str = (
+        f"scan:{UI_EVIDENCE_DIR} (png >{UI_SCREENSHOT_MIN_BYTES // 1024}KB, "
+        f"last {UI_SCREENSHOT_WINDOW_HOURS}h)"
+    )
+    evidence_dir = project_dir / UI_EVIDENCE_DIR
+    cutoff = time.time() - UI_SCREENSHOT_WINDOW_HOURS * 3600
+    candidates: list[tuple[float, Path]] = []
+    if evidence_dir.is_dir():
+        for png in evidence_dir.rglob("*.png"):
+            try:
+                stat = png.stat()
+            except OSError:
+                continue
+            if stat.st_mtime >= cutoff and stat.st_size > UI_SCREENSHOT_MIN_BYTES:
+                candidates.append((stat.st_mtime, png))
+    if candidates:
+        newest = max(candidates)[1]
+        return CheckResult(
+            check="ui-screenshot", ran=True, passed=True,
+            command=command_str, exit_code=None,
+            summary=(
+                f"{len(candidates)} recent screenshot(s) for "
+                f"{len(ui_changed)} changed UI file(s); newest: {newest.name}"
+            ),
+            details_path=str(newest),
+        )
+    return CheckResult(
+        check="ui-screenshot", ran=True, passed=False,
+        command=command_str, exit_code=None,
+        summary=(
+            f"{len(ui_changed)} UI file(s) changed but no screenshot "
+            f"evidence under {UI_EVIDENCE_DIR}/ — capture per "
+            "brand/design-review (Playwright first, 1440+390 widths) or "
+            "record an explicit [arka:trivial] justification"
+        ),
+    )
+
+
 _CHECK_DISPATCH = {
     "lint": _check_lint,
     "typecheck": _check_typecheck,
@@ -391,6 +460,7 @@ _CHECK_DISPATCH = {
     "coverage": _check_coverage,
     "security-grep": _check_security_grep,
     "spellcheck": _check_spellcheck,
+    "ui-screenshot": _check_ui_screenshot,
 }
 
 

@@ -141,9 +141,14 @@ class TestConstitutionQualityGate:
         qg = constitution.enforcement_levels["quality_gate"]
         # v4.1.0: evidence engine prepended as step 1 (7 steps).
         # v4.2.0 Excellence Reform: redo-loop cap step added (8 steps).
-        assert len(qg["process"]) == 8
+        # v4.13.0 Excellence Reform PR-D3: Francisca views the
+        # ui-screenshot artifact for UI deliverables (9 steps).
+        assert len(qg["process"]) == 9
         assert "evidence" in qg["process"][0].lower()
         assert "APPROVED" in qg["process"][-1]
+        process_text = " ".join(qg["process"])
+        assert "ui-screenshot" in process_text
+        assert "[arka:design]" in process_text
 
     def test_quality_gate_reviewers_are_independent_and_cite_benchmark(self, constitution):
         """Excellence Reform: reviewers run in clean subagent context and

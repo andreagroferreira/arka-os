@@ -77,10 +77,11 @@ squad reference.
    does not proceed on imagination.
 
 Store captures under `.arka/evidence/ui/<yyyy-mm-dd>/<surface>.png` in
-the project — the canonical evidence path this doctrine standardizes.
-(WARN-phase note: the Quality Gate's mechanical `ui-screenshot` evidence
-check that reads this path ships separately; until it lands, reviewers
-verify the captures manually.)
+the project — the path the Quality Gate's mechanical `ui-screenshot`
+evidence check reads (`core.governance.evidence_checks`): UI-touching
+changes with no recent capture (PNG > 10KB, last 24h) fail the evidence
+report, and Francisca judges the artifact it points at against the
+marker's benchmark.
 
 ## Review dimensions
 

@@ -110,8 +110,10 @@ resumes at the right gate.
 
 - Run the evidence checks that apply to the diff: linter, type-checker,
   coverage read from the report file, security grep, spell-check for
-  copy. Reviewers (Quality Gate personas) interpret tool output; they do
-  not replace it. APPROVED/REJECTED derives from evidence.
+  copy, and — when UI files changed — the `ui-screenshot` artifact scan
+  (`.arka/evidence/ui/`, captured per brand/design-review). Reviewers
+  (Quality Gate personas) interpret tool output; they do not replace it.
+  APPROVED/REJECTED derives from evidence.
 - **Output-judge (constitution `gate-judges`, MEDIUM/HIGH only):**
   BEFORE dispatching the Quality Gate personas, dispatch one judge
   (Agent tool, `JUDGE_VERDICT_JSON_SCHEMA`, frontier model) over the
