@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-08T13:22:14.370645",
+    "generated": "2026-07-10T11:29:44.295790",
     "total_agents": 82,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -340,7 +340,7 @@
       "role": "UX/UI Designer",
       "department": "brand",
       "tier": 2,
-      "model": "sonnet",
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -505,7 +505,7 @@
       "role": "Visual Designer",
       "department": "brand",
       "tier": 2,
-      "model": "sonnet",
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {
@@ -1409,7 +1409,7 @@
       "role": "Senior Frontend Developer",
       "department": "dev",
       "tier": 2,
-      "model": "sonnet",
+      "model": "opus",
       "parent_squad": null,
       "sub_squad_role": null,
       "disc": {

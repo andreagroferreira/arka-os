@@ -52,6 +52,22 @@ class TestModelExport:
         marta = next(a for a in registry["agents"] if a["id"] == "cqo-marta")
         assert marta["model"] == "opus"
 
+    def test_design_production_agents_are_opus(self, registry):
+        # excellence-mandate: pixels are produced at the quality tier, not
+        # just reviewed at it. Locks the anti-default design reform (PR-D4).
+        design_producers = {
+            "frontend-dev-diana",
+            "visual-designer-isabel",
+            "ux-designer-sofia-d",
+        }
+        by_id = {a["id"]: a for a in registry["agents"]}
+        wrong = {
+            agent_id: by_id[agent_id]["model"]
+            for agent_id in design_producers
+            if by_id[agent_id]["model"] != "opus"
+        }
+        assert not wrong, f"Design production agents not on opus: {wrong}"
+
 
 class TestExpertiseExport:
     def test_frameworks_not_truncated(self, registry):
