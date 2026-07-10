@@ -184,13 +184,19 @@ def _frontend_gate(
     try:
         from core.workflow.frontend_gate import (
             evaluate,
+            is_heuristic_ui_file,
             is_ui_file,
             record_telemetry,
         )
     except Exception:
         return None  # frontend-gate-import-failed → allow
-    # Zero-read fast path: only UI files ever need the transcript.
-    if not is_ui_file(str(tool_input.get("file_path", ""))):
+    # Zero-read fast path: only UI files ever need the transcript. The
+    # heuristic check is tool_input-only (regex, no I/O), so it keeps the
+    # fast path cheap for plain .ts/.js.
+    file_path = str(tool_input.get("file_path", ""))
+    if not is_ui_file(file_path) and not is_heuristic_ui_file(
+        file_path, tool_name, tool_input
+    ):
         return None
     decision = evaluate(
         tool_name=tool_name,
