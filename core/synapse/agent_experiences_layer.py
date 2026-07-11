@@ -68,11 +68,19 @@ class AgentExperiencesLayer(Layer):
         if not experiences:
             return self._empty_result(start, tag=f"[agent-experiences:{target} none]")
 
-        content = format_experiences(target, experiences)
+        # F1-C2 decay: stale lessons collapse to a count line instead of
+        # full injection — history is never lost (JSONL untouched), it
+        # just stops paying context rent.
+        fresh, faded_count = _split_by_decay(experiences)
+        if not fresh:
+            return self._empty_result(
+                start, tag=f"[agent-experiences:{target} faded:{faded_count}]"
+            )
+        content = format_experiences(target, fresh, faded_count=faded_count)
         ms = int((time.time() - start) * 1000)
         return LayerResult(
             layer_id=self.id,
-            tag=f"[agent-experiences:{target} count:{len(experiences)}]",
+            tag=f"[agent-experiences:{target} count:{len(fresh)}]",
             content=content,
             tokens_est=max(1, len(content) // 4),
             compute_ms=ms,
@@ -100,7 +108,33 @@ def _extract_dispatch_target(user_input: str) -> str | None:
     return matches[-1].group(1).lower()
 
 
-def format_experiences(target: str, experiences: list[Experience]) -> str:
+def _split_by_decay(experiences: list[Experience]) -> tuple[list[Experience], int]:
+    """Partition lessons into fresh (rendered) and faded (counted only).
+
+    Read-time only: decay for an append-only experience JSONL needs no
+    reinforcement field — a lesson's age IS its ``ts``. Config resolved
+    ONCE per call (hot-path hoisting mandated by core/shared/decay.py).
+    """
+    from core.shared.decay import (
+        INJECTION_FLOOR,
+        decay_enabled,
+        decayed_weight,
+        half_life_days,
+    )
+
+    if not decay_enabled():
+        return experiences, 0
+    hl = half_life_days()
+    fresh = [
+        exp for exp in experiences
+        if decayed_weight(exp.ts, half_life=hl, enabled=True) >= INJECTION_FLOOR
+    ]
+    return fresh, len(experiences) - len(fresh)
+
+
+def format_experiences(
+    target: str, experiences: list[Experience], faded_count: int = 0
+) -> str:
     """Render a compact, model-readable summary of past lessons."""
     lines = [f"Past lessons for {target} (most recent first):"]
     for i, exp in enumerate(experiences, start=1):
@@ -117,5 +151,10 @@ def format_experiences(target: str, experiences: list[Experience]) -> str:
         if exp.references:
             refs = ", ".join(exp.references[:2])
             lines.append(f"     refs: {refs}")
+    if faded_count > 0:
+        lines.append(
+            f"  +{faded_count} older lesson(s) faded from injection "
+            f"(history kept on disk)"
+        )
     lines.append("Apply these lessons proactively. Do not repeat the rejected patterns.")
     return "\n".join(lines)

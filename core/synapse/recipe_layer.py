@@ -79,17 +79,40 @@ class RecipeLayer(Layer):
 
 
 def _match_recipes(keywords: list[str], limit: int) -> list[Recipe]:
-    """Rank recipes by keyword overlap with feature_keywords + stack."""
+    """Rank recipes by keyword overlap, faded by age (F1-C2 decay).
+
+    Overlap is multiplied by the decayed weight of the recipe's
+    ``provenance.captured_at`` — a stale recipe fades from injection
+    (never from disk) unless re-captured. Config resolved ONCE per call
+    (hot-path hoisting mandated by core/shared/decay.py).
+    """
+    from core.shared.decay import (
+        INJECTION_FLOOR,
+        decay_enabled,
+        decayed_weight,
+        half_life_days,
+    )
+
     kw = set(keywords)
-    scored: list[tuple[int, Recipe]] = []
+    decay_on = decay_enabled()
+    hl = half_life_days() if decay_on else 0.0
+    scored: list[tuple[float, Recipe]] = []
     for recipe in list_recipes():
         haystack = {
             w.lower()
             for w in (recipe.feature_keywords + recipe.stack)
         }
         overlap = len(kw & haystack)
-        if overlap:
-            scored.append((overlap, recipe))
+        if not overlap:
+            continue
+        weight = 1.0
+        if decay_on:
+            weight = decayed_weight(
+                recipe.provenance.captured_at, half_life=hl, enabled=True
+            )
+            if weight < INJECTION_FLOOR:
+                continue  # fades from injection only — recipe.json untouched
+        scored.append((overlap * weight, recipe))
     scored.sort(key=lambda pair: (-pair[0], pair[1].slug))
     return [recipe for _, recipe in scored[:limit]]
 
