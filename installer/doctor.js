@@ -242,13 +242,10 @@ export const checks = [
   },
   {
     name: "sqlite-corrupt-backups",
-    description: "No self-healed SQLite stores awaiting inspection (~/.arkaos/*.corrupt-*.bak)",
+    description: "No self-healed SQLite stores awaiting inspection",
     severity: "warn",
     check: () => corruptDbBackups().length === 0,
-    fix: () => {
-      const found = corruptDbBackups().slice(0, 3).join(", ");
-      return `A store auto-recovered from corruption; inspect then delete: ${found}`;
-    },
+    fix: () => "Inspect then delete ~/.arkaos/**/*.corrupt-*.bak",
   },
   {
     name: "magic-api-key",
