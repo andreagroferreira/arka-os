@@ -205,6 +205,7 @@ def create_default_engine(
     from core.synapse.graph_context_layer import GraphContextLayer
     from core.synapse.pattern_library_layer import PatternLibraryLayer
     from core.synapse.recipe_layer import RecipeLayer
+    from core.synapse.routing_feedback_layer import RoutingFeedbackLayer
     from core.synapse.session_memory_layer import SessionMemoryLayer
 
     engine = SynapseEngine()
@@ -237,6 +238,12 @@ def create_default_engine(
     engine.register_layer(BranchLayer())
     engine.register_layer(CommandHintsLayer(commands=commands))
     engine.register_layer(QualityGateLayer())
+    # L5.5 (F1-B2) — routing feedback. When the detected department has a
+    # poor recent QG record (routing-scores.json, F1-B1), injects
+    # [arka:redo-risk] with citable counts. Silent below 5 samples or at
+    # healthy approval — warnings only, never noise. Closes the second
+    # learning loop of the memory reform.
+    engine.register_layer(RoutingFeedbackLayer())
     # L7 TimeLayer removed (prompt-surface P0 2026-07-08): the time-of-day tag
     # had no consumer rule and invalidated the prompt cache at every
     # 5h/12h/18h boundary — same rationale as the session-start hook's
