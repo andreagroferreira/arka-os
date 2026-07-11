@@ -228,3 +228,102 @@ def test_none_backend_result(monkeypatch):
 
 def test_empty_batch():
     assert embed_batch([]) == []
+
+
+# ─── Malformed responses and misalignment (QG blockers B1/B2) ─────────
+
+
+@pytest.mark.parametrize("body", ["boom", [1, 2, 3], 42, None])
+def test_ollama_malformed_200_body_degrades(monkeypatch, body):
+    """A 200 whose JSON is not an object must degrade, never raise."""
+    monkeypatch.setenv("ARKA_EMBED_BACKEND", "ollama")
+    monkeypatch.setattr(
+        embedding_backends.urllib.request,
+        "urlopen",
+        _fake_urlopen_factory({"/api/tags": {"models": []}, "/api/embed": body}),
+    )
+    results = embed_batch(["a", "b"])
+    assert [r.backend for r in results] == ["none", "none"]
+    assert all(r.vector is None for r in results)
+
+
+def test_ollama_count_mismatch_degrades_whole_batch(monkeypatch):
+    """Fewer/more embeddings than texts: alignment unknowable -> all None."""
+    monkeypatch.setenv("ARKA_EMBED_BACKEND", "ollama")
+    for embeddings in ([[1.0, 2.0]], [[1.0], [2.0], [3.0]]):
+        reset_backend_cache()
+        monkeypatch.setattr(
+            embedding_backends.urllib.request,
+            "urlopen",
+            _fake_urlopen_factory(
+                {"/api/tags": {"models": []}, "/api/embed": {"embeddings": embeddings}}
+            ),
+        )
+        results = embed_batch(["a", "b"])
+        assert len(results) == 2
+        assert all(r.vector is None and r.backend == "none" for r in results)
+
+
+@pytest.mark.parametrize("body", ["boom", ["x"], {"data": {"nested": 1}}])
+def test_api_malformed_200_body_degrades(monkeypatch, body):
+    monkeypatch.setenv("ARKA_EMBED_BACKEND", "api")
+    monkeypatch.setattr(embedding_backends, "_api_key", lambda: "sk-test")
+    monkeypatch.setattr(
+        embedding_backends.urllib.request,
+        "urlopen",
+        _fake_urlopen_factory({"/v1/embeddings": body}),
+    )
+    result = embed("anything")
+    assert result.backend == "none"
+    assert result.vector is None
+
+
+def test_api_partial_rows_map_by_index(monkeypatch):
+    """Missing indexes stay None; present ones land on the right text."""
+    monkeypatch.setenv("ARKA_EMBED_BACKEND", "api")
+    monkeypatch.setattr(embedding_backends, "_api_key", lambda: "sk-test")
+    monkeypatch.setattr(
+        embedding_backends.urllib.request,
+        "urlopen",
+        _fake_urlopen_factory(
+            {"/v1/embeddings": {"data": [{"index": 1, "embedding": [9.0]}]}}
+        ),
+    )
+    results = embed_batch(["first", "second"])
+    assert results[0].vector is None and results[0].backend == "none"
+    assert results[1].vector == [9.0] and results[1].backend == "api"
+
+
+# ─── Transport security (QG blocker B4) ────────────────────────────────
+
+
+def test_api_refuses_plaintext_http_base(monkeypatch, tmp_path):
+    monkeypatch.setenv("ARKA_EMBED_BACKEND", "api")
+    monkeypatch.setattr(embedding_backends, "_api_key", lambda: "sk-test")
+    _write_config(tmp_path, {"embedApiBase": "http://evil.example.com"})
+
+    def _must_not_be_called(*args, **kwargs):  # pragma: no cover
+        raise AssertionError("plaintext base must be refused before any request")
+
+    monkeypatch.setattr(
+        embedding_backends.urllib.request, "urlopen", _must_not_be_called
+    )
+    result = embed("secret")
+    assert result.backend == "none"
+
+
+def test_api_allows_loopback_http_base(monkeypatch, tmp_path):
+    """Local proxies (LiteLLM gateway) legitimately run on http://localhost."""
+    monkeypatch.setenv("ARKA_EMBED_BACKEND", "api")
+    monkeypatch.setattr(embedding_backends, "_api_key", lambda: "sk-test")
+    _write_config(tmp_path, {"embedApiBase": "http://localhost:4000"})
+    monkeypatch.setattr(
+        embedding_backends.urllib.request,
+        "urlopen",
+        _fake_urlopen_factory(
+            {"/v1/embeddings": {"data": [{"index": 0, "embedding": [1.0]}]}}
+        ),
+    )
+    result = embed("hello")
+    assert result.backend == "api"
+    assert result.vector == [1.0]

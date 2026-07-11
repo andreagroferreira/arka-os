@@ -3,11 +3,13 @@
 Ordered auto-resolution, never a hardcoded single backend:
     1. ``fastembed`` — local, delegates to the existing embedder.py
     2. ``ollama``    — local ``/api/embed`` endpoint (stdlib urllib)
-    3. ``api``       — OpenAI-compatible endpoint, EXPLICIT OPT-IN ONLY
-                       (cost/privacy) — never chosen by ``auto``
-    4. ``none``      — no embedding available; consumers must label
+    3. ``none``      — no embedding available; consumers must label
                        retrieval as ``keyword-degraded`` (the exact
                        honesty contract of vector_store.py)
+
+Outside the auto chain: ``api`` (OpenAI-compatible endpoint) is
+EXPLICIT OPT-IN ONLY (cost/privacy) — never chosen by ``auto``, and
+refused over plaintext http except to loopback hosts.
 
 Backend selection (env > config > default):
     1. ``ARKA_EMBED_BACKEND`` env var
@@ -164,11 +166,29 @@ def _embed_ollama(texts: list[str]) -> list[Optional[list[float]]]:
     url = f"{_ollama_host().rstrip('/')}/api/embed"
     try:
         data = _post_json(url, {"model": model, "input": texts}, {}, _OLLAMA_TIMEOUT_S)
-        embeddings = data.get("embeddings") or []
-        return [list(map(float, vec)) for vec in embeddings] or [None] * len(texts)
-    except (urllib.error.URLError, OSError, ValueError, TypeError) as exc:
+        embeddings = data.get("embeddings") if isinstance(data, dict) else None
+        if not isinstance(embeddings, list) or len(embeddings) != len(texts):
+            # Positional alignment is unknowable on a count mismatch —
+            # degrading the whole batch beats misassociating vectors.
+            logger.warning("ollama embed returned %s embeddings for %s texts",
+                           len(embeddings) if isinstance(embeddings, list) else "no",
+                           len(texts))
+            return [None] * len(texts)
+        return [list(map(float, vec)) for vec in embeddings]
+    except (urllib.error.URLError, OSError, ValueError,
+            TypeError, AttributeError) as exc:
         logger.warning("ollama embed failed (%s) — degrading to none", exc)
         return [None] * len(texts)
+
+
+def _api_base_allowed(base: str) -> bool:
+    """Bearer keys travel only over https, or http to loopback (local proxy)."""
+    if base.startswith("https://"):
+        return True
+    if base.startswith("http://"):
+        host = base[len("http://"):].split("/", 1)[0].split(":", 1)[0]
+        return host in ("localhost", "127.0.0.1", "::1")
+    return False
 
 
 def _embed_api(texts: list[str]) -> list[Optional[list[float]]]:
@@ -178,6 +198,9 @@ def _embed_api(texts: list[str]) -> list[Optional[list[float]]]:
     cfg = _memory_config()
     base = str(cfg.get("embedApiBase") or DEFAULT_API_BASE).rstrip("/")
     model = str(cfg.get("embedApiModel") or DEFAULT_API_MODEL)
+    if not _api_base_allowed(base):
+        logger.warning("api embed refused: non-https base %r would leak the key", base)
+        return [None] * len(texts)
     try:
         data = _post_json(
             f"{base}/v1/embeddings",
@@ -185,10 +208,18 @@ def _embed_api(texts: list[str]) -> list[Optional[list[float]]]:
             {"Authorization": f"Bearer {key}"},
             _API_TIMEOUT_S,
         )
-        rows = sorted(data.get("data") or [], key=lambda r: r.get("index", 0))
-        vectors = [list(map(float, row["embedding"])) for row in rows]
-        return vectors if len(vectors) == len(texts) else [None] * len(texts)
-    except (urllib.error.URLError, OSError, ValueError, TypeError, KeyError) as exc:
+        rows = data.get("data") if isinstance(data, dict) else None
+        # Rows are mapped by their declared index — precise per-item
+        # alignment; absent indexes stay None.
+        vectors: list[Optional[list[float]]] = [None] * len(texts)
+        for row in rows if isinstance(rows, list) else []:
+            if isinstance(row, dict):
+                idx = row.get("index")
+                if isinstance(idx, int) and 0 <= idx < len(texts):
+                    vectors[idx] = list(map(float, row["embedding"]))
+        return vectors
+    except (urllib.error.URLError, OSError, ValueError,
+            TypeError, KeyError, AttributeError) as exc:
         logger.warning("api embed failed (%s) — degrading to none", exc)
         return [None] * len(texts)
 
@@ -204,6 +235,13 @@ def _active_model_name(backend: BackendName) -> str:
     return ""
 
 
+def _aligned(vectors: object, n: int) -> list[Optional[list[float]]]:
+    """Every backend obeys one contract: exactly ``n`` positional items."""
+    if not isinstance(vectors, list) or len(vectors) != n:
+        return [None] * n
+    return vectors
+
+
 def embed_batch(texts: list[str]) -> list[EmbeddingResult]:
     """Embed texts via the resolved backend, declaring provenance per item."""
     if not texts:
@@ -211,11 +249,11 @@ def embed_batch(texts: list[str]) -> list[EmbeddingResult]:
     backend = resolve_backend()
     model = _active_model_name(backend)
     if backend == "fastembed":
-        vectors = embedder.embed_batch(texts) or [None] * len(texts)
+        vectors = _aligned(embedder.embed_batch(texts), len(texts))
     elif backend == "ollama":
-        vectors = _embed_ollama(texts)
+        vectors = _aligned(_embed_ollama(texts), len(texts))
     elif backend == "api":
-        vectors = _embed_api(texts)
+        vectors = _aligned(_embed_api(texts), len(texts))
     else:
         vectors = [None] * len(texts)
     return [
