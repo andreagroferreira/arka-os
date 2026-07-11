@@ -430,6 +430,30 @@ def _enqueue_turn_capture(session_id: str, transcript_path: str, cwd: str) -> No
         pass
 
 
+def _enqueue_routing_rebuild() -> None:
+    """F1-B1: throttled detached rebuild of routing-scores.json (mtime
+    > 1h). One stat on the hot path; the aggregation runs detached."""
+    try:
+        from core.governance.routing_feedback import stale
+        if not stale(max_age_seconds=3600):
+            return
+        repo = repo_path()
+        if not repo or not Path(repo).is_dir():
+            return
+        import subprocess
+        import sys as _sys
+        subprocess.Popen(
+            [_sys.executable, "-m", "core.governance.routing_feedback_cli",
+             "rebuild"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env={**os.environ, "PYTHONPATH": repo},
+            start_new_session=True,
+        )
+    except Exception:  # noqa: BLE001 — rebuild is best-effort, hook never breaks
+        pass
+
+
 def main(stdin_json: dict | None = None) -> int:
     if stdin_json is None:
         stdin_json, _ = read_stdin_json()
@@ -459,6 +483,8 @@ def main(stdin_json: dict | None = None) -> int:
         _enqueue_turn_capture(session_id, transcript_path, cwd)
     except Exception:  # noqa: BLE001 — never let capture break the hook
         pass
+
+    _enqueue_routing_rebuild()
 
     # Only evaluate sessions where the classifier flagged creation intent.
     wf_marker = arkaos_temp_dir("arkaos-wf-required") / session_id if session_id else None
