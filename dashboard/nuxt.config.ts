@@ -13,6 +13,13 @@ export default defineNuxtConfig({
     enabled: true
   },
 
+  app: {
+    pageTransition: {
+      name: 'arka-page',
+      mode: 'out-in'
+    }
+  },
+
   css: ['~/assets/css/main.css'],
 
   colorMode: {
@@ -41,5 +48,13 @@ export default defineNuxtConfig({
         braceStyle: '1tbs'
       }
     }
+  },
+
+  fonts: {
+    families: [
+      // Explicit entry guarantees the italic axis (Instrument Serif ships
+      // 400 normal+italic only); the other families auto-resolve from @theme.
+      { name: 'Instrument Serif', provider: 'google', weights: [400], styles: ['normal', 'italic'] }
+    ]
   }
 })

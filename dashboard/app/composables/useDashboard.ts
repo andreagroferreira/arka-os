@@ -27,9 +27,10 @@ const _useDashboard = () => {
     'g-e': () => router.push('/health'),
     'g-s': () => router.push('/settings'),
     'g-r': () => router.push('/trash'),
-    n: () => contextualNew(),
+    'n': () => contextualNew(),
     '?': () => { shortcutsHelpOpen.value = !shortcutsHelpOpen.value },
     '/': () => { searchOpen.value = true },
+    'meta_k': () => { searchOpen.value = true }
   })
 
   return { shortcutsHelpOpen, searchOpen }
