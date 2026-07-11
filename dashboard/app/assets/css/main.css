@@ -12,6 +12,7 @@
 @theme static {
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
+  --font-serif: 'Instrument Serif', serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* arka — brand signal green, anchored at 400 = #00FF88 */
@@ -160,10 +161,130 @@
   to { background-position: -100% 0; }
 }
 
+/* ── Editorial layer (Pulse v2) ─────────────────────────────────────────
+   The serif voice: cinematic page titles, Roman-numeral section markers,
+   italic brand accents. Serif is display-only — body copy never uses it. */
+.arka-serif-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ui-text);
+}
+.arka-serif-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+}
+.arka-numeral {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--ui-primary) 55%, var(--ui-text-muted));
+}
+
+/* Gradient-border card. Live cards raise the primary tint; glow stays a
+   dark-mode-only voice. Padding-box mask keeps the 1px gradient ring. */
+.arka-glow-card {
+  position: relative;
+  border-radius: calc(var(--ui-radius, 0.25rem) * 3);
+  background: var(--ui-bg-elevated);
+}
+.arka-glow-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ui-primary) 22%, transparent),
+    color-mix(in srgb, var(--color-carbon-700) 45%, transparent) 55%,
+    color-mix(in srgb, var(--color-carbon-700) 25%, transparent)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.arka-glow-card[data-live="true"]::before {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ui-primary) 45%, transparent),
+    color-mix(in srgb, var(--ui-primary) 10%, transparent)
+  );
+}
+.dark .arka-glow-card[data-live="true"] {
+  box-shadow: var(--arka-glow);
+}
+.arka-glow-card[data-interactive="true"] {
+  transition:
+    transform var(--arka-motion-fast) var(--arka-ease-out),
+    box-shadow var(--arka-motion-fast) var(--arka-ease-out);
+}
+.arka-glow-card[data-interactive="true"]:hover {
+  transform: translateY(-2px);
+}
+
+/* Ambient starfield: layered radial dots in slow drift. Effective star
+   opacity stays under ~0.06 so it never competes with text contrast. */
+.arka-starfield {
+  position: fixed;
+  inset: -10%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(1px 1px at 12% 24%, color-mix(in srgb, var(--ui-primary) 12%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 34% 68%, color-mix(in srgb, var(--ui-text-muted) 10%, transparent), transparent 60%),
+    radial-gradient(1.5px 1.5px at 58% 15%, color-mix(in srgb, var(--ui-primary) 9%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 71% 47%, color-mix(in srgb, var(--ui-text-muted) 8%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 86% 79%, color-mix(in srgb, var(--ui-primary) 10%, transparent), transparent 60%),
+    radial-gradient(1.5px 1.5px at 23% 89%, color-mix(in srgb, var(--ui-text-muted) 7%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 47% 38%, color-mix(in srgb, var(--ui-text-muted) 9%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 92% 8%, color-mix(in srgb, var(--ui-primary) 8%, transparent), transparent 60%);
+  background-size: 55% 55%;
+  animation: arka-starfield-drift 140s linear infinite alternate;
+}
+@keyframes arka-starfield-drift {
+  to { transform: translate3d(-2.5%, -1.5%, 0); }
+}
+
+/* Route transitions: one rhythm, upward continuity (enter rises, exit
+   recedes). Wired via app.pageTransition in nuxt.config. */
+.arka-page-enter-active {
+  transition:
+    opacity var(--arka-motion-base) var(--arka-ease-out),
+    transform var(--arka-motion-base) var(--arka-ease-out);
+}
+.arka-page-leave-active {
+  transition:
+    opacity var(--arka-motion-fast) var(--arka-ease-in),
+    transform var(--arka-motion-fast) var(--arka-ease-in);
+}
+.arka-page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.arka-page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .arka-live-dot,
   .arka-pulse-line,
-  .arka-stream-in {
+  .arka-stream-in,
+  .arka-starfield {
     animation: none;
+  }
+  .arka-page-enter-active,
+  .arka-page-leave-active {
+    transition: none;
+  }
+  .arka-page-enter-from,
+  .arka-page-leave-to {
+    transform: none;
   }
 }

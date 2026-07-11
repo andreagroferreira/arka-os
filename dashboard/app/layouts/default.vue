@@ -150,9 +150,11 @@ const links = [[{
           class="flex items-center w-full"
           :class="collapsed ? 'justify-center' : 'justify-between gap-2'"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-baseline gap-2">
             <span class="text-xl font-bold text-primary">A</span>
-            <span v-if="!collapsed" class="font-semibold">ArkaOS</span>
+            <span v-if="!collapsed" class="text-lg">
+              <span class="font-semibold">Arka</span><span class="arka-serif-accent text-primary">OS</span>
+            </span>
           </div>
           <div v-if="!collapsed" class="flex items-center gap-1">
             <NotificationsBell />
@@ -162,6 +164,7 @@ const links = [[{
       </template>
 
       <template #default="{ collapsed }">
+        <ArkaNavGroupLabel v-if="!collapsed" label="workspace" />
         <UNavigationMenu
           :collapsed="collapsed"
           :items="links[0]"
@@ -176,6 +179,7 @@ const links = [[{
         <!-- PR87d v3.22.0 — quick stats widget above the bottom nav. -->
         <SidebarStatsWidget v-if="!collapsed" />
 
+        <ArkaNavGroupLabel v-if="!collapsed" label="system" />
         <UNavigationMenu
           :collapsed="collapsed"
           :items="links[1]"
@@ -184,8 +188,13 @@ const links = [[{
           :class="collapsed ? 'mt-auto' : ''"
         />
       </template>
+
+      <template #footer="{ collapsed }">
+        <ArkaSystemPill v-if="!collapsed" class="w-full justify-center" />
+      </template>
     </UDashboardSidebar>
 
+    <ArkaStarfield />
     <slot />
     <KeyboardShortcutsHelp />
     <GlobalSearch />
