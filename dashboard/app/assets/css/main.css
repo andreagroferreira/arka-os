@@ -1,18 +1,168 @@
 @import "tailwindcss" theme(static);
 @import "@nuxt/ui";
 
-@theme static {
-  --font-sans: 'Public Sans', sans-serif;
+/* ─────────────────────────────────────────────────────────────────────────
+   ArkaOS Pulse — design tokens
+   Brand anchors: #00FF88 (signal green) · #0A0A0A (ink) · #FAFAFA (paper)
+   Doctrine: dark-first; green means "alive" (live data, primary action) and
+   is never decorative; surfaces are carbon with a green undertone, not flat
+   black. Full spec: dashboard/DESIGN-SYSTEM.md
+   ───────────────────────────────────────────────────────────────────────── */
 
-  --color-green-50: #EFFDF5;
-  --color-green-100: #D9FBE8;
-  --color-green-200: #B3F5D1;
-  --color-green-300: #75EDAE;
-  --color-green-400: #00DC82;
-  --color-green-500: #00C16A;
-  --color-green-600: #00A155;
-  --color-green-700: #007F45;
-  --color-green-800: #016538;
-  --color-green-900: #0A5331;
-  --color-green-950: #052E16;
+@theme static {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* arka — brand signal green, anchored at 400 = #00FF88 */
+  --color-arka-50: #E8FFF4;
+  --color-arka-100: #C6FFE3;
+  --color-arka-200: #8FFFC9;
+  --color-arka-300: #4DFFAB;
+  --color-arka-400: #00FF88;
+  --color-arka-500: #00E67A;
+  --color-arka-600: #00BF66;
+  --color-arka-700: #009951;
+  --color-arka-800: #00733D;
+  --color-arka-900: #0A5C34;
+  --color-arka-950: #04331C;
+
+  /* carbon — neutral scale with a green undertone (never flat gray) */
+  --color-carbon-50: #F6F8F7;
+  --color-carbon-100: #E9EDEB;
+  --color-carbon-200: #D4DBD7;
+  --color-carbon-300: #B3BDB8;
+  --color-carbon-400: #8A958F;
+  --color-carbon-500: #6B756F;
+  --color-carbon-600: #525B56;
+  --color-carbon-700: #3E4642;
+  --color-carbon-800: #262C29;
+  --color-carbon-900: #161B18;
+  --color-carbon-950: #0A0D0B;
+}
+
+/* ── Motion tokens ──────────────────────────────────────────────────────
+   One rhythm for the whole product. Enter uses --arka-ease-out (expo-like
+   deceleration), exit is faster (~65%) with --arka-ease-in. The pulse is
+   the signature: only elements that are genuinely live may breathe. */
+:root {
+  --arka-motion-fast: 150ms;
+  --arka-motion-base: 240ms;
+  --arka-motion-slow: 400ms;
+  --arka-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --arka-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --arka-pulse-period: 2.4s;
+  --arka-stagger-step: 40ms;
+}
+
+/* ── Semantic surfaces ──────────────────────────────────────────────────
+   Light: paper + ink. Primary darkened to arka-700 for contrast on paper. */
+:root {
+  --ui-primary: var(--ui-color-primary-700);
+  --ui-bg: #FAFAFA;
+  --ui-bg-muted: #F1F4F2;
+  --ui-bg-elevated: #FFFFFF;
+  --ui-bg-accented: var(--color-carbon-100);
+  --ui-border: var(--color-carbon-200);
+  --ui-border-muted: var(--color-carbon-100);
+  --ui-text: #0A0A0A;
+  --ui-text-muted: var(--color-carbon-500);
+  --arka-glow: 0 0 0 transparent; /* glow is a dark-mode-only voice */
+  --arka-grid-line: color-mix(in srgb, var(--color-carbon-200) 60%, transparent);
+}
+
+/* Dark (flagship): void → muted → elevated → accented, all carbon-tinted.
+   Primary lifts to raw brand green; glow becomes available. */
+.dark {
+  --ui-primary: var(--ui-color-primary-400);
+  --ui-bg: #070908;
+  --ui-bg-muted: #0C100E;
+  --ui-bg-elevated: var(--color-carbon-950);
+  --ui-bg-accented: var(--color-carbon-900);
+  --ui-border: #1E2521;
+  --ui-border-muted: #151A17;
+  --ui-text: var(--color-carbon-100);
+  --ui-text-muted: var(--color-carbon-400);
+  --arka-glow: 0 0 24px color-mix(in srgb, var(--color-arka-400) 25%, transparent);
+  --arka-grid-line: color-mix(in srgb, var(--color-arka-400) 7%, transparent);
+}
+
+/* ── HUD vernacular ─────────────────────────────────────────────────────
+   Eyebrow labels: uppercase mono with wide tracking and a signal tick.
+   This — not ornament — is what carries the Jarvis DNA. */
+.arka-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.arka-eyebrow::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  background: var(--ui-primary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+/* Live indicator: a dot that breathes. Reserved for genuinely live data. */
+.arka-live-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--ui-primary);
+  box-shadow: var(--arka-glow);
+  animation: arka-pulse var(--arka-pulse-period) var(--arka-ease-out) infinite;
+}
+
+/* Numbers are data: mono, tabular, never shifting layout as they tick. */
+.arka-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes arka-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.88); }
+}
+
+/* Stream-in: how live content arrives. Pair with a per-item
+   animation-delay of calc(var(--arka-stagger-step) * i). */
+@keyframes arka-stream-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.arka-stream-in {
+  animation: arka-stream-in var(--arka-motion-base) var(--arka-ease-out) both;
+}
+
+/* Pulse line: the signature EKG. One per view, under live sections. */
+.arka-pulse-line {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ui-primary) 20%,
+    var(--ui-primary) 80%,
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: arka-pulse-sweep 3.2s linear infinite;
+  opacity: 0.7;
+}
+@keyframes arka-pulse-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arka-live-dot,
+  .arka-pulse-line,
+  .arka-stream-in {
+    animation: none;
+  }
 }
