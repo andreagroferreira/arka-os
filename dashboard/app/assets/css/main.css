@@ -56,9 +56,10 @@
 }
 
 /* ── Semantic surfaces ──────────────────────────────────────────────────
-   Light: paper + ink. Primary darkened to arka-700 for contrast on paper. */
+   Light: paper + ink. Primary darkened to arka-800: 5.72:1 on paper —
+   arka-700 reads 3.55:1 and fails AA for text-primary usage. */
 :root {
-  --ui-primary: var(--ui-color-primary-700);
+  --ui-primary: var(--ui-color-primary-800);
   --ui-bg: #FAFAFA;
   --ui-bg-muted: #F1F4F2;
   --ui-bg-elevated: #FFFFFF;

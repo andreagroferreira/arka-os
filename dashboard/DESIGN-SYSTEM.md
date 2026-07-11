@@ -31,7 +31,7 @@
 
 Semantic mapping via Nuxt UI: `primary: 'arka'`, `neutral: 'carbon'`
 (`app/app.config.ts`). Dark primary resolves to `arka-400`; light primary
-darkens to `arka-700` for contrast on paper. `warning`/`error`/`info` stay
+darkens to `arka-800` (5.72:1 on paper — AA for text). `warning`/`error`/`info` stay
 on Nuxt UI defaults; `info` (cyan) is the secondary data voice in charts.
 
 ### Surfaces (dark)
@@ -72,7 +72,7 @@ Loaded via `@nuxt/fonts`. Type scale: 36/24/18/16/14/12.
 ## Rules for page waves (Phases 1+)
 
 - No hardcoded colors in components — semantic tokens only.
-- Charts (unovis) take their palette from tokens; load the `dataviz`
+- Charts (Unovis) take their palette from tokens; load the `dataviz`
   skill before building any chart.
 - Hero motion moments may add GSAP *per page wave*, on the shared rhythm
   tokens; ambient/micro motion stays CSS.
