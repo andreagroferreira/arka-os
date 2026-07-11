@@ -13,8 +13,9 @@ two honest modes, labeled exactly like core/knowledge/vector_store.py:
 No vec0 dependency by design: the read path NEVER embeds, and the
 worker's brute-force cosine over the bounded scan window (most recent
 rows with embeddings) runs off-turn, so an extension adds failure modes
-without buying latency where it matters. Embeddings from different
-backends/dims are never compared — mismatched rows are skipped.
+without buying latency where it matters. Embeddings are only compared
+within the same backend+model+dims — cosine across vector spaces is a
+meaningless number dressed as similarity, so mismatched rows are skipped.
 
 The store is born self-healing (core/shared/sqlite_recovery.py).
 """
@@ -26,6 +27,7 @@ import math
 import os
 import sqlite3
 import uuid
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -85,7 +87,10 @@ class SessionMemoryStore:
         return conn
 
     def _init_db(self) -> None:
-        with self._conn() as conn:
+        # closing() closes the connection; the inner `conn` context
+        # commits the transaction — sqlite3's context manager alone
+        # commits but never closes (leaks in long-lived consumers).
+        with closing(self._conn()) as conn, conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS turns (
                     id TEXT PRIMARY KEY,
@@ -118,7 +123,7 @@ class SessionMemoryStore:
         row["embedding"] = (
             json.dumps(record.embedding) if record.embedding is not None else None
         )
-        with self._conn() as conn:
+        with closing(self._conn()) as conn, conn:
             conn.execute(
                 "INSERT OR REPLACE INTO turns (id, ts, session_id, project_name,"
                 " cwd, summary, tools_used, file_paths, importance, embedding,"
@@ -145,7 +150,7 @@ class SessionMemoryStore:
     ) -> list[TurnRecord]:
         """Most recent turns, importance-weighted recency order."""
         where, params = self._scope(project_name, exclude_session)
-        with self._conn() as conn:
+        with closing(self._conn()) as conn:
             rows = conn.execute(
                 f"SELECT * FROM turns {where} ORDER BY ts DESC LIMIT ?",  # noqa: S608 — clauses are static templates
                 params + [limit],
@@ -176,7 +181,7 @@ class SessionMemoryStore:
         where, params = self._scope(project_name, None)
         like = " OR ".join(["lower(summary) LIKE ?"] * len(words))
         where = f"{where} AND ({like})" if where else f"WHERE {like}"
-        with self._conn() as conn:
+        with closing(self._conn()) as conn:
             rows = conn.execute(
                 f"SELECT * FROM turns {where} ORDER BY ts DESC LIMIT ?",  # noqa: S608 — clauses are static templates
                 params + [f"%{w}%" for w in words] + [top_k],
@@ -193,16 +198,19 @@ class SessionMemoryStore:
         project_name: str | None = None,
         top_k: int = 3,
         exclude_session: str | None = None,
+        backend: str = "",
+        model: str = "",
     ) -> list[dict]:
         """Brute-force cosine over the bounded scan window (off-turn only).
 
-        Rows whose embedding dims differ from the query are SKIPPED —
-        vectors from different backends are incomparable, and comparing
-        them anyway would be a silent lie.
+        Rows are SKIPPED unless backend, model AND dims all match the
+        query vector's provenance — cosine across different embedding
+        spaces yields a meaningless number dressed as similarity, the
+        exact silent lie the honesty labels exist to prevent.
         """
         where, params = self._scope(project_name, exclude_session)
         prefix = f"{where} AND" if where else "WHERE"
-        with self._conn() as conn:
+        with closing(self._conn()) as conn:
             rows = conn.execute(
                 f"SELECT * FROM turns {prefix} embedding IS NOT NULL"  # noqa: S608 — clauses are static templates
                 " ORDER BY ts DESC LIMIT ?",
@@ -213,6 +221,8 @@ class SessionMemoryStore:
             record = self._row_to_record(row)
             if not record.embedding or record.dims != len(vector):
                 continue
+            if record.embedding_backend != backend or record.embedding_model != model:
+                continue
             score = _cosine(vector, record.embedding)
             scored.append(
                 {**record.model_dump(exclude={"embedding"}),
@@ -222,7 +232,7 @@ class SessionMemoryStore:
         return scored[:top_k]
 
     def backfill_candidates(self, limit: int = 10) -> list[TurnRecord]:
-        with self._conn() as conn:
+        with closing(self._conn()) as conn:
             rows = conn.execute(
                 "SELECT * FROM turns WHERE embedding IS NULL AND summary != ''"
                 " ORDER BY ts DESC LIMIT ?",
@@ -233,7 +243,7 @@ class SessionMemoryStore:
     def update_embedding(
         self, turn_id: str, vector: list[float], backend: str, model: str
     ) -> None:
-        with self._conn() as conn:
+        with closing(self._conn()) as conn, conn:
             conn.execute(
                 "UPDATE turns SET embedding = ?, embedding_backend = ?,"
                 " embedding_model = ?, dims = ? WHERE id = ?",
@@ -248,7 +258,7 @@ class SessionMemoryStore:
         cutoff = (
             datetime.now(timezone.utc) - timedelta(days=retention_days)
         ).isoformat()
-        with self._conn() as conn:
+        with closing(self._conn()) as conn, conn:
             removed = conn.execute(
                 "DELETE FROM turns WHERE ts < ?", (cutoff,)
             ).rowcount
@@ -260,7 +270,7 @@ class SessionMemoryStore:
         return removed
 
     def stats(self) -> dict:
-        with self._conn() as conn:
+        with closing(self._conn()) as conn:
             total = conn.execute("SELECT COUNT(*) AS c FROM turns").fetchone()["c"]
             backends = dict(
                 conn.execute(

@@ -25,10 +25,12 @@ def _write_transcript(tmp_path: Path) -> Path:
         {"type": "assistant", "message": {"role": "assistant", "content": [
             {"type": "tool_use", "name": "Write",
              "input": {"file_path": "/repo/core/api.py"}},
+            {"type": "tool_use", "name": "mcp__megacorp-db__query",
+             "input": {}},
         ]}},
         {"type": "assistant", "message": {"role": "assistant", "content": [
             {"type": "text",
-             "text": "Implemented the payment retry queue and fixed the error."},
+             "text": "Implemented the megacorp payment retry queue and fixed the error."},
         ]}},
     ]
     path = tmp_path / "transcript.jsonl"
@@ -37,9 +39,20 @@ def _write_transcript(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def sanitizer_ok(monkeypatch):
-    monkeypatch.setattr(turn_capture, "_sanitized_summary",
-                        lambda text: (text[:600], True))
+def redaction_config(tmp_path, monkeypatch):
+    """A REAL redaction config — the pipeline under test is the real one.
+
+    _DEFAULT_CONFIG_PATH is an import-time constant (Path.home() frozen
+    before this fixture's HOME override), so it is pointed explicitly at
+    the isolated config.
+    """
+    from core.governance import leak_scanner
+
+    cfg_dir = tmp_path / ".arkaos"
+    cfg_dir.mkdir(exist_ok=True)
+    cfg = cfg_dir / "redaction-clients.json"
+    cfg.write_text(json.dumps({"clients": ["megacorp"]}))
+    monkeypatch.setattr(leak_scanner, "_DEFAULT_CONFIG_PATH", cfg)
 
 
 @pytest.fixture
@@ -51,16 +64,23 @@ def fake_embed(monkeypatch):
     )
 
 
-def test_capture_full_pipeline(tmp_path, sanitizer_ok, fake_embed):
+def test_capture_full_pipeline_with_real_sanitizer(tmp_path, redaction_config,
+                                                   fake_embed):
+    """QG blocker B1/B2 regression: NO stubs on the sanitize path — a real
+    redaction config, the real _sanitized_summary, a persisted str row."""
     transcript = _write_transcript(tmp_path)
     assert turn_capture.capture_turn("sess-1", str(transcript), "/repo/myproj") == 0
     store = SessionMemoryStore()
     records = store.recent()
     assert len(records) == 1
     record = records[0]
+    assert isinstance(record.summary, str)
     assert "payment retry queue" in record.summary
+    assert "megacorp" not in record.summary  # redacted, not passed through
+    assert "[CLIENT-1]" in record.summary
     assert record.project_name == "myproj"
     assert "Write" in record.tools_used
+    assert not any("megacorp" in t for t in record.tools_used)  # B4
     assert "/repo/core/api.py" in record.file_paths
     assert record.embedding_backend == "fastembed"
     assert record.importance > 0.5  # error keyword + Write tool
@@ -68,16 +88,23 @@ def test_capture_full_pipeline(tmp_path, sanitizer_ok, fake_embed):
     assert cache.exists()
     payload = json.loads(cache.read_text())
     assert payload["retrieval"] == "semantic"
+    assert payload["version"] == 1
+    assert payload["session_id"] == "sess-1"
+    assert payload["dims"] == 2
+    # Unique-tmp discipline: no stray tmp files left behind (B3).
+    assert not list((tmp_path / ".arkaos" / "context-cache").glob("*.tmp"))
 
 
-def test_cache_ranks_cross_session_neighbours(tmp_path, sanitizer_ok, fake_embed):
+def test_cache_ranks_cross_session_neighbours(tmp_path, redaction_config,
+                                              fake_embed):
     store = SessionMemoryStore()
     from core.memory.semantic_store import TurnRecord
 
     store.save(TurnRecord(id="prev", ts="2026-07-10T00:00:00+00:00",
                           session_id="old-sess", project_name="myproj",
                           summary="previous payment work", embedding=[1.0, 0.0],
-                          embedding_backend="fastembed", dims=2))
+                          embedding_backend="fastembed",
+                          embedding_model="test-model", dims=2))
     transcript = _write_transcript(tmp_path)
     turn_capture.capture_turn("sess-2", str(transcript), "/repo/myproj")
     payload = json.loads(
@@ -90,17 +117,27 @@ def test_cache_ranks_cross_session_neighbours(tmp_path, sanitizer_ok, fake_embed
 
 
 def test_sanitizer_missing_refuses_text(tmp_path, monkeypatch, fake_embed):
-    """No sanitizer config -> summary AND paths are refused (metadata only)."""
-    monkeypatch.setattr(turn_capture, "_sanitized_summary", lambda t: ("", False))
+    """No redaction config -> the REAL refusal branch fires: summary and
+    paths refused; mcp tool server segments stripped. The import-time
+    _DEFAULT_CONFIG_PATH is pinned to an absent file for determinism
+    (the operator's real machine HAS a config)."""
+    from core.governance import leak_scanner
+
+    monkeypatch.setattr(
+        leak_scanner, "_DEFAULT_CONFIG_PATH",
+        tmp_path / ".arkaos" / "redaction-clients.json",  # does not exist
+    )
     transcript = _write_transcript(tmp_path)
     turn_capture.capture_turn("sess-3", str(transcript), "/repo/myproj")
     record = SessionMemoryStore().recent()[0]
     assert record.summary == ""
     assert record.file_paths == []
-    assert record.tools_used == ["Write"]  # tool names carry no client text
+    assert "Write" in record.tools_used  # generic names carry no client text
+    assert "mcp__query" in record.tools_used  # server segment stripped (B4)
+    assert not any("megacorp" in t for t in record.tools_used)
 
 
-def test_degraded_embedding_labeled(tmp_path, sanitizer_ok, monkeypatch):
+def test_degraded_embedding_labeled(tmp_path, redaction_config, monkeypatch):
     monkeypatch.setattr(turn_capture, "embed", lambda text: EmbeddingResult())
     transcript = _write_transcript(tmp_path)
     turn_capture.capture_turn("sess-4", str(transcript), "/repo/myproj")

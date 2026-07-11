@@ -8,8 +8,8 @@ hot path. Pipeline per turn:
     no sanitizer config ⇒ text is refused, metadata-only record) →
     importance → embed (multi-backend, provenance declared) → store →
     precompute cross-session semantic neighbours into the session cache
-    read by Synapse at the next prompt → amortised maintenance
-    (embedding backfill + retention prune).
+    PRODUCED FOR the F1-A3 retrieval layer (no reader exists in this PR)
+    → amortised maintenance (embedding backfill + retention prune).
 
 CLI: ``python3 -m core.memory.turn_capture <session_id> <transcript_path> [cwd]``
 """
@@ -20,6 +20,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -96,9 +97,27 @@ def _sanitized_summary(text: str) -> tuple[str, bool]:
     except Exception:  # noqa: BLE001
         return "", False
     try:
-        return sanitize_text(text[:_SUMMARY_CHARS]), True
+        clean, _counts = sanitize_text(text[:_SUMMARY_CHARS])
+        return clean, True
     except SanitizerConfigMissing:
         return "", False
+
+
+_MCP_TOOL_RE = re.compile(r"^mcp__[^_]((?!__).)*__")
+
+
+def _safe_tool_names(tools: list[str], sanitized_ok: bool) -> list[str]:
+    """Tool names are metadata but not neutral: ``mcp__<server>__<tool>``
+    carries an operator-chosen server segment that can name a client.
+    Sanitizer available → redact through it; unavailable → strip the
+    server segment entirely (fail closed, v2.18.0 precedent)."""
+    if sanitized_ok:
+        try:
+            from core.evals.sanitizer import sanitize_text
+            return [sanitize_text(name)[0] for name in tools]
+        except Exception:  # noqa: BLE001
+            pass
+    return [_MCP_TOOL_RE.sub("mcp__", name) for name in tools]
 
 
 def _importance(text: str, tools: list[str]) -> float:
@@ -127,14 +146,19 @@ def _precompute_cache(
         items = store.semantic_neighbors(
             record.embedding, record.project_name or None,
             top_k=_NEIGHBOUR_K, exclude_session=session_id,
+            backend=record.embedding_backend, model=record.embedding_model,
         )
         retrieval = "semantic"
     else:
         items, retrieval = [], "keyword-degraded"
     payload = {
+        "version": 1,
+        "session_id": session_id,
         "computed_at": datetime.now(timezone.utc).isoformat(),
         "retrieval": retrieval,
         "embedding_backend": record.embedding_backend,
+        "embedding_model": record.embedding_model,
+        "dims": record.dims,
         "items": [
             {"summary": i["summary"][:200], "project_name": i["project_name"],
              "ts": i["ts"], "score": i["score"], "retrieval": i["retrieval"]}
@@ -142,9 +166,17 @@ def _precompute_cache(
         ],
     }
     target = _cache_path(session_id)
-    tmp = target.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    os.replace(tmp, target)
+    # Unique tmp per writer: overlapping workers for the same session must
+    # not share a tmp path, or write+replace stops being atomic.
+    fd, tmp_name = tempfile.mkstemp(
+        dir=target.parent, prefix=f"{target.name}.", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, indent=2))
+        os.replace(tmp_name, target)
+    except OSError:
+        Path(tmp_name).unlink(missing_ok=True)
 
 
 def _maintenance(store: SessionMemoryStore) -> None:
@@ -167,6 +199,7 @@ def capture_turn(session_id: str, transcript_path: str, cwd: str = "") -> int:
     text = _last_assistant_text(transcript_path, raw)
     tools, paths = _parse_tool_uses(raw)
     summary, sanitized_ok = _sanitized_summary(text)
+    tools = _safe_tool_names(tools, sanitized_ok)
     if not sanitized_ok:
         paths = []  # refuse anything textual when the sanitizer is absent
     result: EmbeddingResult = embed(summary) if summary else EmbeddingResult()

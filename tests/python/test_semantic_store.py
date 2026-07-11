@@ -56,27 +56,43 @@ def test_keyword_search_short_words_ignored(store):
 
 def test_semantic_neighbors_orders_by_cosine(store):
     store.save(_record(id="near", embedding=[1.0, 0.0], dims=2,
-                       embedding_backend="fastembed"))
+                       embedding_backend="fastembed", embedding_model="m1"))
     store.save(_record(id="far", embedding=[0.0, 1.0], dims=2,
-                       embedding_backend="fastembed"))
-    hits = store.semantic_neighbors([1.0, 0.1], project_name="proj")
+                       embedding_backend="fastembed", embedding_model="m1"))
+    hits = store.semantic_neighbors([1.0, 0.1], project_name="proj",
+                                    backend="fastembed", model="m1")
     assert [h["id"] for h in hits] == ["near", "far"]
     assert all(h["retrieval"] == "semantic" for h in hits)
     assert hits[0]["score"] > hits[1]["score"]
 
 
 def test_semantic_neighbors_skips_mismatched_dims(store):
-    """Vectors from different backends are incomparable — never compared."""
     store.save(_record(id="ok", embedding=[1.0, 0.0], dims=2))
     store.save(_record(id="alien", embedding=[1.0, 0.0, 0.0], dims=3))
-    hits = store.semantic_neighbors([1.0, 0.0], project_name="proj")
+    hits = store.semantic_neighbors([1.0, 0.0], project_name="proj",
+                                    backend="none", model="")
     assert [h["id"] for h in hits] == ["ok"]
+
+
+def test_semantic_neighbors_skips_other_vector_spaces(store):
+    """QG blocker E2: same dims from a different backend/model is NOT
+    comparable — cosine across spaces is a meaningless number."""
+    store.save(_record(id="mine", embedding=[1.0, 0.0], dims=2,
+                       embedding_backend="fastembed", embedding_model="bge"))
+    store.save(_record(id="alien-backend", embedding=[1.0, 0.0], dims=2,
+                       embedding_backend="ollama", embedding_model="nomic"))
+    store.save(_record(id="alien-model", embedding=[1.0, 0.0], dims=2,
+                       embedding_backend="fastembed", embedding_model="minilm"))
+    hits = store.semantic_neighbors([1.0, 0.0], project_name="proj",
+                                    backend="fastembed", model="bge")
+    assert [h["id"] for h in hits] == ["mine"]
 
 
 def test_semantic_neighbors_excludes_session(store):
     store.save(_record(id="own", session_id="current", embedding=[1.0], dims=1))
     store.save(_record(id="cross", session_id="older", embedding=[1.0], dims=1))
-    hits = store.semantic_neighbors([1.0], exclude_session="current")
+    hits = store.semantic_neighbors([1.0], exclude_session="current",
+                                    backend="none", model="")
     assert [h["id"] for h in hits] == ["cross"]
 
 
