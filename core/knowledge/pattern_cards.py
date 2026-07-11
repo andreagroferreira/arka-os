@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
@@ -48,6 +48,10 @@ class PatternCard:
     projects_using: list[str] = field(default_factory=list)
     created_at: str = ""
     last_updated: str = ""
+    # F1-C1 decay fields — defaults keep every pre-existing JSONL line
+    # loading unchanged (no migration).
+    last_reinforced: str = ""
+    use_count: int = 0
 
 
 def pattern_to_dict(card: PatternCard) -> dict:
@@ -132,6 +136,23 @@ def record_pattern(card: PatternCard) -> None:
     _write_all(others)
 
 
+def reinforce_pattern(pattern_id: str) -> bool:
+    """Real usage evidence re-touches the card: refresh last_reinforced,
+    bump use_count. Returns True when the card existed. Decay fades
+    untouched cards; reinforcement is the only counter-force."""
+    safe = _safe_id(pattern_id)
+    if safe is None:
+        return False
+    cards = _load_all()
+    target = next((c for c in cards if c.id == safe), None)
+    if target is None:
+        return False
+    target.last_reinforced = datetime.now(UTC).isoformat()
+    target.use_count += 1
+    _write_all(cards)
+    return True
+
+
 def _card_text(card: PatternCard) -> str:
     """Flatten searchable text from a card."""
     parts = [card.name, card.description] + (card.feature_keywords or [])
@@ -171,5 +192,18 @@ def query_patterns(
         c for c in cards
         if _matches_keywords(c, kws) and _matches_tags(c, tgs)
     ]
+    # F1-C1 decay: stale cards fade from injection (never from disk).
+    # Weight decays from the freshest touch; below the floor the card
+    # is dropped from RESULTS only — the JSONL is untouched.
+    from core.shared.decay import INJECTION_FLOOR, decay_enabled, decayed_weight
+
+    if decay_enabled():
+        weighted = [
+            (decayed_weight(c.last_reinforced or c.last_updated or c.created_at), c)
+            for c in matched
+        ]
+        weighted = [(w, c) for w, c in weighted if w >= INJECTION_FLOOR]
+        weighted.sort(key=lambda pair: (pair[0], pair[1].last_updated), reverse=True)
+        return [c for _w, c in weighted[:limit]]
     matched.sort(key=lambda c: c.last_updated or c.created_at, reverse=True)
     return matched[:limit]

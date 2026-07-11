@@ -171,10 +171,12 @@ def _record_pattern_stub(tool_output: str, prompt: str) -> None:
     try:
         from core.knowledge.pattern_cards import (
             PatternCard,
-            query_patterns,
             record_pattern,
+            reinforce_pattern,
         )
-        if any(c.id == pid for c in query_patterns(limit=1000)):
+        # An APPROVED verdict on an EXISTING card is real usage evidence —
+        # reinforce it (F1-C1 decay counter-force) instead of returning.
+        if reinforce_pattern(pid):
             return
         ts = datetime.now(timezone.utc).isoformat()
         record_pattern(PatternCard(
