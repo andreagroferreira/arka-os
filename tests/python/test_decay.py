@@ -159,6 +159,45 @@ def test_legacy_jsonl_lines_still_load(patterns):
     assert [c.id for c in patterns.query_patterns(keywords=["payment"])] == ["legacy"]
 
 
+def test_query_hoists_config_reads(patterns, monkeypatch):
+    """QG blocker B1: config parsed O(1) per query, never per card."""
+    for i in range(50):
+        _card(patterns, f"c{i}", last_reinforced=_iso(1))
+    reads = {"n": 0}
+    original = decay._decay_config
+
+    def counting():
+        reads["n"] += 1
+        return original()
+
+    monkeypatch.setattr(decay, "_decay_config", counting)
+    patterns.query_patterns(keywords=["payment"])
+    assert reads["n"] <= 3  # enabled + half-life resolution, never 2N+1
+
+
+def test_floor_tie_with_null_last_updated_never_crashes(patterns):
+    """QG blocker B2: two floor-tied cards, one with last_updated=None,
+    must sort via the created_at fallback — master's behaviour."""
+    patterns.PATTERNS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        {"id": "a", "name": "A", "feature_keywords": ["payment"],
+         "description": "d", "stack": [], "files": [],
+         "acceptance_criteria": [], "edge_cases": [], "references": [],
+         "projects_using": [], "created_at": _iso(1),
+         "last_updated": None, "last_reinforced": "not-a-date"},
+        {"id": "b", "name": "B", "feature_keywords": ["payment"],
+         "description": "d", "stack": [], "files": [],
+         "acceptance_criteria": [], "edge_cases": [], "references": [],
+         "projects_using": [], "created_at": _iso(2),
+         "last_updated": None, "last_reinforced": "also-not-a-date"},
+    ]
+    patterns.PATTERNS_PATH.write_text(
+        "\n".join(json.dumps(entry) for entry in lines) + "\n"
+    )
+    results = patterns.query_patterns(keywords=["payment"])  # must not raise
+    assert [c.id for c in results] == ["a", "b"]  # created_at fallback orders
+
+
 # ─── post_tool_use stub reinforcement ──────────────────────────────────
 
 

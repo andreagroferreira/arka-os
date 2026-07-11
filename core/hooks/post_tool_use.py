@@ -175,7 +175,8 @@ def _record_pattern_stub(tool_output: str, prompt: str) -> None:
             reinforce_pattern,
         )
         # An APPROVED verdict on an EXISTING card is real usage evidence —
-        # reinforce it (F1-C1 decay counter-force) instead of returning.
+        # reinforce it AND return: falling through to record_pattern would
+        # REPLACE an enriched card with this fresh empty stub (data loss).
         if reinforce_pattern(pid):
             return
         ts = datetime.now(timezone.utc).isoformat()

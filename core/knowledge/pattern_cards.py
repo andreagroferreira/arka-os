@@ -195,15 +195,29 @@ def query_patterns(
     # F1-C1 decay: stale cards fade from injection (never from disk).
     # Weight decays from the freshest touch; below the floor the card
     # is dropped from RESULTS only — the JSONL is untouched.
-    from core.shared.decay import INJECTION_FLOOR, decay_enabled, decayed_weight
+    from core.shared.decay import (
+        INJECTION_FLOOR,
+        decay_enabled,
+        decayed_weight,
+        half_life_days,
+    )
 
     if decay_enabled():
+        # Config resolved ONCE per query — this runs on the L7.5 prompt
+        # path; per-card config parsing would read the same file 2N times.
+        hl = half_life_days()
         weighted = [
-            (decayed_weight(c.last_reinforced or c.last_updated or c.created_at), c)
+            (decayed_weight(
+                c.last_reinforced or c.last_updated or c.created_at,
+                half_life=hl, enabled=True,
+            ), c)
             for c in matched
         ]
         weighted = [(w, c) for w, c in weighted if w >= INJECTION_FLOOR]
-        weighted.sort(key=lambda pair: (pair[0], pair[1].last_updated), reverse=True)
+        weighted.sort(
+            key=lambda pair: (pair[0], pair[1].last_updated or pair[1].created_at or ""),
+            reverse=True,
+        )
         return [c for _w, c in weighted[:limit]]
     matched.sort(key=lambda c: c.last_updated or c.created_at, reverse=True)
     return matched[:limit]

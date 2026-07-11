@@ -1,8 +1,9 @@
 """Knowledge decay — "the graph that forgets" (F1-C1, ruflo teardown).
 
-Read-time exponential decay for knowledge stores (pattern cards,
-recipes, agent experiences): records are NEVER deleted by decay — they
-fade out of context injection unless reinforcement re-touches them.
+Read-time exponential decay for knowledge stores (pattern cards as of
+F1-C1; recipes and agent experiences wire in F1-C2): records are NEVER
+deleted by decay — they fade out of context injection unless
+reinforcement re-touches them.
 Verified semantics from the claude-flow v3 teardown: rows carry a
 last-reinforced timestamp; weight halves every ``half_life_days``;
 consumers drop records below a floor from injection only.
@@ -69,14 +70,21 @@ def decayed_weight(
     last_reinforced_iso: str,
     half_life: float | None = None,
     now: datetime | None = None,
+    enabled: bool | None = None,
 ) -> float:
     """Weight in (0, 1]: 1.0 fresh, 0.5 after one half-life, and so on.
 
     An unparseable/empty timestamp returns the floor (not 0.0): a record
     with unknown age is dimmed, never silently erased from ranking.
     When decay is disabled every record weighs 1.0.
+
+    Hot-path callers MUST hoist the config reads: resolve
+    ``decay_enabled()`` and ``half_life_days()`` ONCE per query and pass
+    them via ``enabled``/``half_life`` — per-record config parsing on an
+    injection path is the exact laziness this param surface exists to
+    prevent.
     """
-    if not decay_enabled():
+    if not (decay_enabled() if enabled is None else enabled):
         return 1.0
     parsed = _parse_ts(last_reinforced_iso or "")
     if parsed is None:
