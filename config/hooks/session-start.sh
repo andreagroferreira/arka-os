@@ -190,6 +190,14 @@ except Exception:
   [ -n "$_SESSION_CTX" ] && MSG+="\\n${_SESSION_CTX}"
 fi
 
+# --- Session Semantic Memory Recap (F1-A3) ---
+# Compact importance+recency recap from ~/.arkaos/session-memory.db.
+# Best-effort: any failure or empty store contributes nothing.
+if command -v "$ARKA_PY" >/dev/null 2>&1 && [ -n "$REPO" ]; then
+  _MEM_RECAP=$(cd "$REPO" && PYTHONPATH="$REPO" "$ARKA_PY" -m core.hooks.session_start "$PWD" 2>/dev/null || true)
+  [ -n "$_MEM_RECAP" ] && MSG+="\\n\\n${_MEM_RECAP}"
+fi
+
 # ─── Output as systemMessage (same protocol as claude-mem) ─────────────
 # OWASP A03: MSG carries profile-derived NAME/COMPANY. Pass it through the
 # environment (with \n already expanded) rather than interpolating it into

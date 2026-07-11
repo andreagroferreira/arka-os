@@ -205,6 +205,7 @@ def create_default_engine(
     from core.synapse.graph_context_layer import GraphContextLayer
     from core.synapse.pattern_library_layer import PatternLibraryLayer
     from core.synapse.recipe_layer import RecipeLayer
+    from core.synapse.session_memory_layer import SessionMemoryLayer
 
     engine = SynapseEngine()
 
@@ -252,5 +253,10 @@ def create_default_engine(
     # work. Inert when no recipes are captured.
     engine.register_layer(RecipeLayer())
     engine.register_layer(SessionContextLayer())
+    # L9.5 (F1-A3) — cross-session semantic turn memory. Reads the cache
+    # the detached turn-capture worker precomputed (asof-last-turn) plus
+    # a live keyword LIKE; NEVER embeds on the prompt path. Registered
+    # unconditionally: inert (zero tokens) when the store is empty.
+    engine.register_layer(SessionMemoryLayer())
 
     return engine

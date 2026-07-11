@@ -244,7 +244,7 @@ class TestSynapseEngine:
         # PR-3 v4.1 added L2.7 GraphContextLayer: 12 -> 13.
         # Prompt-surface P0 2026-07-08 removed L7 TimeLayer: 13 -> 12.
         # Interaction Reform PR8 added L7.6 RecipeLayer: 12 -> 13.
-        assert engine.layer_count == 13
+        assert engine.layer_count == 14
 
     def test_inject_returns_result(self):
         engine = create_default_engine(constitution_compressed="NON-NEGOTIABLE: a")
