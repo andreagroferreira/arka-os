@@ -2,7 +2,7 @@
 # ============================================================================
 # ARKA OS — Doctor (Health Check System)
 # Usage: arka doctor [--fix] [--json]
-# 17 modular checks: fail = critical, warn = advisory
+# 18 modular checks: fail = critical, warn = advisory
 # ============================================================================
 set -euo pipefail
 
@@ -375,6 +375,25 @@ for hf_name in hyperframes hyperframes-core; do
   fi
 done
 run_check "hyperframes-skills" "warn" "$HF_DESC" "$HF_OK" "Run /content video-setup in Claude Code"
+
+# ─── Check 18: SQLite corrupt-store backups (self-heal F1-D1) ──────────────
+# Parity with installer/doctor.js `sqlite-corrupt-backups`: same name,
+# same pattern, warn-only. A <db>.corrupt-<ts>.bak means a store healed
+# itself — the operator should inspect, then delete the backup.
+BAK_OK=true
+BAK_DESC="No self-healed SQLite stores awaiting inspection"
+BAK_LIST=""
+if [ -d "$HOME/.arkaos" ]; then
+  # `|| true`: set -euo pipefail must not kill the doctor when find
+  # errors or head closes the pipe early — absence of backups is fine.
+  BAK_LIST=$(find "$HOME/.arkaos" -name "*.corrupt-*.bak" -type f 2>/dev/null | head -3 || true)
+fi
+if [ -n "$BAK_LIST" ]; then
+  BAK_OK=false
+  BAK_FIRST=$(echo "$BAK_LIST" | head -1)
+  BAK_DESC="Self-healed store backup(s) found (e.g. ${BAK_FIRST##*/})"
+fi
+run_check "sqlite-corrupt-backups" "warn" "$BAK_DESC" "$BAK_OK" "Inspect then delete ~/.arkaos/**/*.corrupt-*.bak"
 
 # ─── Output ────────────────────────────────────────────────────────────────
 TOTAL=$((PASS_COUNT + WARN_COUNT + FAIL_COUNT))

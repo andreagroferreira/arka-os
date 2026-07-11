@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
@@ -32,6 +32,20 @@ export function hyperframesSkillsInstalled(
   return ["hyperframes", "hyperframes-core"].some((name) =>
     existsSync(join(skillsDir, name, "SKILL.md"))
   );
+}
+
+// SQLite self-heal (F1-D1) leaves the corrupt original as
+// <db>.corrupt-<ts>.bak next to the recovered file. Their presence means
+// a store healed itself — surface it so the operator can inspect/delete.
+// baseDir is injectable for tests.
+export function corruptDbBackups(baseDir = INSTALL_DIR) {
+  try {
+    return readdirSync(baseDir, { recursive: true })
+      .map(String)
+      .filter((name) => /\.corrupt-\d+\.bak$/.test(name));
+  } catch {
+    return [];
+  }
 }
 
 export const checks = [
@@ -225,6 +239,13 @@ export const checks = [
     severity: "warn",
     check: () => commandExists("codebase-memory-mcp"),
     fix: () => "Install codebase-memory-mcp (see mcps/registry.json entry for the one-liner), then /arka update to activate per project",
+  },
+  {
+    name: "sqlite-corrupt-backups",
+    description: "No self-healed SQLite stores awaiting inspection",
+    severity: "warn",
+    check: () => corruptDbBackups().length === 0,
+    fix: () => "Inspect then delete ~/.arkaos/**/*.corrupt-*.bak",
   },
   {
     name: "magic-api-key",

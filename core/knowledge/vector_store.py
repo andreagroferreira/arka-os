@@ -112,18 +112,30 @@ class VectorStore:
     def __init__(self, db_path: str | Path = ":memory:") -> None:
         import threading
         self._db_path = str(db_path)
+        self._db: sqlite3.Connection | None = None
+        self._write_lock = threading.Lock()
+        # A corrupt file triggers ONE self-heal attempt (F1-D1) before
+        # the error propagates — the original is never destroyed.
+        from core.shared.sqlite_recovery import open_with_recovery
+        open_with_recovery(self._db_path, self._open)
+
+    def _open(self) -> None:
+        if self._db is not None:
+            try:
+                self._db.close()
+            except sqlite3.Error:
+                pass
         # check_same_thread=False — see class docstring.
         self._db = sqlite3.connect(self._db_path, check_same_thread=False)
         self._db.row_factory = sqlite3.Row
         # WAL gives concurrent readers + a single writer at the engine
-        # level. The Python lock below serialises our application-level
+        # level. The instance write-lock serialises our application-level
         # writes per VectorStore instance.
         try:
             self._db.execute("PRAGMA journal_mode=WAL")
         except sqlite3.OperationalError:
             # in-memory DBs don't support WAL — harmless.
             pass
-        self._write_lock = threading.Lock()
         self._vec_available = _load_vec(self._db)
         self._init_schema()
 
