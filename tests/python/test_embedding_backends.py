@@ -278,6 +278,32 @@ def test_api_malformed_200_body_degrades(monkeypatch, body):
     assert result.vector is None
 
 
+def test_api_malformed_row_degrades_only_itself(monkeypatch):
+    """One bad row must not discard valid sibling vectors (QG fast-follow M1)."""
+    monkeypatch.setenv("ARKA_EMBED_BACKEND", "api")
+    monkeypatch.setattr(embedding_backends, "_api_key", lambda: "sk-test")
+    monkeypatch.setattr(
+        embedding_backends.urllib.request,
+        "urlopen",
+        _fake_urlopen_factory(
+            {
+                "/v1/embeddings": {
+                    "data": [
+                        {"index": 0, "embedding": "not-a-list"},
+                        {"index": 1, "embedding": [7.0]},
+                        "not-a-dict",
+                        {"index": -1, "embedding": [666.0]},
+                        {"index": 99, "embedding": [666.0]},
+                    ]
+                }
+            }
+        ),
+    )
+    results = embed_batch(["first", "second"])
+    assert results[0].vector is None and results[0].backend == "none"
+    assert results[1].vector == [7.0] and results[1].backend == "api"
+
+
 def test_api_partial_rows_map_by_index(monkeypatch):
     """Missing indexes stay None; present ones land on the right text."""
     monkeypatch.setenv("ARKA_EMBED_BACKEND", "api")

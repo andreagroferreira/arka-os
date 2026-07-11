@@ -191,6 +191,19 @@ def _api_base_allowed(base: str) -> bool:
     return False
 
 
+def _rows_to_vectors(rows: object, n: int) -> list[Optional[list[float]]]:
+    """Map api rows by declared index; a malformed row degrades only itself."""
+    vectors: list[Optional[list[float]]] = [None] * n
+    for row in rows if isinstance(rows, list) else []:
+        try:
+            idx = row.get("index")
+            if isinstance(idx, int) and 0 <= idx < n:
+                vectors[idx] = list(map(float, row["embedding"]))
+        except (ValueError, TypeError, KeyError, AttributeError):
+            continue  # one bad row must not discard valid siblings
+    return vectors
+
+
 def _embed_api(texts: list[str]) -> list[Optional[list[float]]]:
     key = _api_key()
     if not key:
@@ -209,15 +222,7 @@ def _embed_api(texts: list[str]) -> list[Optional[list[float]]]:
             _API_TIMEOUT_S,
         )
         rows = data.get("data") if isinstance(data, dict) else None
-        # Rows are mapped by their declared index — precise per-item
-        # alignment; absent indexes stay None.
-        vectors: list[Optional[list[float]]] = [None] * len(texts)
-        for row in rows if isinstance(rows, list) else []:
-            if isinstance(row, dict):
-                idx = row.get("index")
-                if isinstance(idx, int) and 0 <= idx < len(texts):
-                    vectors[idx] = list(map(float, row["embedding"]))
-        return vectors
+        return _rows_to_vectors(rows, len(texts))
     except (urllib.error.URLError, OSError, ValueError,
             TypeError, KeyError, AttributeError) as exc:
         logger.warning("api embed failed (%s) — degrading to none", exc)
