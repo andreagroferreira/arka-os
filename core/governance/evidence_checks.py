@@ -185,20 +185,101 @@ def _mypy_configured(project_dir: Path) -> bool:
 
 # ─── Individual checks ──────────────────────────────────────────────────
 
+_LINTABLE_PY = frozenset({".py"})
+_LINTABLE_JS = frozenset({".js", ".jsx", ".ts", ".tsx", ".vue", ".mjs", ".cjs"})
+_LINTABLE_PHP = frozenset({".php"})
+
+
+def _scoped_files(
+    project_dir: Path, changed: list[str] | None, exts: frozenset[str],
+) -> list[str]:
+    """Changed files that live inside project_dir and carry a lintable ext."""
+    if not changed:
+        return []
+    root = project_dir.resolve()
+    out: list[str] = []
+    for raw in changed:
+        p = Path(raw)
+        candidate = p if p.is_absolute() else project_dir / p
+        try:
+            rel = candidate.resolve().relative_to(root)
+        except (ValueError, OSError):
+            continue
+        if candidate.suffix.lower() in exts and candidate.is_file():
+            out.append(str(rel))
+    return out
+
+
+def _labelled(result: CheckResult, label: str) -> CheckResult:
+    """Prefix the reported command with the lint scope label."""
+    result.command = f"{label} {result.command}".strip()
+    return result
+
+
+def _lint_scoped(
+    project_dir: Path, changed: list[str], timeout: int,
+) -> CheckResult | None:
+    """Lint only the changed files when the detected linter supports it.
+
+    Pre-existing project-wide debt is master's debt, not this change's —
+    the same principle _check_security_grep already applies to its diff
+    scope. Returns None when no scoped run applies (caller falls back).
+    """
+    if shutil.which("ruff"):
+        files = _scoped_files(project_dir, changed, _LINTABLE_PY)
+        if files:
+            result = _run("lint", ["ruff", "check", *files], project_dir, timeout)
+            return _labelled(result, f"lint(scoped: {len(files)} file(s))")
+    eslint = project_dir / "node_modules" / ".bin" / "eslint"
+    if eslint.is_file():
+        files = _scoped_files(project_dir, changed, _LINTABLE_JS)
+        if files:
+            result = _run("lint", [str(eslint), *files], project_dir, timeout)
+            return _labelled(result, f"lint(scoped: {len(files)} file(s))")
+    pint = project_dir / "vendor" / "bin" / "pint"
+    if pint.is_file():
+        files = _scoped_files(project_dir, changed, _LINTABLE_PHP)
+        if files:
+            result = _run(
+                "lint", [str(pint), "--test", *files], project_dir, timeout,
+            )
+            return _labelled(result, f"lint(scoped: {len(files)} file(s))")
+    return None
+
 
 def _check_lint(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
+    if changed:
+        scoped = _lint_scoped(project_dir, changed, timeout)
+        if scoped is not None:
+            return scoped
+        lintable = (
+            _scoped_files(project_dir, changed, _LINTABLE_PY)
+            or _scoped_files(project_dir, changed, _LINTABLE_JS)
+            or _scoped_files(project_dir, changed, _LINTABLE_PHP)
+        )
+        if not lintable:
+            return _skip("lint", "changed files contain no lintable sources")
     if _has_python(project_dir, changed) and shutil.which("ruff"):
-        return _run("lint", ["ruff", "check", "."], project_dir, timeout)
+        return _labelled(
+            _run("lint", ["ruff", "check", "."], project_dir, timeout),
+            "lint(project-wide)",
+        )
     if _package_json_script(project_dir, "lint"):
-        return _run(
-            "lint", ["npm", "run", "--silent", "lint"], project_dir, timeout,
+        return _labelled(
+            _run(
+                "lint", ["npm", "run", "--silent", "lint"], project_dir, timeout,
+            ),
+            "lint(project-wide)",
         )
     pint = project_dir / "vendor" / "bin" / "pint"
     if pint.is_file():
-        return _run("lint", [str(pint), "--test"], project_dir, timeout)
+        return _labelled(
+            _run("lint", [str(pint), "--test"], project_dir, timeout),
+            "lint(project-wide)",
+        )
     return _skip("lint", "no lint tooling detected (ruff/eslint/pint)")
 
 

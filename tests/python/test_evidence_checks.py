@@ -285,6 +285,124 @@ def test_lint_runs_ruff_when_available(tmp_path, monkeypatch):
     assert calls["cmd"][0] == "ruff"
 
 
+def test_lint_scopes_to_changed_python_files(tmp_path, monkeypatch):
+    """Clean changed file in a debt-ridden project must pass — master's
+    debt is not this change's."""
+    clean = tmp_path / "clean.py"
+    clean.write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "legacy_debt.py").write_text("import os,sys\n", encoding="utf-8")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/ruff" if name == "ruff" else None,
+    )
+    calls = {}
+
+    def fake_run(cmd, **kwargs):
+        calls["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, changed_files=["clean.py"], checks=["lint"],
+    )
+    result = _result(report, "lint")
+    assert result.passed is True
+    assert calls["cmd"] == ["ruff", "check", "clean.py"]
+    assert "lint(scoped: 1 file(s))" in result.command
+
+
+def test_lint_scoped_fails_on_dirty_changed_file(tmp_path, monkeypatch):
+    dirty = tmp_path / "dirty.py"
+    dirty.write_text("import os,sys\n", encoding="utf-8")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/ruff" if name == "ruff" else None,
+    )
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 1, stdout="E401", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, changed_files=["dirty.py"], checks=["lint"],
+    )
+    assert _result(report, "lint").passed is False
+
+
+def test_lint_without_changed_files_stays_project_wide(tmp_path, monkeypatch):
+    (tmp_path / "module.py").write_text("x = 1\n", encoding="utf-8")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/ruff" if name == "ruff" else None,
+    )
+    calls = {}
+
+    def fake_run(cmd, **kwargs):
+        calls["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["lint"])
+    result = _result(report, "lint")
+    assert calls["cmd"] == ["ruff", "check", "."]
+    assert "lint(project-wide)" in result.command
+
+
+def test_lint_skips_when_changed_files_not_lintable(tmp_path, monkeypatch):
+    doc = tmp_path / "README.md"
+    doc.write_text("# docs\n", encoding="utf-8")
+    (tmp_path / "module.py").write_text("x = 1\n", encoding="utf-8")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/ruff" if name == "ruff" else None,
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["README.md"], checks=["lint"],
+    )
+    result = _result(report, "lint")
+    assert result.ran is False
+    assert "no lintable sources" in result.summary
+
+
+def test_lint_scopes_to_changed_js_files_via_local_eslint(tmp_path, monkeypatch):
+    eslint = tmp_path / "node_modules" / ".bin" / "eslint"
+    eslint.parent.mkdir(parents=True)
+    eslint.write_text("#!/bin/sh\n", encoding="utf-8")
+    changed = tmp_path / "app.vue"
+    changed.write_text("<template/>\n", encoding="utf-8")
+    monkeypatch.setattr(evidence_checks.shutil, "which", lambda _: None)
+    calls = {}
+
+    def fake_run(cmd, **kwargs):
+        calls["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, changed_files=["app.vue"], checks=["lint"],
+    )
+    result = _result(report, "lint")
+    assert result.passed is True
+    assert calls["cmd"] == [str(eslint), "app.vue"]
+    assert "lint(scoped: 1 file(s))" in result.command
+
+
+def test_lint_changed_outside_project_dir_ignored(tmp_path, monkeypatch):
+    (tmp_path / "module.py").write_text("x = 1\n", encoding="utf-8")
+    outside = tmp_path.parent / f"{tmp_path.name}-outside.py"
+    outside.write_text("x = 1\n", encoding="utf-8")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/ruff" if name == "ruff" else None,
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=[str(outside)], checks=["lint"],
+    )
+    result = _result(report, "lint")
+    assert result.ran is False
+    assert "no lintable sources" in result.summary
+
+
 def test_typecheck_skips_without_configuration(tmp_path, monkeypatch):
     monkeypatch.setattr(evidence_checks.shutil, "which", lambda _: None)
     result = _result(
