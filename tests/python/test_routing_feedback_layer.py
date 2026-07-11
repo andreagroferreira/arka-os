@@ -111,6 +111,43 @@ def test_corrupt_scores_file_inert(tmp_path):
     assert result.content == ""
 
 
+def test_fail_open_on_internal_exception(tmp_path, monkeypatch):
+    """The contract this layer sells: NO exception reaches the prompt path."""
+    _write_scores(tmp_path, [_risky("dev")])
+    layer = RoutingFeedbackLayer()
+    monkeypatch.setattr(
+        layer, "_warn_if_risky",
+        lambda ctx: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    result = layer.compute(_ctx(DEV_PROMPT))  # must not raise
+    assert result.content == ""
+    assert result.tokens_est == 0
+
+
+def test_non_dict_config_defaults_flag_on(tmp_path):
+    """Malformed-but-valid JSON (a list) keeps the documented default: ON."""
+    cfg = tmp_path / ".arkaos" / "config.json"
+    cfg.parent.mkdir(parents=True, exist_ok=True)
+    cfg.write_text(json.dumps(["not", "a", "dict"]))
+    _write_scores(tmp_path, [_risky("dev")])
+    result = RoutingFeedbackLayer().compute(_ctx(DEV_PROMPT))
+    assert "[arka:redo-risk]" in result.content  # flag ON despite junk config
+
+
+def test_detect_department_swallows_layer_errors(monkeypatch):
+    """Best-effort detection: a DepartmentLayer crash yields '' silently."""
+    from core.synapse import routing_feedback_layer as rfl
+
+    class _Boom:
+        def compute(self, ctx):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "core.synapse.layers.DepartmentLayer", lambda: _Boom()
+    )
+    assert rfl._detect_department(_ctx(DEV_PROMPT)) == ""
+
+
 def test_registered_in_default_engine():
     from core.synapse.engine import create_default_engine
 

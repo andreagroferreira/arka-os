@@ -41,6 +41,8 @@ def _l55_feature_flag_on() -> bool:
         data = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return True
+    if not isinstance(data, dict):
+        return True  # malformed-but-valid JSON (list/str) => documented default ON
     synapse_cfg = data.get("synapse") or {}
     return bool(synapse_cfg.get("l55RoutingFeedback", True))
 
@@ -55,7 +57,7 @@ def _detect_department(ctx: PromptContext) -> str:
         tag = result.tag or ""
         if tag.startswith("[dept:") and tag.endswith("]"):
             return tag[len("[dept:"):-1]
-    except Exception:  # noqa: BLE001 — detection is best-effort
+    except Exception:  # detection is best-effort
         pass
     return ""
 
@@ -81,7 +83,7 @@ class RoutingFeedbackLayer(Layer):
 
     @property
     def priority(self) -> int:
-        return 55  # after L5 CommandHints/QG (50s), before Forge
+        return 55  # after L5 CommandHints (50), before L6 QualityGate (60)
 
     def compute(self, ctx: PromptContext) -> LayerResult:
         start = time.time()
@@ -89,7 +91,7 @@ class RoutingFeedbackLayer(Layer):
         try:
             if ctx.user_input and _l55_feature_flag_on():
                 content = self._warn_if_risky(ctx)
-        except Exception:  # noqa: BLE001 — layer must never break the prompt
+        except Exception:  # layer must never break the prompt
             content = ""
         elapsed = int((time.time() - start) * 1000)
         if not content:
