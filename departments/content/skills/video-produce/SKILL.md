@@ -61,7 +61,15 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
    `upscale`/`reframe`. → **user approval on generated assets —
    Higgsfield credits are metered; NEVER regenerate in a loop without
    explicit approval.**
-6. **Edit / render** — load the `/hyperframes` router skill, pick the
+6. **Edit / render** — PREFLIGHT (one line, mandatory before the Full
+   tier): if `ls ~/.claude/skills | grep -qi hyperframes` fails, STOP
+   with the exact message "Hyperframes não instalado — corre
+   /content video-setup" — NEVER load `/hyperframes` blind or improvise
+   what Hyperframes might be. (Tier degradation is a Phase 0 decision;
+   reaching this step on the Full tier with the skills missing means
+   setup drift: the honest move is the stop + fix command, or an
+   explicitly re-stated downgrade to the Degraded/Manual tier.)
+   Full tier: load the `/hyperframes` router skill, pick the
    workflow (`/talking-head-recut`, `/faceless-explainer`,
    `/product-launch-video`…), compose in HTML+GSAP (load `gsap-core` +
    `gsap-timeline` for motion graphics; `gsap-plugins` for kinetic

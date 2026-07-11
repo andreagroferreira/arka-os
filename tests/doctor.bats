@@ -20,11 +20,18 @@ load helpers/setup
   [ "$type" = "array" ]
 }
 
-@test "arka-doctor --json has 16 checks" {
+@test "arka-doctor --json has 17 checks" {
   run bash "$REPO_DIR/bin/arka-doctor" --json
   [ "$status" -eq 0 ]
   count=$(echo "$output" | jq 'length')
-  [ "$count" -eq 16 ]
+  [ "$count" -eq 17 ]
+}
+
+@test "arka-doctor --json includes hyperframes-skills check" {
+  run bash "$REPO_DIR/bin/arka-doctor" --json
+  [ "$status" -eq 0 ]
+  has_hf=$(echo "$output" | jq '[.[] | select(.name == "hyperframes-skills")] | length')
+  [ "$has_hf" -eq 1 ]
 }
 
 @test "arka-doctor --json checks have required fields" {

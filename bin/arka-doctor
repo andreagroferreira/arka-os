@@ -2,7 +2,7 @@
 # ============================================================================
 # ARKA OS — Doctor (Health Check System)
 # Usage: arka doctor [--fix] [--json]
-# 16 modular checks: fail = critical, warn = advisory
+# 17 modular checks: fail = critical, warn = advisory
 # ============================================================================
 set -euo pipefail
 
@@ -361,6 +361,20 @@ else
   PLUGINS_DESC="Claude CLI not found — cannot check plugins"
 fi
 run_check "plugins" "warn" "$PLUGINS_DESC" "$PLUGINS_OK" "Run: bash install.sh"
+
+# ─── Check 17: Hyperframes Skills (video production) ──────────────────────
+# Parity with installer/doctor.js `hyperframes-skills` (PR-C2): same name,
+# same sentinel, warn-only — video production is opt-in.
+HF_OK=false
+HF_DESC="Hyperframes skills AUSENTE (video-as-code editing for /content video)"
+for hf_name in hyperframes hyperframes-core; do
+  if [ -f "$HOME/.claude/skills/$hf_name/SKILL.md" ]; then
+    HF_OK=true
+    HF_DESC="Hyperframes skills installed ($hf_name)"
+    break
+  fi
+done
+run_check "hyperframes-skills" "warn" "$HF_DESC" "$HF_OK" "Run /content video-setup in Claude Code"
 
 # ─── Output ────────────────────────────────────────────────────────────────
 TOTAL=$((PASS_COUNT + WARN_COUNT + FAIL_COUNT))

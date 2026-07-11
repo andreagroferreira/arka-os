@@ -23,6 +23,17 @@ function commandExists(cmd) {
   }
 }
 
+// Sentinel for the Hyperframes skill bundle. `npx skills add
+// heygen-com/hyperframes` lands skills under ~/.claude/skills/<name>;
+// the router skill is the sentinel. skillsDir is injectable for tests.
+export function hyperframesSkillsInstalled(
+  skillsDir = join(homedir(), ".claude", "skills")
+) {
+  return ["hyperframes", "hyperframes-core"].some((name) =>
+    existsSync(join(skillsDir, name, "SKILL.md"))
+  );
+}
+
 export const checks = [
   {
     name: "install-dir",
@@ -255,19 +266,13 @@ export const checks = [
     description: "Agent-Reach CLI present (multi-platform source pulls for the content trend and research skills)",
     severity: "warn",
     check: () => commandExists("agent-reach"),
-    fix: () => "Install: pipx install agent-reach (or uv tool install agent-reach), then run: agent-reach doctor",
+    fix: () => 'Not on PyPI — install from the third-party GitHub repo (confirm the source first): uv tool install "git+https://github.com/Panniantong/Agent-Reach", then run: agent-reach doctor',
   },
   {
     name: "hyperframes-skills",
     description: "Hyperframes skills installed (video-as-code editing for /content video)",
     severity: "warn",
-    check: () => {
-      // `npx skills add heygen-com/hyperframes` lands skills under
-      // ~/.claude/skills/<name>; the router skill is the sentinel.
-      return ["hyperframes", "hyperframes-core"].some((name) =>
-        existsSync(join(homedir(), ".claude", "skills", name, "SKILL.md"))
-      );
-    },
+    check: () => hyperframesSkillsInstalled(),
     fix: () => "Run /content video-setup in Claude Code, or: npx skills add heygen-com/hyperframes --full-depth --yes",
   },
   {

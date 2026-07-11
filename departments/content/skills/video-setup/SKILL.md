@@ -47,10 +47,21 @@ installer side — this skill is the interactive fix path.
    `/faceless-explainer`, `/product-launch-video`, `/motion-graphics`,
    `/embedded-captions`, `/media-use`. Keep fresh later with
    `npx hyperframes skills update <workflow>`.
-2. **Agent-Reach CLI** (MIT, beta): install into an isolated tool env —
-   `pipx install agent-reach` (or `uv tool install agent-reach`),
-   NEVER a bare global pip (python-core rule: virtual environments
-   only). Then run `agent-reach doctor` and show the user which of the
+2. **Agent-Reach CLI** (MIT, beta — THIRD-PARTY GitHub code, NOT on
+   PyPI): the package `agent-reach` does NOT exist in any registry —
+   `pipx install agent-reach` / `uv tool install agent-reach` fail with
+   "not found in registry" (verified 2026-07-11). The only source is
+   the external third-party repo `github.com/Panniantong/Agent-Reach`
+   (author: Panniantong, MIT license). Installing it runs code straight
+   from that repo, so this step is DOUBLE-gated: show the user the
+   source URL and license, and only after their explicit confirmation
+   run, into an isolated tool env — NEVER a bare global pip
+   (python-core rule: virtual environments only):
+   ```
+   uv tool install "git+https://github.com/Panniantong/Agent-Reach"
+   ```
+   (or `pipx install "git+https://github.com/Panniantong/Agent-Reach"`).
+   Then run `agent-reach doctor` and show the user which of the
    15 platform backends are live; cookie/browser-session platforms
    (X, Reddit, IG, FB) need the user's own logged sessions and stay
    optional.
