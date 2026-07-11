@@ -171,10 +171,13 @@ def _record_pattern_stub(tool_output: str, prompt: str) -> None:
     try:
         from core.knowledge.pattern_cards import (
             PatternCard,
-            query_patterns,
             record_pattern,
+            reinforce_pattern,
         )
-        if any(c.id == pid for c in query_patterns(limit=1000)):
+        # An APPROVED verdict on an EXISTING card is real usage evidence —
+        # reinforce it AND return: falling through to record_pattern would
+        # REPLACE an enriched card with this fresh empty stub (data loss).
+        if reinforce_pattern(pid):
             return
         ts = datetime.now(timezone.utc).isoformat()
         record_pattern(PatternCard(
