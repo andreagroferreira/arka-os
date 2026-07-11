@@ -193,8 +193,12 @@ fi
 # --- Session Semantic Memory Recap (F1-A3) ---
 # Compact importance+recency recap from ~/.arkaos/session-memory.db.
 # Best-effort: any failure or empty store contributes nothing.
+# _HOOK_CWD MUST be captured BEFORE the cd — inside the && list $PWD
+# would expand to $REPO and scope every recap to the installer repo
+# (QG blocker B1: cross-project leak).
 if command -v "$ARKA_PY" >/dev/null 2>&1 && [ -n "$REPO" ]; then
-  _MEM_RECAP=$(cd "$REPO" && PYTHONPATH="$REPO" "$ARKA_PY" -m core.hooks.session_start "$PWD" 2>/dev/null || true)
+  _HOOK_CWD="$PWD"
+  _MEM_RECAP=$(cd "$REPO" && PYTHONPATH="$REPO" "$ARKA_PY" -m core.hooks.session_start "$_HOOK_CWD" 2>/dev/null || true)
   [ -n "$_MEM_RECAP" ] && MSG+="\\n\\n${_MEM_RECAP}"
 fi
 

@@ -36,9 +36,10 @@ def build_recap(cwd: str, budget_ms: int = _BUDGET_MS) -> str:
         records = store.recent(project_name=project or None, limit=_RECAP_ITEMS)
         if not records or (time.monotonic() - start) * 1000 > budget_ms:
             return ""
+        from core.memory.semantic_store import neutralize_summary
         lines = ["[SESSION-MEMORY] Prior turns (importance+recency — not semantic):"]
         for record in records:
-            summary = record.summary[:_SUMMARY_CHARS]
+            summary = neutralize_summary(record.summary)[:_SUMMARY_CHARS]
             if not summary:
                 continue
             day = record.ts[:10]

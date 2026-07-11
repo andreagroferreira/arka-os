@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import sqlite3
 import uuid
 from contextlib import closing
@@ -63,6 +64,19 @@ def default_db_path() -> Path:
     if env:
         return Path(env)
     return Path.home() / ".arkaos" / "session-memory.db"
+
+
+_TAG_TOKEN_RE = re.compile(r"\[([^\]]*)\]")
+
+
+def neutralize_summary(text: str) -> str:
+    """Read-side neutralization before any context injection (OWASP LLM01):
+    collapse whitespace so a stored summary cannot forge a new line, and
+    defuse ``[tag]`` tokens into ``(tag)`` so it cannot impersonate
+    ``[SESSION-MEMORY]``/``[arka:*]`` markers. Write-time sanitization
+    only redacts client identifiers — it does not neutralize payloads."""
+    collapsed = " ".join(str(text).split())
+    return _TAG_TOKEN_RE.sub(r"(\1)", collapsed)
 
 
 def _cosine(a: list[float], b: list[float]) -> float:

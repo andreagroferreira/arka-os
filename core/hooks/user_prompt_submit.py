@@ -207,7 +207,7 @@ def _invalidate_turn_caches(session_id: str) -> None:
 # ─── Section 4: Synapse bridge (in-process) ──────────────────────────────
 
 
-def _run_bridge(root: str, user_input: str, session_id: str) -> str:
+def _run_bridge(root: str, user_input: str, session_id: str, cwd: str = "") -> str:
     bridge_path = Path(root) / "scripts" / "synapse-bridge.py"
     if not bridge_path.is_file() or not Path(root).is_dir():
         return ""
@@ -221,10 +221,12 @@ def _run_bridge(root: str, user_input: str, session_id: str) -> str:
         # The old hook piped bridge stderr to /dev/null — keep it quiet.
         with contextlib.redirect_stderr(io.StringIO()):
             spec.loader.exec_module(module)
-            output, code = module.run_bridge(
-                {"user_input": user_input, "session_id": session_id},
-                Path(root),
-            )
+            payload = {"user_input": user_input, "session_id": session_id}
+            if cwd:
+                # Explicit hook cwd — L9.5 scopes cross-session memory by
+                # project; an unscoped search would leak across clients.
+                payload["cwd"] = cwd
+            output, code = module.run_bridge(payload, Path(root))
         if code == 0:
             return str(output.get("context_string", ""))
     except Exception:
@@ -573,7 +575,9 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
         user_input = raw[:2000]
 
     # ─── Synapse bridge + tags ───────────────────────────────────────
-    python_result = _run_bridge(root, user_input, session_id)
+    python_result = _run_bridge(
+        root, user_input, session_id, get_str(stdin_json, "cwd")
+    )
     if python_result:
         wf_tag = _workflow_tag()
         if wf_tag:

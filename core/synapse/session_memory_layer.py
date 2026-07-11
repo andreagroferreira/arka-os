@@ -41,31 +41,40 @@ def _l95_feature_flag_on() -> bool:
     return bool(synapse_cfg.get("l95SessionMemory", True))
 
 
-def _read_session_cache(session_id: str) -> list[dict]:
-    """Precomputed neighbours from the last turn's worker (version 1)."""
+def _read_session_cache(session_id: str) -> tuple[list[dict], str]:
+    """Precomputed neighbours + the timestamp they were ranked at."""
     if not session_id:
-        return []
+        return [], ""
     path = Path.home() / ".arkaos" / "context-cache" / f"session-memory-{session_id}.json"
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return []
+        return [], ""
     if payload.get("version") != 1:
-        return []
+        return [], ""
     items = payload.get("items")
-    return items[:_CACHE_SEMANTIC_K] if isinstance(items, list) else []
+    ranked_at = str(payload.get("computed_at") or "")
+    if not isinstance(items, list):
+        return [], ""
+    return items[:_CACHE_SEMANTIC_K], ranked_at
 
 
-def _format_item(item: dict, asof: bool) -> str:
-    summary = str(item.get("summary") or "")[:_SUMMARY_CHARS]
+def _format_item(item: dict, ranked_at: str = "") -> str:
+    from core.memory.semantic_store import neutralize_summary
+
+    summary = neutralize_summary(item.get("summary") or "")[:_SUMMARY_CHARS]
     if not summary:
         return ""
     score = item.get("score")
     if item.get("retrieval") == "semantic" and isinstance(score, (int, float)):
-        label = f"semantic {score:.2f}" + (" asof-last-turn" if asof else "")
+        # Provenance is the payload's own computed_at — the detached
+        # worker may lag a turn, so the label states WHEN it ranked,
+        # never claims "last turn".
+        stamp = f" ranked@{ranked_at[11:16]}" if len(ranked_at) >= 16 else " pre-ranked"
+        label = f"semantic {score:.2f}{stamp}"
     else:
         label = "keyword — NOT semantic similarity"
-    project = str(item.get("project_name") or "")
+    project = neutralize_summary(item.get("project_name") or "")
     suffix = f" ({project})" if project else ""
     return f"- [{label}] {summary}{suffix}"
 
@@ -83,7 +92,9 @@ class SessionMemoryLayer(Layer):
 
     @property
     def cache_ttl(self) -> int:
-        return 0  # cache file is per-turn fresh; store query is indexed
+        # Best-effort freshness: the cache write is detached and may lag
+        # a turn — recomputing here is one file read + one indexed LIKE.
+        return 0
 
     @property
     def priority(self) -> int:
@@ -115,18 +126,24 @@ class SessionMemoryLayer(Layer):
         session_id = str((ctx.extra or {}).get("session_id") or "")
         lines: list[str] = []
         seen: set[str] = set()
-        for item in _read_session_cache(session_id):
-            line = _format_item(item, asof=True)
+        items, ranked_at = _read_session_cache(session_id)
+        for item in items:
+            line = _format_item(item, ranked_at)
             if line and item.get("summary") not in seen:
                 seen.add(item.get("summary"))
                 lines.append(line)
+        # Scope-or-skip: an unscoped LIKE would surface one client's
+        # turns inside another client's prompt (QG blocker B2 —
+        # v2.18.0 confidentiality precedent). No resolvable project
+        # scope ⇒ NO live search, never a silently-global one.
+        project = ctx.project_name or (Path(ctx.cwd).name if ctx.cwd else "")
         from core.memory.semantic_store import SessionMemoryStore, default_db_path
-        if default_db_path().is_file():
+        if project and default_db_path().is_file():
             hits = SessionMemoryStore().keyword_search(
-                ctx.user_input, ctx.project_name or None, top_k=_LIVE_KEYWORD_K
+                ctx.user_input, project, top_k=_LIVE_KEYWORD_K
             )
             for hit in hits:
-                line = _format_item(hit, asof=False)
+                line = _format_item(hit)
                 if line and hit.get("summary") not in seen:
                     seen.add(hit.get("summary"))
                     lines.append(line)
