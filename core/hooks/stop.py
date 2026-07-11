@@ -35,6 +35,7 @@ from core.hooks._shared import (
     ensure_root_on_path,
     get_str,
     read_stdin_json,
+    repo_path,
     resolve_arkaos_root,
     safe_session_id,
 )
@@ -392,6 +393,43 @@ def _auto_doc_enqueue(
         pass
 
 
+def _session_memory_enabled() -> bool:
+    """``memory.sessionMemory`` (default True) + env kill-switch."""
+    if os.environ.get("ARKA_SESSION_MEMORY", "").strip() == "0":
+        return False
+    config_path = Path.home() / ".arkaos" / "config.json"
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return True
+    memory_cfg = data.get("memory") or {}
+    return bool(memory_cfg.get("sessionMemory", True))
+
+
+def _enqueue_turn_capture(session_id: str, transcript_path: str, cwd: str) -> None:
+    """F1-A2: fire-and-forget semantic turn capture — runs for EVERY
+    turn (before the WF_MARKER gate), all cost paid in the detached
+    worker, never on this hook."""
+    if not session_id or not transcript_path or not _session_memory_enabled():
+        return
+    repo = repo_path()
+    if not repo or not Path(repo).is_dir():
+        return
+    try:
+        import subprocess
+        import sys as _sys
+        subprocess.Popen(
+            [_sys.executable, "-m", "core.memory.turn_capture",
+             session_id, transcript_path, cwd or ""],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env={**os.environ, "PYTHONPATH": repo},
+            start_new_session=True,  # same pattern as _enqueue_cognition_capture
+        )
+    except Exception:  # noqa: BLE001 — capture is best-effort, hook never breaks
+        pass
+
+
 def main(stdin_json: dict | None = None) -> int:
     if stdin_json is None:
         stdin_json, _ = read_stdin_json()
@@ -416,6 +454,11 @@ def main(stdin_json: dict | None = None) -> int:
     raw = _read_transcript(transcript_path)
 
     _native_usage(transcript_path, session_id, raw)
+
+    try:
+        _enqueue_turn_capture(session_id, transcript_path, cwd)
+    except Exception:  # noqa: BLE001 — never let capture break the hook
+        pass
 
     # Only evaluate sessions where the classifier flagged creation intent.
     wf_marker = arkaos_temp_dir("arkaos-wf-required") / session_id if session_id else None

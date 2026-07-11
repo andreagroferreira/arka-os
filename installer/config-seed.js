@@ -7,6 +7,7 @@
 // Seeded template keys (operator decisions):
 //   hooks.hardEnforcement = true   (PR19 v2.41.0)
 //   hooks.kbFirst         = true   (PR-3 v4.1 — KB-first ON out of the box)
+//   memory.sessionMemory  = true   (F1-A2 — session semantic memory ON)
 //
 // Returns a status object:
 //   { action: "created" | "added-key" | "noop"
@@ -21,13 +22,19 @@ import {
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 
-// Template: every hooks.* key seeded to `true` when unset.
-const SEEDED_HOOK_KEYS = ["hardEnforcement", "kbFirst"];
+// Template: every listed key seeded to `true` when unset, per section.
+const SEEDED_SECTIONS = {
+  hooks: ["hardEnforcement", "kbFirst"],
+  memory: ["sessionMemory"],
+};
 
 function defaultConfig() {
-  const hooks = {};
-  for (const key of SEEDED_HOOK_KEYS) hooks[key] = true;
-  return { hooks };
+  const config = {};
+  for (const [section, keys] of Object.entries(SEEDED_SECTIONS)) {
+    config[section] = {};
+    for (const key of keys) config[section][key] = true;
+  }
+  return config;
 }
 
 export function seedArkaosConfig({ home = homedir() } = {}) {
@@ -52,20 +59,22 @@ export function seedArkaosConfig({ home = homedir() } = {}) {
     return { action: "rewrote-corrupt", path: cfgPath, backup };
   }
 
-  config.hooks = config.hooks && typeof config.hooks === "object" ? config.hooks : {};
-
   let added = false;
   let preservedFalse = false;
-  for (const key of SEEDED_HOOK_KEYS) {
-    const current = config.hooks[key];
-    if (current === true) continue;
-    if (current === false) {
-      preservedFalse = true; // explicit user choice — never overwrite
-      continue;
+  for (const [section, keys] of Object.entries(SEEDED_SECTIONS)) {
+    const existing = config[section];
+    config[section] = existing && typeof existing === "object" ? existing : {};
+    for (const key of keys) {
+      const current = config[section][key];
+      if (current === true) continue;
+      if (current === false) {
+        preservedFalse = true; // explicit user choice — never overwrite
+        continue;
+      }
+      // Key unset (undefined, null, or any non-boolean) — set to true.
+      config[section][key] = true;
+      added = true;
     }
-    // Key unset (undefined, null, or any non-boolean) — set to true.
-    config.hooks[key] = true;
-    added = true;
   }
 
   if (added) {
