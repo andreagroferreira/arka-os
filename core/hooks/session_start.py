@@ -31,9 +31,13 @@ def build_recap(cwd: str, budget_ms: int = _BUDGET_MS) -> str:
         from core.memory.semantic_store import SessionMemoryStore, default_db_path
         if not default_db_path().is_file():
             return ""
-        store = SessionMemoryStore()
+        # Scope-or-skip (defense-in-depth, mirrors L9.5): no resolvable
+        # project ⇒ no recap — never a silently-global read.
         project = Path(cwd).name if cwd else ""
-        records = store.recent(project_name=project or None, limit=_RECAP_ITEMS)
+        if not project:
+            return ""
+        store = SessionMemoryStore()
+        records = store.recent(project_name=project, limit=_RECAP_ITEMS)
         if not records or (time.monotonic() - start) * 1000 > budget_ms:
             return ""
         from core.memory.semantic_store import neutralize_summary
@@ -46,10 +50,11 @@ def build_recap(cwd: str, budget_ms: int = _BUDGET_MS) -> str:
             lines.append(f"[SESSION-MEMORY] - {day}: {summary}")
         if len(lines) == 1:
             return ""
-        stats = store.stats()
-        backends = ",".join(sorted(stats.get("by_embedding_backend", {}))) or "none"
+        # Footer stays project-local: a cross-project turn count is
+        # metadata another client's session has no business seeing.
+        backends = ",".join(sorted({r.embedding_backend for r in records})) or "none"
         lines.append(
-            f"[SESSION-MEMORY] store: {stats.get('total_turns', 0)} turns,"
+            f"[SESSION-MEMORY] shown: {len(lines) - 1} turns ({project}),"
             f" backends={backends}"
         )
         return "\n".join(lines)

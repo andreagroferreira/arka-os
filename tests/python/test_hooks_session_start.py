@@ -38,8 +38,15 @@ def test_recap_ranks_by_importance_and_labels_honestly(tmp_path):
     assert "not semantic" in recap  # no prompt exists yet — never faked
     lines = recap.splitlines()
     assert "turn 2" in lines[1]  # highest importance first
-    assert "store: 3 turns" in lines[-1]
+    # Footer is project-local: shown count + project, never a global total.
+    assert "shown: 3 turns (proj)" in lines[-1]
     assert "backends=fastembed,none" in lines[-1]
+
+
+def test_recap_no_cwd_is_silent_never_global(tmp_path):
+    """Scope-or-skip: empty cwd must NOT fall back to an all-projects read."""
+    _seed("clientX")
+    assert build_recap("") == ""
 
 
 def test_recap_scopes_to_project(tmp_path):

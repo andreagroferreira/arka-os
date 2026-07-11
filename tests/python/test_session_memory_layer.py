@@ -52,7 +52,8 @@ def test_cache_items_injected_with_provenance_stamp(tmp_path):
     ], computed_at="2026-07-11T14:30:00+00:00")
     result = SessionMemoryLayer().compute(_ctx())
     assert result.tag == "[session-memory:1]"
-    assert "semantic 0.91 ranked@14:30" in result.content  # states WHEN, never "last turn"
+    # States WHEN it ranked (UTC-marked), never claims "last turn".
+    assert "semantic 0.91 ranked@14:30Z" in result.content
     assert "built the retry queue" in result.content
 
 

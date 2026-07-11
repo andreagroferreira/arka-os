@@ -254,9 +254,9 @@ def create_default_engine(
     engine.register_layer(RecipeLayer())
     engine.register_layer(SessionContextLayer())
     # L9.5 (F1-A3) — cross-session semantic turn memory. Reads the cache
-    # the detached turn-capture worker precomputed (asof-last-turn) plus
-    # a live keyword LIKE; NEVER embeds on the prompt path. Registered
-    # unconditionally: inert (zero tokens) when the store is empty.
+    # the detached turn-capture worker precomputed (labeled ranked@HH:MMZ
+    # / pre-ranked) plus a live keyword LIKE; NEVER embeds on the prompt
+    # path. Registered unconditionally: inert when the store is empty.
     engine.register_layer(SessionMemoryLayer())
 
     return engine

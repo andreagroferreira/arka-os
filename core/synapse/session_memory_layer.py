@@ -2,8 +2,10 @@
 
 Closes the memory loop opened by F1-A2: reads the per-session cache the
 detached turn-capture worker precomputed (semantic neighbours, labeled
-``asof-last-turn`` because they were ranked at the END of the previous
-turn) plus a live keyword LIKE over the store for the current prompt.
+``ranked@HH:MMZ`` with the cache's own computed_at — or ``pre-ranked``
+when no timestamp exists; the label states WHEN the ranking happened,
+never claims it was for this prompt) plus a live keyword LIKE over the
+store for the current prompt.
 
 Honesty contract (identical to L2.5 / vector_store.py): semantic hits
 carry their cosine score; keyword hits carry ``score=None`` and are
@@ -67,10 +69,10 @@ def _format_item(item: dict, ranked_at: str = "") -> str:
         return ""
     score = item.get("score")
     if item.get("retrieval") == "semantic" and isinstance(score, (int, float)):
-        # Provenance is the payload's own computed_at — the detached
-        # worker may lag a turn, so the label states WHEN it ranked,
-        # never claims "last turn".
-        stamp = f" ranked@{ranked_at[11:16]}" if len(ranked_at) >= 16 else " pre-ranked"
+        # Provenance is the payload's own computed_at (UTC isoformat) —
+        # the detached worker may lag a turn, so the label states WHEN
+        # it ranked, never claims "last turn". Z marks UTC explicitly.
+        stamp = f" ranked@{ranked_at[11:16]}Z" if len(ranked_at) >= 16 else " pre-ranked"
         label = f"semantic {score:.2f}{stamp}"
     else:
         label = "keyword — NOT semantic similarity"
