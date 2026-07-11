@@ -23,11 +23,13 @@ CLI (for hooks/skills)::
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import shlex
 import shutil
 import subprocess
+import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -216,6 +218,25 @@ def _labelled(result: CheckResult, label: str) -> CheckResult:
     return result
 
 
+def _tool_cmd(tool: str) -> list[str] | None:
+    """Resolve a Python tool: PATH binary, else the interpreter's module.
+
+    Operator machines install ruff/pytest into the ArkaOS venv with no
+    PATH binary — keying on shutil.which alone silently downgraded
+    Python lint to eslint over installer/*.js, a FALSE GREEN on a
+    NON-NEGOTIABLE gate (QG findings, F1-B2/F1-C1 reviews).
+    """
+    if shutil.which(tool):
+        return [tool]
+    if importlib.util.find_spec(tool) is not None:
+        return [sys.executable, "-m", tool]
+    return None
+
+
+def _ruff_cmd() -> list[str] | None:
+    return _tool_cmd("ruff")
+
+
 def _lint_scoped(
     project_dir: Path, changed: list[str], timeout: int,
 ) -> CheckResult | None:
@@ -225,10 +246,11 @@ def _lint_scoped(
     the same principle _check_security_grep already applies to its diff
     scope. Returns None when no scoped run applies (caller falls back).
     """
-    if shutil.which("ruff"):
+    ruff = _ruff_cmd()
+    if ruff:
         files = _scoped_files(project_dir, changed, _LINTABLE_PY)
         if files:
-            result = _run("lint", ["ruff", "check", *files], project_dir, timeout)
+            result = _run("lint", [*ruff, "check", *files], project_dir, timeout)
             return _labelled(result, f"lint(scoped: {len(files)} file(s))")
     eslint = project_dir / "node_modules" / ".bin" / "eslint"
     if eslint.is_file():
@@ -262,9 +284,10 @@ def _check_lint(
         )
         if not lintable:
             return _skip("lint", "changed files contain no lintable sources")
-    if _has_python(project_dir, changed) and shutil.which("ruff"):
+    ruff = _ruff_cmd()
+    if _has_python(project_dir, changed) and ruff:
         return _labelled(
-            _run("lint", ["ruff", "check", "."], project_dir, timeout),
+            _run("lint", [*ruff, "check", "."], project_dir, timeout),
             "lint(project-wide)",
         )
     if _package_json_script(project_dir, "lint"):
@@ -307,8 +330,9 @@ def _check_tests(
 ) -> CheckResult:
     if test_command:
         return _run("tests", shlex.split(test_command), project_dir, timeout)
-    if _has_python(project_dir, changed) and shutil.which("pytest"):
-        return _run("tests", ["pytest", "-q"], project_dir, timeout)
+    pytest_cmd = _tool_cmd("pytest")
+    if _has_python(project_dir, changed) and pytest_cmd:
+        return _run("tests", [*pytest_cmd, "-q"], project_dir, timeout)
     if _package_json_script(project_dir, "test"):
         return _run(
             "tests", ["npm", "test", "--silent"], project_dir, timeout,

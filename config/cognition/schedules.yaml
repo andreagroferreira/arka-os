@@ -20,6 +20,22 @@ schedules:
     max_retries: 2
     timeout_minutes: 60
 
+  session-memory-maintenance:
+    command: session-memory-maintenance
+    # F1-A4 (memory/learning reform): full embedding backfill, retention
+    # prune and VACUUM for ~/.arkaos/session-memory.db. The per-turn
+    # Stop-hook worker only amortises a small slice of this; the nightly
+    # job finishes the backlog. Cheap and idempotent; respects
+    # memory.sessionMemory + ARKA_SESSION_MEMORY=0.
+    python_module: "core.memory.turn_capture"
+    module_args: ["maintenance"]
+    time: "03:30"
+    timezone: auto
+    enabled: true
+    retry_on_fail: false
+    max_retries: 0
+    timeout_minutes: 20
+
   research:
     command: research
     prompt_file: "~/.arkaos/cognition/prompts/research.md"
