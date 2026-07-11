@@ -109,6 +109,7 @@ test("seed is idempotent when all template keys are true", () => {
   try {
     const cfgPath = seedExistingConfig(dir, {
       hooks: { hardEnforcement: true, kbFirst: true },
+      memory: { sessionMemory: true },
     });
     const before = readFileSync(cfgPath, "utf-8");
     seedArkaosConfig({ home: dir });
@@ -162,7 +163,10 @@ test("seed returns a status object describing the action taken", () => {
     const r2 = seedArkaosConfig({ home: dir });
     assert.equal(r2.action, "noop", "second run should be a no-op");
 
-    seedExistingConfig(dir, { hooks: { hardEnforcement: false, kbFirst: false } });
+    seedExistingConfig(dir, {
+      hooks: { hardEnforcement: false, kbFirst: false },
+      memory: { sessionMemory: false },
+    });
     const r3 = seedArkaosConfig({ home: dir });
     assert.equal(r3.action, "preserved-user-false");
 
@@ -174,6 +178,37 @@ test("seed returns a status object describing the action taken", () => {
     const cfg = JSON.parse(readFileSync(join(dir, ".arkaos", "config.json"), "utf-8"));
     assert.equal(cfg.hooks.hardEnforcement, false, "explicit false survives the added-key write");
     assert.equal(cfg.hooks.kbFirst, true);
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed adds memory.sessionMemory to legacy hooks-only configs (F1-A2)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, {
+      hooks: { hardEnforcement: true, kbFirst: true },
+    });
+    const r = seedArkaosConfig({ home: dir });
+    assert.equal(r.action, "added-key");
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+    assert.equal(cfg.memory.sessionMemory, true);
+    assert.equal(cfg.hooks.hardEnforcement, true, "existing sections untouched");
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed preserves memory.sessionMemory=false (operator opt-out)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, {
+      hooks: { hardEnforcement: true, kbFirst: true },
+      memory: { sessionMemory: false },
+    });
+    seedArkaosConfig({ home: dir });
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+    assert.equal(cfg.memory.sessionMemory, false, "explicit false is never overwritten");
   } finally {
     cleanup();
   }

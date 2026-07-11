@@ -138,3 +138,81 @@ def test_stop_hook_skips_when_flow_not_required(tmp_path):
     )
     pending_dir = queue / "pending"
     assert not pending_dir.exists() or not any(pending_dir.glob("*.json"))
+
+
+# ─── F1-A2: turn-capture enqueue (unit-level, no bash) ─────────────────
+
+
+class _FakeProc:
+    stdin = None
+
+
+def test_enqueue_turn_capture_spawns_detached_worker(monkeypatch, tmp_path):
+    from core.hooks import stop
+
+    calls = []
+    monkeypatch.setattr(
+        "subprocess.Popen", lambda *a, **k: calls.append((a, k)) or _FakeProc()
+    )
+    monkeypatch.setattr(stop, "repo_path", lambda: str(REPO_ROOT))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("ARKA_SESSION_MEMORY", raising=False)
+    stop._enqueue_turn_capture("sess-x", "/tmp/t.jsonl", "/repo/proj")
+    assert len(calls) == 1
+    argv = calls[0][0][0]
+    assert argv[1:5] == ["-m", "core.memory.turn_capture", "sess-x", "/tmp/t.jsonl"]
+    assert argv[5] == "/repo/proj"
+    assert calls[0][1]["start_new_session"] is True
+
+
+def test_enqueue_turn_capture_env_kill_switch(monkeypatch, tmp_path):
+    from core.hooks import stop
+
+    called = []
+    monkeypatch.setattr("subprocess.Popen", lambda *a, **k: called.append(1))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("ARKA_SESSION_MEMORY", "0")
+    stop._enqueue_turn_capture("sess-x", "/tmp/t.jsonl", "")
+    assert not called
+
+
+def test_enqueue_turn_capture_config_flag_off(monkeypatch, tmp_path):
+    from core.hooks import stop
+
+    cfg_dir = tmp_path / ".arkaos"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.json").write_text(
+        json.dumps({"memory": {"sessionMemory": False}})
+    )
+    called = []
+    monkeypatch.setattr("subprocess.Popen", lambda *a, **k: called.append(1))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("ARKA_SESSION_MEMORY", raising=False)
+    stop._enqueue_turn_capture("sess-x", "/tmp/t.jsonl", "")
+    assert not called
+
+
+def test_main_enqueues_capture_before_wf_marker_gate(monkeypatch, tmp_path):
+    """Capture runs for EVERY turn — even when no workflow marker exists."""
+    from core.hooks import stop
+
+    calls = []
+    monkeypatch.setattr(
+        "subprocess.Popen", lambda *a, **k: calls.append((a, k)) or _FakeProc()
+    )
+    monkeypatch.setattr(stop, "repo_path", lambda: str(REPO_ROOT))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("ARKA_SESSION_MEMORY", raising=False)
+    transcript = tmp_path / "t.jsonl"
+    transcript.write_text('{"role":"assistant","content":"done"}\n')
+    rc = stop.main({
+        "session_id": "sess-main-nc",
+        "transcript_path": str(transcript),
+        "stop_hook_active": "false",
+        "cwd": str(tmp_path),
+    })
+    assert rc == 0
+    capture_calls = [
+        c for c in calls if "core.memory.turn_capture" in c[0][0]
+    ]
+    assert len(capture_calls) == 1
