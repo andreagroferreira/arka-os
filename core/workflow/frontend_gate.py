@@ -40,6 +40,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
+from core.workflow import design_authorization
 from core.workflow.flow_enforcer import (
     TRIVIAL_RE,
     _load_last_assistant_messages,
@@ -186,6 +187,56 @@ def _classify_marker(messages: list[str]) -> tuple[str | None, str]:
     return None, "none"
 
 
+def _resolve_ui_scope(
+    tool_name: str, file_path: str, tool_input: dict
+) -> str | None:
+    """Return 'suffix' | 'heuristic' when the call is UI-scoped, else None."""
+    if tool_name not in _GATED_TOOLS:
+        return None
+    if is_ui_file(file_path):
+        return "suffix"
+    if is_heuristic_ui_file(file_path, tool_name, tool_input):
+        return "heuristic"
+    return None
+
+
+def _marker_decision(
+    session_id: str, marker: str | None, kind: str,
+    mode: str, file_path: str, ui_scope: str,
+) -> Decision:
+    """Decide allow/deny from the classified marker + persisted auth.
+
+    A structured marker is persisted (persist-on-observe) so later
+    evaluations survive transcript window-rolling — the deadlock fix,
+    mirroring flow_authorization. Trivial markers do NOT persist (they
+    authorize one small edit, not a session). With nothing in the
+    window, a valid persisted confirmation still allows.
+    """
+    if kind == "structured" and marker:
+        design_authorization.confirm(session_id, marker)
+    if kind in ("structured", "trivial"):
+        return Decision(allow=True, reason="design-evidence", mode=mode,
+                        target_file=file_path, marker_found=marker,
+                        marker_kind=kind, ui_scope=ui_scope)
+    persisted = design_authorization.confirmed_marker(session_id)
+    if persisted is not None:
+        return Decision(allow=True, reason="design-evidence-persisted",
+                        mode=mode, target_file=file_path,
+                        marker_found=persisted, marker_kind="persisted",
+                        ui_scope=ui_scope)
+    # Heuristic scope is WARN-only by design: it never denies, even in
+    # hard mode — its telemetry (ui_scope=heuristic) informs whether it
+    # ever graduates to denying scope.
+    deniable = mode == "hard" and ui_scope == "suffix"
+    if kind == "legacy":
+        return Decision(allow=not deniable, reason="legacy-marker", mode=mode,
+                        target_file=file_path, marker_found=marker,
+                        marker_kind=kind, ui_scope=ui_scope)
+    return Decision(allow=not deniable, reason="no-design-marker",
+                    mode=mode, target_file=file_path, marker_kind=kind,
+                    ui_scope=ui_scope)
+
+
 def evaluate(
     tool_name: str,
     transcript_path: str,
@@ -196,13 +247,8 @@ def evaluate(
 ) -> Decision:
     """Evaluate one tool call against the frontend excellence gate."""
     file_path = str(tool_input.get("file_path", ""))
-    if tool_name not in _GATED_TOOLS:
-        return Decision(allow=True, reason="not-ui-scope", target_file=file_path)
-    if is_ui_file(file_path):
-        ui_scope = "suffix"
-    elif is_heuristic_ui_file(file_path, tool_name, tool_input):
-        ui_scope = "heuristic"
-    else:
+    ui_scope = _resolve_ui_scope(tool_name, file_path, tool_input)
+    if ui_scope is None:
         return Decision(allow=True, reason="not-ui-scope", target_file=file_path)
     mode = _mode()
     if mode == "off":
@@ -216,21 +262,7 @@ def evaluate(
             transcript_path, ASSISTANT_WINDOW
         )
     marker, kind = _classify_marker(messages)
-    if kind in ("structured", "trivial"):
-        return Decision(allow=True, reason="design-evidence", mode=mode,
-                        target_file=file_path, marker_found=marker,
-                        marker_kind=kind, ui_scope=ui_scope)
-    # Heuristic scope is WARN-only by design: it never denies, even in
-    # hard mode — its telemetry (ui_scope=heuristic) informs whether it
-    # ever graduates to denying scope.
-    deniable = mode == "hard" and ui_scope == "suffix"
-    if kind == "legacy":
-        return Decision(allow=not deniable, reason="legacy-marker", mode=mode,
-                        target_file=file_path, marker_found=marker,
-                        marker_kind=kind, ui_scope=ui_scope)
-    return Decision(allow=not deniable, reason="no-design-marker",
-                    mode=mode, target_file=file_path, marker_kind=kind,
-                    ui_scope=ui_scope)
+    return _marker_decision(session_id, marker, kind, mode, file_path, ui_scope)
 
 
 def record_telemetry(session_id: str, tool: str, decision: Decision) -> None:

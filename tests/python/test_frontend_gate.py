@@ -20,6 +20,14 @@ STRUCTURED = (
 )
 
 
+@pytest.fixture(autouse=True)
+def _isolated_design_auth(tmp_path, monkeypatch):
+    """Isolate persist-on-observe state — structured-marker tests would
+    otherwise confirm 'test-session' in the real /tmp dir and leak an
+    allow into the deny-path tests."""
+    monkeypatch.setenv("ARKA_DESIGN_AUTH_DIR", str(tmp_path / "design-auth"))
+
+
 @pytest.fixture
 def config(tmp_path, monkeypatch):
     """Point CONFIG_PATH/TELEMETRY_PATH at tmp; return a mode-setter."""
