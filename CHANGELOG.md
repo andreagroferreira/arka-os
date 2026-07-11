@@ -5,6 +5,38 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.2] - 2026-07-11
+
+Function-first campaign: the operator's projects were stalled on a video
+pipeline that fresh sessions could not use. Root causes fixed at origin,
+plus two platform-trust fixes surfaced by the same campaign. All three
+through the consolidated Quality Gate (APPROVED, every risk path
+independently reproduced).
+
+### Fixed
+
+- **Video pipeline setup truth** (#296) — `/content video-produce` gains
+  a mandatory preflight that STOPs with the exact fix command when the
+  Hyperframes skills are missing (no more sessions improvising "what is
+  HyperFrames"); `video-setup` documents the real `agent-reach` source
+  (third-party GitHub repo, double-gated on operator confirmation — the
+  PyPI package never existed); `bin/arka-doctor` gains check 17
+  `hyperframes-skills` (node/bash parity), node sentinel extracted to a
+  fixture-testable `hyperframesSkillsInstalled()`.
+- **Frontend gate hard-mode deadlock** (#297) — denied Writes never
+  persist their turn's `[arka:design]` marker to the transcript, and
+  tool-heavy windows rolled it out, so hard mode denied forever. New
+  `design_authorization` (mirror of `flow_authorization`, 12h TTL, no
+  grace tier): persist-on-observe + consult-before-deny. Unblocks the
+  future hard flip; warn-mode behavior unchanged.
+- **Evidence lint scoping** (#298) — `_check_lint` scopes to changed
+  lintable files when `--changed-files` is provided (`lint(scoped: N
+  file(s))` vs `lint(project-wide)` on record); pre-existing project
+  debt no longer fails clean changesets.
+- **Dashboard port drift** (#295) — `find_port` matches LISTEN state
+  only; a browser tab's lingering CLOSED socket no longer pushes the UI
+  off :3333.
+
 ## [4.13.1] - 2026-07-10
 
 ### Fixed
