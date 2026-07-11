@@ -260,7 +260,7 @@ class TestKnowledgeRetrievalLayer:
         # TimeLayer removed in prompt-surface P0 2026-07-08) + L3.5
         # KnowledgeRetrieval + L2.5 KBContext (both gated on
         # vector_store/vault being present).
-        assert engine.layer_count == 16
+        assert engine.layer_count == 17
 
         ctx = PromptContext(user_input="how to deploy")
         result = engine.inject(ctx)
