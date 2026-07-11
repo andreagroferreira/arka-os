@@ -382,7 +382,12 @@ run_check "hyperframes-skills" "warn" "$HF_DESC" "$HF_OK" "Run /content video-se
 # itself — the operator should inspect, then delete the backup.
 BAK_OK=true
 BAK_DESC="No self-healed SQLite stores awaiting inspection"
-BAK_LIST=$(find "$HOME/.arkaos" -name "*.corrupt-*.bak" -type f 2>/dev/null | head -3)
+BAK_LIST=""
+if [ -d "$HOME/.arkaos" ]; then
+  # `|| true`: set -euo pipefail must not kill the doctor when find
+  # errors or head closes the pipe early — absence of backups is fine.
+  BAK_LIST=$(find "$HOME/.arkaos" -name "*.corrupt-*.bak" -type f 2>/dev/null | head -3 || true)
+fi
 if [ -n "$BAK_LIST" ]; then
   BAK_OK=false
   BAK_FIRST=$(echo "$BAK_LIST" | head -1)
