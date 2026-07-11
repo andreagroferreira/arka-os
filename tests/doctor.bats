@@ -20,11 +20,18 @@ load helpers/setup
   [ "$type" = "array" ]
 }
 
-@test "arka-doctor --json has 17 checks" {
+@test "arka-doctor --json has 18 checks" {
   run bash "$REPO_DIR/bin/arka-doctor" --json
   [ "$status" -eq 0 ]
   count=$(echo "$output" | jq 'length')
-  [ "$count" -eq 17 ]
+  [ "$count" -eq 18 ]
+}
+
+@test "arka-doctor --json includes sqlite-corrupt-backups check" {
+  run bash "$REPO_DIR/bin/arka-doctor" --json
+  [ "$status" -eq 0 ]
+  has_bak=$(echo "$output" | jq '[.[] | select(.name == "sqlite-corrupt-backups")] | length')
+  [ "$has_bak" -eq 1 ]
 }
 
 @test "arka-doctor --json includes hyperframes-skills check" {

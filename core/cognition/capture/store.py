@@ -16,10 +16,15 @@ class CaptureStore:
     """SQLite-backed store for raw session captures."""
 
     def __init__(self, db_path: str) -> None:
-        """Connect to SQLite database and initialize tables."""
+        """Connect to SQLite database and initialize tables.
+
+        A corrupt file triggers ONE self-heal attempt (F1-D1) before
+        the error propagates — the original is never destroyed.
+        """
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._db_path = db_path
-        self._init_db()
+        from core.shared.sqlite_recovery import open_with_recovery
+        open_with_recovery(db_path, self._init_db)
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self._db_path)
