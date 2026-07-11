@@ -44,7 +44,7 @@ async function pollAudit() {
   try {
     const res = await $fetch<{ events: AuditEvent[] }>(`${apiBase}/api/audit`, { query: { limit: props.limit } })
     pushItems((res.events || []).map(e => ({
-      id: `audit-${e.ts}-${e.tool}`,
+      id: `audit-${e.ts}-${e.tool}-${(e.reason || '').slice(0, 32)}`,
       ts: Date.parse(e.ts) || Date.now(),
       icon: e.kind === 'bypass' ? 'i-lucide-shield-off' : 'i-lucide-shield',
       tone: e.kind === 'bypass' ? 'warning' : 'neutral',

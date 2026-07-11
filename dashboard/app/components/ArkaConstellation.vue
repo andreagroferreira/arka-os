@@ -49,20 +49,20 @@ let hubs: Record<string, { x: number, y: number }> = {}
 let frame = 0
 let time = 0
 
-function primaryColor() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--ui-primary').trim() || '#00FF88'
+// Canvas has no reliable color-mix() support below Chromium 119 /
+// Safari 17.2, so token hexes are resolved to rgba() strings instead.
+function cssVar(name: string, fallback: string) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 }
-function mutedColor() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--ui-text-muted').trim() || '#8A958F'
+function rgba(hex: string, alpha: number) {
+  const h = hex.replace('#', '')
+  if (!/^[0-9a-f]{3}$|^[0-9a-f]{6}$/i.test(h)) return hex
+  const n = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  const int = Number.parseInt(n, 16)
+  return `rgba(${(int >> 16) & 255}, ${(int >> 8) & 255}, ${int & 255}, ${alpha})`
 }
 
-function layout() {
-  const w = width.value || 800
-  const h = props.height
-  const depts = [...new Set(props.agents.map(a => a.department))].sort()
-  const maxCalls = Math.max(1, ...props.departments.map(d => d.calls_30d))
-  const callsByDept = Object.fromEntries(props.departments.map(d => [d.department, d.calls_30d]))
-
+function layoutHubs(w: number, h: number, depts: string[]) {
   hubs = {}
   depts.forEach((dept, i) => {
     // Golden-angle spiral keeps 17 hubs evenly spread at any aspect ratio.
@@ -73,12 +73,15 @@ function layout() {
       y: h / 2 + Math.sin(angle) * radius * h * 0.85
     }
   })
+}
 
+function layoutStars(w: number, h: number) {
+  const maxCalls = Math.max(1, ...props.departments.map(d => d.calls_30d))
+  const callsByDept = Object.fromEntries(props.departments.map(d => [d.department, d.calls_30d]))
   stars = props.agents.map((agent, i) => {
     const hub = hubs[agent.department] ?? { x: w / 2, y: h / 2 }
     const angle = (i * 2.399963) % (Math.PI * 2)
     const spread = 18 + (i % 5) * 9
-    const intensity = (callsByDept[agent.department] ?? 0) / maxCalls
     return {
       agent,
       cx: hub.x + Math.cos(angle) * spread,
@@ -86,67 +89,77 @@ function layout() {
       baseR: agent.tier === 0 ? 3.2 : agent.tier === 1 ? 2.6 : 2,
       phase: Math.random() * Math.PI * 2,
       speed: 0.4 + Math.random() * 0.5,
-      intensity,
+      intensity: (callsByDept[agent.department] ?? 0) / maxCalls,
       x: 0,
       y: 0
     }
   })
 }
 
-function draw(animate: boolean) {
-  const el = canvas.value
-  if (!el) return
-  const ctx = el.getContext('2d')
-  if (!ctx) return
+function layout() {
   const w = width.value || 800
-  const h = props.height
-  const dpr = window.devicePixelRatio || 1
-  if (el.width !== w * dpr || el.height !== h * dpr) {
-    el.width = w * dpr
-    el.height = h * dpr
-  }
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.clearRect(0, 0, w, h)
+  const depts = [...new Set(props.agents.map(a => a.department))].sort()
+  layoutHubs(w, props.height, depts)
+  layoutStars(w, props.height)
+}
 
-  const green = primaryColor()
-  const gray = mutedColor()
-
-  // Faint links: agent → its department hub.
+function drawLinks(ctx: CanvasRenderingContext2D, gray: string, animate: boolean) {
   ctx.lineWidth = 0.5
+  ctx.strokeStyle = rgba(gray, 0.12)
   for (const s of stars) {
     const hub = hubs[s.agent.department]
     if (!hub) continue
     const drift = animate ? Math.sin(time * s.speed + s.phase) * (2 + s.intensity * 4) : 0
     s.x = s.cx + drift
     s.y = s.cy + Math.cos(time * s.speed * 0.8 + s.phase) * (animate ? 2 + s.intensity * 3 : 0)
-    ctx.strokeStyle = `color-mix(in srgb, ${gray} 12%, transparent)`
     ctx.beginPath()
     ctx.moveTo(hub.x, hub.y)
     ctx.lineTo(s.x, s.y)
     ctx.stroke()
   }
+}
 
-  // Stars: breathing radius + glow proportional to activity.
+function drawStars(ctx: CanvasRenderingContext2D, green: string, animate: boolean) {
   for (const s of stars) {
     const breath = animate ? (Math.sin(time * 1.4 * s.speed + s.phase) + 1) / 2 : 0.5
     const r = s.baseR + breath * (0.6 + s.intensity * 1.6)
-    const alpha = 0.45 + s.intensity * 0.4 + breath * 0.15
+    const alpha = Math.min(1, 0.45 + s.intensity * 0.4 + breath * 0.15)
     ctx.beginPath()
     ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
-    ctx.fillStyle = `color-mix(in srgb, ${green} ${Math.round(alpha * 100)}%, transparent)`
+    ctx.fillStyle = rgba(green, alpha)
     ctx.shadowColor = s.intensity > 0.15 ? green : 'transparent'
     ctx.shadowBlur = s.intensity * 14
     ctx.fill()
     ctx.shadowBlur = 0
   }
+}
 
-  // Hub labels in HUD mono.
+function drawHubLabels(ctx: CanvasRenderingContext2D, gray: string) {
   ctx.font = '9px "JetBrains Mono", monospace'
-  ctx.fillStyle = `color-mix(in srgb, ${gray} 65%, transparent)`
+  ctx.fillStyle = rgba(gray, 0.65)
   ctx.textAlign = 'center'
   for (const [dept, hub] of Object.entries(hubs)) {
     ctx.fillText(dept.toUpperCase(), hub.x, hub.y - 16)
   }
+}
+
+function draw(animate: boolean) {
+  const el = canvas.value
+  const ctx = el?.getContext('2d')
+  if (!el || !ctx) return
+  const w = width.value || 800
+  const dpr = window.devicePixelRatio || 1
+  if (el.width !== w * dpr || el.height !== props.height * dpr) {
+    el.width = w * dpr
+    el.height = props.height * dpr
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, w, props.height)
+  const green = cssVar('--ui-primary', '#00FF88')
+  const gray = cssVar('--ui-text-muted', '#8A958F')
+  drawLinks(ctx, gray, animate)
+  drawStars(ctx, green, animate)
+  drawHubLabels(ctx, gray)
 }
 
 function loop() {

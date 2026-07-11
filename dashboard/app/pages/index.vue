@@ -207,7 +207,7 @@ function copyCommand(cmd: string) {
               <template #stats>
                 <div class="grid grid-cols-2 gap-3 pt-4 lg:grid-cols-4">
                   <ArkaStatCard
-                    label="today's cost"
+                    label="today’s cost"
                     :value="todayCost?.total_usd ?? null"
                     format="currency"
                     :decimals="2"
@@ -251,7 +251,7 @@ function copyCommand(cmd: string) {
           <ArkaSection numeral="II" label="agent constellation">
             <template #actions>
               <NuxtLink to="/agents" class="arka-data text-xs text-muted transition-colors hover:text-primary">
-                open control room →
+                open agents →
               </NuxtLink>
             </template>
             <ArkaGlowCard :padded="false">

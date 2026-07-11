@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useTimestamp } from '@vueuse/core'
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   numeral: string
   label: string
   title: string
@@ -16,7 +16,6 @@ const timestamp = useTimestamp({ interval: 1000 })
 const clockLabel = computed(() =>
   new Date(timestamp.value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 )
-void props
 </script>
 
 <template>
