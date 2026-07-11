@@ -67,7 +67,9 @@ fi
 # ── Find available ports ──
 find_port() {
   local port=$1
-  while lsof -i :"$port" >/dev/null 2>&1; do
+  # LISTEN-only: a lingering client socket (e.g. a browser tab in
+  # CLOSED/TIME_WAIT to :3333) must not push the UI off its port.
+  while lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; do
     port=$((port + 1))
   done
   echo "$port"
