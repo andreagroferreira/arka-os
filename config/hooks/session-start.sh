@@ -190,6 +190,18 @@ except Exception:
   [ -n "$_SESSION_CTX" ] && MSG+="\\n${_SESSION_CTX}"
 fi
 
+# --- Session Semantic Memory Recap (F1-A3) ---
+# Compact importance+recency recap from ~/.arkaos/session-memory.db.
+# Best-effort: any failure or empty store contributes nothing.
+# _HOOK_CWD MUST be captured BEFORE the cd — inside the && list $PWD
+# would expand to $REPO and scope every recap to the installer repo
+# (QG blocker B1: cross-project leak).
+if command -v "$ARKA_PY" >/dev/null 2>&1 && [ -n "$REPO" ]; then
+  _HOOK_CWD="$PWD"
+  _MEM_RECAP=$(cd "$REPO" && PYTHONPATH="$REPO" "$ARKA_PY" -m core.hooks.session_start "$_HOOK_CWD" 2>/dev/null || true)
+  [ -n "$_MEM_RECAP" ] && MSG+="\\n\\n${_MEM_RECAP}"
+fi
+
 # ─── Output as systemMessage (same protocol as claude-mem) ─────────────
 # OWASP A03: MSG carries profile-derived NAME/COMPANY. Pass it through the
 # environment (with \n already expanded) rather than interpolating it into
