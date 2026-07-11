@@ -124,6 +124,32 @@ def test_redo_detection_same_deliverable_within_window(corpora):
     assert dev.redo_count == 1  # feature-x pair inside 7d; feature-y pair outside
 
 
+def test_redo_ignores_empty_deliverable(corpora):
+    """QG blocker B2: the live pipeline defaults deliverable to '' —
+    two UNRELATED rejections must never count as a redo."""
+    _write(corpora["qg"], [
+        _qg_line("dev", "REJECTED", days_ago=3.0, deliverable=""),
+        _qg_line("dev", "REJECTED", days_ago=2.5, deliverable=""),
+    ])
+    result = rebuild(now=NOW)
+    assert result.scores[0].redo_count == 0
+    assert result.scores[0].rejections == 2  # raw counts stay honest
+
+
+def test_mixed_naive_and_aware_timestamps_never_crash(corpora):
+    """QG blocker B1: a naive ts in the same redo bucket crashed
+    stamps.sort() with TypeError, killing every detached rebuild."""
+    naive = (NOW - timedelta(days=2.0)).replace(tzinfo=None).isoformat()
+    _write(corpora["qg"], [
+        json.dumps({"ts": naive, "department": "dev",
+                    "deliverable": "feature-x", "verdict": "REJECTED"}),
+        _qg_line("dev", "REJECTED", days_ago=1.5, deliverable="feature-x"),
+    ])
+    result = rebuild(now=NOW)  # must not raise
+    assert result.scores[0].redo_count == 1  # naive normalized to UTC, pair counted
+    assert corpora["scores"].exists()  # the file LANDS — stale() can go False
+
+
 def test_judge_signal_kept_separate(corpora):
     _write(corpora["judge"], [
         _judge_line("dev", "PASS"),

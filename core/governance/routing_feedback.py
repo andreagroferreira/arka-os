@@ -8,7 +8,7 @@ the Synapse L5.5 layer (F1-B2) injects as ``[arka:redo-risk]`` warnings.
 
 Scored table, deliberately NOT Q-learning: sample sizes are dozens, not
 thousands (Q would never converge), and the constitution's evidence-flow
-demands citable counts — ``approvals=3/9 (30d)`` is auditable, a qTable
+demands citable counts — ``approvals=3/9 (30d)`` is auditable, a Q-table
 weight is not. Recency weighting gives the same "reward changes future
 behaviour" property with zero exploration risk.
 
@@ -38,7 +38,7 @@ from pydantic import BaseModel, Field
 SCORES_ENV = "ARKA_ROUTING_SCORES_PATH"
 _WINDOW_DAYS = 90  # records older than this are ignored entirely
 _HALF_LIFE_DAYS = 30.0  # recency weight halves every 30 days
-_REDO_WINDOW_DAYS = 7  # >=2 REJECTED same deliverable+department within
+_REDO_WINDOW_DAYS = 7  # >=2 REJECTED same deliverable+department within 7d
 _TOP_BLOCKERS = 3
 
 
@@ -74,14 +74,24 @@ def scores_path() -> Path:
     return Path.home() / ".arkaos" / "routing-scores.json"
 
 
-def _age_days(ts: str, now: datetime) -> Optional[float]:
+def _parse_ts(ts: str) -> Optional[datetime]:
+    """ONE timestamp parser for the whole module — naive stamps are
+    normalized to UTC everywhere, so mixed naive+aware corpora can
+    never poison a later comparison/sort with a TypeError."""
     try:
         parsed = datetime.fromisoformat(ts)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        return max(0.0, (now - parsed).total_seconds() / 86400.0)
     except (ValueError, TypeError):
         return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _age_days(ts: str, now: datetime) -> Optional[float]:
+    parsed = _parse_ts(ts)
+    if parsed is None:
+        return None
+    return max(0.0, (now - parsed).total_seconds() / 86400.0)
 
 
 def _recency_weight(age_days: float) -> float:
@@ -103,20 +113,28 @@ def _windowed(records: list[dict], now: datetime) -> list[tuple[dict, float]]:
 
 
 def _count_redos(qg: list[tuple[dict, float]]) -> Counter:
-    """>=2 REJECTED for the same deliverable+department within the window."""
+    """>=2 REJECTED for the same deliverable+department within 7 days.
+
+    Records with an EMPTY deliverable are skipped: the live pipeline
+    defaults deliverable to "" (record_cli), and an empty string cannot
+    establish "same deliverable" — counting it would flag a department
+    for two unrelated rejections (noise sold as signal).
+    """
     rejected_ts: dict[tuple[str, str], list[datetime]] = {}
     for record, _w in qg:
         if str(record.get("verdict")).upper() != "REJECTED":
             continue
-        key = (str(record.get("department")), str(record.get("deliverable") or ""))
-        try:
-            when = datetime.fromisoformat(str(record.get("ts")))
-        except (ValueError, TypeError):
+        deliverable = str(record.get("deliverable") or "").strip()
+        if not deliverable:
             continue
+        when = _parse_ts(str(record.get("ts")))
+        if when is None:
+            continue
+        key = (str(record.get("department")), deliverable)
         rejected_ts.setdefault(key, []).append(when)
     redos: Counter = Counter()
     for (department, _deliverable), stamps in rejected_ts.items():
-        stamps.sort()
+        stamps.sort()  # all aware-UTC via _parse_ts — sort cannot raise
         for earlier, later in zip(stamps, stamps[1:]):
             if (later - earlier).total_seconds() <= _REDO_WINDOW_DAYS * 86400:
                 redos[department] += 1
