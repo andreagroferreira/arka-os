@@ -11,7 +11,6 @@ docs/
 .claude/
 
 # Legacy v1 directories
-mcps/
 projects/
 skill-template/
 
