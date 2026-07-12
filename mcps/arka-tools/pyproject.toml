@@ -1,0 +1,10 @@
+[project]
+name = "arka-tools"
+version = "1.0.0"
+description = "ArkaOS programmatic MCP tools — KB search, workflow state, Quality Gate, recipes, session memory, telemetry"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.2.0",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+]

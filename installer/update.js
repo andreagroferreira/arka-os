@@ -436,7 +436,18 @@ export async function update() {
       }
     }
 
-    console.log("         ✓ MCP infrastructure updated (profiles, stacks, scripts, arka-prompts server)");
+    // arka-tools server (F2-3) — mirrors the same block in installSkill().
+    const mcpToolsSrc = join(mcpsSrc, "arka-tools");
+    const mcpToolsDest = join(skillsBase, "arka", "mcp-tools");
+    if (existsSync(mcpToolsSrc)) {
+      if (!existsSync(mcpToolsDest)) mkdirSync(mcpToolsDest, { recursive: true });
+      for (const f of ["server.py", "pyproject.toml"]) {
+        const src = join(mcpToolsSrc, f);
+        if (existsSync(src)) copyFileSync(src, join(mcpToolsDest, f));
+      }
+    }
+
+    console.log("         ✓ MCP infrastructure updated (profiles, stacks, scripts, arka-prompts + arka-tools servers)");
 
     // Higgsfield MCP is registered but requires an account + API key to connect.
     // Non-blocking warning: the update succeeds even without a Higgsfield account.

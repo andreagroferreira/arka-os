@@ -14,6 +14,7 @@ policies:
     active:
       - codebase-memory
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - gh-grep
@@ -46,6 +47,7 @@ policies:
     active:
       - codebase-memory
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - gh-grep
@@ -78,6 +80,7 @@ policies:
     active:
       - codebase-memory
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - gh-grep
@@ -109,6 +112,7 @@ policies:
       stack_includes: [shopify]
     active:
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - gh-grep
@@ -142,6 +146,7 @@ policies:
     active:
       - codebase-memory
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - gh-grep
@@ -173,6 +178,7 @@ policies:
       ecosystem: marketing
     active:
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - canva
@@ -205,6 +211,7 @@ policies:
       ecosystem: content
     active:
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - canva
@@ -237,6 +244,7 @@ policies:
       default: true
     active:
       - arka-prompts
+      - arka-tools
       - obsidian
       - context7
       - gh-grep

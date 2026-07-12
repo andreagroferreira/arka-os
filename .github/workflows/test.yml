@@ -26,10 +26,11 @@ jobs:
           python -m pip install --upgrade pip
           # Core deps + dashboard extra (fastapi/uvicorn — the API endpoint
           # test modules import them at collection time) + sqlite-vec so the
-          # vector-store test isn't skipped. fastembed/ingest extras stay out
-          # (heavy; their code paths degrade gracefully and are covered by
-          # the labeled-degradation tests).
-          pip install -e ".[dashboard]" sqlite-vec
+          # vector-store test isn't skipped + mcp so the arka-tools security
+          # tests (OWASP LLM01) run everywhere. fastembed/ingest extras stay
+          # out (heavy; their code paths degrade gracefully and are covered
+          # by the labeled-degradation tests).
+          pip install -e ".[dashboard,mcp]" sqlite-vec
           # starlette's TestClient needs an httpx client lib: recent
           # starlette wants httpx2, older wants httpx — install whichever
           # resolves (httpx2 first, fallback httpx).

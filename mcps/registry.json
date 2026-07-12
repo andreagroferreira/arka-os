@@ -22,6 +22,18 @@
       "description": "ARKA OS department commands as MCP prompts (Claude Code + Claude Desktop)",
       "required_env": []
     },
+    "arka-tools": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "{home}/.claude/skills/arka/mcp-tools",
+        "run",
+        "server.py"
+      ],
+      "category": "base",
+      "description": "ArkaOS programmatic tools: KB search, workflow state, Quality Gate queue, recipes, session memory, telemetry (writes gated by ARKA_TOOLS_WRITE=1)",
+      "required_env": []
+    },
     "obsidian": {
       "command": "npx",
       "args": [
