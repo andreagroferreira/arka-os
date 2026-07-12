@@ -1,0 +1,127 @@
+---
+name: mcp
+description: >
+  MCP (Model Context Protocol) management for projects: apply pre-configured
+  MCP profiles (laravel, nuxt, ecommerce, full-stack...), add or remove
+  individual servers, list the registry, check project status — generates
+  .mcp.json and .claude/settings.local.json. TRIGGER: "mcp", "apply mcp",
+  "adiciona um mcp", "mcp status", "configura os MCPs", "model context
+  protocol", "/dev mcp". SKIP: building a NEW MCP server from an API contract
+  -> dev/mcp-builder (creation, not configuration); onboarding a whole project
+  (MCP profile included) -> dev/onboard.
+---
+
+# MCP Management — ARKA OS Dev Department
+
+Manage Model Context Protocol (MCP) servers for projects. MCPs extend Claude Code with external tool integrations.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/dev mcp apply <profile> [--project <path>]` | Apply MCP profile to a project |
+| `/dev mcp add <name> [--project <path>]` | Add a single MCP to a project |
+| `/dev mcp list` | Show all available MCPs from the registry |
+| `/dev mcp status [--project <path>]` | Show active MCPs in a project |
+| `/dev mcp remove <name> [--project <path>]` | Remove an MCP from a project |
+
+## Profiles
+
+| Profile | MCPs Included | Use For |
+|---------|---------------|---------|
+| `base` | obsidian, context7, playwright, sentry, gh-grep, clickup, firecrawl, supabase | All projects |
+| `laravel` | base + laravel-boost, serena | Laravel backends |
+| `nuxt` | base + nuxt, nuxt-ui | Nuxt 3/4 apps |
+| `vue` | base + nuxt-ui | Vue 3 SPAs |
+| `react` | base + next-devtools | React SPAs |
+| `nextjs` | base + next-devtools, supabase | Next.js apps |
+| `ecommerce` | base + laravel-boost, serena, mirakl, shopify-dev | E-commerce projects |
+| `full-stack` | base + laravel-boost, serena, nuxt, nuxt-ui | Laravel + Nuxt apps |
+| `comms` | base + slack, discord, whatsapp, teams | Messaging platforms |
+
+> Runtime-managed MCPs (not a profile): `claude-in-chrome` (extension) and `claude-mem` (plugin) are registered in the registry for governance and telemetry only — they have no launchable command and are never written to `.mcp.json`.
+
+## How It Works
+
+### /dev mcp apply <profile>
+
+1. Read the MCP registry at `mcps/registry.json`
+2. Read the profile file at `mcps/profiles/<profile>.json`
+3. Resolve base + profile MCPs (profiles extend base automatically)
+4. Run the apply script:
+   ```bash
+   bash "$ARKA_OS/mcps/scripts/apply-mcps.sh" <profile> --project <path>
+   ```
+5. This generates:
+   - `.mcp.json` in the project root (MCP server definitions)
+   - `.claude/settings.local.json` (enables MCPs + base permissions)
+6. Report what was installed
+
+### /dev mcp add <name>
+
+Add a single MCP without applying a full profile:
+```bash
+bash "$ARKA_OS/mcps/scripts/apply-mcps.sh" --add <name> --project <path>
+```
+This merges the new MCP into the existing `.mcp.json`.
+
+### /dev mcp list
+
+```bash
+bash "$ARKA_OS/mcps/scripts/apply-mcps.sh" --list
+```
+
+Shows all MCPs from the registry with their category and description.
+
+### /dev mcp status
+
+```bash
+bash "$ARKA_OS/mcps/scripts/apply-mcps.sh" --status --project <path>
+```
+
+Shows which MCPs are currently active in the project's `.mcp.json`.
+
+### /dev mcp remove <name>
+
+1. Read project's `.mcp.json`
+2. Remove the specified MCP entry
+3. Update `.claude/settings.local.json` to remove from `enabledMcpjsonServers`
+4. Report the change
+
+## Registry
+
+The central MCP registry lives at `mcps/registry.json`. Each entry contains:
+- `command` + `args` (for local MCPs) OR `type` + `url` (for HTTP MCPs)
+- `category` — which profile group it belongs to
+- `description` — what the MCP does
+- `env` — required environment variables (if any)
+- `required_env` — list of env var names that must be set
+
+## Environment Variables
+
+Some MCPs require API keys or configuration. These are defined in the registry's `env` field.
+When applying MCPs that need env vars, the script will warn which ones need to be set.
+
+The user should set these in their shell profile or project `.env`, or run `bash env-setup.sh`:
+- `CLICKUP_API_KEY` / `CLICKUP_TEAM_ID` — ClickUp integration
+- `FIRECRAWL_API_KEY` — Firecrawl web scraping
+- `PG_HOST` / `PG_PORT` / `PG_USER` / `PG_PASSWORD` / `PG_DATABASE` — PostgreSQL direct access
+- `DISCORD_TOKEN` — Discord bot integration
+- `WHATSAPP_API_TOKEN` / `WHATSAPP_PHONE_ID` — WhatsApp Business API
+- `TEAMS_APP_ID` / `TEAMS_APP_SECRET` — Microsoft Teams
+
+## Recommended baseline (Orgo 2026-05-13)
+
+Three MCPs that the 2026-05-13 podcast pattern recommends for every
+agent-business setup. They are *optional* in the registry but worth
+adopting deliberately:
+
+| MCP | Why | When to add |
+| --- | --- | --- |
+| **Composio** | One connector, thousands of apps (Gmail, Slack, Notion, GitHub). Handles auth + tool calling without per-tool wiring. | Any agent that needs broad SaaS integration. Cuts setup time on every new customer. |
+| **Agent Mail** | Gives each agent a real email address that it can read and send from. Adds the "digital employee" feel that closes deals. | Customer-facing agents, executive assistants, follow-up workflows. |
+| **XMCP** | Twitter / X's official MCP. Brings community wisdom into the agent's context — recent threads, hot takes, real-time discourse. | Research-heavy workflows, content / community / sales squads. |
+
+These pair naturally with the existing `Firecrawl` (deep scrape),
+`Context7` (official docs), and `Perplexity` (real-time web). The
+`/arka research` skill fans out across all five.

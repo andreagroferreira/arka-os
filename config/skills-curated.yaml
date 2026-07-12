@@ -1,0 +1,39 @@
+# Curated default skill set — the single source of truth for the F2-7
+# distribution cut (marketplace plugins now, curated installer default in
+# F2-7c). Everything downstream is GENERATED from this file plus the
+# departments/ tree by scripts/marketplace_gen.py — never hand-typed
+# (docs_stats/gate_manifest precedent).
+#
+# The cut: the default install carries the structural surface (main
+# /arka, the 17 department hubs, the 14 meta skills — 32 in total) plus
+# the curated sub-skills below (37) = 69 skills, inside the 60-80 band.
+# Every OTHER sub-skill still ships in the repo and deploys via the
+# per-department marketplace plugins (arkaos-<dept>@arkaos), where the
+# plugin namespace also disambiguates the later-wins collision slugs —
+# which are BANNED from this list (enforced by test, computed from disk).
+#
+# Operator-tunable: edit, then run `python scripts/marketplace_gen.py`
+# and commit the regenerated tree. The drift gate fails CI otherwise.
+version: 1
+structural:
+  arka: true        # main /arka skill + nested reference bundle
+  dept_hubs: all    # departments/<dept>/SKILL.md (17)
+  meta: all         # arka/skills/* (14 — includes flow: NON-NEGOTIABLE)
+curated_subskills:
+  brand: [design-review, design-system]
+  community: [moderation]
+  content: [calendar, hook-write]
+  dev: [api-design, architecture-design, clean-code-review, code-review,
+        db-design, refactor-plan, runbook, security-audit, spec, tdd-cycle]
+  ecom: [cart-recovery, store-audit]
+  finance: [financial-model, unit-economics]
+  kb: [search-kb, zettelkasten-process]
+  landing: [funnel-design, landing-gen]
+  leadership: [feedback-give]
+  marketing: [growth-loop, seo-audit]
+  ops: [sop-create, workflow-automate]
+  org: [org-design]
+  pm: [roadmap-build, sprint-plan]
+  saas: [mvp-build, plg-setup]
+  sales: [discovery-call, objection-handle]
+  strategy: [five-forces, moat-analysis]

@@ -296,3 +296,22 @@ test("captures marketplace failure as 'failed' with reason", () => {
     home.cleanup();
   }
 });
+
+// ── F2-7b: the ArkaOS marketplace itself ─────────────────────────────────
+
+test("arkaos marketplace is registered by owner/repo, never a directory source", async () => {
+  const { DEFAULT_CLAUDE_MARKETPLACES, DEFAULT_CLAUDE_PLUGINS } =
+    await import("../../installer/claude-plugins.js");
+  assert.ok(DEFAULT_CLAUDE_MARKETPLACES.includes("andreagroferreira/arka-os"),
+    "the ArkaOS marketplace must self-register");
+  for (const m of DEFAULT_CLAUDE_MARKETPLACES) {
+    assert.match(m, /^[\w.-]+\/[\w.-]+$/,
+      `marketplace ${m} must be owner/repo — directory sources anchor on the volatile npx cache`);
+  }
+  // Dept plugins are opt-in pure: registering the marketplace costs zero
+  // context; nothing arkaos-* may be force-installed by default.
+  for (const p of DEFAULT_CLAUDE_PLUGINS) {
+    assert.ok(!p.startsWith("arkaos-"),
+      `dept plugin ${p} must stay opt-in (à la carte via /plugin install)`);
+  }
+});

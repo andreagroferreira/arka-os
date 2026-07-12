@@ -1,0 +1,45 @@
+---
+name: dashboard-build
+description: >
+  Designs an operational dashboard with Lean Analytics and OMTM: metric selection,
+  targets, data sources, alert thresholds, and layout, with in-browser verification of
+  widgets and real-time data. TRIGGER: "constrói um dashboard", "build a dashboard",
+  "painel de operações", "quero visualizar as métricas", "/ops dashboard <area>". SKIP:
+  deciding WHICH ops metrics and SLAs to track -> ops/metrics-dashboard (picks the
+  numbers; this skill builds the surface); production telemetry, logs, and tracing ->
+  dev/observability.
+---
+
+# Dashboard Build
+
+> **Agent:** Daniel (Ops Lead) | **Framework:** Lean Analytics (Croll) + OMTM
+
+## What It Does
+
+Operational dashboard design: select metrics, define targets, build layout.
+
+## Output
+
+Dashboard spec with metrics, targets, data sources, and alert thresholds
+
+## Browser Steps
+
+Follow the Browser Integration Pattern for availability checking.
+
+- [BROWSER] Open the dashboard in browser and verify all widgets render correctly
+- [BROWSER] Check that data loads and updates in real-time (if WebSocket)
+- [BROWSER] Test responsive layout at different screen sizes
+- [BROWSER] Verify charts, tables, and graphs display correct data
+
+## Computer Use Steps
+
+Follow the Computer Use Availability Check for availability checking.
+
+- [COMPUTER] Launch dashboard app and verify widgets, charts, and real-time data render correctly
+
+## Scheduling ⏰
+
+```
+/loop 10m check dashboard API health and flag if any endpoint returns errors
+/schedule hourly — verify dashboard data freshness and alert if stale
+```

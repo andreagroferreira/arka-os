@@ -48,7 +48,7 @@ function deployedSet(base) {
   return new Set(readdirSync(base).sort());
 }
 
-test("install-shape and update-shape deploys produce IDENTICAL surfaces", () => {
+test("deploySkills is deterministic across repeated runs (same inputs, same surface)", () => {
   const repo = makeRepo();
   const homeA = mkdtempSync(join(tmpdir(), "arka-skilldeploy-a-"));
   const homeB = mkdtempSync(join(tmpdir(), "arka-skilldeploy-b-"));
@@ -158,5 +158,16 @@ test("both installer entrypoints consume the shared module (no drift path left)"
       `${name} must import the shared deploySkills`);
     assert.ok(!/deployTopLevelSkill|const deployTop\s*=/.test(src),
       `${name} must not keep a private skill-deploy loop`);
+  }
+  // Call-site parity: both entrypoints must pass the same argument
+  // SHAPE (repoRoot + skillsBase + agentsBase + version) — the real
+  // anti-drift lock now that the implementation is shared.
+  for (const [name, src] of [["index.js", indexSrc], ["update.js", updateSrc]]) {
+    const call = src.match(/deploySkills\(\{([\s\S]*?)\}\)/);
+    assert.ok(call, `${name}: deploySkills call not found`);
+    for (const arg of ["repoRoot", "skillsBase", "agentsBase", "version"]) {
+      assert.ok(call[1].includes(arg),
+        `${name} must pass ${arg} to deploySkills`);
+    }
   }
 });

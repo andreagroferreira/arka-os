@@ -20,13 +20,12 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 _TEST_DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+test_\w+", re.MULTILINE)
 _COLLECTED_RE = re.compile(r"(\d+)\s+tests?\s+collected")
 
 
-def repo_root(start: Optional[Path] = None) -> Path:
+def repo_root(start: Path | None = None) -> Path:
     """Find the repo root by walking up to a dir with VERSION + departments/."""
     cur = (start or Path(__file__).resolve()).resolve()
     candidates = [cur, *cur.parents] if cur.is_dir() else [cur.parent, *cur.parents]
@@ -64,8 +63,11 @@ def count_skills(root: Path) -> dict:
         return len(list(base.rglob("SKILL.md"))) if base.is_dir() else 0
 
     dept, arka, market = _n("departments"), _n("arka"), _n("marketplace")
+    # plugins/ is a GENERATED export-copy (scripts/marketplace_gen.py)
+    # of non-curated department skills — informative only, never part
+    # of the core headline (the sources remain under departments/).
     return {"departments": dept, "arka": arka, "marketplace": market,
-            "core": dept + arka}
+            "plugins": _n("plugins"), "core": dept + arka}
 
 
 def count_adrs(root: Path) -> int:
@@ -83,7 +85,7 @@ def count_test_functions(root: Path) -> int:
                for f in tdir.rglob("test_*.py"))
 
 
-def collect_pytest_cases(root: Path) -> Optional[int]:
+def collect_pytest_cases(root: Path) -> int | None:
     """Authoritative pytest case count via --collect-only. None on failure."""
     try:
         out = subprocess.run(
