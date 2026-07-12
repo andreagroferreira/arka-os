@@ -270,3 +270,15 @@ load helpers/setup
   grep -q "core.hooks.session_start $WORKDIR" "$LOG"
   ! grep -q "core.hooks.session_start $REPO_DIR" "$LOG"
 }
+
+# ─── F2-1: hook latency harness ────────────────────────────────────────
+
+@test "hooks-bench.sh emits valid JSON with all hook entries" {
+  run bash "$REPO_DIR/benchmarks/hooks-bench.sh" 1
+  [ "$status" -eq 0 ]
+  echo "$output" | jq empty
+  count=$(echo "$output" | jq '.hooks | length')
+  [ "$count" -eq 7 ]
+  p50=$(echo "$output" | jq '.hooks."pre-tool-use".p50_ms')
+  [ "$p50" -ge 0 ]
+}
