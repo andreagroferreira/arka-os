@@ -11,8 +11,6 @@ import subprocess
 import sys
 import time
 
-import pytest
-
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
     ALL_CHECKS,
@@ -24,7 +22,6 @@ from core.governance.evidence_checks import (
     main,
     run_evidence_checks,
 )
-
 
 # ─── Fixture projects ───────────────────────────────────────────────────
 

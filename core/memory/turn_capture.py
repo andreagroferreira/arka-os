@@ -11,7 +11,7 @@ hot path. Pipeline per turn:
     PRODUCED FOR the F1-A3 retrieval layer (no reader exists in this PR)
     → amortised maintenance (embedding backfill + retention prune).
 
-CLI: ``python3 -m core.memory.turn_capture <session_id> <transcript_path> [cwd]``
+CLI: ``python3 -m core.memory.turn_capture (<session_id> <transcript_path> [cwd] | maintenance)``
 """
 
 from __future__ import annotations
@@ -259,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     if args and args[0] == "maintenance":
         try:
             return run_maintenance()
-        except Exception:  # detached job must die quietly
+        except Exception:  # detached worker must die quietly
             return 0
     if len(args) < 2:
         print(
