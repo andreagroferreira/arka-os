@@ -142,6 +142,30 @@ export const checks = [
       "Run: npx arkaos@latest update  (or export ARKA_HOOK_FASTPATH=0 to force the bash chain)",
   },
   {
+    name: "arka-tools-runner",
+    description: "arka-tools MCP server runnable (uv or venv with mcp SDK)",
+    severity: "warn",
+    check: () => {
+      // Deploy dir + at least one runner. WARN, never FAIL: uv OR a
+      // venv with the mcp extra is enough, and neither is mandatory
+      // for the core install (F2-7a, `npx arkaos mcp start`).
+      const toolsDir = join(
+        homedir(), ".claude", "skills", "arka", "mcp-tools");
+      if (!existsSync(join(toolsDir, "server.py"))) return false;
+      if (commandExists("uv")) return true;
+      const py = getArkaosPython();
+      if (!py) return false;
+      try {
+        execSync(`"${py}" -c "import mcp"`, { stdio: "ignore" });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    fix: () =>
+      "Install uv (https://docs.astral.sh/uv) or: ~/.arkaos/venv/bin/pip install 'mcp[cli]>=1.2.0' — then: npx arkaos mcp start",
+  },
+  {
     name: "constitution",
     description: "Constitution YAML present",
     severity: "warn",

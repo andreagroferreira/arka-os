@@ -31,6 +31,10 @@ const { values, positionals } = parseArgs({
     // Fusion — `npx arkaos fusion [--save|--show] "question"`
     save: { type: "boolean" },
     show: { type: "boolean" },
+    // F2-7a — `npx arkaos mcp start [--write]`. Declared so it lands in
+    // `values.write` instead of a free positional under strict:false
+    // (the documented --fix lesson).
+    write: { type: "boolean" },
   },
   allowPositionals: true,
   strict: false,
@@ -59,6 +63,7 @@ Usage:
   npx arkaos keys             Manage API keys (OpenAI, fal.ai, etc.)
   npx arkaos models           Model Fabric: which model runs each role
   npx arkaos models set <role> <provider>/<model>  Re-route a role
+  npx arkaos mcp start        Start the arka-tools MCP server (stdio; --write enables writes)
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
@@ -227,6 +232,17 @@ async function main() {
           env: { ...process.env, ARKAOS_ROOT: repoRoot2 },
         });
       } catch { process.exit(1); }
+      break;
+    }
+
+    case "mcp": {
+      const verb = positionals[1];
+      if (verb !== "start") {
+        console.error('Usage: npx arkaos mcp start [--write]');
+        process.exit(1);
+      }
+      const { startServer } = await import("./mcp-runner.js");
+      process.exit(startServer({ write: Boolean(values.write) }));
       break;
     }
 

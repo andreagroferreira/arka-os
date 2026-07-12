@@ -1,11 +1,12 @@
 {
   "_meta": {
     "name": "base",
-    "description": "Base MCP profile — included in ALL projects",
+    "description": "Base MCP profile \u2014 included in ALL projects",
     "extends": null
   },
   "mcps": [
     "arka-prompts",
+    "arka-tools",
     "obsidian",
     "context7",
     "playwright",
