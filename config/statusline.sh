@@ -130,16 +130,26 @@ if [ -f "$WF_STATE" ]; then
       (.phases // {}) as $p
       | ([$p[] | select(.status == "completed")] | length) as $done
       | ($p | length) as $total
-      | ([$p | to_entries[] | select(.value.status == "in_progress") | .key][0] // "") as $cur
+      # Gate index = position of the in_progress phase (1-based), else
+      # done+1 — DERIVED FROM POSITION, never grepped from the name
+      # (a "gate-5-x" key in a 3-phase workflow must not render G5/3).
+      # Clamped to $total so a fully-completed workflow shows G<n>/<n>,
+      # not G<n+1>/<n>.
+      | ([$p | to_entries | to_entries[]
+          | select(.value.value.status == "in_progress") | .key + 1][0]
+         // ([$done + 1, $total] | min)) as $gate
       | (.violations // [] | length) as $v
-      | "\(.workflow)\t\($done)\t\($total)\t\($cur)\t\($v)"
+      # Unit-separator (), NOT tab: an empty field between tabs is
+      # IFS-whitespace and collapses under `read`, shifting every later
+      # field and SILENTLY DROPPING the violations warning (QG B1). The
+      # workflow name is stripped of control bytes so a malformed state
+      # file cannot inject ANSI or a newline into the terminal (B4/M1).
+      | ((.workflow | gsub("[[:cntrl:]\\\\]"; "")) as $wf
+         | [$wf, ($gate|tostring), ($total|tostring), ($v|tostring)] | join("\u001f"))
     end
   ' "$WF_STATE" 2>/dev/null)
   if [ -n "$WF_LINE" ]; then
-    IFS=$'\t' read -r WF_NAME WF_DONE WF_TOTAL WF_CUR WF_VIOL <<< "$WF_LINE"
-    # Current gate number: "gate-3-execute" -> 3; fall back to done+1.
-    WF_GATE_NUM=$(printf '%s' "$WF_CUR" | grep -oE '[0-9]+' | head -1)
-    [ -z "$WF_GATE_NUM" ] && WF_GATE_NUM=$((WF_DONE + 1))
+    IFS=$'\x1f' read -r WF_NAME WF_GATE_NUM WF_TOTAL WF_VIOL <<< "$WF_LINE"
     WF_SEGMENT="  ${C_DIM}|${C_RESET}  ${C_CYAN}⚑ ${WF_NAME}${C_RESET} ${C_DIM}G${WF_GATE_NUM}/${WF_TOTAL}${C_RESET}"
     if [ "${WF_VIOL:-0}" -gt 0 ] 2>/dev/null; then
       WF_SEGMENT+=" ${C_RED}⚠${WF_VIOL}${C_RESET}"
@@ -149,12 +159,14 @@ fi
 
 # Budget: show spend against the per-session cap when one is configured
 # (~/.arkaos/config.json budget.hardCapUsd). Read-only, one jq call.
+# `numbers` coerces the type: a non-numeric cap ("lots") yields empty
+# and the segment is omitted rather than rendering a misleading /$0.00.
 BUDGET_FMT=""
 ARKA_CONFIG="$HOME/.arkaos/config.json"
 if [ -f "$ARKA_CONFIG" ]; then
-  CAP=$(jq -r '.budget.hardCapUsd // empty' "$ARKA_CONFIG" 2>/dev/null)
+  CAP=$(jq -r '.budget.hardCapUsd | numbers // empty' "$ARKA_CONFIG" 2>/dev/null)
   if [ -n "$CAP" ]; then
-    BUDGET_FMT=$(awk -v c="${COST:-0}" -v cap="$CAP" 'BEGIN{printf "/$%.2f", cap}')
+    BUDGET_FMT=$(awk -v cap="$CAP" 'BEGIN{printf "/$%.2f", cap}')
   fi
 fi
 
