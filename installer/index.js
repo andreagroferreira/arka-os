@@ -922,7 +922,18 @@ function installSkill(config, installDir) {
       }
     }
 
-    ok("MCP infrastructure deployed (profiles, stacks, scripts, arka-prompts server)");
+    // Deploy arka-tools server to mcp-tools/ (F2-3: programmatic tools)
+    const mcpToolsSrc = join(mcpsSrc, "arka-tools");
+    const mcpToolsDest = join(skillsBase, "arka", "mcp-tools");
+    if (existsSync(mcpToolsSrc)) {
+      ensureDir(mcpToolsDest);
+      for (const f of ["server.py", "pyproject.toml"]) {
+        const src = join(mcpToolsSrc, f);
+        if (existsSync(src)) copyFileSync(src, join(mcpToolsDest, f));
+      }
+    }
+
+    ok("MCP infrastructure deployed (profiles, stacks, scripts, arka-prompts + arka-tools servers)");
 
     // Higgsfield MCP is registered but requires an account + API key to connect.
     // Non-blocking warning: the install succeeds even without a Higgsfield account.
