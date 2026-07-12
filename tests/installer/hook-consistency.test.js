@@ -123,3 +123,34 @@ test("VERSION file matches package.json version", () => {
     "VERSION and package.json version must match before publish"
   );
 });
+
+// ── F2-6 fast-path lockstep ─────────────────────────────────────────────
+
+const hookLibSrc = readFileSync(join(ROOT, "installer/hook-lib.js"), "utf-8");
+const hookAssets = extractStringArray(hookLibSrc, "HOOK_ASSETS");
+
+test("every fast-path asset in HOOK_ASSETS exists in config/hooks/", () => {
+  const missing = hookAssets.filter(
+    (a) => !existsSync(join(ROOT, "config", "hooks", a))
+  );
+  assert.deepEqual(missing, [],
+    `hook-lib.js HOOK_ASSETS references missing sources: ${missing.join(", ")}`);
+});
+
+test("every FASTPATH_HOOK the adapter can register has its .cjs in HOOK_ASSETS and its .sh delegation target in hookNames", () => {
+  const m = adapterSrc.match(/FASTPATH_HOOKS\s*=\s*new Set\(\[([\s\S]*?)\]\)/);
+  assert.ok(m, "FASTPATH_HOOKS not found in adapter");
+  const fastpath = [...m[1].matchAll(/["']([^"']+)["']/g)].map((x) => x[1]);
+  assert.ok(fastpath.length > 0);
+  for (const name of fastpath) {
+    assert.ok(hookAssets.includes(`${name}.cjs`),
+      `${name}.cjs must be in hook-lib.js HOOK_ASSETS or it never deploys`);
+    assert.ok(copied.includes(name),
+      `${name}.sh must stay in hookNames — it is the delegation target`);
+  }
+});
+
+test("gate-manifest.json is deployed whenever any shim is (same asset list)", () => {
+  assert.ok(hookAssets.includes("gate-manifest.json"),
+    "shims without a sibling manifest delegate everything — deploy it");
+});

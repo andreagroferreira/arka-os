@@ -118,6 +118,30 @@ export const checks = [
     fix: () => "Run: npx arkaos install --force",
   },
   {
+    name: "hook-fastpath",
+    description: "Hook fast-path shims consistent (F2-6)",
+    severity: "fail",
+    check: () => {
+      // Only meaningful when the .cjs shims are deployed (POSIX installs
+      // from v4.14+). If they are, the manifest + engine + a node binary
+      // must exist, or every PreToolUse/PostToolUse fires a dead command
+      // that silently fails open — governance off with a green doctor.
+      if (IS_WINDOWS) return true;
+      const hooksDir = join(INSTALL_DIR, "config", "hooks");
+      const shims = ["pre-tool-use.cjs", "post-tool-use.cjs"]
+        .map((f) => join(hooksDir, f));
+      if (!shims.some((p) => existsSync(p))) return true; // .sh-only install
+      if (!shims.every((p) => existsSync(p))) return false; // partial deploy
+      if (!existsSync(join(hooksDir, "gate-manifest.json"))) return false;
+      if (!existsSync(join(hooksDir, "_lib", "fastpath", "engine.cjs"))) {
+        return false;
+      }
+      return commandExists("node");
+    },
+    fix: () =>
+      "Run: npx arkaos@latest update  (or export ARKA_HOOK_FASTPATH=0 to force the bash chain)",
+  },
+  {
     name: "constitution",
     description: "Constitution YAML present",
     severity: "warn",

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { findSystemPython, ensureVenv, getArkaosPython, getArkaosPip, pipInstall } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
-import { copyHookLib } from "./hook-lib.js";
+import { copyHookLib, copyHookAssets } from "./hook-lib.js";
 import { deployCoreSnapshot } from "./core-snapshot.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -713,6 +713,13 @@ function installHooks(installDir) {
 
   if (copyHookLib(srcHooksDir, hooksDir)) {
     ok("Hook lib: _lib/");
+  }
+
+  // F2-6 fast-path shims + gate manifest (shared deploy — the asset
+  // list lives in hook-lib.js so this path and update.js cannot drift).
+  const assetCount = copyHookAssets(srcHooksDir, hooksDir);
+  if (assetCount > 0) {
+    ok(`Hook fast-path assets: ${assetCount}`);
   }
 }
 

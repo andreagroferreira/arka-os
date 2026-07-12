@@ -1,0 +1,724 @@
+{
+  "bash": {
+    "discovery_first_tokens": [
+      ".",
+      "[",
+      "ag",
+      "alias",
+      "apt",
+      "awk",
+      "brew",
+      "cargo",
+      "case",
+      "cat",
+      "choco",
+      "command",
+      "curl",
+      "cut",
+      "date",
+      "df",
+      "docker",
+      "du",
+      "echo",
+      "eval",
+      "exec",
+      "exit",
+      "export",
+      "false",
+      "file",
+      "find",
+      "fmt",
+      "for",
+      "free",
+      "function",
+      "git",
+      "go",
+      "grep",
+      "head",
+      "hostname",
+      "id",
+      "if",
+      "jest",
+      "jobs",
+      "less",
+      "locate",
+      "ls",
+      "mocha",
+      "more",
+      "node",
+      "npm",
+      "ollama",
+      "pest",
+      "pgrep",
+      "php",
+      "phpunit",
+      "pip",
+      "pip3",
+      "pnpm",
+      "poetry",
+      "printf",
+      "ps",
+      "pwd",
+      "pytest",
+      "python",
+      "python3",
+      "return",
+      "rg",
+      "rspec",
+      "ruby",
+      "rustc",
+      "set",
+      "shopt",
+      "snap",
+      "sort",
+      "source",
+      "stat",
+      "tail",
+      "tee",
+      "test",
+      "tr",
+      "trap",
+      "tree",
+      "true",
+      "type",
+      "unalias",
+      "uname",
+      "uniq",
+      "uptime",
+      "uv",
+      "vitest",
+      "wait",
+      "wc",
+      "wget",
+      "where",
+      "which",
+      "while",
+      "whoami",
+      "winget",
+      "yarn"
+    ],
+    "effect_patterns": [
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])rm\\s",
+        "py": "(^|[\\s|;&])rm\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])mv\\s",
+        "py": "(^|[\\s|;&])mv\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])cp\\s+-[rRf]",
+        "py": "(^|[\\s|;&])cp\\s+-[rRf]"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])dd\\s",
+        "py": "(^|[\\s|;&])dd\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])truncate\\s",
+        "py": "(^|[\\s|;&])truncate\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])touch\\s",
+        "py": "(^|[\\s|;&])touch\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])mkdir\\s",
+        "py": "(^|[\\s|;&])mkdir\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])rmdir\\s",
+        "py": "(^|[\\s|;&])rmdir\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])ln\\s+-s",
+        "py": "(^|[\\s|;&])ln\\s+-s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])chmod\\s",
+        "py": "(^|[\\s|;&])chmod\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])chown\\s",
+        "py": "(^|[\\s|;&])chown\\s"
+      },
+      {
+        "flags": "",
+        "js": "sed\\s+-i",
+        "py": "sed\\s+-i"
+      },
+      {
+        "flags": "",
+        "js": "perl\\s+-i",
+        "py": "perl\\s+-i"
+      },
+      {
+        "flags": "",
+        "js": "awk\\s+-i\\s",
+        "py": "awk\\s+-i\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])kill\\s",
+        "py": "(^|[\\s|;&])kill\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])killall\\s",
+        "py": "(^|[\\s|;&])killall\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])pkill\\s",
+        "py": "(^|[\\s|;&])pkill\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])sudo\\s",
+        "py": "(^|[\\s|;&])sudo\\s"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])su\\s+-",
+        "py": "(^|[\\s|;&])su\\s+-"
+      },
+      {
+        "flags": "",
+        "js": "git\\s+(commit|push|merge|rebase|reset\\s+--hard|checkout\\s+-[Bb]|tag\\s|stash|cherry-pick|revert|branch\\s+-[dD])",
+        "py": "git\\s+(commit|push|merge|rebase|reset\\s+--hard|checkout\\s+-[Bb]|tag\\s|stash|cherry-pick|revert|branch\\s+-[dD])"
+      },
+      {
+        "flags": "",
+        "js": "npm\\s+(install|i|publish|uninstall|update|run\\s+publish)",
+        "py": "npm\\s+(install|i|publish|uninstall|update|run\\s+publish)"
+      },
+      {
+        "flags": "",
+        "js": "yarn\\s+(add|remove|install|publish|upgrade)",
+        "py": "yarn\\s+(add|remove|install|publish|upgrade)"
+      },
+      {
+        "flags": "",
+        "js": "pnpm\\s+(add|remove|install|publish|update)",
+        "py": "pnpm\\s+(add|remove|install|publish|update)"
+      },
+      {
+        "flags": "",
+        "js": "pip3?\\s+install",
+        "py": "pip3?\\s+install"
+      },
+      {
+        "flags": "",
+        "js": "pip3?\\s+uninstall",
+        "py": "pip3?\\s+uninstall"
+      },
+      {
+        "flags": "",
+        "js": "uv\\s+pip\\s+install",
+        "py": "uv\\s+pip\\s+install"
+      },
+      {
+        "flags": "",
+        "js": "poetry\\s+(add|remove|install|publish)",
+        "py": "poetry\\s+(add|remove|install|publish)"
+      },
+      {
+        "flags": "",
+        "js": "brew\\s+(install|uninstall|upgrade|cleanup)",
+        "py": "brew\\s+(install|uninstall|upgrade|cleanup)"
+      },
+      {
+        "flags": "",
+        "js": "apt(-get)?\\s+(install|remove|purge|upgrade)",
+        "py": "apt(-get)?\\s+(install|remove|purge|upgrade)"
+      },
+      {
+        "flags": "",
+        "js": "snap\\s+(install|remove|refresh)",
+        "py": "snap\\s+(install|remove|refresh)"
+      },
+      {
+        "flags": "",
+        "js": "winget\\s+(install|uninstall|upgrade)",
+        "py": "winget\\s+(install|uninstall|upgrade)"
+      },
+      {
+        "flags": "",
+        "js": "choco\\s+(install|uninstall|upgrade)",
+        "py": "choco\\s+(install|uninstall|upgrade)"
+      },
+      {
+        "flags": "",
+        "js": "gh\\s+(pr\\s+create|release\\s+create|issue\\s+create|repo\\s+create|secret\\s+set)",
+        "py": "gh\\s+(pr\\s+create|release\\s+create|issue\\s+create|repo\\s+create|secret\\s+set)"
+      },
+      {
+        "flags": "",
+        "js": "gh\\s+pr\\s+merge",
+        "py": "gh\\s+pr\\s+merge"
+      },
+      {
+        "flags": "",
+        "js": "gh\\s+pr\\s+close",
+        "py": "gh\\s+pr\\s+close"
+      },
+      {
+        "flags": "",
+        "js": "gh\\s+repo\\s+delete",
+        "py": "gh\\s+repo\\s+delete"
+      },
+      {
+        "flags": "",
+        "js": "docker\\s+(build|push|run|create|rm|kill|stop|start|restart|exec)",
+        "py": "docker\\s+(build|push|run|create|rm|kill|stop|start|restart|exec)"
+      },
+      {
+        "flags": "",
+        "js": "(^|[\\s|;&])scp\\s",
+        "py": "(^|[\\s|;&])scp\\s"
+      },
+      {
+        "flags": "",
+        "js": ">\\s*[^&\\s]",
+        "py": ">\\s*[^&\\s]"
+      },
+      {
+        "flags": "",
+        "js": ">>\\s*[^&\\s]",
+        "py": ">>\\s*[^&\\s]"
+      }
+    ],
+    "eval_order": "blacklist-then-whitelist",
+    "strip_var_prefix": true,
+    "unknown_first_token": "effect"
+  },
+  "corpora": {
+    "bash": [
+      {
+        "cmd": "git status",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "git log --oneline -5",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "git commit -m 'x'",
+        "expect": "effect"
+      },
+      {
+        "cmd": "git push origin master",
+        "expect": "effect"
+      },
+      {
+        "cmd": "ls -la /tmp",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "echo hello",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "echo hello > out.txt",
+        "expect": "effect"
+      },
+      {
+        "cmd": "cat f.txt | grep needle",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "FOO=1 BAR=2 grep -r needle .",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "FOO=1 rm -rf /tmp/x",
+        "expect": "effect"
+      },
+      {
+        "cmd": "rsync -av --dry-run a/ b/",
+        "expect": "effect"
+      },
+      {
+        "cmd": "unknowncmd --version",
+        "expect": "effect"
+      },
+      {
+        "cmd": "python3 -m pytest tests/",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "npm run build",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "npm install lodash",
+        "expect": "effect"
+      },
+      {
+        "cmd": "docker ps",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "docker build -t x .",
+        "expect": "effect"
+      },
+      {
+        "cmd": "kill -9 12345",
+        "expect": "effect"
+      },
+      {
+        "cmd": "sed -i '' -e s/a/b/ f",
+        "expect": "effect"
+      },
+      {
+        "cmd": "curl -s https://example.com",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "grep 'a > b' file.txt",
+        "expect": "effect"
+      },
+      {
+        "cmd": "",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "   ",
+        "expect": "discovery"
+      },
+      {
+        "cmd": "touch marker",
+        "expect": "effect"
+      },
+      {
+        "cmd": "mkdir -p build",
+        "expect": "effect"
+      }
+    ],
+    "error_trigger": [
+      {
+        "expect": true,
+        "output": "Error: something broke"
+      },
+      {
+        "expect": true,
+        "output": "fatal: not a git repository"
+      },
+      {
+        "expect": true,
+        "output": "2 tests failed"
+      },
+      {
+        "expect": true,
+        "output": "ENOENT: no such file"
+      },
+      {
+        "expect": true,
+        "output": "panic: runtime error"
+      },
+      {
+        "expect": false,
+        "output": "all 14 tests passed"
+      },
+      {
+        "expect": false,
+        "output": "ok"
+      },
+      {
+        "expect": false,
+        "output": ""
+      }
+    ],
+    "pre_tools": [
+      {
+        "expect": "fast_allow",
+        "tool": "Read"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": "Grep"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": "Glob"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": "TodoWrite"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": "ExitPlanMode"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": "Agent"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": "mcp__obsidian__search_notes"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": "mcp__supabase__list_tables"
+      },
+      {
+        "expect": "fast_allow",
+        "tool": ""
+      },
+      {
+        "expect": "delegate",
+        "tool": "WebSearch"
+      },
+      {
+        "expect": "delegate",
+        "tool": "WebFetch"
+      },
+      {
+        "expect": "delegate",
+        "tool": "mcp__context7__query-docs"
+      },
+      {
+        "expect": "delegate",
+        "tool": "mcp__firecrawl__firecrawl_scrape"
+      },
+      {
+        "expect": "delegate",
+        "tool": "Write"
+      },
+      {
+        "expect": "delegate",
+        "tool": "Edit"
+      },
+      {
+        "expect": "delegate",
+        "tool": "MultiEdit"
+      },
+      {
+        "expect": "delegate",
+        "tool": "NotebookEdit"
+      },
+      {
+        "expect": "delegate",
+        "tool": "Task"
+      },
+      {
+        "expect": "delegate",
+        "tool": "Skill"
+      }
+    ],
+    "session_ids": [
+      {
+        "expect": true,
+        "sid": "abc-123"
+      },
+      {
+        "expect": true,
+        "sid": "a.b_c-D9"
+      },
+      {
+        "expect": true,
+        "sid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "expect": false,
+        "sid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "expect": false,
+        "sid": "."
+      },
+      {
+        "expect": false,
+        "sid": ".."
+      },
+      {
+        "expect": false,
+        "sid": "..."
+      },
+      {
+        "expect": false,
+        "sid": "a/../b"
+      },
+      {
+        "expect": false,
+        "sid": "a b"
+      },
+      {
+        "expect": false,
+        "sid": ""
+      },
+      {
+        "expect": false,
+        "sid": "sess\u00e3o"
+      }
+    ]
+  },
+  "env": {
+    "kill_switch": "ARKA_HOOK_FASTPATH",
+    "kill_switch_off_value": "0"
+  },
+  "flags": {
+    "budget": {
+      "active_when": "float(value) > 0",
+      "cap_keys": [
+        "hardCapUsd",
+        "dailyCapUsd"
+      ],
+      "on_corrupt": "no-cap",
+      "on_missing_file": "no-cap",
+      "section": "budget"
+    },
+    "hardEnforcement": {
+      "coercion": "python-truthy",
+      "on_corrupt": false,
+      "on_missing_file": false,
+      "path": [
+        "hooks",
+        "hardEnforcement"
+      ]
+    }
+  },
+  "home_paths": {
+    "config": ".arkaos/config.json",
+    "telemetry_enforcement": ".arkaos/telemetry/enforcement.jsonl",
+    "telemetry_kb_first": ".arkaos/telemetry/kb_first.jsonl",
+    "telemetry_mcp": ".arkaos/telemetry/mcp-usage.jsonl"
+  },
+  "io_contract": {
+    "post": {
+      "fail_open_exit": 0,
+      "fail_open_stdout": "{}",
+      "success_stdout": "{}"
+    },
+    "pre": {
+      "allow_stdout": "",
+      "fail_open_exit": 0
+    }
+  },
+  "numbers": {
+    "assistant_window": 20,
+    "auth_ttl_seconds": 43200,
+    "grace_cap": 3
+  },
+  "platform": "posix",
+  "post": {
+    "error_trigger": {
+      "flags": "i",
+      "js": "(error:|fatal:|exception:|failed|ENOENT|EACCES|EPERM|panic:)",
+      "py": "(error:|fatal:|exception:|failed|ENOENT|EACCES|EPERM|panic:)"
+    },
+    "success_exit_codes": [
+      "0",
+      ""
+    ]
+  },
+  "schema_version": 1,
+  "session_id": {
+    "flags": "",
+    "js": "^[A-Za-z0-9._-]{1,128}$",
+    "py": "^[A-Za-z0-9._-]{1,128}$",
+    "reject_dot_only": true
+  },
+  "source_modules": [
+    "core.hooks.post_tool_use",
+    "core.hooks.pre_tool_use",
+    "core.runtime.cost_governor",
+    "core.runtime.mcp_telemetry",
+    "core.shared.safe_session_id",
+    "core.shared.temp_paths",
+    "core.workflow.flow_authorization",
+    "core.workflow.flow_enforcer",
+    "core.workflow.research_gate"
+  ],
+  "state_dirs": {
+    "flow_auth_dirname": "arkaos-flow-auth",
+    "flow_auth_env_override": "ARKA_FLOW_AUTH_DIR",
+    "flow_auth_file": "{sid}.json",
+    "tmp_base_posix": "/tmp"
+  },
+  "telemetry": {
+    "enforcement_prefix_keys": [
+      "ts",
+      "session_id",
+      "tool",
+      "cwd"
+    ],
+    "enforcement_template": {
+      "allow": true,
+      "approval_state": "",
+      "bypass_used": false,
+      "marker_found": null,
+      "phase_observed": null,
+      "reason": "tool-not-gated",
+      "warning": ""
+    },
+    "kb_first_prefix_keys": [
+      "ts",
+      "session_id",
+      "tool"
+    ],
+    "kb_first_template": {
+      "allow": true,
+      "bypass_used": false,
+      "kb_hits_hint": [],
+      "nudge": false,
+      "reason": "tool-not-gated",
+      "stderr_msg": ""
+    },
+    "mcp_keys": [
+      "ts",
+      "server",
+      "tool",
+      "session"
+    ],
+    "mcp_prefix": "mcp__",
+    "ts_format": "python-utc-isoformat"
+  },
+  "tools": {
+    "effect_always": [
+      "Edit",
+      "MultiEdit",
+      "NotebookEdit",
+      "Skill",
+      "Task",
+      "Write"
+    ],
+    "flow_gated": [
+      "Bash",
+      "Edit",
+      "MultiEdit",
+      "NotebookEdit",
+      "Skill",
+      "Task",
+      "Write"
+    ],
+    "post_delegate_always": [
+      "Agent",
+      "ExitPlanMode",
+      "Task"
+    ],
+    "research_external": [
+      "WebFetch",
+      "WebSearch",
+      "mcp__context7__query-docs",
+      "mcp__context7__resolve-library-id",
+      "mcp__firecrawl__firecrawl_crawl",
+      "mcp__firecrawl__firecrawl_extract",
+      "mcp__firecrawl__firecrawl_map",
+      "mcp__firecrawl__firecrawl_scrape",
+      "mcp__firecrawl__firecrawl_search"
+    ]
+  }
+}

@@ -3,7 +3,7 @@ import { join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { ensureVenv, ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
-import { copyHookLib } from "./hook-lib.js";
+import { copyHookLib, copyHookAssets } from "./hook-lib.js";
 import { deployCoreSnapshot } from "./core-snapshot.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
@@ -246,6 +246,13 @@ export async function update() {
   // leaves them falling back to a bare `python3` without ArkaOS deps.
   if (copyHookLib(srcHooksDir, destHooksDir)) {
     console.log("         ✓ Hook lib updated (_lib/)");
+  }
+
+  // F2-6 fast-path shims + gate manifest (same shared deploy as the
+  // fresh-install path — single asset list in hook-lib.js).
+  const assetCount = copyHookAssets(srcHooksDir, destHooksDir);
+  if (assetCount > 0) {
+    console.log(`         ✓ Hook fast-path assets updated (${assetCount})`);
   }
 
   // Re-register hooks in the runtime's settings file.

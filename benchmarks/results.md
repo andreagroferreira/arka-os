@@ -54,8 +54,28 @@
 |---|---:|---:|---|
 | session-start | 131 | 141 | once per session (F2-2 consolidated 13 python spawns into 1 — was 251/269) |
 | user-prompt-submit | 157 | 172 | every turn (Synapse bridge dominates) |
-| post-tool-use | 96 | 97 | every tool call |
-| pre-tool-use | 82 | 98 | every tool call (F2-6 fast-path target) |
+| post-tool-use | 19 | 20 | every tool call (F2-6 shim; was 96/97 — kill-switch path measures 99/101) |
+| pre-tool-use | 18 | 19 | every tool call (F2-6 shim; was 82/98 — kill-switch path measures 83/85) |
 | stop | 78 | 83 | every turn |
 | pre-compact | 42 | 44 | on compact |
 | cwd-changed | 19 | 20 | on cd |
+
+### F2-6 fast-path shims (2026-07-12)
+
+The harness now measures the entry command settings.json actually
+registers: the Node `.cjs` shim when deployed, the bash wrapper under
+`ARKA_HOOK_FASTPATH=0`. Same throwaway HOME, N=20, benign Glob payload
+(exercises exactly the P4/Q6 fast paths).
+
+| Config | pre-tool-use p50/p95 | post-tool-use p50/p95 |
+|---|---|---|
+| fast path ON (shim) | 18 / 19 ms | 19 / 20 ms |
+| `ARKA_HOOK_FASTPATH=0` (bash→Python) | 83 / 85 ms | 99 / 101 ms |
+
+−78% / −81% on the dominant per-tool-call paths. The residual ~18ms is
+the Node startup floor on this machine (`node -e ''` ≈ 10ms) plus module
+load — the design's 10-15ms target was aspirational below that floor.
+Delegated calls (Write/Edit/Task/errors) pay the shim startup on top of
+the full chain: measured +18ms p50 (Write payload: 128ms via `.sh`
+direct, 147ms via shim). Net per typical turn (~15 calls, ~11 fast-path)
+≈ −600ms.
