@@ -9,10 +9,15 @@
 #
 # Usage: bash benchmarks/hooks-bench.sh [N]   (default N=20)
 # Output: JSON to stdout — merge into benchmarks/results.md by hand or
-# via the release notes. Runs against the REAL environment (real HOME,
-# real venv): the point is production latency, not lab latency.
-# Payloads are minimal/benign so hooks take their early-exit paths —
-# the floor cost every single turn pays.
+# via the release notes.
+#
+# Isolation contract (QG blocker, F2-1 redo): hooks run under a
+# THROWAWAY HOME with the real venv symlinked in — the production
+# interpreter and code paths are measured, but every state write
+# (budget ledger, telemetry, markers, session memory) lands in the
+# temp dir and dies with the run. A benchmark must never inflate the
+# operator's CostGovernor ledger. Payloads are minimal/benign so hooks
+# take their early-exit paths — the floor cost every single turn pays.
 #
 # Scope note (on record): no always-on per-turn timing telemetry ships
 # with this harness — a hook-latency.jsonl nobody reads would be the
@@ -26,7 +31,33 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOKS_DIR="$REPO_DIR/config/hooks"
 SESSION="bench-$$"
 
-_now_ns() { date +%s%N 2>/dev/null || echo "$(($(date +%s) * 1000000000))"; }
+# Throwaway HOME: real venv (symlink) + repo pointer, everything else
+# ephemeral. cleanup on any exit.
+BENCH_HOME="$(mktemp -d "${TMPDIR:-/tmp}/arka-hooks-bench.XXXXXX")"
+mkdir -p "$BENCH_HOME/.arkaos/reorganize-proposals"
+REAL_VENV="$HOME/.arkaos/venv"
+[ -d "$REAL_VENV" ] && ln -s "$REAL_VENV" "$BENCH_HOME/.arkaos/venv"
+printf '%s\n' "$REPO_DIR" > "$BENCH_HOME/.arkaos/.repo-path"
+# A benchmark must never spawn long-lived services or background jobs:
+# session-start's dashboard-ensure would launch a REAL server per run
+# (reproduced: 8 orphan dashboard-api processes from one N=20 run) and
+# its stale-aware reorganizer fires whenever today's proposal is
+# missing. Disable the first, satisfy the second.
+printf '{"dashboard": {"ensure_on_session": false}}\n' > "$BENCH_HOME/.arkaos/config.json"
+touch "$BENCH_HOME/.arkaos/reorganize-proposals/$(date +%Y-%m-%d).md"
+trap 'rm -rf "$BENCH_HOME"; rm -f "/tmp/arkaos-wf-required/$SESSION" 2>/dev/null || true' EXIT
+
+_now_ns() {
+  local t
+  t=$(date +%s%N 2>/dev/null || echo "")
+  # BSD date can emit a literal trailing 'N' WITH exit 0 (F1-D1 class);
+  # accept only pure digits, else fall back to second resolution.
+  if [[ "$t" =~ ^[0-9]+$ ]]; then
+    echo "$t"
+  else
+    echo "$(($(date +%s) * 1000000000))"
+  fi
+}
 
 # hook_name -> payload (kept benign: early-exit floor cost).
 _payload() {
@@ -70,7 +101,9 @@ for hook in $HOOKS; do
   times=""
   for _ in $(seq 1 "$N"); do
     start=$(_now_ns)
-    printf '%s' "$payload" | bash "$script" >/dev/null 2>&1 || true
+    # 3>/dev/null: no hook child may inherit an open fd 3 — a background
+    # grandchild holding it hangs bats forever (bats waits for fd EOF).
+    printf '%s' "$payload" | HOME="$BENCH_HOME" bash "$script" >/dev/null 2>&1 3>/dev/null || true
     end=$(_now_ns)
     times="${times}$(( (end - start) / 1000000 ))
 "
@@ -82,6 +115,4 @@ for hook in $HOOKS; do
   first=0
   printf '    "%s": {"p50_ms": %s, "p95_ms": %s}' "$hook" "$p50" "$p95"
 done
-# Belt-and-braces: drop any marker a bench session id left behind.
-rm -f "/tmp/arkaos-wf-required/$SESSION" 2>/dev/null || true
 printf '\n  }\n}\n'
