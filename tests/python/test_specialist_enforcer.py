@@ -2,7 +2,8 @@
 
 PR1 of the Squad Intelligence Upgrade. Blocks Tier-1 squad leads from
 writing to specialist-owned files without dispatching the specialist via
-the Agent tool first. Bypass via `[arka:specialist-bypass <reason>]` is
+the Agent tool first. Bypass via `[arka:specialist-bypass owner=<slug>
+reason=<24+ chars>]` is
 logged for accountability.
 """
 
@@ -286,7 +287,8 @@ def test_bypass_marker_with_reason_allows(tmp_path, tmp_config):
         tmp_path / "tx.jsonl",
         [
             "[arka:routing] dev -> Paulo",
-            "[arka:specialist-bypass typo fix in one line]",
+            "[arka:specialist-bypass owner=backend-dev reason=the specialist "
+            "cannot run here, the toolchain is missing on this box]",
         ],
     )
     d = evaluate(
@@ -297,7 +299,7 @@ def test_bypass_marker_with_reason_allows(tmp_path, tmp_config):
     )
     assert d.allow is True
     assert d.bypass_used is True
-    assert "typo fix" in (d.bypass_reason or "")
+    assert "toolchain is missing" in (d.bypass_reason or "")
 
 
 def test_bypass_marker_without_reason_rejected(tmp_path, tmp_config):
@@ -499,7 +501,8 @@ def test_telemetry_records_bypass(tmp_path, tmp_config):
         tmp_path / "tx.jsonl",
         [
             "[arka:routing] dev -> Paulo",
-            "[arka:specialist-bypass needed urgent hotfix]",
+            "[arka:specialist-bypass owner=frontend-dev reason=production "
+            "is down and the frontend specialist cannot be dispatched]",
         ],
     )
     d = evaluate(
@@ -520,7 +523,7 @@ def test_telemetry_records_bypass(tmp_path, tmp_config):
     entry = json.loads(line)
     assert entry["allow"] is True
     assert entry["bypass_used"] is True
-    assert "urgent hotfix" in entry["bypass_reason"]
+    assert "production" in entry["bypass_reason"]
 
 
 def test_telemetry_records_model_requested(tmp_path, tmp_config):
