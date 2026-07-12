@@ -69,7 +69,10 @@
     "VERSION",
     "CONSTITUTION.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "!**/__pycache__/",
+    "!**/*.pyc",
+    "!**/.DS_Store"
   ],
   "devDependencies": {
     "eslint": "^8.57.1"
