@@ -38,3 +38,21 @@ test("every ARKAOS_ROOT dir the installer reads ships in the npm tarball", () =>
     `installer deploys from dirs the npm tarball does not ship — the ` +
     `existsSync guards will skip SILENTLY on user machines: ${missing}`);
 });
+
+test("no installer source dir is excluded by .npmignore (second silent-skip vector)", () => {
+  // QG redo 1: mcps/ sat in BOTH package.json files and .npmignore
+  // ("Legacy v1" — a false label). It only shipped because npm's files
+  // allowlist wins precedence — version-sensitive behavior, not a
+  // documented guarantee. Contradictory distribution config must fail
+  // the build, not ride on precedence.
+  const ignoreRules = readFileSync(join(ROOT, ".npmignore"), "utf-8")
+    .split("\n")
+    .map((l) => l.trim().replace(/\/$/, ""))
+    .filter((l) => l && !l.startsWith("#"));
+  const excluded = [...installerSourceDirs()].filter(
+    (d) => ignoreRules.includes(d)
+  );
+  assert.deepEqual(excluded, [],
+    `.npmignore excludes installer source dirs — contradicts package.json ` +
+    `files and re-arms the silent skip if precedence ever changes: ${excluded}`);
+});
