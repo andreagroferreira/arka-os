@@ -117,6 +117,47 @@ fi
 # ─── Format cost ──────────────────────────────────────────────────────────
 COST_FMT=$(printf '$%.2f' "${COST:-0}")
 
+# ─── Workflow gate + budget (F2-5, statusline v3) ─────────────────────────
+# Read ~/.arkaos/workflow-state.json directly (plain JSON, one jq call) —
+# no python spawn on this hot path (the statusline re-renders continuously).
+# Shows the active workflow, current gate as G<n>/<total>, and violations.
+WF_SEGMENT=""
+WF_STATE="$HOME/.arkaos/workflow-state.json"
+if [ -f "$WF_STATE" ]; then
+  WF_LINE=$(jq -r '
+    if (.workflow // "") == "" then empty
+    else
+      (.phases // {}) as $p
+      | ([$p[] | select(.status == "completed")] | length) as $done
+      | ($p | length) as $total
+      | ([$p | to_entries[] | select(.value.status == "in_progress") | .key][0] // "") as $cur
+      | (.violations // [] | length) as $v
+      | "\(.workflow)\t\($done)\t\($total)\t\($cur)\t\($v)"
+    end
+  ' "$WF_STATE" 2>/dev/null)
+  if [ -n "$WF_LINE" ]; then
+    IFS=$'\t' read -r WF_NAME WF_DONE WF_TOTAL WF_CUR WF_VIOL <<< "$WF_LINE"
+    # Current gate number: "gate-3-execute" -> 3; fall back to done+1.
+    WF_GATE_NUM=$(printf '%s' "$WF_CUR" | grep -oE '[0-9]+' | head -1)
+    [ -z "$WF_GATE_NUM" ] && WF_GATE_NUM=$((WF_DONE + 1))
+    WF_SEGMENT="  ${C_DIM}|${C_RESET}  ${C_CYAN}⚑ ${WF_NAME}${C_RESET} ${C_DIM}G${WF_GATE_NUM}/${WF_TOTAL}${C_RESET}"
+    if [ "${WF_VIOL:-0}" -gt 0 ] 2>/dev/null; then
+      WF_SEGMENT+=" ${C_RED}⚠${WF_VIOL}${C_RESET}"
+    fi
+  fi
+fi
+
+# Budget: show spend against the per-session cap when one is configured
+# (~/.arkaos/config.json budget.hardCapUsd). Read-only, one jq call.
+BUDGET_FMT=""
+ARKA_CONFIG="$HOME/.arkaos/config.json"
+if [ -f "$ARKA_CONFIG" ]; then
+  CAP=$(jq -r '.budget.hardCapUsd // empty' "$ARKA_CONFIG" 2>/dev/null)
+  if [ -n "$CAP" ]; then
+    BUDGET_FMT=$(awk -v c="${COST:-0}" -v cap="$CAP" 'BEGIN{printf "/$%.2f", cap}')
+  fi
+fi
+
 # ─── Build Line 1: Context bar ───────────────────────────────────────────
 LINE1="${C_CYAN}▲ARKA${C_RESET}  ${C_WHITE}${DIR_NAME}${C_RESET}"
 
@@ -126,13 +167,14 @@ if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ]; the
 fi
 
 LINE1+="  ${C_DIM}|${C_RESET}  ${MODEL}"
+LINE1+="$WF_SEGMENT"
 
 # ─── Build Line 2: Metrics bar ───────────────────────────────────────────
 LINE2="${C_BAR}${BAR} ${PCT}%${C_RESET}"
 LINE2+="  ${C_DIM}|${C_RESET}  ${IN_FMT} in ${OUT_FMT} out"
 LINE2+="  ${C_DIM}|${C_RESET}  ${C_GREEN}+${ADDED}${C_RESET} ${C_RED}-${REMOVED}${C_RESET}"
 LINE2+="  ${C_DIM}|${C_RESET}  ${TIME_FMT}"
-LINE2+="  ${C_DIM}|${C_RESET}  ${COST_FMT}"
+LINE2+="  ${C_DIM}|${C_RESET}  ${COST_FMT}${BUDGET_FMT}"
 
 # ─── Output ───────────────────────────────────────────────────────────────
 echo -e "$LINE1"
