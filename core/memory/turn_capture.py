@@ -11,7 +11,7 @@ hot path. Pipeline per turn:
     PRODUCED FOR the F1-A3 retrieval layer (no reader exists in this PR)
     → amortised maintenance (embedding backfill + retention prune).
 
-CLI: ``python3 -m core.memory.turn_capture <session_id> <transcript_path> [cwd]``
+CLI: ``python3 -m core.memory.turn_capture (<session_id> <transcript_path> [cwd] | maintenance)``
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.knowledge.embedding_backends import EmbeddingResult, embed
@@ -62,7 +62,7 @@ def _last_assistant_text(transcript_path: str, raw: str) -> str:
         from core.workflow.flow_enforcer import _load_last_assistant_messages
         msgs = _load_last_assistant_messages(transcript_path, 1, raw_text=raw)
         return msgs[-1] if msgs else ""
-    except Exception:  # noqa: BLE001 — worker is best-effort by contract
+    except Exception:
         return ""
 
 
@@ -94,7 +94,7 @@ def _sanitized_summary(text: str) -> tuple[str, bool]:
         return "", True
     try:
         from core.evals.sanitizer import SanitizerConfigMissing, sanitize_text
-    except Exception:  # noqa: BLE001
+    except Exception:
         return "", False
     try:
         clean, _counts = sanitize_text(text[:_SUMMARY_CHARS])
@@ -115,7 +115,7 @@ def _safe_tool_names(tools: list[str], sanitized_ok: bool) -> list[str]:
         try:
             from core.evals.sanitizer import sanitize_text
             return [sanitize_text(name)[0] for name in tools]
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
     return [_MCP_TOOL_RE.sub("mcp__", name) for name in tools]
 
@@ -154,7 +154,7 @@ def _precompute_cache(
     payload = {
         "version": 1,
         "session_id": session_id,
-        "computed_at": datetime.now(timezone.utc).isoformat(),
+        "computed_at": datetime.now(UTC).isoformat(),
         "retrieval": retrieval,
         "embedding_backend": record.embedding_backend,
         "embedding_model": record.embedding_model,
@@ -204,7 +204,7 @@ def capture_turn(session_id: str, transcript_path: str, cwd: str = "") -> int:
         paths = []  # refuse anything textual when the sanitizer is absent
     result: EmbeddingResult = embed(summary) if summary else EmbeddingResult()
     record = TurnRecord(
-        ts=datetime.now(timezone.utc).isoformat(),
+        ts=datetime.now(UTC).isoformat(),
         session_id=session_id,
         project_name=Path(cwd).name if cwd else "",
         cwd=cwd,
@@ -224,14 +224,52 @@ def capture_turn(session_id: str, transcript_path: str, cwd: str = "") -> int:
     return 0
 
 
+_MAINTENANCE_MAX_BATCHES = 50
+
+
+def run_maintenance() -> int:
+    """Nightly job (F1-A4, scheduler python_module): full embedding
+    backfill in batches, retention prune, vacuum. Off-turn by design —
+    the per-turn worker only amortises a small slice of this."""
+    if not _config_enabled():
+        return 0
+    from core.memory.semantic_store import default_db_path
+
+    if not default_db_path().is_file():
+        return 0
+    store = SessionMemoryStore()
+    for _ in range(_MAINTENANCE_MAX_BATCHES):
+        candidates = store.backfill_candidates(_BACKFILL_BATCH)
+        if not candidates:
+            break
+        for candidate in candidates:
+            result = embed(candidate.summary)
+            if result.vector is None:
+                return 0  # backend degraded — retry next night, never spin
+            store.update_embedding(
+                candidate.id, result.vector, result.backend, result.model
+            )
+    store.prune()
+    store.vacuum()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
+    if args and args[0] == "maintenance":
+        try:
+            return run_maintenance()
+        except Exception:  # detached worker must die quietly
+            return 0
     if len(args) < 2:
-        print("usage: python3 -m core.memory.turn_capture <session_id> <transcript_path> [cwd]")
+        print(
+            "usage: python3 -m core.memory.turn_capture"
+            " (<session_id> <transcript_path> [cwd] | maintenance)"
+        )
         return 2
     try:
         return capture_turn(args[0], args[1], args[2] if len(args) > 2 else "")
-    except Exception:  # noqa: BLE001 — detached worker must die quietly
+    except Exception:  # detached worker must die quietly
         return 0
 
 

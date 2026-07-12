@@ -11,8 +11,6 @@ import subprocess
 import sys
 import time
 
-import pytest
-
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
     ALL_CHECKS,
@@ -24,7 +22,6 @@ from core.governance.evidence_checks import (
     main,
     run_evidence_checks,
 )
-
 
 # ─── Fixture projects ───────────────────────────────────────────────────
 
@@ -259,7 +256,12 @@ def test_coverage_skips_without_artifacts(tmp_path):
 
 
 def test_lint_skips_without_tooling(tmp_path, monkeypatch):
+    """No PATH binary AND no importable module (F1 polish: which alone
+    no longer means 'no tooling' — the venv module counts)."""
     monkeypatch.setattr(evidence_checks.shutil, "which", lambda _: None)
+    monkeypatch.setattr(
+        evidence_checks.importlib.util, "find_spec", lambda _: None
+    )
     (tmp_path / "module.py").write_text("x = 1\n", encoding="utf-8")
     result = _result(run_evidence_checks(tmp_path, checks=["lint"]), "lint")
     assert result.ran is False
@@ -597,3 +599,55 @@ def test_ui_screenshot_failure_fails_overall_report(tmp_path):
         checks=["ui-screenshot"],
     )
     assert report.overall == "fail"
+
+
+# ─── F1 polish: venv-module tool resolution (task #12, QG follow-up) ───
+
+
+class TestToolCmdResolution:
+    def test_path_binary_wins(self, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        monkeypatch.setattr(ec.shutil, "which", lambda t: f"/usr/bin/{t}")
+        assert ec._tool_cmd("ruff") == ["ruff"]
+
+    def test_module_fallback_when_no_binary(self, monkeypatch):
+        """The false-green fix: venv-installed ruff with no PATH binary
+        must still lint Python — never silently downgrade to eslint."""
+        import sys as _sys
+
+        from core.governance import evidence_checks as ec
+
+        monkeypatch.setattr(ec.shutil, "which", lambda t: None)
+        monkeypatch.setattr(
+            ec.importlib.util, "find_spec", lambda t: object()
+        )
+        assert ec._tool_cmd("ruff") == [_sys.executable, "-m", "ruff"]
+
+    def test_none_when_neither_exists(self, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        monkeypatch.setattr(ec.shutil, "which", lambda t: None)
+        monkeypatch.setattr(ec.importlib.util, "find_spec", lambda t: None)
+        assert ec._tool_cmd("ruff") is None
+
+    def test_scoped_lint_uses_module_ruff(self, tmp_path, monkeypatch):
+        import sys as _sys
+
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "mod.py").write_text("x = 1\n")
+        calls = []
+
+        def fake_run(check, cmd, project_dir, timeout):
+            calls.append(cmd)
+            return ec.CheckResult(check=check, ran=True, passed=True,
+                                  command=" ".join(cmd), exit_code=0,
+                                  summary="ok")
+
+        monkeypatch.setattr(ec.shutil, "which", lambda t: None)
+        monkeypatch.setattr(ec.importlib.util, "find_spec", lambda t: object())
+        monkeypatch.setattr(ec, "_run", fake_run)
+        result = ec._lint_scoped(tmp_path, ["mod.py"], timeout=30)
+        assert result is not None
+        assert calls[0][:3] == [_sys.executable, "-m", "ruff"]

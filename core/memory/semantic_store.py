@@ -29,9 +29,8 @@ import re
 import sqlite3
 import uuid
 from contextlib import closing
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -53,7 +52,7 @@ class TurnRecord(BaseModel):
     tools_used: list[str] = Field(default_factory=list)
     file_paths: list[str] = Field(default_factory=list)
     importance: float = 0.5
-    embedding: Optional[list[float]] = None
+    embedding: list[float] | None = None
     embedding_backend: str = "none"
     embedding_model: str = ""
     dims: int = 0
@@ -80,7 +79,8 @@ def neutralize_summary(text: str) -> str:
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
+    # Callers guarantee equal dims (backend+model+dims guard upstream).
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
     norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
     return dot / norm if norm else 0.0
 
@@ -166,8 +166,8 @@ class SessionMemoryStore:
         where, params = self._scope(project_name, exclude_session)
         with closing(self._conn()) as conn:
             rows = conn.execute(
-                f"SELECT * FROM turns {where} ORDER BY ts DESC LIMIT ?",  # noqa: S608 — clauses are static templates
-                params + [limit],
+                f"SELECT * FROM turns {where} ORDER BY ts DESC LIMIT ?",
+                [*params, limit],
             ).fetchall()
         records = [self._row_to_record(r) for r in rows]
         return sorted(records, key=lambda r: (r.importance, r.ts), reverse=True)
@@ -197,7 +197,7 @@ class SessionMemoryStore:
         where = f"{where} AND ({like})" if where else f"WHERE {like}"
         with closing(self._conn()) as conn:
             rows = conn.execute(
-                f"SELECT * FROM turns {where} ORDER BY ts DESC LIMIT ?",  # noqa: S608 — clauses are static templates
+                f"SELECT * FROM turns {where} ORDER BY ts DESC LIMIT ?",
                 params + [f"%{w}%" for w in words] + [top_k],
             ).fetchall()
         return [
@@ -226,9 +226,9 @@ class SessionMemoryStore:
         prefix = f"{where} AND" if where else "WHERE"
         with closing(self._conn()) as conn:
             rows = conn.execute(
-                f"SELECT * FROM turns {prefix} embedding IS NOT NULL"  # noqa: S608 — clauses are static templates
+                f"SELECT * FROM turns {prefix} embedding IS NOT NULL"
                 " ORDER BY ts DESC LIMIT ?",
-                params + [_SEMANTIC_SCAN_CAP],
+                [*params, _SEMANTIC_SCAN_CAP],
             ).fetchall()
         scored = []
         for row in rows:
@@ -270,7 +270,7 @@ class SessionMemoryStore:
         max_rows: int = _DEFAULT_MAX_ROWS,
     ) -> int:
         cutoff = (
-            datetime.now(timezone.utc) - timedelta(days=retention_days)
+            datetime.now(UTC) - timedelta(days=retention_days)
         ).isoformat()
         with closing(self._conn()) as conn, conn:
             removed = conn.execute(
@@ -282,6 +282,12 @@ class SessionMemoryStore:
                 (max_rows,),
             ).rowcount
         return removed
+
+    def vacuum(self) -> None:
+        """Nightly-maintenance compaction (never on a hook hot path)."""
+        with closing(self._conn()) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.execute("VACUUM")
 
     def stats(self) -> dict:
         with closing(self._conn()) as conn:

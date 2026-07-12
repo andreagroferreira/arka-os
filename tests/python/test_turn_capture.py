@@ -180,3 +180,51 @@ def test_importance_heuristic():
 def test_cli_usage_and_missing_transcript(tmp_path):
     assert turn_capture.main([]) == 2
     assert turn_capture.main(["s", str(tmp_path / "missing.jsonl")]) == 0
+
+
+# ─── F1-A4: nightly maintenance mode ──────────────────────────────────
+
+
+def test_maintenance_backfills_prunes_and_vacuums(tmp_path, monkeypatch):
+    from core.memory.semantic_store import TurnRecord
+
+    store = SessionMemoryStore()
+    store.save(TurnRecord(id="old", ts="2020-01-01T00:00:00+00:00",
+                          session_id="s", summary="ancient row"))
+    store.save(TurnRecord(id="pending", ts="2026-07-11T00:00:00+00:00",
+                          session_id="s", summary="needs embedding"))
+    monkeypatch.setattr(
+        turn_capture, "embed",
+        lambda text: EmbeddingResult(vector=[1.0], backend="fastembed",
+                                     model="m", dims=1),
+    )
+    assert turn_capture.run_maintenance() == 0
+    records = {r.id: r for r in SessionMemoryStore().recent(limit=50)}
+    assert "old" not in records  # pruned (>90d)
+    assert records["pending"].embedding_backend == "fastembed"  # backfilled
+
+
+def test_maintenance_stops_on_degraded_backend(tmp_path, monkeypatch):
+    """A dead embedding backend must never spin the batch loop."""
+    from core.memory.semantic_store import TurnRecord
+
+    store = SessionMemoryStore()
+    store.save(TurnRecord(id="pending", ts="2026-07-11T00:00:00+00:00",
+                          session_id="s", summary="needs embedding"))
+    calls = []
+    monkeypatch.setattr(
+        turn_capture, "embed",
+        lambda text: calls.append(1) or EmbeddingResult(),
+    )
+    assert turn_capture.run_maintenance() == 0
+    assert len(calls) == 1  # bailed on first degraded result
+
+
+def test_maintenance_respects_kill_switch(tmp_path, monkeypatch):
+    monkeypatch.setenv("ARKA_SESSION_MEMORY", "0")
+    assert turn_capture.run_maintenance() == 0
+    assert not (tmp_path / "sm.db").exists()
+
+
+def test_maintenance_cli_entry(tmp_path):
+    assert turn_capture.main(["maintenance"]) == 0
