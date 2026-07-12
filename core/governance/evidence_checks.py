@@ -283,7 +283,18 @@ def _check_lint(
             or _scoped_files(project_dir, changed, _LINTABLE_PHP)
         )
         if not lintable:
-            return _skip("lint", "changed files contain no lintable sources")
+            # Skipping is only honest when the DIFF has no lintable
+            # extensions. When it does but none resolved under
+            # project_dir (deleted files, a different checkout/cwd,
+            # cross-root paths), "no lintable sources" is a blind gate
+            # (QG 2026-07-12: a 2 .py + 6 .js diff got skipped) — fall
+            # through to the project-wide lint of what IS on disk.
+            all_lintable_exts = _LINTABLE_PY | _LINTABLE_JS | _LINTABLE_PHP
+            changed_exts = {s.lower() for s in _suffixes(changed)}
+            if not (changed_exts & all_lintable_exts):
+                return _skip(
+                    "lint", "changed files contain no lintable sources"
+                )
     ruff = _ruff_cmd()
     if _has_python(project_dir, changed) and ruff:
         return _labelled(
