@@ -243,14 +243,16 @@ def session_memory_search(query: str, project: str) -> dict[str, Any]:
     # WHITELIST the model-visible surface to the canonical read-path's
     # minimal shape (session_memory_layer.py L9.5) — keyword_search dumps
     # the whole ~14-field record, and cwd/file_paths are attacker-stored
-    # free text NOT constrained by the project scope. Every free-text
-    # field is neutralized (OWASP LLM01): a stored [arka:design]/newline
-    # must never reach the model able to forge a gate marker.
+    # free text NOT constrained by the project scope. Every string field
+    # is neutralized (OWASP LLM01): a stored [arka:design]/newline must
+    # never reach the model in a form able to forge a gate marker. ts is
+    # neutralized too (harmless on a valid ISO8601) so this surface's
+    # safety is LOCAL, not reliant on turn_capture's system-ts invariant.
     results = [
         {
             "summary": neutralize_summary(hit.get("summary", "")),
             "project_name": neutralize_summary(hit.get("project_name", "")),
-            "ts": hit.get("ts", ""),
+            "ts": neutralize_summary(hit.get("ts", "")),
             "score": hit.get("score"),
             "retrieval": hit.get("retrieval", ""),
         }
