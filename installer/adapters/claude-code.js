@@ -79,12 +79,36 @@ export function deployProjectAgents(projectDir, sourceRoot = ARKAOS_ROOT) {
  * `shell: "powershell"` field and letting Claude Code handle the
  * PowerShell invocation itself.
  */
+// F2-6: hooks with a Node fast-path shim. POSIX-only — Windows keeps
+// the .ps1 -> Python chain untouched (the .cjs stdin contract is only
+// validated against bash-spawned hooks). Registration is conditional on
+// the deployed .cjs actually existing, so an older package or a partial
+// deploy degrades to the .sh chain instead of a dead command. Install-
+// time opt-out: ARKA_INSTALL_FASTPATH=0 registers the .sh as before
+// (runtime kill-switch is ARKA_HOOK_FASTPATH=0, read by the shim).
+const FASTPATH_HOOKS = new Set(["pre-tool-use", "post-tool-use"]);
+
 function hookEntry(hooksDir, name, timeout) {
   if (IS_WINDOWS) {
     return {
       type: "command",
       command: join(hooksDir, `${name}.ps1`),
       shell: "powershell",
+      timeout,
+    };
+  }
+  if (
+    FASTPATH_HOOKS.has(name) &&
+    process.env.ARKA_INSTALL_FASTPATH !== "0" &&
+    existsSync(join(hooksDir, `${name}.cjs`)) &&
+    // QG B3: a split deploy (.cjs without _lib/fastpath) must never be
+    // registered — the shim would only ever delegate (it degrades
+    // safely, but registering the .sh directly is strictly better).
+    existsSync(join(hooksDir, "_lib", "fastpath", "engine.cjs"))
+  ) {
+    return {
+      type: "command",
+      command: join(hooksDir, `${name}.cjs`),
       timeout,
     };
   }

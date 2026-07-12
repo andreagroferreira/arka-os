@@ -110,7 +110,16 @@ echo "{"
 printf '  "n_runs": %s,\n  "measured_at": "%s",\n  "hooks": {\n' "$N" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 first=1
 for hook in $HOOKS; do
+  # F2-6: measure the same entry command settings.json registers — the
+  # Node fast-path shim when deployed (and not kill-switched), else the
+  # bash wrapper. ARKA_HOOK_FASTPATH=0 benches the delegation baseline.
   script="$HOOKS_DIR/$hook.sh"
+  runner="bash"
+  if [ "${ARKA_HOOK_FASTPATH:-1}" != "0" ] && [ -f "$HOOKS_DIR/$hook.cjs" ] \
+     && command -v node >/dev/null 2>&1; then
+    script="$HOOKS_DIR/$hook.cjs"
+    runner="node"
+  fi
   [ -f "$script" ] || continue
   payload="$(_payload "$hook")"
   times=""
@@ -118,7 +127,7 @@ for hook in $HOOKS; do
     start=$(_now_ns)
     # 3>/dev/null: no hook child may inherit an open fd 3 — a background
     # grandchild holding it hangs bats forever (bats waits for fd EOF).
-    printf '%s' "$payload" | HOME="$BENCH_HOME" bash "$script" >/dev/null 2>&1 3>/dev/null || true
+    printf '%s' "$payload" | HOME="$BENCH_HOME" "$runner" "$script" >/dev/null 2>&1 3>/dev/null || true
     end=$(_now_ns)
     times="${times}$(( (end - start) / 1000000 ))
 "

@@ -23,3 +23,31 @@ export function copyHookLib(srcHooksDir, destHooksDir) {
   } catch {}
   return true;
 }
+
+// F2-6 fast-path assets: the Node shims + the generated gate manifest
+// (engine.cjs travels inside _lib/ via copyHookLib). The list lives HERE,
+// in the single shared deploy function, so index.js and update.js cannot
+// drift the way the v4.3.2 hook-lib regression did. The .sh/.ps1 hooks
+// keep deploying regardless — they are the delegation target and the
+// ARKA_HOOK_FASTPATH=0 kill-switch path. POSIX-only feature: the assets
+// still copy on Windows (harmless), but the adapter never registers them.
+export const HOOK_ASSETS = [
+  "pre-tool-use.cjs",
+  "post-tool-use.cjs",
+  "gate-manifest.json",
+];
+
+export function copyHookAssets(srcHooksDir, destHooksDir) {
+  let copied = 0;
+  for (const name of HOOK_ASSETS) {
+    const srcPath = join(srcHooksDir, name);
+    if (!existsSync(srcPath)) continue;
+    mkdirSync(destHooksDir, { recursive: true });
+    cpSync(srcPath, join(destHooksDir, name));
+    if (name.endsWith(".cjs")) {
+      try { chmodSync(join(destHooksDir, name), 0o755); } catch {}
+    }
+    copied += 1;
+  }
+  return copied;
+}
