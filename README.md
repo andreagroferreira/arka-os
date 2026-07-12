@@ -471,6 +471,7 @@ Full documentation lives in two places in this repository:
 - [Departments](wiki/04-Departments/) — one page per department
 - [Commands Reference](wiki/05-Commands-Reference.md)
 - [Cognitive Layer](wiki/06-Cognitive-Layer.md) — memory, dreaming, research
+- [Skill Packs](wiki/17-Skill-Packs.md) — the curated core and the plugin marketplace
 - [Benchmarks](wiki/11-Benchmarks.md) — measured, reproducible numbers
 - [Competitive Analysis](wiki/12-Competitive-Analysis.md) and [Benefits & ROI](wiki/13-Benefits-ROI.md)
 

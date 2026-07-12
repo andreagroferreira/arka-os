@@ -48,6 +48,7 @@ cross-cutting Quality Gate.
 | [08 · Multi-Runtime](08-Multi-Runtime.md) | Claude Code, Codex CLI, Gemini CLI, Cursor |
 | [09 · Knowledge Base](09-Knowledge-Base.md) | Obsidian + vector DB, ingestion, personas |
 | [16 · Configuration](16-Configuration.md) | Feature flags, kill switches, settings |
+| [17 · Skill Packs](17-Skill-Packs.md) | The curated core, the plugin marketplace, and the CI-enforced context budget |
 
 ## Evidence
 
