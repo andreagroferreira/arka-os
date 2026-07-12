@@ -127,7 +127,7 @@ test("copy-only contract: deploy never deletes pre-existing user dirs", () => {
   const repo = makeRepo();
   const home = mkdtempSync(join(tmpdir(), "arka-skilldeploy-"));
   try {
-    const userSkill = join(home, "skills", "arka-rockport");
+    const userSkill = join(home, "skills", "arka-usercorp");
     mkdirSync(userSkill, { recursive: true });
     writeFileSync(join(userSkill, "SKILL.md"), "# user ecosystem skill\n");
     deploySkills({ repoRoot: repo, skillsBase: join(home, "skills") });
