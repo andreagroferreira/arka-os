@@ -251,24 +251,25 @@ load helpers/setup
 
 # ─── F1-A3: session-start memory-recap wiring (QG blocker B1) ──────────
 
-@test "session-start.sh passes the hook PWD to the recap, not \$REPO" {
-  # Fake interpreter that logs its argv — proves the WIRING without any
-  # python deps: the recap arg must be the project dir the hook ran in,
-  # never the installer repo ($PWD expanded after `cd \"$REPO\"`).
+@test "session-start.sh exports the hook PWD to the entrypoint, not \$REPO" {
+  # Fake interpreter that logs argv + ARKA_HOOK_CWD — proves the WIRING
+  # without python deps: the exported cwd must be the project dir the
+  # hook ran in, never the installer repo (F2-2: cwd travels via env,
+  # captured BEFORE the cd — the F1-A3 expansion lesson).
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
   WORKDIR="$BATS_TEST_TMPDIR/client-projX"
   LOG="$BATS_TEST_TMPDIR/argv.log"
   mkdir -p "$FAKE_HOME/.arkaos" "$WORKDIR"
   echo "$REPO_DIR" > "$FAKE_HOME/.arkaos/.repo-path"
   FAKE_PY="$BATS_TEST_TMPDIR/fake-python"
-  printf '#!/usr/bin/env bash\necho "$@" >> "%s"\nexit 0\n' "$LOG" > "$FAKE_PY"
+  printf '#!/usr/bin/env bash\necho "argv:$* cwd:$ARKA_HOOK_CWD" >> "%s"\nexit 0\n' "$LOG" > "$FAKE_PY"
   chmod +x "$FAKE_PY"
 
   run bash -c "cd '$WORKDIR' && echo '{}' | HOME='$FAKE_HOME' ARKAOS_PYTHON='$FAKE_PY' bash '$REPO_DIR/config/hooks/session-start.sh'"
   [ "$status" -eq 0 ]
 
-  grep -q "core.hooks.session_start $WORKDIR" "$LOG"
-  ! grep -q "core.hooks.session_start $REPO_DIR" "$LOG"
+  grep -q "argv:-m core.hooks.session_start cwd:$WORKDIR" "$LOG"
+  ! grep -q "cwd:$REPO_DIR" "$LOG"
 }
 
 # ─── F2-1: hook latency harness ────────────────────────────────────────

@@ -52,7 +52,7 @@
 
 | Hook | p50 (ms) | p95 (ms) | Fires |
 |---|---:|---:|---|
-| session-start | 251 | 269 | once per session (currently 11 python spawns; F2-2 consolidates them) |
+| session-start | 131 | 141 | once per session (F2-2 consolidated 11 python spawns into 1 — was 251/269) |
 | user-prompt-submit | 157 | 172 | every turn (Synapse bridge dominates) |
 | post-tool-use | 96 | 97 | every tool call |
 | pre-tool-use | 82 | 98 | every tool call (F2-6 fast-path target) |

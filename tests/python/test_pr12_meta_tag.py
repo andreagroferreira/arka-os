@@ -64,7 +64,9 @@ class TestMetaTagRegex:
 class TestSessionStartHookContract:
     @pytest.fixture
     def session_start_text(self):
-        path = Path(__file__).resolve().parents[2] / "config" / "hooks" / "session-start.sh"
+        # F2-2: the systemMessage (and its contracts) moved from the shell
+        # hook into the consolidated python entrypoint.
+        path = Path(__file__).resolve().parents[2] / "core" / "hooks" / "session_start.py"
         return path.read_text(encoding="utf-8")
 
     def test_session_start_mentions_meta_tag(self, session_start_text):
