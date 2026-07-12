@@ -191,3 +191,21 @@ def test_main_fail_open_on_internal_error(tmp_path, capsys, monkeypatch):
     assert main({"cwd": "/x"}) == 0  # never raises
     payload = json.loads(capsys.readouterr().out)
     assert "A R K A   O S" in payload["systemMessage"]  # static banner
+
+
+def test_reorganizer_fires_on_happy_path(monkeypatch, tmp_path):
+    """QG blocker: the gate's PURPOSE — repo present, gate default-on,
+    no proposal for today => the reorganizer IS spawned. An inverted
+    guard silencing it entirely must fail here."""
+    monkeypatch.setattr(session_start, "repo_path", lambda: str(tmp_path / "repo"))
+    (tmp_path / "repo").mkdir(exist_ok=True)
+    (tmp_path / ".arkaos").mkdir(exist_ok=True)
+    (tmp_path / ".arkaos" / "config.json").write_text(
+        json.dumps({"dashboard": {"ensure_on_session": False}})
+    )
+    calls = []
+    monkeypatch.setattr(session_start, "_spawn_detached",
+                        lambda cmd, repo, **k: calls.append(cmd))
+    build_message("/repo/proj")
+    assert len(calls) == 1
+    assert calls[0][1:] == ["-m", "core.cognition.reorganizer_cli"]

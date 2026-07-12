@@ -30,11 +30,17 @@ META_TAG_RE = re.compile(
 
 class TestMetaTagRegex:
     def test_matches_canonical_form(self):
-        text = "Response body.\n[arka:meta] kb=3 research=context7 persona=Marco gap=none critic=passed"
+        text = (
+            "Response body.\n[arka:meta] kb=3 research=context7"
+            " persona=Marco gap=none critic=passed"
+        )
         assert META_TAG_RE.search(text) is not None
 
     def test_matches_with_multiple_research_sources(self):
-        text = "[arka:meta] kb=5 research=perplexity,exa,context7 persona=Tomas gap=cognitive-layer critic=passed"
+        text = (
+            "[arka:meta] kb=5 research=perplexity,exa,context7"
+            " persona=Tomas gap=cognitive-layer critic=passed"
+        )
         assert META_TAG_RE.search(text) is not None
 
     def test_matches_failed_critic(self):
@@ -82,7 +88,8 @@ class TestSessionStartHookContract:
     def test_session_start_calls_out_mandatory_cases(self, session_start_text):
         # mandatory for (a) effect tool calls (b) plan/recommendation (c) QG verdicts
         assert "EFFECT tool" in session_start_text
-        assert "plan" in session_start_text.lower() or "recommendation" in session_start_text.lower()
+        lowered = session_start_text.lower()
+        assert "plan" in lowered or "recommendation" in lowered
         assert "QG" in session_start_text
 
 
