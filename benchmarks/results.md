@@ -47,7 +47,7 @@
 > hook-path change and update this table with the before/after. Note:
 > the isolated HOME measures the code-path floor (no operator KB /
 > vector stores loaded); against the real HOME the Synapse bridge adds
-> ~250ms more (416ms p50 measured 2026-07-12) — both numbers are real,
+> ~260ms more (416ms p50 measured 2026-07-12) — both numbers are real,
 > they answer different questions.
 
 | Hook | p50 (ms) | p95 (ms) | Fires |

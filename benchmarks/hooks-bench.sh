@@ -43,8 +43,23 @@ printf '%s\n' "$REPO_DIR" > "$BENCH_HOME/.arkaos/.repo-path"
 # (reproduced: 8 orphan dashboard-api processes from one N=20 run) and
 # its stale-aware reorganizer fires whenever today's proposal is
 # missing. Disable the first, satisfy the second.
+# The hook computes _TODAY with `date -u` (session-start.sh:146) — the
+# seed MUST use the same UTC basis (QG redo-1 blocker: a local-date
+# seed left a ~1h/day window where the reorganizer fired anyway).
+# Belt-and-braces ±1 day also covers a UTC midnight crossing mid-run.
 printf '{"dashboard": {"ensure_on_session": false}}\n' > "$BENCH_HOME/.arkaos/config.json"
-touch "$BENCH_HOME/.arkaos/reorganize-proposals/$(date +%Y-%m-%d).md"
+# BSD date needs an EXPLICIT sign (-v1d SETS day-of-month to 1); GNU
+# uses -d. Offsets carry their sign; 0 is plain UTC today.
+for _off in "-1" "0" "+1"; do
+  if [ "$_off" = "0" ]; then
+    _stamp=$(date -u +%Y-%m-%d)
+  else
+    _stamp=$(date -u -v"${_off}d" +%Y-%m-%d 2>/dev/null \
+      || date -u -d "${_off} day" +%Y-%m-%d 2>/dev/null \
+      || date -u +%Y-%m-%d)
+  fi
+  touch "$BENCH_HOME/.arkaos/reorganize-proposals/${_stamp}.md"
+done
 trap 'rm -rf "$BENCH_HOME"; rm -f "/tmp/arkaos-wf-required/$SESSION" 2>/dev/null || true' EXIT
 
 _now_ns() {
