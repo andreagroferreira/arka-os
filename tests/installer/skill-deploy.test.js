@@ -229,3 +229,54 @@ test("curated mode with an unreadable manifest fails open to a full deploy", () 
     rmSync(home, { recursive: true, force: true });
   }
 });
+
+// ── Specialist-gate P0: gate owners always dispatchable ─────────────────
+
+test("gate owners from the roster deploy even without a dept .md (the 4-ghost incident)", () => {
+  const repo = makeRepo();
+  const home = mkdtempSync(join(tmpdir(), "arka-skilldeploy-roster-"));
+  try {
+    mkdirSync(join(repo, "config", "claude-agents"), { recursive: true });
+    writeFileSync(join(repo, "config", "claude-agents", "backend-dev.md"),
+      "---\nname: backend-dev\n---\n# compiled\n");
+    writeFileSync(join(repo, "config", "agent-roster.json"), JSON.stringify({
+      gate_owners: {
+        "backend-dev": { source: "config/claude-agents/backend-dev.md", compiled: true },
+        // paulo also exists as a dept .md — the dept copy must win
+        "paulo": { source: "config/claude-agents/backend-dev.md", compiled: true },
+      },
+    }));
+    deploySkills({
+      repoRoot: repo,
+      skillsBase: join(home, "skills"),
+      agentsBase: join(home, "agents"),
+      version: "9.9.9",
+    });
+    assert.ok(existsSync(join(home, "agents", "arka-backend-dev.md")),
+      "compiled gate owner must deploy — a gate must never demand a ghost");
+    assert.equal(
+      readFileSync(join(home, "agents", "arka-paulo.md"), "utf-8"),
+      "# paulo\n",
+      "hand-authored dept agent wins over the roster entry");
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("missing roster degrades to the dept-only deploy (older cores)", () => {
+  const repo = makeRepo(); // fixture has no agent-roster.json
+  const home = mkdtempSync(join(tmpdir(), "arka-skilldeploy-noroster-"));
+  try {
+    const counts = deploySkills({
+      repoRoot: repo,
+      skillsBase: join(home, "skills"),
+      agentsBase: join(home, "agents"),
+      version: "9.9.9",
+    });
+    assert.equal(counts.agents, 1); // only paulo from the dept loop
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(home, { recursive: true, force: true });
+  }
+});
