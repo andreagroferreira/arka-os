@@ -119,17 +119,19 @@ COST_FMT=$(printf '$%.2f' "${COST:-0}")
 
 # ─── Workflow gate + budget (F2-5, statusline v3) ─────────────────────────
 # Read ~/.arkaos/workflow-state.json directly (plain JSON, one jq call) —
-# no python spawn on this hot path (the statusline re-renders continuously).
+# no Python spawn on this hot path (the statusline re-renders continuously).
 # Shows the active workflow, current gate as G<n>/<total>, and violations.
 WF_SEGMENT=""
 WF_STATE="$HOME/.arkaos/workflow-state.json"
 if [ -f "$WF_STATE" ]; then
   WF_LINE=$(jq -r '
-    if (.workflow // "") == "" then empty
+    (.phases // {}) as $p
+    | ($p | length) as $total
+    # No workflow name, or a phase-less (degenerate) state -> no segment
+    # (avoids a meaningless "G0/0").
+    | if (.workflow // "") == "" or $total == 0 then empty
     else
-      (.phases // {}) as $p
-      | ([$p[] | select(.status == "completed")] | length) as $done
-      | ($p | length) as $total
+      ([$p[] | select(.status == "completed")] | length) as $done
       # Gate index = position of the in_progress phase (1-based), else
       # done+1 — DERIVED FROM POSITION, never grepped from the name
       # (a "gate-5-x" key in a 3-phase workflow must not render G5/3).

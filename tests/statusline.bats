@@ -106,6 +106,23 @@ load helpers/setup
   [[ "$output" != *"/\$"* ]]
 }
 
+@test "QG B4b: control bytes in the workflow name are stripped before the terminal" {
+  # VALID JSON, JSON-escaped ESC in the name: jq decodes it to a real
+  # 0x1b byte, which the jq gsub sanitizer must strip before the name
+  # reaches WF_NAME/render. Line 1 must then carry ONLY the known
+  # colour-code ESCs (12), not the injected one (which would make 13).
+  # Deleting the gsub raises the count to 13 -> this test fails
+  # (mutation-verified: neutralizing the gsub fails this assertion).
+  FAKE_HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$FAKE_HOME/.arkaos"
+  printf '%s' '{"workflow":"pre\u001b[31mQ","phases":{"a":{"status":"in_progress"}},"violations":[]}' > "$FAKE_HOME/.arkaos/workflow-state.json"
+  python3 -c "import json; json.load(open('$FAKE_HOME/.arkaos/workflow-state.json'))"
+  payload='{"model":{"display_name":"m"},"cwd":"/x","context_window":{"used_percentage":5},"cost":{"total_cost_usd":0}}'
+  line1=$(printf '%s' "$payload" | HOME="$FAKE_HOME" bash "$REPO_DIR/config/statusline.sh" 2>/dev/null | head -1)
+  esc_count=$(printf '%s' "$line1" | LC_ALL=C od -An -tx1 | tr ' ' '\n' | grep -c '^1b$')
+  [ "$esc_count" -eq 12 ]     # colour codes only; the injected ESC is gone
+}
+
 @test "statusline omits workflow segment when no active workflow" {
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$FAKE_HOME/.arkaos"
