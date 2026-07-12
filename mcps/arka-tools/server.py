@@ -240,13 +240,23 @@ def session_memory_search(query: str, project: str) -> dict[str, Any]:
     from core.memory.semantic_store import neutralize_summary
 
     hits = SessionMemoryStore().keyword_search(query, project.strip(), top_k=5)
-    # Read-side neutralization (OWASP LLM01): every sibling read path
-    # (L9.5, SessionStart recap) defuses stored [tag]/newline tokens
-    # before the model sees them — this MCP output is no exception.
-    for hit in hits:
-        if "summary" in hit:
-            hit["summary"] = neutralize_summary(hit["summary"])
-    return {"available": True, "results": hits, "count": len(hits)}
+    # WHITELIST the model-visible surface to the canonical read-path's
+    # minimal shape (session_memory_layer.py L9.5) — keyword_search dumps
+    # the whole ~14-field record, and cwd/file_paths are attacker-stored
+    # free text NOT constrained by the project scope. Every free-text
+    # field is neutralized (OWASP LLM01): a stored [arka:design]/newline
+    # must never reach the model able to forge a gate marker.
+    results = [
+        {
+            "summary": neutralize_summary(hit.get("summary", "")),
+            "project_name": neutralize_summary(hit.get("project_name", "")),
+            "ts": hit.get("ts", ""),
+            "score": hit.get("score"),
+            "retrieval": hit.get("retrieval", ""),
+        }
+        for hit in hits
+    ]
+    return {"available": True, "results": results, "count": len(results)}
 
 
 @mcp.tool()
