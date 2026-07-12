@@ -32,6 +32,14 @@ knowledge = [
     "fastembed>=0.8.0",
     "sqlite-vec>=0.1.1",
 ]
+mcp = [
+    # The arka-tools MCP server runs under its own `uv` env in production
+    # (mcps/arka-tools/pyproject.toml); this extra lets the CORE test suite
+    # import the FastMCP decorators so the arka-tools security tests
+    # (OWASP LLM01 neutralization, write-gating) run on every Python
+    # version, not just where mcp happens to be installed.
+    "mcp[cli]>=1.2.0",
+]
 dashboard = [
     "fastapi>=0.115.0",
     "uvicorn>=0.32.0",

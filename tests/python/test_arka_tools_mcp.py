@@ -15,6 +15,13 @@ from pathlib import Path
 
 import pytest
 
+# The arka-tools server imports FastMCP; it runs under its own uv env in
+# production. CI installs the `mcp` extra (pyproject [mcp]) so these
+# security tests run on every Python version — this guard only prevents a
+# whole-suite collection ERROR in an env that lacks it (never a silent
+# pass: pytest reports the skip).
+pytest.importorskip("mcp", reason="mcp extra not installed (pip install -e '.[mcp]')")
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
