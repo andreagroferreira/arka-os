@@ -56,3 +56,21 @@ test("no installer source dir is excluded by .npmignore (second silent-skip vect
     `.npmignore excludes installer source dirs — contradicts package.json ` +
     `files and re-arms the silent skip if precedence ever changes: ${excluded}`);
 });
+
+test("the tarball ships no bytecode or OS cruft (executable lock, not a config mirror)", async () => {
+  // QG follow-up (F2-7b review): 462 __pycache__/*.pyc files rode the
+  // v4.14.0 tarball because .npmignore is largely inert for content
+  // inside files-included dirs. The negation patterns in "files" fix
+  // it; this lock runs the REAL packer so the claim stays executable.
+  const { execFileSync } = await import("node:child_process");
+  const out = execFileSync(
+    "npm", ["pack", "--dry-run", "--json"],
+    { cwd: ROOT, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }
+  );
+  const [report] = JSON.parse(out);
+  const cruft = report.files
+    .map((f) => f.path)
+    .filter((p) => /\.pyc$|__pycache__|\.DS_Store$/.test(p));
+  assert.deepEqual(cruft.slice(0, 5), [],
+    `${cruft.length} cruft file(s) in the npm tarball`);
+});
