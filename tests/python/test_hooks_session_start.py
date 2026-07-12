@@ -1,10 +1,13 @@
-"""Tests for core.hooks.session_start memory recap (F1-A3)."""
+"""Tests for core.hooks.session_start — consolidated entrypoint (F2-2)."""
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
-from core.hooks.session_start import build_recap, main
+from core.hooks import session_start
+from core.hooks.session_start import build_message, build_recap, main
 from core.memory.semantic_store import SessionMemoryStore, TurnRecord
 
 
@@ -12,6 +15,10 @@ from core.memory.semantic_store import SessionMemoryStore, TurnRecord
 def isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("ARKA_SESSION_MEMORY_DB", str(tmp_path / "sm.db"))
+    monkeypatch.delenv("ARKA_HOOK_CWD", raising=False)
+    # No repo => background spawns (reorganizer/dashboard) are inert and
+    # version falls back cleanly; individual tests override as needed.
+    monkeypatch.setattr(session_start, "repo_path", lambda: "")
     return tmp_path
 
 
@@ -27,45 +34,178 @@ def _seed(project: str, n: int = 3) -> None:
         ))
 
 
-def test_empty_store_is_silent():
-    assert build_recap("/repo/proj") == ""
+# ─── build_message: golden sections ────────────────────────────────────
 
 
-def test_recap_ranks_by_importance_and_labels_honestly(tmp_path):
+def test_message_carries_banner_contracts_and_version(tmp_path):
+    msg = build_message("/repo/proj")
+    assert "A R K A   O S" in msg
+    assert "Olá, founder (WizardingCode)" in msg
+    assert "[ARKA:EVIDENCE-FLOW] NON-NEGOTIABLE" in msg
+    assert "G2 PLAN (short plan -> EXPLICIT user approval" in msg
+    assert "[ARKA:META-TAG]" in msg
+    assert "[arka:meta] kb=N research=X persona=Y gap=Z critic=W" in msg
+    assert "ArkaOS v" in msg
+
+
+def test_message_shows_profile(tmp_path):
+    cfg = tmp_path / ".arkaos"
+    cfg.mkdir(exist_ok=True)
+    (cfg / "profile.json").write_text(
+        json.dumps({"name": "Andre", "company": "WizardingCode"})
+    )
+    msg = build_message("/repo/proj")
+    assert "Olá, Andre (WizardingCode)" in msg
+
+
+def test_message_drift_never_synced(tmp_path):
+    msg = build_message("/repo/proj")
+    assert "[arka:update-available] Never synced" in msg
+
+
+def test_message_drift_on_version_mismatch(tmp_path):
+    arka = tmp_path / ".arkaos"
+    (arka / "lib").mkdir(parents=True, exist_ok=True)
+    (arka / "lib" / "VERSION").write_text("9.9.9\n")
+    (arka / "sync-state.json").write_text(json.dumps({"version": "9.9.8"}))
+    msg = build_message("/repo/proj")
+    assert "Core v9.9.9 != synced v9.9.8" in msg
+
+
+def test_message_no_drift_when_synced(tmp_path):
+    arka = tmp_path / ".arkaos"
+    (arka / "lib").mkdir(parents=True, exist_ok=True)
+    (arka / "lib" / "VERSION").write_text("9.9.9\n")
+    (arka / "sync-state.json").write_text(json.dumps({"version": "9.9.9"}))
+    msg = build_message("/repo/proj")
+    assert "[arka:update-available]" not in msg
+
+
+def test_message_workflow_line(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "core.workflow.state.get_state",
+        lambda: {
+            "workflow": "dev-feature",
+            "branch": "feat/x",
+            "violations": ["v1"],
+            "phases": {
+                "spec": {"status": "completed"},
+                "build": {"status": "in_progress"},
+            },
+        },
+    )
+    msg = build_message("/repo/proj")
+    assert "Workflow: dev-feature (1/2) branch:feat/x VIOLATIONS:1" in msg
+
+
+def test_message_includes_memory_recap(tmp_path):
+    _seed("proj")
+    msg = build_message("/repo/proj")
+    assert "[SESSION-MEMORY] Prior turns" in msg
+    assert "shown: 3 turns (proj)" in msg
+
+
+# ─── background side effects: gated and inert without a repo ───────────
+
+
+def test_no_spawns_without_repo(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(session_start, "_spawn_detached",
+                        lambda *a, **k: calls.append(a))
+    build_message("/repo/proj")
+    assert calls == []  # no repo => reorganizer and dashboard both inert
+
+
+def test_reorganizer_config_gate(monkeypatch, tmp_path):
+    """The F2-1 QG follow-up gate: cognition.reorganize_on_session=false."""
+    monkeypatch.setattr(session_start, "repo_path", lambda: str(tmp_path / "repo"))
+    (tmp_path / "repo" / "core").mkdir(parents=True)
+    cfg = tmp_path / ".arkaos"
+    cfg.mkdir(exist_ok=True)
+    (cfg / "config.json").write_text(json.dumps({
+        "cognition": {"reorganize_on_session": False},
+        "dashboard": {"ensure_on_session": False},
+    }))
+    calls = []
+    monkeypatch.setattr(session_start, "_spawn_detached",
+                        lambda *a, **k: calls.append(a))
+    build_message("/repo/proj")
+    assert calls == []
+
+
+def test_reorganizer_satisfied_by_todays_proposal(monkeypatch, tmp_path):
+    from datetime import UTC, datetime
+
+    monkeypatch.setattr(session_start, "repo_path", lambda: str(tmp_path / "repo"))
+    (tmp_path / "repo").mkdir(exist_ok=True)
+    proposals = tmp_path / ".arkaos" / "reorganize-proposals"
+    proposals.mkdir(parents=True)
+    (proposals / f"{datetime.now(UTC).strftime('%Y-%m-%d')}.md").touch()
+    (tmp_path / ".arkaos" / "config.json").write_text(
+        json.dumps({"dashboard": {"ensure_on_session": False}})
+    )
+    calls = []
+    monkeypatch.setattr(session_start, "_spawn_detached",
+                        lambda *a, **k: calls.append(a))
+    build_message("/repo/proj")
+    assert calls == []  # today's UTC proposal exists — nothing to do
+
+
+# ─── build_recap (F1-A3 semantics preserved) ───────────────────────────
+
+
+def test_recap_ranks_and_scopes(tmp_path):
     _seed("proj")
     recap = build_recap("/repo/proj")
-    assert recap.startswith("[SESSION-MEMORY] Prior turns (importance+recency")
-    assert "not semantic" in recap  # no prompt exists yet — never faked
-    lines = recap.splitlines()
-    assert "turn 2" in lines[1]  # highest importance first
-    # Footer is project-local: shown count + project, never a global total.
-    assert "shown: 3 turns (proj)" in lines[-1]
-    assert "backends=fastembed,none" in lines[-1]
+    assert recap.startswith("[SESSION-MEMORY] Prior turns")
+    assert "turn 2" in recap.splitlines()[1]  # highest importance first
+    assert "backends=fastembed,none" in recap
+    assert build_recap("") == ""  # scope-or-skip: never a global read
+    assert build_recap("/repo/other") == ""
 
 
-def test_recap_no_cwd_is_silent_never_global(tmp_path):
-    """Scope-or-skip: empty cwd must NOT fall back to an all-projects read."""
-    _seed("clientX")
-    assert build_recap("") == ""
+# ─── main(): the hook contract ─────────────────────────────────────────
 
 
-def test_recap_scopes_to_project(tmp_path):
-    _seed("other-project")
-    assert build_recap("/repo/proj") == ""
-
-
-def test_budget_exceeded_returns_empty(tmp_path, monkeypatch):
+def test_main_emits_system_message_json(tmp_path, capsys):
     _seed("proj")
-    assert build_recap("/repo/proj", budget_ms=-1) == ""
+    assert main({"cwd": "/repo/proj"}) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert "A R K A   O S" in payload["systemMessage"]
+    assert "[SESSION-MEMORY]" in payload["systemMessage"]
 
 
-def test_main_prints_recap(tmp_path, capsys):
+def test_main_cwd_falls_back_to_env(tmp_path, capsys, monkeypatch):
     _seed("proj")
-    assert main(["/repo/proj"]) == 0
-    out = capsys.readouterr().out
-    assert "[SESSION-MEMORY]" in out
+    monkeypatch.setenv("ARKA_HOOK_CWD", "/repo/proj")
+    assert main({}) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert "shown: 3 turns (proj)" in payload["systemMessage"]
 
 
-def test_main_silent_without_store(capsys):
-    assert main(["/repo/none"]) == 0
-    assert capsys.readouterr().out == ""
+def test_main_fail_open_on_internal_error(tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(
+        session_start, "build_message",
+        lambda cwd: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    assert main({"cwd": "/x"}) == 0  # never raises
+    payload = json.loads(capsys.readouterr().out)
+    assert "A R K A   O S" in payload["systemMessage"]  # static banner
+
+
+def test_reorganizer_fires_on_happy_path(monkeypatch, tmp_path):
+    """QG blocker: the gate's PURPOSE — repo present, gate default-on,
+    no proposal for today => the reorganizer IS spawned. An inverted
+    guard silencing it entirely must fail here."""
+    monkeypatch.setattr(session_start, "repo_path", lambda: str(tmp_path / "repo"))
+    (tmp_path / "repo").mkdir(exist_ok=True)
+    (tmp_path / ".arkaos").mkdir(exist_ok=True)
+    (tmp_path / ".arkaos" / "config.json").write_text(
+        json.dumps({"dashboard": {"ensure_on_session": False}})
+    )
+    calls = []
+    monkeypatch.setattr(session_start, "_spawn_detached",
+                        lambda cmd, repo, **k: calls.append(cmd))
+    build_message("/repo/proj")
+    assert len(calls) == 1
+    assert calls[0][1:] == ["-m", "core.cognition.reorganizer_cli"]
