@@ -135,11 +135,45 @@ export function deploySkills({
 
   // ── Agent personas ──────────────────────────────────────────────────
   if (agentsBase) {
-    counts.agents = deployAgents(deptRoot, agentsBase);
+    const written = new Set();
+    counts.agents = deployAgents(deptRoot, agentsBase, written);
+    // Gate owners (F2 specialist-gate P0): every owner the ownership
+    // rules can demand MUST be dispatchable. 4 of 7 owners existed only
+    // as department YAML (never deployed — the agent loop above ships
+    // .md only), so the gate told sessions to dispatch agents nobody
+    // could invoke. The generated config/agent-roster.json maps each
+    // owner to a dispatchable source; hand-authored dept .md files win
+    // (already deployed above), compiled ones fill the gaps.
+    counts.agents += deployGateOwners(repoRoot, agentsBase, written);
   }
 
   log(counts);
   return counts;
+}
+
+function deployGateOwners(repoRoot, agentsBase, written) {
+  let roster;
+  try {
+    roster = JSON.parse(readFileSync(
+      join(repoRoot, "config", "agent-roster.json"), "utf-8"));
+  } catch {
+    return 0; // older core without the roster — dept loop already ran
+  }
+  let deployed = 0;
+  for (const [slug, entry] of Object.entries(roster.gate_owners || {})) {
+    const target = `arka-${slug}.md`;
+    if (written.has(target)) continue; // dept .md won this run
+    const src = join(repoRoot, entry.source);
+    if (!existsSync(src)) continue;
+    try {
+      copyFileSync(src, join(agentsBase, target));
+      written.add(target);
+      deployed++;
+    } catch {
+      // One unreadable agent must not break the deploy.
+    }
+  }
+  return deployed;
 }
 
 function loadCuratedFilter(repoRoot) {
@@ -156,14 +190,14 @@ function loadCuratedFilter(repoRoot) {
   }
 }
 
-function deployAgents(deptRoot, agentsBase) {
+function deployAgents(deptRoot, agentsBase, written = new Set()) {
   mkdirSync(agentsBase, { recursive: true });
   let deployed = 0;
   for (const dept of listSubdirs(deptRoot)) {
     const agentsSrc = join(deptRoot, dept, "agents");
     if (!existsSync(agentsSrc)) continue;
     try {
-      deployed += deployDeptAgents(agentsSrc, agentsBase);
+      deployed += deployDeptAgents(agentsSrc, agentsBase, written);
     } catch {
       // Unreadable agents dir — skip the department, not the deploy.
     }
@@ -171,7 +205,7 @@ function deployAgents(deptRoot, agentsBase) {
   return deployed;
 }
 
-function deployDeptAgents(agentsSrc, agentsBase) {
+function deployDeptAgents(agentsSrc, agentsBase, written) {
   let deployed = 0;
   for (const file of readdirSync(agentsSrc)) {
     if (!file.endsWith(".md")) continue;
@@ -181,8 +215,9 @@ function deployDeptAgents(agentsSrc, agentsBase) {
     } catch {
       continue;
     }
-    copyFileSync(
-      srcFile, join(agentsBase, `arka-${file.replace(/\.md$/, "")}.md`));
+    const target = `arka-${file.replace(/\.md$/, "")}.md`;
+    copyFileSync(srcFile, join(agentsBase, target));
+    written.add(target);
     deployed++;
   }
   return deployed;

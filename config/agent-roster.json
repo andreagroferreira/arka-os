@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "generator": "core/agents/roster_manifest.py",
+    "purpose": "every specialist-gate owner resolves to a dispatchable agent source; installer/skill-deploy.js deploys these"
+  },
+  "gate_owners": {
+    "architect": {
+      "compiled": false,
+      "source": "departments/dev/agents/architect.md"
+    },
+    "backend-dev": {
+      "compiled": true,
+      "source": "config/claude-agents/backend-dev.md"
+    },
+    "dba": {
+      "compiled": true,
+      "source": "config/claude-agents/dba.md"
+    },
+    "devops-eng": {
+      "compiled": true,
+      "source": "config/claude-agents/devops-eng.md"
+    },
+    "frontend-dev": {
+      "compiled": false,
+      "source": "departments/dev/agents/frontend-dev.md"
+    },
+    "security-eng": {
+      "compiled": true,
+      "source": "config/claude-agents/security-eng.md"
+    },
+    "senior-dev": {
+      "compiled": false,
+      "source": "departments/dev/agents/senior-dev.md"
+    }
+  }
+}
