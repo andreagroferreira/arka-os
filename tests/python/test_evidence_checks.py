@@ -696,6 +696,9 @@ class TestLintScopeBlindSpot:
             )
 
         monkeypatch.setattr(ec, "_run", fake_run)
+        # Hermetic tooling: CI runners carry no ruff/eslint — the test
+        # controls availability instead of inheriting the environment's.
+        monkeypatch.setattr(ec, "_ruff_cmd", lambda: ["ruff"])
         # Changed files exist in the DIFF but not under project_dir —
         # e.g. new files reviewed from another checkout.
         result = ec._check_lint(
@@ -726,6 +729,7 @@ class TestLintScopeBlindSpot:
             )
 
         monkeypatch.setattr(ec, "_run", fake_run)
+        monkeypatch.setattr(ec, "_ruff_cmd", lambda: ["ruff"])
         result = ec._check_lint(
             tmp_path, ["ghost/MODULE.PY"], None, timeout=30,
         )
