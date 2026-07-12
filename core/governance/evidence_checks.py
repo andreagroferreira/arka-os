@@ -290,7 +290,8 @@ def _check_lint(
             # (QG 2026-07-12: a 2 .py + 6 .js diff got skipped) — fall
             # through to the project-wide lint of what IS on disk.
             all_lintable_exts = _LINTABLE_PY | _LINTABLE_JS | _LINTABLE_PHP
-            if not (_suffixes(changed) & all_lintable_exts):
+            changed_exts = {s.lower() for s in _suffixes(changed)}
+            if not (changed_exts & all_lintable_exts):
                 return _skip(
                     "lint", "changed files contain no lintable sources"
                 )

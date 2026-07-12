@@ -712,6 +712,25 @@ class TestLintScopeBlindSpot:
             "fallback must be the project-wide ruff run"
         )
 
+    def test_uppercase_suffix_also_falls_through(self, tmp_path, monkeypatch):
+        """QG M1: _suffixes does not case-fold but _scoped_files does —
+        an unresolvable ghost/MODULE.PY must fall through like .py."""
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+
+        def fake_run(name, cmd, project_dir, timeout):
+            return ec.CheckResult(
+                check=name, ran=True, passed=True,
+                command=" ".join(map(str, cmd)), exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(ec, "_run", fake_run)
+        result = ec._check_lint(
+            tmp_path, ["ghost/MODULE.PY"], None, timeout=30,
+        )
+        assert result.ran, "uppercase lintable suffix must not skip blind"
+
     def test_truly_unlintable_diff_still_skips_honestly(self, tmp_path):
         from core.governance import evidence_checks as ec
 
