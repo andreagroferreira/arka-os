@@ -174,23 +174,29 @@ def build_plugins() -> dict[str, list[str]]:
                 DEPARTMENTS_DIR / dept / "skills" / slug,
                 plugin_dir / "skills" / slug,
             )
-        manifest_dir = plugin_dir / ".claude-plugin"
-        manifest_dir.mkdir(parents=True, exist_ok=True)
-        plugin_json = {
-            "name": f"arkaos-{dept}",
-            "description": _plugin_description(dept, complement),
-            # Version lives ONLY here (plugin.json wins silently over a
-            # marketplace-entry version per the plugin spec — never both).
-            "version": VERSION,
-            "author": {"name": "WizardingCode", "email": "hello@wizardingcode.io"},
-            "license": "MIT",
-        }
-        (manifest_dir / "plugin.json").write_text(
-            json.dumps(plugin_json, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
+        _write_plugin_manifest(plugin_dir, dept, complement)
         emitted[dept] = complement
     return emitted
+
+
+def _write_plugin_manifest(
+    plugin_dir: Path, dept: str, slugs: list[str]
+) -> None:
+    manifest_dir = plugin_dir / ".claude-plugin"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    plugin_json = {
+        "name": f"arkaos-{dept}",
+        "description": _plugin_description(dept, slugs),
+        # Version lives ONLY here (plugin.json wins silently over a
+        # marketplace-entry version per the plugin spec — never both).
+        "version": VERSION,
+        "author": {"name": "WizardingCode", "email": "hello@wizardingcode.io"},
+        "license": "MIT",
+    }
+    (manifest_dir / "plugin.json").write_text(
+        json.dumps(plugin_json, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
 
 def build_marketplace(emitted: dict[str, list[str]]) -> dict:
@@ -249,18 +255,22 @@ def build_skills_manifest(emitted: dict[str, list[str]]) -> dict:
             "version": VERSION,
             "marketplace": MARKETPLACE_NAME,
         },
-        "structural": {
-            "main": "arka",
-            "hubs": sorted(
-                f"arka-{d.name}" for d in DEPARTMENTS_DIR.iterdir()
-                if (d / "SKILL.md").is_file()
-            ),
-            "meta": sorted(
-                f"arka-{p.name}" for p in (REPO_ROOT / "arka" / "skills").iterdir()
-                if (p / "SKILL.md").is_file()
-            ),
-        },
+        "structural": _structural_surface(),
         "skills": dict(sorted(skills.items())),
+    }
+
+
+def _structural_surface() -> dict:
+    return {
+        "main": "arka",
+        "hubs": sorted(
+            f"arka-{d.name}" for d in DEPARTMENTS_DIR.iterdir()
+            if (d / "SKILL.md").is_file()
+        ),
+        "meta": sorted(
+            f"arka-{p.name}" for p in (REPO_ROOT / "arka" / "skills").iterdir()
+            if (p / "SKILL.md").is_file()
+        ),
     }
 
 
