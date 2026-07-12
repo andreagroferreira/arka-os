@@ -1,8 +1,10 @@
 """Gate manifest generator — the single source the Node fast-path trusts.
 
 F2-6 (hook fast-path): ``config/hooks/pre-tool-use.cjs`` and
-``post-tool-use.cjs`` short-circuit the trivial hook decisions in ~10ms
-instead of spawning the 82-96ms bash->Python chain on every tool call.
+``post-tool-use.cjs`` short-circuit the trivial hook decisions in ~18ms
+p50 (measured — the Node startup floor is ~10ms on the reference
+machine) instead of spawning the 82-96ms bash->Python chain on every
+tool call.
 The shims decide from ``config/gate-manifest.json`` ONLY — never from
 constants of their own — and this module is the only writer of that
 file: every value is imported from the real gate modules at generation
@@ -60,9 +62,13 @@ def _relative_to_home(path: Path) -> str:
 
 def _bash_corpus() -> list[dict]:
     """Golden Bash classifications. ``expect`` is asserted against the
-    REAL ``bash_is_effect`` by the pytest side and against the Node
-    replica by the node:test side — the corpus cannot drift alone."""
-    cases = [
+    REAL ``bash_is_effect`` by the pytest side; the node:test side
+    asserts the engine returns ``engine_expect`` (defaults to
+    ``expect``). ``engine_expect`` may only ever be MORE conservative
+    ("effect" where Python says "discovery" — the engine delegates and
+    Python re-classifies); the node suite enforces that one-sidedness
+    structurally. The corpus cannot drift alone."""
+    cases: list[tuple] = [
         ("git status", "discovery"),
         ("git log --oneline -5", "discovery"),
         ("git commit -m 'x'", "effect"),
@@ -88,8 +94,26 @@ def _bash_corpus() -> list[dict]:
         ("   ", "discovery"),
         ("touch marker", "effect"),
         ("mkdir -p build", "effect"),
+        # QG B1 (redo 1) — whitespace-class boundary. U+FEFF is NOT
+        # whitespace to Python (isspace()=False, re \s no-match): the
+        # token "FOO=1<U+FEFF>grep" stays glued → unknown → EFFECT. JS
+        # \s/trim/split disagree, so the engine carries an explicit
+        # non-ASCII-whitespace guard that forces EFFECT (delegation).
+        ("FOO=1\ufeffgrep needle file", "effect"),
+        ("FOO=1\ufeffFOO=2\ufeffgrep x", "effect"),
+        ("FOO=1 \ufeff grep x", "effect"),
+        # NBSP IS whitespace to both sides, so Python classifies this
+        # discovery — but the engine's guard still forces EFFECT
+        # (delegate), the allowed conservative direction.
+        ("FOO=1\u00a0grep x", "discovery", "effect"),
     ]
-    return [{"cmd": cmd, "expect": expect} for cmd, expect in cases]
+    rows = []
+    for case in cases:
+        row = {"cmd": case[0], "expect": case[1]}
+        if len(case) > 2:
+            row["engine_expect"] = case[2]
+        rows.append(row)
+    return rows
 
 
 def _pre_tool_corpus() -> list[dict]:

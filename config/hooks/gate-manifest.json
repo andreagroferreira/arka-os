@@ -404,6 +404,23 @@
       {
         "cmd": "mkdir -p build",
         "expect": "effect"
+      },
+      {
+        "cmd": "FOO=1\ufeffgrep needle file",
+        "expect": "effect"
+      },
+      {
+        "cmd": "FOO=1\ufeffFOO=2\ufeffgrep x",
+        "expect": "effect"
+      },
+      {
+        "cmd": "FOO=1 \ufeff grep x",
+        "expect": "effect"
+      },
+      {
+        "cmd": "FOO=1\u00a0grep x",
+        "engine_expect": "effect",
+        "expect": "discovery"
       }
     ],
     "error_trigger": [

@@ -3,7 +3,8 @@
 /**
  * ArkaOS — PreToolUse fast-path shim (F2-6).
  *
- * Node startup (~10ms) replaces the 82ms-p50 bash->Python chain for the
+ * An 18ms-p50 Node process (measured; ~10ms of it is bare Node startup)
+ * replaces the 82ms-p50 bash->Python chain for the
  * decisions the manifest proves trivial: non-flow-gated tools and
  * discovery Bash with no active budget cap fast-allow here (with the
  * same telemetry appends the Python chain would make); EVERYTHING else
@@ -18,7 +19,6 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const engine = require(path.join(__dirname, "_lib", "fastpath", "engine.cjs"));
 
 const FAIL_OPEN_EXIT = 0;
 
@@ -52,6 +52,15 @@ function delegate(rawStdin) {
 function main() {
   const rawStdin = readStdin();
   if ((process.env.ARKA_HOOK_FASTPATH || "").trim() === "0") {
+    delegate(rawStdin);
+  }
+  // QG B3 (redo 1): the engine require lives INSIDE the fail-open
+  // boundary — a split deploy (.cjs present, _lib/fastpath absent)
+  // must delegate to the sibling .sh, not crash with a stack trace.
+  let engine;
+  try {
+    engine = require(path.join(__dirname, "_lib", "fastpath", "engine.cjs"));
+  } catch {
     delegate(rawStdin);
   }
 

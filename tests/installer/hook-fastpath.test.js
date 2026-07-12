@@ -257,3 +257,40 @@ test("Post error output delegates (gotchas pipeline is Python's)", () => {
     rmSync(sandbox.root, { recursive: true, force: true });
   }
 });
+
+test("QG B3: split deploy (engine.cjs missing) delegates instead of crashing", () => {
+  const sandbox = makeSandbox();
+  try {
+    rmSync(join(sandbox.hooks, "_lib", "fastpath", "engine.cjs"));
+    const pre = runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Read", session_id: "fp-sid", tool_input: {} });
+    assert.equal(pre.status, 0, "no stack-trace crash");
+    assert.ok(existsSync(
+      join(sandbox.home, "delegated-stdin-pre-tool-use.sh.txt")),
+      "must reach the .sh sibling");
+
+    const post = runShim(sandbox, "post-tool-use.cjs", {
+      tool_name: "Read", session_id: "fp-sid",
+      exit_code: "0", tool_output: "ok",
+    });
+    assert.equal(post.status, 0);
+    assert.ok(existsSync(
+      join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt")));
+
+    // Engine missing AND siblings missing → per-event fail-open forms.
+    rmSync(join(sandbox.hooks, "pre-tool-use.sh"));
+    rmSync(join(sandbox.hooks, "post-tool-use.sh"));
+    const preOpen = runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Read", session_id: "fp-sid", tool_input: {} });
+    assert.equal(preOpen.status, 0);
+    assert.equal(preOpen.stdout, "");
+    const postOpen = runShim(sandbox, "post-tool-use.cjs", {
+      tool_name: "Read", session_id: "fp-sid",
+      exit_code: "0", tool_output: "ok",
+    });
+    assert.equal(postOpen.status, 0);
+    assert.equal(postOpen.stdout.trim(), "{}");
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});

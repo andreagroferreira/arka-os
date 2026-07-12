@@ -19,7 +19,6 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const engine = require(path.join(__dirname, "_lib", "fastpath", "engine.cjs"));
 
 function readStdin() {
   try {
@@ -57,6 +56,15 @@ function delegate(rawStdin) {
 function main() {
   const rawStdin = readStdin();
   if ((process.env.ARKA_HOOK_FASTPATH || "").trim() === "0") {
+    delegate(rawStdin);
+  }
+  // QG B3 (redo 1): the engine require lives INSIDE the fail-open
+  // boundary — a split deploy (.cjs present, _lib/fastpath absent)
+  // must delegate to the sibling .sh, not crash with a stack trace.
+  let engine;
+  try {
+    engine = require(path.join(__dirname, "_lib", "fastpath", "engine.cjs"));
+  } catch {
     delegate(rawStdin);
   }
 

@@ -62,6 +62,14 @@ function compileRegex(entry) {
 function bashIsEffect(command, manifest) {
   if (!command || !command.trim()) return false;
   const stripped = command.trim();
+  // QG B1 (redo 1): JS \s / trim / split treat U+FEFF (and other
+  // non-ASCII whitespace) as separators; Python's re \s and str.split
+  // do NOT for U+FEFF — a token like "FOO=1<U+FEFF>grep" is ONE unknown
+  // token (EFFECT) to Python but splits to a whitelisted "grep" here,
+  // a skipped deny under hard enforcement. Any whitespace-class char
+  // outside the ASCII set forces EFFECT → the shim delegates and
+  // Python classifies with its own semantics (safe: no deny path).
+  if (/[^\S \t\n\r\f\v]/.test(stripped)) return true;
   for (const entry of manifest.bash.effect_patterns) {
     if (compileRegex(entry).test(stripped)) return true;
   }

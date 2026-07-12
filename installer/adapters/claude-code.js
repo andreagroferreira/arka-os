@@ -100,7 +100,11 @@ function hookEntry(hooksDir, name, timeout) {
   if (
     FASTPATH_HOOKS.has(name) &&
     process.env.ARKA_INSTALL_FASTPATH !== "0" &&
-    existsSync(join(hooksDir, `${name}.cjs`))
+    existsSync(join(hooksDir, `${name}.cjs`)) &&
+    // QG B3: a split deploy (.cjs without _lib/fastpath) must never be
+    // registered — the shim would only ever delegate (it degrades
+    // safely, but registering the .sh directly is strictly better).
+    existsSync(join(hooksDir, "_lib", "fastpath", "engine.cjs"))
   ) {
     return {
       type: "command",

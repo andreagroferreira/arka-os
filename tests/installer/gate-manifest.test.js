@@ -34,9 +34,29 @@ test("manifest validates and every exported regex compiles in JS", () => {
 });
 
 test("bash corpus: engine replica matches every golden classification", () => {
-  for (const { cmd, expect } of manifest.corpora.bash) {
-    const real = engine.bashIsEffect(cmd, manifest) ? "effect" : "discovery";
-    assert.equal(real, expect, `bashIsEffect drift for ${JSON.stringify(cmd)}`);
+  for (const row of manifest.corpora.bash) {
+    const real = engine.bashIsEffect(row.cmd, manifest)
+      ? "effect" : "discovery";
+    // engine_expect (when present) marks a deliberate conservative
+    // divergence: engine says effect (delegates) where Python says
+    // discovery — e.g. the NBSP row behind the non-ASCII-whitespace
+    // guard (QG B1).
+    const expected = row.engine_expect ?? row.expect;
+    assert.equal(real, expected,
+      `bashIsEffect drift for ${JSON.stringify(row.cmd)}`);
+    // One-sided safety invariant: the engine may over-classify EFFECT
+    // (costs a delegation), never under-classify (skipped deny).
+    assert.ok(!(row.expect === "effect" && real === "discovery"),
+      `UNSAFE drift: Python=effect but engine=discovery for ${JSON.stringify(row.cmd)}`);
+  }
+});
+
+test("engine_expect rows only ever diverge in the safe direction", () => {
+  for (const row of manifest.corpora.bash) {
+    if (row.engine_expect === undefined) continue;
+    assert.equal(row.expect, "discovery");
+    assert.equal(row.engine_expect, "effect",
+      "engine_expect may only force delegation, never fast-allow");
   }
 });
 
