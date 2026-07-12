@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -47,8 +46,11 @@ def _read_transcript(path: str) -> str | None:
     if not path:
         return None
     try:
-        return Path(path).read_text(encoding="utf-8")
-    except OSError:
+        # errors="replace": an invalid-UTF-8 transcript must not raise
+        # UnicodeDecodeError (this hook promises never to block). ValueError
+        # guards a null-byte path arriving from stdin JSON.
+        return Path(path).read_text(encoding="utf-8", errors="replace")
+    except (OSError, ValueError):
         return None
 
 
@@ -167,9 +169,16 @@ def main(stdin_json: dict | None = None) -> int:
     qa = _run_qa(text, raw)
     _record(session_id, agent_id, qa)
 
+    # The nudge must reach the ORCHESTRATOR. Claude Code discards hook
+    # stderr at exit 0 (it only surfaces stderr on a deny/exit 2), so a
+    # stderr nudge here would be inert. additionalContext on stdout is the
+    # channel the model actually receives.
     nudge = _nudge(agent_id, qa)
     if nudge:
-        print(nudge, file=sys.stderr)
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "SubagentStop",
+            "additionalContext": nudge,
+        }}))
     return 0
 
 

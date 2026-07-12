@@ -99,3 +99,18 @@ def test_empty_transcript_still_writes_metadata_digest(tmp_path, sanitizer_prese
     digests = _digests(tmp_path)
     assert len(digests) == 1
     assert "no sanitizable transcript excerpt" in digests[0].read_text()
+
+
+def test_invalid_utf8_transcript_never_raises(tmp_path, sanitizer_present):
+    """QG B1: an invalid-UTF-8 transcript must not raise (write_digest must
+    reach _end_session so the session is still marked ended)."""
+    bad = tmp_path / "bad.jsonl"
+    bad.write_bytes(b'\xff\xfe not utf-8')
+    assert main({"session_id": "sess-bad", "transcript_path": str(bad)}) == 0
+    assert _digests(tmp_path)  # digest still written
+
+
+def test_null_byte_transcript_path_never_raises(tmp_path, sanitizer_present):
+    """QG B1: a null-byte path (ValueError in read_text) is swallowed."""
+    assert main({"session_id": "sess-nul", "transcript_path": "/x\x00y"}) == 0
+    assert _digests(tmp_path)

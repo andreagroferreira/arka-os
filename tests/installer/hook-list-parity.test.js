@@ -22,7 +22,9 @@ function extractHookNames(filePath) {
   return [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 }
 
-const REQUIRED_HOOKS = ["pre-tool-use", "stop"];
+const REQUIRED_HOOKS = [
+  "pre-tool-use", "stop", "subagent-stop", "session-end",
+];
 
 test("installer hookNames arrays stay in lockstep", () => {
   const updateHooks = extractHookNames(join(ROOT, "installer", "update.js"));

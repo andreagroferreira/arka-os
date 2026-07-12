@@ -62,16 +62,19 @@ def test_persists_output_and_records_qa(tmp_path, monkeypatch):
 
 def test_phantom_action_flagged_and_nudged(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(subagent_stop, "_persist_output", lambda *a: None)
-    # Deliverable-shaped ("implemented") AND a phantom claim ("I committed")
-    # with NO tool call in the turn -> flagged + nudged.
+    # Deliverable-shaped ("fixed") AND a phantom claim ("I committed") with
+    # NO tool call in the turn -> flagged + nudged via additionalContext.
     transcript = _transcript(
         tmp_path, "I committed the change and fixed the bug.", with_tool=False
     )
     assert main({"session_id": "s1", "subagent_type": "paulo",
                  "transcript_path": transcript}) == 0
-    err = capsys.readouterr().err
-    assert "[arka:subagent-qa]" in err
-    assert "Quality Gate" in err
+    # The nudge reaches the model via stdout additionalContext — Claude
+    # Code discards hook stderr at exit 0, so stderr would be inert.
+    out = json.loads(capsys.readouterr().out)
+    nudge = out["hookSpecificOutput"]["additionalContext"]
+    assert "[arka:subagent-qa]" in nudge
+    assert "Quality Gate" in nudge
     rows = _telemetry(tmp_path)
     assert rows[0]["phantom"] == "phantom-action"
     assert rows[0]["deliverable"] is True
@@ -82,7 +85,10 @@ def test_no_nudge_when_not_deliverable(tmp_path, capsys, monkeypatch):
     transcript = _transcript(tmp_path, "Here is a summary of the options.", with_tool=False)
     main({"session_id": "s1", "subagent_type": "analyst",
           "transcript_path": transcript})
-    assert "[arka:subagent-qa]" not in capsys.readouterr().err
+    # No deliverable => no stdout nudge (but the telemetry row is still
+    # written, which is the durable record).
+    assert capsys.readouterr().out.strip() == ""
+    assert len(_telemetry(tmp_path)) == 1
 
 
 def test_qa_off_is_inert(tmp_path, monkeypatch):
@@ -100,6 +106,20 @@ def test_unsafe_session_id_bails(tmp_path):
 def test_empty_transcript_no_record(tmp_path):
     assert main({"session_id": "s1", "transcript_path": ""}) == 0
     assert _telemetry(tmp_path) == []
+
+
+def test_invalid_utf8_transcript_never_raises(tmp_path):
+    """QG B1: a hook that promises 'never blocks' must survive an
+    invalid-UTF-8 transcript (read_text would raise UnicodeDecodeError)."""
+    bad = tmp_path / "bad.jsonl"
+    bad.write_bytes(b'{"type":"assistant","content":"\xff\xfe bad bytes"}')
+    assert main({"session_id": "s1", "transcript_path": str(bad)}) == 0
+
+
+def test_null_byte_transcript_path_never_raises(tmp_path):
+    """QG B1: a null-byte path from stdin JSON raises ValueError in
+    read_text — must be swallowed, exit 0."""
+    assert main({"session_id": "s1", "transcript_path": "/x\x00y.jsonl"}) == 0
 
 
 def test_persist_sanitizes(tmp_path, monkeypatch):

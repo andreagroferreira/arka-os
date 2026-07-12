@@ -7,7 +7,7 @@
 #
 # Writes a final session digest immediately (PreCompact only fires on
 # compaction) and marks the session ended. Best-effort, never blocks.
-# Fail-open: no usable interpreter => exit 0. Timeout: 10s.
+# Fail-open: no usable interpreter => exit 0. Timeout: 15s.
 # ============================================================================
 
 # ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────

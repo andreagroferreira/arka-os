@@ -33,8 +33,11 @@ def _read_transcript(path: str) -> str | None:
     if not path:
         return None
     try:
-        return Path(path).read_text(encoding="utf-8")
-    except OSError:
+        # errors="replace" + ValueError: never raise on an invalid-UTF-8
+        # transcript or a null-byte path (this hook promises exit 0 always,
+        # and write_digest must reach _end_session).
+        return Path(path).read_text(encoding="utf-8", errors="replace")
+    except (OSError, ValueError):
         return None
 
 
@@ -71,9 +74,9 @@ def write_digest(session_id: str, transcript_path: str) -> Path | None:
     seed = messages[-1] if messages else ""
     digest_id = _digest_id(session_id, seed)
     short = (session_id or "default")[:8]
-    excerpt = "\n\n".join(
-        _sanitize(m[:_MSG_CHARS]) for m in messages if _sanitize(m[:_MSG_CHARS])
-    ) or "(no sanitizable transcript excerpt)"
+    sanitized = [_sanitize(m[:_MSG_CHARS]) for m in messages]
+    excerpt = "\n\n".join(s for s in sanitized if s) \
+        or "(no sanitizable transcript excerpt)"
     body = (
         "---\n"
         "type: session-digest\n"
