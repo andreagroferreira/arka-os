@@ -35,6 +35,9 @@ const { values, positionals } = parseArgs({
     // `values.write` instead of a free positional under strict:false
     // (the documented --fix lesson).
     write: { type: "boolean" },
+    // F2-7c — `npx arkaos update --skills <curated|full>` (same
+    // strict:false declaration requirement).
+    skills: { type: "string" },
   },
   allowPositionals: true,
   strict: false,
@@ -64,6 +67,7 @@ Usage:
   npx arkaos models           Model Fabric: which model runs each role
   npx arkaos models set <role> <provider>/<model>  Re-route a role
   npx arkaos mcp start        Start the arka-tools MCP server (stdio; --write enables writes)
+  npx arkaos update --skills <curated|full>  Choose the deployed skill set (default: curated on fresh installs)
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
@@ -115,10 +119,11 @@ async function main() {
       break;
     }
 
-    case "update":
+    case "update": {
       const { update } = await import("./update.js");
-      await update();
+      await update({ skillsFlag: values.skills || "" });
       break;
+    }
 
     case "autostart": {
       const { autostart } = await import("./autostart.js");

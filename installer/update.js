@@ -5,6 +5,7 @@ import { execSync } from "node:child_process";
 import { ensureVenv, ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { copyHookLib, copyHookAssets } from "./hook-lib.js";
 import { deploySkills } from "./skill-deploy.js";
+import { deprecationNotice, resolveSkillsMode } from "./skills-mode.js";
 import { deployCoreSnapshot } from "./core-snapshot.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
@@ -17,7 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ARKAOS_ROOT = resolve(__dirname, "..");
 const VERSION = JSON.parse(readFileSync(join(ARKAOS_ROOT, "package.json"), "utf-8")).version;
 
-export async function update() {
+export async function update({ skillsFlag = "" } = {}) {
   const installDir = join(homedir(), ".arkaos");
   const manifestPath = join(installDir, "install-manifest.json");
   const profilePath = join(installDir, "profile.json");
@@ -339,12 +340,18 @@ export async function update() {
   // reference bundle + department hubs + sub-skills + META skills
   // (arka-flow & co. were silently missing from update-only machines
   // before F2-7c-pre) + agent personas.
+  const skillsMode = resolveSkillsMode({ flag: skillsFlag, fresh: false });
+  if (skillsMode.deprecated) {
+    console.log("         " + deprecationNotice());
+  }
   const skillCounts = deploySkills({
     repoRoot: ARKAOS_ROOT,
     skillsBase,
     agentsBase: join(homedir(), ".claude", "agents"),
     version: VERSION,
+    mode: skillsMode.mode,
   });
+  console.log(`         ✓ skill set mode: ${skillsMode.mode}`);
   if (skillCounts.main) console.log("         ✓ /arka skill updated");
   if (skillCounts.depts > 0) {
     console.log(`         ✓ ${skillCounts.depts} department skills updated`);
