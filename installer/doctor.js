@@ -109,6 +109,8 @@ export const checks = [
         "cwd-changed",
         "pre-tool-use",
         "stop",
+        "subagent-stop",
+        "session-end",
       ];
       const hooksDir = join(INSTALL_DIR, "config", "hooks");
       return required.every((h) => existsSync(join(hooksDir, `${h}${HOOK_EXT}`)));

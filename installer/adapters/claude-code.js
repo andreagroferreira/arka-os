@@ -151,6 +151,19 @@ export default {
       { hooks: [hookEntry(hooksDir, "stop", 5)] },
     ];
 
+    // SubagentStop — persist each subagent's output + warn-only honesty
+    // QA (phantom-action, meta-tag), nudging deliverable output toward the
+    // Quality Gate. 10s: transcript read + sanitize + persist (F2-4).
+    settings.hooks.SubagentStop = [
+      { hooks: [hookEntry(hooksDir, "subagent-stop", 10)] },
+    ];
+
+    // SessionEnd — final session digest (PreCompact only fires on
+    // compaction) + mark session ended. 15s (F2-4).
+    settings.hooks.SessionEnd = [
+      { hooks: [hookEntry(hooksDir, "session-end", 15)] },
+    ];
+
     // PreCompact — Session digest
     settings.hooks.PreCompact = [
       { hooks: [hookEntry(hooksDir, "pre-compact", 30)] },

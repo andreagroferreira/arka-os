@@ -677,6 +677,8 @@ function installHooks(installDir) {
     "cwd-changed",
     "pre-tool-use",
     "stop",
+    "subagent-stop",
+    "session-end",
   ];
   const hookExt = HOOK_EXT;
 
