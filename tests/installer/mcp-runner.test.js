@@ -152,3 +152,41 @@ test("runner never shells out through bash or hardcoded npx-cache paths", async 
   assert.ok(!/join\(__dirname/.test(src),
     "no __dirname anchoring — npx cache is volatile (getRepoRoot only)");
 });
+
+test("ARKA_OS is set from the injected repo-root resolver (QG 7a M1)", () => {
+  const home = makeHome();
+  try {
+    const calls = [];
+    const spawn = (cmd, args, opts) => {
+      calls.push({ cmd, args, opts });
+      return { status: 0 };
+    };
+    const code = startServer({
+      home, spawn, log: () => {},
+      repoRootResolver: () => "/fake/repo/root",
+    });
+    assert.equal(code, 0);
+    assert.equal(calls.at(-1).opts.env.ARKA_OS, "/fake/repo/root");
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("spawn error on the server itself fails with exit 1 and a message (QG 7a M1)", () => {
+  const home = makeHome();
+  try {
+    const logs = [];
+    const spawn = (cmd, args) => {
+      if (cmd === "uv" && args[0] === "--version") return { status: 0 };
+      return { error: new Error("EACCES"), status: null };
+    };
+    const code = startServer({
+      home, spawn, log: (m) => logs.push(m),
+      repoRootResolver: () => null,
+    });
+    assert.equal(code, 1);
+    assert.match(logs.join("\n"), /Failed to start/);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});

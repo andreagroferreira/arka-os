@@ -156,7 +156,9 @@ export const checks = [
       const py = getArkaosPython();
       if (!py) return false;
       try {
-        execSync(`"${py}" -c "import mcp"`, { stdio: "ignore" });
+        // timeout parity with mcp-runner.js::venvHasMcp — a hung
+        // interpreter must not stall `npx arkaos doctor` (QG 7a M3).
+        execSync(`"${py}" -c "import mcp"`, { stdio: "ignore", timeout: 15000 });
         return true;
       } catch {
         return false;

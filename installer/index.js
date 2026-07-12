@@ -7,6 +7,7 @@ import { getRuntimeConfig } from "./detect-runtime.js";
 import { findSystemPython, ensureVenv, getArkaosPython, getArkaosPip, pipInstall } from "./python-resolver.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
 import { copyHookLib, copyHookAssets } from "./hook-lib.js";
+import { deploySkills } from "./skill-deploy.js";
 import { deployCoreSnapshot } from "./core-snapshot.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -723,169 +724,36 @@ function installHooks(installDir) {
   }
 }
 
-// Safe directory iteration. Returns an empty array instead of throwing
-// when the target does not exist, which lets us skip missing sources
-// (fresh repo checkouts may omit optional department resource dirs).
-function listSubdirs(parent) {
-  if (!existsSync(parent)) return [];
-  try {
-    return readdirSync(parent, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name);
-  } catch {
-    return [];
-  }
-}
-
-// Port of the "Resources" copy loop from install.sh:399-403. Copies any
-// of scripts/references/assets that exist next to a skill's SKILL.md
-// into the deployed skill directory. Silent no-op when a resource dir
-// does not exist. Each copy is wrapped in a try/catch so a partial
-// failure on one resource doesn't block the rest of the deployment.
-function copySkillResources(skillSrcDir, skillDestDir) {
-  const resources = ["scripts", "references", "assets"];
-  for (const res of resources) {
-    const src = join(skillSrcDir, res);
-    if (!existsSync(src)) continue;
-    try {
-      cpSync(src, join(skillDestDir, res), { recursive: true });
-    } catch {
-      // Best-effort — a single missing resource dir shouldn't break install.
-    }
-  }
-}
-
-// Deploy one skill directory as a top-level `arka-<name>/` under the
-// Claude Code skills base. Mirrors install.sh lines 396-405 and 414-425.
-// Returns true if SKILL.md was deployed, false otherwise.
-function deployTopLevelSkill(skillSrcDir, arkaName, skillsBase) {
-  const skillMd = join(skillSrcDir, "SKILL.md");
-  if (!existsSync(skillMd)) return false;
-  const dest = join(skillsBase, arkaName);
-  ensureDir(dest);
-  copyFileSync(skillMd, join(dest, "SKILL.md"));
-  copySkillResources(skillSrcDir, dest);
-  return true;
-}
-
 function installSkill(config, installDir) {
-  // ── Main /arka skill ────────────────────────────────────────────────
-  const skillSrc = join(ARKAOS_ROOT, "arka", "SKILL.md");
+  // Single shared deployment (installer/skill-deploy.js) — main /arka
+  // skill + nested reference bundle + department hubs + sub-skills +
+  // meta skills + agent personas. update.js §6 calls the SAME function,
+  // so install and update can no longer drift (F2-7c-pre: update-only
+  // machines were missing the 14 meta skills, including arka-flow).
   const skillsBase = config.skillsDir || join(homedir(), ".claude", "skills");
   const skillDest = join(skillsBase, "arka");
-
-  ensureDir(skillDest);
-
-  if (existsSync(skillSrc)) {
-    copyFileSync(skillSrc, join(skillDest, "SKILL.md"));
-    writeFileSync(join(skillDest, ".repo-path"), ARKAOS_ROOT);
-    writeFileSync(join(skillDest, "VERSION"), VERSION);
-    // Nested arka/skills/ (conclave, human-writing) is copied as a
-    // reference bundle under the main /arka skill, preserving the
-    // old behaviour for anything that reads from that path.
-    const nestedSkillsSrc = join(ARKAOS_ROOT, "arka", "skills");
-    if (existsSync(nestedSkillsSrc)) {
-      const nestedSkillsOut = join(skillDest, "skills");
-      ensureDir(nestedSkillsOut);
-      try {
-        cpSync(nestedSkillsSrc, nestedSkillsOut, { recursive: true });
-      } catch {
-        // Silent — these are bundled references, not user-facing skills.
-      }
-    }
+  const skillCounts = deploySkills({
+    repoRoot: ARKAOS_ROOT,
+    skillsBase,
+    agentsBase: join(homedir(), ".claude", "agents"),
+    version: VERSION,
+  });
+  if (skillCounts.main) {
     ok("/arka skill installed");
   } else {
     warn("arka/SKILL.md not found in package");
   }
-
-  // ── Department skills ───────────────────────────────────────────────
-  // For each `departments/<dept>/SKILL.md`, deploy as top-level
-  // `~/.claude/skills/arka-<dept>/`. Mirrors install.sh:391-406, but
-  // iterates the source directory dynamically instead of hardcoding a
-  // department list (the bash list is stale — ships 8 of the 18 real
-  // departments on disk, so half are silently skipped on macOS/Linux
-  // too until a user edits install.sh).
-  const deptRoot = join(ARKAOS_ROOT, "departments");
-  let deptDeployed = 0;
-  for (const dept of listSubdirs(deptRoot)) {
-    if (deployTopLevelSkill(join(deptRoot, dept), `arka-${dept}`, skillsBase)) {
-      deptDeployed++;
-    }
+  if (skillCounts.depts > 0) {
+    ok(`${skillCounts.depts} department skills installed (/arka-<dept>)`);
   }
-  if (deptDeployed > 0) {
-    ok(`${deptDeployed} department skills installed (/arka-<dept>)`);
+  if (skillCounts.subs > 0) {
+    ok(`${skillCounts.subs} sub-skills installed (/arka-<skill>)`);
   }
-
-  // ── Sub-skills (departments/*/skills/*) ─────────────────────────────
-  // For each `departments/<dept>/skills/<skill>/SKILL.md`, deploy as
-  // top-level `~/.claude/skills/arka-<skill>/`. Mirrors install.sh:411-425.
-  // Collisions between departments (two depts defining the same
-  // sub-skill name) are resolved by "later wins", same semantics as
-  // the bash loop — in practice the repo has no collisions today.
-  let subSkillDeployed = 0;
-  for (const dept of listSubdirs(deptRoot)) {
-    const deptSkillsDir = join(deptRoot, dept, "skills");
-    for (const subSkill of listSubdirs(deptSkillsDir)) {
-      const subSkillSrc = join(deptSkillsDir, subSkill);
-      if (deployTopLevelSkill(subSkillSrc, `arka-${subSkill}`, skillsBase)) {
-        subSkillDeployed++;
-      }
-    }
+  if (skillCounts.meta > 0) {
+    ok(`${skillCounts.meta} meta skills installed (/arka-<skill>)`);
   }
-  if (subSkillDeployed > 0) {
-    ok(`${subSkillDeployed} sub-skills installed (/arka-<skill>)`);
-  }
-
-  // ── Meta skills (arka/skills/*) ─────────────────────────────────────
-  // For each `arka/skills/<skill>/SKILL.md`, deploy as top-level
-  // `~/.claude/skills/arka-<skill>/`. These are cross-cutting meta
-  // orchestrators (e.g. forge, platform-arka) that don't belong to a
-  // single department. They ALSO remain copied as bundled references
-  // under `~/.claude/skills/arka/skills/` by the nested block above —
-  // this additional deployment makes them invocable as `arka-<skill>`.
-  const arkaSkillsDir = join(ARKAOS_ROOT, "arka", "skills");
-  let metaSkillDeployed = 0;
-  for (const metaSkill of listSubdirs(arkaSkillsDir)) {
-    const metaSkillSrc = join(arkaSkillsDir, metaSkill);
-    if (deployTopLevelSkill(metaSkillSrc, `arka-${metaSkill}`, skillsBase)) {
-      metaSkillDeployed++;
-    }
-  }
-  if (metaSkillDeployed > 0) {
-    ok(`${metaSkillDeployed} meta skills installed (/arka-<skill>)`);
-  }
-
-  // ── Agent personas ──────────────────────────────────────────────────
-  // For each `departments/<dept>/agents/<name>.md`, deploy to
-  // `~/.claude/agents/arka-<name>.md`. Mirrors install.sh:436-443.
-  // The agents dir parallels skillsBase — Claude Code reads it
-  // separately from the skills tree.
-  const agentsBase = join(homedir(), ".claude", "agents");
-  ensureDir(agentsBase);
-  let agentDeployed = 0;
-  for (const dept of listSubdirs(deptRoot)) {
-    const agentsSrc = join(deptRoot, dept, "agents");
-    if (!existsSync(agentsSrc)) continue;
-    try {
-      for (const agentFile of readdirSync(agentsSrc)) {
-        if (!agentFile.endsWith(".md")) continue;
-        const srcFile = join(agentsSrc, agentFile);
-        // Safety: don't deploy anything that's not a regular file.
-        try {
-          if (!statSync(srcFile).isFile()) continue;
-        } catch {
-          continue;
-        }
-        const baseName = agentFile.replace(/\.md$/, "");
-        copyFileSync(srcFile, join(agentsBase, `arka-${baseName}.md`));
-        agentDeployed++;
-      }
-    } catch {
-      // Silently skip departments with unreadable agents dirs.
-    }
-  }
-  if (agentDeployed > 0) {
-    ok(`${agentDeployed} agent personas installed (~/.claude/agents/arka-*.md)`);
+  if (skillCounts.agents > 0) {
+    ok(`${skillCounts.agents} agent personas installed (~/.claude/agents/arka-*.md)`);
   }
 
   // ── MCP infrastructure ──────────────────────────────────────────────
