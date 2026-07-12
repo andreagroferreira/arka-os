@@ -21,7 +21,7 @@ Every AI coding tool gives you **one developer agent**. ArkaOS gives you **an en
 
 Marketing teams. Brand designers. Financial analysts. Strategy consultants. Security auditors. E-commerce specialists. Content creators. Sales negotiators. Project managers. Quality reviewers. All working together, following enterprise workflows, with mandatory quality gates.
 
-And now, with the **Cognitive Layer** (v2.10), ArkaOS **learns from experience**. It remembers solutions across projects, critiques its own work every night, and researches updates about your tech stack while you sleep.
+And ArkaOS **learns from experience**: it closes two feedback loops end to end. Every session writes semantic memory that the next session retrieves, and every Quality Gate verdict feeds back into routing, so a department that keeps getting work rejected gets flagged before it ships again. Both loops run on your machine, and every claim about them is reproducible: the hook that fires on every tool call runs at 18ms p50 (down from 83ms, measured by `benchmarks/hooks-bench.sh`), and the default install keeps its always-on context surface inside a CI-enforced budget.
 
 ```
 You: "add stripe subscription billing"
@@ -63,8 +63,9 @@ npx arkaos install
 
 The installer auto-detects your runtime and configures everything:
 - Python dependencies (Pydantic, PyYAML, Rich, Click)
-- Hook system (5 hooks for session management)
-- Skills (250+ department commands)
+- Hook system (9 lifecycle hooks, with Node fast-path shims that decide trivial calls in 18ms instead of 83ms)
+- A curated skill set that stays inside a 60 to 80 skill context budget, enforced in CI; the full catalog installs with `npx arkaos update --skills full` or per department from the plugin marketplace
+- The arka-tools MCP server: 12 programmatic tools for KB search, workflow state, the Quality Gate queue, recipes, session memory, and telemetry
 - Cognitive Layer scheduler (Dreaming + Research)
 
 Prefer a specific runtime?
@@ -90,6 +91,26 @@ npx arkaos@latest update
 
 ```bash
 npx arkaos doctor    # Health check
+```
+
+### Skill packs, à la carte
+
+The default install ships a curated core so your context window stays lean. Everything else lives in the ArkaOS plugin marketplace: 16 department packs with 205 skills, generated straight from the same sources the core uses. Inside Claude Code:
+
+```
+/plugin marketplace add andreagroferreira/arka-os
+/plugin install arkaos-marketing@arkaos     # or arkaos-dev, arkaos-finance, ...
+```
+
+Each pack namespaces its skills, so nothing collides with your setup. Prefer everything preinstalled the old way? `npx arkaos update --skills full` restores the complete catalog and keeps that choice across updates.
+
+### Run the MCP server anywhere
+
+Claude Code picks up arka-tools automatically. For other runtimes, debugging, or CI:
+
+```bash
+npx arkaos mcp start           # read-only
+npx arkaos mcp start --write   # enables workflow/QG writes
 ```
 
 ---
