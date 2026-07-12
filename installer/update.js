@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { ensureVenv, ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { copyHookLib, copyHookAssets } from "./hook-lib.js";
+import { deploySkills } from "./skill-deploy.js";
 import { deployCoreSnapshot } from "./core-snapshot.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
@@ -332,82 +333,30 @@ export async function update() {
   // never deployed anything else.
   console.log("  [6/8] Updating /arka skill...");
   const skillsBase = join(homedir(), ".claude", "skills");
-  const skillSrc = join(ARKAOS_ROOT, "arka", "SKILL.md");
   const skillDest = join(skillsBase, "arka");
-  mkdirSync(skillDest, { recursive: true });
-  if (existsSync(skillSrc)) {
-    safeResolveMarkdown(skillSrc, join(skillDest, "SKILL.md"));
-    writeFileSync(join(skillDest, ".repo-path"), ARKAOS_ROOT);
-    writeFileSync(join(skillDest, "VERSION"), VERSION);
-    console.log("         ✓ /arka skill updated");
+  // Single shared deployment (installer/skill-deploy.js) — identical
+  // surface to a fresh install BY CONSTRUCTION: main /arka + nested
+  // reference bundle + department hubs + sub-skills + META skills
+  // (arka-flow & co. were silently missing from update-only machines
+  // before F2-7c-pre) + agent personas.
+  const skillCounts = deploySkills({
+    repoRoot: ARKAOS_ROOT,
+    skillsBase,
+    agentsBase: join(homedir(), ".claude", "agents"),
+    version: VERSION,
+  });
+  if (skillCounts.main) console.log("         ✓ /arka skill updated");
+  if (skillCounts.depts > 0) {
+    console.log(`         ✓ ${skillCounts.depts} department skills updated`);
   }
-
-  // Department skills + sub-skills + agent personas.
-  // Keep in sync with installer/index.js::installSkill — if anything
-  // changes about how top-level skills or agents are structured, both
-  // functions must be updated together.
-  const listSubdirs = (parent) => {
-    if (!existsSync(parent)) return [];
-    try {
-      return readdirSync(parent, { withFileTypes: true })
-        .filter((e) => e.isDirectory())
-        .map((e) => e.name);
-    } catch {
-      return [];
-    }
-  };
-  const copyResources = (src, dest) => {
-    for (const res of ["scripts", "references", "assets"]) {
-      const s = join(src, res);
-      if (!existsSync(s)) continue;
-      try { cpSync(s, join(dest, res), { recursive: true }); } catch {}
-    }
-  };
-  const deployTop = (src, arkaName) => {
-    const md = join(src, "SKILL.md");
-    if (!existsSync(md)) return false;
-    const dest = join(skillsBase, arkaName);
-    mkdirSync(dest, { recursive: true });
-    safeResolveMarkdown(md, join(dest, "SKILL.md"));
-    copyResources(src, dest);
-    return true;
-  };
-
-  const deptRoot = join(ARKAOS_ROOT, "departments");
-  let deptCount = 0;
-  let subCount = 0;
-  for (const dept of listSubdirs(deptRoot)) {
-    if (deployTop(join(deptRoot, dept), `arka-${dept}`)) deptCount++;
-    for (const sub of listSubdirs(join(deptRoot, dept, "skills"))) {
-      if (deployTop(join(deptRoot, dept, "skills", sub), `arka-${sub}`)) subCount++;
-    }
+  if (skillCounts.subs > 0) {
+    console.log(`         ✓ ${skillCounts.subs} sub-skills updated`);
   }
-  if (deptCount > 0) {
-    console.log(`         ✓ ${deptCount} department skills updated`);
+  if (skillCounts.meta > 0) {
+    console.log(`         ✓ ${skillCounts.meta} meta skills updated`);
   }
-  if (subCount > 0) {
-    console.log(`         ✓ ${subCount} sub-skills updated`);
-  }
-
-  const agentsBase = join(homedir(), ".claude", "agents");
-  mkdirSync(agentsBase, { recursive: true });
-  let agentCount = 0;
-  for (const dept of listSubdirs(deptRoot)) {
-    const agentsSrc = join(deptRoot, dept, "agents");
-    if (!existsSync(agentsSrc)) continue;
-    try {
-      for (const file of readdirSync(agentsSrc)) {
-        if (!file.endsWith(".md")) continue;
-        const srcFile = join(agentsSrc, file);
-        try { if (!statSync(srcFile).isFile()) continue; } catch { continue; }
-        const base = file.replace(/\.md$/, "");
-        copyFileSync(srcFile, join(agentsBase, `arka-${base}.md`));
-        agentCount++;
-      }
-    } catch {}
-  }
-  if (agentCount > 0) {
-    console.log(`         ✓ ${agentCount} agent personas updated`);
+  if (skillCounts.agents > 0) {
+    console.log(`         ✓ ${skillCounts.agents} agent personas updated`);
   }
 
   // MCP infrastructure: deploy mcps/ subdirectories, registry, and

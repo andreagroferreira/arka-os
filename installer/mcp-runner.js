@@ -80,6 +80,7 @@ export function startServer({
   home = homedir(),
   spawn = spawnSync,
   pythonResolver = getArkaosPython,
+  repoRootResolver = getRepoRoot,
   log = console.error,
 } = {}) {
   const runner = resolveRunner({ home, spawn, pythonResolver });
@@ -88,9 +89,10 @@ export function startServer({
     return 1;
   }
   const env = { ...process.env };
-  // getRepoRoot walks .repo-path/install-manifest — NEVER anchor on the
-  // npx cache dir, which `npm cache clean` purges at any time.
-  const repoRoot = getRepoRoot();
+  // repoRootResolver walks .repo-path/install-manifest — NEVER anchor on
+  // the npx cache dir, which `npm cache clean` purges at any time.
+  // Injectable so tests assert the positive ARKA_OS path (QG 7a M1).
+  const repoRoot = repoRootResolver();
   if (repoRoot) env.ARKA_OS = repoRoot;
   if (write) {
     env.ARKA_TOOLS_WRITE = "1"; // server.py requires the exact value "1"
