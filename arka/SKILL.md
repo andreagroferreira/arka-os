@@ -220,6 +220,22 @@ Users don't need to memorize commands. Just describe what you need:
    English prompt, then dispatches back through `/do`. A request that is
    already specific skips refinement.
 
+### Skill Not Installed (curated default, F2-7c)
+
+When /do resolves to a skill that is not installed (curated default;
+the long tail lives in the department plugins), the Skill tool fails.
+NEVER answer as a generic assistant or improvise the skill: look the
+slug up in `knowledge/skills-manifest.json` and reply — in the user's
+language — with the actionable install hint:
+
+```
+The <slug> skill is not in the installed curated set.
+Install the department pack: /plugin install arkaos-<dept>@arkaos
+Or restore the full set: npx arkaos update --skills full
+```
+
+Fail loud and actionable, never silently.
+
 ### Squad Routing (MUST)
 
 EVERY request routes through the appropriate department squad. ArkaOS never responds

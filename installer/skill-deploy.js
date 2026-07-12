@@ -1,6 +1,6 @@
 import {
-  copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, statSync,
-  writeFileSync,
+  copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync,
+  statSync, writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 
@@ -75,9 +75,19 @@ export function deploySkills({
   skillsBase,
   agentsBase = null,
   version = "",
+  mode = "full",
   log = () => {},
 }) {
   const counts = { main: 0, bundle: 0, depts: 0, subs: 0, meta: 0, agents: 0 };
+  // Curated mode (F2-7c): sub-skills outside the curated cut stay in
+  // the repo and ship via the marketplace plugins instead. The curated
+  // classification comes from the GENERATED knowledge/skills-manifest
+  // (drift-locked to config/skills-curated.yaml). Manifest unreadable
+  // -> deploy everything (fail-open: never silently shrink an install
+  // because a file was missing).
+  const curatedFilter = mode === "curated"
+    ? loadCuratedFilter(repoRoot)
+    : null;
 
   // ── Main /arka skill + nested reference bundle ──────────────────────
   const skillSrc = join(repoRoot, "arka", "SKILL.md");
@@ -107,6 +117,7 @@ export function deploySkills({
     }
     const deptSkillsDir = join(deptRoot, dept, "skills");
     for (const sub of listSubdirs(deptSkillsDir)) {
+      if (curatedFilter && !curatedFilter.has(sub)) continue;
       if (deployTopLevelSkill(
         join(deptSkillsDir, sub), `arka-${sub}`, skillsBase)) {
         counts.subs++;
@@ -129,6 +140,20 @@ export function deploySkills({
 
   log(counts);
   return counts;
+}
+
+function loadCuratedFilter(repoRoot) {
+  try {
+    const manifest = JSON.parse(readFileSync(
+      join(repoRoot, "knowledge", "skills-manifest.json"), "utf-8"));
+    const curated = new Set();
+    for (const [slug, entry] of Object.entries(manifest.skills || {})) {
+      if (entry.curated) curated.add(slug);
+    }
+    return curated.size > 0 ? curated : null;
+  } catch {
+    return null; // fail-open: full deploy beats a silently empty one
+  }
 }
 
 function deployAgents(deptRoot, agentsBase) {

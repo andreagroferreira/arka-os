@@ -168,6 +168,48 @@ export const checks = [
       "Install uv (https://docs.astral.sh/uv) or: ~/.arkaos/venv/bin/pip install 'mcp[cli]>=1.2.0' — then: npx arkaos mcp start",
   },
   {
+    name: "skills-surface",
+    description: "Deployed skill set matches the chosen mode (curated/full)",
+    severity: "warn",
+    check: () => {
+      // WARN-only classifier — the doctor NEVER deletes skills. Repo
+      // sub-skills outside the curated cut are "plugin-eligible"
+      // leftovers on a curated-mode machine; anything not in the
+      // generated skills-manifest (ecosystem skills like user project
+      // packs) is unknown/user and untouchable by construction.
+      let mode = "full";
+      try {
+        mode = JSON.parse(readFileSync(
+          join(INSTALL_DIR, "skills-mode.json"), "utf-8")).mode || "full";
+      } catch {}
+      if (mode !== "curated") return true;
+      const repoRoot = getRepoRoot();
+      if (!repoRoot) return true;
+      let manifest;
+      try {
+        manifest = JSON.parse(readFileSync(
+          join(repoRoot, "knowledge", "skills-manifest.json"), "utf-8"));
+      } catch {
+        return true; // older core without the manifest — nothing to judge
+      }
+      const skillsBase = join(homedir(), ".claude", "skills");
+      let leftovers = 0;
+      try {
+        for (const dir of readdirSync(skillsBase)) {
+          if (!dir.startsWith("arka-")) continue;
+          const slug = dir.slice("arka-".length);
+          const entry = manifest.skills ? manifest.skills[slug] : null;
+          if (entry && !entry.curated) leftovers++;
+        }
+      } catch {
+        return true;
+      }
+      return leftovers === 0;
+    },
+    fix: () =>
+      "Curated mode with plugin-eligible leftovers deployed (harmless, uses context budget). Install packs a la carte (/plugin install arkaos-<dept>@arkaos) or keep everything: npx arkaos update --skills full",
+  },
+  {
     name: "constitution",
     description: "Constitution YAML present",
     severity: "warn",

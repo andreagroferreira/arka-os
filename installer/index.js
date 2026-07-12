@@ -8,6 +8,7 @@ import { findSystemPython, ensureVenv, getArkaosPython, getArkaosPip, pipInstall
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
 import { copyHookLib, copyHookAssets } from "./hook-lib.js";
 import { deploySkills } from "./skill-deploy.js";
+import { resolveSkillsMode } from "./skills-mode.js";
 import { deployCoreSnapshot } from "./core-snapshot.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -732,12 +733,18 @@ function installSkill(config, installDir) {
   // machines were missing the 14 meta skills, including arka-flow).
   const skillsBase = config.skillsDir || join(homedir(), ".claude", "skills");
   const skillDest = join(skillsBase, "arka");
+  // Fresh installs default to the curated cut (F2-7c); a machine that
+  // already chose a mode keeps it (install --force over an existing
+  // setup must not flip the operator's choice).
+  const skillsMode = resolveSkillsMode({ fresh: true });
   const skillCounts = deploySkills({
     repoRoot: ARKAOS_ROOT,
     skillsBase,
     agentsBase: join(homedir(), ".claude", "agents"),
     version: VERSION,
+    mode: skillsMode.mode,
   });
+  ok(`skill set mode: ${skillsMode.mode}`);
   if (skillCounts.main) {
     ok("/arka skill installed");
   } else {

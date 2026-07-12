@@ -165,9 +165,67 @@ test("both installer entrypoints consume the shared module (no drift path left)"
   for (const [name, src] of [["index.js", indexSrc], ["update.js", updateSrc]]) {
     const call = src.match(/deploySkills\(\{([\s\S]*?)\}\)/);
     assert.ok(call, `${name}: deploySkills call not found`);
-    for (const arg of ["repoRoot", "skillsBase", "agentsBase", "version"]) {
+    for (const arg of ["repoRoot", "skillsBase", "agentsBase", "version", "mode"]) {
       assert.ok(call[1].includes(arg),
         `${name} must pass ${arg} to deploySkills`);
     }
+  }
+});
+
+// ── F2-7c: curated mode ─────────────────────────────────────────────────
+
+test("curated mode deploys only curated sub-skills; hubs/meta/main always", async () => {
+  const { writeFileSync: wf } = await import("node:fs");
+  const repo = mkdtempSync(join(tmpdir(), "arka-skilldeploy-cur-"));
+  const home = mkdtempSync(join(tmpdir(), "arka-skilldeploy-curh-"));
+  try {
+    writeFileSync(join(repo, "VERSION"), "9.9.9\n");
+    mkdirSync(join(repo, "arka", "skills", "flow"), { recursive: true });
+    writeFileSync(join(repo, "arka", "SKILL.md"), "# main\n");
+    writeFileSync(join(repo, "arka", "skills", "flow", "SKILL.md"), "# flow\n");
+    const dev = join(repo, "departments", "dev");
+    mkdirSync(join(dev, "skills", "curated-one"), { recursive: true });
+    mkdirSync(join(dev, "skills", "plugin-one"), { recursive: true });
+    writeFileSync(join(dev, "SKILL.md"), "# hub\n");
+    writeFileSync(join(dev, "skills", "curated-one", "SKILL.md"), "# c\n");
+    writeFileSync(join(dev, "skills", "plugin-one", "SKILL.md"), "# p\n");
+    mkdirSync(join(repo, "knowledge"), { recursive: true });
+    wf(join(repo, "knowledge", "skills-manifest.json"), JSON.stringify({
+      skills: {
+        "curated-one": { depts: ["dev"], curated: true, plugins: [], collision: false },
+        "plugin-one": { depts: ["dev"], curated: false, plugins: ["arkaos-dev@arkaos"], collision: false },
+      },
+    }));
+    const counts = deploySkills({
+      repoRoot: repo, skillsBase: join(home, "skills"),
+      version: "9.9.9", mode: "curated",
+    });
+    assert.equal(counts.subs, 1, "only the curated sub-skill deploys");
+    assert.ok(existsSync(join(home, "skills", "arka-curated-one", "SKILL.md")));
+    assert.ok(!existsSync(join(home, "skills", "arka-plugin-one")),
+      "non-curated sub-skill stays in the dept plugin");
+    assert.ok(existsSync(join(home, "skills", "arka-flow", "SKILL.md")),
+      "meta skills always deploy");
+    assert.ok(existsSync(join(home, "skills", "arka-dev", "SKILL.md")),
+      "hubs always deploy");
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("curated mode with an unreadable manifest fails open to a full deploy", () => {
+  const repo = makeRepo(); // no knowledge/skills-manifest.json in fixture
+  const home = mkdtempSync(join(tmpdir(), "arka-skilldeploy-fo-"));
+  try {
+    const counts = deploySkills({
+      repoRoot: repo, skillsBase: join(home, "skills"),
+      version: "9.9.9", mode: "curated",
+    });
+    assert.equal(counts.subs, 1,
+      "manifest missing -> deploy everything, never silently shrink");
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(home, { recursive: true, force: true });
   }
 });
