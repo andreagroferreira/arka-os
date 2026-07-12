@@ -12,9 +12,12 @@ fallbacks): a tool whose backing store is absent returns
 data. Retrieval results carry their provenance labels
 (``semantic`` / ``keyword-degraded``) untouched.
 
-Write tools (workflow_update_phase, qg_submit, qg_verdict) are DISABLED
-unless ``ARKA_TOOLS_WRITE=1`` — v1 ships read-first; mutation is an
-explicit operator opt-in.
+Write tools (workflow_update_phase, qg_submit) are DISABLED unless
+``ARKA_TOOLS_WRITE=1`` — v1 ships read-first; mutation is an explicit
+operator opt-in. ``qg_verdict`` is deliberately NOT exposed: a Quality
+Gate verdict emitted by the same model doing the work defeats the whole
+point of an INDEPENDENT gate (arkaos-not-yes-man). Verdicts stay with
+the human/CQO reviewer path, never a self-service tool.
 
 Usage: ``uv run server.py`` (deployed to ~/.claude/skills/arka/mcp-tools).
 """
@@ -51,10 +54,11 @@ mcp = FastMCP(
     "arka-tools",
     instructions=(
         "ArkaOS programmatic tools: kb_search (vector KB, honest degraded"
-        " labels), workflow_get/update, Quality Gate queue"
-        " (qg_pending/status/submit/verdict), recipes, session memory,"
-        " telemetry summaries, forge plan, budget. Write tools require"
-        " ARKA_TOOLS_WRITE=1."
+        " labels), workflow_get/update_phase, Quality Gate queue"
+        " (qg_pending/status/submit — NO verdict tool: gate independence),"
+        " recipes_search/recipe_get, session_memory_search (project scope"
+        " required), telemetry_summary, forge_plan, routing_scores. Write"
+        " tools require ARKA_TOOLS_WRITE=1."
     ),
 )
 
@@ -81,8 +85,9 @@ def _writes_disabled_error() -> dict[str, Any]:
 def kb_search(query: str, top_k: int = 5) -> dict[str, Any]:
     """Search the ArkaOS knowledge base (vector store at ~/.arkaos/knowledge.db).
 
-    Results carry their retrieval provenance: 'semantic' (real cosine)
-    or 'keyword-degraded' (substring match, score=None) — never faked.
+    Results carry their retrieval provenance: 'semantic' (real similarity
+    score) or 'keyword-degraded' (substring match, score=None) — never
+    faked.
     """
     if not _REPO:
         return _unavailable("ArkaOS repo not resolvable (~/.arkaos/.repo-path)")
@@ -171,29 +176,9 @@ def qg_submit(
     return {"available": True, "submission": record}
 
 
-@mcp.tool()
-def qg_verdict(
-    submission_id: str, reviewer: str, verdict: str, feedback: str = ""
-) -> dict[str, Any]:
-    """WRITE (gated): record an APPROVED/REJECTED verdict on a submission."""
-    if not _writes_enabled():
-        return _writes_disabled_error()
-    if not _REPO:
-        return _unavailable("ArkaOS repo not resolvable")
-    from core.governance.quality_api import record_verdict
-
-    try:
-        recorded = record_verdict(
-            submission_id=submission_id,
-            reviewer=reviewer,
-            verdict=verdict,
-            feedback=feedback,
-        )
-    except (ValueError, KeyError) as exc:
-        return _unavailable(str(exc))
-    if not recorded:
-        return _unavailable(f"no QG submission with id {submission_id!r}")
-    return {"available": True, "recorded": True}
+# NOTE: qg_verdict is intentionally NOT a tool. A verdict emitted by the
+# same model doing the work is not an independent gate — it is a
+# rubber stamp. Verdicts stay with the CQO/human reviewer path.
 
 
 @mcp.tool()
@@ -252,13 +237,21 @@ def session_memory_search(query: str, project: str) -> dict[str, Any]:
 
     if not default_db_path().is_file():
         return _unavailable("session-memory.db not found (no turns captured yet)")
+    from core.memory.semantic_store import neutralize_summary
+
     hits = SessionMemoryStore().keyword_search(query, project.strip(), top_k=5)
+    # Read-side neutralization (OWASP LLM01): every sibling read path
+    # (L9.5, SessionStart recap) defuses stored [tag]/newline tokens
+    # before the model sees them — this MCP output is no exception.
+    for hit in hits:
+        if "summary" in hit:
+            hit["summary"] = neutralize_summary(hit["summary"])
     return {"available": True, "results": hits, "count": len(hits)}
 
 
 @mcp.tool()
 def telemetry_summary(period: str = "today") -> dict[str, Any]:
-    """Enforcement + LLM-cost telemetry rollups (day/week/month/all)."""
+    """Enforcement + LLM-cost telemetry rollups (today/week/month/all)."""
     if not _REPO:
         return _unavailable("ArkaOS repo not resolvable")
     out: dict[str, Any] = {"available": True}
