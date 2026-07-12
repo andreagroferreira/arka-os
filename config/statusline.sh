@@ -117,6 +117,61 @@ fi
 # ─── Format cost ──────────────────────────────────────────────────────────
 COST_FMT=$(printf '$%.2f' "${COST:-0}")
 
+# ─── Workflow gate + budget (F2-5, statusline v3) ─────────────────────────
+# Read ~/.arkaos/workflow-state.json directly (plain JSON, one jq call) —
+# no Python spawn on this hot path (the statusline re-renders continuously).
+# Shows the active workflow, current gate as G<n>/<total>, and violations.
+WF_SEGMENT=""
+WF_STATE="$HOME/.arkaos/workflow-state.json"
+if [ -f "$WF_STATE" ]; then
+  WF_LINE=$(jq -r '
+    (.phases // {}) as $p
+    | ($p | length) as $total
+    # No workflow name, or a phase-less (degenerate) state -> no segment
+    # (avoids a meaningless "G0/0").
+    | if (.workflow // "") == "" or $total == 0 then empty
+    else
+      ([$p[] | select(.status == "completed")] | length) as $done
+      # Gate index = position of the in_progress phase (1-based), else
+      # done+1 — DERIVED FROM POSITION, never grepped from the name
+      # (a "gate-5-x" key in a 3-phase workflow must not render G5/3).
+      # Clamped to $total so a fully-completed workflow shows G<n>/<n>,
+      # not G<n+1>/<n>.
+      | ([$p | to_entries | to_entries[]
+          | select(.value.value.status == "in_progress") | .key + 1][0]
+         // ([$done + 1, $total] | min)) as $gate
+      | (.violations // [] | length) as $v
+      # Unit-separator (), NOT tab: an empty field between tabs is
+      # IFS-whitespace and collapses under `read`, shifting every later
+      # field and SILENTLY DROPPING the violations warning (QG B1). The
+      # workflow name is stripped of control bytes so a malformed state
+      # file cannot inject ANSI or a newline into the terminal (B4/M1).
+      | ((.workflow | gsub("[[:cntrl:]\\\\]"; "")) as $wf
+         | [$wf, ($gate|tostring), ($total|tostring), ($v|tostring)] | join("\u001f"))
+    end
+  ' "$WF_STATE" 2>/dev/null)
+  if [ -n "$WF_LINE" ]; then
+    IFS=$'\x1f' read -r WF_NAME WF_GATE_NUM WF_TOTAL WF_VIOL <<< "$WF_LINE"
+    WF_SEGMENT="  ${C_DIM}|${C_RESET}  ${C_CYAN}⚑ ${WF_NAME}${C_RESET} ${C_DIM}G${WF_GATE_NUM}/${WF_TOTAL}${C_RESET}"
+    if [ "${WF_VIOL:-0}" -gt 0 ] 2>/dev/null; then
+      WF_SEGMENT+=" ${C_RED}⚠${WF_VIOL}${C_RESET}"
+    fi
+  fi
+fi
+
+# Budget: show spend against the per-session cap when one is configured
+# (~/.arkaos/config.json budget.hardCapUsd). Read-only, one jq call.
+# `numbers` coerces the type: a non-numeric cap ("lots") yields empty
+# and the segment is omitted rather than rendering a misleading /$0.00.
+BUDGET_FMT=""
+ARKA_CONFIG="$HOME/.arkaos/config.json"
+if [ -f "$ARKA_CONFIG" ]; then
+  CAP=$(jq -r '.budget.hardCapUsd | numbers // empty' "$ARKA_CONFIG" 2>/dev/null)
+  if [ -n "$CAP" ]; then
+    BUDGET_FMT=$(awk -v cap="$CAP" 'BEGIN{printf "/$%.2f", cap}')
+  fi
+fi
+
 # ─── Build Line 1: Context bar ───────────────────────────────────────────
 LINE1="${C_CYAN}▲ARKA${C_RESET}  ${C_WHITE}${DIR_NAME}${C_RESET}"
 
@@ -126,13 +181,14 @@ if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ]; the
 fi
 
 LINE1+="  ${C_DIM}|${C_RESET}  ${MODEL}"
+LINE1+="$WF_SEGMENT"
 
 # ─── Build Line 2: Metrics bar ───────────────────────────────────────────
 LINE2="${C_BAR}${BAR} ${PCT}%${C_RESET}"
 LINE2+="  ${C_DIM}|${C_RESET}  ${IN_FMT} in ${OUT_FMT} out"
 LINE2+="  ${C_DIM}|${C_RESET}  ${C_GREEN}+${ADDED}${C_RESET} ${C_RED}-${REMOVED}${C_RESET}"
 LINE2+="  ${C_DIM}|${C_RESET}  ${TIME_FMT}"
-LINE2+="  ${C_DIM}|${C_RESET}  ${COST_FMT}"
+LINE2+="  ${C_DIM}|${C_RESET}  ${COST_FMT}${BUDGET_FMT}"
 
 # ─── Output ───────────────────────────────────────────────────────────────
 echo -e "$LINE1"
