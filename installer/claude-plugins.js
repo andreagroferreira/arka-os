@@ -21,6 +21,12 @@ import { join } from "node:path";
 // installed. Each entry is a GitHub `owner/repo` shorthand.
 export const DEFAULT_CLAUDE_MARKETPLACES = [
   "nextlevelbuilder/ui-ux-pro-max-skill",
+  // F2-7b: the ArkaOS marketplace itself — registered by GitHub
+  // owner/repo (NEVER a directory source anchored on the volatile npx
+  // cache). Registration costs zero context; the 16 per-department
+  // plugins stay opt-in pure (`/plugin install arkaos-<dept>@arkaos`),
+  // so DEFAULT_CLAUDE_PLUGINS deliberately does NOT change.
+  "andreagroferreira/arka-os",
 ];
 
 // Each entry is "name@marketplace" matching the `claude plugin install`

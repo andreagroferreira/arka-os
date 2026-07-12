@@ -1,0 +1,2337 @@
+{
+  "_meta": {
+    "generator": "scripts/marketplace_gen.py",
+    "version": "4.13.2",
+    "marketplace": "arkaos"
+  },
+  "structural": {
+    "main": "arka",
+    "hubs": [
+      "arka-brand",
+      "arka-community",
+      "arka-content",
+      "arka-dev",
+      "arka-ecom",
+      "arka-finance",
+      "arka-kb",
+      "arka-landing",
+      "arka-leadership",
+      "arka-marketing",
+      "arka-ops",
+      "arka-org",
+      "arka-pm",
+      "arka-quality",
+      "arka-saas",
+      "arka-sales",
+      "arka-strategy"
+    ],
+    "meta": [
+      "arka-bootstrap-agent",
+      "arka-checkpoint",
+      "arka-comfyui",
+      "arka-conclave",
+      "arka-costs",
+      "arka-design-ops",
+      "arka-dreams",
+      "arka-flow",
+      "arka-forge",
+      "arka-fusion",
+      "arka-human-writing",
+      "arka-recipes",
+      "arka-refine",
+      "arka-research"
+    ]
+  },
+  "skills": {
+    "ab-test": {
+      "depts": [
+        "landing",
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos",
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": true
+    },
+    "adversarial-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "affiliate-bridge": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "agent-design": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "agent-workflow": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "agile-po": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "ai-assisted-dev": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "ai-community": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "ai-research": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "ai-security": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "ai-workflow": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "analytics": {
+      "depts": [
+        "content",
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos",
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": true
+    },
+    "analytics-report": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "api-design": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "app-test": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "archetype-finder": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "architecture-design": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "audience-segment": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "awareness-diagnose": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "backlog-groom": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "benchmark-compare": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "betting-setup": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "blue-ocean": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "bmc": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "board-advisor": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "bottleneck-find": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "browse-competitor": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "budget-plan": {
+      "depts": [
+        "finance"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-finance@arkaos"
+      ],
+      "collision": false
+    },
+    "business-model": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "calendar": {
+      "depts": [
+        "content"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "calendar-plan": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "cart-recovery": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "cashflow-forecast": {
+      "depts": [
+        "finance"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-finance@arkaos"
+      ],
+      "collision": false
+    },
+    "challenger-sell": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "change-manage": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "changelog": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "churn-analysis": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "ci-cd-pipeline": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "ciso-advisor": {
+      "depts": [
+        "finance"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-finance@arkaos"
+      ],
+      "collision": false
+    },
+    "clean-code-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "code-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "codebase-onboard": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "cold-email": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "colors": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "compensation-plan": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "competitive-intel": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "competitor-analysis": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "conflict-resolve": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "content-audit": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "content-calendar": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "content-system": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "copy-framework": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "cro-optimize": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "cto-advisor": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "culture-audit": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "culture-define": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "customer-journey": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "customer-success": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "dashboard-build": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "db-design": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "db-schema": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "ddd-model": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "deal-qualify": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "decision-framework": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "delegation-matrix": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "demo-gif": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "dependency-audit": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "deploy": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "design-review": {
+      "depts": [
+        "brand"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "design-system": {
+      "depts": [
+        "brand"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "devops-pipeline": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "disc-assess": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "discovery-call": {
+      "depts": [
+        "sales"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "discovery-plan": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "docs": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "ecommerce": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "email-sequence": {
+      "depts": [
+        "landing",
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos",
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": true
+    },
+    "env-secrets": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "estimate-forecast": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "events-plan": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "extract-data": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "feedback-give": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "financial-model": {
+      "depts": [
+        "finance"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "five-forces": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "forecast-revenue": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "fulfillment-plan": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "funnel-design": {
+      "depts": [
+        "landing"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "funnel-metrics": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "gamification-design": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "gdpr-compliance": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "growth-loop": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "growth-plan": {
+      "depts": [
+        "community",
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos",
+        "arkaos-saas@arkaos"
+      ],
+      "collision": true
+    },
+    "growth-strategy": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "gtd-setup": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "gtm-strategy": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "headline-write": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "hiring-plan": {
+      "depts": [
+        "leadership",
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos",
+        "arkaos-org@arkaos"
+      ],
+      "collision": true
+    },
+    "hook-write": {
+      "depts": [
+        "content"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "identity-system": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "impact-map": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "incident": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "integration-design": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "iso27001": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "kanban-setup": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "knowledge": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "knowledge-review": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "landing-gen": {
+      "depts": [
+        "landing"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "launch-execute": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "launch-sequence": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "leaky-bucket": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "lean-audit": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "learn-content": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "logo-brief": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "marketing-automation": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "marketplace-manage": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "mcp": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "mcp-builder": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "meeting-optimize": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "metrics-dashboard": {
+      "depts": [
+        "ops",
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos",
+        "arkaos-saas@arkaos"
+      ],
+      "collision": true
+    },
+    "metrics-track": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "micro-saas-stack": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "moat-analysis": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "moc-create": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "mockup-generate": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "moderation": {
+      "depts": [
+        "community"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "monetization-plan": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "monetize-plan": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "mvp-build": {
+      "depts": [
+        "saas"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "n8n-flow": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "naming-evaluate": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "negotiate-plan": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "newsletter-write": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "niche-evaluate": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "niche-setup": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "objection-handle": {
+      "depts": [
+        "sales"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "observability": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "offer-create": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "okr-cadence": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "okr-define": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "onboard": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "onboarding-design": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "onboarding-flow": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "onboarding-optimize": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "operations": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "optimize-page": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "org-design": {
+      "depts": [
+        "org"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "page-architect": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "paid-campaign": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "performance-audit": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "performance-profiler": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "performance-review": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "persona-build": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "persuasion-apply": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "pipeline-manage": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "pitch-deck": {
+      "depts": [
+        "finance"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-finance@arkaos"
+      ],
+      "collision": false
+    },
+    "platform-optimize": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "platform-select": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "plg-setup": {
+      "depts": [
+        "saas"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "position": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "positioning-statement": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "premortem": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "pricing-negotiate": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "pricing-strategy": {
+      "depts": [
+        "ecom",
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos",
+        "arkaos-saas@arkaos"
+      ],
+      "collision": true
+    },
+    "primal-audit": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "principles-audit": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "product-launch": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "programmatic-seo": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "proposal-write": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "quality-management": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "rag-architect": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "red-team": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "refactor-plan": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "release": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "remote-setup": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "repurpose-plan": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "research": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "research-compile": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "research-plan": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "retention-system": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false
+    },
+    "rfm-segment": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "risk-management": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "risk-register": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "roadmap-build": {
+      "depts": [
+        "pm"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "runbook": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "saas-scaffold": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "scaffold": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "scenario-analysis": {
+      "depts": [
+        "finance"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-finance@arkaos"
+      ],
+      "collision": false
+    },
+    "scenario-plan": {
+      "depts": [
+        "strategy"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-strategy@arkaos"
+      ],
+      "collision": false
+    },
+    "script-structure": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "search-kb": {
+      "depts": [
+        "kb"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "security-audit": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "security-compliance": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "seo-audit": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "shape-pitch": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "short-form": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "skill-audit": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "soc2-compliance": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "social-commerce": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "social-strategy": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false
+    },
+    "sop-create": {
+      "depts": [
+        "ops"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "sop-process": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "source-evaluate": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "spec": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "spin-sell": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false
+    },
+    "sprint-plan": {
+      "depts": [
+        "pm"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "stack-check": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "stakeholder-map": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "standup-run": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "store-audit": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "story-write": {
+      "depts": [
+        "pm"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-pm@arkaos"
+      ],
+      "collision": false
+    },
+    "subscription-model": {
+      "depts": [
+        "ecom"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ecom@arkaos"
+      ],
+      "collision": false
+    },
+    "taxonomy-manage": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "tdd-cycle": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "team-assess": {
+      "depts": [
+        "org"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-org@arkaos"
+      ],
+      "collision": false
+    },
+    "team-health": {
+      "depts": [
+        "leadership"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-leadership@arkaos"
+      ],
+      "collision": false
+    },
+    "tech-debt": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
+    "thumbnail-package": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "trend-hunt": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "unit-economics": {
+      "depts": [
+        "finance"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "update": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "ux-audit": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "validate-idea": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "valuation-model": {
+      "depts": [
+        "finance"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-finance@arkaos"
+      ],
+      "collision": false
+    },
+    "video-produce": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "video-setup": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "viral-design": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "voc-loop": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false
+    },
+    "voice-guide": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "webinar-funnel": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false
+    },
+    "wireframe": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false
+    },
+    "workflow-automate": {
+      "depts": [
+        "ops"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    },
+    "write-as-persona": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false
+    },
+    "youtube-strategy": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false
+    },
+    "zapier-flow": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false
+    },
+    "zettelkasten-process": {
+      "depts": [
+        "kb"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false
+    }
+  }
+}

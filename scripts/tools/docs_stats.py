@@ -64,8 +64,11 @@ def count_skills(root: Path) -> dict:
         return len(list(base.rglob("SKILL.md"))) if base.is_dir() else 0
 
     dept, arka, market = _n("departments"), _n("arka"), _n("marketplace")
+    # plugins/ is a GENERATED export-copy (scripts/marketplace_gen.py)
+    # of non-curated department skills — informative only, never part
+    # of the core headline (the sources remain under departments/).
     return {"departments": dept, "arka": arka, "marketplace": market,
-            "core": dept + arka}
+            "plugins": _n("plugins"), "core": dept + arka}
 
 
 def count_adrs(root: Path) -> int:

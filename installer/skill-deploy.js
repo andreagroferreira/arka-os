@@ -124,29 +124,41 @@ export function deploySkills({
 
   // ── Agent personas ──────────────────────────────────────────────────
   if (agentsBase) {
-    mkdirSync(agentsBase, { recursive: true });
-    for (const dept of listSubdirs(deptRoot)) {
-      const agentsSrc = join(deptRoot, dept, "agents");
-      if (!existsSync(agentsSrc)) continue;
-      try {
-        for (const file of readdirSync(agentsSrc)) {
-          if (!file.endsWith(".md")) continue;
-          const srcFile = join(agentsSrc, file);
-          try {
-            if (!statSync(srcFile).isFile()) continue;
-          } catch {
-            continue;
-          }
-          copyFileSync(
-            srcFile, join(agentsBase, `arka-${file.replace(/\.md$/, "")}.md`));
-          counts.agents++;
-        }
-      } catch {
-        // Unreadable agents dir — skip the department, not the deploy.
-      }
-    }
+    counts.agents = deployAgents(deptRoot, agentsBase);
   }
 
   log(counts);
   return counts;
+}
+
+function deployAgents(deptRoot, agentsBase) {
+  mkdirSync(agentsBase, { recursive: true });
+  let deployed = 0;
+  for (const dept of listSubdirs(deptRoot)) {
+    const agentsSrc = join(deptRoot, dept, "agents");
+    if (!existsSync(agentsSrc)) continue;
+    try {
+      deployed += deployDeptAgents(agentsSrc, agentsBase);
+    } catch {
+      // Unreadable agents dir — skip the department, not the deploy.
+    }
+  }
+  return deployed;
+}
+
+function deployDeptAgents(agentsSrc, agentsBase) {
+  let deployed = 0;
+  for (const file of readdirSync(agentsSrc)) {
+    if (!file.endsWith(".md")) continue;
+    const srcFile = join(agentsSrc, file);
+    try {
+      if (!statSync(srcFile).isFile()) continue;
+    } catch {
+      continue;
+    }
+    copyFileSync(
+      srcFile, join(agentsBase, `arka-${file.replace(/\.md$/, "")}.md`));
+    deployed++;
+  }
+  return deployed;
 }
