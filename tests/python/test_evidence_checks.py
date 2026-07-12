@@ -389,20 +389,40 @@ def test_lint_scopes_to_changed_js_files_via_local_eslint(tmp_path, monkeypatch)
     assert "lint(scoped: 1 file(s))" in result.command
 
 
-def test_lint_changed_outside_project_dir_ignored(tmp_path, monkeypatch):
+def test_lint_changed_outside_project_dir_falls_back_project_wide(
+    tmp_path, monkeypatch,
+):
+    """Scope containment holds (the outside file is never linted
+    directly) but the gate must not go BLIND: a lintable extension in
+    the diff falls back to the project-wide run (QG 2026-07-12 — the
+    old skip-entirely contract let a 2 .py + 6 .js diff pass unlinted).
+    """
     (tmp_path / "module.py").write_text("x = 1\n", encoding="utf-8")
     outside = tmp_path.parent / f"{tmp_path.name}-outside.py"
     outside.write_text("x = 1\n", encoding="utf-8")
+    captured = {}
+
+    def fake_run(name, cmd, project_dir, timeout):
+        captured["cmd"] = [str(c) for c in cmd]
+        return evidence_checks.CheckResult(
+            check=name, ran=True, passed=True,
+            command=" ".join(str(c) for c in cmd), exit_code=0, summary="ok",
+        )
+
     monkeypatch.setattr(
         evidence_checks.shutil, "which",
         lambda name: "/usr/bin/ruff" if name == "ruff" else None,
     )
+    monkeypatch.setattr(evidence_checks, "_run", fake_run)
     report = run_evidence_checks(
         tmp_path, changed_files=[str(outside)], checks=["lint"],
     )
     result = _result(report, "lint")
-    assert result.ran is False
-    assert "no lintable sources" in result.summary
+    assert result.ran is True
+    assert "project-wide" in result.command
+    assert str(outside) not in " ".join(captured["cmd"]), (
+        "scope containment: the outside file itself is never linted"
+    )
 
 
 def test_typecheck_skips_without_configuration(tmp_path, monkeypatch):
@@ -651,3 +671,52 @@ class TestToolCmdResolution:
         result = ec._lint_scoped(tmp_path, ["mod.py"], timeout=30)
         assert result is not None
         assert calls[0][:3] == [_sys.executable, "-m", "ruff"]
+
+
+class TestLintScopeBlindSpot:
+    """QG 2026-07-12: a diff carrying real .py/.js files got skipped as
+    'no lintable sources' because none of the paths resolved under
+    project_dir (different checkout/cwd). The skip is only honest when
+    the diff has no lintable EXTENSIONS; unresolvable lintable paths
+    must fall through to the project-wide lint instead."""
+
+    def test_unresolvable_lintable_paths_fall_through_to_project_wide(
+        self, tmp_path, monkeypatch,
+    ):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+        ran = {}
+
+        def fake_run(name, cmd, project_dir, timeout):
+            ran["cmd"] = cmd
+            return ec.CheckResult(
+                check=name, ran=True, passed=True,
+                command=" ".join(map(str, cmd)), exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(ec, "_run", fake_run)
+        # Changed files exist in the DIFF but not under project_dir —
+        # e.g. new files reviewed from another checkout.
+        result = ec._check_lint(
+            tmp_path,
+            ["ghost/module.py", "ghost/tool.js"],
+            None,
+            timeout=30,
+        )
+        assert result.ran, (
+            "lintable extensions in the diff must never skip the gate — "
+            f"got: {result.summary}"
+        )
+        assert "ruff" in " ".join(map(str, ran.get("cmd", []))), (
+            "fallback must be the project-wide ruff run"
+        )
+
+    def test_truly_unlintable_diff_still_skips_honestly(self, tmp_path):
+        from core.governance import evidence_checks as ec
+
+        result = ec._check_lint(
+            tmp_path, ["README.md", "docs/x.yaml"], None, timeout=30,
+        )
+        assert not result.ran
+        assert "no lintable sources" in result.summary
