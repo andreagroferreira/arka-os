@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 
-
 # Import deferred — the module does not exist yet (TDD red phase).
 specialist_enforcer = pytest.importorskip(
     "core.workflow.specialist_enforcer",
@@ -287,7 +286,7 @@ def test_bypass_marker_with_reason_allows(tmp_path, tmp_config):
         tmp_path / "tx.jsonl",
         [
             "[arka:routing] dev -> Paulo",
-            "[arka:specialist-bypass owner=backend-dev reason=the specialist "
+            "[arka:specialist-bypass owner=frontend-dev reason=the specialist "
             "cannot run here, the toolchain is missing on this box]",
         ],
     )

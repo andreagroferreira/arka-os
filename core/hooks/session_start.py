@@ -253,8 +253,16 @@ def _authority_brief(cwd: str) -> str:
     try:
         from core.agents.authority_brief import render
         brief = render(cwd)
-    except Exception:
-        return ""
+    except Exception as exc:
+        # But it must not fail SILENTLY either: a swallowed error here
+        # restores the exact pre-incident state (a session writing with no
+        # idea the rules exist). One honest line beats a silent void.
+        return (
+            f"\n\n[ARKA:AUTHORITY] unavailable ({type(exc).__name__}) — "
+            f"write rules could not be rendered; check "
+            f"config/agent-ownership.yaml. Dispatch the owning specialist "
+            f"rather than assuming you may write."
+        )
     return f"\n\n{brief}" if brief else ""
 
 

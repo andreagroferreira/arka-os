@@ -24,6 +24,7 @@ Read by: config/hooks/pre-tool-use.sh between the KB-gate and the
 flow-gate. Same Decision JSON contract as core.workflow.flow_enforcer.
 """
 
+import contextlib
 import json
 import re
 from contextlib import contextmanager
@@ -55,10 +56,8 @@ def _locked_append(path: Path):
         yield fh
     finally:
         if _HAS_FLOCK:
-            try:
+            with contextlib.suppress(OSError):
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                pass
         fh.close()
 
 
@@ -136,8 +135,8 @@ class Decision:
         owners = ", ".join(self.required_owners) or "the owning specialist"
         target = self.target_file or "this file"
         return (
-            f"[ARKA:SPECIALIST] BLOCKED. {target} is owned by: {owners}. "
-            f"You are {persona}.\n"
+            f"[ARKA:SPECIALIST] BLOCKED. {target} is owned by: {owners} "
+            f"— dispatch any ONE of them. You are {persona}.\n"
             f"This is NOT a bug. The gate is working as designed. Retrying "
             f"this Write will fail again, every time.\n"
             f"DO THIS — two lines, and the specialist writes with no block:\n"
@@ -265,7 +264,7 @@ def _load_aliases() -> dict[str, str]:
 
     Sessions dispatch by human name (``-> diana``); ownership rules name
     slugs (``frontend-dev``). Without this, the RIGHT specialist was
-    blocked from her own files — 52 of 189 measured blocks. The roster
+    blocked from her own files — 22 of 189 measured blocks. The roster
     only emits aliases that are unambiguous among gate owners, and never
     guesses (core/agents/roster_manifest.py::build_aliases).
     """
@@ -314,33 +313,56 @@ def _resolve_persona(
 _MIN_BYPASS_REASON = 24
 _EMPTY_REASONS = (
     "typo", "quick fix", "quickfix", "trivial", "urgent", "just this once",
-    "small change", "minor", "one char", "fast",
+    "small change", "minor", "one char", "fast", "quick typo fix",
+    "just a quick typo fix", "just a quick typo fix honestly",
+    "nothing important", "it is faster this way",
+)
+# Structured form the deny message teaches: `owner=<slug> reason=<text>`.
+_BYPASS_STRUCTURED_RE = re.compile(
+    r"^owner=(?P<owner>[\w-]+)\s+reason=(?P<reason>.*)$",
+    re.IGNORECASE | re.DOTALL,
 )
 
 
-def _find_bypass(messages: list[str]) -> str | None:
+def _reason_is_substantive(reason: str) -> bool:
+    """A reason must say something. QG redo 1 caught the hole: the floor
+    was applied to the WHOLE marker body, so
+    ``owner=senior-dev reason=`` (24 chars of boilerplate, empty reason)
+    opened the gate — with the deny message teaching that very template.
+    The floor now applies to the reason ALONE."""
+    reason = reason.strip()
+    if len(reason) < _MIN_BYPASS_REASON:
+        return False
+    normalized = reason.lower().strip(" .!,;")
+    return normalized not in _EMPTY_REASONS
+
+
+def _find_bypass(messages: list[str], owners: list[str] | None = None) -> str | None:
     """Return the bypass reason from the LAST assistant message, or None.
 
     Scope is strict: only the immediately preceding assistant message can
-    grant a bypass. The reason must be substantive — at least
-    ``_MIN_BYPASS_REASON`` characters and not one of the empty excuses
-    that mean "I could not be bothered to dispatch".
+    grant a bypass. The structured form is required in spirit — a bare
+    legacy reason is still accepted for one release, but it must clear the
+    same substance floor. When ``owners`` is given, a structured
+    ``owner=`` that names someone other than an actual owner is rejected:
+    a bypass may not invent its own justification target.
     """
     if not messages:
         return None
     match = BYPASS_RE.search(messages[-1])
     if not match:
         return None
-    reason = match.group(1).strip()
-    # Structured form: `owner=<slug> reason=<text>` — take the text.
-    structured = re.search(r"reason=(.+)$", reason, re.IGNORECASE | re.DOTALL)
+    body = match.group(1).strip()
+    structured = _BYPASS_STRUCTURED_RE.match(body)
     if structured:
-        reason = structured.group(1).strip()
-    if len(reason) < _MIN_BYPASS_REASON:
-        return None
-    if reason.lower().strip(" .!") in _EMPTY_REASONS:
-        return None
-    return reason
+        if owners:
+            claimed = structured.group("owner").lower()
+            if claimed not in {o.lower() for o in owners}:
+                return None
+        reason = structured.group("reason")
+    else:
+        reason = body
+    return reason.strip() if _reason_is_substantive(reason) else None
 
 
 def _match_ownership(
@@ -474,7 +496,7 @@ def _resolve_with_owners(ctx: _Ctx, owners: list[str], rule_reason: str | None) 
         return _decide_open_access(ctx, owners, rule_reason)
     if ctx.persona in {o.lower() for o in owners}:
         return _decide_owner_match(ctx, owners)
-    bypass = _find_bypass(ctx.messages)
+    bypass = _find_bypass(ctx.messages, owners)
     if bypass:
         return _decide_bypass(ctx, owners, bypass)
     return _decide_block(ctx, owners)

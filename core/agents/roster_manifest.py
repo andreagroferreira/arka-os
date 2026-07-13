@@ -94,8 +94,9 @@ def build_aliases(entries: dict[str, dict]) -> dict[str, str]:
 
     Sessions route by human name (``[arka:dispatch] paulo -> diana``) but
     ownership rules name slugs (``frontend-dev``). Unresolved, that
-    mismatch blocked the RIGHT specialist from her own files: 52 of 189
-    blocks measured (diana 22, senior-dev 15, frontend 9, andre 6).
+    mismatch blocked the RIGHT specialist from her own files: 22 of 189
+    measured blocks. (The 22 `senior-dev` blocks are a separate, still
+    open class: there the slug IS the persona, so no alias helps.)
 
     Scoping to gate owners is what makes this safe. Globally, ``diana``
     is ambiguous (frontend-dev AND hr-specialist) and so is ``andre``
