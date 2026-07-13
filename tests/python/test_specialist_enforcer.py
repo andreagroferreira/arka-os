@@ -24,6 +24,16 @@ evaluate = specialist_enforcer.evaluate
 # ─── Fixtures ───────────────────────────────────────────────────────────
 
 
+@pytest.fixture(autouse=True)
+def _isolated_specialist_auth(tmp_path, monkeypatch):
+    """Isolate persist-on-observe state (P0.2) — marker tests would
+    otherwise confirm their session in the real /tmp dir and leak a
+    restored persona into later no-marker tests."""
+    monkeypatch.setenv(
+        "ARKA_SPECIALIST_AUTH_DIR", str(tmp_path / "specialist-auth")
+    )
+
+
 @pytest.fixture
 def tmp_config(tmp_path, monkeypatch):
     """Isolate config + telemetry + ownership paths to tmp_path."""
@@ -171,7 +181,7 @@ def test_no_routing_tag_defers(tmp_path, tmp_config):
         tool_input={"file_path": "/tmp/app.vue"},
     )
     assert d.allow is True
-    assert d.reason == "no-routing-tag"
+    assert d.reason == "never-routed"
 
 
 # ─── Lead persona blocked from specialist territory ───────────────────
