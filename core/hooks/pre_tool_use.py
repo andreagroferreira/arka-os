@@ -26,6 +26,7 @@ the specialist and flow gates via their ``messages=`` params.
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from pathlib import Path
 
@@ -65,19 +66,26 @@ class _MessagesOnce:
     def __init__(self, transcript_path: str):
         self._path = transcript_path
         self._messages: list[str] | None = None
+        self._sidechain: bool | None = None
 
     def peek(self) -> list[str] | None:
         return self._messages
 
+    def sidechain_active(self) -> bool | None:
+        """Scope of the most recent assistant record; None before load()."""
+        return self._sidechain
+
     def load(self) -> list[str] | None:
         if self._messages is None:
             try:
-                from core.workflow.flow_enforcer import (
-                    _load_last_assistant_messages,
-                )
-                self._messages = _load_last_assistant_messages(
-                    self._path, _ASSISTANT_WINDOW
-                )
+                # Scope-aware since P0.2: the window counts MAIN-scope
+                # messages only, so interleaved subagent records cannot
+                # evict the routing marker; sidechain-ness feeds the
+                # specialist gate's persistence guard.
+                from core.workflow.transcript_scope import split_from_path
+                split = split_from_path(self._path)
+                self._messages = split.main[-_ASSISTANT_WINDOW:]
+                self._sidechain = split.active_sidechain
             except Exception:
                 return None
         return self._messages
@@ -104,10 +112,8 @@ def _kb_gate(root: str, tool_name: str, session_id: str, query: str) -> int | No
     decision = evaluate_research_gate(
         tool_name=tool_name, session_id=session_id, query=query
     )
-    try:
+    with contextlib.suppress(Exception):
         record_telemetry(session_id=session_id, tool=tool_name, decision=decision)
-    except Exception:
-        pass
     if not decision.allow:
         return _deny(decision.to_stderr_message())
     if decision.nudge and decision.to_stderr_message():
@@ -150,8 +156,9 @@ def _specialist_gate(
         cwd=cwd,
         tool_input=tool_input,
         messages=shared,
+        is_sidechain=messages.sidechain_active(),
     )
-    try:
+    with contextlib.suppress(Exception):
         record_telemetry(
             session_id=session_id,
             tool=tool_name,
@@ -160,8 +167,6 @@ def _specialist_gate(
             target_file=str(tool_input.get("file_path", "")),
             model_requested=str(tool_input.get("model", "")),
         )
-    except Exception:
-        pass
     if not decision.allow:
         return _deny(decision.to_stderr_message())
     return None
@@ -206,10 +211,8 @@ def _frontend_gate(
         tool_input=tool_input,
         messages=messages.load(),
     )
-    try:
+    with contextlib.suppress(Exception):
         record_telemetry(session_id=session_id, tool=tool_name, decision=decision)
-    except Exception:
-        pass
     if not decision.allow:
         return _deny(decision.to_stderr_message())
     if decision.to_stderr_message():
@@ -259,12 +262,10 @@ def _flow_gate(
         # env bypass, classifier flag, marker cache) before reading.
         messages=messages.peek(),
     )
-    try:
+    with contextlib.suppress(Exception):
         record_telemetry(
             session_id=session_id, tool=tool_name, decision=decision, cwd=cwd
         )
-    except Exception:
-        pass
     if decision.allow:
         # Grace path: allow, but surface the non-blocking warning so the
         # operator sees the routing nudge instead of a silent pass.
@@ -326,4 +327,4 @@ if __name__ == "__main__":
     except Exception:
         # Fail open — the bash version piped every heredoc through
         # `2>/dev/null` and exited 0 on internal errors.
-        raise SystemExit(0)
+        raise SystemExit(0) from None

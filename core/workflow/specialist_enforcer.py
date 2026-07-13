@@ -13,12 +13,24 @@ Used bypasses are logged to telemetry for accountability.
 Feature flag: `hooks.specialistEnforcement` in ~/.arkaos/config.json.
 
 Architectural note (per ADR 2026-05-28-specialist-dispatch-subagent-
-blindspot): the enforcer is a NEGATIVE gate on the parent transcript
-only. Subagent writes pass through as `no-routing-tag` because Claude
+blindspot, amended by P0.2): the enforcer is a NEGATIVE gate on the
+parent transcript only. Subagent writes pass through because Claude
 Code isolates subagent transcripts from the parent. The positive
 `owner-match` path is exercised when the parent emits `[arka:dispatch]`
 inline (e.g., the orchestrator impersonating a specialist) and remains
 for forward compatibility if parent-transcript visibility ever ships.
+
+Fail-open closed (P0.2): a marker that rolls out of the 20-message
+window no longer reopens the gate — the persona observed in the window
+is persisted per session+transcript (specialist_authorization) and
+restored when the window shows nothing, deciding exactly as if the
+marker were visible. The old blanket `no-routing-tag` (72% of all
+telemetry) splits into `never-routed` (session never emitted a marker;
+still ALLOW — hardening THAT is a separate, telemetry-gated decision)
+and `subagent-scope` (sidechain evaluation; ADR behavior, now
+measurable). The window itself counts main-scope messages only
+(transcript_scope), so interleaved subagent records cannot evict the
+marker.
 
 Read by: config/hooks/pre-tool-use.sh between the KB-gate and the
 flow-gate. Same Decision JSON contract as core.workflow.flow_enforcer.
@@ -36,7 +48,7 @@ from pathlib import Path
 import yaml
 
 from core.shared import safe_session_id as _safe_session_id_module
-from core.workflow.flow_enforcer import _load_last_assistant_messages
+from core.workflow import specialist_authorization, transcript_scope
 
 try:
     import fcntl  # POSIX only
@@ -120,6 +132,12 @@ class Decision:
     # "frontend-dev" — record both so telemetry can prove the fix.
     persona_raw: str | None = None
     alias_resolved: bool = False
+    # Fail-open taxonomy (P0.2): where the persona came from ("window" |
+    # "persisted" | ""), whether the ACTIVE scope is a sidechain, and how
+    # far the marker sits from the window's end (None = not in window).
+    persona_source: str = ""
+    is_sidechain: bool = False
+    msgs_since_marker: int | None = None
 
     def to_stderr_message(self) -> str:
         """The message a blocked session reads.
@@ -148,8 +166,10 @@ class Decision:
             f"    [arka:dispatch] {persona} -> {owner}\n"
             f"    Task(subagent_type=\"{owner}\", prompt=\"<what you were "
             f"about to write>\")\n"
-            f"Audited exception (visible to the operator in "
-            f"`/arka enforcement`) — ONLY if no specialist can do this:\n"
+            f"Audited exception (visible to the operator in the "
+            f"specialist-dispatch telemetry: `arka-py -m "
+            f"core.governance.specialist_telemetry_cli today`) — ONLY if "
+            f"no specialist can do this:\n"
             f"    [arka:specialist-bypass owner={owner} reason=<24+ chars "
             f"explaining why a specialist cannot>]"
         )
@@ -172,6 +192,11 @@ class _Ctx:
     alias_resolved: bool = False
     config: dict = field(default_factory=dict)
     preloaded_messages: list[str] | None = None
+    persona_source: str = ""
+    # None = self-detect from the transcript; the consolidated hook passes
+    # the value it computed while parsing (parse-once contract, PR-6).
+    is_sidechain: bool | None = None
+    msgs_since_marker: int | None = None
 
 
 # ─── Config + Ownership loaders ────────────────────────────────────────
@@ -392,6 +417,15 @@ def _is_lead_allowed(file_path: str, patterns: list[str]) -> bool:
 # ─── Pipeline stages (B1 refactor) ─────────────────────────────────────
 
 
+def _scope_fields(ctx: _Ctx) -> dict:
+    """The P0.2 taxonomy fields every post-populate Decision carries."""
+    return {
+        "persona_source": ctx.persona_source,
+        "is_sidechain": bool(ctx.is_sidechain),
+        "msgs_since_marker": ctx.msgs_since_marker,
+    }
+
+
 def _check_tool_gated(ctx: _Ctx) -> Decision | None:
     if ctx.tool_name not in GATED_TOOLS:
         return Decision(allow=True, reason="tool-not-gated")
@@ -404,8 +438,15 @@ def _check_feature_flag(ctx: _Ctx) -> Decision | None:
     return None
 
 
+def _msgs_since_marker(messages: list[str]) -> int | None:
+    for i, text in enumerate(reversed(messages)):
+        if DISPATCH_RE.search(text) or ROUTING_RE.search(text):
+            return i
+    return None
+
+
 def _populate_context(ctx: _Ctx) -> None:
-    """Extract file_path, load ownership config, load + resolve transcript."""
+    """Extract file_path, load ownership, resolve persona (P0.2 fail-open)."""
     if ctx.tool_input and isinstance(ctx.tool_input, dict):
         ctx.file_path = str(
             ctx.tool_input.get("file_path")
@@ -416,18 +457,55 @@ def _populate_context(ctx: _Ctx) -> None:
     if ctx.preloaded_messages is not None:
         ctx.messages = ctx.preloaded_messages[-ASSISTANT_WINDOW:]
     else:
-        ctx.messages = _load_last_assistant_messages(
-            ctx.transcript_path, ASSISTANT_WINDOW
-        )
+        split = transcript_scope.split_from_path(ctx.transcript_path)
+        ctx.messages = split.main[-ASSISTANT_WINDOW:]
+        if ctx.is_sidechain is None:
+            ctx.is_sidechain = split.active_sidechain
+    ctx.is_sidechain = bool(ctx.is_sidechain)
+    _resolve_or_restore_persona(ctx)
+
+
+def _resolve_or_restore_persona(ctx: _Ctx) -> None:
+    """Persist-on-observe + consult-before-allow (P0.2, mirrors #297).
+
+    Marker in the window -> persist the resolved persona. Window empty of
+    markers -> a valid persisted persona for THIS session+transcript
+    decides as if the marker were still visible — including deciding
+    BLOCK. Sidechain evaluations never consult the parent's persistence
+    (the dispatched specialist must keep writing with no block, per the
+    ADR).
+    """
     ctx.persona, ctx.marker, ctx.persona_raw, ctx.alias_resolved = (
         _resolve_persona(ctx.messages)
     )
+    if ctx.persona is not None:
+        ctx.persona_source = "window"
+        ctx.msgs_since_marker = _msgs_since_marker(ctx.messages)
+        specialist_authorization.confirm(
+            ctx.session_id, ctx.transcript_path,
+            persona=ctx.persona, marker=ctx.marker or "",
+            persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved,
+        )
+    elif not ctx.is_sidechain:
+        restored = specialist_authorization.confirmed(
+            ctx.session_id, ctx.transcript_path
+        )
+        if restored:
+            ctx.persona = restored["persona"]
+            ctx.marker = restored.get("marker") or None
+            ctx.persona_raw = restored.get("persona_raw")
+            ctx.alias_resolved = bool(restored.get("alias_resolved"))
+            ctx.persona_source = "persisted"
 
 
 def _check_no_persona(ctx: _Ctx) -> Decision | None:
     if ctx.persona is None:
+        # Taxonomy (P0.2): the old blanket "no-routing-tag" (72% of all
+        # telemetry) splits into what actually happened.
+        reason = "subagent-scope" if ctx.is_sidechain else "never-routed"
         return Decision(
-            allow=True, reason="no-routing-tag", target_file=ctx.file_path,
+            allow=True, reason=reason, target_file=ctx.file_path,
+            **_scope_fields(ctx),
         )
     return None
 
@@ -438,7 +516,7 @@ def _check_c_suite(ctx: _Ctx) -> Decision | None:
         return Decision(
             allow=True, reason="c-suite-override",
             current_persona=ctx.persona, marker_found=ctx.marker,
-            target_file=ctx.file_path,
+            target_file=ctx.file_path, **_scope_fields(ctx),
         )
     return None
 
@@ -449,7 +527,7 @@ def _check_lead_allowed_file(ctx: _Ctx) -> Decision | None:
         return Decision(
             allow=True, reason="lead-allowed-file",
             current_persona=ctx.persona, marker_found=ctx.marker,
-            target_file=ctx.file_path,
+            target_file=ctx.file_path, **_scope_fields(ctx),
         )
     return None
 
@@ -461,7 +539,7 @@ def _decide_open_access(
     return Decision(
         allow=True, reason=reason, current_persona=ctx.persona,
         marker_found=ctx.marker, target_file=ctx.file_path,
-        required_owners=owners,
+        required_owners=owners, **_scope_fields(ctx),
     )
 
 
@@ -470,7 +548,8 @@ def _decide_owner_match(ctx: _Ctx, owners: list[str]) -> Decision:
         allow=True, reason=f"owner-match:{ctx.persona}",
         current_persona=ctx.persona, marker_found=ctx.marker,
         target_file=ctx.file_path,
-        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved, required_owners=owners,
+        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved,
+        required_owners=owners, **_scope_fields(ctx),
     )
 
 
@@ -479,8 +558,9 @@ def _decide_bypass(ctx: _Ctx, owners: list[str], reason: str) -> Decision:
         allow=True, reason="bypass-with-reason",
         current_persona=ctx.persona, marker_found=ctx.marker,
         target_file=ctx.file_path,
-        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved, required_owners=owners,
-        bypass_used=True, bypass_reason=reason,
+        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved,
+        required_owners=owners, bypass_used=True, bypass_reason=reason,
+        **_scope_fields(ctx),
     )
 
 
@@ -491,7 +571,8 @@ def _decide_block(ctx: _Ctx, owners: list[str]) -> Decision:
         reason=f"lead-blocked:{ctx.persona}-not-in-[{','.join(owners_lower)}]",
         current_persona=ctx.persona, marker_found=ctx.marker,
         target_file=ctx.file_path,
-        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved, required_owners=owners,
+        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved,
+        required_owners=owners, **_scope_fields(ctx),
     )
 
 
@@ -516,7 +597,7 @@ def _resolve_ownership_outcome(ctx: _Ctx) -> Decision:
         return Decision(
             allow=True, reason="no-ownership-rule",
             current_persona=ctx.persona, marker_found=ctx.marker,
-            target_file=ctx.file_path,
+            target_file=ctx.file_path, **_scope_fields(ctx),
         )
     return _resolve_with_owners(ctx, owners, rule_reason)
 
@@ -531,16 +612,19 @@ def evaluate(
     cwd: str = "",
     tool_input: dict | None = None,
     messages: list[str] | None = None,
+    is_sidechain: bool | None = None,
 ) -> Decision:
     """Decide whether a Write/Edit/MultiEdit/NotebookEdit may proceed.
 
     ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages;
     when None the transcript is read from ``transcript_path``.
+    ``is_sidechain`` (P0.2): the active scope, when the caller computed it
+    while parsing; None self-detects (only possible without ``messages``).
     """
     ctx = _Ctx(
         tool_name=tool_name, transcript_path=transcript_path,
         session_id=session_id, cwd=cwd, tool_input=tool_input or {},
-        preloaded_messages=messages,
+        preloaded_messages=messages, is_sidechain=is_sidechain,
     )
     for early_check in (_check_tool_gated, _check_feature_flag):
         decision = early_check(ctx)

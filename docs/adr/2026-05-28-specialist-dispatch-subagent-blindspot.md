@@ -62,7 +62,7 @@ Rationale:
 ## Mitigations
 
 1. **`dispatch-must-be-announced` constitution rule** (added in PR1) requires leads to emit `[arka:dispatch]` before every `Agent` call. This gives the operator audit visibility of *who was supposed to be dispatched*, even when the subagent itself cannot prove it executed.
-2. **The bypass marker `[arka:specialist-bypass <reason>]`** with mandatory reason is logged. Empty reasons are rejected. Bypass count appears in `/arka status` and `/arka compliance` summaries.
+2. **The bypass marker `[arka:specialist-bypass <reason>]`** with mandatory reason is logged. Empty reasons are rejected. Bypasses land in `~/.arkaos/telemetry/specialist-dispatch.jsonl`, read by `arka-py -m core.governance.specialist_telemetry_cli` ("Bypasses used") — neither `/arka status` nor `/arka compliance` reads that log (corrected in P0.2: the original text pointed at summaries that structurally cannot show the bypass).
 3. **The KB-first gate (PR16/PR17) and flow-marker gate (PR11)** continue to operate. They catch the orthogonal compliance failures (no research, no routing). Specialist enforcement composes with them, not in place of them.
 
 ## Alternatives Considered
@@ -86,3 +86,29 @@ Reject as the gating decision for PR1. Track upstream feature request, but ship 
 ## Acceptance
 
 This ADR is the explicit acknowledgement that future PRs in the Squad Intelligence Upgrade series do not get to assume positive identity proof on specialist writes. Reviewers must verify that any positive-identity reliance in PR3, PR5, etc. uses a surface other than the PreToolUse transcript (e.g., the `subagent_type` argument captured at dispatch time, or hook-emitted dispatch records).
+
+## Amendment (P0.2, 2026-07-13 — specialist-gate fail-open)
+
+The blanket `no-routing-tag` ALLOW this ADR describes measured **72% of
+all specialist telemetry** (4,093 of 5,683 records): a marker rolling out
+of the 20-message window reopened the gate — routing once and hammering
+the gate with noise was a winning strategy. P0.2 closes the eviction
+hole with persist-on-observe + consult-before-allow
+(`core/workflow/specialist_authorization.py`, mirroring the frontend
+gate's `design_authorization`, #297) and splits `no-routing-tag` into:
+
+- `never-routed` — session never emitted a marker; keeps the ALLOW this
+  ADR documents (hardening it is a separate, telemetry-gated decision);
+- `subagent-scope` — sidechain evaluation; the pass-through this ADR
+  accepted, now measurable on its own;
+- restored decisions — persona re-applied from persistence, carrying
+  `persona_source: "persisted"` in telemetry, deciding exactly as if the
+  marker were visible (including BLOCK).
+
+The window itself now counts main-scope messages only
+(`core/workflow/transcript_scope.py`), and the persisted record is keyed
+by session **and transcript file name**, so a dispatched subagent — which
+runs on its own transcript — can never inherit the parent's persona and
+be blocked from files it was dispatched to write. The acceptance clause
+above still stands: none of this proves positive identity on subagent
+writes.

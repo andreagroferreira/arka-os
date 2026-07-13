@@ -46,6 +46,16 @@ lead_allowed: []
 """
 
 
+@pytest.fixture(autouse=True)
+def _isolated_specialist_auth(tmp_path, monkeypatch):
+    """Isolate persist-on-observe state (P0.2) — see the B6 lesson above:
+    no test may write real machine state, and a persona confirmed by one
+    test must never restore into the next."""
+    monkeypatch.setenv(
+        "ARKA_SPECIALIST_AUTH_DIR", str(tmp_path / "specialist-auth")
+    )
+
+
 @pytest.fixture
 def gate_on(tmp_path, monkeypatch):
     """Enforcement ON in a sandboxed HOME — never inherit the operator's."""
