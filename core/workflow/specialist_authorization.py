@@ -61,8 +61,13 @@ def _read(path: Path | None) -> dict:
     if path is None or not path.exists():
         return {}
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+        # errors="replace", like transcript_scope: a non-UTF8 byte in an
+        # operator-writable /tmp file must degrade to "no record", never
+        # raise through evaluate() into the hook's exit-0 (QG redo 3 —
+        # an uncaught UnicodeDecodeError WAS a silent gate bypass).
+        raw = path.read_text(encoding="utf-8", errors="replace")
+        data = json.loads(raw)
+    except (ValueError, OSError):  # JSONDecodeError/UnicodeDecodeError ⊂ ValueError
         return {}
     return data if isinstance(data, dict) else {}
 
@@ -113,7 +118,10 @@ def confirmed(
         return None
     data = _read(_auth_path(session_id))
     ts = data.get("confirmed_ts")
-    if ts is None or time.time() - float(ts) > ttl_seconds:
+    # isinstance, not float(): a string in a corrupt-but-valid JSON would
+    # raise straight through evaluate() — the same silent-bypass class as
+    # the non-UTF8 hole (QG redo 3).
+    if not isinstance(ts, (int, float)) or time.time() - ts > ttl_seconds:
         return None
     if data.get("transcript") != Path(transcript_path).name:
         return None

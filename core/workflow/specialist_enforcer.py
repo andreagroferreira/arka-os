@@ -166,8 +166,10 @@ class Decision:
             f"    [arka:dispatch] {persona} -> {owner}\n"
             f"    Task(subagent_type=\"{owner}\", prompt=\"<what you were "
             f"about to write>\")\n"
-            f"Audited exception (visible to the operator in "
-            f"`/arka enforcement`) — ONLY if no specialist can do this:\n"
+            f"Audited exception (visible to the operator in the "
+            f"specialist-dispatch telemetry: `arka-py -m "
+            f"core.governance.specialist_telemetry_cli today`) — ONLY if "
+            f"no specialist can do this:\n"
             f"    [arka:specialist-bypass owner={owner} reason=<24+ chars "
             f"explaining why a specialist cannot>]"
         )
@@ -444,16 +446,7 @@ def _msgs_since_marker(messages: list[str]) -> int | None:
 
 
 def _populate_context(ctx: _Ctx) -> None:
-    """Extract file_path, load ownership, resolve persona (P0.2 fail-open):
-
-    persist-on-observe + consult-before-allow, mirroring
-    design_authorization (#297). Marker in the window -> persist the
-    resolved persona. Window empty of markers -> a valid persisted
-    persona for THIS session+transcript decides as if the marker were
-    still visible — including deciding BLOCK. Sidechain evaluations
-    never consult the parent's persistence (the dispatched specialist
-    must keep writing with no block, per the ADR).
-    """
+    """Extract file_path, load ownership, resolve persona (P0.2 fail-open)."""
     if ctx.tool_input and isinstance(ctx.tool_input, dict):
         ctx.file_path = str(
             ctx.tool_input.get("file_path")
@@ -469,6 +462,19 @@ def _populate_context(ctx: _Ctx) -> None:
         if ctx.is_sidechain is None:
             ctx.is_sidechain = split.active_sidechain
     ctx.is_sidechain = bool(ctx.is_sidechain)
+    _resolve_or_restore_persona(ctx)
+
+
+def _resolve_or_restore_persona(ctx: _Ctx) -> None:
+    """Persist-on-observe + consult-before-allow (P0.2, mirrors #297).
+
+    Marker in the window -> persist the resolved persona. Window empty of
+    markers -> a valid persisted persona for THIS session+transcript
+    decides as if the marker were still visible — including deciding
+    BLOCK. Sidechain evaluations never consult the parent's persistence
+    (the dispatched specialist must keep writing with no block, per the
+    ADR).
+    """
     ctx.persona, ctx.marker, ctx.persona_raw, ctx.alias_resolved = (
         _resolve_persona(ctx.messages)
     )

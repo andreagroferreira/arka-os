@@ -286,6 +286,57 @@ def test_a_different_transcript_never_inherits_the_persona(gate_on, tmp_path):
     assert d.reason == "never-routed"
 
 
+def test_a_non_utf8_auth_file_never_raises_through_the_gate(gate_on, tmp_path):
+    """QG redo 3 (B1): _read caught JSONDecodeError/OSError but not
+    UnicodeDecodeError — a non-UTF8 byte in the operator-writable /tmp
+    record raised through evaluate() into the hook's exit-0, silently
+    bypassing the gate. The exact fail-open class this PR exists to
+    close, on the store this PR itself created."""
+    tx = _write_transcript(tmp_path / "tx.jsonl", _main(*[_NOISE] * 3))
+    auth_dir = Path(os.environ["ARKA_SPECIALIST_AUTH_DIR"])
+    auth_dir.mkdir(parents=True, exist_ok=True)
+    (auth_dir / "s1.json").write_bytes(b"\xff\xfe not utf8 \x80")
+    assert sa.confirmed("s1", str(tx)) is None
+    d = se.evaluate(  # the full path must degrade, never raise
+        tool_name="Write", transcript_path=str(tx), session_id="s1",
+        tool_input={"file_path": "resources/js/App.vue"},
+    )
+    assert d.allow is True
+    assert d.reason == "never-routed"
+
+
+def test_a_corrupt_timestamp_never_raises_through_the_gate(gate_on, tmp_path):
+    """Same silent-bypass class as the non-UTF8 hole: a string ts in a
+    corrupt-but-VALID JSON would have raised at float()."""
+    tx = _write_transcript(tmp_path / "tx.jsonl", _main(*[_NOISE] * 3))
+    auth_dir = Path(os.environ["ARKA_SPECIALIST_AUTH_DIR"])
+    auth_dir.mkdir(parents=True, exist_ok=True)
+    (auth_dir / "s1.json").write_text(json.dumps({
+        "persona": "paulo", "marker": "routing",
+        "transcript": "tx.jsonl", "confirmed_ts": "garbage",
+    }), encoding="utf-8")
+    assert sa.confirmed("s1", str(tx)) is None
+    d = se.evaluate(
+        tool_name="Write", transcript_path=str(tx), session_id="s1",
+        tool_input={"file_path": "resources/js/App.vue"},
+    )
+    assert d.allow is True
+    assert d.reason == "never-routed"
+
+
+def test_the_deny_names_a_command_that_can_actually_show_the_bypass():
+    """QG redo 3 (B2): the deny promised visibility in `/arka enforcement`,
+    which reads enforcement.jsonl — specialist bypasses write
+    specialist-dispatch.jsonl, so the promise was structurally false. The
+    copy a blocked session reads must point at the reader that works."""
+    message = se.Decision(
+        allow=False, reason="lead-blocked", current_persona="paulo",
+        required_owners=["frontend-dev"], target_file="src/App.vue",
+    ).to_stderr_message()
+    assert "specialist_telemetry_cli" in message
+    assert "/arka enforcement" not in message
+
+
 def test_the_hook_contract_threads_the_scope(gate_on, tmp_path):
     """The consolidated hook passes pre-parsed messages + is_sidechain
     (parse-once, PR-6); the enforcer must honor the flag it cannot

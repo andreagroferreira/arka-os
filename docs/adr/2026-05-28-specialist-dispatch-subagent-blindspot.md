@@ -62,7 +62,7 @@ Rationale:
 ## Mitigations
 
 1. **`dispatch-must-be-announced` constitution rule** (added in PR1) requires leads to emit `[arka:dispatch]` before every `Agent` call. This gives the operator audit visibility of *who was supposed to be dispatched*, even when the subagent itself cannot prove it executed.
-2. **The bypass marker `[arka:specialist-bypass <reason>]`** with mandatory reason is logged. Empty reasons are rejected. Bypass count appears in `/arka status` and `/arka compliance` summaries.
+2. **The bypass marker `[arka:specialist-bypass <reason>]`** with mandatory reason is logged. Empty reasons are rejected. Bypasses land in `~/.arkaos/telemetry/specialist-dispatch.jsonl`, read by `arka-py -m core.governance.specialist_telemetry_cli` ("Bypasses used") — neither `/arka status` nor `/arka compliance` reads that log (corrected in P0.2: the original text pointed at summaries that structurally cannot show the bypass).
 3. **The KB-first gate (PR16/PR17) and flow-marker gate (PR11)** continue to operate. They catch the orthogonal compliance failures (no research, no routing). Specialist enforcement composes with them, not in place of them.
 
 ## Alternatives Considered
