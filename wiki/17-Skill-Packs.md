@@ -4,7 +4,7 @@ The curated core and the plugin marketplace. ArkaOS ships 275 skills, and you sh
 
 ## Why a curated core
 
-Every skill you install adds its name and description to what your AI runtime can load per session. Install 274 and you pay for 274, whether the session is about code review or cart recovery. Collections that dump everything into the context window perform worse for it.
+Every skill you install adds its name and description to what your AI runtime can load per session. Install 275 and you pay for 275, whether the session is about code review or cart recovery. Collections that dump everything into the context window perform worse for it.
 
 The curated core keeps the always-on surface small and enforces that in CI: the build fails if the default install grows past 80 skills or 40,000 description characters. The audit runs from the repository, so the promise is checkable:
 
