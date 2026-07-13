@@ -41,7 +41,10 @@ ROSTER_JSON = REPO_ROOT / "config" / "agent-roster.json"
 # (arka-os itself renders 14). Anything beyond is COUNTED, never dropped.
 _MAX_RULES = 16
 _MAX_FIELD = 120
-_GLOB_CHARS = ("*", "?", "[")
+# `{` is a glob char too: the enforcer expands `{core,dashboard}` braces,
+# so treating that segment as a literal spine would make the brief DROP a
+# rule the gate enforces — the "brief hides an applicable rule" incident.
+_GLOB_CHARS = ("*", "?", "[", "{")
 # The brief lands in a system prompt. A pattern is operator-editable YAML
 # (agent-ownership.yaml is `lead_allowed`), so a newline in it could forge
 # an authority line — OWASP LLM01. Control bytes never reach the prompt.
@@ -133,8 +136,11 @@ def _dispatch_status(named: set[str], owners_meta: dict,
                      dispatchable: set[str]) -> list[str]:
     status: list[str] = []
     for slug in sorted(named):
-        human = str(owners_meta.get(slug, {}).get("human_name", ""))
-        label = f"{slug} ({human.split()[0]})" if human else slug
+        # agent-roster.json is operator-editable and this line lands in a
+        # system prompt — human_name walks through _clean like every other
+        # field (QG redo 2: it was the one field that did not).
+        tokens = _clean(owners_meta.get(slug, {}).get("human_name", "")).split()
+        label = f"{slug} ({tokens[0]})" if tokens else slug
         status.append(
             f"{label} ok" if slug in dispatchable else f"{label} MISSING"
         )

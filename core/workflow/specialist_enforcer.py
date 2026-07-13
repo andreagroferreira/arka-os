@@ -89,8 +89,13 @@ ROUTING_RE = re.compile(
 DISPATCH_RE = re.compile(
     r"\[arka:dispatch\]\s*[\w-]+\s*->\s*([\w-]+)", re.IGNORECASE
 )
+# Single-line, length-bounded body: the lazy `([^\]]+?)\s*` form
+# backtracked catastrophically on an unclosed marker (4000 trailing
+# spaces = 22s) — inside a BLOCKING PreToolUse hook, on model-emitted
+# text. 400 chars is far above any substantive reason; beyond it the
+# marker simply does not parse and the gate stays closed.
 BYPASS_RE = re.compile(
-    r"\[arka:specialist-bypass\s+([^\]]+?)\s*\]", re.IGNORECASE
+    r"\[arka:specialist-bypass\s+([^\]\n]{1,400})\]", re.IGNORECASE
 )
 
 ASSISTANT_WINDOW = 20
