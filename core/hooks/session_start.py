@@ -242,6 +242,30 @@ def _ensure_dashboard(repo: str, config: dict) -> None:
     )
 
 
+def _authority_brief(cwd: str) -> str:
+    """[ARKA:AUTHORITY] — who may write what, BEFORE the first Write.
+
+    The 2026-07-12 incident happened because this information existed
+    nowhere in the prompt surface: a session met the ownership rule for
+    the first time in a deny message, and rationalized a bypass instead
+    of dispatching. Generated per project, never hand-typed.
+    """
+    try:
+        from core.agents.authority_brief import render
+        brief = render(cwd)
+    except Exception as exc:
+        # But it must not fail SILENTLY either: a swallowed error here
+        # restores the exact pre-incident state (a session writing with no
+        # idea the rules exist). One honest line beats a silent void.
+        return (
+            f"\n\n[ARKA:AUTHORITY] unavailable ({type(exc).__name__}) — "
+            f"write rules could not be rendered; check "
+            f"config/agent-ownership.yaml. Dispatch the owning specialist "
+            f"rather than assuming you may write."
+        )
+    return f"\n\n{brief}" if brief else ""
+
+
 def build_message(cwd: str) -> str:
     repo = repo_path()
     config = _config()
@@ -254,6 +278,7 @@ def build_message(cwd: str) -> str:
     msg += _drift(version)
     msg += _EVIDENCE_CONTRACT
     msg += _META_TAG_CONTRACT
+    msg += _authority_brief(cwd)
     msg += _model_fabric()
     _trigger_reorganizer(repo, config)
     _ensure_dashboard(repo, config)

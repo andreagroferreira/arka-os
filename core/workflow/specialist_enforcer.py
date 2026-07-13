@@ -24,11 +24,12 @@ Read by: config/hooks/pre-tool-use.sh between the KB-gate and the
 flow-gate. Same Decision JSON contract as core.workflow.flow_enforcer.
 """
 
+import contextlib
 import json
 import re
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 
@@ -55,10 +56,8 @@ def _locked_append(path: Path):
         yield fh
     finally:
         if _HAS_FLOCK:
-            try:
+            with contextlib.suppress(OSError):
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                pass
         fh.close()
 
 
@@ -73,6 +72,11 @@ OWNERSHIP_YAML_PATH = (
     / "config"
     / "agent-ownership.yaml"
 )
+ROSTER_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "config"
+    / "agent-roster.json"
+)
 
 GATED_TOOLS: frozenset[str] = frozenset(
     {"Write", "Edit", "MultiEdit", "NotebookEdit"}
@@ -85,8 +89,13 @@ ROUTING_RE = re.compile(
 DISPATCH_RE = re.compile(
     r"\[arka:dispatch\]\s*[\w-]+\s*->\s*([\w-]+)", re.IGNORECASE
 )
+# Single-line, length-bounded body: the lazy `([^\]]+?)\s*` form
+# backtracked catastrophically on an unclosed marker (4000 trailing
+# spaces = 22s) — inside a BLOCKING PreToolUse hook, on model-emitted
+# text. 400 chars is far above any substantive reason; beyond it the
+# marker simply does not parse and the gate stays closed.
 BYPASS_RE = re.compile(
-    r"\[arka:specialist-bypass\s+([^\]]+?)\s*\]", re.IGNORECASE
+    r"\[arka:specialist-bypass\s+([^\]\n]{1,400})\]", re.IGNORECASE
 )
 
 ASSISTANT_WINDOW = 20
@@ -107,22 +116,42 @@ class Decision:
     bypass_used: bool = False
     bypass_reason: str | None = None
     target_file: str | None = None
+    # Alias resolution (PR-1): the marker said "diana", the rules say
+    # "frontend-dev" — record both so telemetry can prove the fix.
+    persona_raw: str | None = None
+    alias_resolved: bool = False
 
     def to_stderr_message(self) -> str:
+        """The message a blocked session reads.
+
+        Rewritten after the 2026-07-12 incident, where a session read the
+        old text and went looking for a bug to justify a bypass. Three
+        changes carry the weight: it refuses the false diagnosis up front,
+        it hands over the correct path already filled in (two copyable
+        lines), and it demotes the bypass to what it is — an audited
+        exception the operator sees. The old text also called EVERY
+        persona "(lead)", so a blocked specialist was told she was a lead:
+        that actively fed the "the gate is buggy" story.
+        """
         if self.allow:
             return ""
-        persona = self.current_persona or "lead"
-        owners = ", ".join(self.required_owners) or "specialist"
+        persona = self.current_persona or "unrouted"
+        owner = (self.required_owners or ["the owning specialist"])[0]
+        owners = ", ".join(self.required_owners) or "the owning specialist"
         target = self.target_file or "this file"
         return (
-            f"[ARKA:SPECIALIST] {persona} (lead) is not authorised to write "
-            f"{target}. Required owners: {owners}. Choose one: (1) dispatch "
-            f"the specialist via the Agent tool AND emit "
-            f"`[arka:dispatch] {persona} -> <specialist>` immediately before "
-            f"the dispatch call (NON-NEGOTIABLE constitution rule "
-            f"`dispatch-must-be-announced`), OR (2) add "
-            f"`[arka:specialist-bypass <reason>]` to the same assistant "
-            f"message to override (logged for accountability)."
+            f"[ARKA:SPECIALIST] BLOCKED. {target} is owned by: {owners} "
+            f"— dispatch any ONE of them. You are {persona}.\n"
+            f"This is NOT a bug. The gate is working as designed. Retrying "
+            f"this Write will fail again, every time.\n"
+            f"DO THIS — two lines, and the specialist writes with no block:\n"
+            f"    [arka:dispatch] {persona} -> {owner}\n"
+            f"    Task(subagent_type=\"{owner}\", prompt=\"<what you were "
+            f"about to write>\")\n"
+            f"Audited exception (visible to the operator in "
+            f"`/arka enforcement`) — ONLY if no specialist can do this:\n"
+            f"    [arka:specialist-bypass owner={owner} reason=<24+ chars "
+            f"explaining why a specialist cannot>]"
         )
 
 
@@ -139,6 +168,8 @@ class _Ctx:
     messages: list[str] = field(default_factory=list)
     persona: str | None = None
     marker: str | None = None
+    persona_raw: str | None = None
+    alias_resolved: bool = False
     config: dict = field(default_factory=dict)
     preloaded_messages: list[str] | None = None
 
@@ -233,34 +264,110 @@ def _glob_match(pattern: str, path: str) -> bool:
 # ─── Persona, bypass, ownership resolution ─────────────────────────────
 
 
-def _resolve_persona(messages: list[str]) -> tuple[str | None, str | None]:
-    """Find the current persona, scanning newest-to-oldest assistant turns.
+def _load_aliases() -> dict[str, str]:
+    """First-name -> owner slug, from the generated roster.
+
+    Sessions dispatch by human name (``-> diana``); ownership rules name
+    slugs (``frontend-dev``). Without this, the RIGHT specialist was
+    blocked from her own files — 22 of 189 measured blocks. The roster
+    only emits aliases that are unambiguous among gate owners, and never
+    guesses (core/agents/roster_manifest.py::build_aliases).
+    """
+    try:
+        data = json.loads(ROSTER_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    aliases = data.get("aliases")
+    return aliases if isinstance(aliases, dict) else {}
+
+
+def _normalize_persona(raw: str) -> tuple[str, bool]:
+    """Return (slug, alias_resolved). Unknown names pass through."""
+    slug = _load_aliases().get(raw)
+    return (slug, True) if slug else (raw, False)
+
+
+def _resolve_persona(
+    messages: list[str],
+) -> tuple[str | None, str | None, str | None, bool]:
+    """Find the current persona: (slug, marker, raw, alias_resolved).
 
     Dispatch tag wins over routing because dispatching is more specific.
+    The name is normalized through the roster aliases, so a marker that
+    names the human (``-> diana``) matches an ownership rule that names
+    the slug (``frontend-dev``).
     """
     for text in reversed(messages):
         dispatch = DISPATCH_RE.search(text)
         if dispatch:
-            return dispatch.group(1).lower(), "dispatch"
+            raw = dispatch.group(1).lower()
+            slug, resolved = _normalize_persona(raw)
+            return slug, "dispatch", raw, resolved
         routing = ROUTING_RE.search(text)
         if routing:
-            return routing.group(1).lower(), "routing"
-    return None, None
+            raw = routing.group(1).lower()
+            slug, resolved = _normalize_persona(raw)
+            return slug, "routing", raw, resolved
+    return None, None, None, False
 
 
-def _find_bypass(messages: list[str]) -> str | None:
-    """Return bypass reason from LAST assistant message, or None.
+# A bypass must cost more than doing the right thing. Before the
+# 2026-07-12 incident the only barrier was a non-empty string, and the
+# deny message advertised the bypass beside the dispatch as an equal
+# option — the single place in the whole prompt surface that taught it.
+_MIN_BYPASS_REASON = 24
+_EMPTY_REASONS = (
+    "typo", "quick fix", "quickfix", "trivial", "urgent", "just this once",
+    "small change", "minor", "one char", "fast", "quick typo fix",
+    "just a quick typo fix", "just a quick typo fix honestly",
+    "nothing important", "it is faster this way",
+)
+# Structured form the deny message teaches: `owner=<slug> reason=<text>`.
+_BYPASS_STRUCTURED_RE = re.compile(
+    r"^owner=(?P<owner>[\w-]+)\s+reason=(?P<reason>.*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _reason_is_substantive(reason: str) -> bool:
+    """A reason must say something. QG redo 1 caught the hole: the floor
+    was applied to the WHOLE marker body, so
+    ``owner=senior-dev reason=`` (24 chars of boilerplate, empty reason)
+    opened the gate — with the deny message teaching that very template.
+    The floor now applies to the reason ALONE."""
+    reason = reason.strip()
+    if len(reason) < _MIN_BYPASS_REASON:
+        return False
+    normalized = reason.lower().strip(" .!,;")
+    return normalized not in _EMPTY_REASONS
+
+
+def _find_bypass(messages: list[str], owners: list[str] | None = None) -> str | None:
+    """Return the bypass reason from the LAST assistant message, or None.
 
     Scope is strict: only the immediately preceding assistant message can
-    grant a bypass. Empty / whitespace reasons are rejected.
+    grant a bypass. The structured form is required in spirit — a bare
+    legacy reason is still accepted for one release, but it must clear the
+    same substance floor. When ``owners`` is given, a structured
+    ``owner=`` that names someone other than an actual owner is rejected:
+    a bypass may not invent its own justification target.
     """
     if not messages:
         return None
     match = BYPASS_RE.search(messages[-1])
     if not match:
         return None
-    reason = match.group(1).strip()
-    return reason if reason else None
+    body = match.group(1).strip()
+    structured = _BYPASS_STRUCTURED_RE.match(body)
+    if structured:
+        if owners:
+            claimed = structured.group("owner").lower()
+            if claimed not in {o.lower() for o in owners}:
+                return None
+        reason = structured.group("reason")
+    else:
+        reason = body
+    return reason.strip() if _reason_is_substantive(reason) else None
 
 
 def _match_ownership(
@@ -312,7 +419,9 @@ def _populate_context(ctx: _Ctx) -> None:
         ctx.messages = _load_last_assistant_messages(
             ctx.transcript_path, ASSISTANT_WINDOW
         )
-    ctx.persona, ctx.marker = _resolve_persona(ctx.messages)
+    ctx.persona, ctx.marker, ctx.persona_raw, ctx.alias_resolved = (
+        _resolve_persona(ctx.messages)
+    )
 
 
 def _check_no_persona(ctx: _Ctx) -> Decision | None:
@@ -360,7 +469,8 @@ def _decide_owner_match(ctx: _Ctx, owners: list[str]) -> Decision:
     return Decision(
         allow=True, reason=f"owner-match:{ctx.persona}",
         current_persona=ctx.persona, marker_found=ctx.marker,
-        target_file=ctx.file_path, required_owners=owners,
+        target_file=ctx.file_path,
+        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved, required_owners=owners,
     )
 
 
@@ -368,7 +478,8 @@ def _decide_bypass(ctx: _Ctx, owners: list[str], reason: str) -> Decision:
     return Decision(
         allow=True, reason="bypass-with-reason",
         current_persona=ctx.persona, marker_found=ctx.marker,
-        target_file=ctx.file_path, required_owners=owners,
+        target_file=ctx.file_path,
+        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved, required_owners=owners,
         bypass_used=True, bypass_reason=reason,
     )
 
@@ -379,7 +490,8 @@ def _decide_block(ctx: _Ctx, owners: list[str]) -> Decision:
         allow=False,
         reason=f"lead-blocked:{ctx.persona}-not-in-[{','.join(owners_lower)}]",
         current_persona=ctx.persona, marker_found=ctx.marker,
-        target_file=ctx.file_path, required_owners=owners,
+        target_file=ctx.file_path,
+        persona_raw=ctx.persona_raw, alias_resolved=ctx.alias_resolved, required_owners=owners,
     )
 
 
@@ -389,7 +501,7 @@ def _resolve_with_owners(ctx: _Ctx, owners: list[str], rule_reason: str | None) 
         return _decide_open_access(ctx, owners, rule_reason)
     if ctx.persona in {o.lower() for o in owners}:
         return _decide_owner_match(ctx, owners)
-    bypass = _find_bypass(ctx.messages)
+    bypass = _find_bypass(ctx.messages, owners)
     if bypass:
         return _decide_bypass(ctx, owners, bypass)
     return _decide_block(ctx, owners)
@@ -464,7 +576,7 @@ def record_telemetry(
     if safe is None:
         return
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": safe,
         "tool": tool,
         "cwd": cwd,

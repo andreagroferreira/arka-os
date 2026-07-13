@@ -68,6 +68,55 @@ def _resolve_source(slug: str) -> Path | None:
     return None
 
 
+def _agent_yaml(slug: str) -> Path | None:
+    matches = sorted(DEPARTMENTS_DIR.glob(f"*/agents/**/{slug}.yaml"))
+    return matches[0] if matches else None
+
+
+def _human_name(slug: str) -> str:
+    source = _agent_yaml(slug)
+    if source is None:
+        return ""
+    try:
+        data = yaml.safe_load(source.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return ""
+    return str(data.get("name") or "") if isinstance(data, dict) else ""
+
+
+def _first_name(human: str) -> str:
+    """'Andre — Backend Core Lead' -> 'andre'."""
+    return human.split()[0].split("—")[0].strip().lower() if human else ""
+
+
+def build_aliases(entries: dict[str, dict]) -> dict[str, str]:
+    """First-name -> owner slug, resolved WITHIN the gate-owner set.
+
+    Sessions route by human name (``[arka:dispatch] paulo -> diana``) but
+    ownership rules name slugs (``frontend-dev``). Unresolved, that
+    mismatch blocked the RIGHT specialist from her own files: 22 of 189
+    measured blocks. (The 22 `senior-dev` blocks are a separate, still
+    open class: there the slug IS the persona, so no alias helps.)
+
+    Scoping to gate owners is what makes this safe. Globally, ``diana``
+    is ambiguous (frontend-dev AND hr-specialist) and so is ``andre``
+    (backend-dev AND growth-engineer) — a naive first-name alias would
+    trade one bug for a worse one. Among the owners the gate can
+    actually demand, both are unique. Anything still ambiguous here is
+    REFUSED, never guessed.
+    """
+    by_first: dict[str, set[str]] = {}
+    for slug in entries:
+        first = _first_name(_human_name(slug))
+        if first:
+            by_first.setdefault(first, set()).add(slug)
+    return {
+        first: next(iter(slugs))
+        for first, slugs in sorted(by_first.items())
+        if len(slugs) == 1
+    }
+
+
 def build_roster() -> dict:
     owners = gate_owners()
     entries: dict[str, dict] = {}
@@ -80,6 +129,7 @@ def build_roster() -> dict:
         entries[slug] = {
             "source": str(source.relative_to(REPO_ROOT)),
             "compiled": source.parent == COMPILED_DIR,
+            "human_name": _human_name(slug),
         }
     if ghosts:
         raise ValueError(
@@ -88,6 +138,14 @@ def build_roster() -> dict:
             f"config/agent-ownership.yaml; a gate must never demand an "
             f"owner nobody can invoke"
         )
+    aliases = build_aliases(entries)
+    ambiguous = sorted(
+        first
+        for first in {
+            _first_name(e["human_name"]) for e in entries.values()
+        }
+        if first and first not in aliases
+    )
     return {
         "_meta": {
             "generator": "core/agents/roster_manifest.py",
@@ -97,6 +155,8 @@ def build_roster() -> dict:
             ),
         },
         "gate_owners": entries,
+        "aliases": aliases,
+        "ambiguous_first_names": ambiguous,
     }
 
 
