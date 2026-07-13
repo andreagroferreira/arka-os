@@ -18,10 +18,17 @@ _ROOT = Path(__file__).parent.parent.parent
 _SCRIPT = (_ROOT / "departments" / "dev" / "skills" / "animated-website"
            / "scripts" / "extract_frames.py")
 
-_spec = importlib.util.spec_from_file_location("extract_frames", _SCRIPT)
-_ef = importlib.util.module_from_spec(_spec)
-sys.modules["extract_frames"] = _ef
-_spec.loader.exec_module(_ef)
+# Never write bytecode next to a shipped skill script — the marketplace
+# drift gate compares the departments/ tree against the generated plugins/.
+_prev_dont_write = sys.dont_write_bytecode
+sys.dont_write_bytecode = True
+try:
+    _spec = importlib.util.spec_from_file_location("extract_frames", _SCRIPT)
+    _ef = importlib.util.module_from_spec(_spec)
+    sys.modules["extract_frames"] = _ef
+    _spec.loader.exec_module(_ef)
+finally:
+    sys.dont_write_bytecode = _prev_dont_write
 
 
 class TestParseFps:

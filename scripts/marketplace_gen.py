@@ -154,7 +154,10 @@ def _emit_skill(src_dir: Path, dest_dir: Path) -> None:
     for resource in _RESOURCE_DIRS:
         src = src_dir / resource
         if src.is_dir():
-            shutil.copytree(src, dest_dir / resource, dirs_exist_ok=True)
+            shutil.copytree(
+                src, dest_dir / resource, dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"),
+            )
 
 
 def build_plugins() -> dict[str, list[str]]:
