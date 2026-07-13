@@ -177,6 +177,16 @@
       ],
       "collision": false
     },
+    "animated-website": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false
+    },
     "api-design": {
       "depts": [
         "dev"
