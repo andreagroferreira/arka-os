@@ -1,6 +1,6 @@
 # 17 · Skill Packs
 
-The curated core and the plugin marketplace. ArkaOS ships 274 skills, and you should not pay context rent for all of them in every session. Since v4.14 the distribution model has two halves: a curated core that installs by default, and 16 department packs you add when you need them.
+The curated core and the plugin marketplace. ArkaOS ships 275 skills, and you should not pay context rent for all of them in every session. Since v4.14 the distribution model has two halves: a curated core that installs by default, and 16 department packs you add when you need them.
 
 ## Why a curated core
 
