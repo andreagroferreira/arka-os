@@ -68,6 +68,7 @@ Usage:
   npx arkaos models set <role> <provider>/<model>  Re-route a role
   npx arkaos mcp start        Start the arka-tools MCP server (stdio; --write enables writes)
   npx arkaos update --skills <curated|full>  Choose the deployed skill set (default: curated on fresh installs)
+  npx arkaos shield           Scan the harness config for vulnerabilities (--json)
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
@@ -90,6 +91,8 @@ Examples:
   npx arkaos index                     Index knowledge base (Obsidian vault)
   npx arkaos search "query"            Search indexed knowledge
   npx arkaos doctor                     Verify installation health
+  npx arkaos shield                     Scan the harness config (exit 2 = critical)
+  npx arkaos shield --json              Machine-readable, for CI
 `);
   process.exit(0);
 }
@@ -206,6 +209,27 @@ async function main() {
         });
       } catch { process.exit(1); }
       break;
+    }
+
+    case "shield": {
+      // The harness config as attack surface. Exit code is the contract
+      // CI gates on (0 = A/B, 1 = C/D, 2 = F or any CRITICAL), so the
+      // child's code is propagated verbatim rather than collapsed to 1.
+      const { spawnSync } = await import("node:child_process");
+      const repoRootShield = join(__dirname, "..");
+      const pyShield = getArkaosPython();
+      if (!pyShield) { console.error("No Python found. Run: npx arkaos install"); process.exit(1); }
+      const shieldArgs = process.argv.slice(3);
+      const shieldRun = spawnSync(
+        pyShield,
+        ["-m", "core.governance.harness_scanner_cli", ...shieldArgs],
+        {
+          stdio: "inherit",
+          cwd: process.cwd(),
+          env: { ...process.env, ARKAOS_ROOT: repoRootShield, PYTHONPATH: repoRootShield },
+        }
+      );
+      process.exit(shieldRun.status === null ? 1 : shieldRun.status);
     }
 
     case "index": {
