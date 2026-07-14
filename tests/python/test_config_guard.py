@@ -1,6 +1,7 @@
 """Config-protection gate — the agent fixes the code, not the linter."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -156,12 +157,24 @@ def _transcript(tmp_path, *records) -> str:
     return str(path)
 
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
 class TestThroughMain:
     """Drive the real pre_tool_use.main() entrypoint with a real
     transcript. This is the gate that catches the P0 the unit tests
     could not see: production feeds the gate a TRANSCRIPT, and the
     override must read the OPERATOR's messages, not the agent's.
     """
+
+    @pytest.fixture(autouse=True)
+    def _pin_root(self, monkeypatch):
+        # main() resolves ARKAOS_ROOT from the environment; a clean CI
+        # runner has neither the env var nor ~/.arkaos, so the root falls
+        # back to a non-existent path and _config_gate cannot find
+        # config_guard.py — the gate silently skips. Pin the repo root so
+        # the gate is exercised regardless of the runner's environment.
+        monkeypatch.setenv("ARKAOS_ROOT", str(_REPO_ROOT))
 
     @pytest.fixture
     def hard_mode(self, monkeypatch, tmp_path):
