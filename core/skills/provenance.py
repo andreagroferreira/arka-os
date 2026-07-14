@@ -20,7 +20,7 @@ Contract (opt-in, absence means first-party):
 
 ``origin`` is a lowercase slug (``^[a-z][a-z0-9-]*$``). ``arkaos`` — or
 no metadata block at all — is first-party and needs nothing else. ANY
-other origin MUST declare ``source`` (an http(s) URL) and ``license``.
+other origin MUST declare ``source`` (an https URL) and ``license``.
 
 **Fail closed.** A block that is present but unusable — unparseable
 YAML, a tab-indented body, ``metadata`` bound to a scalar, a misspelt
@@ -40,6 +40,12 @@ module cannot enforce that and does not claim to.
 Consumed by ``scripts/skill_validator.py`` (per-skill score) and
 ``scripts/marketplace_gen.py`` (``knowledge/skills-manifest.json``,
 which carries the full origin/source/licence triple, not just origin).
+
+The artifact-agnostic core — the model, the constants, the block
+validator — lives in ``core/provenance.py`` and is shared with agent
+provenance (``core/agents/provenance.py``). This module is only the
+SKILL.md-frontmatter reader. ``SkillProvenance`` is re-exported as an
+alias of the generic ``Provenance`` so existing imports keep working.
 """
 
 from __future__ import annotations
@@ -47,68 +53,33 @@ from __future__ import annotations
 import re
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import ValidationError
 
-FIRST_PARTY = "arkaos"
-METADATA_FIELDS = ("origin", "source", "license")
+from core.provenance import (
+    FIRST_PARTY,
+    METADATA_FIELDS,
+    Provenance,
+    ProvenanceError,
+    provenance_from_block,
+)
+
+# Back-compat alias: a skill's provenance is just Provenance.
+SkillProvenance = Provenance
+
+__all__ = [
+    "FIRST_PARTY",
+    "METADATA_FIELDS",
+    "Provenance",
+    "ProvenanceError",
+    "SkillProvenance",
+    "declares_provenance",
+    "parse_provenance",
+    "provenance_issues",
+]
 
 _FRONTMATTER = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
-_ORIGIN_SLUG = re.compile(r"^[a-z][a-z0-9-]*$")
-# https only: a licence trail that can be MITM'd is not a trail.
-_URL = re.compile(r"^https://\S+$")
 # Near-misses for `metadata` — a typo must not read as "no block".
 _METADATA_TYPO = re.compile(r"^meta[-_ ]?datas?$", re.IGNORECASE)
-
-
-class ProvenanceError(ValueError):
-    """The provenance block is present but cannot be trusted."""
-
-
-class SkillProvenance(BaseModel):
-    """Where a skill came from, and under what licence."""
-
-    origin: str = Field(default=FIRST_PARTY)
-    source: str | None = None
-    license: str | None = None
-
-    @model_validator(mode="after")
-    def _derived_needs_a_trail(self) -> SkillProvenance:
-        if not _ORIGIN_SLUG.match(self.origin):
-            raise ValueError(
-                f"origin {self.origin!r} is not a lowercase slug "
-                f"(^[a-z][a-z0-9-]*$)"
-            )
-        if self.origin == FIRST_PARTY:
-            return self._first_party_carries_no_trail()
-        missing = [f for f in ("source", "license") if not getattr(self, f)]
-        if missing:
-            raise ValueError(
-                f"origin {self.origin!r} is third-party — "
-                f"{', '.join(missing)} required"
-            )
-        if not _URL.match(self.source or ""):
-            raise ValueError(f"source {self.source!r} is not an https URL")
-        return self
-
-    def _first_party_carries_no_trail(self) -> SkillProvenance:
-        """`arkaos` plus a source/licence is an unresolved contradiction.
-
-        Either the skill is ours and there is nothing to attribute, or
-        it is not and the origin is wrong. Silence would let a bad port
-        keep its upstream URL while claiming to be first-party.
-        """
-        declared = [f for f in ("source", "license") if getattr(self, f)]
-        if declared:
-            raise ValueError(
-                f"origin {FIRST_PARTY!r} is first-party but declares "
-                f"{', '.join(declared)} — set a third-party origin or "
-                f"drop the field"
-            )
-        return self
-
-    @property
-    def is_first_party(self) -> bool:
-        return self.origin == FIRST_PARTY
 
 
 def _frontmatter(content: str) -> dict:
@@ -157,16 +128,7 @@ def parse_provenance(content: str) -> SkillProvenance:
     present but incoherent — callers that must not raise use
     ``provenance_issues`` instead.
     """
-    block = _metadata_block(_frontmatter(content))
-    if block is None:
-        return SkillProvenance()
-    unknown = sorted(str(k) for k in block if k not in METADATA_FIELDS)
-    if unknown:
-        raise ProvenanceError(
-            f"unknown metadata keys: {', '.join(unknown)} "
-            f"(expected {', '.join(METADATA_FIELDS)})"
-        )
-    return SkillProvenance(**block)
+    return provenance_from_block(_metadata_block(_frontmatter(content)))
 
 
 def declares_provenance(content: str) -> bool:

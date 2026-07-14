@@ -32,12 +32,34 @@ Tier is enforced by the validator: tier-2+ agents that have `veto: true` produce
 | `parent_squad` | string | No | Slug of the parent squad for sub-squad agents (e.g. `dev`). |
 | `sub_squad_role` | string | No | Role within the sub-squad (e.g. `lead`). Requires `parent_squad`. |
 | `memory_path` | string | No | Auto-filled to `~/.claude/agent-memory/arka-<id>/MEMORY.md` when omitted. |
+| `provenance` | object | Only when derived | Supply-chain lineage `{origin, source, license}`. Absent means first-party (`arkaos`). See below. |
 | `behavioral_dna` | object | Yes | Four-framework personality. See below. |
 | `mental_models` | object | No | Decision-making frameworks. |
 | `authority` | object | No | What the agent may approve, veto, or delegate. |
 | `expertise` | object | No | Domains, frameworks, depth. |
 | `communication` | object | No | Tone, format, vocabulary level. |
 | `signature_markers` | object | No | DNA fidelity markers for behavior enforcement (optional, tier-1+ agents). |
+
+### Provenance (agents derived from third-party work)
+
+An agent adapted from someone else's work declares where it came from —
+the same control the skill tree carries. A first-party agent needs no
+block. Any `origin` other than `arkaos` must declare `source` (an https
+URL) and `license`:
+
+```yaml
+provenance:
+  origin: ecc-derived
+  source: https://github.com/affaan-m/ecc
+  license: MIT
+```
+
+A parser cannot catch the port whose author simply forgot the block, so
+`config/agents-provenance.yaml` classifies every agent — baseline,
+derived, or self-declaring — and `tests/python/test_agent_provenance.py`
+fails CI, by name, on any agent that is none of the three. The full
+origin/source/licence trail lands in `knowledge/agents-registry-v2.json`.
+The validation model is shared with skills (`core/provenance.py`).
 
 ### Default model by tier
 
