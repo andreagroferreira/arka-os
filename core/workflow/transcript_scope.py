@@ -72,3 +72,49 @@ def split_from_path(transcript_path: str) -> ScopeSplit:
     except OSError:
         return ScopeSplit()
     return split_by_scope(raw)
+
+
+def recent_user_messages(raw_text: str, limit: int = 6) -> list[str]:
+    """The most recent USER message texts, newest last.
+
+    ``split_by_scope`` collects assistant records only. A gate that must
+    know what the OPERATOR asked — not what the agent said — needs the
+    other role, and reading the wrong one inverts the gate: the guarded
+    agent could authorise its own edit while the operator's real request
+    is never seen. Sidechain (subagent) user turns are excluded — a
+    dispatched agent's prompt is not the operator speaking.
+    """
+    found: list[str] = []
+    for line in raw_text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(record, dict):
+            continue
+        message = record.get("message")
+        message = message if isinstance(message, dict) else {}
+        role = record.get("role") or message.get("role")
+        if role != "user" or record.get("isSidechain", False):
+            continue
+        content = record.get("content")
+        if content is None:
+            content = message.get("content")
+        text = _extract_text(content)
+        if text:
+            found.append(text)
+    return found[-limit:]
+
+
+def user_messages_from_path(transcript_path: str, limit: int = 6) -> list[str]:
+    """Recent operator messages from a transcript file. Never raises."""
+    path = Path(transcript_path) if transcript_path else None
+    if path is None or not path.exists():
+        return []
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    return recent_user_messages(raw, limit)
