@@ -1,7 +1,15 @@
 ---
 name: code-review
 description: >
-  Code review against Clean Code and SOLID. Checks naming, SRP, DIP, test coverage, security.
+  General code review of a file, diff, or PR against Clean Code, SOLID, test
+  coverage, and baseline security — the default pre-merge review pass in dev
+  workflows. TRIGGER: "/dev review", "code review", "review this PR/diff/file",
+  "revê o código", "faz review", "revê este PR", "análise ao código",
+  "pode fazer merge?"; run BEFORE approving any merge. SKIP: pure
+  naming/SOLID/style sweep with no test, security, or merge concern ->
+  dev/clean-code-review wins; red-team pass, "try to break it", hostile edge-case
+  or abuse-vector hunting -> dev/adversarial-review wins; visual/UI/brand review
+  (Figma, screenshots, pixels, guidelines) -> brand/design-review wins.
 ---
 
 # Code Review

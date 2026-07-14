@@ -53,7 +53,10 @@
         "arkaos-landing@arkaos",
         "arkaos-marketing@arkaos"
       ],
-      "collision": true
+      "collision": true,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "adversarial-review": {
       "depts": [
@@ -63,7 +66,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "affiliate-bridge": {
       "depts": [
@@ -73,7 +79,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "agent-design": {
       "depts": [
@@ -83,7 +92,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "agent-workflow": {
       "depts": [
@@ -93,7 +105,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "agile-po": {
       "depts": [
@@ -103,7 +118,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ai-assisted-dev": {
       "depts": [
@@ -113,7 +131,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ai-community": {
       "depts": [
@@ -123,7 +144,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ai-research": {
       "depts": [
@@ -133,7 +157,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ai-security": {
       "depts": [
@@ -143,7 +170,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ai-workflow": {
       "depts": [
@@ -153,7 +183,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "analytics": {
       "depts": [
@@ -165,7 +198,10 @@
         "arkaos-content@arkaos",
         "arkaos-ecom@arkaos"
       ],
-      "collision": true
+      "collision": true,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "analytics-report": {
       "depts": [
@@ -175,7 +211,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "animated-website": {
       "depts": [
@@ -185,7 +224,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "api-design": {
       "depts": [
@@ -193,7 +235,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "app-test": {
       "depts": [
@@ -203,7 +248,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "archetype-finder": {
       "depts": [
@@ -213,7 +261,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "architecture-design": {
       "depts": [
@@ -221,7 +272,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "audience-segment": {
       "depts": [
@@ -231,7 +285,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "awareness-diagnose": {
       "depts": [
@@ -241,7 +298,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "backlog-groom": {
       "depts": [
@@ -251,7 +311,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "benchmark-compare": {
       "depts": [
@@ -261,7 +324,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "betting-setup": {
       "depts": [
@@ -271,7 +337,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "blue-ocean": {
       "depts": [
@@ -281,7 +350,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "bmc": {
       "depts": [
@@ -291,7 +363,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "board-advisor": {
       "depts": [
@@ -301,7 +376,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "bottleneck-find": {
       "depts": [
@@ -311,7 +389,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "browse-competitor": {
       "depts": [
@@ -321,7 +402,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "budget-plan": {
       "depts": [
@@ -331,7 +415,10 @@
       "plugins": [
         "arkaos-finance@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "business-model": {
       "depts": [
@@ -341,7 +428,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "calendar": {
       "depts": [
@@ -349,7 +439,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "calendar-plan": {
       "depts": [
@@ -359,7 +452,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "cart-recovery": {
       "depts": [
@@ -367,7 +463,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "cashflow-forecast": {
       "depts": [
@@ -377,7 +476,10 @@
       "plugins": [
         "arkaos-finance@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "challenger-sell": {
       "depts": [
@@ -387,7 +489,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "change-manage": {
       "depts": [
@@ -397,7 +502,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "changelog": {
       "depts": [
@@ -407,7 +515,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "churn-analysis": {
       "depts": [
@@ -417,7 +528,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ci-cd-pipeline": {
       "depts": [
@@ -427,7 +541,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ciso-advisor": {
       "depts": [
@@ -437,7 +554,10 @@
       "plugins": [
         "arkaos-finance@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "clean-code-review": {
       "depts": [
@@ -445,7 +565,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "code-review": {
       "depts": [
@@ -453,7 +576,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "codebase-onboard": {
       "depts": [
@@ -463,7 +589,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "cold-email": {
       "depts": [
@@ -473,7 +602,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "colors": {
       "depts": [
@@ -483,7 +615,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "compensation-plan": {
       "depts": [
@@ -493,7 +628,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "competitive-intel": {
       "depts": [
@@ -503,7 +641,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "competitor-analysis": {
       "depts": [
@@ -513,7 +654,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "conflict-resolve": {
       "depts": [
@@ -523,7 +667,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "content-audit": {
       "depts": [
@@ -533,7 +680,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "content-calendar": {
       "depts": [
@@ -543,7 +693,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "content-system": {
       "depts": [
@@ -553,7 +706,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "copy-framework": {
       "depts": [
@@ -563,7 +719,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "cro-optimize": {
       "depts": [
@@ -573,7 +732,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "cto-advisor": {
       "depts": [
@@ -583,7 +745,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "culture-audit": {
       "depts": [
@@ -593,7 +758,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "culture-define": {
       "depts": [
@@ -603,7 +771,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "customer-journey": {
       "depts": [
@@ -613,7 +784,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "customer-success": {
       "depts": [
@@ -623,7 +797,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "dashboard-build": {
       "depts": [
@@ -633,7 +810,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "db-design": {
       "depts": [
@@ -641,7 +821,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "db-schema": {
       "depts": [
@@ -651,7 +834,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ddd-model": {
       "depts": [
@@ -661,7 +847,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "deal-qualify": {
       "depts": [
@@ -671,7 +860,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "decision-framework": {
       "depts": [
@@ -681,7 +873,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "delegation-matrix": {
       "depts": [
@@ -691,7 +886,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "demo-gif": {
       "depts": [
@@ -701,7 +899,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "dependency-audit": {
       "depts": [
@@ -711,7 +912,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "deploy": {
       "depts": [
@@ -721,7 +925,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "design-review": {
       "depts": [
@@ -729,7 +936,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "design-system": {
       "depts": [
@@ -737,7 +947,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "devops-pipeline": {
       "depts": [
@@ -747,7 +960,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "disc-assess": {
       "depts": [
@@ -757,7 +973,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "discovery-call": {
       "depts": [
@@ -765,7 +984,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "discovery-plan": {
       "depts": [
@@ -775,7 +997,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "docs": {
       "depts": [
@@ -785,7 +1010,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ecommerce": {
       "depts": [
@@ -795,7 +1023,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "email-sequence": {
       "depts": [
@@ -807,7 +1038,10 @@
         "arkaos-landing@arkaos",
         "arkaos-marketing@arkaos"
       ],
-      "collision": true
+      "collision": true,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "env-secrets": {
       "depts": [
@@ -817,7 +1051,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "estimate-forecast": {
       "depts": [
@@ -827,7 +1064,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "events-plan": {
       "depts": [
@@ -837,7 +1077,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "extract-data": {
       "depts": [
@@ -847,7 +1090,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "feedback-give": {
       "depts": [
@@ -855,7 +1101,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "financial-model": {
       "depts": [
@@ -863,7 +1112,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "five-forces": {
       "depts": [
@@ -871,7 +1123,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "forecast-revenue": {
       "depts": [
@@ -881,7 +1136,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "fulfillment-plan": {
       "depts": [
@@ -891,7 +1149,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "funnel-design": {
       "depts": [
@@ -899,7 +1160,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "funnel-metrics": {
       "depts": [
@@ -909,7 +1173,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "gamification-design": {
       "depts": [
@@ -919,7 +1186,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "gdpr-compliance": {
       "depts": [
@@ -929,7 +1199,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "growth-loop": {
       "depts": [
@@ -937,7 +1210,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "growth-plan": {
       "depts": [
@@ -949,7 +1225,10 @@
         "arkaos-community@arkaos",
         "arkaos-saas@arkaos"
       ],
-      "collision": true
+      "collision": true,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "growth-strategy": {
       "depts": [
@@ -959,7 +1238,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "gtd-setup": {
       "depts": [
@@ -969,7 +1251,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "gtm-strategy": {
       "depts": [
@@ -979,7 +1264,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "headline-write": {
       "depts": [
@@ -989,7 +1277,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "hiring-plan": {
       "depts": [
@@ -1001,7 +1292,10 @@
         "arkaos-leadership@arkaos",
         "arkaos-org@arkaos"
       ],
-      "collision": true
+      "collision": true,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "hook-write": {
       "depts": [
@@ -1009,7 +1303,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "identity-system": {
       "depts": [
@@ -1019,7 +1316,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "impact-map": {
       "depts": [
@@ -1029,7 +1329,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "incident": {
       "depts": [
@@ -1039,7 +1342,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "integration-design": {
       "depts": [
@@ -1049,7 +1355,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "iso27001": {
       "depts": [
@@ -1059,7 +1368,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "kanban-setup": {
       "depts": [
@@ -1069,7 +1381,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "knowledge": {
       "depts": [
@@ -1079,7 +1394,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "knowledge-review": {
       "depts": [
@@ -1089,7 +1407,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "landing-gen": {
       "depts": [
@@ -1097,7 +1418,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "launch-execute": {
       "depts": [
@@ -1107,7 +1431,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "launch-sequence": {
       "depts": [
@@ -1117,7 +1444,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "leaky-bucket": {
       "depts": [
@@ -1127,7 +1457,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "lean-audit": {
       "depts": [
@@ -1137,7 +1470,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "learn-content": {
       "depts": [
@@ -1147,7 +1483,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "logo-brief": {
       "depts": [
@@ -1157,7 +1496,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "marketing-automation": {
       "depts": [
@@ -1167,7 +1509,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "marketplace-manage": {
       "depts": [
@@ -1177,7 +1522,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "mcp": {
       "depts": [
@@ -1187,7 +1535,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "mcp-builder": {
       "depts": [
@@ -1197,7 +1548,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "meeting-optimize": {
       "depts": [
@@ -1207,7 +1561,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "metrics-dashboard": {
       "depts": [
@@ -1219,7 +1576,10 @@
         "arkaos-ops@arkaos",
         "arkaos-saas@arkaos"
       ],
-      "collision": true
+      "collision": true,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "metrics-track": {
       "depts": [
@@ -1229,7 +1589,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "micro-saas-stack": {
       "depts": [
@@ -1239,7 +1602,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "moat-analysis": {
       "depts": [
@@ -1247,7 +1613,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "moc-create": {
       "depts": [
@@ -1257,7 +1626,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "mockup-generate": {
       "depts": [
@@ -1267,7 +1639,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "moderation": {
       "depts": [
@@ -1275,7 +1650,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "monetization-plan": {
       "depts": [
@@ -1285,7 +1663,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "monetize-plan": {
       "depts": [
@@ -1295,7 +1676,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "mvp-build": {
       "depts": [
@@ -1303,7 +1687,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "n8n-flow": {
       "depts": [
@@ -1313,7 +1700,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "naming-evaluate": {
       "depts": [
@@ -1323,7 +1713,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "negotiate-plan": {
       "depts": [
@@ -1333,7 +1726,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "newsletter-write": {
       "depts": [
@@ -1343,7 +1739,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "niche-evaluate": {
       "depts": [
@@ -1353,7 +1752,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "niche-setup": {
       "depts": [
@@ -1363,7 +1765,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "objection-handle": {
       "depts": [
@@ -1371,7 +1776,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "observability": {
       "depts": [
@@ -1381,7 +1789,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "offer-create": {
       "depts": [
@@ -1391,7 +1802,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "okr-cadence": {
       "depts": [
@@ -1401,7 +1815,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "okr-define": {
       "depts": [
@@ -1411,7 +1828,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "onboard": {
       "depts": [
@@ -1421,7 +1841,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "onboarding-design": {
       "depts": [
@@ -1431,7 +1854,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "onboarding-flow": {
       "depts": [
@@ -1441,7 +1867,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "onboarding-optimize": {
       "depts": [
@@ -1451,7 +1880,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "operations": {
       "depts": [
@@ -1461,7 +1893,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "optimize-page": {
       "depts": [
@@ -1471,7 +1906,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "org-design": {
       "depts": [
@@ -1479,7 +1917,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "page-architect": {
       "depts": [
@@ -1489,7 +1930,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "paid-campaign": {
       "depts": [
@@ -1499,7 +1943,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "performance-audit": {
       "depts": [
@@ -1509,7 +1956,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "performance-profiler": {
       "depts": [
@@ -1519,7 +1969,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "performance-review": {
       "depts": [
@@ -1529,7 +1982,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "persona-build": {
       "depts": [
@@ -1539,7 +1995,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "persuasion-apply": {
       "depts": [
@@ -1549,7 +2008,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "pipeline-manage": {
       "depts": [
@@ -1559,7 +2021,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "pitch-deck": {
       "depts": [
@@ -1569,7 +2034,10 @@
       "plugins": [
         "arkaos-finance@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "platform-optimize": {
       "depts": [
@@ -1579,7 +2047,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "platform-select": {
       "depts": [
@@ -1589,7 +2060,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "plg-setup": {
       "depts": [
@@ -1597,7 +2071,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "position": {
       "depts": [
@@ -1607,7 +2084,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "positioning-statement": {
       "depts": [
@@ -1617,7 +2097,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "premortem": {
       "depts": [
@@ -1627,7 +2110,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "pricing-negotiate": {
       "depts": [
@@ -1637,7 +2123,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "pricing-strategy": {
       "depts": [
@@ -1649,7 +2138,10 @@
         "arkaos-ecom@arkaos",
         "arkaos-saas@arkaos"
       ],
-      "collision": true
+      "collision": true,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "primal-audit": {
       "depts": [
@@ -1659,7 +2151,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "principles-audit": {
       "depts": [
@@ -1669,7 +2164,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "product-launch": {
       "depts": [
@@ -1679,7 +2177,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "programmatic-seo": {
       "depts": [
@@ -1689,7 +2190,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "proposal-write": {
       "depts": [
@@ -1699,7 +2203,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "quality-management": {
       "depts": [
@@ -1709,7 +2216,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "rag-architect": {
       "depts": [
@@ -1719,7 +2229,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "red-team": {
       "depts": [
@@ -1729,7 +2242,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "refactor-plan": {
       "depts": [
@@ -1737,7 +2253,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "release": {
       "depts": [
@@ -1747,7 +2266,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "remote-setup": {
       "depts": [
@@ -1757,7 +2279,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "repurpose-plan": {
       "depts": [
@@ -1767,7 +2292,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "research": {
       "depts": [
@@ -1777,7 +2305,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "research-compile": {
       "depts": [
@@ -1787,7 +2318,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "research-plan": {
       "depts": [
@@ -1797,7 +2331,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "retention-system": {
       "depts": [
@@ -1807,7 +2344,10 @@
       "plugins": [
         "arkaos-community@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "rfm-segment": {
       "depts": [
@@ -1817,7 +2357,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "risk-management": {
       "depts": [
@@ -1827,7 +2370,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "risk-register": {
       "depts": [
@@ -1837,7 +2383,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "roadmap-build": {
       "depts": [
@@ -1845,7 +2394,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "runbook": {
       "depts": [
@@ -1853,7 +2405,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "saas-scaffold": {
       "depts": [
@@ -1863,7 +2418,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "scaffold": {
       "depts": [
@@ -1873,7 +2431,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "scenario-analysis": {
       "depts": [
@@ -1883,7 +2444,10 @@
       "plugins": [
         "arkaos-finance@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "scenario-plan": {
       "depts": [
@@ -1893,7 +2457,10 @@
       "plugins": [
         "arkaos-strategy@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "script-structure": {
       "depts": [
@@ -1903,7 +2470,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "search-kb": {
       "depts": [
@@ -1911,7 +2481,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "security-audit": {
       "depts": [
@@ -1919,7 +2492,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "security-compliance": {
       "depts": [
@@ -1929,7 +2505,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "seo-audit": {
       "depts": [
@@ -1937,7 +2516,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "shape-pitch": {
       "depts": [
@@ -1947,7 +2529,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "short-form": {
       "depts": [
@@ -1957,7 +2542,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "skill-audit": {
       "depts": [
@@ -1967,7 +2555,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "soc2-compliance": {
       "depts": [
@@ -1977,7 +2568,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "social-commerce": {
       "depts": [
@@ -1987,7 +2581,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "social-strategy": {
       "depts": [
@@ -1997,7 +2594,10 @@
       "plugins": [
         "arkaos-marketing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "sop-create": {
       "depts": [
@@ -2005,7 +2605,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "sop-process": {
       "depts": [
@@ -2015,7 +2618,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "source-evaluate": {
       "depts": [
@@ -2025,7 +2631,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "spec": {
       "depts": [
@@ -2033,7 +2642,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "spin-sell": {
       "depts": [
@@ -2043,7 +2655,10 @@
       "plugins": [
         "arkaos-sales@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "sprint-plan": {
       "depts": [
@@ -2051,7 +2666,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "stack-check": {
       "depts": [
@@ -2061,7 +2679,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "stakeholder-map": {
       "depts": [
@@ -2071,7 +2692,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "standup-run": {
       "depts": [
@@ -2081,7 +2705,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "store-audit": {
       "depts": [
@@ -2089,7 +2716,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "story-write": {
       "depts": [
@@ -2099,7 +2729,10 @@
       "plugins": [
         "arkaos-pm@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "subscription-model": {
       "depts": [
@@ -2109,7 +2742,10 @@
       "plugins": [
         "arkaos-ecom@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "taxonomy-manage": {
       "depts": [
@@ -2119,7 +2755,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "tdd-cycle": {
       "depts": [
@@ -2127,7 +2766,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "team-assess": {
       "depts": [
@@ -2137,7 +2779,10 @@
       "plugins": [
         "arkaos-org@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "team-health": {
       "depts": [
@@ -2147,7 +2792,10 @@
       "plugins": [
         "arkaos-leadership@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "tech-debt": {
       "depts": [
@@ -2157,7 +2805,10 @@
       "plugins": [
         "arkaos-dev@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "thumbnail-package": {
       "depts": [
@@ -2167,7 +2818,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "trend-hunt": {
       "depts": [
@@ -2177,7 +2831,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "unit-economics": {
       "depts": [
@@ -2185,7 +2842,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "update": {
       "depts": [
@@ -2195,7 +2855,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "ux-audit": {
       "depts": [
@@ -2205,7 +2868,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "validate-idea": {
       "depts": [
@@ -2215,7 +2881,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "valuation-model": {
       "depts": [
@@ -2225,7 +2894,10 @@
       "plugins": [
         "arkaos-finance@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "video-produce": {
       "depts": [
@@ -2235,7 +2907,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "video-setup": {
       "depts": [
@@ -2245,7 +2920,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "viral-design": {
       "depts": [
@@ -2255,7 +2933,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "voc-loop": {
       "depts": [
@@ -2265,7 +2946,10 @@
       "plugins": [
         "arkaos-saas@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "voice-guide": {
       "depts": [
@@ -2275,7 +2959,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "webinar-funnel": {
       "depts": [
@@ -2285,7 +2972,10 @@
       "plugins": [
         "arkaos-landing@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "wireframe": {
       "depts": [
@@ -2295,7 +2985,10 @@
       "plugins": [
         "arkaos-brand@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "workflow-automate": {
       "depts": [
@@ -2303,7 +2996,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "write-as-persona": {
       "depts": [
@@ -2313,7 +3009,10 @@
       "plugins": [
         "arkaos-kb@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "youtube-strategy": {
       "depts": [
@@ -2323,7 +3022,10 @@
       "plugins": [
         "arkaos-content@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "zapier-flow": {
       "depts": [
@@ -2333,7 +3035,10 @@
       "plugins": [
         "arkaos-ops@arkaos"
       ],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     },
     "zettelkasten-process": {
       "depts": [
@@ -2341,7 +3046,10 @@
       ],
       "curated": true,
       "plugins": [],
-      "collision": false
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
     }
   }
 }

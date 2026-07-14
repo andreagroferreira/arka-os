@@ -50,6 +50,12 @@ if str(REPO_ROOT / "scripts") not in sys.path:
 
 from marketplace_export import _convert  # noqa: E402
 
+from core.skills.provenance import (  # noqa: E402
+    FIRST_PARTY,
+    SkillProvenance,
+    parse_provenance,
+)
+
 CURATED_YAML = REPO_ROOT / "config" / "skills-curated.yaml"
 DEPARTMENTS_DIR = REPO_ROOT / "departments"
 PLUGINS_DIR = REPO_ROOT / "plugins"
@@ -233,7 +239,50 @@ def build_marketplace(emitted: dict[str, list[str]]) -> dict:
     return manifest
 
 
-def build_skills_manifest(emitted: dict[str, list[str]]) -> dict:
+def skill_provenance(dept: str, slug: str) -> SkillProvenance:
+    """Provenance from the skill's own frontmatter, path-tagged on error.
+
+    A bare pydantic traceback across 260 skills is a needle hunt on the
+    release-critical path (step 1b) — name the file that broke.
+    """
+    skill_md = DEPARTMENTS_DIR / dept / "skills" / slug / "SKILL.md"
+    try:
+        return parse_provenance(skill_md.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(
+            f"{skill_md.relative_to(REPO_ROOT)}: bad provenance — {exc}"
+        ) from exc
+
+
+def _provenance_entry(prov: SkillProvenance) -> dict:
+    """Manifest shape: the full licence trail, not just the origin."""
+    entry = {"origin": prov.origin}
+    if not prov.is_first_party:
+        entry["source"] = prov.source
+        entry["license"] = prov.license
+    return entry
+
+
+def _merge_provenance(slug: str, entry: dict, prov: SkillProvenance) -> None:
+    """One manifest row can front N department copies of a slug.
+
+    A collision where the copies disagree on lineage is unrepresentable
+    in one row — refuse loudly rather than pick a winner.
+    """
+    incoming = _provenance_entry(prov)
+    current = entry["provenance"]
+    if current["origin"] == FIRST_PARTY:
+        entry["provenance"] = incoming
+        return
+    if incoming["origin"] != FIRST_PARTY and incoming != current:
+        raise ValueError(
+            f"slug {slug!r} collides across departments with conflicting "
+            f"provenance: {current} vs {incoming}"
+        )
+
+
+def _skill_rows(emitted: dict[str, list[str]]) -> dict[str, dict]:
+    """slug -> {depts, curated, plugins, collision, provenance}."""
     curated = load_curated()
     subskills = dept_subskills()
     collisions = collision_slugs(subskills)
@@ -243,8 +292,10 @@ def build_skills_manifest(emitted: dict[str, list[str]]) -> dict:
             entry = skills.setdefault(slug, {
                 "depts": [], "curated": False, "plugins": [],
                 "collision": slug in collisions,
+                "provenance": {"origin": FIRST_PARTY},
             })
             entry["depts"].append(dept)
+            _merge_provenance(slug, entry, skill_provenance(dept, slug))
             if slug in set(curated.get(dept, [])):
                 entry["curated"] = True
             elif dept in emitted and slug in emitted[dept]:
@@ -252,6 +303,11 @@ def build_skills_manifest(emitted: dict[str, list[str]]) -> dict:
     for entry in skills.values():
         entry["depts"].sort()
         entry["plugins"].sort()
+    return skills
+
+
+def build_skills_manifest(emitted: dict[str, list[str]]) -> dict:
+    skills = _skill_rows(emitted)
     return {
         "_meta": {
             "generator": "scripts/marketplace_gen.py",

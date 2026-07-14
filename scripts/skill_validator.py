@@ -13,11 +13,21 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from core.skills.provenance import provenance_issues  # noqa: E402
+
+# Penalty budget: sums to exactly 100. A missing SKILL.md is fatal
+# (score 0) rather than a weighted deduction — the old 20-point hit
+# left a skill with no file at all scoring 80/GOOD.
 WEIGHTS = {
-    "skill_md_exists": 20, "frontmatter_present": 15, "required_fields": 15,
-    "name_format": 10, "allowed_tools_list": 5, "has_h1": 10, "has_h2": 5,
-    "line_count": 5, "agent_attribution": 10, "output_section": 5,
+    "frontmatter_present": 15, "required_fields": 15, "name_format": 10,
+    "allowed_tools_list": 5, "has_h1": 10, "has_h2": 5, "line_count": 5,
+    "agent_attribution": 10, "output_section": 5, "provenance": 20,
 }
+assert sum(WEIGHTS.values()) == 100, "penalty budget must sum to 100"
 
 
 @dataclass
@@ -82,58 +92,96 @@ def parse_frontmatter(content: str) -> dict[str, str | list[str]] | None:
     return data
 
 
-def validate_skill(skill_dir: Path) -> SkillResult:
-    """Validate a single skill directory against ArkaOS v2 standards."""
-    parts = skill_dir.resolve().parts
-    try:
-        dept = parts[parts.index("departments") + 1]
-    except (ValueError, IndexError):
-        dept = "unknown"
-    result = SkillResult(name=f"{dept}/{skill_dir.name}")
-    skill_md = skill_dir / "SKILL.md"
+def _check_fields(result: SkillResult, fm: dict) -> None:
+    """Required fields, name format, tool list shape."""
+    missing = [
+        f for f in ("name", "description", "allowed-tools") if f not in fm
+    ]
+    if missing:
+        result.deduct(
+            WEIGHTS["required_fields"], f"missing fields: {', '.join(missing)}"
+        )
+    name_val = fm.get("name", "")
+    if isinstance(name_val, str) and not re.match(
+            r"^[a-z][\w-]*/[\w-]+$", name_val):
+        result.deduct(
+            WEIGHTS["name_format"],
+            f"name '{name_val}' does not match dept/slug format",
+        )
+    tools = fm.get("allowed-tools")
+    if tools is not None and not isinstance(tools, list):
+        result.deduct(
+            WEIGHTS["allowed_tools_list"], "allowed-tools is not a list"
+        )
 
-    if not skill_md.is_file():
-        result.deduct(WEIGHTS["skill_md_exists"], "missing SKILL.md")
-        result.finalize()
-        return result
 
-    content = skill_md.read_text(encoding="utf-8")
-    line_count = content.count("\n") + 1
-
-    # Frontmatter checks
+def _check_frontmatter(result: SkillResult, content: str) -> None:
+    """Frontmatter shape, required fields, and provenance."""
     fm = parse_frontmatter(content)
     if fm is None:
-        for key in ("frontmatter_present", "required_fields", "name_format", "allowed_tools_list"):
-            result.deduct(WEIGHTS[key], f"no {key.replace('_', ' ')} (no frontmatter)")
+        for key in ("frontmatter_present", "required_fields", "name_format",
+                    "allowed_tools_list"):
+            result.deduct(
+                WEIGHTS[key], f"no {key.replace('_', ' ')} (no frontmatter)"
+            )
     else:
-        missing = [f for f in ("name", "description", "allowed-tools") if f not in fm]
-        if missing:
-            result.deduct(WEIGHTS["required_fields"], f"missing fields: {', '.join(missing)}")
-        name_val = fm.get("name", "")
-        if isinstance(name_val, str) and not re.match(r"^[a-z][\w-]*/[\w-]+$", name_val):
-            result.deduct(WEIGHTS["name_format"], f"name '{name_val}' does not match dept/slug format")
-        tools = fm.get("allowed-tools")
-        if tools is not None and not isinstance(tools, list):
-            result.deduct(WEIGHTS["allowed_tools_list"], "allowed-tools is not a list")
+        _check_fields(result, fm)
+    # One deduction however many ways the block is wrong — a laundered
+    # origin is one defect, not a compounding tally.
+    issues = provenance_issues(content)
+    if issues:
+        result.deduct(
+            WEIGHTS["provenance"], f"provenance: {'; '.join(issues)}"
+        )
 
-    # Content checks (strip frontmatter)
+
+def _check_body(result: SkillResult, content: str) -> None:
+    """Headings, length, agent attribution, output contract."""
     body = re.sub(r"^---.*?---\s*", "", content, count=1, flags=re.DOTALL)
+    line_count = content.count("\n") + 1
     if not re.search(r"^# ", body, re.MULTILINE):
         result.deduct(WEIGHTS["has_h1"], "no H1 heading found")
     if not re.search(r"^## ", body, re.MULTILINE):
         result.deduct(WEIGHTS["has_h2"], "no H2 heading found")
-
-    # Line count: error if outside 30-200, soft warn if outside 60-120
+    # Error outside 30-200 lines, soft warn outside the ideal 60-120.
     if line_count < 30 or line_count > 200:
-        result.deduct(WEIGHTS["line_count"], f"line count {line_count} outside 30-200 range")
+        result.deduct(
+            WEIGHTS["line_count"],
+            f"line count {line_count} outside 30-200 range",
+        )
     elif line_count < 60 or line_count > 120:
-        result.deduct(WEIGHTS["line_count"] // 2, f"line count {line_count} outside ideal 60-120 range")
-
+        result.deduct(
+            WEIGHTS["line_count"] // 2,
+            f"line count {line_count} outside ideal 60-120 range",
+        )
     if not re.search(r"^>\s*\*\*Agent:", body, re.MULTILINE):
-        result.deduct(WEIGHTS["agent_attribution"], "missing agent attribution (> **Agent:** line)")
+        result.deduct(
+            WEIGHTS["agent_attribution"],
+            "missing agent attribution (> **Agent:** line)",
+        )
     if not re.search(r"^##\s+Output", body, re.MULTILINE):
         result.deduct(WEIGHTS["output_section"], "missing ## Output section")
 
+
+def _department_of(skill_dir: Path) -> str:
+    parts = skill_dir.resolve().parts
+    try:
+        return parts[parts.index("departments") + 1]
+    except (ValueError, IndexError):
+        return "unknown"
+
+
+def validate_skill(skill_dir: Path) -> SkillResult:
+    """Validate a single skill directory against ArkaOS v2 standards."""
+    result = SkillResult(name=f"{_department_of(skill_dir)}/{skill_dir.name}")
+    skill_md = skill_dir / "SKILL.md"
+    if not skill_md.is_file():
+        result.deduct(100, "missing SKILL.md")
+        result.finalize()
+        return result
+    content = skill_md.read_text(encoding="utf-8")
+    _check_frontmatter(result, content)
+    _check_body(result, content)
     result.finalize()
     return result
 
@@ -161,7 +209,10 @@ def print_text(results: list[SkillResult], summary_only: bool = False) -> None:
             print(f"{icon} {r.name} \u2014 {r.score}/100 {r.level}{suffix}")
         print()
     passed, warnings, failures = _counts(results)
-    print(f"Summary: {len(results)} skills validated, {passed} passed, {warnings} warnings, {failures} failures")
+    print(
+        f"Summary: {len(results)} skills validated, {passed} passed, "
+        f"{warnings} warnings, {failures} failures"
+    )
 
 
 def print_json(results: list[SkillResult]) -> None:
@@ -174,32 +225,52 @@ def print_json(results: list[SkillResult]) -> None:
     print(json.dumps(output, indent=2))
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "ArkaOS v2 Skill Validator — validate SKILL.md files "
+            "against project standards."
+        ),
+        epilog=(
+            "Exit codes: 0 = all passed, 1 = warnings only, "
+            "2 = failures found."
+        ),
+    )
+    parser.add_argument(
+        "path", type=Path,
+        help="Skill directory or parent to scan recursively.",
+    )
+    parser.add_argument(
+        "--json", action="store_true", dest="json_output",
+        help="Output as JSON.",
+    )
+    parser.add_argument(
+        "--summary", action="store_true", help="Print only summary totals.",
+    )
+    return parser
+
+
+def _resolve_targets(target: Path) -> list[Path]:
+    """Skill dirs under `target`. Raises ValueError with the reason."""
+    if not target.exists():
+        raise ValueError(f"path does not exist: {target}")
+    if (target / "SKILL.md").is_file():
+        return [target]
+    if not target.is_dir():
+        raise ValueError(f"{target} is not a directory")
+    skill_dirs = discover_skills(target)
+    if not skill_dirs:
+        raise ValueError("no SKILL.md files found")
+    return skill_dirs
+
+
 def main() -> int:
     """Entry point. Returns exit code."""
-    parser = argparse.ArgumentParser(
-        description="ArkaOS v2 Skill Validator — validate SKILL.md files against project standards.",
-        epilog="Exit codes: 0 = all passed, 1 = warnings only, 2 = failures found.",
-    )
-    parser.add_argument("path", type=Path, help="Skill directory or parent to scan recursively.")
-    parser.add_argument("--json", action="store_true", dest="json_output", help="Output as JSON.")
-    parser.add_argument("--summary", action="store_true", help="Print only summary totals.")
-    args = parser.parse_args()
-    target: Path = args.path.resolve()
-
-    if not target.exists():
-        print(f"Error: path does not exist: {target}", file=sys.stderr)
-        return 2
-
-    if (target / "SKILL.md").is_file():
-        skill_dirs = [target]
-    elif target.is_dir():
-        skill_dirs = discover_skills(target)
-    else:
-        print(f"Error: {target} is not a directory", file=sys.stderr)
-        return 2
-
-    if not skill_dirs:
-        print("No SKILL.md files found.", file=sys.stderr)
+    args = _build_parser().parse_args()
+    try:
+        skill_dirs = _resolve_targets(args.path.resolve())
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         return 2
 
     results = [validate_skill(d) for d in skill_dirs]

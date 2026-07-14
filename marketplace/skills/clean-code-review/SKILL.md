@@ -1,8 +1,15 @@
 ---
 name: clean-code-review
 description: >
-  Review code against Clean Code (Uncle Bob) and SOLID principles. Checks naming,
-  function size, nesting depth, dead code, god classes, and dependency direction.
+  Focused Clean Code (Uncle Bob) + SOLID sweep of a file or PR — naming,
+  function size, nesting depth, dead code, god classes, dependency
+  direction — reported as BLOCKER/WARNING/NOTE with scores. TRIGGER:
+  "/dev clean-review", "clean code", "SOLID", "code smells", "god class",
+  "naming review", "refactor review", "está limpo?", "verifica SOLID",
+  "revê a qualidade do código", "isto viola SRP?". SKIP: full review that
+  must also weigh tests, security, and a merge verdict -> dev/code-review wins;
+  hunting bugs, race conditions, or attack vectors -> dev/adversarial-review wins;
+  anything visual (UI, layout, brand compliance) -> brand/design-review wins.
 ---
 
 # Clean Code Review

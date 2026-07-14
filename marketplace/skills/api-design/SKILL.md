@@ -1,8 +1,14 @@
 ---
 name: api-design
 description: >
-  Design REST or GraphQL APIs with versioning, documentation, and contracts.
-  Follows OpenAPI spec for REST, SDL for GraphQL.
+  Design REST or GraphQL APIs with resource modeling, versioning, pagination,
+  error contracts, and documentation — OpenAPI 3 spec for REST, SDL for
+  GraphQL, Laravel conventions included. TRIGGER: "api design", "desenha a
+  API", "endpoints", "contrato da API", "REST", "GraphQL", "/dev api-design";
+  load BEFORE implementing controllers or routes. SKIP: system architecture
+  beyond the API surface -> dev/architecture-design; the database schema
+  behind the API -> dev/db-schema; requirements not yet defined -> dev/spec
+  first.
 ---
 
 # API Design
