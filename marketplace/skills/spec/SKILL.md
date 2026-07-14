@@ -1,20 +1,22 @@
 ---
 name: spec
 description: >
-  NON-NEGOTIABLE spec-driven development gate. Creates, validates, and manages feature
-  specifications before any code is written. Uses Living Specs engine (core/specs/).
-  Interactive workflow that collaborates with the user to produce detailed specs covering
-  scope, acceptance criteria, data model, API contracts, UI/UX requirements, edge cases,
-  and test scenarios. Auto-invoked as Phase 0 by all code-modifying Tier 1 and Tier 2
-  dev workflows (/dev feature, /dev api, /dev db, and code-modifying /dev do).
-  This is a Constitution rule (NON-NEGOTIABLE #7) — no code without an approved spec.
-  Use when user says "spec", "specification", "requirements", "define feature",
-  "write spec", "describe what to build", or when any code-modifying dev command is invoked.
+  Spec-driven development gate, constitution MUST rule spec-driven
+  (Constitution #7 — no code without an approved spec): creates, validates,
+  and manages feature specifications with the Living Specs engine
+  (core/specs/) — scope, acceptance criteria, data model, API contracts,
+  edge cases, test scenarios. TRIGGER: "spec", "requirements", "requisitos",
+  "write spec", "escreve a spec", "critérios de aceitação", "/dev spec";
+  auto-invoked as Phase 0 of every code-modifying dev workflow — load BEFORE
+  writing any code. SKIP: multi-agent planning or "how do we execute this"
+  -> /arka-forge (the Forge plans the WORK; spec defines the WHAT);
+  reviewing existing code -> dev/code-review; /dev debug and /dev refactor
+  operate on existing code and need no new spec.
 ---
 
 # Spec-Driven Development — ARKA OS Dev Department
 
-No code is written until a detailed spec exists and is approved. **NON-NEGOTIABLE #7.**
+No code is written until a detailed spec exists and is approved. **Constitution MUST rule spec-driven (#7).**
 
 ## Commands
 

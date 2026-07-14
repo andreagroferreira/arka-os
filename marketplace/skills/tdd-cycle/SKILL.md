@@ -1,8 +1,14 @@
 ---
 name: tdd-cycle
 description: >
-  Test-Driven Development using Kent Beck's Red-Green-Refactor cycle.
-  Write failing test first, minimal code to pass, then refactor.
+  Test-Driven Development with Kent Beck's Red-Green-Refactor cycle: write the
+  failing test first, minimum code to pass, refactor on green — enforces the
+  testing pyramid (70/20/10) and >= 80% coverage across
+  PHPUnit/Pest/Vitest/Jest/pytest/Playwright. TRIGGER: "test", "TDD", "escreve
+  os testes", "write tests first", "cobertura de testes", "red green
+  refactor", "/dev test"; load BEFORE implementing feature code. SKIP:
+  clicking through a native app -> dev/app-test (exploratory, not automated
+  tests); planning a refactor's safety net -> dev/refactor-plan.
 ---
 
 # TDD Cycle

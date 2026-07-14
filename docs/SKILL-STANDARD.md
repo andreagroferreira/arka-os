@@ -41,6 +41,55 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 | `name` | Yes | Format: `dept/skill-slug`. Must match the directory path. |
 | `description` | Yes | What the skill does. Used in command search and routing. |
 | `allowed-tools` | Yes | Which Claude Code tools this skill can use. |
+| `metadata.origin` | Only when derived | Provenance. Absent means first-party (`arkaos`). |
+
+### Provenance (skills derived from third-party work)
+
+A skill adapted from someone else's work declares where it came from.
+An audit cannot trace a skill back to its licence if the lineage is not
+written on the file.
+
+```yaml
+metadata:
+  origin: ecc-derived
+  source: https://github.com/affaan-m/ecc
+  license: MIT
+```
+
+| Rule | Detail |
+|------|--------|
+| `origin` | Lowercase slug, `^[a-z][a-z0-9-]*$`. `ECC-Derived` is rejected. |
+| Third-party | Any origin other than `arkaos` **must** carry `source` (an http(s) URL) and `license`. |
+| First-party | Needs no `metadata` block at all. Absence means `arkaos`. |
+| Malformed | A block that is present but unusable — broken YAML, tab indentation, `metadata` bound to a scalar, a misspelt key like `metadatas:` or `orgin:` — **fails**. It never falls back to first-party. |
+
+`core/skills/provenance.py` reads the block, scores it in the validator,
+and the full origin/source/licence triple lands in
+`knowledge/skills-manifest.json`.
+
+### Every skill must be classified
+
+A parser cannot catch the port whose author simply forgot the block —
+silence and honesty are byte-identical to it. So the parser is not
+asked. `config/skills-provenance.yaml` classifies every skill in the
+tree, three ways and only three:
+
+| Classification | Meaning |
+|---|---|
+| `first_party` | The closed baseline: skills that existed at the 2026-07-14 cut. **Do not add to it.** |
+| `derived` | Registered as third-party, with `source` and `license`. |
+| self-declaring | Carries `metadata.origin` in its own frontmatter. |
+
+`tests/python/test_skill_provenance.py` fails CI, by name, on any skill
+that is none of the three. A skill added tomorrow is not in the
+baseline, so it must declare what it is — and a port that declares
+nothing lands in that failure, not in the tree.
+
+So a new skill states its origin, and a ported one lands in a diff, in
+front of a reviewer, with the licence written down.
+
+Derived content is rewritten in ArkaOS voice with ArkaOS personas. The
+origin field records lineage; it does not licence a copy-paste.
 
 ### Body Structure
 

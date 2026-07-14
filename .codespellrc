@@ -16,6 +16,10 @@
 #   unparseable/implementor — accepted English variants
 #   componentes/comandos/classe/meu/fases — pt-PT effect-object lexicon and
 #     test fixtures in core/governance/phantom_action_check.py (P0 2026-07-08)
+#   orgin/metdata/datas — INTENTIONAL misspellings in core/skills/provenance.py:
+#     the provenance parser detects these exact typos (metadatas:, orgin:) so a
+#     laundered skill cannot slip through; they appear in the docstring, the
+#     _METADATA_TYPO regex (metadatas?), and the test fixtures.
 [codespell]
-ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fases
+ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fases,orgin,metdata,datas
 skip = *.lock,*.svg,*/node_modules,*/__pycache__

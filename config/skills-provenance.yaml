@@ -1,0 +1,338 @@
+# Skill provenance classification — the control that makes omission impossible.
+#
+# The parser (core/skills/provenance.py) closes every way of writing a
+# BROKEN provenance block. It cannot see a skill that never writes one:
+# absence reads as first-party, which is exactly what a forgotten port
+# looks like. A parser is therefore the wrong place to close it.
+#
+# This file closes it. EVERY hand-authored SKILL.md in the repo must be
+# CLASSIFIED — listed in `first_party` below, listed in `derived` below,
+# or declaring `metadata.origin` in its own frontmatter. A skill in none
+# of the three fails CI by name as `unclassified`.
+# See tests/python/test_skill_provenance.py.
+#
+# Coverage is every authored surface, not just department sub-skills:
+# department hubs (departments/<d>/SKILL.md), the orchestrator
+# (arka/SKILL.md) and its meta skills (arka/skills/<s>/) are all here,
+# because a port can land in any of them. The generated trees —
+# plugins/ and marketplace/ — are deliberately NOT listed: they are
+# emitted from departments/ by scripts/marketplace_gen.py and are
+# already byte-drift-gated, so classifying the source classifies them.
+#
+# `first_party` is the baseline: the 275 skills that existed on the cut
+# date, snapshotted once so they need no edits. It is a CLOSED set. Do
+# not add to it — a new skill declares its origin in its own
+# frontmatter, and a ported one lands in `derived` with its licence
+# written down, in a diff, in front of a reviewer.
+#
+# What the baseline IS and IS NOT, stated plainly:
+#
+#   ASSERTED, not independently verified: that these 275 are ArkaOS
+#   originals. Nobody re-derived each one from scratch to prove it.
+#
+#   PROVEN, for the lineage that matters: none of them can be
+#   ECC-derived. `git log --diff-filter=A` puts every creation between
+#   2026-03-14 and 2026-07-13 — all of them before 2026-07-14, the day
+#   we first read that repository. Zero exceptions.
+#
+#   The property the control actually rests on is neither: it is that
+#   the set is CLOSED. Anything new must classify itself, whatever the
+#   truth about the 275 turns out to be.
+#
+# Residual we accept, on the record: baseline trust is granted to a
+# NAME. Gutting an existing skill and refilling it with someone else's
+# content keeps the name and passes. Per-entry content hashes would
+# close it and are refused — 275 live skills means every legitimate
+# edit would red-line CI until someone regenerated the hash, and a hash
+# people regenerate reflexively is theatre, not a control. The honest
+# defence against a whole-body swap is a diff that visibly replaces an
+# entire skill in front of a reviewer.
+#
+# Keys are repo-relative skill directory paths.
+#
+# derived format:
+#   departments/<dept>/skills/<slug>:
+#     origin: <lowercase-slug>      # e.g. ecc-derived, community
+#     source: https://...           # where it came from
+#     license: MIT                  # what we are bound by
+
+baseline_date: 2026-07-14
+
+derived: {}
+
+first_party:
+  - arka
+  - arka/skills/bootstrap-agent
+  - arka/skills/checkpoint
+  - arka/skills/comfyui
+  - arka/skills/conclave
+  - arka/skills/costs
+  - arka/skills/design-ops
+  - arka/skills/dreams
+  - arka/skills/flow
+  - arka/skills/forge
+  - arka/skills/fusion
+  - arka/skills/human-writing
+  - arka/skills/recipes
+  - arka/skills/refine
+  - arka/skills/research
+  - departments/brand
+  - departments/brand/skills/archetype-finder
+  - departments/brand/skills/colors
+  - departments/brand/skills/design-review
+  - departments/brand/skills/design-system
+  - departments/brand/skills/identity-system
+  - departments/brand/skills/logo-brief
+  - departments/brand/skills/mockup-generate
+  - departments/brand/skills/naming-evaluate
+  - departments/brand/skills/positioning-statement
+  - departments/brand/skills/primal-audit
+  - departments/brand/skills/ux-audit
+  - departments/brand/skills/voice-guide
+  - departments/brand/skills/wireframe
+  - departments/community
+  - departments/community/skills/ai-community
+  - departments/community/skills/betting-setup
+  - departments/community/skills/business-model
+  - departments/community/skills/content-calendar
+  - departments/community/skills/events-plan
+  - departments/community/skills/gamification-design
+  - departments/community/skills/growth-plan
+  - departments/community/skills/metrics-track
+  - departments/community/skills/moderation
+  - departments/community/skills/monetize-plan
+  - departments/community/skills/niche-setup
+  - departments/community/skills/onboarding-flow
+  - departments/community/skills/platform-select
+  - departments/community/skills/retention-system
+  - departments/content
+  - departments/content/skills/ai-workflow
+  - departments/content/skills/analytics
+  - departments/content/skills/calendar
+  - departments/content/skills/content-system
+  - departments/content/skills/hook-write
+  - departments/content/skills/monetization-plan
+  - departments/content/skills/newsletter-write
+  - departments/content/skills/platform-optimize
+  - departments/content/skills/repurpose-plan
+  - departments/content/skills/research-compile
+  - departments/content/skills/script-structure
+  - departments/content/skills/short-form
+  - departments/content/skills/thumbnail-package
+  - departments/content/skills/trend-hunt
+  - departments/content/skills/video-produce
+  - departments/content/skills/video-setup
+  - departments/content/skills/viral-design
+  - departments/content/skills/youtube-strategy
+  - departments/dev
+  - departments/dev/skills/adversarial-review
+  - departments/dev/skills/agent-design
+  - departments/dev/skills/agent-workflow
+  - departments/dev/skills/ai-assisted-dev
+  - departments/dev/skills/ai-security
+  - departments/dev/skills/animated-website
+  - departments/dev/skills/api-design
+  - departments/dev/skills/app-test
+  - departments/dev/skills/architecture-design
+  - departments/dev/skills/changelog
+  - departments/dev/skills/ci-cd-pipeline
+  - departments/dev/skills/clean-code-review
+  - departments/dev/skills/code-review
+  - departments/dev/skills/codebase-onboard
+  - departments/dev/skills/db-design
+  - departments/dev/skills/db-schema
+  - departments/dev/skills/ddd-model
+  - departments/dev/skills/demo-gif
+  - departments/dev/skills/dependency-audit
+  - departments/dev/skills/deploy
+  - departments/dev/skills/devops-pipeline
+  - departments/dev/skills/docs
+  - departments/dev/skills/env-secrets
+  - departments/dev/skills/incident
+  - departments/dev/skills/mcp
+  - departments/dev/skills/mcp-builder
+  - departments/dev/skills/observability
+  - departments/dev/skills/onboard
+  - departments/dev/skills/performance-audit
+  - departments/dev/skills/performance-profiler
+  - departments/dev/skills/rag-architect
+  - departments/dev/skills/red-team
+  - departments/dev/skills/refactor-plan
+  - departments/dev/skills/release
+  - departments/dev/skills/research
+  - departments/dev/skills/runbook
+  - departments/dev/skills/scaffold
+  - departments/dev/skills/security-audit
+  - departments/dev/skills/security-compliance
+  - departments/dev/skills/skill-audit
+  - departments/dev/skills/spec
+  - departments/dev/skills/stack-check
+  - departments/dev/skills/tdd-cycle
+  - departments/dev/skills/tech-debt
+  - departments/ecom
+  - departments/ecom/skills/analytics
+  - departments/ecom/skills/browse-competitor
+  - departments/ecom/skills/cart-recovery
+  - departments/ecom/skills/cro-optimize
+  - departments/ecom/skills/customer-journey
+  - departments/ecom/skills/ecommerce
+  - departments/ecom/skills/fulfillment-plan
+  - departments/ecom/skills/marketplace-manage
+  - departments/ecom/skills/pricing-strategy
+  - departments/ecom/skills/product-launch
+  - departments/ecom/skills/rfm-segment
+  - departments/ecom/skills/social-commerce
+  - departments/ecom/skills/store-audit
+  - departments/ecom/skills/subscription-model
+  - departments/finance
+  - departments/finance/skills/budget-plan
+  - departments/finance/skills/cashflow-forecast
+  - departments/finance/skills/ciso-advisor
+  - departments/finance/skills/financial-model
+  - departments/finance/skills/pitch-deck
+  - departments/finance/skills/scenario-analysis
+  - departments/finance/skills/unit-economics
+  - departments/finance/skills/valuation-model
+  - departments/kb
+  - departments/kb/skills/ai-research
+  - departments/kb/skills/competitive-intel
+  - departments/kb/skills/knowledge
+  - departments/kb/skills/knowledge-review
+  - departments/kb/skills/learn-content
+  - departments/kb/skills/moc-create
+  - departments/kb/skills/persona-build
+  - departments/kb/skills/research-plan
+  - departments/kb/skills/search-kb
+  - departments/kb/skills/source-evaluate
+  - departments/kb/skills/taxonomy-manage
+  - departments/kb/skills/write-as-persona
+  - departments/kb/skills/zettelkasten-process
+  - departments/landing
+  - departments/landing/skills/ab-test
+  - departments/landing/skills/affiliate-bridge
+  - departments/landing/skills/awareness-diagnose
+  - departments/landing/skills/copy-framework
+  - departments/landing/skills/email-sequence
+  - departments/landing/skills/funnel-design
+  - departments/landing/skills/funnel-metrics
+  - departments/landing/skills/headline-write
+  - departments/landing/skills/landing-gen
+  - departments/landing/skills/launch-sequence
+  - departments/landing/skills/offer-create
+  - departments/landing/skills/optimize-page
+  - departments/landing/skills/page-architect
+  - departments/landing/skills/persuasion-apply
+  - departments/landing/skills/webinar-funnel
+  - departments/leadership
+  - departments/leadership/skills/change-manage
+  - departments/leadership/skills/conflict-resolve
+  - departments/leadership/skills/culture-audit
+  - departments/leadership/skills/delegation-matrix
+  - departments/leadership/skills/disc-assess
+  - departments/leadership/skills/feedback-give
+  - departments/leadership/skills/hiring-plan
+  - departments/leadership/skills/okr-define
+  - departments/leadership/skills/performance-review
+  - departments/leadership/skills/team-health
+  - departments/marketing
+  - departments/marketing/skills/ab-test
+  - departments/marketing/skills/analytics-report
+  - departments/marketing/skills/audience-segment
+  - departments/marketing/skills/calendar-plan
+  - departments/marketing/skills/cold-email
+  - departments/marketing/skills/competitor-analysis
+  - departments/marketing/skills/content-audit
+  - departments/marketing/skills/email-sequence
+  - departments/marketing/skills/growth-loop
+  - departments/marketing/skills/marketing-automation
+  - departments/marketing/skills/paid-campaign
+  - departments/marketing/skills/programmatic-seo
+  - departments/marketing/skills/seo-audit
+  - departments/marketing/skills/social-strategy
+  - departments/ops
+  - departments/ops/skills/bottleneck-find
+  - departments/ops/skills/dashboard-build
+  - departments/ops/skills/gdpr-compliance
+  - departments/ops/skills/gtd-setup
+  - departments/ops/skills/integration-design
+  - departments/ops/skills/iso27001
+  - departments/ops/skills/lean-audit
+  - departments/ops/skills/metrics-dashboard
+  - departments/ops/skills/n8n-flow
+  - departments/ops/skills/operations
+  - departments/ops/skills/quality-management
+  - departments/ops/skills/risk-management
+  - departments/ops/skills/soc2-compliance
+  - departments/ops/skills/sop-create
+  - departments/ops/skills/update
+  - departments/ops/skills/workflow-automate
+  - departments/ops/skills/zapier-flow
+  - departments/org
+  - departments/org/skills/compensation-plan
+  - departments/org/skills/culture-define
+  - departments/org/skills/decision-framework
+  - departments/org/skills/hiring-plan
+  - departments/org/skills/meeting-optimize
+  - departments/org/skills/okr-cadence
+  - departments/org/skills/onboarding-design
+  - departments/org/skills/org-design
+  - departments/org/skills/principles-audit
+  - departments/org/skills/remote-setup
+  - departments/org/skills/sop-process
+  - departments/org/skills/team-assess
+  - departments/pm
+  - departments/pm/skills/agile-po
+  - departments/pm/skills/backlog-groom
+  - departments/pm/skills/discovery-plan
+  - departments/pm/skills/estimate-forecast
+  - departments/pm/skills/impact-map
+  - departments/pm/skills/kanban-setup
+  - departments/pm/skills/risk-register
+  - departments/pm/skills/roadmap-build
+  - departments/pm/skills/shape-pitch
+  - departments/pm/skills/sprint-plan
+  - departments/pm/skills/stakeholder-map
+  - departments/pm/skills/standup-run
+  - departments/pm/skills/story-write
+  - departments/quality
+  - departments/saas
+  - departments/saas/skills/benchmark-compare
+  - departments/saas/skills/churn-analysis
+  - departments/saas/skills/customer-success
+  - departments/saas/skills/growth-plan
+  - departments/saas/skills/gtm-strategy
+  - departments/saas/skills/launch-execute
+  - departments/saas/skills/leaky-bucket
+  - departments/saas/skills/metrics-dashboard
+  - departments/saas/skills/micro-saas-stack
+  - departments/saas/skills/mvp-build
+  - departments/saas/skills/niche-evaluate
+  - departments/saas/skills/onboarding-optimize
+  - departments/saas/skills/plg-setup
+  - departments/saas/skills/pricing-strategy
+  - departments/saas/skills/saas-scaffold
+  - departments/saas/skills/validate-idea
+  - departments/saas/skills/voc-loop
+  - departments/sales
+  - departments/sales/skills/challenger-sell
+  - departments/sales/skills/deal-qualify
+  - departments/sales/skills/discovery-call
+  - departments/sales/skills/forecast-revenue
+  - departments/sales/skills/negotiate-plan
+  - departments/sales/skills/objection-handle
+  - departments/sales/skills/pipeline-manage
+  - departments/sales/skills/pricing-negotiate
+  - departments/sales/skills/proposal-write
+  - departments/sales/skills/spin-sell
+  - departments/strategy
+  - departments/strategy/skills/blue-ocean
+  - departments/strategy/skills/bmc
+  - departments/strategy/skills/board-advisor
+  - departments/strategy/skills/cto-advisor
+  - departments/strategy/skills/extract-data
+  - departments/strategy/skills/five-forces
+  - departments/strategy/skills/growth-strategy
+  - departments/strategy/skills/moat-analysis
+  - departments/strategy/skills/position
+  - departments/strategy/skills/premortem
+  - departments/strategy/skills/scenario-plan
