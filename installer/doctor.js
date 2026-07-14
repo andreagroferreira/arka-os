@@ -531,5 +531,51 @@ export async function doctor(options = {}) {
   }
 
   console.log(`\n  Results: ${passed} passed, ${warned} warnings, ${failed} failures\n`);
+  await securityAdvisory();
   if (failed > 0) process.exit(1);
+}
+
+// Doctor answers "is the install healthy?". It never answered "is the
+// install SAFE?" — a config can be perfectly healthy and still hand a
+// third party the right to run code on this machine. The scanner does
+// that, and doctor is where the operator already looks.
+//
+// Advisory only: it prints the grade and never changes doctor's exit
+// code. A health check that starts failing on a pre-existing security
+// posture would be a breaking change to everyone's CI, and the way to
+// get a security tool ignored is to make it block on day one.
+async function securityAdvisory() {
+  const python = getArkaosPython();
+  const repoRoot = getRepoRoot();
+  if (!python || !repoRoot) return;
+  const { spawnSync } = await import("node:child_process");
+  const run = spawnSync(
+    python,
+    ["-m", "core.governance.harness_scanner_cli", "--json"],
+    {
+      encoding: "utf-8",
+      cwd: process.cwd(),
+      env: { ...process.env, ARKAOS_ROOT: repoRoot, PYTHONPATH: repoRoot },
+    }
+  );
+  // A crash must not read as "clean". If the scanner did not return a
+  // parseable report, say so — the same crash-is-not-clean rule the
+  // scanner enforces internally.
+  let report = null;
+  if (run.status !== null && run.stdout) {
+    try { report = JSON.parse(run.stdout); } catch { report = null; }
+  }
+  if (!report || !Array.isArray(report.findings)) {
+    console.log("  Security: scan did not complete — run `npx arkaos shield` directly\n");
+    return;
+  }
+
+  const cross = process.stdout.isTTY ? "\x1b[31m✗\x1b[0m" : "x";
+  const n = report.findings.length;
+  const plural = n === 1 ? "finding" : "findings";
+  console.log(`  Security: grade ${report.grade} (${report.score}/100), ${n} ${plural}`);
+  for (const finding of report.findings.filter((f) => f.severity === "critical").slice(0, 3)) {
+    console.log(`     ${cross} ${finding.rule} — ${finding.where}`);
+  }
+  console.log(n > 0 ? "     Run: npx arkaos shield\n" : "");
 }
