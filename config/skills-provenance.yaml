@@ -58,7 +58,26 @@
 
 baseline_date: 2026-07-14
 
-derived: {}
+derived:
+  # ECC review lenses (Track C1) — specialised review skills ArkaOS
+  # lacked, ported from the MIT-licensed everything-claude-code repo and
+  # rewritten in ArkaOS voice with ArkaOS personas.
+  departments/dev/skills/silent-failure-hunter:
+    origin: ecc-derived
+    source: https://github.com/affaan-m/ecc
+    license: MIT
+  departments/dev/skills/type-design-analyzer:
+    origin: ecc-derived
+    source: https://github.com/affaan-m/ecc
+    license: MIT
+  departments/dev/skills/pr-test-analyzer:
+    origin: ecc-derived
+    source: https://github.com/affaan-m/ecc
+    license: MIT
+  departments/dev/skills/click-path-audit:
+    origin: ecc-derived
+    source: https://github.com/affaan-m/ecc
+    license: MIT
 
 first_party:
   - arka

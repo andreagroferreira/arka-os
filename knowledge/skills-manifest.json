@@ -570,6 +570,21 @@
         "origin": "arkaos"
       }
     },
+    "click-path-audit": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "ecc-derived",
+        "source": "https://github.com/affaan-m/ecc",
+        "license": "MIT"
+      }
+    },
     "code-review": {
       "depts": [
         "dev"
@@ -2102,6 +2117,21 @@
         "origin": "arkaos"
       }
     },
+    "pr-test-analyzer": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "ecc-derived",
+        "source": "https://github.com/affaan-m/ecc",
+        "license": "MIT"
+      }
+    },
     "premortem": {
       "depts": [
         "strategy"
@@ -2547,6 +2577,21 @@
         "origin": "arkaos"
       }
     },
+    "silent-failure-hunter": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "ecc-derived",
+        "source": "https://github.com/affaan-m/ecc",
+        "license": "MIT"
+      }
+    },
     "skill-audit": {
       "depts": [
         "dev"
@@ -2834,6 +2879,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "type-design-analyzer": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "ecc-derived",
+        "source": "https://github.com/affaan-m/ecc",
+        "license": "MIT"
       }
     },
     "unit-economics": {
