@@ -1,10 +1,10 @@
 """Tests for ArkaOS Cognitive Layer Pydantic schemas."""
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime
 
-from core.cognition.memory import RawCapture, KnowledgeEntry, ActionableInsight
-
+from core.cognition.memory import ActionableInsight, KnowledgeEntry, RawCapture
 
 # --- Helpers ---
 
@@ -89,7 +89,8 @@ class TestKnowledgeEntry:
         assert entry.created_at.tzinfo is not None
 
     def test_valid_categories(self) -> None:
-        for cat in ("pattern", "anti_pattern", "solution", "architecture", "config", "lesson", "improvement"):
+        for cat in ("pattern", "anti_pattern", "solution", "architecture",
+                    "config", "lesson", "improvement"):
             entry = make_knowledge_entry(category=cat)
             assert entry.category == cat
 
@@ -168,8 +169,7 @@ class TestActionableInsight:
             make_actionable_insight(status="archived")
 
     def test_presented_at_can_be_set(self) -> None:
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         insight = make_actionable_insight(presented_at=now)
         assert insight.presented_at == now
 
@@ -177,3 +177,37 @@ class TestActionableInsight:
         a = make_actionable_insight()
         b = make_actionable_insight()
         assert a.id != b.id
+
+
+class TestInstinctFields:
+    """confidence / scope / evidence_count — the ECC instinct model."""
+
+    def test_defaults(self) -> None:
+        i = make_actionable_insight()
+        assert i.confidence == 0.5
+        assert i.scope == "project"
+        assert i.evidence_count == 1
+
+    def test_confidence_clamps_to_the_band_ceiling(self) -> None:
+        assert make_actionable_insight(confidence=1.0).confidence == 0.9
+        assert make_actionable_insight(confidence=5.0).confidence == 0.9
+
+    def test_confidence_clamps_to_the_band_floor(self) -> None:
+        assert make_actionable_insight(confidence=0.0).confidence == 0.3
+        assert make_actionable_insight(confidence=-1.0).confidence == 0.3
+
+    def test_confidence_within_band_is_untouched(self) -> None:
+        assert make_actionable_insight(confidence=0.65).confidence == 0.65
+
+    def test_valid_scopes(self) -> None:
+        assert make_actionable_insight(scope="global").scope == "global"
+        assert make_actionable_insight(scope="project").scope == "project"
+
+    def test_invalid_scope_raises(self) -> None:
+        with pytest.raises(ValueError, match="Invalid scope"):
+            make_actionable_insight(scope="universe")
+
+    def test_evidence_count_floors_at_one(self) -> None:
+        assert make_actionable_insight(evidence_count=0).evidence_count == 1
+        assert make_actionable_insight(evidence_count=-3).evidence_count == 1
+        assert make_actionable_insight(evidence_count=7).evidence_count == 7
