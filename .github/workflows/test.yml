@@ -151,6 +151,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install validator deps
+        # skill_validator now scores provenance via core.skills.provenance,
+        # which uses pydantic + pyyaml. Without these the validator import
+        # fails (ModuleNotFoundError: yaml).
+        run: pip install pyyaml pydantic
+
       - name: Validate all skills
         run: python scripts/skill_validator.py departments/ --summary
 
