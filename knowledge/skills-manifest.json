@@ -1230,6 +1230,19 @@
         "origin": "arkaos"
       }
     },
+    "github-ops": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "growth-loop": {
       "depts": [
         "marketing"
@@ -1413,6 +1426,19 @@
       }
     },
     "knowledge": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "knowledge-ops": {
       "depts": [
         "kb"
       ],
@@ -2921,6 +2947,19 @@
       "curated": false,
       "plugins": [
         "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "terminal-ops": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
       ],
       "collision": false,
       "provenance": {
