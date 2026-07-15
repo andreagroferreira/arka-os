@@ -19,14 +19,15 @@ metadata:
 
 > **Agent:** Daniel (Ops Lead) | **Framework:** Evidence-flow G3, fail-fast, exit-code-as-truth
 
-A command that prints a hopeful-looking line and a command that succeeded
-are two different things, and the gap between them is where automation
-quietly goes wrong. A migration that logged "applying…" and then threw, a
-build whose warning scrolled past the real error, a script whose second
-step ran against the failure of its first — each *looked* like progress.
-This skill runs shell work so that the exit code, not the output, is the
-verdict: capture it, check it, and stop the chain the moment it is
-non-zero, rather than narrating success no one confirmed.
+The deploy script exits 0. One line up sits `Error: connection refused`
+— but a wrapper swallowed the real status and handed back the echo, so
+the pipeline read green and shipped a half-applied migration. No one
+lied; the output simply never got checked against the exit code, and the
+exit code never got checked at all. Terminal-ops runs shell work under a
+single rule: the status is the verdict and the output is only a hint
+toward it. Anything that matters has its exit code captured and read
+against a success signal named in advance, and a non-zero exit halts the
+sequence rather than scrolling past.
 
 ## Principles
 

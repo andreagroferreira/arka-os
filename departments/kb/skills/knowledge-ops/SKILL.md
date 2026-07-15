@@ -1,16 +1,18 @@
 ---
 name: kb/knowledge-ops
 description: >
-  Writes and maintains the Obsidian vault the evidence-first way — a note
-  is not "saved" until it is read back, placed in the right department
-  path, linked with real `[[wikilinks]]`, and (when indexed) confirmed
-  searchable. TRIGGER: "/kb knowledge-ops", "save this to the vault",
-  "did the note land", "file this in Obsidian", "guarda isto no vault",
-  "confirma que a nota ficou", "indexa isto"; use when capturing or
-  reorganising knowledge that must be findable later, not lost. SKIP:
-  reading/answering from existing notes -> kb/search-kb wins; turning a
-  source (video, PDF, article) into structured notes -> kb/learn-content
-  wins; planning a research effort -> kb/research-plan wins.
+  Writes a note to the Obsidian vault the evidence-first way and verifies
+  it landed — a note is not "saved" until it is read back, placed in the
+  right department path, linked with real `[[wikilinks]]`, and (when
+  indexed) confirmed searchable. TRIGGER: "/kb knowledge-ops", "save this
+  to the vault", "did the note land", "file this in Obsidian", "guarda
+  isto no vault", "confirma que a nota ficou", "indexa isto"; use when
+  capturing or reorganising knowledge that must be findable later, not
+  lost. SKIP: reading/answering from existing notes -> kb/search-kb wins;
+  a vault-wide freshness audit or broken-link sweep across existing notes
+  -> kb/knowledge-review wins; turning a source (video, PDF, article) into
+  structured notes -> kb/learn-content wins; planning a research effort ->
+  kb/research-plan wins.
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash]
 metadata:
   origin: arkaos
@@ -26,15 +28,14 @@ metadata:
 
 > **Agent:** Clara (Knowledge Director) | **Framework:** Zettelkasten, evidence-flow, KB-first
 
-A note you wrote and a note the vault can give back are different assets,
-and the difference is whichever facts quietly failed to land. A file
-written to the wrong folder, frontmatter that never parsed, a `[[link]]`
-pointing at a note that does not exist, an index that never picked the
-note up — each leaves knowledge that *feels* captured but is unfindable
-the day it is needed. This skill treats writing to the vault as an
-operation to verify, not a fire-and-forget: place it in the right
-department path, link it to real neighbours, read it back, and confirm it
-is searchable before calling it saved.
+Saved means the vault can give it back. Not written-to-disk, not "the
+note is created" — retrievable: in the right department folder, with
+frontmatter that parses, with links that resolve, and picked up by the
+index that will be searched next month. Miss any one of those and the
+note is effort spent capturing knowledge that cannot be found the day it
+counts. Knowledge-ops holds every vault write to that acceptance test and
+does not call it done until the note has been read back and, when it must
+surface later, confirmed searchable.
 
 ## Principles
 
