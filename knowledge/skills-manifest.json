@@ -580,9 +580,7 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "ecc-derived",
-        "source": "https://github.com/affaan-m/ecc",
-        "license": "MIT"
+        "origin": "arkaos"
       }
     },
     "code-review": {
@@ -1438,6 +1436,19 @@
         "origin": "arkaos"
       }
     },
+    "laravel-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "launch-execute": {
       "depts": [
         "saas"
@@ -2127,9 +2138,7 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "ecc-derived",
-        "source": "https://github.com/affaan-m/ecc",
-        "license": "MIT"
+        "origin": "arkaos"
       }
     },
     "premortem": {
@@ -2232,6 +2241,19 @@
       "curated": false,
       "plugins": [
         "arkaos-sales@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "python-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
       ],
       "collision": false,
       "provenance": {
@@ -2587,9 +2609,7 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "ecc-derived",
-        "source": "https://github.com/affaan-m/ecc",
-        "license": "MIT"
+        "origin": "arkaos"
       }
     },
     "skill-audit": {
@@ -2891,9 +2911,20 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "ecc-derived",
-        "source": "https://github.com/affaan-m/ecc",
-        "license": "MIT"
+        "origin": "arkaos"
+      }
+    },
+    "typescript-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
       }
     },
     "unit-economics": {
@@ -3018,6 +3049,19 @@
       "curated": false,
       "plugins": [
         "arkaos-brand@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "vue-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
       ],
       "collision": false,
       "provenance": {

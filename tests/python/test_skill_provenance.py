@@ -59,10 +59,10 @@ def skill_md(metadata: str = "") -> str:
     )
 
 
-ECC = (
+DERIVED = (
     "metadata:\n"
-    "  origin: ecc-derived\n"
-    "  source: https://github.com/affaan-m/ecc\n"
+    "  origin: vendor-derived\n"
+    "  source: https://example.com/upstream\n"
     "  license: MIT\n"
 )
 
@@ -74,32 +74,32 @@ class TestModel:
 
     def test_third_party_needs_source_and_license(self):
         with pytest.raises(ValidationError, match="source, license required"):
-            SkillProvenance(origin="ecc-derived")
+            SkillProvenance(origin="vendor-derived")
 
     def test_third_party_needs_license_alone(self):
         with pytest.raises(ValidationError, match="license required"):
             SkillProvenance(
-                origin="ecc-derived", source="https://github.com/affaan-m/ecc"
+                origin="vendor-derived", source="https://example.com/upstream"
             )
 
     def test_third_party_source_must_be_a_url(self):
         with pytest.raises(ValidationError, match="not an https"):
             SkillProvenance(
-                origin="ecc-derived", source="affaan-m/ecc", license="MIT"
+                origin="vendor-derived", source="example/upstream", license="MIT"
             )
 
     def test_plaintext_source_is_refused(self):
         with pytest.raises(ValidationError, match="not an https"):
             SkillProvenance(
-                origin="ecc-derived",
-                source="http://github.com/affaan-m/ecc",
+                origin="vendor-derived",
+                source="http://example.com/upstream",
                 license="MIT",
             )
 
     def test_first_party_carrying_a_trail_is_incoherent(self):
         with pytest.raises(ValidationError, match="but declares source"):
             SkillProvenance(
-                origin=FIRST_PARTY, source="https://github.com/affaan-m/ecc"
+                origin=FIRST_PARTY, source="https://example.com/upstream"
             )
 
     def test_first_party_carrying_a_licence_is_incoherent(self):
@@ -108,8 +108,8 @@ class TestModel:
 
     def test_valid_third_party(self):
         prov = SkillProvenance(
-            origin="ecc-derived",
-            source="https://github.com/affaan-m/ecc",
+            origin="vendor-derived",
+            source="https://example.com/upstream",
             license="MIT",
         )
         assert not prov.is_first_party
@@ -117,7 +117,7 @@ class TestModel:
 
     def test_origin_must_be_a_slug(self):
         with pytest.raises(ValidationError, match="not a lowercase slug"):
-            SkillProvenance(origin="ECC-Derived")
+            SkillProvenance(origin="Vendor-Derived")
 
 
 class TestParse:
@@ -131,9 +131,9 @@ class TestParse:
         assert parse_provenance("---\n\n---\n").origin == FIRST_PARTY
 
     def test_reads_nested_metadata(self):
-        prov = parse_provenance(skill_md(ECC))
-        assert prov.origin == "ecc-derived"
-        assert prov.source == "https://github.com/affaan-m/ecc"
+        prov = parse_provenance(skill_md(DERIVED))
+        assert prov.origin == "vendor-derived"
+        assert prov.source == "https://example.com/upstream"
         assert prov.license == "MIT"
 
 
@@ -145,31 +145,31 @@ class TestLaunderingIsRefused:
             parse_provenance("---\n:\n  : :\n\tx\n---\n")
 
     def test_tab_indented_block_is_an_error(self):
-        content = skill_md("metadata:\n\torigin: ecc-derived\n")
+        content = skill_md("metadata:\n\torigin: vendor-derived\n")
         with pytest.raises(ProvenanceError, match="does not parse"):
             parse_provenance(content)
 
     def test_scalar_metadata_is_an_error(self):
         with pytest.raises(ProvenanceError, match="must be a mapping"):
-            parse_provenance(skill_md("metadata: ecc-derived\n"))
+            parse_provenance(skill_md("metadata: vendor-derived\n"))
 
     def test_list_metadata_is_an_error(self):
         with pytest.raises(ProvenanceError, match="must be a mapping"):
             parse_provenance(skill_md("metadata:\n  - origin: x\n"))
 
     def test_misspelt_metadata_key_is_an_error(self):
-        content = skill_md("metadatas:\n  origin: ecc-derived\n")
+        content = skill_md("metadatas:\n  origin: vendor-derived\n")
         with pytest.raises(ProvenanceError, match="did you mean 'metadata'"):
             parse_provenance(content)
 
     @pytest.mark.parametrize("typo", ["meta-data", "meta_data", "Metadata"])
     def test_metadata_near_misses_are_errors(self, typo):
-        content = skill_md(f"{typo}:\n  origin: ecc-derived\n")
+        content = skill_md(f"{typo}:\n  origin: vendor-derived\n")
         with pytest.raises(ProvenanceError, match="did you mean"):
             parse_provenance(content)
 
     def test_misspelt_origin_key_is_an_error(self):
-        content = skill_md("metadata:\n  orgin: ecc-derived\n")
+        content = skill_md("metadata:\n  orgin: vendor-derived\n")
         with pytest.raises(ProvenanceError, match="unknown metadata keys"):
             parse_provenance(content)
 
@@ -192,7 +192,7 @@ class TestDeclaresProvenance:
         assert declares_provenance(skill_md("metadata:\n  origin: arkaos\n"))
 
     def test_derived_block_is_a_declaration(self):
-        assert declares_provenance(skill_md(ECC))
+        assert declares_provenance(skill_md(DERIVED))
 
     @pytest.mark.parametrize("metadata", [
         "metadata: junk\n",
@@ -209,7 +209,7 @@ class TestDeclaresProvenance:
 class TestIssues:
     def test_clean_skill_has_no_issues(self):
         assert provenance_issues(skill_md()) == []
-        assert provenance_issues(skill_md(ECC)) == []
+        assert provenance_issues(skill_md(DERIVED)) == []
 
     def test_incomplete_third_party_reports_issue(self):
         issues = provenance_issues(skill_md("metadata:\n  origin: community\n"))

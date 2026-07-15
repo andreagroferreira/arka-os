@@ -1,7 +1,7 @@
 """Agent provenance — supply-chain lineage in agent YAML.
 
 Mirror of test_skill_provenance.py for the agent tree. The point is the
-same: no agent can enter the tree unclassified, so a ported ECC agent
+same: no agent can enter the tree unclassified, so a ported third-party agent
 lands in a diff with its licence written down.
 """
 
@@ -25,9 +25,9 @@ BASE_DIR = Path(__file__).parent.parent.parent
 AGENT_FILES = sorted(BASE_DIR.glob("departments/*/agents/**/*.yaml"))
 PROVENANCE_YAML = BASE_DIR / "config" / "agents-provenance.yaml"
 
-ECC = {
-    "origin": "ecc-derived",
-    "source": "https://github.com/affaan-m/ecc",
+DERIVED = {
+    "origin": "vendor-derived",
+    "source": "https://example.com/upstream",
     "license": "MIT",
 }
 
@@ -45,11 +45,11 @@ class TestModel:
 
     def test_third_party_needs_source_and_license(self):
         with pytest.raises(ValidationError, match="source, license required"):
-            Provenance(origin="ecc-derived")
+            Provenance(origin="vendor-derived")
 
     def test_plaintext_source_refused(self):
         with pytest.raises(ValidationError, match="not an https"):
-            Provenance(origin="ecc-derived",
+            Provenance(origin="vendor-derived",
                        source="http://github.com/x", license="MIT")
 
     def test_first_party_with_a_trail_is_incoherent(self):
@@ -62,17 +62,17 @@ class TestParse:
         assert provenance_from_yaml(agent()).is_first_party
 
     def test_reads_the_block(self):
-        prov = provenance_from_yaml(agent(ECC))
-        assert prov.origin == "ecc-derived"
+        prov = provenance_from_yaml(agent(DERIVED))
+        assert prov.origin == "vendor-derived"
         assert prov.license == "MIT"
 
     def test_scalar_block_is_an_error(self):
         with pytest.raises(ProvenanceError, match="must be a mapping"):
-            provenance_from_yaml(agent("ecc-derived"))
+            provenance_from_yaml(agent("vendor-derived"))
 
     def test_unknown_key_is_an_error(self):
         with pytest.raises(ProvenanceError, match="unknown metadata keys"):
-            provenance_from_yaml(agent({"orgin": "ecc-derived"}))
+            provenance_from_yaml(agent({"orgin": "vendor-derived"}))
 
     def test_non_mapping_yaml_is_an_error(self):
         with pytest.raises(ProvenanceError, match="not a mapping"):
@@ -84,7 +84,7 @@ class TestDeclares:
         assert not declares_provenance(agent())
 
     def test_present_block_is_a_declaration(self):
-        assert declares_provenance(agent(ECC))
+        assert declares_provenance(agent(DERIVED))
 
     def test_broken_block_still_counts_as_declaring(self):
         assert declares_provenance(agent("junk"))
@@ -98,7 +98,7 @@ class TestDeclares:
 class TestIssues:
     def test_clean_has_no_issues(self):
         assert provenance_issues_from_yaml(agent()) == []
-        assert provenance_issues_from_yaml(agent(ECC)) == []
+        assert provenance_issues_from_yaml(agent(DERIVED)) == []
 
     def test_incomplete_third_party_reports(self):
         issues = provenance_issues_from_yaml(agent({"origin": "community"}))
@@ -111,8 +111,8 @@ class TestIssues:
 class TestAgentProvenanceFromPath:
     def test_reads_a_real_agent_file(self, tmp_path):
         p = tmp_path / "a.yaml"
-        p.write_text(yaml.safe_dump(agent(ECC)))
-        assert agent_provenance(p).origin == "ecc-derived"
+        p.write_text(yaml.safe_dump(agent(DERIVED)))
+        assert agent_provenance(p).origin == "vendor-derived"
 
     def test_unreadable_file_raises_named(self, tmp_path):
         with pytest.raises(ProvenanceError, match="cannot read"):

@@ -1,19 +1,18 @@
 """Agent provenance — supply-chain lineage for every agent YAML.
 
-The skill tree got provenance in v4.17.0; agents did not, and the ECC
-teardown puts ~15 derived agents on the roadmap. An ECC agent ported
-today would land with exactly the hole skill provenance closes: no
-origin, no licence trail, indistinguishable from an ArkaOS original.
-This is the agent-side mirror, and it must land before the first agent
-port.
+The skill tree got provenance in v4.17.0; agents did not. If a
+third-party agent is ever ported in, it would land with exactly the
+hole skill provenance closes: no origin, no licence trail,
+indistinguishable from an ArkaOS original. This is the agent-side
+mirror, and it guards that boundary before any such port.
 
 An agent YAML may carry a top-level ``provenance`` block:
 
-    id: silent-failure-hunter
+    id: example-agent
     name: ...
     provenance:
-      origin: ecc-derived
-      source: https://github.com/affaan-m/ecc
+      origin: vendor-derived
+      source: https://example.com/upstream
       license: MIT
 
 Absent means first-party. The validation rules are the shared

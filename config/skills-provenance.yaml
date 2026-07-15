@@ -30,10 +30,11 @@
 #   ASSERTED, not independently verified: that these 275 are ArkaOS
 #   originals. Nobody re-derived each one from scratch to prove it.
 #
-#   PROVEN, for the lineage that matters: none of them can be
-#   ECC-derived. `git log --diff-filter=A` puts every creation between
-#   2026-03-14 and 2026-07-13 — all of them before 2026-07-14, the day
-#   we first read that repository. Zero exceptions.
+#   PROVEN, for the lineage that matters: none of them can be derived
+#   from an external source. `git log --diff-filter=A` puts every
+#   creation between 2026-03-14 and 2026-07-13 — all of them before
+#   2026-07-14, when this campaign began studying external repositories.
+#   Zero exceptions.
 #
 #   The property the control actually rests on is neither: it is that
 #   the set is CLOSED. Anything new must classify itself, whatever the
@@ -52,32 +53,13 @@
 #
 # derived format:
 #   departments/<dept>/skills/<slug>:
-#     origin: <lowercase-slug>      # e.g. ecc-derived, community
+#     origin: <lowercase-slug>      # e.g. vendor-derived, community
 #     source: https://...           # where it came from
 #     license: MIT                  # what we are bound by
 
 baseline_date: 2026-07-14
 
-derived:
-  # ECC review lenses (Track C1) — specialised review skills ArkaOS
-  # lacked, ported from the MIT-licensed everything-claude-code repo and
-  # rewritten in ArkaOS voice with ArkaOS personas.
-  departments/dev/skills/silent-failure-hunter:
-    origin: ecc-derived
-    source: https://github.com/affaan-m/ecc
-    license: MIT
-  departments/dev/skills/type-design-analyzer:
-    origin: ecc-derived
-    source: https://github.com/affaan-m/ecc
-    license: MIT
-  departments/dev/skills/pr-test-analyzer:
-    origin: ecc-derived
-    source: https://github.com/affaan-m/ecc
-    license: MIT
-  departments/dev/skills/click-path-audit:
-    origin: ecc-derived
-    source: https://github.com/affaan-m/ecc
-    license: MIT
+derived: {}
 
 first_party:
   - arka

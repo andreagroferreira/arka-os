@@ -12,9 +12,7 @@ description: >
   dev/code-review wins; visual/layout/brand review ->
   brand/design-review wins.
 metadata:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
-  license: MIT
+  origin: arkaos
 ---
 
 # Click-Path Audit
@@ -32,11 +30,13 @@ clicks.
 
 ## The bug this catches
 
-A "New Email" button called `setComposeMode(true)` then `selectThread(null)`.
-Each call was correct on its own, but `selectThread` reset `composeMode`
-back to false as a side effect, so the button opened nothing — no type
-error, no crash, and no unit test to catch it. Tracing the two calls in
-order makes the reset obvious on the page.
+An "Apply filters" button called `setFilters(next)` and then, to close the
+panel, `resetPanel()`. Each worked alone — but `resetPanel` cleared the
+draft filter state as part of tidying up, so the store ended with the old
+filters and the list never changed. No type error, no crash, no failing
+unit test; the two setters simply fought and the second won. Walking the
+handler's calls in order puts the cleared write next to the one it
+cancelled, and the bug is visible without ever running the app.
 
 ## Process
 

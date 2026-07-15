@@ -180,7 +180,7 @@ class TestActionableInsight:
 
 
 class TestInstinctFields:
-    """confidence / scope / evidence_count — the ECC instinct model."""
+    """confidence / scope / evidence_count — the continuous-learning instinct model."""
 
     def test_defaults(self) -> None:
         i = make_actionable_insight()

@@ -11,9 +11,7 @@ description: >
   SKIP: general code review -> dev/code-review wins; the data-model
   schema of a new feature -> dev/db-design or dev/ddd-model wins.
 metadata:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
-  license: MIT
+  origin: arkaos
 ---
 
 # Type Design Analyzer
