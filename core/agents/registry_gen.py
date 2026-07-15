@@ -11,6 +11,77 @@ from datetime import datetime
 from pathlib import Path
 
 from core.agents.loader import load_agent
+from core.agents.provenance import Provenance, agent_provenance
+
+
+def _provenance_entry(prov: Provenance) -> dict:
+    """The full origin/source/licence trail for the registry — not just
+    origin, so the shipped file can answer 'what licence is this under?'."""
+    entry = {"origin": prov.origin}
+    if not prov.is_first_party:
+        entry["source"] = prov.source
+        entry["license"] = prov.license
+    return entry
+
+
+def _dna_dict(dna) -> dict:
+    """The four-framework behavioral DNA, flattened for the registry."""
+    return {
+        "disc": {
+            "primary": dna.disc.primary.value,
+            "secondary": dna.disc.secondary.value,
+            "label": dna.disc.label,
+        },
+        "enneagram": {
+            "type": dna.enneagram.type.value,
+            "wing": dna.enneagram.wing,
+            "label": dna.enneagram.label,
+        },
+        "big_five": {
+            "O": dna.big_five.openness,
+            "C": dna.big_five.conscientiousness,
+            "E": dna.big_five.extraversion,
+            "A": dna.big_five.agreeableness,
+            "N": dna.big_five.neuroticism,
+        },
+        "mbti": dna.mbti.type.value,
+    }
+
+
+def _agent_entry(agent, prov: Provenance, yaml_file: Path, root: Path) -> dict:
+    """One registry entry for a loaded agent + its provenance."""
+    return {
+        "id": agent.id,
+        "name": agent.name,
+        "role": agent.role,
+        "department": agent.department,
+        "tier": agent.tier,
+        "model": agent.get_model(),
+        "provenance": _provenance_entry(prov),
+        "parent_squad": agent.parent_squad,
+        "sub_squad_role": agent.sub_squad_role,
+        **_dna_dict(agent.behavioral_dna),
+        "authority": {
+            k: v for k, v in agent.authority.model_dump().items()
+            if v and v != [] and k not in ("delegates_to", "escalates_to")
+        },
+        "expertise_domains": agent.expertise.domains,
+        "frameworks": agent.expertise.frameworks,
+        "knowledge_sources": agent.expertise.knowledge_sources,
+        "file": str(yaml_file.relative_to(root)),
+        "memory_path": agent.memory_path,
+    }
+
+
+def _summaries(agents: list[dict]) -> dict:
+    """Tier, department, and DISC-primary counts for the registry meta."""
+    tiers, depts, disc = {}, {}, {}
+    for a in agents:
+        tiers[a["tier"]] = tiers.get(a["tier"], 0) + 1
+        depts[a["department"]] = depts.get(a["department"], 0) + 1
+        primary = a["disc"]["primary"]
+        disc[primary] = disc.get(primary, 0) + 1
+    return {"tiers": tiers, "departments": depts, "disc_distribution": disc}
 
 
 def generate_registry(departments_dir: str | Path, output_path: str | Path) -> dict:
@@ -34,62 +105,11 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
     for yaml_file in sorted(departments_dir.glob("*/agents/**/*.yaml")):
         try:
             agent = load_agent(yaml_file)
-            entry = {
-                "id": agent.id,
-                "name": agent.name,
-                "role": agent.role,
-                "department": agent.department,
-                "tier": agent.tier,
-                "model": agent.get_model(),
-                "parent_squad": agent.parent_squad,
-                "sub_squad_role": agent.sub_squad_role,
-                "disc": {
-                    "primary": agent.behavioral_dna.disc.primary.value,
-                    "secondary": agent.behavioral_dna.disc.secondary.value,
-                    "label": agent.behavioral_dna.disc.label,
-                },
-                "enneagram": {
-                    "type": agent.behavioral_dna.enneagram.type.value,
-                    "wing": agent.behavioral_dna.enneagram.wing,
-                    "label": agent.behavioral_dna.enneagram.label,
-                },
-                "big_five": {
-                    "O": agent.behavioral_dna.big_five.openness,
-                    "C": agent.behavioral_dna.big_five.conscientiousness,
-                    "E": agent.behavioral_dna.big_five.extraversion,
-                    "A": agent.behavioral_dna.big_five.agreeableness,
-                    "N": agent.behavioral_dna.big_five.neuroticism,
-                },
-                "mbti": agent.behavioral_dna.mbti.type.value,
-                "authority": {
-                    k: v for k, v in agent.authority.model_dump().items()
-                    if v and v != [] and k not in ("delegates_to", "escalates_to")
-                },
-                "expertise_domains": agent.expertise.domains,
-                "frameworks": agent.expertise.frameworks,
-                "knowledge_sources": agent.expertise.knowledge_sources,
-                "file": str(yaml_file.relative_to(departments_dir.parent)),
-                "memory_path": agent.memory_path,
-            }
-            agents.append(entry)
+            prov = agent_provenance(yaml_file)
+            agents.append(_agent_entry(
+                agent, prov, yaml_file, departments_dir.parent))
         except Exception as e:
             errors.append(f"{yaml_file.name}: {e}")
-
-    # Build tier summary
-    tier_counts = {}
-    for a in agents:
-        tier_counts[a["tier"]] = tier_counts.get(a["tier"], 0) + 1
-
-    # Build department summary
-    dept_counts = {}
-    for a in agents:
-        dept_counts[a["department"]] = dept_counts.get(a["department"], 0) + 1
-
-    # Build DISC distribution
-    disc_counts = {}
-    for a in agents:
-        p = a["disc"]["primary"]
-        disc_counts[p] = disc_counts.get(p, 0) + 1
 
     registry = {
         "_meta": {
@@ -97,9 +117,7 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
             "generated": datetime.now().isoformat(),
             "total_agents": len(agents),
             "generator": "core/agents/registry_gen.py",
-            "tiers": tier_counts,
-            "departments": dept_counts,
-            "disc_distribution": disc_counts,
+            **_summaries(agents),
         },
         "agents": agents,
     }

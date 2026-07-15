@@ -1,0 +1,126 @@
+# Agent provenance classification — the control that makes omission impossible.
+#
+# Mirror of config/skills-provenance.yaml for the agent tree. The parser
+# (core/agents/provenance.py) closes every way of writing a BROKEN
+# provenance block, but it cannot see an agent that never writes one:
+# absence reads as first-party, which is exactly what a forgotten ECC
+# agent port looks like.
+#
+# EVERY agent YAML must be CLASSIFIED — listed in `first_party` below,
+# listed in `derived` below, or declaring a `provenance:` block in its
+# own YAML. An agent in none of the three fails CI by name.
+# See tests/python/test_agent_provenance.py.
+#
+# `first_party` is the baseline: the agents that existed on the cut date,
+# snapshotted once so they need no edits. CLOSED set — do not add to it.
+# A new agent declares its origin in its own YAML; a ported one lands in
+# `derived` with its licence written down, in a diff, in front of a
+# reviewer.
+#
+# What the baseline is and is not:
+#   ASSERTED: these are ArkaOS originals.
+#   PROVEN: none can be ECC-derived — every one was created before
+#     2026-07-14, the day we first read that repository (git log
+#     --diff-filter=A; verified once).
+#   The property the control rests on is that the set is CLOSED:
+#     anything new must classify itself.
+#
+# Keys are repo-relative agent YAML paths.
+#
+# derived format:
+#   departments/<dept>/agents/<slug>.yaml:
+#     origin: <lowercase-slug>      # e.g. ecc-derived, community
+#     source: https://...
+#     license: MIT
+
+baseline_date: 2026-07-14
+
+derived: {}
+
+first_party:
+  - departments/brand/agents/brand-director.yaml
+  - departments/brand/agents/brand-strategist.yaml
+  - departments/brand/agents/design-ops/design-ops-lead.yaml
+  - departments/brand/agents/design-ops/extraction-script-writer.yaml
+  - departments/brand/agents/design-ops/shadcn-padronizer.yaml
+  - departments/brand/agents/design-ops/wcag-auditor.yaml
+  - departments/brand/agents/ux-designer.yaml
+  - departments/brand/agents/ux-researcher.yaml
+  - departments/brand/agents/ux-strategist.yaml
+  - departments/brand/agents/visual-designer.yaml
+  - departments/community/agents/community-manager.yaml
+  - departments/community/agents/community-strategist.yaml
+  - departments/community/agents/engagement-designer.yaml
+  - departments/content/agents/content-strategist.yaml
+  - departments/content/agents/production/content-researcher.yaml
+  - departments/content/agents/production/info-compiler.yaml
+  - departments/content/agents/production/trends-analyst.yaml
+  - departments/content/agents/production/video-producer.yaml
+  - departments/content/agents/repurpose-distributor.yaml
+  - departments/content/agents/scriptwriter.yaml
+  - departments/content/agents/viral-engineer.yaml
+  - departments/dev/agents/ai-engineering/ai-engineering-lead.yaml
+  - departments/dev/agents/architect.yaml
+  - departments/dev/agents/backend-core/laravel-eng.yaml
+  - departments/dev/agents/backend-core/node-ts-eng.yaml
+  - departments/dev/agents/backend-core/python-eng.yaml
+  - departments/dev/agents/backend-dev.yaml
+  - departments/dev/agents/cto.yaml
+  - departments/dev/agents/data-platform/etl-eng.yaml
+  - departments/dev/agents/dba.yaml
+  - departments/dev/agents/devops-eng.yaml
+  - departments/dev/agents/frontend-dev.yaml
+  - departments/dev/agents/qa-eng.yaml
+  - departments/dev/agents/research-assistant.yaml
+  - departments/dev/agents/security-eng.yaml
+  - departments/dev/agents/tech-lead.yaml
+  - departments/ecom/agents/commerce-engineer.yaml
+  - departments/ecom/agents/cro-specialist.yaml
+  - departments/ecom/agents/ecom-director.yaml
+  - departments/ecom/agents/retention-manager.yaml
+  - departments/finance/agents/cfo.yaml
+  - departments/finance/agents/financial-analyst.yaml
+  - departments/finance/agents/investment-strategist.yaml
+  - departments/kb/agents/data-collector.yaml
+  - departments/kb/agents/knowledge-curator.yaml
+  - departments/kb/agents/knowledge-director.yaml
+  - departments/kb/agents/research-analyst.yaml
+  - departments/landing/agents/affiliate-manager.yaml
+  - departments/landing/agents/conversion-strategist.yaml
+  - departments/landing/agents/cro-specialist.yaml
+  - departments/landing/agents/sales-copywriter.yaml
+  - departments/leadership/agents/culture-coach.yaml
+  - departments/leadership/agents/hr-specialist.yaml
+  - departments/leadership/agents/leadership-director.yaml
+  - departments/marketing/agents/content-marketer.yaml
+  - departments/marketing/agents/marketing-director.yaml
+  - departments/marketing/agents/paid-specialist.yaml
+  - departments/marketing/agents/seo-specialist.yaml
+  - departments/ops/agents/automation-engineer.yaml
+  - departments/ops/agents/doc-writer.yaml
+  - departments/ops/agents/ops-lead.yaml
+  - departments/org/agents/chief-of-staff.yaml
+  - departments/org/agents/coo.yaml
+  - departments/org/agents/okr-steward.yaml
+  - departments/org/agents/org-designer.yaml
+  - departments/org/agents/people-ops.yaml
+  - departments/pm/agents/pm-director.yaml
+  - departments/pm/agents/product-owner.yaml
+  - departments/pm/agents/scrum-master.yaml
+  - departments/pm/agents/strategic-pm.yaml
+  - departments/quality/agents/copy-director.yaml
+  - departments/quality/agents/cqo.yaml
+  - departments/quality/agents/tech-director.yaml
+  - departments/saas/agents/cs-manager.yaml
+  - departments/saas/agents/growth-engineer.yaml
+  - departments/saas/agents/metrics-analyst.yaml
+  - departments/saas/agents/revops-lead.yaml
+  - departments/saas/agents/saas-strategist.yaml
+  - departments/sales/agents/sales-closer.yaml
+  - departments/sales/agents/sales-director.yaml
+  - departments/sales/agents/sales-ops.yaml
+  - departments/sales/agents/sdr.yaml
+  - departments/strategy/agents/business-model-designer.yaml
+  - departments/strategy/agents/decision-quality.yaml
+  - departments/strategy/agents/market-analyst.yaml
+  - departments/strategy/agents/strategy-director.yaml
