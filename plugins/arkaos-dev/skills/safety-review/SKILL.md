@@ -23,7 +23,7 @@ metadata:
 The dangerous change is rarely the one that fails — it is the one that
 succeeds at the wrong scope. A migration that runs, a cleanup cron that
 fires, a bulk update that commits: each does exactly what it was told, to
-more rows or files or people than the author pictured. This lens finds
+more rows or files or people than the author pictured. This pass finds
 the destructive and irreversible operations in a change or an automation
 and checks that every one is fenced — scoped, reversible, dry-runnable,
 or gated behind a confirmation — before it can run unattended.
