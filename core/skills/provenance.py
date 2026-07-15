@@ -9,12 +9,12 @@ author who ported it moves on.
 Contract (opt-in, absence means first-party):
 
     ---
-    name: dev/silent-failure-hunter
+    name: dev/example-skill
     description: ...
     allowed-tools: [Read, Grep, Glob]
     metadata:
-      origin: ecc-derived
-      source: https://github.com/affaan-m/ecc
+      origin: vendor-derived
+      source: https://example.com/upstream
       license: MIT
     ---
 

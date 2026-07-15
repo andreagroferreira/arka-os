@@ -12,9 +12,7 @@ description: >
   pre-merge review -> dev/code-review wins; test coverage of the change ->
   dev/pr-test-analyzer wins.
 metadata:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
-  license: MIT
+  origin: arkaos
 ---
 
 # Silent Failure Hunter

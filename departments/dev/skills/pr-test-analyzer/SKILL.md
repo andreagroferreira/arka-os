@@ -12,9 +12,7 @@ description: >
   dev/silent-failure-hunter wins.
 allowed-tools: [Read, Grep, Glob, Bash]
 metadata:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
-  license: MIT
+  origin: arkaos
 ---
 
 # PR Test Analyzer — `/dev pr-test-analyzer`

@@ -49,8 +49,8 @@ URL) and `license`:
 
 ```yaml
 provenance:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
+  origin: vendor-derived
+  source: https://example.com/upstream
   license: MIT
 ```
 

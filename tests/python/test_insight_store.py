@@ -307,7 +307,7 @@ class TestDismissedCounts:
 
 
 class TestInstinctFields:
-    """confidence / scope / evidence_count — the ECC instinct model."""
+    """confidence / scope / evidence_count — the continuous-learning instinct model."""
 
     def test_defaults_are_a_fresh_project_hypothesis(
         self, store: InsightStore

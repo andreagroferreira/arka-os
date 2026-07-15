@@ -3,8 +3,7 @@
 An agent that hits a lint or type error has two ways out: fix the code,
 or edit the config so the check stops firing. The second is faster and
 almost always wrong — it silences the signal for the whole team, not
-just this change. The ECC teardown found a hook for exactly this
-(`config-protection`), and it is the cheapest high-value control in the
+just this change. This gate is the cheapest high-value control in the
 set: refuse edits to linter/formatter/type-checker configs, and the
 agent is left with the honest path.
 

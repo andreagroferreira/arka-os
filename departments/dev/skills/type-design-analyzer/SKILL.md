@@ -12,9 +12,7 @@ description: >
   schema of a new feature -> dev/db-design or dev/ddd-model wins.
 allowed-tools: [Read, Grep, Glob]
 metadata:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
-  license: MIT
+  origin: arkaos
 ---
 
 # Type Design Analyzer — `/dev type-design-analyzer`

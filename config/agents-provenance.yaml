@@ -3,8 +3,8 @@
 # Mirror of config/skills-provenance.yaml for the agent tree. The parser
 # (core/agents/provenance.py) closes every way of writing a BROKEN
 # provenance block, but it cannot see an agent that never writes one:
-# absence reads as first-party, which is exactly what a forgotten ECC
-# agent port looks like.
+# absence reads as first-party, which is exactly what a forgotten
+# third-party agent port looks like.
 #
 # EVERY agent YAML must be CLASSIFIED — listed in `first_party` below,
 # listed in `derived` below, or declaring a `provenance:` block in its
@@ -19,9 +19,9 @@
 #
 # What the baseline is and is not:
 #   ASSERTED: these are ArkaOS originals.
-#   PROVEN: none can be ECC-derived — every one was created before
-#     2026-07-14, the day we first read that repository (git log
-#     --diff-filter=A; verified once).
+#   PROVEN: none can be externally derived — every one was created
+#     before 2026-07-14, when this campaign began studying external
+#     repositories (git log --diff-filter=A; verified once).
 #   The property the control rests on is that the set is CLOSED:
 #     anything new must classify itself.
 #
@@ -29,7 +29,7 @@
 #
 # derived format:
 #   departments/<dept>/agents/<slug>.yaml:
-#     origin: <lowercase-slug>      # e.g. ecc-derived, community
+#     origin: <lowercase-slug>      # e.g. vendor-derived, community
 #     source: https://...
 #     license: MIT
 

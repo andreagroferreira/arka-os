@@ -11,9 +11,7 @@ description: >
   missing tests -> dev/tdd-cycle wins; error-handling review ->
   dev/silent-failure-hunter wins.
 metadata:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
-  license: MIT
+  origin: arkaos
 ---
 
 # PR Test Analyzer

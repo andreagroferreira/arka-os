@@ -51,14 +51,14 @@ written on the file.
 
 ```yaml
 metadata:
-  origin: ecc-derived
-  source: https://github.com/affaan-m/ecc
+  origin: vendor-derived
+  source: https://example.com/upstream
   license: MIT
 ```
 
 | Rule | Detail |
 |------|--------|
-| `origin` | Lowercase slug, `^[a-z][a-z0-9-]*$`. `ECC-Derived` is rejected. |
+| `origin` | Lowercase slug, `^[a-z][a-z0-9-]*$`. `Vendor-Derived` is rejected. |
 | Third-party | Any origin other than `arkaos` **must** carry `source` (an http(s) URL) and `license`. |
 | First-party | Needs no `metadata` block at all. Absence means `arkaos`. |
 | Malformed | A block that is present but unusable — broken YAML, tab indentation, `metadata` bound to a scalar, a misspelt key like `metadatas:` or `orgin:` — **fails**. It never falls back to first-party. |
