@@ -220,6 +220,61 @@ def _frontend_gate(
     return None
 
 
+# Config edits only ever land through file_path tools. NotebookEdit
+# addresses a notebook_path, never a linter config, so it is not in the
+# set — a notebook can never be a protected config file.
+_CONFIG_GATED_TOOLS = frozenset({"Write", "Edit", "MultiEdit"})
+
+
+def _operator_messages(transcript_path: str) -> list[str]:
+    """Recent OPERATOR messages, never the agent's own — reading the
+    assistant scope would let the guarded actor authorise itself."""
+    try:
+        from core.workflow.transcript_scope import user_messages_from_path
+        return user_messages_from_path(transcript_path)
+    except Exception:
+        return []  # unreadable → no override found → fail closed
+
+
+def _config_gate(
+    root: str,
+    tool_name: str,
+    transcript_path: str,
+    tool_input: dict,
+) -> int | None:
+    """Config-protection gate. Refuses edits to linter/formatter configs
+    so the agent fixes the code instead of weakening the check. Returns 2
+    on deny (hard mode), None to continue."""
+    if tool_name not in _CONFIG_GATED_TOOLS:
+        return None
+    if not (Path(root) / "core" / "workflow" / "config_guard.py").is_file():
+        return None
+    try:
+        from core.workflow.config_guard import (
+            evaluate,
+            is_protected_config,
+            mode,
+        )
+    except Exception:
+        return None  # config-guard-import-failed → allow (chain contract)
+    # Zero-read fast path: only a protected-config edit can ever be
+    # denied, and only then is the transcript read for an override.
+    file_path = str(tool_input.get("file_path", ""))
+    if not is_protected_config(file_path):
+        return None
+    guard_mode = mode()
+    if guard_mode == "off":
+        return None
+    decision = evaluate(file_path, _operator_messages(transcript_path))
+    if decision.allow:
+        return None
+    message = decision.to_stderr_message()
+    if guard_mode == "hard":
+        return _deny(message)
+    print(message, file=sys.stderr)  # warn: surface, do not block
+    return None
+
+
 def _budget_check(session_id: str) -> tuple[bool, str]:
     """CostGovernor gate (stdlib-only). Returns (allow, warning)."""
     try:
@@ -304,6 +359,10 @@ def main(stdin_json: dict | None = None) -> int:
     code = _frontend_gate(
         root, tool_name, transcript_path, session_id, cwd, tool_input, messages
     )
+    if code is not None:
+        return code
+
+    code = _config_gate(root, tool_name, transcript_path, tool_input)
     if code is not None:
         return code
 
