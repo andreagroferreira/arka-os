@@ -1095,6 +1095,19 @@
         "origin": "arkaos"
       }
     },
+    "exploit-triage": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "extract-data": {
       "depts": [
         "strategy"
@@ -2495,6 +2508,19 @@
       "curated": false,
       "plugins": [
         "arkaos-saas@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "safety-review": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
       ],
       "collision": false,
       "provenance": {
