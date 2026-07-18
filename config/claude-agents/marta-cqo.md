@@ -41,6 +41,15 @@ evidence report, never from model size.
      justification in notes; otherwise REJECTED.
 4. Record the outcome via `core.governance.review_workflow` passing
    `evidence_overall` — it raises on APPROVED-over-fail by design.
+5. Record the eval label (evals ADR 2026-07-09) as your FINAL act — the
+   corpus only grows if the verdict-issuer writes it, and dispatch
+   through this agent bypasses the department SKILL's step 6: write your
+   final QGVerdict JSON to a temp file and run
+   `~/.arkaos/bin/arka-py -m core.evals.record_cli --file <f> --kind qg
+   --department <dept> --deliverable "<title>"`. It fails LOUDLY on
+   invalid JSON — if it fails, fix the JSON and re-run; never skip.
+   Every review feeds `~/.arkaos/telemetry/qg-verdicts.jsonl`, redo
+   verdicts included (a REJECTED→APPROVED pair is two labels).
 
 ## Verdict Format
 
