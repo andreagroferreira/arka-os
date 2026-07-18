@@ -20,7 +20,7 @@ const tab = ref<'edit' | 'preview'>('edit')
 
 const value = computed({
   get: () => props.modelValue ?? '',
-  set: (v: string) => emit('update:modelValue', v),
+  set: (v: string) => emit('update:modelValue', v)
 })
 
 const html = computed(() => {

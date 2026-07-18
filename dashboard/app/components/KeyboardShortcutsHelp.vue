@@ -19,17 +19,17 @@ const groups = [
       { keys: ['g', 'k'], label: 'Knowledge' },
       { keys: ['g', 'e'], label: 'Health' },
       { keys: ['g', 'r'], label: 'Trash' },
-      { keys: ['g', 's'], label: 'Settings' },
-    ],
+      { keys: ['g', 's'], label: 'Settings' }
+    ]
   },
   {
     title: 'Actions',
     items: [
       { keys: ['/'], label: 'Open global search' },
       { keys: ['n'], label: 'New (context-aware — agent / persona)' },
-      { keys: ['?'], label: 'Toggle this help' },
-    ],
-  },
+      { keys: ['?'], label: 'Toggle this help' }
+    ]
+  }
 ]
 </script>
 
@@ -44,7 +44,9 @@ const groups = [
         <template #header>
           <div class="flex items-center justify-between gap-3">
             <div>
-              <h2 class="text-lg font-bold">Keyboard shortcuts</h2>
+              <h2 class="text-lg font-bold">
+                Keyboard shortcuts
+              </h2>
               <p class="text-xs text-muted mt-0.5">
                 Press <kbd class="px-1.5 py-0.5 rounded bg-elevated/50 text-xs font-mono">?</kbd> anywhere to toggle this.
               </p>

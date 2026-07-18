@@ -20,10 +20,10 @@ const toast = useToast()
 
 const { data: personasData } = fetchApi<{ personas: Persona[] }>('/api/personas')
 const personaOptions = computed(() =>
-  (personasData.value?.personas ?? []).map((p) => ({
+  (personasData.value?.personas ?? []).map(p => ({
     label: p.name + (p.title ? ` — ${p.title}` : ''),
-    value: p.id,
-  })),
+    value: p.id
+  }))
 )
 
 interface AgentDraft {
@@ -71,7 +71,7 @@ const draft = ref<AgentDraft>({
     conscientiousness: 70,
     extraversion: 50,
     agreeableness: 60,
-    neuroticism: 30,
+    neuroticism: 30
   },
   mental_models_primary: [],
   expertise_domains: [],
@@ -83,7 +83,7 @@ const draft = ref<AgentDraft>({
   comm_format: '',
   comm_language: 'en',
   comm_avoid: [],
-  linked_personas: [],
+  linked_personas: []
 })
 
 const saving = ref(false)
@@ -96,7 +96,7 @@ async function suggestString(field: StringField) {
   if (!draft.value.name.trim() || !draft.value.role.trim()) {
     toast.add({
       title: 'Add a name and role first',
-      color: 'warning',
+      color: 'warning'
     })
     return
   }
@@ -113,10 +113,10 @@ async function suggestString(field: StringField) {
             name: draft.value.name,
             role: draft.value.role,
             department: draft.value.department,
-            current,
-          },
-        },
-      },
+            current
+          }
+        }
+      }
     )
     if (res.error) throw new Error(res.error)
     if (field === 'tone') draft.value.comm_tone = res.value
@@ -125,13 +125,13 @@ async function suggestString(field: StringField) {
       title: 'Generated',
       description: `via ${res.provider_name}`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } catch (err) {
     toast.add({
       title: 'Generate failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     suggestingString.value = null
@@ -142,20 +142,52 @@ async function suggestString(field: StringField) {
 const description = ref('')
 const drafting = ref(false)
 
+// Shape of the AI-generated draft returned by POST /api/agents/draft.
+// Values are unknown at the boundary — applyDraft validates each one
+// (Array.isArray / typeof) before assigning into the typed draft.
+interface GeneratedDraft {
+  behavioral_dna?: {
+    disc?: { primary?: unknown, secondary?: unknown }
+    enneagram?: { type?: unknown, wing?: unknown }
+    mbti?: unknown
+    big_five?: {
+      openness?: unknown
+      conscientiousness?: unknown
+      extraversion?: unknown
+      agreeableness?: unknown
+      neuroticism?: unknown
+    }
+  }
+  expertise?: {
+    domains?: unknown
+    frameworks?: unknown
+    depth?: unknown
+    years_equivalent?: unknown
+  }
+  mental_models?: { primary?: unknown }
+  communication?: {
+    tone?: unknown
+    vocabulary_level?: unknown
+    preferred_format?: unknown
+    language?: unknown
+    avoid?: unknown
+  }
+}
+
 async function draftFromDescription() {
   const desc = description.value.trim()
   if (desc.length < 20) {
     toast.add({
       title: 'Add more detail',
       description: 'Describe the agent in at least a sentence or two.',
-      color: 'warning',
+      color: 'warning'
     })
     return
   }
   drafting.value = true
   try {
     const res = await $fetch<{
-      draft: any
+      draft: GeneratedDraft
       provider_name: string
       error?: string
     }>(`${apiBase}/api/agents/draft`, {
@@ -165,8 +197,8 @@ async function draftFromDescription() {
         name: draft.value.name,
         role: draft.value.role,
         department: draft.value.department,
-        tier: draft.value.tier,
-      },
+        tier: draft.value.tier
+      }
     })
     if (res.error) throw new Error(res.error)
     applyDraft(res.draft)
@@ -174,20 +206,20 @@ async function draftFromDescription() {
       title: 'Draft generated',
       description: `via ${res.provider_name} — review and edit before creating.`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } catch (err) {
     toast.add({
       title: 'Draft failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     drafting.value = false
   }
 }
 
-function applyDraft(d: any) {
+function applyDraft(d: GeneratedDraft) {
   const dna = d?.behavioral_dna ?? {}
   const disc = dna.disc ?? {}
   const enn = dna.enneagram ?? {}
@@ -217,38 +249,38 @@ function applyDraft(d: any) {
 
 const departmentOptions = [
   'dev', 'marketing', 'brand', 'finance', 'strategy', 'ecom', 'kb', 'ops',
-  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org',
-].map((d) => ({ label: d, value: d }))
+  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org'
+].map(d => ({ label: d, value: d }))
 
 const tierOptions = [
   { label: 'Tier 1 — Squad Lead', value: 1 },
   { label: 'Tier 2 — Specialist', value: 2 },
-  { label: 'Tier 3 — Support', value: 3 },
+  { label: 'Tier 3 — Support', value: 3 }
 ]
-const discOptions = ['D', 'I', 'S', 'C'].map((v) => ({ label: v, value: v }))
+const discOptions = ['D', 'I', 'S', 'C'].map(v => ({ label: v, value: v }))
 const depthOptions = [
   { label: 'Intermediate', value: 'intermediate' },
   { label: 'Advanced', value: 'advanced' },
   { label: 'Expert', value: 'expert' },
-  { label: 'Master', value: 'master' },
+  { label: 'Master', value: 'master' }
 ]
 const vocabOptions = [
   { label: 'Lay (no jargon)', value: 'lay' },
   { label: 'Specialist (industry terms)', value: 'specialist' },
-  { label: 'Expert (research-level)', value: 'expert' },
+  { label: 'Expert (research-level)', value: 'expert' }
 ]
 const mbtiOptions = [
   'INTJ', 'INTP', 'ENTJ', 'ENTP',
   'INFJ', 'INFP', 'ENFJ', 'ENFP',
   'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-  'ISTP', 'ISFP', 'ESTP', 'ESFP',
-].map((t) => ({ label: t, value: t }))
+  'ISTP', 'ISFP', 'ESTP', 'ESFP'
+].map(t => ({ label: t, value: t }))
 
 function listToCsv(list: string[]): string {
   return list.join(', ')
 }
 function csvToList(value: string): string[] {
-  return value.split(',').map((s) => s.trim()).filter(Boolean)
+  return value.split(',').map(s => s.trim()).filter(Boolean)
 }
 
 // PR81 suggest wiring — three list fields.
@@ -269,7 +301,7 @@ async function suggest(field: SuggestField) {
     toast.add({
       title: 'Add a name and role first',
       description: 'AI needs the basics to make useful suggestions.',
-      color: 'warning',
+      color: 'warning'
     })
     return
   }
@@ -288,13 +320,13 @@ async function suggest(field: SuggestField) {
           name: draft.value.name,
           role: draft.value.role,
           department: draft.value.department,
-          current,
-        },
-      },
+          current
+        }
+      }
     })
     if (res.error) throw new Error(res.error)
     const additions = (res.suggestions ?? []).filter(
-      (s) => !current.some((c) => c.toLowerCase() === s.toLowerCase()),
+      s => !current.some(c => c.toLowerCase() === s.toLowerCase())
     )
     if (additions.length === 0) {
       toast.add({ title: 'No new suggestions', color: 'info' })
@@ -309,13 +341,13 @@ async function suggest(field: SuggestField) {
       title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
       description: `via ${res.provider_name}`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } catch (err) {
     toast.add({
       title: 'Suggestion failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     suggestingField.value = null
@@ -343,30 +375,30 @@ async function save() {
       behavioral_dna: {
         disc: {
           primary: draft.value.disc_primary,
-          secondary: draft.value.disc_secondary,
+          secondary: draft.value.disc_secondary
         },
         enneagram: {
           type: draft.value.enneagram_type,
-          wing: draft.value.enneagram_wing,
+          wing: draft.value.enneagram_wing
         },
         mbti: draft.value.mbti,
-        big_five: draft.value.big_five,
+        big_five: draft.value.big_five
       },
       mental_models: { primary: draft.value.mental_models_primary, secondary: [] },
       expertise: {
         domains: draft.value.expertise_domains,
         frameworks: draft.value.frameworks,
         depth: draft.value.expertise_depth,
-        years_equivalent: draft.value.expertise_years,
+        years_equivalent: draft.value.expertise_years
       },
       communication: {
         tone: draft.value.comm_tone,
         vocabulary_level: draft.value.comm_vocab,
         preferred_format: draft.value.comm_format,
         language: draft.value.comm_language,
-        avoid: draft.value.comm_avoid,
+        avoid: draft.value.comm_avoid
       },
-      linked_personas: draft.value.linked_personas,
+      linked_personas: draft.value.linked_personas
     }
     const res = await $fetch<{
       id: string
@@ -378,14 +410,14 @@ async function save() {
     toast.add({
       title: 'Agent created',
       description: res.yaml_path?.split('/').slice(-3).join('/') ?? res.id,
-      color: 'success',
+      color: 'success'
     })
     navigateTo(`/agents/${res.id}`)
   } catch (err) {
     toast.add({
       title: 'Create failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     saving.value = false
@@ -397,7 +429,7 @@ const bigFiveLabels: Record<string, string> = {
   conscientiousness: 'Conscientiousness',
   extraversion: 'Extraversion',
   agreeableness: 'Agreeableness',
-  neuroticism: 'Neuroticism',
+  neuroticism: 'Neuroticism'
 }
 const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'] as const
 </script>
@@ -464,7 +496,9 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
         </section>
 
         <section class="space-y-3">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Identity</h3>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+            Identity
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <UFormField label="Name" required>
               <UInput v-model="draft.name" class="w-full" placeholder="Lucas" />
@@ -482,7 +516,9 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
         </section>
 
         <section class="space-y-3">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Behavioural DNA</h3>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+            Behavioural DNA
+          </h3>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <UFormField label="DISC primary">
               <USelect v-model="draft.disc_primary" :items="discOptions" class="w-full" />
@@ -491,10 +527,22 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
               <USelect v-model="draft.disc_secondary" :items="discOptions" class="w-full" />
             </UFormField>
             <UFormField label="Enneagram type">
-              <UInput v-model.number="draft.enneagram_type" type="number" :min="1" :max="9" class="w-full" />
+              <UInput
+                v-model.number="draft.enneagram_type"
+                type="number"
+                :min="1"
+                :max="9"
+                class="w-full"
+              />
             </UFormField>
             <UFormField label="Enneagram wing">
-              <UInput v-model.number="draft.enneagram_wing" type="number" :min="1" :max="9" class="w-full" />
+              <UInput
+                v-model.number="draft.enneagram_wing"
+                type="number"
+                :min="1"
+                :max="9"
+                class="w-full"
+              />
             </UFormField>
             <UFormField label="MBTI">
               <USelect v-model="draft.mbti" :items="mbtiOptions" class="w-full" />
@@ -504,7 +552,9 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
             DISC primary and secondary must differ.
           </p>
           <div class="space-y-2">
-            <p class="text-sm font-semibold text-muted">Big Five (OCEAN)</p>
+            <p class="text-sm font-semibold text-muted">
+              Big Five (OCEAN)
+            </p>
             <div v-for="key in bigFiveKeys" :key="key" class="flex items-center gap-3">
               <span class="w-40 text-sm text-muted">{{ bigFiveLabels[key] }}</span>
               <UInput
@@ -522,7 +572,9 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
         </section>
 
         <section class="space-y-3">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Knowledge</h3>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+            Knowledge
+          </h3>
           <UFormField label="Mental models (primary)" help="comma-separated">
             <template #hint>
               <UButton
@@ -538,8 +590,8 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
             </template>
             <UInput
               :model-value="listToCsv(draft.mental_models_primary)"
-              @update:model-value="(v: string) => { draft.mental_models_primary = csvToList(v) }"
               class="w-full"
+              @update:model-value="(v: string) => { draft.mental_models_primary = csvToList(v) }"
             />
           </UFormField>
           <UFormField label="Expertise domains" help="comma-separated">
@@ -557,8 +609,8 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
             </template>
             <UInput
               :model-value="listToCsv(draft.expertise_domains)"
-              @update:model-value="(v: string) => { draft.expertise_domains = csvToList(v) }"
               class="w-full"
+              @update:model-value="(v: string) => { draft.expertise_domains = csvToList(v) }"
             />
           </UFormField>
           <div class="grid grid-cols-2 gap-3">
@@ -566,7 +618,13 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
               <USelect v-model="draft.expertise_depth" :items="depthOptions" class="w-full" />
             </UFormField>
             <UFormField label="Years (equivalent)">
-              <UInput v-model.number="draft.expertise_years" type="number" :min="0" :max="60" class="w-full" />
+              <UInput
+                v-model.number="draft.expertise_years"
+                type="number"
+                :min="0"
+                :max="60"
+                class="w-full"
+              />
             </UFormField>
           </div>
           <UFormField label="Frameworks" help="comma-separated">
@@ -584,14 +642,16 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
             </template>
             <UInput
               :model-value="listToCsv(draft.frameworks)"
-              @update:model-value="(v: string) => { draft.frameworks = csvToList(v) }"
               class="w-full"
+              @update:model-value="(v: string) => { draft.frameworks = csvToList(v) }"
             />
           </UFormField>
         </section>
 
         <section class="space-y-3">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Communication</h3>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+            Communication
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <UFormField label="Tone">
               <template #hint>
@@ -645,14 +705,16 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
             </template>
             <UInput
               :model-value="listToCsv(draft.comm_avoid)"
-              @update:model-value="(v: string) => { draft.comm_avoid = csvToList(v) }"
               class="w-full"
+              @update:model-value="(v: string) => { draft.comm_avoid = csvToList(v) }"
             />
           </UFormField>
         </section>
 
         <section class="space-y-3">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">Linked personas</h3>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+            Linked personas
+          </h3>
           <USelectMenu
             v-model="draft.linked_personas"
             :items="personaOptions"
@@ -664,7 +726,12 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
         </section>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-default">
-          <UButton label="Cancel" variant="ghost" :disabled="saving" to="/agents" />
+          <UButton
+            label="Cancel"
+            variant="ghost"
+            :disabled="saving"
+            to="/agents"
+          />
           <UButton
             label="Create agent"
             icon="i-lucide-check"

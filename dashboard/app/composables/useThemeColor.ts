@@ -16,7 +16,7 @@ export const THEME_COLOR_OPTIONS = [
   { label: 'Rose', value: 'rose' },
   { label: 'Amber', value: 'amber' },
   { label: 'Teal', value: 'teal' },
-  { label: 'Cyan', value: 'cyan' },
+  { label: 'Cyan', value: 'cyan' }
 ] as const
 
 export type ThemeColor = (typeof THEME_COLOR_OPTIONS)[number]['value']
@@ -27,8 +27,11 @@ const _useThemeColor = () => {
 
   function apply(color: ThemeColor) {
     current.value = color
-    if (appConfig.ui?.colors) {
-      ;(appConfig.ui.colors as any).primary = color
+    // ui.colors comes from app.config.ts and isn't part of Nuxt's typed
+    // AppConfig, so narrow it structurally once before writing.
+    const ui = appConfig.ui as { colors?: Record<string, string> } | undefined
+    if (ui?.colors) {
+      ui.colors.primary = color
     }
   }
 
@@ -42,7 +45,7 @@ const _useThemeColor = () => {
   function loadFromStorage() {
     if (typeof window === 'undefined') return
     const saved = window.localStorage.getItem(STORAGE_KEY) as ThemeColor | null
-    if (saved && THEME_COLOR_OPTIONS.some((o) => o.value === saved)) {
+    if (saved && THEME_COLOR_OPTIONS.some(o => o.value === saved)) {
       apply(saved)
     }
   }

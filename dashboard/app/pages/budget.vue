@@ -57,21 +57,21 @@ const { fetchApi, apiBase } = useApi()
 const toast = useToast()
 const period = ref<Period>('today')
 
-const periodOptions: { label: string; value: Period }[] = [
+const periodOptions: { label: string, value: Period }[] = [
   { label: 'Today', value: 'today' },
   { label: '7 days', value: 'week' },
   { label: '30 days', value: 'month' },
-  { label: 'All time', value: 'all' },
+  { label: 'All time', value: 'all' }
 ]
 
 const {
   data: costs,
   status,
   error,
-  refresh,
+  refresh
 } = fetchApi<CostSummary>(
   '/api/llm-costs',
-  { query: computed(() => ({ period: period.value })) },
+  { query: computed(() => ({ period: period.value })) }
 )
 
 // PR91d v3.38.0 — CSV export of the telemetry rows for the current period.
@@ -79,7 +79,7 @@ async function exportCsv() {
   try {
     const blob = await $fetch<Blob>(
       `${apiBase}/api/llm-costs/export.csv`,
-      { query: { period: period.value }, responseType: 'blob' },
+      { query: { period: period.value }, responseType: 'blob' }
     )
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -93,13 +93,13 @@ async function exportCsv() {
       title: 'CSV downloaded',
       description: `arkaos-costs-${period.value}.csv`,
       color: 'success',
-      icon: 'i-lucide-download',
+      icon: 'i-lucide-download'
     })
   } catch (err) {
     toast.add({
       title: 'Export failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -109,14 +109,14 @@ const trendDays = ref<7 | 14 | 30>(7)
 const trendDaysOptions = [
   { label: '7 days', value: 7 },
   { label: '14 days', value: 14 },
-  { label: '30 days', value: 30 },
+  { label: '30 days', value: 30 }
 ]
 const {
   data: trend,
-  refresh: refreshTrend,
+  refresh: refreshTrend
 } = fetchApi<TrendResponse>(
   '/api/llm-costs/trend',
-  { query: computed(() => ({ days: trendDays.value })) },
+  { query: computed(() => ({ days: trendDays.value })) }
 )
 
 watch(period, async () => {
@@ -135,7 +135,7 @@ const view = ref<View>('category')
 const viewTabs = [
   { label: 'By category', value: 'category' as const },
   { label: 'By provider', value: 'provider' as const },
-  { label: 'By model', value: 'model' as const },
+  { label: 'By model', value: 'model' as const }
 ]
 
 const breakdownRows = computed<Array<[string, BreakdownRow]>>(() => {
@@ -143,7 +143,7 @@ const breakdownRows = computed<Array<[string, BreakdownRow]>>(() => {
     switch (view.value) {
       case 'category': return costs.value?.by_category ?? {}
       case 'provider': return costs.value?.by_provider ?? {}
-      case 'model':    return costs.value?.by_model    ?? {}
+      case 'model': return costs.value?.by_model ?? {}
     }
   })()
   return Object.entries(source).sort((a, b) => {
@@ -159,13 +159,13 @@ const viewEmpty = computed(() =>
     view.value === 'category'
     && breakdownRows.value.length === 1
     && breakdownRows.value[0]?.[0] === ''
-  ),
+  )
 )
 
 const maxCostForBar = computed(() => {
   const max = breakdownRows.value.reduce(
     (acc, [, row]) => Math.max(acc, row.total_cost_usd ?? 0),
-    0,
+    0
   )
   return max > 0 ? max : 1
 })
@@ -194,7 +194,7 @@ const maxTrendCost = computed(() => {
   if (!trend.value?.days?.length) return 1
   const max = trend.value.days.reduce(
     (acc, d) => Math.max(acc, d.cost_usd ?? 0),
-    0,
+    0
   )
   return max > 0 ? max : 1
 })
@@ -209,7 +209,7 @@ function trendDayLabel(iso: string): string {
   try {
     const d = new Date(iso + 'T00:00:00Z')
     return new Intl.DateTimeFormat('en-US', {
-      weekday: 'short',
+      weekday: 'short'
     }).format(d)
   } catch {
     return iso
@@ -278,7 +278,9 @@ async function refreshAll() {
                 <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                   Calls
                 </p>
-                <p class="text-2xl font-bold">{{ costs?.call_count ?? 0 }}</p>
+                <p class="text-2xl font-bold">
+                  {{ costs?.call_count ?? 0 }}
+                </p>
               </div>
               <div>
                 <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-1">
@@ -388,7 +390,7 @@ async function refreshAll() {
                   <div
                     class="h-3 rounded-full bg-primary"
                     :style="{
-                      width: `${Math.max(2, ((row.total_cost_usd ?? 0) / maxCostForBar) * 100)}%`,
+                      width: `${Math.max(2, ((row.total_cost_usd ?? 0) / maxCostForBar) * 100)}%`
                     }"
                   />
                 </div>

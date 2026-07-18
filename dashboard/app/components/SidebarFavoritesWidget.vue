@@ -9,10 +9,10 @@ const { fetchApi } = useApi()
 
 await favs.load()
 const { data: agentsData } = fetchApi<{ agents: Array<{ id: string, name: string }> }>(
-  '/api/agents',
+  '/api/agents'
 )
 const { data: personasData } = fetchApi<{ personas: Array<{ id: string, name: string }> }>(
-  '/api/personas',
+  '/api/personas'
 )
 
 interface FavRow { id: string, name: string }
@@ -20,7 +20,7 @@ interface FavRow { id: string, name: string }
 const starredAgents = computed<FavRow[]>(() => {
   const all = agentsData.value?.agents ?? []
   return favs.state.value.agents
-    .map((id) => all.find((a) => a.id === id))
+    .map(id => all.find(a => a.id === id))
     .filter((a): a is FavRow => Boolean(a))
     .slice(0, 4)
 })
@@ -28,13 +28,13 @@ const starredAgents = computed<FavRow[]>(() => {
 const starredPersonas = computed<FavRow[]>(() => {
   const all = personasData.value?.personas ?? []
   return favs.state.value.personas
-    .map((id) => all.find((p) => p.id === id))
+    .map(id => all.find(p => p.id === id))
     .filter((p): p is FavRow => Boolean(p))
     .slice(0, 4)
 })
 
 const hasAny = computed(
-  () => starredAgents.value.length > 0 || starredPersonas.value.length > 0,
+  () => starredAgents.value.length > 0 || starredPersonas.value.length > 0
 )
 </script>
 

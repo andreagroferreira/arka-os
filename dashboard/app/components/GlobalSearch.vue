@@ -36,7 +36,7 @@ watch(query, (q) => {
     try {
       const res = await $fetch<{ results: SearchResult[] }>(
         `${apiBase}/api/search`,
-        { query: { q, limit: 20 }, signal: abortCtl.signal },
+        { query: { q, limit: 20 }, signal: abortCtl.signal }
       )
       results.value = res.results ?? []
     } catch {
@@ -60,10 +60,10 @@ function pickResult(r: SearchResult) {
 }
 
 const kindMeta: Record<SearchResult['kind'], { icon: string, color: string }> = {
-  agent:      { icon: 'i-lucide-users',          color: 'text-primary' },
-  persona:    { icon: 'i-lucide-user-plus',      color: 'text-emerald-500' },
-  department: { icon: 'i-lucide-folder-tree',    color: 'text-amber-500' },
-  command:    { icon: 'i-lucide-terminal',       color: 'text-blue-500' },
+  agent: { icon: 'i-lucide-users', color: 'text-primary' },
+  persona: { icon: 'i-lucide-user-plus', color: 'text-emerald-500' },
+  department: { icon: 'i-lucide-folder-tree', color: 'text-amber-500' },
+  command: { icon: 'i-lucide-terminal', color: 'text-blue-500' }
 }
 </script>
 
@@ -122,8 +122,12 @@ const kindMeta: Record<SearchResult['kind'], { icon: string, color: string }> = 
                   :class="kindMeta[r.kind].color"
                 />
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold truncate">{{ r.label }}</p>
-                  <p class="text-xs text-muted truncate">{{ r.sublabel }}</p>
+                  <p class="text-sm font-semibold truncate">
+                    {{ r.label }}
+                  </p>
+                  <p class="text-xs text-muted truncate">
+                    {{ r.sublabel }}
+                  </p>
                 </div>
                 <UBadge
                   :label="r.kind"

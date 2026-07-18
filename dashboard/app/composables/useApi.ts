@@ -1,8 +1,10 @@
 export const useApi = () => {
   const apiBase = useRuntimeConfig().public.apiBase || 'http://localhost:3334'
 
-  const fetchApi = <T>(path: string, opts?: Record<string, any>) =>
-    useFetch<T>(`${apiBase}${path}`, { ...opts })
+  // path may be a plain string or a getter — useFetch accepts a getter URL
+  // and refetches when its reactive deps change (compare pages rely on it).
+  const fetchApi = <T>(path: MaybeRefOrGetter<string>, opts?: Record<string, unknown>) =>
+    useFetch<T>(() => `${apiBase}${toValue(path)}`, { ...opts })
 
   return { fetchApi, apiBase }
 }

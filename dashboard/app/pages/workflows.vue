@@ -55,14 +55,14 @@ async function saveYaml() {
   try {
     const res = await $fetch<{ updated?: boolean, error?: string }>(
       `${apiBase}/api/workflows/${selected.value.id}/yaml`,
-      { method: 'PUT', body: { content: yamlDraft.value } },
+      { method: 'PUT', body: { content: yamlDraft.value } }
     )
     if (res.error) throw new Error(res.error)
     toast.add({
       title: 'YAML updated',
       description: selected.value.file,
       color: 'success',
-      icon: 'i-lucide-check',
+      icon: 'i-lucide-check'
     })
     // Patch local content so the preview shows the new YAML immediately.
     selected.value = { ...selected.value, content: yamlDraft.value }
@@ -72,7 +72,7 @@ async function saveYaml() {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     savingYaml.value = false
@@ -98,7 +98,7 @@ function gateColor(gateType: string): 'primary' | 'warning' | 'error' | 'neutral
   const m: Record<string, 'primary' | 'warning' | 'error' | 'neutral'> = {
     user_approval: 'warning',
     quality_gate: 'error',
-    automatic: 'primary',
+    automatic: 'primary'
   }
   return m[gateType] ?? 'neutral'
 }
@@ -115,13 +115,13 @@ async function copyCommand(cmd: string) {
       title: 'Command copied',
       description: `${cmd} — paste into your runtime to run`,
       color: 'success',
-      icon: 'i-lucide-clipboard-check',
+      icon: 'i-lucide-clipboard-check'
     })
   } catch {
     toast.add({
       title: 'Clipboard failed',
       description: 'Browser blocked clipboard access',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -130,7 +130,7 @@ async function loadRuns(id: string) {
   runsLoading.value = true
   try {
     const res = await $fetch<{ runs: WorkflowRun[] }>(
-      `${apiBase}/api/workflows/${id}/runs?limit=10`,
+      `${apiBase}/api/workflows/${id}/runs?limit=10`
     )
     runs.value = res.runs ?? []
   } catch {
@@ -150,22 +150,22 @@ const departments = computed(() => {
   for (const w of workflows.value) if (w.department) set.add(w.department)
   return [
     { label: 'All departments', value: 'all' },
-    ...Array.from(set).sort().map((d) => ({ label: d, value: d })),
+    ...Array.from(set).sort().map(d => ({ label: d, value: d }))
   ]
 })
 
 const filtered = computed(() => {
   let result = workflows.value
   if (deptFilter.value !== 'all') {
-    result = result.filter((w) => w.department === deptFilter.value)
+    result = result.filter(w => w.department === deptFilter.value)
   }
   const q = search.value.toLowerCase().trim()
   if (q) {
-    result = result.filter((w) =>
+    result = result.filter(w =>
       w.name.toLowerCase().includes(q)
       || w.description.toLowerCase().includes(q)
       || w.command.toLowerCase().includes(q)
-      || w.id.toLowerCase().includes(q),
+      || w.id.toLowerCase().includes(q)
     )
   }
   return result
@@ -175,7 +175,7 @@ const tierColor = (tier: string) => {
   const m: Record<string, 'primary' | 'success' | 'warning' | 'neutral'> = {
     enterprise: 'primary',
     focused: 'success',
-    specialist: 'warning',
+    specialist: 'warning'
   }
   return m[tier] ?? 'neutral'
 }
@@ -185,7 +185,7 @@ const columns: TableColumn<Workflow>[] = [
   { accessorKey: 'department', header: 'Department' },
   { accessorKey: 'tier', header: 'Tier' },
   { accessorKey: 'command', header: 'Command' },
-  { accessorKey: 'phases_count', header: 'Phases' },
+  { accessorKey: 'phases_count', header: 'Phases' }
 ]
 </script>
 
@@ -239,14 +239,18 @@ const columns: TableColumn<Workflow>[] = [
             :ui="{
               tbody: '[&>tr]:cursor-pointer [&>tr]:hover:bg-elevated/50 [&>tr]:transition-colors',
               th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-              td: 'border-b border-default',
+              td: 'border-b border-default'
             }"
             @select="(_e: Event, row: { original: Workflow }) => { if (!row?.original) return; selected = row.original; sidePanelTab = 'flow'; runs = []; editingYaml = false; loadRuns(row.original.id) }"
           >
             <template #name-cell="{ row }">
               <div class="min-w-0">
-                <p class="font-medium truncate">{{ row.original.name }}</p>
-                <p class="text-xs text-muted font-mono truncate">{{ row.original.id }}</p>
+                <p class="font-medium truncate">
+                  {{ row.original.name }}
+                </p>
+                <p class="text-xs text-muted font-mono truncate">
+                  {{ row.original.id }}
+                </p>
               </div>
             </template>
             <template #department-cell="{ row }">
@@ -278,9 +282,15 @@ const columns: TableColumn<Workflow>[] = [
             <div class="px-4 py-3 border-b border-default bg-elevated/30">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-xs text-muted uppercase tracking-wide">Workflow</p>
-                  <p class="font-semibold truncate">{{ selected.name }}</p>
-                  <p class="text-xs text-muted font-mono truncate">{{ selected.file }}</p>
+                  <p class="text-xs text-muted uppercase tracking-wide">
+                    Workflow
+                  </p>
+                  <p class="font-semibold truncate">
+                    {{ selected.name }}
+                  </p>
+                  <p class="text-xs text-muted font-mono truncate">
+                    {{ selected.file }}
+                  </p>
                 </div>
                 <div class="flex items-center gap-1">
                   <UButton

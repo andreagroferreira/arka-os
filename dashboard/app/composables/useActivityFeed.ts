@@ -8,7 +8,7 @@ import { createSharedComposable } from '@vueuse/core'
 
 export interface ActivityEvent {
   id: string
-  ts: string  // ISO
+  ts: string // ISO
   kind: 'success' | 'warning' | 'error' | 'info'
   title: string
   description?: string
@@ -24,7 +24,7 @@ const _useActivityFeed = () => {
   const loaded = useState<boolean>('activityFeedLoaded', () => false)
   // PR94a v3.47.0 — unread count is now derived from `read: false`.
   const unreadCount = computed(
-    () => events.value.filter((e) => !e.read).length,
+    () => events.value.filter(e => !e.read).length
   )
 
   function _persist() {
@@ -91,7 +91,7 @@ const _useActivityFeed = () => {
   }
 
   function remove(id: string) {
-    events.value = events.value.filter((e) => e.id !== id)
+    events.value = events.value.filter(e => e.id !== id)
     _persist()
   }
 

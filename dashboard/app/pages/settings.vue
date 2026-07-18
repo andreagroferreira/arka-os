@@ -138,6 +138,7 @@ interface KeyRow {
   provider: string
   configured: boolean
   used_for?: string
+  masked_value: string
 }
 
 const {

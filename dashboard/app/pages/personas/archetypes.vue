@@ -26,7 +26,7 @@ const archetypes = computed<Archetype[]>(() => data.value?.archetypes ?? [])
 
 function discColor(letter: string): 'error' | 'warning' | 'success' | 'primary' | 'neutral' {
   const m: Record<string, 'error' | 'warning' | 'success' | 'primary' | 'neutral'> = {
-    D: 'error', I: 'warning', S: 'success', C: 'primary',
+    D: 'error', I: 'warning', S: 'success', C: 'primary'
   }
   return m[letter] ?? 'neutral'
 }
@@ -37,7 +37,13 @@ function discColor(letter: string): 'error' | 'warning' | 'success' | 'primary' 
     <template #header>
       <UDashboardNavbar title="Persona archetypes">
         <template #leading>
-          <UButton icon="i-lucide-arrow-left" variant="ghost" size="sm" to="/personas" aria-label="Back" />
+          <UButton
+            icon="i-lucide-arrow-left"
+            variant="ghost"
+            size="sm"
+            to="/personas"
+            aria-label="Back"
+          />
         </template>
         <template #trailing>
           <UBadge v-if="data?.total" :label="String(data.total)" variant="subtle" />
@@ -69,10 +75,16 @@ function discColor(letter: string): 'error' | 'warning' | 'success' | 'primary' 
             class="rounded-xl border border-default p-5 flex flex-col gap-3 hover:border-primary/40 transition-colors"
           >
             <div>
-              <h3 class="text-lg font-bold">{{ arch.name }}</h3>
-              <p class="text-xs text-muted">{{ arch.title }}</p>
+              <h3 class="text-lg font-bold">
+                {{ arch.name }}
+              </h3>
+              <p class="text-xs text-muted">
+                {{ arch.title }}
+              </p>
             </div>
-            <p class="text-sm italic text-muted">"{{ arch.tagline }}"</p>
+            <p class="text-sm italic text-muted">
+              "{{ arch.tagline }}"
+            </p>
             <div class="flex flex-wrap gap-1.5">
               <UBadge :label="arch.mbti" variant="subtle" size="xs" />
               <UBadge
@@ -87,7 +99,9 @@ function discColor(letter: string): 'error' | 'warning' | 'success' | 'primary' 
                 size="xs"
               />
             </div>
-            <p class="text-sm text-muted line-clamp-3">{{ arch.description }}</p>
+            <p class="text-sm text-muted line-clamp-3">
+              {{ arch.description }}
+            </p>
             <div class="pt-2 mt-auto">
               <UButton
                 label="Create from this"

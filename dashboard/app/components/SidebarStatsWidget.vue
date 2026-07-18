@@ -15,7 +15,9 @@ const { data, refresh } = fetchApi<SidebarStats>('/api/sidebar-stats')
 
 let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
-  timer = setInterval(() => { refresh() }, 60_000)
+  timer = setInterval(() => {
+    refresh()
+  }, 60_000)
 })
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer)

@@ -25,19 +25,19 @@ const {
   data,
   status,
   error,
-  refresh,
+  refresh
 } = await fetchApi<{ jobs: Job[], summary: JobSummary }>('/api/jobs?limit=200')
 
 const jobs = ref<Job[]>(data.value?.jobs ?? [])
 const summary = ref<JobSummary>(data.value?.summary ?? {
-  total: 0, queued: 0, processing: 0, completed: 0, failed: 0,
+  total: 0, queued: 0, processing: 0, completed: 0, failed: 0
 })
 
 watch(data, (d) => {
   if (!d) return
   jobs.value = d.jobs ?? []
   summary.value = d.summary ?? {
-    total: 0, queued: 0, processing: 0, completed: 0, failed: 0,
+    total: 0, queued: 0, processing: 0, completed: 0, failed: 0
   }
 })
 
@@ -50,19 +50,19 @@ const tabItems = [
   { label: 'Active', value: 'active' as const },
   { label: 'Queued', value: 'queued' as const },
   { label: 'Completed', value: 'completed' as const },
-  { label: 'Failed', value: 'failed' as const },
+  { label: 'Failed', value: 'failed' as const }
 ]
 
 const ACTIVE_STATUSES: Job['status'][] = [
-  'processing', 'downloading', 'transcribing', 'embedding',
+  'processing', 'downloading', 'transcribing', 'embedding'
 ]
 
 const filteredJobs = computed<Job[]>(() => {
   if (activeTab.value === 'all') return jobs.value
   if (activeTab.value === 'active') {
-    return jobs.value.filter((j) => ACTIVE_STATUSES.includes(j.status))
+    return jobs.value.filter(j => ACTIVE_STATUSES.includes(j.status))
   }
-  return jobs.value.filter((j) => j.status === activeTab.value)
+  return jobs.value.filter(j => j.status === activeTab.value)
 })
 
 const CANCELLABLE: Job['status'][] = ['queued', 'processing']
@@ -79,9 +79,15 @@ function connectWebSocket() {
   if (ws && ws.readyState === WebSocket.OPEN) return
   const wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/tasks'
   ws = new WebSocket(wsUrl)
-  ws.onopen = () => { wsConnected.value = true }
-  ws.onclose = () => { wsConnected.value = false }
-  ws.onerror = () => { wsConnected.value = false }
+  ws.onopen = () => {
+    wsConnected.value = true
+  }
+  ws.onclose = () => {
+    wsConnected.value = false
+  }
+  ws.onerror = () => {
+    wsConnected.value = false
+  }
   ws.onmessage = (event) => {
     try {
       const msg = JSON.parse(event.data) as {
@@ -94,7 +100,7 @@ function connectWebSocket() {
         chunks_created?: number
       }
       if (!msg.job_id) return
-      const idx = jobs.value.findIndex((j) => j.id === msg.job_id)
+      const idx = jobs.value.findIndex(j => j.id === msg.job_id)
       if (idx === -1) {
         // We don't have the row yet (new job spawned mid-session).
         // Refetch the list so it shows up.
@@ -127,7 +133,9 @@ function connectWebSocket() {
 
 function disconnectWebSocket() {
   if (!ws) return
-  try { ws.close() } catch { /* already closed */ }
+  try {
+    ws.close()
+  } catch { /* already closed */ }
   ws = null
   wsConnected.value = false
 }
@@ -150,7 +158,7 @@ async function cancelJob(job: Job) {
   try {
     const res = await $fetch<{ cancelled?: boolean, error?: string }>(
       `${apiBase}/api/jobs/${job.id}`,
-      { method: 'DELETE' },
+      { method: 'DELETE' }
     )
     if (res.cancelled) {
       // WS will broadcast 'job_cancelled' — handler will flip the row.
@@ -159,20 +167,20 @@ async function cancelJob(job: Job) {
       toast.add({
         title: 'Job cancelled',
         description: job.source || job.id,
-        color: 'success',
+        color: 'success'
       })
     } else {
       toast.add({
         title: 'Cancel rejected',
         description: res.error || 'Only queued jobs can be cancelled.',
-        color: 'warning',
+        color: 'warning'
       })
     }
   } catch (err) {
     toast.add({
       title: 'Cancel failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     cancelling.value.delete(job.id)
@@ -191,7 +199,7 @@ const STATUS_COLOR: Record<Job['status'], StatusColor> = {
   embedding: 'primary',
   completed: 'success',
   failed: 'error',
-  cancelled: 'warning',
+  cancelled: 'warning'
 }
 
 function statusColor(s: Job['status']): StatusColor {
@@ -203,7 +211,7 @@ function formatDate(dateStr: string) {
   try {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      hour: '2-digit', minute: '2-digit'
     }).format(new Date(dateStr))
   } catch {
     return dateStr
@@ -216,12 +224,12 @@ function truncate(value: string, max = 60): string {
 }
 
 const columns: TableColumn<Job>[] = [
-  { accessorKey: 'type',       header: 'Type' },
-  { accessorKey: 'source',     header: 'Source' },
-  { accessorKey: 'status',     header: 'Status' },
-  { accessorKey: 'progress',   header: 'Progress' },
+  { accessorKey: 'type', header: 'Type' },
+  { accessorKey: 'source', header: 'Source' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'progress', header: 'Progress' },
   { accessorKey: 'created_at', header: 'Created' },
-  { accessorKey: 'actions',    header: '' },
+  { accessorKey: 'actions', header: '' }
 ]
 </script>
 
@@ -263,24 +271,44 @@ const columns: TableColumn<Job>[] = [
         <!-- Summary cards -->
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <div class="rounded-lg border border-default p-4 text-center">
-            <p class="text-2xl font-semibold text-highlighted">{{ summary.total }}</p>
-            <p class="text-xs text-muted">Total</p>
+            <p class="text-2xl font-semibold text-highlighted">
+              {{ summary.total }}
+            </p>
+            <p class="text-xs text-muted">
+              Total
+            </p>
           </div>
           <div class="rounded-lg border border-default p-4 text-center">
-            <p class="text-2xl font-semibold text-primary">{{ summary.processing ?? 0 }}</p>
-            <p class="text-xs text-muted">Active</p>
+            <p class="text-2xl font-semibold text-primary">
+              {{ summary.processing ?? 0 }}
+            </p>
+            <p class="text-xs text-muted">
+              Active
+            </p>
           </div>
           <div class="rounded-lg border border-default p-4 text-center">
-            <p class="text-2xl font-semibold text-yellow-500">{{ summary.queued }}</p>
-            <p class="text-xs text-muted">Queued</p>
+            <p class="text-2xl font-semibold text-yellow-500">
+              {{ summary.queued }}
+            </p>
+            <p class="text-xs text-muted">
+              Queued
+            </p>
           </div>
           <div class="rounded-lg border border-default p-4 text-center">
-            <p class="text-2xl font-semibold text-green-500">{{ summary.completed }}</p>
-            <p class="text-xs text-muted">Completed</p>
+            <p class="text-2xl font-semibold text-green-500">
+              {{ summary.completed }}
+            </p>
+            <p class="text-xs text-muted">
+              Completed
+            </p>
           </div>
           <div class="rounded-lg border border-default p-4 text-center">
-            <p class="text-2xl font-semibold text-red-500">{{ summary.failed }}</p>
-            <p class="text-xs text-muted">Failed</p>
+            <p class="text-2xl font-semibold text-red-500">
+              {{ summary.failed }}
+            </p>
+            <p class="text-xs text-muted">
+              Failed
+            </p>
           </div>
         </div>
 
@@ -302,7 +330,9 @@ const columns: TableColumn<Job>[] = [
         >
           <template #empty>
             <UIcon name="i-lucide-list-checks" class="size-16 text-muted" />
-            <h3 class="text-lg font-semibold text-highlighted">No jobs yet</h3>
+            <h3 class="text-lg font-semibold text-highlighted">
+              No jobs yet
+            </h3>
             <p class="text-sm text-muted text-center max-w-md">
               Jobs are created when you ingest content. Head to the Knowledge tab and paste a URL or upload a file — each one runs as a job here in real time.
             </p>
@@ -321,7 +351,9 @@ const columns: TableColumn<Job>[] = [
             class="mt-6 flex flex-col items-center justify-center gap-4 py-12"
           >
             <UIcon name="i-lucide-filter-x" class="size-12 text-muted" />
-            <p class="text-sm text-muted">No {{ activeTab }} jobs found.</p>
+            <p class="text-sm text-muted">
+              No {{ activeTab }} jobs found.
+            </p>
           </div>
 
           <!-- Job table -->
@@ -336,11 +368,16 @@ const columns: TableColumn<Job>[] = [
                 thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
                 tbody: '[&>tr]:last:[&>td]:border-b-0',
                 th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-                td: 'border-b border-default',
+                td: 'border-b border-default'
               }"
             >
               <template #type-cell="{ row }">
-                <UBadge :label="row.original.type || 'unknown'" variant="subtle" color="primary" size="sm" />
+                <UBadge
+                  :label="row.original.type || 'unknown'"
+                  variant="subtle"
+                  color="primary"
+                  size="sm"
+                />
               </template>
               <template #source-cell="{ row }">
                 <span class="text-sm font-mono" :title="row.original.source">
@@ -364,7 +401,12 @@ const columns: TableColumn<Job>[] = [
               </template>
               <template #progress-cell="{ row }">
                 <div class="flex items-center gap-2 min-w-24">
-                  <UProgress :value="row.original.progress" :max="100" size="xs" class="flex-1" />
+                  <UProgress
+                    :value="row.original.progress"
+                    :max="100"
+                    size="xs"
+                    class="flex-1"
+                  />
                   <span class="text-xs text-muted font-mono w-8 text-right">
                     {{ row.original.progress }}%
                   </span>

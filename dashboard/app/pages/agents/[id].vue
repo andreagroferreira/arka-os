@@ -6,12 +6,72 @@
 //  - Activity stats row pulled from PR69 /api/agents/activity
 //  - Edit toggle wired to AgentEditDrawer (PUT /api/agents/{id})
 
+// PR86d v3.18.0 — render Markdown bio.
+import { marked } from 'marked'
+
+// Shape of the GET /api/agents/{id} payload as consumed by this page.
+// All keys optional except id — the backend only includes populated ones.
+interface AgentDetail {
+  id: string
+  name?: string
+  role?: string
+  department?: string
+  tier?: number
+  mbti?: string
+  disc?: {
+    primary?: string
+    secondary?: string
+    label?: string
+    communication_style?: string
+    under_pressure?: string
+    motivator?: string
+  }
+  enneagram?: {
+    type?: string | number
+    wing?: string | number
+    label?: string
+    core_fear?: string
+    core_motivation?: string
+  }
+  big_five?: {
+    O?: number
+    C?: number
+    E?: number
+    A?: number
+    N?: number
+  }
+  communication?: {
+    tone?: string
+    vocabulary_level?: string
+    language?: string
+    preferred_format?: string
+    avoid?: string[]
+  }
+  mental_models?: { primary?: string[], secondary?: string[] }
+  authority?: {
+    veto?: boolean
+    approve_budget?: boolean
+    approve_architecture?: boolean
+    approve_quality?: boolean
+    orchestrate?: boolean
+    block_release?: boolean
+    delegates_to?: string[]
+    escalates_to?: string | string[]
+  }
+  expertise_domains?: string[]
+  expertise_depth?: string
+  expertise_years?: number
+  frameworks?: string[]
+  linked_personas?: string[]
+  bio_md?: string
+}
+
 const route = useRoute()
 const agentId = route.params.id as string
 
 const { fetchApi, apiBase } = useApi()
 const toast = useToast()
-const { data: agent, status, error, refresh } = fetchApi<any>(`/api/agents/${agentId}`)
+const { data: agent, status, error, refresh } = fetchApi<AgentDetail>(`/api/agents/${agentId}`)
 
 // Per-department activity (PR69 endpoint) for the stats row.
 interface ActivityRow {
@@ -25,7 +85,7 @@ const { data: activityData } = fetchApi<{
   period: string
 }>('/api/agents/activity?period=week')
 const deptActivity = computed<ActivityRow | null>(() =>
-  (activityData.value?.by_department?.[agent.value?.department ?? ''] ?? null),
+  (activityData.value?.by_department?.[agent.value?.department ?? ''] ?? null)
 )
 
 // PR96d v3.58.0 — 30d activity sparkline (calls per day).
@@ -45,7 +105,7 @@ const sparklineMaxCalls = computed(() => {
   return Math.max(max, 1)
 })
 const sparklineTotalCalls = computed(() =>
-  sparkline.value.reduce((acc, d) => acc + d.calls, 0),
+  sparkline.value.reduce((acc, d) => acc + d.calls, 0)
 )
 
 // PR88d v3.26.0 — agent history (git log + trash entries)
@@ -57,7 +117,7 @@ interface HistoryEvent {
   author?: string
 }
 const { data: historyData } = fetchApi<{ events: HistoryEvent[] }>(
-  `/api/agents/${agentId}/history?limit=20`,
+  `/api/agents/${agentId}/history?limit=20`
 )
 
 const historyEvents = computed<HistoryEvent[]>(() => historyData.value?.events ?? [])
@@ -66,14 +126,14 @@ function historyKindIcon(kind: string): string {
   return ({
     'git-commit': 'i-lucide-git-commit',
     'agent-delete': 'i-lucide-trash-2',
-    'agent-move': 'i-lucide-folder-tree',
+    'agent-move': 'i-lucide-folder-tree'
   } as Record<string, string>)[kind] ?? 'i-lucide-circle'
 }
 function historyKindColor(kind: string): string {
   return ({
     'git-commit': 'text-blue-500',
     'agent-delete': 'text-red-500',
-    'agent-move': 'text-amber-500',
+    'agent-move': 'text-amber-500'
   } as Record<string, string>)[kind] ?? 'text-muted'
 }
 
@@ -91,7 +151,7 @@ interface ActivityStrip {
   dept_count: number
 }
 const { data: activityStrip } = fetchApi<ActivityStrip>(
-  `/api/agents/${agentId}/activity-strip?period=month`,
+  `/api/agents/${agentId}/activity-strip?period=month`
 )
 
 function formatRelative(iso: string | null): string {
@@ -113,9 +173,6 @@ function formatRelative(iso: string | null): string {
 // PR86a v3.15.0 — favorites.
 const favs = useFavorites()
 await favs.load()
-
-// PR86d v3.18.0 — render Markdown bio.
-import { marked } from 'marked'
 function markedHtml(src: string): string {
   if (!src?.trim()) return ''
   try {
@@ -136,7 +193,7 @@ async function openYamlEditor() {
   try {
     const blob = await $fetch<Blob>(
       `${apiBase}/api/agents/${agentId}/yaml`,
-      { responseType: 'blob' },
+      { responseType: 'blob' }
     )
     yamlEditorDraft.value = await blob.text()
     yamlEditorOpen.value = true
@@ -144,7 +201,7 @@ async function openYamlEditor() {
     toast.add({
       title: 'Failed to load YAML',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -155,14 +212,14 @@ async function saveYamlEditor() {
   try {
     const res = await $fetch<{ updated?: boolean, error?: string }>(
       `${apiBase}/api/agents/${agentId}/yaml`,
-      { method: 'PUT', body: { content: yamlEditorDraft.value } },
+      { method: 'PUT', body: { content: yamlEditorDraft.value } }
     )
     if (res.error) throw new Error(res.error)
     toast.add({
       title: 'YAML updated',
       description: agentId,
       color: 'success',
-      icon: 'i-lucide-check',
+      icon: 'i-lucide-check'
     })
     yamlEditorOpen.value = false
     await refresh()
@@ -170,58 +227,10 @@ async function saveYamlEditor() {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     yamlEditorSaving.value = false
-  }
-}
-
-// PR97d v3.62.0 — inline edit for name / role.
-type InlineField = 'name' | 'role'
-const inlineField = ref<InlineField | null>(null)
-const inlineDraft = ref('')
-const inlineSaving = ref(false)
-
-function startInline(field: InlineField, current: string | undefined) {
-  inlineField.value = field
-  inlineDraft.value = current ?? ''
-}
-function cancelInline() {
-  inlineField.value = null
-  inlineDraft.value = ''
-}
-async function commitInline(field: InlineField) {
-  if (!agent.value || inlineField.value !== field) return
-  const next = inlineDraft.value.trim()
-  const current = (field === 'name' ? agent.value.name : agent.value.role) ?? ''
-  if (!next || next === current) {
-    cancelInline()
-    return
-  }
-  inlineSaving.value = true
-  try {
-    const res = await $fetch<{ updated?: boolean, error?: string }>(
-      `${apiBase}/api/agents/${agentId}`,
-      { method: 'PUT', body: { [field]: next } },
-    )
-    if (res.error) throw new Error(res.error)
-    toast.add({
-      title: field === 'name' ? 'Name updated' : 'Role updated',
-      description: next,
-      color: 'success',
-      icon: 'i-lucide-check',
-    })
-    await refresh()
-  } catch (err) {
-    toast.add({
-      title: 'Save failed',
-      description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
-    })
-  } finally {
-    inlineSaving.value = false
-    inlineField.value = null
   }
 }
 
@@ -233,7 +242,7 @@ async function downloadYaml() {
   try {
     const blob = await $fetch<Blob>(
       `${apiBase}/api/agents/${agentId}/yaml`,
-      { responseType: 'blob' },
+      { responseType: 'blob' }
     )
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -247,13 +256,13 @@ async function downloadYaml() {
       title: 'YAML downloaded',
       description: `${agentId}.yaml`,
       color: 'success',
-      icon: 'i-lucide-download',
+      icon: 'i-lucide-download'
     })
   } catch (err) {
     toast.add({
       title: 'Download failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     downloadingYaml.value = false
@@ -268,20 +277,20 @@ async function exportToVault() {
   try {
     const res = await $fetch<{ exported?: boolean, path?: string, error?: string }>(
       `${apiBase}/api/agents/${agentId}/export`,
-      { method: 'POST' },
+      { method: 'POST' }
     )
     if (res.error) throw new Error(res.error)
     toast.add({
       title: 'Exported to Obsidian',
       description: res.path ? res.path.split('/').slice(-3).join('/') : undefined,
       color: 'success',
-      icon: 'i-lucide-file-text',
+      icon: 'i-lucide-file-text'
     })
   } catch (err) {
     toast.add({
       title: 'Export failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     exporting.value = false
@@ -305,21 +314,21 @@ const tierLabel: Record<number, string> = {
   0: 'C-Suite',
   1: 'Squad Lead',
   2: 'Specialist',
-  3: 'Support',
+  3: 'Support'
 }
 
 const tierColor: Record<number, string> = {
   0: 'error',
   1: 'warning',
   2: 'primary',
-  3: 'neutral',
+  3: 'neutral'
 }
 
 const depthColor: Record<string, string> = {
   master: 'error',
   expert: 'warning',
   advanced: 'primary',
-  intermediate: 'neutral',
+  intermediate: 'neutral'
 }
 
 const bigFiveLabels: Record<string, string> = {
@@ -327,7 +336,7 @@ const bigFiveLabels: Record<string, string> = {
   C: 'Conscientiousness',
   E: 'Extraversion',
   A: 'Agreeableness',
-  N: 'Neuroticism',
+  N: 'Neuroticism'
 }
 
 const bigFiveKeys = ['O', 'C', 'E', 'A', 'N'] as const
@@ -348,7 +357,7 @@ const mbtiDescriptions: Record<string, string> = {
   ISTP: 'Ti-Se-Ni-Fe — The Virtuoso',
   ISFP: 'Fi-Se-Ni-Te — The Adventurer',
   ESTP: 'Se-Ti-Fe-Ni — The Entrepreneur',
-  ESFP: 'Se-Fi-Te-Ni — The Entertainer',
+  ESFP: 'Se-Fi-Te-Ni — The Entertainer'
 }
 
 // --- DISC bar values ---
@@ -367,7 +376,7 @@ function discBarColor(letter: string): string {
     D: 'bg-red-500',
     I: 'bg-yellow-500',
     S: 'bg-green-500',
-    C: 'bg-blue-500',
+    C: 'bg-blue-500'
   }
   return colors[letter] ?? 'bg-primary'
 }
@@ -386,7 +395,7 @@ const tabs = [
   { label: 'Communication', value: 'communication', icon: 'i-lucide-message-square' },
   { label: 'Mental Models', value: 'models', icon: 'i-lucide-brain' },
   { label: 'Authority', value: 'authority', icon: 'i-lucide-shield' },
-  { label: 'Expertise', value: 'expertise', icon: 'i-lucide-award' },
+  { label: 'Expertise', value: 'expertise', icon: 'i-lucide-award' }
 ]
 
 // PR76 — hero helpers
@@ -402,22 +411,22 @@ const initials = computed<string>(() => {
 // Per-department gradient hex pair (from + to). Picked once per dept
 // so the same dept always renders the same hero tint.
 const DEPT_GRADIENTS: Record<string, [string, string]> = {
-  brand:       ['from-fuchsia-500/30', 'to-purple-600/10'],
-  marketing:   ['from-pink-500/30',    'to-rose-600/10'],
-  dev:         ['from-blue-500/30',    'to-cyan-600/10'],
-  ecom:        ['from-amber-500/30',   'to-orange-600/10'],
-  finance:     ['from-emerald-500/30', 'to-green-600/10'],
-  strategy:    ['from-indigo-500/30',  'to-violet-600/10'],
-  kb:          ['from-teal-500/30',    'to-cyan-600/10'],
-  ops:         ['from-slate-500/30',   'to-gray-600/10'],
-  pm:          ['from-sky-500/30',     'to-blue-600/10'],
-  saas:        ['from-violet-500/30',  'to-indigo-600/10'],
-  landing:     ['from-orange-500/30',  'to-red-600/10'],
-  content:     ['from-rose-500/30',    'to-pink-600/10'],
-  community:   ['from-yellow-500/30',  'to-amber-600/10'],
-  sales:       ['from-red-500/30',     'to-orange-600/10'],
-  leadership:  ['from-purple-500/30',  'to-pink-600/10'],
-  org:         ['from-gray-500/30',    'to-slate-600/10'],
+  brand: ['from-fuchsia-500/30', 'to-purple-600/10'],
+  marketing: ['from-pink-500/30', 'to-rose-600/10'],
+  dev: ['from-blue-500/30', 'to-cyan-600/10'],
+  ecom: ['from-amber-500/30', 'to-orange-600/10'],
+  finance: ['from-emerald-500/30', 'to-green-600/10'],
+  strategy: ['from-indigo-500/30', 'to-violet-600/10'],
+  kb: ['from-teal-500/30', 'to-cyan-600/10'],
+  ops: ['from-slate-500/30', 'to-gray-600/10'],
+  pm: ['from-sky-500/30', 'to-blue-600/10'],
+  saas: ['from-violet-500/30', 'to-indigo-600/10'],
+  landing: ['from-orange-500/30', 'to-red-600/10'],
+  content: ['from-rose-500/30', 'to-pink-600/10'],
+  community: ['from-yellow-500/30', 'to-amber-600/10'],
+  sales: ['from-red-500/30', 'to-orange-600/10'],
+  leadership: ['from-purple-500/30', 'to-pink-600/10'],
+  org: ['from-gray-500/30', 'to-slate-600/10']
 }
 
 const heroGradientClasses = computed(() => {
@@ -467,15 +476,29 @@ function formatTokens(n: number): string {
       <!-- Error -->
       <div v-else-if="error" class="flex flex-col items-center justify-center gap-4 py-24" role="alert">
         <UIcon name="i-lucide-alert-triangle" class="size-12 text-red-500" />
-        <p class="text-sm text-muted">Failed to load agent data.</p>
-        <UButton label="Back to Agents" variant="outline" icon="i-lucide-arrow-left" to="/agents" />
+        <p class="text-sm text-muted">
+          Failed to load agent data.
+        </p>
+        <UButton
+          label="Back to Agents"
+          variant="outline"
+          icon="i-lucide-arrow-left"
+          to="/agents"
+        />
       </div>
 
       <!-- Not found -->
       <div v-else-if="!agent" class="flex flex-col items-center justify-center gap-4 py-24">
         <UIcon name="i-lucide-user-x" class="size-12 text-muted" />
-        <p class="text-sm text-muted">Agent not found.</p>
-        <UButton label="Back to Agents" variant="outline" icon="i-lucide-arrow-left" to="/agents" />
+        <p class="text-sm text-muted">
+          Agent not found.
+        </p>
+        <UButton
+          label="Back to Agents"
+          variant="outline"
+          icon="i-lucide-arrow-left"
+          to="/agents"
+        />
       </div>
 
       <!-- Content -->
@@ -495,7 +518,9 @@ function formatTokens(n: number): string {
                   <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-highlighted">
                     {{ agent.name }}
                   </h1>
-                  <p class="text-base md:text-lg text-muted mt-0.5">{{ agent.role }}</p>
+                  <p class="text-base md:text-lg text-muted mt-0.5">
+                    {{ agent.role }}
+                  </p>
                 </div>
                 <div class="flex items-center gap-2">
                   <UButton
@@ -540,9 +565,9 @@ function formatTokens(n: number): string {
               <div class="flex flex-wrap items-center gap-2 pt-1">
                 <UBadge :label="agent.department" variant="subtle" />
                 <UBadge
-                  :label="`Tier ${agent.tier} — ${tierLabel[agent.tier] ?? ''}`"
+                  :label="`Tier ${agent.tier} — ${tierLabel[agent.tier!] ?? ''}`"
                   variant="subtle"
-                  :color="(tierColor[agent.tier] ?? 'neutral') as any"
+                  :color="(tierColor[agent.tier!] ?? 'neutral') as any"
                 />
                 <UBadge
                   v-if="agent.expertise_depth"
@@ -555,9 +580,16 @@ function formatTokens(n: number): string {
                   :label="`${agent.expertise_years}y experience`"
                   variant="outline"
                 />
-                <UBadge v-if="agent.mbti" :label="agent.mbti" variant="soft" size="sm" />
+                <UBadge
+                  v-if="agent.mbti"
+                  :label="agent.mbti"
+                  variant="soft"
+                  size="sm"
+                />
               </div>
-              <p class="text-xs text-muted/60 font-mono select-all pt-2">{{ agent.id }}</p>
+              <p class="text-xs text-muted/60 font-mono select-all pt-2">
+                {{ agent.id }}
+              </p>
             </div>
           </div>
         </section>
@@ -565,23 +597,37 @@ function formatTokens(n: number): string {
         <!-- ===== STATS ROW ===== -->
         <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">7d calls (dept)</p>
-            <p class="text-2xl font-bold">{{ deptActivity?.call_count ?? 0 }}</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+              7d calls (dept)
+            </p>
+            <p class="text-2xl font-bold">
+              {{ deptActivity?.call_count ?? 0 }}
+            </p>
           </div>
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">7d cost</p>
-            <p class="text-2xl font-bold">{{ formatCost(deptActivity?.total_cost_usd) }}</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+              7d cost
+            </p>
+            <p class="text-2xl font-bold">
+              {{ formatCost(deptActivity?.total_cost_usd) }}
+            </p>
           </div>
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Tokens (in/out)</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+              Tokens (in/out)
+            </p>
             <p class="text-lg font-semibold">
               {{ formatTokens(deptActivity?.total_tokens_in ?? 0) }} /
               {{ formatTokens(deptActivity?.total_tokens_out ?? 0) }}
             </p>
           </div>
           <div class="rounded-xl border border-default p-4 bg-elevated/20">
-            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Linked personas</p>
-            <p class="text-2xl font-bold">{{ agent.linked_personas?.length ?? 0 }}</p>
+            <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+              Linked personas
+            </p>
+            <p class="text-2xl font-bold">
+              {{ agent.linked_personas?.length ?? 0 }}
+            </p>
           </div>
         </section>
 
@@ -662,13 +708,13 @@ function formatTokens(n: number): string {
         <AgentDependencyGraph
           v-if="agent.linked_personas && agent.linked_personas.length > 0"
           :agent-id="agent.id"
-          :agent-name="agent.name"
+          :agent-name="agent.name ?? ''"
           :linked-personas="agent.linked_personas"
         />
 
         <!-- ===== BIO (PR86d) ===== -->
         <section
-          v-if="(agent as any).bio_md"
+          v-if="agent.bio_md"
           class="rounded-xl border border-default bg-elevated/10 p-5"
         >
           <h3 class="text-sm font-semibold uppercase tracking-wide text-muted mb-3">
@@ -676,7 +722,7 @@ function formatTokens(n: number): string {
           </h3>
           <div
             class="prose prose-sm dark:prose-invert max-w-none"
-            v-html="markedHtml((agent as any).bio_md)"
+            v-html="markedHtml(agent.bio_md)"
           />
         </section>
 
@@ -711,7 +757,9 @@ function formatTokens(n: number): string {
                   <code v-if="ev.ref" class="font-mono text-muted">{{ ev.ref }}</code>
                   <span v-if="ev.author" class="text-muted">· {{ ev.author }}</span>
                 </div>
-                <p class="text-sm mt-1">{{ ev.summary }}</p>
+                <p class="text-sm mt-1">
+                  {{ ev.summary }}
+                </p>
               </div>
             </li>
           </ol>
@@ -724,8 +772,12 @@ function formatTokens(n: number): string {
               <template #header>
                 <div class="flex items-center justify-between gap-3">
                   <div>
-                    <h2 class="text-lg font-bold">Edit agent YAML</h2>
-                    <p class="text-xs text-muted mt-0.5 font-mono">{{ agent?.id }}</p>
+                    <h2 class="text-lg font-bold">
+                      Edit agent YAML
+                    </h2>
+                    <p class="text-xs text-muted mt-0.5 font-mono">
+                      {{ agent?.id }}
+                    </p>
                   </div>
                   <UButton
                     icon="i-lucide-x"
@@ -784,7 +836,9 @@ function formatTokens(n: number): string {
                 <!-- Card 1: MBTI -->
                 <UCard>
                   <div class="space-y-2">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">MBTI</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                      MBTI
+                    </p>
                     <p class="text-4xl font-bold font-mono tracking-widest">
                       {{ agent.mbti || '----' }}
                     </p>
@@ -797,7 +851,9 @@ function formatTokens(n: number): string {
                 <!-- Card 2: Enneagram -->
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Enneagram</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                      Enneagram
+                    </p>
                     <div>
                       <p class="text-3xl font-bold">
                         Type {{ agent.enneagram?.type ?? '-' }}
@@ -812,13 +868,17 @@ function formatTokens(n: number): string {
 
                     <div class="grid grid-cols-2 gap-2 pt-1">
                       <div class="rounded-lg bg-red-500/10 border border-red-500/20 p-2.5">
-                        <p class="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Fear</p>
+                        <p class="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">
+                          Fear
+                        </p>
                         <p class="text-xs text-muted leading-snug">
                           {{ agent.enneagram?.core_fear ?? 'Unknown' }}
                         </p>
                       </div>
                       <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5">
-                        <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">Drive</p>
+                        <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">
+                          Drive
+                        </p>
                         <p class="text-xs text-muted leading-snug">
                           {{ agent.enneagram?.core_motivation ?? 'Unknown' }}
                         </p>
@@ -830,7 +890,9 @@ function formatTokens(n: number): string {
                 <!-- Card 3: DISC -->
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">DISC</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                      DISC
+                    </p>
                     <div>
                       <p class="text-3xl font-bold font-mono">
                         {{ agent.disc?.primary ?? '' }}{{ agent.disc?.secondary ?? '' }}
@@ -884,7 +946,9 @@ function formatTokens(n: number): string {
                       </span>
                     </div>
                   </div>
-                  <p v-else class="text-sm text-muted">No Big Five data available.</p>
+                  <p v-else class="text-sm text-muted">
+                    No Big Five data available.
+                  </p>
                 </div>
               </UCard>
             </div>
@@ -895,16 +959,26 @@ function formatTokens(n: number): string {
                 <UCard>
                   <div class="space-y-4">
                     <div>
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Tone</p>
-                      <p class="text-sm">{{ agent.communication.tone ?? '-' }}</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                        Tone
+                      </p>
+                      <p class="text-sm">
+                        {{ agent.communication.tone ?? '-' }}
+                      </p>
                     </div>
                     <div>
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Vocabulary Level</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                        Vocabulary Level
+                      </p>
                       <UBadge :label="agent.communication.vocabulary_level ?? '-'" variant="subtle" />
                     </div>
                     <div>
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Language</p>
-                      <p class="text-sm font-mono">{{ agent.communication.language ?? '-' }}</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                        Language
+                      </p>
+                      <p class="text-sm font-mono">
+                        {{ agent.communication.language ?? '-' }}
+                      </p>
                     </div>
                   </div>
                 </UCard>
@@ -912,11 +986,17 @@ function formatTokens(n: number): string {
                 <UCard>
                   <div class="space-y-4">
                     <div>
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Preferred Format</p>
-                      <p class="text-sm">{{ agent.communication.preferred_format ?? '-' }}</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                        Preferred Format
+                      </p>
+                      <p class="text-sm">
+                        {{ agent.communication.preferred_format ?? '-' }}
+                      </p>
                     </div>
                     <div v-if="agent.communication.avoid?.length">
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-2">Avoids</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+                        Avoids
+                      </p>
                       <ul class="space-y-1.5">
                         <li
                           v-for="item in agent.communication.avoid"
@@ -935,26 +1015,42 @@ function formatTokens(n: number): string {
               <!-- DISC Communication Details -->
               <UCard v-if="agent.disc?.communication_style || agent.disc?.under_pressure || agent.disc?.motivator">
                 <div class="space-y-4">
-                  <p class="text-sm font-semibold text-muted uppercase tracking-wide">DISC Communication Profile</p>
+                  <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                    DISC Communication Profile
+                  </p>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div v-if="agent.disc.communication_style">
-                      <p class="text-xs text-muted mb-1">Communication Style</p>
-                      <p class="text-sm">{{ agent.disc.communication_style }}</p>
+                      <p class="text-xs text-muted mb-1">
+                        Communication Style
+                      </p>
+                      <p class="text-sm">
+                        {{ agent.disc.communication_style }}
+                      </p>
                     </div>
                     <div v-if="agent.disc.under_pressure">
-                      <p class="text-xs text-muted mb-1">Under Pressure</p>
-                      <p class="text-sm">{{ agent.disc.under_pressure }}</p>
+                      <p class="text-xs text-muted mb-1">
+                        Under Pressure
+                      </p>
+                      <p class="text-sm">
+                        {{ agent.disc.under_pressure }}
+                      </p>
                     </div>
                     <div v-if="agent.disc.motivator">
-                      <p class="text-xs text-muted mb-1">Motivator</p>
-                      <p class="text-sm">{{ agent.disc.motivator }}</p>
+                      <p class="text-xs text-muted mb-1">
+                        Motivator
+                      </p>
+                      <p class="text-sm">
+                        {{ agent.disc.motivator }}
+                      </p>
                     </div>
                   </div>
                 </div>
               </UCard>
 
               <div v-if="!agent.communication && !agent.disc?.communication_style" class="py-8 text-center">
-                <p class="text-sm text-muted">No communication data available.</p>
+                <p class="text-sm text-muted">
+                  No communication data available.
+                </p>
               </div>
             </div>
 
@@ -963,7 +1059,9 @@ function formatTokens(n: number): string {
               <div v-if="agent.mental_models" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Primary Models</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                      Primary Models
+                    </p>
                     <ul v-if="agent.mental_models.primary?.length" class="space-y-2">
                       <li
                         v-for="model in agent.mental_models.primary"
@@ -974,13 +1072,17 @@ function formatTokens(n: number): string {
                         <span class="text-sm font-medium">{{ model }}</span>
                       </li>
                     </ul>
-                    <p v-else class="text-sm text-muted">None listed.</p>
+                    <p v-else class="text-sm text-muted">
+                      None listed.
+                    </p>
                   </div>
                 </UCard>
 
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Secondary Models</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                      Secondary Models
+                    </p>
                     <ul v-if="agent.mental_models.secondary?.length" class="space-y-2">
                       <li
                         v-for="model in agent.mental_models.secondary"
@@ -991,13 +1093,17 @@ function formatTokens(n: number): string {
                         <span class="text-sm text-muted">{{ model }}</span>
                       </li>
                     </ul>
-                    <p v-else class="text-sm text-muted">None listed.</p>
+                    <p v-else class="text-sm text-muted">
+                      None listed.
+                    </p>
                   </div>
                 </UCard>
               </div>
 
               <div v-else class="py-8 text-center">
-                <p class="text-sm text-muted">No mental model data available.</p>
+                <p class="text-sm text-muted">
+                  No mental model data available.
+                </p>
               </div>
             </div>
 
@@ -1007,19 +1113,53 @@ function formatTokens(n: number): string {
                 <UCard>
                   <div class="space-y-5">
                     <div>
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Permissions</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
+                        Permissions
+                      </p>
                       <div class="flex flex-wrap gap-2">
-                        <UBadge v-if="agent.authority.veto" label="Veto" color="error" variant="subtle" />
-                        <UBadge v-if="agent.authority.approve_architecture" label="Approve Architecture" color="success" variant="subtle" />
-                        <UBadge v-if="agent.authority.approve_budget" label="Approve Budget" color="success" variant="subtle" />
-                        <UBadge v-if="agent.authority.approve_quality" label="Approve Quality" color="success" variant="subtle" />
-                        <UBadge v-if="agent.authority.block_release" label="Block Release" color="error" variant="subtle" />
-                        <UBadge v-if="agent.authority.orchestrate" label="Orchestrate" color="primary" variant="subtle" />
+                        <UBadge
+                          v-if="agent.authority.veto"
+                          label="Veto"
+                          color="error"
+                          variant="subtle"
+                        />
+                        <UBadge
+                          v-if="agent.authority.approve_architecture"
+                          label="Approve Architecture"
+                          color="success"
+                          variant="subtle"
+                        />
+                        <UBadge
+                          v-if="agent.authority.approve_budget"
+                          label="Approve Budget"
+                          color="success"
+                          variant="subtle"
+                        />
+                        <UBadge
+                          v-if="agent.authority.approve_quality"
+                          label="Approve Quality"
+                          color="success"
+                          variant="subtle"
+                        />
+                        <UBadge
+                          v-if="agent.authority.block_release"
+                          label="Block Release"
+                          color="error"
+                          variant="subtle"
+                        />
+                        <UBadge
+                          v-if="agent.authority.orchestrate"
+                          label="Orchestrate"
+                          color="primary"
+                          variant="subtle"
+                        />
                       </div>
                     </div>
 
                     <div v-if="agent.authority.delegates_to?.length">
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-2">Delegates To</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+                        Delegates To
+                      </p>
                       <div class="flex flex-wrap gap-2">
                         <UBadge
                           v-for="d in agent.authority.delegates_to"
@@ -1032,19 +1172,27 @@ function formatTokens(n: number): string {
                     </div>
 
                     <div v-if="agent.authority.escalates_to">
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Escalates To</p>
-                      <p class="text-sm font-mono">{{ agent.authority.escalates_to }}</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                        Escalates To
+                      </p>
+                      <p class="text-sm font-mono">
+                        {{ agent.authority.escalates_to }}
+                      </p>
                     </div>
 
                     <div v-if="!agent.authority.escalates_to && !agent.authority.delegates_to?.length && !agent.authority.veto">
-                      <p class="text-sm text-muted">Standard execution authority.</p>
+                      <p class="text-sm text-muted">
+                        Standard execution authority.
+                      </p>
                     </div>
                   </div>
                 </UCard>
               </div>
 
               <div v-else class="py-8 text-center">
-                <p class="text-sm text-muted">No authority data available.</p>
+                <p class="text-sm text-muted">
+                  No authority data available.
+                </p>
               </div>
             </div>
 
@@ -1053,7 +1201,9 @@ function formatTokens(n: number): string {
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Domains</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                      Domains
+                    </p>
                     <div v-if="agent.expertise_domains?.length" class="flex flex-wrap gap-2">
                       <UBadge
                         v-for="d in agent.expertise_domains"
@@ -1064,13 +1214,17 @@ function formatTokens(n: number): string {
                         size="sm"
                       />
                     </div>
-                    <p v-else class="text-sm text-muted">No domains listed.</p>
+                    <p v-else class="text-sm text-muted">
+                      No domains listed.
+                    </p>
                   </div>
                 </UCard>
 
                 <UCard>
                   <div class="space-y-3">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">Frameworks</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                      Frameworks
+                    </p>
                     <ul v-if="agent.frameworks?.length" class="space-y-2">
                       <li
                         v-for="f in agent.frameworks"
@@ -1081,7 +1235,9 @@ function formatTokens(n: number): string {
                         {{ f }}
                       </li>
                     </ul>
-                    <p v-else class="text-sm text-muted">No frameworks listed.</p>
+                    <p v-else class="text-sm text-muted">
+                      No frameworks listed.
+                    </p>
                   </div>
                 </UCard>
               </div>
@@ -1089,7 +1245,9 @@ function formatTokens(n: number): string {
               <UCard v-if="agent.expertise_depth || agent.expertise_years">
                 <div class="flex flex-wrap gap-6">
                   <div v-if="agent.expertise_depth">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Depth</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                      Depth
+                    </p>
                     <UBadge
                       :label="agent.expertise_depth"
                       :color="(depthColor[agent.expertise_depth] ?? 'neutral') as any"
@@ -1098,7 +1256,9 @@ function formatTokens(n: number): string {
                     />
                   </div>
                   <div v-if="agent.expertise_years">
-                    <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Experience</p>
+                    <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                      Experience
+                    </p>
                     <p class="text-2xl font-bold">
                       {{ agent.expertise_years }}
                       <span class="text-sm font-normal text-muted">years</span>

@@ -25,7 +25,7 @@ const { data: personasData } = fetchApi<{
 }>('/api/personas')
 
 function personaName(id: string): string {
-  return personasData.value?.personas?.find((p) => p.id === id)?.name ?? id
+  return personasData.value?.personas?.find(p => p.id === id)?.name ?? id
 }
 
 const siblings = computed<string[]>(() => {
@@ -60,15 +60,15 @@ const personaPositions = computed(() =>
   props.linkedPersonas.map((id, i) => ({
     id,
     x: distributeX(props.linkedPersonas.length, i),
-    y: 32,
-  })),
+    y: 32
+  }))
 )
 const siblingPositions = computed(() =>
   siblings.value.map((id, i) => ({
     id,
     x: distributeX(siblings.value.length, i),
-    y: HEIGHT - 32,
-  })),
+    y: HEIGHT - 32
+  }))
 )
 </script>
 

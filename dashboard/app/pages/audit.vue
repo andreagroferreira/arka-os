@@ -28,9 +28,9 @@ const { data, status, error, refresh } = await fetchApi<{
     query: computed(() => ({
       limit: limit.value,
       kind: kind.value === 'all' ? undefined : kind.value,
-      tool: toolFilter.value.trim() || undefined,
-    })),
-  },
+      tool: toolFilter.value.trim() || undefined
+    }))
+  }
 )
 
 const events = computed<AuditEvent[]>(() => data.value?.events ?? [])
@@ -38,7 +38,7 @@ const events = computed<AuditEvent[]>(() => data.value?.events ?? [])
 const kindOptions = [
   { label: 'All kinds', value: 'all' },
   { label: 'Bypass used', value: 'bypass' },
-  { label: 'Blocked', value: 'blocked' },
+  { label: 'Blocked', value: 'blocked' }
 ]
 
 function formatTs(ts: string): string {
@@ -109,11 +109,18 @@ watch([kind, toolFilter, limit], async () => {
             class="rounded-lg border border-default p-3"
           >
             <div class="flex items-center gap-3 flex-wrap text-xs mb-1.5">
-              <UBadge :label="ev.kind" :color="kindColor(ev.kind)" variant="subtle" size="sm" />
+              <UBadge
+                :label="ev.kind"
+                :color="kindColor(ev.kind)"
+                variant="subtle"
+                size="sm"
+              />
               <UBadge :label="ev.tool || '—'" variant="outline" size="sm" />
               <span class="text-muted font-mono">{{ formatTs(ev.ts) }}</span>
             </div>
-            <p class="text-sm">{{ ev.reason || '(no reason recorded)' }}</p>
+            <p class="text-sm">
+              {{ ev.reason || '(no reason recorded)' }}
+            </p>
             <p v-if="ev.cwd" class="text-xs text-muted font-mono mt-1 truncate" :title="ev.cwd">
               {{ ev.cwd }}
             </p>

@@ -25,7 +25,7 @@ const search = ref('')
 const filtered = computed(() => {
   const q = search.value.toLowerCase().trim()
   if (!q) return rows.value
-  return rows.value.filter((r) => r.department.toLowerCase().includes(q))
+  return rows.value.filter(r => r.department.toLowerCase().includes(q))
 })
 
 const columns: TableColumn<DeptRow>[] = [
@@ -34,7 +34,7 @@ const columns: TableColumn<DeptRow>[] = [
   { id: 'tiers', header: 'Tiers (0/1/2/3)' },
   { accessorKey: 'calls_30d', header: 'Calls (30d)' },
   { accessorKey: 'cost_usd_30d', header: 'Cost (30d)' },
-  { id: 'actions', header: '' },
+  { id: 'actions', header: '' }
 ]
 
 function formatCost(cost: number | null): string {
@@ -87,7 +87,7 @@ function formatCost(cost: number | null): string {
           :ui="{
             tbody: '[&>tr]:cursor-pointer [&>tr]:hover:bg-elevated/50 [&>tr]:transition-colors',
             th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-            td: 'border-b border-default',
+            td: 'border-b border-default'
           }"
           @select="(_e: Event, row: { original: DeptRow }) => row?.original && navigateTo(`/departments/${row.original.department}`)"
         >
@@ -99,10 +99,34 @@ function formatCost(cost: number | null): string {
           </template>
           <template #tiers-cell="{ row }">
             <div class="flex items-center gap-1 text-xs font-mono">
-              <UBadge v-if="row.original.tier_counts['0'] > 0" :label="`0:${row.original.tier_counts['0']}`" color="error" variant="subtle" size="xs" />
-              <UBadge v-if="row.original.tier_counts['1'] > 0" :label="`1:${row.original.tier_counts['1']}`" color="warning" variant="subtle" size="xs" />
-              <UBadge v-if="row.original.tier_counts['2'] > 0" :label="`2:${row.original.tier_counts['2']}`" color="primary" variant="subtle" size="xs" />
-              <UBadge v-if="row.original.tier_counts['3'] > 0" :label="`3:${row.original.tier_counts['3']}`" color="neutral" variant="subtle" size="xs" />
+              <UBadge
+                v-if="row.original.tier_counts['0'] > 0"
+                :label="`0:${row.original.tier_counts['0']}`"
+                color="error"
+                variant="subtle"
+                size="xs"
+              />
+              <UBadge
+                v-if="row.original.tier_counts['1'] > 0"
+                :label="`1:${row.original.tier_counts['1']}`"
+                color="warning"
+                variant="subtle"
+                size="xs"
+              />
+              <UBadge
+                v-if="row.original.tier_counts['2'] > 0"
+                :label="`2:${row.original.tier_counts['2']}`"
+                color="primary"
+                variant="subtle"
+                size="xs"
+              />
+              <UBadge
+                v-if="row.original.tier_counts['3'] > 0"
+                :label="`3:${row.original.tier_counts['3']}`"
+                color="neutral"
+                variant="subtle"
+                size="xs"
+              />
             </div>
           </template>
           <template #calls_30d-cell="{ row }">
