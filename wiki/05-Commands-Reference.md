@@ -54,6 +54,7 @@ In-session commands issued inside Claude Code, Codex, Gemini CLI, or Cursor.
 | `/arka enforcement [today\|week\|month\|all]` | Flow-marker compliance — block rate, top blocked tools, top block reasons. |
 | `/arka compliance [today\|week\|month\|all]` | Behavior compliance: closing marker rate, `[arka:meta]` tag rate, KB citation pass rate, sycophancy-clean rate. |
 | `/arka reorganize [--since-days N]` | Reads recent KB pattern/anti-pattern/lesson artifacts (default 7 days) and generates a reorganization proposal at `~/.arkaos/reorganize-proposals/<date>.md`. Propose-only — never modifies agent YAMLs. Auto-fires on session start when today's proposal is missing. |
+| `/arka evolve [--min-projects N]` | Ingests accumulated cross-project signals into instincts and writes an evolution proposal at `~/.arkaos/evolve-proposals/<date>.md` with promotion candidates. Propose-only — nothing is promoted or modified. |
 | `/arka standup` | Daily standup — active projects, priorities, blockers, updates. |
 | `/arka monitor` | System health monitoring. |
 | `/arka onboard <path>` | Onboard an existing project directory into ArkaOS. |
