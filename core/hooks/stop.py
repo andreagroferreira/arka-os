@@ -26,13 +26,13 @@ heuristic (the old hook parsed it four times).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from core.shared.temp_paths import arkaos_temp_dir
 from core.hooks._shared import (
     ensure_root_on_path,
     get_str,
@@ -41,6 +41,7 @@ from core.hooks._shared import (
     resolve_arkaos_root,
     safe_session_id,
 )
+from core.shared.temp_paths import arkaos_temp_dir
 
 _DISPATCH_RE = re.compile(
     r"\[arka:dispatch\][ \t]*[A-Za-z0-9_-]+[ \t]*->[ \t]*([A-Za-z0-9_-]+)",
@@ -166,8 +167,8 @@ def _flow_checks(
         from core.governance.phantom_action_check import (
             current_turn_assistant_texts,
         )
-        from core.workflow.gate_checkpoint import extract_latest_gate
         from core.workflow import plan_approval
+        from core.workflow.gate_checkpoint import extract_latest_gate
         turn = current_turn_assistant_texts(raw)
         scan = turn if turn is not None else [last]
         if session_id and extract_latest_gate(scan) == 2:
@@ -303,7 +304,7 @@ def _flow_checks(
         pass
 
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
         "cwd": cwd,
         "event": "stop-hook-flow-check",
@@ -338,16 +339,14 @@ def _flow_checks(
     except Exception:
         pass
 
-    try:
+    with contextlib.suppress(Exception):
         clear_flow_required(session_id)
-    except Exception:
-        pass
 
 
 def _auto_doc_enqueue(
     session_id: str, transcript_path: str, raw: str | None
 ) -> None:
-    """Section 7: fire-and-forget auto-documentor job enqueue."""
+    """Section 8: fire-and-forget auto-documentor job enqueue."""
     try:
         from core.jobs.auto_doc_worker import enqueue_job
         from core.workflow.flow_enforcer import _load_last_assistant_messages
@@ -389,10 +388,8 @@ def _auto_doc_enqueue(
     data = raw if raw is not None else ""
     if not any(marker in data for marker in _EXTERNAL_MARKERS):
         return
-    try:
+    with contextlib.suppress(Exception):
         enqueue_job(session_id, transcript_path, "APPROVED")
-    except Exception:
-        pass
 
 
 def _session_memory_enabled() -> bool:
@@ -428,13 +425,13 @@ def _enqueue_turn_capture(session_id: str, transcript_path: str, cwd: str) -> No
             env={**os.environ, "PYTHONPATH": repo},
             start_new_session=True,  # same pattern as _enqueue_cognition_capture
         )
-    except Exception:  # noqa: BLE001 — capture is best-effort, hook never breaks
+    except Exception:
         pass
 
 
 def _enqueue_stop_lint(session_id: str, cwd: str) -> None:
-    """Detached scoped lint batch — deterministic evidence lands in
-    telemetry (stop-lint.jsonl), never on the 5s hook budget."""
+    """Section 7: detached scoped lint batch — deterministic evidence
+    lands in telemetry (stop-lint.jsonl), never on the 5s hook budget."""
     if not cwd or not Path(cwd).is_dir():
         return
     try:
@@ -478,7 +475,7 @@ def _enqueue_routing_rebuild() -> None:
             env={**os.environ, "PYTHONPATH": repo},
             start_new_session=True,
         )
-    except Exception:  # noqa: BLE001 — rebuild is best-effort, hook never breaks
+    except Exception:
         pass
 
 
@@ -507,10 +504,8 @@ def main(stdin_json: dict | None = None) -> int:
 
     _native_usage(transcript_path, session_id, raw)
 
-    try:
+    with contextlib.suppress(Exception):
         _enqueue_turn_capture(session_id, transcript_path, cwd)
-    except Exception:  # noqa: BLE001 — never let capture break the hook
-        pass
 
     _enqueue_routing_rebuild()
 
@@ -527,10 +522,8 @@ def main(stdin_json: dict | None = None) -> int:
     _auto_doc_enqueue(session_id, transcript_path, raw)
 
     # Belt-and-braces marker removal (session id already allowlisted).
-    try:
+    with contextlib.suppress(OSError):
         wf_marker.unlink(missing_ok=True)
-    except OSError:
-        pass
     return 0
 
 
@@ -540,4 +533,5 @@ if __name__ == "__main__":
     except SystemExit:
         raise
     except Exception:
-        raise SystemExit(0)  # Stop hook must never break the turn
+        # Stop hook must never break the turn.
+        raise SystemExit(0) from None
