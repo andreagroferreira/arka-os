@@ -21,7 +21,7 @@ metadata:
 
 > **Agent:** Clara (Knowledge Director) | **Framework:** evidence-flow, KB-first
 
-A 40-page supplier catalogue arrives as a scanned PDF. The text layer is
+A 40-page supplier catalog arrives as a scanned PDF. The text layer is
 empty, the tables span page breaks, and one smudged column holds the
 prices that will feed an order worth thousands. Run it through a generic
 converter and you get plausible numbers — some of them wrong, none of
@@ -35,7 +35,7 @@ page it came from and survives a check against the original.
    a real text layer, or is it pixels? Text-layer extraction and OCR are
    different tools with different failure modes — choosing blind wastes
    the run.
-2. **OCR is a hypothesis, not a fact.** Recognised text is a guess with
+2. **OCR is a hypothesis, not a fact.** Recognized text is a guess with
    a confidence score. Low-confidence spans get flagged, never silently
    accepted — a wrong digit in a price column is worse than a gap.
 3. **Structure survives the page.** Tables that break across pages are

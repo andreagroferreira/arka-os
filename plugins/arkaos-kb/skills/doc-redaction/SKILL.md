@@ -26,7 +26,7 @@ Redaction is removal, not concealment. A black rectangle drawn over a
 name leaves the name in the text layer; a cropped screenshot keeps the
 original in the file's history; "find and replace" misses the author
 field in the metadata. Every one of those has burned a real
-organisation, and the difference between them and safe sharing is one
+organization, and the difference between them and safe sharing is one
 verification pass this skill refuses to skip: the sanitized file is
 re-scanned as an adversary would read it, and only what survives that
 scan ships.
