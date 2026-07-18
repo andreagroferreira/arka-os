@@ -2,6 +2,17 @@
 
 Syncs CLAUDE.md (with intelligent merge), rules, hooks, and a generated
 constitution excerpt into each project's .claude/ directory.
+
+Stack conventions deploy as path-scoped rule files
+(``.claude/rules/arkaos-stack-<stack>.md``, source
+``config/standards/stack-rules/``) instead of being concatenated into
+the CLAUDE.md managed block: the ``paths:`` frontmatter makes the
+runtime load each convention only when a matching file is read, and the
+``arkaos-stack-`` namespace lets the syncer remove stale files when a
+project's stack changes. Stack slugs are case-folded and resolved
+through ``_STACK_ALIASES`` (project descriptors say ``javascript`` 14x,
+``vue`` 9x, ``php`` 9x — none of which matched an overlay filename
+under the old exact-name scheme).
 """
 
 from __future__ import annotations
@@ -28,7 +39,7 @@ def sync_project_content(project: Project) -> ContentSyncResult:
     """Sync CLAUDE.md, rules, hooks, and constitution excerpt for a project."""
     try:
         return _do_sync(project)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return ContentSyncResult(
             path=project.path, status="error", error=str(exc)
         )
@@ -46,6 +57,7 @@ def _do_sync(project: Project) -> ContentSyncResult:
 
     _sync_claude_md(core, project, project_claude, version, updated, unchanged, errored)
     _sync_rules(core, project_claude, updated, unchanged, errored)
+    _sync_stack_rules(core, project, project_claude, updated, unchanged, errored)
     _sync_hooks(core, project_claude, updated, unchanged, errored)
     _sync_constitution(core, project_claude, updated, unchanged, errored)
 
@@ -73,15 +85,11 @@ def _sync_claude_md(
     unchanged: list[str],
     errored: list[str],
 ) -> None:
-    base = (core / "config" / "user-claude.md").read_text(encoding="utf-8")
-    overlays_dir = core / "config" / "standards" / "claude-md-overlays"
-    overlays: list[str] = []
-    for stack in project.stack:
-        overlay = overlays_dir / f"{stack}.md"
-        if overlay.exists():
-            overlays.append(overlay.read_text(encoding="utf-8"))
-
-    managed_content = "\n\n".join([base, *overlays]).strip()
+    # Stack conventions live in path-scoped rule files (_sync_stack_rules);
+    # the managed block carries only the shared base.
+    managed_content = (
+        (core / "config" / "user-claude.md").read_text(encoding="utf-8").strip()
+    )
     target_file = project_claude / "CLAUDE.md"
     target_text = target_file.read_text(encoding="utf-8") if target_file.exists() else ""
 
@@ -96,6 +104,67 @@ def _sync_claude_md(
         return
     target_file.write_text(result.new_text, encoding="utf-8")
     updated.append("CLAUDE.md")
+
+
+# Descriptor slug -> stack-rules filename. Slugs are case-folded first.
+_STACK_ALIASES: dict[str, str] = {
+    "js": "node",
+    "javascript": "node",
+    "ts": "node",
+    "typescript": "node",
+    "vuejs": "vue",
+    "vue3": "vue",
+    "next": "react",
+    "nextjs": "react",
+    "next.js": "react",
+    "fastapi": "python",
+    "django": "python",
+    "flask": "python",
+}
+_STACK_RULE_PREFIX = "arkaos-stack-"
+
+
+def _resolve_stacks(stacks: list[str], rules_src: Path) -> list[str]:
+    """Case-folded, alias-resolved, deduped stacks that have a rule file."""
+    resolved: list[str] = []
+    for raw in stacks:
+        slug = raw.strip().casefold()
+        slug = _STACK_ALIASES.get(slug, slug)
+        if slug and slug not in resolved and (rules_src / f"{slug}.md").is_file():
+            resolved.append(slug)
+    return resolved
+
+
+def _sync_stack_rules(
+    core: Path,
+    project: Project,
+    project_claude: Path,
+    updated: list[str],
+    unchanged: list[str],
+    errored: list[str],
+) -> None:
+    """Deploy path-scoped stack rules; remove stale arkaos-stack files."""
+    src = core / "config" / "standards" / "stack-rules"
+    dst = project_claude / "rules"
+    dst.mkdir(parents=True, exist_ok=True)
+    stacks = _resolve_stacks(project.stack, src) if src.is_dir() else []
+    expected = {f"{_STACK_RULE_PREFIX}{stack}.md" for stack in stacks}
+    for stack in stacks:
+        name = f"{_STACK_RULE_PREFIX}{stack}.md"
+        target = dst / name
+        src_text = (src / f"{stack}.md").read_text(encoding="utf-8")
+        if target.exists() and target.read_text(encoding="utf-8") == src_text:
+            unchanged.append(f"rules/{name}")
+            continue
+        target.write_text(src_text, encoding="utf-8")
+        updated.append(f"rules/{name}")
+    # The arkaos-stack- namespace is syncer-owned: files for stacks the
+    # project no longer declares are removed (unlike generic rules,
+    # which never delete orphans).
+    for stale in dst.glob(f"{_STACK_RULE_PREFIX}*.md"):
+        if stale.name not in expected:
+            stale.unlink(missing_ok=True)
+            updated.append(f"rules/{stale.name} (removed)")
 
 
 def _sync_rules(

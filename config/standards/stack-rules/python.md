@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.py"
+---
+
 ## Python Stack Conventions
 
 - Type hints on every function signature.
