@@ -9,6 +9,8 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -36,9 +38,12 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.15.2",
     "@nuxt/fonts": "^0.14.0",
+    "@nuxt/test-utils": "^4.0.3",
     "@playwright/test": "^1.60.0",
     "eslint": "^10.1.0",
+    "happy-dom": "^20.10.6",
     "typescript": "^6.0.2",
+    "vitest": "^4.1.10",
     "vue-tsc": "^3.2.6"
   },
   "packageManager": "pnpm@10.33.0"
