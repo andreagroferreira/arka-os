@@ -5,6 +5,200 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.21.0] - 2026-07-16
+
+### Added
+
+- **Operator skills — terminal, github, knowledge** (#340) — ECC campaign
+  Track C4: three first-party skills that encode ArkaOS's own execution
+  discipline — the gap between an operation that ran and one that was
+  verified. Evidence-first: every terminal, GitHub and knowledge
+  operation closes with proof on record, not narration.
+
+## [4.20.0] - 2026-07-15
+
+### Added
+
+- **MLOps skills** (#338) — the competitive teardown flagged production
+  ML as ArkaOS's biggest capability gap (`rag-architect` and
+  `ai-assisted-dev` covered nothing of the model lifecycle). Two
+  first-party skills close it: production ML lifecycle and
+  heuristic-first ML adoption.
+- **Security lenses — exploit triage and safety review** (#339) — two
+  first-party security review skills distinct from the general
+  `security-audit`: one hunts what is actually reachable and
+  exploitable, the other reviews for safety regressions.
+
+## [4.19.0] - 2026-07-15
+
+### Changed
+
+- **Language-review skills, first-party** (#336) — course correction
+  (operator mandate, 2026-07-15): ArkaOS content is ours, with no
+  dependency on or reference to a competitor. The teardown was
+  intelligence — it told us which capabilities we lacked — not a source
+  we ship from. All competitor traces removed; the language-review
+  skills rewritten as first-party work.
+
+## [4.18.0] - 2026-07-15
+
+### Added
+
+- **ECC review lenses** (#334) — four specialised review skills ArkaOS
+  had no equivalent for, each hunting one thing the generic code-review
+  does not. First content port of the ECC campaign (Track C1).
+
+## [4.17.0] - 2026-07-14
+
+### Added
+
+- **Config-protection gate** (#330) — the agent fixes the code, not the
+  linter: agent edits to linter/formatter/type-checker configs are
+  refused, so an agent that hits a lint error can no longer "fix" the
+  rule instead of the violation.
+- **Instinct fields — confidence, scope, evidence_count** (#332) —
+  continuous-learning subsystem: an observation strengthens on
+  corroboration, weakens on contradiction, and is promoted from project
+  to global once the same signal appears across contexts.
+- **Agent provenance** (#333) — no agent enters the tree unclassified.
+  `core/provenance.py` promoted from skill provenance (#328) and shared;
+  `config/agents-provenance.yaml` classifies all 86 agents
+  baseline/derived/self-declaring and fails CI by name on anything
+  else; full origin/source/licence trail in
+  `agents-registry-v2.json`.
+
+## [4.16.0] - 2026-07-13
+
+### Added
+
+- **`npx arkaos shield`** (#329) — the harness config as attack surface:
+  a standalone scanner of the agent's own configuration (hooks, MCP
+  servers, permissions) for the patterns a hostile or careless config
+  introduces.
+- **Skill provenance** (#328) — no skill enters the tree unclassified.
+  Optional `metadata` block (origin/source/license) in frontmatter with
+  fail-closed validation; `config/skills-provenance.yaml` classifies
+  all 275 SKILL.md files as baseline, derived, or self-declaring.
+  Marketplace gains the byte-drift gate plugins already had — it failed
+  on all ten immediately (the committed export had drifted; the npm
+  tarball had been shipping stale descriptions for releases). Re-exported.
+
+## [4.15.0] - 2026-07-13
+
+### Added
+
+- **animated-website skill** (#327) — converts an MP4 into a single-file
+  luxury scroll-animated website: WebP frame extraction (desktop +
+  mobile), scroll-dwell canvas engine, cinematic pacing, ambient
+  particles, film grain, glass morphism.
+
+## [4.14.4] - 2026-07-13
+
+### Fixed
+
+- **Specialist gate 20-message fail-open** (#326) — the routing marker
+  rolling out of the 20-message transcript window returned ALLOW,
+  silently un-gating long sessions. Routing once now means something:
+  the marker persists for the session, not the window.
+- **Marketplace regeneration** — the v4.14.4 bump forgot its twin;
+  `test_marketplace_gen.py` now fails the suite on a bump without regen
+  (the step is mandatory in the release pipeline).
+
+## [4.14.3] - 2026-07-13
+
+### Fixed
+
+- **No gate owner may be a ghost** (#324) — specialist-gate P0.1: the
+  gate blocked a lead from `app/Http/Controllers/` and told it to
+  dispatch a specialist that did not exist in the roster. Generated
+  roster + deploy: gate ownership is derived from the actual agent
+  tree, not a hand-maintained list.
+- **The session learns the rules before it writes** (#325) — a blocked
+  session invented a "documented bug" to justify bypassing the gate;
+  the specialist-gate rules are now injected at session start, before
+  the first Write, not discovered at the first refusal.
+
+## [4.14.2] - 2026-07-12
+
+### Added
+
+- **Skill Packs wiki page** (#323) — adoption guide for the curated
+  core + marketplace: why the curated core exists (context rent), the
+  CI-enforced 80-skill/40k-char budget, and the command that audits it.
+
+## [4.14.1] - 2026-07-12
+
+### Fixed
+
+- **Ship `mcps/` in the npm tarball** (#320) — found live by
+  `arkaos doctor`: the arka-tools MCP server (F2-3) never reached npm
+  installs because the `files` allowlist excluded `mcps/`.
+- **Halve the npm tarball** (#322) — 462 `__pycache__/*.pyc` files and
+  OS cruft rode every release; bytecode and junk excluded, plus three
+  QG follow-up locks so the drift cannot return.
+- **README tells the truth about v4.14** (#321) — the front door now
+  describes the memory + hooks + marketplace release that actually
+  shipped (GTM slice 1).
+
+## [4.14.0] - 2026-07-12
+
+Two campaigns in one release. **F1 (memory):** ArkaOS sessions learned
+nothing across turns — verdicts, patterns and observations evaporated
+at session end. The loop is now closed: capture, retrieval, feedback
+and decay. **F2 (hooks):** the ruflo teardown measured our hook
+pipeline at 251ms p50 with 13 Python spawns per session start; it ends
+at ~18ms with a resident MCP server, a marketplace, and a curated
+skill budget with CI teeth.
+
+### Added
+
+- **Multi-backend embedding abstraction** (#299, F1-A1) — ordered
+  auto-resolution fastembed → ollama → none; OpenAI-compatible
+  providers supported.
+- **SQLite self-heal** (#300, F1-D1) — corrupt stores are recovered via
+  quick_check first, never destructively (verified claude-flow v3
+  pattern port).
+- **Session semantic memory** (#301, F1-A2) — per-turn capture store +
+  detached worker: the write half of the memory loop.
+- **Session memory retrieval** (#302, F1-A3) — Synapse layer L9.5 +
+  SessionStart recap: turn N's capture surfaces in turn N+1's context.
+  The memory loop closes.
+- **Routing feedback aggregator** (#303, F1-B1) — QG/judge verdicts
+  become routing evidence (`qg-verdicts.jsonl` aggregated into
+  per-route signal).
+- **Routing feedback layer L5.5** (#304, F1-B2) — `[arka:redo-risk]`
+  injected with citable counts when a route has recent rejection
+  history.
+- **Knowledge decay** (#305/#306, F1-C1/C2) — the graph that forgets:
+  decay utility + pattern-card fade/reinforce, wired into recipe
+  matching (L7.6) and agent experiences.
+- **Hook end-to-end latency harness** (#308, F2-1) — permanent N-run
+  p50/p95 measurement with a recorded baseline (`benchmarks/`).
+- **Session-start consolidation** (#309, F2-2) — 13 Python spawns into
+  1: 251ms → 131ms p50 (-48%), measured by the F2-1 harness.
+- **arka-tools MCP server** (#310, F2-3) — programmatic tools over the
+  core engine; ArkaOS no longer ships prompts-only MCP.
+- **SubagentStop + SessionEnd lifecycle coverage** (#311, F2-4).
+- **Statusline v3** (#312, F2-5) — workflow gate + budget cap segment.
+- **Node fast-path shims + generated gate manifest** (#313, F2-6) —
+  PreToolUse/PostToolUse fire at 82→18ms p50.
+- **`npx arkaos mcp start`** (#314, F2-7a) — run the arka-tools server
+  standalone, outside Claude Code's MCP registry.
+- **16 per-department marketplace plugins** (#316, F2-7b) — the
+  distribution endgame: curated long-tail packs per department.
+- **Skill-budget linter + curated default** (#317, F2-7c) — CI-enforced
+  80-skill/40k-char budget on the default install; the distribution has
+  teeth on both sides.
+
+### Fixed
+
+- **Venv-module tool resolution for evidence gates** (#307, F1 polish) —
+  `_tool_cmd()` resolves tools from the venv; nightly memory
+  maintenance wired.
+- **Shared skill deploy** (#315, F2-7c-pre) — update.js §6 deployed
+  hubs + sub-skills + agents but never the 14 meta skills; update-only
+  machines get them back.
+
 ## [4.13.2] - 2026-07-11
 
 Function-first campaign: the operator's projects were stalled on a video

@@ -8,18 +8,24 @@ from core.runtime.pricing import PRICING, estimate_cost_usd, known_models
 class TestEstimateCostUsd:
     def test_known_model_returns_number(self):
         cost = estimate_cost_usd("claude-opus-4-7", 1_000_000, 0)
-        assert cost == 15.0
+        assert cost == 5.0
 
     def test_output_tokens_priced(self):
         cost = estimate_cost_usd("claude-opus-4-7", 0, 1_000_000)
-        assert cost == 75.0
+        assert cost == 25.0
 
     def test_cached_tokens_billed_at_discount(self):
-        # 1M cache-read tokens only — Opus cache_read rate is $1.50/M.
+        # 1M cache-read tokens only — Opus cache_read rate is $0.50/M.
         cost = estimate_cost_usd(
             "claude-opus-4-7", tokens_in=1_000_000, tokens_out=0, cached_tokens=1_000_000
         )
-        assert cost == 1.5
+        assert cost == 0.5
+
+    def test_current_generation_models_priced(self):
+        # The models the Model Fabric routes to must never return None.
+        assert estimate_cost_usd("claude-opus-4-8", 1_000_000, 0) == 5.0
+        assert estimate_cost_usd("claude-sonnet-5", 1_000_000, 0) == 2.0
+        assert estimate_cost_usd("claude-fable-5", 0, 1_000_000) == 50.0
 
     def test_unknown_model_returns_none(self):
         assert estimate_cost_usd("some-unreleased-model", 1000, 1000) is None
