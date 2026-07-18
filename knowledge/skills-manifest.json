@@ -1015,6 +1015,32 @@
         "origin": "arkaos"
       }
     },
+    "doc-extraction": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "doc-redaction": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "docs": {
       "depts": [
         "dev"
