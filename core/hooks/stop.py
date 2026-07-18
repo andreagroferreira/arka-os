@@ -13,9 +13,11 @@ Section order preserved exactly:
        [arka:meta], kb-cite, sycophancy, closing marker, skill proposer,
        kb=N reconciliation) → telemetry entry (mode: warn)
     6. Gate checkpoint persistence (core/workflow/gate_checkpoint.py)
-    7. Auto-documentor enqueue (flow-required + QG APPROVED + external
+    7. Stop-lint batch enqueue (detached scoped lint —
+       core/governance/stop_lint.py, warn-only telemetry)
+    8. Auto-documentor enqueue (flow-required + QG APPROVED + external
        research heuristic)
-    8. Belt-and-braces WF_MARKER removal
+    9. Belt-and-braces WF_MARKER removal
 
 The transcript is read from disk ONCE and shared across native-usage,
 flow validation, gate checkpoint, and the auto-doc external-research
@@ -430,6 +432,32 @@ def _enqueue_turn_capture(session_id: str, transcript_path: str, cwd: str) -> No
         pass
 
 
+def _enqueue_stop_lint(session_id: str, cwd: str) -> None:
+    """Detached scoped lint batch — deterministic evidence lands in
+    telemetry (stop-lint.jsonl), never on the 5s hook budget."""
+    if not cwd or not Path(cwd).is_dir():
+        return
+    try:
+        from core.governance.stop_lint import mode as stop_lint_mode
+        if stop_lint_mode() == "off":
+            return
+        repo = repo_path()
+        if not repo or not Path(repo).is_dir():
+            return
+        import subprocess
+        import sys as _sys
+        subprocess.Popen(
+            [_sys.executable, "-m", "core.governance.stop_lint",
+             cwd, session_id or ""],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env={**os.environ, "PYTHONPATH": repo},
+            start_new_session=True,  # same pattern as _enqueue_turn_capture
+        )
+    except Exception:  # best-effort, hook never breaks
+        pass
+
+
 def _enqueue_routing_rebuild() -> None:
     """F1-B1: throttled detached rebuild of routing-scores.json (mtime
     > 1h). One stat on the hot path; the aggregation runs detached."""
@@ -493,6 +521,8 @@ def main(stdin_json: dict | None = None) -> int:
 
     if (Path(root) / "core" / "workflow" / "flow_enforcer.py").is_file():
         _flow_checks(session_id, transcript_path, cwd, effort_level, raw)
+
+    _enqueue_stop_lint(session_id, cwd)
 
     _auto_doc_enqueue(session_id, transcript_path, raw)
 
