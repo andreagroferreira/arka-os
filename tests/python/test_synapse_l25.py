@@ -201,7 +201,7 @@ def test_l25_feature_flag_false_in_config(monkeypatch, tmp_path, fixture_vault_p
     cfg_dir.mkdir()
     (cfg_dir / "config.json").write_text(json.dumps({"synapse": {"l25KbContext": False}}))
     monkeypatch.setattr(
-        "core.synapse.layers._KB_CONFIG_PATH", cfg_dir / "config.json"
+        "core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json"
     )
     layer = KBContextLayer(vector_store=None, vault_path=fixture_vault_path)
     assert layer.build("synapse layers") is None
@@ -316,18 +316,18 @@ def test_format_kb_block_handles_multiple_notes():
 
 def test_load_fallback_notes_respects_cap(tmp_path, monkeypatch):
     """Large vaults must not blow the fallback loader: cap at 2000 notes."""
-    from core.synapse import layers
+    from core.synapse import layers_kb
 
     # Temporarily lower the cap to a manageable number for this test —
     # the behaviour under test is the break-on-cap, not the exact value.
-    monkeypatch.setattr(layers, "_MAX_FALLBACK_NOTES", 10)
+    monkeypatch.setattr(layers_kb, "_MAX_FALLBACK_NOTES", 10)
 
     for i in range(25):
         (tmp_path / f"note-{i:03d}.md").write_text(
             f"# Note {i}\n\nBody {i}.", encoding="utf-8"
         )
 
-    notes = layers._load_fallback_notes(tmp_path)
+    notes = layers_kb._load_fallback_notes(tmp_path)
     assert len(notes) == 10, (
         "loader must stop at _MAX_FALLBACK_NOTES — got "
         f"{len(notes)} notes from 25 files"
