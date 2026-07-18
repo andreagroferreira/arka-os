@@ -13,13 +13,10 @@ from __future__ import annotations
 import json
 import os
 import platform
-import shutil
-import stat
 import subprocess
 from pathlib import Path
 
 import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STOP_SH = REPO_ROOT / "config" / "hooks" / "stop.sh"
@@ -78,6 +75,9 @@ def _run_stop_sh(
     env["ARKA_AUTO_DOC_QUEUE"] = str(queue)
     env["HOME"] = str(home)
     env["PYTHONPATH"] = str(REPO_ROOT)
+    # No detached stop-lint workers from the harness (they would race
+    # pytest's tmp_path cleanup; the enqueue has its own unit tests).
+    env["ARKA_STOP_LINT"] = "0"
 
     subprocess.run(
         ["bash", str(STOP_SH)],
