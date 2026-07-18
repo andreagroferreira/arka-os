@@ -1,0 +1,13 @@
+---
+paths:
+  - "**/*.php"
+---
+
+## PHP Stack Conventions
+
+- PHP 8.2+ syntax: constructor promotion, readonly, enums, match.
+- `declare(strict_types=1)` in every file.
+- Typed properties, parameters, and return types everywhere.
+- Composer autoload (PSR-4); never `require` project files by path.
+- Exceptions over error returns; never `@` error suppression.
+- Pint (or the project formatter) must pass before a change is done.

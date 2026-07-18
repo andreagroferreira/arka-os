@@ -15,7 +15,6 @@ import pytest
 from core.sync.engine import run_sync
 from core.sync.reporter import format_report
 
-
 # ---------------------------------------------------------------------------
 # Environment builder
 # ---------------------------------------------------------------------------
@@ -164,11 +163,11 @@ def _build_environment(tmp_path: Path) -> dict:
 
 def _build_content_core_repo(root: Path) -> None:
     """Create a minimal fake ArkaOS core repo for content sync."""
-    (root / "config" / "standards" / "claude-md-overlays").mkdir(parents=True)
+    (root / "config" / "standards" / "stack-rules").mkdir(parents=True)
     (root / "config" / "hooks").mkdir(parents=True)
     (root / "config" / "user-claude.md").write_text("# ArkaOS CLAUDE Template\n")
-    (root / "config" / "standards" / "claude-md-overlays" / "python.md").write_text(
-        "## Python Rules\n"
+    (root / "config" / "standards" / "stack-rules" / "python.md").write_text(
+        '---\npaths:\n  - "**/*.py"\n---\n\n## Python Rules\n'
     )
     (root / "config" / "standards" / "communication.md").write_text("# Communication\n")
     (root / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n")
@@ -424,7 +423,8 @@ class TestFullSyncIntegration:
         assert report2.errors == [], f"expected no errors, got {report2.errors}"
 
     def test_mcp_optimizer_defers_canva_on_laravel_stack(self, tmp_path: Path) -> None:
-        """Optimizer defers canva (policy-deferred for laravel) and keeps context7/postgres active."""
+        """Optimizer defers canva (policy-deferred for laravel); context7
+        and postgres stay active."""
         arkaos_home = tmp_path / ".arkaos"
         arkaos_home.mkdir()
 
@@ -490,11 +490,12 @@ class TestFullSyncIntegration:
         (laravel_app / ".mcp.json").write_text(json.dumps(mcp_json, indent=2))
 
         (projects_dir / "laravel-app.md").write_text(
-            f"---\nname: laravel-app\npath: {laravel_app}\nstatus: active\nstack: [laravel]\n---\n\nLaravel app.\n"
+            f"---\nname: laravel-app\npath: {laravel_app}\nstatus: active\n"
+            "stack: [laravel]\n---\n\nLaravel app.\n"
         )
 
         with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
-            report = run_sync(
+            run_sync(
                 arkaos_home=arkaos_home,
                 skills_dir=skills_dir,
                 home_path=str(tmp_path),

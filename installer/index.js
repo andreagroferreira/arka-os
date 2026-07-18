@@ -631,7 +631,7 @@ function copyConfigFiles(installDir) {
     ["config/constitution.yaml", "config/constitution.yaml"],
   ];
 
-  // Standards — files copied individually; subdirectories (e.g. claude-md-overlays)
+  // Standards — files copied individually; subdirectories (e.g. stack-rules)
   // use cpSync recursively because copyFileSync fails with EPERM on directories.
   const standardsDir = join(ARKAOS_ROOT, "config", "standards");
   if (existsSync(standardsDir)) {

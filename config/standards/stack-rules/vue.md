@@ -1,0 +1,13 @@
+---
+paths:
+  - "**/*.vue"
+---
+
+## Vue Stack Conventions
+
+- Composition API only; no Options API.
+- `<script setup lang="ts">` in every component.
+- Props and emits fully typed (`defineProps`/`defineEmits` generics).
+- Shared reactive logic lives in composables, not mixins.
+- One component per file; PascalCase filenames.
+- v-for always keyed; no index keys on mutable lists.

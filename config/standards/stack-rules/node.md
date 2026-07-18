@@ -1,7 +1,16 @@
-## Node.js Stack Conventions
+---
+paths:
+  - "**/*.js"
+  - "**/*.mjs"
+  - "**/*.cjs"
+  - "**/*.ts"
+---
+
+## Node.js / JavaScript Stack Conventions
 
 - ESM modules (import/export); no CommonJS `require()`.
 - Support Node and Bun runtimes when writing CLI tooling.
 - Graceful fallbacks when optional dependencies are missing.
 - All paths via `os.homedir()` or `path.join`; never hardcoded.
 - No interactive prompts in headless/CI runs.
+- Prefer built-in `node:` modules over dependencies.
