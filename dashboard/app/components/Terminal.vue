@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
 // PR99b v3.68.0 — xterm.js terminal mount.
 // PR99c v3.69.0 — accepts an external session via prop so the tab
@@ -46,7 +47,7 @@ onMounted(async () => {
     lineHeight: 1.2,
     scrollback: 5000,
     theme: effectiveTheme.value,
-    allowProposedApi: true,
+    allowProposedApi: true
   })
 
   // React to theme switches without remounting.
@@ -69,10 +70,10 @@ onMounted(async () => {
   // first mount and shells started at the default 80 cols, leaving
   // empty space on the right of the canvas.
   await nextTick()
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
   try {
     fitAddon.fit()
-  } catch (_e) {
+  } catch {
     // dom layout not ready — ResizeObserver below will recover
   }
 
@@ -143,7 +144,7 @@ onMounted(async () => {
       requestAnimationFrame(() => {
         try {
           fitAddon.fit()
-        } catch (_e) { /* layout not ready */ }
+        } catch { /* layout not ready */ }
         session.sendResize(t.cols, t.rows)
       })
     }
@@ -153,7 +154,7 @@ onMounted(async () => {
     try {
       fitAddon.fit()
       session.sendResize(t.cols, t.rows)
-    } catch (_e) {
+    } catch {
       // dom may have unmounted
     }
   })
@@ -169,7 +170,7 @@ onMounted(async () => {
         try {
           fit.value?.fit()
           session.sendResize(term.value!.cols, term.value!.rows)
-        } catch (_e) { /* layout not ready */ }
+        } catch { /* layout not ready */ }
       })
     })
   })
@@ -180,7 +181,7 @@ function refit() {
   try {
     fit.value.fit()
     session.sendResize(term.value.cols, term.value.rows)
-  } catch (_e) {
+  } catch {
     // layout not ready
   }
 }
@@ -200,7 +201,7 @@ defineExpose({
   status: session.status,
   error: session.error,
   meta: session.meta,
-  refit,
+  refit
 })
 </script>
 

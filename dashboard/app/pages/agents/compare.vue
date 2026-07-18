@@ -12,7 +12,7 @@ const { fetchApi } = useApi()
 const ids = computed<string[]>(() => {
   const raw = route.query.ids
   const str = Array.isArray(raw) ? raw.join(',') : (raw ?? '')
-  return String(str).split(',').map((s) => s.trim()).filter(Boolean).slice(0, 2)
+  return String(str).split(',').map(s => s.trim()).filter(Boolean).slice(0, 2)
 })
 
 interface AgentDetail {
@@ -42,20 +42,22 @@ interface AgentDetail {
   }
   // PR94c v3.49.0 — diffable free-text field
   bio_md?: string
+  // Present when the backend returns an error payload instead of an agent.
+  error?: string
 }
 
 const { data: a, status: aStatus } = fetchApi<AgentDetail>(
-  () => ids.value[0] ? `/api/agents/${ids.value[0]}` : '',
+  () => ids.value[0] ? `/api/agents/${ids.value[0]}` : ''
 )
 const { data: b, status: bStatus } = fetchApi<AgentDetail>(
-  () => ids.value[1] ? `/api/agents/${ids.value[1]}` : '',
+  () => ids.value[1] ? `/api/agents/${ids.value[1]}` : ''
 )
 
 const loading = computed(() => aStatus.value === 'pending' || bStatus.value === 'pending')
 const errorMsg = computed(() => {
   if (ids.value.length < 2) return 'Pass two agent ids via ?ids=a,b'
-  if (a.value && (a.value as any).error) return `Left agent: ${(a.value as any).error}`
-  if (b.value && (b.value as any).error) return `Right agent: ${(b.value as any).error}`
+  if (a.value?.error) return `Left agent: ${a.value.error}`
+  if (b.value?.error) return `Right agent: ${b.value.error}`
   return null
 })
 
@@ -79,7 +81,13 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
     <template #header>
       <UDashboardNavbar title="Compare agents">
         <template #leading>
-          <UButton icon="i-lucide-arrow-left" variant="ghost" size="sm" to="/agents" aria-label="Back" />
+          <UButton
+            icon="i-lucide-arrow-left"
+            variant="ghost"
+            size="sm"
+            to="/agents"
+            aria-label="Back"
+          />
         </template>
         <template #trailing>
           <UBadge label="2-way" variant="subtle" size="sm" />
@@ -97,66 +105,124 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
       <div v-else-if="a && b" class="space-y-4 max-w-6xl">
         <section class="grid grid-cols-2 gap-3">
           <div class="rounded-lg border border-default p-4">
-            <p class="text-xs text-muted">Left</p>
-            <h2 class="text-xl font-bold">{{ a.name }}</h2>
-            <p class="text-sm text-muted">{{ a.role }} · {{ a.department }}</p>
+            <p class="text-xs text-muted">
+              Left
+            </p>
+            <h2 class="text-xl font-bold">
+              {{ a.name }}
+            </h2>
+            <p class="text-sm text-muted">
+              {{ a.role }} · {{ a.department }}
+            </p>
           </div>
           <div class="rounded-lg border border-default p-4">
-            <p class="text-xs text-muted">Right</p>
-            <h2 class="text-xl font-bold">{{ b.name }}</h2>
-            <p class="text-sm text-muted">{{ b.role }} · {{ b.department }}</p>
+            <p class="text-xs text-muted">
+              Right
+            </p>
+            <h2 class="text-xl font-bold">
+              {{ b.name }}
+            </h2>
+            <p class="text-sm text-muted">
+              {{ b.role }} · {{ b.department }}
+            </p>
           </div>
         </section>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Identity</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Identity
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', diffClass(a.tier, b.tier)]">
-            <p class="text-xs text-muted">Tier</p>
-            <p class="text-sm font-mono">{{ a.tier ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              Tier
+            </p>
+            <p class="text-sm font-mono">
+              {{ a.tier ?? '—' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(a.tier, b.tier)]">
-            <p class="text-xs text-muted">Tier</p>
-            <p class="text-sm font-mono">{{ b.tier ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              Tier
+            </p>
+            <p class="text-sm font-mono">
+              {{ b.tier ?? '—' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(a.model, b.model)]">
-            <p class="text-xs text-muted">Model</p>
-            <p class="text-sm font-mono">{{ a.model ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              Model
+            </p>
+            <p class="text-sm font-mono">
+              {{ a.model ?? '—' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(a.model, b.model)]">
-            <p class="text-xs text-muted">Model</p>
-            <p class="text-sm font-mono">{{ b.model ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              Model
+            </p>
+            <p class="text-sm font-mono">
+              {{ b.model ?? '—' }}
+            </p>
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Behavioural DNA</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Behavioural DNA
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', diffClass(a.mbti, b.mbti)]">
-            <p class="text-xs text-muted">MBTI</p>
-            <p class="text-lg font-mono font-bold">{{ a.mbti ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              MBTI
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ a.mbti ?? '—' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(a.mbti, b.mbti)]">
-            <p class="text-xs text-muted">MBTI</p>
-            <p class="text-lg font-mono font-bold">{{ b.mbti ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              MBTI
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ b.mbti ?? '—' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${a.disc?.primary}/${a.disc?.secondary}`, `${b.disc?.primary}/${b.disc?.secondary}`)]">
-            <p class="text-xs text-muted">DISC</p>
-            <p class="text-lg font-mono font-bold">{{ a.disc?.primary ?? '?' }}/{{ a.disc?.secondary ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              DISC
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ a.disc?.primary ?? '?' }}/{{ a.disc?.secondary ?? '?' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${a.disc?.primary}/${a.disc?.secondary}`, `${b.disc?.primary}/${b.disc?.secondary}`)]">
-            <p class="text-xs text-muted">DISC</p>
-            <p class="text-lg font-mono font-bold">{{ b.disc?.primary ?? '?' }}/{{ b.disc?.secondary ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              DISC
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ b.disc?.primary ?? '?' }}/{{ b.disc?.secondary ?? '?' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${a.enneagram?.type}w${a.enneagram?.wing}`, `${b.enneagram?.type}w${b.enneagram?.wing}`)]">
-            <p class="text-xs text-muted">Enneagram</p>
-            <p class="text-lg font-mono font-bold">{{ a.enneagram?.type ?? '?' }}w{{ a.enneagram?.wing ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              Enneagram
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ a.enneagram?.type ?? '?' }}w{{ a.enneagram?.wing ?? '?' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${a.enneagram?.type}w${a.enneagram?.wing}`, `${b.enneagram?.type}w${b.enneagram?.wing}`)]">
-            <p class="text-xs text-muted">Enneagram</p>
-            <p class="text-lg font-mono font-bold">{{ b.enneagram?.type ?? '?' }}w{{ b.enneagram?.wing ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              Enneagram
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ b.enneagram?.type ?? '?' }}w{{ b.enneagram?.wing ?? '?' }}
+            </p>
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Big Five (OCEAN)</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Big Five (OCEAN)
+        </h3>
         <div class="space-y-1">
           <div v-for="k in bigFiveKeys" :key="k" class="grid grid-cols-2 gap-3">
             <div :class="['rounded-lg border p-2 flex items-center gap-3', diffClass(a.big_five?.[k], b.big_five?.[k])]">
@@ -170,56 +236,88 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Expertise domains</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Expertise domains
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', listDiffClass(a.expertise?.domains, b.expertise?.domains)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="d in a.expertise?.domains" :key="d">{{ d }}</li>
-              <li v-if="!a.expertise?.domains?.length" class="list-none text-muted italic">none</li>
+              <li v-for="d in a.expertise?.domains" :key="d">
+                {{ d }}
+              </li>
+              <li v-if="!a.expertise?.domains?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
           <div :class="['rounded-lg border p-3', listDiffClass(a.expertise?.domains, b.expertise?.domains)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="d in b.expertise?.domains" :key="d">{{ d }}</li>
-              <li v-if="!b.expertise?.domains?.length" class="list-none text-muted italic">none</li>
+              <li v-for="d in b.expertise?.domains" :key="d">
+                {{ d }}
+              </li>
+              <li v-if="!b.expertise?.domains?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Frameworks</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Frameworks
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', listDiffClass(a.expertise?.frameworks, b.expertise?.frameworks)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="f in a.expertise?.frameworks" :key="f">{{ f }}</li>
-              <li v-if="!a.expertise?.frameworks?.length" class="list-none text-muted italic">none</li>
+              <li v-for="f in a.expertise?.frameworks" :key="f">
+                {{ f }}
+              </li>
+              <li v-if="!a.expertise?.frameworks?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
           <div :class="['rounded-lg border p-3', listDiffClass(a.expertise?.frameworks, b.expertise?.frameworks)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="f in b.expertise?.frameworks" :key="f">{{ f }}</li>
-              <li v-if="!b.expertise?.frameworks?.length" class="list-none text-muted italic">none</li>
+              <li v-for="f in b.expertise?.frameworks" :key="f">
+                {{ f }}
+              </li>
+              <li v-if="!b.expertise?.frameworks?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Mental models (primary)</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Mental models (primary)
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', listDiffClass(a.mental_models?.primary, b.mental_models?.primary)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="m in a.mental_models?.primary" :key="m">{{ m }}</li>
-              <li v-if="!a.mental_models?.primary?.length" class="list-none text-muted italic">none</li>
+              <li v-for="m in a.mental_models?.primary" :key="m">
+                {{ m }}
+              </li>
+              <li v-if="!a.mental_models?.primary?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
           <div :class="['rounded-lg border p-3', listDiffClass(a.mental_models?.primary, b.mental_models?.primary)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="m in b.mental_models?.primary" :key="m">{{ m }}</li>
-              <li v-if="!b.mental_models?.primary?.length" class="list-none text-muted italic">none</li>
+              <li v-for="m in b.mental_models?.primary" :key="m">
+                {{ m }}
+              </li>
+              <li v-if="!b.mental_models?.primary?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
         </div>
 
         <!-- PR94c v3.49.0 — text diff blocks for the free-text fields -->
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Bio (Markdown)</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Bio (Markdown)
+        </h3>
         <TextDiff
           :left="a.bio_md || ''"
           :right="b.bio_md || ''"
@@ -227,7 +325,9 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           :right-label="b.name || b.id"
         />
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Communication tone</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Communication tone
+        </h3>
         <TextDiff
           :left="a.communication?.tone || ''"
           :right="b.communication?.tone || ''"

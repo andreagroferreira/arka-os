@@ -30,7 +30,7 @@ const {
   data,
   status,
   error,
-  refresh,
+  refresh
 } = await fetchApi<HealthPayload>('/api/health')
 
 // ─── Auto-refresh ───────────────────────────────────────────────────────
@@ -90,17 +90,20 @@ async function copyFix(check: HealthCheck) {
     await navigator.clipboard.writeText(check.fix)
     copied.value = check.name
     if (copyTimer) clearTimeout(copyTimer)
-    copyTimer = setTimeout(() => { copied.value = null; copyTimer = null }, 1500)
+    copyTimer = setTimeout(() => {
+      copied.value = null
+      copyTimer = null
+    }, 1500)
     toast.add({
       title: 'Fix copied',
       description: check.fix,
-      color: 'success',
+      color: 'success'
     })
   } catch (err) {
     toast.add({
       title: 'Copy failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -115,7 +118,7 @@ function formatTs(iso: string | undefined): string {
   if (!iso) return ''
   try {
     return new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
     }).format(new Date(iso))
   } catch {
     return iso
@@ -129,10 +132,10 @@ function statusOf(c: HealthCheck): CheckStatus {
   return c.severity === 'warn' ? 'warn' : 'fail'
 }
 
-const STATUS_META: Record<CheckStatus, { icon: string; color: string; label: string }> = {
-  pass: { icon: 'i-lucide-check-circle', color: 'text-green-500',  label: 'Pass' },
-  warn: { icon: 'i-lucide-alert-circle',  color: 'text-yellow-500', label: 'Warn' },
-  fail: { icon: 'i-lucide-x-circle',      color: 'text-red-500',    label: 'Fail' },
+const STATUS_META: Record<CheckStatus, { icon: string, color: string, label: string }> = {
+  pass: { icon: 'i-lucide-check-circle', color: 'text-green-500', label: 'Pass' },
+  warn: { icon: 'i-lucide-alert-circle', color: 'text-yellow-500', label: 'Warn' },
+  fail: { icon: 'i-lucide-x-circle', color: 'text-red-500', label: 'Fail' }
 }
 
 function statusBadgeColor(s: CheckStatus): 'success' | 'warning' | 'error' {
@@ -216,7 +219,9 @@ const someWarnings = computed(() => failedBlocking.value === 0 && warningCount.v
             class="size-12"
           />
           <p class="mt-2 text-lg font-semibold text-highlighted">
-            <template v-if="allPassed">All Checks Passing</template>
+            <template v-if="allPassed">
+              All Checks Passing
+            </template>
             <template v-else-if="someWarnings">
               {{ warningCount }} Warning{{ warningCount === 1 ? '' : 's' }}
             </template>
@@ -241,7 +246,7 @@ const someWarnings = computed(() => failedBlocking.value === 0 && warningCount.v
             :class="{
               'border-default': check.passed,
               'border-yellow-500/30 bg-yellow-500/5': !check.passed && check.severity === 'warn',
-              'border-red-500/30 bg-red-500/5': !check.passed && check.severity === 'fail',
+              'border-red-500/30 bg-red-500/5': !check.passed && check.severity === 'fail'
             }"
           >
             <UIcon
@@ -250,7 +255,9 @@ const someWarnings = computed(() => failedBlocking.value === 0 && warningCount.v
               class="mt-0.5 size-5 shrink-0"
             />
             <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-highlighted">{{ check.name }}</h4>
+              <h4 class="font-medium text-highlighted">
+                {{ check.name }}
+              </h4>
               <p v-if="!check.passed && check.fix" class="mt-1 text-sm text-muted">
                 Fix: <code class="font-mono text-xs">{{ check.fix }}</code>
               </p>

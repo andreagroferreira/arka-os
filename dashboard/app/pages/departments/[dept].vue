@@ -34,7 +34,7 @@ interface DeptDetail {
 }
 
 const { data, status, error, refresh } = await fetchApi<DeptDetail>(
-  `/api/departments/${deptId.value}`,
+  `/api/departments/${deptId.value}`
 )
 
 // PR97a v3.59.0 — 30d activity sparkline for this department.
@@ -50,25 +50,25 @@ const { data: sparklineData } = fetchApi<{
 }>(() => deptId.value ? `/api/departments/${deptId.value}/activity-sparkline?days=30` : '')
 const sparkline = computed<SparklineDay[]>(() => sparklineData.value?.days ?? [])
 const sparklineMaxCalls = computed(() =>
-  Math.max(1, sparkline.value.reduce((acc, d) => Math.max(acc, d.calls), 0)),
+  Math.max(1, sparkline.value.reduce((acc, d) => Math.max(acc, d.calls), 0))
 )
 const sparklineTotalCalls = computed(() =>
-  sparkline.value.reduce((acc, d) => acc + d.calls, 0),
+  sparkline.value.reduce((acc, d) => acc + d.calls, 0)
 )
 
 // PR90b v3.32.0 — Compare with another department.
 const { data: deptListData } = fetchApi<{ departments: Array<{ department: string }> }>(
-  '/api/departments',
+  '/api/departments'
 )
 const compareOptions = computed(() =>
   (deptListData.value?.departments ?? [])
-    .filter((d) => d.department !== deptId.value)
-    .map((d) => ({
+    .filter(d => d.department !== deptId.value)
+    .map(d => ({
       label: `Compare with ${d.department}`,
       icon: 'i-lucide-columns-2',
       onSelect: () =>
-        navigateTo(`/departments/compare?a=${deptId.value}&b=${d.department}`),
-    })),
+        navigateTo(`/departments/compare?a=${deptId.value}&b=${d.department}`)
+    }))
 )
 
 // PR95c v3.53.0 — Merge this department's agents into another.
@@ -79,12 +79,12 @@ const merging = ref(false)
 
 const mergeOptions = computed(() =>
   (deptListData.value?.departments ?? [])
-    .filter((d) => d.department !== deptId.value)
-    .map((d) => ({
+    .filter(d => d.department !== deptId.value)
+    .map(d => ({
       label: `Move all into ${d.department}`,
       icon: 'i-lucide-folder-input',
-      onSelect: () => mergeInto(d.department),
-    })),
+      onSelect: () => mergeInto(d.department)
+    }))
 )
 
 async function mergeInto(target: string) {
@@ -93,7 +93,7 @@ async function mergeInto(target: string) {
     description: `Every agent in '${deptId.value}' will be moved to '${target}'. Tier 0 agents are skipped. This is reversible per-agent from /trash.`,
     confirmLabel: `Move all into ${target}`,
     cancelLabel: 'Cancel',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   merging.value = true
@@ -104,7 +104,7 @@ async function mergeInto(target: string) {
       failed: number
       error?: string
     }>(`${apiBase}/api/departments/${deptId.value}/merge-into/${target}`, {
-      method: 'POST',
+      method: 'POST'
     })
     if (res.error) throw new Error(res.error)
     toast.add({
@@ -113,19 +113,19 @@ async function mergeInto(target: string) {
         : 'Nothing moved',
       description: [
         res.skipped > 0 ? `${res.skipped} skipped (Tier 0)` : '',
-        res.failed > 0 ? `${res.failed} failed` : '',
+        res.failed > 0 ? `${res.failed} failed` : ''
       ].filter(Boolean).join(' · ') || undefined,
       color: res.failed > 0
         ? 'warning'
         : res.moved > 0 ? 'success' : 'info',
-      icon: 'i-lucide-folder-input',
+      icon: 'i-lucide-folder-input'
     })
     if (res.moved > 0) navigateTo('/departments')
   } catch (err) {
     toast.add({
       title: 'Merge failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     merging.value = false
@@ -147,7 +147,7 @@ function formatCost(cost: number | null): string {
 
 const tierColor = (tier: number | undefined) => {
   const colors: Record<number, 'error' | 'warning' | 'primary' | 'neutral'> = {
-    0: 'error', 1: 'warning', 2: 'primary', 3: 'neutral',
+    0: 'error', 1: 'warning', 2: 'primary', 3: 'neutral'
   }
   return colors[tier ?? 99] ?? 'neutral'
 }
@@ -158,7 +158,13 @@ const tierColor = (tier: number | undefined) => {
     <template #header>
       <UDashboardNavbar :title="`Department · ${deptId}`">
         <template #leading>
-          <UButton icon="i-lucide-arrow-left" variant="ghost" size="sm" to="/departments" aria-label="Back" />
+          <UButton
+            icon="i-lucide-arrow-left"
+            variant="ghost"
+            size="sm"
+            to="/departments"
+            aria-label="Back"
+          />
         </template>
         <template #right>
           <UDropdownMenu v-if="compareOptions.length > 0" :items="compareOptions">
@@ -232,26 +238,44 @@ const tierColor = (tier: number | undefined) => {
           <!-- Stats row -->
           <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Agents</p>
-              <p class="text-2xl font-bold">{{ detail.agents.length }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Agents
+              </p>
+              <p class="text-2xl font-bold">
+                {{ detail.agents.length }}
+              </p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Workflows</p>
-              <p class="text-2xl font-bold">{{ detail.workflows.length }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Workflows
+              </p>
+              <p class="text-2xl font-bold">
+                {{ detail.workflows.length }}
+              </p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Calls (30d)</p>
-              <p class="text-2xl font-bold">{{ detail.calls_30d }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Calls (30d)
+              </p>
+              <p class="text-2xl font-bold">
+                {{ detail.calls_30d }}
+              </p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Cost (30d)</p>
-              <p class="text-2xl font-bold">{{ formatCost(detail.cost_usd_30d) }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Cost (30d)
+              </p>
+              <p class="text-2xl font-bold">
+                {{ formatCost(detail.cost_usd_30d) }}
+              </p>
             </div>
           </section>
 
           <!-- Agents -->
           <section>
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted mb-3">Agents</h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted mb-3">
+              Agents
+            </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <NuxtLink
                 v-for="a in detail.agents"
@@ -271,7 +295,12 @@ const tierColor = (tier: number | undefined) => {
                       variant="subtle"
                       size="xs"
                     />
-                    <UBadge v-if="a.mbti" :label="a.mbti" variant="soft" size="xs" />
+                    <UBadge
+                      v-if="a.mbti"
+                      :label="a.mbti"
+                      variant="soft"
+                      size="xs"
+                    />
                   </div>
                 </div>
               </NuxtLink>
@@ -280,7 +309,9 @@ const tierColor = (tier: number | undefined) => {
 
           <!-- Workflows -->
           <section v-if="detail.workflows.length > 0">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted mb-3">Workflows</h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted mb-3">
+              Workflows
+            </h2>
             <div class="space-y-2">
               <NuxtLink
                 v-for="w in detail.workflows"
@@ -294,7 +325,12 @@ const tierColor = (tier: number | undefined) => {
                     <p class="text-xs text-muted font-mono truncate">{{ w.command || w.id }}</p>
                   </div>
                   <div class="flex items-center gap-2 shrink-0 text-xs">
-                    <UBadge v-if="w.tier" :label="w.tier" variant="subtle" size="xs" />
+                    <UBadge
+                      v-if="w.tier"
+                      :label="w.tier"
+                      variant="subtle"
+                      size="xs"
+                    />
                     <span class="text-muted">{{ w.phases_count }} phase{{ w.phases_count === 1 ? '' : 's' }}</span>
                   </div>
                 </div>

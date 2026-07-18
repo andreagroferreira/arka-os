@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<ConfirmDialogProps>(), {
   description: '',
   confirmLabel: 'Confirm',
   cancelLabel: 'Cancel',
-  variant: 'default',
+  variant: 'default'
 })
 
 const emits = defineEmits<{
@@ -33,7 +33,7 @@ const emits = defineEmits<{
 }>()
 
 const confirmColor = computed(() =>
-  props.variant === 'danger' ? 'error' : 'primary',
+  props.variant === 'danger' ? 'error' : 'primary'
 )
 </script>
 

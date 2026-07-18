@@ -12,9 +12,13 @@
 
 import type { Persona } from '~/types'
 
+// PR86d v3.18.0 — render Markdown bio.
+import { marked } from 'marked'
+
 interface DetailResponse extends Persona {
   _source_store?: 'obsidian' | 'json'
   _obsidian_path?: string
+  bio_md?: string
 }
 
 const route = useRoute()
@@ -31,7 +35,7 @@ const { data: usageData } = fetchApi<{
 }>('/api/personas/usage')
 
 const linkedAgentIds = computed<string[]>(() =>
-  usageData.value?.by_persona?.[personaId]?.agent_ids ?? [],
+  usageData.value?.by_persona?.[personaId]?.agent_ids ?? []
 )
 const linkedAgentCount = computed(() => linkedAgentIds.value.length)
 
@@ -40,8 +44,12 @@ const linkedAgentCount = computed(() => linkedAgentIds.value.length)
 function heroInitials(name: string | undefined): string {
   if (!name) return '·'
   const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  // split() on a non-empty trimmed string always yields ≥1 non-empty part,
+  // so these fallbacks never fire — they satisfy noUncheckedIndexedAccess.
+  const first = parts[0] ?? ''
+  const last = parts[parts.length - 1] ?? ''
+  if (parts.length === 1) return first.slice(0, 2).toUpperCase()
+  return ((first[0] ?? '') + (last[0] ?? '')).toUpperCase()
 }
 
 function mbtiGradientClass(mbti: string | undefined): string {
@@ -74,7 +82,7 @@ const mbtiDescriptions: Record<string, string> = {
   ISTP: 'Ti-Se-Ni-Fe — The Virtuoso',
   ISFP: 'Fi-Se-Ni-Te — The Adventurer',
   ESTP: 'Se-Ti-Fe-Ni — The Entrepreneur',
-  ESFP: 'Se-Fi-Te-Ni — The Entertainer',
+  ESFP: 'Se-Fi-Te-Ni — The Entertainer'
 }
 
 const discLetters = ['D', 'I', 'S', 'C'] as const
@@ -84,7 +92,7 @@ const bigFiveLabels: Record<string, string> = {
   conscientiousness: 'Conscientiousness',
   extraversion: 'Extraversion',
   agreeableness: 'Agreeableness',
-  neuroticism: 'Neuroticism',
+  neuroticism: 'Neuroticism'
 }
 
 function discBarValue(letter: string): number {
@@ -96,7 +104,7 @@ function discBarValue(letter: string): number {
 
 function discBarColor(letter: string): string {
   const colors: Record<string, string> = {
-    D: 'bg-red-500', I: 'bg-yellow-500', S: 'bg-green-500', C: 'bg-blue-500',
+    D: 'bg-red-500', I: 'bg-yellow-500', S: 'bg-green-500', C: 'bg-blue-500'
   }
   return colors[letter] ?? 'bg-primary'
 }
@@ -111,10 +119,10 @@ function bigFiveBarColor(value: number): string {
 // ─── Tabs ───────────────────────────────────────────────────────────────
 
 const tabs = [
-  { label: 'DNA',           value: 'dna',           icon: 'i-lucide-dna' },
+  { label: 'DNA', value: 'dna', icon: 'i-lucide-dna' },
   { label: 'Communication', value: 'communication', icon: 'i-lucide-message-square' },
-  { label: 'Knowledge',     value: 'knowledge',     icon: 'i-lucide-brain' },
-  { label: 'Linked Agents', value: 'agents',        icon: 'i-lucide-users' },
+  { label: 'Knowledge', value: 'knowledge', icon: 'i-lucide-brain' },
+  { label: 'Linked Agents', value: 'agents', icon: 'i-lucide-users' }
 ]
 
 // ─── Edit drawer state ─────────────────────────────────────────────────
@@ -131,7 +139,9 @@ function startEdit() {
   editOpen.value = true
 }
 
-function markDirty() { dirty.value = true }
+function markDirty() {
+  dirty.value = true
+}
 
 async function tryCloseEdit() {
   if (dirty.value && !saving.value) {
@@ -140,7 +150,7 @@ async function tryCloseEdit() {
       description: 'Any changes you made will be lost.',
       confirmLabel: 'Discard',
       cancelLabel: 'Keep editing',
-      variant: 'danger',
+      variant: 'danger'
     })
     if (!ok) return
   }
@@ -160,7 +170,7 @@ async function saveEdit() {
       error?: string
     }>(`${apiBase}/api/personas/${personaId}`, {
       method: 'PUT',
-      body: draft.value,
+      body: draft.value
     })
     if (res.error) throw new Error(res.error)
     toast.add({
@@ -168,7 +178,7 @@ async function saveEdit() {
       description: res.obsidian_path
         ? `Wrote ${res.obsidian_path.split('/').slice(-2).join('/')}`
         : 'Saved to JSON store',
-      color: 'success',
+      color: 'success'
     })
     await refresh()
     editOpen.value = false
@@ -178,7 +188,7 @@ async function saveEdit() {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     saving.value = false
@@ -193,7 +203,7 @@ async function deletePersona() {
       'Removes it from the JSON store. The Obsidian file (if any) is '
       + 'left in place — delete manually from Obsidian if you want it gone.',
     confirmLabel: 'Delete persona',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   try {
@@ -201,14 +211,14 @@ async function deletePersona() {
     toast.add({
       title: 'Persona deleted',
       description: detail.value.name,
-      color: 'success',
+      color: 'success'
     })
     await navigateTo('/personas')
   } catch (err) {
     toast.add({
       title: 'Delete failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -218,7 +228,7 @@ function listToCsv(list: string[] | undefined): string {
 }
 
 function csvToList(value: string): string[] {
-  return value.split(',').map((s) => s.trim()).filter(Boolean)
+  return value.split(',').map(s => s.trim()).filter(Boolean)
 }
 
 // PR81 v2.99.0 — AI list-field suggester for personas.
@@ -257,21 +267,21 @@ async function commitInline(field: InlineField) {
   try {
     const res = await $fetch<{ updated?: boolean, error?: string }>(
       `${apiBase}/api/personas/${personaId}`,
-      { method: 'PUT', body: { [field]: next } },
+      { method: 'PUT', body: { [field]: next } }
     )
     if (res.error) throw new Error(res.error)
     toast.add({
       title: field === 'name' ? 'Name updated' : 'Title updated',
       description: next || '(empty)',
       color: 'success',
-      icon: 'i-lucide-check',
+      icon: 'i-lucide-check'
     })
     await refresh()
   } catch (err) {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     inlineSaving.value = false
@@ -288,16 +298,13 @@ const { data: usageTimelineData } = fetchApi<{
 }>(`/api/personas/${personaId}/usage-timeline?weeks=12`)
 const usageWeeks = computed<UsageWeek[]>(() => usageTimelineData.value?.weeks ?? [])
 const usageMaxCount = computed(() =>
-  Math.max(1, usageWeeks.value.reduce((acc, w) => Math.max(acc, w.count), 0)),
+  Math.max(1, usageWeeks.value.reduce((acc, w) => Math.max(acc, w.count), 0))
 )
 const usageTotalLinks = computed(() => usageTimelineData.value?.total_agents ?? 0)
 
 // PR86a v3.15.0 — favorites.
 const favs = useFavorites()
 await favs.load()
-
-// PR86d v3.18.0 — render Markdown bio.
-import { marked } from 'marked'
 function markedHtml(src: string): string {
   if (!src?.trim()) return ''
   try {
@@ -329,14 +336,14 @@ async function openMdViewer() {
   try {
     const text = await $fetch<string>(
       `${apiBase}/api/personas/${personaId}/markdown`,
-      { responseType: 'text' },
+      { responseType: 'text' }
     )
     mdRaw.value = typeof text === 'string' ? text : String(text ?? '')
   } catch (err) {
     toast.add({
       title: 'Markdown fetch failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
     mdOpen.value = false
   } finally {
@@ -353,7 +360,7 @@ async function downloadMarkdown() {
   try {
     const blob = await $fetch<Blob>(
       `${apiBase}/api/personas/${personaId}/markdown`,
-      { responseType: 'blob' },
+      { responseType: 'blob' }
     )
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -367,13 +374,13 @@ async function downloadMarkdown() {
       title: 'Markdown downloaded',
       description: `${detail.value.name || personaId}.md`,
       color: 'success',
-      icon: 'i-lucide-download',
+      icon: 'i-lucide-download'
     })
   } catch (err) {
     toast.add({
       title: 'Download failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -404,7 +411,7 @@ async function saveBio() {
   try {
     await $fetch(`${apiBase}/api/personas/${personaId}`, {
       method: 'PUT',
-      body: { bio_md: mdBioDraft.value },
+      body: { bio_md: mdBioDraft.value }
     })
     toast.add({ title: 'Bio updated', color: 'success', icon: 'i-lucide-check' })
     mdRaw.value = '' // force refetch on next open so the export reflects the new bio
@@ -413,21 +420,19 @@ async function saveBio() {
     // Re-pull the exported MD now that the bio changed.
     const text = await $fetch<string>(
       `${apiBase}/api/personas/${personaId}/markdown`,
-      { responseType: 'text' },
+      { responseType: 'text' }
     )
     mdRaw.value = typeof text === 'string' ? text : String(text ?? '')
   } catch (err) {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     mdSaving.value = false
   }
 }
-
-const downloadingMd = ref(false) // kept for the old button binding
 
 // PR85a v3.11.0 — Clone to Agent dialog.
 const cloneOpen = ref(false)
@@ -438,23 +443,23 @@ function onCloned(agentId: string) {
 // PR88a v3.23.0 — Compare with linked agent.
 // PR96c v3.57.0 — also compare with another persona.
 const { data: otherPersonasData } = fetchApi<{ personas: Array<{ id: string, name: string }> }>(
-  '/api/personas',
+  '/api/personas'
 )
 const compareWithOptions = computed(() => {
-  const agentOpts = linkedAgentIds.value.map((aid) => ({
+  const agentOpts = linkedAgentIds.value.map(aid => ({
     label: `Compare with agent ${aid}`,
     icon: 'i-lucide-user',
     onSelect: () => navigateTo(
-      `/personas/compare-with-agent?persona=${personaId}&agent=${aid}`,
-    ),
+      `/personas/compare-with-agent?persona=${personaId}&agent=${aid}`
+    )
   }))
   const personaOpts = (otherPersonasData.value?.personas ?? [])
-    .filter((p) => p.id !== personaId)
+    .filter(p => p.id !== personaId)
     .slice(0, 30)
-    .map((p) => ({
+    .map(p => ({
       label: `Compare with persona ${p.name}`,
       icon: 'i-lucide-user-plus',
-      onSelect: () => navigateTo(`/personas/compare?a=${personaId}&b=${p.id}`),
+      onSelect: () => navigateTo(`/personas/compare?a=${personaId}&b=${p.id}`)
     }))
   return [...agentOpts, ...personaOpts]
 })
@@ -477,7 +482,7 @@ async function autofillEmpties() {
   }
   autofilling.value = true
   const results = await Promise.allSettled(
-    targets.map((field) =>
+    targets.map(field =>
       $fetch<{ suggestions: string[], provider_name: string, error?: string }>(
         `${apiBase}/api/personas/suggest`,
         {
@@ -488,12 +493,12 @@ async function autofillEmpties() {
             context: {
               name: detail.value!.name,
               title: detail.value!.title,
-              current: [],
-            },
-          },
-        },
-      ),
-    ),
+              current: []
+            }
+          }
+        }
+      )
+    )
   )
   let filledCount = 0
   let providerName = ''
@@ -502,11 +507,11 @@ async function autofillEmpties() {
     const items = r.value.suggestions ?? []
     if (items.length === 0) return
     const field = targets[idx]
-    if (!draft.value) return
+    if (!draft.value || !field) return
     if (field === 'communication_avoid') {
       draft.value.communication.avoid = items
     } else {
-      ;(draft.value as any)[field] = items
+      draft.value[field] = items
     }
     filledCount += 1
     providerName = r.value.provider_name || providerName
@@ -518,7 +523,7 @@ async function autofillEmpties() {
       title: `Filled ${filledCount} list${filledCount === 1 ? '' : 's'}`,
       description: `via ${providerName}`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } else {
     toast.add({ title: 'Nothing filled', description: 'LLM returned no items.', color: 'error' })
@@ -542,10 +547,10 @@ async function suggestString(field: 'tone') {
           context: {
             name: detail.value.name,
             title: detail.value.title,
-            current,
-          },
-        },
-      },
+            current
+          }
+        }
+      }
     )
     if (res.error) throw new Error(res.error)
     draft.value.communication.tone = res.value
@@ -554,13 +559,13 @@ async function suggestString(field: 'tone') {
       title: 'Generated',
       description: `via ${res.provider_name}`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } catch (err) {
     toast.add({
       title: 'Generate failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     suggestingString.value = null
@@ -572,7 +577,7 @@ async function suggest(field: SuggestField) {
   const current
     = field === 'communication_avoid'
       ? (draft.value.communication.avoid ?? [])
-      : ((draft.value as any)[field] as string[] ?? [])
+      : (draft.value[field] ?? [])
   suggestingField.value = field
   try {
     const res = await $fetch<{
@@ -587,19 +592,19 @@ async function suggest(field: SuggestField) {
         context: {
           name: detail.value.name,
           title: detail.value.title,
-          current,
-        },
-      },
+          current
+        }
+      }
     })
     if (res.error) throw new Error(res.error)
     const additions = (res.suggestions ?? []).filter(
-      (s) => !current.some((c) => c.toLowerCase() === s.toLowerCase()),
+      s => !current.some(c => c.toLowerCase() === s.toLowerCase())
     )
     if (additions.length === 0) {
       toast.add({
         title: 'No new suggestions',
         description: 'The model returned only items you already have.',
-        color: 'info',
+        color: 'info'
       })
       return
     }
@@ -607,20 +612,20 @@ async function suggest(field: SuggestField) {
     if (field === 'communication_avoid') {
       draft.value.communication.avoid = merged
     } else {
-      ;(draft.value as any)[field] = merged
+      draft.value[field] = merged
     }
     markDirty()
     toast.add({
       title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
       description: `via ${res.provider_name}`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } catch (err) {
     toast.add({
       title: 'Suggestion failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     suggestingField.value = null
@@ -631,20 +636,20 @@ const mbtiOptions = [
   'INTJ', 'INTP', 'ENTJ', 'ENTP',
   'INFJ', 'INFP', 'ENFJ', 'ENFP',
   'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-  'ISTP', 'ISFP', 'ESTP', 'ESFP',
-].map((t) => ({ label: t, value: t }))
+  'ISTP', 'ISFP', 'ESTP', 'ESFP'
+].map(t => ({ label: t, value: t }))
 
 const discOptions = [
   { label: 'D — Dominance', value: 'D' },
   { label: 'I — Influence', value: 'I' },
   { label: 'S — Steadiness', value: 'S' },
-  { label: 'C — Conscientiousness', value: 'C' },
+  { label: 'C — Conscientiousness', value: 'C' }
 ]
 
 const vocabOptions = [
   { label: 'Lay (no jargon)', value: 'lay' },
   { label: 'Specialist (industry terms)', value: 'specialist' },
-  { label: 'Expert (research-level)', value: 'expert' },
+  { label: 'Expert (research-level)', value: 'expert' }
 ]
 </script>
 
@@ -781,7 +786,12 @@ const vocabOptions = [
                       size="sm"
                       @click="openMdViewer"
                     />
-                    <UButton label="Edit" icon="i-lucide-pencil" size="sm" @click="startEdit" />
+                    <UButton
+                      label="Edit"
+                      icon="i-lucide-pencil"
+                      size="sm"
+                      @click="startEdit"
+                    />
                     <UButton
                       icon="i-lucide-trash-2"
                       color="error"
@@ -810,7 +820,12 @@ const vocabOptions = [
                     variant="outline"
                     size="sm"
                   />
-                  <UBadge v-if="detail.mbti" :label="detail.mbti" variant="soft" size="sm" />
+                  <UBadge
+                    v-if="detail.mbti"
+                    :label="detail.mbti"
+                    variant="soft"
+                    size="sm"
+                  />
                   <UBadge
                     v-if="detail.disc?.primary"
                     :label="`DISC: ${detail.disc.primary}${detail.disc.secondary ? '/' + detail.disc.secondary : ''}`"
@@ -832,20 +847,36 @@ const vocabOptions = [
           <!-- STATS -->
           <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Linked agents</p>
-              <p class="text-2xl font-bold">{{ linkedAgentCount }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Linked agents
+              </p>
+              <p class="text-2xl font-bold">
+                {{ linkedAgentCount }}
+              </p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Mental models</p>
-              <p class="text-2xl font-bold">{{ detail.mental_models?.length ?? 0 }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Mental models
+              </p>
+              <p class="text-2xl font-bold">
+                {{ detail.mental_models?.length ?? 0 }}
+              </p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Expertise domains</p>
-              <p class="text-2xl font-bold">{{ detail.expertise_domains?.length ?? 0 }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Expertise domains
+              </p>
+              <p class="text-2xl font-bold">
+                {{ detail.expertise_domains?.length ?? 0 }}
+              </p>
             </div>
             <div class="rounded-xl border border-default p-4 bg-elevated/20">
-              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Frameworks</p>
-              <p class="text-2xl font-bold">{{ detail.frameworks?.length ?? 0 }}</p>
+              <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-1">
+                Frameworks
+              </p>
+              <p class="text-2xl font-bold">
+                {{ detail.frameworks?.length ?? 0 }}
+              </p>
             </div>
           </section>
 
@@ -909,7 +940,9 @@ const vocabOptions = [
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <UCard>
                     <div class="space-y-2">
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">MBTI</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                        MBTI
+                      </p>
                       <p class="text-4xl font-bold font-mono tracking-widest">
                         {{ detail.mbti || '----' }}
                       </p>
@@ -921,7 +954,9 @@ const vocabOptions = [
 
                   <UCard>
                     <div class="space-y-2">
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">Enneagram</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                        Enneagram
+                      </p>
                       <p class="text-3xl font-bold">
                         Type {{ detail.enneagram?.type ?? '-' }}
                         <span v-if="detail.enneagram?.wing" class="text-xl font-normal text-muted">
@@ -933,7 +968,9 @@ const vocabOptions = [
 
                   <UCard>
                     <div class="space-y-3">
-                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">DISC</p>
+                      <p class="text-sm font-semibold text-muted uppercase tracking-wide">
+                        DISC
+                      </p>
                       <p class="text-3xl font-bold font-mono">
                         {{ detail.disc?.primary ?? '' }}{{ detail.disc?.secondary ?? '' }}
                       </p>
@@ -982,10 +1019,18 @@ const vocabOptions = [
               <div v-else-if="item.value === 'communication'" class="space-y-4 mt-6">
                 <UCard v-if="detail.communication">
                   <dl class="grid grid-cols-3 gap-2 text-sm">
-                    <dt class="text-muted">Tone</dt>
-                    <dd class="col-span-2">{{ detail.communication.tone || '—' }}</dd>
-                    <dt class="text-muted">Vocabulary</dt>
-                    <dd class="col-span-2">{{ detail.communication.vocabulary_level || '—' }}</dd>
+                    <dt class="text-muted">
+                      Tone
+                    </dt>
+                    <dd class="col-span-2">
+                      {{ detail.communication.tone || '—' }}
+                    </dd>
+                    <dt class="text-muted">
+                      Vocabulary
+                    </dt>
+                    <dd class="col-span-2">
+                      {{ detail.communication.vocabulary_level || '—' }}
+                    </dd>
                   </dl>
                 </UCard>
                 <div v-else class="py-8 text-center text-sm text-muted">
@@ -1000,7 +1045,13 @@ const vocabOptions = [
                     Mental models ({{ detail.mental_models.length }})
                   </p>
                   <div class="flex flex-wrap gap-1.5">
-                    <UBadge v-for="m in detail.mental_models" :key="m" :label="m" variant="outline" size="sm" />
+                    <UBadge
+                      v-for="m in detail.mental_models"
+                      :key="m"
+                      :label="m"
+                      variant="outline"
+                      size="sm"
+                    />
                   </div>
                 </UCard>
 
@@ -1009,7 +1060,13 @@ const vocabOptions = [
                     Expertise ({{ detail.expertise_domains.length }})
                   </p>
                   <div class="flex flex-wrap gap-1.5">
-                    <UBadge v-for="e in detail.expertise_domains" :key="e" :label="e" variant="soft" size="sm" />
+                    <UBadge
+                      v-for="e in detail.expertise_domains"
+                      :key="e"
+                      :label="e"
+                      variant="soft"
+                      size="sm"
+                    />
                   </div>
                 </UCard>
 
@@ -1085,12 +1142,14 @@ const vocabOptions = [
                 v-if="draft"
                 :ui="{
                   root: 'h-full flex flex-col rounded-none',
-                  body: 'flex-1 overflow-y-auto',
+                  body: 'flex-1 overflow-y-auto'
                 }"
               >
                 <template #header>
                   <div class="flex items-center justify-between gap-3">
-                    <h2 class="text-xl font-bold">Edit {{ draft.name || 'persona' }}</h2>
+                    <h2 class="text-xl font-bold">
+                      Edit {{ draft.name || 'persona' }}
+                    </h2>
                     <div class="flex items-center gap-2">
                       <UButton
                         label="Auto-fill empties"
@@ -1114,7 +1173,9 @@ const vocabOptions = [
 
                 <div class="space-y-5">
                   <section class="space-y-3">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Identity</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+                      Identity
+                    </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <UFormField label="Name" required>
                         <UInput v-model="draft.name" class="w-full" @update:model-value="markDirty" />
@@ -1132,19 +1193,45 @@ const vocabOptions = [
                   </section>
 
                   <section class="space-y-3">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Behavioural DNA</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+                      Behavioural DNA
+                    </h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <UFormField label="MBTI">
-                        <USelect v-model="draft.mbti" :items="mbtiOptions" class="w-full" @update:model-value="markDirty" />
+                        <USelect
+                          v-model="draft.mbti"
+                          :items="mbtiOptions"
+                          class="w-full"
+                          @update:model-value="markDirty"
+                        />
                       </UFormField>
                       <UFormField label="DISC primary">
-                        <USelect v-model="draft.disc.primary" :items="discOptions" class="w-full" @update:model-value="markDirty" />
+                        <USelect
+                          v-model="draft.disc.primary"
+                          :items="discOptions"
+                          class="w-full"
+                          @update:model-value="markDirty"
+                        />
                       </UFormField>
                       <UFormField label="Enneagram">
-                        <UInput v-model.number="draft.enneagram.type" type="number" :min="1" :max="9" class="w-full" @update:model-value="markDirty" />
+                        <UInput
+                          v-model.number="draft.enneagram.type"
+                          type="number"
+                          :min="1"
+                          :max="9"
+                          class="w-full"
+                          @update:model-value="markDirty"
+                        />
                       </UFormField>
                       <UFormField label="Wing">
-                        <UInput v-model.number="draft.enneagram.wing" type="number" :min="1" :max="9" class="w-full" @update:model-value="markDirty" />
+                        <UInput
+                          v-model.number="draft.enneagram.wing"
+                          type="number"
+                          :min="1"
+                          :max="9"
+                          class="w-full"
+                          @update:model-value="markDirty"
+                        />
                       </UFormField>
                     </div>
                     <div class="space-y-2">
@@ -1169,13 +1256,15 @@ const vocabOptions = [
                           :max="100"
                           class="flex-1"
                           @input="markDirty"
-                        />
+                        >
                       </div>
                     </div>
                   </section>
 
                   <section class="space-y-3">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Knowledge</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+                      Knowledge
+                    </h3>
                     <UFormField label="Mental models" help="comma-separated">
                       <template #hint>
                         <UButton
@@ -1191,8 +1280,8 @@ const vocabOptions = [
                       </template>
                       <UInput
                         :model-value="listToCsv(draft.mental_models)"
-                        @update:model-value="(v: string) => { if (draft) { draft.mental_models = csvToList(v); markDirty() } }"
                         class="w-full"
+                        @update:model-value="(v: string) => { if (draft) { draft.mental_models = csvToList(v); markDirty() } }"
                       />
                     </UFormField>
                     <UFormField label="Expertise domains" help="comma-separated">
@@ -1210,8 +1299,8 @@ const vocabOptions = [
                       </template>
                       <UInput
                         :model-value="listToCsv(draft.expertise_domains)"
-                        @update:model-value="(v: string) => { if (draft) { draft.expertise_domains = csvToList(v); markDirty() } }"
                         class="w-full"
+                        @update:model-value="(v: string) => { if (draft) { draft.expertise_domains = csvToList(v); markDirty() } }"
                       />
                     </UFormField>
                     <UFormField label="Frameworks" help="comma-separated">
@@ -1229,14 +1318,16 @@ const vocabOptions = [
                       </template>
                       <UInput
                         :model-value="listToCsv(draft.frameworks)"
-                        @update:model-value="(v: string) => { if (draft) { draft.frameworks = csvToList(v); markDirty() } }"
                         class="w-full"
+                        @update:model-value="(v: string) => { if (draft) { draft.frameworks = csvToList(v); markDirty() } }"
                       />
                     </UFormField>
                   </section>
 
                   <section class="space-y-3">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Communication</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+                      Communication
+                    </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <UFormField label="Tone">
                         <template #hint>
@@ -1254,7 +1345,12 @@ const vocabOptions = [
                         <UInput v-model="draft.communication.tone" class="w-full" @update:model-value="markDirty" />
                       </UFormField>
                       <UFormField label="Vocabulary level">
-                        <USelect v-model="draft.communication.vocabulary_level" :items="vocabOptions" class="w-full" @update:model-value="markDirty" />
+                        <USelect
+                          v-model="draft.communication.vocabulary_level"
+                          :items="vocabOptions"
+                          class="w-full"
+                          @update:model-value="markDirty"
+                        />
                       </UFormField>
                     </div>
                     <UFormField label="Avoid (phrases)" help="comma-separated">
@@ -1272,8 +1368,8 @@ const vocabOptions = [
                       </template>
                       <UInput
                         :model-value="listToCsv(draft.communication.avoid)"
-                        @update:model-value="(v: string) => { if (draft) { draft.communication.avoid = csvToList(v); markDirty() } }"
                         class="w-full"
+                        @update:model-value="(v: string) => { if (draft) { draft.communication.avoid = csvToList(v); markDirty() } }"
                       />
                     </UFormField>
                   </section>
@@ -1292,7 +1388,9 @@ const vocabOptions = [
 
                   <section class="space-y-3">
                     <div class="flex items-center justify-between">
-                      <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Key quotes</h3>
+                      <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+                        Key quotes
+                      </h3>
                       <UButton
                         label="Suggest with AI"
                         icon="i-lucide-sparkles"
@@ -1308,8 +1406,8 @@ const vocabOptions = [
                       :model-value="(draft.key_quotes ?? []).join('\n')"
                       :rows="4"
                       placeholder="One quote per line. Verbatim or paraphrased."
-                      @update:model-value="(v: string) => { if (draft) { draft.key_quotes = v.split('\n').map((q) => q.trim()).filter(Boolean); markDirty() } }"
                       class="w-full"
+                      @update:model-value="(v: string) => { if (draft) { draft.key_quotes = v.split('\n').map((q) => q.trim()).filter(Boolean); markDirty() } }"
                     />
                     <p class="text-xs text-muted">
                       {{ (draft.key_quotes ?? []).length }} quote{{ (draft.key_quotes ?? []).length === 1 ? '' : 's' }}.
@@ -1326,7 +1424,12 @@ const vocabOptions = [
                     </span>
                     <span v-else class="text-xs text-muted">No changes</span>
                     <div class="flex gap-2">
-                      <UButton label="Cancel" variant="ghost" :disabled="saving" @click="tryCloseEdit" />
+                      <UButton
+                        label="Cancel"
+                        variant="ghost"
+                        :disabled="saving"
+                        @click="tryCloseEdit"
+                      />
                       <UButton
                         label="Save"
                         icon="i-lucide-check"
@@ -1351,128 +1454,128 @@ const vocabOptions = [
         </div>
       </DashboardState>
 
-    <!-- v3.70.8 — Markdown viewer/editor (fullscreen).
+      <!-- v3.70.8 — Markdown viewer/editor (fullscreen).
          Must live inside #body slot — DashboardPanel's default slot
          wraps header+body and a positional child here would override
          the whole panel and render nothing. -->
-    <UModal
-      v-model:open="mdOpen"
-      :ui="{
-        overlay: 'bg-default/80 backdrop-blur-sm',
-        content: 'sm:max-w-[95vw] w-[95vw] h-[92vh] sm:rounded-xl ring-0 shadow-2xl',
-      }"
-    >
-      <template #content>
-        <div class="flex flex-col h-full bg-default rounded-xl overflow-hidden">
-          <div class="flex items-center gap-3 px-4 py-3 border-b border-default/60 shrink-0">
-            <UIcon name="i-lucide-file-text" class="size-4 text-muted shrink-0" />
-            <span class="text-sm font-semibold">{{ detail?.name || personaId }}.md</span>
-            <UBadge
-              :label="mdMode === 'edit' ? 'editing bio' : 'preview'"
-              :color="mdMode === 'edit' ? 'warning' : 'neutral'"
-              variant="subtle"
-              size="xs"
-              class="ml-1"
-            />
-            <span class="ml-auto flex items-center gap-1">
-              <UButton
-                v-if="mdMode === 'view'"
-                size="sm"
-                variant="ghost"
-                icon="i-lucide-clipboard"
-                @click="copyMd"
-              >
-                Copy
-              </UButton>
-              <UButton
-                v-if="mdMode === 'view'"
-                size="sm"
-                variant="ghost"
-                icon="i-lucide-download"
-                @click="downloadMarkdown"
-              >
-                Download
-              </UButton>
-              <UButton
-                v-if="mdMode === 'view'"
-                size="sm"
-                variant="soft"
-                icon="i-lucide-pencil"
-                @click="mdMode = 'edit'"
-              >
-                Edit bio
-              </UButton>
-              <UButton
-                v-else
-                size="sm"
-                variant="ghost"
-                @click="() => { mdMode = 'view'; mdBioDraft = detail?.bio_md || '' }"
-              >
-                Cancel
-              </UButton>
-              <UButton
-                v-if="mdMode === 'edit'"
-                size="sm"
-                color="primary"
-                icon="i-lucide-check"
-                :loading="mdSaving"
-                @click="saveBio"
-              >
-                Save bio
-              </UButton>
-              <UButton
-                size="sm"
-                variant="ghost"
-                icon="i-lucide-x"
-                aria-label="Close"
-                @click="closeMdViewer"
+      <UModal
+        v-model:open="mdOpen"
+        :ui="{
+          overlay: 'bg-default/80 backdrop-blur-sm',
+          content: 'sm:max-w-[95vw] w-[95vw] h-[92vh] sm:rounded-xl ring-0 shadow-2xl'
+        }"
+      >
+        <template #content>
+          <div class="flex flex-col h-full bg-default rounded-xl overflow-hidden">
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-default/60 shrink-0">
+              <UIcon name="i-lucide-file-text" class="size-4 text-muted shrink-0" />
+              <span class="text-sm font-semibold">{{ detail?.name || personaId }}.md</span>
+              <UBadge
+                :label="mdMode === 'edit' ? 'editing bio' : 'preview'"
+                :color="mdMode === 'edit' ? 'warning' : 'neutral'"
+                variant="subtle"
+                size="xs"
+                class="ml-1"
               />
-            </span>
-          </div>
-
-          <div
-            v-if="mdLoading"
-            class="flex-1 grid place-items-center text-sm text-muted"
-          >
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-loader-2" class="size-4 animate-spin" />
-              Loading markdown…
+              <span class="ml-auto flex items-center gap-1">
+                <UButton
+                  v-if="mdMode === 'view'"
+                  size="sm"
+                  variant="ghost"
+                  icon="i-lucide-clipboard"
+                  @click="copyMd"
+                >
+                  Copy
+                </UButton>
+                <UButton
+                  v-if="mdMode === 'view'"
+                  size="sm"
+                  variant="ghost"
+                  icon="i-lucide-download"
+                  @click="downloadMarkdown"
+                >
+                  Download
+                </UButton>
+                <UButton
+                  v-if="mdMode === 'view'"
+                  size="sm"
+                  variant="soft"
+                  icon="i-lucide-pencil"
+                  @click="mdMode = 'edit'"
+                >
+                  Edit bio
+                </UButton>
+                <UButton
+                  v-else
+                  size="sm"
+                  variant="ghost"
+                  @click="() => { mdMode = 'view'; mdBioDraft = detail?.bio_md || '' }"
+                >
+                  Cancel
+                </UButton>
+                <UButton
+                  v-if="mdMode === 'edit'"
+                  size="sm"
+                  color="primary"
+                  icon="i-lucide-check"
+                  :loading="mdSaving"
+                  @click="saveBio"
+                >
+                  Save bio
+                </UButton>
+                <UButton
+                  size="sm"
+                  variant="ghost"
+                  icon="i-lucide-x"
+                  aria-label="Close"
+                  @click="closeMdViewer"
+                />
+              </span>
             </div>
-          </div>
 
-          <div v-else class="flex-1 grid grid-cols-2 min-h-0">
-            <!-- Source side: read-only in view mode, textarea in edit mode -->
-            <div class="border-r border-default/60 flex flex-col min-h-0">
-              <div class="px-3 py-1.5 border-b border-default/60 text-[11px] uppercase tracking-wide text-muted shrink-0">
-                {{ mdMode === 'edit' ? 'Bio (editable, supports Markdown)' : 'Source' }}
+            <div
+              v-if="mdLoading"
+              class="flex-1 grid place-items-center text-sm text-muted"
+            >
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-loader-2" class="size-4 animate-spin" />
+                Loading markdown…
               </div>
-              <textarea
-                v-if="mdMode === 'edit'"
-                v-model="mdBioDraft"
-                class="md-editor flex-1 w-full p-4 bg-transparent text-default font-mono text-sm leading-relaxed resize-none focus:outline-none"
-                spellcheck="false"
-                placeholder="Write the persona bio here…"
-              />
-              <pre
-                v-else
-                class="flex-1 min-h-0 overflow-auto p-4 font-mono text-sm leading-relaxed text-default whitespace-pre-wrap"
-              >{{ mdRaw }}</pre>
             </div>
 
-            <!-- Preview side -->
-            <div class="flex flex-col min-h-0">
-              <div class="px-3 py-1.5 border-b border-default/60 text-[11px] uppercase tracking-wide text-muted shrink-0">
-                Preview
+            <div v-else class="flex-1 grid grid-cols-2 min-h-0">
+              <!-- Source side: read-only in view mode, textarea in edit mode -->
+              <div class="border-r border-default/60 flex flex-col min-h-0">
+                <div class="px-3 py-1.5 border-b border-default/60 text-[11px] uppercase tracking-wide text-muted shrink-0">
+                  {{ mdMode === 'edit' ? 'Bio (editable, supports Markdown)' : 'Source' }}
+                </div>
+                <textarea
+                  v-if="mdMode === 'edit'"
+                  v-model="mdBioDraft"
+                  class="md-editor flex-1 w-full p-4 bg-transparent text-default font-mono text-sm leading-relaxed resize-none focus:outline-none"
+                  spellcheck="false"
+                  placeholder="Write the persona bio here…"
+                />
+                <pre
+                  v-else
+                  class="flex-1 min-h-0 overflow-auto p-4 font-mono text-sm leading-relaxed text-default whitespace-pre-wrap"
+                >{{ mdRaw }}</pre>
               </div>
-              <div
-                class="md-preview flex-1 min-h-0 overflow-auto p-6 prose prose-sm prose-invert max-w-none"
-                v-html="mdPreviewHtml"
-              />
+
+              <!-- Preview side -->
+              <div class="flex flex-col min-h-0">
+                <div class="px-3 py-1.5 border-b border-default/60 text-[11px] uppercase tracking-wide text-muted shrink-0">
+                  Preview
+                </div>
+                <div
+                  class="md-preview flex-1 min-h-0 overflow-auto p-6 prose prose-sm prose-invert max-w-none"
+                  v-html="mdPreviewHtml"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </template>
-    </UModal>
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>

@@ -20,9 +20,9 @@ interface ActivityRow {
 
 const {
   data: activityData,
-  refresh: refreshActivity,
+  refresh: refreshActivity
 } = fetchApi<{ by_department: Record<string, ActivityRow>, period: string }>(
-  '/api/agents/activity?period=week',
+  '/api/agents/activity?period=week'
 )
 
 const agents = computed(() => data.value?.agents ?? [])
@@ -46,17 +46,20 @@ async function copyAgentMention(agent: Agent) {
     await navigator.clipboard.writeText(text)
     copied.value = agent.id
     if (copyTimer) clearTimeout(copyTimer)
-    copyTimer = setTimeout(() => { copied.value = null; copyTimer = null }, 1500)
+    copyTimer = setTimeout(() => {
+      copied.value = null
+      copyTimer = null
+    }, 1500)
     toast.add({
       title: 'Copied',
       description: `${agent.name} mention ready to paste.`,
-      color: 'success',
+      color: 'success'
     })
   } catch (err) {
     toast.add({
       title: 'Copy failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -103,11 +106,16 @@ const tierOptions = [
 
 // PR87a v3.19.0 — DNA filters (DISC primary + MBTI group).
 // PR92b v3.40.0 — seed from URL query.
+function queryFilter<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return typeof value === 'string' && (allowed as readonly string[]).includes(value)
+    ? value as T
+    : fallback
+}
 const discFilter = ref<'all' | 'D' | 'I' | 'S' | 'C'>(
-  (route.query.disc as any) ?? 'all',
+  queryFilter(route.query.disc, ['all', 'D', 'I', 'S', 'C'], 'all')
 )
 const mbtiGroupFilter = ref<'all' | 'analysts' | 'diplomats' | 'sentinels' | 'explorers'>(
-  (route.query.mbti as any) ?? 'all',
+  queryFilter(route.query.mbti, ['all', 'analysts', 'diplomats', 'sentinels', 'explorers'], 'all')
 )
 
 const discOptions = [
@@ -115,7 +123,7 @@ const discOptions = [
   { label: 'D — Dominance', value: 'D' },
   { label: 'I — Influence', value: 'I' },
   { label: 'S — Steadiness', value: 'S' },
-  { label: 'C — Conscientiousness', value: 'C' },
+  { label: 'C — Conscientiousness', value: 'C' }
 ]
 
 const mbtiGroupOptions = [
@@ -123,14 +131,14 @@ const mbtiGroupOptions = [
   { label: 'Analysts (NT)', value: 'analysts' },
   { label: 'Diplomats (NF)', value: 'diplomats' },
   { label: 'Sentinels (S__J)', value: 'sentinels' },
-  { label: 'Explorers (S__P)', value: 'explorers' },
+  { label: 'Explorers (S__P)', value: 'explorers' }
 ]
 
 const MBTI_GROUPS: Record<string, string> = {
   INTJ: 'analysts', INTP: 'analysts', ENTJ: 'analysts', ENTP: 'analysts',
   INFJ: 'diplomats', INFP: 'diplomats', ENFJ: 'diplomats', ENFP: 'diplomats',
   ISTJ: 'sentinels', ISFJ: 'sentinels', ESTJ: 'sentinels', ESFJ: 'sentinels',
-  ISTP: 'explorers', ISFP: 'explorers', ESTP: 'explorers', ESFP: 'explorers',
+  ISTP: 'explorers', ISFP: 'explorers', ESTP: 'explorers', ESFP: 'explorers'
 }
 
 const filteredAgents = computed(() => {
@@ -159,7 +167,7 @@ const filteredAgents = computed(() => {
 
   if (mbtiGroupFilter.value !== 'all') {
     result = result.filter(
-      agent => MBTI_GROUPS[(agent.mbti ?? '').toUpperCase()] === mbtiGroupFilter.value,
+      agent => MBTI_GROUPS[(agent.mbti ?? '').toUpperCase()] === mbtiGroupFilter.value
     )
   }
 
@@ -193,7 +201,7 @@ watch(
     if (favoritesOnly.value) query.fav = '1'
     router.replace({ query })
   },
-  { flush: 'post' },
+  { flush: 'post' }
 )
 
 watch([search, departmentFilter, tierFilter, discFilter, mbtiGroupFilter], () => {
@@ -211,20 +219,20 @@ const tierColor = (tier: number) => {
 }
 
 const columns: TableColumn<Agent>[] = [
-  { id: 'select',              header: '' },
-  { id: 'favorite',            header: '' },
-  { accessorKey: 'name',       header: 'Name' },
-  { accessorKey: 'role',       header: 'Role' },
+  { id: 'select', header: '' },
+  { id: 'favorite', header: '' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'role', header: 'Role' },
   { accessorKey: 'department', header: 'Department' },
-  { accessorKey: 'tier',       header: 'Tier' },
+  { accessorKey: 'tier', header: 'Tier' },
   {
     accessorFn: (row: Agent) => row.disc?.primary ?? '-',
     id: 'disc',
-    header: 'DISC',
+    header: 'DISC'
   },
-  { accessorKey: 'mbti',       header: 'MBTI' },
-  { id: 'activity',            header: 'Activity (7d)' },
-  { id: 'actions',             header: '' },
+  { accessorKey: 'mbti', header: 'MBTI' },
+  { id: 'activity', header: 'Activity (7d)' },
+  { id: 'actions', header: '' }
 ]
 
 function goToAgent(id: string) {
@@ -265,7 +273,7 @@ defineShortcuts({
   k: () => cursorUp(),
   arrowdown: () => cursorDown(),
   arrowup: () => cursorUp(),
-  enter: () => cursorOpen(),
+  enter: () => cursorOpen()
 })
 
 // PR83b v3.4.0 — bulk selection + delete.
@@ -277,11 +285,11 @@ const bulkMoving = ref(false)
 
 const departmentMoveOptions = [
   'dev', 'marketing', 'brand', 'finance', 'strategy', 'ecom', 'kb', 'ops',
-  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org',
-].map((d) => ({
+  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org'
+].map(d => ({
   label: `Move to ${d}`,
   icon: 'i-lucide-arrow-right',
-  onSelect: () => bulkMove(d),
+  onSelect: () => bulkMove(d)
 }))
 
 function openCompare() {
@@ -297,23 +305,23 @@ async function bulkMove(targetDept: string) {
     title: `Move ${ids.length} agent${ids.length === 1 ? '' : 's'} to ${targetDept}?`,
     description: 'The YAML files will be relocated and their `department:` field updated. Tier 0 agents and unknown departments are skipped.',
     confirmLabel: `Move to ${targetDept}`,
-    cancelLabel: 'Cancel',
+    cancelLabel: 'Cancel'
   })
   if (!ok) return
   bulkMoving.value = true
   const results = await Promise.allSettled(
-    ids.map((id) =>
+    ids.map(id =>
       $fetch<{ moved?: boolean, trash_id?: string, error?: string }>(
         `${apiBase}/api/agents/${id}/move`,
-        { method: 'POST', body: { department: targetDept } },
-      ),
-    ),
+        { method: 'POST', body: { department: targetDept } }
+      )
+    )
   )
   const successes = results.filter(
-    (r) => r.status === 'fulfilled' && r.value.moved,
+    r => r.status === 'fulfilled' && r.value.moved
   )
   const trashIds = successes
-    .map((r) => (r.status === 'fulfilled' ? r.value.trash_id : null))
+    .map(r => (r.status === 'fulfilled' ? r.value.trash_id : null))
     .filter((v): v is string => Boolean(v))
   const failures = ids.length - successes.length
   toast.add({
@@ -328,7 +336,7 @@ async function bulkMove(targetDept: string) {
       : failures > 0 && successes.length > 0 ? 'warning' : 'error',
     actions: trashIds.length > 0
       ? [{ label: 'Undo', icon: 'i-lucide-rotate-ccw', onClick: () => undoTrashIds(trashIds) }]
-      : undefined,
+      : undefined
   })
   clearSelection()
   bulkMoving.value = false
@@ -342,8 +350,8 @@ function toggleSelected(id: string) {
 }
 
 function toggleAllVisible() {
-  const visibleIds = paginatedAgents.value.map((a) => a.id)
-  const allSelected = visibleIds.every((id) => selected.value.has(id))
+  const visibleIds = paginatedAgents.value.map(a => a.id)
+  const allSelected = visibleIds.every(id => selected.value.has(id))
   const next = new Set(selected.value)
   for (const id of visibleIds) {
     if (allSelected) next.delete(id)
@@ -353,8 +361,8 @@ function toggleAllVisible() {
 }
 
 const allVisibleSelected = computed(() => {
-  const visibleIds = paginatedAgents.value.map((a) => a.id)
-  return visibleIds.length > 0 && visibleIds.every((id) => selected.value.has(id))
+  const visibleIds = paginatedAgents.value.map(a => a.id)
+  return visibleIds.length > 0 && visibleIds.every(id => selected.value.has(id))
 })
 
 function clearSelection() {
@@ -369,23 +377,23 @@ async function bulkDelete() {
     description: 'YAML files will be removed from disk. This cannot be undone. Tier 0 agents are protected and will be skipped.',
     confirmLabel: `Delete ${ids.length}`,
     cancelLabel: 'Cancel',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   bulkDeleting.value = true
   const results = await Promise.allSettled(
-    ids.map((id) =>
+    ids.map(id =>
       $fetch<{ deleted?: boolean, trash_id?: string, error?: string }>(
         `${apiBase}/api/agents/${id}`,
-        { method: 'DELETE' },
-      ),
-    ),
+        { method: 'DELETE' }
+      )
+    )
   )
   const successes = results.filter(
-    (r) => r.status === 'fulfilled' && r.value.deleted,
+    r => r.status === 'fulfilled' && r.value.deleted
   )
   const trashIds = successes
-    .map((r) => (r.status === 'fulfilled' ? r.value.trash_id : null))
+    .map(r => (r.status === 'fulfilled' ? r.value.trash_id : null))
     .filter((v): v is string => Boolean(v))
   const failures = ids.length - successes.length
   if (successes.length > 0) {
@@ -395,20 +403,20 @@ async function bulkDelete() {
       color: failures > 0 ? 'warning' : 'success',
       actions: trashIds.length > 0
         ? [{ label: 'Undo', icon: 'i-lucide-rotate-ccw', onClick: () => undoTrashIds(trashIds) }]
-        : undefined,
+        : undefined
     })
     // PR93d v3.46.0 — also surface in the notifications bell.
     useActivityFeed().push({
       kind: failures > 0 ? 'warning' : 'success',
       title: `Deleted ${successes.length} agent${successes.length === 1 ? '' : 's'}`,
       description: failures > 0 ? `${failures} skipped` : 'Undo via /trash',
-      to: '/trash',
+      to: '/trash'
     })
   } else {
     toast.add({
       title: 'Nothing deleted',
       description: 'All targets were protected or missing.',
-      color: 'error',
+      color: 'error'
     })
   }
   clearSelection()
@@ -428,26 +436,26 @@ async function bulkStar(favorited: boolean) {
       : `Unstarred ${applied} agent${applied === 1 ? '' : 's'}`,
     description: applied < ids.length ? `${ids.length - applied} already in state` : undefined,
     color: 'success',
-    icon: favorited ? 'i-lucide-star' : 'i-lucide-star-off',
+    icon: favorited ? 'i-lucide-star' : 'i-lucide-star-off'
   })
 }
 
 async function undoTrashIds(ids: string[]) {
   const results = await Promise.allSettled(
-    ids.map((tid) =>
+    ids.map(tid =>
       $fetch<{ restored?: boolean, error?: string }>(
         `${apiBase}/api/trash/${tid}/restore`,
-        { method: 'POST' },
-      ),
-    ),
+        { method: 'POST' }
+      )
+    )
   )
   const restored = results.filter(
-    (r) => r.status === 'fulfilled' && r.value.restored,
+    r => r.status === 'fulfilled' && r.value.restored
   ).length
   toast.add({
     title: restored > 0 ? `Restored ${restored}` : 'Undo failed',
     description: restored < ids.length ? `${ids.length - restored} could not be restored.` : undefined,
-    color: restored === ids.length ? 'success' : restored > 0 ? 'warning' : 'error',
+    color: restored === ids.length ? 'success' : restored > 0 ? 'warning' : 'error'
   })
   await refreshAll()
 }
@@ -595,7 +603,12 @@ async function undoTrashIds(ids: string[]) {
             <UBadge :label="row.original.department" variant="subtle" size="sm" />
           </template>
           <template #tier-cell="{ row }">
-            <UBadge :label="`Tier ${row.original.tier}`" :color="tierColor(row.original.tier)" variant="subtle" size="sm" />
+            <UBadge
+              :label="`Tier ${row.original.tier}`"
+              :color="tierColor(row.original.tier)"
+              variant="subtle"
+              size="sm"
+            />
           </template>
           <template #mbti-cell="{ row }">
             <span class="font-mono text-sm">{{ row.original.mbti || '-' }}</span>

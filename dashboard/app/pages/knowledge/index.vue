@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { KnowledgeStats, KnowledgeSearchResult, IngestRequest, IngestResponse, IngestTask } from '~/types'
+import type { KnowledgeStats, KnowledgeSearchResult, IngestRequest, IngestTask, Job, JobSummary } from '~/types'
 
 const { fetchApi, apiBase } = useApi()
+const toast = useToast()
 
 const { data: stats, status, error, refresh } = await fetchApi<KnowledgeStats>('/api/knowledge/stats')
 
@@ -28,14 +29,14 @@ const inputModes = [
   { label: 'File', value: 'file' as const, icon: 'i-lucide-upload' },
   { label: 'Text', value: 'text' as const, icon: 'i-lucide-type' },
   { label: 'Research', value: 'research' as const, icon: 'i-lucide-search' },
-  { label: 'Record', value: 'record' as const, icon: 'i-lucide-mic' },
+  { label: 'Record', value: 'record' as const, icon: 'i-lucide-mic' }
 ]
 
 const bulkUrlCount = computed(() =>
   bulkUrls.value
     .split('\n')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0).length
+    .map(s => s.trim())
+    .filter(s => s.length > 0).length
 )
 
 function handleDrop(e: DragEvent) {
@@ -344,7 +345,7 @@ async function restoreActiveTask() {
   const savedId = localStorage.getItem(ACTIVE_TASK_KEY)
   if (!savedId) return
   try {
-    const task = await $fetch<any>(`${apiBase}/api/tasks/${savedId}`)
+    const task = await $fetch<IngestTask>(`${apiBase}/api/tasks/${savedId}`)
     if (task && task.status && !['completed', 'failed', 'cancelled'].includes(task.status)) {
       activeTask.value = task
       isIngesting.value = true
@@ -399,7 +400,7 @@ function connectWebSocket() {
       if (data.type?.startsWith('job_')) {
         fetchJobs()
       }
-    } catch {}
+    } catch { /* ignore malformed messages */ }
   }
 
   ws.onclose = () => {
@@ -436,9 +437,8 @@ async function handleIngest() {
     // File upload — use multipart form
     if (activeInputMode.value === 'file' && ingestFile.value) {
       await uploadFile(ingestFile.value)
-    }
-    // blob: URL — fetch the bytes client-side, then upload as a File
-    else if (ingestUrl.value.trim().startsWith('blob:')) {
+    } else if (ingestUrl.value.trim().startsWith('blob:')) {
+      // blob: URL — fetch the bytes client-side, then upload as a File
       const blobUrl = ingestUrl.value.trim()
       try {
         const resp = await fetch(blobUrl)
@@ -449,33 +449,30 @@ async function handleIngest() {
         ingestError.value = 'Could not read the blob: URL (it may have been revoked, cross-origin, or DRM-protected). Download the file and use the File tab instead.'
         return
       }
-    }
-    // Text paste — save to temp file via API
-    else if (activeInputMode.value === 'text' && pasteText.value.length > 10) {
+    } else if (activeInputMode.value === 'text' && pasteText.value.length > 10) {
+      // Text paste — save to temp file via API
       await $fetch(`${apiBase}/api/knowledge/ingest`, {
         method: 'POST',
-        body: { source: pasteText.value.slice(0, 100), type: 'markdown', text: pasteText.value, title: pasteTitle.value },
+        body: { source: pasteText.value.slice(0, 100), type: 'markdown', text: pasteText.value, title: pasteTitle.value }
       })
-    }
-    // Bulk URL paste — one job per non-blank line, server caps at 50
-    else if (activeInputMode.value === 'bulk' && bulkUrlCount.value > 0) {
+    } else if (activeInputMode.value === 'bulk' && bulkUrlCount.value > 0) {
+      // Bulk URL paste — one job per non-blank line, server caps at 50
       const sources = bulkUrls.value
         .split('\n')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
       await $fetch(`${apiBase}/api/knowledge/ingest-bulk`, {
         method: 'POST',
-        body: { sources },
+        body: { sources }
       })
-    }
-    // URL or Research — standard ingest
-    else {
+    } else {
+      // URL or Research — standard ingest
       const source = ingestUrl.value.trim()
       const type = detectedType.value
       if (!source || !type) return
       await $fetch(`${apiBase}/api/knowledge/ingest`, {
         method: 'POST',
-        body: { source, type },
+        body: { source, type }
       })
     }
 
@@ -507,15 +504,21 @@ function dismissActiveTask() {
 }
 
 // --- Jobs Table (SQLite) ---
-const jobs = ref<any[]>([])
-const jobsSummary = ref<any>({})
+// The summary payload carries the shared JobSummary counters plus a few
+// extras this page renders (active, total_chunks).
+interface JobsSummaryPayload extends JobSummary {
+  active?: number
+  total_chunks?: number
+}
+const jobs = ref<Job[]>([])
+const jobsSummary = ref<Partial<JobsSummaryPayload>>({})
 
 async function fetchJobs() {
   try {
-    const response = await $fetch<{ jobs: any[], summary: any }>(`${apiBase}/api/jobs`)
+    const response = await $fetch<{ jobs: Job[], summary: JobsSummaryPayload }>(`${apiBase}/api/jobs`)
     jobs.value = response.jobs ?? []
     jobsSummary.value = response.summary ?? {}
-  } catch {}
+  } catch { /* best-effort — keep the last good table */ }
 }
 
 fetchJobs()
@@ -535,7 +538,7 @@ async function fetchKnowledgeSources() {
       `${apiBase}/api/knowledge/sources`
     )
     knowledgeSources.value = response.sources ?? []
-  } catch {}
+  } catch { /* best-effort — rows just won't link to a detail page */ }
 }
 
 fetchKnowledgeSources()
@@ -605,7 +608,7 @@ function formatScore(score: number | null): string {
 // the new VectorStore; `vss_available` is the legacy field name from
 // earlier sqlite-vss builds. Treat either as "active".
 const vectorSearchActive = computed(() =>
-  Boolean(stats.value?.vec_available || stats.value?.vss_available),
+  Boolean(stats.value?.vec_available || stats.value?.vss_available)
 )
 
 // PR71 v2.88.0 — delete all chunks from a given source.
@@ -622,7 +625,7 @@ async function askDeleteSource(source: string) {
       `${source}\n\nRemoves the source from search results but does NOT `
       + 'delete the original file. You can re-ingest later if needed.',
     confirmLabel: 'Delete chunks',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   await deleteSource(source)
@@ -633,19 +636,19 @@ async function deleteSource(source: string) {
   try {
     const res = await $fetch<{ deleted?: number, source?: string, error?: string }>(
       `${apiBase}/api/knowledge/sources`,
-      { method: 'DELETE', query: { source } },
+      { method: 'DELETE', query: { source } }
     )
     if (res.error) {
       toast.add({
         title: 'Delete failed',
         description: res.error,
-        color: 'error',
+        color: 'error'
       })
       return
     }
     const deleted = res.deleted ?? 0
     // Drop the matching rows from the in-memory list without a full re-fetch.
-    searchResults.value = searchResults.value.filter((r) => r.source !== source)
+    searchResults.value = searchResults.value.filter(r => r.source !== source)
     searchTotal.value = searchResults.value.length
     // Refresh stats so the chunk count in the header updates.
     if (typeof refresh === 'function') {
@@ -656,13 +659,13 @@ async function deleteSource(source: string) {
         ? `Deleted ${deleted} chunk${deleted === 1 ? '' : 's'}`
         : 'Nothing to delete',
       description: source,
-      color: 'success',
+      color: 'success'
     })
   } catch (err) {
     toast.add({
       title: 'Delete failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     deletingSource.value = null
@@ -679,7 +682,7 @@ function highlightMatches(text: string, query: string): string {
   const pattern = new RegExp(`(${escapeRegex(q)})`, 'gi')
   return safe.replace(
     pattern,
-    '<mark class="bg-primary/20 text-primary rounded px-0.5">$1</mark>',
+    '<mark class="bg-primary/20 text-primary rounded px-0.5">$1</mark>'
   )
 }
 
@@ -724,8 +727,16 @@ function escapeRegex(value: string): string {
       <!-- Error -->
       <div v-else-if="error" class="flex flex-col items-center justify-center gap-4 py-12" role="alert">
         <UIcon name="i-lucide-alert-triangle" class="size-12 text-red-500" />
-        <p class="text-sm text-muted">Failed to load knowledge stats.</p>
-        <UButton label="Retry" variant="outline" color="primary" icon="i-lucide-refresh-cw" @click="refresh()" />
+        <p class="text-sm text-muted">
+          Failed to load knowledge stats.
+        </p>
+        <UButton
+          label="Retry"
+          variant="outline"
+          color="primary"
+          icon="i-lucide-refresh-cw"
+          @click="refresh()"
+        />
       </div>
 
       <!-- Content -->
@@ -764,11 +775,36 @@ function escapeRegex(value: string): string {
                   @keydown.enter.prevent="canIngest && handleIngest()"
                 />
                 <div class="flex items-center gap-1.5">
-                  <UBadge label="YouTube" color="error" variant="outline" size="xs" />
-                  <UBadge label="Web" color="primary" variant="outline" size="xs" />
-                  <UBadge label="Articles" color="primary" variant="outline" size="xs" />
-                  <UBadge label="Docs" color="neutral" variant="outline" size="xs" />
-                  <UBadge label="Video" color="error" variant="outline" size="xs" />
+                  <UBadge
+                    label="YouTube"
+                    color="error"
+                    variant="outline"
+                    size="xs"
+                  />
+                  <UBadge
+                    label="Web"
+                    color="primary"
+                    variant="outline"
+                    size="xs"
+                  />
+                  <UBadge
+                    label="Articles"
+                    color="primary"
+                    variant="outline"
+                    size="xs"
+                  />
+                  <UBadge
+                    label="Docs"
+                    color="neutral"
+                    variant="outline"
+                    size="xs"
+                  />
+                  <UBadge
+                    label="Video"
+                    color="error"
+                    variant="outline"
+                    size="xs"
+                  />
                 </div>
                 <p class="text-xs text-muted">
                   Direct video links (MP4, MOV, WebM) and <code>blob:</code> URLs are supported.
@@ -790,19 +826,32 @@ function escapeRegex(value: string): string {
                   accept=".pdf,.mp3,.wav,.m4a,.ogg,.flac,.md,.mdx,.txt,.mp4,.mov,.webm,.mkv,.avi"
                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   @change="handleFileSelect"
-                />
+                >
                 <div v-if="!ingestFile">
                   <UIcon name="i-lucide-cloud-upload" class="size-10 text-muted mx-auto mb-3" />
-                  <p class="text-sm font-medium text-highlighted">Drop files here or click to browse</p>
-                  <p class="text-xs text-muted mt-1">PDF, MP3, WAV, MP4, MOV, WebM, Markdown, TXT</p>
+                  <p class="text-sm font-medium text-highlighted">
+                    Drop files here or click to browse
+                  </p>
+                  <p class="text-xs text-muted mt-1">
+                    PDF, MP3, WAV, MP4, MOV, WebM, Markdown, TXT
+                  </p>
                 </div>
                 <div v-else class="flex items-center justify-center gap-3">
                   <UIcon :name="typeIconMap[detectedType ?? ''] ?? 'i-lucide-file'" class="size-6 text-primary" />
                   <div class="text-left">
-                    <p class="text-sm font-medium text-highlighted">{{ ingestFile.name }}</p>
-                    <p class="text-xs text-muted">{{ (ingestFile.size / 1024).toFixed(1) }} KB</p>
+                    <p class="text-sm font-medium text-highlighted">
+                      {{ ingestFile.name }}
+                    </p>
+                    <p class="text-xs text-muted">
+                      {{ (ingestFile.size / 1024).toFixed(1) }} KB
+                    </p>
                   </div>
-                  <UButton icon="i-lucide-x" variant="ghost" size="xs" @click.stop="clearFile" />
+                  <UButton
+                    icon="i-lucide-x"
+                    variant="ghost"
+                    size="xs"
+                    @click.stop="clearFile"
+                  />
                 </div>
               </div>
 
@@ -851,7 +900,9 @@ function escapeRegex(value: string): string {
                   :ui="{ base: 'text-base' }"
                   @keydown.enter.prevent="canIngest && handleIngest()"
                 />
-                <p class="text-xs text-muted">ArkaOS will fetch the page, extract the content, and index it into your knowledge base.</p>
+                <p class="text-xs text-muted">
+                  ArkaOS will fetch the page, extract the content, and index it into your knowledge base.
+                </p>
               </div>
 
               <!-- Mode: Record (capture played audio -> Whisper -> KB) -->
@@ -934,7 +985,7 @@ function escapeRegex(value: string): string {
                   :label="
                     activeInputMode === 'research' ? 'Research & Index'
                     : activeInputMode === 'bulk' ? `Ingest ${bulkUrlCount} source${bulkUrlCount === 1 ? '' : 's'}`
-                    : 'Ingest'
+                      : 'Ingest'
                   "
                   icon="i-lucide-zap"
                   size="md"
@@ -948,7 +999,9 @@ function escapeRegex(value: string): string {
               <div v-if="ingestError" class="rounded-md border border-red-500/20 bg-red-500/5 p-3" role="alert">
                 <div class="flex items-center gap-2">
                   <UIcon name="i-lucide-alert-circle" class="size-4 text-red-500" />
-                  <p class="text-sm text-red-400">{{ ingestError }}</p>
+                  <p class="text-sm text-red-400">
+                    {{ ingestError }}
+                  </p>
                 </div>
               </div>
             </fieldset>
@@ -997,7 +1050,9 @@ function escapeRegex(value: string): string {
             <div v-if="activeTask.status !== 'failed'" class="space-y-2">
               <UProgress :value="activeTask.progress_percent" :max="100" size="sm" />
               <div class="flex items-center justify-between">
-                <p class="text-xs text-muted">{{ activeTask.progress_message }}</p>
+                <p class="text-xs text-muted">
+                  {{ activeTask.progress_message }}
+                </p>
                 <span class="text-xs font-mono text-muted">{{ activeTask.progress_percent }}%</span>
               </div>
             </div>
@@ -1014,7 +1069,12 @@ function escapeRegex(value: string): string {
                 </p>
               </div>
               <div class="mt-2">
-                <UButton label="Dismiss" variant="ghost" size="xs" @click="dismissActiveTask" />
+                <UButton
+                  label="Dismiss"
+                  variant="ghost"
+                  size="xs"
+                  @click="dismissActiveTask"
+                />
               </div>
             </div>
 
@@ -1027,8 +1087,19 @@ function escapeRegex(value: string): string {
                 </p>
               </div>
               <div class="mt-2 flex gap-2">
-                <UButton label="Retry" variant="outline" size="xs" icon="i-lucide-refresh-cw" @click="retryIngest" />
-                <UButton label="Dismiss" variant="ghost" size="xs" @click="dismissActiveTask" />
+                <UButton
+                  label="Retry"
+                  variant="outline"
+                  size="xs"
+                  icon="i-lucide-refresh-cw"
+                  @click="retryIngest"
+                />
+                <UButton
+                  label="Dismiss"
+                  variant="ghost"
+                  size="xs"
+                  @click="dismissActiveTask"
+                />
               </div>
             </div>
           </div>
@@ -1036,7 +1107,9 @@ function escapeRegex(value: string): string {
           <!-- Jobs Queue Table -->
           <div v-if="jobs.length" class="mt-4">
             <div class="flex items-center justify-between mb-3">
-              <h3 class="text-sm font-semibold text-muted uppercase tracking-wider">Job Queue</h3>
+              <h3 class="text-sm font-semibold text-muted uppercase tracking-wider">
+                Job Queue
+              </h3>
               <div class="flex items-center gap-3 text-xs text-muted">
                 <span v-if="jobsSummary.active">{{ jobsSummary.active }} active</span>
                 <span>{{ jobsSummary.completed ?? 0 }} completed</span>
@@ -1048,11 +1121,21 @@ function escapeRegex(value: string): string {
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-default bg-elevated/30">
-                    <th class="text-left py-2.5 px-4 text-xs font-semibold text-muted">Source</th>
-                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-20">Type</th>
-                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-40">Status</th>
-                    <th class="text-right py-2.5 px-3 text-xs font-semibold text-muted w-20">Chunks</th>
-                    <th class="text-right py-2.5 px-4 text-xs font-semibold text-muted w-32">Time</th>
+                    <th class="text-left py-2.5 px-4 text-xs font-semibold text-muted">
+                      Source
+                    </th>
+                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-20">
+                      Type
+                    </th>
+                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-muted w-40">
+                      Status
+                    </th>
+                    <th class="text-right py-2.5 px-3 text-xs font-semibold text-muted w-20">
+                      Chunks
+                    </th>
+                    <th class="text-right py-2.5 px-4 text-xs font-semibold text-muted w-32">
+                      Time
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1092,18 +1175,20 @@ function escapeRegex(value: string): string {
                     <td class="py-2.5 px-3">
                       <div class="flex items-center gap-2">
                         <UIcon
-                          v-if="['queued','processing','downloading','transcribing','embedding'].includes(job.status)"
+                          v-if="['queued', 'processing', 'downloading', 'transcribing', 'embedding'].includes(job.status)"
                           name="i-lucide-loader-2"
                           class="size-3.5 animate-spin text-primary shrink-0"
                         />
                         <UIcon v-else-if="job.status === 'completed'" name="i-lucide-check-circle" class="size-3.5 text-green-500 shrink-0" />
                         <UIcon v-else-if="job.status === 'failed'" name="i-lucide-x-circle" class="size-3.5 text-red-500 shrink-0" />
                         <div class="flex-1 min-w-0">
-                          <div v-if="['processing','downloading','transcribing','embedding'].includes(job.status)" class="space-y-1">
+                          <div v-if="['processing', 'downloading', 'transcribing', 'embedding'].includes(job.status)" class="space-y-1">
                             <div class="h-1.5 rounded-full bg-muted/20 overflow-hidden">
                               <div class="h-1.5 rounded-full bg-primary transition-all" :style="{ width: `${job.progress}%` }" />
                             </div>
-                            <p class="text-[10px] text-muted truncate">{{ job.message }}</p>
+                            <p class="text-[10px] text-muted truncate">
+                              {{ job.message }}
+                            </p>
                           </div>
                           <span v-else class="text-xs" :class="job.status === 'completed' ? 'text-green-400' : job.status === 'failed' ? 'text-red-400' : 'text-muted'">
                             {{ job.status }}
@@ -1135,12 +1220,20 @@ function escapeRegex(value: string): string {
           <!-- Stats Section -->
           <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div class="rounded-lg border border-default p-4 text-center">
-              <p class="text-2xl font-semibold text-highlighted">{{ stats?.total_chunks ?? 0 }}</p>
-              <p class="text-xs text-muted">Total Chunks</p>
+              <p class="text-2xl font-semibold text-highlighted">
+                {{ stats?.total_chunks ?? 0 }}
+              </p>
+              <p class="text-xs text-muted">
+                Total Chunks
+              </p>
             </div>
             <div class="rounded-lg border border-default p-4 text-center">
-              <p class="text-2xl font-semibold text-highlighted">{{ stats?.total_files ?? 0 }}</p>
-              <p class="text-xs text-muted">Total Files</p>
+              <p class="text-2xl font-semibold text-highlighted">
+                {{ stats?.total_files ?? 0 }}
+              </p>
+              <p class="text-xs text-muted">
+                Total Files
+              </p>
             </div>
             <div class="rounded-lg border border-default p-4 text-center">
               <UBadge
@@ -1149,7 +1242,9 @@ function escapeRegex(value: string): string {
                 variant="subtle"
                 size="sm"
               />
-              <p class="text-xs text-muted mt-1">Vector Search</p>
+              <p class="text-xs text-muted mt-1">
+                Vector Search
+              </p>
               <p
                 v-if="!vectorSearchActive && stats?.vec_unavailable_reason"
                 class="text-xs text-yellow-400 mt-2 text-left"
@@ -1164,12 +1259,16 @@ function escapeRegex(value: string): string {
           <div v-if="!isIndexed" class="mt-8">
             <div class="rounded-lg border-2 border-dashed border-default p-8 text-center">
               <UIcon name="i-lucide-database" class="size-16 text-muted mx-auto" />
-              <h3 class="mt-4 text-lg font-semibold text-highlighted">Knowledge base not indexed yet</h3>
+              <h3 class="mt-4 text-lg font-semibold text-highlighted">
+                Knowledge base not indexed yet
+              </h3>
               <p class="mt-2 text-sm text-muted max-w-lg mx-auto">
                 Index your Obsidian vault to enable semantic search across your entire knowledge base.
               </p>
               <div class="mt-6 inline-block rounded-lg border border-default bg-elevated/50 px-6 py-4 text-left">
-                <p class="text-xs text-muted mb-2">Run this command to index:</p>
+                <p class="text-xs text-muted mb-2">
+                  Run this command to index:
+                </p>
                 <code class="font-mono text-sm text-primary">npx arkaos index</code>
               </div>
               <p class="mt-4 text-xs text-muted max-w-md mx-auto">
@@ -1183,14 +1282,18 @@ function escapeRegex(value: string): string {
           <template v-else>
             <!-- Knowledge Areas -->
             <div v-if="stats?.areas?.length" class="mt-6">
-              <h3 class="mb-4 text-lg font-semibold text-highlighted">Knowledge Areas</h3>
+              <h3 class="mb-4 text-lg font-semibold text-highlighted">
+                Knowledge Areas
+              </h3>
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div
                   v-for="area in stats.areas"
                   :key="area.name"
                   class="rounded-lg border border-default p-4"
                 >
-                  <h4 class="font-medium text-highlighted">{{ area.name }}</h4>
+                  <h4 class="font-medium text-highlighted">
+                    {{ area.name }}
+                  </h4>
                   <div class="mt-2 flex gap-4 text-xs text-muted">
                     <span>{{ area.chunks }} chunks</span>
                     <span>{{ area.files }} files</span>
@@ -1201,7 +1304,9 @@ function escapeRegex(value: string): string {
 
             <!-- Search -->
             <div class="mt-6 rounded-lg border border-default p-6">
-              <h3 class="mb-4 text-lg font-semibold text-highlighted">Search Knowledge</h3>
+              <h3 class="mb-4 text-lg font-semibold text-highlighted">
+                Search Knowledge
+              </h3>
               <form class="flex gap-2" @submit.prevent="handleSearch">
                 <UInput
                   v-model="searchQuery"
@@ -1225,7 +1330,9 @@ function escapeRegex(value: string): string {
 
               <template v-else-if="hasSearched">
                 <div v-if="searchResults.length" class="mt-4 space-y-3">
-                  <p class="text-xs text-muted">{{ searchTotal }} result{{ searchTotal !== 1 ? 's' : '' }} found</p>
+                  <p class="text-xs text-muted">
+                    {{ searchTotal }} result{{ searchTotal !== 1 ? 's' : '' }} found
+                  </p>
                   <div
                     v-for="(result, idx) in searchResults"
                     :key="result.id ?? idx"
@@ -1233,7 +1340,12 @@ function escapeRegex(value: string): string {
                   >
                     <div class="mb-2 flex items-center justify-between gap-2">
                       <div class="flex items-center gap-2 min-w-0">
-                        <UBadge v-if="result.area" :label="result.area" variant="subtle" size="sm" />
+                        <UBadge
+                          v-if="result.area"
+                          :label="result.area"
+                          variant="subtle"
+                          size="sm"
+                        />
                         <span v-if="result.heading" class="text-sm font-medium text-highlighted truncate">
                           {{ result.heading }}
                         </span>
@@ -1261,7 +1373,7 @@ function escapeRegex(value: string): string {
                       {{ result.source }}
                     </p>
                     <!-- PR71 v2.88.0 — highlight query matches in the preview -->
-                    <p class="text-sm text-muted line-clamp-3" v-html="highlightMatches(result.text || result.content, searchQuery)" />
+                    <p class="text-sm text-muted line-clamp-3" v-html="highlightMatches(result.text || result.content || '', searchQuery)" />
                   </div>
                 </div>
 

@@ -18,9 +18,57 @@
 
 import type { Persona } from '~/types'
 
+// Shape of the agent payload this drawer edits. Mirrors the safe-to-mutate
+// fields returned by GET /api/agents/{id} — everything optional except id,
+// because the backend only includes populated keys.
+interface AgentEditable {
+  id: string
+  name?: string
+  role?: string
+  department?: string
+  tier?: number
+  mental_models?: { primary?: string[], secondary?: string[] }
+  frameworks?: string[]
+  expertise_domains?: string[]
+  expertise_depth?: string
+  expertise_years?: number
+  communication?: {
+    tone?: string
+    vocabulary_level?: string
+    preferred_format?: string
+    language?: string
+    avoid?: string[]
+  }
+  linked_personas?: string[]
+  bio_md?: string
+}
+
+// Shape of the AI-generated draft returned by POST /api/agents/draft.
+// Values are unknown at the boundary — applyRewrite validates each one
+// (Array.isArray / typeof) before assigning into the typed draft.
+interface RewriteDraft {
+  expertise?: {
+    domains?: unknown
+    frameworks?: unknown
+    depth?: unknown
+    years_equivalent?: unknown
+  }
+  mental_models?: {
+    primary?: unknown
+    secondary?: unknown
+  }
+  communication?: {
+    tone?: unknown
+    vocabulary_level?: unknown
+    preferred_format?: unknown
+    language?: unknown
+    avoid?: unknown
+  }
+}
+
 const props = defineProps<{
   modelValue: boolean
-  agent: any
+  agent: AgentEditable | null
 }>()
 
 const emit = defineEmits<{
@@ -35,17 +83,17 @@ const confirmDialog = useConfirmDialog()
 // Persona list — for the linked_personas multi-select.
 const { data: personasData } = fetchApi<{ personas: Persona[] }>('/api/personas')
 const personaOptions = computed(() =>
-  (personasData.value?.personas ?? []).map((p) => ({
+  (personasData.value?.personas ?? []).map(p => ({
     label: p.name + (p.title ? ` — ${p.title}` : ''),
-    value: p.id,
-  })),
+    value: p.id
+  }))
 )
 
 interface AgentDraft {
   name: string
   role: string
   tier: number
-  mental_models: { primary: string[]; secondary: string[] }
+  mental_models: { primary: string[], secondary: string[] }
   frameworks: string[]
   expertise_domains: string[]
   expertise_depth: string
@@ -75,7 +123,7 @@ watch(
         tier: agent.tier ?? 2,
         mental_models: {
           primary: agent.mental_models?.primary ?? [],
-          secondary: agent.mental_models?.secondary ?? [],
+          secondary: agent.mental_models?.secondary ?? []
         },
         frameworks: agent.frameworks ?? [],
         expertise_domains: agent.expertise_domains ?? [],
@@ -86,10 +134,10 @@ watch(
           vocabulary_level: agent.communication?.vocabulary_level ?? '',
           preferred_format: agent.communication?.preferred_format ?? '',
           language: agent.communication?.language ?? '',
-          avoid: agent.communication?.avoid ?? [],
+          avoid: agent.communication?.avoid ?? []
         },
         linked_personas: agent.linked_personas ?? [],
-        bio_md: agent.bio_md ?? '',
+        bio_md: agent.bio_md ?? ''
       }
       dirty.value = false
     } else if (!open) {
@@ -97,7 +145,7 @@ watch(
       dirty.value = false
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 function markDirty() {
@@ -109,7 +157,7 @@ function listToCsv(list: string[]): string {
 }
 
 function csvToList(value: string): string[] {
-  return value.split(',').map((s) => s.trim()).filter(Boolean)
+  return value.split(',').map(s => s.trim()).filter(Boolean)
 }
 
 // PR81 v2.99.0 — AI list-field suggester.
@@ -129,14 +177,14 @@ async function rewriteFromDescription() {
     toast.add({
       title: 'Add more detail',
       description: 'Describe the agent in at least a sentence or two.',
-      color: 'warning',
+      color: 'warning'
     })
     return
   }
   rewriting.value = true
   try {
     const res = await $fetch<{
-      draft: any
+      draft: RewriteDraft
       provider_name: string
       error?: string
     }>(`${apiBase}/api/agents/draft`, {
@@ -146,8 +194,8 @@ async function rewriteFromDescription() {
         name: draft.value.name,
         role: draft.value.role,
         department: props.agent.department,
-        tier: draft.value.tier,
-      },
+        tier: draft.value.tier
+      }
     })
     if (res.error) throw new Error(res.error)
     applyRewrite(res.draft)
@@ -156,7 +204,7 @@ async function rewriteFromDescription() {
       title: 'Rewritten',
       description: `via ${res.provider_name} — review and Save when ready.`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
     rewriteOpen.value = false
     rewriteDescription.value = ''
@@ -164,14 +212,14 @@ async function rewriteFromDescription() {
     toast.add({
       title: 'Rewrite failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     rewriting.value = false
   }
 }
 
-function applyRewrite(d: any) {
+function applyRewrite(d: RewriteDraft) {
   if (!draft.value) return
   // NOTE: identity (id, department) stays. Behavioural DNA is intentionally
   // not editable here, so we do not touch it. We rewrite the SAFE fields
@@ -212,10 +260,10 @@ async function suggestString(field: StringField) {
             name: props.agent.name,
             role: props.agent.role,
             department: props.agent.department,
-            current,
-          },
-        },
-      },
+            current
+          }
+        }
+      }
     )
     if (res.error) throw new Error(res.error)
     if (field === 'tone') draft.value.communication.tone = res.value
@@ -225,13 +273,13 @@ async function suggestString(field: StringField) {
       title: 'Generated',
       description: `via ${res.provider_name}`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } catch (err) {
     toast.add({
       title: 'Generate failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     suggestingString.value = null
@@ -264,19 +312,19 @@ async function suggest(field: SuggestField) {
           name: props.agent.name,
           role: props.agent.role,
           department: props.agent.department,
-          current,
-        },
-      },
+          current
+        }
+      }
     })
     if (res.error) throw new Error(res.error)
     const additions = (res.suggestions ?? []).filter(
-      (s) => !current.some((c) => c.toLowerCase() === s.toLowerCase()),
+      s => !current.some(c => c.toLowerCase() === s.toLowerCase())
     )
     if (additions.length === 0) {
       toast.add({
         title: 'No new suggestions',
         description: 'The model returned only items you already have.',
-        color: 'info',
+        color: 'info'
       })
       return
     }
@@ -295,13 +343,13 @@ async function suggest(field: SuggestField) {
       title: `Added ${additions.length} suggestion${additions.length === 1 ? '' : 's'}`,
       description: `via ${res.provider_name}`,
       color: 'success',
-      icon: 'i-lucide-sparkles',
+      icon: 'i-lucide-sparkles'
     })
   } catch (err) {
     toast.add({
       title: 'Suggestion failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     suggestingField.value = null
@@ -321,11 +369,11 @@ async function save() {
       expertise_domains: draft.value.expertise_domains,
       expertise: {
         depth: draft.value.expertise_depth,
-        years_equivalent: draft.value.expertise_years,
+        years_equivalent: draft.value.expertise_years
       },
       communication: draft.value.communication,
       linked_personas: draft.value.linked_personas,
-      bio_md: draft.value.bio_md,
+      bio_md: draft.value.bio_md
     }
     const res = await $fetch<{
       id: string
@@ -334,7 +382,7 @@ async function save() {
       error?: string
     }>(`${apiBase}/api/agents/${props.agent.id}`, {
       method: 'PUT',
-      body: payload,
+      body: payload
     })
     if (res.error) throw new Error(res.error)
     toast.add({
@@ -342,7 +390,7 @@ async function save() {
       description: res.yaml_path
         ? `Wrote ${res.yaml_path.split('/').slice(-3).join('/')}`
         : 'YAML updated',
-      color: 'success',
+      color: 'success'
     })
     dirty.value = false
     emit('saved')
@@ -351,7 +399,7 @@ async function save() {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     saving.value = false
@@ -365,7 +413,7 @@ async function tryClose() {
       description: 'Any changes you made to this agent will be lost.',
       confirmLabel: 'Discard',
       cancelLabel: 'Keep editing',
-      variant: 'danger',
+      variant: 'danger'
     })
     if (!ok) return
   }
@@ -376,18 +424,18 @@ const tierOptions = [
   { label: 'Tier 0 — C-Suite', value: 0 },
   { label: 'Tier 1 — Squad Lead', value: 1 },
   { label: 'Tier 2 — Specialist', value: 2 },
-  { label: 'Tier 3 — Support', value: 3 },
+  { label: 'Tier 3 — Support', value: 3 }
 ]
 const depthOptions = [
   { label: 'Intermediate', value: 'intermediate' },
   { label: 'Advanced', value: 'advanced' },
   { label: 'Expert', value: 'expert' },
-  { label: 'Master', value: 'master' },
+  { label: 'Master', value: 'master' }
 ]
 const vocabOptions = [
   { label: 'Lay (no jargon)', value: 'lay' },
   { label: 'Specialist (industry terms)', value: 'specialist' },
-  { label: 'Expert (research-level)', value: 'expert' },
+  { label: 'Expert (research-level)', value: 'expert' }
 ]
 </script>
 
@@ -401,13 +449,15 @@ const vocabOptions = [
       <UCard
         :ui="{
           root: 'h-full flex flex-col rounded-none',
-          body: 'flex-1 overflow-y-auto',
+          body: 'flex-1 overflow-y-auto'
         }"
       >
         <template #header>
           <div class="flex items-center justify-between gap-3">
             <div>
-              <h2 class="text-xl font-bold">Edit agent</h2>
+              <h2 class="text-xl font-bold">
+                Edit agent
+              </h2>
               <p class="text-sm text-muted mt-0.5">
                 {{ props.agent?.name }}
                 <span class="text-xs text-muted/60 ml-1">— {{ props.agent?.id }}</span>
@@ -479,7 +529,9 @@ const vocabOptions = [
           </p>
 
           <section class="space-y-3">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Identity</h3>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+              Identity
+            </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <UFormField label="Name">
                 <UInput v-model="draft.name" class="w-full" @update:model-value="markDirty" />
@@ -500,7 +552,9 @@ const vocabOptions = [
 
           <section class="space-y-3">
             <div class="flex items-center justify-between">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Mental models</h3>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+                Mental models
+              </h3>
               <UButton
                 label="Suggest with AI"
                 icon="i-lucide-sparkles"
@@ -515,21 +569,23 @@ const vocabOptions = [
             <UFormField label="Primary" help="comma-separated">
               <UInput
                 :model-value="listToCsv(draft.mental_models.primary)"
-                @update:model-value="(v: string) => { if (draft) { draft.mental_models.primary = csvToList(v); markDirty() } }"
                 class="w-full"
+                @update:model-value="(v: string) => { if (draft) { draft.mental_models.primary = csvToList(v); markDirty() } }"
               />
             </UFormField>
             <UFormField label="Secondary" help="comma-separated">
               <UInput
                 :model-value="listToCsv(draft.mental_models.secondary)"
-                @update:model-value="(v: string) => { if (draft) { draft.mental_models.secondary = csvToList(v); markDirty() } }"
                 class="w-full"
+                @update:model-value="(v: string) => { if (draft) { draft.mental_models.secondary = csvToList(v); markDirty() } }"
               />
             </UFormField>
           </section>
 
           <section class="space-y-3">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Expertise</h3>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+              Expertise
+            </h3>
             <UFormField label="Domains" help="comma-separated">
               <template #hint>
                 <UButton
@@ -545,8 +601,8 @@ const vocabOptions = [
               </template>
               <UInput
                 :model-value="listToCsv(draft.expertise_domains)"
-                @update:model-value="(v: string) => { if (draft) { draft.expertise_domains = csvToList(v); markDirty() } }"
                 class="w-full"
+                @update:model-value="(v: string) => { if (draft) { draft.expertise_domains = csvToList(v); markDirty() } }"
               />
             </UFormField>
             <UFormField label="Frameworks" help="comma-separated">
@@ -564,8 +620,8 @@ const vocabOptions = [
               </template>
               <UInput
                 :model-value="listToCsv(draft.frameworks)"
-                @update:model-value="(v: string) => { if (draft) { draft.frameworks = csvToList(v); markDirty() } }"
                 class="w-full"
+                @update:model-value="(v: string) => { if (draft) { draft.frameworks = csvToList(v); markDirty() } }"
               />
             </UFormField>
             <div class="grid grid-cols-2 gap-3">
@@ -591,7 +647,9 @@ const vocabOptions = [
           </section>
 
           <section class="space-y-3">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Communication</h3>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">
+              Communication
+            </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <UFormField label="Tone">
                 <template #hint>
@@ -632,7 +690,12 @@ const vocabOptions = [
                 <UInput v-model="draft.communication.preferred_format" class="w-full" @update:model-value="markDirty" />
               </UFormField>
               <UFormField label="Language">
-                <UInput v-model="draft.communication.language" placeholder="en, pt" class="w-full" @update:model-value="markDirty" />
+                <UInput
+                  v-model="draft.communication.language"
+                  placeholder="en, pt"
+                  class="w-full"
+                  @update:model-value="markDirty"
+                />
               </UFormField>
             </div>
             <UFormField label="Avoid (phrases)" help="comma-separated">
@@ -650,8 +713,8 @@ const vocabOptions = [
               </template>
               <UInput
                 :model-value="listToCsv(draft.communication.avoid)"
-                @update:model-value="(v: string) => { if (draft) { draft.communication.avoid = csvToList(v); markDirty() } }"
                 class="w-full"
+                @update:model-value="(v: string) => { if (draft) { draft.communication.avoid = csvToList(v); markDirty() } }"
               />
             </UFormField>
           </section>
@@ -700,7 +763,12 @@ const vocabOptions = [
             </span>
             <span v-else class="text-xs text-muted">No changes</span>
             <div class="flex gap-2">
-              <UButton label="Cancel" variant="ghost" :disabled="saving" @click="tryClose" />
+              <UButton
+                label="Cancel"
+                variant="ghost"
+                :disabled="saving"
+                @click="tryClose"
+              />
               <UButton
                 label="Save"
                 icon="i-lucide-check"

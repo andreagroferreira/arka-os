@@ -38,7 +38,7 @@ const MBTI_GROUPS: Record<string, string> = {
   INTJ: 'analysts', INTP: 'analysts', ENTJ: 'analysts', ENTP: 'analysts',
   INFJ: 'diplomats', INFP: 'diplomats', ENFJ: 'diplomats', ENFP: 'diplomats',
   ISTJ: 'sentinels', ISFJ: 'sentinels', ESTJ: 'sentinels', ESFJ: 'sentinels',
-  ISTP: 'explorers', ISFP: 'explorers', ESTP: 'explorers', ESFP: 'explorers',
+  ISTP: 'explorers', ISFP: 'explorers', ESTP: 'explorers', ESFP: 'explorers'
 }
 
 const mbtiGroupOptions = [
@@ -46,29 +46,29 @@ const mbtiGroupOptions = [
   { label: 'Analysts (NT)', value: 'analysts' },
   { label: 'Diplomats (NF)', value: 'diplomats' },
   { label: 'Sentinels (S__J)', value: 'sentinels' },
-  { label: 'Explorers (S__P)', value: 'explorers' },
+  { label: 'Explorers (S__P)', value: 'explorers' }
 ]
 
 const sourceOptions = [
   { label: 'All sources', value: 'all' },
   { label: 'From Obsidian', value: 'obsidian' },
-  { label: 'JSON store', value: 'json' },
+  { label: 'JSON store', value: 'json' }
 ]
 
 const filteredPersonas = computed<Persona[]>(() => {
   let result = personas.value
   const q = search.value.toLowerCase().trim()
   if (q) {
-    result = result.filter((p) =>
+    result = result.filter(p =>
       p.name.toLowerCase().includes(q)
       || (p.title?.toLowerCase().includes(q) ?? false)
       || (p.source?.toLowerCase().includes(q) ?? false)
-      || (p.expertise_domains ?? []).some((d) => d.toLowerCase().includes(q)),
+      || (p.expertise_domains ?? []).some(d => d.toLowerCase().includes(q))
     )
   }
   if (mbtiGroupFilter.value !== 'all') {
     result = result.filter(
-      (p) => MBTI_GROUPS[(p.mbti ?? '').toUpperCase()] === mbtiGroupFilter.value,
+      p => MBTI_GROUPS[(p.mbti ?? '').toUpperCase()] === mbtiGroupFilter.value
     )
   }
   if (sourceFilter.value !== 'all') {
@@ -78,7 +78,7 @@ const filteredPersonas = computed<Persona[]>(() => {
     })
   }
   if (favoritesOnly.value) {
-    result = result.filter((p) => favs.isPersonaFavorite(p.id))
+    result = result.filter(p => favs.isPersonaFavorite(p.id))
   }
   return result
 })
@@ -88,12 +88,12 @@ const totalFiltered = computed(() => filteredPersonas.value.length)
 const paginatedPersonas = computed(() =>
   filteredPersonas.value.slice(
     (page.value - 1) * pageSize,
-    page.value * pageSize,
-  ),
+    page.value * pageSize
+  )
 )
 
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(totalFiltered.value / pageSize)),
+  Math.max(1, Math.ceil(totalFiltered.value / pageSize))
 )
 
 watch([search, mbtiGroupFilter, sourceFilter], () => {
@@ -121,16 +121,16 @@ function agentCount(personaId: string): number {
 }
 
 const columns: TableColumn<Persona>[] = [
-  { id: 'select',              header: '' },
-  { id: 'favorite',            header: '' },
-  { accessorKey: 'name',       header: 'Name' },
-  { accessorKey: 'title',      header: 'Title' },
-  { accessorKey: 'source',     header: 'Source' },
-  { accessorKey: 'mbti',       header: 'MBTI' },
-  { id: 'disc',                header: 'DISC' },
-  { id: 'expertise',           header: 'Expertise' },
-  { id: 'agents',              header: 'Agents' },
-  { id: 'actions',             header: '' },
+  { id: 'select', header: '' },
+  { id: 'favorite', header: '' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'title', header: 'Title' },
+  { accessorKey: 'source', header: 'Source' },
+  { accessorKey: 'mbti', header: 'MBTI' },
+  { id: 'disc', header: 'DISC' },
+  { id: 'expertise', header: 'Expertise' },
+  { id: 'agents', header: 'Agents' },
+  { id: 'actions', header: '' }
 ]
 
 function goToPersona(id: string | undefined | null) {
@@ -171,7 +171,7 @@ defineShortcuts({
   k: () => cursorUp(),
   arrowdown: () => cursorDown(),
   arrowup: () => cursorUp(),
-  enter: () => cursorOpen(),
+  enter: () => cursorOpen()
 })
 
 // PR86a v3.15.0 — favorites.
@@ -188,7 +188,7 @@ async function exportSelectedZip() {
   try {
     const blob = await $fetch<Blob>(
       `${apiBase}/api/personas/export-all.zip`,
-      { query: { ids }, responseType: 'blob' },
+      { query: { ids }, responseType: 'blob' }
     )
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -201,13 +201,13 @@ async function exportSelectedZip() {
     toast.add({
       title: `Exported ${selected.value.size} persona${selected.value.size === 1 ? '' : 's'}`,
       color: 'success',
-      icon: 'i-lucide-archive',
+      icon: 'i-lucide-archive'
     })
   } catch (err) {
     toast.add({
       title: 'Export failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     exportingSelected.value = false
@@ -221,7 +221,7 @@ async function exportAllAsZip() {
   try {
     const blob = await $fetch<Blob>(
       `${apiBase}/api/personas/export-all.zip`,
-      { responseType: 'blob' },
+      { responseType: 'blob' }
     )
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -235,13 +235,13 @@ async function exportAllAsZip() {
       title: 'ZIP downloaded',
       description: 'arkaos-personas.zip',
       color: 'success',
-      icon: 'i-lucide-archive',
+      icon: 'i-lucide-archive'
     })
   } catch (err) {
     toast.add({
       title: 'Export failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     exportingZip.value = false
@@ -262,7 +262,7 @@ function triggerImport() {
 async function runUrlImport() {
   const urls = urlImportText.value
     .split('\n')
-    .map((s) => s.trim())
+    .map(s => s.trim())
     .filter(Boolean)
   if (urls.length === 0) return
   importing.value = true
@@ -282,7 +282,7 @@ async function runUrlImport() {
       color: res.imported > 0 && res.failed === 0
         ? 'success'
         : res.imported > 0 ? 'warning' : 'error',
-      icon: 'i-lucide-globe',
+      icon: 'i-lucide-globe'
     })
     await refreshAll()
     urlImportText.value = ''
@@ -291,7 +291,7 @@ async function runUrlImport() {
     toast.add({
       title: 'URL import failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     importing.value = false
@@ -306,10 +306,10 @@ async function onImportFiles(event: Event) {
   importing.value = true
   try {
     const payload = await Promise.all(
-      files.map(async (f) => ({
+      files.map(async f => ({
         name: f.name,
-        content: await f.text(),
-      })),
+        content: await f.text()
+      }))
     )
     const res = await $fetch<{
       imported: number
@@ -326,14 +326,14 @@ async function onImportFiles(event: Event) {
       color: res.imported > 0 && res.failed === 0
         ? 'success'
         : res.imported > 0 ? 'warning' : 'error',
-      icon: 'i-lucide-file-down',
+      icon: 'i-lucide-file-down'
     })
     await refreshAll()
   } catch (err) {
     toast.add({
       title: 'Import failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     importing.value = false
@@ -353,8 +353,8 @@ function toggleSelected(id: string) {
 }
 
 function toggleAllVisible() {
-  const visibleIds = paginatedPersonas.value.map((p) => p.id)
-  const allSelected = visibleIds.every((id) => selected.value.has(id))
+  const visibleIds = paginatedPersonas.value.map(p => p.id)
+  const allSelected = visibleIds.every(id => selected.value.has(id))
   const next = new Set(selected.value)
   for (const id of visibleIds) {
     if (allSelected) next.delete(id)
@@ -364,8 +364,8 @@ function toggleAllVisible() {
 }
 
 const allVisibleSelected = computed(() => {
-  const visibleIds = paginatedPersonas.value.map((p) => p.id)
-  return visibleIds.length > 0 && visibleIds.every((id) => selected.value.has(id))
+  const visibleIds = paginatedPersonas.value.map(p => p.id)
+  return visibleIds.length > 0 && visibleIds.every(id => selected.value.has(id))
 })
 
 function clearSelection() {
@@ -380,23 +380,23 @@ async function bulkDelete() {
     description: 'Personas will be removed from the JSON store and the Obsidian vault. This cannot be undone.',
     confirmLabel: `Delete ${ids.length}`,
     cancelLabel: 'Cancel',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   bulkDeleting.value = true
   const results = await Promise.allSettled(
-    ids.map((id) =>
+    ids.map(id =>
       $fetch<{ deleted?: boolean, trash_id?: string, error?: string }>(
         `${apiBase}/api/personas/${id}`,
-        { method: 'DELETE' },
-      ),
-    ),
+        { method: 'DELETE' }
+      )
+    )
   )
   const successes = results.filter(
-    (r) => r.status === 'fulfilled' && r.value.deleted,
+    r => r.status === 'fulfilled' && r.value.deleted
   )
   const trashIds = successes
-    .map((r) => (r.status === 'fulfilled' ? r.value.trash_id : null))
+    .map(r => (r.status === 'fulfilled' ? r.value.trash_id : null))
     .filter((v): v is string => Boolean(v))
   const failures = ids.length - successes.length
   if (successes.length > 0) {
@@ -406,12 +406,12 @@ async function bulkDelete() {
       color: failures > 0 ? 'warning' : 'success',
       actions: trashIds.length > 0
         ? [{ label: 'Undo', icon: 'i-lucide-rotate-ccw', onClick: () => undoTrashIds(trashIds) }]
-        : undefined,
+        : undefined
     })
   } else {
     toast.add({
       title: 'Nothing deleted',
-      color: 'error',
+      color: 'error'
     })
   }
   clearSelection()
@@ -431,26 +431,26 @@ async function bulkStar(favorited: boolean) {
       : `Unstarred ${applied} persona${applied === 1 ? '' : 's'}`,
     description: applied < ids.length ? `${ids.length - applied} already in state` : undefined,
     color: 'success',
-    icon: favorited ? 'i-lucide-star' : 'i-lucide-star-off',
+    icon: favorited ? 'i-lucide-star' : 'i-lucide-star-off'
   })
 }
 
 async function undoTrashIds(ids: string[]) {
   const results = await Promise.allSettled(
-    ids.map((tid) =>
+    ids.map(tid =>
       $fetch<{ restored?: boolean, error?: string }>(
         `${apiBase}/api/trash/${tid}/restore`,
-        { method: 'POST' },
-      ),
-    ),
+        { method: 'POST' }
+      )
+    )
   )
   const restored = results.filter(
-    (r) => r.status === 'fulfilled' && r.value.restored,
+    r => r.status === 'fulfilled' && r.value.restored
   ).length
   toast.add({
     title: restored > 0 ? `Restored ${restored}` : 'Undo failed',
     description: restored < ids.length ? `${ids.length - restored} could not be restored.` : undefined,
-    color: restored === ids.length ? 'success' : restored > 0 ? 'warning' : 'error',
+    color: restored === ids.length ? 'success' : restored > 0 ? 'warning' : 'error'
   })
   await refreshAll()
 }
@@ -494,7 +494,7 @@ async function undoTrashIds(ids: string[]) {
           <UDropdownMenu
             :items="[
               { label: 'Pick .md files…', icon: 'i-lucide-file-up', onSelect: triggerImport },
-              { label: 'From URLs…', icon: 'i-lucide-globe', onSelect: () => urlImportOpen = true },
+              { label: 'From URLs…', icon: 'i-lucide-globe', onSelect: () => urlImportOpen = true }
             ]"
           >
             <UButton
@@ -513,12 +513,14 @@ async function undoTrashIds(ids: string[]) {
             multiple
             class="hidden"
             @change="onImportFiles"
-          />
+          >
           <UModal v-model:open="urlImportOpen" title="Import from URLs">
             <template #content>
               <UCard>
                 <template #header>
-                  <h2 class="text-lg font-bold">Import personas from URLs</h2>
+                  <h2 class="text-lg font-bold">
+                    Import personas from URLs
+                  </h2>
                   <p class="text-xs text-muted mt-0.5">
                     One raw .md URL per line. Files must have YAML
                     frontmatter with <code>type: persona</code>.
@@ -532,7 +534,12 @@ async function undoTrashIds(ids: string[]) {
                 />
                 <template #footer>
                   <div class="flex items-center justify-end gap-2">
-                    <UButton label="Cancel" variant="ghost" :disabled="importing" @click="urlImportOpen = false" />
+                    <UButton
+                      label="Cancel"
+                      variant="ghost"
+                      :disabled="importing"
+                      @click="urlImportOpen = false"
+                    />
                     <UButton
                       label="Import"
                       icon="i-lucide-globe"
@@ -616,7 +623,7 @@ async function undoTrashIds(ids: string[]) {
             thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
             tbody: '[&>tr]:last:[&>td]:border-b-0 [&>tr]:cursor-pointer [&>tr]:hover:bg-elevated/50 [&>tr]:transition-colors',
             th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-            td: 'border-b border-default',
+            td: 'border-b border-default'
           }"
           @select="(_e: Event, row: { original: Persona }) => goToPersona(row?.original?.id)"
         >

@@ -19,7 +19,7 @@ const {
   data,
   status,
   error,
-  refresh,
+  refresh
 } = await fetchApi<{ commands: Command[], total: number }>('/api/commands')
 
 // ─── Favorites (persisted in localStorage) ───────────────────────────────
@@ -44,7 +44,7 @@ function persistFavorites() {
   try {
     window.localStorage.setItem(
       FAVORITES_KEY,
-      JSON.stringify(Array.from(favorites.value)),
+      JSON.stringify(Array.from(favorites.value))
     )
   } catch { /* quota / disabled storage — silent */ }
 }
@@ -74,16 +74,16 @@ const expandedRow = ref<string | null>(null)
 const commands = computed(() => data.value?.commands ?? [])
 
 const departments = computed(() => {
-  const depts = new Set(commands.value.map((c) => c.department))
+  const depts = new Set(commands.value.map(c => c.department))
   return [
     { label: 'All Departments', value: 'all' },
-    ...Array.from(depts).sort().map((d) => ({ label: d, value: d })),
+    ...Array.from(depts).sort().map(d => ({ label: d, value: d }))
   ]
 })
 
 const baseList = computed<Command[]>(() => {
   if (view.value === 'favorites') {
-    return commands.value.filter((c) => favorites.value.has(c.id))
+    return commands.value.filter(c => favorites.value.has(c.id))
   }
   return commands.value
 })
@@ -92,13 +92,13 @@ const filteredCommands = computed<Command[]>(() => {
   let result = baseList.value
   const query = search.value.toLowerCase().trim()
   if (query) {
-    result = result.filter((cmd) =>
+    result = result.filter(cmd =>
       cmd.command.toLowerCase().includes(query)
-      || cmd.description.toLowerCase().includes(query),
+      || cmd.description.toLowerCase().includes(query)
     )
   }
   if (departmentFilter.value !== 'all') {
-    result = result.filter((cmd) => cmd.department === departmentFilter.value)
+    result = result.filter(cmd => cmd.department === departmentFilter.value)
   }
   // Favorites pinned on top in the "all" view; the favorites-only
   // view doesn't need re-sorting.
@@ -117,12 +117,12 @@ const totalFiltered = computed(() => filteredCommands.value.length)
 const paginatedCommands = computed(() =>
   filteredCommands.value.slice(
     (page.value - 1) * pageSize,
-    page.value * pageSize,
-  ),
+    page.value * pageSize
+  )
 )
 
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(totalFiltered.value / pageSize)),
+  Math.max(1, Math.ceil(totalFiltered.value / pageSize))
 )
 
 watch([search, departmentFilter, view], () => {
@@ -139,7 +139,7 @@ async function copyCommand(cmd: Command) {
     toast.add({
       title: 'Clipboard unavailable',
       description: 'Your browser blocked navigator.clipboard.',
-      color: 'warning',
+      color: 'warning'
     })
     return
   }
@@ -154,13 +154,13 @@ async function copyCommand(cmd: Command) {
     toast.add({
       title: 'Copied',
       description: cmd.command,
-      color: 'success',
+      color: 'success'
     })
   } catch (err) {
     toast.add({
       title: 'Copy failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -176,16 +176,16 @@ function toggleExpand(commandId: string) {
 }
 
 const columns: TableColumn<Command>[] = [
-  { accessorKey: 'star',        header: '' },
-  { accessorKey: 'command',     header: 'Command' },
-  { accessorKey: 'department',  header: 'Department' },
+  { accessorKey: 'star', header: '' },
+  { accessorKey: 'command', header: 'Command' },
+  { accessorKey: 'department', header: 'Department' },
   { accessorKey: 'description', header: 'Description' },
-  { accessorKey: 'actions',     header: '' },
+  { accessorKey: 'actions', header: '' }
 ]
 
 const viewTabs = [
   { label: 'All', value: 'all' as const },
-  { label: 'Favorites', value: 'favorites' as const },
+  { label: 'Favorites', value: 'favorites' as const }
 ]
 
 const favoritesCount = computed(() => favorites.value.size)
@@ -264,7 +264,9 @@ const favoritesCount = computed(() => favorites.value.size)
           class="flex flex-col items-center justify-center gap-3 py-16 rounded-lg border border-default"
         >
           <UIcon name="i-lucide-star" class="size-12 text-muted" />
-          <p class="text-sm text-muted">No favorites yet.</p>
+          <p class="text-sm text-muted">
+            No favorites yet.
+          </p>
           <p class="text-xs text-muted text-center max-w-sm">
             Click the ★ next to any command to pin it here for one-click access.
           </p>
@@ -282,7 +284,7 @@ const favoritesCount = computed(() => favorites.value.size)
               thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
               tbody: '[&>tr]:last:[&>td]:border-b-0 [&>tr]:hover:bg-elevated/50 [&>tr]:transition-colors',
               th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-              td: 'border-b border-default',
+              td: 'border-b border-default'
             }"
           >
             <template #star-cell="{ row }">
@@ -326,7 +328,9 @@ const favoritesCount = computed(() => favorites.value.size)
                 v-if="expandedRow === row.original.id && row.original.keywords?.length"
                 class="px-4 py-3 bg-elevated/30"
               >
-                <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Keywords</p>
+                <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
+                  Keywords
+                </p>
                 <div class="flex flex-wrap gap-1.5">
                   <UBadge
                     v-for="kw in row.original.keywords"

@@ -16,7 +16,7 @@ const _useFavorites = () => {
   const toast = useToast()
   const state = useState<FavoritesPayload>('favorites', () => ({
     agents: [],
-    personas: [],
+    personas: []
   }))
   const loaded = useState<boolean>('favoritesLoaded', () => false)
 
@@ -26,7 +26,7 @@ const _useFavorites = () => {
       const res = await $fetch<FavoritesPayload>(`${apiBase}/api/favorites`)
       state.value = {
         agents: res.agents ?? [],
-        personas: res.personas ?? [],
+        personas: res.personas ?? []
       }
       loaded.value = true
     } catch {
@@ -47,7 +47,7 @@ const _useFavorites = () => {
   async function setMany(
     kind: 'agents' | 'personas',
     ids: string[],
-    favorited: boolean,
+    favorited: boolean
   ) {
     try {
       const res = await $fetch<{
@@ -56,7 +56,7 @@ const _useFavorites = () => {
         error?: string
       }>(`${apiBase}/api/favorites/bulk`, {
         method: 'POST',
-        body: { kind, ids, favorited },
+        body: { kind, ids, favorited }
       })
       if (res.error) throw new Error(res.error)
       // Sync local state with the new server truth.
@@ -66,7 +66,7 @@ const _useFavorites = () => {
       toast.add({
         title: 'Favorites bulk update failed',
         description: err instanceof Error ? err.message : 'unknown error',
-        color: 'error',
+        color: 'error'
       })
       return null
     }
@@ -76,21 +76,21 @@ const _useFavorites = () => {
     try {
       const res = await $fetch<{ favorited?: boolean, error?: string }>(
         `${apiBase}/api/favorites/${kind}/${id}`,
-        { method: 'POST' },
+        { method: 'POST' }
       )
       if (res.error) throw new Error(res.error)
       const bucket = state.value[kind]
       if (res.favorited && !bucket.includes(id)) {
         state.value = { ...state.value, [kind]: [...bucket, id] }
       } else if (!res.favorited) {
-        state.value = { ...state.value, [kind]: bucket.filter((x) => x !== id) }
+        state.value = { ...state.value, [kind]: bucket.filter(x => x !== id) }
       }
       return res.favorited
     } catch (err) {
       toast.add({
         title: 'Favorite toggle failed',
         description: err instanceof Error ? err.message : 'unknown error',
-        color: 'error',
+        color: 'error'
       })
       return null
     }

@@ -16,28 +16,28 @@ const toast = useToast()
 const confirmDialog = useConfirmDialog()
 
 const { data, status, error, refresh } = await fetchApi<{ entries: TrashEntry[] }>(
-  '/api/trash?limit=50',
+  '/api/trash?limit=50'
 )
 
 async function restore(entry: TrashEntry) {
   try {
     const res = await $fetch<{ restored?: boolean, error?: string }>(
       `${apiBase}/api/trash/${entry.id}/restore`,
-      { method: 'POST' },
+      { method: 'POST' }
     )
     if (res.error) throw new Error(res.error)
     toast.add({
       title: 'Restored',
       description: kindLabel(entry.kind) + ' restored.',
       color: 'success',
-      icon: 'i-lucide-rotate-ccw',
+      icon: 'i-lucide-rotate-ccw'
     })
     await refresh()
   } catch (err) {
     toast.add({
       title: 'Restore failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -48,7 +48,7 @@ async function discard(entry: TrashEntry) {
     description: `${kindLabel(entry.kind)} for ${entry.item_id} will be permanently dropped.`,
     confirmLabel: 'Discard',
     cancelLabel: 'Cancel',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   try {
@@ -59,7 +59,7 @@ async function discard(entry: TrashEntry) {
     toast.add({
       title: 'Discard failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -68,7 +68,7 @@ function kindLabel(kind: string): string {
   return {
     'agent-delete': 'Agent delete',
     'persona-delete': 'Persona delete',
-    'agent-move': 'Agent move',
+    'agent-move': 'Agent move'
   }[kind] ?? kind
 }
 
@@ -76,7 +76,7 @@ function kindColor(kind: string): 'error' | 'warning' | 'primary' | 'neutral' {
   return ({
     'agent-delete': 'error',
     'persona-delete': 'error',
-    'agent-move': 'warning',
+    'agent-move': 'warning'
   } as const)[kind] ?? 'neutral'
 }
 
@@ -133,7 +133,9 @@ function formatRelative(ts: number): string {
               size="sm"
             />
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-mono font-semibold truncate">{{ entry.item_id }}</p>
+              <p class="text-sm font-mono font-semibold truncate">
+                {{ entry.item_id }}
+              </p>
               <p class="text-xs text-muted truncate" :title="entry.original_path">
                 {{ entry.original_path }}<span v-if="entry.new_path"> → {{ entry.new_path }}</span>
               </p>

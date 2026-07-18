@@ -34,14 +34,16 @@ const pageSize = 15
 const filtered = computed(() => {
   const q = search.value.toLowerCase().trim()
   if (!q) return sources.value
-  return sources.value.filter((s) => s.source.toLowerCase().includes(q))
+  return sources.value.filter(s => s.source.toLowerCase().includes(q))
 })
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize)))
 const paged = computed(() =>
-  filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize),
+  filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize)
 )
 
-watch(search, () => { page.value = 1 })
+watch(search, () => {
+  page.value = 1
+})
 
 async function remove(row: SourceRow) {
   const ok = await confirmDialog({
@@ -49,26 +51,26 @@ async function remove(row: SourceRow) {
     description: `Removes ${row.chunks} chunk${row.chunks === 1 ? '' : 's'} from the vector store. This cannot be undone.`,
     confirmLabel: 'Delete',
     cancelLabel: 'Cancel',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   try {
     const res = await $fetch<{ deleted?: number, error?: string }>(
       `${apiBase}/api/knowledge/sources`,
-      { method: 'DELETE', query: { source: row.source } },
+      { method: 'DELETE', query: { source: row.source } }
     )
     if (res.error) throw new Error(res.error)
     toast.add({
       title: `Removed ${res.deleted ?? 0} chunks`,
       description: row.source,
-      color: 'success',
+      color: 'success'
     })
     await refresh()
   } catch (err) {
     toast.add({
       title: 'Delete failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   }
 }
@@ -100,7 +102,9 @@ const typeColorMap: Record<string, 'error' | 'primary' | 'warning' | 'success' |
     <template #header>
       <div class="flex items-center justify-between gap-3">
         <div>
-          <h3 class="text-lg font-bold">Indexed sources</h3>
+          <h3 class="text-lg font-bold">
+            Indexed sources
+          </h3>
           <p class="text-xs text-muted mt-0.5">
             Click any source to view its transcript, video, and knowledge.
             <span v-if="data?.total">{{ data.total }} total.</span>
@@ -112,7 +116,7 @@ const typeColorMap: Record<string, 'error' | 'primary' | 'warning' | 'success' |
           size="sm"
           aria-label="Refresh"
           :loading="status === 'pending'"
-          @click="refresh"
+          @click="() => refresh()"
         />
       </div>
     </template>

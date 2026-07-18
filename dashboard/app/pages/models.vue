@@ -64,7 +64,7 @@ const {
   data: overview,
   status,
   error,
-  refresh,
+  refresh
 } = fetchApi<ModelsOverview>('/api/models')
 
 const period = ref<Period>('week')
@@ -72,11 +72,11 @@ const periodOptions: { label: string, value: Period }[] = [
   { label: 'Today', value: 'today' },
   { label: '7 days', value: 'week' },
   { label: '30 days', value: 'month' },
-  { label: 'All time', value: 'all' },
+  { label: 'All time', value: 'all' }
 ]
 const { data: usage, refresh: refreshUsage } = fetchApi<UsageSummary>(
   '/api/models/usage',
-  { query: computed(() => ({ period: period.value })) },
+  { query: computed(() => ({ period: period.value })) }
 )
 watch(period, () => refreshUsage())
 
@@ -88,7 +88,7 @@ const laneStyles: Record<string, { badge: string, dot: string }> = {
   runtime: { badge: 'text-primary bg-primary/10', dot: 'bg-primary' },
   ollama: { badge: 'text-amber-600 dark:text-amber-400 bg-amber-500/10', dot: 'bg-amber-500' },
   openrouter: { badge: 'text-violet-600 dark:text-violet-400 bg-violet-500/10', dot: 'bg-violet-500' },
-  anthropic: { badge: 'text-sky-600 dark:text-sky-400 bg-sky-500/10', dot: 'bg-sky-500' },
+  anthropic: { badge: 'text-sky-600 dark:text-sky-400 bg-sky-500/10', dot: 'bg-sky-500' }
 }
 
 function laneStyle(provider: string) {
@@ -114,7 +114,7 @@ const lanes = computed<Lane[]>(() => {
     { id: 'runtime', label: 'Runtime', live: true, detail: 'active CLI session' },
     { id: 'ollama', label: 'Ollama', live: ollama.running, detail: ollamaDetail },
     { id: 'openrouter', label: 'OpenRouter', live: keys.openrouter, detail: keys.openrouter ? 'key configured' : 'no key' },
-    { id: 'anthropic', label: 'Anthropic', live: keys.anthropic, detail: keys.anthropic ? 'key configured' : 'no key' },
+    { id: 'anthropic', label: 'Anthropic', live: keys.anthropic, detail: keys.anthropic ? 'key configured' : 'no key' }
   ]
 })
 
@@ -164,7 +164,7 @@ async function saveEdit(role: string) {
   try {
     await $fetch(`${apiBase}/api/models/role`, {
       method: 'POST',
-      body: { role, target: editTarget.value },
+      body: { role, target: editTarget.value }
     })
     toast.add({ title: `${role} re-routed`, description: editTarget.value, color: 'success', icon: 'i-lucide-route' })
     editingRole.value = null
@@ -173,7 +173,7 @@ async function saveEdit(role: string) {
     toast.add({
       title: 'Re-route failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     saving.value = false
@@ -189,13 +189,13 @@ async function useForMechanical(model: OllamaModel) {
 
 const usageRows = computed<Array<[string, BreakdownRow]>>(() =>
   Object.entries(usage.value?.by_model ?? {}).sort(
-    (a, b) => (b[1].total_tokens_in + b[1].total_tokens_out) - (a[1].total_tokens_in + a[1].total_tokens_out),
-  ).slice(0, 10),
+    (a, b) => (b[1].total_tokens_in + b[1].total_tokens_out) - (a[1].total_tokens_in + a[1].total_tokens_out)
+  ).slice(0, 10)
 )
 
 const maxUsageTokens = computed(() => {
   const max = usageRows.value.reduce(
-    (acc, [, r]) => Math.max(acc, r.total_tokens_in + r.total_tokens_out), 0,
+    (acc, [, r]) => Math.max(acc, r.total_tokens_in + r.total_tokens_out), 0
   )
   return max > 0 ? max : 1
 })
@@ -258,8 +258,12 @@ function formatCost(value: number | null): string {
                   />
                 </span>
                 <div>
-                  <p class="text-sm font-semibold">{{ lane.label }}</p>
-                  <p class="text-xs text-muted">{{ lane.detail }}</p>
+                  <p class="text-sm font-semibold">
+                    {{ lane.label }}
+                  </p>
+                  <p class="text-xs text-muted">
+                    {{ lane.detail }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -272,7 +276,9 @@ function formatCost(value: number | null): string {
                 <p class="text-xs font-semibold text-muted uppercase tracking-wider">
                   Role routing
                 </p>
-                <p class="text-xs text-muted font-mono hidden md:block">{{ overview?.config_path }}</p>
+                <p class="text-xs text-muted font-mono hidden md:block">
+                  {{ overview?.config_path }}
+                </p>
               </div>
             </template>
             <div class="divide-y divide-default">
@@ -287,7 +293,9 @@ function formatCost(value: number | null): string {
                   :class="QUALITY_ROLES.has(row.role) ? 'text-primary' : 'text-muted'"
                 />
                 <div class="w-56 shrink-0">
-                  <p class="text-sm font-medium">{{ row.role }}</p>
+                  <p class="text-sm font-medium">
+                    {{ row.role }}
+                  </p>
                   <p v-if="row.description" class="text-xs text-muted leading-snug">
                     {{ row.description }}
                   </p>
@@ -303,8 +311,18 @@ function formatCost(value: number | null): string {
                     placeholder="provider/model"
                     @create="(item: string) => { editTarget = item }"
                   />
-                  <UButton size="xs" label="Save" :loading="saving" @click="saveEdit(row.role)" />
-                  <UButton size="xs" variant="ghost" label="Cancel" @click="editingRole = null" />
+                  <UButton
+                    size="xs"
+                    label="Save"
+                    :loading="saving"
+                    @click="saveEdit(row.role)"
+                  />
+                  <UButton
+                    size="xs"
+                    variant="ghost"
+                    label="Cancel"
+                    @click="editingRole = null"
+                  />
                 </template>
                 <template v-else>
                   <span
@@ -316,7 +334,9 @@ function formatCost(value: number | null): string {
                   <span class="text-sm font-mono truncate">
                     {{ row.model || '(unset)' }}
                   </span>
-                  <UBadge variant="subtle" size="sm" color="neutral">{{ row.effort }}</UBadge>
+                  <UBadge variant="subtle" size="sm" color="neutral">
+                    {{ row.effort }}
+                  </UBadge>
                   <UButton
                     icon="i-lucide-pencil"
                     variant="ghost"
@@ -346,12 +366,20 @@ function formatCost(value: number | null): string {
                 >
                   <UIcon name="i-lucide-hard-drive" class="size-4 text-amber-500 shrink-0" />
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-mono truncate">{{ m.name }}</p>
+                    <p class="text-sm font-mono truncate">
+                      {{ m.name }}
+                    </p>
                     <p class="text-xs text-muted">
                       {{ m.family || 'unknown family' }}
-                      <template v-if="m.parameter_size"> · {{ m.parameter_size }}</template>
-                      <template v-if="m.size_gb"> · {{ m.size_gb }} GB</template>
-                      <template v-if="!m.size_gb"> · cloud-proxied</template>
+                      <template v-if="m.parameter_size">
+                        · {{ m.parameter_size }}
+                      </template>
+                      <template v-if="m.size_gb">
+                        · {{ m.size_gb }} GB
+                      </template>
+                      <template v-if="!m.size_gb">
+                        · cloud-proxied
+                      </template>
                     </p>
                   </div>
                   <UButton
@@ -364,11 +392,17 @@ function formatCost(value: number | null): string {
                 </div>
               </div>
               <div v-else-if="overview?.ollama?.installed" class="py-6 text-center">
-                <p class="text-sm text-muted">Ollama is installed but not running.</p>
-                <p class="text-xs text-muted mt-1 font-mono">ollama serve</p>
+                <p class="text-sm text-muted">
+                  Ollama is installed but not running.
+                </p>
+                <p class="text-xs text-muted mt-1 font-mono">
+                  ollama serve
+                </p>
               </div>
               <div v-else class="py-6 text-center">
-                <p class="text-sm text-muted">No local models yet.</p>
+                <p class="text-sm text-muted">
+                  No local models yet.
+                </p>
                 <p class="text-xs text-muted mt-1">
                   Install Ollama to run free local models for mechanical work and fusion panels.
                 </p>
@@ -382,7 +416,13 @@ function formatCost(value: number | null): string {
                   <p class="text-xs font-semibold text-muted uppercase tracking-wider">
                     Usage by model
                   </p>
-                  <USelect v-model="period" :items="periodOptions" size="xs" class="min-w-24" aria-label="Usage period" />
+                  <USelect
+                    v-model="period"
+                    :items="periodOptions"
+                    size="xs"
+                    class="min-w-24"
+                    aria-label="Usage period"
+                  />
                 </div>
               </template>
               <div v-if="usageRows.length" class="space-y-3">
@@ -393,7 +433,9 @@ function formatCost(value: number | null): string {
                     <span class="font-semibold">{{ formatTokens((usage?.total_tokens_in ?? 0) + (usage?.total_tokens_out ?? 0)) }}</span>
                     <span class="text-muted"> tokens</span>
                   </p>
-                  <p class="text-sm font-semibold">{{ formatCost(usage?.total_cost_usd ?? null) }}</p>
+                  <p class="text-sm font-semibold">
+                    {{ formatCost(usage?.total_cost_usd ?? null) }}
+                  </p>
                 </div>
                 <div v-for="[name, row] in usageRows" :key="name" class="space-y-1">
                   <div class="flex items-center justify-between text-xs">
@@ -411,8 +453,12 @@ function formatCost(value: number | null): string {
                 </div>
               </div>
               <div v-else class="py-6 text-center">
-                <p class="text-sm text-muted">No usage recorded for this period.</p>
-                <p class="text-xs text-muted mt-1">Calls made through the Model Fabric land here automatically.</p>
+                <p class="text-sm text-muted">
+                  No usage recorded for this period.
+                </p>
+                <p class="text-xs text-muted mt-1">
+                  Calls made through the Model Fabric land here automatically.
+                </p>
               </div>
             </UCard>
           </div>

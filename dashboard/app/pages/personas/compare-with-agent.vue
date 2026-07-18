@@ -29,7 +29,9 @@ interface PersonaDetail {
   expertise_domains?: string[]
   frameworks?: string[]
   communication?: { tone?: string, vocabulary_level?: string, avoid?: string[] }
-  bio_md?: string  // PR94c v3.49.0
+  bio_md?: string // PR94c v3.49.0
+  // Present when the backend returns an error payload instead of a persona.
+  error?: string
 }
 
 interface AgentDetail {
@@ -44,14 +46,16 @@ interface AgentDetail {
   mental_models?: { primary?: string[], secondary?: string[] }
   expertise?: { domains?: string[], frameworks?: string[] }
   communication?: { tone?: string, vocabulary_level?: string, avoid?: string[] }
-  bio_md?: string  // PR94c v3.49.0
+  bio_md?: string // PR94c v3.49.0
+  // Present when the backend returns an error payload instead of an agent.
+  error?: string
 }
 
 const { data: persona, status: pStatus } = fetchApi<PersonaDetail>(
-  () => personaId.value ? `/api/personas/${personaId.value}` : '',
+  () => personaId.value ? `/api/personas/${personaId.value}` : ''
 )
 const { data: agent, status: aStatus } = fetchApi<AgentDetail>(
-  () => agentId.value ? `/api/agents/${agentId.value}` : '',
+  () => agentId.value ? `/api/agents/${agentId.value}` : ''
 )
 
 const loading = computed(() => pStatus.value === 'pending' || aStatus.value === 'pending')
@@ -59,8 +63,8 @@ const errorMsg = computed(() => {
   if (!personaId.value || !agentId.value) {
     return 'Pass ?persona=p&agent=a'
   }
-  if (persona.value && (persona.value as any).error) return `Persona: ${(persona.value as any).error}`
-  if (agent.value && (agent.value as any).error) return `Agent: ${(agent.value as any).error}`
+  if (persona.value?.error) return `Persona: ${persona.value.error}`
+  if (agent.value?.error) return `Agent: ${agent.value.error}`
   return null
 })
 
@@ -119,35 +123,63 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           </NuxtLink>
         </section>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Behavioural DNA</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Behavioural DNA
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', diffClass(persona.mbti, agent.mbti)]">
-            <p class="text-xs text-muted">MBTI</p>
-            <p class="text-lg font-mono font-bold">{{ persona.mbti ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              MBTI
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ persona.mbti ?? '—' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(persona.mbti, agent.mbti)]">
-            <p class="text-xs text-muted">MBTI</p>
-            <p class="text-lg font-mono font-bold">{{ agent.mbti ?? '—' }}</p>
+            <p class="text-xs text-muted">
+              MBTI
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ agent.mbti ?? '—' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${persona.disc?.primary}/${persona.disc?.secondary}`, `${agent.disc?.primary}/${agent.disc?.secondary}`)]">
-            <p class="text-xs text-muted">DISC</p>
-            <p class="text-lg font-mono font-bold">{{ persona.disc?.primary ?? '?' }}/{{ persona.disc?.secondary ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              DISC
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ persona.disc?.primary ?? '?' }}/{{ persona.disc?.secondary ?? '?' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${persona.disc?.primary}/${persona.disc?.secondary}`, `${agent.disc?.primary}/${agent.disc?.secondary}`)]">
-            <p class="text-xs text-muted">DISC</p>
-            <p class="text-lg font-mono font-bold">{{ agent.disc?.primary ?? '?' }}/{{ agent.disc?.secondary ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              DISC
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ agent.disc?.primary ?? '?' }}/{{ agent.disc?.secondary ?? '?' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${persona.enneagram?.type}w${persona.enneagram?.wing}`, `${agent.enneagram?.type}w${agent.enneagram?.wing}`)]">
-            <p class="text-xs text-muted">Enneagram</p>
-            <p class="text-lg font-mono font-bold">{{ persona.enneagram?.type ?? '?' }}w{{ persona.enneagram?.wing ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              Enneagram
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ persona.enneagram?.type ?? '?' }}w{{ persona.enneagram?.wing ?? '?' }}
+            </p>
           </div>
           <div :class="['rounded-lg border p-3', diffClass(`${persona.enneagram?.type}w${persona.enneagram?.wing}`, `${agent.enneagram?.type}w${agent.enneagram?.wing}`)]">
-            <p class="text-xs text-muted">Enneagram</p>
-            <p class="text-lg font-mono font-bold">{{ agent.enneagram?.type ?? '?' }}w{{ agent.enneagram?.wing ?? '?' }}</p>
+            <p class="text-xs text-muted">
+              Enneagram
+            </p>
+            <p class="text-lg font-mono font-bold">
+              {{ agent.enneagram?.type ?? '?' }}w{{ agent.enneagram?.wing ?? '?' }}
+            </p>
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Big Five (OCEAN)</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Big Five (OCEAN)
+        </h3>
         <div class="space-y-1">
           <div v-for="k in bigFiveKeys" :key="k" class="grid grid-cols-2 gap-3">
             <div :class="['rounded-lg border p-2 flex items-center gap-3', diffClass(persona.big_five?.[k], agent.big_five?.[k])]">
@@ -161,58 +193,94 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Expertise domains</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Expertise domains
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', listDiffClass(persona.expertise_domains, agent.expertise?.domains)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="d in persona.expertise_domains" :key="d">{{ d }}</li>
-              <li v-if="!persona.expertise_domains?.length" class="list-none text-muted italic">none</li>
+              <li v-for="d in persona.expertise_domains" :key="d">
+                {{ d }}
+              </li>
+              <li v-if="!persona.expertise_domains?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
           <div :class="['rounded-lg border p-3', listDiffClass(persona.expertise_domains, agent.expertise?.domains)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="d in agent.expertise?.domains" :key="d">{{ d }}</li>
-              <li v-if="!agent.expertise?.domains?.length" class="list-none text-muted italic">none</li>
+              <li v-for="d in agent.expertise?.domains" :key="d">
+                {{ d }}
+              </li>
+              <li v-if="!agent.expertise?.domains?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Frameworks</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Frameworks
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', listDiffClass(persona.frameworks, agent.expertise?.frameworks)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="f in persona.frameworks" :key="f">{{ f }}</li>
-              <li v-if="!persona.frameworks?.length" class="list-none text-muted italic">none</li>
+              <li v-for="f in persona.frameworks" :key="f">
+                {{ f }}
+              </li>
+              <li v-if="!persona.frameworks?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
           <div :class="['rounded-lg border p-3', listDiffClass(persona.frameworks, agent.expertise?.frameworks)]">
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="f in agent.expertise?.frameworks" :key="f">{{ f }}</li>
-              <li v-if="!agent.expertise?.frameworks?.length" class="list-none text-muted italic">none</li>
+              <li v-for="f in agent.expertise?.frameworks" :key="f">
+                {{ f }}
+              </li>
+              <li v-if="!agent.expertise?.frameworks?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
         </div>
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Mental models</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Mental models
+        </h3>
         <div class="grid grid-cols-2 gap-3">
           <div :class="['rounded-lg border p-3', listDiffClass(persona.mental_models, agent.mental_models?.primary)]">
-            <p class="text-xs text-muted mb-2">Persona — flat list</p>
+            <p class="text-xs text-muted mb-2">
+              Persona — flat list
+            </p>
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="m in persona.mental_models" :key="m">{{ m }}</li>
-              <li v-if="!persona.mental_models?.length" class="list-none text-muted italic">none</li>
+              <li v-for="m in persona.mental_models" :key="m">
+                {{ m }}
+              </li>
+              <li v-if="!persona.mental_models?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
           <div :class="['rounded-lg border p-3', listDiffClass(persona.mental_models, agent.mental_models?.primary)]">
-            <p class="text-xs text-muted mb-2">Agent — primary</p>
+            <p class="text-xs text-muted mb-2">
+              Agent — primary
+            </p>
             <ul class="list-disc list-inside text-sm space-y-1">
-              <li v-for="m in agent.mental_models?.primary" :key="m">{{ m }}</li>
-              <li v-if="!agent.mental_models?.primary?.length" class="list-none text-muted italic">none</li>
+              <li v-for="m in agent.mental_models?.primary" :key="m">
+                {{ m }}
+              </li>
+              <li v-if="!agent.mental_models?.primary?.length" class="list-none text-muted italic">
+                none
+              </li>
             </ul>
           </div>
         </div>
 
         <!-- PR94c v3.49.0 — free-text diff blocks -->
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Bio (Markdown)</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Bio (Markdown)
+        </h3>
         <TextDiff
           :left="persona.bio_md || ''"
           :right="agent.bio_md || ''"
@@ -220,7 +288,9 @@ const bigFiveKeys = ['openness', 'conscientiousness', 'extraversion', 'agreeable
           :right-label="agent.name || agent.id"
         />
 
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">Communication tone</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-muted pt-2">
+          Communication tone
+        </h3>
         <TextDiff
           :left="persona.communication?.tone || ''"
           :right="agent.communication?.tone || ''"

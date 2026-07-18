@@ -45,13 +45,13 @@ interface Props {
   loadingLabel?: string
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   error: null,
   empty: false,
   emptyTitle: 'No data',
   emptyDescription: '',
   emptyIcon: 'i-lucide-inbox',
-  loadingLabel: 'Loading',
+  loadingLabel: 'Loading'
 })
 </script>
 
@@ -97,7 +97,9 @@ const props = withDefaults(defineProps<Props>(), {
   >
     <slot name="empty">
       <UIcon :name="emptyIcon" class="size-16 text-muted" />
-      <h3 class="text-lg font-semibold text-highlighted">{{ emptyTitle }}</h3>
+      <h3 class="text-lg font-semibold text-highlighted">
+        {{ emptyTitle }}
+      </h3>
       <p
         v-if="emptyDescription"
         class="text-sm text-muted text-center max-w-md"

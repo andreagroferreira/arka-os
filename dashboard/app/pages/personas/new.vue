@@ -20,7 +20,7 @@ function onCompleted(persona: Persona) {
     title: 'Persona created',
     description: `${persona.name} is ready in the library.`,
     color: 'success',
-    icon: 'i-lucide-check-circle',
+    icon: 'i-lucide-check-circle'
   })
   navigateTo(`/personas/${persona.id}`)
 }

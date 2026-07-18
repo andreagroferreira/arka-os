@@ -21,7 +21,7 @@ function kindIcon(kind: string): string {
     success: 'i-lucide-check-circle',
     warning: 'i-lucide-alert-triangle',
     error: 'i-lucide-x-circle',
-    info: 'i-lucide-info',
+    info: 'i-lucide-info'
   }[kind] ?? 'i-lucide-circle'
 }
 
@@ -30,7 +30,7 @@ function kindColor(kind: string): string {
     success: 'text-emerald-500',
     warning: 'text-amber-500',
     error: 'text-rose-500',
-    info: 'text-blue-500',
+    info: 'text-blue-500'
   }[kind] ?? 'text-muted'
 }
 </script>
@@ -56,7 +56,9 @@ function kindColor(kind: string): string {
     <template #content>
       <div class="p-2 border-b border-default flex items-center justify-between gap-2">
         <div>
-          <p class="text-sm font-semibold">Recent activity</p>
+          <p class="text-sm font-semibold">
+            Recent activity
+          </p>
           <p class="text-xs text-muted">
             {{ feed.unreadCount.value }} unread ·
             {{ feed.events.value.length }} total
@@ -118,7 +120,9 @@ function kindColor(kind: string): string {
                 <p v-if="ev.description" class="text-xs text-muted truncate">
                   {{ ev.description }}
                 </p>
-                <p class="text-xs text-muted/70 mt-0.5">{{ formatRelative(ev.ts) }}</p>
+                <p class="text-xs text-muted/70 mt-0.5">
+                  {{ formatRelative(ev.ts) }}
+                </p>
               </div>
               <UButton
                 icon="i-lucide-x"

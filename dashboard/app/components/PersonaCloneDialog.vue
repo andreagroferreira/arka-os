@@ -25,13 +25,13 @@ const cloning = ref(false)
 
 const departmentOptions = [
   'dev', 'marketing', 'brand', 'finance', 'strategy', 'ecom', 'kb', 'ops',
-  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org',
-].map((d) => ({ label: d, value: d }))
+  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org'
+].map(d => ({ label: d, value: d }))
 
 const tierOptions = [
   { label: 'Tier 1 — Squad Lead', value: 1 },
   { label: 'Tier 2 — Specialist', value: 2 },
-  { label: 'Tier 3 — Support', value: 3 },
+  { label: 'Tier 3 — Support', value: 3 }
 ]
 
 async function clone() {
@@ -44,14 +44,14 @@ async function clone() {
       error?: string
     }>(`${apiBase}/api/personas/${props.personaId}/clone`, {
       method: 'POST',
-      body: { department: department.value, tier: tier.value },
+      body: { department: department.value, tier: tier.value }
     })
     if (res.error || !res.agent_id) throw new Error(res.error ?? 'unknown error')
     toast.add({
       title: 'Cloned to agent',
       description: `${props.personaName} → ${res.agent_id} (${res.department})`,
       color: 'success',
-      icon: 'i-lucide-copy-plus',
+      icon: 'i-lucide-copy-plus'
     })
     emit('cloned', res.agent_id)
     emit('update:modelValue', false)
@@ -59,7 +59,7 @@ async function clone() {
     toast.add({
       title: 'Clone failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     cloning.value = false
@@ -83,7 +83,9 @@ function close() {
         <template #header>
           <div class="flex items-center justify-between gap-3">
             <div>
-              <h2 class="text-lg font-bold">Clone to Agent</h2>
+              <h2 class="text-lg font-bold">
+                Clone to Agent
+              </h2>
               <p class="text-sm text-muted mt-0.5">
                 Create a new agent based on <strong>{{ personaName }}</strong>.
               </p>
@@ -116,7 +118,12 @@ function close() {
 
         <template #footer>
           <div class="flex items-center justify-end gap-2">
-            <UButton label="Cancel" variant="ghost" :disabled="cloning" @click="close" />
+            <UButton
+              label="Cancel"
+              variant="ghost"
+              :disabled="cloning"
+              @click="close"
+            />
             <UButton
               label="Clone"
               icon="i-lucide-copy-plus"

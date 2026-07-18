@@ -32,9 +32,9 @@ const skipIngest = ref(false)
 const sourceLineCount = computed(() =>
   sources.value
     .split('\n')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .length,
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .length
 )
 
 // PR83a v3.3.0 — Mode 3: build from a free-text description (no chunks).
@@ -52,7 +52,7 @@ interface Archetype {
   description: string
 }
 const { data: archetypeData } = fetchApi<{ archetypes: Archetype[] }>(
-  '/api/personas/archetypes',
+  '/api/personas/archetypes'
 )
 const archetypes = computed<Archetype[]>(() => archetypeData.value?.archetypes ?? [])
 
@@ -69,7 +69,7 @@ const route = useRoute()
 watch(archetypes, (list) => {
   const slug = String(route.query.archetype ?? '')
   if (!slug || list.length === 0) return
-  const match = list.find((a) => a.id === slug)
+  const match = list.find(a => a.id === slug)
   if (match) applyArchetype(match)
 }, { immediate: true })
 
@@ -84,10 +84,10 @@ const ingestJobs = ref<Array<{
 let ws: WebSocket | null = null
 const allIngestComplete = computed(() =>
   ingestJobs.value.length > 0
-  && ingestJobs.value.every((j) => j.status === 'completed' || j.status === 'failed'),
+  && ingestJobs.value.every(j => j.status === 'completed' || j.status === 'failed')
 )
 const ingestCompletedCount = computed(() =>
-  ingestJobs.value.filter((j) => j.status === 'completed').length,
+  ingestJobs.value.filter(j => j.status === 'completed').length
 )
 
 // ─── Step 3 state ────────────────────────────────────────────────────────
@@ -104,17 +104,16 @@ const cloneTier = ref<'1' | '2' | '3'>('2')
 
 const departmentOptions = [
   'dev', 'marketing', 'brand', 'finance', 'strategy', 'ecom', 'kb', 'ops',
-  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org',
-].map((d) => ({ label: d, value: d }))
+  'pm', 'saas', 'landing', 'content', 'community', 'sales', 'leadership', 'org'
+].map(d => ({ label: d, value: d }))
 
 const tierOptions = [
   { label: 'Tier 1 — Squad Lead', value: '1' },
   { label: 'Tier 2 — Specialist', value: '2' },
-  { label: 'Tier 3 — Support', value: '3' },
+  { label: 'Tier 3 — Support', value: '3' }
 ]
 
 // ─── Step 1 → 2 transition ───────────────────────────────────────────────
-
 
 async function startIngest() {
   if (mode.value === 'description') {
@@ -132,22 +131,22 @@ async function startIngest() {
   }
   const cleaned = sources.value
     .split('\n')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
   if (cleaned.length === 0 || !name.value.trim()) return
   step.value = 2
-  ingestJobs.value = cleaned.map((source) => ({
+  ingestJobs.value = cleaned.map(source => ({
     source,
     status: 'queued',
-    progress: 0,
+    progress: 0
   }))
   try {
     const res = await $fetch<{ jobs: Array<{ source: string, job_id?: string, error?: string }>, count: number }>(
       `${apiBase}/api/knowledge/ingest-bulk`,
-      { method: 'POST', body: { sources: cleaned } },
+      { method: 'POST', body: { sources: cleaned } }
     )
     res.jobs.forEach((j) => {
-      const row = ingestJobs.value.find((r) => r.source === j.source)
+      const row = ingestJobs.value.find(r => r.source === j.source)
       if (!row) return
       if (j.error) {
         row.status = 'failed'
@@ -162,12 +161,11 @@ async function startIngest() {
     toast.add({
       title: 'Ingest failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
     step.value = 1
   }
 }
-
 
 function connectWebSocket() {
   if (ws && ws.readyState === WebSocket.OPEN) return
@@ -176,7 +174,7 @@ function connectWebSocket() {
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data)
-      const row = ingestJobs.value.find((j) => j.job_id === data.job_id)
+      const row = ingestJobs.value.find(j => j.job_id === data.job_id)
       if (!row) return
       if (data.type === 'job_progress') {
         row.progress = data.progress
@@ -192,22 +190,20 @@ function connectWebSocket() {
   }
 }
 
-
 function disconnectWebSocket() {
   if (ws) {
-    try { ws.close() } catch { /* already closed */ }
+    try {
+      ws.close()
+    } catch { /* already closed */ }
     ws = null
   }
 }
-
 
 onBeforeUnmount(() => {
   disconnectWebSocket()
 })
 
-
 // ─── Step 3: build the persona draft ────────────────────────────────────
-
 
 async function runDescriptionBuild() {
   building.value = true
@@ -221,12 +217,12 @@ async function runDescriptionBuild() {
         body: {
           name: name.value.trim(),
           description: description.value.trim(),
-          source_label: sourceLabel.value.trim() || name.value.trim(),
-        },
-      },
+          source_label: sourceLabel.value.trim() || name.value.trim()
+        }
+      }
     )
-    if ('error' in res && typeof (res as any).error === 'string') {
-      throw new Error((res as any).error)
+    if (typeof res.error === 'string') {
+      throw new Error(res.error)
     }
     draft.value = res.persona
     chunksUsed.value = 0
@@ -238,24 +234,23 @@ async function runDescriptionBuild() {
   }
 }
 
-
 async function runBuild() {
   building.value = true
   buildError.value = null
   draft.value = null
   try {
-    const res = await $fetch<{ persona: Persona, chunks_used: number, provider_name: string }>(
+    const res = await $fetch<{ persona: Persona, chunks_used: number, provider_name: string, error?: string }>(
       `${apiBase}/api/personas/build`,
       {
         method: 'POST',
         body: {
           name: name.value.trim(),
-          source_label: sourceLabel.value.trim() || name.value.trim(),
-        },
-      },
+          source_label: sourceLabel.value.trim() || name.value.trim()
+        }
+      }
     )
-    if ('error' in res && typeof (res as any).error === 'string') {
-      throw new Error((res as any).error)
+    if (typeof res.error === 'string') {
+      throw new Error(res.error)
     }
     draft.value = res.persona
     chunksUsed.value = res.chunks_used
@@ -267,9 +262,7 @@ async function runBuild() {
   }
 }
 
-
 // ─── Step 4: save + optional clone ──────────────────────────────────────
-
 
 async function savePersona() {
   if (!draft.value) return
@@ -277,34 +270,32 @@ async function savePersona() {
   try {
     const created = await $fetch<Persona>(`${apiBase}/api/personas`, {
       method: 'POST',
-      body: draft.value,
+      body: draft.value
     })
     if (saveAndClone.value && cloneDept.value && cloneTier.value) {
       await $fetch(`${apiBase}/api/personas/${created.id}/clone`, {
         method: 'POST',
-        body: { department: cloneDept.value, tier: Number(cloneTier.value) },
+        body: { department: cloneDept.value, tier: Number(cloneTier.value) }
       })
     }
     toast.add({
       title: saveAndClone.value ? 'Persona saved + agent cloned' : 'Persona saved',
       description: `${created.name} is now in your board.`,
-      color: 'success',
+      color: 'success'
     })
     emit('completed', created)
   } catch (err) {
     toast.add({
       title: 'Save failed',
       description: err instanceof Error ? err.message : 'unknown error',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     saving.value = false
   }
 }
 
-
 // ─── Auto-advance when ingest completes ─────────────────────────────────
-
 
 watch(allIngestComplete, async (done) => {
   if (done && step.value === 2 && ingestCompletedCount.value > 0) {
@@ -313,12 +304,10 @@ watch(allIngestComplete, async (done) => {
   }
 })
 
-
 function cancel() {
   disconnectWebSocket()
   emit('cancelled')
 }
-
 
 function backToStep1() {
   disconnectWebSocket()
@@ -332,13 +321,15 @@ function backToStep1() {
     <template #header>
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold">AI Persona Builder</h3>
+          <h3 class="text-lg font-semibold">
+            AI Persona Builder
+          </h3>
           <p class="text-sm text-muted mt-1">
             Step {{ step }} of 4 — {{ {
               1: 'Sources',
               2: 'Indexing',
               3: 'Generating DNA',
-              4: 'Review & save',
+              4: 'Review & save'
             }[step] }}
           </p>
         </div>
@@ -385,9 +376,9 @@ function backToStep1() {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
           <button
             v-for="m in ([
-              { key: 'sources',     title: 'Ingest sources',  desc: 'YouTube, articles, PDFs — best fidelity' },
-              { key: 'existing',    title: 'Existing chunks', desc: 'Use what is already indexed' },
-              { key: 'description', title: 'From description', desc: 'No sources — pure description' },
+              { key: 'sources', title: 'Ingest sources', desc: 'YouTube, articles, PDFs — best fidelity' },
+              { key: 'existing', title: 'Existing chunks', desc: 'Use what is already indexed' },
+              { key: 'description', title: 'From description', desc: 'No sources — pure description' }
             ] as const)"
             :key="m.key"
             type="button"
@@ -395,8 +386,12 @@ function backToStep1() {
             :class="mode === m.key ? 'border-primary bg-primary/5' : 'border-default hover:border-primary/40'"
             @click="mode = m.key"
           >
-            <p class="text-sm font-semibold">{{ m.title }}</p>
-            <p class="text-xs text-muted mt-1">{{ m.desc }}</p>
+            <p class="text-sm font-semibold">
+              {{ m.title }}
+            </p>
+            <p class="text-xs text-muted mt-1">
+              {{ m.desc }}
+            </p>
           </button>
         </div>
       </UFormField>
@@ -425,7 +420,7 @@ function backToStep1() {
             :items="archetypes.map((a) => ({
               label: `${a.name} — ${a.title}`,
               icon: 'i-lucide-sparkles',
-              onSelect: () => applyArchetype(a),
+              onSelect: () => applyArchetype(a)
             }))"
           >
             <UButton
@@ -466,7 +461,7 @@ function backToStep1() {
           :label="(
             mode === 'sources' ? `Index ${sourceLineCount} source${sourceLineCount === 1 ? '' : 's'} & build`
             : mode === 'existing' ? 'Generate from existing knowledge'
-            : 'Generate from description'
+              : 'Generate from description'
           )"
           icon="i-lucide-arrow-right"
           :disabled="(
@@ -501,18 +496,20 @@ function backToStep1() {
                 queued: 'i-lucide-clock',
                 processing: 'i-lucide-loader-2 animate-spin',
                 completed: 'i-lucide-check-circle',
-                failed: 'i-lucide-x-circle',
+                failed: 'i-lucide-x-circle'
               }[job.status]"
               :class="{
                 queued: 'text-muted',
                 processing: 'text-primary',
                 completed: 'text-green-500',
-                failed: 'text-red-500',
+                failed: 'text-red-500'
               }[job.status]"
               class="size-4 shrink-0"
             />
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-mono truncate">{{ job.source }}</p>
+              <p class="text-sm font-mono truncate">
+                {{ job.source }}
+              </p>
               <UProgress
                 v-if="job.status === 'processing' || job.status === 'queued'"
                 :value="job.progress"
@@ -520,7 +517,9 @@ function backToStep1() {
                 size="xs"
                 class="mt-1"
               />
-              <p v-if="job.error" class="text-xs text-red-400 mt-1">{{ job.error }}</p>
+              <p v-if="job.error" class="text-xs text-red-400 mt-1">
+                {{ job.error }}
+              </p>
             </div>
             <span class="text-xs text-muted">{{ job.progress }}%</span>
           </div>
@@ -543,13 +542,27 @@ function backToStep1() {
         <div class="flex items-start gap-3">
           <UIcon name="i-lucide-alert-circle" class="size-5 text-red-500 mt-0.5 shrink-0" />
           <div class="flex-1">
-            <p class="text-sm font-medium text-red-400">Build failed</p>
-            <p class="text-xs text-muted mt-1">{{ buildError }}</p>
+            <p class="text-sm font-medium text-red-400">
+              Build failed
+            </p>
+            <p class="text-xs text-muted mt-1">
+              {{ buildError }}
+            </p>
           </div>
         </div>
         <div class="flex gap-2 mt-3">
-          <UButton label="Retry" variant="outline" size="sm" @click="runBuild" />
-          <UButton label="Back to sources" variant="ghost" size="sm" @click="backToStep1" />
+          <UButton
+            label="Retry"
+            variant="outline"
+            size="sm"
+            @click="runBuild"
+          />
+          <UButton
+            label="Back to sources"
+            variant="ghost"
+            size="sm"
+            @click="backToStep1"
+          />
         </div>
       </div>
     </div>
@@ -564,7 +577,9 @@ function backToStep1() {
       </div>
 
       <fieldset class="space-y-3">
-        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">Identity</legend>
+        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">
+          Identity
+        </legend>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <UFormField label="Name">
             <UInput v-model="draft.name" class="w-full" />
@@ -579,7 +594,9 @@ function backToStep1() {
       </fieldset>
 
       <fieldset class="space-y-3">
-        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">Behavioural DNA</legend>
+        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">
+          Behavioural DNA
+        </legend>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <UFormField label="MBTI">
             <UInput v-model="draft.mbti" class="w-full" />
@@ -588,34 +605,50 @@ function backToStep1() {
             <UInput v-model="draft.disc.primary" class="w-full" />
           </UFormField>
           <UFormField label="Enneagram type">
-            <UInput v-model.number="draft.enneagram.type" type="number" :min="1" :max="9" class="w-full" />
+            <UInput
+              v-model.number="draft.enneagram.type"
+              type="number"
+              :min="1"
+              :max="9"
+              class="w-full"
+            />
           </UFormField>
           <UFormField label="Enneagram wing">
-            <UInput v-model.number="draft.enneagram.wing" type="number" :min="1" :max="9" class="w-full" />
+            <UInput
+              v-model.number="draft.enneagram.wing"
+              type="number"
+              :min="1"
+              :max="9"
+              class="w-full"
+            />
           </UFormField>
         </div>
       </fieldset>
 
       <fieldset class="space-y-3">
-        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">Knowledge</legend>
+        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">
+          Knowledge
+        </legend>
         <UFormField label="Mental models" help="comma-separated">
           <UInput
             :model-value="draft.mental_models.join(', ')"
-            @update:model-value="(v: string) => draft && (draft.mental_models = v.split(',').map(s => s.trim()).filter(Boolean))"
             class="w-full"
+            @update:model-value="(v: string) => draft && (draft.mental_models = v.split(',').map(s => s.trim()).filter(Boolean))"
           />
         </UFormField>
         <UFormField label="Expertise domains" help="comma-separated">
           <UInput
             :model-value="draft.expertise_domains.join(', ')"
-            @update:model-value="(v: string) => draft && (draft.expertise_domains = v.split(',').map(s => s.trim()).filter(Boolean))"
             class="w-full"
+            @update:model-value="(v: string) => draft && (draft.expertise_domains = v.split(',').map(s => s.trim()).filter(Boolean))"
           />
         </UFormField>
       </fieldset>
 
       <fieldset class="space-y-3">
-        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">Save options</legend>
+        <legend class="text-xs font-bold uppercase tracking-widest text-muted mb-2">
+          Save options
+        </legend>
         <UCheckbox
           v-model="saveAndClone"
           label="Also clone to an agent immediately"

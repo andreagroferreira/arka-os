@@ -50,9 +50,9 @@ export const TERMINAL_THEMES: Record<string, XtermTheme> = {
     brightBlue: '#bae6fd',
     brightMagenta: '#f5d0fe',
     brightCyan: '#a5f3fc',
-    brightWhite: '#fafafa',
+    brightWhite: '#fafafa'
   },
-  dracula: {
+  'dracula': {
     background: '#282a36',
     foreground: '#f8f8f2',
     cursor: '#f8f8f2',
@@ -73,7 +73,7 @@ export const TERMINAL_THEMES: Record<string, XtermTheme> = {
     brightBlue: '#d6acff',
     brightMagenta: '#ff92df',
     brightCyan: '#a4ffff',
-    brightWhite: '#ffffff',
+    brightWhite: '#ffffff'
   },
   'solarized-dark': {
     background: '#002b36',
@@ -96,7 +96,7 @@ export const TERMINAL_THEMES: Record<string, XtermTheme> = {
     brightBlue: '#839496',
     brightMagenta: '#6c71c4',
     brightCyan: '#93a1a1',
-    brightWhite: '#fdf6e3',
+    brightWhite: '#fdf6e3'
   },
   'solarized-light': {
     background: '#fdf6e3',
@@ -119,9 +119,9 @@ export const TERMINAL_THEMES: Record<string, XtermTheme> = {
     brightBlue: '#839496',
     brightMagenta: '#6c71c4',
     brightCyan: '#93a1a1',
-    brightWhite: '#fdf6e3',
+    brightWhite: '#fdf6e3'
   },
-  nord: {
+  'nord': {
     background: '#2e3440',
     foreground: '#d8dee9',
     cursor: '#d8dee9',
@@ -142,16 +142,16 @@ export const TERMINAL_THEMES: Record<string, XtermTheme> = {
     brightBlue: '#81a1c1',
     brightMagenta: '#b48ead',
     brightCyan: '#8fbcbb',
-    brightWhite: '#eceff4',
-  },
+    brightWhite: '#eceff4'
+  }
 }
 
 export const THEME_LABELS: Record<string, string> = {
   'arkaos-dark': 'ArkaOS Dark',
-  dracula: 'Dracula',
+  'dracula': 'Dracula',
   'solarized-dark': 'Solarized Dark',
   'solarized-light': 'Solarized Light',
-  nord: 'Nord',
+  'nord': 'Nord'
 }
 
 const STORAGE_KEY = 'arka-terminal-theme'
@@ -174,17 +174,17 @@ export function useTerminalThemes() {
   }
 
   const activeTheme = computed<XtermTheme>(
-    () => TERMINAL_THEMES[themeName.value] ?? TERMINAL_THEMES[DEFAULT_THEME]!,
+    () => TERMINAL_THEMES[themeName.value] ?? TERMINAL_THEMES[DEFAULT_THEME]!
   )
 
   const options = computed(() =>
-    Object.entries(THEME_LABELS).map(([value, label]) => ({ value, label })),
+    Object.entries(THEME_LABELS).map(([value, label]) => ({ value, label }))
   )
 
   return {
     themeName,
     activeTheme,
     setTheme,
-    options,
+    options
   }
 }
