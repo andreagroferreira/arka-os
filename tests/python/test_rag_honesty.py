@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -198,6 +199,12 @@ class TestVecDimensionGuard:
 
         first = VectorStore(db)
         if not first._vec_available:
+            if os.environ.get("CI"):
+                first.close()
+                pytest.fail(
+                    "sqlite-vec is pip-installed in CI — a load failure here "
+                    "means the extension is broken, not optional"
+                )
             pytest.skip("sqlite-vec extension not loadable in this env")
         assert first._vec_dims == 384
         first.close()
