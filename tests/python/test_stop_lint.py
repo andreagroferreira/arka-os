@@ -275,6 +275,10 @@ def test_stop_hook_enqueues_detached_worker(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "core.governance.stop_lint.mode", lambda config_path=None: "warn",
     )
+    # repo_path() resolves ~/.arkaos on operator machines but not in CI —
+    # pin it so the test is environment-independent (same as the
+    # turn-capture enqueue tests in test_stop_hook.py).
+    monkeypatch.setattr(stop_hook, "repo_path", lambda: str(tmp_path))
     stop_hook._enqueue_stop_lint("sess-abc123", str(tmp_path))
     assert "core.governance.stop_lint" in spawned["argv"]
     assert str(tmp_path) in spawned["argv"]
