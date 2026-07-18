@@ -1,11 +1,11 @@
 """Tool-loop detection over the current turn's transcript (warn-only).
 
-The context monitor's missing signal: an agent stuck re-issuing the
-same tool call burns budget without progress, and nothing surfaced it.
+The context monitor's missing gap: an agent stuck re-issuing the same
+tool call burns budget without progress, and nothing surfaced it.
 Detection runs at the turn boundary (Stop hook) over the transcript, so
 it sees EVERY call — including the ones the PostToolUse fast-path shim
 short-circuits away from Python, which an in-process ring buffer never
-would. Two patterns:
+sees. Two patterns:
 
   - ``consecutive`` — the same (tool, input) issued N times in a row,
     the canonical stuck loop;

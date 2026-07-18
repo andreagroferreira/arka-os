@@ -116,17 +116,56 @@ def test_verdict_never_carries_tool_inputs():
     assert "/secret/client.py" not in repr(verdict)
 
 
-def test_unserializable_input_still_scans():
-    records = [
+def test_interleaved_tool_results_do_not_cut_the_turn():
+    # Real transcripts alternate assistant tool_use records with user
+    # tool_result records; a tool_result-only user record is not a real
+    # user message and must not end the scanned turn.
+    call = {"type": "tool_use", "name": "Read", "input": {"file_path": "/a"}}
+    result = {
+        "role": "user",
+        "content": [{"type": "tool_result", "tool_use_id": "x"}],
+    }
+    raw = _transcript(
         _user(),
-        {
-            "role": "assistant",
-            "content": [
-                {"type": "tool_use", "name": "Odd", "input": {"k": float("nan")}}
-            ] * 4,
-        },
-    ]
-    raw = "\n".join(json.dumps(r) for r in records)
+        {"role": "assistant", "content": [call]},
+        result,
+        {"role": "assistant", "content": [call]},
+        result,
+        {"role": "assistant", "content": [call]},
+        result,
+        {"role": "assistant", "content": [call]},
+    )
     verdict = check_tool_loops(raw)
     assert verdict.detected is True
-    assert verdict.tool == "Odd"
+    assert verdict.pattern == "consecutive"
+    assert verdict.repeats == 4
+
+
+def test_assistant_text_records_between_calls_are_skipped():
+    call = {"type": "tool_use", "name": "Read", "input": {"file_path": "/a"}}
+    raw = _transcript(
+        _user(),
+        {"role": "assistant", "content": [call] * 4},
+        {"role": "assistant", "content": "a brief narration between calls"},
+        {"role": "assistant", "content": [call]},
+    )
+    verdict = check_tool_loops(raw)
+    assert verdict.detected is True
+    assert verdict.total_tool_uses == 5
+
+
+def test_call_key_falls_back_on_unserializable_input():
+    # A parsed transcript can only yield JSON-serializable inputs, so the
+    # fallback is defensive — exercise it directly with a genuinely
+    # unserializable payload (circular reference -> ValueError).
+    import hashlib
+
+    from core.governance.tool_loop_check import _call_key
+
+    circular: dict = {}
+    circular["self"] = circular
+    tool, digest = _call_key(
+        {"type": "tool_use", "name": "Odd", "input": circular}
+    )
+    assert tool == "Odd"
+    assert digest == hashlib.sha1(b"?").hexdigest()[:16]
