@@ -226,12 +226,24 @@ def test_empty_store_renders_honest_empty_state(tmp_path: Path):
     assert "None yet" in text
 
 
-def test_output_dir_outside_allowlist_raises(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(
-        evolve, "_validate_output_dir", evolve._validate_output_dir
-    )
+def test_output_dir_outside_allowlist_raises():
     with pytest.raises(ValueError):
         evolve._validate_output_dir(Path("/etc/evil"))
+
+
+def test_strongest_instincts_dedupe_by_title(tmp_path: Path):
+    gotchas = _write_gotchas(
+        tmp_path / "gotchas.json",
+        [_gotcha("shared pattern", count=6, projects=["a", "b"])],
+    )
+    report = build_proposal(
+        db_path=tmp_path / "insights.db",
+        gotchas_path=gotchas,
+        output_dir=tmp_path / "proposals",
+    )
+    text = Path(report.proposal_path).read_text(encoding="utf-8")
+    instincts_section = text.split("## Strongest instincts")[1]
+    assert instincts_section.count("shared pattern") == 1
 
 
 # ─── CLI ────────────────────────────────────────────────────────────────

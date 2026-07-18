@@ -191,16 +191,10 @@ def _render_instinct(insight: ActionableInsight) -> str:
     )
 
 
-def _render(
-    date: str,
-    ingested: int,
-    pending: list[ActionableInsight],
-    candidates: list[PromotionCandidate],
-) -> str:
-    strongest = sorted(
-        pending, key=lambda i: (i.confidence, i.evidence_count), reverse=True
-    )[:_TOP_INSTINCTS]
-    lines = [
+def _render_summary(
+    date: str, ingested: int, pending_count: int, candidate_count: int,
+) -> list[str]:
+    return [
         f"# Evolve proposal — {date}",
         "",
         "> Propose-only: nothing was promoted or modified. Review and",
@@ -209,12 +203,14 @@ def _render(
         "## Summary",
         "",
         f"- Instincts ingested this run: **{ingested}**",
-        f"- Pending instincts in store: **{len(pending)}**",
-        f"- Promotion candidates: **{len(candidates)}**",
-        "",
-        "## Promotion candidates (cross-project)",
+        f"- Pending instincts in store: **{pending_count}**",
+        f"- Promotion candidates: **{candidate_count}**",
         "",
     ]
+
+
+def _render_candidates_block(candidates: list[PromotionCandidate]) -> list[str]:
+    lines = ["## Promotion candidates (cross-project)", ""]
     if candidates:
         lines += [
             "| Instinct | Projects | Mean confidence | Evidence |",
@@ -223,11 +219,48 @@ def _render(
         ]
     else:
         lines.append("None yet — needs the same signal in 2+ projects.")
-    lines += ["", "## Strongest instincts", ""]
+    return lines
+
+
+def _strongest_by_title(pending: list[ActionableInsight]) -> list[ActionableInsight]:
+    """Top instincts, one row per title (a cross-project pattern has one
+    project-scoped row per project — the operator needs it once)."""
+    ranked = sorted(
+        pending, key=lambda i: (i.confidence, i.evidence_count), reverse=True
+    )
+    seen: set[str] = set()
+    out: list[ActionableInsight] = []
+    for insight in ranked:
+        if insight.title in seen:
+            continue
+        seen.add(insight.title)
+        out.append(insight)
+        if len(out) == _TOP_INSTINCTS:
+            break
+    return out
+
+
+def _render_instincts_block(pending: list[ActionableInsight]) -> list[str]:
+    strongest = _strongest_by_title(pending)
+    lines = ["", "## Strongest instincts", ""]
     if strongest:
         lines += [_render_instinct(i) for i in strongest]
     else:
         lines.append("Store is empty — no signals accumulated yet.")
+    return lines
+
+
+def _render(
+    date: str,
+    ingested: int,
+    pending: list[ActionableInsight],
+    candidates: list[PromotionCandidate],
+) -> str:
+    lines = (
+        _render_summary(date, ingested, len(pending), len(candidates))
+        + _render_candidates_block(candidates)
+        + _render_instincts_block(pending)
+    )
     return "\n".join(lines) + "\n"
 
 
