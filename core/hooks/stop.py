@@ -303,6 +303,29 @@ def _flow_checks(
     except Exception:
         pass
 
+    # Context-monitor tool-loop signal (warn-only): turn-boundary scan
+    # over the transcript sees every call, fast-pathed ones included.
+    loop_detected = False
+    loop_tool = ""
+    loop_repeats = 0
+    loop_pattern = ""
+    try:
+        from core.governance.tool_loop_check import check_tool_loops
+        lv = check_tool_loops(raw)
+        loop_detected = lv.detected
+        loop_tool = lv.tool
+        loop_repeats = lv.repeats
+        loop_pattern = lv.pattern
+        if lv.detected and safe_sid:
+            _write_tmp_state("arkaos-tool-loop", safe_sid, {
+                "tool": lv.tool,
+                "repeats": lv.repeats,
+                "pattern": lv.pattern,
+                "total_tool_uses": lv.total_tool_uses,
+            })
+    except Exception:
+        pass
+
     entry = {
         "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
@@ -329,6 +352,10 @@ def _flow_checks(
         "phantom_check_passed": phantom_passed,
         "phantom_check_reason": phantom_reason,
         "phantom_claims": phantom_claims,
+        "tool_loop_detected": loop_detected,
+        "tool_loop_tool": loop_tool,
+        "tool_loop_repeats": loop_repeats,
+        "tool_loop_pattern": loop_pattern,
         "effort_level": effort_level,
         "mode": "warn",
     }
