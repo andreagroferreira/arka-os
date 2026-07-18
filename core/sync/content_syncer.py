@@ -106,7 +106,7 @@ def _sync_claude_md(
     updated.append("CLAUDE.md")
 
 
-# Descriptor slug -> stack-rules filename. Slugs are case-folded first.
+# Descriptor slug -> stack-rules basename (no .md). Slugs are case-folded first.
 _STACK_ALIASES: dict[str, str] = {
     "js": "node",
     "javascript": "node",
