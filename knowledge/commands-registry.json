@@ -1,11 +1,11 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-10T13:12:22Z",
-    "total_commands": 269,
+    "generated": "2026-07-18T19:32:46Z",
+    "total_commands": 270,
     "generator": "core/registry/generator.py",
     "departments": {
-      "arka": 21,
+      "arka": 22,
       "brand": 12,
       "community": 14,
       "content": 19,
@@ -104,6 +104,19 @@
       "command": "/arka reorganize [--since-days N]",
       "department": "arka",
       "description": "Dreaming → Agent reorganizer. Aggregates recent KB pattern/anti-pattern/lesson artifacts (default last 7 days) into a markdown proposal at `~/.arkaos/reorganize-proposals/<date>.md`. **Propose-only** — never modifies agent YAMLs. Sanitizes client identifiers from titles and body excerpts; drops `tags:` field entirely to prevent project-name leaks. **Auto-fires on session start when today's proposal is missing** (PR24 v2.46.0 stale-aware trigger, 30s timeout, background). Shells out to `~/.arkaos/bin/arka-py -m core.cognition.reorganizer_cli [--since-days N] [--dry-run]`.",
+      "lead_agent": "arka",
+      "keywords": [],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "arka-evolve",
+      "command": "/arka evolve [--min-projects N] [--min-confidence X]",
+      "department": "arka",
+      "description": "Instinct evolution. Ingests accumulated cross-project signals (`~/.arkaos/gotchas.json`) into the InsightStore as deterministic instincts (confidence in the [0.3, 0.9] band from occurrence count) and writes a markdown proposal at `~/.arkaos/evolve-proposals/<date>.md` with cross-project promotion candidates (`InsightStore.promotable`) and the strongest instincts. **Propose-only** — nothing is promoted or modified; LLM-free (Dreaming owns vault clustering). Redacts client identifiers; never renders project names. Shells out to `~/.arkaos/bin/arka-py -m core.cognition.evolve_cli [--min-projects N] [--min-confidence X] [--dry-run]`.",
       "lead_agent": "arka",
       "keywords": [],
       "examples": [],
