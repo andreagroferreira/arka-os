@@ -1,6 +1,6 @@
 # ADR-0001: Separation of User-Local Data from Installed Core Skill Directory
 
-- **Status:** Proposed
+- **Status:** Accepted (implemented; migration automatic since v2.19.0)
 - **Date:** 2026-04-17
 - **Deciders:** Marco (CTO), Gabriel (Architect), Andre (Owner)
 - **Target release:** v2.19.0
