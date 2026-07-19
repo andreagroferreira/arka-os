@@ -1,6 +1,6 @@
 ---
 id: ADR-2026-07-19-arkaos-runtime-pivot
-title: Runtime Pivot — the six §10 decisions, closed
+title: "Runtime Pivot: the six §10 decisions, closed"
 status: accepted
 date: 2026-07-19
 deciders: Andre Groferreira (owner), Tomas (Strategy), Marco (CTO), Helena (CFO)
@@ -37,7 +37,7 @@ advanced piecemeal instead. By decision time, practice had already
 answered two of the six: the CostGovernor shipped opt-in (ADR
 2026-07-04) and a single-user Web dashboard shipped and passed the
 Quality Gate. This ADR records the operator's decisions of 2026-07-19
-(taken in block over the decision brief of 2026-07-18) — four new
+(taken en bloc over the decision brief of 2026-07-18) — four new
 decisions and two ratifications of shipped practice.
 
 ## Decisions
@@ -46,15 +46,15 @@ decisions and two ratifications of shipped practice.
 |---|---|---|---|
 | A | Licensing | **A2 — open-core**: core OSS, enterprise features closed | decided 2026-07-19 |
 | B | First revenue segment | **B2 — ICP-2 small teams as paid design partners, pre-MVP** | decided 2026-07-19 |
-| C | Provider layer | **C1 consolidated — LiteLLM as the meta-provider**, keeping the existing direct Anthropic path; direct providers added only on measured caching/latency wins | decided 2026-07-19 |
+| C | Provider layer | **C1 (refined) — LiteLLM as the meta-provider**, keeping the existing direct Anthropic path; further direct providers added only on measured caching/latency wins. Deviates from §10's categorical "no direct providers": the shipped Anthropic path stays | decided 2026-07-19 |
 | D | CostGovernor enforcement | **D2 — enforcement opt-in by config** | ratification (shipped, ADR 2026-07-04) |
-| E | Web Control UI | **E2 — single-user Web UI** | ratification (shipped dashboard) |
+| E | Web Control UI | **E2 — single-user Web UI** | ratification (dashboard shipped 2026-07-11) |
 | F | Naming | **F5 — "ArkaOS", no suffix**; the pivot is version narrative, not brand narrative | decided 2026-07-19 |
 
 ## Rationale (per decision)
 
 - **A2** aligns the licensing line with the security wedge already in
-  flight: the scanner ships open for distribution, verification and
+  flight: the scanner ships open for distribution; verification and
   enterprise surfaces are the paid layer. A1 removes every non-hosted
   revenue path; A3 undermines the public-community bottleneck the SWOT
   itself gates on.
@@ -62,7 +62,7 @@ decisions and two ratifications of shipped practice.
   SWOT's second bottleneck is paid design partners pre-MVP. B1 validates
   usage but not willingness to pay; B3 requires compliance surface that
   does not exist.
-- **C1** ratifies the shipped direction — the gateway is already
+- **C1** formalizes the shipped direction — the gateway is already
   LiteLLM-based with mixed and local-only modes — and rejects
   speculative provider engineering: a direct top-5 provider is added
   only when cost telemetry shows a measurable win.
