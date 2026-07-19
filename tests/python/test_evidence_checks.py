@@ -207,6 +207,102 @@ def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):
     assert report.overall == "insufficient-evidence"
 
 
+def test_tests_prefers_project_venv_pytest(tmp_path, monkeypatch):
+    (tmp_path / "mod.py").write_text("x = 1\n")
+    local = tmp_path / ".venv" / "bin"
+    local.mkdir(parents=True)
+    (local / "pytest").write_text("#!/bin/sh\nexit 0\n")
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["tests"])
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is True
+    assert "tests(project-venv)" in result.command
+    assert calls[0][0].endswith(".venv/bin/pytest")
+    assert len(calls) == 1  # no collect-only probe for the project venv
+
+
+def test_tests_foreign_pytest_skips_when_collection_fails(tmp_path, monkeypatch):
+    (tmp_path / "mod.py").write_text("x = 1\n")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+
+    def fake_run(cmd, **kwargs):
+        assert "--collect-only" in cmd  # only the probe may run
+        return subprocess.CompletedProcess(cmd, 2, stdout="", stderr="ImportError")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["tests"])
+    result = _result(report, "tests")
+    assert result.ran is False
+    assert result.passed is None
+    assert "pin --test-command" in result.summary
+    assert report.overall == "insufficient-evidence"
+
+
+def test_tests_foreign_pytest_runs_when_collection_succeeds(tmp_path, monkeypatch):
+    (tmp_path / "mod.py").write_text("x = 1\n")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["tests"])
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is True
+    assert "--collect-only" in calls[0]
+    assert "--collect-only" not in calls[1]
+
+
+def test_tests_foreign_pytest_no_tests_collected_still_runs(tmp_path, monkeypatch):
+    (tmp_path / "mod.py").write_text("x = 1\n")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+
+    def fake_run(cmd, **kwargs):
+        rc = 5 if "--collect-only" in cmd else 0
+        return subprocess.CompletedProcess(cmd, rc, stdout="", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["tests"])
+    result = _result(report, "tests")
+    assert result.ran is True
+
+
+def test_tests_probe_timeout_degrades_to_skip(tmp_path, monkeypatch):
+    (tmp_path / "mod.py").write_text("x = 1\n")
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/pytest" if name == "pytest" else None,
+    )
+
+    def fake_run(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=cmd, timeout=1)
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["tests"])
+    result = _result(report, "tests")
+    assert result.ran is False
+    assert "pin --test-command" in result.summary
+
+
 def test_tests_check_skips_when_no_runner(tmp_path, monkeypatch):
     monkeypatch.setattr(evidence_checks.shutil, "which", lambda _: None)
     report = run_evidence_checks(tmp_path, checks=["tests"])
