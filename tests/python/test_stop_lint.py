@@ -258,6 +258,35 @@ def test_run_unsafe_session_id_still_logs_telemetry(
     assert not (isolated_state / "arkaos-stop-lint-result").exists()
 
 
+def test_changed_files_non_ascii_and_spaced_names(git_repo):
+    # core.quotePath octal-escapes non-ASCII in line-based porcelain/diff
+    # output; -z returns raw paths. Regression for the quoted-path bug.
+    (git_repo / "café.py").write_text("y = 1\n", encoding="utf-8")
+    (git_repo / "sp ace.py").write_text("z = 1\n", encoding="utf-8")
+    files = stop_lint.changed_files(git_repo)
+    assert "café.py" in files
+    assert "sp ace.py" in files
+
+
+def test_porcelain_entries_skip_rename_origin():
+    stdout = "R  new.py\0old.py\0?? plain.py\0 M dirty.py\0"
+    entries = stop_lint._porcelain_entries(stdout)
+    assert ("R ", "new.py") in entries
+    assert ("??", "plain.py") in entries
+    assert (" M", "dirty.py") in entries
+    assert all(path != "old.py" for _, path in entries)
+
+
+def test_remember_fingerprint_is_atomic_and_leaves_no_tmp(tmp_path):
+    state_file = tmp_path / "state" / "abc.json"
+    stop_lint._remember_fingerprint(state_file, "deadbeef")
+    assert state_file.is_file()
+    assert stop_lint._seen_fingerprint(state_file) == "deadbeef"
+    leftovers = [p for p in state_file.parent.iterdir() if p != state_file]
+    assert leftovers == []
+
+
+
 # ─── stop hook enqueue ──────────────────────────────────────────────────
 
 
@@ -359,6 +388,19 @@ def test_summarise_rates(tmp_path):
     assert summary.lint_pass_rate == 0.5
     assert summary.would_block_rate == 0.5
     assert summary.corrupt_line_count == 1
+    # typecheck never observed in these entries -> honest None, not 0.0
+    assert summary.typecheck_pass_rate is None
+
+
+def test_summarise_typecheck_rate_when_observed(tmp_path):
+    path = tmp_path / "stop-lint.jsonl"
+    path.write_text(
+        _entry(typecheck_passed=True) + "\n"
+        + _entry(typecheck_passed=False) + "\n",
+        encoding="utf-8",
+    )
+    summary = stop_lint_telemetry.summarise("all", path=path)
+    assert summary.typecheck_pass_rate == 0.5
 
 
 def test_summarise_missing_file_zero(tmp_path):

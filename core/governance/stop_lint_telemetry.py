@@ -34,7 +34,9 @@ class StopLintSummary:
     runs: int
     skipped_runs: int
     lint_pass_rate: float
-    typecheck_pass_rate: float
+    # None when no run observed the check (typecheck is opt-in) —
+    # distinct from 0.0, which means "observed and failing".
+    typecheck_pass_rate: float | None
     would_block_rate: float
     corrupt_line_count: int = 0
 
@@ -119,7 +121,7 @@ def _build_summary(
         runs=len(rows),
         skipped_runs=len(rows) - len(observed),
         lint_pass_rate=_true_rate(observed, "lint_passed"),
-        typecheck_pass_rate=_true_rate(observed, "typecheck_passed"),
+        typecheck_pass_rate=_true_rate_or_none(observed, "typecheck_passed"),
         would_block_rate=_true_rate(observed, "would_block"),
         corrupt_line_count=corrupt,
     )
@@ -130,3 +132,10 @@ def _true_rate(rows: list[dict[str, Any]], key: str) -> float:
     if not observed:
         return 0.0
     return sum(1 for r in observed if r[key] is True) / len(observed)
+
+
+def _true_rate_or_none(rows: list[dict[str, Any]], key: str) -> float | None:
+    """Like ``_true_rate`` but honest about zero observations."""
+    if not any(isinstance(r.get(key), bool) for r in rows):
+        return None
+    return _true_rate(rows, key)
