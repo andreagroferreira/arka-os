@@ -6,8 +6,8 @@
 #
 # SCOPE: this doctor audits the legacy v1 layout (~/.arka-os +
 # ~/.claude/skills). The CANONICAL doctor for the engine (venv, hooks,
-# fastpath, security advisory) is `npx arkaos doctor` — see the
-# doctor-consolidation issue for the migration map.
+# fastpath, security advisory) is `npx arkaos doctor` — see issue #358
+# for the consolidation/migration map.
 # ============================================================================
 set -euo pipefail
 
@@ -426,7 +426,7 @@ else
     echo -e "  ${G}All checks passed!${N} ARKA OS is healthy."
   fi
   echo ""
-  echo -e "  ${C}Note:${N} this covers the legacy skills layer. For the engine"
-  echo -e "  (venv, hooks, security advisory) run: ${C}npx arkaos doctor${N}"
+  echo -e "  ${C}Note:${N} this audits the legacy v1 layout (~/.arka-os + ~/.claude/skills)."
+  echo -e "  For the engine (venv, hooks, fastpath, security advisory) run: ${C}npx arkaos doctor${N}"
   echo ""
 fi
