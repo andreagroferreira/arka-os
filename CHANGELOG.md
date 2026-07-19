@@ -5,6 +5,60 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.22.0] - 2026-07-19
+
+### Added
+
+- **Stop-lint batch** (#346) — deterministic scoped lint evidence at
+  turn end: a detached warn-only worker the Stop hook enqueues after
+  the flow checks, running the evidence engine only on the files
+  actually changed (merge-base diff + untracked), coalesced per tree
+  fingerprint. Telemetry (`stop-lint.jsonl`) plus a summariser whose
+  `would_block_rate` is the promotion evidence for any future hard
+  mode. Flags: `hooks.stopLint` (default warn), `hooks.stopLintTypecheck`
+  (opt-in), kill-switch `ARKA_STOP_LINT=0`.
+- **`/arka evolve`** (#348) — cross-project instinct proposals,
+  propose-only and LLM-free: ingests the error patterns sessions
+  already accumulate (`gotchas.json`) into the InsightStore as
+  deterministic instincts (confidence derived from occurrence count
+  inside the [0.3, 0.9] band) and writes a proposal with cross-project
+  promotion candidates — the first production consumer of the instinct
+  API shipped in 4.17.0. Nothing is promoted or modified; client
+  identifiers are redacted and project names never rendered.
+- **QG verdict labels, recorded by the verdict-issuer** (#349) — the
+  label machinery existed but the corpus sat at zero: campaign-pattern
+  dispatch bypassed the orchestrator step that recorded labels. The
+  CQO reviewer now writes the eval label as her final act (fail-loud,
+  redo verdicts included), so every Quality Gate review feeds the
+  distillation corpus.
+- **Document-processing skills** (#350) — `kb/doc-extraction` (per-page
+  text-layer vs OCR choice, cross-page table reassembly, page
+  provenance on every value, validation against the source) and
+  `kb/doc-redaction` (removal, never overlay: content-stream deletion,
+  metadata sweep, adversarial re-scan, irreversibility check). Skill
+  count 290 → 292.
+- **Tool-loop detector** (#351) — the context monitor's missing signal:
+  consecutive or repeated identical tool calls detected at the turn
+  boundary over the transcript (the only vantage point that also sees
+  fast-pathed calls), warn-only into the stop-hook telemetry. Inputs
+  are compared by digest and never stored.
+
+### Changed
+
+- **Stack conventions are now path-scoped rules** (#347) — user-visible
+  migration: per-stack conventions move out of the CLAUDE.md managed
+  block into `.claude/rules/arkaos-stack-<stack>.md` files with `paths:`
+  frontmatter, so the runtime loads each convention only when a
+  matching file is read. On the next `/arka update` the overlay text
+  leaves the managed block and the rule files appear. Coverage fix
+  included: descriptor slugs are case-folded and alias-resolved
+  (`javascript`/`ts` → node, `nextjs` → react, `fastapi` → python …) —
+  under the old exact-name scheme the most common real slugs matched no
+  overlay at all. Three new stacks (php, vue, react) complete the seven
+  real ones; the `arkaos-stack-` namespace is syncer-owned and stale
+  files are removed when a project's stack changes, while user rules
+  are never touched.
+
 ## [4.21.0] - 2026-07-16
 
 ### Added
