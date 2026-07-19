@@ -84,6 +84,29 @@ def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess | None:
         return None
 
 
+def _porcelain_entries(stdout: str) -> list[tuple[str, str]]:
+    """(status, path) pairs from ``git status --porcelain -z`` output.
+
+    ``-z`` terminates entries with NUL and never quotes paths (the
+    line-based form octal-escapes non-ASCII and quoted names, which
+    broke path matching). Rename/copy entries carry a second
+    NUL-separated field — the original path — which is skipped.
+    """
+    entries: list[tuple[str, str]] = []
+    tokens = stdout.split("\0")
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        index += 1
+        if len(token) < 4:
+            continue
+        status, path = token[:2], token[3:]
+        if status[0] in "RC":
+            index += 1  # skip the original-path field
+        entries.append((status, path))
+    return entries
+
+
 def changed_files(project_dir: Path) -> list[str]:
     """Repo-relative files changed vs the merge-base, plus untracked."""
     try:
@@ -93,15 +116,15 @@ def changed_files(project_dir: Path) -> list[str]:
     if base is None:
         return []
     out: list[str] = []
-    diff = _git(["diff", "--name-only", base], project_dir)
+    diff = _git(["diff", "--name-only", "-z", base], project_dir)
     if diff is not None and diff.returncode == 0:
-        out.extend(f.strip() for f in diff.stdout.splitlines() if f.strip())
-    status = _git(["status", "--porcelain"], project_dir)
+        out.extend(f for f in diff.stdout.split("\0") if f.strip())
+    status = _git(["status", "--porcelain", "-z"], project_dir)
     if status is not None and status.returncode == 0:
         out.extend(
-            line[3:].strip()
-            for line in status.stdout.splitlines()
-            if line.startswith("??") and line[3:].strip()
+            path
+            for entry_status, path in _porcelain_entries(status.stdout)
+            if entry_status == "??" and path.strip()
         )
     seen: set[str] = set()
     return [f for f in out if not (f in seen or seen.add(f))]
@@ -109,7 +132,7 @@ def changed_files(project_dir: Path) -> list[str]:
 
 def _fingerprint(project_dir: Path) -> str | None:
     head = _git(["rev-parse", "HEAD"], project_dir)
-    status = _git(["status", "--porcelain"], project_dir)
+    status = _git(["status", "--porcelain", "-z"], project_dir)
     if head is None or head.returncode != 0 or status is None:
         return None
     digest = hashlib.sha1()
@@ -117,9 +140,9 @@ def _fingerprint(project_dir: Path) -> str | None:
     # Porcelain alone only says WHICH files are dirty — editing an
     # already-dirty file leaves it unchanged. Fold in mtime+size so
     # content edits re-arm the worker.
-    for line in sorted(status.stdout.splitlines()):
-        digest.update(line.encode("utf-8", "replace"))
-        digest.update(_stat_token(project_dir / line[3:].strip()))
+    for entry_status, path in sorted(_porcelain_entries(status.stdout)):
+        digest.update(f"{entry_status} {path}".encode("utf-8", "replace"))
+        digest.update(_stat_token(project_dir / path))
     return digest.hexdigest()
 
 
@@ -151,9 +174,13 @@ def _remember_fingerprint(state_file: Path, fingerprint: str) -> None:
     prev_umask = os.umask(0o077)
     try:
         state_file.parent.mkdir(parents=True, exist_ok=True)
-        state_file.write_text(
+        # Atomic tmp+replace: a crash mid-write must never leave a
+        # truncated state file behind (the reorganizer report pattern).
+        tmp_file = state_file.with_suffix(f".tmp-{os.getpid()}")
+        tmp_file.write_text(
             json.dumps({"fingerprint": fingerprint}), encoding="utf-8"
         )
+        os.replace(tmp_file, state_file)
     except OSError:
         pass
     finally:
