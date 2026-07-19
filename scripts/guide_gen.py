@@ -33,12 +33,19 @@ SIZE_BUDGET_BYTES = 15_000
 
 
 def _department_rows(root: Path) -> list[tuple[str, int]]:
+    """(prefix, command count) rows, keyed by the REAL command token.
+
+    Keying by the registry's department label printed a dead
+    ``/leadership`` (the commands are ``/lead ...``) — the token is what
+    a reader can actually type, and stays correct if a label and its
+    prefix ever diverge again.
+    """
     registry = root / "knowledge" / "commands-registry.json"
     data = json.loads(registry.read_text(encoding="utf-8"))
     counts = Counter(
-        str(cmd.get("department") or "")
+        str(cmd.get("command") or "").split()[0].lstrip("/")
         for cmd in data.get("commands", [])
-        if cmd.get("department")
+        if str(cmd.get("command") or "").startswith("/")
     )
     return sorted(counts.items())
 
@@ -116,8 +123,8 @@ def render(root: Path) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
-    root = repo_root()
+def main(root: Path | None = None) -> int:
+    root = root or repo_root()
     guide = render(root)
     size = len(guide.encode("utf-8"))
     if size > SIZE_BUDGET_BYTES:

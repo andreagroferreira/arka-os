@@ -42,13 +42,14 @@ answers as a generic assistant.
 | `/community` | 14 |
 | `/content` | 19 |
 | `/dev` | 36 |
+| `/do` | 1 |
 | `/ecom` | 18 |
 | `/fin` | 10 |
 | `/kb` | 22 |
 | `/landing` | 14 |
-| `/leadership` | 10 |
+| `/lead` | 10 |
 | `/mkt` | 12 |
-| `/ops` | 25 |
+| `/ops` | 24 |
 | `/org` | 10 |
 | `/pm` | 12 |
 | `/saas` | 14 |

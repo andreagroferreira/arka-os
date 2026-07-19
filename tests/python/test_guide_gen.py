@@ -31,7 +31,10 @@ def test_guide_respects_the_size_budget():
     assert size <= SIZE_BUDGET_BYTES
 
 
-def test_guide_lists_every_department():
+def test_guide_lists_every_real_command_prefix():
+    # Checked against the registry DATA (command tokens), not against the
+    # generator's own grouping — a dead prefix like the old /leadership
+    # (label without a matching command) must never render.
     import json
 
     registry = json.loads(
@@ -39,9 +42,46 @@ def test_guide_lists_every_department():
             encoding="utf-8"
         )
     )
-    departments = {
-        cmd["department"] for cmd in registry["commands"] if cmd.get("department")
+    tokens = {
+        cmd["command"].split()[0]
+        for cmd in registry["commands"]
+        if str(cmd.get("command", "")).startswith("/")
     }
     guide = (REPO_ROOT / GUIDE_NAME).read_text(encoding="utf-8")
-    missing = [d for d in sorted(departments) if f"| `/{d}` |" not in guide]
+    missing = [t for t in sorted(tokens) if f"| `{t}` |" not in guide]
     assert missing == []
+    assert "| `/leadership` |" not in guide
+
+
+def _fixture_root(tmp_path):
+    import json
+
+    (tmp_path / "VERSION").write_text("9.9.9\n", encoding="utf-8")
+    (tmp_path / "knowledge").mkdir()
+    (tmp_path / "knowledge" / "commands-registry.json").write_text(
+        json.dumps({"commands": [
+            {"command": "/dev feature", "department": "dev"},
+            {"command": "/lead feedback", "department": "leadership"},
+        ]}),
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def test_main_happy_path_writes_guide_to_root(tmp_path):
+    import guide_gen
+
+    assert guide_gen.main(_fixture_root(tmp_path)) == 0
+    guide = (tmp_path / GUIDE_NAME).read_text(encoding="utf-8")
+    assert "v9.9.9" in guide
+    assert "| `/lead` |" in guide
+    assert "/leadership" not in guide
+
+
+def test_main_over_budget_fails_closed_without_writing(tmp_path, monkeypatch):
+    import guide_gen
+
+    monkeypatch.setattr(guide_gen, "SIZE_BUDGET_BYTES", 100)
+    root = _fixture_root(tmp_path)
+    assert guide_gen.main(root) == 1
+    assert not (root / GUIDE_NAME).exists()
