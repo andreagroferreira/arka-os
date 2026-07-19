@@ -458,3 +458,33 @@ class TestMigration:
 class TestClose:
     def test_close_is_noop(self, store: InsightStore) -> None:
         store.close()  # should not raise
+
+
+class TestConnectionLifecycle:
+    def test_every_connection_is_closed(self, tmp_path, monkeypatch):
+        """with sqlite3.connect(...) alone never closes — regression for
+        the one-leaked-connection-per-operation bug."""
+        import sqlite3 as _sqlite3
+
+        from core.cognition.insights import store as store_module
+
+        created = []
+        real_connect = _sqlite3.connect
+
+        def tracking_connect(*args, **kwargs):
+            conn = real_connect(*args, **kwargs)
+            created.append(conn)
+            return conn
+
+        monkeypatch.setattr(
+            store_module.sqlite3, "connect", tracking_connect
+        )
+        store = InsightStore(tmp_path / "insights.db")
+        insight = make_insight()
+        store.save(insight)
+        store.get_all_pending()
+        store.promotable()
+        assert created, "tracking hook never fired"
+        for conn in created:
+            with pytest.raises(_sqlite3.ProgrammingError):
+                conn.execute("SELECT 1")

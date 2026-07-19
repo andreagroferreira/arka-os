@@ -4,7 +4,9 @@ Persists ActionableInsight instances with support for status-based retrieval,
 project filtering, presentation lifecycle, and dismissal analytics.
 """
 
+import contextlib
 import sqlite3
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -24,11 +26,20 @@ class InsightStore:
         self._db_path = db_path
         self._init_db()
 
-    def _conn(self) -> sqlite3.Connection:
+    @contextlib.contextmanager
+    def _conn(self) -> Iterator[sqlite3.Connection]:
+        """Per-operation connection: transaction semantics AND a real
+        close. ``with sqlite3.connect(...)`` alone only commits/rolls
+        back — it never closes, leaking one connection per operation
+        (ResourceWarning under coverage, amplified by ingest loops)."""
         conn = sqlite3.connect(self._db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        return conn
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     # Instinct columns added after the original 12-column schema. An
     # operator's existing DB has the old shape, so these are ALTER-added
