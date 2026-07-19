@@ -335,15 +335,59 @@ def _check_typecheck(
     return _skip("typecheck", "no typecheck configuration detected")
 
 
+def _project_pytest(project_dir: Path) -> list[str] | None:
+    """pytest belonging to the target project's own environment."""
+    for rel in (".venv/bin/pytest", "venv/bin/pytest"):
+        candidate = project_dir / rel
+        if candidate.is_file():
+            return [str(candidate)]
+    return None
+
+
+def _foreign_pytest_can_collect(
+    pytest_cmd: list[str], project_dir: Path, timeout: int,
+) -> bool:
+    """A PATH/venv-foreign pytest must prove it can import the project.
+
+    Running a foreign-env pytest blind produced false FAILs on projects
+    whose dependencies live in their own venv (import errors read as
+    test failures — issue #283, a blind gate on mandatory-qa). Exit 5
+    ("no tests collected") still counts as a working import path.
+    """
+    try:
+        probe = subprocess.run(
+            [*pytest_cmd, "--collect-only", "-q"], cwd=project_dir,
+            capture_output=True, text=True, timeout=min(timeout, 60),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return probe.returncode in (0, 5)
+
+
 def _check_tests(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
     if test_command:
         return _run("tests", shlex.split(test_command), project_dir, timeout)
-    pytest_cmd = _tool_cmd("pytest")
-    if _has_python(project_dir, changed) and pytest_cmd:
-        return _run("tests", [*pytest_cmd, "-q"], project_dir, timeout)
+    if _has_python(project_dir, changed):
+        local_pytest = _project_pytest(project_dir)
+        if local_pytest:
+            return _labelled(
+                _run("tests", [*local_pytest, "-q"], project_dir, timeout),
+                "tests(project-venv)",
+            )
+        pytest_cmd = _tool_cmd("pytest")
+        if pytest_cmd and _foreign_pytest_can_collect(
+            pytest_cmd, project_dir, timeout
+        ):
+            return _run("tests", [*pytest_cmd, "-q"], project_dir, timeout)
+        if pytest_cmd:
+            return _skip(
+                "tests",
+                "pytest resolved outside the project env cannot import "
+                "it — pin --test-command",
+            )
     if _package_json_script(project_dir, "test"):
         return _run(
             "tests", ["npm", "test", "--silent"], project_dir, timeout,
