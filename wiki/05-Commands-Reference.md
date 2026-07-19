@@ -20,7 +20,7 @@ npx arkaos install --runtime gemini
 npx arkaos install --runtime cursor
 npx arkaos init                          # Initialize ArkaOS in the current project directory
 npx arkaos@latest update                 # Update core + hooks to latest version (Step 1 of 2)
-npx arkaos doctor                        # Health check — runs 9 diagnostic checks
+npx arkaos doctor                        # Health check — the canonical doctor (venv, hooks, fastpath, security advisory)
 npx arkaos dashboard                     # Start monitoring dashboard (localhost:3333)
 npx arkaos keys                          # Manage API keys interactively
 npx arkaos migrate                       # Migrate from v1
