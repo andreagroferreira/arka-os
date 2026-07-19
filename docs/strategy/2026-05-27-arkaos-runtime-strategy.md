@@ -1,7 +1,7 @@
 ---
 title: ArkaOS Runtime — Estratégia de Evolução para Multi-Provider Agent OS
 date: 2026-05-27
-status: draft (decisão estratégica pendente do Andre)
+status: decided (2026-07-19 — ver docs/adr/2026-07-19-arkaos-runtime-pivot.md)
 author: Strategy synthesis
 deciders: Andre Groferreira (owner)
 related:
