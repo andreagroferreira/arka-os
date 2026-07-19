@@ -3,6 +3,11 @@
 # ARKA OS — Doctor (Health Check System)
 # Usage: arka doctor [--fix] [--json]
 # 18 modular checks: fail = critical, warn = advisory
+#
+# SCOPE: this doctor audits the legacy v1 layout (~/.arka-os +
+# ~/.claude/skills). The CANONICAL doctor for the engine (venv, hooks,
+# fastpath, security advisory) is `npx arkaos doctor` — see the
+# doctor-consolidation issue for the migration map.
 # ============================================================================
 set -euo pipefail
 
@@ -420,5 +425,8 @@ else
     echo ""
     echo -e "  ${G}All checks passed!${N} ARKA OS is healthy."
   fi
+  echo ""
+  echo -e "  ${C}Note:${N} this covers the legacy skills layer. For the engine"
+  echo -e "  (venv, hooks, security advisory) run: ${C}npx arkaos doctor${N}"
   echo ""
 fi
