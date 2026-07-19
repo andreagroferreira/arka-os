@@ -68,6 +68,7 @@
     "pyproject.toml",
     "VERSION",
     "CONSTITUTION.md",
+    "THE-ARKAOS-GUIDE.md",
     "README.md",
     "LICENSE",
     "!**/__pycache__/",
