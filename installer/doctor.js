@@ -48,6 +48,106 @@ export function corruptDbBackups(baseDir = INSTALL_DIR) {
   }
 }
 
+// ─── Claude-layer probes (issue #358 migration) ─────────────────────────
+// Migrated from the retired bash doctor's Claude-skills layer. Paths are
+// injectable for tests. Three bash checks were deliberately NOT migrated
+// because they audit v1-only artifacts with no v2 counterpart:
+//   personas      — v2 deploys agents per-project via the sync engine
+//   agent-memory  — superseded by the claude-mem plugin
+//   capabilities  — v1 KB artifact (~/.arka-os/capabilities.json)
+
+// The hook FILES living in ~/.arkaos/config/hooks (the hooks-dir check)
+// prove nothing about whether Claude Code RUNS them. Governance is only
+// live when ~/.claude/settings.json references the chain — a machine can
+// have every script present, nothing wired, and a green doctor.
+export function hooksWired(
+  settingsPath = join(homedir(), ".claude", "settings.json")
+) {
+  if (!existsSync(settingsPath)) return true; // no Claude Code — not applicable
+  try {
+    const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    return !!(settings.hooks && settings.hooks.UserPromptSubmit);
+  } catch {
+    return false; // unreadable settings = unverifiable wiring, surface it
+  }
+}
+
+// Status line: configured AND the command it points at exists on disk.
+export function statuslineConfigured(
+  settingsPath = join(homedir(), ".claude", "settings.json")
+) {
+  if (!existsSync(settingsPath)) return true; // no Claude Code — not applicable
+  try {
+    const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    const cmd = settings.statusLine && settings.statusLine.command;
+    if (!cmd) return false;
+    return existsSync(cmd);
+  } catch {
+    return false;
+  }
+}
+
+// gotchas.json is live v2 state: capture/collector.py appends to it and
+// `/arka evolve` (#348) ingests it. Missing means capture never ran;
+// corrupt means evolve will choke.
+export function gotchasHealthy(
+  gotchasPath = join(INSTALL_DIR, "gotchas.json")
+) {
+  if (!existsSync(gotchasPath)) return false;
+  try {
+    return Array.isArray(JSON.parse(readFileSync(gotchasPath, "utf-8")));
+  } catch {
+    return false;
+  }
+}
+
+// The MCP registry ships inside the read-only arka skill bundle.
+export function mcpRegistryHealthy(
+  registryPath = join(
+    homedir(), ".claude", "skills", "arka", "mcps", "registry.json")
+) {
+  if (!existsSync(registryPath)) return false;
+  try {
+    const reg = JSON.parse(readFileSync(registryPath, "utf-8"));
+    return !!reg.mcpServers;
+  } catch {
+    return false;
+  }
+}
+
+// Floor for "an ArkaOS skill set is deployed at all" — curated mode
+// ships 37 core skills, so 7 is a deliberately low absence detector,
+// not a completeness gauge (skills-surface judges completeness).
+export function deployedSkillCount(
+  skillsDir = join(homedir(), ".claude", "skills")
+) {
+  try {
+    return readdirSync(skillsDir).filter(
+      (dir) =>
+        dir.startsWith("arka-") &&
+        existsSync(join(skillsDir, dir, "SKILL.md"))
+    ).length;
+  } catch {
+    return 0;
+  }
+}
+
+// Recommended companion plugins (Superpowers + Claude-Mem). Probing
+// spawns the claude CLI, so keep a hard timeout — a hung CLI must not
+// stall the doctor (same rule as arka-tools-runner).
+export function companionPluginsInstalled() {
+  if (!commandExists("claude")) return true; // no Claude Code — not applicable
+  try {
+    const out = execSync("claude plugin list", {
+      stdio: ["pipe", "pipe", "ignore"],
+      timeout: 15000,
+    }).toString();
+    return out.includes("superpowers") && out.includes("claude-mem");
+  } catch {
+    return false;
+  }
+}
+
 export const checks = [
   {
     name: "install-dir",
@@ -405,6 +505,80 @@ export const checks = [
     },
     fix: () => "Run: npx arkaos keys set HIGGSFIELD_API_KEY <key> (https://higgsfield.ai) — needed for Higgsfield MCP generation",
   },
+  // ─── Claude-layer checks (issue #358) — migrated from the bash doctor.
+  // All warn-only: ArkaOS is multi-runtime, so absence of the Claude
+  // surface must never fail an install that targets codex/gemini/cursor.
+  {
+    name: "claude-cli",
+    description: "Claude Code CLI installed",
+    severity: "warn",
+    check: () => commandExists("claude"),
+    fix: () => "Install: npm install -g @anthropic-ai/claude-code (or use another supported runtime)",
+  },
+  {
+    name: "arka-skill",
+    description: "arka orchestrator skill bundle deployed (~/.claude/skills/arka)",
+    severity: "warn",
+    check: () =>
+      existsSync(join(homedir(), ".claude", "skills", "arka", "SKILL.md")),
+    fix: () => "Run: npx arkaos install --force",
+  },
+  {
+    name: "jq",
+    description: "jq available (bash hooks parse JSON with it; python3 is the fallback)",
+    severity: "warn",
+    check: () => commandExists("jq"),
+    fix: () => "Install jq: brew install jq (macOS) / apt install jq (Linux)",
+  },
+  {
+    name: "statusline",
+    description: "Status line configured and its command exists",
+    severity: "warn",
+    check: () => statuslineConfigured(),
+    fix: () => "Run: npx arkaos install --force (redeploys and wires the statusline)",
+  },
+  {
+    name: "hooks-wired",
+    description: "Hook chain referenced by ~/.claude/settings.json (governance live)",
+    severity: "warn",
+    check: () => hooksWired(),
+    fix: () => "Run: npx arkaos install --force (rewires hooks into settings.json)",
+  },
+  {
+    name: "skills-deployed",
+    description: "ArkaOS skill set deployed (>= 7 arka-* skills)",
+    severity: "warn",
+    check: () => deployedSkillCount() >= 7,
+    fix: () => "Run: npx arkaos@latest update (redeploys the curated skill set)",
+  },
+  {
+    name: "mcp-registry",
+    description: "MCP registry present in the arka skill bundle",
+    severity: "warn",
+    check: () => mcpRegistryHealthy(),
+    fix: () => "Run: npx arkaos install --force",
+  },
+  {
+    name: "yt-dlp",
+    description: "yt-dlp present (video reference analysis + content ingestion)",
+    severity: "warn",
+    check: () => commandExists("yt-dlp"),
+    fix: () => "Install yt-dlp: brew install yt-dlp (macOS) / pipx install yt-dlp — only needed for video/content workflows",
+  },
+  {
+    name: "gotchas",
+    description: "gotchas.json valid (capture layer output, ingested by /arka evolve)",
+    severity: "warn",
+    check: () => gotchasHealthy(),
+    fix: () => "Missing: capture has not run yet (created automatically). Corrupt: inspect ~/.arkaos/gotchas.json — /arka evolve cannot ingest it",
+  },
+  {
+    name: "companion-plugins",
+    description: "Companion plugins installed (Superpowers + Claude-Mem)",
+    severity: "warn",
+    check: () => companionPluginsInstalled(),
+    fix: () => "claude plugin marketplace add obra/superpowers-marketplace && claude plugin install superpowers@superpowers-marketplace; claude plugin marketplace add thedotmack/claude-mem && claude plugin install claude-mem@thedotmack",
+  },
 ];
 
 // ─── Windows-only checks ───────────────────────────────────────────────
@@ -464,6 +638,8 @@ if (IS_WINDOWS) {
 
 export async function doctor(options = {}) {
   const fixMode = !!options.fix;
+  const jsonMode = !!options.json;
+  if (jsonMode) return doctorJson();
   console.log(`\n  ArkaOS Doctor — Health Checks${fixMode ? " (--fix)" : ""}\n`);
 
   // ─── --fix: repair the venv before reporting checks (PR2 v3.73.1) ────
@@ -533,6 +709,54 @@ export async function doctor(options = {}) {
   console.log(`\n  Results: ${passed} passed, ${warned} warnings, ${failed} failures\n`);
   await securityAdvisory();
   if (failed > 0) process.exit(1);
+}
+
+// Machine-readable run (issue #358 step 4). Same checks, same exit-code
+// contract as the human run; the security advisory stays out — it is a
+// human-facing print, and the scanner already has its own --json
+// (core.governance.harness_scanner_cli).
+function doctorJson() {
+  const results = [];
+  let passed = 0;
+  let warned = 0;
+  let failed = 0;
+  for (const check of checks) {
+    let ok = false;
+    let error = null;
+    try {
+      ok = !!check.check();
+    } catch (err) {
+      error = err && err.message
+        ? String(err.message).split("\n")[0].slice(0, 120)
+        : String(err);
+    }
+    const status = ok ? "pass" : check.severity === "fail" ? "fail" : "warn";
+    if (ok) passed++;
+    else if (check.severity === "fail") failed++;
+    else warned++;
+    const entry = {
+      name: check.name,
+      status,
+      severity: check.severity,
+      description: check.description,
+      fix: ok ? "" : safeFix(check),
+    };
+    if (error) entry.error = error;
+    results.push(entry);
+  }
+  console.log(JSON.stringify({
+    checks: results,
+    summary: { passed, warned, failed, total: results.length },
+  }));
+  if (failed > 0) process.exit(1);
+}
+
+function safeFix(check) {
+  try {
+    return check.fix();
+  } catch {
+    return "(fix hint unavailable)";
+  }
 }
 
 // Doctor answers "is the install healthy?". It never answered "is the
