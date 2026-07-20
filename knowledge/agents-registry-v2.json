@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-14T23:46:28.709940",
+    "generated": "2026-07-20T21:08:57.022558",
     "total_agents": 86,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -251,7 +251,7 @@
     {
       "id": "shadcn-padronizer-leo",
       "name": "Leo",
-      "role": "Component Library Padronizer",
+      "role": "Component Library Standardizer",
       "department": "brand",
       "tier": 2,
       "model": "sonnet",
