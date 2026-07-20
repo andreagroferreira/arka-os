@@ -158,3 +158,72 @@ def test_review_note_backwards_compatible(plans_dir):
     loaded = persistence.load_plan("forge-old")
     assert loaded is not None
     assert loaded.review_note is None
+
+
+def test_decision_reject_stamps_trail(dashboard_module, plans_dir):
+    # M2: reject must leave a trail — a feature that sells "leave a trail"
+    # cannot record a decision without who + when.
+    persistence.save_plan(_plan("forge-trail", ForgeStatus.REVIEWING))
+    result = dashboard_module.plan_decision(
+        "forge-trail", {"action": "reject", "note": "scope drift"}
+    )
+    assert result["rejected_at"]
+    reloaded = persistence.load_plan("forge-trail")
+    assert reloaded.rejected_at
+    assert reloaded.rejected_by == "operator:plan-canvas"
+    assert reloaded.approved_at is None
+
+
+def test_list_plans_tolerates_scalar_shapes(plans_dir):
+    # B4: pre-schema plans stored complexity/critic as scalars. list_plans
+    # must summarize them, not crash on `int.get`.
+    plans_dir.mkdir(parents=True, exist_ok=True)
+    import yaml
+
+    (plans_dir / "forge-scalar.yaml").write_text(
+        yaml.dump({
+            "id": "forge-scalar", "title": "Legacy", "status": "approved",
+            "complexity": 3, "critic": "n/a", "phases": ["do the thing"],
+        }),
+        encoding="utf-8",
+    )
+    summaries = persistence.list_plans()
+    row = next(s for s in summaries if s["id"] == "forge-scalar")
+    assert row["tier"] == "shallow"
+    assert row["confidence"] == 0.0
+
+
+def test_legacy_plan_normalized_and_read_only(dashboard_module, plans_dir):
+    # B3: a pre-schema YAML surfaces read-only in the detail pane and
+    # refuses decisions.
+    plans_dir.mkdir(parents=True, exist_ok=True)
+    import yaml
+
+    (plans_dir / "forge-legacy-1.yaml").write_text(
+        yaml.dump({
+            "id": "forge-legacy-1", "title": "Legacy hand-written plan",
+            "date": "2026-06-02", "tier": "deep", "status": "approved",
+            "note": "pre-schema artifact",
+            "phases": ["Phase one", {"name": "Phase two", "department": "dev"}],
+        }),
+        encoding="utf-8",
+    )
+    result = dashboard_module.plan_detail("forge-legacy-1")
+    assert result["legacy"] is True
+    payload = result["plan"]
+    assert payload["name"] == "Legacy hand-written plan"
+    assert payload["goal"] == "pre-schema artifact"
+    assert payload["complexity"]["tier"] == "deep"
+    assert [ph["name"] for ph in payload["plan_phases"]] == [
+        "Phase one", "Phase two"
+    ]
+    decision = dashboard_module.plan_decision(
+        "forge-legacy-1", {"action": "approve"}
+    )
+    assert "read-only" in decision["error"]
+
+
+def test_modern_plan_detail_flags_not_legacy(dashboard_module, plans_dir):
+    persistence.save_plan(_plan("forge-modern"))
+    result = dashboard_module.plan_detail("forge-modern")
+    assert result["legacy"] is False

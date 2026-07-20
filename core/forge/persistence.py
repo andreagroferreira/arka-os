@@ -57,12 +57,20 @@ def list_plans() -> list[dict]:
         if path.name == "active.yaml":
             continue
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            continue
+        # Pre-v4 plans stored complexity/critic as scalars — a summary
+        # must tolerate every shape that ever hit disk.
+        complexity = data.get("complexity")
+        critic = data.get("critic")
         results.append({
             "id": data.get("id", path.stem),
             "name": data.get("name", ""),
             "status": data.get("status", "draft"),
-            "tier": data.get("complexity", {}).get("tier", "shallow"),
-            "confidence": data.get("critic", {}).get("confidence", 0.0),
+            "tier": complexity.get("tier", "shallow")
+            if isinstance(complexity, dict) else "shallow",
+            "confidence": critic.get("confidence", 0.0)
+            if isinstance(critic, dict) else 0.0,
             "created_at": data.get("created_at", ""),
         })
     return results

@@ -234,6 +234,8 @@ class ForgePlan(BaseModel):
     status: ForgeStatus = ForgeStatus.DRAFT
     approved_at: str | None = None
     approved_by: str | None = None
+    rejected_at: str | None = None
+    rejected_by: str | None = None
     executed_at: str | None = None
     completion_notes: str | None = None
     review_note: str | None = Field(

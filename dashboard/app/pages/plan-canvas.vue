@@ -31,13 +31,16 @@ interface PlanDetail {
   status: string
   approved_at: string | null
   approved_by: string | null
+  rejected_at: string | null
+  rejected_by: string | null
   executed_at: string | null
   review_note: string | null
   plan_phases: PlanPhase[]
   complexity: { score: number, tier: string }
   critic: {
     confidence: number
-    risks: { description?: string, severity?: string }[]
+    // IdentifiedRisk serializes risk/mitigation/severity, not description.
+    risks: { risk?: string, mitigation?: string, severity?: string }[]
     rejected_elements: { element?: string, reason?: string }[]
   }
   governance: {
@@ -212,9 +215,14 @@ const railStations = computed(() => {
 })
 const negativeTerminal = computed(() => {
   if (!plan.value || !NEGATIVE.includes(plan.value.status)) return null
+  const p = plan.value
+  const trail = p.rejected_at
+    ? `${formatWhen(p.rejected_at)}${p.rejected_by ? ` · ${p.rejected_by}` : ''}`
+    : ''
   return {
-    stage: plan.value.status,
-    note: plan.value.review_note
+    stage: p.status,
+    detail: trail,
+    note: p.review_note
   }
 })
 
@@ -468,9 +476,14 @@ onBeforeUnmount(() => {
                             risks identified
                           </p>
                           <ul class="space-y-1 text-xs text-muted">
-                            <li v-for="(risk, i) in plan.critic.risks" :key="i" class="flex gap-2">
-                              <span class="uppercase">{{ risk.severity || 'risk' }}</span>
-                              <span>{{ risk.description || '—' }}</span>
+                            <li v-for="(risk, i) in plan.critic.risks" :key="i" class="flex flex-col gap-0.5">
+                              <span>
+                                <span class="mr-1.5 uppercase">{{ risk.severity || 'risk' }}</span>
+                                {{ risk.risk || '—' }}
+                              </span>
+                              <span v-if="risk.mitigation" class="pl-1 italic">
+                                → {{ risk.mitigation }}
+                              </span>
                             </li>
                           </ul>
                         </div>
@@ -547,6 +560,12 @@ onBeforeUnmount(() => {
                       >
                         <p class="arka-eyebrow capitalize text-muted">
                           {{ negativeTerminal.stage }}
+                        </p>
+                        <p
+                          v-if="negativeTerminal.detail"
+                          class="arka-data mt-0.5 text-[10px] text-muted"
+                        >
+                          {{ negativeTerminal.detail }}
                         </p>
                         <p
                           v-if="negativeTerminal.note"

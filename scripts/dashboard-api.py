@@ -3224,13 +3224,81 @@ def plans_list():
         return {"plans": [], "active_id": None, "error": str(exc)}
 
 
+_PLAN_STATUSES = {
+    "draft", "reviewing", "approved", "executing", "completed",
+    "rejected", "cancelled", "archived",
+}
+
+
+def _legacy_plan_payload(data: dict) -> dict:
+    """Normalize a pre-schema plan YAML into the review-pane shape.
+
+    Operator plan files predate the ForgePlan schema (hand-written
+    title/date/phases). They are shown read-only — a decision requires
+    the modern schema to persist.
+    """
+    status = str(data.get("status") or "draft")
+    phases = []
+    for raw_phase in data.get("phases") or data.get("plan_phases") or []:
+        if isinstance(raw_phase, dict) and raw_phase.get("name"):
+            phases.append({
+                "name": str(raw_phase.get("name")),
+                "department": str(raw_phase.get("department") or ""),
+                "agents": [], "depends_on": [],
+                "deliverables": [
+                    str(d) for d in raw_phase.get("deliverables") or []
+                ],
+                "acceptance_criteria": [
+                    str(a) for a in raw_phase.get("acceptance_criteria") or []
+                ],
+            })
+        elif isinstance(raw_phase, str):
+            phases.append({
+                "name": raw_phase, "department": "", "agents": [],
+                "deliverables": [], "acceptance_criteria": [],
+                "depends_on": [],
+            })
+    return {
+        "id": str(data.get("id") or ""),
+        "name": str(data.get("name") or data.get("title") or ""),
+        "created_at": str(data.get("created_at") or data.get("date") or ""),
+        "forged_by": str(data.get("forged_by") or ""),
+        "goal": str(data.get("goal") or data.get("note") or ""),
+        "status": status if status in _PLAN_STATUSES else "draft",
+        "approved_at": None, "approved_by": None,
+        "rejected_at": None, "rejected_by": None,
+        "executed_at": None, "review_note": None,
+        "plan_phases": phases,
+        "complexity": {"score": 0, "tier": str(data.get("tier") or "")},
+        "critic": {"confidence": 0.0, "risks": [], "rejected_elements": []},
+        "governance": {
+            "constitution_check": "unknown", "violations": [],
+            "quality_gate_required": True,
+        },
+        "execution_path": {"type": "", "target": "", "departments": []},
+        "degraded": False,
+    }
+
+
 @app.get("/api/plans/{plan_id}")
 def plan_detail(plan_id: str):
-    """Full ForgePlan payload for the review pane."""
+    """Full ForgePlan payload; legacy shapes are normalized read-only."""
     plan = _load_plan_safe(plan_id)
-    if plan is None:
+    if plan is not None:
+        return {"plan": plan.model_dump(mode="json"), "legacy": False}
+    if not _PLAN_ID_RE.match(plan_id) or plan_id == "active":
         return {"error": "plan not found"}
-    return {"plan": plan.model_dump(mode="json")}
+    try:
+        import yaml as _yaml
+
+        from core.forge.persistence import _plans_dir
+        path = _plans_dir() / f"{plan_id}.yaml"
+        data = _yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"error": "plan not found"}
+    if not isinstance(data, dict):
+        return {"error": "plan not found"}
+    return {"plan": _legacy_plan_payload(data), "legacy": True}
 
 
 @app.post("/api/plans/{plan_id}/decision")
@@ -3252,23 +3320,29 @@ def plan_decision(plan_id: str, body: dict):
     from core.forge.schema import ForgeStatus
     plan = _load_plan_safe(plan_id)
     if plan is None:
-        return {"error": "plan not found"}
+        # Legacy shapes surface read-only in the detail pane but cannot
+        # be decided — persisting requires the modern schema.
+        return {"error": "plan not found or legacy (read-only)"}
     if plan.status.value not in _PLAN_DECIDABLE:
         return {"error": f"plan is '{plan.status.value}' — not decidable"}
     note = str(body.get("note") or "").strip()
     if note:
         plan.review_note = note[:2000]
+    now = datetime.now(UTC).isoformat()
     if action == "approve":
         plan.status = ForgeStatus.APPROVED
-        plan.approved_at = datetime.now(UTC).isoformat()
+        plan.approved_at = now
         plan.approved_by = "operator:plan-canvas"
     else:
         plan.status = ForgeStatus.REJECTED
+        plan.rejected_at = now
+        plan.rejected_by = "operator:plan-canvas"
     save_plan(plan)
     return {
         "id": plan.id,
         "status": plan.status.value,
         "approved_at": plan.approved_at,
+        "rejected_at": plan.rejected_at,
         "review_note": plan.review_note,
     }
 
