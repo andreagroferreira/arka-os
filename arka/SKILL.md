@@ -7,20 +7,42 @@ description: >
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
 
-## KB-First Research (non-negotiable)
+## KB-First Research (`always-research` SHOULD)
 
 Canonical home of the doctrine — every skill's compact
-`arka:kb-first-prefix` pointer references this section. Before any
+`arka:kb-first-prefix` pointer references this section. The Knowledge Base
+has two co-equal faces over the same corpus: **Obsidian** (note content)
+and **Graphify** (the knowledge graph — how concepts connect). Before any
 external research (Context7, WebSearch, WebFetch, Firecrawl):
 
 1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
+2. When Graphify is configured, also call `mcp__graphify__query_graph`
+   (or `god_nodes` / `shortest_path`) for the relationship view.
+3. Cite relevant hits with `[[wikilinks]]` and/or graph nodes, or
+   explicitly declare a KB gap.
+4. Only after (1)–(3) may external tools run.
+
+**Fail-open:** Graphify runs on a per-user endpoint (home LAN, localhost,
+or VPS — see `knowledge.graphify` config). When it is not configured or
+not reachable, treat it as a gap and proceed with Obsidian alone; never
+block a turn waiting on it. Obsidian remains the mandatory first step.
 
 The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
 treat them as your default source. External research supplements the vault;
-it does not replace it. Enforcement: the Stop hook's kb-cite check
-measures citation compliance per turn.
+it does not replace it.
+
+**Enforcement** runs on three surfaces, in the order they fire:
+
+| Surface | Effect |
+| --- | --- |
+| PreToolUse gate (`core/workflow/research_gate.py`) | DENIES the tool call in the current turn on a repeat violation |
+| Quality Gate | DOD item `kb-research-cited` (`definition_of_done.universal`) is `hard: true` — a failed hard item blocks the done marker (rule `definition-of-done-per-domain`) |
+| Stop hook (`core/governance/kb_cite_check.py`) | SOFT — measures citation compliance and nudges the next turn, never blocks this one |
+
+Governing rule: `always-research` (SHOULD, `config/constitution.yaml`).
+`kb-research-cited` is a Definition-of-Done item (`hard: true`), not an
+entry in the must/should/non-negotiable rule lists — the two are
+complementary, not alternatives.
 
 # ArkaOS — Main Orchestrator
 

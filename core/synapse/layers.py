@@ -28,20 +28,20 @@ from typing import Any
 from core.synapse.layers_base import Layer, LayerResult, PromptContext
 
 __all__ = [
-    "Layer",
-    "LayerResult",
-    "PromptContext",
-    "ConstitutionLayer",
-    "DepartmentLayer",
     "AgentLayer",
-    "ProjectLayer",
     "BranchLayer",
     "CommandHintsLayer",
-    "QualityGateLayer",
-    "KnowledgeRetrievalLayer",
+    "ConstitutionLayer",
+    "DepartmentLayer",
     "ForgeContextLayer",
-    "SessionContextLayer",
     "KBContextLayer",
+    "KnowledgeRetrievalLayer",
+    "Layer",
+    "LayerResult",
+    "ProjectLayer",
+    "PromptContext",
+    "QualityGateLayer",
+    "SessionContextLayer",
 ]
 
 
@@ -90,22 +90,75 @@ class ConstitutionLayer(Layer):
 # --- L1: Department Detection ---
 
 DEPARTMENT_PATTERNS: dict[str, str] = {
-    "dev": r"\b(build|code|feature|deploy|test|review|scaffold|debug|refactor|api|migration|stack|implement|fix|bug)\b",
-    "marketing": r"\b(social|content|campaign|post|instagram|linkedin|twitter|tiktok|seo|marketing|ads|email.?campaign|growth|viral)\b",
-    "finance": r"\b(budget|invoice|revenue|forecast|profit|loss|roi|margin|cash.?flow|financial|invest|valuation|pricing)\b",
-    "ecom": r"\b(store|product|shop|shopify|ecommerce|catalog|inventory|cart|checkout|pricing|marketplace)\b",
-    "strategy": r"\b(strategy|brainstorm|market|swot|competitors?|roadmap|pivot|growth|porter|blue.?ocean|positioning)\b",
+    "dev": (
+        r"\b("
+        r"build|code|feature|deploy|test|review|scaffold|"
+        r"debug|refactor|api|migration|stack|implement|fix|"
+        r"bug)\b"
+    ),
+    "marketing": (
+        r"\b("
+        r"social|content|campaign|post|instagram|linkedin|"
+        r"twitter|tiktok|seo|marketing|ads|email.?campaign|"
+        r"growth|viral)\b"
+    ),
+    "finance": (
+        r"\b("
+        r"budget|invoice|revenue|forecast|profit|loss|roi|"
+        r"margin|cash.?flow|financial|invest|valuation|"
+        r"pricing)\b"
+    ),
+    "ecom": (
+        r"\b("
+        r"store|product|shop|shopify|ecommerce|catalog|"
+        r"inventory|cart|checkout|pricing|marketplace)\b"
+    ),
+    "strategy": (
+        r"\b("
+        r"strategy|brainstorm|market|swot|competitors?|"
+        r"roadmap|pivot|growth|porter|blue.?ocean|"
+        r"positioning)\b"
+    ),
     "ops": r"\b(task|automate|meeting|workflow|process|schedule|sop|integration|zapier|n8n)\b",
     "kb": r"\b(learn|persona|knowledge|youtube|transcribe|article|research|zettelkasten|note)\b",
-    "brand": r"\b(brand|logo|colors|palette|mockup|photoshoot|brand.?identity|brand.?guide|mood.?board|naming|visual.?design|motion|ux|ui|wireframe)\b",
+    "brand": (
+        r"\b("
+        r"brand|logo|colors|palette|mockup|photoshoot|brand.?identity|"
+        r"brand.?guide|mood.?board|naming|visual.?design|motion|ux|ui|"
+        r"wireframe)\b"
+    ),
     "saas": r"\b(saas|micro.?saas|plg|freemium|churn|mrr|arr|subscription|onboarding|metrics)\b",
-    "landing": r"\b(landing|funnel|copy|headline|offer|launch|affiliate|webinar|conversion|sales.?page)\b",
-    "community": r"\b(community|group|membership|discord|telegram|skool|circle|gamification|engagement)\b",
+    "landing": (
+        r"\b("
+        r"landing|funnel|copy|headline|offer|launch|"
+        r"affiliate|webinar|conversion|sales.?page)\b"
+    ),
+    "community": (
+        r"\b("
+        r"community|group|membership|discord|"
+        r"telegram|skool|circle|gamification|"
+        r"engagement)\b"
+    ),
     "content": r"\b(viral|hook|script|repurpose|youtube|tiktok|reels|shorts|newsletter|creator)\b",
     "pm": r"\b(sprint|backlog|standup|retro|scrum|kanban|story|estimate|roadmap|agile)\b",
-    "lead": r"\b(leadership|delegation|1on1|feedback|culture|hiring|performance.?review|team.?build)\b",
-    "sales": r"\b(pipeline|proposal|discovery.?call|objection|negotiate|deal|close|prospect|spin|challenger|cold.?email|outreach)\b",
-    "org": r"\b(org.?design|hiring.?plan|onboarding|remote|meeting.?optimize|compensation|decision.?framework)\b",
+    "lead": (
+        r"\b("
+        r"leadership|delegation|1on1|feedback|"
+        r"culture|hiring|performance.?review|"
+        r"team.?build)\b"
+    ),
+    "sales": (
+        r"\b("
+        r"pipeline|proposal|discovery.?call|objection|negotiate|"
+        r"deal|close|prospect|spin|challenger|cold.?email|"
+        r"outreach)\b"
+    ),
+    "org": (
+        r"\b("
+        r"org.?design|hiring.?plan|onboarding|remote|"
+        r"meeting.?optimize|compensation|"
+        r"decision.?framework)\b"
+    ),
 }
 
 
@@ -317,10 +370,7 @@ class BranchLayer(Layer):
         start = time.time()
         branch = ctx.git_branch
         # Hide main/master/dev branches
-        if branch in ("main", "master", "dev", ""):
-            tag = ""
-        else:
-            tag = f"[branch:{branch}]"
+        tag = "" if branch in ("main", "master", "dev", "") else f"[branch:{branch}]"
 
         ms = int((time.time() - start) * 1000)
         return LayerResult(
@@ -427,7 +477,7 @@ class QualityGateLayer(Layer):
     def compute(self, ctx: PromptContext) -> LayerResult:
         start = time.time()
         try:
-            from core.governance.quality_api import list_pending, list_approved
+            from core.governance.quality_api import list_approved, list_pending
 
             pending = list_pending()
             approved = list_approved(limit=3)
@@ -495,6 +545,17 @@ class KnowledgeRetrievalLayer(Layer):
     @property
     def cache_ttl(self) -> int:
         return 30
+
+    @property
+    def emits_block(self) -> bool:
+        """The retrieved chunks are a real block, not the tag's value.
+
+        `[knowledge:N chunks]` makes a QUANTIFIED claim about content the
+        model never received before the content channel existed — the
+        loudest unbacked claim in the tag line (QG review). Opting in
+        delivers what the tag advertises.
+        """
+        return True
 
     @property
     def priority(self) -> int:
@@ -580,7 +641,10 @@ class KnowledgeRetrievalLayer(Layer):
                 parts.append(f"[cached] {src}: {text}" if src else f"[cached] {text}")
         parts.extend(snippets)
 
-        content = " | ".join(parts)
+        # Self-naming, because the content channel delivers this verbatim to
+        # the model: an unlabelled `[cached] file.md: …` fragment would read
+        # as stray text (the exact defect the opt-in channel exists to avoid).
+        content = f"[arka:knowledge] {' | '.join(parts)}" if parts else ""
         chunk_count = len(snippets) + (len(overlapping) if overlapping else 0)
         # RAG honesty (PR-3 v4.1): keyword-degraded results must never be
         # presented as semantic similarity — label the tag explicitly.
@@ -639,7 +703,7 @@ class ForgeContextLayer(Layer):
         parts = [f"Forge plan: {plan.id} ({plan.status.value})"]
         if plan.critic.confidence > 0:
             decisions = []
-            for source, elements in plan.critic.synthesis.items():
+            for _source, elements in plan.critic.synthesis.items():
                 decisions.extend(elements)
             if decisions:
                 parts.append(f"Decisions: {'; '.join(decisions[:5])}")
@@ -701,7 +765,6 @@ class SessionContextLayer(Layer):
                 layer_id=self.id, tag="", content="", tokens_est=0, compute_ms=0, cached=False
             )
 
-        lines = content.split("\n")
         tag = "[session:resume]"
         tokens = len(content.split())
 
@@ -720,6 +783,8 @@ class SessionContextLayer(Layer):
 # `core.synapse.layers` import paths and helper references keep working.
 
 from core.synapse.layers_kb import (  # noqa: E402,F401
+    _KB_CONFIG_PATH,
+    _MAX_FALLBACK_NOTES,
     KBContextLayer,
     _apply_grounding_policy,
     _build_note_entry,
@@ -732,10 +797,8 @@ from core.synapse.layers_kb import (  # noqa: E402,F401
     _hit_is_inferred,
     _jaccard,
     _jaccard_fallback,
-    _KB_CONFIG_PATH,
     _l25_feature_flag_on,
     _load_fallback_notes,
-    _MAX_FALLBACK_NOTES,
     _note_from_vector_hit,
     _tokenize_for_jaccard,
     _vector_search,

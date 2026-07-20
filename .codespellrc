@@ -1,7 +1,18 @@
-# Codespell config — CI runs `codespell core/ installer/ scripts/ tests/`
-# (English-primary code paths only; departments/ and wiki/ carry bilingual
-# pt-PT content and framework/person/brand proper nouns that drown the
-# signal in false positives).
+# Codespell config — English-primary code paths only. departments/ and
+# wiki/ carry bilingual pt-PT content and framework/person/brand proper
+# nouns that drown the signal in false positives ("nome" -> "gnome").
+#
+# That exclusion lives in `skip` below rather than in the caller's path
+# list, so the evidence gate (core/governance/evidence_checks.py) honours
+# it — the gate spellchecks the changed files of a diff and cannot know
+# which roots are bilingual.
+#
+# The globs are listed twice, bare and `*/`-prefixed, because codespell
+# fnmatches the path exactly as constructed (codespell_lib/_codespell.py):
+# a walk from `codespell .` yields `./departments/...`, which the bare
+# `departments/*` pattern does not match. Each invocation style needs
+# its own form — `*/departments/*` for the walk,
+# `departments/*` for an explicit path — so the two agree.
 #
 # ignore-words-list entries are all verified false positives:
 #   te/vai/ser/erro/cliente/relevante — pt-PT fixtures (sycophancy detector,
@@ -14,12 +25,16 @@
 #   sive — sive.rs (Derek Sivers' site)
 #   fo — schtasks /FO output-format flag (Windows scheduler)
 #   unparseable/implementor — accepted English variants
-#   componentes/comandos/classe/meu/fases — pt-PT effect-object lexicon and
-#     test fixtures in core/governance/phantom_action_check.py (P0 2026-07-08)
+#   componentes/comandos/classe/meu — pt-PT effect-object lexicon in
+#     core/governance/phantom_action_check.py (P0 2026-07-08)
+#   fase/fases — the pt-PT fixture at tests/python/test_phantom_action_check.py,
+#     the pt-PT passages of docs/strategy/, and a pt-PT trigger string under
+#     plugins/. Those roots are NOT skipped: their English prose still
+#     benefits from the check, so the words are ignored instead.
 #   orgin/metdata/datas — INTENTIONAL misspellings in core/skills/provenance.py:
 #     the provenance parser detects these exact typos (metadatas:, orgin:) so a
 #     laundered skill cannot slip through; they appear in the docstring, the
 #     _METADATA_TYPO regex (metadatas?), and the test fixtures.
 [codespell]
-ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fases,orgin,metdata,datas
-skip = *.lock,*.svg,*/node_modules,*/__pycache__
+ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fase,fases,orgin,metdata,datas
+skip = *.lock,*.svg,*/node_modules,*/__pycache__,departments/*,*/departments/*,wiki/*,*/wiki/*

@@ -70,6 +70,22 @@ class Layer(ABC):
         return False
 
     @property
+    def emits_block(self) -> bool:
+        """True when ``content`` is a self-describing full-text block.
+
+        OPT-IN, and deliberately so. The engine forwards ``content`` to the
+        model only for layers that declare this. Inferring it from
+        ``content != tag`` looked equivalent and was not: most layers set
+        ``content`` to their tag's VALUE (``dev``, ``active``,
+        ``feat/plan-canvas``), so every prompt gained stray unlabeled lines
+        carrying nothing the tag had not already said (QG review).
+
+        A block must stand alone: it names itself (``[arka:kb-context]``,
+        ``[arka:graph-remote unverified]``) and is meaningful without the tag.
+        """
+        return False
+
+    @property
     def session_sensitive(self) -> bool:
         """True when compute() has per-session side effects or output.
 

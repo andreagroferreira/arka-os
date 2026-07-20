@@ -26,7 +26,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from core.synapse.layers import Layer, LayerResult, PromptContext
 from core.synapse.pattern_library_layer import _extract_keywords
@@ -58,7 +58,7 @@ def _graph_flag_on() -> bool:
     return bool(synapse_cfg.get("graphContext", True))
 
 
-def _locate_graph(cwd: str) -> Optional[Path]:
+def _locate_graph(cwd: str) -> Path | None:
     """Find ``graphify-out/graph.json`` in cwd or up to 3 parent dirs."""
     if not cwd:
         return None
@@ -148,6 +148,11 @@ class GraphContextLayer(Layer):
     @property
     def cache_ttl(self) -> int:
         return 30
+
+    @property
+    def emits_block(self) -> bool:
+        """Content is the self-naming [arka:graph-context:N] block."""
+        return True
 
     @property
     def priority(self) -> int:

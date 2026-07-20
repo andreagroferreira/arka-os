@@ -9,28 +9,31 @@ Usage:
     python scripts/dashboard-api.py --host 0.0.0.0     # Allow external access
 """
 
+import asyncio
+import contextlib
 import json
 import os
+import queue as _queue
+import re
 import subprocess
 import sys
+from datetime import UTC
 from pathlib import Path
-from typing import Optional
 
-# Resolve ArkaOS root
+from fastapi import FastAPI, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+
+# Resolve ArkaOS root BEFORE any core.* import — the script must run
+# from anywhere (systemd, launchd, bare python) with the repo on path.
 ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(ARKAOS_ROOT))
 
-from core.shared.temp_paths import arkaos_temp_dir
-
-from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from core.shared.temp_paths import arkaos_temp_dir  # noqa: E402
 
 app = FastAPI(title="ArkaOS Dashboard API", version="2.2.0")
 
 # --- WebSocket — thread-safe message queue ---
-import asyncio
-import queue as _queue
 
 _ws_clients: list[WebSocket] = []
 _ws_message_queue: _queue.Queue = _queue.Queue()
@@ -186,7 +189,7 @@ def overview():
 
 
 @app.get("/api/agents")
-def agents(dept: Optional[str] = Query(None)):
+def agents(dept: str | None = Query(None)):
     data = _load_agents()
     if dept:
         data = [a for a in data if a.get("department") == dept]
@@ -205,7 +208,7 @@ def agents_activity(period: str = "week"):
     ``ARKA_CALL_CATEGORY=subagent:<dept>:<agent>``.
     """
     try:
-        from core.runtime.llm_cost_telemetry import summarise, VALID_PERIODS
+        from core.runtime.llm_cost_telemetry import VALID_PERIODS, summarise
     except Exception:  # pragma: no cover - import guard
         return {"by_department": {}, "period": period}
     if period not in VALID_PERIODS:
@@ -230,7 +233,7 @@ def agents_activity(period: str = "week"):
         if isinstance(cost, (int, float)):
             bucket["total_cost_usd"] += float(cost)
             bucket["any_cost_known"] = True
-    for dept, b in out.items():
+    for b in out.values():
         if not b.pop("any_cost_known"):
             b["total_cost_usd"] = None
         else:
@@ -264,8 +267,8 @@ def agent_activity_sparkline(agent_id: str, days: int = 30):
     except Exception:
         return {"days": []}
 
-    from datetime import datetime, timedelta, timezone
-    today = datetime.now(timezone.utc).date()
+    from datetime import datetime, timedelta
+    today = datetime.now(UTC).date()
     buckets: dict[str, dict] = {}
     for offset in range(capped_days):
         d = today - timedelta(days=capped_days - 1 - offset)
@@ -377,7 +380,7 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
             agent_row = row
 
     dept_costs = sorted(dept_costs_map.items(), key=lambda t: t[1], reverse=True)
-    dept_rank: Optional[int] = None
+    dept_rank: int | None = None
     for idx, (d, _) in enumerate(dept_costs, start=1):
         if d == dept:
             dept_rank = idx
@@ -388,7 +391,7 @@ def agent_activity_strip(agent_id: str, period: str = "month"):
     target_row = agent_row if use_agent_scope else dept_row
 
     entries, _ = _load_slice(None, _period_cutoff(period, now=None))
-    last_used: Optional[str] = None
+    last_used: str | None = None
     expect_cats = (
         {f"subagent:{dept}:{agent_id}"}
         if use_agent_scope
@@ -430,7 +433,7 @@ def personas_archetypes():
 
 
 @app.get("/api/personas/export-all.zip")
-def personas_export_all(ids: Optional[str] = None):
+def personas_export_all(ids: str | None = None):
     """PR92a v3.39.0 — stream every persona as Markdown inside a ZIP.
 
     PR93c v3.45.0 — optional ``?ids=a,b,c`` filter narrows the export
@@ -441,20 +444,20 @@ def personas_export_all(ids: Optional[str] = None):
         return {"error": "Persona manager unavailable"}
     try:
         items = list(mgr.list_all() or [])
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"error": f"list failed: {exc}"}
 
     # PR93c — optional id allow-list.
-    id_filter: Optional[set[str]] = None
+    id_filter: set[str] | None = None
     if ids:
         id_filter = {s.strip() for s in ids.split(",") if s.strip()}
     if id_filter is not None:
         items = [p for p in items if hasattr(p, "id") and p.id in id_filter]
 
-    from core.personas.obsidian_store import ObsidianPersonaStore
-
     import io
     import zipfile
+
+    from core.personas.obsidian_store import ObsidianPersonaStore
 
     buffer = io.BytesIO()
     seen: set[str] = set()
@@ -470,7 +473,7 @@ def personas_export_all(ids: Optional[str] = None):
             seen.add(slug)
             try:
                 body = ObsidianPersonaStore._render(persona)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 continue
             zf.writestr(f"{slug}.md", body)
             written += 1
@@ -510,7 +513,11 @@ def persona_download_markdown(persona_id: str):
         return detail
     from core.personas.obsidian_store import ObsidianPersonaStore
     from core.personas.schema import (
-        Persona, PersonaDISC, PersonaEnneagram, PersonaBigFive, PersonaCommunication,
+        Persona,
+        PersonaBigFive,
+        PersonaCommunication,
+        PersonaDISC,
+        PersonaEnneagram,
     )
     try:
         persona = Persona(
@@ -568,7 +575,7 @@ def agent_update_yaml(agent_id: str, body: dict):
     try:
         import yaml as _yaml
         parsed = _yaml.safe_load(content)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"error": f"YAML parse failed: {exc}"}
     if not isinstance(parsed, dict):
         return {"error": "YAML root must be a mapping"}
@@ -640,7 +647,7 @@ def agent_history(agent_id: str, limit: int = 20):
                     "summary": _trash_summary(entry),
                     "ref": entry.get("id"),
                 })
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     events.sort(key=lambda e: str(e.get("ts") or ""), reverse=True)
     return {"events": events[: max(0, int(limit))]}
@@ -688,8 +695,8 @@ def _trash_ts_to_iso(ts: object) -> str | None:
     if ts is None:
         return None
     try:
-        from datetime import datetime, timezone
-        return datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat()
+        from datetime import datetime
+        return datetime.fromtimestamp(float(ts), tz=UTC).isoformat()
     except (TypeError, ValueError, OSError):
         return None
 
@@ -799,10 +806,8 @@ def agent_update(agent_id: str, body: dict):
         if top_key in body and isinstance(body[top_key], str):
             raw[top_key] = body[top_key]
     if "tier" in body:
-        try:
+        with contextlib.suppress(TypeError, ValueError):
             raw["tier"] = int(body["tier"])
-        except (TypeError, ValueError):
-            pass
     if "mental_models" in body and isinstance(body["mental_models"], dict):
         mm = raw.setdefault("mental_models", {}) or {}
         for sub in ("primary", "secondary"):
@@ -818,10 +823,10 @@ def agent_update(agent_id: str, body: dict):
         if "depth" in body["expertise"]:
             expertise["depth"] = str(body["expertise"]["depth"])
         if "years_equivalent" in body["expertise"]:
-            try:
-                expertise["years_equivalent"] = int(body["expertise"]["years_equivalent"])
-            except (TypeError, ValueError):
-                pass
+            with contextlib.suppress(TypeError, ValueError):
+                expertise["years_equivalent"] = int(
+                    body["expertise"]["years_equivalent"]
+                )
         raw["expertise"] = expertise
     if "communication" in body and isinstance(body["communication"], dict):
         comm = raw.setdefault("communication", {}) or {}
@@ -856,13 +861,17 @@ def _agent_str_list(value) -> list[str]:
 
 
 @app.get("/api/commands")
-def commands(dept: Optional[str] = Query(None), q: Optional[str] = Query(None)):
+def commands(dept: str | None = Query(None), q: str | None = Query(None)):
     data = _load_commands()
     if dept:
         data = [c for c in data if c.get("department") == dept]
     if q:
         q_lower = q.lower()
-        data = [c for c in data if q_lower in c.get("command", "").lower() or q_lower in c.get("description", "").lower()]
+        data = [
+            c for c in data
+            if q_lower in c.get("command", "").lower()
+            or q_lower in c.get("description", "").lower()
+        ]
     return {"commands": data, "total": len(data)}
 
 
@@ -960,7 +969,10 @@ def models_usage(period: str = "today"):
 def budget_all():
     mgr = _get_budget_manager()
     if not mgr:
-        return {"tiers": [], "departments": [], "summary": {"total_tokens": 0, "total_ops": 0, "active_departments": 0}}
+        return {
+            "tiers": [], "departments": [],
+            "summary": {"total_tokens": 0, "total_ops": 0, "active_departments": 0},
+        }
 
     # Department breakdown from raw usages
     dept_data: dict[str, dict] = {}
@@ -1002,7 +1014,7 @@ def budget_tier(tier: int):
 
 
 @app.get("/api/tasks")
-def tasks(status: Optional[str] = Query(None)):
+def tasks(status: str | None = Query(None)):
     mgr = _get_task_manager()
     if not mgr:
         return {"tasks": [], "summary": {"total": 0}}
@@ -1038,14 +1050,11 @@ def _get_job_manager():
 
 
 @app.get("/api/jobs")
-def jobs_list(status: Optional[str] = Query(None), limit: int = Query(50)):
+def jobs_list(status: str | None = Query(None), limit: int = Query(50)):
     mgr = _get_job_manager()
     if not mgr:
         return {"jobs": [], "summary": {}}
-    if status:
-        jobs = mgr.list_by_status(status, limit)
-    else:
-        jobs = mgr.list_all(limit)
+    jobs = mgr.list_by_status(status, limit) if status else mgr.list_all(limit)
     return {"jobs": [j.to_dict() for j in jobs], "summary": mgr.summary()}
 
 
@@ -1071,7 +1080,6 @@ def job_cancel(job_id: str):
     return {"error": "Can only cancel queued jobs"}
 
 
-from fastapi import UploadFile
 
 @app.post("/api/knowledge/upload-file")
 async def knowledge_upload_file(file: UploadFile):
@@ -1104,13 +1112,17 @@ async def knowledge_upload_file(file: UploadFile):
     job_id = job.id
 
     def run_ingest():
-        from core.jobs.manager import JobManager as _JM
+        from core.jobs.manager import JobManager as _LocalJobManager
         from core.knowledge.ingest import IngestEngine
-        local_mgr = _JM()
+        local_mgr = _LocalJobManager()
         def on_progress(pct, msg):
-            status = "embedding" if "embed" in msg.lower() or "index" in msg.lower() else "processing"
+            is_embed = "embed" in msg.lower() or "index" in msg.lower()
+            status = "embedding" if is_embed else "processing"
             local_mgr.update_progress(job_id, pct, msg, status)
-            broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": pct, "message": msg, "status": status})
+            broadcast_from_thread({
+                "type": "job_progress", "job_id": job_id,
+                "progress": pct, "message": msg, "status": status,
+            })
         try:
             local_mgr.start(job_id)
             reg = _get_source_registry()
@@ -1118,16 +1130,25 @@ async def knowledge_upload_file(file: UploadFile):
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
                 local_mgr.complete(job_id, chunks_created=result.chunks_created)
-                broadcast_from_thread({"type": "job_complete", "job_id": job_id, "chunks_created": result.chunks_created})
+                broadcast_from_thread({
+                    "type": "job_complete", "job_id": job_id,
+                    "chunks_created": result.chunks_created,
+                })
             else:
                 local_mgr.fail(job_id, result.error)
-                broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": result.error})
+                broadcast_from_thread({
+                    "type": "job_failed", "job_id": job_id,
+                    "error": result.error,
+                })
         except Exception as e:
             local_mgr.fail(job_id, str(e))
             broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": str(e)})
 
     threading.Thread(target=run_ingest, daemon=True).start()
-    return {"job_id": job_id, "source_type": source_type, "filename": file.filename, "status": "queued"}
+    return {
+        "job_id": job_id, "source_type": source_type,
+        "filename": file.filename, "status": "queued",
+    }
 
 
 @app.post("/api/knowledge/ingest")
@@ -1144,7 +1165,10 @@ def knowledge_ingest(body: dict):
     if text_content and len(text_content) > 10:
         media_dir = Path.home() / ".arkaos" / "media"
         media_dir.mkdir(parents=True, exist_ok=True)
-        safe_name = "".join(c if c.isalnum() or c in " -_" else "" for c in (text_title or source)[:40]).strip() or "pasted-text"
+        safe_name = "".join(
+            c if c.isalnum() or c in " -_" else ""
+            for c in (text_title or source)[:40]
+        ).strip() or "pasted-text"
         text_path = media_dir / f"{safe_name}.md"
         # Add title as heading
         md_content = f"# {text_title}\n\n{text_content}" if text_title else text_content
@@ -1174,8 +1198,8 @@ def knowledge_ingest(body: dict):
 
     def run_ingest():
         # Create thread-local JobManager (SQLite objects can't cross threads)
-        from core.jobs.manager import JobManager as _JM
-        local_mgr = _JM()
+        from core.jobs.manager import JobManager as _LocalJobManager
+        local_mgr = _LocalJobManager()
 
         def on_progress(pct, msg):
             status = "processing"
@@ -1197,16 +1221,25 @@ def knowledge_ingest(body: dict):
             })
         try:
             local_mgr.start(job_id)
-            broadcast_from_thread({"type": "job_progress", "job_id": job_id, "progress": 0, "message": "Starting...", "status": "processing"})
+            broadcast_from_thread({
+                "type": "job_progress", "job_id": job_id, "progress": 0,
+                "message": "Starting...", "status": "processing",
+            })
             reg = _get_source_registry()
             engine = IngestEngine(store, registry=reg)
             result = engine.ingest(source, source_type, on_progress=on_progress)
             if result.success:
                 local_mgr.complete(job_id, chunks_created=result.chunks_created)
-                broadcast_from_thread({"type": "job_complete", "job_id": job_id, "chunks_created": result.chunks_created})
+                broadcast_from_thread({
+                    "type": "job_complete", "job_id": job_id,
+                    "chunks_created": result.chunks_created,
+                })
             else:
                 local_mgr.fail(job_id, result.error)
-                broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": result.error})
+                broadcast_from_thread({
+                    "type": "job_failed", "job_id": job_id,
+                    "error": result.error,
+                })
         except Exception as e:
             local_mgr.fail(job_id, str(e))
             broadcast_from_thread({"type": "job_failed", "job_id": job_id, "error": str(e)})
@@ -1372,7 +1405,7 @@ def knowledge_list_sources():
     if store:
         try:
             store_rows = store.list_sources()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"sources": [], "total": 0, "error": str(exc)}
     registry_rows = registry.list() if registry else []
     if not store and not registry:
@@ -1402,12 +1435,12 @@ def knowledge_delete_source(source: str = Query(...)):
         return {"error": "vector store unavailable", "deleted": 0}
     try:
         deleted = store.remove_file(clean)
-    except Exception as exc:  # noqa: BLE001 — surface as 200+error
+    except Exception as exc:
         return {"error": f"delete failed: {exc}", "deleted": 0}
     return {"deleted": int(deleted), "source": clean}
 
 
-def _source_str_for_id(source_id_: str) -> Optional[str]:
+def _source_str_for_id(source_id_: str) -> str | None:
     """Reverse-resolve the raw source string whose id matches ``source_id_``.
 
     Cold path, O(n) over the vector store's distinct sources. Returns None
@@ -1426,7 +1459,7 @@ def _source_str_for_id(source_id_: str) -> Optional[str]:
     )
 
 
-def _resolve_transcript(source_id_: str) -> Optional[str]:
+def _resolve_transcript(source_id_: str) -> str | None:
     """Best-available transcript text for a source id, or None.
 
     Resolution order:
@@ -1445,7 +1478,7 @@ def _resolve_transcript(source_id_: str) -> Optional[str]:
     return store.transcript_for_source(match) if store else None
 
 
-def _detail_from_store(source_id_: str) -> Optional[dict]:
+def _detail_from_store(source_id_: str) -> dict | None:
     """Build a minimal detail dict for a chunks-only (pre-registry) source.
 
     Reverse-looks-up the raw source string whose ``source_id`` matches the
@@ -1572,7 +1605,7 @@ def knowledge_source_agent_matches(source_id: str, top_n: int = Query(5)):
     return {"matches": matches, "source_id": source_id, "count": len(matches)}
 
 
-def _agent_matches_for_proposal(source_id_: str, text: str, body: Optional[dict]) -> list[dict]:
+def _agent_matches_for_proposal(source_id_: str, text: str, body: dict | None) -> list[dict]:
     """Resolve the agents to include in a proposal: scoped ids or top matches."""
     from core.knowledge import agent_match
 
@@ -1586,7 +1619,7 @@ def _agent_matches_for_proposal(source_id_: str, text: str, body: Optional[dict]
 
 
 @app.post("/api/knowledge/sources/{source_id}/agent-proposal")
-def knowledge_source_agent_proposal(source_id: str, body: Optional[dict] = None):
+def knowledge_source_agent_proposal(source_id: str, body: dict | None = None):
     """Generate a PROPOSE-ONLY markdown proposal of agents to update.
 
     Body optional: ``{"agent_ids": [...]}`` scopes to specific agents;
@@ -1674,7 +1707,7 @@ def knowledge_source_download(source_id: str):
     )
 
 
-def _safe_upload_path(media_dir: Path, filename: str) -> Optional[Path]:
+def _safe_upload_path(media_dir: Path, filename: str) -> Path | None:
     """Resolve an upload target inside media_dir, blocking path traversal."""
     safe_name = Path(filename or "").name  # strip any path components
     if not safe_name:
@@ -1686,7 +1719,7 @@ def _safe_upload_path(media_dir: Path, filename: str) -> Optional[Path]:
     return file_path
 
 
-def _safe_media_path(source_id: str) -> Optional[Path]:
+def _safe_media_path(source_id: str) -> Path | None:
     """Resolve a source's media path, guarding against path traversal."""
     registry = _get_source_registry()
     row = registry.get(source_id) if registry else None
@@ -1710,7 +1743,7 @@ def health():
     Response also carries `ts` so the UI can show "last checked".
     Frontend polls every 30s and surfaces copy-fix buttons.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     checks: list[dict] = []
     arkaos_home = Path.home() / ".arkaos"
@@ -1766,7 +1799,7 @@ def health():
         "failed_blocking": failed_blocking,
         "warning_count": warning_count,
         "healthy": failed_blocking == 0,
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
     }
 
 
@@ -1853,8 +1886,8 @@ def persona_usage_timeline(persona_id: str, weeks: int = 12):
     if not dept_root.exists():
         return {"weeks": [], "total_agents": 0, "period_weeks": capped_weeks}
 
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
+    from datetime import datetime, timedelta
+    now = datetime.now(UTC)
     today = now.date()
     # Monday of current ISO week.
     current_monday = today - timedelta(days=today.weekday())
@@ -1868,7 +1901,7 @@ def persona_usage_timeline(persona_id: str, weeks: int = 12):
     for path in dept_root.glob("*/agents/*.yaml"):
         try:
             raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:  # noqa: BLE001
+        except Exception:
             continue
         if not isinstance(raw, dict):
             continue
@@ -1877,7 +1910,7 @@ def persona_usage_timeline(persona_id: str, weeks: int = 12):
             continue
         linked_total += 1
         try:
-            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).date()
+            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).date()
         except OSError:
             continue
         if mtime < cutoff_monday:
@@ -1974,7 +2007,11 @@ def persona_update(persona_id: str, body: dict):
     is created with the updated name.
     """
     from core.personas.schema import (
-        Persona, PersonaDISC, PersonaEnneagram, PersonaBigFive, PersonaCommunication,
+        Persona,
+        PersonaBigFive,
+        PersonaCommunication,
+        PersonaDISC,
+        PersonaEnneagram,
     )
 
     # Start from existing data so partial-update bodies don't wipe fields.
@@ -2053,7 +2090,11 @@ def persona_create(body: dict):
         return {"error": "Persona manager unavailable"}
 
     from core.personas.schema import (
-        Persona, PersonaDISC, PersonaEnneagram, PersonaBigFive, PersonaCommunication,
+        Persona,
+        PersonaBigFive,
+        PersonaCommunication,
+        PersonaDISC,
+        PersonaEnneagram,
     )
 
     # Generate ID from name
@@ -2098,7 +2139,7 @@ def persona_create(body: dict):
 
 
 @app.post("/api/personas/{persona_id}/clone")
-def persona_clone(persona_id: str, body: dict = {}):
+def persona_clone(persona_id: str, body: dict | None = None):
     mgr = _get_persona_manager()
     if not mgr:
         return {"error": "Persona manager unavailable"}
@@ -2107,11 +2148,16 @@ def persona_clone(persona_id: str, body: dict = {}):
     tier = body.get("tier", 2)
     agents_dir = ARKAOS_ROOT / "departments" / department / "agents"
 
-    agent_id = mgr.clone_to_agent(persona_id, department=department, tier=tier, agents_dir=str(agents_dir))
+    agent_id = mgr.clone_to_agent(
+        persona_id, department=department, tier=tier, agents_dir=str(agents_dir)
+    )
     if not agent_id:
         return {"error": "Persona not found"}
 
-    return {"agent_id": agent_id, "department": department, "file": f"departments/{department}/agents/{agent_id}.yaml"}
+    return {
+        "agent_id": agent_id, "department": department,
+        "file": f"departments/{department}/agents/{agent_id}.yaml",
+    }
 
 
 @app.post("/api/agents/{agent_id}/move")
@@ -2213,7 +2259,7 @@ def agent_delete(agent_id: str):
     }
 
 
-def _resolve_agent_yaml(agent_id: str) -> Optional[Path]:
+def _resolve_agent_yaml(agent_id: str) -> Path | None:
     # 1. Check the cached registry first.
     for a in _load_agents():
         if a.get("id") == agent_id:
@@ -2280,7 +2326,7 @@ def agent_export_to_vault(agent_id: str):
             AgentExportError,
             export_agent_to_vault,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"error": f"export module unavailable: {exc}"}
     try:
         res = export_agent_to_vault(detail)
@@ -2317,10 +2363,8 @@ def agents_suggestions(limit: int = 6):
             continue
         row = by_dept.setdefault(dept, {"count": 0, "tiers": set()})
         row["count"] += 1
-        try:
+        with contextlib.suppress(TypeError, ValueError):
             row["tiers"].add(int(a.get("tier") or 99))
-        except (TypeError, ValueError):
-            pass
 
     suggestions: list[dict] = []
     for dept in _KNOWN_DEPARTMENTS:
@@ -2385,7 +2429,7 @@ def departments_list():
             if isinstance(cost, (int, float)):
                 bucket["cost_usd_30d"] += float(cost)
                 bucket["any_cost_known"] = True
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     out: list[dict] = []
     for dept in sorted(by_dept.keys()):
@@ -2431,7 +2475,7 @@ def department_merge(src: str, dst: str):
     for path in sorted(src_dir.glob("*.yaml")):
         try:
             raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:  # noqa: BLE001
+        except Exception:
             continue
         if isinstance(raw, dict) and raw.get("id"):
             source_ids.append(str(raw["id"]))
@@ -2489,8 +2533,8 @@ def department_activity_sparkline(dept_id: str, days: int = 30):
     except Exception:
         return {"days": []}
 
-    from datetime import datetime, timedelta, timezone
-    today = datetime.now(timezone.utc).date()
+    from datetime import datetime, timedelta
+    today = datetime.now(UTC).date()
     buckets: dict[str, dict] = {}
     for offset in range(capped_days):
         d = today - timedelta(days=capped_days - 1 - offset)
@@ -2553,7 +2597,7 @@ def department_detail(dept_id: str):
             for path in sorted(wf_dir.glob("*.yaml")):
                 try:
                     raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-                except Exception:  # noqa: BLE001
+                except Exception:
                     raw = {}
                 if not isinstance(raw, dict):
                     continue
@@ -2567,7 +2611,7 @@ def department_detail(dept_id: str):
     except ImportError:
         pass
     calls_30d = 0
-    cost_usd_30d: Optional[float] = None
+    cost_usd_30d: float | None = None
     try:
         from core.runtime.llm_cost_telemetry import summarise
         s = summarise(period="month")
@@ -2584,7 +2628,7 @@ def department_detail(dept_id: str):
                     total_cost += float(cost)
                     any_known = True
         cost_usd_30d = round(total_cost, 6) if any_known else None
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     return {
         "department": dept_id,
@@ -2664,7 +2708,7 @@ def workflow_runs(workflow_id: str, limit: int = 20):
     return {"runs": runs[: max(0, int(limit))]}
 
 
-def _iso_duration_s(start_iso: str, end_iso: str) -> Optional[int]:
+def _iso_duration_s(start_iso: str, end_iso: str) -> int | None:
     if not start_iso or not end_iso:
         return None
     try:
@@ -2699,7 +2743,7 @@ def workflow_update_yaml(workflow_id: str, body: dict):
     try:
         import yaml as _yaml
         parsed = _yaml.safe_load(content)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"error": f"YAML parse failed: {exc}"}
     if not isinstance(parsed, dict):
         return {"error": "YAML root must be a mapping"}
@@ -2723,12 +2767,12 @@ def workflow_update_yaml(workflow_id: str, body: dict):
 
 def _dreams_dir():
     """Resolve the Dreams folder from the user's vault, or None."""
-    from core.runtime.path_resolver import load_profile, ProfileMissingError
+    from core.runtime.path_resolver import ProfileMissingError, load_profile
     try:
         profile = load_profile()
     except ProfileMissingError:
         return None
-    except Exception:  # noqa: BLE001 — never break the endpoint on profile errors
+    except Exception:
         return None
     vault = getattr(profile, "vault_path", None)
     return (Path(vault) / "Projects" / "ArkaOS" / "Dreams") if vault else None
@@ -2820,7 +2864,7 @@ def _npm_latest_version():
             capture_output=True, text=True, timeout=20,
         )
         latest = (out.stdout or "").strip() or None
-    except Exception:  # noqa: BLE001
+    except Exception:
         latest = None
     if latest:
         _npm_latest_cache["version"] = latest
@@ -2835,7 +2879,7 @@ def _is_newer(latest: str, current: str) -> bool:
         return nums or [0]
     try:
         return _parts(latest) > _parts(current)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
 
 
@@ -2848,7 +2892,7 @@ def _run_core_update() -> dict:
         )
         tail = ((out.stdout or "") + (out.stderr or ""))[-2000:]
         return {"ok": out.returncode == 0, "output": tail}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"ok": False, "output": f"update failed: {exc}"}
 
 
@@ -2891,7 +2935,6 @@ def system_update(request: Request):
 # ============================================================================
 
 
-import re as _terminal_re
 
 
 def _terminal_origin_ok(origin: str) -> bool:
@@ -2899,13 +2942,16 @@ def _terminal_origin_ok(origin: str) -> bool:
     if not origin:
         return False
     return bool(
-        _terminal_re.match(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$", origin)
+        re.match(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$", origin)
     )
 
 
 # v3.71.1 — enforce a single live WebSocket per session (latest wins), so a
 # reload or a second tab can't fight over the one PTY fd reader.
-from core.terminal.connections import ConnectionRegistry as _TerminalConnRegistry
+from core.terminal.connections import (  # noqa: E402 — needs sys.path above
+    ConnectionRegistry as _TerminalConnRegistry,
+)
+
 _terminal_conns = _TerminalConnRegistry()
 
 
@@ -2935,8 +2981,8 @@ def terminal_sessions_list():
 
 @app.post("/api/terminal/sessions")
 def terminal_sessions_create(body: dict):
-    from core.terminal.session import default_manager, SessionCapacityError
     from core.terminal import token as _token_mod
+    from core.terminal.session import SessionCapacityError, default_manager
     body = body if isinstance(body, dict) else {}
     cwd = body.get("cwd")
     shell = body.get("shell")
@@ -2947,7 +2993,7 @@ def terminal_sessions_create(body: dict):
         s = mgr.create(shell=shell, cwd=cwd, cols=cols, rows=rows)
     except SessionCapacityError as exc:
         from fastapi import HTTPException
-        raise HTTPException(status_code=429, detail=str(exc))
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     return {
         "session_id": s.session_id,
         "shell": s.shell,
@@ -2998,10 +3044,10 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
     # close so it stops pumping the shared PTY fd.
     superseded = _terminal_conns.acquire(session_id, ws)
     if superseded is not None:
-        try:
-            await superseded.close(code=4409, reason="superseded by a newer connection")
-        except Exception:
-            pass
+        with contextlib.suppress(Exception):
+            await superseded.close(
+                code=4409, reason="superseded by a newer connection"
+            )
 
     # v3.71.0 — replay recent scrollback so a client reconnecting after
     # the operator navigated away / reloaded restores its session as it
@@ -3097,10 +3143,8 @@ async def ws_terminal(ws: WebSocket, session_id: str, token: str = Query("")):
         # connection tearing down must not detach its replacement's reader.
         if _terminal_conns.release(session_id, ws):
             if use_fd_reader:
-                try:
+                with contextlib.suppress(ValueError, OSError):
                     loop.remove_reader(session.master_fd)
-                except (ValueError, OSError):
-                    pass
             else:
                 session.set_listener(None)
 
@@ -3120,7 +3164,9 @@ async def _terminal_reaper_startup():
                 break
             except Exception:
                 continue
-    asyncio.create_task(_loop())
+    # Reference kept so the pump task is never garbage-collected mid-flight.
+    global _ws_pump_task
+    _ws_pump_task = asyncio.create_task(_loop())
 
 
 def _resolve_workflow_yaml(workflow_id: str):
@@ -3135,13 +3181,180 @@ def _resolve_workflow_yaml(workflow_id: str):
     for path in dept_root.glob("*/workflows/*.yaml"):
         try:
             raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:  # noqa: BLE001
+        except Exception:
             continue
         if not isinstance(raw, dict):
             continue
         if str(raw.get("id") or path.stem) == workflow_id:
             return path
     return None
+
+
+# ─── Forge plans (plan-canvas) ──────────────────────────────────────────
+
+# Forge ids are generator-produced slugs; the allowlist is the path-
+# traversal guard (load_plan builds the filesystem path from the id).
+# "active" is the pointer file, not a plan.
+_PLAN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
+_PLAN_DECIDABLE = {"draft", "reviewing"}
+
+
+def _load_plan_safe(plan_id: str):
+    """Validated, exception-safe plan load for the API surface."""
+    if not _PLAN_ID_RE.match(plan_id) or plan_id == "active":
+        return None
+    try:
+        from core.forge.persistence import load_plan
+        return load_plan(plan_id)
+    except Exception:
+        return None
+
+
+@app.get("/api/plans")
+def plans_list():
+    """Forge plan summaries + the active plan pointer."""
+    try:
+        from core.forge.persistence import get_active_plan, list_plans
+        active = get_active_plan()
+        return {
+            "plans": list_plans(),
+            "active_id": active.id if active else None,
+        }
+    except Exception as exc:
+        return {"plans": [], "active_id": None, "error": str(exc)}
+
+
+_PLAN_STATUSES = {
+    "draft", "reviewing", "approved", "executing", "completed",
+    "rejected", "cancelled", "archived",
+}
+
+
+def _legacy_plan_payload(data: dict) -> dict:
+    """Normalize a pre-schema plan YAML into the review-pane shape.
+
+    Operator plan files predate the ForgePlan schema (hand-written
+    title/date/phases). They are shown read-only — a decision requires
+    the modern schema to persist.
+    """
+    status = str(data.get("status") or "draft")
+    phases = []
+    for raw_phase in data.get("phases") or data.get("plan_phases") or []:
+        if isinstance(raw_phase, dict) and raw_phase.get("name"):
+            phases.append({
+                "name": str(raw_phase.get("name")),
+                "department": str(raw_phase.get("department") or ""),
+                "agents": [], "depends_on": [],
+                "deliverables": [
+                    str(d) for d in raw_phase.get("deliverables") or []
+                ],
+                "acceptance_criteria": [
+                    str(a) for a in raw_phase.get("acceptance_criteria") or []
+                ],
+            })
+        elif isinstance(raw_phase, str):
+            phases.append({
+                "name": raw_phase, "department": "", "agents": [],
+                "deliverables": [], "acceptance_criteria": [],
+                "depends_on": [],
+            })
+    return {
+        "id": str(data.get("id") or ""),
+        "name": str(data.get("name") or data.get("title") or ""),
+        "created_at": str(data.get("created_at") or data.get("date") or ""),
+        "forged_by": str(data.get("forged_by") or ""),
+        "goal": str(data.get("goal") or data.get("note") or ""),
+        "status": status if status in _PLAN_STATUSES else "draft",
+        "approved_at": None, "approved_by": None,
+        "rejected_at": None, "rejected_by": None,
+        "executed_at": None, "review_note": None,
+        "plan_phases": phases,
+        "complexity": {"score": 0, "tier": str(data.get("tier") or "")},
+        "critic": {"confidence": 0.0, "risks": [], "rejected_elements": []},
+        "governance": {
+            "constitution_check": "unknown", "violations": [],
+            "quality_gate_required": True,
+        },
+        "execution_path": {"type": "", "target": "", "departments": []},
+        "degraded": False,
+    }
+
+
+@app.get("/api/plans/{plan_id}")
+def plan_detail(plan_id: str):
+    """Full ForgePlan payload; legacy shapes are normalized read-only."""
+    plan = _load_plan_safe(plan_id)
+    if plan is not None:
+        return {"plan": plan.model_dump(mode="json"), "legacy": False}
+    if not _PLAN_ID_RE.match(plan_id) or plan_id == "active":
+        return {"error": "plan not found"}
+    try:
+        import yaml as _yaml
+
+        from core.forge.persistence import _plans_dir
+        path = _plans_dir() / f"{plan_id}.yaml"
+        data = _yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"error": "plan not found"}
+    if not isinstance(data, dict):
+        return {"error": "plan not found"}
+    return {"plan": _legacy_plan_payload(data), "legacy": True}
+
+
+@app.post("/api/plans/{plan_id}/decision")
+def plan_decision(plan_id: str, body: dict):
+    """Operator decision from the plan-canvas: approve or reject.
+
+    Body: ``{"action": "approve"|"reject", "note": "..."}``. Only
+    draft/reviewing plans are decidable — terminal or in-flight
+    statuses return an error instead of silently rewriting history.
+    """
+    if not isinstance(body, dict):
+        return {"error": "body must be an object"}
+    action = str(body.get("action") or "")
+    if action not in ("approve", "reject"):
+        return {"error": "action must be 'approve' or 'reject'"}
+    from datetime import datetime
+
+    from core.forge.persistence import save_plan
+    from core.forge.schema import ForgeStatus
+    plan = _load_plan_safe(plan_id)
+    if plan is None:
+        # Legacy shapes surface read-only in the detail pane but cannot
+        # be decided — persisting requires the modern schema.
+        return {"error": "plan not found or legacy (read-only)"}
+    if plan.status.value not in _PLAN_DECIDABLE:
+        return {"error": f"plan is '{plan.status.value}' — not decidable"}
+    note = str(body.get("note") or "").strip()
+    if note:
+        plan.review_note = note[:2000]
+    now = datetime.now(UTC).isoformat()
+    if action == "approve":
+        plan.status = ForgeStatus.APPROVED
+        plan.approved_at = now
+        plan.approved_by = "operator:plan-canvas"
+    else:
+        plan.status = ForgeStatus.REJECTED
+        plan.rejected_at = now
+        plan.rejected_by = "operator:plan-canvas"
+    save_plan(plan)
+    return {
+        "id": plan.id,
+        "status": plan.status.value,
+        "approved_at": plan.approved_at,
+        "rejected_at": plan.rejected_at,
+        "review_note": plan.review_note,
+    }
+
+
+@app.get("/api/gates")
+def gates_state():
+    """Current session gate progress (G1-G4) for the live strip."""
+    try:
+        from core.workflow.state import get_state
+        return {"state": get_state() or None}
+    except Exception as exc:
+        return {"state": None, "error": str(exc)}
 
 
 @app.get("/api/workflows")
@@ -3162,7 +3375,7 @@ def workflows_list():
             continue
         try:
             raw = _yaml.safe_load(content) or {}
-        except Exception:  # noqa: BLE001
+        except Exception:
             raw = {}
         if not isinstance(raw, dict):
             continue
@@ -3445,7 +3658,7 @@ def personas_import(body: dict):
             mgr.create(persona)
             imported += 1
             results.append({"filename": filename, "status": "ok", "id": persona.id})
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             failed += 1
             results.append({"filename": filename, "status": "failed", "error": str(exc)})
 
@@ -3593,7 +3806,7 @@ def overview_command_center():
 def _top_departments_by_cost(period: str = "month", top_n: int = 5) -> list[dict]:
     """Top-N departments ranked by LLM spend over the period."""
     try:
-        from core.runtime.llm_cost_telemetry import summarise, VALID_PERIODS
+        from core.runtime.llm_cost_telemetry import VALID_PERIODS, summarise
     except Exception:
         return []
     if period not in VALID_PERIODS:
@@ -3652,7 +3865,6 @@ def _scan_projects(projects_dirs: list[str]) -> list[dict]:
     Best-effort: never raises. Returns an empty list when descriptors
     or scan directories are missing.
     """
-    from datetime import datetime, timezone
     descriptor_dir = Path.home() / ".arkaos" / "projects"
     if not descriptor_dir.exists():
         return []
@@ -3711,7 +3923,7 @@ def _parse_descriptor(path: Path) -> dict:
     }
 
 
-def _last_commit_days(project_path: str) -> Optional[int]:
+def _last_commit_days(project_path: str) -> int | None:
     """Return days since the last git commit, or None when unknown."""
     import os
     if not project_path or not os.path.isdir(project_path):
@@ -3720,15 +3932,15 @@ def _last_commit_days(project_path: str) -> Optional[int]:
     if not os.path.exists(git_dir):
         return None
     try:
-        from datetime import datetime, timezone
+        from datetime import datetime
         result = subprocess.run(
             ["git", "-C", project_path, "log", "-1", "--format=%ct"],
             capture_output=True, text=True, timeout=3, check=False,
         )
         if result.returncode != 0 or not result.stdout.strip():
             return None
-        committed_at = datetime.fromtimestamp(int(result.stdout.strip()), tz=timezone.utc)
-        delta = datetime.now(timezone.utc) - committed_at
+        committed_at = datetime.fromtimestamp(int(result.stdout.strip()), tz=UTC)
+        delta = datetime.now(UTC) - committed_at
         return max(0, delta.days)
     except (OSError, ValueError, subprocess.TimeoutExpired):
         return None
@@ -3737,8 +3949,8 @@ def _last_commit_days(project_path: str) -> Optional[int]:
 @app.get("/api/audit")
 def audit_log(
     limit: int = 100,
-    kind: Optional[str] = None,
-    tool: Optional[str] = None,
+    kind: str | None = None,
+    tool: str | None = None,
 ):
     """PR90d v3.34.0 — paginated audit log of bypass/block events.
 
@@ -3840,7 +4052,7 @@ def llm_costs(period: str = "today"):
     /api/budget tokens-only view.
     """
     try:
-        from core.runtime.llm_cost_telemetry import summarise, VALID_PERIODS
+        from core.runtime.llm_cost_telemetry import VALID_PERIODS, summarise
     except Exception as exc:  # pragma: no cover - import guard
         return {"error": f"telemetry unavailable: {exc}"}
     if period not in VALID_PERIODS:
@@ -3922,7 +4134,8 @@ def llm_costs_trend(days: int = 7):
     Budget page can render a 7-day trend chart with @unovis/vue.
     Cap `days` to 90 to keep response size bounded.
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
+
     from core.runtime.llm_cost_telemetry import read_entries
     # `days or 7` would treat 0 as "use default", which contradicts the
     # documented floor-at-1 behaviour. Cast first, then clamp.
@@ -3931,7 +4144,7 @@ def llm_costs_trend(days: int = 7):
     except (TypeError, ValueError):
         days_int = 7
     capped_days = max(1, min(days_int, 90))
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     buckets: dict[str, dict] = {}
     # Seed every day so the chart shows zeros instead of gaps.
     for offset in range(capped_days):
@@ -4301,7 +4514,6 @@ def agent_create(body: dict):
 
 
 def _do_agent_create(body: dict) -> dict:
-    import re
     import uuid
 
     name = (body.get("name") or "").strip()

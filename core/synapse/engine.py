@@ -13,8 +13,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.synapse.layers import Layer, LayerResult, PromptContext
 from core.synapse.cache import LayerCache
+from core.synapse.layers import Layer, LayerResult, PromptContext
 
 
 @dataclass
@@ -27,6 +27,12 @@ class SynapseResult:
     total_tokens_est: int  # Estimated total tokens injected
     cache_stats: dict  # Cache hit/miss statistics
     layers_skipped: int  # Layers that returned empty results
+    # Full-text blocks from layers whose content is richer than their tag
+    # (L2.5 KB context, graph context). Kept separate from context_string so
+    # the compact tag line stays compact; the hook appends these after it.
+    # Before this existed, LayerResult.content had NO consumer — every block a
+    # layer built was discarded while its tag still advertised the injection.
+    content_blocks: list[str] = field(default_factory=list)
 
 
 class SynapseEngine:
@@ -44,11 +50,11 @@ class SynapseEngine:
     def register_layer(self, layer: Layer) -> None:
         """Register a context layer. Layers execute in priority order."""
         self._layers.append(layer)
-        self._layers.sort(key=lambda l: l.priority)
+        self._layers.sort(key=lambda x: x.priority)
 
     def remove_layer(self, layer_id: str) -> None:
         """Remove a layer by ID."""
-        self._layers = [l for l in self._layers if l.id != layer_id]
+        self._layers = [x for x in self._layers if x.id != layer_id]
 
     def get_layer(self, layer_id: str) -> Layer | None:
         """Get a layer by ID."""
@@ -70,16 +76,28 @@ class SynapseEngine:
         results: list[LayerResult] = []
         skipped = 0
 
+        block_layers: set[str] = set()
         for layer in self._layers:
             result = self._compute_layer(layer, ctx)
             if result.tag or result.content:
                 results.append(result)
+                if layer.emits_block:
+                    block_layers.add(layer.id)
             else:
                 skipped += 1
 
         # Combine all layer tags into a single context string
         tags = [r.tag for r in results if r.tag]
         context_string = " ".join(tags)
+
+        # Full-text blocks — OPT-IN via Layer.emits_block. Collecting on
+        # `content != tag` instead swept up every layer whose content is its
+        # tag's value ("dev", "active", "feat/plan-canvas"), injecting stray
+        # unlabeled lines into every prompt for zero added information.
+        content_blocks = [
+            r.content for r in results
+            if r.content and r.layer_id in block_layers
+        ]
 
         total_tokens = sum(r.tokens_est for r in results)
         total_ms = int((time.time() - start) * 1000)
@@ -105,6 +123,7 @@ class SynapseEngine:
             total_tokens_est=total_tokens,
             cache_stats=self._cache.stats,
             layers_skipped=skipped,
+            content_blocks=content_blocks,
         )
 
     def _compute_layer(self, layer: Layer, ctx: PromptContext) -> LayerResult:
@@ -125,15 +144,23 @@ class SynapseEngine:
             session_id = (ctx.extra or {}).get("session_id", "default")
             cache_key += f":{session_id}"
 
-        # Check cache
+        # Check cache. The stored value is `tag` alone, or `tag\x00content`
+        # whenever content differs from tag: replaying the tag as the content
+        # would feed a marker to the model in place of what it advertises.
+        # This condition is deliberately WIDER than `emits_block` — the cache
+        # round-trips content faithfully for every layer (AgentLayer stores
+        # `[agent:x disc:y]\x00x` and is no block at all); only the block
+        # channel in inject() is opt-in.
         if layer.cache_ttl > 0:
             cached = self._cache.get(cache_key)
             if cached is not None:
+                tag, _, content = cached.partition("\x00")
+                content = content or tag
                 return LayerResult(
                     layer_id=layer.id,
-                    tag=cached,
-                    content=cached,
-                    tokens_est=len(cached.split()),
+                    tag=tag,
+                    content=content,
+                    tokens_est=len(content.split()),
                     compute_ms=0,
                     cached=True,
                 )
@@ -143,7 +170,10 @@ class SynapseEngine:
 
         # Cache if TTL > 0 and result is non-empty
         if layer.cache_ttl > 0 and result.tag:
-            self._cache.set(cache_key, result.tag, layer.cache_ttl)
+            stored = result.tag
+            if result.content and result.content != result.tag:
+                stored = f"{result.tag}\x00{result.content}"
+            self._cache.set(cache_key, stored, layer.cache_ttl)
 
         return result
 
@@ -188,21 +218,21 @@ def create_default_engine(
     Returns:
         Configured SynapseEngine ready to use.
     """
-    from core.synapse.layers import (
-        ConstitutionLayer,
-        DepartmentLayer,
-        AgentLayer,
-        ProjectLayer,
-        BranchLayer,
-        CommandHintsLayer,
-        QualityGateLayer,
-        KnowledgeRetrievalLayer,
-        KBContextLayer,
-        ForgeContextLayer,
-        SessionContextLayer,
-    )
     from core.synapse.agent_experiences_layer import AgentExperiencesLayer
     from core.synapse.graph_context_layer import GraphContextLayer
+    from core.synapse.layers import (
+        AgentLayer,
+        BranchLayer,
+        CommandHintsLayer,
+        ConstitutionLayer,
+        DepartmentLayer,
+        ForgeContextLayer,
+        KBContextLayer,
+        KnowledgeRetrievalLayer,
+        ProjectLayer,
+        QualityGateLayer,
+        SessionContextLayer,
+    )
     from core.synapse.pattern_library_layer import PatternLibraryLayer
     from core.synapse.recipe_layer import RecipeLayer
     from core.synapse.routing_feedback_layer import RoutingFeedbackLayer

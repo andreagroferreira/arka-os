@@ -81,6 +81,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Plan Canvas',
+  icon: 'i-lucide-drafting-compass',
+  to: '/plan-canvas',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Knowledge',
   icon: 'i-lucide-brain',
   to: '/knowledge',

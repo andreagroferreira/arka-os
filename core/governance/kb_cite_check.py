@@ -20,6 +20,15 @@ from dataclasses import dataclass
 
 _WIKILINK_PATTERN: re.Pattern[str] = re.compile(r"\[\[([^\[\]]+)\]\]")
 _KNOWLEDGE_PATTERN: re.Pattern[str] = re.compile(r"\[knowledge:", re.IGNORECASE)
+# Graphify knowledge-graph citation: the `[graph:` marker ONLY (parallel to
+# `[knowledge:`), which stands for a node actually returned by the graph.
+# The tool NAME is deliberately excluded: naming a tool is narration, not
+# evidence, and the literal `mcp__graphify__query_graph` appears in the
+# KB-first pointer of every migrated SKILL.md — crediting it would let any
+# response that merely echoes the doctrine self-certify. Same asymmetry as
+# `mcp__obsidian`, which is a topic keyword and earns credit only via a real
+# `[[wikilink]]`.
+_GRAPHIFY_PATTERN: re.Pattern[str] = re.compile(r"\[graph:", re.IGNORECASE)
 # File:line — requires at least one path separator. Quantifiers are bounded
 # to prevent catastrophic backtracking on pathological input (PR18 security
 # review: unbounded variant blew past Stop's 5s budget by ~8x on 100KB of
@@ -41,8 +50,8 @@ _ARKAOS_KEYWORDS: frozenset[str] = frozenset({
     "ines", "rafael", "beatriz", "miguel", "rodrigo",
     "non-negotiable", "tier 0", "squad lead",
     "core/governance", "core/synapse", "core/cognition",
-    "core/workflow", "mcp__obsidian", "kb-first",
-    "departments/", "agent yaml", "obsidian vault",
+    "core/workflow", "mcp__obsidian", "mcp__graphify", "kb-first",
+    "departments/", "agent yaml", "obsidian vault", "graphify",
 })
 
 _BYPASS_DEFAULTS: tuple[str, ...] = ("[arka:trivial]",)
@@ -50,8 +59,8 @@ _TRIVIAL_WORD_THRESHOLD: int = 15
 _TOPIC_THRESHOLD: float = 0.4
 _SUGGESTION_TEXT: str = (
     "KB-first — last response had no citation on ArkaOS topic. "
-    "Use @[[note-name]], /kb search, or mcp__obsidian__search_notes "
-    "to ground the next answer."
+    "Use @[[note-name]], /kb search, mcp__obsidian__search_notes, or "
+    "mcp__graphify__query_graph to ground the next answer."
 )
 
 
@@ -111,13 +120,14 @@ def _is_trivial_length(text: str) -> bool:
 def _count_citations(text: str) -> int:
     # Truncate to _MAX_SCAN_CHARS first; the file-line regex is the only
     # backtracking-prone pattern and the bounded quantifiers (capped at 8
-    # segments × 64 chars each) combined with this slice make all three
+    # segments x 64 chars each) combined with this slice make all three
     # patterns safe to run unconditionally below.
     scan = text if len(text) <= _MAX_SCAN_CHARS else text[:_MAX_SCAN_CHARS]
     wikilinks = len(_WIKILINK_PATTERN.findall(scan))
     knowledge = 1 if _KNOWLEDGE_PATTERN.search(scan) else 0
+    graphify = 1 if _GRAPHIFY_PATTERN.search(scan) else 0
     files = len(_FILE_LINE_PATTERN.findall(scan))
-    return wikilinks + knowledge + files
+    return wikilinks + knowledge + graphify + files
 
 
 def _compute_topic_score(text: str, keywords: frozenset[str]) -> float:

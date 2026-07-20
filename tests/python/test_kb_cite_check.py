@@ -17,7 +17,6 @@ from core.governance.kb_cite_check import (
     check_citation,
 )
 
-
 # ─── Citation present (pass cases) ──────────────────────────────────────
 
 
@@ -38,6 +37,30 @@ class TestCitationPresent:
             "Based on [knowledge: 3 chunks] from the vault, "
             "the Synapse L2.5 layer already injects KB context "
             "in user-prompt-submit."
+        )
+        result = check_citation(text)
+        assert result.passed is True
+        assert result.reason == "cited"
+
+    def test_graphify_tool_name_alone_is_not_a_citation(self):
+        """Naming the tool is narration, not evidence.
+
+        QG blocker (redo 1): crediting `mcp__graphify__*` let a response
+        self-certify by echoing the KB-first pointer, which carries that
+        literal in every migrated SKILL.md. Only a returned node counts.
+        """
+        text = (
+            "Consulted the knowledge graph: mcp__graphify__query_graph "
+            "surfaced the ArkaOS community and its god nodes. "
+            "The Synapse layers connect to Marta's Quality Gate."
+        )
+        result = check_citation(text)
+        assert result.citation_count == 0, "tool name must not earn citation credit"
+
+    def test_graphify_marker_citation_passes(self):
+        text = (
+            "Per the ArkaOS constitution, [graph: AIOX->LusoLink] shows "
+            "the strategy linkage. Quality Gate and Synapse both apply here."
         )
         result = check_citation(text)
         assert result.passed is True

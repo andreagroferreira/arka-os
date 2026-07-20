@@ -6,23 +6,21 @@ structured ForgePlan that downstream agents consume.
 """
 
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
-
 
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
 
-class ForgeTier(str, Enum):
+class ForgeTier(str, Enum):  # noqa: UP042 — StrEnum flips str()/format(); migration is its own change
     """Execution tier determined by complexity score."""
     SHALLOW = "shallow"
     STANDARD = "standard"
     DEEP = "deep"
 
 
-class ForgeStatus(str, Enum):
+class ForgeStatus(str, Enum):  # noqa: UP042 — StrEnum flips str()/format(); migration is its own change
     """Lifecycle status of a ForgePlan."""
     DRAFT = "draft"
     REVIEWING = "reviewing"
@@ -34,21 +32,21 @@ class ForgeStatus(str, Enum):
     ARCHIVED = "archived"
 
 
-class ExplorerLens(str, Enum):
+class ExplorerLens(str, Enum):  # noqa: UP042 — StrEnum flips str()/format(); migration is its own change
     """The analytical perspective used when exploring a plan."""
     PRAGMATIC = "pragmatic"          # Focus on fastest viable path
     ARCHITECTURAL = "architectural"  # Focus on long-term design health
     CONTRARIAN = "contrarian"        # Challenge assumptions, surface risks
 
 
-class RiskSeverity(str, Enum):
+class RiskSeverity(str, Enum):  # noqa: UP042 — StrEnum flips str()/format(); migration is its own change
     """Severity level for identified risks."""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
 
 
-class ExecutionPathType(str, Enum):
+class ExecutionPathType(str, Enum):  # noqa: UP042 — StrEnum flips str()/format(); migration is its own change
     """Type of execution artefact that fulfils a plan step."""
     SKILL = "skill"
     WORKFLOW = "workflow"
@@ -60,12 +58,22 @@ class ExecutionPathType(str, Enum):
 # ---------------------------------------------------------------------------
 
 class ComplexityDimensions(BaseModel):
-    """Five-axis complexity breakdown, each scored 0–100."""
+    """Five-axis complexity breakdown, each scored 0-100."""
 
-    scope: int = Field(default=0, description="Breadth of change across the codebase or system.")
-    dependencies: int = Field(default=0, description="Number and criticality of upstream/downstream dependencies.")
-    ambiguity: int = Field(default=0, description="How unclear or under-specified the requirements are.")
-    risk: int = Field(default=0, description="Potential for breakage, data loss, or security impact.")
+    scope: int = Field(
+        default=0, description="Breadth of change across the codebase or system."
+    )
+    dependencies: int = Field(
+        default=0,
+        description="Number and criticality of upstream/downstream dependencies.",
+    )
+    ambiguity: int = Field(
+        default=0, description="How unclear or under-specified the requirements are."
+    )
+    risk: int = Field(
+        default=0,
+        description="Potential for breakage, data loss, or security impact.",
+    )
     novelty: int = Field(default=0, description="How unlike existing patterns this work is.")
 
     @field_validator("scope", "dependencies", "ambiguity", "risk", "novelty", mode="before")
@@ -78,14 +86,19 @@ class ComplexityDimensions(BaseModel):
 class ComplexityScore(BaseModel):
     """Aggregated complexity result produced by the Complexity Scorer."""
 
-    score: int = Field(default=0, description="Composite 0–100 score derived from all dimensions.")
-    tier: ForgeTier = Field(default=ForgeTier.SHALLOW, description="Execution tier selected based on the composite score.")
-    dimensions: ComplexityDimensions = Field(default_factory=ComplexityDimensions, description="Per-dimension breakdown.")
-    similar_plans: List[str] = Field(
+    score: int = Field(default=0, description="Composite 0-100 score derived from all dimensions.")
+    tier: ForgeTier = Field(
+        default=ForgeTier.SHALLOW,
+        description="Execution tier selected based on the composite score.",
+    )
+    dimensions: ComplexityDimensions = Field(
+        default_factory=ComplexityDimensions, description="Per-dimension breakdown."
+    )
+    similar_plans: list[str] = Field(
         default_factory=list,
         description="IDs of previously completed plans with similar profiles.",
     )
-    reused_patterns: List[str] = Field(
+    reused_patterns: list[str] = Field(
         default_factory=list,
         description="Named patterns from the ArkaOS pattern library reused in this plan.",
     )
@@ -213,13 +226,23 @@ class ForgePlan(BaseModel):
             "contains only constitution-enforced phases and confidence is 0.0."
         ),
     )
-    dispatch_errors: List[str] = Field(
+    dispatch_errors: list[str] = Field(
         default_factory=list,
         description="Dispatch failures collected during forge (lens: error class: message).",
     )
 
     status: ForgeStatus = ForgeStatus.DRAFT
-    approved_at: Optional[str] = None
-    approved_by: Optional[str] = None
-    executed_at: Optional[str] = None
-    completion_notes: Optional[str] = None
+    approved_at: str | None = None
+    approved_by: str | None = None
+    rejected_at: str | None = None
+    rejected_by: str | None = None
+    executed_at: str | None = None
+    completion_notes: str | None = None
+    review_note: str | None = Field(
+        default=None,
+        description=(
+            "Operator note attached at decision time (plan-canvas review) "
+            "— the 'ponto-e-anota' trail; distinct from completion_notes, "
+            "which belongs to execution."
+        ),
+    )

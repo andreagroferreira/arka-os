@@ -403,21 +403,21 @@
         "HIGGSFIELD_API_KEY"
       ]
     },
-    "graphify": {
-      "command": "graphify",
-      "args": [
-        ".",
-        "--mcp"
-      ],
-      "category": "grounding",
-      "description": "Graphify code knowledge graph over stdio — grounds answers in graphify-out/graph.json (EXTRACTED/INFERRED confidence + source locations). Local/free tree-sitter extraction. Requires the graphify CLI (uv tool install graphifyy). OPT-IN — add per-project: apply-mcps.sh --add graphify"
-    },
     "codebase-memory": {
       "command": "codebase-memory-mcp",
       "args": [],
       "category": "grounding-code",
       "requires_binary": "codebase-memory-mcp",
       "description": "Codebase knowledge graph over stdio (SQLite, tree-sitter, Cypher) — index_repository/search_graph/trace_path/get_architecture ground complex-code work in real structure. Requires the codebase-memory-mcp binary (install script in the project README: github.com/DeusData/codebase-memory-mcp). Skipped gracefully by the sync when the binary is absent."
+    },
+    "graphify-code": {
+      "command": "graphify",
+      "args": [
+        ".",
+        "--mcp"
+      ],
+      "category": "grounding",
+      "description": "Graphify LOCAL code knowledge graph over stdio — grounds answers in graphify-out/graph.json (EXTRACTED/INFERRED confidence + source locations). Local/free tree-sitter extraction. Requires the graphify CLI (uv tool install graphifyy). OPT-IN per-project: apply-mcps.sh --add graphify-code. NAMED graphify-code, never 'graphify': the always-on knowledge-GRAPH server is registered at USER scope as 'graphify' by installer/graphify.js, and a project-scope MCP of the same name would shadow it. Endpoint for that one is per-user (knowledge.graphify in config.json + GRAPHIFY_TOKEN in keys.json)."
     }
   }
 }

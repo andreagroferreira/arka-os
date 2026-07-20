@@ -511,7 +511,7 @@ export async function update({ skillsFlag = "" } = {}) {
   // Graphify grounding layer — same wiring as installer/index.js. Best
   // effort: `npx arkaos update` never fails because of Graphify.
   try {
-    const { ensureGraphify } = await import("./graphify.js");
+    const { ensureGraphify, configureGraphifyHttp } = await import("./graphify.js");
     const gf = ensureGraphify();
     if (gf.binary?.installed) {
       console.log(`         ✓ Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}`);
@@ -522,6 +522,13 @@ export async function update({ skillsFlag = "" } = {}) {
       }
     } else if (gf.binary?.hint) {
       console.log(`         ⚠ ${gf.binary.hint}`);
+    }
+    // Graphify HTTP knowledge-graph MCP (user-scope, config-driven endpoint).
+    const gh = await configureGraphifyHttp({ runtime: toolingRuntime });
+    if (gh.action === "registered" || gh.action === "re-registered") {
+      console.log(`         ✓ Graphify knowledge-graph MCP ${gh.action} (user scope)`);
+    } else if (gh.action === "failed") {
+      console.log(`         ⚠ Graphify knowledge-graph MCP not registered (${gh.reason})`);
     }
   } catch (err) {
     console.log(`         ⚠ Could not set up Graphify (${err.message})`);

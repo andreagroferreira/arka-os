@@ -1,4 +1,6 @@
-import { existsSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
+import {
+  existsSync, readFileSync, writeFileSync, chmodSync, renameSync, unlinkSync,
+} from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -10,6 +12,7 @@ const PROVIDERS = {
   GOOGLE_API_KEY: { name: "Google", used_for: "Gemini API, Nano Banana, Google Cloud AI" },
   FAL_API_KEY: { name: "fal.ai", used_for: "Image generation, video generation" },
   MAGIC_API_KEY: { name: "21st.dev Magic", used_for: "Frontend UI/UX component generation (Magic MCP)" },
+  GRAPHIFY_TOKEN: { name: "Graphify", used_for: "Knowledge-graph MCP (query_graph, god_nodes) — Bearer token for the graphify HTTP endpoint" },
 };
 
 function loadKeys() {
@@ -17,9 +20,21 @@ function loadKeys() {
   return JSON.parse(readFileSync(KEYS_PATH, "utf-8"));
 }
 
+// Temp + rename over the file holding EVERY provider key. Writing in place
+// meant a crash mid-write left truncated JSON — and loadKeys() would then
+// throw, or a tolerant reader would see {}, silently discarding the lot.
+// `wx` refuses a pre-existing temp so a planted symlink cannot capture the
+// keys; `mode` applies on create, which is why in-place chmod left a window.
 function saveKeys(keys) {
-  writeFileSync(KEYS_PATH, JSON.stringify(keys, null, 2));
-  try { chmodSync(KEYS_PATH, 0o600); } catch {}
+  const tmp = `${KEYS_PATH}.tmp-${process.pid}`;
+  try {
+    writeFileSync(tmp, JSON.stringify(keys, null, 2), { mode: 0o600, flag: "wx" });
+    try { chmodSync(tmp, 0o600); } catch { /* best effort */ }
+    renameSync(tmp, KEYS_PATH);
+  } catch (err) {
+    try { if (existsSync(tmp)) unlinkSync(tmp); } catch { /* best effort */ }
+    throw err;
+  }
 }
 
 function mask(value) {

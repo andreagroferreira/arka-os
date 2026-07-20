@@ -41,8 +41,9 @@ END_DELIM = "<!-- arka:kb-first-prefix end -->"
 # once in the canonical doctrine; repeating the marker ~200x is exactly
 # the instruction-strength inflation the prompt-lint ratchet blocks.
 PREFIX_BLOCK = f"""{BEGIN_DELIM}
-> **KB-first:** query `mcp__obsidian__search_notes` and cite
-> `[[wikilinks]]` — or declare the gap — BEFORE any external research.
+> **KB-first:** query `mcp__obsidian__search_notes` (and
+> `mcp__graphify__query_graph` when configured) and cite `[[wikilinks]]`
+> or graph nodes — or declare the gap — BEFORE any external research.
 > Full doctrine: `arka/SKILL.md` (KB-First Research).
 {END_DELIM}
 """

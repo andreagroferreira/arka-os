@@ -256,9 +256,17 @@ def run_bridge(
                 "total_tokens": result.total_tokens_est,
                 "cache_stats": result.cache_stats,
                 "layers_skipped": result.layers_skipped,
+                "content_blocks": result.content_blocks,
             }
         else:
-            output = {"context_string": result.context_string, "total_ms": total_ms}
+            output = {
+                "context_string": result.context_string,
+                "total_ms": total_ms,
+                # Full-text layer blocks (KB context, graph context). Without
+                # this the hook only ever saw the compact tag line and every
+                # block a layer built was discarded.
+                "content_blocks": result.content_blocks,
+            }
 
         return output, 0
 

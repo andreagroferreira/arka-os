@@ -120,9 +120,13 @@ if [ -n "$ADD_MCP" ]; then
         echo -e "${YELLOW}⚠ Higgsfield requires a Higgsfield account + HIGGSFIELD_API_KEY to connect (https://higgsfield.ai).${NC}"
         echo -e "${YELLOW}  Set the key in the project .mcp.json env block or your shell before launching the runtime.${NC}"
     fi
-    if [ "$ADD_MCP" = "graphify" ]; then
-        echo -e "${YELLOW}⚠ Graphify requires the graphify CLI on PATH (uv tool install graphifyy) and a generated graph:${NC}"
+    if [ "$ADD_MCP" = "graphify-code" ]; then
+        echo -e "${YELLOW}⚠ graphify-code requires the graphify CLI on PATH (uv tool install graphifyy) and a generated graph:${NC}"
         echo -e "${YELLOW}  run \`graphify .\` in the project root first (incremental refresh: graphify . --update).${NC}"
+    fi
+    if [ "$ADD_MCP" = "graphify" ]; then
+        echo -e "${YELLOW}⚠ 'graphify' is the always-on knowledge-GRAPH server, registered at USER scope by the installer.${NC}"
+        echo -e "${YELLOW}  Do not add it per-project — a project-scope entry shadows it. For the local code graph use --add graphify-code.${NC}"
     fi
 elif [ -n "$PROFILE" ]; then
     # Profile mode — resolve base + profile MCPs

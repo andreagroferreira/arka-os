@@ -43,6 +43,8 @@ def test_injects_compact_block_when_external_ref(tmp_path: Path):
     text = path.read_text(encoding="utf-8")
     assert _mig.BEGIN_DELIM in text
     assert "KB-first:" in text
+    assert "mcp__obsidian__search_notes" in text
+    assert "mcp__graphify__query_graph" in text
     assert "Full doctrine: `arka/SKILL.md`" in text
 
 
