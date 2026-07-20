@@ -118,7 +118,7 @@ async function main() {
 
     case "doctor": {
       const { doctor } = await import("./doctor.js");
-      await doctor({ fix: values.fix === true });
+      await doctor({ fix: values.fix === true, json: values.json === true });
       break;
     }
 

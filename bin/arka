@@ -66,6 +66,14 @@ case "${1:-}" in
     ;;
   doctor)
     shift
+    # Issue #358: the node doctor is canonical (engine/venv/hooks/security
+    # + the migrated Claude-layer checks). The bash doctor only audits the
+    # legacy v1 layout — keep it strictly as the no-node fallback.
+    if command -v npx &>/dev/null; then
+      npx arkaos doctor "$@"
+      exit $?
+    fi
+    echo "npx not found — falling back to the legacy v1 doctor (limited scope)." >&2
     bash "$HOME/.local/bin/arka-doctor" "$@"
     exit $?
     ;;
