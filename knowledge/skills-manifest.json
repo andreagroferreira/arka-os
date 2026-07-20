@@ -420,6 +420,19 @@
         "origin": "arkaos"
       }
     },
+    "build-fix": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "business-model": {
       "depts": [
         "community"
@@ -2378,6 +2391,19 @@
       }
     },
     "rag-architect": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "react-review": {
       "depts": [
         "dev"
       ],
