@@ -1108,6 +1108,19 @@
         "origin": "arkaos"
       }
     },
+    "evaluator-build-loop": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "events-plan": {
       "depts": [
         "community"
