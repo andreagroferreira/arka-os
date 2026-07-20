@@ -72,6 +72,17 @@ Your style: {communication_style}. Your framework: {decision_framework}.
 Respond in 3-5 sentences as {name} would. Be specific. Channel their actual thinking.
 ```
 
+## Independence discipline (anti-anchoring)
+
+Generate each advisor's take in an isolated context: the advisor sees the
+question and their own persona, never another advisor's answer. Anchoring
+is the failure mode this prevents — the first plausible take pulls every
+later one toward it, and ten dependent opinions collapse into one opinion
+with ten signatures. Disagreement between advisors is the signal the
+synthesis step exists to surface; only the synthesis (and the debate's
+disagreement pass) may read all ten. In `debate`, opening positions are
+likewise collected independently BEFORE the rebuttal round.
+
 ## Advisor Deep Dive: `/arka conclave advisor <name>`
 
 Full advisor profile: all 4 DNA frameworks, mental models with key questions, communication style, decision framework, sources, why matched (aligned/contrarian, score, dimension comparison).
