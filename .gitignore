@@ -77,3 +77,7 @@ arka/skills/client-*/
 dashboard/test-results/
 dashboard/playwright-report/
 *.bak
+
+# UI screenshot evidence (.arka/evidence/ui) — local only, and untracked,
+# so a `git add -A` would otherwise sweep the PNGs in.
+.arka/

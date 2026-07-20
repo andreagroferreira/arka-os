@@ -36,7 +36,6 @@ from core.synapse.layers import (
     _frontmatter_marks_inferred,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -74,7 +73,7 @@ class _DegradedFakeStore:
     def __init__(self, hits):
         self._hits = hits
 
-    def search(self, query, top_k=5):  # noqa: ARG002
+    def search(self, query, top_k=5):
         return list(self._hits)[:top_k]
 
 
@@ -328,7 +327,7 @@ class TestInferredQuarantinePolicy:
             {"title": "Dream", "path": "/kb/d.md", "excerpt": "", "relates": [],
              "inferred": True},
         ])
-        assert "[[Dream]] (inferred — not authoritative)" in block
+        assert "[[Dream]] (inferida — não autoritativa)" in block
 
     def test_l25_end_to_end_quarantines_inferred_hits(self, tmp_path):
         inferred_note = tmp_path / "dream.md"
@@ -342,7 +341,7 @@ class TestInferredQuarantinePolicy:
         ]
         dreamed = _semantic_hit("laravel dreamed", str(inferred_note))
         layer = KBContextLayer(
-            vector_store=_DegradedFakeStore(grounded + [dreamed])
+            vector_store=_DegradedFakeStore([*grounded, dreamed])
         )
         result = layer.compute(PromptContext(user_input="laravel"))
         assert result.tag == "[kb-context:2]"
@@ -360,4 +359,4 @@ class TestInferredQuarantinePolicy:
         layer = KBContextLayer(vector_store=_DegradedFakeStore(hits))
         result = layer.compute(PromptContext(user_input="laravel"))
         assert result.tag == "[kb-context:2]"
-        assert "(inferred — not authoritative)" in result.content
+        assert "(inferida — não autoritativa)" in result.content

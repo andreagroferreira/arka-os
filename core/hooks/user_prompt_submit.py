@@ -36,7 +36,6 @@ import subprocess
 import time
 from pathlib import Path
 
-from core.shared.temp_paths import arkaos_temp_dir
 from core.hooks._shared import (
     ensure_root_on_path,
     get_str,
@@ -45,6 +44,7 @@ from core.hooks._shared import (
     resolve_arkaos_root,
     safe_session_id,
 )
+from core.shared.temp_paths import arkaos_temp_dir
 
 _CACHE_DIR = arkaos_temp_dir("arkaos-context-cache")
 _CACHE_TTL = 300  # Constitution cache: 5 minutes
@@ -89,13 +89,14 @@ _WF_VERB_PATTERN = (
 )
 _WF_VERB_RE = re.compile(rf"\b{_WF_VERB_PATTERN}\b", re.IGNORECASE)
 
-_STOPWORDS = frozenset(
-    "the a an and or but if then of for to in on at by with from is are was "
-    "were be been being do does did have has had this that these those it "
-    "its as i you we they he she them my your our their so not no yes can "
-    "will would could should may might must need want fix make use get set "
-    "add remove".split()
-)
+_STOPWORDS = frozenset([
+    "the", "a", "an", "and", "or", "but", "if", "then", "of", "for", "to", "in", "on",
+    "at", "by", "with", "from", "is", "are", "was", "were", "be", "been", "being", "do",
+    "does", "did", "have", "has", "had", "this", "that", "these", "those", "it", "its",
+    "as", "i", "you", "we", "they", "he", "she", "them", "my", "your", "our", "their",
+    "so", "not", "no", "yes", "can", "will", "would", "could", "should", "may", "might",
+    "must", "need", "want", "fix", "make", "use", "get", "set", "add", "remove"
+])
 
 _VAGUE_PHRASES = (
     "fix the bug", "that file", "the error",
@@ -228,7 +229,14 @@ def _run_bridge(root: str, user_input: str, session_id: str, cwd: str = "") -> s
                 payload["cwd"] = cwd
             output, code = module.run_bridge(payload, Path(root))
         if code == 0:
-            return str(output.get("context_string", ""))
+            parts = [str(output.get("context_string", ""))]
+            # Full-text blocks follow the compact tag line. A tag such as
+            # `[kb-context:5 +graph]` announces an injection; without these
+            # the announcement was all the model ever received.
+            blocks = output.get("content_blocks") or []
+            if isinstance(blocks, list):
+                parts.extend(str(b) for b in blocks if b)
+            return "\n".join(p for p in parts if p)
     except Exception:
         pass
     return ""
@@ -251,10 +259,6 @@ def _workflow_tag() -> str:
     workflow = str(state.get("workflow", "") or "")
     branch = str(state.get("branch", "") or "")
     violations = len(state.get("violations", []) or [])
-    total = len(phases)
-    completed = sum(
-        1 for p in phases.values() if p.get("status") == "completed"
-    )
     current = next(
         (k for k, p in phases.items() if p.get("status") == "in_progress"),
         "none",
@@ -334,10 +338,8 @@ def _l0_constitution() -> str:
                 return cache_file.read_text(encoding="utf-8")
     except OSError:
         pass
-    try:
+    with contextlib.suppress(OSError):
         cache_file.write_text(_L0_FALLBACK, encoding="utf-8")
-    except OSError:
-        pass
     return _L0_FALLBACK
 
 
@@ -501,10 +503,8 @@ def _one_shot_nudge(subdir: str, session_id: str) -> str:
             nudge = f"[arka:suggest] {suggestion}"
     except (OSError, json.JSONDecodeError, ValueError):
         pass
-    try:
+    with contextlib.suppress(OSError):
         nudge_file.unlink(missing_ok=True)
-    except OSError:
-        pass
     return nudge
 
 
@@ -548,10 +548,8 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
 
     root = resolve_arkaos_root()
     ensure_root_on_path(root)
-    try:
+    with contextlib.suppress(OSError):
         _CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        pass
 
     # Claude Code sends the user's text under "prompt" (UserPromptSubmit
     # hook schema); "userInput"/"message" cover other runtimes. Missing
@@ -683,4 +681,4 @@ if __name__ == "__main__":
     except Exception:
         # Fail open with the minimal constitution context.
         print(json.dumps({"additionalContext": _L0_FALLBACK}))
-        raise SystemExit(0)
+        raise SystemExit(0) from None

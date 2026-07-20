@@ -551,7 +551,16 @@ def test_typecheck_detects_mypy_config(tmp_path, monkeypatch):
 
 
 def test_spellcheck_skips_without_codespell(tmp_path, monkeypatch):
+    """Skip only when codespell is absent BOTH from PATH and as a module.
+
+    Clearing PATH alone is no longer enough to force the skip: an
+    importable `codespell_lib` is a valid installation (venv installs
+    have no PATH binary), so the module lookup must be stubbed too.
+    """
     monkeypatch.setattr(evidence_checks.shutil, "which", lambda _: None)
+    monkeypatch.setattr(
+        evidence_checks.importlib.util, "find_spec", lambda _name: None,
+    )
     report = run_evidence_checks(
         tmp_path, changed_files=["README.md"], checks=["spellcheck"],
     )
@@ -839,3 +848,47 @@ class TestLintScopeBlindSpot:
         )
         assert not result.ran
         assert "no lintable sources" in result.summary
+
+
+def test_spellcheck_resolves_codespell_from_interpreter_not_path(tmp_path, monkeypatch):
+    """codespell installed in the venv (no PATH binary) must still run.
+
+    QG blocker (redo 2): the check gated on `shutil.which("codespell")`
+    while lint/tests resolved the venv by absolute path, so an operator
+    with codespell in ~/.arkaos/venv saw `ran=false, "codespell not
+    installed"` on three consecutive reviews — the copy gate was dark and
+    no install could fix it. Resolution now mirrors _tool_cmd, including
+    the import-name difference (the command is `codespell`, the module is
+    `codespell_lib`).
+
+    Hermetic: codespell is NOT a declared dev dependency, so the module
+    lookup is stubbed rather than relying on it being importable here —
+    otherwise this test silently inverts into a skip-path assertion on a
+    machine without it (QG blocker, redo 3).
+    """
+    (tmp_path / "doc.md").write_text("hello\n")
+    calls = []
+
+    class _Spec:  # stand-in for an importable codespell_lib
+        pass
+
+    monkeypatch.setattr(
+        evidence_checks.importlib.util, "find_spec",
+        lambda name: _Spec() if name == "codespell_lib" else None,
+    )
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    # No PATH binary anywhere — the exact operator machine state.
+    monkeypatch.setattr(evidence_checks.shutil, "which", lambda _tool: None)
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+
+    result = evidence_checks._check_spellcheck(tmp_path, ["doc.md"], None, 60)
+
+    assert result.ran is True, "must not skip when codespell is importable"
+    assert calls and calls[0][1:3] == ["-m", "codespell_lib"], (
+        "must invoke the interpreter's module, not a bare `codespell`"
+    )
+    assert calls[0][0] == sys.executable

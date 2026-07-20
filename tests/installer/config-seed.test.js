@@ -64,6 +64,46 @@ test("seed adds key when hooks section exists but key is unset", () => {
   }
 });
 
+test("seed creates knowledge.graphify.enabled=true (nested seed)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    seedArkaosConfig({ home: dir });
+    const cfg = JSON.parse(readFileSync(join(dir, ".arkaos", "config.json"), "utf-8"));
+    assert.equal(cfg.knowledge.graphify.enabled, true,
+      "graphify is active-once-configured by default");
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed preserves explicit knowledge.graphify.enabled=false", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, {
+      knowledge: { graphify: { enabled: false, url: "http://x/mcp" } },
+    });
+    seedArkaosConfig({ home: dir });
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+    assert.equal(cfg.knowledge.graphify.enabled, false, "user-set false must not be clobbered");
+    assert.equal(cfg.knowledge.graphify.url, "http://x/mcp", "existing url must survive");
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed adds graphify.enabled on configs that predate it (added-key)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    seedExistingConfig(dir, { hooks: { hardEnforcement: true, kbFirst: true }, memory: { sessionMemory: true } });
+    const result = seedArkaosConfig({ home: dir });
+    assert.equal(result.action, "added-key");
+    const cfg = JSON.parse(readFileSync(join(dir, ".arkaos", "config.json"), "utf-8"));
+    assert.equal(cfg.knowledge.graphify.enabled, true);
+  } finally {
+    cleanup();
+  }
+});
+
 test("seed preserves explicit hardEnforcement=false", () => {
   const { dir, cleanup } = makeTmpHome();
   try {
@@ -110,6 +150,7 @@ test("seed is idempotent when all template keys are true", () => {
     const cfgPath = seedExistingConfig(dir, {
       hooks: { hardEnforcement: true, kbFirst: true },
       memory: { sessionMemory: true },
+      knowledge: { graphify: { enabled: true } },
     });
     const before = readFileSync(cfgPath, "utf-8");
     seedArkaosConfig({ home: dir });
@@ -166,6 +207,7 @@ test("seed returns a status object describing the action taken", () => {
     seedExistingConfig(dir, {
       hooks: { hardEnforcement: false, kbFirst: false },
       memory: { sessionMemory: false },
+      knowledge: { graphify: { enabled: false } },
     });
     const r3 = seedArkaosConfig({ home: dir });
     assert.equal(r3.action, "preserved-user-false");

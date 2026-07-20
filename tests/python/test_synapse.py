@@ -1,23 +1,18 @@
 """Tests for Synapse v2 context injection engine."""
 
-import time
-import pytest
 
 from core.synapse.cache import LayerCache
+from core.synapse.engine import SynapseEngine, create_default_engine
 from core.synapse.layers import (
-    Layer,
-    LayerResult,
-    PromptContext,
-    ConstitutionLayer,
-    DepartmentLayer,
-    AgentLayer,
-    ProjectLayer,
     BranchLayer,
     CommandHintsLayer,
-    QualityGateLayer,
+    ConstitutionLayer,
+    DepartmentLayer,
+    Layer,
+    LayerResult,
+    ProjectLayer,
+    PromptContext,
 )
-from core.synapse.engine import SynapseEngine, create_default_engine
-
 
 # --- Cache Tests ---
 
@@ -275,28 +270,56 @@ class TestSynapseEngine:
         result = engine.inject(PromptContext())
         assert "[time:" not in result.context_string
 
-    def test_performance_under_100ms(self):
-        # PR5 v3.76.0 — replaced wall-clock budget with semantic cache-effect
-        # check (same correction Marta PR4.5-T1 applied to
-        # test_full_context_injection). After PR4 (L7.5 PatternLibrary) +
-        # PR3.5 (L2.6 AgentExperiences) + PR5 (no new engine layer), the
-        # default engine now has 12 cacheable layers with file-system
-        # touches. The 100ms average wall-clock budget reproduces the
-        # antipattern under full-suite contention. Cache hit rate is the
-        # contention-immune intent: the engine MUST amortize most layer
-        # work across repeat injections.
+    def test_repeat_injection_is_fully_served_from_cache(self):
+        # PR5 v3.76.0 replaced a 100ms wall-clock budget with a cache-effect
+        # check, because the budget reproduced the antipattern under full-suite
+        # contention. The intent was right, but the replacement stayed timing-
+        # dependent through a back door.
+        #
+        # The replaced `hit_rate >= 50` was a WALL-CLOCK TTL CLIFF, not a
+        # rounding artifact (QG redo 3, measured): five of the cacheable
+        # layers carry cache_ttl=30 and the 100-injection loop itself ran
+        # ~28-30s. Finish under 30s and no entry expires -> 495 hits ->
+        # hit_rate 50 -> pass. Take a ~2s contention spike and one entry
+        # expires mid-loop -> 494 -> 49 -> fail. The test measured how fast
+        # the machine was, and it sat one miss away from the threshold.
+        #
+        # A percentage over 1000 lookups is also the wrong quantity: layers
+        # that produce no content are never cached (engine.py caches only a
+        # non-empty tag), so they count a miss forever without ever being an
+        # amortization failure. What matters is the steady state — once warm,
+        # every cacheable layer is served from cache on the next injection.
+        # Two injections, no timing dependency, no boundary.
         engine = create_default_engine(constitution_compressed="test")
         ctx = PromptContext(
             user_input="build a new feature for auth",
             git_branch="feature/auth",
             project_name="client_retail",
         )
-        for _ in range(100):
-            engine.inject(ctx)
-        hit_rate = engine.cache_stats.get("hit_rate", 0)
-        assert hit_rate >= 50, (
-            f"cache hit_rate too low after 100 injections: "
-            f"{hit_rate}% (stats={engine.cache_stats})"
+        # Independent floor: how many layers SHOULD cache for this fixture.
+        # Without it the two measured numbers co-move — suppressing the cache
+        # write in 4 of 5 layers still yields gained == cached_entries == 1,
+        # so an 80% cache collapse would pass (QG redo 3 mutation test).
+        expected_entries = sum(
+            1 for layer in engine._layers
+            if layer.cache_ttl > 0 and layer.compute(ctx).tag
+        )
+
+        engine.clear_cache()
+        engine.inject(ctx)  # warm-up: every cacheable layer computes fresh
+        before = engine.cache_stats["hits"]
+        engine.inject(ctx)  # steady state: must be served entirely from cache
+        gained = engine.cache_stats["hits"] - before
+        cached_entries = engine.cache_stats["size"]
+
+        assert cached_entries == expected_entries, (
+            f"cached {cached_entries} entries, expected {expected_entries} — "
+            f"a layer that produces a tag stopped caching "
+            f"(stats={engine.cache_stats})"
+        )
+        assert gained == cached_entries, (
+            f"repeat injection reused {gained} of {cached_entries} cached "
+            f"entries; every warm entry must hit (stats={engine.cache_stats})"
         )
 
     def test_caching_improves_performance(self):
@@ -304,7 +327,7 @@ class TestSynapseEngine:
         ctx = PromptContext(user_input="build feature")
 
         # First call (cold)
-        r1 = engine.inject(ctx)
+        engine.inject(ctx)
         # Second call (cached)
         r2 = engine.inject(ctx)
 
@@ -403,7 +426,10 @@ class TestSynapseIntegration:
     def test_full_context_injection(self):
         """Simulate a real prompt context injection."""
         engine = create_default_engine(
-            constitution_compressed="NON-NEGOTIABLE: branch-isolation, squad-routing | MUST: conventional-commits",
+            constitution_compressed=(
+                "NON-NEGOTIABLE: branch-isolation, squad-routing "
+                "| MUST: conventional-commits"
+            ),
             commands=[
                 {"command": "/dev feature", "keywords": ["feature", "build", "implement"]},
                 {"command": "/dev spec", "keywords": ["spec", "specification"]},
@@ -446,3 +472,68 @@ class TestSynapseIntegration:
             f"expected cache to register hits on second inject; "
             f"got cache_stats={warm.cache_stats}"
         )
+
+
+class TestContentChannel:
+    """Full-text layer blocks must reach the caller, not just the tags.
+
+    QG blocker (redo 4): engine.inject built context_string from TAGS only and
+    LayerResult.content had no consumer anywhere — so every block a layer
+    produced (Obsidian KB context, graph context) was discarded while its tag
+    still advertised the injection to the model.
+    """
+
+    @staticmethod
+    def _layer(ttl: int, tag: str, content: str, emits: bool = True):
+        class _L(Layer):
+            @property
+            def id(self): return "LX"
+            @property
+            def name(self): return "Block"
+            @property
+            def input_sensitive(self): return False
+            @property
+            def cache_ttl(self): return ttl
+            @property
+            def emits_block(self): return emits
+            @property
+            def priority(self): return 5
+            def compute(self, ctx): return LayerResult("LX", tag, content, 4, 0, False)
+        return _L()
+
+    def test_content_block_is_returned(self):
+        engine = SynapseEngine()
+        engine.register_layer(self._layer(0, "[kb-context:1]", "[arka:kb-context]\nbody"))
+        result = engine.inject(PromptContext(user_input="q"))
+        assert result.content_blocks == ["[arka:kb-context]\nbody"]
+        assert result.context_string == "[kb-context:1]"  # tag line stays compact
+
+    def test_content_survives_a_cache_hit(self):
+        """A cached layer must replay its block, not its tag.
+
+        The cache stored the tag alone, so a hit reconstructed content=tag —
+        feeding the model a marker in place of the block it announces.
+        """
+        engine = SynapseEngine()
+        engine.register_layer(self._layer(30, "[kb-context:1]", "[arka:kb-context]\nbody"))
+        ctx = PromptContext(user_input="q")
+        engine.inject(ctx)
+        second = engine.inject(ctx)
+        assert second.layers[0].cached is True
+        assert second.content_blocks == ["[arka:kb-context]\nbody"]
+
+    def test_tag_only_layer_contributes_no_block(self):
+        engine = SynapseEngine()
+        engine.register_layer(self._layer(0, "[dept:dev]", "[dept:dev]", emits=False))
+        assert engine.inject(PromptContext(user_input="q")).content_blocks == []
+
+    def test_tag_value_content_is_not_a_block(self):
+        """The case that shipped: content is the tag's value, not a block.
+
+        `[dept:dev]` carries content "dev", `[branch:x]` carries "x". Under the
+        old `content != tag` rule every one of those became a free-floating
+        unlabeled line in every prompt. Only a layer that OPTS IN emits.
+        """
+        engine = SynapseEngine()
+        engine.register_layer(self._layer(0, "[dept:dev]", "dev", emits=False))
+        assert engine.inject(PromptContext(user_input="q")).content_blocks == []

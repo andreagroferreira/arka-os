@@ -84,23 +84,20 @@ The H1 title is the human-readable name. The `> **Agent:**` line attributes who 
 
 ## The KB-First Prefix
 
-Skills that perform research or gather context must include the KB-first block before external tool calls. This is a literal HTML comment block recognized by the Synapse layer.
+Skills that perform research or gather context must include the KB-first block before external tool calls. The block is a markdown blockquote wrapped in a `<!-- arka:kb-first-prefix begin -->` / `<!-- arka:kb-first-prefix end -->` comment pair — the prose sits between the two comments, not inside them, so the model actually reads it.
+
+Do not hand-write it. It is a compact POINTER (PR-3 of the prompt-surface plan); the full doctrine lives once in `arka/SKILL.md` under "KB-First Research". `scripts/migrate_skills_kb_first.py` owns the canonical text — run it and the block is injected or refreshed in place. `scripts/marketplace_export.py` strips the block from exported skills, since the pointer names an ArkaOS-specific Obsidian MCP.
 
 ```markdown
 <!-- arka:kb-first-prefix begin -->
-## KB-First Research (non-negotiable)
-
-Before any external research (Context7, WebSearch, WebFetch, Firecrawl):
-
-1. Call `mcp__obsidian__search_notes` on the query first.
-2. Cite relevant hits with `[[wikilinks]]` or explicitly declare a KB gap.
-3. Only after (1) and (2) may external tools run.
-
-The Synapse L2.5 layer pre-injects top KB matches on every user prompt;
-treat them as your default source. External research supplements, it
-does not replace the vault.
+> **KB-first:** query `mcp__obsidian__search_notes` (and
+> `mcp__graphify__query_graph` when configured) and cite `[[wikilinks]]`
+> or graph nodes — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
 <!-- arka:kb-first-prefix end -->
 ```
+
+Editing the block by hand drifts it from every other migrated skill and the next run of the script overwrites your edit. To change the wording for everyone, edit `PREFIX_BLOCK` in the script and re-run it.
 
 When to include it: any skill that calls `WebSearch`, `WebFetch`, `Context7`, `Firecrawl`, or performs discovery research. Skills that only read local files or run Bash commands do not need it.
 

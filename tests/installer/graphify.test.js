@@ -72,19 +72,29 @@ test("graphifyDoctor returns the doctor probe shape and never throws", () => {
 // ─── MCP registry entry (opt-in, higgsfield pattern) ────────────────────
 
 
-test("registry defines the graphify MCP as stdio command", () => {
-  const gf = registry.mcpServers.graphify;
-  assert.ok(gf, "registry.json must define a `graphify` server");
+test("registry defines the local code graph as `graphify-code` stdio command", () => {
+  const gf = registry.mcpServers["graphify-code"];
+  assert.ok(gf, "registry.json must define a `graphify-code` server");
   assert.equal(gf.command, "graphify");
   assert.deepEqual(gf.args, [".", "--mcp"]);
 });
 
-test("graphify MCP is opt-in and requires no env secrets", () => {
-  const gf = registry.mcpServers.graphify;
-  assert.equal(gf.env, undefined, "graphify is local/free — no env block");
+test("registry never defines a project-scope `graphify` (would shadow user scope)", () => {
+  // The always-on knowledge-GRAPH server is registered at USER scope as
+  // `graphify` by installer/graphify.js. A project-scope MCP of the same
+  // name takes precedence and would silently hide it.
+  assert.equal(
+    registry.mcpServers.graphify, undefined,
+    "`graphify` is reserved for the user-scope knowledge-graph server",
+  );
+});
+
+test("graphify-code MCP is opt-in and requires no env secrets", () => {
+  const gf = registry.mcpServers["graphify-code"];
+  assert.equal(gf.env, undefined, "graphify-code is local/free — no env block");
   assert.equal(gf.required_env, undefined, "no required_env — nothing to leak");
   assert.match(gf.description, /OPT-IN/i, "description must state the opt-in contract");
-  assert.match(gf.description, /apply-mcps\.sh --add graphify/);
+  assert.match(gf.description, /apply-mcps\.sh --add graphify-code/);
 });
 
 test("graphify MCP is not baked into any stack profile (opt-in only)", () => {

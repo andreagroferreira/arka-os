@@ -23,6 +23,8 @@ CLI (for hooks/skills)::
 from __future__ import annotations
 
 import argparse
+import configparser
+import fnmatch
 import importlib.util
 import json
 import re
@@ -31,7 +33,7 @@ import shutil
 import subprocess
 import sys
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
 from core.shared.test_evidence import coverage_percent_from_xml
@@ -218,18 +220,22 @@ def _labelled(result: CheckResult, label: str) -> CheckResult:
     return result
 
 
-def _tool_cmd(tool: str) -> list[str] | None:
+def _tool_cmd(tool: str, module: str | None = None) -> list[str] | None:
     """Resolve a Python tool: PATH binary, else the interpreter's module.
 
     Operator machines install ruff/pytest into the ArkaOS venv with no
     PATH binary — keying on shutil.which alone silently downgraded
     Python lint to eslint over installer/*.js, a FALSE GREEN on a
     NON-NEGOTIABLE gate (QG findings, F1-B2/F1-C1 reviews).
+
+    ``module`` covers tools whose import name differs from the command
+    (codespell ships ``codespell_lib``); without it the module fallback
+    misses and the check skips forever on a venv install.
     """
     if shutil.which(tool):
         return [tool]
-    if importlib.util.find_spec(tool) is not None:
-        return [sys.executable, "-m", tool]
+    if importlib.util.find_spec(module or tool) is not None:
+        return [sys.executable, "-m", module or tool]
     return None
 
 
@@ -545,12 +551,54 @@ def _check_spellcheck(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
-    if not shutil.which("codespell"):
+    # Resolve like lint/tests do. A bare shutil.which lookup left this check
+    # dark on venv installs (the binary is not on the harness PATH), so three
+    # consecutive QG rounds shipped with NO machine spellcheck signal.
+    cmd = _tool_cmd("codespell", module="codespell_lib")
+    if cmd is None:
         return _skip("spellcheck", "codespell not installed")
     md_files = [f for f in changed or [] if f.endswith(".md")]
     if not md_files:
         return _skip("spellcheck", "no changed .md files")
-    return _run("spellcheck", ["codespell", *md_files], project_dir, timeout)
+    result = _run("spellcheck", [*cmd, *md_files], project_dir, timeout)
+    # codespell honours .codespellrc `skip` even for explicitly listed files,
+    # so a PASS here can cover far fewer files than were handed in. Reporting
+    # the raw count as coverage is how a narrowed scope reads as a full green
+    # (QG finding: 8 of 220 inspected, reported as 220). State both.
+    inspected = _spellcheck_inspected_count(project_dir, md_files)
+    scope = f"{inspected} of {len(md_files)} changed .md inspected"
+    if inspected < len(md_files):
+        scope += f"; {len(md_files) - inspected} excluded by .codespellrc skip"
+    summary = f"{scope}\n{result.summary}" if result.summary else scope
+    return replace(result, summary=summary)
+
+
+def _spellcheck_inspected_count(project_dir: Path, md_files: list[str]) -> int:
+    """How many of ``md_files`` codespell actually reads after `skip`.
+
+    Asks codespell itself (``--count`` on a per-file basis is too slow; a
+    skipped file simply produces no output for any planted probe), so instead
+    we replay its own glob semantics from the config.
+    """
+    patterns = _codespell_skip_globs(project_dir)
+    if not patterns:
+        return len(md_files)
+    return sum(
+        1 for f in md_files
+        if not any(fnmatch.fnmatch(f, p) or fnmatch.fnmatch(f"./{f}", p) for p in patterns)
+    )
+
+
+def _codespell_skip_globs(project_dir: Path) -> list[str]:
+    """`skip` globs from .codespellrc, or [] when unreadable/absent."""
+    cfg = project_dir / ".codespellrc"
+    try:
+        parser = configparser.ConfigParser()
+        parser.read(cfg, encoding="utf-8")
+        raw = parser.get("codespell", "skip", fallback="")
+    except (OSError, configparser.Error):
+        return []
+    return [p.strip() for p in raw.split(",") if p.strip()]
 
 
 def _check_ui_screenshot(

@@ -20,6 +20,7 @@ Turn-scoped marker (record_obsidian_query / read_obsidian_query):
       as core.workflow.marker_cache).
 """
 
+import contextlib
 import hashlib
 import json
 import os
@@ -27,11 +28,10 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from core.shared import safe_session_id as _safe_session_id_module
 from core.shared.temp_paths import arkaos_temp_dir
-
 
 # Re-export for backward compatibility with any external importers.
 SAFE_SESSION_ID_RE = _safe_session_id_module.SAFE_SESSION_ID_RE
@@ -147,8 +147,8 @@ class KBSessionCache:
     def __init__(
         self,
         session_id: str,
-        project_path: Optional[str] = None,
-        cache_dir: Optional[str] = None,
+        project_path: str | None = None,
+        cache_dir: str | None = None,
         max_entries: int = 150,
         ttl_seconds: int = 5400,
     ) -> None:
@@ -278,8 +278,8 @@ class KBSessionCache:
 
     def retrieve(
         self,
-        query: Optional[str] = None,
-        topics: Optional[set[str]] = None,
+        query: str | None = None,
+        topics: set[str] | None = None,
         threshold: float = 0.3,
     ) -> list[dict]:
         """Retrieve cached knowledge by query or topic overlap.
@@ -433,11 +433,44 @@ def _kb_query_dir() -> Path:
     return KB_QUERY_MARKER_DIR
 
 
-def _kb_query_path(session_id: str) -> Optional[Path]:
+def _kb_query_path(session_id: str, kind: str = "obsidian") -> Path | None:
+    """Turn-scoped marker path for one KB source.
+
+    ``kind`` separates the sources so a graphify consult cannot satisfy a
+    check that asked about Obsidian, or vice versa. "obsidian" keeps the
+    historical unsuffixed filename so existing records stay readable.
+    """
     safe = _safe_session_id_module.safe_session_id(session_id)
     if safe is None:
         return None
-    return _kb_query_dir() / f"{safe}.json"
+    suffix = "" if kind == "obsidian" else f".{kind}"
+    return _kb_query_dir() / f"{safe}{suffix}.json"
+
+
+def record_graphify_query(session_id: str, query: str, hit_count: int = 0) -> None:
+    """Record that a Graphify graph query ran in this turn.
+
+    Counterpart to :func:`record_obsidian_query`. Without it the ``[graph:``
+    citation marker is pure narration — anyone can type ``[graph: MadeUpNode]``
+    and earn credit (QG review). A consumer that wants evidence rather than a
+    claim should require :func:`graphify_queried_this_turn` alongside it.
+    """
+    _record_query(session_id, query, hit_count, kind="graphify")
+
+
+def read_graphify_query(session_id: str) -> dict | None:
+    """Return the turn-scoped Graphify-query record, or None if absent."""
+    return _read_query(session_id, kind="graphify")
+
+
+def graphify_queried_this_turn(session_id: str) -> bool:
+    """True iff ``record_graphify_query`` was called since turn start."""
+    return read_graphify_query(session_id) is not None
+
+
+def invalidate_graphify_query(session_id: str) -> None:
+    """Clear the per-turn Graphify consult marker. Idempotent."""
+    _invalidate_query(session_id, kind="graphify")
 
 
 def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> None:
@@ -455,7 +488,12 @@ def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> No
         query: The query string that was executed.
         hit_count: Number of notes returned (0 means search ran but empty).
     """
-    path = _kb_query_path(session_id)
+    _record_query(session_id, query, hit_count, kind="obsidian")
+
+
+def _record_query(session_id: str, query: str, hit_count: int, kind: str) -> None:
+    """Shared writer for every KB source marker. Atomic tmp+rename."""
+    path = _kb_query_path(session_id, kind)
     if path is None:
         return
     safe_query = (query or "")[:_MAX_QUERY_LEN]
@@ -464,7 +502,7 @@ def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> No
     except (TypeError, ValueError):
         hits = 0
     now = time.time()
-    existing = read_obsidian_query(session_id) or {}
+    existing = _read_query(session_id, kind) or {}
     queries_raw = existing.get("queries")
     queries = list(queries_raw) if isinstance(queries_raw, list) else []
     queries.append({"query": safe_query, "hit_count": hits, "ts": now})
@@ -472,6 +510,7 @@ def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> No
         queries = queries[-_MAX_QUERIES_PER_TURN:]
     record = {
         "session_id": session_id,
+        "kind": kind,
         "queries": queries,
         "last_query_ts": now,
         "last_hit_count": hits,
@@ -483,15 +522,18 @@ def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> No
         tmp.write_text(json.dumps(record), encoding="utf-8")
         os.replace(tmp, path)
     except OSError:
-        try:
+        with contextlib.suppress(FileNotFoundError):
             tmp.unlink()
-        except FileNotFoundError:
-            pass
 
 
-def read_obsidian_query(session_id: str) -> Optional[dict]:
+def read_obsidian_query(session_id: str) -> dict | None:
     """Return the turn-scoped Obsidian-query record, or None if absent."""
-    path = _kb_query_path(session_id)
+    return _read_query(session_id, kind="obsidian")
+
+
+def _read_query(session_id: str, kind: str) -> dict | None:
+    """Shared reader for every KB source marker."""
+    path = _kb_query_path(session_id, kind)
     if path is None or not path.exists():
         return None
     try:
@@ -510,7 +552,12 @@ def obsidian_queried_this_turn(session_id: str) -> bool:
 
 def invalidate_obsidian_query(session_id: str) -> None:
     """Clear the per-turn KB consult marker. Idempotent."""
-    path = _kb_query_path(session_id)
+    _invalidate_query(session_id, kind="obsidian")
+
+
+def _invalidate_query(session_id: str, kind: str) -> None:
+    """Shared invalidator for every KB source marker."""
+    path = _kb_query_path(session_id, kind)
     if path is None:
         return
     try:

@@ -447,7 +447,7 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
   // CLI `graphify`). Best-effort: a missing binary or failed install can
   // NEVER fail `npx arkaos install`; we degrade to a one-line hint.
   try {
-    const { ensureGraphify } = await import("./graphify.js");
+    const { ensureGraphify, configureGraphifyHttp } = await import("./graphify.js");
     const gf = ensureGraphify();
     if (gf.binary?.installed) {
       console.log(`         Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}.`);
@@ -458,6 +458,13 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
       }
     } else if (gf.binary?.hint) {
       console.log(`         ${gf.binary.hint}`);
+    }
+    // Graphify HTTP knowledge-graph MCP (user-scope, config-driven endpoint).
+    const gh = await configureGraphifyHttp({ runtime });
+    if (gh.action === "registered" || gh.action === "re-registered") {
+      console.log(`         Graphify knowledge-graph MCP ${gh.action} (user scope).`);
+    } else if (gh.action === "failed") {
+      console.log(`         Graphify knowledge-graph MCP not registered (${gh.reason}).`);
     }
   } catch (err) {
     console.log(`         Warning: could not set up Graphify (${err.message})`);

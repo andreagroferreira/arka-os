@@ -13,6 +13,13 @@ description: >
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch]
 ---
 
+<!-- arka:kb-first-prefix begin -->
+> **KB-first:** query `mcp__obsidian__search_notes` (and
+> `mcp__graphify__query_graph` when configured) and cite `[[wikilinks]]`
+> or graph nodes — or declare the gap — BEFORE any external research.
+> Full doctrine: `arka/SKILL.md` (KB-First Research).
+<!-- arka:kb-first-prefix end -->
+
 # Animated Website Generator
 
 > **ArkaOS frontend mandate:** this is UI work under `excellence-mandate` —
