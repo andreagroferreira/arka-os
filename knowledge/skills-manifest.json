@@ -2829,6 +2829,19 @@
         "origin": "arkaos"
       }
     },
+    "spec-miner": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "spin-sell": {
       "depts": [
         "sales"
