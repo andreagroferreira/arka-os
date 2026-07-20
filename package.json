@@ -43,6 +43,7 @@
     "installer/",
     "core/",
     "departments/",
+    "harness/",
     "mcps/",
     "scripts/",
     "config/",

@@ -1,34 +1,30 @@
-import { existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { listBundleFiles, readBundleFile } from "../harness-bundle.js";
 
 export default {
   configureHooks(config, installDir) {
-    // Cursor uses .cursorrules for project-level instructions
-    // and .cursor/rules for global rules
+    // Cursor reads .cursor/rules/*.mdc — its native strength is
+    // path-scoped rules, so the generated bundle ships one always-on
+    // contract rule plus a scoped rule per stack. Replaces the old
+    // hand-typed rule with fossilized counts and a pointer to a
+    // config/cursor-instructions.md that never existed.
+    const files = listBundleFiles("cursor", "rules");
+    if (files.length === 0) {
+      console.warn(
+        "         Cursor bundle missing (harness/cursor/rules/) — " +
+          "run scripts/harness_gen.py; skipping rules."
+      );
+      return;
+    }
     const rulesDir = join(config.configDir, "rules");
     mkdirSync(rulesDir, { recursive: true });
-
-    const arkaosRule = `# ArkaOS v2 Configuration
-
-ArkaOS is installed at: ${installDir}
-
-## Instructions
-
-You are running inside ArkaOS — The Operating System for AI Agent Teams.
-Load full instructions from: ${join(installDir, "config", "cursor-instructions.md")}
-
-## Available Commands
-
-Use natural language or prefix commands:
-- /do <description> — Universal orchestrator
-- /dev, /mkt, /fin, /strat, /brand, /ops, /ecom, /kb, /saas, /landing, /community, /content
-
-## Agent System
-
-ArkaOS has 62 specialized agents across 16 departments. Each request is routed to the appropriate squad.
-`;
-
-    writeFileSync(join(rulesDir, "arkaos.md"), arkaosRule);
-    console.log("         Cursor rules configured.");
+    for (const name of files) {
+      const content = readBundleFile("cursor", join("rules", name));
+      if (content) writeFileSync(join(rulesDir, name), content);
+    }
+    console.log(
+      `         Cursor rules configured (${files.length} ArkaOS rules).`
+    );
   },
 };
