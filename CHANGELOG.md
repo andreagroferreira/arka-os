@@ -5,6 +5,39 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.27.0] - 2026-07-21
+
+### Added
+- **Marketing skills integration** (coreyhaines31/marketingskills, MIT) — a
+  7-PR campaign integrating 47 external marketing skills, distributed by
+  domain and enriched with ArkaOS routing, KB-first, and agent bindings:
+  - **27 new skills** across marketing (SEO/GEO, ASO, ad-creative,
+    marketing-plan, marketing-ideas, council, marketing-psychology,
+    marketing-loops, PR, co-marketing, SMS, free-tools, customer-research,
+    competitor-profile, product-marketing keystone…), landing, saas, sales,
+    community, and content.
+  - **20 existing skills enriched** by merging the deeper upstream
+    frameworks (seo-audit, paid-campaign, cold-email, social, churn,
+    pricing, launch, cro/optimize-page, copy-framework, offer-create…).
+  - **New growth-marketing sub-squad** in marketing: Lourenço (Product
+    Marketing), Raquel (Lifecycle & Retention), Benedita (PR & Partnerships).
+  - **Marketing tools tree** (`departments/marketing/tools/`): 93 vendor
+    integration guides + 64 zero-dependency Node CLI wrappers + Composio.
+  - **291 eval cases** imported into `config/evals/*.yaml`
+    (`scripts/tools/evals_import.py`).
+- All third-party content imported verbatim under MIT, classified
+  `derived/community` in `config/skills-provenance.yaml`, indexed in
+  `docs/THIRD-PARTY-NOTICES.md`. Skills: 302 → 329; agents: 86 → 89.
+
+### Changed
+- `core/registry/generator.py` skips table cells whose head token carries an
+  internal slash (URL examples in imported site-architecture content are no
+  longer mistaken for commands).
+- README marketplace pack-skill count locked to the generated number
+  (`test_readme_carries_marketplace_pack_count`).
+- `wistia.js` caption-file guard hardened against symlink/hard-link
+  exfiltration (OWASP LLM06); covered by `test_wistia_srt_guard.py`.
+
 ## [4.22.0] - 2026-07-19
 
 ### Added
