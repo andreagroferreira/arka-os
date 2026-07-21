@@ -82,6 +82,75 @@ class TestDesignDoctrine:
         )
 
 
+class TestAbsorbedDesignCanon:
+    """Locks the impeccable/hallmark absorption (design campaign W1).
+
+    The canonical homes must not drift: the hub owns the reflex-reject
+    list (§11) and the design laws (§12); the slop gates stay a frozen
+    58-gate fork; design-review routes through the gates pre-verdict.
+    """
+
+    REVIEW_REFS = BRAND_SKILLS / "design-review" / "references"
+
+    def _hub(self) -> str:
+        return SQUAD_REFERENCE.read_text(encoding="utf-8")
+
+    def test_hub_carries_canonical_font_ban(self):
+        text = self._hub()
+        assert "Canonical Reflex-Reject" in text
+        for font in ("Fraunces", "Inter", "Space Grotesk", "Playfair Display"):
+            assert font in text, f"hub §11 lost banned font: {font}"
+        assert "never-by-reflex" in text, (
+            "hub §11 lost the never-by-reflex semantics — without the "
+            "carve-outs the list conflicts with the hallmark theme catalog."
+        )
+
+    def test_hub_carries_design_laws(self):
+        text = self._hub()
+        assert "Design Laws" in text
+        for law in ("65\u201375ch", "\u2264 6rem", "\u22120.04em",
+                    "text-wrap: balance", "prefers-reduced-motion"):
+            assert law in text, f"hub §12 lost design law anchor: {law}"
+
+    def test_hub_carries_pre_emit_axes(self):
+        text = self._hub()
+        for axis in ("Philosophy", "Hierarchy", "Execution", "Specificity",
+                     "Restraint", "Variety"):
+            assert axis in text, f"hub §8 lost pre-emit critique axis: {axis}"
+        assert "[arka:design-dna]" in text, (
+            "hub lost the companion stamp contract (§9)."
+        )
+
+    def test_design_review_points_at_slop_gates(self):
+        body = _body("design-review")
+        assert "references/slop-test.md" in body
+        assert "references/anti-patterns.md" in body
+        assert "Slop gates" in body, (
+            "design-review lost the mandatory pre-verdict slop-gate step."
+        )
+
+    def test_slop_test_carries_58_gates(self):
+        import re
+
+        text = (self.REVIEW_REFS / "slop-test.md").read_text(encoding="utf-8")
+        # Upstream numbering is 1-57 plus gate 38a: 58 unique gates total.
+        gates = {
+            m.group(1)
+            for m in re.finditer(r"^\s*(\d+[a-z]?)\.", text, re.MULTILINE)
+        }
+        assert len(gates) == 58, (
+            f"slop-test.md carries {len(gates)} unique gates, expected 58 "
+            "(1-57 + 38a) — the fork is frozen at the upstream count."
+        )
+
+    def test_vendored_licenses_present(self):
+        for name in ("hallmark.LICENSE", "impeccable.LICENSE",
+                     "impeccable.NOTICE"):
+            assert (self.REVIEW_REFS / name).is_file(), (
+                f"missing vendored license artifact: {name}"
+            )
+
+
 class TestSquadReferenceDoctrine:
     def test_reference_carries_the_three_default_looks(self):
         text = SQUAD_REFERENCE.read_text(encoding="utf-8")

@@ -9,6 +9,10 @@ description: >
   SKIP: on-brand visual compliance (palette, typography vs brandbook) ->
   brand/design-review; slow pages or Core Web Vitals -> dev/performance-audit;
   brand strength, not interface -> brand/primal-audit.
+metadata:
+  origin: community
+  source: https://github.com/nutlope/hallmark
+  license: MIT
 ---
 
 # UX Audit
@@ -27,6 +31,11 @@ Do this BEFORE auditing, in this order, and record what actually loaded:
    that reads as AI-default gets flagged under aesthetic integrity).
 3. **Read the project design system** — findings that violate the
    project's own tokens rank higher than generic advice.
+4. **Load the audit references** —
+   `../design-review/references/anti-patterns.md` (the named-tell
+   dictionary: every AI-slop finding is cited by its named entry and
+   Critical/Major/Minor tier) and `../design-review/references/slop-test.md`
+   (the 58 mechanical gates; run them on the audited surfaces).
 
 ### Graceful degradation (honest, never silent)
 
@@ -72,18 +81,30 @@ benchmark contrast, concrete fix.
 
 ## Workflow
 
+0. **Pre-flight scan (read-only)** — before judging anything, read what
+   exists: tokens/theme files, font loads, framework, and the
+   `[arka:design-dna]` stamp in produced CSS when present. The audit
+   holds the surface to its OWN declared system first, the canonical
+   laws second. **The audit never edits** — it documents and ranks;
+   fixes belong to the owning build skill.
 1. **Scope** — the 2–3 flows that carry the product's core job
    (onboarding, core action, checkout/conversion).
 2. **Walk the flows in a real browser** (steps below), capturing
    evidence screenshots per finding.
 3. **Score** every screen against the checklist; log findings as you go
    — no memory-based auditing.
-4. **Accessibility pass** — keyboard-only run, focus visibility,
+4. **Slop pass** — run the 58 gates (`slop-test.md`) and name every hit
+   from `anti-patterns.md`; check reflex-reject violations against the
+   squad reference §11 and design-law breaches against §12.
+5. **Accessibility pass** — keyboard-only run, focus visibility,
    contrast (AA), `prefers-reduced-motion`, semantic landmarks.
-5. **Responsive pass** — 390 / 768 / 1440; layout integrity, target
+6. **Responsive pass** — 390 / 768 / 1440; layout integrity, target
    sizes, content parity.
-6. **Report** — findings ranked by severity, quick-wins vs structural,
-   each with its fix and benchmark contrast.
+7. **Report** — findings ranked by severity, quick-wins vs structural,
+   each with its fix and benchmark contrast. Header line:
+   `Summary — N critical · M major · K minor`; close with the verdict
+   line `Verdict — [ships as slop | reads as AI-generated | close, fix
+   the minors | clean]`.
 
 ## Browser Steps
 

@@ -48,3 +48,67 @@ names that primary source — the provenance schema records one source per
 skill. This section is the authoritative record of the second source.
 The MIT permission notice and copyright line above apply to all copies
 and substantial portions of the derived material.
+
+## hallmark (Hassan El Mghari / "Hallmark contributors")
+
+- **Source:** https://github.com/nutlope/hallmark
+- **License:** MIT — Copyright (c) 2026 Hallmark contributors
+- **License text:** retained verbatim at
+  `departments/brand/skills/design-review/references/hallmark.LICENSE`
+- **Upstream version:** v1.1.0 (main HEAD `aeb42fb`, 2026-06-04)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Slop-test gates | `departments/brand/skills/design-review/references/slop-test.md` | Near-verbatim port of the 58 pass/fail gates + six-axis pre-emit critique (P/H/E/S/R/V) |
+| Anti-pattern dictionary | `departments/brand/skills/design-review/references/anti-patterns.md` | Named AI tells with severity tiers and the audit report format; image-generation recommendations repointed to the ArkaOS image pipeline |
+| Genre references | `departments/brand/skills/design-review/references/genres/` | editorial, modern-minimal, atmospheric, playful |
+| Font ban list (merged) | `departments/brand/references/uiux-knowledge-and-tools.md` §11 | Union with the impeccable reflex-reject list, deduplicated; carve-out semantics preserved |
+| Pre-emit critique protocol | `departments/brand/references/uiux-knowledge-and-tools.md` §8 | Six-axis scoring + `[arka:design-dna]` stamp (§9), renamed from the upstream `Hallmark ·` stamp |
+| Skill sections | `departments/brand/skills/design-review/SKILL.md`, `departments/brand/skills/ux-audit/SKILL.md` | Slop-gates pre-verdict step, audit flow (pre-flight scan, severity report format), redesign boundaries in `arka/skills/refine/SKILL.md` |
+
+Changes on import: "Powered by Together AI" sponsor references removed;
+the `Hallmark ·` CSS stamp namespace renamed to `[arka:design-dna]`;
+`.hallmark/log.json` project memory relocated to `.arka/design/log.json`;
+external image-generation service recommendations repointed to the
+ArkaOS image pipeline; the personal talk deck (`docs/talk-slides.md`)
+and the `usehallmark.com` hosted imagery kit were not imported. The MIT
+permission notice and copyright line above apply to all copies and
+substantial portions of the derived material.
+
+## impeccable (Paul Bakaus)
+
+- **Source:** https://github.com/pbakaus/impeccable
+- **License:** Apache License 2.0 — Copyright Paul Bakaus
+- **License text:** retained verbatim at
+  `departments/brand/skills/design-review/references/impeccable.LICENSE`
+- **NOTICE:** carried verbatim at
+  `departments/brand/skills/design-review/references/impeccable.NOTICE`
+  (Apache License §4(d))
+- **Upstream version:** HEAD `4d849eb` (2026-07-21); npm CLI `impeccable` v3.2.x
+
+First Apache-2.0 absorption in this repo. Statement of changes, as the
+license requires:
+
+| Surface | Location | Notes / changes made |
+|---|---|---|
+| Design registers (brand vs product) | `departments/brand/skills/design-review/references/design-registers.md` | Merged from upstream `skill/reference/brand.md` + `product.md`; reflex-reject list bodies relocated to the doctrine hub §11 (pointers left in place); `{{template}}` tokens removed; upstream `<!-- rule:... -->` IDs preserved |
+| Critique protocol | `departments/brand/skills/design-review/references/critique-protocol.md` | Substantial distillation of upstream `skill/reference/critique.md` (819 → ~170 lines): two-isolated-subagent orchestration, blind scoring, P0–P3 severity, personas and honesty rubric kept; CLI/session/live-mode plumbing and inline Nielsen-10 textbook material removed |
+| Design laws | `departments/brand/references/uiux-knowledge-and-tools.md` §12 | Compacted from upstream `skill/SKILL.src.md` general rules + absolute bans; provider-conditional blocks resolved |
+| Font + lane ban list (merged) | `departments/brand/references/uiux-knowledge-and-tools.md` §11 | Union with the hallmark banned-defaults list, deduplicated |
+| Design detector | external npm CLI `impeccable`, shelled by the QG check `design-slop` (Wave 3) | Dependency only — no upstream code vendored |
+
+Not imported: `skill/reference/ios.md` and `skill/reference/android.md`
+(MIT-derived from ehmo/platform-design-skills per the upstream NOTICE —
+deliberately excluded to avoid a third attribution chain), the upstream
+`DESIGN.md`/`PRODUCT.md` brand artifacts (Impeccable's own identity),
+and all JavaScript (detector engine, live mode, hooks, build system).
+`impeccable.style` self-references, `IMPECCABLE_*` environment variables
+and command-router plumbing were removed from ported prose.
+
+Dual-source note: `departments/brand/skills/design-review` is primarily
+derived from hallmark (its frontmatter `metadata.source` names it — the
+provenance schema records one source per skill); this section is the
+authoritative record of the impeccable-derived material inside the same
+skill directory and the doctrine hub.

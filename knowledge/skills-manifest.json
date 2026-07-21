@@ -1113,7 +1113,9 @@
       "plugins": [],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/nutlope/hallmark",
+        "license": "MIT"
       }
     },
     "design-system": {
@@ -3632,7 +3634,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/nutlope/hallmark",
+        "license": "MIT"
       }
     },
     "validate-idea": {

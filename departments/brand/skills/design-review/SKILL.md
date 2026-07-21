@@ -13,6 +13,10 @@ description: >
   dev/clean-code-review wins; trying to break flows or find abuse vectors ->
   dev/adversarial-review wins.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
+metadata:
+  origin: community
+  source: https://github.com/nutlope/hallmark
+  license: MIT
 ---
 
 # Design Review — `/brand design-review`
@@ -41,6 +45,12 @@ Do this BEFORE reviewing, in this order, and record what actually loaded:
 3. **Read the brand guidelines / design system** — the review compares
    against the project's OWN tokens (`design-system.yaml`, brandbook,
    or §3 of the squad reference as fallback).
+4. **Load the review references in this directory** —
+   `references/design-registers.md` (pick the register FIRST: brand vs
+   product changes what "good" means), `references/critique-protocol.md`
+   (two-isolated-subagent orchestration for deep reviews),
+   `references/slop-test.md` + `references/anti-patterns.md` (the
+   mechanical gates and the named-tell dictionary used below).
 
 ### Graceful degradation (honest, never silent)
 
@@ -102,11 +112,26 @@ For every captured surface, annotate deviations with exact values
 - **Benchmark contrast** — for each major finding, one line on what the
   named benchmark does instead.
 
+## Slop gates (pre-verdict — MANDATORY)
+
+Before issuing any verdict, run the reviewed surfaces through
+`references/slop-test.md`: 58 pass/fail gates (every answer must be
+**no**) plus the six-axis pre-emit rubric (P/H/E/S/R/V, squad reference
+§8). Anti-pattern findings are named from
+`references/anti-patterns.md` with their Critical/Major/Minor severity —
+never described vaguely. When produced CSS carries the
+`[arka:design-dna]` stamp, verify the recorded critique scores against
+what the screenshots actually show; a stamp that flatters the artifact
+is itself a finding.
+
 ## Verdict
 
 `ON-BRAND` / `DEVIATIONS (n)` / `OFF-BRAND` — with the annotated
 screenshot list, exact-value deviation table, and fix list ranked by
 visual impact. A review with zero captured screenshots is INVALID.
+`OFF-BRAND` and every rejected surface MUST cite the failed slop-gate
+numbers and named anti-patterns (e.g. "gates 12, 41; purple-gradient
+hero [Critical]") — verdicts on evidence, never on vibes.
 
 ## Output
 
