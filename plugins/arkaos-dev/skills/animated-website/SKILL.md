@@ -10,6 +10,10 @@ description: >
   site", "frame animation", "/dev animated-website". SKIP: embedding a plain
   video player -> just use <video>; regular animated site WITHOUT a video
   source -> frontend-design skill; video editing/production -> content/video-produce.
+metadata:
+  origin: community
+  source: https://github.com/nutlope/hallmark
+  license: MIT
 ---
 
 # Animated Website Generator
@@ -154,6 +158,12 @@ Common iteration requests:
 ## Design System
 
 The visual language is warm, dark, and cinematic. Every element serves the animation — surrounding effects (grain, particles, vignette) add depth without competing with the video frames.
+
+**Motion craft reference:** `references/motion-recipes.md` — timing/easing
+mapped onto the doctrine-hub §4 tokens, 15 named interaction recipes, 20
+motion tells, the exits-at-75% rule and the reduced-motion floor. This
+skill's scroll-scrubbed canvas engine is the named exception to the
+no-scroll-scrub rule; its reduced-motion fallback stays mandatory.
 
 ### Color Palette (CSS Custom Properties)
 

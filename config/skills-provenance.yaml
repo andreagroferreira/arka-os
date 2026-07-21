@@ -74,6 +74,23 @@ derived:
     origin: community
     source: https://github.com/nutlope/hallmark
     license: MIT
+  # Design absorption campaign W2 — structural variety (macrostructures,
+  # component cookbook), design DNA study, design.md spec, OKLCH theme
+  # construction and motion recipes. page-architect keeps its Corey
+  # Haines primary source (dual-source: hallmark recorded in
+  # docs/THIRD-PARTY-NOTICES.md, stop-slop precedent).
+  departments/brand/skills/design-system:
+    origin: community
+    source: https://github.com/nutlope/hallmark
+    license: MIT
+  departments/brand/skills/colors:
+    origin: community
+    source: https://github.com/nutlope/hallmark
+    license: MIT
+  departments/dev/skills/animated-website:
+    origin: community
+    source: https://github.com/nutlope/hallmark
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).
@@ -285,8 +302,6 @@ first_party:
   - arka/skills/research
   - departments/brand
   - departments/brand/skills/archetype-finder
-  - departments/brand/skills/colors
-  - departments/brand/skills/design-system
   - departments/brand/skills/identity-system
   - departments/brand/skills/logo-brief
   - departments/brand/skills/mockup-generate
@@ -334,7 +349,6 @@ first_party:
   - departments/dev/skills/agent-workflow
   - departments/dev/skills/ai-assisted-dev
   - departments/dev/skills/ai-security
-  - departments/dev/skills/animated-website
   - departments/dev/skills/api-design
   - departments/dev/skills/app-test
   - departments/dev/skills/architecture-design

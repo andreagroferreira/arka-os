@@ -60,6 +60,7 @@ expertise:
     - Tailwind CSS token format
     - shadcn/ui CSS variable convention
     - DTCG JSON schema
+    - Design DNA study protocol (URL/screenshot extraction, SSRF-safe)
   depth: expert
   years_equivalent: 9
 

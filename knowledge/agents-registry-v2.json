@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-21T22:29:49.522966",
+    "generated": "2026-07-21T23:13:55.387821",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -246,7 +246,8 @@
         "Style Dictionary",
         "Tailwind CSS token format",
         "shadcn/ui CSS variable convention",
-        "DTCG JSON schema"
+        "DTCG JSON schema",
+        "Design DNA study protocol (URL/screenshot extraction, SSRF-safe)"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/design-ops/extraction-script-writer.yaml",
@@ -586,6 +587,7 @@
         "WCAG AA contrast",
         "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
         "Impeccable design laws + registers (brand vs product)",
+        "Hallmark macrostructures (21 page shapes) + component archetype cookbook (50)",
         "runtime:frontend-design (Anthropic skill)",
         "runtime:ui-ux-pro-max (community skill)"
       ],
@@ -1762,6 +1764,7 @@
         "Design Tokens (DTCG)",
         "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
         "Impeccable design laws + registers (brand vs product)",
+        "Hallmark macrostructures (21 page shapes) + component archetype cookbook (50)",
         "runtime:frontend-design (Anthropic skill)",
         "runtime:ui-ux-pro-max (community skill)"
       ],
@@ -2645,7 +2648,8 @@
         "PLF (Walker)",
         "AIDA/PAS/PASTOR",
         "ResearchXL CRO",
-        "Crossing the Chasm"
+        "Crossing the Chasm",
+        "Hallmark macrostructures (21 page shapes) + component archetype cookbook (50)"
       ],
       "knowledge_sources": [],
       "file": "departments/landing/agents/conversion-strategist.yaml",
@@ -2696,7 +2700,8 @@
         "PIE/ICE Prioritization",
         "Baymard UX Guidelines",
         "Statistical Significance Testing",
-        "Heuristic Analysis"
+        "Heuristic Analysis",
+        "Hallmark macrostructures (21 page shapes) + component archetype cookbook (50)"
       ],
       "knowledge_sources": [],
       "file": "departments/landing/agents/cro-specialist.yaml",

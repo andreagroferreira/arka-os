@@ -9,6 +9,10 @@ description: >
   brand/design-system (tokens, atomic catalog, WCAG gates for the whole UI);
   complete brand identity from strategy up -> brand/identity-system.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
+metadata:
+  origin: community
+  source: https://github.com/nutlope/hallmark
+  license: MIT
 ---
 
 <!-- arka:kb-first-prefix begin -->
@@ -79,7 +83,11 @@ the squad reference.
    "blue"): `surface` (canvas), `ink` (text), `primary` (identity),
    `accent` (signal, ≤ 10–15% usage), plus optional `positive`/`danger`
    semantics. Derive tints/shades in OKLCH so lightness steps are
-   perceptually even; give each role a hex.
+   perceptually even; give each role a hex. **The full construction
+   algorithm lives in `references/oklch-theme.md`** (anchor → paper →
+   ink → greys → focus → accent-ink, with L/C bands per vibe, tinted
+   neutrals, dark-mode-is-not-inverted-light, and three worked
+   examples) — follow it, don't improvise the steps.
 4. **WCAG pairs table** — for every text-bearing combination, compute
    the contrast ratio and mark AA/AAA for body and large text. Any pair
    below AA is redesigned, not footnoted.

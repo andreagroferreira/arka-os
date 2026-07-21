@@ -47,6 +47,11 @@ system at maximum effort). Typical weighting: functionality 40 · craft
 A dimension the spec does not care about gets weight 0 — do not invent
 criteria mid-loop.
 
+The craft dimension is not vibes: the evaluator cites the 58 slop gates
+(`departments/brand/skills/design-review/references/slop-test.md`) and
+the design laws (doctrine hub §12) by number when scoring — a gate hit
+caps the craft score for that iteration.
+
 ## Evaluator discipline
 
 - Test the **live app** in the browser: click paths, keyboard, empty and

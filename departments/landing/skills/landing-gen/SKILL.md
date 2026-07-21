@@ -50,11 +50,22 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ## Generation Workflow
 
 1. Gather inputs (ask only for missing fields)
-2. Select design style (infer from brand voice if not specified)
-3. Apply copy framework to all headline and body copy
-4. Generate sections in order: Hero > Features > Pricing > FAQ > Testimonials > CTA > Footer
-5. Validate against SEO checklist
-6. Output complete TSX + Tailwind components
+2. **Pick the macrostructure** — inherit it from the `page-architect`
+   blueprint when one exists; otherwise choose from the 21 shapes in
+   `../page-architect/references/macrostructures.md` and run its
+   diversification check (`.arka/design/log.json`). The fixed
+   Hero > Features > Pricing > FAQ > Testimonials > CTA > Footer order in
+   step 5 is ONE shape, not the default — a second consecutive page with
+   that rhythm fails slop gate 8.
+3. Select design style (infer from brand voice if not specified)
+4. Apply copy framework to all headline and body copy
+5. Generate sections in the macrostructure's order (the classic sequence
+   above only when that shape was deliberately picked)
+6. **Pre-emit critique + stamp** — score P/H/E/S/R/V (doctrine hub §8;
+   any axis < 3 revises) and stamp the CSS with `[arka:design-dna]`
+   (hub §9)
+7. Validate against SEO checklist
+8. Output complete TSX + Tailwind components
 
 ## Section Inventory
 

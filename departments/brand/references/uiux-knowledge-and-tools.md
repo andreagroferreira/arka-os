@@ -132,7 +132,9 @@ write material findings back to `[[Area 02 - Design]]`:
 - Laws of UX (each law)
 - Dieter Rams' 10 principles
 - Atomic Design (full atoms→pages)
-- Microinteractions (trigger→rules→feedback→loops/modes)
+- Microinteractions (trigger→rules→feedback→loops/modes) —
+  **filled in-repo**: 15 recipes + 20 tells in
+  `departments/dev/skills/animated-website/references/motion-recipes.md`.
 - Color theory & typography science (OKLCH, harmony, modular scale) —
   **partially filled in-repo**: hard floors/ceilings now live in §12 and
   the reflex-reject discipline in §11; deeper craft references live under
@@ -243,6 +245,16 @@ job: load `gsap-core` + `gsap-timeline` for any animation work,
 `gsap-scrolltrigger`/`gsap-plugins` as the work demands, `gsap-react` on
 React, and treat `gsap-performance` as the review bar
 (`npx skills add https://github.com/greensock/gsap-skills` when absent).
+
+Four in-repo theme specs (hallmark-derived, opt-in seeds like the TypeUI
+directions — never the final system) live at
+`departments/brand/skills/design-system/references/themes/`:
+
+`carnival` — loud-decorative, multi-accent riso energy · `cobalt` —
+dev-tool light, single cobalt anchor · `hum` — playful multi-accent
+consumer warmth · `lumen` — premium AI-apparatus dark (atmospheric
+blooms). A completed design-DNA study SUSPENDS the catalog — the studied
+DNA is the system (`design-system/references/design-dna-study.md`).
 
 ## 11. Canonical Reflex-Reject (fonts + aesthetic lanes)
 
