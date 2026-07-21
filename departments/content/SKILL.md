@@ -42,6 +42,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/content research <topic>` | Sourced research compiled into a production brief | Focused |
 | `/content video-setup` | Video production environment bootstrap (Hyperframes, Agent-Reach, Higgsfield) | Specialist |
 | `/content shorts <niche>` | Batch production of 3-5 rendered shorts with posting schedule | Focused |
+| `/content image-create <brief>` | AI image generation and marketing graphics | Focused |
 
 ## Squad
 

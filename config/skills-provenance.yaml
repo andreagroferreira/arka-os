@@ -123,6 +123,58 @@ derived:
     origin: community
     source: https://github.com/coreyhaines31/marketingskills
     license: MIT
+  departments/marketing/skills/public-relations:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/co-marketing:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/sms-campaign:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/free-tools:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/lead-magnet:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/popup-design:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/signup-optimize:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/saas/skills/paywall-design:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/sales/skills/prospecting:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/sales/skills/revops:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/sales/skills/sales-enablement:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/community/skills/community-marketing:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/content/skills/image-create:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
 
 first_party:
   - arka

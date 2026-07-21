@@ -1,26 +1,26 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-21T16:24:42Z",
-    "total_commands": 284,
+    "generated": "2026-07-21T16:57:29Z",
+    "total_commands": 297,
     "generator": "core/registry/generator.py",
     "departments": {
       "arka": 22,
       "brand": 12,
-      "community": 14,
-      "content": 19,
+      "community": 15,
+      "content": 20,
       "dev": 36,
       "ecom": 18,
       "fin": 10,
       "kb": 22,
-      "landing": 14,
+      "landing": 17,
       "leadership": 10,
-      "mkt": 26,
+      "mkt": 30,
       "ops": 25,
       "org": 10,
       "pm": 12,
-      "saas": 14,
-      "sales": 10,
+      "saas": 15,
+      "sales": 13,
       "strat": 10
     }
   },
@@ -957,6 +957,28 @@
       "modifies_code": false
     },
     {
+      "id": "community-community-marketing",
+      "command": "/community community-marketing",
+      "department": "community",
+      "description": "Community-led growth and brand loyalty",
+      "lead_agent": "arka-community",
+      "keywords": [
+        "community",
+        "group",
+        "membership",
+        "discord",
+        "telegram",
+        "skool",
+        "circle",
+        "gamification"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
       "id": "content-viral",
       "command": "/content viral <topic>",
       "department": "content",
@@ -1388,6 +1410,28 @@
         "produce a batch of shorts for the launch",
         "faz-me shorts desta masterclass"
       ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "content-image-create",
+      "command": "/content image-create <brief>",
+      "department": "content",
+      "description": "AI image generation and marketing graphics",
+      "lead_agent": "arka-content",
+      "keywords": [
+        "viral",
+        "hook",
+        "script",
+        "repurpose",
+        "youtube",
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "examples": [],
       "source": "builtin",
       "tier": 2,
       "requires_branch": false,
@@ -2833,6 +2877,72 @@
       "modifies_code": false
     },
     {
+      "id": "landing-lead-magnet",
+      "command": "/landing lead-magnet <topic>",
+      "department": "landing",
+      "description": "Lead magnet design and email capture",
+      "lead_agent": "arka-landing",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "landing-popup-design",
+      "command": "/landing popup-design",
+      "department": "landing",
+      "description": "Popups, modals, slide-ins, banners for conversion",
+      "lead_agent": "arka-landing",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "landing-signup-optimize",
+      "command": "/landing signup-optimize",
+      "department": "landing",
+      "description": "Signup / registration / trial activation flow",
+      "lead_agent": "arka-landing",
+      "keywords": [
+        "landing",
+        "funnel",
+        "copy",
+        "headline",
+        "offer",
+        "launch",
+        "affiliate",
+        "webinar"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
       "id": "lead-disc",
       "command": "/lead disc <person/team>",
       "department": "leadership",
@@ -3609,6 +3719,94 @@
       "command": "/mkt competitor-profile <url>",
       "department": "mkt",
       "description": "Structured competitor dossier from URLs",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-public-relations",
+      "command": "/mkt public-relations",
+      "department": "mkt",
+      "description": "Earned media, journalist pitching, newsjacking",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-co-marketing",
+      "command": "/mkt co-marketing",
+      "department": "mkt",
+      "description": "Partner identification and joint campaigns",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-sms-campaign",
+      "command": "/mkt sms-campaign",
+      "department": "mkt",
+      "description": "SMS/MMS lifecycle flows (welcome, cart, win-back)",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-free-tools",
+      "command": "/mkt free-tools",
+      "department": "mkt",
+      "description": "Engineering-as-marketing free tool strategy",
       "lead_agent": "arka-mkt",
       "keywords": [
         "social",
@@ -4639,6 +4837,28 @@
       "modifies_code": false
     },
     {
+      "id": "saas-paywall-design",
+      "command": "/saas paywall-design",
+      "department": "saas",
+      "description": "In-app paywalls, upgrade screens, feature gates",
+      "lead_agent": "arka-saas",
+      "keywords": [
+        "saas",
+        "micro-saas",
+        "plg",
+        "freemium",
+        "churn",
+        "mrr",
+        "arr",
+        "subscription"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
       "id": "sales-pipeline",
       "command": "/sales pipeline",
       "department": "sales",
@@ -4841,6 +5061,72 @@
       "command": "/sales pricing <product>",
       "department": "sales",
       "description": "Pricing negotiation strategy",
+      "lead_agent": "arka-sales",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "sales-prospecting",
+      "command": "/sales prospecting",
+      "department": "sales",
+      "description": "Find, qualify, and build a prospect list",
+      "lead_agent": "arka-sales",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "sales-revops",
+      "command": "/sales revops",
+      "department": "sales",
+      "description": "Lead lifecycle, scoring, routing, pipeline ops",
+      "lead_agent": "arka-sales",
+      "keywords": [
+        "pipeline",
+        "proposal",
+        "discovery",
+        "objection",
+        "negotiate",
+        "deal",
+        "close",
+        "prospect"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "sales-sales-enablement",
+      "command": "/sales sales-enablement",
+      "department": "sales",
+      "description": "Decks, one-pagers, battlecards, demo scripts",
       "lead_agent": "arka-sales",
       "keywords": [
         "pipeline",
