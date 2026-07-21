@@ -37,6 +37,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/landing optimize <page>` | CRO optimization with ResearchXL | Focused |
 | `/landing persuade <context>` | Persuasion elements audit (Cialdini 6) | Specialist |
 | `/landing metrics` | Funnel metrics tracking and analysis | Specialist |
+| `/landing lead-magnet <topic>` | Lead magnet design and email capture | Focused |
+| `/landing popup-design` | Popups, modals, slide-ins, banners for conversion | Focused |
+| `/landing signup-optimize` | Signup / registration / trial activation flow | Focused |
 
 ## Squad
 

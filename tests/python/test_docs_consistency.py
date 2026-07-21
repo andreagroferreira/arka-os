@@ -30,6 +30,7 @@ _STATS = _ds.gather(_ds.repo_root())
 _AGENTS = _STATS["agents"]["files"]          # 82
 _DEPARTMENTS = _STATS["departments"]         # 17
 _SKILLS = _STATS["skills"]["core"]           # 267
+_PLUGINS = _STATS["skills"]["plugins"]       # marketplace pack skills
 
 
 def _read(rel: str) -> str:
@@ -41,6 +42,16 @@ def test_readme_carries_canonical_numbers():
     assert f"{_AGENTS} agents" in readme
     assert f"{_DEPARTMENTS} departments" in readme
     assert f"{_SKILLS} skills" in readme
+
+
+def test_readme_carries_marketplace_pack_count():
+    """The marketplace pack-skill total is hand-written prose, so it rots
+    silently as the plugin export grows. Lock it to the generated number."""
+    readme = _read("README.md")
+    assert f"{_PLUGINS} skills" in readme, (
+        f"README marketplace count is stale — plugins/ holds {_PLUGINS} "
+        f"pack skills; update the 'department packs with N skills' line."
+    )
 
 
 def test_project_claude_md_carries_canonical_numbers():

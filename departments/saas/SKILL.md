@@ -37,6 +37,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/saas onboard <product>` | Onboarding flow optimization | Focused |
 | `/saas churn` | Churn analysis with RFM and cohort data | Specialist |
 | `/saas benchmark` | Benchmark comparison (KeyBanc, Meritech) | Specialist |
+| `/saas paywall-design` | In-app paywalls, upgrade screens, feature gates | Focused |
 
 ## Squad
 

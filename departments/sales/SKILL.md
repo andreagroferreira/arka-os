@@ -31,6 +31,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/sales spin <context>` | SPIN selling preparation | Specialist |
 | `/sales challenger <context>` | Challenger sale approach | Specialist |
 | `/sales pricing <product>` | Pricing negotiation strategy | Focused |
+| `/sales prospecting` | Find, qualify, and build a prospect list | Focused |
+| `/sales revops` | Lead lifecycle, scoring, routing, pipeline ops | Focused |
+| `/sales sales-enablement` | Decks, one-pagers, battlecards, demo scripts | Focused |
 
 ## Squad
 

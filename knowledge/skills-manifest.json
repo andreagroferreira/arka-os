@@ -641,6 +641,21 @@
         "origin": "arkaos"
       }
     },
+    "co-marketing": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "code-review": {
       "depts": [
         "dev"
@@ -689,6 +704,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "community-marketing": {
+      "depts": [
+        "community"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-community@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "compensation-plan": {
@@ -1352,6 +1382,21 @@
         "origin": "arkaos"
       }
     },
+    "free-tools": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "fulfillment-plan": {
       "depts": [
         "ecom"
@@ -1571,6 +1616,21 @@
         "origin": "arkaos"
       }
     },
+    "image-create": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "impact-map": {
       "depts": [
         "pm"
@@ -1723,6 +1783,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "lead-magnet": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "leaky-bucket": {
@@ -2323,6 +2398,21 @@
         "origin": "arkaos"
       }
     },
+    "paywall-design": {
+      "depts": [
+        "saas"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-saas@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "performance-audit": {
       "depts": [
         "dev"
@@ -2449,6 +2539,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "popup-design": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "position": {
@@ -2607,6 +2712,36 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "prospecting": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
+    "public-relations": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "python-review": {
@@ -2776,6 +2911,21 @@
         "origin": "arkaos"
       }
     },
+    "revops": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "rfm-segment": {
       "depts": [
         "ecom"
@@ -2861,6 +3011,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "sales-enablement": {
+      "depts": [
+        "sales"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-sales@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "scaffold": {
@@ -3015,6 +3180,21 @@
         "origin": "arkaos"
       }
     },
+    "signup-optimize": {
+      "depts": [
+        "landing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-landing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "silent-failure-hunter": {
       "depts": [
         "dev"
@@ -3039,6 +3219,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "sms-campaign": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "soc2-compliance": {

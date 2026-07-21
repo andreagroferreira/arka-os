@@ -37,6 +37,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/community gamify` | Gamification system design | Specialist |
 | `/community moderate` | Moderation rules and escalation | Specialist |
 | `/community event <type>` | Event planning (AMA, workshop, challenge) | Specialist |
+| `/community community-marketing` | Community-led growth and brand loyalty | Focused |
 
 ## Squad
 

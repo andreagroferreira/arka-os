@@ -49,6 +49,10 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/mkt content-strategy` | Plan content strategy, topics, and clusters | Focused |
 | `/mkt customer-research` | VoC, interviews, and survey research synthesis | Focused |
 | `/mkt competitor-profile <url>` | Structured competitor dossier from URLs | Focused |
+| `/mkt public-relations` | Earned media, journalist pitching, newsjacking | Focused |
+| `/mkt co-marketing` | Partner identification and joint campaigns | Focused |
+| `/mkt sms-campaign` | SMS/MMS lifecycle flows (welcome, cart, win-back) | Focused |
+| `/mkt free-tools` | Engineering-as-marketing free tool strategy | Focused |
 
 ## Squad
 
