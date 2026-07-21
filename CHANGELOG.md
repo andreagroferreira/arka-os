@@ -5,6 +5,24 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.31.0] - 2026-07-22
+
+### Added
+
+- **Design absorption Wave 3 — final** (PR #383): the deterministic
+  `design-slop` evidence check — the external `impeccable` npm CLI
+  (46 anti-pattern rules, no LLM) shelled over changed UI files only,
+  fail-open on any tooling absence, never installing inside the gate
+  (`npx --no-install`).
+- Flag `governance.designSlop` (`off` | `warn` | `hard`, default
+  `warn`): `warning` findings fail only in hard mode; `advisory`
+  findings never fail. Telemetry at
+  `~/.arkaos/telemetry/design-slop.jsonl`.
+- Installer: `installImpeccableDetector` (pinned `impeccable@^3.2`,
+  once-only marker, never-throws) joins `setupFrontendTooling`.
+- Composition: frontend gate (pre-edit nudge) · design-slop (static
+  half) · ui-screenshot (pixel half) · QG reviewer judgment.
+
 ## [4.30.0] - 2026-07-21
 
 ### Added
