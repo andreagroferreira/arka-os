@@ -49,3 +49,10 @@ test("missing bundles return null / empty list, never throw", () => {
   assert.equal(readBundleFile("no-such-harness", "AGENTS.md"), null);
   assert.deepEqual(listBundleFiles("no-such-harness", "rules"), []);
 });
+
+test("readBundleFile refuses paths that escape the bundle directory", () => {
+  assert.equal(readBundleFile("codex", "../gemini/GEMINI.md"), null);
+  assert.equal(readBundleFile("codex", "../../package.json"), null);
+  // In-bundle access still works after the guard.
+  assert.ok(readBundleFile("codex", "AGENTS.md"));
+});

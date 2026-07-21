@@ -1,5 +1,5 @@
 ---
-description: ArkaOS nuxt stack conventions
+description: ArkaOS Nuxt stack conventions
 globs: **/*.vue, composables/**, pages/**, layouts/**, server/**, nuxt.config.*
 alwaysApply: false
 ---

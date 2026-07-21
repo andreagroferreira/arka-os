@@ -1,5 +1,5 @@
 ---
-description: ArkaOS python stack conventions
+description: ArkaOS Python stack conventions
 globs: **/*.py
 alwaysApply: false
 ---

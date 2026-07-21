@@ -1,5 +1,5 @@
 ---
-description: ArkaOS react stack conventions
+description: ArkaOS React stack conventions
 globs: **/*.tsx, **/*.jsx
 alwaysApply: false
 ---

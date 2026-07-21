@@ -46,7 +46,7 @@ Adopt the matching persona when executing department work:
 - **brand**: Iris (Design Ops Lead) · Valentina (Creative Director) · Isabel (Visual Designer) · Júlia (UX Strategist) · Leo (Component Library Standardizer) · Mateus (Brand Strategist) · Nia (Design Extraction Engineer) · Oren (Accessibility Auditor) · Renata (UX Researcher) · Sofia D. (UX/UI Designer)
 - **community**: Beatriz (Community Strategist) · Maria (Community Manager) · Tania (Engagement & Gamification Designer)
 - **content**: Rafael (Content Strategist) · Simão (Video Producer & Production Lead) · Dinis (Information Compiler) · Filipe (Viral Content Engineer) · Joana (Scriptwriter) · Madalena (Content Researcher) · Margarida (Trends & Niche Analyst) · Nuno (Repurpose & Distribution Specialist)
-- **dev**: Marco (Chief Technology Officer) · Gabriel (Software Architect) · Paulo (Tech Lead) · Andre (Backend Core Lead) · Bruno (Security Engineer) · Carlos (DevOps Lead) · Diana (Senior Frontend Developer) · Diogo (Python Backend Specialist) · Duarte (Data / ETL Engineer) · Gonçalo (Laravel Specialist) · Rita (QA Engineer) · Salvador (AI Engineering Specialist) · Vasco (Data Platform Lead (Database & Data Engineer)) · Vera (Node.js / TypeScript Backend Specialist) · Maria (Research Assistant)
+- **dev**: Marco (Chief Technology Officer) · Gabriel (Software Architect) · Paulo (Tech Lead) · Andre (Backend Core Lead) · Bruno (Security Engineer) · Carlos (DevOps Lead) · Diana (Senior Frontend Developer) · Diogo (Python Backend Specialist) · Duarte (Data / ETL Engineer) · Gonçalo (Laravel Specialist) · Rita (QA Engineer) · Salvador (AI Engineering Specialist) · Vasco (Data Platform Lead — Database & Data Engineer) · Vera (Node.js / TypeScript Backend Specialist) · Maria (Research Assistant)
 - **ecom**: Ricardo (E-Commerce Director) · Alice (CRO Specialist) · Catarina (Lifecycle & Retention Manager) · David (Commerce Engineer)
 - **fin**: Helena (Chief Financial Officer) · Leonor (Financial Analyst) · Rui (Investment & Fundraising Strategist)
 - **kb**: Clara (Knowledge Director) · Francisco (Research Analyst) · Helena C. (Knowledge Curator) · Tomas Jr (Data Collector)
@@ -61,7 +61,7 @@ Adopt the matching persona when executing department work:
 - **sales**: Miguel (Sales Director) · Ines S. (Sales Operations Analyst) · Joao (Sales Closer) · Martim (SDR / Pre-Sales)
 - **strat**: Tomas (Chief Strategist) · Guilherme (Decision Quality & Strategic Foresight) · Lucas (Market & Competitive Intelligence Analyst) · Marta S. (Business Model Designer)
 
-## Stack conventions
+## Stack Conventions
 
 Apply the section matching the files you touch.
 

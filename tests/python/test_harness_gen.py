@@ -20,6 +20,7 @@ from harness_gen import (  # noqa: E402
     MAIN_FILE_BUDGET_BYTES,
     check_budget,
     generate,
+    write_bundle,
 )
 
 HARNESS_DIR = REPO_ROOT / "harness"
@@ -115,3 +116,25 @@ def test_bundles_declare_their_generated_nature():
         assert "harness_gen.py" in content, (
             f"{rel} must name its generator — hand-edits get overwritten"
         )
+
+
+def test_dept_leads_drift_locked_to_routing_table():
+    # DEPT_LEADS is the generator's one hand-maintained mapping; the
+    # canonical routing table lives in arka/SKILL.md. Lock them together
+    # so a lead change in one place cannot silently fork the other.
+    skill_md = (REPO_ROOT / "arka" / "SKILL.md").read_text(encoding="utf-8")
+    for prefix, lead in DEPT_LEADS.items():
+        assert f"[arka:routing] {prefix} -> {lead}" in skill_md, (
+            f"DEPT_LEADS ({prefix} -> {lead}) diverged from the "
+            "arka/SKILL.md routing table"
+        )
+
+
+def test_write_bundle_removes_stale_files(tmp_path):
+    # A renamed or dropped target must not leave its old file behind —
+    # a stale bundle is a hand-edit nobody made.
+    write_bundle({"codex/AGENTS.md": "v1", "zed/.rules": "v1"}, tmp_path)
+    assert (tmp_path / "zed" / ".rules").exists()
+    write_bundle({"codex/AGENTS.md": "v2"}, tmp_path)
+    assert not (tmp_path / "zed" / ".rules").exists(), "stale file survived"
+    assert (tmp_path / "codex" / "AGENTS.md").read_text() == "v2"

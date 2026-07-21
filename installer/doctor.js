@@ -87,9 +87,10 @@ export function statuslineConfigured(
   }
 }
 
-// gotchas.json is live v2 state: capture/collector.py appends to it and
-// `/arka evolve` (#348) ingests it. Missing means capture never ran;
-// corrupt means evolve will choke.
+// gotchas.json is live v2 state: the PostToolUse hook writes it
+// (core/hooks/post_tool_use.py::_store_gotcha) and `/arka evolve`
+// (#348) ingests it. Missing means capture never ran; corrupt means
+// evolve will choke.
 export function gotchasHealthy(
   gotchasPath = join(INSTALL_DIR, "gotchas.json")
 ) {

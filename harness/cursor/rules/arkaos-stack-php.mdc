@@ -1,5 +1,5 @@
 ---
-description: ArkaOS php stack conventions
+description: ArkaOS PHP stack conventions
 globs: **/*.php
 alwaysApply: false
 ---

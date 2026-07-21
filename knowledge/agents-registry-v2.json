@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-20T21:08:57.022558",
+    "generated": "2026-07-21T11:11:29.016401",
     "total_agents": 86,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -1586,7 +1586,7 @@
     {
       "id": "dba-data-eng",
       "name": "Vasco",
-      "role": "Data Platform Lead (Database & Data Engineer)",
+      "role": "Data Platform Lead — Database & Data Engineer",
       "department": "dev",
       "tier": 2,
       "model": "sonnet",
