@@ -1373,6 +1373,19 @@
         "origin": "arkaos"
       }
     },
+    "harness-tune": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "headline-write": {
       "depts": [
         "landing"
@@ -2750,6 +2763,19 @@
       ],
       "curated": true,
       "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "session-retro": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
       "collision": false,
       "provenance": {
         "origin": "arkaos"
