@@ -262,7 +262,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/nutlope/hallmark",
+        "license": "MIT"
       }
     },
     "api-design": {
@@ -713,7 +715,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/nutlope/hallmark",
+        "license": "MIT"
       }
     },
     "community-marketing": {
@@ -1126,7 +1130,9 @@
       "plugins": [],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/nutlope/hallmark",
+        "license": "MIT"
       }
     },
     "devops-pipeline": {

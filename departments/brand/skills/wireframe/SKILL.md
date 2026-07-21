@@ -71,6 +71,11 @@ the squad reference.
 
 ## Workflow (Garrett's 5 Planes, applied)
 
+0. **Name the macrostructure** — before any plane, name the page shape
+   from the 21-entry catalog
+   (`departments/landing/skills/page-architect/references/macrostructures.md`);
+   the ASCII wireframe below expresses THAT shape, not the generic
+   hero-features-CTA template.
 1. **Strategy** — one sentence: the page's single job and its audience.
    If the brief doesn't pin these, pin them yourself and say so.
 2. **Scope** — content inventory: every element that must exist, ranked

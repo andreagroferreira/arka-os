@@ -67,6 +67,16 @@ Material derived from this project:
 | Font ban list (merged) | `departments/brand/references/uiux-knowledge-and-tools.md` §11 | Union with the impeccable reflex-reject list, deduplicated; carve-out semantics preserved |
 | Pre-emit critique protocol | `departments/brand/references/uiux-knowledge-and-tools.md` §8 | Six-axis scoring + `[arka:design-dna]` stamp (§9), renamed from the upstream `Hallmark ·` stamp |
 | Skill sections | `departments/brand/skills/design-review/SKILL.md`, `departments/brand/skills/ux-audit/SKILL.md` | Slop-gates pre-verdict step, audit flow (pre-flight scan, severity report format), redesign boundaries in `arka/skills/refine/SKILL.md` |
+| Macrostructures (W2) | `departments/landing/skills/page-architect/references/macrostructures.md` + `macrostructures/` (21 files) | Near-verbatim; diversification rule reads the `[arka:design-dna]` stamp and `.arka/design/log.json` |
+| Component cookbook (W2) | `departments/landing/skills/page-architect/references/component-cookbook.md` + `components/` (50 files) | Near-verbatim; example footer strings replaced with neutral fictional content |
+| Hero enrichment + nav recipe (W2) | `departments/landing/skills/page-architect/references/hero-enrichment.md`, `floating-nav.md` | Hosted imagery kit and external image-gen services repointed to the ArkaOS image pipeline |
+| Layout/copy craft (W2, merged) | `departments/landing/skills/page-architect/references/layout-craft.md`, `ui-copy.md` | Merged with impeccable layout material (see impeccable section); prose-tone rules deferred to `arka/skills/human-writing` |
+| Design DNA study (W2) | `departments/brand/skills/design-system/references/design-dna-study.md` | SSRF-safety, refusal layer, prompt-injection handling and attestation gate kept byte-identical |
+| design.md spec + exports (W2) | `departments/brand/skills/design-system/references/design-md-spec.md` | Merged from upstream `design-md.md` + `export-formats.md`; ArkaOS `design-system.yaml` bridge added |
+| Typography/interaction craft (W2, merged) | `departments/brand/skills/design-system/references/typography-craft.md`, `interaction-states.md` | Merged with impeccable typeset/interaction material; ban lists relocated to doctrine hub §11 |
+| Theme specs (W2) | `departments/brand/skills/design-system/references/themes/` (4 files) | carnival, cobalt, hum, lumen — opt-in seeds, catalogued in doctrine hub §10 |
+| OKLCH theme construction (W2, merged) | `departments/brand/skills/colors/references/oklch-theme.md` | hallmark algorithm as spine, impeccable colorize rules folded in |
+| Motion recipes (W2, merged) | `departments/dev/skills/animated-website/references/motion-recipes.md` | 15 recipes + 20 tells mapped onto the doctrine hub §4 timing tokens (hub wins on conflicts) |
 
 Changes on import: "Powered by Together AI" sponsor references removed;
 the `Hallmark ·` CSS stamp namespace renamed to `[arka:design-dna]`;
@@ -98,6 +108,10 @@ license requires:
 | Design laws | `departments/brand/references/uiux-knowledge-and-tools.md` §12 | Compacted from upstream `skill/SKILL.src.md` general rules + absolute bans; provider-conditional blocks resolved |
 | Font + lane ban list (merged) | `departments/brand/references/uiux-knowledge-and-tools.md` §11 | Union with the hallmark banned-defaults list, deduplicated |
 | Design detector | external npm CLI `impeccable`, shelled by the QG check `design-slop` (Wave 3) | Dependency only — no upstream code vendored |
+| Layout craft (W2, merged) | `departments/landing/skills/page-architect/references/layout-craft.md` | Upstream `skill/reference/layout.md` folded into the hallmark layout/responsive merge (optical adjustments, hierarchy table, squint test) |
+| Typography/interaction craft (W2, merged) | `departments/brand/skills/design-system/references/typography-craft.md`, `interaction-states.md` | Upstream `typeset.md` (rem-vs-clamp doctrine, font-loading mechanics, dark-bg compensation) and `interaction-design.md` (dropdown clipping, anchor positioning) folded into the hallmark merges |
+| OKLCH color rules (W2, merged) | `departments/brand/skills/colors/references/oklch-theme.md` | Upstream `colorize.md` rules (HSL→OKLCH rationale, tinted neutrals, alpha smell, dark-mode table) folded into the hallmark algorithm |
+| Motion craft (W2, merged) | `departments/dev/skills/animated-website/references/motion-recipes.md` | Upstream `animate.md` (easing beziers, exits-75%, materials palette, 80ms threshold) folded in; doctrine hub §4 tokens win on conflicts |
 
 Not imported: `skill/reference/ios.md` and `skill/reference/android.md`
 (MIT-derived from ehmo/platform-design-skills per the upstream NOTICE —

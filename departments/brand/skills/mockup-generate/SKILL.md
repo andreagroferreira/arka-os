@@ -70,7 +70,10 @@ the squad reference.
 ## Workflow
 
 1. **KB + identity** — pull the real brand tokens (palette hexes, type,
-   logo variants, clear-space rules) and cite the source note.
+   logo variants, clear-space rules) and cite the source note. All
+   generated imagery runs through the ArkaOS image pipeline
+   (`/brand image-create`, ComfyUI) — never external one-off image
+   services.
 2. **Scene selection** — per requested type (product / packaging /
    social / stationery), design 2–3 scenes rooted in the brand's world;
    one sentence of rationale each.

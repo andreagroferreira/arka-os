@@ -43,14 +43,38 @@ Structure a single landing page: above-the-fold anatomy, section order,
 copy blocks, CTA placement, and an attention ratio of 1:1 (one page, one
 goal, one action — no competing links).
 
+**Macrostructure first (mandatory for page scope).** Before ordering
+sections, pick the page's SHAPE:
+
+1. Choose one of the 21 named macrostructures in
+   `references/macrostructures.md` — the shape answers the brief, not the
+   category ("SaaS" is not a shape).
+2. Run the diversification check: read `.arka/design/log.json` and any
+   `[arka:design-dna]` stamp from previous outputs in this project — the
+   new macrostructure must differ from the last (structural distance, not
+   a colour swap). Two consecutive briefs must not share the
+   hero → 3-features → CTA → footer rhythm.
+3. Pick the nav and footer archetypes from
+   `references/component-cookbook.md` using its genre routing tables,
+   then load ONLY the picked component files (5–7 per build) from
+   `references/components/` — never the whole cookbook.
+4. Hero imagery need runs through `references/hero-enrichment.md`
+   (tiers A–E); spacing/responsive floors through
+   `references/layout-craft.md`; UI strings through
+   `references/ui-copy.md`.
+
 The deliverable is a page wireframe with:
+- **Macrostructure** — the named shape and why it fits this brief.
 - **Section order** — the sequence from hero to final CTA.
 - **Copy blocks** — what each section must say (the message, not the final copy — that's `landing/copy-framework`).
 - **CTA placement** — where the single conversion action appears and repeats.
 - **Attention ratio** — 1:1 on a conversion page; strip nav and outbound links that leak attention.
+- **Nav/footer archetypes** — the cookbook picks (e.g. N5 floating pill, Ft2 inline rule) with their variation knobs.
 
 This is a blueprint, not code (`landing/landing-gen` builds) and not final
-copy (`landing/copy-framework` writes).
+copy (`landing/copy-framework` writes). The builder inherits the
+macrostructure + archetype picks and stamps them via `[arka:design-dna]`
+(doctrine hub §9).
 
 ---
 

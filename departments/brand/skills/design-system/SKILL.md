@@ -11,6 +11,10 @@ description: >
   specifies the system, it does not build the app); reviewing an existing UI
   against brand guidelines -> brand/design-review.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
+metadata:
+  origin: community
+  source: https://github.com/nutlope/hallmark
+  license: MIT
 ---
 
 <!-- arka:kb-first-prefix begin -->
@@ -65,6 +69,36 @@ A production design system in 5 deliverables:
 3. **WCAG 2.2 AA conformance report** — pass / waiver per component
 4. **Storybook story stubs** — one story per component, ready to drop into Storybook
 5. **Integration guide** — how to wire the system into a Vue/React/Vanilla project
+
+## Study mode (design DNA extraction)
+
+When the operator brings a **reference** — a screenshot or a live URL —
+instead of a brief, run the study protocol in
+`references/design-dna-study.md`: it extracts structural DNA
+(macrostructure, archetypes, type roles, colour anchor, rhythm) into a
+JSON schema + human diagnosis, *structure not pixels*. The protocol's
+refusal layer (template marketplaces, signature designer work), SSRF
+safety rules and attestation gate are mandatory and not negotiable.
+A completed study suspends the theme catalog: the studied DNA IS the
+system (`theme=studied-DNA` in the `[arka:design-dna]` stamp).
+
+## design.md lock (portable output)
+
+The system can emit a portable `design.md` at the project root per
+`references/design-md-spec.md` — tokens, components, motion and identity
+rules any compatible agent can consume — with exports to `tokens.css`,
+Tailwind v4 `@theme`, DTCG `tokens.json` and shadcn CSS vars. When the
+project declares `design-system.yaml` (rule `design-system-locked`),
+mirror the emitted tokens into the token source named by the
+`[arka:design] tokens=` marker field.
+
+## Craft references (load per need, not wholesale)
+
+- `references/typography-craft.md` — 2+1 rule, rem-vs-clamp doctrine,
+  pairing tables, font-loading mechanics (ban lists live in hub §11).
+- `references/interaction-states.md` — the 8-state model + input rules.
+- `references/themes/` — 4 opt-in theme specs (carnival, cobalt, hum,
+  lumen); themes are seeds, never the final system (hub §10).
 
 ## Token JSON schema
 
