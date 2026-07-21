@@ -142,3 +142,19 @@ class TestFullLifecycleWithInducedFailure:
             workflow.id, Verdict.REJECTED, evidence_overall="fail"
         )
         assert result.success
+
+
+class TestDesignSlopInEvidenceReport:
+    """design-slop (W3) is part of the default evidence surface."""
+
+    def test_design_slop_present_in_full_report(self, tmp_path):
+        from core.governance.evidence_checks import run_evidence_checks
+
+        (tmp_path / "app.css").write_text("body { color: #111; }\n")
+        report = run_evidence_checks(tmp_path, changed_files=["app.css"])
+        names = [r.check for r in report.results]
+        assert "design-slop" in names
+        slop = next(r for r in report.results if r.check == "design-slop")
+        # On machines without the detector this SKIPS (fail-open); when
+        # present it must conclude — either way it never errors out.
+        assert slop.passed is not False or slop.ran
