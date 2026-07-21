@@ -175,6 +175,51 @@ derived:
     origin: community
     source: https://github.com/coreyhaines31/marketingskills
     license: MIT
+  # PR5 — wave-1 merges: existing ArkaOS skills that absorbed Corey content.
+  departments/marketing/skills/ab-test:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/paid-campaign:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/programmatic-seo:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/seo-audit:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/analytics-report:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/cold-email:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/email-sequence:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/social-strategy:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/competitor-analysis:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/copy-framework:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/optimize-page:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
 
 first_party:
   - arka
@@ -327,14 +372,12 @@ first_party:
   - departments/landing/skills/ab-test
   - departments/landing/skills/affiliate-bridge
   - departments/landing/skills/awareness-diagnose
-  - departments/landing/skills/copy-framework
   - departments/landing/skills/email-sequence
   - departments/landing/skills/funnel-design
   - departments/landing/skills/funnel-metrics
   - departments/landing/skills/headline-write
   - departments/landing/skills/landing-gen
   - departments/landing/skills/launch-sequence
-  - departments/landing/skills/optimize-page
   - departments/landing/skills/page-architect
   - departments/landing/skills/persuasion-apply
   - departments/landing/skills/webinar-funnel
@@ -350,20 +393,11 @@ first_party:
   - departments/leadership/skills/performance-review
   - departments/leadership/skills/team-health
   - departments/marketing
-  - departments/marketing/skills/ab-test
-  - departments/marketing/skills/analytics-report
   - departments/marketing/skills/audience-segment
   - departments/marketing/skills/calendar-plan
-  - departments/marketing/skills/cold-email
-  - departments/marketing/skills/competitor-analysis
   - departments/marketing/skills/content-audit
-  - departments/marketing/skills/email-sequence
   - departments/marketing/skills/growth-loop
   - departments/marketing/skills/marketing-automation
-  - departments/marketing/skills/paid-campaign
-  - departments/marketing/skills/programmatic-seo
-  - departments/marketing/skills/seo-audit
-  - departments/marketing/skills/social-strategy
   - departments/ops
   - departments/ops/skills/bottleneck-find
   - departments/ops/skills/dashboard-build

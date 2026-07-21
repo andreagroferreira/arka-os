@@ -55,7 +55,9 @@
       ],
       "collision": true,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "ad-creative": {
@@ -243,7 +245,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "animated-website": {
@@ -690,7 +694,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "colors": {
@@ -757,7 +763,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "competitor-profile": {
@@ -852,7 +860,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "council": {
@@ -1242,7 +1252,9 @@
       ],
       "collision": true,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "env-secrets": {
@@ -2358,7 +2370,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "org-design": {
@@ -2395,7 +2409,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "paywall-design": {
@@ -2698,7 +2714,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "proposal-write": {
@@ -3138,7 +3156,9 @@
       "plugins": [],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "session-retro": {
@@ -3272,7 +3292,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "sop-create": {
