@@ -56,6 +56,7 @@ expertise:
     - AI-augmented content creation
     - creator monetization
   frameworks:
+    - Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep
     - STEPPS (Berger)
     - Hook Architecture
     - Content OS (GaryVee model)
