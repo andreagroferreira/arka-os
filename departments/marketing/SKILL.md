@@ -39,6 +39,16 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/mkt marketing-plan <client>` | fCMO 12-month AARRR marketing plan | Enterprise |
 | `/mkt marketing-ideas` | 139-idea SaaS marketing library by stage and budget | Specialist |
 | `/mkt council` | Simulated board of 12 legendary marketers | Focused |
+| `/mkt ai-seo <url>` | Optimize for AI search / LLM citations (GEO, AEO) | Focused |
+| `/mkt aso <listing>` | App Store / Google Play listing audit and optimization | Focused |
+| `/mkt schema-markup <url>` | Structured data / schema.org markup | Specialist |
+| `/mkt directory-submit` | Startup/SaaS/AI directory submission strategy | Specialist |
+| `/mkt ad-creative <campaign>` | Bulk ad creative generation and iteration | Focused |
+| `/mkt marketing-psychology` | Apply mental models and behavioral science | Focused |
+| `/mkt marketing-loops` | Always-on recurring marketing workflows | Focused |
+| `/mkt content-strategy` | Plan content strategy, topics, and clusters | Focused |
+| `/mkt customer-research` | VoC, interviews, and survey research synthesis | Focused |
+| `/mkt competitor-profile <url>` | Structured competitor dossier from URLs | Focused |
 
 ## Squad
 
