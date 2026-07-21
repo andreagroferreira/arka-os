@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.29.0] - 2026-07-21
+
+### Added
+
+- **Design absorption Wave 1** (PR #381): the distinctive design-quality
+  canon from [impeccable](https://github.com/pbakaus/impeccable)
+  (Apache-2.0 — first non-MIT absorption, NOTICE carried, changes
+  stated) and [hallmark](https://github.com/nutlope/hallmark) (MIT).
+- `brand/design-review` now runs 58 pass/fail slop gates plus the
+  six-axis pre-emit critique (P/H/E/S/R/V) before every verdict, backed
+  by a 56-entry named anti-pattern dictionary, genre references, the
+  two-isolated-subagent critique protocol, and the brand-vs-product
+  design registers.
+- Doctrine hub: §11 Canonical Reflex-Reject (deduplicated font + lane
+  ban list with never-by-reflex carve-outs) and §12 Design Laws (hard
+  floors and ceilings); `[arka:design-dna]` informational stamp.
+- `brand/ux-audit` gains the pre-flight scan, slop pass, and the
+  `Summary — N critical · M major · K minor` report format.
+- Seven design agents wired with the new frameworks;
+  `TestAbsorbedDesignCanon` locks the canonical homes and the frozen
+  58-gate fork.
+
 ## [4.28.0] - 2026-07-21
 
 ### Added
