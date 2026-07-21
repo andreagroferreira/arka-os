@@ -31,6 +31,8 @@ all copies and substantial portions of the derived material.
 
 - **Source:** https://github.com/hardikpandya/stop-slop
 - **License:** MIT — Copyright (c) 2025 Hardik Pandya
+- **License text:** retained verbatim at
+  `arka/skills/human-writing/references/stop-slop.LICENSE`
 
 Material derived from this project:
 

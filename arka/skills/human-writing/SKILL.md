@@ -72,7 +72,7 @@ Structural patterns are stronger AI tells than any single word: they
 survive synonym swaps. Banned: binary contrasts ("not X, it's Y"),
 negative listing, dramatic fragmentation, rhetorical setups ("What if I
 told you..."), false agency (inanimate nouns doing human verbs: "the data
-tells us", "the decision emerges" — name the human), narrator-from-a-distance,
+tells us", "the decision emerges"; name the human), narrator-from-a-distance,
 Wh-word sentence openers, and lazy extremes (every/always/never doing
 vague work). Full catalogue with fixes: `references/structural-patterns.md`.
 Phrase-level companions (throat-clearing openers, emphasis crutches,
