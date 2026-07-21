@@ -83,6 +83,46 @@ derived:
     origin: community
     source: https://github.com/coreyhaines31/marketingskills
     license: MIT
+  departments/marketing/skills/ai-seo:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/aso:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/schema-markup:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/directory-submit:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/ad-creative:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/marketing-psychology:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/marketing-loops:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/content-strategy:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/customer-research:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/competitor-profile:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
 
 first_party:
   - arka

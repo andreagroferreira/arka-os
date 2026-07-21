@@ -58,6 +58,21 @@
         "origin": "arkaos"
       }
     },
+    "ad-creative": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "adversarial-review": {
       "depts": [
         "dev"
@@ -175,6 +190,21 @@
         "origin": "arkaos"
       }
     },
+    "ai-seo": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "ai-workflow": {
       "depts": [
         "content"
@@ -275,6 +305,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "aso": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "audience-segment": {
@@ -685,6 +730,21 @@
         "origin": "arkaos"
       }
     },
+    "competitor-profile": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "conflict-resolve": {
       "depts": [
         "leadership"
@@ -722,6 +782,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "content-strategy": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "content-system": {
@@ -828,6 +903,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "customer-research": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "customer-success": {
@@ -1004,6 +1094,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "directory-submit": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "disc-assess": {
@@ -1700,12 +1805,42 @@
         "license": "MIT"
       }
     },
+    "marketing-loops": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "marketing-plan": {
       "depts": [
         "marketing"
       ],
       "curated": true,
       "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
+    "marketing-psychology": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
       "collision": false,
       "provenance": {
         "origin": "community",
@@ -2765,6 +2900,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "schema-markup": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "script-structure": {
