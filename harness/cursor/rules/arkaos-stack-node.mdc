@@ -1,5 +1,5 @@
 ---
-description: ArkaOS node stack conventions
+description: ArkaOS Node stack conventions
 globs: **/*.js, **/*.mjs, **/*.cjs, **/*.ts
 alwaysApply: false
 ---

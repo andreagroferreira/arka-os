@@ -1,5 +1,5 @@
 ---
-description: ArkaOS vue stack conventions
+description: ArkaOS Vue stack conventions
 globs: **/*.vue
 alwaysApply: false
 ---

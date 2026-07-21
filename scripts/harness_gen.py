@@ -71,6 +71,13 @@ DIR_TO_PREFIX = {
 # target's context stop being read — the budget is the feature.
 MAIN_FILE_BUDGET_BYTES = 16_000
 
+# Stack slug -> display name for user-facing frontmatter (title() would
+# render "Php").
+STACK_DISPLAY = {
+    "laravel": "Laravel", "node": "Node", "nuxt": "Nuxt", "php": "PHP",
+    "python": "Python", "react": "React", "vue": "Vue",
+}
+
 
 def _load_agents() -> list[dict]:
     data = json.loads(
@@ -182,7 +189,7 @@ Adopt the matching persona when executing department work:
 
 {_agent_index(agents)}
 
-## Stack conventions
+## Stack Conventions
 
 Apply the section matching the files you touch.
 
@@ -204,9 +211,9 @@ def _cursor_files() -> dict[str, str]:
     body = _contract_body()
     # Strip the stack section from the always-on rule — stacks ship as
     # individually scoped .mdc files below, Cursor's native strength.
-    main = body.split("## Stack conventions")[0].rstrip()
+    main = body.split("## Stack Conventions")[0].rstrip()
     main += (
-        "\n\n## Stack conventions\n\nPath-scoped rules in this directory "
+        "\n\n## Stack Conventions\n\nPath-scoped rules in this directory "
         "(`arkaos-stack-*.mdc`) apply automatically to matching files.\n"
     )
     files["rules/arkaos.mdc"] = (
@@ -215,8 +222,9 @@ def _cursor_files() -> dict[str, str]:
     )
     for stack, globs, rule_body in _stack_rules():
         globs_line = ", ".join(globs)
+        display = STACK_DISPLAY.get(stack, stack.title())
         files[f"rules/arkaos-stack-{stack}.mdc"] = (
-            f"---\ndescription: ArkaOS {stack} stack conventions\n"
+            f"---\ndescription: ArkaOS {display} stack conventions\n"
             f"globs: {globs_line}\nalwaysApply: false\n---\n\n"
             f"{rule_body}\n"
         )
@@ -247,22 +255,27 @@ def check_budget(files: dict[str, str]) -> list[str]:
     return over
 
 
+def write_bundle(files: dict[str, str], harness_dir: Path) -> None:
+    """Write the bundle, removing files a previous run left behind."""
+    if harness_dir.exists():
+        for stale in harness_dir.rglob("*"):
+            if stale.is_file():
+                rel = str(stale.relative_to(harness_dir))
+                if rel not in files:
+                    stale.unlink()
+    for rel, content in files.items():
+        target = harness_dir / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+
+
 def main() -> int:
     files = generate()
     over = check_budget(files)
     if over:
         print("BUDGET EXCEEDED:\n  " + "\n  ".join(over))
         return 1
-    if HARNESS_DIR.exists():
-        for stale in HARNESS_DIR.rglob("*"):
-            if stale.is_file():
-                rel = str(stale.relative_to(HARNESS_DIR))
-                if rel not in files:
-                    stale.unlink()
-    for rel, content in files.items():
-        target = HARNESS_DIR / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content)
+    write_bundle(files, HARNESS_DIR)
     total = sum(len(c.encode()) for c in files.values())
     print(
         f"harness generated: {len(files)} files, 6 targets, "

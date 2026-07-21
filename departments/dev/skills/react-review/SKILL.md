@@ -36,7 +36,7 @@ what it captures, and what survives to the next one.
 | 1 | Stale closure | callback reads state captured N renders ago | functional updater (`setX(v => ...)`) or include the dep and let the callback re-create |
 | 2 | Lying dependency array | effect reads `a`, deps say `[b]` | list what the effect READS; if that loops, the effect does too much — split it |
 | 3 | Derived state stored | `useState` mirroring a computable value, synced by effect | compute during render (`useMemo` if costly); delete the effect |
-| 4 | Key-forced remounts | `key={index}` on reorderable lists, or key changing identity every render | stable identity key; component state survives reorders |
+| 4 | Keys without identity | `key={index}` on reorderable lists (state mis-binds to the POSITION after a reorder), or key changing identity every render (full remount each time) | stable identity key; component state follows the item |
 | 5 | Effects doing render work | formatting/filtering in `useEffect` + `setState` | that is render logic — move it into render; effects are for the outside world |
 | 6 | Boundary leak (App Router) | `"use client"` at the top of a tree because one leaf needs a hook | push the directive to the leaf; a client parent drags every child into the bundle |
 | 7 | Context re-render storm | one broad context carrying fast-changing values | split contexts by change rate, memoize the provider value |

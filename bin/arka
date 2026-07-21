@@ -68,7 +68,7 @@ case "${1:-}" in
     shift
     # Issue #358: the node doctor is canonical (engine/venv/hooks/security
     # + the migrated Claude-layer checks). The bash doctor only audits the
-    # legacy v1 layout — keep it strictly as the no-node fallback.
+    # legacy v1 layout — keep it strictly as the no-npx fallback.
     if command -v npx &>/dev/null; then
       npx arkaos doctor "$@"
       exit $?

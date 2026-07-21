@@ -1,5 +1,5 @@
 ---
-description: ArkaOS laravel stack conventions
+description: ArkaOS Laravel stack conventions
 globs: app/**/*.php, routes/**/*.php, database/**/*.php, config/**/*.php, tests/**/*.php
 alwaysApply: false
 ---
