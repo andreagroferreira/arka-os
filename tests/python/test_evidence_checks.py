@@ -892,3 +892,237 @@ def test_spellcheck_resolves_codespell_from_interpreter_not_path(tmp_path, monke
         "must invoke the interpreter's module, not a bare `codespell`"
     )
     assert calls[0][0] == sys.executable
+
+
+# ─── design-slop (design absorption W3) ─────────────────────────────────
+
+
+class _SlopProc:
+    def __init__(self, returncode=0, stdout="[]", stderr=""):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def _slop_env(monkeypatch, tmp_path, *, mode="warn", detector=True,
+              node_ok=True, proc=None, raise_timeout=False):
+    """Wire every external dependency of _check_design_slop to fakes."""
+    monkeypatch.setattr(evidence_checks, "_design_slop_mode", lambda: mode)
+    monkeypatch.setattr(
+        evidence_checks, "_resolve_detector",
+        lambda project_dir: ["impeccable"] if detector else None,
+    )
+    monkeypatch.setattr(
+        evidence_checks, "_node_supports_detector", lambda: node_ok,
+    )
+    monkeypatch.setattr(
+        evidence_checks, "_design_slop_telemetry_path",
+        lambda: tmp_path / "telemetry" / "design-slop.jsonl",
+    )
+    if raise_timeout:
+        def _run(*args, **kwargs):
+            raise subprocess.TimeoutExpired(cmd="impeccable", timeout=1)
+    else:
+        def _run(*args, **kwargs):
+            return proc or _SlopProc()
+    monkeypatch.setattr(evidence_checks.subprocess, "run", _run)
+
+
+def _ui_project(tmp_path):
+    (tmp_path / "app.css").write_text("body { color: red; }\n")
+    return ["app.css"]
+
+
+_FINDING_WARN = {"antipattern": "gradient-text", "name": "Gradient text",
+                 "severity": "warning", "file": "app.css", "line": 3}
+_FINDING_ADV = {"antipattern": "cream-palette", "name": "Cream palette",
+                "severity": "advisory", "file": "app.css", "line": 9}
+
+
+def test_design_slop_skips_when_flag_off(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path, mode="off")
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert not result.ran
+    assert "disabled" in result.summary
+
+
+def test_design_slop_skips_without_changed_files(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path)
+    result = evidence_checks._check_design_slop(tmp_path, None, None, 30)
+    assert not result.ran
+    assert "no changed files" in result.summary
+
+
+def test_design_slop_skips_when_no_ui_files(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path)
+    (tmp_path / "core.py").write_text("x = 1\n")
+    result = evidence_checks._check_design_slop(
+        tmp_path, ["core.py"], None, 30)
+    assert not result.ran
+    assert "no UI files" in result.summary
+
+
+def test_design_slop_skips_when_detector_missing(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path, detector=False)
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert not result.ran
+    assert "not installed" in result.summary
+
+
+def test_design_slop_skips_on_old_node(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path, node_ok=False)
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert not result.ran
+    assert "22.12" in result.summary
+
+
+def test_design_slop_passes_clean_run(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path, proc=_SlopProc(0, "[]"))
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert result.ran and result.passed is True
+    assert "0 findings" in result.summary
+
+
+def test_design_slop_warn_mode_never_fails(tmp_path, monkeypatch):
+    proc = _SlopProc(2, json.dumps([_FINDING_WARN, _FINDING_ADV]))
+    _slop_env(monkeypatch, tmp_path, mode="warn", proc=proc)
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert result.ran and result.passed is True
+    assert result.summary.startswith("ADVISORY")
+    assert "gradient-text" in result.summary
+
+
+def test_design_slop_hard_mode_fails_on_warning(tmp_path, monkeypatch):
+    proc = _SlopProc(2, json.dumps([_FINDING_WARN]))
+    _slop_env(monkeypatch, tmp_path, mode="hard", proc=proc)
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert result.ran and result.passed is False
+    assert "1 warning(s)" in result.summary
+
+
+def test_design_slop_hard_mode_passes_advisory_only(tmp_path, monkeypatch):
+    proc = _SlopProc(2, json.dumps([_FINDING_ADV]))
+    _slop_env(monkeypatch, tmp_path, mode="hard", proc=proc)
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert result.ran and result.passed is True
+
+
+def test_design_slop_timeout_is_inconclusive(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path, raise_timeout=True)
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert result.ran and result.passed is None
+    assert result.summary == "timeout"
+
+
+def test_design_slop_skips_on_malformed_json(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path, proc=_SlopProc(2, "not json"))
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert not result.ran
+    assert "unparseable" in result.summary
+
+
+def test_design_slop_skips_on_detector_error(tmp_path, monkeypatch):
+    _slop_env(monkeypatch, tmp_path, proc=_SlopProc(1, "", "boom"))
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert not result.ran
+    assert "detector error" in result.summary
+
+
+def test_design_slop_writes_telemetry(tmp_path, monkeypatch):
+    proc = _SlopProc(2, json.dumps([_FINDING_WARN]))
+    _slop_env(monkeypatch, tmp_path, mode="warn", proc=proc)
+    evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    line = (tmp_path / "telemetry" / "design-slop.jsonl").read_text()
+    record = json.loads(line)
+    assert record["warnings"] == 1 and record["outcome"] == "pass"
+
+
+def test_design_slop_selectable_via_cli(tmp_path, monkeypatch, capsys):
+    _slop_env(monkeypatch, tmp_path, proc=_SlopProc(0, "[]"))
+    _ui_project(tmp_path)
+    code = main([
+        str(tmp_path), "--checks", "design-slop",
+        "--changed-files", "app.css", "--json",
+    ])
+    report = json.loads(capsys.readouterr().out)
+    checks = [r["check"] for r in report["results"]]
+    assert checks == ["design-slop"]
+    assert report["overall"] == "pass"
+    assert code == 0
+
+
+def test_design_slop_mode_resolution(tmp_path, monkeypatch):
+    cfg = tmp_path / "config.json"
+    monkeypatch.setattr(
+        evidence_checks, "_design_slop_config_path", lambda: cfg)
+    assert evidence_checks._design_slop_mode() == "warn"
+    cfg.write_text(json.dumps({"governance": {"designSlop": "hard"}}))
+    assert evidence_checks._design_slop_mode() == "hard"
+    cfg.write_text(json.dumps({"governance": {"designSlop": False}}))
+    assert evidence_checks._design_slop_mode() == "off"
+    cfg.write_text("not json")
+    assert evidence_checks._design_slop_mode() == "warn"
+
+
+def test_resolve_detector_order_and_no_install(tmp_path, monkeypatch):
+    """which > node_modules/.bin > npx --no-install; never a bare npx."""
+    calls = {"which": []}
+
+    def fake_which(name):
+        calls["which"].append(name)
+        return "/usr/local/bin/impeccable" if name == "impeccable" else None
+
+    monkeypatch.setattr(evidence_checks.shutil, "which", fake_which)
+    assert evidence_checks._resolve_detector(tmp_path) == [
+        "/usr/local/bin/impeccable"]
+
+    monkeypatch.setattr(
+        evidence_checks.shutil, "which",
+        lambda name: "/usr/bin/npx" if name == "npx" else None,
+    )
+    local = tmp_path / "node_modules" / ".bin" / "impeccable"
+    local.parent.mkdir(parents=True)
+    local.write_text("#!/bin/sh\n")
+    assert evidence_checks._resolve_detector(tmp_path) == [str(local)]
+
+    local.unlink()
+    argv = evidence_checks._resolve_detector(tmp_path)
+    assert argv == ["npx", "--no-install", "impeccable"], (
+        "the gate must NEVER install: dropping --no-install turns the "
+        "Quality Gate into a supply-chain entry point"
+    )
+
+    monkeypatch.setattr(evidence_checks.shutil, "which", lambda name: None)
+    assert evidence_checks._resolve_detector(tmp_path) is None
+
+
+def test_design_slop_paths_resolve_home_at_call_time(tmp_path, monkeypatch):
+    """No import-time Path.home() baking (destructive-tests rule)."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert str(evidence_checks._design_slop_config_path()).startswith(
+        str(tmp_path))
+    assert str(evidence_checks._design_slop_telemetry_path()).startswith(
+        str(tmp_path))
+
+
+def test_design_slop_advisory_only_summary_makes_no_hard_threat(
+        tmp_path, monkeypatch):
+    """Advisory-only runs never claim they would fail in hard mode."""
+    proc = _SlopProc(2, json.dumps([_FINDING_ADV]))
+    _slop_env(monkeypatch, tmp_path, mode="warn", proc=proc)
+    result = evidence_checks._check_design_slop(
+        tmp_path, _ui_project(tmp_path), None, 30)
+    assert result.passed is True
+    assert "fails when" not in result.summary
+    assert "advisory finding(s)" in result.summary

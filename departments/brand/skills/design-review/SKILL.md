@@ -112,6 +112,12 @@ For every captured surface, annotate deviations with exact values
 - **Benchmark contrast** — for each major finding, one line on what the
   named benchmark does instead.
 
+> The deterministic half of this review also runs mechanically as the
+> QG evidence check `design-slop` (`core.governance.evidence_checks` —
+> the external `impeccable` detector over changed UI files, fail-open);
+> cite its finding `antipattern` ids in verdicts when the report
+> carries them.
+
 ## Slop gates (pre-verdict — MANDATORY)
 
 Before issuing any verdict, run the reviewed surfaces through

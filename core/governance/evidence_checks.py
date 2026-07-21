@@ -42,7 +42,7 @@ TIMEOUT_SECONDS = 300
 COVERAGE_THRESHOLD = 80.0
 ALL_CHECKS: tuple[str, ...] = (
     "lint", "typecheck", "tests", "coverage", "security-grep", "spellcheck",
-    "ui-screenshot",
+    "ui-screenshot", "design-slop",
 )
 
 # ui-screenshot artifact contract (Excellence Reform PR-D3): captures land
@@ -51,6 +51,26 @@ ALL_CHECKS: tuple[str, ...] = (
 UI_EVIDENCE_DIR = Path(".arka") / "evidence" / "ui"
 UI_SCREENSHOT_WINDOW_HOURS = 24
 UI_SCREENSHOT_MIN_BYTES = 10 * 1024
+
+# design-slop: the deterministic static half of the visual-review loop.
+# Shells the external `impeccable` npm CLI (46 anti-pattern rules, no
+# LLM) over the CHANGED UI files only — never a whole-tree scan. The
+# gate never installs anything (supply-chain: `npx --no-install`).
+# Modes via ``governance.designSlop`` in ``~/.arkaos/config.json``:
+# off → skip · warn (default) → advisory summary, never fails ·
+# hard → `warning` findings fail; `advisory` findings never fail.
+DESIGN_SLOP_TIMEOUT = 120
+_DESIGN_SLOP_MIN_NODE = (22, 12)
+
+
+def _design_slop_config_path() -> Path:
+    """Resolved at call time so tests can redirect HOME (never baked)."""
+    return Path.home() / ".arkaos" / "config.json"
+
+
+def _design_slop_telemetry_path() -> Path:
+    """Resolved at call time so tests can redirect HOME (never baked)."""
+    return Path.home() / ".arkaos" / "telemetry" / "design-slop.jsonl"
 
 _MAX_SUMMARY_CHARS = 800
 _MAX_GREP_HITS = 20
@@ -661,6 +681,169 @@ def _check_ui_screenshot(
     )
 
 
+def _design_slop_mode() -> str:
+    """Resolve ``governance.designSlop`` to 'off' | 'warn' | 'hard'."""
+    config = _design_slop_config_path()
+    if not config.exists():
+        return "warn"
+    try:
+        data = json.loads(config.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return "warn"
+    raw = data.get("governance", {}).get("designSlop", "warn")
+    if raw in (False, "off", "false"):
+        return "off"
+    if raw in (True, "hard", "true"):
+        return "hard"
+    return "warn"
+
+
+def _resolve_detector(project_dir: Path) -> list[str] | None:
+    """Locate the impeccable CLI without ever installing it."""
+    direct = shutil.which("impeccable")
+    if direct:
+        return [direct]
+    local = project_dir / "node_modules" / ".bin" / "impeccable"
+    if local.is_file():
+        return [str(local)]
+    if shutil.which("npx"):
+        return ["npx", "--no-install", "impeccable"]
+    return None
+
+
+def _node_supports_detector() -> bool:
+    """True when `node --version` meets the detector's floor (22.12)."""
+    node = shutil.which("node")
+    if not node:
+        return False
+    try:
+        proc = subprocess.run(
+            [node, "--version"], capture_output=True, text=True, timeout=10,
+        )
+        major, minor = proc.stdout.strip().lstrip("v").split(".")[:2]
+        return (int(major), int(minor)) >= _DESIGN_SLOP_MIN_NODE
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return False
+
+
+def _record_design_slop(payload: dict) -> None:
+    """Best-effort telemetry append; never raises into the gate."""
+    try:
+        target = _design_slop_telemetry_path()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"ts": time.time(), **payload}) + "\n")
+    except OSError:
+        pass
+
+
+def _design_slop_verdict(
+    findings: list[dict], mode: str, n_files: int, command_str: str,
+) -> CheckResult:
+    """Turn parsed detector findings into the check verdict."""
+    warnings = [f for f in findings if f.get("severity") != "advisory"]
+    advisories = [f for f in findings if f.get("severity") == "advisory"]
+    top = "; ".join(
+        f"{f.get('file', '?')}:{f.get('line', '?')} {f.get('antipattern', '?')}"
+        for f in (warnings + advisories)[:10]
+    )
+    counts = (
+        f"{len(warnings)} warning(s), {len(advisories)} advisory finding(s)"
+    )
+    if warnings and mode == "hard":
+        summary = f"{counts} across {n_files} changed UI file(s): {top}"
+        passed = False
+    elif findings:
+        # Only warning-severity findings ever fail (and only in hard
+        # mode) — never promise a hard failure for advisory-only runs.
+        escalation = (
+            " — fails when governance.designSlop=hard" if warnings else ""
+        )
+        summary = (
+            f"ADVISORY: {counts} across {n_files} changed UI "
+            f"file(s){escalation}: {top}"
+        )
+        passed = True
+    else:
+        summary = f"0 findings across {n_files} changed UI file(s)"
+        passed = True
+    return CheckResult(
+        check="design-slop", ran=True, passed=passed,
+        command=command_str, exit_code=2 if findings else 0,
+        summary=summary[:_MAX_SUMMARY_CHARS],
+    )
+
+
+def _check_design_slop(
+    project_dir: Path, changed: list[str] | None,
+    test_command: str | None, timeout: int,
+) -> CheckResult:
+    """Deterministic AI-design-slop detection over changed UI files.
+
+    Composition: ``frontend_gate`` is the pre-edit nudge (PreToolUse),
+    this check is the static deterministic half, ``ui-screenshot`` is
+    the pixel-artifact half, and Francisca supplies judgment. Fail-open
+    by design: a missing detector, an old node, a timeout or unreadable
+    output SKIP with a note — the gate never blocks on tooling absence
+    and never installs anything.
+    """
+    mode = _design_slop_mode()
+    if mode == "off":
+        return _skip("design-slop", "disabled by governance.designSlop flag")
+    if not changed:
+        return _skip("design-slop", "no changed files provided")
+    try:
+        from core.workflow.frontend_gate import is_ui_file
+    except Exception:
+        return _skip("design-slop", "frontend_gate unavailable")
+    ui_changed = [
+        f for f in changed
+        if is_ui_file(f) and (project_dir / f).is_file()
+    ]
+    if not ui_changed:
+        return _skip("design-slop", "no UI files changed")
+    detector = _resolve_detector(project_dir)
+    if detector is None:
+        return _skip(
+            "design-slop",
+            "impeccable CLI not installed (npm i -D impeccable, or re-run "
+            "the ArkaOS installer) — skipped",
+        )
+    if not _node_supports_detector():
+        return _skip("design-slop", "node >= 22.12 required by the detector")
+    argv = [*detector, "detect", *ui_changed, "--json"]
+    command_str = shlex.join(argv)
+    try:
+        proc = subprocess.run(
+            argv, cwd=project_dir, capture_output=True, text=True,
+            timeout=min(timeout, DESIGN_SLOP_TIMEOUT),
+        )
+    except subprocess.TimeoutExpired:
+        return CheckResult(
+            check="design-slop", ran=True, passed=None,
+            command=command_str, exit_code=None, summary="timeout",
+        )
+    except (OSError, FileNotFoundError):
+        return _skip("design-slop", "detector could not be executed")
+    if proc.returncode not in (0, 2):
+        tail = (proc.stderr or proc.stdout or "").strip()[-200:]
+        return _skip("design-slop", f"detector error (exit {proc.returncode}): {tail}")
+    try:
+        findings = json.loads(proc.stdout or "[]")
+        assert isinstance(findings, list)
+    except (json.JSONDecodeError, AssertionError):
+        return _skip("design-slop", "unparseable detector output — skipped")
+    result = _design_slop_verdict(findings, mode, len(ui_changed), command_str)
+    _record_design_slop({
+        "project_dir": str(project_dir), "mode": mode,
+        "ui_files": len(ui_changed),
+        "warnings": sum(1 for f in findings if f.get("severity") != "advisory"),
+        "advisories": sum(1 for f in findings if f.get("severity") == "advisory"),
+        "outcome": "fail" if result.passed is False else "pass",
+    })
+    return result
+
+
 _CHECK_DISPATCH = {
     "lint": _check_lint,
     "typecheck": _check_typecheck,
@@ -669,6 +852,7 @@ _CHECK_DISPATCH = {
     "security-grep": _check_security_grep,
     "spellcheck": _check_spellcheck,
     "ui-screenshot": _check_ui_screenshot,
+    "design-slop": _check_design_slop,
 }
 
 

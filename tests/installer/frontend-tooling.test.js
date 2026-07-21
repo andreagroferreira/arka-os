@@ -20,6 +20,7 @@ const {
   ensureMagicApiKey,
   registerMagicMcp,
   installMotionKit,
+  installImpeccableDetector,
   setupFrontendTooling,
 } = await import(join(ROOT, "installer", "frontend-tooling.js"));
 
@@ -290,4 +291,93 @@ test("setupFrontendTooling never throws and returns both sub-results", async () 
     npx.cleanup();
     home.cleanup();
   }
+});
+
+
+// ─── installImpeccableDetector (design absorption W3) ───────────────────
+
+
+function makeMockNpm({ exit = 0, stderr = "" } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "arkaos-ft-npm-mock-"));
+  const script = join(dir, "npm");
+  const body = `#!/usr/bin/env bash
+${stderr ? `echo "${stderr.replace(/"/g, '\\"')}" >&2` : ""}
+exit ${exit}
+`;
+  writeFileSync(script, body);
+  chmodSync(script, 0o755);
+  return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+function makeMockImpeccable({ exit = 0 } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "arkaos-ft-imp-mock-"));
+  const script = join(dir, "impeccable");
+  writeFileSync(script, `#!/usr/bin/env bash\nexit ${exit}\n`);
+  chmodSync(script, 0o755);
+  return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+test("installImpeccableDetector skips when the CLI is already on PATH", () => {
+  const home = makeTmpHome();
+  const imp = makeMockImpeccable();
+  try {
+    const result = withMockedPath([imp.dir], () =>
+      installImpeccableDetector({ home: home.dir }));
+    assert.equal(result.action, "already-present");
+    assert.ok(!existsSync(join(home.dir, ".arkaos", ".impeccable-installed")));
+  } finally { home.cleanup(); imp.cleanup(); }
+});
+
+test("installImpeccableDetector skips on the once-only marker", () => {
+  const home = makeTmpHome();
+  writeFileSync(join(home.dir, ".arkaos", ".impeccable-installed"), "2026-07-21");
+  const npm = makeMockNpm();
+  // Shadow any real global impeccable so this test exercises the MARKER
+  // branch, not the PATH probe (false-green otherwise).
+  const imp = makeMockImpeccable({ exit: 1 });
+  try {
+    const result = withMockedPath([imp.dir, npm.dir], () =>
+      installImpeccableDetector({ home: home.dir }));
+    assert.equal(result.action, "already-present");
+  } finally { home.cleanup(); npm.cleanup(); imp.cleanup(); }
+});
+
+test("installImpeccableDetector installs and writes the marker", () => {
+  const home = makeTmpHome();
+  const npm = makeMockNpm({ exit: 0 });
+  // A failing mock `impeccable` shadows any real global install on the
+  // test machine, so the PATH probe reports unavailable.
+  const imp = makeMockImpeccable({ exit: 1 });
+  try {
+    const result = withMockedPath([imp.dir, npm.dir], () =>
+      installImpeccableDetector({ home: home.dir }));
+    assert.equal(result.action, "installed");
+    assert.ok(existsSync(join(home.dir, ".arkaos", ".impeccable-installed")));
+  } finally { home.cleanup(); npm.cleanup(); imp.cleanup(); }
+});
+
+test("installImpeccableDetector swallows npm failure", () => {
+  const home = makeTmpHome();
+  const npm = makeMockNpm({ exit: 1, stderr: "EACCES" });
+  const imp = makeMockImpeccable({ exit: 1 });
+  try {
+    const result = withMockedPath([imp.dir, npm.dir], () =>
+      installImpeccableDetector({ home: home.dir }));
+    assert.equal(result.action, "failed");
+    assert.match(result.reason, /EACCES/);
+    assert.ok(!existsSync(join(home.dir, ".arkaos", ".impeccable-installed")));
+  } finally { home.cleanup(); npm.cleanup(); imp.cleanup(); }
+});
+
+test("setupFrontendTooling reports the impeccable detector result", async () => {
+  const home = makeTmpHome();
+  const npm = makeMockNpm({ exit: 0 });
+  const imp = makeMockImpeccable({ exit: 1 });
+  const claude = makeMockClaude({ versionExit: 1 });
+  try {
+    const result = await withMockedPath([imp.dir, npm.dir, claude.dir], () =>
+      setupFrontendTooling({ runtime: "claude-code", home: home.dir }));
+    assert.ok(result.impeccableDetector);
+    assert.equal(result.impeccableDetector.action, "installed");
+  } finally { home.cleanup(); npm.cleanup(); imp.cleanup(); claude.cleanup(); }
 });

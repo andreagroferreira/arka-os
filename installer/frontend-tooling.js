@@ -131,6 +131,37 @@ export function installMotionKit({ runtime = "claude-code", home = homedir() } =
   return { action: "installed" };
 }
 
+function impeccableMarkerPath(home) {
+  return join(home, ".arkaos", ".impeccable-installed");
+}
+
+function isImpeccableAvailable() {
+  const out = spawnSync("impeccable", ["--version"], {
+    timeout: 10_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8",
+  });
+  return !out.error && out.status === 0;
+}
+
+// Install the impeccable design detector (the deterministic half of the
+// design-slop Quality Gate check, core/governance/evidence_checks.py).
+// Pinned major (^3.2) — the gate itself never installs (`npx
+// --no-install`), so this installer step is the single supply-chain
+// entry point. Runtime-agnostic (plain npm CLI), idempotent via marker
+// + PATH probe, never-throws.
+export function installImpeccableDetector({ home = homedir() } = {}) {
+  if (isImpeccableAvailable()) return { action: "already-present" };
+  if (existsSync(impeccableMarkerPath(home))) return { action: "already-present" };
+  const out = spawnSync("npm", ["install", "-g", "impeccable@^3.2"], {
+    timeout: 180_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8",
+  });
+  if (out.error || out.status !== 0) {
+    const reason = (out.stderr || out.error?.message || "unknown").trim().slice(0, 200);
+    return { action: "failed", reason };
+  }
+  try { writeFileSync(impeccableMarkerPath(home), new Date().toISOString()); } catch {}
+  return { action: "installed" };
+}
+
 // Orchestrate the full frontend tooling setup. Single entry point wired
 // into both installer/index.js and installer/update.js.
 export async function setupFrontendTooling({ runtime = "claude-code", home = homedir() } = {}) {
@@ -145,6 +176,11 @@ export async function setupFrontendTooling({ runtime = "claude-code", home = hom
     results.motionKit = installMotionKit({ runtime, home });
   } catch (err) {
     results.motionKit = { action: "failed", reason: err.message };
+  }
+  try {
+    results.impeccableDetector = installImpeccableDetector({ home });
+  } catch (err) {
+    results.impeccableDetector = { action: "failed", reason: err.message };
   }
   return results;
 }

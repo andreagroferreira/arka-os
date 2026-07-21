@@ -95,7 +95,10 @@ benchmark contrast, concrete fix.
    — no memory-based auditing.
 4. **Slop pass** — run the 58 gates (`slop-test.md`) and name every hit
    from `anti-patterns.md`; check reflex-reject violations against the
-   squad reference §11 and design-law breaches against §12.
+   squad reference §11 and design-law breaches against §12. The
+   deterministic half runs mechanically as the QG check `design-slop`
+   (external `impeccable` detector, fail-open) — cite its `antipattern`
+   ids when its report is on record.
 5. **Accessibility pass** — keyboard-only run, focus visibility,
    contrast (AA), `prefers-reduced-motion`, semantic landmarks.
 6. **Responsive pass** — 390 / 768 / 1440; layout integrity, target
