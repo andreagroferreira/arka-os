@@ -59,7 +59,30 @@
 
 baseline_date: 2026-07-14
 
-derived: {}
+derived:
+  # Marketing skills integration campaign — derived from
+  # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
+  # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).
+  departments/marketing/skills/product-marketing:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/marketing-plan:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/marketing-ideas:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/marketing/skills/council:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/offer-create:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
 
 first_party:
   - arka
@@ -219,7 +242,6 @@ first_party:
   - departments/landing/skills/headline-write
   - departments/landing/skills/landing-gen
   - departments/landing/skills/launch-sequence
-  - departments/landing/skills/offer-create
   - departments/landing/skills/optimize-page
   - departments/landing/skills/page-architect
   - departments/landing/skills/persuasion-apply

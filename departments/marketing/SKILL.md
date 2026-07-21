@@ -16,7 +16,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 
 # Marketing & Growth Department — ArkaOS v2
 
-> **Squad Lead:** Luna (Marketing Director) | **Agents:** 4
+> **Squad Lead:** Luna (Marketing Director) | **Agents:** 7
 > **Frameworks:** AARRR, Growth Loops, Schwartz, PLG, STEPPS, SEO Pillar-Cluster
 
 ## Commands
@@ -35,6 +35,10 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/mkt competitor <name>` | Competitive marketing analysis | Focused |
 | `/mkt growth-loop` | Design a sustainable growth loop | Enterprise |
 | `/mkt calendar <period>` | Content calendar with themes and platforms | Focused |
+| `/mkt product-marketing` | Product marketing context (positioning, ICP, voice) — run first | Focused |
+| `/mkt marketing-plan <client>` | fCMO 12-month AARRR marketing plan | Enterprise |
+| `/mkt marketing-ideas` | 139-idea SaaS marketing library by stage and budget | Specialist |
+| `/mkt council` | Simulated board of 12 legendary marketers | Focused |
 
 ## Squad
 
@@ -44,6 +48,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | **Ana** | SEO Specialist | 2 | C+I | Keyword research, technical SEO, E-E-A-T |
 | **Pedro** | Performance Marketer | 2 | D+C | Meta/Google/TikTok Ads, ROAS |
 | **Mariana** | Content Marketer | 2 | I+S | Content strategy, blog, email, social |
+| **Lourenço** | Product Marketing Manager | 2 | C+I | Positioning, ICP, competitive, enablement (growth-marketing lead) |
+| **Raquel** | Lifecycle & Retention Marketer | 2 | S+C | Email, SMS, onboarding/churn comms |
+| **Benedita** | PR & Partnerships | 3 | I+S | Earned media, co-marketing, partnerships |
 
 ## Frameworks Applied
 

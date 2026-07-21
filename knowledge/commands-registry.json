@@ -1,8 +1,8 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-18T19:32:46Z",
-    "total_commands": 270,
+    "generated": "2026-07-21T15:31:12Z",
+    "total_commands": 274,
     "generator": "core/registry/generator.py",
     "departments": {
       "arka": 22,
@@ -15,7 +15,7 @@
       "kb": 22,
       "landing": 14,
       "leadership": 10,
-      "mkt": 12,
+      "mkt": 16,
       "ops": 25,
       "org": 10,
       "pm": 12,
@@ -3313,6 +3313,94 @@
         "create a content calendar for next month",
         "plan this week's social media posts"
       ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-product-marketing",
+      "command": "/mkt product-marketing",
+      "department": "mkt",
+      "description": "Product marketing context (positioning, ICP, voice) — run first",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-marketing-plan",
+      "command": "/mkt marketing-plan <client>",
+      "department": "mkt",
+      "description": "fCMO 12-month AARRR marketing plan",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-marketing-ideas",
+      "command": "/mkt marketing-ideas",
+      "department": "mkt",
+      "description": "139-idea SaaS marketing library by stage and budget",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "mkt-council",
+      "command": "/mkt council",
+      "department": "mkt",
+      "description": "Simulated board of 12 legendary marketers",
+      "lead_agent": "arka-mkt",
+      "keywords": [
+        "social",
+        "content",
+        "campaign",
+        "post",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ],
+      "examples": [],
       "source": "builtin",
       "tier": 2,
       "requires_branch": false,

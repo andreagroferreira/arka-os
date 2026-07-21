@@ -750,6 +750,21 @@
         "origin": "arkaos"
       }
     },
+    "council": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "cro-optimize": {
       "depts": [
         "ecom"
@@ -1670,6 +1685,34 @@
         "origin": "arkaos"
       }
     },
+    "marketing-ideas": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-marketing@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
+    "marketing-plan": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
+      }
+    },
     "marketplace-manage": {
       "depts": [
         "ecom"
@@ -1986,7 +2029,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "okr-cadence": {
@@ -2388,6 +2433,19 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "product-marketing": {
+      "depts": [
+        "marketing"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "programmatic-seo": {
