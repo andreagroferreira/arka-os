@@ -13,6 +13,10 @@ description: >
   environment setup ->
   content/video-setup; YouTube channel strategy -> content/youtube-strategy.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
+metadata:
+  origin: community
+  source: https://github.com/coreyhaines31/marketingskills
+  license: MIT
 ---
 
 <!-- arka:kb-first-prefix begin -->
@@ -26,6 +30,10 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 
 > **Agent:** Simão (Video Producer, orchestrating the production sub-squad)
 > **Full pipeline:** the `content-video` enterprise workflow; invoked standalone, this skill runs the same phases with the same gates.
+
+**Context:** read the product marketing context first —
+`WizardingCode/Marketing/product-marketing.md` in Obsidian (KB-first),
+else the project-local `.agents/product-marketing.md`.
 
 ## Phase 0 — Preflight (non-interactive)
 
@@ -105,3 +113,215 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
 /content video "why AI agents fail in production"
 /content video "lançamento da feature X" --format explainer --platform youtube
 ```
+
+## Tool Landscape (reference)
+
+The Phase 0 matrix picks a tier per capability; this section is the menu of
+concrete tools behind those tiers — model choices for asset generation,
+avatar options, editing/repurposing tools, and prompting guidance. Use it
+when selecting a generation model, when a backend degrades to the manual
+tier, or when the request names a specific tool.
+
+### Extra brief inputs
+
+Beyond the Brief phase (target, format, platform, length), capture:
+
+- **Presenter** — AI avatar vs. voiceover vs. screen recording vs. filmed founder.
+- **Existing assets** — screenshots, logos, product UI, footage, scripts.
+- **One-off vs. template** — a single video, or a reusable template for recurring content.
+- **Technical context** — tech stack, available API keys, per-minute tool budgets.
+
+### Choosing your approach
+
+| Approach | Best For | Tools | When to Use |
+|----------|----------|-------|-------------|
+| **Programmatic** | Templated, data-driven, batch video | Remotion, Hyperframes | Product updates, personalized videos, recurring content |
+| **AI Generation** | Original footage from text/image prompts | Veo 3, Sora 2, Runway, Kling, Seedance | B-roll, hero shots, creative visuals you can't film |
+| **AI Avatars** | Talking-head presenter without filming | HeyGen, Synthesia | Explainers, tutorials, multilingual content |
+| **Editing/Repurposing** | Cutting long-form into short clips | Descript, Opus Clip, CapCut | Podcast/webinar → social clips |
+
+### Programmatic video
+
+Build videos with code. Best for repeatable, templated, or data-driven video
+at scale. (The Full tier's Hyperframes route is the ArkaOS default here.)
+
+**Hyperframes (HTML/CSS — recommended for agents):** open-source, Apache
+2.0, from HeyGen. Plain HTML/CSS/JS, no framework DSL to learn. LLM-native:
+AI models generate better HTML than React components. Each frame is an HTML
+document; compose frames into a timeline, render to MP4. Best for product
+announcements, changelogs, data-driven reports, personalized outreach.
+Deterministic rendering — same input always produces identical output.
+
+**Remotion (React):** mature open-source framework, more powerful than
+Hyperframes but requires React knowledge. React components are frames, props
+drive content, render locally or via Remotion Lambda (AWS) for scale. Best
+for complex animations, interactive previews, large-scale batch rendering.
+
+| Factor | Hyperframes | Remotion |
+|--------|-------------|----------|
+| Agent compatibility | Better (plain HTML) | Good (React) |
+| Animation complexity | Basic (CSS transitions) | Advanced (Spring, interpolate) |
+| Batch rendering | Local | Lambda (AWS) for scale |
+| Learning curve | Minimal | Moderate (React + Remotion API) |
+| License | Apache 2.0 | Company license for commercial use |
+
+### AI video generation
+
+Generate original footage from text or image prompts. Use for B-roll, hero
+visuals, and scenes you can't practically film. (Maps to the asset-generation
+capability: Higgsfield MCP on the Full tier, these models when selecting or
+briefing per shot.)
+
+| Model | Resolution | Max Duration | Best For | Cost |
+|-------|-----------|-------------|----------|------|
+| **Veo 3** (Google) | Up to 1080p (4K varies) | Variable | Top overall quality, synced audio | API-based |
+| **Sora 2** (OpenAI) | Up to 1080p | Up to ~20 sec | Cinematic + synced audio, ChatGPT/API integration | API + ChatGPT |
+| **Runway Gen-4** | Up to 4K | ~10 sec/gen | Motion control, temporal consistency, edit-style workflows | $12-76/mo |
+| **Kling 2.5/3.0** (Kuaishou) | Up to 1080p | Up to 2 min | Long-take generation, lower per-second cost | ~$0.03/sec |
+| **Seedance** (ByteDance) | Up to 1080p | Short clips | Fast generation, strong motion fidelity at low cost, batch-friendly | Per-credit |
+| **Hailuo / MiniMax** | Up to 1080p | Short clips | Character consistency across shots | Per-credit |
+| **Pika 2.x** | 1080p | Short clips | Quick effects, image-to-video, lower bar to entry | Per-credit |
+| **Hunyuan Video / Wan 2** | 720p–1080p | Variable | Open-source self-hosted; full control, no API fees | Free (GPU) |
+
+**Quick picks:**
+- **Highest quality + audio**: Veo 3 or Sora 2
+- **Batch / volume / cost**: Kling, Seedance
+- **Character consistency across multiple shots**: Hailuo
+- **Self-hosted, brand-controlled**: Hunyuan Video or Wan 2 (open weights)
+- **Storyboard → video workflow**: Runway, LTX Studio
+- **Image-to-video from a still you already have**: Kling, Pika, Runway
+
+**Prompting for video models** — specify **subject + action + camera + style + mood**:
+
+```
+A close-up shot of hands typing on a laptop keyboard,
+shallow depth of field, warm office lighting,
+camera slowly pulls back to reveal a modern workspace,
+cinematic color grading, 4K
+```
+
+Common mistakes: too vague ("a person working"), ignoring camera movement
+(specify dolly, pan, static), forgetting style ("cinematic," "documentary,"
+"commercial"), requesting readable text in video (AI models struggle with it).
+Full guide: [references/ai-video-prompting.md](references/ai-video-prompting.md).
+
+**AI generation vs. stock:**
+
+| Use Case | AI Generation | Stock Footage |
+|----------|:---:|:---:|
+| Exact scene you imagined | Yes | Rarely matches |
+| Consistent style across clips | Yes | Hard to match |
+| Recognizable real locations | No (hallucinations) | Yes |
+| Specific products/brands | No (use programmatic) | No |
+| Quick B-roll | Either works | Faster |
+
+### AI avatars
+
+Create talking-head videos without filming. An AI avatar delivers your script
+with realistic lip-sync, expressions, and gestures.
+
+**HeyGen (recommended — has MCP server):** best lip-sync and micro-expressions,
+230+ avatars, 140+ languages. Official MCP server lets agents generate avatar
+videos directly. Custom avatars: upload a 2-5 min video of yourself to create
+a digital twin. Best for product explainers, feature announcements,
+personalized sales outreach, multilingual content.
+
+**Synthesia:** full-body avatars with expressive body language, built-in
+script generation from URLs/docs. Best for corporate training, compliance
+videos, enterprise presentations where professional tone matters more than
+photorealism.
+
+| Scenario | Use Avatar | Use Instead |
+|----------|:---:|-------------|
+| Recurring content (weekly updates) | Yes | — |
+| Multilingual versions | Yes | — |
+| Personalized outreach at scale | Yes | — |
+| Authentic founder content | No | Film yourself |
+| Product UI walkthrough | No | Screen recording |
+| Creative/artistic video | No | AI generation |
+
+### Editing and repurposing
+
+Turn existing content into multiple video formats.
+
+| Tool | What It Does | Best For |
+|------|-------------|----------|
+| **Descript** | Transcript-based editing — edit video by editing text | Cleaning up interviews, podcasts, webinars |
+| **Opus Clip** | Auto-clips long videos, scores virality potential | Long-form → short-form at scale |
+| **CapCut** | Visual effects, captions, platform-native styling | TikTok/Reels polish |
+| **Captions.ai** | Auto-captions, eye contact correction, AI dubbing | Solo talking-head content |
+
+**Repurposing workflow:**
+
+```
+Long-form content (podcast, webinar, demo)
+    ↓
+Descript: Clean up, remove filler, polish
+    ↓
+Opus Clip: Auto-extract 5-10 best moments
+    ↓
+CapCut: Add captions, effects, platform styling
+    ↓
+Distribute: TikTok, Reels, Shorts, LinkedIn
+```
+
+**Reverse-engineer a viral edit:** to replicate the *style* of an edit you
+admire — cut rhythm, caption treatment, punch-ins, on-screen text, sound
+design — decompose it into a reusable edit spec (a beat sheet) and apply it
+to your own footage. Pull the reference (visual/multimodal mode extracts
+frames at the cut points), extract the edit anatomy beat by beat, and output
+a per-beat table plus the 3-5 signature moves that make the edit
+recognizable. This copies the editing grammar, never the reference's
+footage/script/music. Full method:
+[references/edit-anatomy.md](references/edit-anatomy.md).
+
+### Agent-native pipeline
+
+The most powerful setup combines tools that agents can control directly:
+
+```
+Agent writes script (from product context)
+    ↓
+Hyperframes: Generate templated video (HTML → MP4)
+    and/or
+HeyGen MCP: Generate avatar video from script
+    and/or
+Veo/Runway API: Generate B-roll footage
+    ↓
+Agent assembles final cut
+    ↓
+Output: Ready-to-publish video
+```
+
+Hyperframes uses HTML (any coding agent can generate it), HeyGen exposes an
+MCP server (agents call it directly), and video-model APIs are standard HTTP
+requests — so no manual editing step is required.
+
+### Common mistakes
+
+1. **Starting with tools, not strategy** — decide what video you need before picking tools.
+2. **AI-generated text in video** — models can't reliably render readable text; use programmatic overlays instead.
+3. **Uncanny valley avatars** — if avatar quality matters, invest in the higher HeyGen tiers.
+4. **No captions** — 85% of social video is watched without sound.
+5. **Wrong aspect ratio** — 9:16 for social, 16:9 for YouTube/website, 1:1 for feeds.
+6. **Over-producing** — authentic often outperforms polished, especially on TikTok.
+
+### Tool integrations
+
+| Tool | Type | MCP | Guide |
+|------|------|:---:|-------|
+| **HeyGen** | AI avatars | Yes | [heygen.md](../../../marketing/tools/integrations/heygen.md) |
+| **Hyperframes** | Programmatic video | - | [hyperframes.md](../../../marketing/tools/integrations/hyperframes.md) |
+| **Remotion** | Programmatic video | - | [remotion.dev](https://www.remotion.dev/docs) |
+| **Runway** | AI generation | - | [runwayml.com/docs](https://docs.dev.runwayml.com) |
+
+## Related ArkaOS skills
+
+- **`content/script-structure`** — script only (no production)
+- **`content/short-form`** — short-form scripting and batches
+- **`content/youtube-strategy`** — YouTube channel strategy
+- **`content/video-setup`** — one-off environment setup
+- **`mkt/social-strategy`** — video content strategy and what to post
+- **`mkt/paid-campaign`** — paid video ad creative and iteration
+- **`landing/copy-framework`** — video scripts and messaging
+- **`landing/persuasion-apply`** — hooks and persuasion in video

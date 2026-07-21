@@ -220,6 +220,39 @@ derived:
     origin: community
     source: https://github.com/coreyhaines31/marketingskills
     license: MIT
+  # PR6 — wave-2 merges: existing ArkaOS skills that absorbed Corey content.
+  departments/saas/skills/churn-analysis:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/saas/skills/onboarding-optimize:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/saas/skills/pricing-strategy:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/saas/skills/launch-execute:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/affiliate-bridge:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/landing/skills/page-architect:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  departments/content/skills/video-produce:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
+  arka/skills/human-writing:
+    origin: community
+    source: https://github.com/coreyhaines31/marketingskills
+    license: MIT
 
 first_party:
   - arka
@@ -233,7 +266,6 @@ first_party:
   - arka/skills/flow
   - arka/skills/forge
   - arka/skills/fusion
-  - arka/skills/human-writing
   - arka/skills/recipes
   - arka/skills/refine
   - arka/skills/research
@@ -281,7 +313,6 @@ first_party:
   - departments/content/skills/short-form
   - departments/content/skills/thumbnail-package
   - departments/content/skills/trend-hunt
-  - departments/content/skills/video-produce
   - departments/content/skills/video-setup
   - departments/content/skills/viral-design
   - departments/content/skills/youtube-strategy
@@ -370,7 +401,6 @@ first_party:
   - departments/kb/skills/zettelkasten-process
   - departments/landing
   - departments/landing/skills/ab-test
-  - departments/landing/skills/affiliate-bridge
   - departments/landing/skills/awareness-diagnose
   - departments/landing/skills/email-sequence
   - departments/landing/skills/funnel-design
@@ -378,7 +408,6 @@ first_party:
   - departments/landing/skills/headline-write
   - departments/landing/skills/landing-gen
   - departments/landing/skills/launch-sequence
-  - departments/landing/skills/page-architect
   - departments/landing/skills/persuasion-apply
   - departments/landing/skills/webinar-funnel
   - departments/leadership
@@ -446,19 +475,15 @@ first_party:
   - departments/quality
   - departments/saas
   - departments/saas/skills/benchmark-compare
-  - departments/saas/skills/churn-analysis
   - departments/saas/skills/customer-success
   - departments/saas/skills/growth-plan
   - departments/saas/skills/gtm-strategy
-  - departments/saas/skills/launch-execute
   - departments/saas/skills/leaky-bucket
   - departments/saas/skills/metrics-dashboard
   - departments/saas/skills/micro-saas-stack
   - departments/saas/skills/mvp-build
   - departments/saas/skills/niche-evaluate
-  - departments/saas/skills/onboarding-optimize
   - departments/saas/skills/plg-setup
-  - departments/saas/skills/pricing-strategy
   - departments/saas/skills/saas-scaffold
   - departments/saas/skills/validate-idea
   - departments/saas/skills/voc-loop

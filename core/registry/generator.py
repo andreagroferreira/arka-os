@@ -111,7 +111,14 @@ def extract_commands_from_skill(skill_path: Path) -> list[dict]:
             continue
         command = match.group(1).strip()
         description = match.group(2).strip()
+        # An ArkaOS command's head token (before the first space) is a
+        # single word — `/mkt`, `/dev`. A slash INSIDE the head means it
+        # is a URL example (`/features/analytics`), not a command; those
+        # appear verbatim in imported site-architecture content. Slashes
+        # in later `<file/pr>`-style placeholders are fine.
         if not command.startswith("/") or "Description" in description or description.startswith("-"):
+            continue
+        if "/" in command.split(" ")[0][1:]:
             continue
         commands.append({
             "command": command,

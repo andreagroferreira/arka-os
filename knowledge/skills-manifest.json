@@ -98,7 +98,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "agent-design": {
@@ -592,7 +594,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "ci-cd-pipeline": {
@@ -1781,7 +1785,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "launch-sequence": {
@@ -2331,7 +2337,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "opensource-release": {
@@ -2396,7 +2404,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "paid-campaign": {
@@ -2649,7 +2659,9 @@
       ],
       "collision": true,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "primal-audit": {
@@ -3659,7 +3671,9 @@
       ],
       "collision": false,
       "provenance": {
-        "origin": "arkaos"
+        "origin": "community",
+        "source": "https://github.com/coreyhaines31/marketingskills",
+        "license": "MIT"
       }
     },
     "video-setup": {

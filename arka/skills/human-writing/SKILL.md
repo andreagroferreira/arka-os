@@ -14,6 +14,10 @@ description: >
   SKIP: code-only diffs with no user-facing prose; the APPROVED/REJECTED
   copy verdict — arka-quality (Quality Gate, Eduardo) wins
   (standard applies WHILE writing, the review judges after).
+metadata:
+  origin: community
+  source: https://github.com/coreyhaines31/marketingskills
+  license: MIT
 ---
 
 # Human Writing Standard — ARKA OS Core Skill
@@ -59,6 +63,70 @@ Specific facts, numbers, examples over vague statements. "Reduced load from 3.2s
 ### 7. Active Voice by Default
 
 Use active voice unless subject is genuinely unknown. "The team implemented the feature" beats "The feature was implemented by the team."
+
+## Self-Editing Before Delivery
+
+The rules above govern how to write. This section governs how to review your
+own prose before it ships, which is where most AI-tells get caught. Run a
+focused pass per dimension instead of one vague read. After each pass,
+recheck the earlier ones so a fix does not reintroduce an old problem.
+
+### The Seven Sweeps
+
+A sequential editing method for high-stakes prose (landing pages, launch
+emails, sales pages). Each sweep looks for one thing:
+
+1. **Clarity:** can the reader understand it? Cut confusing structures, unclear pronouns, insider jargon, and buried points.
+2. **Voice and tone:** does it sound consistent? Catch drift from casual to corporate, mixed references, and accidental mood shifts.
+3. **So what:** does every claim answer "why should I care?" Bridge each feature to a benefit the reader wants.
+4. **Prove it:** is every claim supported? Replace "trusted by thousands" and "industry-leading" with named proof, numbers, and specifics.
+5. **Specificity:** is it concrete? Swap vague verbs for numbers, timeframes, and examples. "Save 4 hours a week" beats "save time."
+6. **Heightened emotion:** does it make the reader feel something? Make the pain and the desired outcome vivid without manipulation.
+7. **Zero risk:** is every barrier to action removed near the CTA? Answer objections, add trust signals, and state the next step plainly.
+
+For a final QA pass, work the full checklist in
+[references/checklist.md](references/checklist.md).
+
+### Quick-Pass Checks
+
+When a full seven-sweep review is not warranted, run these faster checks.
+
+**Cut these words:** very, really, extremely, incredibly (weak intensifiers);
+just, actually, basically (filler); "in order to" (use "to"); "that" when it
+adds nothing; "things" and "stuff" (too vague).
+
+**Watch for:** unnecessary adverbs, passive voice (switch to active per Rule
+7), and nominalizations (turn the noun back into a verb, so "make a decision"
+becomes "decide").
+
+**Sentence level:** one idea per sentence, varied length, important
+information first, no more than three conjunctions, usually under 25 words.
+
+**Paragraph level:** one topic per paragraph, 2 to 4 sentences for web,
+strong opening sentences, and enough white space to stay scannable.
+
+## Plain-English Alternatives
+
+Rule 5 already bans the worst AI words and maps their replacements. Extend it
+with these common offenders:
+
+| Weak or complex | Plain |
+|-----------------|-------|
+| Implement | Set up |
+| Facilitate | Help |
+| Innovative | New |
+| Cutting-edge | New, modern |
+
+The full substitution list lives in
+[references/plain-english-alternatives.md](references/plain-english-alternatives.md).
+
+## Refreshing Existing Content
+
+Prose decays. Stats go stale, examples age, and brand voice drifts across
+edits by different hands. When traffic is declining, data is old, or the
+product has changed, refresh rather than rewrite. The refresh checklist, the
+refresh-versus-rewrite matrix, and a cadence guide are in
+[references/content-refresh.md](references/content-refresh.md).
 
 ## Enforcement
 
