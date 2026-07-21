@@ -60,6 +60,20 @@
 baseline_date: 2026-07-14
 
 derived:
+  # Design absorption campaign W1 — slop gates, anti-patterns, critique
+  # protocol and registers derived from nutlope/hallmark (MIT, primary
+  # source in frontmatter) and pbakaus/impeccable (Apache-2.0, second
+  # source recorded in docs/THIRD-PARTY-NOTICES.md). Both skills were
+  # reclassified OUT of first_party deliberately: their bodies now carry
+  # substantial ported content.
+  departments/brand/skills/design-review:
+    origin: community
+    source: https://github.com/nutlope/hallmark
+    license: MIT
+  departments/brand/skills/ux-audit:
+    origin: community
+    source: https://github.com/nutlope/hallmark
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).
@@ -272,7 +286,6 @@ first_party:
   - departments/brand
   - departments/brand/skills/archetype-finder
   - departments/brand/skills/colors
-  - departments/brand/skills/design-review
   - departments/brand/skills/design-system
   - departments/brand/skills/identity-system
   - departments/brand/skills/logo-brief
@@ -280,7 +293,6 @@ first_party:
   - departments/brand/skills/naming-evaluate
   - departments/brand/skills/positioning-statement
   - departments/brand/skills/primal-audit
-  - departments/brand/skills/ux-audit
   - departments/brand/skills/voice-guide
   - departments/brand/skills/wireframe
   - departments/community

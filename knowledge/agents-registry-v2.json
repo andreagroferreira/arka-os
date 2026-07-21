@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-21T20:37:39.093830",
+    "generated": "2026-07-21T22:29:49.522966",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -87,7 +87,9 @@
         "Atomic Design (Frost)",
         "Nielsen Heuristics",
         "Dieter Rams 10 Principles",
-        "Double Diamond"
+        "Double Diamond",
+        "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
+        "Impeccable design laws + registers (brand vs product)"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/brand-director.yaml",
@@ -192,7 +194,9 @@
         "WCAG 2.2",
         "Style Dictionary",
         "shadcn/ui conventions",
-        "Tailwind CSS configuration"
+        "Tailwind CSS configuration",
+        "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
+        "Impeccable design laws + registers (brand vs product)"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/design-ops/design-ops-lead.yaml",
@@ -346,7 +350,9 @@
         "ATAG 2.0",
         "EAA / EN 301 549",
         "axe-core ruleset",
-        "Section 508"
+        "Section 508",
+        "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
+        "Impeccable design laws + registers (brand vs product)"
       ],
       "knowledge_sources": [],
       "file": "departments/brand/agents/design-ops/wcag-auditor.yaml",
@@ -410,6 +416,8 @@
         "WCAG 2.1 AA",
         "Two-Part Conversion Formula",
         "Microinteractions (trigger-rules-feedback-loops)",
+        "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
+        "Impeccable design laws + registers (brand vs product)",
         "runtime:frontend-design (Anthropic skill)"
       ],
       "knowledge_sources": [
@@ -516,7 +524,9 @@
         "4 Elements of UX Strategy (Levy)",
         "Blue Ocean / Value Innovation",
         "Provisional Personas",
-        "Lean UX"
+        "Lean UX",
+        "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
+        "Impeccable design laws + registers (brand vs product)"
       ],
       "knowledge_sources": [
         "[[Personas/Jaime Levy]]",
@@ -574,6 +584,8 @@
         "Brand Identity Process (Wheeler)",
         "ArkaOS Design Tokens",
         "WCAG AA contrast",
+        "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
+        "Impeccable design laws + registers (brand vs product)",
         "runtime:frontend-design (Anthropic skill)",
         "runtime:ui-ux-pro-max (community skill)"
       ],
@@ -1748,6 +1760,8 @@
         "CWV Optimization",
         "ArkaOS Motion System",
         "Design Tokens (DTCG)",
+        "Hallmark slop gates (58) + pre-emit critique (P/H/E/S/R/V)",
+        "Impeccable design laws + registers (brand vs product)",
         "runtime:frontend-design (Anthropic skill)",
         "runtime:ui-ux-pro-max (community skill)"
       ],

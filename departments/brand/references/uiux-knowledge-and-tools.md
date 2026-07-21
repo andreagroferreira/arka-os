@@ -6,7 +6,8 @@
 >
 > Read this BEFORE any UI/UX work. It defines the non-negotiable KB-first
 > rule, the canonical knowledge sources, the concrete design tokens, the
-> motion system, the new tooling, and the squad validation order.
+> motion system, the new tooling, the squad validation order, the canonical
+> reflex-reject lists (§11) and the hard design laws (§12).
 
 ---
 
@@ -132,7 +133,10 @@ write material findings back to `[[Area 02 - Design]]`:
 - Dieter Rams' 10 principles
 - Atomic Design (full atoms→pages)
 - Microinteractions (trigger→rules→feedback→loops/modes)
-- Color theory & typography science (OKLCH, harmony, modular scale)
+- Color theory & typography science (OKLCH, harmony, modular scale) —
+  **partially filled in-repo**: hard floors/ceilings now live in §12 and
+  the reflex-reject discipline in §11; deeper craft references live under
+  `departments/brand/skills/design-review/references/`.
 - Gestalt & visual hierarchy (F/Z scanning, proximity, contrast)
 
 ---
@@ -168,6 +172,23 @@ for any other brief?"* If yes, revise and state what changed and why.
 Quality floor, never announced: responsive to mobile, visible keyboard
 focus, `prefers-reduced-motion` respected, WCAG AA contrast.
 
+**Pre-emit critique (scored — hallmark protocol).** Before handing back
+any design artifact, score it 1–5 on six axes:
+
+| Axis | Question |
+|---|---|
+| **P** Philosophy | Does the design have a stated POV the brief earns? |
+| **H** Hierarchy | Does the eye land where the content says it should? |
+| **E** Execution | Are spacing, contrast, states, and breakpoints finished? |
+| **S** Specificity | Does this look like *this brief* — or a generic page? |
+| **R** Restraint | Is every bold move deliberate; is everything else quiet? |
+| **V** Variety | Does it differ structurally from the previous output? |
+
+Any axis **< 3 triggers a revision pass** — never ship and explain.
+Stamp the six scores in the artifact via the `[arka:design-dna]` companion
+stamp (§9). The 58 pass/fail slop gates that operationalize this rubric
+live in `departments/brand/skills/design-review/references/slop-test.md`.
+
 ## 9. Design Marker Contract (`[arka:design]`)
 
 Every UI/design-producing turn MUST emit the structured marker on its own
@@ -192,6 +213,21 @@ A bare `[arka:design] <token>` is a LEGACY marker: tolerated in WARN mode,
 counted separately in telemetry, and treated as missing once the frontend
 gate goes hard.
 
+**Companion stamp `[arka:design-dna]` (informational).** Design-producing
+work additionally stamps the first non-empty line of produced CSS with:
+
+```
+/* [arka:design-dna] macrostructure=<name> genre=<genre> anchor=<oklch|hex> display=<font> body=<font> critique=P#H#E#S#R#V# */
+```
+
+Key=value, single line, greppable. It records the structural choice, the
+palette anchor, the type pairing, and the six pre-emit critique scores
+(§8), and feeds the structural-diversification rule (consecutive outputs
+must differ on at least one axis; project memory at
+`.arka/design/log.json`). This stamp is **NOT parsed by the frontend gate**
+(`core/workflow/frontend_gate.py`) and carries no gate semantics — the
+structured `[arka:design]` marker above remains the only enforced line.
+
 ## 10. Aesthetic Directions Catalog (optional, curated)
 
 When a project has NO design system yet and the brief leaves the visual
@@ -207,3 +243,150 @@ job: load `gsap-core` + `gsap-timeline` for any animation work,
 `gsap-scrolltrigger`/`gsap-plugins` as the work demands, `gsap-react` on
 React, and treat `gsap-performance` as the review bar
 (`npx skills add https://github.com/greensock/gsap-skills` when absent).
+
+## 11. Canonical Reflex-Reject (fonts + aesthetic lanes)
+
+> Derived from [impeccable](https://github.com/pbakaus/impeccable)
+> (Apache-2.0) and [hallmark](https://github.com/nutlope/hallmark) (MIT) —
+> license texts at `departments/brand/skills/design-review/references/`.
+> This section is the SINGLE canonical home of the list. Skills and gates
+> point here; they never restate it (drift risk).
+
+These are **training-data defaults**: every LLM reaches for them by
+reflex, which is exactly why using them by reflex produces monoculture.
+The semantics are **never-by-reflex**, not never:
+
+1. **Identity-preservation carve-out** — when the existing brand has
+   already committed to a font or lane, identity wins. The list governs
+   greenfield decisions only.
+2. **Deliberate-pick carve-out** — a listed font may be used when a named
+   theme or brief *deliberately* selects it and the choice is stated with
+   its reason (e.g. Playfair Display as display-only in an editorial
+   theme; Space Grotesk in a brutalist direction). Reflex is the crime,
+   not the font.
+3. **Product-register carve-out** — product UI (design SERVES the task)
+   has explicit permission for system fonts and familiar sans defaults
+   (Inter, SF Pro, system-ui). The ban list bites on BRAND surfaces
+   (design IS the product). See
+   `departments/brand/skills/design-review/references/design-registers.md`.
+
+### Reflex-reject fonts
+
+**Sans:** Inter · DM Sans · Space Grotesk · Outfit · Plus Jakarta Sans ·
+Instrument Sans · Syne · Roboto · Open Sans · Lato · Poppins · Source Sans ·
+Nunito · Montserrat · Raleway · Work Sans · system-ui-as-brand · Arial ·
+Helvetica-as-default
+**Serif:** Fraunces · Newsreader · Lora · Crimson / Crimson Pro / Crimson
+Text · Playfair Display · Cormorant / Cormorant Garamond · DM Serif Display ·
+DM Serif Text · Instrument Serif · Merriweather · Source Serif ·
+Georgia-as-default
+**Mono:** IBM Plex Mono · Space Mono · Courier New · Consolas-as-default ·
+system-mono-as-brand
+**Family-wide:** IBM Plex Sans · IBM Plex Serif
+
+Selection discipline when rejecting a reflex pick: run the 4-step
+physical-object font procedure in `design-registers.md` (three concrete
+brand-voice words → reject reflex picks → browse a real catalog for the
+brand as a physical object → cross-check).
+
+### Reflex-reject aesthetic lanes
+
+- **Editorial-typographic** — display serif (often italic) + small mono
+  labels + ruled separators + monochromatic restraint. The 2026 fingerprint:
+  three rule-separated columns, an italic serif headline, lowercase
+  track-spaced metadata, no imagery. Every Stripe-adjacent and
+  Notion-adjacent brand has landed here. Requires a register reason that
+  *demands* it (a literal magazine), not a mood.
+
+Lanes saturate and desaturate over time — entries move in and out on
+evidence, mirroring upstream. The **second-order slop check** applies: if
+the aesthetic family is guessable from category-plus-anti-references
+("fintech that's not navy-and-gold → terminal-native dark mode"), it is
+the trap one tier deeper. Rework until neither the first-order nor the
+second-order answer is obvious.
+
+## 12. Design Laws (hard floors and ceilings)
+
+> Derived from [impeccable](https://github.com/pbakaus/impeccable)
+> (Apache-2.0) and [hallmark](https://github.com/nutlope/hallmark) (MIT).
+> Compact canonical table — one law per line. The enforcement surfaces
+> (slop gates, design-slop detector, QG visual review) cite these; deeper
+> rationale lives in `design-review/references/`.
+
+**Typography**
+- Body contrast ≥ 4.5:1; large text (≥18px, or bold ≥14px) ≥ 3:1;
+  placeholders need 4.5:1 too — muted-gray-on-tinted-near-white is the
+  single biggest readability failure.
+- Prose line length 65–75ch (dense data UI may run denser).
+- Hero/display ceiling: `clamp()` max ≤ 6rem. Above that the page shouts.
+- Display letter-spacing floor ≥ −0.04em — tighter and letters touch.
+- `text-wrap: balance` on h1–h3; `text-wrap: pretty` on long prose.
+- Max 3 font families per page (display + body + one outlier). Four = slop.
+- Pair on a contrast axis (serif+sans, geometric+humanist) or use one
+  family with committed weight contrast — never two similar sans.
+- Light-on-dark compensation runs on three axes: line-height +0.05–0.1,
+  letter-spacing +0.01–0.02em, optionally body weight one notch up.
+- Commit to extremes: weight 200 next to 800 reads as intentional;
+  400 next to 600 reads as a default setting.
+
+**Color**
+- OKLCH for new palettes. Pure gray is dead: tint neutrals 0.005–0.015
+  chroma toward the brand hue (never default-tint warm/cool).
+- The warm-neutral band (L 0.84–0.97, C < 0.06, hue 40–100) is the
+  saturated AI default — cream/sand/paper by any token name
+  (`--paper`, `--cream`, `--sand`, `--linen`, `--parchment`…) is a tell.
+  Warmth is carried by accent + typography + imagery, not body bg.
+- Pick a color strategy BEFORE colors, on the commitment axis:
+  **Restrained** (neutrals + one accent ≤10%) · **Committed** (one
+  saturated color, 30–60% of surface) · **Full palette** (3–4 named
+  roles) · **Drenched** (the surface IS the color).
+- Gray text on colored backgrounds washes out: use a darker shade of the
+  background's own hue or a transparency of the text color.
+- Button text vs fill must differ by > 5% lightness or > 0.05 chroma in
+  OKLCH (catches the black-on-black bug).
+- Heavy alpha/transparency is a design smell — it usually means an
+  incomplete palette.
+
+**Layout**
+- Nested cards are always wrong; cards only when truly the best affordance.
+- Flexbox for 1D, Grid for 2D; breakpoint-free grids via
+  `repeat(auto-fit, minmax(280px, 1fr))`.
+- Semantic z-index scale (dropdown → sticky → modal-backdrop → modal →
+  toast → tooltip); never 999/9999.
+- Vary spacing for rhythm: generous separations, tight groupings —
+  monotonous spacing is a tell.
+- Touch targets ≥ 44×44 (extend hit area via `::before { inset: -10px }`
+  when the visual must stay smaller).
+
+**Motion**
+- Ease out with exponential curves (ease-out-quart/quint/expo); no bounce,
+  no elastic, no browser-default `ease`.
+- Exits run ~75% of the enter duration.
+- `prefers-reduced-motion` alternative is mandatory for every animation.
+- Never animate CSS layout properties without real need; motion conveys
+  state on product surfaces, never decoration.
+- The uniform fade-and-rise reveal on every scrolled section is a tell —
+  each reveal fits what it reveals; zero motion is not the fix either.
+- Reveal animations enhance an already-visible default — never gate
+  content visibility on a class-triggered transition (ships blank in
+  hidden tabs and headless renderers).
+
+**Interaction**
+- Every interactive element ships all 8 states: default, hover,
+  focus-visible, active, disabled, loading, error, success. Missing any =
+  unfinished.
+- Skeletons for loading, not spinners in content; empty states teach the
+  interface.
+- Modal as first thought is laziness — exhaust inline/progressive
+  alternatives first.
+
+**Absolute bans (match-and-refuse — rewrite the element, never ship):**
+side-stripe borders (`border-left/right` > 1px as accent) · gradient text
+(`background-clip: text`) · glassmorphism-as-default · the hero-metric
+template (big number + small label + gradient accent) · identical
+icon+heading+text card grids · tiny uppercase tracked eyebrow above every
+section · numbered section markers (01/02/03) as default scaffolding ·
+text overflowing its container at any breakpoint.
+
+These laws are floors, not aspirations: §8's three default looks plus any
+absolute-ban hit are constitution violations under `excellence-mandate`.

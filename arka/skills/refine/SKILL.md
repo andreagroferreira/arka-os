@@ -73,6 +73,13 @@ input clear enough to build the right thing."*
 - Be critical: if the request is technically wrong or would ship a worse
   product, challenge it here (pushback protocol, `arkaos-not-yes-man`)
   before compiling.
+- **Redesign asks have hard boundaries.** When the rough idea is
+  "redesign X", the compiled prompt states them explicitly: preserve
+  routes, information architecture, and copy INTENT — the visual layer is
+  the scope; a full rebuild (structure or content changes) requires its
+  own explicit confirmation, never rides along silently. The visual loop
+  after dispatch belongs to `brand/design-review` (slop gates + register
+  discipline in its `references/`).
 
 ## Related
 
