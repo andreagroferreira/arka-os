@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.30.0] - 2026-07-21
+
+### Added
+
+- **Design absorption Wave 2** (PR #382): structural variety and the
+  design-DNA study protocol from
+  [hallmark](https://github.com/nutlope/hallmark) (MIT), with
+  [impeccable](https://github.com/pbakaus/impeccable) (Apache-2.0)
+  craft rules merged into four reference files.
+- `landing/page-architect`: mandatory Macrostructure-first step — 21
+  named page shapes, the structural-diversification check
+  (`.arka/design/log.json` + `[arka:design-dna]` stamp), and a
+  50-archetype component cookbook with variation knobs.
+- `brand/design-system`: Study mode (SSRF-safe design-DNA extraction
+  from URL/screenshot with refusal + attestation layers) and the
+  portable `design.md` spec with tokens.css / Tailwind `@theme` /
+  DTCG / shadcn exports.
+- `brand/colors`: OKLCH palette-construction algorithm;
+  `dev/animated-website`: 15 motion recipes + 20 motion tells mapped
+  onto the doctrine-hub timing tokens.
+- `landing/landing-gen` de-defaults the fixed section order;
+  `brand/wireframe` names the macrostructure before Garrett's planes;
+  `dev/evaluator-build-loop` cites slop gates in its craft rubric.
+- Five more agents wired; `test_structural_variety` locks index/file
+  parity (21/50), sanitization, and the stamp format.
+
 ## [4.29.0] - 2026-07-21
 
 ### Added
