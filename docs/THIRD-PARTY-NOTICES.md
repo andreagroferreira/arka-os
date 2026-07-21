@@ -14,19 +14,15 @@ frontmatter `metadata: {origin, source, license}` block, enforced by
 - **License text:** retained verbatim at
   `departments/marketing/tools/LICENSE`
 
-Material derived from this project (this table lists only what has
-actually landed; rows are added by the PR that ships each surface):
+Material derived from this project:
 
 | Surface | Location | Notes |
 |---|---|---|
 | Marketing tools tree | `departments/marketing/tools/` | Integration guides (`integrations/`), zero-dependency CLI wrappers (`clis/`), Composio layer (`composio/`), `REGISTRY.md` — imported with tree-internal links preserved |
+| Imported skills | department `SKILL.md` files declaring `metadata.origin: community` | 27 new skills + 20 enriched existing skills, adapted to the ArkaOS skill standard (routing, KB-first, agent bindings); the authoritative per-skill list is `config/skills-provenance.yaml` under `derived:` |
+| Eval corpus | `config/evals/*.yaml`, entries tagged `imported` | 291 cases converted from the upstream `evals/evals.json` files by `scripts/tools/evals_import.py` |
 
 Upstream promotional links and sponsor references were removed during
 import; framework content, references, and tool guides were preserved
 and adapted. The MIT permission notice and copyright line above apply to
 all copies and substantial portions of the derived material.
-
-Later phases of the integration will add rows here as they land the
-corresponding surfaces — imported skills (`metadata.origin: community`),
-enriched first-party skills (`derived:` in
-`config/skills-provenance.yaml`), and converted eval cases.
