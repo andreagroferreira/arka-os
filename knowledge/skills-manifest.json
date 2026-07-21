@@ -2054,6 +2054,19 @@
         "origin": "arkaos"
       }
     },
+    "opensource-release": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "operations": {
       "depts": [
         "ops"
@@ -3295,6 +3308,19 @@
       ],
       "curated": true,
       "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
+    "workspace-audit": {
+      "depts": [
+        "ops"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-ops@arkaos"
+      ],
       "collision": false,
       "provenance": {
         "origin": "arkaos"
