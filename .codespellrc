@@ -43,6 +43,11 @@
 #     the provenance parser detects these exact typos (metadatas:, orgin:) so a
 #     laundered skill cannot slip through; they appear in the docstring, the
 #     _METADATA_TYPO regex (metadatas?), and the test fixtures.
+#
+# pt-pt-anti-slop.md IS skipped: it is 100% pt-PT prose (the pt-PT
+# anti-slop catalogue of arka-human-writing) — the same content class
+# that skips departments/, but living under arka/ ("conector" ->
+# "connector", "potencial" -> "potential").
 [codespell]
 ignore-words-list = te,strat,unparseable,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fase,fases,orgin,metdata,datas
-skip = *.lock,*.svg,*/node_modules,*/__pycache__,departments/*,*/departments/*,wiki/*,*/wiki/*,plugins/*,*/plugins/*
+skip = *.lock,*.svg,*/node_modules,*/__pycache__,departments/*,*/departments/*,wiki/*,*/wiki/*,plugins/*,*/plugins/*,arka/skills/human-writing/references/pt-pt-anti-slop.md,*/arka/skills/human-writing/references/pt-pt-anti-slop.md

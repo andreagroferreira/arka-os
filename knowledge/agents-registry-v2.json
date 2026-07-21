@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-21T15:57:01.239406",
+    "generated": "2026-07-21T20:37:39.093830",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -779,6 +779,7 @@
         "creator monetization"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "STEPPS (Berger)",
         "Hook Architecture",
         "Content OS (GaryVee model)",
@@ -1030,6 +1031,7 @@
         "analytics & performance tracking"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "GaryVee Pillar→30+ Model",
         "Justin Welsh Content OS",
         "Platform Algorithm Signals",
@@ -1081,6 +1083,7 @@
         "webinar scripts"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "Story (McKee)",
         "Save the Cat beat sheet",
         "Dan Harmon Story Circle",
@@ -1136,6 +1139,7 @@
         "short-form content (Reels, TikTok, Shorts)"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "STEPPS (Berger)",
         "Hook Architecture (3-second rule)",
         "MrBeast Title/Thumb Method",
@@ -2725,6 +2729,7 @@
         "objection handling in copy"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "AIDA",
         "PAS (Problem-Agitate-Solve)",
         "PASTOR",
@@ -2946,6 +2951,7 @@
         "brand voice writing"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "Content Pillar-Cluster",
         "STEPPS (Berger)",
         "Schwartz 5 Awareness Levels",
@@ -2996,6 +3002,7 @@
         "deliverability & list hygiene"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "AARRR",
         "RFM",
         "Hooked",
@@ -3098,6 +3105,7 @@
         "launch messaging"
       ],
       "frameworks": [
+        "Human Writing Standard (arka-human-writing) + Stop-Slop structural sweep",
         "Obviously Awesome",
         "JTBD Four Forces",
         "Schwartz 5 Levels",
@@ -3976,6 +3984,7 @@
       ],
       "frameworks": [
         "Human Writing Standard",
+        "Stop-Slop structural sweep",
         "StoryBrand SB7",
         "Schwartz Awareness Levels",
         "AIDA/PAS copywriting"

@@ -40,6 +40,8 @@ Never use em-dashes (—), en-dashes (–), or hyphens (-) to join clauses. Use 
 
 Match the target language's natural register. Portuguese: use Portuguese idioms, not translated English constructs. English: natural rhythm, avoid overly formal constructions.
 
+Portuguese output has its own AI-tell catalogue: `references/pt-pt-anti-slop.md`.
+
 ### 3. Perfect Accentuation and Spelling
 
 Zero tolerance for orthographic errors. Portuguese: ação, é, três, começar. When uncertain, verify before outputting.
@@ -63,6 +65,18 @@ Specific facts, numbers, examples over vague statements. "Reduced load from 3.2s
 ### 7. Active Voice by Default
 
 Use active voice unless subject is genuinely unknown. "The team implemented the feature" beats "The feature was implemented by the team."
+
+### 8. No Formulaic Structures
+
+Structural patterns are stronger AI tells than any single word: they
+survive synonym swaps. Banned: binary contrasts ("not X, it's Y"),
+negative listing, dramatic fragmentation, rhetorical setups ("What if I
+told you..."), false agency (inanimate nouns doing human verbs: "the data
+tells us", "the decision emerges"; name the human), narrator-from-a-distance,
+Wh-word sentence openers, and lazy extremes (every/always/never doing
+vague work). Full catalogue with fixes: `references/structural-patterns.md`.
+Phrase-level companions (throat-clearing openers, emphasis crutches,
+meta-commentary, vague declaratives): `references/anti-slop-phrases.md`.
 
 ## Self-Editing Before Delivery
 
@@ -95,15 +109,39 @@ When a full seven-sweep review is not warranted, run these faster checks.
 just, actually, basically (filler); "in order to" (use "to"); "that" when it
 adds nothing; "things" and "stuff" (too vague).
 
-**Watch for:** unnecessary adverbs, passive voice (switch to active per Rule
-7), and nominalizations (turn the noun back into a verb, so "make a decision"
+**Watch for:** adverbs (cut by default; one survives only if deleting it
+changes the meaning), passive voice (switch to active per Rule 7), and
+nominalizations (turn the noun back into a verb, so "make a decision"
 becomes "decide").
+
+**Structural sweep (Rule 8):** no Wh-word sentence openers; no "not X,
+it's Y" contrasts; name the human behind inanimate verbs (false agency);
+cut throat-clearing openers ("Here's the thing:", "It turns out"); rewrite
+anything that sounds like a pull-quote; default to two list items, a third
+must earn its place; vary paragraph endings instead of closing every one
+punchily.
 
 **Sentence level:** one idea per sentence, varied length, important
 information first, no more than three conjunctions, usually under 25 words.
 
 **Paragraph level:** one topic per paragraph, 2 to 4 sentences for web,
 strong opening sentences, and enough white space to stay scannable.
+
+### Slop Score
+
+A fast quantitative gate, complement to the Seven Sweeps. Rate the draft
+1 to 10 on each dimension; below 35/50, revise before delivering.
+
+| Dimension | Question |
+|-----------|----------|
+| Directness | Statements or announcements? |
+| Rhythm | Varied or metronomic? |
+| Trust | Respects reader intelligence? |
+| Authenticity | Sounds human? |
+| Density | Anything cuttable? |
+
+Eduardo (Quality Gate) applies the same rubric to changed copy: below
+35/50 on COPY-scope prose is a blocker.
 
 ## Plain-English Alternatives
 

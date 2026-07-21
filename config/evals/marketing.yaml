@@ -1731,6 +1731,80 @@
   tags:
   - human-writing
   - imported
+- id: marketing-human-writing-07
+  department: marketing
+  prompt: 'Rewrite this launch-post paragraph: ''Here''s the thing: shipping fast isn''t
+    the problem. Shipping the wrong thing is. What if I told you the answer isn''t more
+    process? When the feedback loop tightens, the product improves. The implications are
+    significant. Not a framework. Not a methodology. A habit.'''
+  expected_properties:
+  - Identifies throat-clearing opener ("Here's the thing:")
+  - Identifies binary contrasts ("isn't the problem... is", "the answer isn't")
+  - Identifies rhetorical setup ("What if I told you")
+  - Identifies false agency ("the feedback loop tightens, the product improves")
+  - Identifies vague declarative ("The implications are significant")
+  - Identifies negative listing ("Not a framework. Not a methodology. A habit.")
+  - Rewrite states points directly and names the human actor
+  rubric: 'Should apply Rule 8 (No Formulaic Structures) and the structural-patterns
+    catalogue. Should flag every structural pattern in the paragraph: throat-clearing
+    opener, two binary contrasts, rhetorical setup, false agency (nobody tightens the
+    loop or improves the product in the sentence — the rewrite must name who does),
+    vague declarative, and negative listing. The rewrite should state each point as a
+    direct claim with a human subject, without introducing new AI patterns (no em
+    dashes, no fresh contrasts). Should not merely reword phrases while keeping the
+    structures.'
+  tags:
+  - human-writing
+- id: marketing-human-writing-08
+  department: marketing
+  prompt: 'Limpa este parágrafo de um email de lançamento: ''Vamos mergulhar no que
+    torna este produto verdadeiramente único. Não se trata de mais uma ferramenta,
+    trata-se de uma nova forma de trabalhar. Basicamente, a plataforma ganha vida
+    com os teus dados — e os resultados falam por si. As implicações são profundas.'''
+  expected_properties:
+  - Responds in European Portuguese (pt-PT)
+  - Identifies "Vamos mergulhar" as throat-clearing
+  - Identifies "Não se trata de X, trata-se de Y" as binary contrast
+  - Identifies stacked -mente adverbs ("verdadeiramente", "basicamente")
+  - Identifies false agency ("a plataforma ganha vida", "os resultados falam")
+  - Identifies em dash used as connector
+  - Identifies vague declarative ("As implicações são profundas")
+  - Rewrite is idiomatic pt-PT with named actors and direct claims
+  rubric: 'Should apply references/pt-pt-anti-slop.md and respond in pt-PT (never
+    pt-BR). Should flag: "Vamos mergulhar" (abertura de limpar a garganta),
+    "Não se trata de... trata-se de" (contraste binário), "verdadeiramente" and
+    "basicamente" (advérbios a cortar por defeito), "a plataforma ganha vida" and
+    "os resultados falam por si" (falsa agência — nomear quem faz), the em dash
+    connector (Rule 1), and "As implicações são profundas" (declarativa vaga).
+    The rewrite must be natural European Portuguese with direct statements and
+    human subjects, and must not translate English constructs literally.'
+  tags:
+  - human-writing
+- id: marketing-human-writing-09
+  department: marketing
+  prompt: 'Score this draft with the Slop Score rubric and tell me if it ships:
+    ''In today''s fast-paced landscape, teams need to navigate complexity. Here''s
+    why that matters: productivity isn''t about tools. It''s about focus. Really,
+    the data tells us everything. Make no mistake, this changes everything. The
+    stakes are high.'''
+  expected_properties:
+  - Applies the five Slop Score dimensions (Directness, Rhythm, Trust, Authenticity, Density)
+  - Scores each dimension 1-10 with a one-line justification
+  - Total is clearly below the 35/50 threshold
+  - Verdict is revise, not ship
+  - Names the specific offending patterns per dimension
+  - Offers a revised version or the concrete revision steps
+  rubric: 'Should apply the Slop Score rubric from the human-writing skill: rate
+    Directness, Rhythm, Trust, Authenticity, and Density 1-10 each with brief
+    justification tied to specific text (cliches "in today''s fast-paced" and
+    "navigate", emphasis crutches "Here''s why that matters" and "Make no
+    mistake", binary contrast "isn''t about tools. It''s about focus", false
+    agency "the data tells us", vague declarative "The stakes are high",
+    metronomic short sentences). The total must land clearly below 35/50 and the
+    verdict must be revise-before-shipping, with a rewrite or concrete steps.
+    Should not score generously to avoid the revision.'
+  tags:
+  - human-writing
 - id: marketing-customer-research-01
   department: marketing
   prompt: I have 20 customer interview transcripts. Help me analyze them.

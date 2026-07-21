@@ -26,3 +26,25 @@ Upstream promotional links and sponsor references were removed during
 import; framework content, references, and tool guides were preserved
 and adapted. The MIT permission notice and copyright line above apply to
 all copies and substantial portions of the derived material.
+
+## stop-slop (Hardik Pandya)
+
+- **Source:** https://github.com/hardikpandya/stop-slop
+- **License:** MIT — Copyright (c) 2025 Hardik Pandya
+- **License text:** retained verbatim at
+  `arka/skills/human-writing/references/stop-slop.LICENSE`
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Structural anti-slop catalogue | `arka/skills/human-writing/references/structural-patterns.md` | Near-verbatim port of upstream `references/structures.md` plus selected before/after examples; one upstream example fixed (em dash removed per Rule 1) |
+| Phrase anti-slop catalogue | `arka/skills/human-writing/references/anti-slop-phrases.md` | Upstream `references/phrases.md` deduplicated against the constitution `no-ai-cliches` list and `forbidden-patterns.md`; adverb rule softened to "cut by default" |
+| Skill sections | `arka/skills/human-writing/SKILL.md` | Rule 8 (No Formulaic Structures), structural sweep in Quick-Pass Checks, and the 5-dimension Slop Score rubric (revise below 35/50) |
+
+Dual-source note: `arka/skills/human-writing` was first derived from
+marketing-skills (section above), and its frontmatter `metadata.source`
+names that primary source — the provenance schema records one source per
+skill. This section is the authoritative record of the second source.
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.
