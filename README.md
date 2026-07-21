@@ -2,7 +2,7 @@
 
 **The Operating System for AI Agent Teams.**
 
-86 agents. 17 departments. 302 skills. Enterprise frameworks. Multi-runtime. One install.
+89 agents. 17 departments. 306 skills. Enterprise frameworks. Multi-runtime. One install.
 
 ```bash
 npx arkaos install
@@ -158,12 +158,12 @@ Every decision, solution, and pattern is captured. The Cognitive Layer curates i
 |-----------|--------|--------|-------------|
 | **Development** | `/dev` | 15 | Full-stack features, APIs, architecture, security, CI/CD |
 | **Brand & Design** | `/brand` | 10 | Brand identity, UX/UI, design systems, naming |
-| **Marketing** | `/mkt` | 4 | SEO, paid ads, email campaigns, growth loops |
+| **Marketing** | `/mkt` | 7 | SEO, paid ads, lifecycle, PR, positioning, growth loops |
 | **Strategy** | `/strat` | 4 | Market analysis, competitive intelligence, business models |
 | **E-Commerce** | `/ecom` | 4 | Store optimization, CRO, pricing, RFM segmentation |
 | **Knowledge** | `/kb` | 4 | Research, Zettelkasten, persona building, ingestion |
 | **Project Mgmt** | `/pm` | 4 | Scrum, Shape Up, discovery, roadmaps |
-| **Content** | `/content` | 4 | Viral hooks, scripts, repurposing, content calendars |
+| **Content** | `/content` | 8 | Viral hooks, scripts, repurposing, content calendars |
 | **Sales** | `/sales` | 4 | Pipeline management, SPIN selling, negotiation |
 | **SaaS** | `/saas` | 5 | Idea validation, metrics, PLG strategy, scaffolding |
 | **Organization** | `/org` | 5 | Org design, team topologies, matrix structure |
@@ -174,7 +174,7 @@ Every decision, solution, and pattern is captured. The Cognitive Layer curates i
 | **Leadership** | `/lead` | 3 | Team health, OKRs, culture, hiring frameworks |
 | **Quality Gate** | (auto) | 3 | Mandatory review on every workflow. Veto power. |
 
-> 86 agents across 17 departments (85 unique; `cro-specialist` is shared by
+> 89 agents across 17 departments (88 unique; `cro-specialist` is shared by
 > E-Commerce and Landing in the matrix structure).
 
 ---

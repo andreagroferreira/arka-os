@@ -8,7 +8,7 @@ topology: stream-aligned
 skills_prefix: "/mkt"
 obsidian_path: "WizardingCode/Marketing/"
 quality_gate_required: true
-max_size: 6
+max_size: 10
 
 members:
   - agent_id: marketing-director-luna
@@ -20,6 +20,15 @@ members:
     role: Paid acquisition, ROAS optimization, creative testing
   - agent_id: content-marketer-mariana
     role: Content strategy, blog, email, social content
+  - agent_id: product-marketer-lourenco
+    role: Positioning, ICP, competitive intelligence, sales enablement (growth-marketing sub-squad lead)
+    sub_squad: growth-marketing
+  - agent_id: lifecycle-marketer-raquel
+    role: Email, SMS, onboarding and churn comms, deliverability
+    sub_squad: growth-marketing
+  - agent_id: pr-partnerships-benedita
+    role: PR, earned media, co-marketing, partnerships
+    sub_squad: growth-marketing
 
 workflows:
   - workflow_id: mkt-social
