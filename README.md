@@ -532,3 +532,5 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome — all changes requ
 ## License
 
 MIT — [WizardingCode](https://wizardingcode.com)
+
+Third-party material incorporated into ArkaOS is indexed in [docs/THIRD-PARTY-NOTICES.md](docs/THIRD-PARTY-NOTICES.md).
