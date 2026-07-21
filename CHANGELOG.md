@@ -5,6 +5,38 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.28.0] - 2026-07-21
+
+### Added
+- **stop-slop integration** (hardikpandya/stop-slop, MIT) — anti-AI-slop
+  patterns absorbed into the copy-quality surface (PR #380):
+  - `arka-human-writing`: Rule 8 (No Formulaic Structures — binary
+    contrasts, negative listing, dramatic fragmentation, rhetorical
+    setups, false agency, narrator-from-a-distance, Wh-openers, lazy
+    extremes), structural sweep in Quick-Pass, and the **Slop Score**
+    rubric (Directness/Rhythm/Trust/Authenticity/Density, 1-10 each,
+    revise below 35/50).
+  - New references: `structural-patterns.md` and `anti-slop-phrases.md`
+    (derived, deduplicated against the constitution `no-ai-cliches`
+    list) plus a first-party **pt-PT anti-slop catalogue**
+    (`pt-pt-anti-slop.md`).
+  - Eduardo (Quality Gate): structural-slop sweep in the review rubric;
+    slop-score reported in `QGVerdict.notes` — below 35/50 on COPY-scope
+    changed prose is a blocker, DOCUMENTATION-scope is advisory.
+  - 8 copy agents wired to the skill via `expertise.frameworks`
+    (sales-copywriter, content-marketer, lifecycle-marketer,
+    product-marketer, scriptwriter, content-strategist, viral-engineer,
+    repurpose-distributor); registry and behavioral catalog regenerated.
+  - 3 hand-authored eval cases (`marketing-human-writing-07..09`).
+  - MIT licence vendored at
+    `arka/skills/human-writing/references/stop-slop.LICENSE`; stop-slop
+    section added to `docs/THIRD-PARTY-NOTICES.md`.
+
+### Fixed
+- `.codespellrc`: the pt-PT anti-slop reference is skipped (EN-only
+  checker false positives on correct Portuguese), following the
+  documented departments/ bilingual-content pattern.
+
 ## [4.27.0] - 2026-07-21
 
 ### Added
