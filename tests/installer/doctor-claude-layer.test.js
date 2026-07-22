@@ -31,8 +31,9 @@ const CLAUDE_LAYER_CHECKS = [
   "companion-plugins",
 ];
 
-// 26 pre-#358 POSIX checks + 10 migrated Claude-layer; Windows appends 4.
-const EXPECTED_TOTAL = 36 + (IS_WINDOWS ? 4 : 0);
+// 26 pre-#358 POSIX checks + 10 migrated Claude-layer + 1 autoupdate
+// (Foundation PR-1); Windows appends 4.
+const EXPECTED_TOTAL = 37 + (IS_WINDOWS ? 4 : 0);
 
 const byName = Object.fromEntries(checks.map((c) => [c.name, c]));
 

@@ -6,6 +6,7 @@ import { getArkaosPython, getVenvPython, canImportCore, getRepoRoot, diagnoseVen
 import { IS_WINDOWS, HOOK_EXT, CMD_FINDER } from "./platform.js";
 import { checkNode, checkObsidian, checkOllama } from "./system-tools.js";
 import { graphifyDoctor } from "./graphify.js";
+import { status as autoupdateStatus } from "./autoupdate.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
 
@@ -562,6 +563,16 @@ export const checks = [
     severity: "warn",
     check: () => statuslineConfigured(),
     fix: () => "Run: npx arkaos install --force (redeploys and wires the statusline)",
+  },
+  {
+    name: "autoupdate",
+    description: "Auto-update daemon installed (or explicit user opt-out)",
+    severity: "warn",
+    check: () => {
+      const s = autoupdateStatus();
+      return !s.supported || s.optout || s.installed;
+    },
+    fix: () => "Run: npx arkaos autoupdate enable",
   },
   {
     name: "hooks-wired",

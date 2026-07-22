@@ -63,6 +63,7 @@ Usage:
   npx arkaos migrate-user-data  Move user data (~/.claude/skills/arka/ → ~/.arkaos/)
   npx arkaos dashboard        Start monitoring dashboard
   npx arkaos autostart <enable|disable|status>  Start dashboard on boot
+  npx arkaos autoupdate <enable|disable|status|run>  Keep ArkaOS updated automatically (daily check + notification)
   npx arkaos keys             Manage API keys (OpenAI, fal.ai, etc.)
   npx arkaos models           Model Fabric: which model runs each role
   npx arkaos models set <role> <provider>/<model>  Re-route a role
@@ -131,6 +132,12 @@ async function main() {
     case "autostart": {
       const { autostart } = await import("./autostart.js");
       await autostart(positionals.slice(1));
+      break;
+    }
+
+    case "autoupdate": {
+      const { autoupdate } = await import("./autoupdate.js");
+      await autoupdate(positionals.slice(1));
       break;
     }
 
