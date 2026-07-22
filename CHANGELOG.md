@@ -5,6 +5,40 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.33.0] - 2026-07-22
+
+### Added
+
+- **Diagram absorption — visual spec/plan output** (PRs #386, #387): the
+  `dev/diagram` skill, absorbed from `tt-a1i/archify` v2.11.0 (MIT;
+  portions Cocoon AI) and maintained natively. The agent authors a typed
+  JSON IR (architecture, workflow, sequence, dataflow, lifecycle); the
+  vendored zero-dependency Node CLI validates against JSON Schemas,
+  renders a self-contained ~530KB HTML artifact (themes, focused
+  exploration, guided views, PNG/SVG/WebM export, no telemetry), runs
+  semantic layout gates (clean-flow/clean-label), and emits a sha256
+  receipt. The user SEES what will be built before it is built.
+- Consumption wiring: `dev/spec` Step 4a "Visual Spec Companion"
+  (type mapped from the spec's dominant shape; IR persisted to
+  `Projects/<name>/Specs/visuals/`, `{type, ir, html, sha256}` recorded
+  in the note frontmatter); Forge Step 6a richer option (workflow IR
+  from `plan_phases`, served next to the radar); 8 role-tuned expertise
+  lines across dev, pm, ops, and strategy agents.
+- Vendor doctrine: `vendor/` subtrees pruned from skill discovery, skill
+  counts, and the provenance coverage test; `vendor/test/` excluded from
+  the npm tarball; upstream payload byte-identical minus documented
+  trims, 44 payload test files wired into the node-check CI leg (380
+  assertions); `template.html` integrity pinned by sha256.
+- Provenance: `skills-provenance.yaml` derived entry +
+  `THIRD-PARTY-NOTICES.md` archify section, plus the previously missing
+  claude-video/watch section.
+
+### Fixed
+
+- `docs_stats.py`, `skill_validator.py`, and the provenance coverage
+  test no longer count vendored third-party `SKILL.md` files as ArkaOS
+  skills (canonical skill count: 331).
+
 ## [4.32.0] - 2026-07-22
 
 ### Added
