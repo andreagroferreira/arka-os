@@ -534,6 +534,17 @@ export async function update({ skillsFlag = "" } = {}) {
     console.log(`         ⚠ Could not set up Graphify (${err.message})`);
   }
 
+  // ── 7b. Auto-update daemon (Foundation PR-1) — default-on, opt-out kept ──
+  try {
+    const { ensureDefaultEnabled } = await import("./autoupdate.js");
+    const au = ensureDefaultEnabled({ repoRoot: ARKAOS_ROOT });
+    if (au.action === "enabled") console.log("         ✓ Auto-update daemon enabled (daily npm check + notification)");
+    else if (au.action === "already-enabled") console.log("         ✓ Auto-update daemon active");
+    else if (au.action === "optout") console.log("         · Auto-update daemon: user opt-out respected");
+  } catch (err) {
+    console.log(`         ⚠ Auto-update daemon not enabled (${err.message})`);
+  }
+
   // ── 8. Update manifest ──
   console.log("  [8/8] Finalizing...");
   manifest.version = VERSION;

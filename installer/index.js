@@ -324,6 +324,17 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     console.log(`         Warning: could not seed config.json (${err.message})`);
   }
 
+  // Foundation PR-1 — auto-update daemon, default-on (opt-out persists
+  // across installs via ~/.arkaos/autoupdate.optout).
+  try {
+    const { ensureDefaultEnabled } = await import("./autoupdate.js");
+    const au = ensureDefaultEnabled({ repoRoot: ARKAOS_ROOT });
+    if (au.action === "enabled") console.log(`         Auto-update daemon enabled (npx arkaos autoupdate status).`);
+    else if (au.action === "optout") console.log(`         Auto-update daemon: user opt-out respected.`);
+  } catch (err) {
+    console.log(`         Warning: auto-update daemon not enabled (${err.message})`);
+  }
+
   // PR28 v2.47.0 — scaffold the user-mutable files the discipline-arc
   // commands depend on: redaction-clients.json (leak scanner config)
   // and reorganize-proposals/ (daily proposal output). Idempotent.

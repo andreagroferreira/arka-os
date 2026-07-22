@@ -35,7 +35,11 @@ import { join, basename } from "node:path";
 // resolve_arkaos_root() checks, so a crash mid-deploy on a fresh install
 // leaves a snapshot that fails validation instead of a core-only root
 // that validates but lacks config/departments/knowledge.
-const SNAPSHOT_DIRS = ["config", "departments", "knowledge", "core"];
+// scripts/ joined in Foundation PR-1: the auto-update daemon's launchd/
+// systemd unit anchors at the snapshot (a unit pointing into the npx
+// cache dies silently on `npm cache clean` — QG blocker). Under 0.5MB
+// after the __pycache__ filter.
+const SNAPSHOT_DIRS = ["config", "departments", "knowledge", "scripts", "core"];
 
 export function deployCoreSnapshot(arkaosRoot, installDir) {
   if (!existsSync(join(arkaosRoot, "core", "sync", "__init__.py"))) return false;
