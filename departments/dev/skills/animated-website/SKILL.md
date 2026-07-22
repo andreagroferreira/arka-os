@@ -76,7 +76,20 @@ If the user gives just a video path and a vague concept, ask ONE clarifying ques
 
 ### Step 1: Analyze the Video
 
-Probe the video to understand what you're working with:
+**See the content first (dev/watch primitive).** Before any design decision,
+watch the source with the native `dev/watch` skill so overlay copy, section
+pacing and dwell points are grounded in what is actually on screen — the
+"complete frames" doctrine, never screenshots or guesses:
+
+```bash
+PY="$HOME/.arkaos/bin/arka-py"; command -v "$PY" >/dev/null || PY=python3
+"$PY" ~/.claude/skills/arka-watch/scripts/watch.py "/path/to/video.mp4" --no-whisper
+```
+
+Read every frame the report lists, note the key visual beats (`t=MM:SS`) —
+they become section boundaries and dwell points in Step 4.
+
+Then probe the technical metadata:
 
 ```bash
 ffprobe -v quiet -print_format json -show_format -show_streams "/path/to/video.mp4"

@@ -47,6 +47,7 @@ authority:
 expertise:
   domains:
     - Vue 3 (Composition API)
+    - motion-reference analysis via dev/watch (scroll/animation benchmarks from frames + transcript before implementing)
     - Nuxt 3
     - React 19 / Next.js 15
     - TypeScript

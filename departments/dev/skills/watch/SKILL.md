@@ -128,6 +128,17 @@ here", "as you can see") because pointing is low visual change. Read the
 transcript, judge which cues matter (ignore rhetorical "look…"), re-run with
 `--timestamps 4:32,7:10` pointed at the downloaded file in the work dir.
 
+## KB write-back (summaries become notes)
+
+When the user asks to keep the analysis ("summarize this to a note",
+"guarda isto na KB") — or when the analysis is reference research worth
+keeping (competitor teardown, course/talk notes) — write the summary to the
+Obsidian vault via `mcp__obsidian__write_note`: YAML frontmatter (`type:
+video-analysis`, source URL, duration, transcript source), key moments as a
+timestamped list, and `[[wikilinks]]` to related notes. One note per video;
+a playlist becomes a set of notes plus a MOC. Ask before writing when the
+user did not request persistence.
+
 ## Failure modes
 
 - Download fails (login/region-locked) → tell the user plainly; don't retry.
