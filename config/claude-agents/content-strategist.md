@@ -1,7 +1,7 @@
 ---
 name: content-strategist
 description: >
-  Rafael — Content Strategist (content squad). Executes: viral content design, hook writing & packaging, script structure, content operating systems.
+  Rafael — Content Strategist (content squad). Executes: viral content design, reference-video analysis via dev/watch (frames + timestamped transcript before judging any video), hook writing & packaging, script structure.
 model: sonnet
 ---
 

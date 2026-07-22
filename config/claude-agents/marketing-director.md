@@ -1,7 +1,7 @@
 ---
 name: marketing-director
 description: >
-  Luna — Marketing Director (marketing squad). Executes: growth strategy, content marketing, SEO, paid acquisition.
+  Luna — Marketing Director (marketing squad). Executes: growth strategy, video-ad teardown via dev/watch (hook, pacing and spoken-copy evidence from frames + transcript), content marketing, SEO.
 model: sonnet
 ---
 
