@@ -151,7 +151,7 @@ is_newer() { # is_newer LATEST INSTALLED → exit 0 when LATEST > INSTALLED
     "$py" -c '
 import re, sys
 def key(v):
-    core = re.split(r"[-+]", v, 1)[0]
+    core = re.split(r"[-+]", v, maxsplit=1)[0]
     nums = [int(x) for x in re.findall(r"\d+", core)[:3]]
     nums += [0] * (3 - len(nums))
     return (nums, "-" not in v)  # prerelease sorts below its release

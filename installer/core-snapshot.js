@@ -37,8 +37,8 @@ import { join, basename } from "node:path";
 // that validates but lacks config/departments/knowledge.
 // scripts/ joined in Foundation PR-1: the auto-update daemon's launchd/
 // systemd unit anchors at the snapshot (a unit pointing into the npx
-// cache dies silently on `npm cache clean` — QG blocker). ~560K after
-// the __pycache__ filter.
+// cache dies silently on `npm cache clean` — QG blocker). Under 0.5MB
+// after the __pycache__ filter.
 const SNAPSHOT_DIRS = ["config", "departments", "knowledge", "scripts", "core"];
 
 export function deployCoreSnapshot(arkaosRoot, installDir) {
