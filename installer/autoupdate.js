@@ -36,6 +36,17 @@ export function optoutPath(home = homedir()) {
   return join(home, ".arkaos", "autoupdate.optout");
 }
 
+/** Anchor the daemon at the stable ~/.arkaos/lib snapshot, never at the
+ *  package root when it can be an npx cache: `npm cache clean` purges
+ *  that location at any time, and a default-on daemon anchored there
+ *  dies silently — with no surviving daemon to self-heal (QG blocker,
+ *  Foundation PR-1). core-snapshot.js ships scripts/ into the snapshot;
+ *  repoRoot is the fallback for dev checkouts before the first deploy. */
+export function stableRoot({ home = homedir(), repoRoot = defaultRepoRoot() } = {}) {
+  const lib = join(home, ".arkaos", "lib");
+  return existsSync(join(lib, "scripts", "auto-update.sh")) ? lib : repoRoot;
+}
+
 /** Pure: the scheduled unit(s) for a given platform. Throws on
  *  unsupported OS. Returns { kind, files: [{ path, content }] } —
  *  systemd needs a service + timer pair, launchd a single plist. */
@@ -138,7 +149,8 @@ function _silent(cmd) {
 }
 
 export function enable({ repoRoot = defaultRepoRoot() } = {}) {
-  const unit = unitFor(process.platform, { repoRoot, home: homedir() });
+  const root = stableRoot({ repoRoot });
+  const unit = unitFor(process.platform, { repoRoot: root, home: homedir() });
   mkdirSync(join(homedir(), ".arkaos", "logs"), { recursive: true });
   for (const f of unit.files) {
     mkdirSync(dirname(f.path), { recursive: true });
@@ -201,7 +213,8 @@ export function ensureDefaultEnabled({ repoRoot = defaultRepoRoot() } = {}) {
     // Refresh unit content in place (paths/schedule may change between
     // versions) but do not force a reload storm on every update.
     try {
-      const unit = unitFor(process.platform, { repoRoot, home: homedir() });
+      const root = stableRoot({ repoRoot });
+      const unit = unitFor(process.platform, { repoRoot: root, home: homedir() });
       for (const f of unit.files) writeFileSync(f.path, f.content, "utf8");
     } catch {}
     return { action: "already-enabled" };
@@ -219,8 +232,8 @@ export async function autoupdate(args = []) {
     const r = disable();
     console.log(`  ✓ ${r.message}`);
   } else if (action === "run") {
-    // Foreground one-shot check — same script the daemon runs.
-    const script = join(defaultRepoRoot(), "scripts", "auto-update.sh");
+    // Foreground one-shot check — same script (and anchor) the daemon runs.
+    const script = join(stableRoot(), "scripts", "auto-update.sh");
     try {
       execSync(`/bin/bash "${script}" --force`, { stdio: "inherit" });
     } catch { process.exitCode = 1; }

@@ -141,9 +141,35 @@ if [ -z "$LATEST" ]; then
   exit 0
 fi
 
-if [ "$LATEST" = "$INSTALLED" ] && [ "$FORCE" -ne 1 ]; then
-  log "up to date (v${INSTALLED})"
-  exit 0
+# Only ever move FORWARD: a dev/prerelease install newer than the
+# registry `latest` must not be silently downgraded (QG, Francisca).
+# Ordering compare via python; degraded fallback is plain inequality.
+is_newer() { # is_newer LATEST INSTALLED → exit 0 when LATEST > INSTALLED
+  local py="${ARKA_HOME}/venv/bin/python"
+  [ -x "$py" ] || py="$(command -v python3 || true)"
+  if [ -n "$py" ]; then
+    "$py" -c '
+import re, sys
+def key(v):
+    core = re.split(r"[-+]", v, 1)[0]
+    nums = [int(x) for x in re.findall(r"\d+", core)[:3]]
+    nums += [0] * (3 - len(nums))
+    return (nums, "-" not in v)  # prerelease sorts below its release
+sys.exit(0 if key(sys.argv[1]) > key(sys.argv[2]) else 1)' "$1" "$2" 2>/dev/null
+    return $?
+  fi
+  [ "$1" != "$2" ]
+}
+
+if [ "$FORCE" -ne 1 ]; then
+  if [ "$LATEST" = "$INSTALLED" ]; then
+    log "up to date (v${INSTALLED})"
+    exit 0
+  fi
+  if ! is_newer "$LATEST" "$INSTALLED"; then
+    log "installed v${INSTALLED} is ahead of registry v${LATEST} — skip"
+    exit 0
+  fi
 fi
 
 if ! command -v npx >/dev/null 2>&1; then

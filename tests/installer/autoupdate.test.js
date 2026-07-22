@@ -17,7 +17,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const { unitFor, optoutPath, AUTOUPDATE_LABEL } = await import(
+const { unitFor, optoutPath, stableRoot, AUTOUPDATE_LABEL } = await import(
   join(ROOT, "installer", "autoupdate.js")
 );
 const SCRIPT = join(ROOT, "scripts", "auto-update.sh");
@@ -61,6 +61,19 @@ test("unsupported platform throws", () => {
 
 test("opt-out marker lives under ~/.arkaos", () => {
   assert.equal(optoutPath("/Users/x"), "/Users/x/.arkaos/autoupdate.optout");
+});
+
+test("stableRoot anchors at the ~/.arkaos/lib snapshot when it holds the script", () => {
+  const home = mkdtempSync(join(tmpdir(), "arka-stableroot-"));
+  const libScripts = join(home, ".arkaos", "lib", "scripts");
+  // Before the snapshot exists (dev checkout, first install): repoRoot.
+  assert.equal(stableRoot({ home, repoRoot: "/pkg" }), "/pkg");
+  // After core-snapshot deploys scripts/: the purge-proof lib snapshot —
+  // never the npx cache the package may be running from (QG blocker).
+  mkdirSync(libScripts, { recursive: true });
+  writeFileSync(join(libScripts, "auto-update.sh"), "#!/bin/bash\n");
+  assert.equal(stableRoot({ home, repoRoot: "/pkg" }), join(home, ".arkaos", "lib"));
+  rmSync(home, { recursive: true, force: true });
 });
 
 // ── Part 2: hermetic runs of scripts/auto-update.sh ────────────────────
@@ -121,6 +134,23 @@ test("same version is a no-op (no npx call, 'up to date' logged)", () => {
 test("--force re-runs the update even when versions match", () => {
   const sb = makeSandbox({ installedVersion: "9.9.9", registryVersion: "9.9.9" });
   const r = runScript(sb, ["--force"]);
+  assert.equal(r.status, 0);
+  assert.ok(readFileSync(sb.stubLog, "utf8").includes("-y arkaos@latest update"));
+  rmSync(sb.home, { recursive: true, force: true });
+});
+
+test("installed version ahead of registry is never downgraded", () => {
+  const sb = makeSandbox({ installedVersion: "9.9.9", registryVersion: "1.0.0" });
+  const r = runScript(sb);
+  assert.equal(r.status, 0);
+  assert.ok(!existsSync(sb.stubLog));
+  assert.ok(readFileSync(sb.log, "utf8").includes("ahead of registry"));
+  rmSync(sb.home, { recursive: true, force: true });
+});
+
+test("prerelease of the same version updates to the release", () => {
+  const sb = makeSandbox({ installedVersion: "9.9.9-beta.1", registryVersion: "9.9.9" });
+  const r = runScript(sb);
   assert.equal(r.status, 0);
   assert.ok(readFileSync(sb.stubLog, "utf8").includes("-y arkaos@latest update"));
   rmSync(sb.home, { recursive: true, force: true });
