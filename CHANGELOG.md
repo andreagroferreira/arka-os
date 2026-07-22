@@ -5,6 +5,33 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.32.0] - 2026-07-22
+
+### Added
+
+- **Watch absorption — native video input** (PRs #384, #385): the
+  `dev/watch` skill, absorbed from `bradautomates/claude-video` v0.2.0
+  (MIT) and maintained natively. Agents watch a video (URL or local
+  file): yt-dlp download, scene-aware/keyframe ffmpeg extraction with
+  near-duplicate dedup, captions-first timestamped transcript with
+  Whisper API fallback (Groq/OpenAI), frames Read as images.
+- ArkaOS-native over upstream: call-time paths under `~/.arkaos/`
+  (`watch.env`); keys resolve env → `/arka keys` (`keys.json`) →
+  `watch.env` → `./.env`; per-run usage telemetry (frames + estimated
+  image tokens) at `~/.arkaos/telemetry/watch-usage.jsonl`, fail-open;
+  preflight probes binary RUNNABILITY (a PATH entry that dies at load —
+  dangling dylib — reads as missing); doctor check `watch-media-tooling`
+  supersedes the presence-only `yt-dlp` check.
+- `GROQ_API_KEY` joins `/arka keys` providers.
+- Wiring (#385): 7 agents gain role-tuned dev/watch expertise (content
+  strategist, scriptwriter, video producer, trends analyst, brand
+  director, marketing director, frontend dev); `animated-website` Step 1
+  watches the source before ffprobe; `ad-creative` analyzes reference
+  video ads from frames + transcript, never thumbnails; watch gains a
+  KB write-back section (summaries become Obsidian notes on request).
+- 95 tests in `tests/python/watch/` (71 ported upstream + ArkaOS
+  integration), hermetic on runners without media binaries.
+
 ## [4.31.0] - 2026-07-22
 
 ### Added
