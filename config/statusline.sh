@@ -173,7 +173,12 @@ if [ -f "$ARKA_CONFIG" ]; then
 fi
 
 # ─── Build Line 1: Context bar ───────────────────────────────────────────
-LINE1="${C_CYAN}▲ARKA${C_RESET}  ${C_WHITE}${DIR_NAME}${C_RESET}"
+# Version from the stable snapshot (one cat, no spawn storm on re-render).
+ARKA_VER=""
+if [ -f "$HOME/.arkaos/lib/VERSION" ]; then
+  ARKA_VER=$(tr -d '[:space:]' < "$HOME/.arkaos/lib/VERSION" 2>/dev/null)
+fi
+LINE1="${C_CYAN}▲ARKA${C_RESET}${ARKA_VER:+ ${C_DIM}v${ARKA_VER}${C_RESET}}  ${C_WHITE}${DIR_NAME}${C_RESET}"
 
 # Git branch (hidden on main/master to reduce noise)
 if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ]; then

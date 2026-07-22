@@ -7,7 +7,13 @@ import json
 import pytest
 
 from core.hooks import session_start
-from core.hooks.session_start import build_message, build_recap, main
+from core.hooks.session_start import (
+    build_context,
+    build_message,
+    build_recap,
+    build_visible,
+    main,
+)
 from core.memory.semantic_store import SessionMemoryStore, TurnRecord
 
 
@@ -40,12 +46,33 @@ def _seed(project: str, n: int = 3) -> None:
 def test_message_carries_banner_contracts_and_version(tmp_path):
     msg = build_message("/repo/proj")
     assert "A R K A   O S" in msg
-    assert "Olá, founder (WizardingCode)" in msg
+    assert "Olá, founder" in msg
+    assert "WizardingCode" in msg
     assert "[ARKA:EVIDENCE-FLOW] NON-NEGOTIABLE" in msg
     assert "G2 PLAN (short plan -> EXPLICIT user approval" in msg
     assert "[ARKA:META-TAG]" in msg
     assert "[arka:meta] kb=N research=X persona=Y gap=Z critic=W" in msg
-    assert "ArkaOS v" in msg
+    assert "A R K A   O S — v" in msg
+
+
+def test_visible_is_compact_and_contracts_live_in_context(tmp_path):
+    """Foundation PR-2: the user-facing greeting carries NO contract
+    wall — the contracts ship to the model via additionalContext."""
+    _seed("proj")
+    visible = build_visible("/repo/proj")
+    context = build_context("/repo/proj")
+    for marker in (
+        "[ARKA:EVIDENCE-FLOW]",
+        "[ARKA:META-TAG]",
+        "[ARKA:AUTHORITY]",
+        "[SESSION-MEMORY]",
+        "[SESSION]",
+    ):
+        assert marker not in visible, f"{marker} leaked into the visible greeting"
+    assert "[ARKA:EVIDENCE-FLOW] NON-NEGOTIABLE" in context
+    assert "[ARKA:META-TAG]" in context
+    assert "[SESSION-MEMORY] Prior turns" in context
+    assert not context.startswith("\n")
 
 
 def test_message_shows_profile(tmp_path):
@@ -54,8 +81,9 @@ def test_message_shows_profile(tmp_path):
     (cfg / "profile.json").write_text(
         json.dumps({"name": "Andre", "company": "WizardingCode"})
     )
-    msg = build_message("/repo/proj")
-    assert "Olá, Andre (WizardingCode)" in msg
+    msg = build_visible("/repo/proj")
+    assert "Olá, Andre" in msg
+    assert "WizardingCode" in msg
 
 
 def test_message_drift_never_synced(tmp_path):
@@ -167,12 +195,19 @@ def test_recap_ranks_and_scopes(tmp_path):
 # ─── main(): the hook contract ─────────────────────────────────────────
 
 
-def test_main_emits_system_message_json(tmp_path, capsys):
+def test_main_emits_split_payload(tmp_path, capsys):
+    """systemMessage stays compact; contracts + recap ride
+    hookSpecificOutput.additionalContext (Foundation PR-2)."""
     _seed("proj")
     assert main({"cwd": "/repo/proj"}) == 0
     payload = json.loads(capsys.readouterr().out)
     assert "A R K A   O S" in payload["systemMessage"]
-    assert "[SESSION-MEMORY]" in payload["systemMessage"]
+    assert "[SESSION-MEMORY]" not in payload["systemMessage"]
+    assert "[ARKA:EVIDENCE-FLOW]" not in payload["systemMessage"]
+    hso = payload["hookSpecificOutput"]
+    assert hso["hookEventName"] == "SessionStart"
+    assert "[ARKA:EVIDENCE-FLOW] NON-NEGOTIABLE" in hso["additionalContext"]
+    assert "[SESSION-MEMORY]" in hso["additionalContext"]
 
 
 def test_main_cwd_falls_back_to_env(tmp_path, capsys, monkeypatch):
@@ -180,12 +215,13 @@ def test_main_cwd_falls_back_to_env(tmp_path, capsys, monkeypatch):
     monkeypatch.setenv("ARKA_HOOK_CWD", "/repo/proj")
     assert main({}) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert "shown: 3 turns (proj)" in payload["systemMessage"]
+    context = payload["hookSpecificOutput"]["additionalContext"]
+    assert "shown: 3 turns (proj)" in context
 
 
 def test_main_fail_open_on_internal_error(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(
-        session_start, "build_message",
+        session_start, "build_visible",
         lambda cwd: (_ for _ in ()).throw(RuntimeError("boom")),
     )
     assert main({"cwd": "/x"}) == 0  # never raises
