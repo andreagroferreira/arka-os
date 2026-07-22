@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Archify Pipeline",
+    "subtitle": "Grid placement demo — row/col instead of manual pos",
+    "output": "examples/archify-repo-grid.html"
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [40, 100],
+    "cols": 7,
+    "gapX": 24,
+    "gapY": 48,
+    "cellW": 120,
+    "cellH": 60
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "You", "sublabel": "NL / Mermaid", "row": 1, "col": 0 },
+    { "id": "agents", "type": "frontend", "label": "Agent Hosts", "sublabel": "Claude · Codex", "row": 1, "col": 1 },
+    { "id": "skill", "type": "frontend", "label": "SKILL.md", "sublabel": "layout rules", "row": 0, "col": 1 },
+    { "id": "ir", "type": "messagebus", "label": "JSON IR", "sublabel": "schema v1", "row": 1, "col": 2 },
+    { "id": "schemas", "type": "security", "label": "Schema", "sublabel": "ajv", "row": 0, "col": 2 },
+    { "id": "renderers", "type": "backend", "label": "Renderers ×5", "row": 1, "col": 3 },
+    { "id": "template", "type": "frontend", "label": "template.html", "row": 1, "col": 4 },
+    { "id": "checker", "type": "security", "label": "Output Check", "row": 1, "col": 5 },
+    { "id": "html", "type": "cloud", "label": "HTML", "sublabel": "artifact", "row": 1, "col": 6 }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "archify/ skill package",
+      "wraps": ["ir", "schemas", "renderers", "template", "checker"]
+    }
+  ],
+  "connections": [
+    { "from": "user", "to": "agents", "variant": "emphasis" },
+    { "from": "agents", "to": "skill", "fromSide": "top", "toSide": "bottom" },
+    { "from": "agents", "to": "ir", "variant": "emphasis" },
+    { "from": "ir", "to": "schemas", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "from": "ir", "to": "renderers", "variant": "emphasis" },
+    { "from": "renderers", "to": "template", "variant": "emphasis" },
+    { "from": "template", "to": "checker", "variant": "emphasis" },
+    { "from": "checker", "to": "html", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Grid mode",
+      "items": [
+        "Set layout.mode grid and place components with row/col",
+        "pos still overrides a cell when you need fine tuning",
+        "Not auto-layout — fixed cell spacing only"
+      ]
+    }
+  ]
+}

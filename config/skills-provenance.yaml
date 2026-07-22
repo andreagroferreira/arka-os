@@ -97,6 +97,13 @@ derived:
     origin: community
     source: https://github.com/bradautomates/claude-video
     license: MIT
+  # Diagram absorption campaign — visual spec/plan output derived from
+  # tt-a1i/archify v2.11.0 (MIT; portions Cocoon AI), vendored verbatim
+  # under vendor/ and maintained natively.
+  departments/dev/skills/diagram:
+    origin: community
+    source: https://github.com/tt-a1i/archify
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).

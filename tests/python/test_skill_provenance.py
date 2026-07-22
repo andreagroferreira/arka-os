@@ -276,10 +276,14 @@ class TestEverySkillIsClassified:
 
     def test_coverage_is_every_authored_surface(self):
         """The classifier is worthless if a port can land outside it."""
+        # vendor/ subtrees carry upstream third-party SKILL.md files, not
+        # ArkaOS-authored surfaces; the owning skill's own SKILL.md is the
+        # classified surface and its registry entry covers the vendor tree.
         authored = {
             f for f in BASE_DIR.rglob("SKILL.md")
             if "node_modules" not in f.parts
             and ".git" not in f.parts
+            and "vendor" not in f.parts
             and f.parts[len(BASE_DIR.parts)] not in GENERATED_TREES
         }
         uncovered = authored - set(SKILL_FILES)

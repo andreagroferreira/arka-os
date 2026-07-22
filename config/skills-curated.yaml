@@ -24,8 +24,8 @@ curated_subskills:
   community: [moderation]
   content: [calendar, hook-write]
   dev: [api-design, architecture-design, clean-code-review, code-review,
-        db-design, refactor-plan, runbook, security-audit, spec, tdd-cycle,
-        watch]
+        db-design, diagram, refactor-plan, runbook, security-audit, spec,
+        tdd-cycle, watch]
   ecom: [cart-recovery, store-audit]
   finance: [financial-model, unit-economics]
   kb: [search-kb, zettelkasten-process]
