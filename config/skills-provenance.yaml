@@ -91,6 +91,12 @@ derived:
     origin: community
     source: https://github.com/nutlope/hallmark
     license: MIT
+  # Watch absorption campaign — video-input primitive derived from
+  # bradautomates/claude-video v0.2.0 (MIT), maintained natively.
+  departments/dev/skills/watch:
+    origin: community
+    source: https://github.com/bradautomates/claude-video
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).

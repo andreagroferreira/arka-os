@@ -149,6 +149,31 @@ export function companionPluginsInstalled() {
   }
 }
 
+// /watch media tooling (dev/watch skill). A binary on PATH can still be
+// a corpse — a dangling homebrew dylib makes ffmpeg abort at load (dyld,
+// exit 134) while `which` stays green — so the native binaries are probed
+// with `-version`. yt-dlp is presence-only: probing it costs a Python
+// interpreter start for a breakage mode it doesn't have.
+export function watchMediaTooling() {
+  const missing = [];
+  for (const bin of ["ffmpeg", "ffprobe"]) {
+    if (!commandExists(bin)) {
+      missing.push(bin);
+      continue;
+    }
+    try {
+      execSync(`${bin} -version`, {
+        stdio: ["pipe", "pipe", "ignore"],
+        timeout: 10000,
+      });
+    } catch {
+      missing.push(`${bin} (broken)`);
+    }
+  }
+  if (!commandExists("yt-dlp")) missing.push("yt-dlp");
+  return missing;
+}
+
 export const checks = [
   {
     name: "install-dir",
@@ -560,11 +585,20 @@ export const checks = [
     fix: () => "Run: npx arkaos install --force",
   },
   {
-    name: "yt-dlp",
-    description: "yt-dlp present (video reference analysis + content ingestion)",
+    // Supersedes the presence-only "yt-dlp" check: dev/watch needs
+    // ffmpeg/ffprobe too, and needs them RUNNABLE, not just on PATH.
+    name: "watch-media-tooling",
+    description: "/watch video tooling (ffmpeg, ffprobe, yt-dlp) present and runnable",
     severity: "warn",
-    check: () => commandExists("yt-dlp"),
-    fix: () => "Install yt-dlp: brew install yt-dlp (macOS) / pipx install yt-dlp — only needed for video/content workflows",
+    check: () => watchMediaTooling().length === 0,
+    fix: () => {
+      const missing = watchMediaTooling();
+      return (
+        `Missing/broken: ${missing.join(", ")}. macOS: brew install ffmpeg yt-dlp ` +
+        "(a (broken) entry usually means a dangling dylib — brew reinstall it). " +
+        "Or run the dev/watch installer: ~/.claude/skills/arka-watch/scripts/setup.py"
+      );
+    },
   },
   {
     name: "gotchas",

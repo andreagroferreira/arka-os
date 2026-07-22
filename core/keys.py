@@ -7,15 +7,27 @@ import json
 import os
 import stat
 from pathlib import Path
-from typing import Optional
 
 KEYS_PATH = Path.home() / ".arkaos" / "keys.json"
 
 # Known providers with descriptions
 PROVIDERS = {
-    "OPENAI_API_KEY": {"name": "OpenAI", "used_for": "Whisper transcription, embeddings, GPT"},
-    "GOOGLE_API_KEY": {"name": "Google", "used_for": "Gemini API, Nano Banana, Google Cloud AI"},
-    "FAL_API_KEY": {"name": "fal.ai", "used_for": "Image generation, video generation"},
+    "OPENAI_API_KEY": {
+        "name": "OpenAI",
+        "used_for": "Whisper transcription (/watch fallback), embeddings, GPT",
+    },
+    "GOOGLE_API_KEY": {
+        "name": "Google",
+        "used_for": "Gemini API, Nano Banana, Google Cloud AI",
+    },
+    "FAL_API_KEY": {
+        "name": "fal.ai",
+        "used_for": "Image generation, video generation",
+    },
+    "GROQ_API_KEY": {
+        "name": "Groq",
+        "used_for": "Whisper transcription for /watch (whisper-large-v3 — cheaper, faster)",
+    },
 }
 
 
@@ -31,7 +43,7 @@ def _save(keys: dict[str, str]) -> None:
     os.chmod(KEYS_PATH, stat.S_IRUSR | stat.S_IWUSR)  # 600
 
 
-def get_key(name: str) -> Optional[str]:
+def get_key(name: str) -> str | None:
     """Get an API key by name. Also checks environment variables."""
     env_val = os.environ.get(name)
     if env_val:
