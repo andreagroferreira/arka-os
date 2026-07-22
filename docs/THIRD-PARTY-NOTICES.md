@@ -49,6 +49,57 @@ skill. This section is the authoritative record of the second source.
 The MIT permission notice and copyright line above apply to all copies
 and substantial portions of the derived material.
 
+## claude-video (Bradley Bonanno / bradautomates)
+
+- **Source:** https://github.com/bradautomates/claude-video
+- **License:** MIT — Copyright (c) 2026 Bradley Bonanno
+- **License text:** retained verbatim at
+  `departments/dev/skills/watch/references/claude-video.LICENSE`
+- **Upstream version:** v0.2.0
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Video-input pipeline | `departments/dev/skills/watch/scripts/` | `watch.py`, `download.py`, `frames.py`, `transcribe.py`, `whisper.py` adapted from the upstream skill; config, key resolution, and telemetry rewired to `~/.arkaos/` (`config.py`, `setup.py` are ArkaOS authorship) |
+| Skill instructions | `departments/dev/skills/watch/SKILL.md` | Rewritten to the ArkaOS skill standard (routing, KB-first, CostGovernor telemetry, `/arka keys` integration) |
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.
+
+## archify (tt-a1i; original by Cocoon AI)
+
+- **Source:** https://github.com/tt-a1i/archify
+- **License:** MIT — Copyright (c) 2026 tt-a1i (Archify); portions
+  Copyright (c) 2025 Cocoon AI ("architecture-diagram-generator")
+- **License text:** retained verbatim at
+  `departments/dev/skills/diagram/vendor/LICENSE`
+- **Upstream version:** v2.11.0
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Vendored engine | `departments/dev/skills/diagram/vendor/` | Upstream skill payload (`archify/` subfolder) verbatim: CLI (`bin/`), renderers, JSON Schemas, pre-compiled standalone validators, recipes, `assets/template.html`, example IRs, payload test suite |
+| Upstream agent guide | `departments/dev/skills/diagram/vendor/SKILL.md` | Kept verbatim as the deep per-mode authoring reference (upstream payload tests reference it by name); not an ArkaOS skill — `vendor/` trees are pruned from skill discovery |
+| Root example fixture | `departments/dev/skills/diagram/examples/archify-repo-grid.architecture.json` | Copied from the upstream repo-root `examples/` so the vendored `cli.test.mjs` inspect test resolves |
+| ArkaOS skill | `departments/dev/skills/diagram/SKILL.md` | New authorship — ArkaOS skill standard (routing, KB-first, Forge Step 6a browser convention, Obsidian persistence) over the vendored engine |
+
+Changes on import: rendered example HTMLs (`vendor/examples/*.html`,
+regenerable via `vendor/scripts/render-examples.mjs`) removed; upstream
+test files exercising repo-site material outside the payload (README,
+docs gallery, landing/start/guide pages, share-card showcase,
+`golden.mjs` and its rendered-artifact baselines, port-spread README
+checks) and the validator-freshness test requiring the ajv devDependency
+removed — the remaining 44 payload test files run unmodified in CI;
+`vendor/test/` is excluded from the npm tarball. No code inside
+`vendor/` was modified (`assets/template.html` integrity is pinned by
+sha256 in `tests/python/diagram/test_vendor_integrity.py`). The ajv
+devDependency is build-time-only (validator regeneration after schema
+changes) and is never installed by ArkaOS. The MIT permission notice and
+copyright lines above apply to all copies and substantial portions of
+the derived material.
+
 ## hallmark (Hassan El Mghari / "Hallmark contributors")
 
 - **Source:** https://github.com/nutlope/hallmark

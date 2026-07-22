@@ -187,8 +187,16 @@ def validate_skill(skill_dir: Path) -> SkillResult:
 
 
 def discover_skills(root: Path) -> list[Path]:
-    """Recursively find all directories containing SKILL.md."""
-    skills = [Path(dp) for dp, _, fns in os.walk(root) if "SKILL.md" in fns]
+    """Recursively find all directories containing SKILL.md.
+
+    ``vendor/`` subtrees are pruned: vendored third-party payloads carry
+    their own upstream SKILL.md, which is not an ArkaOS skill.
+    """
+    skills: list[Path] = []
+    for dp, dns, fns in os.walk(root):
+        dns[:] = [d for d in dns if d != "vendor"]
+        if "SKILL.md" in fns:
+            skills.append(Path(dp))
     skills.sort(key=lambda p: str(p))
     return skills
 

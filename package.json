@@ -74,7 +74,8 @@
     "LICENSE",
     "!**/__pycache__/",
     "!**/*.pyc",
-    "!**/.DS_Store"
+    "!**/.DS_Store",
+    "!departments/dev/skills/diagram/vendor/test/"
   ],
   "devDependencies": {
     "eslint": "^8.57.1"

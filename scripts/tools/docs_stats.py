@@ -57,10 +57,16 @@ def count_departments(root: Path) -> int:
 
 
 def count_skills(root: Path) -> dict:
-    """Count SKILL.md files by area. 'core' = departments + arka."""
+    """Count SKILL.md files by area. 'core' = departments + arka.
+
+    vendor/ subtrees carry upstream third-party SKILL.md files (e.g. the
+    archify payload under dev/diagram) — not ArkaOS skills, never counted.
+    """
     def _n(rel: str) -> int:
         base = root / rel
-        return len(list(base.rglob("SKILL.md"))) if base.is_dir() else 0
+        if not base.is_dir():
+            return 0
+        return sum(1 for f in base.rglob("SKILL.md") if "vendor" not in f.parts)
 
     dept, arka, market = _n("departments"), _n("arka"), _n("marketplace")
     # plugins/ is a GENERATED export-copy (scripts/marketplace_gen.py)

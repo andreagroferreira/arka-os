@@ -1148,6 +1148,19 @@
         "origin": "arkaos"
       }
     },
+    "diagram": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/tt-a1i/archify",
+        "license": "MIT"
+      }
+    },
     "directory-submit": {
       "depts": [
         "marketing"

@@ -120,6 +120,13 @@ jobs:
         if: matrix.node-version == 22
         run: npm test
 
+      - name: Run vendored archify tests (dev/diagram)
+        # 44 payload test files kept on import (see docs/THIRD-PARTY-NOTICES.md,
+        # archify section); zero-dependency, native node --test runner.
+        if: matrix.node-version == 22
+        working-directory: departments/dev/skills/diagram/vendor
+        run: node --test test/*.test.mjs
+
       - name: Runtime smoke (engines floor)
         # The 18 leg's other steps only parse/lint — they never execute
         # installer runtime code, so the engines>=18 promise was untested.
