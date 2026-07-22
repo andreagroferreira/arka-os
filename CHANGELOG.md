@@ -5,6 +5,16 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.34.0] - 2026-07-22
+
+Foundation campaign PR-1 + PR-2 — the first two mandatory base points.
+
+### Added
+- **Auto-update daemon** (#388): `npx arkaos autoupdate enable|disable|status|run` — launchd (macOS, daily + at load) / systemd timer (Linux, persistent) unit that checks the npm registry, applies the core update headlessly, and notifies the user in their profile language (pt-PT/en). Default-on at install/update with a persisted opt-out. Units anchor at the purge-proof `~/.arkaos/lib` snapshot (`scripts/` joined `SNAPSHOT_DIRS`); ordering compare never downgrades a dev/prerelease install. New `autoupdate` doctor check.
+
+### Changed
+- **SessionStart presentation** (#389): the session greeting is now a compact branded banner (`▲ A R K A  O S — vX.Y.Z`, greeting, workflow/forge state, drift warning). The operating contracts ([ARKA:EVIDENCE-FLOW], [ARKA:META-TAG], [ARKA:AUTHORITY], [ARKA:MODEL-FABRIC], session memory) now reach the model via `hookSpecificOutput.additionalContext` — enforcement unchanged, no more wall of text. Statusline shows the installed version on the ▲ARKA mark.
+
 ## [4.33.0] - 2026-07-22
 
 ### Added
