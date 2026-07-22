@@ -13,6 +13,18 @@ SETUP = (
 )
 
 
+def _fake_bin_dir(home: Path) -> Path:
+    """Healthy fake ffmpeg/ffprobe/yt-dlp so key/setup-complete logic is
+    tested hermetically — CI runners have none of the real binaries."""
+    bindir = home / "fakebin"
+    bindir.mkdir(parents=True, exist_ok=True)
+    for name in ("ffmpeg", "ffprobe", "yt-dlp"):
+        f = bindir / name
+        f.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        f.chmod(0o755)
+    return bindir
+
+
 def _run(args, *, home=None, extra_env=None):
     env = dict(os.environ)
     env.pop("WATCH_DETAIL", None)
@@ -24,6 +36,7 @@ def _run(args, *, home=None, extra_env=None):
     if home is not None:
         env["HOME"] = str(home)
         env["USERPROFILE"] = str(home)  # Windows
+        env["PATH"] = f"{_fake_bin_dir(home)}{os.pathsep}{env.get('PATH', '')}"
     if extra_env:
         env.update(extra_env)
     return subprocess.run(

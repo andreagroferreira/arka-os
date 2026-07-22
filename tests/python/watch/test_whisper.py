@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import itertools
 import math
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -72,6 +73,8 @@ class TestShiftSegments:
 
 def _make_mp3(path: Path, seconds: float) -> None:
     """Synthesize a mono 16k 64k mp3 of a sine tone — mirrors extract_audio's format."""
+    if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+        pytest.skip("ffmpeg/ffprobe not installed")
     subprocess.run(
         [
             "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",

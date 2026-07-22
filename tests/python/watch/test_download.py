@@ -24,7 +24,12 @@ URL = "https://www.youtube.com/watch?v=rlOpbu3Enkw"
 
 
 def _capture_argv(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
-    """Stub subprocess.run inside download.py and record every argv."""
+    """Stub subprocess.run inside download.py and record every argv.
+
+    Also stubs shutil.which so the yt-dlp presence guard passes on runners
+    without the binary — these tests inspect the argv download.py builds,
+    never the real tool.
+    """
     calls: list[list[str]] = []
 
     class _Result:
@@ -37,6 +42,7 @@ def _capture_argv(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
         return _Result()
 
     monkeypatch.setattr(download.subprocess, "run", fake_run)
+    monkeypatch.setattr(download.shutil, "which", lambda name: f"/fake/bin/{name}")
     return calls
 
 
