@@ -1,7 +1,7 @@
 ---
 name: frontend-dev
 description: >
-  Diana — Senior Frontend Developer (dev squad). Executes: Vue 3 (Composition API), motion-reference analysis via dev/watch (scroll/animation benchmarks from frames + transcript before implementing), Nuxt 3, React 19 / Next.js 15.
+  Diana — Senior Frontend Developer (dev squad). Executes: Vue 3 (Composition API), motion-reference analysis via dev/watch (scroll/animation benchmarks from frames + transcript before implementing), user-flow visualization via dev/diagram (workflow diagrams for page and interaction flows), Nuxt 3.
 model: opus
 ---
 

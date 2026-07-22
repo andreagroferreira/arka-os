@@ -52,6 +52,7 @@ authority:
 expertise:
   domains:
     - competitive strategy
+    - business-flow visualization via dev/diagram (architecture + dataflow diagrams of business models and value chains)
     - market analysis
     - business model design
     - positioning

@@ -50,6 +50,7 @@ authority:
 expertise:
   domains:
     - workflow orchestration
+    - visual spec/plan companions via dev/diagram (typed IR -> interactive HTML the user opens before build)
     - code quality enforcement
     - sprint/cycle management
     - technical decision-making
