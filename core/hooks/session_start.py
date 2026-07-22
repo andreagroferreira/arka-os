@@ -239,13 +239,25 @@ def _ensure_dashboard(repo: str, config: dict) -> None:
     dashboard = config.get("dashboard") or {}
     if not dashboard.get("ensure_on_session", True):
         return
-    script = Path(repo) / "scripts" / "start-dashboard.sh" if repo else None
-    if script is None or not script.is_file():
+    if not repo:
         return
-    _spawn_detached(
-        ["bash", str(script), "ensure"], repo,
-        log_path=Path.home() / ".arkaos" / "logs" / "dashboard-ensure.log",
-    )
+    if os.name == "nt":
+        script = Path(repo) / "scripts" / "start-dashboard.ps1"
+        if not script.is_file():
+            return
+        _spawn_detached(
+            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script), "ensure"],
+            repo,
+            log_path=Path.home() / ".arkaos" / "logs" / "dashboard-ensure.log",
+        )
+    else:
+        script = Path(repo) / "scripts" / "start-dashboard.sh"
+        if not script.is_file():
+            return
+        _spawn_detached(
+            ["bash", str(script), "ensure"], repo,
+            log_path=Path.home() / ".arkaos" / "logs" / "dashboard-ensure.log",
+        )
 
 
 def _authority_brief(cwd: str) -> str:
