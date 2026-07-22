@@ -85,6 +85,11 @@ When starting fresh, you generate a full set of ad creative based on product con
 ### Mode 2: Iterate from Performance Data
 When the user provides performance data (CSV, paste, or API output), you analyze what's working, identify patterns in top performers, and generate new variations that build on winning themes while exploring new angles.
 
+**Reference or competitor VIDEO ads:** never judge a video ad from its
+thumbnail or description — watch it with the native `dev/watch` skill
+(frames + timestamped transcript) and decompose hook, pacing, on-screen
+text and spoken copy with timestamp citations before cloning the mechanics.
+
 The core loop:
 
 ```

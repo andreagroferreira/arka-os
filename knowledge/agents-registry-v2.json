@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-21T23:13:55.387821",
+    "generated": "2026-07-22T09:33:03.145247",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -73,6 +73,7 @@
       },
       "expertise_domains": [
         "brand identity creation",
+        "reference-video visual analysis via dev/watch (complete frames + transcript — motion and art direction judged on evidence, never on screenshots)",
         "visual design direction",
         "UX/UI strategy",
         "design systems",
@@ -784,6 +785,7 @@
       },
       "expertise_domains": [
         "viral content design",
+        "reference-video analysis via dev/watch (frames + timestamped transcript before judging any video)",
         "hook writing & packaging",
         "script structure",
         "content operating systems",
@@ -934,6 +936,7 @@
       "authority": {},
       "expertise_domains": [
         "trend detection across platforms (Agent-Reach: X, Reddit, YouTube, RSS, Exa)",
+        "viral-video deconstruction via dev/watch (scene-aware frames + transcript, timestamp-cited)",
         "niche viability scoring (audience size, competition density, monetization path, brand fit)",
         "platform algorithm shift monitoring",
         "whitespace analysis for new channels and formats",
@@ -986,6 +989,7 @@
       },
       "expertise_domains": [
         "video production pipelines (script → storyboard → assets → edit → render)",
+        "cut review via dev/watch (frame + transcript evidence on own renders before the Quality Gate)",
         "Hyperframes video-as-code editing (HTML/CSS/JS + GSAP → MP4)",
         "Higgsfield generation orchestration (image, video, audio, motion control, upscale, reframe)",
         "shot lists and EDLs (scene/shot/VO/on-screen-text columns)",
@@ -1088,6 +1092,7 @@
       "authority": {},
       "expertise_domains": [
         "video scriptwriting (YouTube, Reels, TikTok)",
+        "reference-video teardown via dev/watch (hook, pacing and beat analysis from frames + transcript)",
         "cinematic narrative for short and long-form",
         "storyboard-ready scene writing (scene/shot/VO/on-screen-text columns)",
         "narrative structure (hook-bridge-body-CTA; beat sheets; story circles)",
@@ -1744,6 +1749,7 @@
       },
       "expertise_domains": [
         "Vue 3 (Composition API)",
+        "motion-reference analysis via dev/watch (scroll/animation benchmarks from frames + transcript before implementing)",
         "Nuxt 3",
         "React 19 / Next.js 15",
         "TypeScript",
@@ -3171,6 +3177,7 @@
       },
       "expertise_domains": [
         "growth strategy",
+        "video-ad teardown via dev/watch (hook, pacing and spoken-copy evidence from frames + transcript)",
         "content marketing",
         "SEO",
         "paid acquisition",
