@@ -77,6 +77,10 @@
     "!**/.DS_Store",
     "!departments/dev/skills/diagram/vendor/test/"
   ],
+  "optionalDependencies": {
+    "@clack/prompts": "^1.7.0",
+    "picocolors": "^1.1.1"
+  },
   "devDependencies": {
     "eslint": "^8.57.1"
   }

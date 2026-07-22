@@ -12,13 +12,41 @@ import { loadAdapter } from "./index.js";
 import { migrateUserData, printMigrationReport } from "./migrate-user-data.js";
 import { resolveFile } from "./path-resolver.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
+import { getUi } from "./ui.js";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ARKAOS_ROOT = resolve(__dirname, "..");
 const VERSION = JSON.parse(readFileSync(join(ARKAOS_ROOT, "package.json"), "utf-8")).version;
 
+// UI facade — set at the top of update(). The helpers below delegate to
+// it; the plain facade prints the historical byte-identical strings, so
+// the auto-update daemon's headless logs remain stable. Update normally
+// runs headless (non-TTY), so fancy mode only appears on manual runs.
+let ui = null;
+
+function section(n, total, msg) {
+  if (ui) return ui.section(n, total, msg);
+  console.log(`  [${n}/${total}] ${msg}`);
+}
+
+function ok(msg) {
+  if (ui) return ui.ok(msg);
+  console.log(`         ✓ ${msg}`);
+}
+
+function warn(msg) {
+  if (ui) return ui.warn(msg);
+  console.log(`         ⚠ ${msg}`);
+}
+
+function detail(msg) {
+  if (ui) return ui.detail(msg);
+  console.log(msg);
+}
+
 export async function update({ skillsFlag = "" } = {}) {
+  ui = await getUi();
   const installDir = join(homedir(), ".arkaos");
   const manifestPath = join(installDir, "install-manifest.json");
   const profilePath = join(installDir, "profile.json");
@@ -40,7 +68,7 @@ export async function update({ skillsFlag = "" } = {}) {
   try {
     migrateLegacyHookState(homedir(), installDir);
   } catch (err) {
-    console.log(`         \u26a0 Legacy hook state migration skipped: ${err.message}`);
+    warn(`Legacy hook state migration skipped: ${err.message}`);
   }
 
   // User-data separation (ADR 2026-04-17): move descriptors and ecosystems
@@ -48,7 +76,7 @@ export async function update({ skillsFlag = "" } = {}) {
   try {
     printMigrationReport(migrateUserData());
   } catch (err) {
-    console.log(`         \u26a0 User-data migration skipped: ${err.message}`);
+    warn(`User-data migration skipped: ${err.message}`);
   }
 
   const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
@@ -64,13 +92,20 @@ export async function update({ skillsFlag = "" } = {}) {
     }).toString().trim();
   } catch {}
 
-  console.log(`
+  if (ui.isFancy()) {
+    ui.intro(`▲ ARKA OS v${VERSION} — Update`);
+    ui.clack.log.message(
+      `Installed: v${manifest.version}\nPackage:   v${VERSION}\nLatest:    v${latestVersion}`,
+    );
+  } else {
+    console.log(`
   ArkaOS Update
   ─────────────
   Installed: v${manifest.version}
   Package:   v${VERSION}
   Latest:    v${latestVersion}
   `);
+  }
 
   // Dev-checkout detection: when ArkaOS is being run from a local git
   // clone (as opposed to a published `npx arkaos@latest` install), the
@@ -94,38 +129,50 @@ export async function update({ skillsFlag = "" } = {}) {
   const forceRequested = process.argv.includes("--force");
 
   if (versionsMatch && !forceRequested && !isDevCheckout) {
-    console.log("  ✓ Already up to date.\n");
+    if (ui.isFancy()) {
+      ui.outro("Already up to date.");
+    } else {
+      console.log("  ✓ Already up to date.\n");
+    }
     return;
   }
 
   if (isDevCheckout && versionsMatch && !forceRequested) {
-    console.log("  ℹ Dev checkout detected — running update even though version matches.\n");
+    if (ui.isFancy()) {
+      ui.clack.log.info("Dev checkout detected — running update even though version matches.");
+    } else {
+      console.log("  ℹ Dev checkout detected — running update even though version matches.\n");
+    }
   }
 
-  console.log("  Updating (keeping your configuration)...\n");
+  if (ui.isFancy()) {
+    ui.clack.log.message("Updating (keeping your configuration)...");
+  } else {
+    console.log("  Updating (keeping your configuration)...\n");
+  }
 
   // ── 1. Update Python deps (using venv) ──
-  console.log("  [1/8] Updating Python dependencies...");
+  section(1, 8, "Updating Python dependencies...");
 
   // Ensure venv is healthy (creates, repairs broken symlinks, or no-ops).
   // PR2 v3.73.1 — previously a stale broken-symlink venv could pass the
   // existence check, and the dashboard would silently fall back to ambient
   // python3 without sqlite-vec/fastembed.
-  const venvHealth = ensureVenvHealthy({ log: (msg) => console.log(msg) });
+  const venvHealth = ensureVenvHealthy({ log: (msg) => detail(msg) });
   if (!venvHealth.healthy) {
-    console.log(`         \u26a0 Venv unhealthy (${venvHealth.reason}) - falling back to system Python with PEP 668 handling`);
+    warn(`Venv unhealthy (${venvHealth.reason}) - falling back to system Python with PEP 668 handling`);
   } else if (venvHealth.repaired) {
-    console.log(`         \u2713 Venv repaired (${venvHealth.reason})`);
+    ok(`Venv repaired (${venvHealth.reason})`);
   }
 
   const pythonCmd = getArkaosPython();
-  const log = (msg) => console.log(msg);
+  const log = (msg) => detail(msg);
 
   // Core deps (always upgrade)
   if (pipInstall("pyyaml pydantic rich click jinja2", { upgrade: true, log })) {
-    console.log("         \u2713 Core deps updated");
+    ok("Core deps updated");
   } else {
-    console.log("         \u26a0 Core deps update failed");
+    warn("Core deps update failed");
   }
 
   // Only update optional deps if they were installed before
@@ -139,42 +186,42 @@ export async function update({ skillsFlag = "" } = {}) {
     const fastembedOk = pipInstall("fastembed", { upgrade: true, log, timeout: 180000 });
     const sqliteVssOk = pipInstall("sqlite-vec", { upgrade: true, log, timeout: 180000 });
     if (fastembedOk && sqliteVssOk) {
-      console.log("         \u2713 Knowledge deps updated (fastembed, sqlite-vec)");
+      ok("Knowledge deps updated (fastembed, sqlite-vec)");
     } else if (fastembedOk) {
-      console.log("         \u26a0 fastembed upgraded but sqlite-vec failed \u2014 semantic search degraded");
+      warn("fastembed upgraded but sqlite-vec failed \u2014 semantic search degraded");
     } else if (sqliteVssOk) {
-      console.log("         \u26a0 sqlite-vec upgraded but fastembed failed \u2014 embedding pipeline degraded");
+      warn("sqlite-vec upgraded but fastembed failed \u2014 embedding pipeline degraded");
     } else {
-      console.log("         \u26a0 Knowledge deps upgrade failed \u2014 run: npx arkaos doctor");
+      warn("Knowledge deps upgrade failed \u2014 run: npx arkaos doctor");
     }
   }
 
   if (pyCheck("fastapi")) {
     if (pipInstall("fastapi uvicorn", { upgrade: true, log, timeout: 60000 })) {
-      console.log("         \u2713 Dashboard deps updated");
+      ok("Dashboard deps updated");
     }
   }
 
   // Always install ArkaOS core engine
   if (pipInstall("", { editable: ARKAOS_ROOT, log, timeout: 60000 })) {
-    console.log("         \u2713 ArkaOS core engine installed");
+    ok("ArkaOS core engine installed");
   } else {
-    console.log("         \u26a0 Core engine install failed — run: npx arkaos doctor");
+    warn("Core engine install failed — run: npx arkaos doctor");
   }
 
   // ── 2. Update config files ──
-  console.log("  [2/8] Updating configuration...");
+  section(2, 8, "Updating configuration...");
   const constitutionSrc = join(ARKAOS_ROOT, "config", "constitution.yaml");
   mkdirSync(join(installDir, "config"), { recursive: true });
   if (existsSync(constitutionSrc)) {
     copyFileSync(constitutionSrc, join(installDir, "config", "constitution.yaml"));
-    console.log("         ✓ Constitution updated");
+    ok("Constitution updated");
   }
   const statuslineFile = IS_WINDOWS ? "statusline.ps1" : "statusline.sh";
   const statuslineSrc = join(ARKAOS_ROOT, "config", statuslineFile);
   if (existsSync(statuslineSrc)) {
     copyFileSync(statuslineSrc, join(installDir, "config", statuslineFile));
-    console.log("         ✓ Statusline updated");
+    ok("Statusline updated");
   }
   // Interaction Reform PR1 — refresh the ArkaOS output style file and
   // seed the default (if-absent; explicit operator choice preserved).
@@ -184,20 +231,20 @@ export async function update({ skillsFlag = "" } = {}) {
       sourceDir: join(ARKAOS_ROOT, "config", "output-styles"),
     });
     if (styleResult.copied > 0) {
-      console.log("         ✓ Output style updated");
+      ok("Output style updated");
     }
     const seedResult = seedOutputStyleDefault({
       runtime: manifest.runtime || "claude-code",
     });
     if (!seedResult.skipped && seedResult.action === "created") {
-      console.log(`         ✓ outputStyle default set to "${seedResult.value}"`);
+      ok(`outputStyle default set to "${seedResult.value}"`);
     }
   } catch (err) {
-    console.log(`         ⚠ Output style update failed (${err.message})`);
+    warn(`Output style update failed (${err.message})`);
   }
 
   // ── 3. Update hooks ──
-  console.log("  [3/8] Updating hooks...");
+  section(3, 8, "Updating hooks...");
   // Keep this list in lockstep with installer/index.js::installHooks and
   // installer/adapters/claude-code.js::hookCommand. Platform-aware: .ps1
   // on Windows, .sh everywhere else.
@@ -240,21 +287,21 @@ export async function update({ skillsFlag = "" } = {}) {
       try { chmodSync(destPath, 0o755); } catch {}
     }
   }
-  console.log("         ✓ Hook scripts updated");
+  ok("Hook scripts updated");
 
   // Shared hook libraries (config/hooks/_lib/ — the Python interpreter
   // resolver lives here). The hooks deployed above source
   // _lib/arka_python.sh from the install dir, so skipping this copy
   // leaves them falling back to a bare `python3` without ArkaOS deps.
   if (copyHookLib(srcHooksDir, destHooksDir)) {
-    console.log("         ✓ Hook lib updated (_lib/)");
+    ok("Hook lib updated (_lib/)");
   }
 
   // F2-6 fast-path shims + gate manifest (same shared deploy as the
   // fresh-install path — single asset list in hook-lib.js).
   const assetCount = copyHookAssets(srcHooksDir, destHooksDir);
   if (assetCount > 0) {
-    console.log(`         ✓ Hook fast-path assets updated (${assetCount})`);
+    ok(`Hook fast-path assets updated (${assetCount})`);
   }
 
   // Re-register hooks in the runtime's settings file.
@@ -268,14 +315,14 @@ export async function update({ skillsFlag = "" } = {}) {
     if (runtimeConfig) {
       const adapter = await loadAdapter(runtimeId);
       adapter.configureHooks(runtimeConfig, installDir);
-      console.log("         ✓ Hooks re-registered in settings");
+      ok("Hooks re-registered in settings");
     }
   } catch (err) {
-    console.log(`         ⚠ Could not re-register hooks: ${err.message}`);
+    warn(`Could not re-register hooks: ${err.message}`);
   }
 
   // ── 4. Update CLI wrapper + user CLAUDE.md ──
-  console.log("  [4/8] Updating CLI wrapper and user instructions...");
+  section(4, 8, "Updating CLI wrapper and user instructions...");
   const binDir = join(installDir, "bin");
   mkdirSync(binDir, { recursive: true });
 
@@ -286,27 +333,27 @@ export async function update({ skillsFlag = "" } = {}) {
     if (existsSync(psSrc))  copyFileSync(psSrc,  join(binDir, "arka-claude.ps1"));
     if (existsSync(cmdSrc)) copyFileSync(cmdSrc, join(binDir, "arka-claude.cmd"));
     if (existsSync(psSrc) || existsSync(cmdSrc)) {
-      console.log("         ✓ arka-claude wrapper updated (.cmd + .ps1)");
+      ok("arka-claude wrapper updated (.cmd + .ps1)");
     }
     const pyPsSrc  = join(ARKAOS_ROOT, "bin", "arka-py.ps1");
     const pyCmdSrc = join(ARKAOS_ROOT, "bin", "arka-py.cmd");
     if (existsSync(pyPsSrc))  copyFileSync(pyPsSrc,  join(binDir, "arka-py.ps1"));
     if (existsSync(pyCmdSrc)) copyFileSync(pyCmdSrc, join(binDir, "arka-py.cmd"));
     if (existsSync(pyPsSrc) || existsSync(pyCmdSrc)) {
-      console.log("         ✓ arka-py interpreter shim updated (.cmd + .ps1)");
+      ok("arka-py interpreter shim updated (.cmd + .ps1)");
     }
   } else {
     const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
     if (existsSync(wrapperSrc)) {
       copyFileSync(wrapperSrc, join(binDir, "arka-claude"));
       try { chmodSync(join(binDir, "arka-claude"), 0o755); } catch {}
-      console.log("         ✓ arka-claude wrapper updated");
+      ok("arka-claude wrapper updated");
     }
     const arkaPySrc = join(ARKAOS_ROOT, "bin", "arka-py");
     if (existsSync(arkaPySrc)) {
       copyFileSync(arkaPySrc, join(binDir, "arka-py"));
       try { chmodSync(join(binDir, "arka-py"), 0o755); } catch {}
-      console.log("         ✓ arka-py interpreter shim updated");
+      ok("arka-py interpreter shim updated");
     }
   }
   const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");
@@ -314,11 +361,11 @@ export async function update({ skillsFlag = "" } = {}) {
   if (existsSync(claudeMdSrc)) {
     mkdirSync(join(homedir(), ".claude"), { recursive: true });
     copyFileSync(claudeMdSrc, userClaudeMd);
-    console.log("         ✓ ~/.claude/CLAUDE.md updated");
+    ok("~/.claude/CLAUDE.md updated");
   }
 
   // ── 5. Update Cognitive Scheduler ──
-  console.log("  [5/8] Updating cognitive scheduler...");
+  section(5, 8, "Updating cognitive scheduler...");
   updateCognitiveScheduler(installDir, ARKAOS_ROOT);
 
   // ── 6. Update /arka skill + department skills + sub-skills + agents ──
@@ -332,7 +379,7 @@ export async function update({ skillsFlag = "" } = {}) {
   // skills on his WSL (deployed long ago by install.sh) vs 1 skill on
   // his Windows install (only the main /arka). The Node installer
   // never deployed anything else.
-  console.log("  [6/8] Updating /arka skill...");
+  section(6, 8, "Updating /arka skill...");
   const skillsBase = join(homedir(), ".claude", "skills");
   const skillDest = join(skillsBase, "arka");
   // Single shared deployment (installer/skill-deploy.js) — identical
@@ -342,7 +389,7 @@ export async function update({ skillsFlag = "" } = {}) {
   // before F2-7c-pre) + agent personas.
   const skillsMode = resolveSkillsMode({ flag: skillsFlag, fresh: false });
   if (skillsMode.deprecated) {
-    console.log("         " + deprecationNotice());
+    detail("         " + deprecationNotice());
   }
   const skillCounts = deploySkills({
     repoRoot: ARKAOS_ROOT,
@@ -351,19 +398,19 @@ export async function update({ skillsFlag = "" } = {}) {
     version: VERSION,
     mode: skillsMode.mode,
   });
-  console.log(`         ✓ skill set mode: ${skillsMode.mode}`);
-  if (skillCounts.main) console.log("         ✓ /arka skill updated");
+  ok(`skill set mode: ${skillsMode.mode}`);
+  if (skillCounts.main) ok("/arka skill updated");
   if (skillCounts.depts > 0) {
-    console.log(`         ✓ ${skillCounts.depts} department skills updated`);
+    ok(`${skillCounts.depts} department skills updated`);
   }
   if (skillCounts.subs > 0) {
-    console.log(`         ✓ ${skillCounts.subs} sub-skills updated`);
+    ok(`${skillCounts.subs} sub-skills updated`);
   }
   if (skillCounts.meta > 0) {
-    console.log(`         ✓ ${skillCounts.meta} meta skills updated`);
+    ok(`${skillCounts.meta} meta skills updated`);
   }
   if (skillCounts.agents > 0) {
-    console.log(`         ✓ ${skillCounts.agents} agent personas updated`);
+    ok(`${skillCounts.agents} agent personas updated`);
   }
 
   // MCP infrastructure: deploy mcps/ subdirectories, registry, and
@@ -412,11 +459,11 @@ export async function update({ skillsFlag = "" } = {}) {
       }
     }
 
-    console.log("         ✓ MCP infrastructure updated (profiles, stacks, scripts, arka-prompts + arka-tools servers)");
+    ok("MCP infrastructure updated (profiles, stacks, scripts, arka-prompts + arka-tools servers)");
 
     // Higgsfield MCP is registered but requires an account + API key to connect.
     // Non-blocking warning: the update succeeds even without a Higgsfield account.
-    console.log("         ⚠ Higgsfield MCP in registry — requires a Higgsfield account + HIGGSFIELD_API_KEY to connect (https://higgsfield.ai). Add per-project: bash apply-mcps.sh --add higgsfield");
+    warn("Higgsfield MCP in registry — requires a Higgsfield account + HIGGSFIELD_API_KEY to connect (https://higgsfield.ai). Add per-project: bash apply-mcps.sh --add higgsfield");
   }
 
   // ── 6b. Copy feature registry for sync engine ──
@@ -429,7 +476,7 @@ export async function update({ skillsFlag = "" } = {}) {
       copyFileSync(join(featuresSource, file), join(featuresDest, file));
     }
     if (featureFiles.length > 0) {
-      console.log(`         ✓ Feature registry: ${featureFiles.length} features copied`);
+      ok(`Feature registry: ${featureFiles.length} features copied`);
     }
   }
 
@@ -449,7 +496,7 @@ export async function update({ skillsFlag = "" } = {}) {
   // flow; update.js previously only wrote the first, which is a
   // latent bug that surfaces any time a user runs update from a
   // different clone than the original install.
-  console.log("  [7/8] Updating references...");
+  section(7, 8, "Updating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
   // .repo-path points at the npx cache, which `npm cache clean` can purge;
   // refresh the ~/.arkaos/lib snapshot so arka-py and the Python hooks
@@ -458,19 +505,19 @@ export async function update({ skillsFlag = "" } = {}) {
   // .repo-path (and any previous snapshot is preserved by the safe swap).
   try {
     if (deployCoreSnapshot(ARKAOS_ROOT, installDir)) {
-      console.log("         ✓ Core snapshot refreshed in ~/.arkaos/lib");
+      ok("Core snapshot refreshed in ~/.arkaos/lib");
     }
   } catch (err) {
-    console.log(`         ⚠ Core snapshot skipped (${err.message}) — arka-py falls back to .repo-path`);
+    warn(`Core snapshot skipped (${err.message}) — arka-py falls back to .repo-path`);
   }
   const skillsArkaosDir = join(homedir(), ".claude", "skills", "arkaos");
   if (existsSync(skillsArkaosDir)) {
     writeFileSync(join(skillsArkaosDir, ".arkaos-root"), ARKAOS_ROOT);
-    console.log("         ✓ Repo path + skills alias updated");
+    ok("Repo path + skills alias updated");
   } else {
     // Fresh install never ran (or user deleted the skills alias);
     // don't recreate it here — that's the install flow's job.
-    console.log("         ✓ Repo path updated (skills alias not present)");
+    ok("Repo path updated (skills alias not present)");
   }
 
   // ── 7b. Frontend UI/UX tooling + Claude plugins ──
@@ -485,27 +532,27 @@ export async function update({ skillsFlag = "" } = {}) {
     const pluginResult = installDefaultClaudePlugins({ runtime: toolingRuntime });
     if (!pluginResult.skipped) {
       for (const m of pluginResult.marketplaces || []) {
-        if (m.action === "added") console.log(`         ✓ marketplace ${m.marketplace} added`);
-        else if (m.action === "failed") console.log(`         ⚠ marketplace ${m.marketplace} failed (${m.reason})`);
+        if (m.action === "added") ok(`marketplace ${m.marketplace} added`);
+        else if (m.action === "failed") warn(`marketplace ${m.marketplace} failed (${m.reason})`);
       }
       for (const r of pluginResult.results) {
-        if (r.action === "installed") console.log(`         ✓ ${r.plugin} installed`);
-        else if (r.action === "failed") console.log(`         ⚠ ${r.plugin} failed (${r.reason})`);
+        if (r.action === "installed") ok(`${r.plugin} installed`);
+        else if (r.action === "failed") warn(`${r.plugin} failed (${r.reason})`);
       }
     }
   } catch (err) {
-    console.log(`         ⚠ Could not update Claude plugins (${err.message})`);
+    warn(`Could not update Claude plugins (${err.message})`);
   }
   try {
     const { setupFrontendTooling } = await import("./frontend-tooling.js");
     const ft = await setupFrontendTooling({ runtime: toolingRuntime });
-    if (ft.magicMcp?.action === "registered") console.log("         ✓ Magic MCP registered (user scope)");
-    else if (ft.magicMcp?.action === "already-present") console.log("         ✓ Magic MCP already registered");
-    else if (ft.magicMcp?.action === "failed") console.log(`         ⚠ Magic MCP failed (${ft.magicMcp.reason})`);
-    if (ft.motionKit?.action === "installed") console.log("         ✓ Motion AI Kit installed");
-    else if (ft.motionKit?.action === "failed") console.log(`         ⚠ Motion AI Kit failed (${ft.motionKit.reason})`);
+    if (ft.magicMcp?.action === "registered") ok("Magic MCP registered (user scope)");
+    else if (ft.magicMcp?.action === "already-present") ok("Magic MCP already registered");
+    else if (ft.magicMcp?.action === "failed") warn(`Magic MCP failed (${ft.magicMcp.reason})`);
+    if (ft.motionKit?.action === "installed") ok("Motion AI Kit installed");
+    else if (ft.motionKit?.action === "failed") warn(`Motion AI Kit failed (${ft.motionKit.reason})`);
   } catch (err) {
-    console.log(`         ⚠ Could not set up frontend tooling (${err.message})`);
+    warn(`Could not set up frontend tooling (${err.message})`);
   }
 
   // Graphify grounding layer — same wiring as installer/index.js. Best
@@ -514,45 +561,45 @@ export async function update({ skillsFlag = "" } = {}) {
     const { ensureGraphify, configureGraphifyHttp } = await import("./graphify.js");
     const gf = ensureGraphify();
     if (gf.binary?.installed) {
-      console.log(`         ✓ Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}`);
+      ok(`Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}`);
       if (gf.skillInstall?.action === "installed") {
-        console.log("         ✓ Graphify skill registered (graphify install)");
+        ok("Graphify skill registered (graphify install)");
       } else if (gf.skillInstall?.action === "failed") {
-        console.log(`         ⚠ Graphify skill registration failed (${gf.skillInstall.reason})`);
+        warn(`Graphify skill registration failed (${gf.skillInstall.reason})`);
       }
     } else if (gf.binary?.hint) {
-      console.log(`         ⚠ ${gf.binary.hint}`);
+      warn(`${gf.binary.hint}`);
     }
     // Graphify HTTP knowledge-graph MCP (user-scope, config-driven endpoint).
     const gh = await configureGraphifyHttp({ runtime: toolingRuntime });
     if (gh.action === "registered" || gh.action === "re-registered") {
-      console.log(`         ✓ Graphify knowledge-graph MCP ${gh.action} (user scope)`);
+      ok(`Graphify knowledge-graph MCP ${gh.action} (user scope)`);
     } else if (gh.action === "failed") {
-      console.log(`         ⚠ Graphify knowledge-graph MCP not registered (${gh.reason})`);
+      warn(`Graphify knowledge-graph MCP not registered (${gh.reason})`);
     }
   } catch (err) {
-    console.log(`         ⚠ Could not set up Graphify (${err.message})`);
+    warn(`Could not set up Graphify (${err.message})`);
   }
 
   // ── 7b. Auto-update daemon (Foundation PR-1) — default-on, opt-out kept ──
   try {
     const { ensureDefaultEnabled } = await import("./autoupdate.js");
     const au = ensureDefaultEnabled({ repoRoot: ARKAOS_ROOT });
-    if (au.action === "enabled") console.log("         ✓ Auto-update daemon enabled (daily npm check + notification)");
-    else if (au.action === "already-enabled") console.log("         ✓ Auto-update daemon active");
-    else if (au.action === "optout") console.log("         · Auto-update daemon: user opt-out respected");
+    if (au.action === "enabled") ok("Auto-update daemon enabled (daily npm check + notification)");
+    else if (au.action === "already-enabled") ok("Auto-update daemon active");
+    else if (au.action === "optout") detail("         · Auto-update daemon: user opt-out respected");
   } catch (err) {
-    console.log(`         ⚠ Auto-update daemon not enabled (${err.message})`);
+    warn(`Auto-update daemon not enabled (${err.message})`);
   }
 
   // ── 8. Update manifest ──
-  console.log("  [8/8] Finalizing...");
+  section(8, 8, "Finalizing...");
   manifest.version = VERSION;
   manifest.repoRoot = ARKAOS_ROOT;
   manifest.pythonCmd = pythonCmd;
   manifest.updatedAt = new Date().toISOString();
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-  console.log("         ✓ Manifest updated");
+  ok("Manifest updated");
 
   // Reset sync state to trigger /arka update on next session
   const syncStatePath = join(installDir, "sync-state.json");
@@ -566,9 +613,27 @@ export async function update({ skillsFlag = "" } = {}) {
     core_updated_at: new Date().toISOString()
   };
   writeFileSync(syncStatePath, JSON.stringify(syncState, null, 2));
-  console.log("         ✓ Sync state reset (auto-detected on next Claude session)");
+  ok("Sync state reset (auto-detected on next Claude session)");
 
-  console.log(`
+  if (ui.isFancy()) {
+    ui.stopSpinner();
+    const warnCount = ui.warnings().length;
+    ui.note(
+      [
+        `Language:  ${profile.language || "not set"}`,
+        `Market:    ${profile.market || "not set"}`,
+        `Projects:  ${profile.projectsDir || "not set"}`,
+        `Vault:     ${profile.vaultPath || "not set"}`,
+        `Profile:   ${profile.installProfile || "essential"}`,
+        warnCount > 0 ? `Warnings:  ${warnCount} (see above)` : null,
+      ]
+        .filter((l) => l !== null)
+        .join("\n"),
+      `ArkaOS updated to v${VERSION} — configuration preserved`,
+    );
+    ui.outro("Next Claude Code session auto-detects the update and syncs your projects.");
+  } else {
+    console.log(`
   ╔══════════════════════════════════════════╗
   ║  ArkaOS updated to v${VERSION}              ║
   ╚══════════════════════════════════════════╝
@@ -582,6 +647,7 @@ export async function update({ skillsFlag = "" } = {}) {
   Next time you open Claude Code, ArkaOS will automatically
   detect the update and sync all your projects.
   `);
+  }
 }
 
 function ensureDir(dir) {
@@ -670,8 +736,8 @@ function migrateLegacyHookState(homeDir, installDir) {
   }
 
   if (migrated > 0) {
-    console.log(`         \u2713 Migrated ${migrated} legacy hook state file(s) from ~/.arka-os/`);
-    console.log(`         (original files left in place for v1 coexistence)`);
+    ok(`Migrated ${migrated} legacy hook state file(s) from ~/.arka-os/`);
+    detail(`         (original files left in place for v1 coexistence)`);
   }
 }
 
@@ -682,7 +748,7 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
   const schedSrc = join(arkaosRoot, "config", "cognition", "schedules.yaml");
   if (existsSync(schedSrc)) {
     copyFileSync(schedSrc, join(installDir, "schedules.yaml"));
-    console.log("         \u2713 Schedule config updated");
+    ok("Schedule config updated");
   }
 
   // 2. Update prompt files
@@ -699,7 +765,7 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
         copyFileSync(src, dst);
       }
     }
-    console.log("         \u2713 Cognitive prompts updated");
+    ok("Cognitive prompts updated");
   }
 
   // 3. Update daemon script and core modules
@@ -709,7 +775,7 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
   if (existsSync(daemonSrc)) {
     copyFileSync(daemonSrc, join(binDir, "scheduler-daemon.py"));
     try { chmodSync(join(binDir, "scheduler-daemon.py"), 0o755); } catch {}
-    console.log("         \u2713 Scheduler daemon updated");
+    ok("Scheduler daemon updated");
   }
 
   // 3b. Update scheduler core modules (daemon imports these at runtime)
@@ -734,7 +800,7 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
     ensureDir(dirname(dest));
     writeFileSync(dest, '"""ArkaOS — deployed subset for scheduler."""\n');
   }
-  console.log("         \u2713 Scheduler core modules updated");
+  ok("Scheduler core modules updated");
 
   // 4. Ensure log directories
   ensureDir(join(installDir, "logs", "dreaming"));
@@ -749,9 +815,9 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
       try {
         execSync(`launchctl unload "${plistPath}" 2>/dev/null`, { stdio: "pipe" });
         execSync(`launchctl load "${plistPath}"`, { stdio: "pipe" });
-        console.log("         \u2713 Scheduler service restarted (launchd)");
+        ok("Scheduler service restarted (launchd)");
       } catch {
-        console.log("         \u26a0 Scheduler reload failed — restart manually");
+        warn("Scheduler reload failed — restart manually");
       }
     } else {
       // First time — install the service
@@ -800,17 +866,17 @@ function updateCognitiveScheduler(installDir, arkaosRoot) {
       writeFileSync(plistPath, plist);
       try {
         execSync(`launchctl load "${plistPath}"`, { stdio: "pipe" });
-        console.log("         \u2713 Scheduler service installed and started (launchd)");
+        ok("Scheduler service installed and started (launchd)");
       } catch {
-        console.log("         \u26a0 Scheduler plist written but load failed");
+        warn("Scheduler plist written but load failed");
       }
     }
   } else if (platform === "linux") {
     try {
       execSync("systemctl --user restart arkaos-scheduler.service 2>/dev/null", { stdio: "pipe" });
-      console.log("         \u2713 Scheduler service restarted (systemd)");
+      ok("Scheduler service restarted (systemd)");
     } catch {
-      console.log("         \u26a0 Scheduler not running — install with: npx arkaos install");
+      warn("Scheduler not running — install with: npx arkaos install");
     }
   }
 }
