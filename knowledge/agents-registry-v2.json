@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-22T09:33:03.145247",
+    "generated": "2026-07-22T16:01:43.972045",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -1258,6 +1258,7 @@
       },
       "expertise_domains": [
         "system design",
+        "system visualization via dev/diagram (architecture + dataflow diagrams delivered as browser artifacts)",
         "domain modeling (event storming, bounded contexts)",
         "design patterns (GoF, PoEAA)",
         "business / domain analysis",
@@ -1483,6 +1484,7 @@
         "Laravel 11 / PHP 8.3",
         "PostgreSQL / Supabase",
         "REST API design",
+        "API flow visualization via dev/diagram (sequence diagrams for endpoint contracts and async jobs)",
         "Service + Repository pattern",
         "Database migrations & indexing",
         "Queue systems (Horizon)"
@@ -1695,6 +1697,7 @@
       },
       "expertise_domains": [
         "CI/CD pipelines (GitHub Actions, GitLab CI)",
+        "release visualization via dev/diagram (lifecycle + workflow diagrams for pipelines and rollouts)",
         "container orchestration (Docker, Kubernetes)",
         "infrastructure as code (Terraform, Pulumi)",
         "cloud platforms (Vercel, Azure, AWS)",
@@ -1750,6 +1753,7 @@
       "expertise_domains": [
         "Vue 3 (Composition API)",
         "motion-reference analysis via dev/watch (scroll/animation benchmarks from frames + transcript before implementing)",
+        "user-flow visualization via dev/diagram (workflow diagrams for page and interaction flows)",
         "Nuxt 3",
         "React 19 / Next.js 15",
         "TypeScript",
@@ -1970,6 +1974,7 @@
       },
       "expertise_domains": [
         "workflow orchestration",
+        "visual spec/plan companions via dev/diagram (typed IR -> interactive HTML the user opens before build)",
         "code quality enforcement",
         "sprint/cycle management",
         "technical decision-making",
@@ -3430,6 +3435,7 @@
       },
       "expertise_domains": [
         "workflow automation (Zapier, Make, n8n)",
+        "SOP/process visualization via dev/diagram (workflow + lifecycle diagrams for automations and runbooks)",
         "process mapping & optimization",
         "SOP creation & management",
         "bottleneck analysis",
@@ -3756,6 +3762,7 @@
       },
       "expertise_domains": [
         "continuous product discovery (daily habit)",
+        "deliverable visualization via dev/diagram (workflow diagrams so stakeholders see scope before build)",
         "weekly customer interviewing",
         "dual-track agile (discovery + delivery)",
         "product risk assessment (value/usability/feasibility/viability)",
@@ -4817,6 +4824,7 @@
       },
       "expertise_domains": [
         "competitive strategy",
+        "business-flow visualization via dev/diagram (architecture + dataflow diagrams of business models and value chains)",
         "market analysis",
         "business model design",
         "positioning",

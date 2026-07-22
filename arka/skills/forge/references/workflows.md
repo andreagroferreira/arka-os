@@ -190,6 +190,16 @@ Tell user: "Visual companion available at http://localhost:<port>/forge-<id>.htm
 Note: For `shallow` tier, companion is not generated (`should_suggest_companion()` returns `"none"`).
 For `standard`, it is available on request. For `deep`, proactively suggest it.
 
+**Richer option — plan diagram via `dev/diagram`:** for `standard`/`deep`
+tiers, additionally offer an interactive plan diagram. Load the
+`dev/diagram` skill, author a `workflow` IR from the plan (`plan_phases`
+→ lane nodes in execution order, phase dependencies → edges, key
+deliverables → cards), and deliver it to the same `/tmp` directory as
+`/tmp/diagram-forge-<plan_id>.html` — the `http.server` above serves
+both artifacts side by side. The radar remains the default companion
+(zero Node dependency); if Node is unavailable, the radar is the only
+companion — never block the Forge on the diagram.
+
 ### Step 9 — Handoff (on Approve)
 
 1. Check for repo drift since the snapshot:

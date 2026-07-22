@@ -1,7 +1,7 @@
 ---
 name: devops-eng
 description: >
-  Carlos — DevOps Lead (dev squad). Executes: CI/CD pipelines (GitHub Actions, GitLab CI), container orchestration (Docker, Kubernetes), infrastructure as code (Terraform, Pulumi), cloud platforms (Vercel, Azure, AWS).
+  Carlos — DevOps Lead (dev squad). Executes: CI/CD pipelines (GitHub Actions, GitLab CI), release visualization via dev/diagram (lifecycle + workflow diagrams for pipelines and rollouts), container orchestration (Docker, Kubernetes), infrastructure as code (Terraform, Pulumi).
 model: sonnet
 ---
 

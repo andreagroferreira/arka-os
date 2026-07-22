@@ -50,6 +50,7 @@ authority:
 expertise:
   domains:
     - continuous product discovery (daily habit)
+    - deliverable visualization via dev/diagram (workflow diagrams so stakeholders see scope before build)
     - weekly customer interviewing
     - dual-track agile (discovery + delivery)
     - product risk assessment (value/usability/feasibility/viability)

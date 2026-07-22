@@ -46,8 +46,26 @@ Full template (see below). Omit genuinely irrelevant sections.
 ### Step 4: User Approval
 Present full spec via `AskUserQuestion`. Iterate until user approves.
 
+### Step 4a: Visual Spec Companion (optional)
+After approval, when the spec is flow-heavy (multi-actor flows, API
+call chains, pipelines, state machines, several system touchpoints),
+offer a diagram via `dev/diagram` so the user SEES the feature before it
+is built. Pick the type from the spec's dominant shape: API Contracts →
+`sequence` · data pipelines/lineage → `dataflow` · feature flow with
+actors → `workflow` · system touchpoints → `architecture` · state
+machines → `lifecycle` (static ERDs stay with dev/db-schema). Author the IR from the approved sections only —
+the diagram illustrates the spec, it never introduces scope. Deliver,
+open for the user, and record the receipt for Step 5. Skip silently for
+CRUD-simple specs; if Node is unavailable, say the companion is
+unavailable and continue — the spec itself is never blocked.
+
 ### Step 5: Save to Obsidian
 Path: `Projects/<name>/Specs/SPEC-<slug>.md`. Update `status: approved`. Link from project Home.md.
+When Step 4a produced a diagram: save the IR JSON to
+`Projects/<name>/Specs/visuals/SPEC-<slug>.<type>.json` and record it in
+the spec frontmatter `visuals:` list as `{type, ir, html, sha256}` (the
+IR is the regenerable source of truth; copy the HTML into the vault only
+on request).
 
 ### Step 6: Return to Calling Workflow
 Phase 2 uses spec for research. Phase 3 uses it as design source of truth. Phase 4 uses acceptance criteria. Phase 7 uses test scenarios.
@@ -62,6 +80,7 @@ feature: <slug>
 project: <name>
 date_created: <YYYY-MM-DD>
 tags: [spec, <project-tag>, <feature-tag>]
+visuals: []  # optional — {type, ir, html, sha256} entries from Step 4a
 ---
 
 # SPEC: <Feature Title>
