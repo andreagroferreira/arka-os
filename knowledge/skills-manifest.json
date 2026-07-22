@@ -3751,6 +3751,19 @@
         "origin": "arkaos"
       }
     },
+    "watch": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/bradautomates/claude-video",
+        "license": "MIT"
+      }
+    },
     "webinar-funnel": {
       "depts": [
         "landing"

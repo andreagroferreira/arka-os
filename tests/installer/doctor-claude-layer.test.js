@@ -26,7 +26,7 @@ const CLAUDE_LAYER_CHECKS = [
   "hooks-wired",
   "skills-deployed",
   "mcp-registry",
-  "yt-dlp",
+  "watch-media-tooling",
   "gotchas",
   "companion-plugins",
 ];
