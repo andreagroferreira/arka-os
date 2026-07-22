@@ -10,18 +10,33 @@ import { copyHookLib, copyHookAssets } from "./hook-lib.js";
 import { deploySkills } from "./skill-deploy.js";
 import { resolveSkillsMode } from "./skills-mode.js";
 import { deployCoreSnapshot } from "./core-snapshot.js";
+import { getUi } from "./ui.js";
+import { buildProfileRecord } from "./profile.js";
+import { readProductStats, productStatsLines } from "./product-stats.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ARKAOS_ROOT = resolve(__dirname, "..");
 const VERSION = JSON.parse(readFileSync(join(ARKAOS_ROOT, "package.json"), "utf-8")).version;
 
-export async function install({ runtime, path, force, skipSystem, withOllama }) {
+// UI facade — set at the top of install(). step/ok/warn/detail below
+// delegate to it; the plain facade prints the historical byte-identical
+// output, so headless logs and tests remain stable.
+let ui = null;
+
+export async function install({ runtime, path, force, skipSystem, withOllama, profileFlag }) {
   const startTime = Date.now();
   const config = getRuntimeConfig(runtime);
   const isUpgrade = existsSync(join(path || join(homedir(), ".arkaos"), "install-manifest.json"));
 
-  console.log(`
+  ui = await getUi();
+  if (ui.isFancy()) {
+    ui.intro(`▲ ARKA OS v${VERSION}`);
+    ui.clack.log.message(
+      `Runtime: ${config.name}\nMode:    ${isUpgrade ? "Upgrade" : "Fresh install"}`,
+    );
+  } else {
+    console.log(`
   ╔══════════════════════════════════════════════════════════╗
   ║  ArkaOS v${VERSION} — The Operating System for AI Agent Teams  ║
   ╚══════════════════════════════════════════════════════════╝
@@ -29,10 +44,11 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
   Runtime: ${config.name}
   Mode:    ${isUpgrade ? "Upgrade" : "Fresh install"}
   `);
+  }
 
   // ═══ Interactive Setup ═══
   const { runSetupPrompts } = await import("./prompts.js");
-  const userConfig = await runSetupPrompts(isUpgrade);
+  const userConfig = await runSetupPrompts(isUpgrade, { profileFlag });
   const installDir = userConfig.installDir;
 
   // ═══ Step 1: Create directories ═══
@@ -71,7 +87,7 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
   const v1Found = v1Paths.find(p => existsSync(p));
   if (v1Found && !existsSync(join(installDir, "migrated-from-v1"))) {
     warn(`v1 detected at ${v1Found}`);
-    console.log("         Run 'npx arkaos migrate' after install to migrate your data.");
+    detail("         Run 'npx arkaos migrate' after install to migrate your data.");
   } else {
     ok("No v1 installation found");
   }
@@ -80,13 +96,16 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
   // Wrapped in try/catch so a regression in system-tools.js cannot break a
   // fresh `npx arkaos install` for the ~20K user base. We degrade to a warn
   // and proceed to venv creation rather than exiting non-zero.
+  // Foundation PR-3: the "local-ai" profile implies Ollama for the
+  // existing system-tools check. Full profile provisioning is PR-4.
+  const wantsOllama = withOllama || userConfig.installProfile === "local-ai";
   if (!skipSystem) {
     try {
       const { ensureSystemTools } = await import("./system-tools.js");
       const { formatSudoInstructions } = await import("./package-manager.js");
-      const sys = ensureSystemTools({ skipSystem: false, withOllama });
+      const sys = ensureSystemTools({ skipSystem: false, withOllama: wantsOllama });
       if (sys.sudoCommands && sys.sudoCommands.length > 0) {
-        console.log(formatSudoInstructions(sys.sudoCommands));
+        detail(formatSudoInstructions(sys.sudoCommands));
       }
       for (const tool of [sys.obsidian, sys.node, sys.ollama]) {
         if (!tool) continue;
@@ -94,7 +113,7 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
         else if (tool.needsAction === "none") ok(`${tool.name} ready`);
         else warn(`${tool.name} ${tool.needsAction} — see commands above`);
       }
-      if (withOllama && sys.ollama?.needsAction === "none") {
+      if (wantsOllama && sys.ollama?.needsAction === "none") {
         ok("Ollama backend ready — cognitive layer can use local LLM inference");
       }
     } catch (err) {
@@ -119,7 +138,7 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     process.exit(1);
   }
   ok(`System Python found: ${systemPython}`);
-  const venvCreated = ensureVenv((msg) => console.log(msg));
+  const venvCreated = ensureVenv((msg) => detail(msg));
   if (!venvCreated) {
     warn("Venv creation failed — falling back to system Python (PEP 668 may apply)");
   }
@@ -177,8 +196,8 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     if (existsSync(pyPsSrc) || existsSync(pyCmdSrc)) ok("arka-py interpreter shim installed (.cmd + .ps1)");
     if (installed) {
       ok("arka-claude wrapper installed (.cmd + .ps1)");
-      console.log(`         Add to PATH: setx PATH "%PATH%;%USERPROFILE%\\.arkaos\\bin"`);
-      console.log(`         Then reopen any shell and run: arka-claude`);
+      detail(`         Add to PATH: setx PATH "%PATH%;%USERPROFILE%\\.arkaos\\bin"`);
+      detail(`         Then reopen any shell and run: arka-claude`);
     }
   } else {
     const wrapperSrc = join(ARKAOS_ROOT, "bin", "arka-claude");
@@ -186,8 +205,8 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
       copyFileSync(wrapperSrc, join(binDir, "arka-claude"));
       try { chmodSync(join(binDir, "arka-claude"), 0o755); } catch {}
       ok("arka-claude wrapper installed");
-      console.log(`         Add to PATH: export PATH="$HOME/.arkaos/bin:$PATH"`);
-      console.log(`         Optional alias: alias claude="arka-claude"`);
+      detail(`         Add to PATH: export PATH="$HOME/.arkaos/bin:$PATH"`);
+      detail(`         Optional alias: alias claude="arka-claude"`);
     }
     // arka-py — the ArkaOS Python entrypoint SKILL.md commands invoke so the
     // agent never runs a bare `python` that lacks ArkaOS deps (pyyaml, ...).
@@ -223,28 +242,24 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
       ok("Core snapshot deployed to ~/.arkaos/lib (survives npx cache purges)");
     }
   } catch (err) {
-    console.log(`         ⚠ Core snapshot skipped (${err.message}) — arka-py falls back to .repo-path`);
+    detail(`         ⚠ Core snapshot skipped (${err.message}) — arka-py falls back to .repo-path`);
   }
   const skillsDir = join(config.skillsDir || join(homedir(), ".claude", "skills"), "arkaos");
   ensureDir(skillsDir);
   writeFileSync(join(skillsDir, ".arkaos-root"), ARKAOS_ROOT);
 
   const profilePath = join(installDir, "profile.json");
-  const profile = {
-    version: "2",
-    language: userConfig.language,
-    market: userConfig.market,
-    role: userConfig.role,
-    company: userConfig.company,
-    projectsDir: userConfig.projectsDir,
-    vaultPath: userConfig.vaultPath,
-    created: existsSync(profilePath)
-      ? JSON.parse(readFileSync(profilePath, "utf-8")).created
-      : new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
+  // Previous record (upgrade) feeds `created` preservation and the
+  // installProfile fallback chain — see installer/profile.js.
+  let previousProfile = null;
+  if (existsSync(profilePath)) {
+    try {
+      previousProfile = JSON.parse(readFileSync(profilePath, "utf-8"));
+    } catch { /* corrupt previous profile — treated as fresh */ }
+  }
+  const profile = buildProfileRecord(userConfig, previousProfile);
   writeFileSync(profilePath, JSON.stringify(profile, null, 2));
-  ok("Profile saved");
+  ok(`Profile saved (${profile.installProfile})`);
 
   // Save API keys if provided
   if (userConfig.openaiKey || userConfig.googleKey || userConfig.falKey) {
@@ -312,16 +327,16 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     const { seedArkaosConfig } = await import("./config-seed.js");
     const seedResult = seedArkaosConfig({ home: homedir() });
     if (seedResult.action === "created") {
-      console.log(`         hardEnforcement enabled (default).`);
+      detail(`         hardEnforcement enabled (default).`);
     } else if (seedResult.action === "added-key") {
-      console.log(`         hardEnforcement enabled (key was unset).`);
+      detail(`         hardEnforcement enabled (key was unset).`);
     } else if (seedResult.action === "preserved-user-false") {
-      console.log(`         hardEnforcement is OFF (user-set, preserved).`);
+      detail(`         hardEnforcement is OFF (user-set, preserved).`);
     } else if (seedResult.action === "rewrote-corrupt") {
-      console.log(`         config.json was corrupt — rewrote, backup at ${seedResult.backup}`);
+      detail(`         config.json was corrupt — rewrote, backup at ${seedResult.backup}`);
     }
   } catch (err) {
-    console.log(`         Warning: could not seed config.json (${err.message})`);
+    detail(`         Warning: could not seed config.json (${err.message})`);
   }
 
   // Foundation PR-1 — auto-update daemon, default-on (opt-out persists
@@ -329,10 +344,10 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
   try {
     const { ensureDefaultEnabled } = await import("./autoupdate.js");
     const au = ensureDefaultEnabled({ repoRoot: ARKAOS_ROOT });
-    if (au.action === "enabled") console.log(`         Auto-update daemon enabled (npx arkaos autoupdate status).`);
-    else if (au.action === "optout") console.log(`         Auto-update daemon: user opt-out respected.`);
+    if (au.action === "enabled") detail(`         Auto-update daemon enabled (npx arkaos autoupdate status).`);
+    else if (au.action === "optout") detail(`         Auto-update daemon: user opt-out respected.`);
   } catch (err) {
-    console.log(`         Warning: auto-update daemon not enabled (${err.message})`);
+    detail(`         Warning: auto-update daemon not enabled (${err.message})`);
   }
 
   // PR28 v2.47.0 — scaffold the user-mutable files the discipline-arc
@@ -342,13 +357,13 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     const { scaffoldArkaosUserData } = await import("./user-data-scaffold.js");
     const scaffoldResult = scaffoldArkaosUserData({ home: homedir() });
     if (scaffoldResult.redaction.action === "created") {
-      console.log(`         redaction-clients.json scaffolded (empty list — populate to enable leak scanner).`);
+      detail(`         redaction-clients.json scaffolded (empty list — populate to enable leak scanner).`);
     }
     if (scaffoldResult.proposals.action === "created") {
-      console.log(`         reorganize-proposals/ directory created.`);
+      detail(`         reorganize-proposals/ directory created.`);
     }
   } catch (err) {
-    console.log(`         Warning: could not scaffold user-data (${err.message})`);
+    detail(`         Warning: could not scaffold user-data (${err.message})`);
   }
 
   // PR45 v2.64.0 — seed autoMode.hard_deny defaults into
@@ -361,13 +376,13 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     const denyResult = seedAutoModeHardDeny({ runtime });
     if (!denyResult.skipped) {
       if (denyResult.action === "created") {
-        console.log(`         autoMode.hard_deny created (${denyResult.count} rules).`);
+        detail(`         autoMode.hard_deny created (${denyResult.count} rules).`);
       } else if (denyResult.action === "merged") {
-        console.log(`         autoMode.hard_deny merged (${denyResult.count} rules, operator entries preserved).`);
+        detail(`         autoMode.hard_deny merged (${denyResult.count} rules, operator entries preserved).`);
       }
     }
   } catch (err) {
-    console.log(`         Warning: could not seed autoMode.hard_deny (${err.message})`);
+    detail(`         Warning: could not seed autoMode.hard_deny (${err.message})`);
   }
 
   // PR48 v2.67.0 — seed worktree.baseRef = "head" so new Claude Code
@@ -377,12 +392,12 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     const { seedWorktreeBaseRef } = await import("./worktree-baseref.js");
     const wtResult = seedWorktreeBaseRef({ runtime });
     if (!wtResult.skipped && wtResult.action === "created") {
-      console.log(`         worktree.baseRef set to "${wtResult.value}".`);
+      detail(`         worktree.baseRef set to "${wtResult.value}".`);
     } else if (!wtResult.skipped && wtResult.action === "merged") {
-      console.log(`         worktree.baseRef merged ("${wtResult.value}").`);
+      detail(`         worktree.baseRef merged ("${wtResult.value}").`);
     }
   } catch (err) {
-    console.log(`         Warning: could not seed worktree.baseRef (${err.message})`);
+    detail(`         Warning: could not seed worktree.baseRef (${err.message})`);
   }
 
   // Interaction Reform PR1 — install the ArkaOS output style and seed
@@ -395,14 +410,14 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
       sourceDir: join(ARKAOS_ROOT, "config", "output-styles"),
     });
     if (styleResult.copied > 0) {
-      console.log(`         ${styleResult.copied} output style(s) installed (~/.claude/output-styles/).`);
+      detail(`         ${styleResult.copied} output style(s) installed (~/.claude/output-styles/).`);
     }
     const seedResult = seedOutputStyleDefault({ runtime });
     if (!seedResult.skipped && seedResult.action === "created") {
-      console.log(`         outputStyle default set to "${seedResult.value}".`);
+      detail(`         outputStyle default set to "${seedResult.value}".`);
     }
   } catch (err) {
-    console.log(`         Warning: could not install output style (${err.message})`);
+    detail(`         Warning: could not install output style (${err.message})`);
   }
 
   // PR43 v2.62.0 — auto-install default Claude Code plugins. Only runs
@@ -414,23 +429,23 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     if (!pluginResult.skipped) {
       for (const m of pluginResult.marketplaces || []) {
         if (m.action === "added") {
-          console.log(`         marketplace ${m.marketplace} added.`);
+          detail(`         marketplace ${m.marketplace} added.`);
         } else if (m.action === "failed") {
-          console.log(`         marketplace ${m.marketplace} failed (${m.reason}).`);
+          detail(`         marketplace ${m.marketplace} failed (${m.reason}).`);
         }
       }
       for (const r of pluginResult.results) {
         if (r.action === "installed") {
-          console.log(`         ${r.plugin} installed.`);
+          detail(`         ${r.plugin} installed.`);
         } else if (r.action === "already-present") {
-          console.log(`         ${r.plugin} already installed (skipped).`);
+          detail(`         ${r.plugin} already installed (skipped).`);
         } else if (r.action === "failed") {
-          console.log(`         ${r.plugin} install failed (${r.reason}).`);
+          detail(`         ${r.plugin} install failed (${r.reason}).`);
         }
       }
     }
   } catch (err) {
-    console.log(`         Warning: could not install default Claude plugins (${err.message})`);
+    detail(`         Warning: could not install default Claude plugins (${err.message})`);
   }
 
   // Frontend UI/UX tooling — Magic MCP (user scope, API-key gated) + Motion
@@ -439,19 +454,19 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     const { setupFrontendTooling } = await import("./frontend-tooling.js");
     const ft = await setupFrontendTooling({ runtime });
     if (ft.magicMcp?.action === "registered") {
-      console.log("         Magic MCP registered (user scope).");
+      detail("         Magic MCP registered (user scope).");
     } else if (ft.magicMcp?.action === "already-present") {
-      console.log("         Magic MCP already registered (skipped).");
+      detail("         Magic MCP already registered (skipped).");
     } else if (ft.magicMcp?.action === "failed") {
-      console.log(`         Magic MCP registration failed (${ft.magicMcp.reason}).`);
+      detail(`         Magic MCP registration failed (${ft.magicMcp.reason}).`);
     }
     if (ft.motionKit?.action === "installed") {
-      console.log("         Motion AI Kit installed.");
+      detail("         Motion AI Kit installed.");
     } else if (ft.motionKit?.action === "failed") {
-      console.log(`         Motion AI Kit install failed (${ft.motionKit.reason}).`);
+      detail(`         Motion AI Kit install failed (${ft.motionKit.reason}).`);
     }
   } catch (err) {
-    console.log(`         Warning: could not set up frontend tooling (${err.message})`);
+    detail(`         Warning: could not set up frontend tooling (${err.message})`);
   }
 
   // Graphify grounding layer — code knowledge graphs (PyPI `graphifyy`,
@@ -461,24 +476,24 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     const { ensureGraphify, configureGraphifyHttp } = await import("./graphify.js");
     const gf = ensureGraphify();
     if (gf.binary?.installed) {
-      console.log(`         Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}.`);
+      detail(`         Graphify ready${gf.binary.version ? ` (v${gf.binary.version})` : ""}.`);
       if (gf.skillInstall?.action === "installed") {
-        console.log("         Graphify skill registered (graphify install).");
+        detail("         Graphify skill registered (graphify install).");
       } else if (gf.skillInstall?.action === "failed") {
-        console.log(`         Graphify skill registration failed (${gf.skillInstall.reason}).`);
+        detail(`         Graphify skill registration failed (${gf.skillInstall.reason}).`);
       }
     } else if (gf.binary?.hint) {
-      console.log(`         ${gf.binary.hint}`);
+      detail(`         ${gf.binary.hint}`);
     }
     // Graphify HTTP knowledge-graph MCP (user-scope, config-driven endpoint).
     const gh = await configureGraphifyHttp({ runtime });
     if (gh.action === "registered" || gh.action === "re-registered") {
-      console.log(`         Graphify knowledge-graph MCP ${gh.action} (user scope).`);
+      detail(`         Graphify knowledge-graph MCP ${gh.action} (user scope).`);
     } else if (gh.action === "failed") {
-      console.log(`         Graphify knowledge-graph MCP not registered (${gh.reason}).`);
+      detail(`         Graphify knowledge-graph MCP not registered (${gh.reason}).`);
     }
   } catch (err) {
-    console.log(`         Warning: could not set up Graphify (${err.message})`);
+    detail(`         Warning: could not set up Graphify (${err.message})`);
   }
 
   const manifest = {
@@ -516,16 +531,41 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-  console.log(`
+  // Counts derived from the shipped artifacts — never hand-typed
+  // (docs-as-code). Null fields are omitted from the summary.
+  const stats = readProductStats(ARKAOS_ROOT);
+  const statLines = productStatsLines(stats);
+
+  if (ui.isFancy()) {
+    ui.stopSpinner();
+    const warnCount = ui.warnings().length;
+    ui.note(
+      [
+        `Runtime:     ${config.name}`,
+        `Install dir: ${installDir}`,
+        `Profile:     ${profile.installProfile}`,
+        ...statLines,
+        `Dashboard:   npx arkaos dashboard`,
+        warnCount > 0 ? `Warnings:    ${warnCount} (see above)` : null,
+        ``,
+        `Quick start: /arka · /do <description> · /dev feature`,
+      ]
+        .filter((l) => l !== null)
+        .join("\n"),
+      `ArkaOS v${VERSION} installed (${elapsed}s)`,
+    );
+    ui.outro("Open Claude Code and run /arka to get started.");
+  } else {
+    const plainStatLines = statLines.map((l) => `  ${l}`).join("\n");
+    console.log(`
   ╔══════════════════════════════════════════════════════════╗
   ║  ArkaOS v${VERSION} installed successfully! (${elapsed}s)         ║
   ╚══════════════════════════════════════════════════════════╝
 
   Runtime:     ${config.name}
   Install dir: ${installDir}
-  Agents:      65 across 17 departments
-  Skills:      244+ backed by enterprise frameworks
-  Knowledge:   Vector DB with semantic search
+  Profile:     ${profile.installProfile}
+${plainStatLines ? plainStatLines + "\n" : ""}  Knowledge:   Vector DB with semantic search
   Dashboard:   Run 'npx arkaos dashboard' to start
 
   Quick start:
@@ -541,20 +581,35 @@ export async function install({ runtime, path, force, skipSystem, withOllama }) 
     npx arkaos keys         — Configure API keys
     npx arkaos doctor       — Run health checks
   `);
+  }
 }
 
 // ═══ Helper Functions ═══
+// All four delegate to the UI facade when install() has resolved it;
+// the plain facade (and the pre-resolution fallback) prints the exact
+// historical strings, so non-fancy output is byte-identical.
 
 function step(n, total, msg) {
+  if (ui) return ui.step(n, total, msg);
   console.log(`  [${n}/${total}] ${msg}`);
 }
 
 function ok(msg) {
+  if (ui) return ui.ok(msg);
   console.log(`         ✓ ${msg}`);
 }
 
 function warn(msg) {
+  if (ui) return ui.warn(msg);
   console.log(`         ⚠ ${msg}`);
+}
+
+// Secondary info lines (pip progress, PATH hints, seed results). Fancy
+// mode folds them into the active spinner; plain mode prints them
+// unchanged.
+function detail(msg) {
+  if (ui) return ui.detail(msg);
+  console.log(msg);
 }
 
 function ensureDir(dir) {
@@ -564,7 +619,7 @@ function ensureDir(dir) {
 }
 
 function installAllPythonDeps(userConfig = {}) {
-  const log = (msg) => console.log(msg);
+  const log = (msg) => detail(msg);
 
   // Core dependencies
   const coreDeps = "pyyaml pydantic rich click jinja2";
@@ -582,7 +637,7 @@ function installAllPythonDeps(userConfig = {}) {
   const transcriptionDeps = "faster-whisper";
 
   // Core deps (required)
-  console.log("         Installing core dependencies...");
+  detail("         Installing core dependencies...");
   if (pipInstall(coreDeps, { log })) {
     ok("Core deps installed (pyyaml, pydantic, rich, click, jinja2)");
   } else {
@@ -594,7 +649,7 @@ function installAllPythonDeps(userConfig = {}) {
   // is reported accurately and the user knows which capability they
   // actually have.
   if (userConfig.installKnowledge !== false) {
-    console.log("         Installing knowledge base dependencies...");
+    detail("         Installing knowledge base dependencies...");
     const fastembedOk = pipInstall("fastembed", { log, timeout: 180000 });
     const sqliteVssOk = pipInstall("sqlite-vec", { log, timeout: 180000 });
     if (fastembedOk && sqliteVssOk) {
@@ -609,7 +664,7 @@ function installAllPythonDeps(userConfig = {}) {
   }
 
   // Ingest deps
-  console.log("         Installing content ingest dependencies...");
+  detail("         Installing content ingest dependencies...");
   if (pipInstall(ingestDeps, { log })) {
     ok("Ingest deps installed (yt-dlp, pdfplumber, beautifulsoup4)");
   } else {
@@ -618,7 +673,7 @@ function installAllPythonDeps(userConfig = {}) {
 
   // Dashboard deps (optional)
   if (userConfig.installDashboard !== false) {
-    console.log("         Installing dashboard dependencies...");
+    detail("         Installing dashboard dependencies...");
     if (pipInstall(dashboardDeps, { log, timeout: 120000 })) {
       ok("Dashboard API installed (fastapi, uvicorn, python-multipart)");
     } else {
@@ -627,7 +682,7 @@ function installAllPythonDeps(userConfig = {}) {
   }
 
   // Transcription (optional, heavy)
-  console.log("         Installing transcription engine...");
+  detail("         Installing transcription engine...");
   if (pipInstall(transcriptionDeps, { log, timeout: 300000 })) {
     ok("Whisper transcription installed");
   } else {
@@ -635,7 +690,7 @@ function installAllPythonDeps(userConfig = {}) {
   }
 
   // Install ArkaOS core package as editable
-  console.log("         Installing ArkaOS core engine...");
+  detail("         Installing ArkaOS core engine...");
   if (pipInstall("", { editable: ARKAOS_ROOT, log, timeout: 60000 })) {
     ok("ArkaOS core engine installed");
   } else {
@@ -1056,13 +1111,13 @@ function printSchtasksAccessDeniedHelp(pythonPath, daemonPath) {
   // nice-to-have that keeps background tasks ticking. We print the
   // manual registration command so power users can elevate once and
   // run it, and move on.
-  console.log("         Access denied. Options:");
-  console.log("         1) Re-run the installer from an elevated PowerShell (Run as Administrator)");
-  console.log("         2) Or register the task manually from an elevated prompt:");
-  console.log(`            schtasks /Create /F /TN "ArkaOS-Scheduler" /SC ONLOGON /TR "\"${pythonPath}\" \"${daemonPath}\""`);
-  console.log("         3) Or skip the scheduler and launch the daemon manually when needed:");
-  console.log(`            "${pythonPath}" "${daemonPath}"`);
-  console.log("         The rest of ArkaOS is installed and functional — this only affects background task automation.");
+  detail("         Access denied. Options:");
+  detail("         1) Re-run the installer from an elevated PowerShell (Run as Administrator)");
+  detail("         2) Or register the task manually from an elevated prompt:");
+  detail(`            schtasks /Create /F /TN "ArkaOS-Scheduler" /SC ONLOGON /TR "\"${pythonPath}\" \"${daemonPath}\""`);
+  detail("         3) Or skip the scheduler and launch the daemon manually when needed:");
+  detail(`            "${pythonPath}" "${daemonPath}"`);
+  detail("         The rest of ArkaOS is installed and functional — this only affects background task automation.");
 }
 
 function installSchtasksService(daemonPath) {
@@ -1119,7 +1174,7 @@ function installSchtasksService(daemonPath) {
     if (kind === "access-denied") {
       printSchtasksAccessDeniedHelp(pythonPath, daemonPath);
     } else {
-      console.log("         Try manually: schtasks /Create /F /TN \"ArkaOS-Scheduler\" /SC ONLOGON /TR \"" + pythonPath + " " + daemonPath + "\"");
+      detail("         Try manually: schtasks /Create /F /TN \"ArkaOS-Scheduler\" /SC ONLOGON /TR \"" + pythonPath + " " + daemonPath + "\"");
     }
     return;
   }
@@ -1129,9 +1184,9 @@ function installSchtasksService(daemonPath) {
     const kind = classifySchtasksError(runResult.stderr);
     warn(`Scheduler: task created but /Run failed (${kind}): ${runResult.stderr.slice(0, 220)}`);
     if (kind === "access-denied") {
-      console.log("         Task is registered but couldn't be started now. It will run automatically at next logon.");
+      detail("         Task is registered but couldn't be started now. It will run automatically at next logon.");
     } else {
-      console.log("         Task will start at next logon");
+      detail("         Task will start at next logon");
     }
     return;
   }
@@ -1146,7 +1201,7 @@ export async function loadAdapter(runtime) {
   } catch {
     return {
       configureHooks(config, installDir) {
-        console.log(`         Using generic configuration for ${runtime}`);
+        detail(`         Using generic configuration for ${runtime}`);
       },
     };
   }

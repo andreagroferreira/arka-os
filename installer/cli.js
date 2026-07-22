@@ -21,6 +21,10 @@ const { values, positionals } = parseArgs({
     force: { type: "boolean", short: "f" },
     "no-system": { type: "boolean" },
     "with-ollama": { type: "boolean" },
+    // Foundation PR-3 — `npx arkaos install --profile <essential|complete|local-ai>`.
+    // Declared so it lands in `values.profile` instead of a free
+    // positional under strict:false (the documented --fix lesson).
+    profile: { type: "string" },
     // PR3.5 v3.74.1 — declared so `npx arkaos doctor --fix` lands in
     // `values.fix` rather than as a free positional under strict:false.
     // Eliminates the dead-branch fallback flagged by Marta in PR2's QG.
@@ -57,6 +61,7 @@ ArkaOS v${VERSION} — The Operating System for AI Agent Teams
 Usage:
   npx arkaos install          Install ArkaOS in current environment
   npx arkaos install --runtime <runtime>  Install for specific runtime
+  npx arkaos install --profile <profile>  Pick the install profile non-interactively
   npx arkaos init             Initialize project config (.arkaos.json)
   npx arkaos update           Update to latest version
   npx arkaos migrate          Migrate from v1 to v2
@@ -77,6 +82,9 @@ Options:
   -r, --runtime <name>   Target runtime: claude-code, codex, gemini, cursor
   -p, --path <dir>       Installation directory (default: auto-detect)
   -f, --force            Force reinstall, overwriting existing files
+  --profile <name>       Install profile: essential (venv, hooks, skills,
+                         dashboard, MCPs), complete (+ litellm[proxy], ffmpeg),
+                         local-ai (+ Ollama, local execution model)
   -v, --version          Show version
   -h, --help             Show this help
 
@@ -100,7 +108,20 @@ Examples:
 
 async function main() {
   switch (command) {
-    case "install":
+    case "install": {
+      // Validate --profile up front (before runtime detection) so a
+      // typo fails fast instead of silently falling back to the wizard.
+      let profileFlag;
+      if (values.profile !== undefined) {
+        const { normalizeProfileFlag, INSTALL_PROFILES } = await import("./profile.js");
+        profileFlag = normalizeProfileFlag(values.profile);
+        if (!profileFlag) {
+          console.error(
+            `Invalid --profile "${values.profile}". Valid values: ${INSTALL_PROFILES.join(", ")}`
+          );
+          process.exit(1);
+        }
+      }
       const runtime = values.runtime || await detectRuntime();
       await install({
         runtime,
@@ -108,8 +129,10 @@ async function main() {
         force: values.force,
         skipSystem: values["no-system"],
         withOllama: values["with-ollama"],
+        profileFlag,
       });
       break;
+    }
 
     case "init": {
       const { init } = await import("./init.js");
