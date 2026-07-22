@@ -7,13 +7,15 @@ print) with ONE python process that emits the full ``systemMessage``.
 Measured baseline before this consolidation: 251ms p50 (isolated floor,
 benchmarks/results.md); each spawn costs ~20-80ms.
 
-Section order preserved exactly from the shell version:
-    banner+greeting → workflow line → version+forge+drift →
-    evidence-flow contract → meta-tag contract → Model Fabric directive
-    → [SESSION] rehydrator resume → [SESSION-MEMORY] recap → JSON out.
+Presentation contract (Foundation PR-2): the user sees a compact branded
+greeting — ``systemMessage`` carries ONLY banner+greeting, workflow/forge
+state, and the drift warning. Everything the MODEL needs but the user
+should not scroll through (evidence-flow contract, meta-tag contract,
+authority brief, Model Fabric directive, [SESSION] resume,
+[SESSION-MEMORY] recap) ships via ``hookSpecificOutput.
+additionalContext`` — same enforcement, zero wall of text.
 Background side effects (reorganizer trigger, dashboard ensure) stay
-detached and are config-gated; the NEW ``cognition.reorganize_on_session``
-gate lands here (QG F2-1 follow-up, endorsed for this PR).
+detached and are config-gated (``cognition.reorganize_on_session``).
 
 The shell wrapper only resolves the interpreter and ``exec``s this
 module; with no usable venv it emits a static banner (fail-open).
@@ -35,16 +37,20 @@ _BUDGET_MS = 300
 _RECAP_ITEMS = 3
 _SUMMARY_CHARS = 130
 
-_BANNER = (
-    "\n╔══════════════════════════════════════════════╗\n"
-    "║                                              ║\n"
-    "║              A R K A   O S                   ║\n"
-    "║                                              ║\n"
-    "║   The Operating System for AI Teams          ║\n"
-    "║                  by WizardingCode            ║\n"
-    "║                                              ║\n"
-    "╚══════════════════════════════════════════════╝\n"
+# Compact wordmark (Levitation identity: flat apex + floating bar) — the
+# box-drawing wall it replaces read as a default terminal artifact.
+_FALLBACK_BANNER = (
+    "\n  ▲  A R K A   O S\n"
+    "     The Operating System for AI Agent Teams\n"
 )
+
+
+def _banner(version: str, name: str, company: str) -> str:
+    return (
+        f"\n  ▲  A R K A   O S — v{version}\n"
+        f"     The Operating System for AI Agent Teams · {company}\n"
+        f"\n  Olá, {name}\n"
+    )
 
 _EVIDENCE_CONTRACT = (
     "\n\n[ARKA:EVIDENCE-FLOW] NON-NEGOTIABLE. Every non-trivial request runs"
@@ -266,27 +272,52 @@ def _authority_brief(cwd: str) -> str:
     return f"\n\n{brief}" if brief else ""
 
 
-def build_message(cwd: str) -> str:
+def build_visible(cwd: str) -> str:
+    """User-facing ``systemMessage``: branded greeting + live state only.
+
+    Owns the background side effects (reorganizer, dashboard ensure) so
+    they fire exactly once per session regardless of which builder a
+    caller combines.
+    """
     repo = repo_path()
     config = _config()
     name, company = _profile()
     version = _version(repo)
-    msg = _BANNER + f"\nOlá, {name} ({company})\n"
+    msg = _banner(version, name, company)
     msg += _workflow_line()
-    msg += f"ArkaOS v{version}"
     msg += _forge_line()
     msg += _drift(version)
-    msg += _EVIDENCE_CONTRACT
-    msg += _META_TAG_CONTRACT
-    msg += _authority_brief(cwd)
-    msg += _model_fabric()
     _trigger_reorganizer(repo, config)
     _ensure_dashboard(repo, config)
-    msg += _session_resume()
+    return msg
+
+
+def build_context(cwd: str) -> str:
+    """Model-only ``additionalContext``: the operating contracts.
+
+    Same text that used to flood the visible banner — the enforcement
+    surfaces (PreToolUse gate, Stop hook) read the model's OUTPUT
+    markers, so moving the injected contracts off-screen changes nothing
+    about enforcement.
+    """
+    parts = [
+        _EVIDENCE_CONTRACT,
+        _META_TAG_CONTRACT,
+        _authority_brief(cwd),
+        _model_fabric(),
+        _session_resume(),
+    ]
     recap = build_recap(cwd)
     if recap:
-        msg += f"\n\n{recap}"
-    return msg
+        parts.append(f"\n\n{recap}")
+    return "".join(parts).lstrip("\n")
+
+
+def build_message(cwd: str) -> str:
+    """Full text (visible + contracts) — legacy single-string view."""
+    visible = build_visible(cwd)
+    context = build_context(cwd)
+    return visible + (f"\n\n{context}" if context else "")
 
 
 def build_recap(cwd: str, budget_ms: int = _BUDGET_MS) -> str:
@@ -336,10 +367,20 @@ def main(stdin_json: dict | None = None) -> int:
         or os.getcwd()
     )
     try:
-        message = build_message(cwd)
+        visible = build_visible(cwd)
     except Exception:  # absolute fail-open: static banner, exit 0
-        message = _BANNER + "\nOlá, founder (WizardingCode)\nArkaOS"
-    print(json.dumps({"systemMessage": message}))
+        visible = _FALLBACK_BANNER + "\n  Olá, founder\n"
+    try:
+        context = build_context(cwd)
+    except Exception:  # contracts are best-effort; greeting never breaks
+        context = ""
+    payload: dict = {"systemMessage": visible}
+    if context:
+        payload["hookSpecificOutput"] = {
+            "hookEventName": "SessionStart",
+            "additionalContext": context,
+        }
+    print(json.dumps(payload))
     return 0
 
 

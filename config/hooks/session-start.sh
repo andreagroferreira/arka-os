@@ -32,6 +32,6 @@ fi
 
 # ─── Degraded fallback: static banner, valid JSON, exit 0 ──────────────
 cat <<'EOF'
-{"systemMessage": "\n╔══════════════════════════════════════════════╗\n║              A R K A   O S                   ║\n║   The Operating System for AI Teams          ║\n╚══════════════════════════════════════════════╝\nOlá, founder (WizardingCode)\nArkaOS (degraded: no usable interpreter — run npx arkaos doctor)"}
+{"systemMessage": "\n  ▲  A R K A   O S\n     The Operating System for AI Agent Teams\n\n  Olá, founder\n  degraded: no usable interpreter — run npx arkaos doctor"}
 EOF
 exit 0
