@@ -57,5 +57,11 @@ export default defineNuxtConfig({
       // 400 normal+italic only); the other families auto-resolve from @theme.
       { name: 'Instrument Serif', provider: 'google', weights: [400], styles: ['normal', 'italic'] }
     ]
+  },
+
+  vite: {
+    optimizeDeps: {
+      include: ['@unovis/ts > striptags']
+    }
   }
 })
