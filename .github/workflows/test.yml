@@ -57,6 +57,82 @@ jobs:
             echo "Warning: Expected 500+ tests, found $COUNT"
           fi
 
+  cross-platform-tests:
+    # Additive parity baseline for macOS and Windows. Deliberately a SEPARATE
+    # job rather than an `os` dimension on python-tests, so the existing
+    # required checks `python-tests (3.11/3.12/3.13)` keep their exact names
+    # and reporting — this PR changes nothing about the Linux path or branch
+    # protection. Both legs REPORT rather than gate: the test step publishes
+    # pass/fail counts to the run summary and exits 0, and continue-on-error
+    # keeps even an infrastructure failure off the merge path. So the job can
+    # never block master and never shows a permanent red check — the counts in
+    # the summary are the signal. Promote a leg to gating in a focused
+    # follow-up once its platform reaches zero failures. The Windows leg
+    # carries known residual gaps (encoding, ConPTY tests needing pywinpty,
+    # bash hooks); ~97% of the suite passes today.
+    name: cross-platform-tests (${{ matrix.os }} / py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      # Never let one platform's failure cancel the other.
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        # bash on every OS: windows-latest ships Git bash, so the same script
+        # runs identically (avoids the default PowerShell shell on Windows).
+        # On Windows `pip install -e .` also pulls pywinpty via its
+        # `sys_platform == 'win32'` marker — no extra step needed.
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dashboard,mcp]" sqlite-vec
+          pip install pytest pytest-cov
+          pip install httpx2 || pip install httpx
+
+      - name: Run Python tests (parity baseline)
+        # No coverage gate here — that stays on the single ubuntu + 3.12 leg in
+        # python-tests. Windows/macOS legitimately skip a few POSIX/PTY tests,
+        # so their coverage is lower by design and must not gate the threshold.
+        #
+        # This step reports rather than gates: it always exits 0 and publishes
+        # the pass/fail counts to the run summary. A check that is red by
+        # design trains reviewers to ignore red, and this job is additive
+        # information about a platform that has never been measured — not a
+        # verdict on the change under review. The summary line is the signal.
+        # Promote a leg to gating (drop this wrapper) in a focused follow-up
+        # once its platform reaches zero failures.
+        shell: bash
+        run: |
+          set +e
+          python -m pytest tests/python/ -v --tb=short > pytest-output.txt 2>&1
+          status=$?
+          tail -n 40 pytest-output.txt
+          {
+            echo "### ${{ matrix.os }} / py${{ matrix.python-version }} — parity baseline"
+            echo ""
+            echo '```'
+            grep -E "^(FAILED|ERROR)" pytest-output.txt | head -n 25
+            tail -n 1 pytest-output.txt
+            echo '```'
+            echo ""
+            echo "pytest exit status: ${status} — reported, not gated."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
   bats-tests:
     runs-on: ubuntu-latest
     steps:
