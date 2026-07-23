@@ -18,6 +18,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from harness_gen import (  # noqa: E402
     DEPT_LEADS,
     MAIN_FILE_BUDGET_BYTES,
+    _load_agents,
     check_budget,
     generate,
     write_bundle,
@@ -128,6 +129,47 @@ def test_dept_leads_drift_locked_to_routing_table():
             f"DEPT_LEADS ({prefix} -> {lead}) diverged from the "
             "arka/SKILL.md routing table"
         )
+
+
+def test_opencode_agents_mirror_the_curated_registry_cut():
+    # Foundation PR-6: the native agent files are the tier<=1 cut
+    # (C-suite + squad leads) of the REAL registry — derived, never
+    # hand-typed, and locked to the registry so a roster change cannot
+    # silently fork the export.
+    curated = [a for a in _load_agents() if a["tier"] <= 1]
+    files = generate()
+    agent_files = {r for r in files if r.startswith("opencode/agents/")}
+    assert len(agent_files) == len(curated)
+    for agent in curated:
+        rel = f"opencode/agents/arka-{agent['id']}.md"
+        assert rel in files, f"missing agent file {rel}"
+        content = files[rel]
+        assert content.startswith("---\n"), f"{rel} missing frontmatter"
+        assert "mode: subagent" in content
+        assert agent["name"] in content
+        assert "harness_gen.py" in content
+
+
+def test_opencode_commands_cover_every_department():
+    files = generate()
+    for prefix, lead in DEPT_LEADS.items():
+        rel = f"opencode/commands/arka-{prefix}.md"
+        assert rel in files, f"missing command file {rel}"
+        assert f"[arka:routing] {prefix} -> {lead}" in files[rel]
+        assert "$ARGUMENTS" in files[rel], (
+            f"{rel} must template the user request (opencode.ai/docs/commands)"
+        )
+
+
+def test_opencode_config_fragment_is_valid_json_with_arka_tools():
+    import json
+
+    config = json.loads(generate()["opencode/opencode.json"])
+    assert config["$schema"] == "https://opencode.ai/config.json"
+    server = config["mcp"]["arka-tools"]
+    assert server["type"] == "local"
+    assert server["command"][:2] == ["npx", "-y"]
+    assert server["enabled"] is True
 
 
 def test_write_bundle_removes_stale_files(tmp_path):

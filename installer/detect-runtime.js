@@ -69,6 +69,24 @@ const RUNTIMES = [
     skillsDir: () => join(homedir(), ".cursor", "skills"),
     settingsFile: () => join(homedir(), ".cursor", "settings.json"),
   },
+  {
+    // Foundation PR-6 — OpenCode first-class. Listed AFTER the existing
+    // runtimes so multi-runtime machines keep their current default
+    // (detection picks the first match).
+    id: "opencode",
+    name: "OpenCode",
+    detect: () => {
+      try {
+        execSync("opencode --version", { stdio: "pipe" });
+        return true;
+      } catch {
+        return existsSync(join(homedir(), ".config", "opencode"));
+      }
+    },
+    configDir: () => join(homedir(), ".config", "opencode"),
+    skillsDir: () => join(homedir(), ".config", "opencode", "commands"),
+    settingsFile: () => join(homedir(), ".config", "opencode", "opencode.json"),
+  },
 ];
 
 export async function detectRuntime() {

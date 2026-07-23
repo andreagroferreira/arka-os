@@ -23,10 +23,12 @@ from core.runtime.claude_code import ClaudeCodeAdapter
 from core.runtime.codex_cli import CodexCliAdapter
 from core.runtime.cursor import CursorAdapter
 from core.runtime.gemini_cli import GeminiCliAdapter
+from core.runtime.opencode import OpenCodeAdapter
 
 _CAP_KEYS = {"agent_dispatch", "headless", "file_ops", "hooks"}
 _ALL_ADAPTERS = (
     ClaudeCodeAdapter, CodexCliAdapter, GeminiCliAdapter, CursorAdapter,
+    OpenCodeAdapter,
 )
 
 
@@ -59,6 +61,16 @@ class TestAdapterCapabilities:
 
     def test_cursor_is_single_agent_experimental(self):
         caps = CursorAdapter().capabilities()
+        assert caps["headless"] is False
+        assert caps["agent_dispatch"] is False
+        assert caps["hooks"] is False
+
+    def test_opencode_is_file_ops_only_until_headless_is_verified(self):
+        # Foundation PR-6 honesty: `opencode run` exists upstream but is
+        # NOT live-verified (codex precedent) — the matrix must not
+        # overclaim until that verification lands.
+        caps = OpenCodeAdapter().capabilities()
+        assert caps["file_ops"] is True
         assert caps["headless"] is False
         assert caps["agent_dispatch"] is False
         assert caps["hooks"] is False
@@ -111,9 +123,11 @@ class TestAdapterCapabilities:
 
 
 class TestCapabilitiesCli:
-    def test_build_matrix_covers_all_four_runtimes(self):
+    def test_build_matrix_covers_all_five_runtimes(self):
         matrix = build_matrix()
-        assert set(matrix) == {"claude-code", "codex", "gemini", "cursor"}
+        assert set(matrix) == {
+            "claude-code", "codex", "gemini", "cursor", "opencode",
+        }
         for row in matrix.values():
             assert _CAP_KEYS <= set(row)
             assert "headless_available" in row
