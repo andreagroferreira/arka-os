@@ -179,8 +179,8 @@ export function disable({ home = homedir() } = {}) {
   return { ok: true, path: plist, message: "Menu bar launcher disabled (opt-out persisted)." };
 }
 
-export function status({ home = homedir() } = {}) {
-  if (process.platform !== "darwin") {
+export function status({ home = homedir(), platform = process.platform } = {}) {
+  if (platform !== "darwin") {
     return { installed: false, supported: false, optout: false,
       message: "menu bar launcher is macOS-only" };
   }
@@ -207,7 +207,10 @@ export function menubarHealthy({
   exec = (file, args) => _silent(file, args),
 } = {}) {
   if (platform !== "darwin") return true; // not applicable
-  const s = status({ home });
+  // platform flows down — status() reading the REAL process.platform
+  // here broke the injectable branches on the Linux CI runner (the
+  // opt-out branch returned false off-macOS).
+  const s = status({ home, platform });
   // A persisted opt-out is a healthy, chosen state — not a warning.
   if (s.optout) return true;
   if (!s.installed) return false;
