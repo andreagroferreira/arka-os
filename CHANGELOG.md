@@ -5,6 +5,24 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.38.0] - 2026-07-23
+
+Cross-runtime shared sessions + OpenCode autorouting.
+
+### Added
+- **Cross-runtime shared sessions** (claude ↔ opencode): `TurnRecord.runtime` (ALTER TABLE migration) plus `latest_turn`/`cross_runtime_handoff` queries; `turn_capture capture-text` (stdin) for runtimes without a JSONL transcript; opencode idle enqueues capture detached (stop.py pattern); the SessionStart recap labels each turn's runtime and emits an `[arka:handoff]` line on the claude side.
+- **OpenCode autorouting** (UserPromptSubmit parity): `_action_prompt` emits the routing block — `[ARKA:ROUTE]` + Synapse L1 `[dept:X]` + L5 `[hint:/cmd]` + `[ARKA:WORKFLOW-REQUIRED]` — importing the claude hook constants (single source) and running the real Synapse classes; the `arka.ts` plugin sends cwd and appends routing before suggestions.
+- **dev/scroll-world skill** (vendored, MIT, oso95/scroll-world): fly-through-the-world landing pages via Higgsfield + scrub engine; curated set (42), provenance registry entry + THIRD-PARTY-NOTICES section, cross-SKIP with dev/animated-website.
+
+## [4.37.0] - 2026-07-23
+
+OpenCode deep runtime integration.
+
+### Added
+- **OpenCode governance plugin**: `arka.ts` bridges opencode events into `core.runtime.opencode_hooks` — kb-first research gate, frontend gate, MCP telemetry, stop-hook compliance, compaction context; the hooks capability is now detected live.
+- **Installer adapter seeds**: `~` expansion, obsidian/graphify MCP seeds derived from arkaos state, agents-meta model-tier injection onto user models, plugin deploy (source at `installer/assets/opencode/arka.ts`).
+- **Harness**: the opencode fragment gains arka-prompts + memory-bank; 13 new tests for the bridge; the capability test mirrors plugin presence.
+
 ## [4.36.0] - 2026-07-23
 
 Foundation follow-ups (#398).
