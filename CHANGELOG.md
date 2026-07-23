@@ -5,6 +5,17 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.36.0] - 2026-07-23
+
+Foundation follow-ups (#398).
+
+### Added
+- **OpenCode headless completion**: `opencode run --format json` live-verified against opencode 1.18.4 — `headless_complete` parses the verified event stream (text parts, step_finish tokens/cache, error events surface as `LLMUnavailable`); the capabilities matrix now reports OpenCode as headless honestly.
+- **ADR**: menu bar LaunchAgent default-on posture documented (`docs/adr/2026-07-23-menubar-launchagent-default-on.md`).
+
+### Changed
+- **Menu bar**: the Ollama probe runs on a worker thread with a cached result (no more runloop stalls on local-ai) and the auto-update toggle is disabled while its worker runs (no double-fire).
+
 ## [4.35.0] - 2026-07-23
 
 Foundation campaign complete — PR-3..6 close the six mandatory base points.
