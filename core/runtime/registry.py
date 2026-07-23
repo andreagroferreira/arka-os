@@ -5,12 +5,14 @@ from core.runtime.claude_code import ClaudeCodeAdapter
 from core.runtime.codex_cli import CodexCliAdapter
 from core.runtime.gemini_cli import GeminiCliAdapter
 from core.runtime.cursor import CursorAdapter
+from core.runtime.opencode import OpenCodeAdapter
 
 _ADAPTERS: dict[str, type[RuntimeAdapter]] = {
     "claude-code": ClaudeCodeAdapter,
     "codex": CodexCliAdapter,
     "gemini": GeminiCliAdapter,
     "cursor": CursorAdapter,
+    "opencode": OpenCodeAdapter,
 }
 
 # Public read-only alias (PR-6) — used by core.runtime.capabilities_cli.
@@ -21,7 +23,8 @@ def get_adapter(runtime_id: str) -> RuntimeAdapter:
     """Get an adapter instance for the given runtime ID.
 
     Args:
-        runtime_id: One of 'claude-code', 'codex', 'gemini', 'cursor'
+        runtime_id: One of 'claude-code', 'codex', 'gemini', 'cursor',
+            'opencode'
 
     Returns:
         Instantiated RuntimeAdapter for the runtime.
@@ -69,6 +72,8 @@ def detect_runtime() -> str:
         return "gemini"
     if (home / ".cursor").exists():
         return "cursor"
+    if (home / ".config" / "opencode").exists():
+        return "opencode"
 
     # Default to claude-code as primary runtime
     return "claude-code"
