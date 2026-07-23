@@ -125,7 +125,7 @@ def test_capture_context_writes_cache_json(vault, cache_dir):
     )
     path = cache_dir / "session-1.json"
     assert path.exists()
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     assert data["session_id"] == "session-1"
     assert "captured_at" in data
     assert len(data["hits"]) >= 1
@@ -156,7 +156,7 @@ def test_read_context_returns_empty_when_ttl_expired(vault, cache_dir):
         ttl_seconds=600,
         hits=[ContextHit("X", "X.md", "...")],
     )
-    (cache_dir / "session-stale.json").write_text(json.dumps(expired.to_dict()))
+    (cache_dir / "session-stale.json").write_text(json.dumps(expired.to_dict()), encoding="utf-8")
     assert read_context("session-stale", ttl_seconds=600, cache_dir=cache_dir) == []
 
 
@@ -165,7 +165,7 @@ def test_read_context_returns_empty_when_cache_missing(cache_dir):
 
 
 def test_read_context_returns_empty_on_corrupt_json(cache_dir):
-    (cache_dir / "session-bad.json").write_text("{not json")
+    (cache_dir / "session-bad.json").write_text("{not json", encoding="utf-8")
     assert read_context("session-bad", cache_dir=cache_dir) == []
 
 

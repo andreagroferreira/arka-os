@@ -159,12 +159,12 @@ class TestIndexer:
     def test_index_directory(self, tmp_path):
         # Create test markdown files
         (tmp_path / "doc1.md").write_text(
-            "# Doc 1\n\nFirst document content about Python programming language and its ecosystem with libraries and frameworks for web development and data science applications."
+            "# Doc 1\n\nFirst document content about Python programming language and its ecosystem with libraries and frameworks for web development and data science applications.", encoding="utf-8"
         )
         (tmp_path / "doc2.md").write_text(
-            "# Doc 2\n\nSecond document about JavaScript web development including React, Vue, Angular frameworks and Node.js backend runtime with express and fastify servers."
+            "# Doc 2\n\nSecond document about JavaScript web development including React, Vue, Angular frameworks and Node.js backend runtime with express and fastify servers.", encoding="utf-8"
         )
-        (tmp_path / "short.md").write_text("Too short")  # Should be skipped (< 20 words)
+        (tmp_path / "short.md").write_text("Too short", encoding="utf-8")  # Should be skipped (< 20 words)
 
         store = VectorStore(":memory:")
         result = index_directory(tmp_path, store)
@@ -177,7 +177,7 @@ class TestIndexer:
 
     def test_incremental_indexing(self, tmp_path):
         (tmp_path / "doc.md").write_text(
-            "# Test\n\nSome content for indexing with enough words to pass the minimum threshold of twenty words required by the indexer for processing documents."
+            "# Test\n\nSome content for indexing with enough words to pass the minimum threshold of twenty words required by the indexer for processing documents.", encoding="utf-8"
         )
 
         store = VectorStore(":memory:")
@@ -191,9 +191,9 @@ class TestIndexer:
     def test_skip_hidden_dirs(self, tmp_path):
         hidden = tmp_path / ".obsidian"
         hidden.mkdir()
-        (hidden / "config.md").write_text("# Config\n\nThis should be skipped.")
+        (hidden / "config.md").write_text("# Config\n\nThis should be skipped.", encoding="utf-8")
         (tmp_path / "visible.md").write_text(
-            "# Visible\n\nThis should be indexed because it has enough content words to pass the minimum threshold for the indexer to consider it a valid document for chunking and embedding."
+            "# Visible\n\nThis should be indexed because it has enough content words to pass the minimum threshold for the indexer to consider it a valid document for chunking and embedding.", encoding="utf-8"
         )
 
         store = VectorStore(":memory:")

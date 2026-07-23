@@ -62,7 +62,7 @@ class TestHookScripts:
     def test_hook_is_bash(self, hook):
         path = BASE_DIR / hook
         if path.exists():
-            content = path.read_text()
+            content = path.read_text(encoding="utf-8")
             assert content.startswith("#!/usr/bin/env bash"), f"{hook} missing bash shebang"
 
     @pytest.mark.parametrize("hook", [
@@ -102,12 +102,12 @@ class TestBinCLI:
 class TestPackageJson:
     def test_package_json_valid(self):
         import json
-        pkg = json.loads((BASE_DIR / "package.json").read_text())
+        pkg = json.loads((BASE_DIR / "package.json").read_text(encoding="utf-8"))
         assert pkg["name"] == "arkaos"
         assert pkg["version"].startswith("2.")
         assert "arkaos" in pkg["bin"]
 
     def test_pyproject_valid(self):
-        content = (BASE_DIR / "pyproject.toml").read_text()
+        content = (BASE_DIR / "pyproject.toml").read_text(encoding="utf-8")
         assert "arkaos-core" in content
         assert "pydantic" in content

@@ -21,24 +21,24 @@ def fake_core(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (core / "departments" / "strategy" / "agents").mkdir(parents=True)
 
     (core / "config" / "agent-allowlists" / "_base.yaml").write_text(
-        "stack: _base\nbaseline:\n  - strategy-director\n"
+        "stack: _base\nbaseline:\n  - strategy-director\n", encoding="utf-8"
     )
     (core / "config" / "agent-allowlists" / "laravel.yaml").write_text(
-        "stack: laravel\nbaseline:\n  - backend-dev\n  - qa\n"
+        "stack: laravel\nbaseline:\n  - backend-dev\n  - qa\n", encoding="utf-8"
     )
 
     # Core agent files
     (core / "departments" / "dev" / "agents" / "backend-dev.yaml").write_text(
-        "name: backend-dev\nrole: senior\n"
+        "name: backend-dev\nrole: senior\n", encoding="utf-8"
     )
     (core / "departments" / "dev" / "agents" / "backend-dev.md").write_text(
-        "# Backend Dev\n\nBuilds stuff.\n"
+        "# Backend Dev\n\nBuilds stuff.\n", encoding="utf-8"
     )
     (core / "departments" / "dev" / "agents" / "qa.yaml").write_text(
-        "name: qa\n"
+        "name: qa\n", encoding="utf-8"
     )
     (core / "departments" / "strategy" / "agents" / "strategy-director.md").write_text(
-        "# Strategy Director\n"
+        "# Strategy Director\n", encoding="utf-8"
     )
 
     monkeypatch.setenv("ARKAOS_CORE_ROOT", str(core))
@@ -65,10 +65,10 @@ def test_resolve_allowlist_unknown_stack_returns_base(fake_core: Path) -> None:
 def test_resolve_allowlist_multiple_stacks_unions(fake_core: Path) -> None:
     # add nuxt allowlist
     (fake_core / "config" / "agent-allowlists" / "nuxt.yaml").write_text(
-        "stack: nuxt\nbaseline:\n  - frontend-dev\n"
+        "stack: nuxt\nbaseline:\n  - frontend-dev\n", encoding="utf-8"
     )
     (fake_core / "departments" / "dev" / "agents" / "frontend-dev.yaml").write_text(
-        "name: frontend-dev\n"
+        "name: frontend-dev\n", encoding="utf-8"
     )
     agents = set(resolve_allowlist(["laravel", "nuxt"]))
     assert {"backend-dev", "qa", "frontend-dev", "strategy-director"} <= agents
@@ -92,9 +92,9 @@ def test_sync_resolves_sub_squad_agent_in_subdirectory(
     # provisioner must resolve them recursively, not only at agents/ top level.
     sub_dir = fake_core / "departments" / "dev" / "agents" / "backend-core"
     sub_dir.mkdir(parents=True)
-    (sub_dir / "laravel-eng.yaml").write_text("name: laravel-eng\nrole: laravel\n")
+    (sub_dir / "laravel-eng.yaml").write_text("name: laravel-eng\nrole: laravel\n", encoding="utf-8")
     (fake_core / "config" / "agent-allowlists" / "laravel.yaml").write_text(
-        "stack: laravel\nbaseline:\n  - backend-dev\n  - laravel-eng\n  - qa\n"
+        "stack: laravel\nbaseline:\n  - backend-dev\n  - laravel-eng\n  - qa\n", encoding="utf-8"
     )
 
     result = sync_project_agents(project)
@@ -102,7 +102,7 @@ def test_sync_resolves_sub_squad_agent_in_subdirectory(
     agents_dir = Path(project.path) / ".claude" / "agents"
     assert (agents_dir / "laravel-eng.md").exists()
     assert "laravel-eng" in result.agents_added
-    assert "name: laravel-eng" in (agents_dir / "laravel-eng.md").read_text()
+    assert "name: laravel-eng" in (agents_dir / "laravel-eng.md").read_text(encoding="utf-8")
 
 
 def test_sync_concatenates_yaml_and_md_when_both_exist(
@@ -110,7 +110,7 @@ def test_sync_concatenates_yaml_and_md_when_both_exist(
 ) -> None:
     sync_project_agents(project)
 
-    backend_md = (Path(project.path) / ".claude" / "agents" / "backend-dev.md").read_text()
+    backend_md = (Path(project.path) / ".claude" / "agents" / "backend-dev.md").read_text(encoding="utf-8")
     assert "---" in backend_md  # YAML frontmatter delimiter
     assert "name: backend-dev" in backend_md
     assert "Backend Dev" in backend_md
@@ -121,7 +121,7 @@ def test_sync_renders_yaml_only_agent_as_frontmatter(
 ) -> None:
     sync_project_agents(project)
 
-    qa_md = (Path(project.path) / ".claude" / "agents" / "qa.md").read_text()
+    qa_md = (Path(project.path) / ".claude" / "agents" / "qa.md").read_text(encoding="utf-8")
     assert "---" in qa_md
     assert "name: qa" in qa_md
 
@@ -138,7 +138,7 @@ def test_sync_reports_missing_core_agent_as_errored(
 ) -> None:
     # Add an allowlist entry for an agent that has no source file.
     (fake_core / "config" / "agent-allowlists" / "laravel.yaml").write_text(
-        "stack: laravel\nbaseline:\n  - ghost-agent\n  - backend-dev\n"
+        "stack: laravel\nbaseline:\n  - ghost-agent\n  - backend-dev\n", encoding="utf-8"
     )
 
     result = sync_project_agents(project)
@@ -151,12 +151,12 @@ def test_sync_rejects_path_traversal_in_allowlist(
 ) -> None:
     # Allowlist entry that tries to escape the departments dir
     (fake_core / "config" / "agent-allowlists" / "laravel.yaml").write_text(
-        "stack: laravel\nbaseline:\n  - ../../../etc/passwd\n  - backend-dev\n"
+        "stack: laravel\nbaseline:\n  - ../../../etc/passwd\n  - backend-dev\n", encoding="utf-8"
     )
 
     # Snapshot sensitive location outside the project
     outside = tmp_path / "outside-sentinel"
-    outside.write_text("untouched")
+    outside.write_text("untouched", encoding="utf-8")
 
     result = sync_project_agents(project)
 
@@ -165,4 +165,4 @@ def test_sync_rejects_path_traversal_in_allowlist(
     # backend-dev should still be added normally.
     assert "backend-dev" in result.agents_added
     # Sensitive location must not be altered.
-    assert outside.read_text() == "untouched"
+    assert outside.read_text(encoding="utf-8") == "untouched"

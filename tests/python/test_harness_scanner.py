@@ -265,7 +265,7 @@ class TestHooks:
 
     def test_world_writable_script(self, tmp_path):
         hook = tmp_path / "hook.sh"
-        hook.write_text("#!/bin/sh\n")
+        hook.write_text("#!/bin/sh\n", encoding="utf-8")
         hook.chmod(0o777)
         write(tmp_path, "settings.json", {"hooks": {"Stop": [
             {"hooks": [{"command": str(hook)}]},
@@ -274,7 +274,7 @@ class TestHooks:
 
     def test_locked_down_script_is_silent(self, tmp_path):
         hook = tmp_path / "hook.sh"
-        hook.write_text("#!/bin/sh\n")
+        hook.write_text("#!/bin/sh\n", encoding="utf-8")
         hook.chmod(0o755)
         write(tmp_path, "settings.json", {"hooks": {"Stop": [
             {"hooks": [{"command": str(hook)}]},

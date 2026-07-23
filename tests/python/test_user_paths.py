@@ -50,7 +50,7 @@ def test_projects_dir_returns_none_when_neither_exists(redirect_home):
 def test_ecosystems_file_returns_new_path_when_present(redirect_home):
     new = redirect_home / ".arkaos" / "ecosystems.json"
     new.parent.mkdir(parents=True)
-    new.write_text('{"ecosystems": {}}')
+    new.write_text('{"ecosystems": {}}', encoding="utf-8")
     assert user_paths.ecosystems_file() == new
 
 
@@ -59,7 +59,7 @@ def test_ecosystems_file_falls_back_to_legacy_with_warning(redirect_home, caplog
         redirect_home / ".claude" / "skills" / "arka" / "knowledge" / "ecosystems.json"
     )
     legacy.parent.mkdir(parents=True)
-    legacy.write_text('{"ecosystems": {}}')
+    legacy.write_text('{"ecosystems": {}}', encoding="utf-8")
     with caplog.at_level(logging.WARNING, logger="core.runtime.user_paths"):
         assert user_paths.ecosystems_file() == legacy
     assert any("legacy location" in r.getMessage() for r in caplog.records)

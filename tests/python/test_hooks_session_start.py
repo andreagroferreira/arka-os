@@ -79,7 +79,7 @@ def test_message_shows_profile(tmp_path):
     cfg = tmp_path / ".arkaos"
     cfg.mkdir(exist_ok=True)
     (cfg / "profile.json").write_text(
-        json.dumps({"name": "Andre", "company": "WizardingCode"})
+        json.dumps({"name": "Andre", "company": "WizardingCode"}), encoding="utf-8"
     )
     msg = build_visible("/repo/proj")
     assert "Olá, Andre" in msg
@@ -94,8 +94,8 @@ def test_message_drift_never_synced(tmp_path):
 def test_message_drift_on_version_mismatch(tmp_path):
     arka = tmp_path / ".arkaos"
     (arka / "lib").mkdir(parents=True, exist_ok=True)
-    (arka / "lib" / "VERSION").write_text("9.9.9\n")
-    (arka / "sync-state.json").write_text(json.dumps({"version": "9.9.8"}))
+    (arka / "lib" / "VERSION").write_text("9.9.9\n", encoding="utf-8")
+    (arka / "sync-state.json").write_text(json.dumps({"version": "9.9.8"}), encoding="utf-8")
     msg = build_message("/repo/proj")
     assert "Core v9.9.9 != synced v9.9.8" in msg
 
@@ -103,8 +103,8 @@ def test_message_drift_on_version_mismatch(tmp_path):
 def test_message_no_drift_when_synced(tmp_path):
     arka = tmp_path / ".arkaos"
     (arka / "lib").mkdir(parents=True, exist_ok=True)
-    (arka / "lib" / "VERSION").write_text("9.9.9\n")
-    (arka / "sync-state.json").write_text(json.dumps({"version": "9.9.9"}))
+    (arka / "lib" / "VERSION").write_text("9.9.9\n", encoding="utf-8")
+    (arka / "sync-state.json").write_text(json.dumps({"version": "9.9.9"}), encoding="utf-8")
     msg = build_message("/repo/proj")
     assert "[arka:update-available]" not in msg
 
@@ -153,7 +153,7 @@ def test_reorganizer_config_gate(monkeypatch, tmp_path):
     (cfg / "config.json").write_text(json.dumps({
         "cognition": {"reorganize_on_session": False},
         "dashboard": {"ensure_on_session": False},
-    }))
+    }), encoding="utf-8")
     calls = []
     monkeypatch.setattr(session_start, "_spawn_detached",
                         lambda *a, **k: calls.append(a))
@@ -170,7 +170,7 @@ def test_reorganizer_satisfied_by_todays_proposal(monkeypatch, tmp_path):
     proposals.mkdir(parents=True)
     (proposals / f"{datetime.now(UTC).strftime('%Y-%m-%d')}.md").touch()
     (tmp_path / ".arkaos" / "config.json").write_text(
-        json.dumps({"dashboard": {"ensure_on_session": False}})
+        json.dumps({"dashboard": {"ensure_on_session": False}}), encoding="utf-8"
     )
     calls = []
     monkeypatch.setattr(session_start, "_spawn_detached",
@@ -237,7 +237,7 @@ def test_reorganizer_fires_on_happy_path(monkeypatch, tmp_path):
     (tmp_path / "repo").mkdir(exist_ok=True)
     (tmp_path / ".arkaos").mkdir(exist_ok=True)
     (tmp_path / ".arkaos" / "config.json").write_text(
-        json.dumps({"dashboard": {"ensure_on_session": False}})
+        json.dumps({"dashboard": {"ensure_on_session": False}}), encoding="utf-8"
     )
     calls = []
     monkeypatch.setattr(session_start, "_spawn_detached",

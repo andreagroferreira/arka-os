@@ -19,7 +19,7 @@ def user_models(tmp_path, monkeypatch):
             "execution": {"provider": "runtime", "model": "default", "effort": "high"},
             "mechanical": {"provider": "runtime", "model": "fast", "effort": "low"},
         },
-    }))
+    }), encoding="utf-8")
     monkeypatch.setattr(model_router, "USER_CONFIG_PATH", path)
     return path
 

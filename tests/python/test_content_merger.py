@@ -26,7 +26,7 @@ def test_hash_differs_for_different_content() -> None:
 
 def test_merge_into_file_without_markers_prepends_block(tmp_path: Path) -> None:
     target = tmp_path / "CLAUDE.md"
-    target.write_text("# Project notes\n\nCustom content here.\n")
+    target.write_text("# Project notes\n\nCustom content here.\n", encoding="utf-8")
 
     result = merge_managed_content(
         target_text="# Project notes\n\nCustom content here.\n",

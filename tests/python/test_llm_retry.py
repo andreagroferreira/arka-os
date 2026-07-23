@@ -186,7 +186,7 @@ class TestRetryCompletion:
         retry_completion(_flaky(errs), provider="anthropic-direct")
         rows = [
             json.loads(line)
-            for line in tmp_retry_file.read_text().splitlines()
+            for line in tmp_retry_file.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
         assert len(rows) == 2
@@ -341,5 +341,5 @@ class TestAnthropicDirectRetry:
     ):
         client = _QueueClient([_FakeSDKError("429", status_code=429)])
         AnthropicDirectProvider(client=client).complete("hi")
-        rows = [json.loads(x) for x in tmp_retry_file.read_text().splitlines()]
+        rows = [json.loads(x) for x in tmp_retry_file.read_text(encoding="utf-8").splitlines()]
         assert rows and rows[0]["provider"] == "anthropic-direct"

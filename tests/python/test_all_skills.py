@@ -16,7 +16,7 @@ class TestSubSkillsValid:
     @pytest.mark.parametrize("skill_file", SKILL_FILES,
                              ids=lambda f: f"{f.parent.parent.name}/{f.parent.name}")
     def test_skill_has_frontmatter(self, skill_file):
-        content = skill_file.read_text()
+        content = skill_file.read_text(encoding="utf-8")
         assert content.startswith("---"), f"{skill_file} missing YAML frontmatter"
         # Must have closing ---
         parts = content.split("---", 2)
@@ -25,19 +25,19 @@ class TestSubSkillsValid:
     @pytest.mark.parametrize("skill_file", SKILL_FILES,
                              ids=lambda f: f"{f.parent.parent.name}/{f.parent.name}")
     def test_skill_has_name(self, skill_file):
-        content = skill_file.read_text()
+        content = skill_file.read_text(encoding="utf-8")
         assert "name:" in content, f"{skill_file} missing name field"
 
     @pytest.mark.parametrize("skill_file", SKILL_FILES,
                              ids=lambda f: f"{f.parent.parent.name}/{f.parent.name}")
     def test_skill_has_description(self, skill_file):
-        content = skill_file.read_text()
+        content = skill_file.read_text(encoding="utf-8")
         assert "description:" in content, f"{skill_file} missing description"
 
     @pytest.mark.parametrize("skill_file", SKILL_FILES,
                              ids=lambda f: f"{f.parent.parent.name}/{f.parent.name}")
     def test_skill_has_content_after_frontmatter(self, skill_file):
-        content = skill_file.read_text()
+        content = skill_file.read_text(encoding="utf-8")
         parts = content.split("---", 2)
         body = parts[2].strip() if len(parts) >= 3 else ""
         assert len(body) > 10, f"{skill_file} has no content body"
@@ -84,15 +84,15 @@ class TestCoreSkillsV2:
 
     def test_human_writing_has_v2_name(self):
         skill = BASE_DIR / "arka" / "skills" / "human-writing" / "SKILL.md"
-        content = skill.read_text()
+        content = skill.read_text(encoding="utf-8")
         assert "arka-human-writing" in content
 
     def test_spec_has_v2_name(self):
         skill = BASE_DIR / "departments" / "dev" / "skills" / "spec" / "SKILL.md"
-        content = skill.read_text()
+        content = skill.read_text(encoding="utf-8")
         assert "arka-dev-spec" in content
 
     def test_scaffold_has_v2_name(self):
         skill = BASE_DIR / "departments" / "dev" / "skills" / "scaffold" / "SKILL.md"
-        content = skill.read_text()
+        content = skill.read_text(encoding="utf-8")
         assert "arka-dev-scaffold" in content

@@ -152,7 +152,7 @@ class TestPersistence:
         m = BudgetManager(storage_path=path)
         m.record_usage("agent-1", tokens=10_000, tier=2)
         assert path.exists()
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         assert data["counter"] == 1
         assert len(data["usages"]) == 1
 

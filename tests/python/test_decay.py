@@ -64,14 +64,14 @@ def test_env_kill_switch_disables(monkeypatch):
 def test_config_disable(tmp_path):
     cfg = tmp_path / ".arkaos" / "config.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps({"knowledge": {"decay": {"enabled": False}}}))
+    cfg.write_text(json.dumps({"knowledge": {"decay": {"enabled": False}}}), encoding="utf-8")
     assert decayed_weight(_iso(500), now=NOW) == 1.0
 
 
 def test_config_half_life_override(tmp_path):
     cfg = tmp_path / ".arkaos" / "config.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps({"knowledge": {"decay": {"halfLifeDays": 30}}}))
+    cfg.write_text(json.dumps({"knowledge": {"decay": {"halfLifeDays": 30}}}), encoding="utf-8")
     assert half_life_days() == 30.0
     assert decayed_weight(_iso(30), now=NOW) == pytest.approx(0.5)
 
@@ -79,9 +79,9 @@ def test_config_half_life_override(tmp_path):
 def test_invalid_half_life_falls_back(tmp_path):
     cfg = tmp_path / ".arkaos" / "config.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps({"knowledge": {"decay": {"halfLifeDays": "junk"}}}))
+    cfg.write_text(json.dumps({"knowledge": {"decay": {"halfLifeDays": "junk"}}}), encoding="utf-8")
     assert half_life_days() == 60.0
-    cfg.write_text(json.dumps({"knowledge": {"decay": {"halfLifeDays": -3}}}))
+    cfg.write_text(json.dumps({"knowledge": {"decay": {"halfLifeDays": -3}}}), encoding="utf-8")
     assert half_life_days() == 60.0
 
 
@@ -152,7 +152,7 @@ def test_legacy_jsonl_lines_still_load(patterns):
         "acceptance_criteria": [], "edge_cases": [], "references": [],
         "projects_using": [], "created_at": _iso(1), "last_updated": _iso(1),
     }
-    patterns.PATTERNS_PATH.write_text(json.dumps(legacy) + "\n")
+    patterns.PATTERNS_PATH.write_text(json.dumps(legacy) + "\n", encoding="utf-8")
     cards = patterns._load_all()
     assert cards[0].last_reinforced == ""
     assert cards[0].use_count == 0
@@ -192,7 +192,7 @@ def test_floor_tie_with_null_last_updated_never_crashes(patterns):
          "last_updated": None, "last_reinforced": "also-not-a-date"},
     ]
     patterns.PATTERNS_PATH.write_text(
-        "\n".join(json.dumps(entry) for entry in lines) + "\n"
+        "\n".join(json.dumps(entry) for entry in lines) + "\n", encoding="utf-8"
     )
     results = patterns.query_patterns(keywords=["payment"])  # must not raise
     assert [c.id for c in results] == ["a", "b"]  # created_at fallback orders

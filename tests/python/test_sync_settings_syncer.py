@@ -29,7 +29,7 @@ def _settings_file(project_path: Path) -> Path:
 
 
 def _read_settings(project_path: Path) -> dict:
-    return json.loads(_settings_file(project_path).read_text())
+    return json.loads(_settings_file(project_path).read_text(encoding="utf-8"))
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +70,7 @@ class TestSyncProjectSettings:
         }
         sf = _settings_file(tmp_path)
         sf.parent.mkdir(parents=True, exist_ok=True)
-        sf.write_text(json.dumps(existing, indent=2))
+        sf.write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
         new_servers = ["arka-prompts", "context7", "laravel-boost"]
         result = sync_project_settings(tmp_path, _make_mcp_result(str(tmp_path), new_servers))
@@ -93,7 +93,7 @@ class TestSyncProjectSettings:
         }
         sf = _settings_file(tmp_path)
         sf.parent.mkdir(parents=True, exist_ok=True)
-        sf.write_text(json.dumps(existing, indent=2))
+        sf.write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
         result = sync_project_settings(tmp_path, _make_mcp_result(str(tmp_path), servers))
 
@@ -111,7 +111,7 @@ class TestSyncProjectSettings:
         }
         sf = _settings_file(tmp_path)
         sf.parent.mkdir(parents=True, exist_ok=True)
-        sf.write_text(json.dumps(existing, indent=2))
+        sf.write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
         new_servers = ["arka-prompts", "context7"]
         result = sync_project_settings(tmp_path, _make_mcp_result(str(tmp_path), new_servers))
@@ -135,7 +135,7 @@ class TestSyncProjectSettings:
         }
         sf = _settings_file(tmp_path)
         sf.parent.mkdir(parents=True, exist_ok=True)
-        sf.write_text(json.dumps(existing, indent=2))
+        sf.write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
         result = sync_project_settings(tmp_path, _make_mcp_result(str(tmp_path), servers))
 
@@ -174,7 +174,7 @@ class TestOutputStyleSeed:
         }
         sf = _settings_file(tmp_path)
         sf.parent.mkdir(parents=True, exist_ok=True)
-        sf.write_text(json.dumps(existing, indent=2))
+        sf.write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
         result = sync_project_settings(
             tmp_path, _make_mcp_result(str(tmp_path), servers)
@@ -194,7 +194,7 @@ class TestOutputStyleSeed:
                 "enabledMcpjsonServers": [],
                 "enableAllProjectMcpServers": True,
                 "outputStyle": chosen,
-            }))
+            }), encoding="utf-8")
             sync_project_settings(
                 project, _make_mcp_result(str(project), ["arka-prompts"])
             )

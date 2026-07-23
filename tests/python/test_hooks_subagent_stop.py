@@ -34,7 +34,7 @@ def _transcript(tmp_path, text, with_tool=False):
         {"type": "text", "text": text},
     ]}})
     path = tmp_path / "t.jsonl"
-    path.write_text("\n".join(json.dumps(x) for x in lines))
+    path.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
     return str(path)
 
 
@@ -42,7 +42,7 @@ def _telemetry(tmp_path):
     p = tmp_path / ".arkaos" / "telemetry" / "subagent-stop.jsonl"
     if not p.exists():
         return []
-    return [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
+    return [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def test_persists_output_and_records_qa(tmp_path, monkeypatch):

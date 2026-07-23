@@ -46,11 +46,11 @@ class TestIsStale:
         assert is_stale(output_dir=tmp_path) is True
 
     def test_today_proposal_present_is_fresh(self, tmp_path: Path):
-        (tmp_path / "2026-05-24.md").write_text("# proposal\n")
+        (tmp_path / "2026-05-24.md").write_text("# proposal\n", encoding="utf-8")
         assert is_stale(output_dir=tmp_path) is False
 
     def test_only_yesterday_proposal_is_stale(self, tmp_path: Path):
-        (tmp_path / "2026-05-23.md").write_text("# old\n")
+        (tmp_path / "2026-05-23.md").write_text("# old\n", encoding="utf-8")
         assert is_stale(output_dir=tmp_path) is True
 
 

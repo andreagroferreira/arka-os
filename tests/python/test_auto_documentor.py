@@ -526,7 +526,7 @@ def test_classification_failed_emits_telemetry(tmp_path, vault, monkeypatch):
 
     document_session(transcript, "sess-cf", vault, "APPROVED")
     assert telemetry.exists()
-    entries = [json.loads(l) for l in telemetry.read_text().splitlines() if l.strip()]
+    entries = [json.loads(l) for l in telemetry.read_text(encoding="utf-8").splitlines() if l.strip()]
     classifications = [e for e in entries if e["event"] == "classification-failed"]
     assert len(classifications) == 1
     assert classifications[0]["session_id"] == "sess-cf"
@@ -548,7 +548,7 @@ def test_succeeded_empty_emits_telemetry(tmp_path, vault, monkeypatch):
 
     document_session(transcript, "sess-se", vault, "APPROVED")
     assert telemetry.exists()
-    entries = [json.loads(l) for l in telemetry.read_text().splitlines() if l.strip()]
+    entries = [json.loads(l) for l in telemetry.read_text(encoding="utf-8").splitlines() if l.strip()]
     events = [e["event"] for e in entries]
     assert "succeeded-empty" in events
 

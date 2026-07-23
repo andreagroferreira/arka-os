@@ -47,6 +47,6 @@ class TestRedoCounter:
 
     def test_corrupt_state_file_degrades_to_zero(self, state):
         state.parent.mkdir(parents=True, exist_ok=True)
-        state.write_text("{corrupt")
+        state.write_text("{corrupt", encoding="utf-8")
         result = record_rejected("sess-1", path=state)
         assert result.count == 1

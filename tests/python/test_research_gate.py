@@ -73,7 +73,7 @@ def test_feature_flag_off_allows(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setattr(research_gate, "CONFIG_PATH", home / "config.json")
-    (home / "config.json").write_text(json.dumps({"hooks": {"kbFirst": False}}))
+    (home / "config.json").write_text(json.dumps({"hooks": {"kbFirst": False}}), encoding="utf-8")
     monkeypatch.setattr(research_gate, "VIOLATION_DIR", tmp_path / "kb-v")
     monkeypatch.setenv("ARKA_KB_QUERY_DIR", str(tmp_path / "kb-q"))
     monkeypatch.delenv("ARKA_BYPASS_KB_FIRST", raising=False)

@@ -137,4 +137,4 @@ def test_write_bundle_removes_stale_files(tmp_path):
     assert (tmp_path / "zed" / ".rules").exists()
     write_bundle({"codex/AGENTS.md": "v2"}, tmp_path)
     assert not (tmp_path / "zed" / ".rules").exists(), "stale file survived"
-    assert (tmp_path / "codex" / "AGENTS.md").read_text() == "v2"
+    assert (tmp_path / "codex" / "AGENTS.md").read_text(encoding="utf-8") == "v2"

@@ -130,7 +130,7 @@ class TestMode:
     ])
     def test_mode_resolution(self, raw, expected, monkeypatch, tmp_path):
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"hooks": {"configGuard": raw}}))
+        config.write_text(json.dumps({"hooks": {"configGuard": raw}}), encoding="utf-8")
         monkeypatch.setattr(cg, "CONFIG_PATH", config)
         assert mode() == expected
 
@@ -138,7 +138,7 @@ class TestMode:
         self, monkeypatch, tmp_path
     ):
         config = tmp_path / "config.json"
-        config.write_text("{ broken json")
+        config.write_text("{ broken json", encoding="utf-8")
         monkeypatch.setattr(cg, "CONFIG_PATH", config)
         assert mode() == "warn"
 
@@ -180,7 +180,7 @@ class TestThroughMain:
     def hard_mode(self, monkeypatch, tmp_path):
         import core.hooks.pre_tool_use  # noqa: F401 — ensure importable
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"hooks": {"configGuard": "hard"}}))
+        config.write_text(json.dumps({"hooks": {"configGuard": "hard"}}), encoding="utf-8")
         monkeypatch.setattr(cg, "CONFIG_PATH", config)
         return tmp_path
 
@@ -241,7 +241,7 @@ class TestThroughMain:
 
     def test_warn_mode_never_blocks(self, monkeypatch, tmp_path, capsys):
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"hooks": {"configGuard": "warn"}}))
+        config.write_text(json.dumps({"hooks": {"configGuard": "warn"}}), encoding="utf-8")
         monkeypatch.setattr(cg, "CONFIG_PATH", config)
         tp = _transcript(tmp_path, ("user", "make lint pass"))
         assert self._run(tp) == 0
@@ -249,7 +249,7 @@ class TestThroughMain:
 
     def test_off_mode_is_silent(self, monkeypatch, tmp_path, capsys):
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"hooks": {"configGuard": "off"}}))
+        config.write_text(json.dumps({"hooks": {"configGuard": "off"}}), encoding="utf-8")
         monkeypatch.setattr(cg, "CONFIG_PATH", config)
         tp = _transcript(tmp_path, ("user", "make lint pass"))
         assert self._run(tp) == 0
@@ -326,7 +326,7 @@ class TestUserMessageSource:
         _, from_path = self._src()
         p = tmp_path / "t.jsonl"
         p.write_text(json.dumps(
-            {"message": {"role": "user", "content": "hey"}}))
+            {"message": {"role": "user", "content": "hey"}}), encoding="utf-8")
         assert from_path(str(p)) == ["hey"]
 
     def test_blank_lines_are_skipped(self):

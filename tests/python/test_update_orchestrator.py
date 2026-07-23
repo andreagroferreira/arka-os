@@ -54,13 +54,13 @@ class TestSemverHelpers:
 class TestNpmProbe:
     def test_returns_cached_when_fresh(self, tmp_path):
         cache = tmp_path / "cache.json"
-        cache.write_text(json.dumps({"version": "2.77.0", "ts": time.time()}))
+        cache.write_text(json.dumps({"version": "2.77.0", "ts": time.time()}), encoding="utf-8")
         assert uo._probe_npm_latest(cache) == "2.77.0"
 
     def test_ignores_expired_cache(self, tmp_path, monkeypatch):
         cache = tmp_path / "cache.json"
         old_ts = time.time() - 2 * uo._NPM_CACHE_TTL_SECONDS
-        cache.write_text(json.dumps({"version": "2.39.0", "ts": old_ts}))
+        cache.write_text(json.dumps({"version": "2.39.0", "ts": old_ts}), encoding="utf-8")
         # Force the shell probe to return a different version
         called = MagicMock()
 
@@ -72,7 +72,7 @@ class TestNpmProbe:
         assert uo._probe_npm_latest(cache) == "2.77.0"
         called.assert_called_once()
         # Cache is rewritten with the fresh value
-        refreshed = json.loads(cache.read_text())
+        refreshed = json.loads(cache.read_text(encoding="utf-8"))
         assert refreshed["version"] == "2.77.0"
 
     def test_returns_none_on_timeout(self, tmp_path, monkeypatch):

@@ -182,7 +182,7 @@ def test_enqueue_turn_capture_config_flag_off(monkeypatch, tmp_path):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir()
     (cfg_dir / "config.json").write_text(
-        json.dumps({"memory": {"sessionMemory": False}})
+        json.dumps({"memory": {"sessionMemory": False}}), encoding="utf-8"
     )
     called = []
     monkeypatch.setattr("subprocess.Popen", lambda *a, **k: called.append(1))
@@ -204,7 +204,7 @@ def test_main_enqueues_capture_before_wf_marker_gate(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.delenv("ARKA_SESSION_MEMORY", raising=False)
     transcript = tmp_path / "t.jsonl"
-    transcript.write_text('{"role":"assistant","content":"done"}\n')
+    transcript.write_text('{"role":"assistant","content":"done"}\n', encoding="utf-8")
     rc = stop.main({
         "session_id": "sess-main-nc",
         "transcript_path": str(transcript),

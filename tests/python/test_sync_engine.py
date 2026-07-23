@@ -34,7 +34,7 @@ def _make_feature_yaml(features_dir: Path, name: str = "test-feature") -> None:
         "detection_pattern: test-pattern\n"
         "deprecated_in: null\n"
         "content: |\n"
-        "  Test content.\n"
+        "  Test content.\n", encoding="utf-8"
     )
 
 
@@ -50,17 +50,17 @@ class TestReadPreviousVersion:
 
     def test_reads_version_from_state_file(self, tmp_path: Path) -> None:
         state = {"version": "2.13.0", "last_sync": "2026-01-01T00:00:00Z"}
-        (tmp_path / "sync-state.json").write_text(json.dumps(state))
+        (tmp_path / "sync-state.json").write_text(json.dumps(state), encoding="utf-8")
         result = _read_previous_version(tmp_path)
         assert result == "2.13.0"
 
     def test_returns_pending_sync_on_invalid_json(self, tmp_path: Path) -> None:
-        (tmp_path / "sync-state.json").write_text("not-json")
+        (tmp_path / "sync-state.json").write_text("not-json", encoding="utf-8")
         result = _read_previous_version(tmp_path)
         assert result == "pending-sync"
 
     def test_returns_pending_sync_when_version_missing(self, tmp_path: Path) -> None:
-        (tmp_path / "sync-state.json").write_text(json.dumps({"last_sync": "x"}))
+        (tmp_path / "sync-state.json").write_text(json.dumps({"last_sync": "x"}), encoding="utf-8")
         result = _read_previous_version(tmp_path)
         assert result == "pending-sync"
 
@@ -76,12 +76,12 @@ class TestReadRepoPath:
         assert result is None
 
     def test_reads_repo_path(self, tmp_path: Path) -> None:
-        (tmp_path / ".repo-path").write_text("/some/repo/path\n")
+        (tmp_path / ".repo-path").write_text("/some/repo/path\n", encoding="utf-8")
         result = _read_repo_path(tmp_path)
         assert result == Path("/some/repo/path")
 
     def test_returns_none_for_empty_file(self, tmp_path: Path) -> None:
-        (tmp_path / ".repo-path").write_text("")
+        (tmp_path / ".repo-path").write_text("", encoding="utf-8")
         result = _read_repo_path(tmp_path)
         assert result is None
 
@@ -99,15 +99,15 @@ class TestReadCurrentVersion:
     def test_reads_version_from_repo(self, tmp_path: Path) -> None:
         repo_dir = tmp_path / "repo"
         repo_dir.mkdir()
-        (repo_dir / "VERSION").write_text("v2.14.0\n")
-        (tmp_path / ".repo-path").write_text(str(repo_dir))
+        (repo_dir / "VERSION").write_text("v2.14.0\n", encoding="utf-8")
+        (tmp_path / ".repo-path").write_text(str(repo_dir), encoding="utf-8")
         result = _read_current_version(tmp_path)
         assert result == "v2.14.0"
 
     def test_returns_unknown_when_version_file_missing(self, tmp_path: Path) -> None:
         repo_dir = tmp_path / "repo"
         repo_dir.mkdir()
-        (tmp_path / ".repo-path").write_text(str(repo_dir))
+        (tmp_path / ".repo-path").write_text(str(repo_dir), encoding="utf-8")
         result = _read_current_version(tmp_path)
         assert result == "unknown"
 
@@ -122,7 +122,7 @@ class TestResolveFeaturesDir:
         repo_dir = tmp_path / "repo"
         features_dir = repo_dir / "core" / "sync" / "features"
         features_dir.mkdir(parents=True)
-        (tmp_path / ".repo-path").write_text(str(repo_dir))
+        (tmp_path / ".repo-path").write_text(str(repo_dir), encoding="utf-8")
 
         result = _resolve_features_dir(tmp_path)
         assert result == features_dir
@@ -130,7 +130,7 @@ class TestResolveFeaturesDir:
     def test_falls_back_to_config_dir(self, tmp_path: Path) -> None:
         repo_dir = tmp_path / "repo"
         repo_dir.mkdir()
-        (tmp_path / ".repo-path").write_text(str(repo_dir))
+        (tmp_path / ".repo-path").write_text(str(repo_dir), encoding="utf-8")
 
         result = _resolve_features_dir(tmp_path)
         assert result == tmp_path / "config" / "sync" / "features"
@@ -177,34 +177,34 @@ def _setup_env(tmp_path: Path) -> dict:
 
     repo_dir = tmp_path / "repo"
     repo_dir.mkdir()
-    (repo_dir / "VERSION").write_text("v2.14.0\n")
+    (repo_dir / "VERSION").write_text("v2.14.0\n", encoding="utf-8")
 
     features_dir = repo_dir / "core" / "sync" / "features"
     _make_feature_yaml(features_dir)
 
-    (arkaos_home / ".repo-path").write_text(str(repo_dir))
+    (arkaos_home / ".repo-path").write_text(str(repo_dir), encoding="utf-8")
     (arkaos_home / "sync-state.json").write_text(
-        json.dumps({"version": "2.13.0", "last_sync": "2026-01-01T00:00:00Z"})
+        json.dumps({"version": "2.13.0", "last_sync": "2026-01-01T00:00:00Z"}), encoding="utf-8"
     )
     (arkaos_home / "profile.json").write_text(
-        json.dumps({"projectsDir": ""})
+        json.dumps({"projectsDir": ""}), encoding="utf-8"
     )
 
     skills_dir = tmp_path / "skills"
     mcps_dir = skills_dir / "arka" / "mcps"
     mcps_dir.mkdir(parents=True)
-    (mcps_dir / "registry.json").write_text(json.dumps({"mcpServers": {}}))
+    (mcps_dir / "registry.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
 
     projects_dir = skills_dir / "arka" / "projects"
     projects_dir.mkdir(parents=True)
 
     knowledge_dir = skills_dir / "arka" / "knowledge"
     knowledge_dir.mkdir(parents=True)
-    (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}))
+    (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}), encoding="utf-8")
 
     project_dir = tmp_path / "my-project"
     project_dir.mkdir()
-    (project_dir / ".mcp.json").write_text(json.dumps({"mcpServers": {}}))
+    (project_dir / ".mcp.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
 
     return {
         "arkaos_home": arkaos_home,
@@ -260,7 +260,7 @@ class TestRunSync:
 
         state_file = env["arkaos_home"] / "sync-state.json"
         assert state_file.exists()
-        state = json.loads(state_file.read_text())
+        state = json.loads(state_file.read_text(encoding="utf-8"))
         assert state["version"] == "v2.14.0"  # VERSION file has v-prefix
 
     def test_sync_first_run(self, tmp_path: Path) -> None:

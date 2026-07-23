@@ -53,7 +53,7 @@ def hook_home(tmp_path):
     )
     vault = tmp_path / "vault"
     vault.mkdir()
-    (vault / "Laravel Service Pattern.md").write_text("# note\n")
+    (vault / "Laravel Service Pattern.md").write_text("# note\n", encoding="utf-8")
     return {
         "HOME": str(home),
         "ARKA_KB_VIOLATION_DIR": str(tmp_path / "kb-violation"),

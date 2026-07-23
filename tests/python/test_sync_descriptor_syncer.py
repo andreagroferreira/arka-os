@@ -31,7 +31,7 @@ def _write_descriptor(tmp_path: Path, name: str, project_path: str, status: str 
     desc_file = tmp_path / f"{name}.md"
     desc_file.write_text(_DESCRIPTOR_TEMPLATE.format(
         name=name, path=project_path, status=status
-    ))
+    ), encoding="utf-8")
     return desc_file
 
 
@@ -74,7 +74,7 @@ class TestSyncDescriptor:
         assert result.status == "updated"
         assert any("archived" in c for c in result.changes)
 
-        content = Path(project.descriptor_path).read_text()
+        content = Path(project.descriptor_path).read_text(encoding="utf-8")
         assert "status: archived" in content
 
     def test_update_stack(self, tmp_path: Path) -> None:
@@ -88,7 +88,7 @@ class TestSyncDescriptor:
         assert result.status == "updated"
         assert any("stack" in c for c in result.changes)
 
-        content = Path(project.descriptor_path).read_text()
+        content = Path(project.descriptor_path).read_text(encoding="utf-8")
         assert "nuxt" in content
 
     def test_auto_pause_inactive(self, tmp_path: Path) -> None:
@@ -103,7 +103,7 @@ class TestSyncDescriptor:
         assert result.status == "updated"
         assert any("paused" in c for c in result.changes)
 
-        content = Path(project.descriptor_path).read_text()
+        content = Path(project.descriptor_path).read_text(encoding="utf-8")
         assert "status: paused" in content
 
     def test_auto_reactivate(self, tmp_path: Path) -> None:
@@ -118,7 +118,7 @@ class TestSyncDescriptor:
         assert result.status == "updated"
         assert any("active" in c for c in result.changes)
 
-        content = Path(project.descriptor_path).read_text()
+        content = Path(project.descriptor_path).read_text(encoding="utf-8")
         assert "status: active" in content
 
     def test_unchanged(self, tmp_path: Path) -> None:
@@ -156,7 +156,7 @@ class TestSyncDescriptor:
         ):
             sync_descriptor(project)
 
-        content = Path(project.descriptor_path).read_text()
+        content = Path(project.descriptor_path).read_text(encoding="utf-8")
         assert "# body-app" in content
         assert "Content here..." in content
 

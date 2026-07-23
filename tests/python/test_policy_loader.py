@@ -30,7 +30,7 @@ def policy_file(tmp_path: Path) -> Path:
         "  - match: {default: true}\n"
         "    active: [context7]\n"
         "    deferred: []\n"
-        "    ambiguous: ['*']\n"
+        "    ambiguous: ['*']\n", encoding="utf-8"
     )
     return p
 

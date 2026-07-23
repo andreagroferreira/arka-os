@@ -34,7 +34,7 @@ def _write_transcript(tmp_path: Path) -> Path:
         ]}},
     ]
     path = tmp_path / "transcript.jsonl"
-    path.write_text("\n".join(json.dumps(entry) for entry in lines))
+    path.write_text("\n".join(json.dumps(entry) for entry in lines), encoding="utf-8")
     return path
 
 
@@ -51,7 +51,7 @@ def redaction_config(tmp_path, monkeypatch):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir(exist_ok=True)
     cfg = cfg_dir / "redaction-clients.json"
-    cfg.write_text(json.dumps({"clients": ["megacorp"]}))
+    cfg.write_text(json.dumps({"clients": ["megacorp"]}), encoding="utf-8")
     monkeypatch.setattr(leak_scanner, "_DEFAULT_CONFIG_PATH", cfg)
 
 
@@ -86,7 +86,7 @@ def test_capture_full_pipeline_with_real_sanitizer(tmp_path, redaction_config,
     assert record.importance > 0.5  # error keyword + Write tool
     cache = tmp_path / ".arkaos" / "context-cache" / "session-memory-sess-1.json"
     assert cache.exists()
-    payload = json.loads(cache.read_text())
+    payload = json.loads(cache.read_text(encoding="utf-8"))
     assert payload["retrieval"] == "semantic"
     assert payload["version"] == 1
     assert payload["session_id"] == "sess-1"
@@ -109,7 +109,7 @@ def test_cache_ranks_cross_session_neighbours(tmp_path, redaction_config,
     turn_capture.capture_turn("sess-2", str(transcript), "/repo/myproj")
     payload = json.loads(
         (tmp_path / ".arkaos" / "context-cache" / "session-memory-sess-2.json")
-        .read_text()
+        .read_text(encoding="utf-8")
     )
     assert len(payload["items"]) == 1
     assert payload["items"][0]["summary"] == "previous payment work"
@@ -146,7 +146,7 @@ def test_degraded_embedding_labeled(tmp_path, redaction_config, monkeypatch):
     assert record.embedding_backend == "none"
     payload = json.loads(
         (tmp_path / ".arkaos" / "context-cache" / "session-memory-sess-4.json")
-        .read_text()
+        .read_text(encoding="utf-8")
     )
     assert payload["retrieval"] == "keyword-degraded"
     assert payload["items"] == []
@@ -163,7 +163,7 @@ def test_config_flag_disables_capture(tmp_path, monkeypatch):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir()
     (cfg_dir / "config.json").write_text(
-        json.dumps({"memory": {"sessionMemory": False}})
+        json.dumps({"memory": {"sessionMemory": False}}), encoding="utf-8"
     )
     transcript = _write_transcript(tmp_path)
     assert turn_capture.capture_turn("sess-6", str(transcript), "") == 0

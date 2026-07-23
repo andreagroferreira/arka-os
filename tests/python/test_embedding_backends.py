@@ -34,7 +34,7 @@ def clean_state(monkeypatch, tmp_path):
 def _write_config(tmp_path, memory: dict) -> None:
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir(exist_ok=True)
-    (cfg_dir / "config.json").write_text(json.dumps({"memory": memory}))
+    (cfg_dir / "config.json").write_text(json.dumps({"memory": memory}), encoding="utf-8")
 
 
 def _fake_urlopen_factory(responses: dict[str, dict]):

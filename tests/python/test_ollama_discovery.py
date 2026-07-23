@@ -109,7 +109,7 @@ class TestCliIntegration:
             "provider": "ollama", "model": "kimi-k2.6:cloud",
             "tokens_in": 10, "tokens_out": 5, "cached_tokens": 0,
             "estimated_cost_usd": None, "category": "",
-        }) + "\n")
+        }) + "\n", encoding="utf-8")
         monkeypatch.setattr(
             "core.runtime.llm_cost_telemetry.DEFAULT_TELEMETRY_PATH",
             telemetry,

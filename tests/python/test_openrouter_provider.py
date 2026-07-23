@@ -66,7 +66,7 @@ class TestAvailability:
 
     def test_available_with_keys_json(self, monkeypatch, tmp_path):
         keys = tmp_path / "keys.json"
-        keys.write_text(json.dumps({"OPENROUTER_API_KEY": "sk-or-file"}))
+        keys.write_text(json.dumps({"OPENROUTER_API_KEY": "sk-or-file"}), encoding="utf-8")
         monkeypatch.setattr(
             "core.runtime.openrouter_provider._KEYS_PATH", keys
         )
@@ -159,6 +159,6 @@ class TestFactoryIntegration:
         """No key configured -> is_available False -> chain moves on."""
         from core.runtime.llm_provider import get_llm_provider
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"llm": {"provider": "openrouter"}}))
+        config.write_text(json.dumps({"llm": {"provider": "openrouter"}}), encoding="utf-8")
         provider = get_llm_provider(config_path=config)
         assert provider.name() != "openrouter"

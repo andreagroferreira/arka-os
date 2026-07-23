@@ -11,7 +11,7 @@ from core.sync.schema import FeatureSpec
 # --- Helpers ---
 
 def _write_feature_yaml(directory: Path, filename: str, content: str) -> None:
-    (directory / filename).write_text(content)
+    (directory / filename).write_text(content, encoding="utf-8")
 
 
 _BASIC_FEATURE_YAML = """\
@@ -63,8 +63,8 @@ class TestLoadFeatures:
 
     def test_skip_non_yaml_files(self, tmp_path: Path) -> None:
         _write_feature_yaml(tmp_path, "mcp-sync.yaml", _BASIC_FEATURE_YAML)
-        (tmp_path / "readme.txt").write_text("not a feature")
-        (tmp_path / "notes.md").write_text("# Notes")
+        (tmp_path / "readme.txt").write_text("not a feature", encoding="utf-8")
+        (tmp_path / "notes.md").write_text("# Notes", encoding="utf-8")
 
         features = load_features(tmp_path)
 

@@ -113,7 +113,7 @@ class TestWriteSyncState:
 
         write_sync_state(state_file, report)
 
-        data = json.loads(state_file.read_text())
+        data = json.loads(state_file.read_text(encoding="utf-8"))
         assert data["version"] == "v2.14.0"
         assert "last_sync" in data
         assert data["projects_synced"] == 2
@@ -139,7 +139,7 @@ class TestWriteSyncState:
 
         write_sync_state(state_file, report)
 
-        data = json.loads(state_file.read_text())
+        data = json.loads(state_file.read_text(encoding="utf-8"))
         assert data["projects_synced"] == 2  # unique paths only
 
     def test_errors_included_in_state(self, tmp_path: Path) -> None:
@@ -155,7 +155,7 @@ class TestWriteSyncState:
 
         write_sync_state(state_file, report)
 
-        data = json.loads(state_file.read_text())
+        data = json.loads(state_file.read_text(encoding="utf-8"))
         assert len(data["errors"]) == 1
         assert "boom" in data["errors"][0]
 
@@ -165,7 +165,7 @@ class TestWriteSyncState:
 
         write_sync_state(state_file, report)
 
-        data = json.loads(state_file.read_text())
+        data = json.loads(state_file.read_text(encoding="utf-8"))
         # ISO 8601 UTC strings contain '+00:00' or end with 'Z'
         assert "+00:00" in data["last_sync"] or data["last_sync"].endswith("Z")
 

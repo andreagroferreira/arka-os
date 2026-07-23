@@ -23,7 +23,7 @@ WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 
 
 def _agent_ids() -> set[str]:
-    data = json.loads(REGISTRY.read_text())
+    data = json.loads(REGISTRY.read_text(encoding="utf-8"))
     return {a["id"] for a in data["agents"]}
 
 

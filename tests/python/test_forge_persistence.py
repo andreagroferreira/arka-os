@@ -29,7 +29,7 @@ class TestSavePlan:
 
     def test_saved_file_is_valid_yaml(self, tmp_path):
         save_plan(_make_plan())
-        data = yaml.safe_load((tmp_path / "plans" / "forge-test-001.yaml").read_text())
+        data = yaml.safe_load((tmp_path / "plans" / "forge-test-001.yaml").read_text(encoding="utf-8"))
         assert data["id"] == "forge-test-001"
 
     def test_creates_plans_dir(self, tmp_path):
@@ -86,17 +86,17 @@ class TestObsidianExport:
     def test_frontmatter_contains_tags(self, _use_tmp_obsidian):
         plan = _make_plan()
         plan.status = ForgeStatus.COMPLETED
-        content = export_to_obsidian(plan).read_text()
+        content = export_to_obsidian(plan).read_text(encoding="utf-8")
         assert "tags:" in content and "forge" in content
 
     def test_contains_prompt(self, _use_tmp_obsidian):
-        content = export_to_obsidian(_make_plan()).read_text()
+        content = export_to_obsidian(_make_plan()).read_text(encoding="utf-8")
         assert "test" in content
 
     def test_contains_approaches(self, _use_tmp_obsidian):
         plan = _make_plan()
         plan.approaches = [ExplorerApproach(explorer=ExplorerLens.PRAGMATIC, summary="Fast and simple")]
-        content = export_to_obsidian(plan).read_text()
+        content = export_to_obsidian(plan).read_text(encoding="utf-8")
         assert "Pragmatic" in content and "Fast and simple" in content
 
     def test_contains_critic(self, _use_tmp_obsidian):
@@ -107,7 +107,7 @@ class TestObsidianExport:
             risks=[IdentifiedRisk(risk="Down", mitigation="Blue-green", severity=RiskSeverity.MEDIUM)],
             confidence=0.75,
         )
-        content = export_to_obsidian(plan).read_text()
+        content = export_to_obsidian(plan).read_text(encoding="utf-8")
         assert "0.75" in content and "Bad" in content and "Down" in content
 
 

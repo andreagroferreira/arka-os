@@ -34,13 +34,13 @@ class TestLoadProvenance:
             "aliases": {"ollama": {"best": "kimi-k2.6"}},
             "roles": {"review": {"provider": "ollama", "model": "best",
                                  "effort": "max"}},
-        }))
+        }), encoding="utf-8")
         config, source = load_config(user_path)
         assert source == "user"
         assert config.roles["review"].provider == "ollama"
 
     def test_corrupt_user_file_falls_back(self, user_path):
-        user_path.write_text("{not yaml: [")
+        user_path.write_text("{not yaml: [", encoding="utf-8")
         _, source = load_config(user_path)
         assert source == "packaged"
 
@@ -84,7 +84,7 @@ class TestAliasResolution:
             "aliases": {"ollama": {"best": "kimi-k2.6"}},
             "roles": {"judge-x": {"provider": "ollama", "model": "best",
                                   "effort": "max"}},
-        }))
+        }), encoding="utf-8")
         assert resolve("judge-x", user_path).model == "kimi-k2.6"
 
     def test_literal_model_passes_through(self, user_path):
@@ -92,14 +92,14 @@ class TestAliasResolution:
             "roles": {"review": {"provider": "openrouter",
                                  "model": "deepseek/deepseek-v4-pro",
                                  "effort": "max"}},
-        }))
+        }), encoding="utf-8")
         assert resolve("review", user_path).model == "deepseek/deepseek-v4-pro"
 
     def test_unmapped_alias_keeps_name_visible(self, user_path):
         user_path.write_text(yaml.safe_dump({
             "roles": {"review": {"provider": "mystery", "model": "best",
                                  "effort": "max"}},
-        }))
+        }), encoding="utf-8")
         # No aliases for "mystery" — surface the alias, never empty-string.
         assert resolve("review", user_path).model == "best"
 
@@ -108,14 +108,14 @@ class TestUserConfigLifecycle:
     def test_ensure_creates_from_packaged(self, user_path):
         path = ensure_user_config(user_path)
         assert path.is_file()
-        assert "Model Fabric" in path.read_text()
+        assert "Model Fabric" in path.read_text(encoding="utf-8")
 
     def test_ensure_is_idempotent(self, user_path):
         ensure_user_config(user_path)
         marker = "# custom-edit"
-        user_path.write_text(user_path.read_text() + f"\n{marker}\n")
+        user_path.write_text(user_path.read_text(encoding="utf-8") + f"\n{marker}\n", encoding="utf-8")
         ensure_user_config(user_path)
-        assert marker in user_path.read_text()
+        assert marker in user_path.read_text(encoding="utf-8")
 
     def test_set_role_roundtrip(self, user_path):
         item = set_role("review", "anthropic/best", effort="max",
