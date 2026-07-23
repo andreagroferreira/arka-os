@@ -24,7 +24,7 @@ def sanitizer_present(tmp_path, monkeypatch):
 
     cfg = tmp_path / ".arkaos" / "redaction-clients.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps({"clients": ["megacorp"]}))
+    cfg.write_text(json.dumps({"clients": ["megacorp"]}), encoding="utf-8")
     monkeypatch.setattr(leak_scanner, "_DEFAULT_CONFIG_PATH", cfg)
 
 
@@ -35,7 +35,7 @@ def _transcript(tmp_path, *texts):
         for t in texts
     ]
     path = tmp_path / "t.jsonl"
-    path.write_text("\n".join(json.dumps(x) for x in lines))
+    path.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
     return str(path)
 
 
@@ -50,7 +50,7 @@ def test_writes_digest_with_sanitized_excerpt(tmp_path, sanitizer_present):
     )
     path = write_digest("sess-abc12345", transcript)
     assert path is not None
-    body = path.read_text()
+    body = path.read_text(encoding="utf-8")
     assert "trigger: session-end" in body
     assert "session_id: sess-abc12345" in body
     assert "megacorp" not in body  # redacted
@@ -72,7 +72,7 @@ def test_digest_without_sanitizer_omits_excerpt(tmp_path, monkeypatch):
         tmp_path / ".arkaos" / "nope.json",  # absent
     )
     transcript = _transcript(tmp_path, "some private work")
-    body = write_digest("sess-y", transcript).read_text()
+    body = write_digest("sess-y", transcript).read_text(encoding="utf-8")
     assert "some private work" not in body
     assert "no sanitizable transcript excerpt" in body
 
@@ -98,7 +98,7 @@ def test_empty_transcript_still_writes_metadata_digest(tmp_path, sanitizer_prese
     assert main({"session_id": "sess-empty", "transcript_path": ""}) == 0
     digests = _digests(tmp_path)
     assert len(digests) == 1
-    assert "no sanitizable transcript excerpt" in digests[0].read_text()
+    assert "no sanitizable transcript excerpt" in digests[0].read_text(encoding="utf-8")
 
 
 def test_invalid_utf8_transcript_never_raises(tmp_path, sanitizer_present):

@@ -47,7 +47,7 @@ class TestObsidianWriter:
         """Frontmatter starts with --- and contains all KnowledgeEntry fields."""
         entry = make_entry()
         path_str = writer.write(entry)
-        content = Path(path_str).read_text()
+        content = Path(path_str).read_text(encoding="utf-8")
 
         assert content.startswith("---")
         assert f"id: {entry.id}" in content
@@ -66,7 +66,7 @@ class TestObsidianWriter:
         """Content markdown appears after the frontmatter block."""
         entry = make_entry(content="## Setup\n\nInstall Sanctum and publish config.")
         path_str = writer.write(entry)
-        file_content = Path(path_str).read_text()
+        file_content = Path(path_str).read_text(encoding="utf-8")
 
         # Frontmatter closes at second ---; content must follow
         parts = file_content.split("---", 2)
@@ -107,7 +107,7 @@ class TestObsidianWriter:
         path_second = writer.write(updated)
 
         assert path_first == path_second
-        content = Path(path_second).read_text()
+        content = Path(path_second).read_text(encoding="utf-8")
         assert "confidence: 0.99" in content
         assert "confidence: 0.5" not in content
 

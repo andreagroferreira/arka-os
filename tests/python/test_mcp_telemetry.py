@@ -51,7 +51,7 @@ class TestRecord:
     def test_writes_one_line_for_mcp_tool(self, tmp_path: Path):
         dest = tmp_path / "mcp-usage.jsonl"
         assert record("mcp__obsidian__read_note", session_id="abc", path=dest) is True
-        lines = dest.read_text().splitlines()
+        lines = dest.read_text(encoding="utf-8").splitlines()
         assert len(lines) == 1
         entry = json.loads(lines[0])
         assert entry["server"] == "obsidian"
@@ -66,7 +66,7 @@ class TestRecord:
 
     def test_unwritable_path_returns_false_without_raising(self, tmp_path: Path):
         blocker = tmp_path / "file"
-        blocker.write_text("x")
+        blocker.write_text("x", encoding="utf-8")
         dest = blocker / "mcp-usage.jsonl"  # parent is a file -> OSError
         assert record("mcp__obsidian__read_note", path=dest) is False
 
@@ -164,6 +164,6 @@ class TestHookWiring:
             "session_id": "sess-1",
         })
         assert rc == 0
-        entry = json.loads(dest.read_text().splitlines()[0])
+        entry = json.loads(dest.read_text(encoding="utf-8").splitlines()[0])
         assert entry["server"] == "obsidian"
         assert entry["session"] == "sess-1"

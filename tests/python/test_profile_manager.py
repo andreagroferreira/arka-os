@@ -76,7 +76,7 @@ class TestRead:
             "name": "Test",
             "company": "ACME",
             "language": "pt",
-        }))
+        }), encoding="utf-8")
         p = ProfileManager(path).read()
         assert p.name == "Test"
         assert p.company == "ACME"
@@ -84,14 +84,14 @@ class TestRead:
 
     def test_returns_default_on_corrupt_json(self, tmp_path):
         path = tmp_path / "profile.json"
-        path.write_text("not-json{")
+        path.write_text("not-json{", encoding="utf-8")
         p = ProfileManager(path).read()
         assert p == Profile()
 
     def test_returns_default_on_top_level_array(self, tmp_path):
         """A JSON array at top level shouldn't crash — from_dict guards."""
         path = tmp_path / "profile.json"
-        path.write_text(json.dumps(["not", "an", "object"]))
+        path.write_text(json.dumps(["not", "an", "object"]), encoding="utf-8")
         p = ProfileManager(path).read()
         assert p == Profile()
 
@@ -113,7 +113,7 @@ class TestPatch:
 
     def test_merges_with_existing_data(self, tmp_path):
         path = tmp_path / "profile.json"
-        path.write_text(json.dumps({"name": "Old", "language": "en", "company": "Keep"}))
+        path.write_text(json.dumps({"name": "Old", "language": "en", "company": "Keep"}), encoding="utf-8")
         updated = ProfileManager(path).patch({"name": "New", "role": "founder"})
         assert updated.name == "New"          # patched
         assert updated.role == "founder"      # added
@@ -124,7 +124,7 @@ class TestPatch:
         path = tmp_path / "profile.json"
         mgr = ProfileManager(path)
         mgr.patch({"name": "Test", "version": "99", "created": "fake"})
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         # 'version' is locked to "2"; 'created' is bootstrapped by patch
         assert data["version"] == "2"
         assert data["created"] != "fake"
@@ -150,7 +150,7 @@ class TestPatch:
     def test_coerces_non_string_values(self, tmp_path):
         path = tmp_path / "profile.json"
         ProfileManager(path).patch({"market": 42, "role": True})
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         assert data["market"] == "42"
         assert data["role"] == "True"
 

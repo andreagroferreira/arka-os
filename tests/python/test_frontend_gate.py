@@ -255,7 +255,7 @@ class TestTelemetry:
                             mode="hard", target_file="Hero.vue",
                             marker_kind="legacy", ui_scope="suffix")
         frontend_gate.record_telemetry("sess-1", "Edit", decision)
-        lines = frontend_gate.TELEMETRY_PATH.read_text().splitlines()
+        lines = frontend_gate.TELEMETRY_PATH.read_text(encoding="utf-8").splitlines()
         entry = json.loads(lines[0])
         assert entry["reason"] == "legacy-marker"
         assert entry["marker_kind"] == "legacy"

@@ -43,7 +43,7 @@ class TestRead:
             ---
 
             Body content.
-        """).strip())
+        """).strip(), encoding="utf-8")
         store = ObsidianPersonaStore(vault_path=vault_path)
         personas = store.list_all()
         assert len(personas) == 1
@@ -65,7 +65,7 @@ class TestRead:
             "frameworks": ["how to get rich"],
         }
         (vault_path / "Personas" / "Naval.md").write_text(
-            "---\n" + yaml.safe_dump(fm) + "---\n\nbody\n"
+            "---\n" + yaml.safe_dump(fm) + "---\n\nbody\n", encoding="utf-8"
         )
         store = ObsidianPersonaStore(vault_path=vault_path)
         personas = store.list_all()
@@ -82,10 +82,10 @@ class TestRead:
     def test_skips_non_persona_type_files(self, vault_path):
         """MOC files / other note types in the Personas folder are ignored."""
         (vault_path / "Personas" / "Personas MOC.md").write_text(
-            "---\ntype: moc\n---\n\nList of personas.\n"
+            "---\ntype: moc\n---\n\nList of personas.\n", encoding="utf-8"
         )
         (vault_path / "Personas" / "Alex.md").write_text(
-            "---\ntype: persona\nname: Alex\n---\n\nbody\n"
+            "---\ntype: persona\nname: Alex\n---\n\nbody\n", encoding="utf-8"
         )
         store = ObsidianPersonaStore(vault_path=vault_path)
         personas = store.list_all()
@@ -93,7 +93,7 @@ class TestRead:
         assert personas[0].name == "Alex"
 
     def test_skips_files_without_frontmatter(self, vault_path):
-        (vault_path / "Personas" / "plain.md").write_text("Just a note, no fm.\n")
+        (vault_path / "Personas" / "plain.md").write_text("Just a note, no fm.\n", encoding="utf-8")
         store = ObsidianPersonaStore(vault_path=vault_path)
         assert store.list_all() == []
 
@@ -108,14 +108,14 @@ class TestRead:
               - y
             ---
             body
-        """).strip())
+        """).strip(), encoding="utf-8")
         store = ObsidianPersonaStore(vault_path=vault_path)
         personas = store.list_all()
         assert personas[0].expertise_domains == ["x", "y"]
 
     def test_handles_corrupt_yaml(self, vault_path):
         (vault_path / "Personas" / "broken.md").write_text(
-            "---\n  : missing key\n---\n\nbody\n"
+            "---\n  : missing key\n---\n\nbody\n", encoding="utf-8"
         )
         # Must not raise
         store = ObsidianPersonaStore(vault_path=vault_path)

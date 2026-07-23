@@ -53,7 +53,7 @@ _SAMPLE_REGISTRY = {
 
 def _write_registry(tmp_path: Path, data: dict | None = None) -> Path:
     reg_file = tmp_path / "registry.json"
-    reg_file.write_text(json.dumps(data if data is not None else _SAMPLE_REGISTRY))
+    reg_file.write_text(json.dumps(data if data is not None else _SAMPLE_REGISTRY), encoding="utf-8")
     return reg_file
 
 
@@ -91,7 +91,7 @@ class TestRequiresBinary:
         assert "codebase-memory" in result.mcps_deferred
         assert any("requires binary" in w for w in result.optimizer_warnings)
         written = json.loads(
-            (Path(project.path) / ".mcp.json").read_text()
+            (Path(project.path) / ".mcp.json").read_text(encoding="utf-8")
         )["mcpServers"]
         assert "codebase-memory" not in written, (
             "a dead server entry must never reach .mcp.json"
@@ -109,7 +109,7 @@ class TestRequiresBinary:
 
         assert result.mcps_deferred == []
         written = json.loads(
-            (Path(project.path) / ".mcp.json").read_text()
+            (Path(project.path) / ".mcp.json").read_text(encoding="utf-8")
         )["mcpServers"]
         assert "codebase-memory" in written
         assert "requires_binary" not in written["codebase-memory"]
@@ -145,13 +145,13 @@ class TestLoadRegistry:
 
     def test_malformed_json_returns_empty_dict(self, tmp_path: Path) -> None:
         bad_file = tmp_path / "bad.json"
-        bad_file.write_text("not valid json{{")
+        bad_file.write_text("not valid json{{", encoding="utf-8")
         registry = load_registry(bad_file)
         assert registry == {}
 
     def test_file_without_mcp_servers_key_returns_empty(self, tmp_path: Path) -> None:
         reg_file = tmp_path / "registry.json"
-        reg_file.write_text(json.dumps({"_meta": {"v": 1}}))
+        reg_file.write_text(json.dumps({"_meta": {"v": 1}}), encoding="utf-8")
         registry = load_registry(reg_file)
         assert registry == {}
 
@@ -253,7 +253,7 @@ class TestSyncProjectMcp:
 
         mcp_file = Path(project.path) / ".mcp.json"
         assert mcp_file.exists()
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         servers = data["mcpServers"]
         assert "arka-prompts" in servers
         assert "laravel-boost" in servers
@@ -268,12 +268,12 @@ class TestSyncProjectMcp:
             "mcpServers": {
                 "my-custom-tool": {"command": "custom", "args": []},
             }
-        }))
+        }), encoding="utf-8")
         registry = _SAMPLE_REGISTRY["mcpServers"]
 
         result = sync_project_mcp(project, registry, "/home/user")
 
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         assert "my-custom-tool" in data["mcpServers"]
         assert "my-custom-tool" in result.mcps_preserved
         assert "my-custom-tool" in result.final_mcp_list
@@ -288,13 +288,13 @@ class TestSyncProjectMcp:
                     "args": ["-y", "@upstash/context7-mcp", "--old-flag"],
                 }
             }
-        }))
+        }), encoding="utf-8")
         registry = _SAMPLE_REGISTRY["mcpServers"]
 
         result = sync_project_mcp(project, registry, "/home/user")
 
         assert "context7" in result.mcps_updated
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         assert "--old-flag" not in data["mcpServers"]["context7"]["args"]
 
     def test_serena_gets_project_path_injected(self, tmp_path: Path) -> None:
@@ -305,7 +305,7 @@ class TestSyncProjectMcp:
         sync_project_mcp(project, registry, home)
 
         mcp_file = Path(project.path) / ".mcp.json"
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         serena_args = data["mcpServers"]["serena"]["args"]
         assert project.path in serena_args
         assert "{cwd}" not in " ".join(serena_args)
@@ -318,7 +318,7 @@ class TestSyncProjectMcp:
         sync_project_mcp(project, registry, home)
 
         mcp_file = Path(project.path) / ".mcp.json"
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         arka_args = data["mcpServers"]["arka-prompts"]["args"]
         assert home in " ".join(arka_args)
         assert "{home}" not in " ".join(arka_args)
@@ -347,14 +347,14 @@ class TestSyncProjectMcp:
             "mcpServers": {
                 "laravel-boost": {"command": "npx", "args": ["laravel-boost-mcp"]},
             }
-        }))
+        }), encoding="utf-8")
         registry = _SAMPLE_REGISTRY["mcpServers"]
 
         # empty stack → laravel-boost is not in target
         result = sync_project_mcp(project, registry, "/home/user")
 
         assert "laravel-boost" in result.mcps_removed
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         assert "laravel-boost" not in data["mcpServers"]
 
     def test_registry_meta_keys_stripped_from_output(self, tmp_path: Path) -> None:
@@ -364,7 +364,7 @@ class TestSyncProjectMcp:
         sync_project_mcp(project, registry, "/home/user")
 
         mcp_file = Path(project.path) / ".mcp.json"
-        data = json.loads(mcp_file.read_text())
+        data = json.loads(mcp_file.read_text(encoding="utf-8"))
         for server_cfg in data["mcpServers"].values():
             assert "category" not in server_cfg
             assert "description" not in server_cfg

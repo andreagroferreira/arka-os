@@ -30,7 +30,7 @@ def dashboard_module():
 class TestParseDescriptor:
     def test_minimal_descriptor(self, dashboard_module, tmp_path):
         path = tmp_path / "proj.md"
-        path.write_text("# proj\n\nbody\n")
+        path.write_text("# proj\n\nbody\n", encoding="utf-8")
         result = dashboard_module._parse_descriptor(path)
         assert result["name"] == "proj"
         assert result["stack"] == []
@@ -191,7 +191,7 @@ class TestCommandCenterEndpoint:
             "company": "ACME",
             "role": "founder",
             "language": "pt",
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.overview_command_center()
         assert result["greeting"]["name"] == "Test User"
         assert result["greeting"]["company"] == "ACME"

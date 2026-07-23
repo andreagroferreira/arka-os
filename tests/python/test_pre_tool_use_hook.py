@@ -42,7 +42,7 @@ def hook_env(tmp_path, monkeypatch):
     )
     vault = tmp_path / "vault"
     vault.mkdir()
-    (vault / "Laravel Service Pattern.md").write_text("# Laravel Service Pattern\n")
+    (vault / "Laravel Service Pattern.md").write_text("# Laravel Service Pattern\n", encoding="utf-8")
 
     env = dict(os.environ)
     env.update({

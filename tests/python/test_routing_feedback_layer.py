@@ -30,7 +30,7 @@ def _write_scores(tmp_path, scores: list[RoutingScore]) -> None:
         sources=["qg-verdicts.jsonl", "judge-verdicts.jsonl"],
         scores=scores,
     )
-    (tmp_path / "routing-scores.json").write_text(payload.model_dump_json())
+    (tmp_path / "routing-scores.json").write_text(payload.model_dump_json(), encoding="utf-8")
 
 
 def _risky(department: str = "dev") -> RoutingScore:
@@ -99,14 +99,14 @@ def test_env_bypass(tmp_path, monkeypatch):
 def test_config_flag_off(tmp_path):
     cfg = tmp_path / ".arkaos" / "config.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps({"synapse": {"l55RoutingFeedback": False}}))
+    cfg.write_text(json.dumps({"synapse": {"l55RoutingFeedback": False}}), encoding="utf-8")
     _write_scores(tmp_path, [_risky("dev")])
     result = RoutingFeedbackLayer().compute(_ctx(DEV_PROMPT))
     assert result.content == ""
 
 
 def test_corrupt_scores_file_inert(tmp_path):
-    (tmp_path / "routing-scores.json").write_text("{ not json")
+    (tmp_path / "routing-scores.json").write_text("{ not json", encoding="utf-8")
     result = RoutingFeedbackLayer().compute(_ctx(DEV_PROMPT))
     assert result.content == ""
 
@@ -128,7 +128,7 @@ def test_non_dict_config_defaults_flag_on(tmp_path):
     """Malformed-but-valid JSON (a list) keeps the documented default: ON."""
     cfg = tmp_path / ".arkaos" / "config.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps(["not", "a", "dict"]))
+    cfg.write_text(json.dumps(["not", "a", "dict"]), encoding="utf-8")
     _write_scores(tmp_path, [_risky("dev")])
     result = RoutingFeedbackLayer().compute(_ctx(DEV_PROMPT))
     assert "[arka:redo-risk]" in result.content  # flag ON despite junk config

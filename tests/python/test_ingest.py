@@ -47,7 +47,7 @@ class TestIngestEngine:
 
     def test_ingest_markdown(self, engine, store, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("# Test Document\n\nThis is a test document with enough content to pass the minimum threshold for chunking. It contains multiple sentences and paragraphs to be properly processed by the ingest engine.\n\n## Section Two\n\nMore content here for the second section of the document.")
+        md_file.write_text("# Test Document\n\nThis is a test document with enough content to pass the minimum threshold for chunking. It contains multiple sentences and paragraphs to be properly processed by the ingest engine.\n\n## Section Two\n\nMore content here for the second section of the document.", encoding="utf-8")
 
         progress_calls = []
         result = engine.ingest(
@@ -75,7 +75,7 @@ class TestIngestEngine:
 
     def test_ingest_short_content(self, engine, tmp_path):
         short_file = tmp_path / "short.md"
-        short_file.write_text("Too short")
+        short_file.write_text("Too short", encoding="utf-8")
 
         result = engine.ingest(str(short_file), source_type="markdown")
         assert not result.success
@@ -83,7 +83,7 @@ class TestIngestEngine:
 
     def test_ingest_indexes_into_store(self, engine, store, tmp_path):
         md_file = tmp_path / "indexed.md"
-        md_file.write_text("# Knowledge Article\n\nThis article contains important information about ArkaOS architecture and design patterns. It covers the agent hierarchy, workflow engine, and synapse context injection system in detail.\n\n## Architecture\n\nThe system uses a multi-tier agent hierarchy with behavioral DNA profiles.")
+        md_file.write_text("# Knowledge Article\n\nThis article contains important information about ArkaOS architecture and design patterns. It covers the agent hierarchy, workflow engine, and synapse context injection system in detail.\n\n## Architecture\n\nThe system uses a multi-tier agent hierarchy with behavioral DNA profiles.", encoding="utf-8")
 
         result = engine.ingest(str(md_file), source_type="markdown")
         assert result.success
@@ -106,7 +106,7 @@ class TestIngestEngine:
 
     def test_progress_callback_flow(self, engine, tmp_path):
         md_file = tmp_path / "progress.md"
-        md_file.write_text("# Progress Test\n\nContent with enough words to pass the minimum threshold for the ingestion engine to process it and create meaningful chunks for indexing into the vector database.")
+        md_file.write_text("# Progress Test\n\nContent with enough words to pass the minimum threshold for the ingestion engine to process it and create meaningful chunks for indexing into the vector database.", encoding="utf-8")
 
         progress_values = []
         engine.ingest(
@@ -122,7 +122,7 @@ class TestIngestEngine:
 
     def test_ingest_with_metadata(self, engine, store, tmp_path):
         md_file = tmp_path / "meta.md"
-        md_file.write_text("# Metadata Test\n\nThis document tests that custom metadata is properly attached to the indexed chunks when they are stored in the vector database for later retrieval.")
+        md_file.write_text("# Metadata Test\n\nThis document tests that custom metadata is properly attached to the indexed chunks when they are stored in the vector database for later retrieval.", encoding="utf-8")
 
         result = engine.ingest(
             str(md_file),

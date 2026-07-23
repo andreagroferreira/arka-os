@@ -79,9 +79,9 @@ def test_configured_vault_with_subdirs(monkeypatch, tmp_path):
     vault = tmp_path / "vault"
     (vault / "Personas").mkdir(parents=True)
     (vault / "Agents").mkdir(parents=True)
-    (vault / "Personas" / "a.md").write_text("---\ntype: persona\n---\n")
-    (vault / "Personas" / "b.md").write_text("---\ntype: persona\n---\n")
-    (vault / "Agents" / "x.md").write_text("---\ntype: agent\n---\n")
+    (vault / "Personas" / "a.md").write_text("---\ntype: persona\n---\n", encoding="utf-8")
+    (vault / "Personas" / "b.md").write_text("---\ntype: persona\n---\n", encoding="utf-8")
+    (vault / "Agents" / "x.md").write_text("---\ntype: agent\n---\n", encoding="utf-8")
 
     from core.profile import ProfileManager
 

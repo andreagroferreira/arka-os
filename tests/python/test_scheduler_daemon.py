@@ -50,7 +50,7 @@ SCHEDULE_YAML = {
 def schedule_yaml_path(tmp_path: Path) -> str:
     """Write the YAML fixture to a temp file and return its path."""
     yaml_file = tmp_path / "schedules.yaml"
-    yaml_file.write_text(yaml.dump(SCHEDULE_YAML))
+    yaml_file.write_text(yaml.dump(SCHEDULE_YAML), encoding="utf-8")
     return str(yaml_file)
 
 
@@ -111,7 +111,7 @@ class TestScheduleConfig:
                     "time": "02:00",
                 },
             }
-        }))
+        }), encoding="utf-8")
         schedules = ScheduleConfig.load(str(yaml_file))
         with_goal = next(s for s in schedules if s.command == "research")
         without_goal = next(s for s in schedules if s.command == "dreaming")
@@ -147,7 +147,7 @@ class TestArkaScheduler:
     ) -> None:
         """Built command must include 'claude' binary and skip-permissions flag."""
         prompt_file = tmp_path / "dreaming.md"
-        prompt_file.write_text("dream about the future")
+        prompt_file.write_text("dream about the future", encoding="utf-8")
 
         schedule = ScheduleConfig(
             command="dreaming",
@@ -158,7 +158,7 @@ class TestArkaScheduler:
         # Create a fake claude binary in a known location
         fake_claude = tmp_path / ".local" / "bin" / "claude"
         fake_claude.parent.mkdir(parents=True)
-        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.write_text("#!/bin/sh\n", encoding="utf-8")
         fake_claude.chmod(0o755)
 
         with patch.object(Path, "home", return_value=tmp_path):
@@ -176,10 +176,10 @@ class TestArkaScheduler:
         hits the metered $200 pool after 2026-06-15. Warning is one-time
         per schedule (marker under ~/.arkaos/telemetry/)."""
         prompt_file = tmp_path / "dreaming.md"
-        prompt_file.write_text("dream about the future")
+        prompt_file.write_text("dream about the future", encoding="utf-8")
         fake_claude = tmp_path / ".local" / "bin" / "claude"
         fake_claude.parent.mkdir(parents=True)
-        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.write_text("#!/bin/sh\n", encoding="utf-8")
         fake_claude.chmod(0o755)
         schedule = ScheduleConfig(
             command="legacy-dreaming",
@@ -202,10 +202,10 @@ class TestArkaScheduler:
         """PR54 v2.71.0 — goal_condition + task_budget produce the
         `--goal <cond> --task-budget <N>` argv suffix."""
         prompt_file = tmp_path / "research.md"
-        prompt_file.write_text("# research prompt")
+        prompt_file.write_text("# research prompt", encoding="utf-8")
         fake_claude = tmp_path / ".local" / "bin" / "claude"
         fake_claude.parent.mkdir(parents=True)
-        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.write_text("#!/bin/sh\n", encoding="utf-8")
         fake_claude.chmod(0o755)
         schedule = ScheduleConfig(
             command="research",
@@ -233,10 +233,10 @@ class TestArkaScheduler:
         without the other must fail loudly rather than silently dropping
         the goal or the budget."""
         prompt_file = tmp_path / "x.md"
-        prompt_file.write_text("x")
+        prompt_file.write_text("x", encoding="utf-8")
         fake_claude = tmp_path / ".local" / "bin" / "claude"
         fake_claude.parent.mkdir(parents=True)
-        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.write_text("#!/bin/sh\n", encoding="utf-8")
         fake_claude.chmod(0o755)
         schedule = ScheduleConfig(
             command="bad",
@@ -255,10 +255,10 @@ class TestArkaScheduler:
         """When goal_condition is unset, argv must not gain --goal nor
         --task-budget. Pre-PR54 schedules stay byte-identical."""
         prompt_file = tmp_path / "x.md"
-        prompt_file.write_text("legacy prompt")
+        prompt_file.write_text("legacy prompt", encoding="utf-8")
         fake_claude = tmp_path / ".local" / "bin" / "claude"
         fake_claude.parent.mkdir(parents=True)
-        fake_claude.write_text("#!/bin/sh\n")
+        fake_claude.write_text("#!/bin/sh\n", encoding="utf-8")
         fake_claude.chmod(0o755)
         schedule = ScheduleConfig(
             command="legacy",
@@ -317,7 +317,7 @@ class TestArkaScheduler:
     def test_execute_success(self, scheduler: ArkaScheduler, tmp_path: Path) -> None:
         """execute returns True when the subprocess exits 0."""
         prompt_file = tmp_path / "prompt.md"
-        prompt_file.write_text("test prompt")
+        prompt_file.write_text("test prompt", encoding="utf-8")
         schedule = ScheduleConfig(
             command="test_cmd", prompt_file=str(prompt_file), run_time=time(2, 0),
         )
@@ -335,7 +335,7 @@ class TestArkaScheduler:
     def test_execute_retries_on_failure(self, scheduler: ArkaScheduler, tmp_path: Path) -> None:
         """execute retries up to max_retries on non-zero exit codes."""
         prompt_file = tmp_path / "prompt.md"
-        prompt_file.write_text("test")
+        prompt_file.write_text("test", encoding="utf-8")
         schedule = ScheduleConfig(
             command="retry_cmd", prompt_file=str(prompt_file),
             run_time=time(2, 0), retry_on_fail=True, max_retries=2,
@@ -352,7 +352,7 @@ class TestArkaScheduler:
     def test_execute_backoff_delay(self, scheduler: ArkaScheduler, tmp_path: Path) -> None:
         """Retry backoff increases: 30s after first fail, 60s after second."""
         prompt_file = tmp_path / "prompt.md"
-        prompt_file.write_text("test")
+        prompt_file.write_text("test", encoding="utf-8")
         schedule = ScheduleConfig(
             command="backoff_cmd", prompt_file=str(prompt_file),
             run_time=time(2, 0), retry_on_fail=True, max_retries=2,
@@ -374,7 +374,7 @@ class TestArkaScheduler:
     ) -> None:
         """execute returns False and logs FATAL when claude binary not found."""
         prompt_file = tmp_path / "prompt.md"
-        prompt_file.write_text("test")
+        prompt_file.write_text("test", encoding="utf-8")
         schedule = ScheduleConfig(
             command="missing_cmd", prompt_file=str(prompt_file), run_time=time(2, 0),
         )
@@ -436,7 +436,7 @@ CLI_SCHEDULE_YAML = {
 def cli_fixture(tmp_path: Path):
     """Temp schedules.yaml with 2 schedules and a real prompt file."""
     prompt_file = tmp_path / "prompt.md"
-    prompt_file.write_text("think deeply")
+    prompt_file.write_text("think deeply", encoding="utf-8")
 
     yaml_data = {
         "schedules": {
@@ -445,7 +445,7 @@ def cli_fixture(tmp_path: Path):
         }
     }
     yaml_file = tmp_path / "schedules.yaml"
-    yaml_file.write_text(yaml.dump(yaml_data))
+    yaml_file.write_text(yaml.dump(yaml_data), encoding="utf-8")
 
     log_dir = tmp_path / "logs"
     log_dir.mkdir()

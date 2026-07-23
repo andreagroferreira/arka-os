@@ -45,7 +45,7 @@ class TestMcpsEndpoint:
                 "obsidian": {"command": "npx obsidian-mcp"},
                 "playwright": {"command": "npx playwright-mcp"},
             },
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.settings_mcps()
         assert result["total"] == 2
         names = [r["name"] for r in result["mcps"]]
@@ -58,7 +58,7 @@ class TestMcpsEndpoint:
     def test_merges_arkaos_registry_with_dedup(self, dashboard_module, tmp_home):
         (tmp_home / ".claude.json").write_text(json.dumps({
             "mcpServers": {"obsidian": {"command": "npx obsidian-mcp"}},
-        }))
+        }), encoding="utf-8")
         reg_dir = tmp_home / ".claude" / "skills" / "arka" / "mcps"
         reg_dir.mkdir(parents=True)
         (reg_dir / "registry.json").write_text(json.dumps({
@@ -66,7 +66,7 @@ class TestMcpsEndpoint:
                 "obsidian": {"command": "another"},   # duplicate — drop
                 "shopify":  {"command": "shopify-mcp"},
             },
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.settings_mcps()
         names = [r["name"] for r in result["mcps"]]
         assert names.count("obsidian") == 1
@@ -80,12 +80,12 @@ class TestMcpsEndpoint:
     def test_handles_http_transport(self, dashboard_module, tmp_home):
         (tmp_home / ".claude.json").write_text(json.dumps({
             "mcpServers": {"remote": {"url": "https://mcp.example.com"}},
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.settings_mcps()
         assert result["mcps"][0]["transport"] == "http"
 
     def test_handles_corrupt_user_global(self, dashboard_module, tmp_home):
-        (tmp_home / ".claude.json").write_text("not-json{")
+        (tmp_home / ".claude.json").write_text("not-json{", encoding="utf-8")
         # Must not raise
         result = dashboard_module.settings_mcps()
         assert result["mcps"] == []
@@ -99,7 +99,7 @@ class TestMcpsEndpoint:
                 {"name": "alpha", "command": "alpha-cmd"},
                 {"name": "beta",  "command": "beta-cmd"},
             ],
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.settings_mcps()
         names = [r["name"] for r in result["mcps"]]
         assert names == sorted(["alpha", "beta"])
@@ -125,7 +125,7 @@ class TestHooksEndpoint:
                     {"hooks": [{"type": "command", "command": "/path/user-prompt.sh", "timeout": 10}]},
                 ],
             },
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.settings_hooks()
         by_type = {r["hook"]: r for r in result["hooks"]}
         assert "SessionStart" in by_type
@@ -141,14 +141,14 @@ class TestHooksEndpoint:
                 "hardEnforcement": True,
                 "UserPromptSubmit": [],
             },
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.settings_hooks()
         assert result["hard_enforcement"] is True
 
     def test_corrupt_json_returns_empty(self, dashboard_module, tmp_home):
         settings_path = tmp_home / ".claude" / "settings.json"
         settings_path.parent.mkdir(parents=True)
-        settings_path.write_text("not-json{")
+        settings_path.write_text("not-json{", encoding="utf-8")
         result = dashboard_module.settings_hooks()
         assert result["hooks"] == []
 
@@ -175,7 +175,7 @@ class TestPluginsEndpoint:
                     {"scope": "user", "version": "10.6.2", "installedAt": "2026-03-26T19:48:33.661Z"},
                 ],
             },
-        }))
+        }), encoding="utf-8")
         result = dashboard_module.settings_plugins()
         assert result["total"] == 2
         names = {r["name"] for r in result["plugins"]}
@@ -188,6 +188,6 @@ class TestPluginsEndpoint:
     def test_handles_corrupt_json(self, dashboard_module, tmp_home):
         plugins_path = tmp_home / ".claude" / "plugins" / "installed_plugins.json"
         plugins_path.parent.mkdir(parents=True)
-        plugins_path.write_text("not-json{")
+        plugins_path.write_text("not-json{", encoding="utf-8")
         result = dashboard_module.settings_plugins()
         assert result["plugins"] == []

@@ -135,7 +135,7 @@ class TestRegistryGeneration:
         out = tmp_path / "test-registry.json"
         generate_commands_registry(BASE_DIR, out)
         assert out.exists()
-        data = json.loads(out.read_text())
+        data = json.loads(out.read_text(encoding="utf-8"))
         assert "_meta" in data
         assert "commands" in data
 

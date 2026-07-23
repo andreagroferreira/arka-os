@@ -379,5 +379,5 @@ def test_post_tool_use_sh_confirms_auth_from_transcript(tmp_path, monkeypatch):
     )
     auth_file = auth_dir / "session-livemarker.json"
     assert auth_file.exists(), "hook did not confirm authorization from transcript"
-    data = json.loads(auth_file.read_text())
+    data = json.loads(auth_file.read_text(encoding="utf-8"))
     assert data["marker_type"] == "routing"

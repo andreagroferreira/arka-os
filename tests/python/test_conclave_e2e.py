@@ -196,7 +196,7 @@ class TestSkillFile:
 
     def test_skill_md_has_commands(self):
         skill_path = Path(__file__).parent.parent.parent / "arka" / "skills" / "conclave" / "SKILL.md"
-        content = skill_path.read_text()
+        content = skill_path.read_text(encoding="utf-8")
         assert "/arka conclave" in content
         assert "/arka conclave ask" in content
         assert "/arka conclave debate" in content
@@ -204,7 +204,7 @@ class TestSkillFile:
 
     def test_skill_md_lists_all_20_advisors(self):
         skill_path = Path(__file__).parent.parent.parent / "arka" / "skills" / "conclave" / "SKILL.md"
-        content = skill_path.read_text()
+        content = skill_path.read_text(encoding="utf-8")
         assert "Charlie Munger" in content
         assert "Tim Ferriss" in content
         assert "Alex Hormozi" in content

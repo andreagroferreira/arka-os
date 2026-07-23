@@ -139,7 +139,7 @@ def test_read_obsidian_query_malformed_file(tmp_path, monkeypatch):
     target = tmp_path / "m"
     monkeypatch.setenv("ARKA_KB_QUERY_DIR", str(target))
     target.mkdir(parents=True, exist_ok=True)
-    (target / "corrupt.json").write_text("{not json")
+    (target / "corrupt.json").write_text("{not json", encoding="utf-8")
     assert kb_cache.read_obsidian_query("corrupt") is None
 
 

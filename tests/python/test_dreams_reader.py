@@ -122,7 +122,7 @@ def test_parse_insight_extracts_metadata(tmp_path):
 def test_parse_insight_returns_none_for_missing_frontmatter(tmp_path):
     path = tmp_path / "x.md"
     path.write_text("# No frontmatter here\nbody", encoding="utf-8")
-    assert parse_insight(path, path.read_text()) is None
+    assert parse_insight(path, path.read_text(encoding="utf-8")) is None
 
 
 def test_parse_insight_returns_none_for_wrong_type(tmp_path):
@@ -131,7 +131,7 @@ def test_parse_insight_returns_none_for_wrong_type(tmp_path):
         "---\ntype: not-an-insight\ndate: 2026-05-13\n---\n# X\nbody",
         encoding="utf-8",
     )
-    assert parse_insight(path, path.read_text()) is None
+    assert parse_insight(path, path.read_text(encoding="utf-8")) is None
 
 
 def test_parse_frontmatter_extracts_list_values():

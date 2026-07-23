@@ -51,7 +51,7 @@ def _write_transcript(path: Path, assistant_texts: list[str]) -> Path:
 
 def _global_state(tmp_path: Path) -> dict:
     return json.loads(
-        (tmp_path / ".arkaos" / "workflow-state.json").read_text()
+        (tmp_path / ".arkaos" / "workflow-state.json").read_text(encoding="utf-8")
     )
 
 
@@ -150,7 +150,7 @@ class TestDesignSlopInEvidenceReport:
     def test_design_slop_present_in_full_report(self, tmp_path):
         from core.governance.evidence_checks import run_evidence_checks
 
-        (tmp_path / "app.css").write_text("body { color: #111; }\n")
+        (tmp_path / "app.css").write_text("body { color: #111; }\n", encoding="utf-8")
         report = run_evidence_checks(tmp_path, changed_files=["app.css"])
         names = [r.check for r in report.results]
         assert "design-slop" in names

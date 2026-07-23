@@ -30,7 +30,7 @@ def _make_feature_yaml(features_dir: Path) -> None:
         'detection_pattern: "arka-forge"\n'
         "deprecated_in: null\n"
         "content: |\n"
-        "  Forge integration content.\n"
+        "  Forge integration content.\n", encoding="utf-8"
     )
 
 
@@ -57,7 +57,7 @@ def _write_registry(mcps_dir: Path) -> None:
             },
         }
     }
-    (mcps_dir / "registry.json").write_text(json.dumps(registry, indent=2))
+    (mcps_dir / "registry.json").write_text(json.dumps(registry, indent=2), encoding="utf-8")
 
 
 def _write_crm_mcp_json(crm_app: Path) -> None:
@@ -74,7 +74,7 @@ def _write_crm_mcp_json(crm_app: Path) -> None:
             },
         }
     }
-    (crm_app / ".mcp.json").write_text(json.dumps(existing, indent=2))
+    (crm_app / ".mcp.json").write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
 
 def _write_crm_descriptor(projects_dir: Path, crm_path: Path) -> None:
@@ -88,7 +88,7 @@ def _write_crm_descriptor(projects_dir: Path, crm_path: Path) -> None:
         "\n"
         "CRM application descriptor.\n"
     )
-    (projects_dir / "crm-app.md").write_text(content)
+    (projects_dir / "crm-app.md").write_text(content, encoding="utf-8")
 
 
 def _build_environment(tmp_path: Path) -> dict:
@@ -99,20 +99,20 @@ def _build_environment(tmp_path: Path) -> dict:
 
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "VERSION").write_text("2.14.0")
+    (repo / "VERSION").write_text("2.14.0", encoding="utf-8")
 
     features_dir = repo / "core" / "sync" / "features"
     _make_feature_yaml(features_dir)
 
-    (arkaos_home / ".repo-path").write_text(str(repo))
+    (arkaos_home / ".repo-path").write_text(str(repo), encoding="utf-8")
     (arkaos_home / "sync-state.json").write_text(
-        json.dumps({"version": "pending-sync"})
+        json.dumps({"version": "pending-sync"}), encoding="utf-8"
     )
 
     herd_dir = tmp_path / "herd"
     herd_dir.mkdir()
     (arkaos_home / "profile.json").write_text(
-        json.dumps({"projectsDir": str(herd_dir)})
+        json.dumps({"projectsDir": str(herd_dir)}), encoding="utf-8"
     )
 
     # 2. skills_dir
@@ -128,13 +128,13 @@ def _build_environment(tmp_path: Path) -> dict:
 
     knowledge_dir = skills_dir / "arka" / "knowledge"
     knowledge_dir.mkdir(parents=True)
-    (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}))
+    (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}), encoding="utf-8")
 
     # 3. Projects
     crm_app = herd_dir / "crm-app"
     crm_app.mkdir()
     (crm_app / "composer.json").write_text(
-        json.dumps({"require": {"laravel/framework": "^11.0"}})
+        json.dumps({"require": {"laravel/framework": "^11.0"}}), encoding="utf-8"
     )
     _write_crm_mcp_json(crm_app)
     _write_crm_descriptor(projects_dir, crm_app)
@@ -142,10 +142,10 @@ def _build_environment(tmp_path: Path) -> dict:
     web_app = herd_dir / "web-app"
     web_app.mkdir()
     (web_app / "package.json").write_text(
-        json.dumps({"dependencies": {"nuxt": "^3.0.0"}})
+        json.dumps({"dependencies": {"nuxt": "^3.0.0"}}), encoding="utf-8"
     )
     # Add a .mcp.json marker so filesystem discovery picks up this project
-    (web_app / ".mcp.json").write_text(json.dumps({"mcpServers": {}}))
+    (web_app / ".mcp.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
 
     return {
         "arkaos_home": arkaos_home,
@@ -165,16 +165,16 @@ def _build_content_core_repo(root: Path) -> None:
     """Create a minimal fake ArkaOS core repo for content sync."""
     (root / "config" / "standards" / "stack-rules").mkdir(parents=True)
     (root / "config" / "hooks").mkdir(parents=True)
-    (root / "config" / "user-claude.md").write_text("# ArkaOS CLAUDE Template\n")
+    (root / "config" / "user-claude.md").write_text("# ArkaOS CLAUDE Template\n", encoding="utf-8")
     (root / "config" / "standards" / "stack-rules" / "python.md").write_text(
-        '---\npaths:\n  - "**/*.py"\n---\n\n## Python Rules\n'
+        '---\npaths:\n  - "**/*.py"\n---\n\n## Python Rules\n', encoding="utf-8"
     )
-    (root / "config" / "standards" / "communication.md").write_text("# Communication\n")
-    (root / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n")
+    (root / "config" / "standards" / "communication.md").write_text("# Communication\n", encoding="utf-8")
+    (root / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n", encoding="utf-8")
     (root / "config" / "constitution.yaml").write_text(
-        "rules:\n  - name: squad-routing\n    level: NON-NEGOTIABLE\n"
+        "rules:\n  - name: squad-routing\n    level: NON-NEGOTIABLE\n", encoding="utf-8"
     )
-    (root / "VERSION").write_text("2.14.0\n")
+    (root / "VERSION").write_text("2.14.0\n", encoding="utf-8")
 
 
 def _build_content_sync_environment(tmp_path: Path) -> dict:
@@ -184,17 +184,17 @@ def _build_content_sync_environment(tmp_path: Path) -> dict:
 
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "VERSION").write_text("2.14.0")
+    (repo / "VERSION").write_text("2.14.0", encoding="utf-8")
 
     features_dir = repo / "core" / "sync" / "features"
     _make_feature_yaml(features_dir)
 
-    (arkaos_home / ".repo-path").write_text(str(repo))
-    (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}))
+    (arkaos_home / ".repo-path").write_text(str(repo), encoding="utf-8")
+    (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}), encoding="utf-8")
 
     herd_dir = tmp_path / "herd"
     herd_dir.mkdir()
-    (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}))
+    (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}), encoding="utf-8")
 
     skills_dir = tmp_path / ".claude" / "skills"
     skills_dir.mkdir(parents=True)
@@ -208,13 +208,13 @@ def _build_content_sync_environment(tmp_path: Path) -> dict:
 
     knowledge_dir = skills_dir / "arka" / "knowledge"
     knowledge_dir.mkdir(parents=True)
-    (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}))
+    (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}), encoding="utf-8")
 
     py_app = herd_dir / "py-app"
     py_app.mkdir()
-    (py_app / ".mcp.json").write_text(json.dumps({"mcpServers": {}}))
+    (py_app / ".mcp.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
     (projects_dir / "py-app.md").write_text(
-        f"---\nname: py-app\npath: {py_app}\nstatus: active\nstack: [python]\n---\n\nPython app.\n"
+        f"---\nname: py-app\npath: {py_app}\nstatus: active\nstack: [python]\n---\n\nPython app.\n", encoding="utf-8"
     )
 
     core_repo = tmp_path / "core-repo"
@@ -255,7 +255,7 @@ class TestFullSyncIntegration:
 
         state_path = env["arkaos_home"] / "sync-state.json"
         assert state_path.exists()
-        state = json.loads(state_path.read_text())
+        state = json.loads(state_path.read_text(encoding="utf-8"))
         assert state["version"] == "2.14.0"
 
     def test_report_output(self, tmp_path: Path) -> None:
@@ -339,12 +339,12 @@ class TestFullSyncIntegration:
         allowlists_dir = core_repo / "config" / "agent-allowlists"
         allowlists_dir.mkdir(parents=True, exist_ok=True)
         (allowlists_dir / "_base.yaml").write_text(
-            "stack: _base\nbaseline:\n  - strategy-director\n"
+            "stack: _base\nbaseline:\n  - strategy-director\n", encoding="utf-8"
         )
         strategy_agents_dir = core_repo / "departments" / "strategy" / "agents"
         strategy_agents_dir.mkdir(parents=True, exist_ok=True)
         (strategy_agents_dir / "strategy-director.md").write_text(
-            "# Strategy Director\n\nDrives strategy.\n"
+            "# Strategy Director\n\nDrives strategy.\n", encoding="utf-8"
         )
 
         monkeypatch.setenv("ARKAOS_CORE_ROOT", str(core_repo))
@@ -387,12 +387,12 @@ class TestFullSyncIntegration:
         allowlists_dir = core_repo / "config" / "agent-allowlists"
         allowlists_dir.mkdir(parents=True, exist_ok=True)
         (allowlists_dir / "_base.yaml").write_text(
-            "stack: _base\nbaseline:\n  - strategy-director\n"
+            "stack: _base\nbaseline:\n  - strategy-director\n", encoding="utf-8"
         )
         strategy_agents_dir = core_repo / "departments" / "strategy" / "agents"
         strategy_agents_dir.mkdir(parents=True, exist_ok=True)
         (strategy_agents_dir / "strategy-director.md").write_text(
-            "# Strategy Director\n\nDrives strategy.\n"
+            "# Strategy Director\n\nDrives strategy.\n", encoding="utf-8"
         )
 
         monkeypatch.setenv("ARKAOS_CORE_ROOT", str(core_repo))
@@ -430,15 +430,15 @@ class TestFullSyncIntegration:
 
         repo = tmp_path / "repo"
         repo.mkdir()
-        (repo / "VERSION").write_text("2.14.0")
+        (repo / "VERSION").write_text("2.14.0", encoding="utf-8")
         features_dir = repo / "core" / "sync" / "features"
         _make_feature_yaml(features_dir)
-        (arkaos_home / ".repo-path").write_text(str(repo))
-        (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}))
+        (arkaos_home / ".repo-path").write_text(str(repo), encoding="utf-8")
+        (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}), encoding="utf-8")
 
         herd_dir = tmp_path / "herd"
         herd_dir.mkdir()
-        (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}))
+        (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}), encoding="utf-8")
 
         skills_dir = tmp_path / ".claude" / "skills"
         skills_dir.mkdir(parents=True)
@@ -464,19 +464,19 @@ class TestFullSyncIntegration:
                 },
             }
         }
-        (mcps_dir / "registry.json").write_text(json.dumps(registry, indent=2))
+        (mcps_dir / "registry.json").write_text(json.dumps(registry, indent=2), encoding="utf-8")
 
         projects_dir = skills_dir / "arka" / "projects"
         projects_dir.mkdir(parents=True)
         knowledge_dir = skills_dir / "arka" / "knowledge"
         knowledge_dir.mkdir(parents=True)
-        (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}))
+        (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}), encoding="utf-8")
 
         laravel_app = herd_dir / "laravel-app"
         laravel_app.mkdir()
         # composer.json triggers stack detection as laravel/php
         (laravel_app / "composer.json").write_text(
-            json.dumps({"require": {"laravel/framework": "^11.0"}})
+            json.dumps({"require": {"laravel/framework": "^11.0"}}), encoding="utf-8"
         )
 
         # Pre-populate .mcp.json with context7, postgres, and canva
@@ -487,11 +487,11 @@ class TestFullSyncIntegration:
                 "canva": {"command": "npx", "args": ["-y", "canva-mcp"]},
             }
         }
-        (laravel_app / ".mcp.json").write_text(json.dumps(mcp_json, indent=2))
+        (laravel_app / ".mcp.json").write_text(json.dumps(mcp_json, indent=2), encoding="utf-8")
 
         (projects_dir / "laravel-app.md").write_text(
             f"---\nname: laravel-app\npath: {laravel_app}\nstatus: active\n"
-            "stack: [laravel]\n---\n\nLaravel app.\n"
+            "stack: [laravel]\n---\n\nLaravel app.\n", encoding="utf-8"
         )
 
         with patch("core.sync.descriptor_syncer._get_last_commit_days", return_value=5):
@@ -503,7 +503,7 @@ class TestFullSyncIntegration:
 
         settings_file = laravel_app / ".claude" / "settings.local.json"
         assert settings_file.exists(), "settings.local.json should have been written"
-        settings = json.loads(settings_file.read_text())
+        settings = json.loads(settings_file.read_text(encoding="utf-8"))
         enabled = settings.get("enabledMcpjsonServers", [])
 
         assert "context7" in enabled, f"context7 should be active; got {enabled}"

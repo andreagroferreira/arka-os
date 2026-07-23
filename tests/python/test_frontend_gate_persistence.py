@@ -27,7 +27,7 @@ TOOL_ONLY_WINDOW = [f"<tool_use:Bash>{i}" for i in range(20)]
 def _isolated(tmp_path, monkeypatch):
     monkeypatch.setenv("ARKA_DESIGN_AUTH_DIR", str(tmp_path / "design-auth"))
     config = tmp_path / "config.json"
-    config.write_text(json.dumps({"hooks": {"frontendGate": "hard"}}))
+    config.write_text(json.dumps({"hooks": {"frontendGate": "hard"}}), encoding="utf-8")
     monkeypatch.setattr(frontend_gate, "CONFIG_PATH", config)
 
 
@@ -78,7 +78,7 @@ def test_trivial_marker_allows_but_does_not_persist() -> None:
 
 def test_warn_mode_still_warns_not_denies(tmp_path, monkeypatch) -> None:
     config = tmp_path / "warn-config.json"
-    config.write_text(json.dumps({"hooks": {"frontendGate": "warn"}}))
+    config.write_text(json.dumps({"hooks": {"frontendGate": "warn"}}), encoding="utf-8")
     monkeypatch.setattr(frontend_gate, "CONFIG_PATH", config)
     decision = _evaluate("sess-p6", TOOL_ONLY_WINDOW)
     assert decision.allow

@@ -84,7 +84,7 @@ class TestWikilinksBlock:
 class TestBackReferences:
     def test_creates_related_block_when_absent(self, tmp_path: Path):
         note = tmp_path / "target.md"
-        note.write_text("# Target\n\nbody")
+        note.write_text("# Target\n\nbody", encoding="utf-8")
         related = [RelatedNote(path=note, title="Target", score=1.0)]
         updated = update_back_references(note, related, "New Note")
         assert updated == 1
@@ -94,7 +94,7 @@ class TestBackReferences:
 
     def test_appends_to_existing_related_block(self, tmp_path: Path):
         note = tmp_path / "target.md"
-        note.write_text("# Target\n\n## Related\n\n- [[Existing]]\n")
+        note.write_text("# Target\n\n## Related\n\n- [[Existing]]\n", encoding="utf-8")
         related = [RelatedNote(path=note, title="Target", score=1.0)]
         update_back_references(note, related, "New Note")
         text = note.read_text(encoding="utf-8")
@@ -103,7 +103,7 @@ class TestBackReferences:
 
     def test_idempotent_on_duplicate_link(self, tmp_path: Path):
         note = tmp_path / "target.md"
-        note.write_text("# Target\n\n## Related\n\n- [[New Note]]\n")
+        note.write_text("# Target\n\n## Related\n\n- [[New Note]]\n", encoding="utf-8")
         related = [RelatedNote(path=note, title="Target", score=1.0)]
         updated = update_back_references(note, related, "New Note")
         assert updated == 0

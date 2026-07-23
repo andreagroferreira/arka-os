@@ -179,7 +179,7 @@ class TestConclavePhase5Sections:
     def raw(self):
         import yaml
         path = Path(__file__).parent.parent.parent / "config" / "constitution.yaml"
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             return yaml.safe_load(fh)
 
     def test_definition_of_done_section_exists(self, raw):

@@ -111,7 +111,7 @@ class TestIssues:
 class TestAgentProvenanceFromPath:
     def test_reads_a_real_agent_file(self, tmp_path):
         p = tmp_path / "a.yaml"
-        p.write_text(yaml.safe_dump(agent(DERIVED)))
+        p.write_text(yaml.safe_dump(agent(DERIVED)), encoding="utf-8")
         assert agent_provenance(p).origin == "vendor-derived"
 
     def test_unreadable_file_raises_named(self, tmp_path):

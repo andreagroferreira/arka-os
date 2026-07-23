@@ -18,19 +18,19 @@ def core_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (core / "config" / "hooks").mkdir(parents=True)
     (core / "config").mkdir(parents=True, exist_ok=True)
 
-    (core / "config" / "user-claude.md").write_text("# ArkaOS CLAUDE Template\n")
+    (core / "config" / "user-claude.md").write_text("# ArkaOS CLAUDE Template\n", encoding="utf-8")
     (core / "config" / "standards" / "stack-rules" / "python.md").write_text(
-        '---\npaths:\n  - "**/*.py"\n---\n\n## Python Rules\n'
+        '---\npaths:\n  - "**/*.py"\n---\n\n## Python Rules\n', encoding="utf-8"
     )
     (core / "config" / "standards" / "stack-rules" / "node.md").write_text(
-        '---\npaths:\n  - "**/*.js"\n---\n\n## Node Rules\n'
+        '---\npaths:\n  - "**/*.js"\n---\n\n## Node Rules\n', encoding="utf-8"
     )
-    (core / "config" / "standards" / "communication.md").write_text("# Communication\n")
-    (core / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n")
+    (core / "config" / "standards" / "communication.md").write_text("# Communication\n", encoding="utf-8")
+    (core / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n", encoding="utf-8")
     (core / "config" / "constitution.yaml").write_text(
-        "rules:\n  - name: squad-routing\n    level: NON-NEGOTIABLE\n"
+        "rules:\n  - name: squad-routing\n    level: NON-NEGOTIABLE\n", encoding="utf-8"
     )
-    (core / "VERSION").write_text("2.17.0\n")
+    (core / "VERSION").write_text("2.17.0\n", encoding="utf-8")
 
     monkeypatch.setenv("ARKAOS_CORE_ROOT", str(core))
     return core
@@ -53,7 +53,7 @@ def test_sync_creates_claude_md_with_managed_block(core_repo: Path, project: Pro
     assert result.status in {"updated", "unchanged"}
     claude_md = Path(project.path) / ".claude" / "CLAUDE.md"
     assert claude_md.exists()
-    text = claude_md.read_text()
+    text = claude_md.read_text(encoding="utf-8")
     assert "<!-- arkaos:managed:start" in text
     assert "ArkaOS CLAUDE Template" in text
     # Stack conventions deploy as path-scoped rules, not CLAUDE.md text.
@@ -68,7 +68,7 @@ def test_sync_deploys_stack_rule_with_frontmatter(
 
     rule = Path(project.path) / ".claude" / "rules" / "arkaos-stack-python.md"
     assert rule.exists()
-    text = rule.read_text()
+    text = rule.read_text(encoding="utf-8")
     assert text.startswith("---\npaths:")
     assert "## Python Rules" in text
     assert "rules/arkaos-stack-python.md" in result.artefacts_updated
@@ -147,12 +147,12 @@ def test_sync_never_deletes_non_namespaced_rules(
     rules_dir = Path(project.path) / ".claude" / "rules"
     rules_dir.mkdir(parents=True, exist_ok=True)
     user_rule = rules_dir / "my-own-rule.md"
-    user_rule.write_text("# Mine\n")
+    user_rule.write_text("# Mine\n", encoding="utf-8")
 
     sync_project_content(project)
 
     assert user_rule.exists()
-    assert user_rule.read_text() == "# Mine\n"
+    assert user_rule.read_text(encoding="utf-8") == "# Mine\n"
 
 
 def test_sync_copies_rules(core_repo: Path, project: Project) -> None:
@@ -160,7 +160,7 @@ def test_sync_copies_rules(core_repo: Path, project: Project) -> None:
 
     rules_dir = Path(project.path) / ".claude" / "rules"
     assert (rules_dir / "communication.md").exists()
-    assert (rules_dir / "communication.md").read_text() == "# Communication\n"
+    assert (rules_dir / "communication.md").read_text(encoding="utf-8") == "# Communication\n"
 
 
 def test_sync_copies_hooks_and_preserves_executable(core_repo: Path, project: Project) -> None:
@@ -176,11 +176,11 @@ def test_sync_preserves_user_content_outside_managed_block(
     core_repo: Path, project: Project
 ) -> None:
     claude_md = Path(project.path) / ".claude" / "CLAUDE.md"
-    claude_md.write_text("# Project Notes\n\nMy custom notes.\n")
+    claude_md.write_text("# Project Notes\n\nMy custom notes.\n", encoding="utf-8")
 
     sync_project_content(project)
 
-    text = claude_md.read_text()
+    text = claude_md.read_text(encoding="utf-8")
     assert "My custom notes." in text
 
 
@@ -196,4 +196,4 @@ def test_sync_writes_constitution_applicable(core_repo: Path, project: Project) 
     sync_project_content(project)
     cfile = Path(project.path) / ".claude" / "constitution-applicable.md"
     assert cfile.exists()
-    assert "squad-routing" in cfile.read_text()
+    assert "squad-routing" in cfile.read_text(encoding="utf-8")

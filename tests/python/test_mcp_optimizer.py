@@ -24,13 +24,13 @@ def policy_file(tmp_path: Path) -> Path:
         "    ambiguous: []\n"
         "  - match: {default: true}\n"
         "    active: [context7]\n"
-        "    ambiguous: ['*']\n"
+        "    ambiguous: ['*']\n", encoding="utf-8"
     )
     return p
 
 
 def _make_mcp_json(project_dir: Path, servers: dict) -> None:
-    (project_dir / ".mcp.json").write_text(json.dumps({"mcpServers": servers}))
+    (project_dir / ".mcp.json").write_text(json.dumps({"mcpServers": servers}), encoding="utf-8")
 
 
 def test_optimize_laravel_defers_marketing_mcps(tmp_path: Path, policy_file: Path) -> None:
@@ -60,7 +60,7 @@ def test_override_forces_active(tmp_path: Path, policy_file: Path) -> None:
     (proj / ".arkaos" / "mcp-override.yaml").write_text(
         "force_active: [canva]\n"
         "force_deferred: []\n"
-        "reason: brand work needs it\n"
+        "reason: brand work needs it\n", encoding="utf-8"
     )
 
     mcp_result = McpSyncResult(
@@ -85,7 +85,7 @@ def test_override_forces_deferred(tmp_path: Path, policy_file: Path) -> None:
     (proj / ".arkaos" / "mcp-override.yaml").write_text(
         "force_active: []\n"
         "force_deferred: [postgres]\n"
-        "reason: local db only\n"
+        "reason: local db only\n", encoding="utf-8"
     )
 
     mcp_result = McpSyncResult(
@@ -116,7 +116,7 @@ def test_env_vault_injects_secrets(tmp_path: Path, policy_file: Path) -> None:
         "per_project": {
             "p": {"PG_HOST": "localhost", "PG_PASSWORD": "secret"}
         }
-    }))
+    }), encoding="utf-8")
     os.chmod(vault, 0o600)
 
     mcp_result = McpSyncResult(
@@ -130,7 +130,7 @@ def test_env_vault_injects_secrets(tmp_path: Path, policy_file: Path) -> None:
         vault_path=vault, cache_path=tmp_path / "cache.json",
     )
 
-    mcp_data = json.loads((proj / ".mcp.json").read_text())
+    mcp_data = json.loads((proj / ".mcp.json").read_text(encoding="utf-8"))
     assert mcp_data["mcpServers"]["postgres"]["env"]["PG_HOST"] == "localhost"
     assert mcp_data["mcpServers"]["postgres"]["env"]["PG_PASSWORD"] == "secret"
 
@@ -153,7 +153,7 @@ def test_missing_secrets_generate_env_example(tmp_path: Path, policy_file: Path)
 
     env_example = proj / ".env.arkaos.example"
     assert env_example.exists()
-    text = env_example.read_text()
+    text = env_example.read_text(encoding="utf-8")
     assert "PG_HOST" in text
     assert "PG_PASSWORD" in text
 
@@ -165,7 +165,7 @@ def test_override_collision_force_active_wins(tmp_path: Path, policy_file: Path)
     (proj / ".arkaos" / "mcp-override.yaml").write_text(
         "force_active: [canva]\n"
         "force_deferred: [canva]\n"
-        "reason: conflicting\n"
+        "reason: conflicting\n", encoding="utf-8"
     )
 
     mcp_result = McpSyncResult(
@@ -188,7 +188,7 @@ def test_vault_rejected_when_world_readable(tmp_path: Path, policy_file: Path) -
     proj.mkdir()
     _make_mcp_json(proj, {"postgres": {"env": {"PG_HOST": ""}}})
     vault = tmp_path / "bad_secrets.json"
-    vault.write_text(json.dumps({"global": {}, "per_project": {"p": {"PG_HOST": "x"}}}))
+    vault.write_text(json.dumps({"global": {}, "per_project": {"p": {"PG_HOST": "x"}}}), encoding="utf-8")
     os.chmod(vault, 0o644)  # world-readable
 
     mcp_result = McpSyncResult(
@@ -202,5 +202,5 @@ def test_vault_rejected_when_world_readable(tmp_path: Path, policy_file: Path) -
     )
 
     # Vault refused: PG_HOST stays empty (not injected)
-    mcp_data = json.loads((proj / ".mcp.json").read_text())
+    mcp_data = json.loads((proj / ".mcp.json").read_text(encoding="utf-8"))
     assert mcp_data["mcpServers"]["postgres"]["env"]["PG_HOST"] == ""

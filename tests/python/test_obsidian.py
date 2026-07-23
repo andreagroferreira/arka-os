@@ -77,7 +77,7 @@ class TestObsidianWriter:
             department="dev",
         )
         assert path.exists()
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         assert "source: arkaos" in content
         assert "department: dev" in content
         assert "# Hello" in content
@@ -116,7 +116,7 @@ class TestObsidianWriter:
             department="dev",
             tags=["security", "audit"],
         )
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         assert "- security" in content
         assert "- audit" in content
 
@@ -156,7 +156,7 @@ class TestObsidianWriter:
             content="Content",
             extra_frontmatter={"status": "final", "reviewed": True},
         )
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         assert "status: final" in content
         assert "reviewed: true" in content
 

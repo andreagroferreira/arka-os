@@ -91,7 +91,7 @@ class TestCheckpoint:
             "evidence": None,
         }
         state = json.loads(
-            (tmp_path / ".arkaos" / "workflow-state.json").read_text()
+            (tmp_path / ".arkaos" / "workflow-state.json").read_text(encoding="utf-8")
         )
         assert state["workflow"] == "evidence-flow"
         assert state["phases"]["gate-1-context"]["status"] == "completed"
@@ -107,7 +107,7 @@ class TestCheckpoint:
         snapshot_file = (
             tmp_path / ".arkaos" / "sessions" / "sess-abc" / "workflow-state.json"
         )
-        snapshot = json.loads(snapshot_file.read_text())
+        snapshot = json.loads(snapshot_file.read_text(encoding="utf-8"))
         assert snapshot["workflow_name"] == "evidence-flow"
         assert snapshot["current_phase"] == "gate-3-execute"
         assert snapshot["artifacts"] == ["pytest -q -> exit 0 (12 passed)"]
@@ -119,7 +119,7 @@ class TestCheckpoint:
         )
         checkpoint(str(transcript), "sess-1")
         state = json.loads(
-            (tmp_path / ".arkaos" / "workflow-state.json").read_text()
+            (tmp_path / ".arkaos" / "workflow-state.json").read_text(encoding="utf-8")
         )
         assert (
             state["phases"]["gate-3-execute"]["artifact"]

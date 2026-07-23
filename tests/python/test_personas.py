@@ -108,7 +108,7 @@ class TestPersonaManager:
         manager.clone_to_agent("alex-hormozi", department="dev", tier=1, agents_dir=str(agents_dir))
 
         agent_file = agents_dir / "persona-alex-hormozi.yaml"
-        data = yaml.safe_load(agent_file.read_text())
+        data = yaml.safe_load(agent_file.read_text(encoding="utf-8"))
         assert data["department"] == "dev"
         assert data["tier"] == 1
         assert data["behavioral_dna"]["disc"]["primary"] == "D"

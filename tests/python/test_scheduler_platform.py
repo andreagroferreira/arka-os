@@ -108,7 +108,7 @@ class TestMacOSAdapter:
 
         plist = tmp_path / "com.arkaos.scheduler.plist"
         assert plist.exists()
-        assert "com.arkaos.scheduler" in plist.read_text()
+        assert "com.arkaos.scheduler" in plist.read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +158,7 @@ class TestLinuxAdapter:
 
         service = tmp_path / "arkaos-scheduler.service"
         assert service.exists()
-        assert "[Unit]" in service.read_text()
+        assert "[Unit]" in service.read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------

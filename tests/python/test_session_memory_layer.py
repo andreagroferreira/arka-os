@@ -30,7 +30,7 @@ def _write_cache(tmp_path, session_id: str, items: list[dict], version: int = 1,
     (cache_dir / f"session-memory-{session_id}.json").write_text(
         json.dumps({"version": version, "session_id": session_id,
                     "computed_at": computed_at,
-                    "retrieval": "semantic", "items": items})
+                    "retrieval": "semantic", "items": items}), encoding="utf-8"
     )
 
 
@@ -109,7 +109,7 @@ def test_env_bypass_disables_layer(tmp_path, monkeypatch):
 def test_config_flag_disables_layer(tmp_path):
     cfg = tmp_path / ".arkaos" / "config.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps({"synapse": {"l95SessionMemory": False}}))
+    cfg.write_text(json.dumps({"synapse": {"l95SessionMemory": False}}), encoding="utf-8")
     _write_cache(tmp_path, "sess-1", [
         {"summary": "anything", "score": 0.9, "retrieval": "semantic"},
     ])

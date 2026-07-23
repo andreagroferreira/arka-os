@@ -115,7 +115,7 @@ class TestPersonasUsage:
         self, dashboard_module, tmp_path, monkeypatch,
     ):
         weird = tmp_path / "weird.yaml"
-        weird.write_text(yaml.safe_dump({"linked_personas": "not-a-list"}))
+        weird.write_text(yaml.safe_dump({"linked_personas": "not-a-list"}), encoding="utf-8")
         monkeypatch.setattr(
             dashboard_module, "_load_agents",
             lambda: [{"id": "weird", "file": "weird.yaml"}],
@@ -130,7 +130,7 @@ class TestPersonasUsage:
         weird = tmp_path / "weird.yaml"
         weird.write_text(yaml.safe_dump({
             "linked_personas": ["valid", 42, None, {"a": 1}, "also-valid"],
-        }))
+        }), encoding="utf-8")
         monkeypatch.setattr(
             dashboard_module, "_load_agents",
             lambda: [{"id": "weird", "file": "weird.yaml"}],

@@ -25,7 +25,7 @@ class TestInitWorkflow:
         result = init_workflow("dev/feature", "/tmp/proj", ["context", "spec", "implementation"])
         path = tmp_path / STATE_FILE_NAME
         assert path.exists()
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         assert data["workflow"] == "dev/feature"
         assert data["project"] == "/tmp/proj"
 

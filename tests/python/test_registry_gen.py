@@ -107,7 +107,7 @@ class TestCommittedRegistryNoDrift:
     def test_committed_registry_content_matches_fresh_regen(self, registry):
         """Full content equality between the committed JSON and a fresh
         regeneration from the YAMLs (only _meta.generated may differ)."""
-        committed = json.loads(COMMITTED_REGISTRY.read_text())
+        committed = json.loads(COMMITTED_REGISTRY.read_text(encoding="utf-8"))
         # Round-trip so int dict keys (e.g. _meta.tiers) compare as the
         # strings JSON serialisation produces.
         fresh = json.loads(json.dumps(registry))

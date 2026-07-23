@@ -17,7 +17,7 @@ def _write_scalar_stack_descriptor(tmp_path: Path, project_path: Path) -> Path:
         "status: active\n"
         "stack: Python 3.8+ (stdlib only)\n"
         "---\n"
-        "# proj\n"
+        "# proj\n", encoding="utf-8"
     )
     return desc
 
@@ -55,7 +55,7 @@ def test_sync_descriptor_scalar_stack_gets_normalized_to_list(tmp_path: Path) ->
 
     import yaml
 
-    text = desc_path.read_text()
+    text = desc_path.read_text(encoding="utf-8")
     raw_fm = text.split("---", 2)[1]
     fm = yaml.safe_load(raw_fm)
     assert isinstance(fm["stack"], list), "stack must be coerced to a list"

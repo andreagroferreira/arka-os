@@ -183,7 +183,7 @@ class TestManifest:
             tmp_path, self._VIDEO, 120, 400, 80,
             desktop_info=self._INFO, mobile_info=None,
         )
-        on_disk = json.loads((tmp_path / "manifest.json").read_text())
+        on_disk = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
         assert on_disk == json.loads(json.dumps(manifest))
         assert manifest["recommended_scroll_height"] == "400vh"
         assert manifest["desktop"]["total_mb"] == 7.63

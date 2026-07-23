@@ -272,7 +272,7 @@ def test_env_bypass_allows_and_audits(tmp_config, tmp_path, monkeypatch):
     # Audit log was written
     audit = flow_enforcer.BYPASS_AUDIT_PATH
     assert audit.exists()
-    entry = json.loads(audit.read_text().strip().splitlines()[-1])
+    entry = json.loads(audit.read_text(encoding="utf-8").strip().splitlines()[-1])
     assert entry["tool"] == "Write"
     assert entry["reason"] == "installer-update"
 
@@ -507,7 +507,7 @@ def test_telemetry_append_remains_valid_jsonl_under_concurrency(tmp_config):
     with ThreadPoolExecutor(max_workers=16) as pool:
         list(pool.map(_write, range(200)))
 
-    lines = flow_enforcer.TELEMETRY_PATH.read_text().splitlines()
+    lines = flow_enforcer.TELEMETRY_PATH.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 200
     for line in lines:
         record = json.loads(line)  # must not raise

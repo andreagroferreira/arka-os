@@ -54,7 +54,7 @@ def _judge_line(department: str, verdict: str, days_ago: float = 1.0) -> str:
 
 
 def _write(path: Path, lines: list[str]) -> None:
-    path.write_text("\n".join(lines) + "\n")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 # ─── rebuild() aggregation ─────────────────────────────────────────────
@@ -187,7 +187,7 @@ def test_atomic_write_and_load_roundtrip(corpora):
 
 
 def test_load_rejects_unknown_version(corpora):
-    corpora["scores"].write_text(json.dumps({"version": 99, "scores": []}))
+    corpora["scores"].write_text(json.dumps({"version": 99, "scores": []}), encoding="utf-8")
     assert load_scores() is None
 
 

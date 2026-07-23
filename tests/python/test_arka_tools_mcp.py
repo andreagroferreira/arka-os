@@ -239,7 +239,7 @@ def test_recipes_search_matches_and_filters(tools, tmp_path, monkeypatch):
         )
         d = recipes_dir / slug
         d.mkdir(parents=True)
-        (d / "recipe.json").write_text(recipe.model_dump_json())
+        (d / "recipe.json").write_text(recipe.model_dump_json(), encoding="utf-8")
 
     _write("laravel-pay", ["payment"], ["laravel"])
     _write("nuxt-pay", ["payment"], ["nuxt"])

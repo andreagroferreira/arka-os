@@ -22,14 +22,14 @@ from core.sync.schema import Project
 class TestDetectStack:
     def test_laravel_from_composer(self, tmp_path: Path) -> None:
         composer = {"require": {"laravel/framework": "^11.0", "php": "^8.2"}}
-        (tmp_path / "composer.json").write_text(json.dumps(composer))
+        (tmp_path / "composer.json").write_text(json.dumps(composer), encoding="utf-8")
         stack = detect_stack(tmp_path)
         assert "php" in stack
         assert "laravel" in stack
 
     def test_nuxt_from_package_json(self, tmp_path: Path) -> None:
         pkg = {"dependencies": {"nuxt": "^3.0.0"}}
-        (tmp_path / "package.json").write_text(json.dumps(pkg))
+        (tmp_path / "package.json").write_text(json.dumps(pkg), encoding="utf-8")
         stack = detect_stack(tmp_path)
         assert "nuxt" in stack
         assert "vue" in stack
@@ -37,14 +37,14 @@ class TestDetectStack:
 
     def test_react_and_next_from_package_json(self, tmp_path: Path) -> None:
         pkg = {"dependencies": {"next": "^14.0.0", "react": "^18.0.0"}}
-        (tmp_path / "package.json").write_text(json.dumps(pkg))
+        (tmp_path / "package.json").write_text(json.dumps(pkg), encoding="utf-8")
         stack = detect_stack(tmp_path)
         assert "next" in stack
         assert "react" in stack
         assert "javascript" in stack
 
     def test_python_from_pyproject(self, tmp_path: Path) -> None:
-        (tmp_path / "pyproject.toml").write_text('[tool.poetry]\nname = "app"\n')
+        (tmp_path / "pyproject.toml").write_text('[tool.poetry]\nname = "app"\n', encoding="utf-8")
         stack = detect_stack(tmp_path)
         assert "python" in stack
 
@@ -54,7 +54,7 @@ class TestDetectStack:
 
     def test_vue_without_nuxt(self, tmp_path: Path) -> None:
         pkg = {"dependencies": {"vue": "^3.0.0"}}
-        (tmp_path / "package.json").write_text(json.dumps(pkg))
+        (tmp_path / "package.json").write_text(json.dumps(pkg), encoding="utf-8")
         stack = detect_stack(tmp_path)
         assert "vue" in stack
         assert "nuxt" not in stack
@@ -71,7 +71,7 @@ class TestDiscoverFromDescriptors:
         descriptor_dir.mkdir()
         desc = descriptor_dir / "my-app.md"
         desc.write_text(
-            f"---\nname: my-app\npath: {project_dir}\necosystem: client_retail\nstatus: active\n---\n# My App\n"
+            f"---\nname: my-app\npath: {project_dir}\necosystem: client_retail\nstatus: active\n---\n# My App\n", encoding="utf-8"
         )
         projects = discover_from_descriptors(descriptor_dir)
         assert len(projects) == 1
@@ -83,7 +83,7 @@ class TestDiscoverFromDescriptors:
         descriptor_dir = tmp_path / "descriptors"
         descriptor_dir.mkdir()
         desc = descriptor_dir / "missing.md"
-        desc.write_text("---\nname: missing\npath: /does/not/exist/anywhere\n---\n")
+        desc.write_text("---\nname: missing\npath: /does/not/exist/anywhere\n---\n", encoding="utf-8")
         projects = discover_from_descriptors(descriptor_dir)
         assert projects == []
 
@@ -96,7 +96,7 @@ class TestDiscoverFromDescriptors:
         subdir.mkdir()
         project_md = subdir / "PROJECT.md"
         project_md.write_text(
-            f"---\nname: sub-app\npath: {project_dir}\necosystem: client_commerce\n---\n# Sub App\n"
+            f"---\nname: sub-app\npath: {project_dir}\necosystem: client_commerce\n---\n# Sub App\n", encoding="utf-8"
         )
         projects = discover_from_descriptors(descriptor_dir)
         assert len(projects) == 1
@@ -109,7 +109,7 @@ class TestDiscoverFromDescriptors:
         descriptor_dir = tmp_path / "desc"
         descriptor_dir.mkdir()
         desc = descriptor_dir / "proj.md"
-        desc.write_text(f"---\nname: proj\npath: {project_dir}\n---\n")
+        desc.write_text(f"---\nname: proj\npath: {project_dir}\n---\n", encoding="utf-8")
         projects = discover_from_descriptors(descriptor_dir)
         assert projects[0].descriptor_path == str(desc)
 
@@ -124,7 +124,7 @@ class TestDiscoverFromFilesystem:
     def test_find_project_with_mcp_json(self, tmp_path: Path) -> None:
         proj = tmp_path / "mcp-project"
         proj.mkdir()
-        (proj / ".mcp.json").write_text("{}")
+        (proj / ".mcp.json").write_text("{}", encoding="utf-8")
         projects = discover_from_filesystem([tmp_path])
         names = [p.name for p in projects]
         assert "mcp-project" in names
@@ -155,7 +155,7 @@ class TestDiscoverFromFilesystem:
         dir_b.mkdir()
         proj_a = dir_a / "proj-a"
         proj_a.mkdir()
-        (proj_a / ".mcp.json").write_text("{}")
+        (proj_a / ".mcp.json").write_text("{}", encoding="utf-8")
         proj_b = dir_b / "proj-b"
         proj_b.mkdir()
         (proj_b / ".claude").mkdir()
@@ -180,7 +180,7 @@ class TestDiscoverFromEcosystems:
                     "project_paths": {"crm": str(proj)},
                 }
             }
-        }))
+        }), encoding="utf-8")
         projects = discover_from_ecosystems(ecosystems_file)
         assert len(projects) == 1
         assert projects[0].name == "crm"
@@ -200,7 +200,7 @@ class TestDiscoverFromEcosystems:
                     "project_paths": {"ghost": "/does/not/exist"},
                 }
             }
-        }))
+        }), encoding="utf-8")
         projects = discover_from_ecosystems(ecosystems_file)
         assert projects == []
 
@@ -211,13 +211,13 @@ class TestDiscoverAllProjects:
     def test_deduplication_by_path(self, tmp_path: Path) -> None:
         proj = tmp_path / "shared-app"
         proj.mkdir()
-        (proj / ".mcp.json").write_text("{}")
+        (proj / ".mcp.json").write_text("{}", encoding="utf-8")
 
         desc_dir = tmp_path / "desc"
         desc_dir.mkdir()
         desc_file = desc_dir / "shared-app.md"
         desc_file.write_text(
-            f"---\nname: shared-app\npath: {proj}\necosystem: client_retail\n---\n"
+            f"---\nname: shared-app\npath: {proj}\necosystem: client_retail\n---\n", encoding="utf-8"
         )
 
         ecosystems_file = tmp_path / "ecosystems.json"
@@ -228,7 +228,7 @@ class TestDiscoverAllProjects:
                     "project_paths": {"shared-app": str(proj)},
                 }
             }
-        }))
+        }), encoding="utf-8")
 
         projects = discover_all_projects(desc_dir, [tmp_path], ecosystems_file)
         paths = [p.path for p in projects]
@@ -237,7 +237,7 @@ class TestDiscoverAllProjects:
     def test_ecosystem_data_enriches_filesystem_discovery(self, tmp_path: Path) -> None:
         proj = tmp_path / "eco-app"
         proj.mkdir()
-        (proj / ".mcp.json").write_text("{}")
+        (proj / ".mcp.json").write_text("{}", encoding="utf-8")
 
         ecosystems_file = tmp_path / "ecosystems.json"
         ecosystems_file.write_text(json.dumps({
@@ -247,7 +247,7 @@ class TestDiscoverAllProjects:
                     "project_paths": {"eco-app": str(proj)},
                 }
             }
-        }))
+        }), encoding="utf-8")
 
         desc_dir = tmp_path / "no-desc"
         desc_dir.mkdir()
@@ -261,7 +261,7 @@ class TestDiscoverAllProjects:
         for name in ["zebra", "alpha", "mango"]:
             d = tmp_path / name
             d.mkdir()
-            (d / ".mcp.json").write_text("{}")
+            (d / ".mcp.json").write_text("{}", encoding="utf-8")
 
         projects = discover_all_projects(
             tmp_path / "no-desc",
@@ -279,7 +279,7 @@ class TestDiscoverAllProjects:
         desc_dir.mkdir()
         desc_file = desc_dir / "winner.md"
         desc_file.write_text(
-            f"---\nname: winner\npath: {proj}\necosystem: desc-eco\n---\n"
+            f"---\nname: winner\npath: {proj}\necosystem: desc-eco\n---\n", encoding="utf-8"
         )
 
         ecosystems_file = tmp_path / "ecosystems.json"
@@ -290,7 +290,7 @@ class TestDiscoverAllProjects:
                     "project_paths": {"winner": str(proj)},
                 }
             }
-        }))
+        }), encoding="utf-8")
 
         projects = discover_all_projects(desc_dir, [], ecosystems_file)
         found = next(p for p in projects if p.name == "winner")

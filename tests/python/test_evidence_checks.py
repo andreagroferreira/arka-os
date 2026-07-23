@@ -208,10 +208,10 @@ def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):
 
 
 def test_tests_prefers_project_venv_pytest(tmp_path, monkeypatch):
-    (tmp_path / "mod.py").write_text("x = 1\n")
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
     local = tmp_path / ".venv" / "bin"
     local.mkdir(parents=True)
-    (local / "pytest").write_text("#!/bin/sh\nexit 0\n")
+    (local / "pytest").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     calls = []
 
     def fake_run(cmd, **kwargs):
@@ -229,7 +229,7 @@ def test_tests_prefers_project_venv_pytest(tmp_path, monkeypatch):
 
 
 def test_tests_foreign_pytest_skips_when_collection_fails(tmp_path, monkeypatch):
-    (tmp_path / "mod.py").write_text("x = 1\n")
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.setattr(
         evidence_checks.shutil, "which",
         lambda name: "/usr/bin/pytest" if name == "pytest" else None,
@@ -249,7 +249,7 @@ def test_tests_foreign_pytest_skips_when_collection_fails(tmp_path, monkeypatch)
 
 
 def test_tests_foreign_pytest_runs_when_collection_succeeds(tmp_path, monkeypatch):
-    (tmp_path / "mod.py").write_text("x = 1\n")
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.setattr(
         evidence_checks.shutil, "which",
         lambda name: "/usr/bin/pytest" if name == "pytest" else None,
@@ -270,7 +270,7 @@ def test_tests_foreign_pytest_runs_when_collection_succeeds(tmp_path, monkeypatc
 
 
 def test_tests_foreign_pytest_no_tests_collected_still_runs(tmp_path, monkeypatch):
-    (tmp_path / "mod.py").write_text("x = 1\n")
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.setattr(
         evidence_checks.shutil, "which",
         lambda name: "/usr/bin/pytest" if name == "pytest" else None,
@@ -287,7 +287,7 @@ def test_tests_foreign_pytest_no_tests_collected_still_runs(tmp_path, monkeypatc
 
 
 def test_tests_probe_timeout_degrades_to_skip(tmp_path, monkeypatch):
-    (tmp_path / "mod.py").write_text("x = 1\n")
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.setattr(
         evidence_checks.shutil, "which",
         lambda name: "/usr/bin/pytest" if name == "pytest" else None,
@@ -718,7 +718,7 @@ def test_ui_screenshot_picks_newest_artifact(tmp_path):
 
 def test_ui_screenshot_failure_fails_overall_report(tmp_path):
     (tmp_path / "app").mkdir()
-    (tmp_path / "app" / "Hero.vue").write_text("<template/>")
+    (tmp_path / "app" / "Hero.vue").write_text("<template/>", encoding="utf-8")
     report = run_evidence_checks(
         tmp_path, changed_files=["app/Hero.vue"],
         checks=["ui-screenshot"],
@@ -761,7 +761,7 @@ class TestToolCmdResolution:
 
         from core.governance import evidence_checks as ec
 
-        (tmp_path / "mod.py").write_text("x = 1\n")
+        (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
         calls = []
 
         def fake_run(check, cmd, project_dir, timeout):
@@ -866,7 +866,7 @@ def test_spellcheck_resolves_codespell_from_interpreter_not_path(tmp_path, monke
     otherwise this test silently inverts into a skip-path assertion on a
     machine without it (QG blocker, redo 3).
     """
-    (tmp_path / "doc.md").write_text("hello\n")
+    (tmp_path / "doc.md").write_text("hello\n", encoding="utf-8")
     calls = []
 
     class _Spec:  # stand-in for an importable codespell_lib
@@ -929,7 +929,7 @@ def _slop_env(monkeypatch, tmp_path, *, mode="warn", detector=True,
 
 
 def _ui_project(tmp_path):
-    (tmp_path / "app.css").write_text("body { color: red; }\n")
+    (tmp_path / "app.css").write_text("body { color: red; }\n", encoding="utf-8")
     return ["app.css"]
 
 
@@ -956,7 +956,7 @@ def test_design_slop_skips_without_changed_files(tmp_path, monkeypatch):
 
 def test_design_slop_skips_when_no_ui_files(tmp_path, monkeypatch):
     _slop_env(monkeypatch, tmp_path)
-    (tmp_path / "core.py").write_text("x = 1\n")
+    (tmp_path / "core.py").write_text("x = 1\n", encoding="utf-8")
     result = evidence_checks._check_design_slop(
         tmp_path, ["core.py"], None, 30)
     assert not result.ran
@@ -1043,7 +1043,7 @@ def test_design_slop_writes_telemetry(tmp_path, monkeypatch):
     _slop_env(monkeypatch, tmp_path, mode="warn", proc=proc)
     evidence_checks._check_design_slop(
         tmp_path, _ui_project(tmp_path), None, 30)
-    line = (tmp_path / "telemetry" / "design-slop.jsonl").read_text()
+    line = (tmp_path / "telemetry" / "design-slop.jsonl").read_text(encoding="utf-8")
     record = json.loads(line)
     assert record["warnings"] == 1 and record["outcome"] == "pass"
 
@@ -1067,11 +1067,11 @@ def test_design_slop_mode_resolution(tmp_path, monkeypatch):
     monkeypatch.setattr(
         evidence_checks, "_design_slop_config_path", lambda: cfg)
     assert evidence_checks._design_slop_mode() == "warn"
-    cfg.write_text(json.dumps({"governance": {"designSlop": "hard"}}))
+    cfg.write_text(json.dumps({"governance": {"designSlop": "hard"}}), encoding="utf-8")
     assert evidence_checks._design_slop_mode() == "hard"
-    cfg.write_text(json.dumps({"governance": {"designSlop": False}}))
+    cfg.write_text(json.dumps({"governance": {"designSlop": False}}), encoding="utf-8")
     assert evidence_checks._design_slop_mode() == "off"
-    cfg.write_text("not json")
+    cfg.write_text("not json", encoding="utf-8")
     assert evidence_checks._design_slop_mode() == "warn"
 
 
@@ -1093,7 +1093,7 @@ def test_resolve_detector_order_and_no_install(tmp_path, monkeypatch):
     )
     local = tmp_path / "node_modules" / ".bin" / "impeccable"
     local.parent.mkdir(parents=True)
-    local.write_text("#!/bin/sh\n")
+    local.write_text("#!/bin/sh\n", encoding="utf-8")
     assert evidence_checks._resolve_detector(tmp_path) == [str(local)]
 
     local.unlink()

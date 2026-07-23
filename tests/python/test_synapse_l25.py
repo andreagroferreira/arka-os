@@ -196,7 +196,7 @@ def test_l25_feature_flag_off_skips_injection(monkeypatch, fixture_vault_path, s
 def test_l25_feature_flag_false_in_config(monkeypatch, tmp_path, fixture_vault_path):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir()
-    (cfg_dir / "config.json").write_text(json.dumps({"synapse": {"l25KbContext": False}}))
+    (cfg_dir / "config.json").write_text(json.dumps({"synapse": {"l25KbContext": False}}), encoding="utf-8")
     monkeypatch.setattr(
         "core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json"
     )
@@ -255,11 +255,11 @@ def test_l25_empty_prompt_returns_none():
 def _point_graphify_config(monkeypatch, tmp_path, config: dict, keys: dict | None = None):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir(exist_ok=True)
-    (cfg_dir / "config.json").write_text(json.dumps(config))
+    (cfg_dir / "config.json").write_text(json.dumps(config), encoding="utf-8")
     monkeypatch.setattr("core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json")
     keys_path = cfg_dir / "keys.json"
     if keys is not None:
-        keys_path.write_text(json.dumps(keys))
+        keys_path.write_text(json.dumps(keys), encoding="utf-8")
     monkeypatch.setattr("core.synapse.layers_kb._KEYS_PATH", keys_path)
 
 
@@ -479,8 +479,8 @@ def test_graphify_url_validation_rejects_public_hosts(monkeypatch, tmp_path):
 
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir(exist_ok=True)
-    (cfg_dir / "config.json").write_text(json.dumps({}))
-    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "sk-secret"}))
+    (cfg_dir / "config.json").write_text(json.dumps({}), encoding="utf-8")
+    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "sk-secret"}), encoding="utf-8")
     monkeypatch.setattr("core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json")
     monkeypatch.setattr("core.synapse.layers_kb._KEYS_PATH", cfg_dir / "keys.json")
 
@@ -547,7 +547,7 @@ def test_read_json_dict_survives_deeply_nested_json(tmp_path, monkeypatch, sessi
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir(exist_ok=True)
     cfg = cfg_dir / "config.json"
-    cfg.write_text("[" * 60_000 + "]" * 60_000)
+    cfg.write_text("[" * 60_000 + "]" * 60_000, encoding="utf-8")
     monkeypatch.setattr("core.synapse.layers_kb._KB_CONFIG_PATH", cfg)
     monkeypatch.setattr("core.synapse.layers_kb._KEYS_PATH", cfg_dir / "keys.json")
 
@@ -632,8 +632,8 @@ def test_graphify_context_formats_the_remote_block(monkeypatch, tmp_path, graphi
     (cfg_dir / "config.json").write_text(json.dumps({
         "synapse": {"l25Graphify": True},
         "knowledge": {"graphify": {"enabled": True, "url": url}},
-    }))
-    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "tok-123"}))
+    }), encoding="utf-8")
+    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "tok-123"}), encoding="utf-8")
     monkeypatch.setattr("core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json")
     monkeypatch.setattr("core.synapse.layers_kb._KEYS_PATH", cfg_dir / "keys.json")
     monkeypatch.delenv("ARKA_BYPASS_L25_GRAPHIFY", raising=False)
@@ -655,8 +655,8 @@ def test_graphify_layer_tags_and_delivers_the_block(
     (cfg_dir / "config.json").write_text(json.dumps({
         "synapse": {"l25Graphify": True},
         "knowledge": {"graphify": {"enabled": True, "url": url}},
-    }))
-    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "tok-123"}))
+    }), encoding="utf-8")
+    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "tok-123"}), encoding="utf-8")
     monkeypatch.setattr("core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json")
     monkeypatch.setattr("core.synapse.layers_kb._KEYS_PATH", cfg_dir / "keys.json")
     monkeypatch.delenv("ARKA_BYPASS_L25_GRAPHIFY", raising=False)
