@@ -311,6 +311,126 @@ def test_tests_check_skips_when_no_runner(tmp_path, monkeypatch):
     assert result.passed is None
 
 
+# ─── pytest exit 5 = no tests collected → insufficient (issue #354) ──────
+
+
+def test_tests_project_venv_exit5_is_insufficient_not_fail(tmp_path, monkeypatch):
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
+    local = tmp_path / ".venv" / "bin"
+    local.mkdir(parents=True)
+    (local / "pytest").write_text("#!/bin/sh\nexit 5\n", encoding="utf-8")
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 5, stdout="no tests ran", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["tests"])
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is None
+    assert result.exit_code == 5
+    assert "no tests collected" in result.summary
+    assert "tests(project-venv)" in result.command
+    assert report.overall == "insufficient-evidence"
+
+
+def test_tests_npm_exit5_stays_fail_not_degraded(tmp_path, monkeypatch):
+    (tmp_path / "package.json").write_text(
+        json.dumps({"scripts": {"test": "jest"}}), encoding="utf-8",
+    )
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 5, stdout="", stderr="err")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(tmp_path, checks=["tests"])
+    result = _result(report, "tests")
+    assert result.passed is False
+    assert result.exit_code == 5
+    assert "no tests collected" not in result.summary
+    assert report.overall == "fail"
+
+
+def test_tests_pytest_test_command_exit5_is_degraded(tmp_path, monkeypatch):
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 5, stdout="no tests ran", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command="pytest -q",
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is None
+    assert result.exit_code == 5
+    assert "no tests collected" in result.summary
+    assert report.overall == "insufficient-evidence"
+
+
+def test_tests_python_m_pytest_command_exit5_is_degraded(tmp_path, monkeypatch):
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 5, stdout="no tests ran", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command="python -m pytest",
+    )
+    result = _result(report, "tests")
+    assert result.passed is None
+    assert "no tests collected" in result.summary
+    assert report.overall == "insufficient-evidence"
+
+
+def test_tests_arka_py_m_pytest_command_exit5_is_degraded(tmp_path, monkeypatch):
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 5, stdout="no tests ran", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"],
+        test_command="~/.arkaos/bin/arka-py -m pytest",
+    )
+    result = _result(report, "tests")
+    assert result.passed is None
+    assert "no tests collected" in result.summary
+    assert report.overall == "insufficient-evidence"
+
+
+def test_tests_non_pytest_test_command_exit5_stays_fail(tmp_path, monkeypatch):
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 5, stdout="", stderr="boom")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command="npm test",
+    )
+    result = _result(report, "tests")
+    assert result.passed is False
+    assert result.exit_code == 5
+    assert "no tests collected" not in result.summary
+    assert report.overall == "fail"
+
+
+def test_degraded_pytest_does_not_mask_a_failing_lint(tmp_path, monkeypatch):
+    (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
+    monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: ["ruff"])
+
+    def fake_run(cmd, **kwargs):
+        if "pytest" in " ".join(cmd):
+            return subprocess.CompletedProcess(cmd, 5, stdout="no tests ran", stderr="")
+        return subprocess.CompletedProcess(cmd, 1, stdout="E401 lint error", stderr="")
+
+    monkeypatch.setattr(evidence_checks.subprocess, "run", fake_run)
+    report = run_evidence_checks(
+        tmp_path, checks=["tests", "lint"], test_command="pytest -q",
+    )
+    tests = _result(report, "tests")
+    lint = _result(report, "lint")
+    assert tests.passed is None  # exit 5 degraded, not a FAIL
+    assert lint.passed is False  # a real failure stands
+    assert report.overall == "fail"  # degradation never masks it
+
+
 # ─── coverage check (parse-only, shared helper) ─────────────────────────
 
 
