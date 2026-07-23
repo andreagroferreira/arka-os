@@ -35,10 +35,24 @@ export const ArkaPlugin: Plugin = async ({ client, directory }) => {
       const result = runHook("prompt", {
         prompt: String(input?.text ?? ""),
         session_id: String(input?.sessionID ?? ""),
+        cwd: directory,
       })
+      const routing: string[] = result?.routing ?? []
+      if (routing.length > 0) {
+        output.text += "\n\n" + routing.join("\n")
+      }
       const suggestions: string[] = result?.suggestions ?? []
       if (suggestions.length > 0) {
         output.text += "\n\n" + suggestions.join("\n")
+      }
+      const memory = runHook("memory", {
+        prompt: String(input?.text ?? ""),
+        session_id: String(input?.sessionID ?? ""),
+        cwd: directory,
+      })
+      const context: string[] = memory?.context ?? []
+      if (context.length > 0) {
+        output.text += "\n\n" + context.join("\n")
       }
     },
 
@@ -103,6 +117,7 @@ export const ArkaPlugin: Plugin = async ({ client, directory }) => {
         const result = runHook("idle", {
           response_text: text.slice(-20000),
           session_id: sessionID,
+          cwd: directory,
         })
         for (const nudge of result?.nudges ?? []) {
           await log("warn", nudge)

@@ -91,6 +91,13 @@ derived:
     origin: community
     source: https://github.com/nutlope/hallmark
     license: MIT
+  # Scroll-world — scroll-scrubbed "fly through the world" landing pages
+  # (Higgsfield pipeline + portable scrub engine), vendored verbatim with
+  # ArkaOS frontmatter; THIRD-PARTY-NOTICES records the trail.
+  departments/dev/skills/scroll-world:
+    origin: community
+    source: https://github.com/oso95/scroll-world
+    license: MIT
   # Watch absorption campaign — video-input primitive derived from
   # bradautomates/claude-video v0.2.0 (MIT), maintained natively.
   departments/dev/skills/watch:

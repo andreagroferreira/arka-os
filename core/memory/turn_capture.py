@@ -161,7 +161,8 @@ def _precompute_cache(
         "dims": record.dims,
         "items": [
             {"summary": i["summary"][:200], "project_name": i["project_name"],
-             "ts": i["ts"], "score": i["score"], "retrieval": i["retrieval"]}
+             "ts": i["ts"], "score": i["score"], "retrieval": i["retrieval"],
+             "runtime": i.get("runtime", "")}
             for i in items
         ],
     }
@@ -190,14 +191,16 @@ def _maintenance(store: SessionMemoryStore) -> None:
     store.prune()
 
 
-def capture_turn(session_id: str, transcript_path: str, cwd: str = "") -> int:
-    if not _config_enabled() or not session_id:
-        return 0
-    raw = _read_tail(transcript_path)
-    if not raw:
-        return 0
-    text = _last_assistant_text(transcript_path, raw)
-    tools, paths = _parse_tool_uses(raw)
+def _persist_record(
+    session_id: str,
+    text: str,
+    cwd: str,
+    runtime: str,
+    tools: list[str],
+    paths: list[str],
+) -> None:
+    """Shared tail for every capture path: sanitize -> embed -> store ->
+    precompute the F1-A3 neighbour cache -> amortised maintenance."""
     summary, sanitized_ok = _sanitized_summary(text)
     tools = _safe_tool_names(tools, sanitized_ok)
     if not sanitized_ok:
@@ -206,6 +209,7 @@ def capture_turn(session_id: str, transcript_path: str, cwd: str = "") -> int:
     record = TurnRecord(
         ts=datetime.now(UTC).isoformat(),
         session_id=session_id,
+        runtime=runtime,
         project_name=Path(cwd).name if cwd else "",
         cwd=cwd,
         summary=summary,
@@ -221,6 +225,31 @@ def capture_turn(session_id: str, transcript_path: str, cwd: str = "") -> int:
     store.save(record)
     _precompute_cache(store, record, session_id)
     _maintenance(store)
+
+
+def capture_turn(
+    session_id: str, transcript_path: str, cwd: str = "", runtime: str = "claude"
+) -> int:
+    if not _config_enabled() or not session_id:
+        return 0
+    raw = _read_tail(transcript_path)
+    if not raw:
+        return 0
+    text = _last_assistant_text(transcript_path, raw)
+    tools, paths = _parse_tool_uses(raw)
+    _persist_record(session_id, text, cwd, runtime, tools, paths)
+    return 0
+
+
+def capture_text_turn(
+    session_id: str, text: str, cwd: str = "", runtime: str = "opencode"
+) -> int:
+    """Transcript-free capture for runtimes without a Claude-style JSONL
+    transcript on disk (OpenCode: the plugin holds the messages, not us).
+    The caller hands over the last assistant text directly."""
+    if not _config_enabled() or not session_id or not text.strip():
+        return 0
+    _persist_record(session_id, text, cwd, runtime, [], [])
     return 0
 
 
@@ -261,14 +290,30 @@ def main(argv: list[str] | None = None) -> int:
             return run_maintenance()
         except Exception:  # detached worker must die quietly
             return 0
+    if args and args[0] == "capture-text":
+        if len(args) < 4:
+            print(
+                "usage: python3 -m core.memory.turn_capture"
+                " capture-text <session_id> <cwd> <runtime>  (text on stdin)"
+            )
+            return 2
+        try:
+            text = sys.stdin.read()
+            return capture_text_turn(args[1], text, args[2], args[3])
+        except Exception:  # detached worker must die quietly
+            return 0
     if len(args) < 2:
         print(
             "usage: python3 -m core.memory.turn_capture"
-            " (<session_id> <transcript_path> [cwd] | maintenance)"
+            " (<session_id> <transcript_path> [cwd] [runtime] |"
+            " capture-text <session_id> <cwd> <runtime> | maintenance)"
         )
         return 2
     try:
-        return capture_turn(args[0], args[1], args[2] if len(args) > 2 else "")
+        return capture_turn(
+            args[0], args[1], args[2] if len(args) > 2 else "",
+            args[3] if len(args) > 3 else "claude",
+        )
     except Exception:  # detached worker must die quietly
         return 0
 

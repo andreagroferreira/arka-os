@@ -341,16 +341,30 @@ def build_recap(cwd: str, budget_ms: int = _BUDGET_MS) -> str:
         if not records or (time.monotonic() - start) * 1000 > budget_ms:
             return ""
         lines = ["[SESSION-MEMORY] Prior turns (importance+recency — not semantic):"]
+        handoff = store.cross_runtime_handoff(project, "claude")
+        if handoff:
+            stamp = (
+                handoff.ts[11:16] + "Z" if len(handoff.ts) >= 16 else handoff.ts
+            )
+            h_summary = neutralize_summary(handoff.summary)[:_SUMMARY_CHARS]
+            tail = f": {h_summary}" if h_summary else ""
+            lines.append(
+                f"[arka:handoff] última sessão em {handoff.runtime}"
+                f" ({stamp}){tail}"
+            )
+        turn_lines = 0
         for record in records:
             summary = neutralize_summary(record.summary)[:_SUMMARY_CHARS]
             if not summary:
                 continue
-            lines.append(f"[SESSION-MEMORY] - {record.ts[:10]}: {summary}")
-        if len(lines) == 1:
+            runtime = f" · {record.runtime}" if record.runtime else ""
+            lines.append(f"[SESSION-MEMORY] - {record.ts[:10]}{runtime}: {summary}")
+            turn_lines += 1
+        if turn_lines == 0:
             return ""
         backends = ",".join(sorted({r.embedding_backend for r in records})) or "none"
         lines.append(
-            f"[SESSION-MEMORY] shown: {len(lines) - 1} turns ({project}),"
+            f"[SESSION-MEMORY] shown: {turn_lines} turns ({project}),"
             f" backends={backends}"
         )
         return "\n".join(lines)

@@ -192,6 +192,29 @@ def test_recap_ranks_and_scopes(tmp_path):
     assert build_recap("/repo/other") == ""
 
 
+def test_recap_shows_cross_runtime_handoff(tmp_path):
+    """Newest turn in the project came from opencode -> the claude
+    SessionStart recap opens with the [arka:handoff] line."""
+    from datetime import UTC, datetime
+
+    _seed("proj")
+    SessionMemoryStore().save(TurnRecord(
+        id="oc-latest", ts=datetime.now(UTC).isoformat(),
+        session_id="oc-sess", runtime="opencode", project_name="proj",
+        summary="finished the opencode refactor",
+    ))
+    recap = build_recap("/repo/proj")
+    lines = recap.splitlines()
+    assert lines[1].startswith("[arka:handoff] última sessão em opencode")
+    assert "finished the opencode refactor" in lines[1]
+    assert "shown: 3 turns (proj)" in recap  # handoff not counted as turn
+
+
+def test_recap_no_handoff_without_cross_runtime(tmp_path):
+    _seed("proj")  # all runtime="" — nothing to hand off from
+    assert "[arka:handoff]" not in build_recap("/repo/proj")
+
+
 # ─── main(): the hook contract ─────────────────────────────────────────
 
 

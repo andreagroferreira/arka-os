@@ -46,6 +46,7 @@ class TurnRecord(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     ts: str = ""
     session_id: str = ""
+    runtime: str = ""
     project_name: str = ""
     cwd: str = ""
     summary: str = ""
@@ -110,6 +111,7 @@ class SessionMemoryStore:
                     id TEXT PRIMARY KEY,
                     ts TEXT NOT NULL,
                     session_id TEXT NOT NULL,
+                    runtime TEXT NOT NULL DEFAULT '',
                     project_name TEXT NOT NULL DEFAULT '',
                     cwd TEXT NOT NULL DEFAULT '',
                     summary TEXT NOT NULL DEFAULT '',
@@ -122,13 +124,23 @@ class SessionMemoryStore:
                     dims INTEGER NOT NULL DEFAULT 0
                 )
             """)
+            self._migrate(conn)
+
+    def _migrate(self, conn: sqlite3.Connection) -> None:
+        """Additive column migrations for DBs created before a column
+        existed — CREATE TABLE IF NOT EXISTS never alters a live table."""
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(turns)")}
+        if "runtime" not in cols:
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_turns_project_ts "
-                "ON turns (project_name, ts DESC)"
+                "ALTER TABLE turns ADD COLUMN runtime TEXT NOT NULL DEFAULT ''"
             )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_turns_session ON turns (session_id)"
-            )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_turns_project_ts "
+            "ON turns (project_name, ts DESC)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_turns_session ON turns (session_id)"
+        )
 
     def save(self, record: TurnRecord) -> None:
         row = record.model_dump()
@@ -139,12 +151,13 @@ class SessionMemoryStore:
         )
         with closing(self._conn()) as conn, conn:
             conn.execute(
-                "INSERT OR REPLACE INTO turns (id, ts, session_id, project_name,"
-                " cwd, summary, tools_used, file_paths, importance, embedding,"
-                " embedding_backend, embedding_model, dims)"
-                " VALUES (:id, :ts, :session_id, :project_name, :cwd, :summary,"
-                " :tools_used, :file_paths, :importance, :embedding,"
-                " :embedding_backend, :embedding_model, :dims)",
+                "INSERT OR REPLACE INTO turns (id, ts, session_id, runtime,"
+                " project_name, cwd, summary, tools_used, file_paths,"
+                " importance, embedding, embedding_backend, embedding_model,"
+                " dims)"
+                " VALUES (:id, :ts, :session_id, :runtime, :project_name,"
+                " :cwd, :summary, :tools_used, :file_paths, :importance,"
+                " :embedding, :embedding_backend, :embedding_model, :dims)",
                 row,
             )
 
@@ -184,6 +197,40 @@ class SessionMemoryStore:
             params.append(exclude_session)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         return where, params
+
+    def latest_turn(
+        self, project_name: str, exclude_session: str | None = None
+    ) -> TurnRecord | None:
+        """Newest turn in the project — the handoff-detection primitive."""
+        where, params = self._scope(project_name, exclude_session)
+        with closing(self._conn()) as conn:
+            row = conn.execute(
+                f"SELECT * FROM turns {where} ORDER BY ts DESC LIMIT 1",
+                params,
+            ).fetchone()
+        return self._row_to_record(row) if row else None
+
+    def cross_runtime_handoff(
+        self,
+        project_name: str,
+        current_runtime: str,
+        exclude_session: str | None = None,
+        max_age_h: float = 24,
+    ) -> TurnRecord | None:
+        """Newest turn in the project captured by a DIFFERENT runtime,
+        fresh enough to matter as a continuation hint — the shared
+        handoff predicate for every runtime's entry point."""
+        latest = self.latest_turn(project_name, exclude_session=exclude_session)
+        if not latest or not latest.runtime or latest.runtime == current_runtime:
+            return None
+        try:
+            age_h = (
+                datetime.now(UTC)
+                - datetime.fromisoformat(latest.ts.replace("Z", "+00:00"))
+            ).total_seconds() / 3600
+        except ValueError:
+            return None
+        return latest if age_h <= max_age_h else None
 
     def keyword_search(
         self, query: str, project_name: str | None = None, top_k: int = 3

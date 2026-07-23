@@ -114,6 +114,85 @@ def test_prune_by_age_and_cap(store):
     assert {r.id for r in store.recent()} == {"fresh"}
 
 
+def test_runtime_roundtrip_and_default(store):
+    store.save(_record(id="oc", runtime="opencode"))
+    store.save(_record(id="cl", runtime="claude"))
+    store.save(_record(id="legacy"))  # pre-runtime records default to ""
+    records = {r.id: r for r in store.recent()}
+    assert records["oc"].runtime == "opencode"
+    assert records["cl"].runtime == "claude"
+    assert records["legacy"].runtime == ""
+
+
+def test_runtime_column_migrated_on_existing_db(tmp_path):
+    """DBs created before the runtime column existed get it via ALTER —
+    CREATE TABLE IF NOT EXISTS never touches a live table."""
+    db = tmp_path / "old.db"
+    conn = sqlite3.connect(db)
+    conn.execute("""
+        CREATE TABLE turns (
+            id TEXT PRIMARY KEY, ts TEXT NOT NULL, session_id TEXT NOT NULL,
+            project_name TEXT NOT NULL DEFAULT '', cwd TEXT NOT NULL DEFAULT '',
+            summary TEXT NOT NULL DEFAULT '', tools_used TEXT NOT NULL DEFAULT '[]',
+            file_paths TEXT NOT NULL DEFAULT '[]', importance REAL NOT NULL DEFAULT 0.5,
+            embedding TEXT, embedding_backend TEXT NOT NULL DEFAULT 'none',
+            embedding_model TEXT NOT NULL DEFAULT '', dims INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+    conn.execute(
+        "INSERT INTO turns (id, ts, session_id, summary) VALUES (?,?,?,?)",
+        ("old-row", "2026-07-11T10:00:00+00:00", "s", "legacy summary"),
+    )
+    conn.commit()
+    conn.close()
+    store = SessionMemoryStore(db)
+    store.save(_record(id="new-row", runtime="opencode"))
+    records = {r.id: r for r in store.recent()}
+    assert records["new-row"].runtime == "opencode"
+    assert records["old-row"].runtime == ""  # backfilled default, not a crash
+
+
+def test_latest_turn_scopes_and_excludes(store):
+    store.save(_record(id="old", ts="2026-07-11T09:00:00+00:00",
+                       session_id="s1", runtime="claude"))
+    store.save(_record(id="new", ts="2026-07-11T11:00:00+00:00",
+                       session_id="s2", runtime="opencode"))
+    store.save(_record(id="other-proj", project_name="other",
+                       ts="2026-07-11T12:00:00+00:00"))
+    latest = store.latest_turn("proj")
+    assert latest is not None and latest.id == "new"
+    assert store.latest_turn("proj", exclude_session="s2").id == "old"
+    assert store.latest_turn("missing-proj") is None
+
+
+def test_cross_runtime_handoff(store):
+    from datetime import UTC, datetime, timedelta
+
+    fresh = datetime.now(UTC).isoformat()
+    store.save(_record(id="from-oc", ts=fresh, runtime="opencode",
+                       session_id="oc-1"))
+    hit = store.cross_runtime_handoff("proj", "claude")
+    assert hit is not None and hit.id == "from-oc"
+    assert store.cross_runtime_handoff("proj", "opencode") is None  # same
+    assert store.cross_runtime_handoff(
+        "proj", "claude", exclude_session="oc-1") is None
+
+
+def test_cross_runtime_handoff_rejects_stale_and_legacy(store, tmp_path):
+    from datetime import UTC, datetime, timedelta
+
+    fresh = datetime.now(UTC).isoformat()
+    stale = (datetime.now(UTC) - timedelta(hours=48)).isoformat()
+
+    stale_db = SessionMemoryStore(tmp_path / "stale.db")
+    stale_db.save(_record(id="old-oc", ts=stale, runtime="opencode"))
+    assert stale_db.cross_runtime_handoff("proj", "claude") is None
+
+    legacy_db = SessionMemoryStore(tmp_path / "legacy.db")
+    legacy_db.save(_record(id="legacy", ts=fresh, runtime=""))
+    assert legacy_db.cross_runtime_handoff("proj", "claude") is None
+
+
 def test_store_born_self_healing(tmp_path):
     db = tmp_path / "session-memory.db"
     SessionMemoryStore(db)  # create real schema

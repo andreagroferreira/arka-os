@@ -8,8 +8,10 @@ description: >
   TRIGGER: "animated website", "scroll animation", "video to website",
   "Apple-style page", "site com scroll do vídeo", "transforma este vídeo num
   site", "frame animation", "/dev animated-website". SKIP: embedding a plain
-  video player -> just use <video>; regular animated site WITHOUT a video
-  source -> frontend-design skill; video editing/production -> content/video-produce.
+  video player -> just use <video>; generating a scroll-scrubbed 3D world
+  FROM SCRATCH via Higgsfield (no existing video source) -> dev/scroll-world;
+  regular animated site WITHOUT a video source -> frontend-design skill;
+  video editing/production -> content/video-produce.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch]
 metadata:
   origin: community

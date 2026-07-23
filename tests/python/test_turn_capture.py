@@ -182,6 +182,58 @@ def test_cli_usage_and_missing_transcript(tmp_path):
     assert turn_capture.main(["s", str(tmp_path / "missing.jsonl")]) == 0
 
 
+# ─── Cross-runtime capture (opencode transcript-free path) ────────────
+
+
+def test_capture_turn_tags_claude_runtime(tmp_path, redaction_config, fake_embed):
+    transcript = _write_transcript(tmp_path)
+    turn_capture.capture_turn("sess-cl", str(transcript), "/repo/myproj")
+    record = SessionMemoryStore().recent()[0]
+    assert record.runtime == "claude"
+
+
+def test_capture_text_turn_tags_opencode_runtime(tmp_path, redaction_config,
+                                                 fake_embed):
+    assert turn_capture.capture_text_turn(
+        "sess-oc", "Implemented the megacorp retry queue from opencode.",
+        "/repo/myproj", "opencode",
+    ) == 0
+    record = SessionMemoryStore().recent()[0]
+    assert record.runtime == "opencode"
+    assert record.project_name == "myproj"
+    assert "retry queue" in record.summary
+    assert "megacorp" not in record.summary  # same sanitizer pipeline
+    assert record.embedding_backend == "fastembed"
+
+
+def test_capture_text_turn_empty_text_noop(tmp_path):
+    assert turn_capture.capture_text_turn("sess-oc", "   ", "/repo/myproj") == 0
+    assert not (tmp_path / "sm.db").exists()
+
+
+def test_capture_text_turn_respects_kill_switch(tmp_path, monkeypatch):
+    monkeypatch.setenv("ARKA_SESSION_MEMORY", "0")
+    assert turn_capture.capture_text_turn("s", "real text", "/repo/p") == 0
+    assert not (tmp_path / "sm.db").exists()
+
+
+def test_cli_capture_text_reads_stdin(tmp_path, redaction_config, fake_embed,
+                                      monkeypatch):
+    monkeypatch.setattr(
+        "sys.stdin", type("S", (), {"read": lambda s: "did the thing from stdin"})()
+    )
+    assert turn_capture.main(
+        ["capture-text", "sess-cli", "/repo/myproj", "opencode"]
+    ) == 0
+    record = SessionMemoryStore().recent()[0]
+    assert record.runtime == "opencode"
+    assert record.summary == "did the thing from stdin"
+
+
+def test_cli_capture_text_usage_error():
+    assert turn_capture.main(["capture-text", "only-two"]) == 2
+
+
 # ─── F1-A4: nightly maintenance mode ──────────────────────────────────
 
 

@@ -3146,6 +3146,19 @@
         "origin": "arkaos"
       }
     },
+    "scroll-world": {
+      "depts": [
+        "dev"
+      ],
+      "curated": true,
+      "plugins": [],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/oso95/scroll-world",
+        "license": "MIT"
+      }
+    },
     "search-kb": {
       "depts": [
         "kb"

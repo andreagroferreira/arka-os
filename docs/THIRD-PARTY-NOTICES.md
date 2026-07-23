@@ -177,3 +177,24 @@ derived from hallmark (its frontmatter `metadata.source` names it — the
 provenance schema records one source per skill); this section is the
 authoritative record of the impeccable-derived material inside the same
 skill directory and the doctrine hub.
+
+## scroll-world (cyw / oso95)
+
+- **Source:** https://github.com/oso95/scroll-world
+- **License:** MIT — Copyright (c) 2026 cyw
+- **License text:** retained verbatim at
+  `departments/dev/skills/scroll-world/references/scroll-world.LICENSE`
+- **Upstream version:** main HEAD `2912048` (2026-07-15)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Skill procedure | `departments/dev/skills/scroll-world/SKILL.md` | Verbatim body (interview, seam rule, camera architectures, QA); frontmatter rewritten to the ArkaOS standard (name, TRIGGER/SKIP routing, provenance metadata, KB-first prefix) |
+| Prompt templates | `departments/dev/skills/scroll-world/references/prompts.md` | Verbatim — intake checklist + every Higgsfield prompt template |
+| Pipeline scripts | `departments/dev/skills/scroll-world/references/pipeline.md` | Verbatim — bash-3.2-safe batch scripts (generate, frames, connectors, encode) |
+| Scrub engine | `departments/dev/skills/scroll-world/references/scrub-engine.js` | Verbatim — portable config-driven scroll-scrub engine (blob-seek, lazy load, seam crossfade, phone hardening) |
+| Page template + knockout | `departments/dev/skills/scroll-world/references/index-template.html`, `knockout.py` | Verbatim — standalone mount page and border-connected background knockout |
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.
