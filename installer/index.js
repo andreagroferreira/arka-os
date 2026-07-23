@@ -353,21 +353,28 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
   // Foundation PR-5 — menu bar launcher (macOS only), default-on with
   // persisted opt-out (npx arkaos menubar disable). rumps install and
   // launchd wiring are best-effort: a failure can never break install.
-  if (process.platform === "darwin") {
+  // Guards (QG M3/M4): a LaunchAgent is system integration, so it
+  // honors --no-system and never touches CI runners; the opt-out is
+  // consulted BEFORE pip — a user who disabled the menu bar must not
+  // receive its dependency on every install.
+  if (process.platform === "darwin" && !skipSystem && !process.env.CI) {
     try {
-      if (pipInstall("rumps", { log: (m) => detail(m), timeout: 120000 })) {
-        ok("rumps installed (menu bar framework)");
-      } else {
-        warn("rumps install failed — menu bar app will hint on first run");
-      }
-      const { ensureDefaultEnabled: ensureMenubar } = await import("./menubar.js");
-      const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
-      if (mb.action === "enabled") {
-        detail("         Menu bar launcher enabled (▲ in the macOS menu bar).");
-      } else if (mb.action === "optout") {
+      const { ensureDefaultEnabled: ensureMenubar, status: menubarStatus } =
+        await import("./menubar.js");
+      if (menubarStatus().optout) {
         detail("         Menu bar launcher: user opt-out respected.");
-      } else if (mb.action === "partial") {
-        detail(`         Menu bar launcher: ${mb.message}`);
+      } else {
+        if (pipInstall("rumps", { log: (m) => detail(m), timeout: 120000 })) {
+          ok("rumps installed (menu bar framework)");
+        } else {
+          warn("rumps install failed — menu bar app will hint on first run");
+        }
+        const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
+        if (mb.action === "enabled") {
+          detail("         Menu bar launcher enabled (▲ in the macOS menu bar).");
+        } else if (mb.action === "partial") {
+          detail(`         Menu bar launcher: ${mb.message}`);
+        }
       }
     } catch (err) {
       detail(`         Warning: could not enable menu bar launcher (${err.message})`);

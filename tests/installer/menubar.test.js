@@ -19,9 +19,12 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
-  MENUBAR_LABEL, deployMenubarScript, ensureDefaultEnabled, menubarScriptPath,
-  optoutPath, unitFor,
+  MENUBAR_LABEL, deployMenubarScript, ensureDefaultEnabled, menubarHealthy,
+  menubarScriptPath, optoutPath, unitFor, xmlEscape,
 } = await import(join(ROOT, "installer", "menubar.js"));
+const { optoutPath: autoupdateOptoutPath } = await import(
+  join(ROOT, "installer", "autoupdate.js")
+);
 const MENUBAR_PY = join(ROOT, "bin", "arka-menubar.py");
 
 const HAVE_PY = (() => {
@@ -55,9 +58,24 @@ test("macOS unit is a LaunchAgent plist running the deployed script at login", (
   assert.match(u.files[0].content, /<key>ProcessType<\/key>\s*<string>Interactive<\/string>/);
 });
 
-test("unit carries a usable PATH (menu actions shell out to npx/ollama)", () => {
+test("unit PATH covers homebrew, /usr/local and ~/.arkaos/bin (nvm installs degrade to the app's logged which-guard)", () => {
   const u = unitFor("darwin", ctx);
-  assert.match(u.files[0].content, /<key>PATH<\/key>\s*<string>[^<]*homebrew[^<]*<\/string>/);
+  const path = u.files[0].content.match(/<key>PATH<\/key>\s*<string>([^<]*)<\/string>/)[1];
+  assert.ok(path.includes("/opt/homebrew/bin"), path);
+  assert.ok(path.includes("/usr/local/bin"), path);
+  assert.ok(path.includes("/Users/x/.arkaos/bin"), path);
+});
+
+test("plist values are XML-escaped — '&' and '<' are legal in macOS paths (QG M1)", () => {
+  assert.equal(xmlEscape('a&b<c>"d\'e'), "a&amp;b&lt;c&gt;&quot;d&apos;e");
+  const u = unitFor("darwin", {
+    home: "/Users/A & B",
+    pythonPath: "/Users/A & B/.arkaos/venv/bin/python",
+    scriptPath: "/Users/A & B/.arkaos/bin/arka-menubar.py",
+  });
+  assert.ok(u.files[0].content.includes("/Users/A &amp; B/.arkaos/venv/bin/python"));
+  assert.ok(!/<string>[^<]*& [^<]*<\/string>/.test(u.files[0].content),
+    "raw ampersand leaked into plist");
 });
 
 test("non-macOS platforms throw (callers report unsupported)", () => {
@@ -198,12 +216,14 @@ test("menu: Start Ollama appears ONLY on local-ai with ollama stopped", { skip: 
   assert.ok(!essentialStopped.includes("start_ollama"));
 });
 
-test("menu: core actions always present, quit last", { skip: !HAVE_PY }, () => {
+test("menu: core actions always present (incl. discoverable disable), quit last", { skip: !HAVE_PY }, () => {
   const items = pyProbe("--print-menu", { ollama: "absent" });
-  for (const id of ["check_updates", "open_dashboard", "doctor", "autoupdate_toggle"]) {
+  for (const id of ["check_updates", "open_dashboard", "doctor", "autoupdate_toggle", "disable"]) {
     assert.ok(items.includes(id), `missing ${id}`);
   }
   assert.equal(items[items.length - 1], "quit");
+  assert.equal(items[items.length - 2], "disable",
+    "permanent opt-out must be discoverable next to Quit (QG M7)");
 });
 
 // The live ollama probe is gated on the local-ai profile — the only one
@@ -244,4 +264,124 @@ test("menu: ollama probe spawns ONLY on the local-ai profile", { skip: !HAVE_PY 
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
+});
+
+// ── Part 3: doctor probe, distribution + contract locks (QG round 1) ───
+
+test("menubarHealthy: every branch, launchd never touched (QG M2)", () => {
+  const home = mkdtempSync(join(tmpdir(), "arka-menubar-health-"));
+  try {
+    // Not applicable off macOS.
+    assert.equal(menubarHealthy({ home, platform: "linux" }), true);
+    // Not installed → unhealthy (exec must not even be consulted).
+    assert.equal(
+      menubarHealthy({ home, platform: "darwin", exec: () => { throw new Error("never"); } }),
+      false,
+    );
+    // Persisted opt-out is a healthy, chosen state.
+    mkdirSync(join(home, ".arkaos"), { recursive: true });
+    writeFileSync(optoutPath(home), "x");
+    assert.equal(
+      menubarHealthy({ home, platform: "darwin", exec: () => { throw new Error("never"); } }),
+      true,
+    );
+    rmSync(optoutPath(home));
+    // Installed: healthy iff `launchctl list <label>` reports the job.
+    mkdirSync(join(home, "Library", "LaunchAgents"), { recursive: true });
+    writeFileSync(join(home, "Library", "LaunchAgents", `${MENUBAR_LABEL}.plist`), "<plist/>");
+    mkdirSync(dirname(menubarScriptPath(home)), { recursive: true });
+    writeFileSync(menubarScriptPath(home), "#!/usr/bin/env python3\n");
+    const calls = [];
+    const exec = (file, args) => { calls.push([file, ...args]); return true; };
+    assert.equal(menubarHealthy({ home, platform: "darwin", exec }), true);
+    assert.deepEqual(calls, [["launchctl", "list", MENUBAR_LABEL]]);
+    assert.equal(
+      menubarHealthy({ home, platform: "darwin", exec: () => false }),
+      false,
+      "files present but job not loaded must be unhealthy",
+    );
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("package.json ships bin/arka-menubar.py — the file-by-file bin/ allowlist (QG M6)", () => {
+  const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  assert.ok(pkg.files.includes("bin/arka-menubar.py"),
+    "missing from files: the tarball silently drops the menu bar app");
+});
+
+test("opt-out marker names are locked against the REAL modules, not themselves (QG M8)", () => {
+  const pySource = readFileSync(MENUBAR_PY, "utf8");
+  // Python reads the autoupdate marker the PR-1 daemon actually writes…
+  assert.ok(autoupdateOptoutPath("/x").endsWith("autoupdate.optout"));
+  assert.match(pySource, /AUTOUPDATE_OPTOUT_BASENAME = "autoupdate\.optout"/);
+  // …and the menubar marker installer/menubar.js actually honors.
+  assert.ok(optoutPath("/x").endsWith("menubar.optout"));
+  assert.match(pySource, /MENUBAR_OPTOUT_BASENAME = "menubar\.optout"/);
+});
+
+// The plist's last-resort interpreter is the macOS system python (3.9).
+// PEP 604 annotations without the __future__ import crash at def time
+// there — before the guarded rumps import ever runs (QG B1).
+const SYSTEM_PY = "/usr/bin/python3";
+const HAVE_SYSTEM_PY = existsSync(SYSTEM_PY);
+
+test("script runs under the fallback /usr/bin/python3 (QG B1)", { skip: !HAVE_SYSTEM_PY }, () => {
+  const home = mkdtempSync(join(tmpdir(), "arka-menubar-syspy-"));
+  try {
+    const run = spawnSync(SYSTEM_PY, [MENUBAR_PY, "--print-state"], {
+      env: { ...process.env, ARKA_MENUBAR_HOME: home },
+      encoding: "utf8",
+      timeout: 15000,
+    });
+    assert.equal(run.status, 0, `stderr: ${run.stderr}`);
+    assert.equal(JSON.parse(run.stdout).profile, "essential");
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("app run is a clean exit 0 when rumps is broken AND when opted out (never a crashing login item)", { skip: !HAVE_PY }, () => {
+  const home = mkdtempSync(join(tmpdir(), "arka-menubar-guard-"));
+  try {
+    // A rumps shim that raises at import SHADOWS any real rumps, so the
+    // app can never actually launch — this exercises the guard for real.
+    const shimDir = join(home, "shim");
+    mkdirSync(shimDir, { recursive: true });
+    writeFileSync(join(shimDir, "rumps.py"), "raise ImportError('broken by test')\n");
+    const runApp = () =>
+      spawnSync("python3", [MENUBAR_PY], {
+        env: { ...process.env, ARKA_MENUBAR_HOME: home, PYTHONPATH: shimDir },
+        encoding: "utf8",
+        timeout: 15000,
+      });
+
+    const broken = runApp();
+    assert.equal(broken.status, 0, `stderr: ${broken.stderr}`);
+
+    // Startup opt-out guard (QG M7): marker makes RunAtLoad a no-op.
+    mkdirSync(join(home, ".arkaos"), { recursive: true });
+    writeFileSync(join(home, ".arkaos", "menubar.optout"), "x");
+    const optedOut = runApp();
+    assert.equal(optedOut.status, 0, `stderr: ${optedOut.stderr}`);
+    if (process.platform === "darwin") {
+      assert.match(optedOut.stdout, /opt-out/);
+    }
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("--help exits 0 with usage; unknown flags exit 2, never launch the app", { skip: !HAVE_PY }, () => {
+  const helpRun = spawnSync("python3", [MENUBAR_PY, "--help"], {
+    encoding: "utf8", timeout: 15000,
+  });
+  assert.equal(helpRun.status, 0);
+  assert.match(helpRun.stdout, /--print-state/);
+  const badRun = spawnSync("python3", [MENUBAR_PY, "--bogus"], {
+    encoding: "utf8", timeout: 15000,
+  });
+  assert.equal(badRun.status, 2);
+  assert.match(badRun.stdout, /unknown option/);
 });

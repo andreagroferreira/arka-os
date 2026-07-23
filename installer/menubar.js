@@ -16,7 +16,7 @@
  * touching the OS (autoupdate.js precedent).
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import {
   chmodSync, copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync,
 } from "node:fs";
@@ -29,6 +29,18 @@ export const MENUBAR_LABEL = "io.wizardingcode.arkaos.menubar";
 
 function defaultRepoRoot() {
   return join(dirname(fileURLToPath(import.meta.url)), "..");
+}
+
+/** XML-escape a value interpolated into plist content — `&` and `<`
+ *  are legal in macOS paths and would otherwise corrupt the plist into
+ *  an opaque `launchctl load` failure (QG M1). */
+export function xmlEscape(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 /** Pure: the opt-out marker path — written by disable(), honored by
@@ -53,7 +65,11 @@ export function unitFor(os, { home, pythonPath, scriptPath }) {
   if (os !== "darwin") {
     throw new Error(`menu bar launcher is macOS-only (got ${os})`);
   }
-  const log = `${home}/.arkaos/logs/menubar.log`;
+  const log = join(home, ".arkaos", "logs", "menubar.log");
+  // PATH: launchd defaults carry no node; ~/.arkaos/bin carries the arka
+  // wrappers. nvm/fnm installs still resolve through the app's own
+  // shutil.which guard, which logs instead of failing silently (QG M5).
+  const pathValue = `/opt/homebrew/bin:/usr/local/bin:${join(home, ".arkaos", "bin")}:/usr/bin:/bin:/usr/sbin:/sbin`;
   const content = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -62,13 +78,13 @@ export function unitFor(os, { home, pythonPath, scriptPath }) {
   <string>${MENUBAR_LABEL}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${pythonPath}</string>
-    <string>${scriptPath}</string>
+    <string>${xmlEscape(pythonPath)}</string>
+    <string>${xmlEscape(scriptPath)}</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <string>${xmlEscape(pathValue)}</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
@@ -79,9 +95,9 @@ export function unitFor(os, { home, pythonPath, scriptPath }) {
   <key>ProcessType</key>
   <string>Interactive</string>
   <key>StandardOutPath</key>
-  <string>${log}</string>
+  <string>${xmlEscape(log)}</string>
   <key>StandardErrorPath</key>
-  <string>${log}</string>
+  <string>${xmlEscape(log)}</string>
 </dict>
 </plist>
 `;
@@ -110,9 +126,11 @@ export function deployMenubarScript({ repoRoot = defaultRepoRoot(), home = homed
   return true;
 }
 
-function _silent(cmd) {
+// Shell-free exec (QG M1): argv array via execFileSync — a home path
+// containing quotes/backticks/$() can never escape into a shell.
+function _silent(file, args) {
   try {
-    execSync(cmd, { stdio: "pipe" });
+    execFileSync(file, args, { stdio: "pipe" });
     return true;
   } catch {
     return false;
@@ -139,8 +157,8 @@ export function enable({ repoRoot = defaultRepoRoot(), home = homedir() } = {}) 
   }
   if (existsSync(optoutPath(home))) rmSync(optoutPath(home));
   const mainPath = unit.files[0].path;
-  _silent(`launchctl unload "${mainPath}"`);
-  if (!_silent(`launchctl load -w "${mainPath}"`)) {
+  _silent("launchctl", ["unload", mainPath]);
+  if (!_silent("launchctl", ["load", "-w", mainPath])) {
     return { ok: false, path: mainPath,
       message: "Plist written but launchctl load failed — it will still start at next login." };
   }
@@ -153,7 +171,7 @@ export function disable({ home = homedir() } = {}) {
     return { ok: false, path: "", message: "Menu bar launcher is macOS-only." };
   }
   const plist = join(home, "Library", "LaunchAgents", `${MENUBAR_LABEL}.plist`);
-  _silent(`launchctl unload "${plist}"`);
+  _silent("launchctl", ["unload", plist]);
   if (existsSync(plist)) rmSync(plist);
   // Persisted opt-out: future `npx arkaos update` runs must not re-enable.
   mkdirSync(join(home, ".arkaos"), { recursive: true });
@@ -176,6 +194,26 @@ export function status({ home = homedir() } = {}) {
   };
 }
 
+/**
+ * Doctor probe (QG M2): file presence alone cannot detect the primary
+ * failure mode (agent files present, process dead at import). Composes
+ * status() with a live `launchctl list <label>` query (exit 0 iff the
+ * job is loaded in this session). `exec` and `platform` are injectable
+ * so every branch is testable without touching launchd.
+ */
+export function menubarHealthy({
+  home = homedir(),
+  platform = process.platform,
+  exec = (file, args) => _silent(file, args),
+} = {}) {
+  if (platform !== "darwin") return true; // not applicable
+  const s = status({ home });
+  // A persisted opt-out is a healthy, chosen state — not a warning.
+  if (s.optout) return true;
+  if (!s.installed) return false;
+  return exec("launchctl", ["list", MENUBAR_LABEL]);
+}
+
 /** Default-on wiring for install/update flows: enable unless the user
  *  opted out or the platform is unsupported. Never throws. */
 export function ensureDefaultEnabled({ repoRoot = defaultRepoRoot(), home = homedir() } = {}) {
@@ -184,7 +222,9 @@ export function ensureDefaultEnabled({ repoRoot = defaultRepoRoot(), home = home
   if (s.optout) return { action: "optout" };
   if (s.installed) {
     // Refresh script + plist content in place (paths may change between
-    // versions) without a reload storm on every update.
+    // versions). Deliberately no unload/load here: the refreshed unit
+    // only takes effect at next login — a reload storm on every update
+    // would flicker the running app (QG minor, documented honestly).
     try {
       deployMenubarScript({ repoRoot, home });
       const pythonPath = getArkaosPython() || "/usr/bin/python3";

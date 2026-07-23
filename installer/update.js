@@ -593,15 +593,22 @@ export async function update({ skillsFlag = "" } = {}) {
   }
 
   // ── 7c. Menu bar launcher (Foundation PR-5) — macOS, default-on ──
-  if (process.platform === "darwin") {
+  // Opt-out consulted BEFORE pip (QG M3): a disabled menu bar must not
+  // cost its dependency on every daemon update. CI runners never get
+  // LaunchAgents (QG M4).
+  if (process.platform === "darwin" && !process.env.CI) {
     try {
-      pipInstall("rumps", { log, timeout: 120000 });
-      const { ensureDefaultEnabled: ensureMenubar } = await import("./menubar.js");
-      const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
-      if (mb.action === "enabled") ok("Menu bar launcher enabled (▲ in the macOS menu bar)");
-      else if (mb.action === "already-enabled") ok("Menu bar launcher active");
-      else if (mb.action === "optout") detail("         · Menu bar launcher: user opt-out respected");
-      else if (mb.action === "partial") warn(`Menu bar launcher: ${mb.message}`);
+      const { ensureDefaultEnabled: ensureMenubar, status: menubarStatus } =
+        await import("./menubar.js");
+      if (menubarStatus().optout) {
+        detail("         · Menu bar launcher: user opt-out respected");
+      } else {
+        pipInstall("rumps", { log, timeout: 120000 });
+        const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
+        if (mb.action === "enabled") ok("Menu bar launcher enabled (▲ in the macOS menu bar)");
+        else if (mb.action === "already-enabled") ok("Menu bar launcher active");
+        else if (mb.action === "partial") warn(`Menu bar launcher: ${mb.message}`);
+      }
     } catch (err) {
       warn(`Menu bar launcher not enabled (${err.message})`);
     }

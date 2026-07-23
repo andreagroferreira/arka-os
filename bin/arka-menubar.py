@@ -28,6 +28,12 @@ The probe itself only runs on the local-ai profile (the only profile
 that ever surfaces Start Ollama); other profiles never spawn ollama.
 """
 
+# PEP 604 annotations (`Path | None`) are evaluated at def time without
+# this import and raise TypeError on Python < 3.10 — and the plist's
+# last-resort interpreter is the macOS system /usr/bin/python3 (3.9).
+# The future import turns them into strings, importable everywhere.
+from __future__ import annotations
+
 import json
 import os
 import shutil
@@ -40,6 +46,18 @@ VALID_PROFILES = ("essential", "complete", "local-ai")
 REFRESH_SECONDS = 60
 TITLE = "▲"  # ▲ — brand wordmark glyph
 TITLE_PENDING = "▲ •"  # ▲ • — sync pending badge
+# Contract with installer/menubar.js (optoutPath) and the PR-1 daemon
+# (installer/autoupdate.js optoutPath). menubar.test.js locks parity
+# against the real JS modules — never rename one side alone.
+MENUBAR_OPTOUT_BASENAME = "menubar.optout"
+AUTOUPDATE_OPTOUT_BASENAME = "autoupdate.optout"
+
+USAGE = """arka-menubar.py — ArkaOS menu bar launcher (macOS)
+  (no args)        run the menu bar app (exits 0 when unsupported)
+  --print-state    JSON snapshot of the runtime state
+  --print-menu     JSON list of visible menu item ids
+  --help           this text
+"""
 
 
 def arka_home() -> Path:
@@ -76,7 +94,7 @@ def read_state(home: Path | None = None) -> dict:
         state["profile"] = value if value in VALID_PROFILES else "essential"
     except Exception:
         pass
-    state["autoupdate_on"] = not (home / "autoupdate.optout").exists()
+    state["autoupdate_on"] = not (home / AUTOUPDATE_OPTOUT_BASENAME).exists()
     return state
 
 
@@ -110,12 +128,19 @@ def menu_items(state: dict, ollama: str) -> list:
     if state.get("profile") == "local-ai" and ollama == "stopped":
         items.append("start_ollama")
     items.append("autoupdate_toggle")
+    items.append("disable")
     items.append("quit")
     return items
 
 
 def title_for(state: dict) -> str:
     return TITLE_PENDING if state.get("sync_pending") else TITLE
+
+
+def version_label(state: dict) -> str:
+    """User-visible copy — never renders 'vunknown'."""
+    version = state.get("version")
+    return f"ArkaOS v{version}" if version else "ArkaOS (version unknown)"
 
 
 # ── Action helpers (subprocess, never blocking the UI thread) ────────────
@@ -171,14 +196,18 @@ def action_open_dashboard() -> None:
     except Exception:
         pass
     if ui_port.isdigit():
-        subprocess.run(["/usr/bin/open", f"http://localhost:{ui_port}"])
+        subprocess.run(["/usr/bin/open", f"http://localhost:{ui_port}"], timeout=15)
     else:
-        log_line("open_dashboard: no UI_PORT — run: npx arkaos dashboard")
+        log_line(
+            "open_dashboard: no UI_PORT after start-dashboard.sh ensure — "
+            "check ~/.arkaos/logs for the dashboard startup error"
+        )
 
 
 def action_start_ollama() -> None:
     # Operator decision (PR-5 Phase 0): the app first, `serve` as fallback.
-    result = subprocess.run(["/usr/bin/open", "-a", "Ollama"], capture_output=True)
+    result = subprocess.run(["/usr/bin/open", "-a", "Ollama"],
+                            capture_output=True, timeout=15)
     if result.returncode != 0:
         if shutil.which("ollama"):
             subprocess.Popen(
@@ -196,12 +225,31 @@ def action_doctor() -> None:
         'tell application "Terminal" to activate',
         "-e",
         'tell application "Terminal" to do script "npx arkaos doctor"',
-    ], capture_output=True)
+    ], capture_output=True, timeout=15)
 
 
 def action_autoupdate(enable: bool) -> None:
+    """Runs on a worker thread (npx resolves the registry — slow/offline
+    must degrade to a logged line, never a silent no-op)."""
     verb = "enable" if enable else "disable"
-    subprocess.run(["npx", "arkaos", "autoupdate", verb], capture_output=True)
+    if shutil.which("npx") is None:
+        log_line(
+            "autoupdate_toggle: npx not on the LaunchAgent PATH — "
+            f"run manually: npx arkaos autoupdate {verb}"
+        )
+        return
+    subprocess.run(["npx", "arkaos", "autoupdate", verb],
+                   capture_output=True, timeout=180)
+
+
+def action_disable_menubar() -> None:
+    """Permanent opt-out from the menu itself (QG M7): writes the marker
+    installer/menubar.js honors; the startup guard in run_app makes any
+    remaining RunAtLoad an instant no-op until `npx arkaos menubar enable`."""
+    marker = arka_home() / MENUBAR_OPTOUT_BASENAME
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("disabled from the menu bar\n", encoding="utf-8")
+    log_line("disable: opt-out marker written — re-enable: npx arkaos menubar enable")
 
 
 # ── rumps app (guarded import — never a crashing login item) ─────────────
@@ -210,6 +258,11 @@ def action_autoupdate(enable: bool) -> None:
 def run_app() -> int:
     if sys.platform != "darwin":
         print("arka-menubar: macOS only — nothing to do")
+        return 0
+    # Permanent opt-out (QG M7): the plist may still RunAtLoad until an
+    # update removes it — the marker makes that launch an instant no-op.
+    if (arka_home() / MENUBAR_OPTOUT_BASENAME).exists():
+        print("arka-menubar: user opt-out — exiting (re-enable: npx arkaos menubar enable)")
         return 0
     try:
         import rumps
@@ -234,8 +287,16 @@ def run_app() -> int:
             subprocess in a rumps callback freezes the whole menu bar).
             The worker only runs subprocesses and reads files — ALL rumps
             interaction stays on the main thread: an optional 1s poll timer
-            (main thread) refreshes the menu once the worker finishes."""
-            worker = threading.Thread(target=work, daemon=True)
+            (main thread) refreshes the menu once the worker finishes.
+            Worker bodies are exception-guarded to log_line — a missing
+            binary must never die silently (QG M5)."""
+            def guarded():
+                try:
+                    work()
+                except Exception as err:
+                    log_line(f"action: {err}")
+
+            worker = threading.Thread(target=guarded, daemon=True)
             worker.start()
             if not refresh_after:
                 return
@@ -255,15 +316,14 @@ def run_app() -> int:
             ollama = ollama_status_for(state)
             self.title = title_for(state)
             self.menu.clear()
-            version = state["version"] or "unknown"
-            info = rumps.MenuItem(f"ArkaOS v{version}")
+            info = rumps.MenuItem(version_label(state))
             info.set_callback(None)  # informational, not clickable
             entries = [info]
             if state["sync_pending"]:
                 pending = rumps.MenuItem("Sync pending — open a Claude session")
                 pending.set_callback(None)
                 entries.append(pending)
-            entries.append(None)  # separator
+            entries.append(rumps.separator)
             visible = menu_items(state, ollama)
             labels = {
                 "check_updates": ("Check for updates", self.on_check_updates),
@@ -274,15 +334,16 @@ def run_app() -> int:
                     "Auto-update: on" if state["autoupdate_on"] else "Auto-update: off",
                     self.on_autoupdate_toggle,
                 ),
-                "quit": ("Quit", self.on_quit),
+                "disable": ("Disable menu bar (permanent)", self.on_disable),
+                "quit": ("Quit until next login", self.on_quit),
             }
             for item_id in visible:
                 label, callback = labels[item_id]
                 entry = rumps.MenuItem(label, callback=callback)
                 if item_id == "autoupdate_toggle":
                     entry.state = 1 if state["autoupdate_on"] else 0
-                if item_id == "quit":
-                    entries.append(None)
+                if item_id == "disable":
+                    entries.append(rumps.separator)
                 entries.append(entry)
             self.menu.update(entries)
 
@@ -296,12 +357,18 @@ def run_app() -> int:
             self._spawn(action_doctor)
 
         def on_start_ollama(self, _):
-            action_start_ollama()
-            self.refresh(None)
+            self._spawn(action_start_ollama, refresh_after=True)
 
         def on_autoupdate_toggle(self, _):
             enable = not read_state()["autoupdate_on"]
             self._spawn(lambda: action_autoupdate(enable=enable), refresh_after=True)
+
+        def on_disable(self, _):
+            try:
+                action_disable_menubar()
+            except Exception as err:
+                log_line(f"disable: {err}")
+            self._rumps.quit_application()
 
         def on_quit(self, _):
             self._rumps.quit_application()
@@ -315,6 +382,9 @@ def run_app() -> int:
 
 
 def main(argv: list) -> int:
+    if "--help" in argv or "-h" in argv:
+        print(USAGE)
+        return 0
     if "--print-state" in argv:
         print(json.dumps(read_state()))
         return 0
@@ -322,6 +392,9 @@ def main(argv: list) -> int:
         state = read_state()
         print(json.dumps(menu_items(state, ollama_status_for(state))))
         return 0
+    if argv and argv[0].startswith("-"):
+        print(f"arka-menubar: unknown option {argv[0]}\n\n{USAGE}")
+        return 2
     return run_app()
 
 
