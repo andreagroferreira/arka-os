@@ -73,7 +73,16 @@ class TestAdapterCapabilities:
         assert caps["file_ops"] is True
         assert caps["headless"] is True
         assert caps["agent_dispatch"] is False
-        assert caps["hooks"] is False
+        # Hooks parity ships via ~/.config/opencode/plugins/arka.ts
+        # (deployed by the installer adapter) — the capability mirrors
+        # whether the plugin is actually present on this machine.
+        from pathlib import Path
+        from os.path import expanduser
+
+        plugin = (
+            Path(expanduser("~")) / ".config" / "opencode" / "plugins" / "arka.ts"
+        )
+        assert caps["hooks"] is plugin.exists()
 
     def test_base_default_is_conservative(self):
         """Unknown adapters must not overclaim: everything False except

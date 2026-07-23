@@ -283,10 +283,22 @@ def _agent_markdown(agent: dict) -> str:
 
 
 def _opencode_agent_files() -> dict[str, str]:
-    return {
+    curated = _curated_agents(_load_agents())
+    files = {
         f"opencode/agents/arka-{agent['id']}.md": _agent_markdown(agent)
-        for agent in _curated_agents(_load_agents())
+        for agent in curated
     }
+    # Model-tier sidecar: the installer adapter maps each tier onto the
+    # user's own opencode model/small_model at deploy time (the bundle
+    # cannot hardcode a provider — opencode runs on any provider).
+    files["opencode/agents-meta.json"] = json.dumps(
+        {
+            f"arka-{agent['id']}.md": agent.get("model", "sonnet")
+            for agent in curated
+        },
+        indent=2,
+    ) + "\n"
+    return files
 
 
 def _opencode_command_files() -> dict[str, str]:
@@ -310,7 +322,10 @@ def _opencode_command_files() -> dict[str, str]:
 def _opencode_config() -> str:
     """Reference opencode.json fragment. The installer adapter merges it
     NON-destructively — user keys always win; this file is never copied
-    over an existing config verbatim."""
+    over an existing config verbatim. ``~`` placeholders are expanded by
+    the adapter against the installing user's home directory. User-local
+    MCPs (obsidian vault, graphify endpoint) are seeded adapter-side from
+    ~/.arkaos/profile.json and ~/.arkaos/config.json, not here."""
     config = {
         "$schema": "https://opencode.ai/config.json",
         "mcp": {
@@ -319,9 +334,33 @@ def _opencode_config() -> str:
                 "command": ["npx", "-y", "arkaos", "mcp", "start"],
                 "enabled": True,
             },
+            "arka-prompts": {
+                "type": "local",
+                "command": [
+                    "uv",
+                    "--directory",
+                    "~/.claude/skills/arka/mcp-server",
+                    "run",
+                    "server.py",
+                ],
+                "enabled": True,
+            },
+            "memory-bank": {
+                "type": "local",
+                "command": ["npx", "-y", "@allpepper/memory-bank-mcp"],
+                "environment": {"MEMORY_BANK_ROOT": "~/memory-bank"},
+                "enabled": True,
+            },
         },
     }
     return json.dumps(config, indent=2) + "\n"
+
+
+def _opencode_plugin() -> str:
+    """Source of the opencode governance plugin (hooks parity). Lives in
+    installer/assets so the plugin is reviewable TS, not generated text."""
+    path = ROOT / "installer" / "assets" / "opencode" / "arka.ts"
+    return path.read_text(encoding="utf-8")
 
 
 def generate() -> dict[str, str]:
@@ -337,6 +376,7 @@ def generate() -> dict[str, str]:
     for rel, content in _cursor_files().items():
         files[f"cursor/{rel}"] = content
     files["opencode/opencode.json"] = _opencode_config()
+    files["opencode/plugins/arka.ts"] = _opencode_plugin()
     files.update(_opencode_agent_files())
     files.update(_opencode_command_files())
     return files

@@ -2,9 +2,13 @@
 
 OpenCode (opencode.ai) — open-source terminal AI coding agent with
 native agents (markdown, ``~/.config/opencode/agents/``), custom
-commands (``commands/``), MCP servers (``opencode.json``), and AGENTS.md
-instructions. The installer adapter (installer/adapters/opencode.js)
-deploys the generated harness bundle onto those surfaces.
+commands (``commands/``), MCP servers (``opencode.json``), AGENTS.md
+instructions, and a TypeScript plugin system (``plugins/``). The
+installer adapter (installer/adapters/opencode.js) deploys the
+generated harness bundle onto those surfaces, including
+``plugins/arka.ts``, which bridges OpenCode events into
+``core.runtime.opencode_hooks`` (kb-first research gate, frontend
+gate, MCP telemetry, stop-hook compliance, compaction context).
 
 Headless invocation (live-verified against the installed binary,
 opencode 1.18.4, ``opencode run --help`` + a real probe, 2026-07-23):
@@ -60,18 +64,25 @@ class OpenCodeAdapter(RuntimeAdapter):
             config_dir=config_dir,
             skills_dir=config_dir / "commands",
             settings_file=config_dir / "opencode.json",
-            supports_hooks=False,
+            supports_hooks=(config_dir / "plugins" / "arka.ts").exists(),
             supports_subagents=True,
             supports_mcp=True,
             max_context_tokens=200_000,
         )
 
     def capabilities(self) -> dict[str, bool]:
+        plugin = (
+            Path(expanduser("~")) / ".config" / "opencode" / "plugins" / "arka.ts"
+        )
         return {
             "agent_dispatch": False,  # native agents exist; no ArkaOS wiring yet
             "headless": True,         # `opencode run` live-verified 2026-07-23
             "file_ops": True,         # terminal agent edits files natively
-            "hooks": False,           # plugins exist; no PreToolUse/Stop parity
+            # plugins/arka.ts (deployed by the installer adapter) bridges
+            # prompt/pre_tool/post_tool/idle/compact events into
+            # core.runtime.opencode_hooks — kb-first, frontend gate,
+            # telemetry, compliance. True only when actually deployed.
+            "hooks": plugin.exists(),
         }
 
     def inject_context(self, layers: dict[str, str]) -> str:

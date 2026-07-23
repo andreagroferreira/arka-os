@@ -11,6 +11,29 @@
         "start"
       ],
       "enabled": true
+    },
+    "arka-prompts": {
+      "type": "local",
+      "command": [
+        "uv",
+        "--directory",
+        "~/.claude/skills/arka/mcp-server",
+        "run",
+        "server.py"
+      ],
+      "enabled": true
+    },
+    "memory-bank": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@allpepper/memory-bank-mcp"
+      ],
+      "environment": {
+        "MEMORY_BANK_ROOT": "~/memory-bank"
+      },
+      "enabled": true
     }
   }
 }
