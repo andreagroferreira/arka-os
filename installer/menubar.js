@@ -46,7 +46,8 @@ export function menubarScriptPath(home = homedir()) {
  * Pure: the LaunchAgent plist for the menu bar app. macOS-only — throws
  * on any other platform (callers catch and report "unsupported").
  * KeepAlive is intentionally false: "Quit" must stick until next login;
- * RunAtLoad brings it back at login.
+ * RunAtLoad brings it back at login. LimitLoadToSessionType=Aqua +
+ * ProcessType=Interactive mark it as a GUI agent (idiomatic launchd).
  */
 export function unitFor(os, { home, pythonPath, scriptPath }) {
   if (os !== "darwin") {
@@ -73,6 +74,10 @@ export function unitFor(os, { home, pythonPath, scriptPath }) {
   <true/>
   <key>KeepAlive</key>
   <false/>
+  <key>LimitLoadToSessionType</key>
+  <string>Aqua</string>
+  <key>ProcessType</key>
+  <string>Interactive</string>
   <key>StandardOutPath</key>
   <string>${log}</string>
   <key>StandardErrorPath</key>

@@ -24,6 +24,8 @@ exercise them via the introspection flags without rumps or a display:
 
 Test hooks (env): ARKA_MENUBAR_HOME overrides the ~/.arkaos parent dir;
 ARKA_MENUBAR_OLLAMA (absent|stopped|running) overrides the live probe.
+The probe itself only runs on the local-ai profile (the only profile
+that ever surfaces Start Ollama); other profiles never spawn ollama.
 """
 
 import json
@@ -31,6 +33,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 VALID_PROFILES = ("essential", "complete", "local-ai")
@@ -91,6 +94,14 @@ def ollama_status() -> str:
         return "running"
     except Exception:
         return "stopped"
+
+
+def ollama_status_for(state: dict) -> str:
+    """Gate the live probe: only the local-ai profile ever surfaces the
+    Start Ollama item, so every other profile skips the subprocess."""
+    if state.get("profile") != "local-ai":
+        return "absent"
+    return ollama_status()
 
 
 def menu_items(state: dict, ollama: str) -> list:
@@ -160,14 +171,14 @@ def action_open_dashboard() -> None:
     except Exception:
         pass
     if ui_port.isdigit():
-        subprocess.run(["open", f"http://localhost:{ui_port}"])
+        subprocess.run(["/usr/bin/open", f"http://localhost:{ui_port}"])
     else:
         log_line("open_dashboard: no UI_PORT — run: npx arkaos dashboard")
 
 
 def action_start_ollama() -> None:
     # Operator decision (PR-5 Phase 0): the app first, `serve` as fallback.
-    result = subprocess.run(["open", "-a", "Ollama"], capture_output=True)
+    result = subprocess.run(["/usr/bin/open", "-a", "Ollama"], capture_output=True)
     if result.returncode != 0:
         if shutil.which("ollama"):
             subprocess.Popen(
@@ -181,7 +192,7 @@ def action_start_ollama() -> None:
 
 def action_doctor() -> None:
     subprocess.run([
-        "osascript", "-e",
+        "/usr/bin/osascript", "-e",
         'tell application "Terminal" to activate',
         "-e",
         'tell application "Terminal" to do script "npx arkaos doctor"',
@@ -213,13 +224,35 @@ def run_app() -> int:
         def __init__(self):
             super().__init__(TITLE, quit_button=None)
             self._rumps = rumps
+            self._pollers = set()
             self.refresh(None)
             self.timer = rumps.Timer(self.refresh, REFRESH_SECONDS)
             self.timer.start()
 
+        def _spawn(self, work, refresh_after=False):
+            """Run side-effect work off the AppKit main thread (a blocking
+            subprocess in a rumps callback freezes the whole menu bar).
+            The worker only runs subprocesses and reads files — ALL rumps
+            interaction stays on the main thread: an optional 1s poll timer
+            (main thread) refreshes the menu once the worker finishes."""
+            worker = threading.Thread(target=work, daemon=True)
+            worker.start()
+            if not refresh_after:
+                return
+
+            def poll(timer):
+                if not worker.is_alive():
+                    timer.stop()
+                    self._pollers.discard(timer)
+                    self.refresh(None)
+
+            poller = self._rumps.Timer(poll, 1)
+            self._pollers.add(poller)
+            poller.start()
+
         def refresh(self, _sender):
             state = read_state()
-            ollama = ollama_status()
+            ollama = ollama_status_for(state)
             self.title = title_for(state)
             self.menu.clear()
             version = state["version"] or "unknown"
@@ -257,18 +290,18 @@ def run_app() -> int:
             action_check_updates()
 
         def on_open_dashboard(self, _):
-            action_open_dashboard()
+            self._spawn(action_open_dashboard)
 
         def on_doctor(self, _):
-            action_doctor()
+            self._spawn(action_doctor)
 
         def on_start_ollama(self, _):
             action_start_ollama()
             self.refresh(None)
 
         def on_autoupdate_toggle(self, _):
-            action_autoupdate(enable=not read_state()["autoupdate_on"])
-            self.refresh(None)
+            enable = not read_state()["autoupdate_on"]
+            self._spawn(lambda: action_autoupdate(enable=enable), refresh_after=True)
 
         def on_quit(self, _):
             self._rumps.quit_application()
@@ -286,7 +319,8 @@ def main(argv: list) -> int:
         print(json.dumps(read_state()))
         return 0
     if "--print-menu" in argv:
-        print(json.dumps(menu_items(read_state(), ollama_status())))
+        state = read_state()
+        print(json.dumps(menu_items(state, ollama_status_for(state))))
         return 0
     return run_app()
 
