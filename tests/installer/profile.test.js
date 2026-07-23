@@ -10,6 +10,7 @@ import {
   PROFILE_HINTS,
   buildProfileRecord,
   normalizeProfileFlag,
+  profileIncludes,
 } from "../../installer/profile.js";
 
 test("INSTALL_PROFILES is the canonical three-tier ladder", () => {
@@ -109,4 +110,24 @@ test("buildProfileRecord tolerates a corrupt previous record", () => {
     assert.equal(record.installProfile, "essential");
     assert.ok(record.created);
   }
+});
+
+// ── profileIncludes — the linear ladder (Foundation PR-4) ────────────────
+
+test("profileIncludes follows the ladder essential ⊂ complete ⊂ local-ai", () => {
+  assert.equal(profileIncludes("essential", "essential"), true);
+  assert.equal(profileIncludes("essential", "complete"), false);
+  assert.equal(profileIncludes("essential", "local-ai"), false);
+  assert.equal(profileIncludes("complete", "essential"), true);
+  assert.equal(profileIncludes("complete", "complete"), true);
+  assert.equal(profileIncludes("complete", "local-ai"), false);
+  assert.equal(profileIncludes("local-ai", "essential"), true);
+  assert.equal(profileIncludes("local-ai", "local-ai"), true);
+});
+
+test("profileIncludes degrades invalid values to the default profile", () => {
+  assert.equal(profileIncludes("yolo", "essential"), true);
+  assert.equal(profileIncludes("yolo", "complete"), false, "invalid current = essential");
+  assert.equal(profileIncludes("local-ai", "yolo"), true, "invalid required = essential");
+  assert.equal(profileIncludes(undefined, "essential"), true);
 });

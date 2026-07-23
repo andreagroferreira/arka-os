@@ -7,8 +7,38 @@ import { IS_WINDOWS, HOOK_EXT, CMD_FINDER } from "./platform.js";
 import { checkNode, checkObsidian, checkOllama } from "./system-tools.js";
 import { graphifyDoctor } from "./graphify.js";
 import { status as autoupdateStatus } from "./autoupdate.js";
+import { normalizeProfileFlag, profileIncludes } from "./profile.js";
+import {
+  loadProfilesManifest,
+  parseExecutionModel,
+  resolveServicesForProfile,
+} from "./services.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
+
+// ─── Install-profile awareness (Foundation PR-4) ────────────────────────
+// Checks may declare `minProfile`; when the machine's persisted profile
+// sits below it on the ladder (essential ⊂ complete ⊂ local-ai) the
+// check reports "skipped (not in <profile> profile)" instead of a
+// misleading warn — an essential machine without Ollama is healthy.
+
+export function currentInstallProfile(
+  profilePath = join(INSTALL_DIR, "profile.json")
+) {
+  try {
+    const profile = JSON.parse(readFileSync(profilePath, "utf-8"));
+    return normalizeProfileFlag(profile.installProfile) || "essential";
+  } catch {
+    return "essential";
+  }
+}
+
+/** Null when the check applies; otherwise the human-readable skip reason. */
+export function checkSkipReason(check, activeProfile) {
+  if (!check.minProfile) return null;
+  if (profileIncludes(activeProfile, check.minProfile)) return null;
+  return `not in ${activeProfile} profile`;
+}
 
 // Resolve a single command via the platform-native locator. Returns true
 // when the command is discoverable on PATH, false otherwise. stderr is
@@ -414,6 +444,7 @@ export const checks = [
     name: "ollama",
     description: "Ollama present (optional — cognitive layer LLM runtime)",
     severity: "warn",
+    minProfile: "local-ai",
     check: () => checkOllama().installed,
     fix: () => {
       const s = checkOllama();
@@ -500,6 +531,7 @@ export const checks = [
     name: "ffmpeg",
     description: "FFmpeg present (video encode/cut for Hyperframes + transcription workflows)",
     severity: "warn",
+    minProfile: "complete",
     check: () => commandExists("ffmpeg"),
     fix: () => "Install FFmpeg: brew install ffmpeg (macOS) / apt install ffmpeg (Linux) / winget install Gyan.FFmpeg (Windows)",
   },
@@ -625,6 +657,110 @@ export const checks = [
     check: () => companionPluginsInstalled(),
     fix: () => "claude plugin marketplace add obra/superpowers-marketplace && claude plugin install superpowers@superpowers-marketplace; claude plugin marketplace add thedotmack/claude-mem && claude plugin install claude-mem@thedotmack",
   },
+  // ─── Install-profile checks (Foundation PR-4) — all warn-only ─────────
+  {
+    name: "install-profile",
+    description: "Install profile valid (profile.json + install-profiles manifest)",
+    severity: "warn",
+    check: () => {
+      // A profile.json that predates PR-3 (no installProfile key) is
+      // valid — it means essential. An explicitly invalid value or an
+      // unloadable/unresolvable manifest is the failure.
+      const profilePath = join(INSTALL_DIR, "profile.json");
+      if (existsSync(profilePath)) {
+        try {
+          const profile = JSON.parse(readFileSync(profilePath, "utf-8"));
+          if (
+            profile.installProfile !== undefined &&
+            !normalizeProfileFlag(profile.installProfile)
+          ) {
+            return false;
+          }
+        } catch {
+          return false;
+        }
+      }
+      const repoRoot = getRepoRoot();
+      if (!repoRoot) return true; // no repo reference — not a profile problem
+      try {
+        const manifest = loadProfilesManifest(repoRoot);
+        resolveServicesForProfile(currentInstallProfile(), manifest);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    fix: () =>
+      "profile.json installProfile must be one of essential|complete|local-ai; refresh the manifest via: npx arkaos@latest update",
+  },
+  {
+    name: "litellm-proxy",
+    description: "LiteLLM proxy installed (gateway prerequisite — complete profile)",
+    severity: "warn",
+    minProfile: "complete",
+    check: () => {
+      const py = getArkaosPython();
+      if (!py) return false;
+      try {
+        execSync(`"${py}" -c "import litellm"`, { stdio: "ignore", timeout: 30000 });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    fix: () =>
+      "Run: ~/.arkaos/venv/bin/pip install 'litellm[proxy]'  (or: npx arkaos doctor --fix)",
+  },
+  {
+    name: "whisper",
+    description: "Whisper transcription installed (faster-whisper — complete profile)",
+    severity: "warn",
+    minProfile: "complete",
+    check: () => {
+      const py = getArkaosPython();
+      if (!py) return false;
+      try {
+        execSync(`"${py}" -c "import faster_whisper"`, { stdio: "ignore", timeout: 30000 });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    fix: () =>
+      "Run: ~/.arkaos/venv/bin/pip install faster-whisper  (or: npx arkaos doctor --fix)",
+  },
+  {
+    name: "ollama-execution-model",
+    description: "Local execution model pulled (Model Fabric — local-ai profile)",
+    severity: "warn",
+    minProfile: "local-ai",
+    check: () => {
+      const resolved = parseExecutionModel();
+      // No ollama execution role in models.yaml — nothing to verify.
+      if (!resolved) return true;
+      try {
+        const out = execSync("ollama list", {
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 10000,
+        }).toString();
+        return out.split(/\r?\n/).some((line) => {
+          const token = line.trim().split(/\s+/)[0];
+          return (
+            token === resolved.model ||
+            (!resolved.model.includes(":") && token.split(":")[0] === resolved.model)
+          );
+        });
+      } catch {
+        return false;
+      }
+    },
+    fix: () => {
+      const resolved = parseExecutionModel();
+      return resolved
+        ? `Run: ollama pull ${resolved.model}  (or: npx arkaos doctor --fix)`
+        : "Configure: npx arkaos models set execution ollama/<model>";
+    },
+  },
 ];
 
 // ─── Windows-only checks ───────────────────────────────────────────────
@@ -709,14 +845,50 @@ export async function doctor(options = {}) {
         console.log(`  ✗ Venv repair failed (${result.reason})`);
       }
     }
+
+    // ─── --fix: reconcile the install profile's services (PR-4) ──────
+    // Non-interactive: consent-free services (pip into our venv, model
+    // pull) install; consent-gated ones print the exact command. Never
+    // blocks — a reconcile error degrades to a single warning line.
+    try {
+      const repoRoot = getRepoRoot();
+      if (repoRoot) {
+        const activeProfile = currentInstallProfile();
+        console.log(`  → Reconciling ${activeProfile} profile services`);
+        const { reconcileServices } = await import("./services.js");
+        const results = await reconcileServices({
+          profile: activeProfile,
+          repoRoot,
+          interactive: false,
+          log: (msg) => console.log("    " + String(msg).trim()),
+        });
+        for (const r of results) {
+          if (r.status === "installed") console.log(`  ✓ ${r.label} installed`);
+          else if (r.status === "failed") console.log(`  ✗ ${r.label} failed${r.hint ? ` — ${r.hint}` : ""}`);
+          else if (r.status === "skipped") console.log(`  · ${r.label} skipped${r.hint ? ` — ${r.hint}` : ""}`);
+        }
+      }
+    } catch (err) {
+      console.log(`  ⚠ Service reconciliation skipped (${err.message})`);
+    }
     console.log("");
   }
 
+  const activeProfile = currentInstallProfile();
   let passed = 0;
   let warned = 0;
   let failed = 0;
+  let skipped = 0;
 
   for (const check of checks) {
+    // Profile gate (PR-4): below-profile checks are informational
+    // skips, not warnings — see checkSkipReason.
+    const skipReason = checkSkipReason(check, activeProfile);
+    if (skipReason) {
+      console.log(`  \x1b[90m-\x1b[0m  ${check.description} — skipped (${skipReason})`);
+      skipped++;
+      continue;
+    }
     // A single check that throws must not crash the rest of the doctor.
     // Treat the exception as "check failed" and record a short hint so
     // the user can see what blew up. Also keep any stack-trace noise
@@ -752,7 +924,8 @@ export async function doctor(options = {}) {
     }
   }
 
-  console.log(`\n  Results: ${passed} passed, ${warned} warnings, ${failed} failures\n`);
+  const skippedSuffix = skipped > 0 ? `, ${skipped} skipped` : "";
+  console.log(`\n  Results: ${passed} passed, ${warned} warnings, ${failed} failures${skippedSuffix}\n`);
   await securityAdvisory();
   if (failed > 0) process.exit(1);
 }
@@ -763,10 +936,26 @@ export async function doctor(options = {}) {
 // (core.governance.harness_scanner_cli).
 function doctorJson() {
   const results = [];
+  const activeProfile = currentInstallProfile();
   let passed = 0;
   let warned = 0;
   let failed = 0;
+  let skipped = 0;
   for (const check of checks) {
+    // Profile gate (PR-4) — same skip semantics as the human run.
+    const skipReason = checkSkipReason(check, activeProfile);
+    if (skipReason) {
+      skipped++;
+      results.push({
+        name: check.name,
+        status: "skipped",
+        severity: check.severity,
+        description: check.description,
+        fix: "",
+        skipReason,
+      });
+      continue;
+    }
     let ok = false;
     let error = null;
     try {
@@ -792,7 +981,7 @@ function doctorJson() {
   }
   console.log(JSON.stringify({
     checks: results,
-    summary: { passed, warned, failed, total: results.length },
+    summary: { passed, warned, failed, skipped, total: results.length },
   }));
   if (failed > 0) process.exit(1);
 }

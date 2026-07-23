@@ -37,6 +37,17 @@ export function normalizeProfileFlag(value) {
 }
 
 /**
+ * Whether `current` covers `required` on the linear profile ladder
+ * (essential ⊂ complete ⊂ local-ai — the same chain the manifest's
+ * extends encodes). Invalid values degrade to the default profile.
+ */
+export function profileIncludes(current, required) {
+  const c = INSTALL_PROFILES.indexOf(normalizeProfileFlag(current) || DEFAULT_PROFILE);
+  const r = INSTALL_PROFILES.indexOf(normalizeProfileFlag(required) || DEFAULT_PROFILE);
+  return c >= r;
+}
+
+/**
  * Build the profile.json record persisted by installer/index.js.
  *
  * Mirrors the object previously built inline in install() step 11, plus
