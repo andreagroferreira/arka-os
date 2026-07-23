@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, copyFileSync, chmodSync, mkdir
 import { join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
-import { ensureVenv, ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
+import { ensureVenvHealthy, getArkaosPython, pipInstall } from "./python-resolver.js";
 import { copyHookLib, copyHookAssets } from "./hook-lib.js";
 import { deploySkills } from "./skill-deploy.js";
 import { deprecationNotice, resolveSkillsMode } from "./skills-mode.js";
@@ -152,7 +152,7 @@ export async function update({ skillsFlag = "" } = {}) {
   }
 
   // ── 1. Update Python deps (using venv) ──
-  section(1, 8, "Updating Python dependencies...");
+  section(1, 9, "Updating Python dependencies...");
 
   // Ensure venv is healthy (creates, repairs broken symlinks, or no-ops).
   // PR2 v3.73.1 — previously a stale broken-symlink venv could pass the
@@ -210,7 +210,7 @@ export async function update({ skillsFlag = "" } = {}) {
   }
 
   // ── 2. Update config files ──
-  section(2, 8, "Updating configuration...");
+  section(2, 9, "Updating configuration...");
   const constitutionSrc = join(ARKAOS_ROOT, "config", "constitution.yaml");
   mkdirSync(join(installDir, "config"), { recursive: true });
   if (existsSync(constitutionSrc)) {
@@ -244,7 +244,7 @@ export async function update({ skillsFlag = "" } = {}) {
   }
 
   // ── 3. Update hooks ──
-  section(3, 8, "Updating hooks...");
+  section(3, 9, "Updating hooks...");
   // Keep this list in lockstep with installer/index.js::installHooks and
   // installer/adapters/claude-code.js::hookCommand. Platform-aware: .ps1
   // on Windows, .sh everywhere else.
@@ -322,7 +322,7 @@ export async function update({ skillsFlag = "" } = {}) {
   }
 
   // ── 4. Update CLI wrapper + user CLAUDE.md ──
-  section(4, 8, "Updating CLI wrapper and user instructions...");
+  section(4, 9, "Updating CLI wrapper and user instructions...");
   const binDir = join(installDir, "bin");
   mkdirSync(binDir, { recursive: true });
 
@@ -365,7 +365,7 @@ export async function update({ skillsFlag = "" } = {}) {
   }
 
   // ── 5. Update Cognitive Scheduler ──
-  section(5, 8, "Updating cognitive scheduler...");
+  section(5, 9, "Updating cognitive scheduler...");
   updateCognitiveScheduler(installDir, ARKAOS_ROOT);
 
   // ── 6. Update /arka skill + department skills + sub-skills + agents ──
@@ -379,7 +379,7 @@ export async function update({ skillsFlag = "" } = {}) {
   // skills on his WSL (deployed long ago by install.sh) vs 1 skill on
   // his Windows install (only the main /arka). The Node installer
   // never deployed anything else.
-  section(6, 8, "Updating /arka skill...");
+  section(6, 9, "Updating /arka skill...");
   const skillsBase = join(homedir(), ".claude", "skills");
   const skillDest = join(skillsBase, "arka");
   // Single shared deployment (installer/skill-deploy.js) — identical
@@ -496,7 +496,7 @@ export async function update({ skillsFlag = "" } = {}) {
   // flow; update.js previously only wrote the first, which is a
   // latent bug that surfaces any time a user runs update from a
   // different clone than the original install.
-  section(7, 8, "Updating references...");
+  section(7, 9, "Updating references...");
   writeFileSync(join(installDir, ".repo-path"), ARKAOS_ROOT);
   // .repo-path points at the npx cache, which `npm cache clean` can purge;
   // refresh the ~/.arkaos/lib snapshot so arka-py and the Python hooks
@@ -593,7 +593,7 @@ export async function update({ skillsFlag = "" } = {}) {
   }
 
   // ── 8. Update manifest ──
-  section(8, 8, "Finalizing...");
+  section(8, 9, "Finalizing...");
   manifest.version = VERSION;
   manifest.repoRoot = ARKAOS_ROOT;
   manifest.pythonCmd = pythonCmd;
@@ -614,6 +614,33 @@ export async function update({ skillsFlag = "" } = {}) {
   };
   writeFileSync(syncStatePath, JSON.stringify(syncState, null, 2));
   ok("Sync state reset (auto-detected on next Claude session)");
+
+  // ── 9. Reconcile profile services (Foundation PR-4) ──
+  // Headless by design (the auto-update daemon runs this): only
+  // consent-free services install; consent-gated ones (ffmpeg, ollama)
+  // report a copy-paste hint. A service failure warns and continues —
+  // reconciliation can NEVER block the update.
+  section(9, 9, "Reconciling profile services...");
+  try {
+    const { normalizeProfileFlag } = await import("./profile.js");
+    const { reconcileServices } = await import("./services.js");
+    const installProfile = normalizeProfileFlag(profile.installProfile) || "essential";
+    const results = await reconcileServices({
+      profile: installProfile,
+      repoRoot: ARKAOS_ROOT,
+      interactive: false,
+      log: (msg) => detail(msg),
+    });
+    ok(`profile: ${installProfile}`);
+    for (const r of results) {
+      if (r.status === "present") ok(`${r.label} present`);
+      else if (r.status === "installed") ok(`${r.label} installed`);
+      else if (r.status === "skipped") detail(`         · ${r.label} skipped${r.hint ? ` — ${r.hint}` : ""}`);
+      else warn(`${r.label} failed${r.hint ? ` — ${r.hint}` : ""}`);
+    }
+  } catch (err) {
+    warn(`Profile service reconciliation skipped (${err.message})`);
+  }
 
   if (ui.isFancy()) {
     ui.stopSpinner();

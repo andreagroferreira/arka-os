@@ -1,0 +1,75 @@
+{
+  "_meta": {
+    "description": "ArkaOS install profiles — data-driven profile→services manifest (Foundation PR-4)",
+    "note": "profiles.*.services reference ids under services; extends chains must be acyclic. Consumed by installer/services.js (reconciliation) and installer/doctor.js (per-profile checks). Essential mirrors what a fresh install already guarantees so reconciliation can repair it."
+  },
+  "profiles": {
+    "essential": {
+      "label": "Essential",
+      "services": ["venv-core", "dashboard-deps", "mcp-infrastructure", "graphify"]
+    },
+    "complete": {
+      "label": "Complete",
+      "extends": "essential",
+      "services": ["litellm-proxy", "ffmpeg", "whisper"]
+    },
+    "local-ai": {
+      "label": "Local AI",
+      "extends": "complete",
+      "services": ["ollama", "ollama-execution-model"]
+    }
+  },
+  "services": {
+    "venv-core": {
+      "label": "Python venv + core deps",
+      "kind": "pip",
+      "packages": "pyyaml pydantic rich click jinja2",
+      "modules": ["yaml", "pydantic"]
+    },
+    "dashboard-deps": {
+      "label": "Dashboard API deps (fastapi, uvicorn)",
+      "kind": "pip",
+      "packages": "fastapi uvicorn python-multipart",
+      "modules": ["fastapi", "uvicorn"]
+    },
+    "mcp-infrastructure": {
+      "label": "MCP infrastructure (registry + servers)",
+      "kind": "file",
+      "path": "~/.claude/skills/arka/mcps/registry.json",
+      "hint": "Run: npx arkaos@latest update  (redeploys the MCP bundle)"
+    },
+    "graphify": {
+      "label": "Graphify grounding CLI",
+      "kind": "graphify"
+    },
+    "litellm-proxy": {
+      "label": "LiteLLM proxy (gateway prerequisite)",
+      "kind": "pip",
+      "packages": "litellm[proxy]",
+      "modules": ["litellm"]
+    },
+    "ffmpeg": {
+      "label": "FFmpeg (media encode / transcription)",
+      "kind": "system-package",
+      "consent": true,
+      "binary": "ffmpeg",
+      "packages": { "brew": "ffmpeg", "apt": "ffmpeg", "winget": "Gyan.FFmpeg", "choco": "ffmpeg" }
+    },
+    "whisper": {
+      "label": "Whisper transcription (faster-whisper)",
+      "kind": "pip",
+      "packages": "faster-whisper",
+      "modules": ["faster_whisper"]
+    },
+    "ollama": {
+      "label": "Ollama runtime (local LLM backend)",
+      "kind": "ollama",
+      "consent": true
+    },
+    "ollama-execution-model": {
+      "label": "Local execution model (Model Fabric)",
+      "kind": "ollama-model",
+      "requires": ["ollama"]
+    }
+  }
+}
