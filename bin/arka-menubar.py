@@ -278,9 +278,43 @@ def run_app() -> int:
             super().__init__(TITLE, quit_button=None)
             self._rumps = rumps
             self._pollers = set()
+            # QG r2 follow-ups: the ollama probe result is CACHED and
+            # refreshed by a worker (the 2s `ollama list` subprocess
+            # never runs on the menu runloop); the auto-update toggle
+            # is disabled while its worker is in flight.
+            self._ollama_cache = "absent"
+            self._probe_running = False
+            self._toggle_inflight = False
             self.refresh(None)
             self.timer = rumps.Timer(self.refresh, REFRESH_SECONDS)
             self.timer.start()
+
+        def _schedule_ollama_probe(self):
+            """Worker-side probe -> cache; redraw only on change."""
+            if self._probe_running:
+                return
+            self._probe_running = True
+            before = self._ollama_cache
+
+            def probe():
+                try:
+                    self._ollama_cache = ollama_status()
+                finally:
+                    self._probe_running = False
+
+            worker = threading.Thread(target=probe, daemon=True)
+            worker.start()
+
+            def poll(timer):
+                if not worker.is_alive():
+                    timer.stop()
+                    self._pollers.discard(timer)
+                    if self._ollama_cache != before:
+                        self.refresh(None)
+
+            poller = self._rumps.Timer(poll, 1)
+            self._pollers.add(poller)
+            poller.start()
 
         def _spawn(self, work, refresh_after=False):
             """Run side-effect work off the AppKit main thread (a blocking
@@ -313,7 +347,11 @@ def run_app() -> int:
 
         def refresh(self, _sender):
             state = read_state()
-            ollama = ollama_status_for(state)
+            if state["profile"] == "local-ai":
+                ollama = self._ollama_cache
+                self._schedule_ollama_probe()
+            else:
+                ollama = "absent"
             self.title = title_for(state)
             self.menu.clear()
             info = rumps.MenuItem(version_label(state))
@@ -331,8 +369,9 @@ def run_app() -> int:
                 "doctor": ("Run Doctor", self.on_doctor),
                 "start_ollama": ("Start Ollama", self.on_start_ollama),
                 "autoupdate_toggle": (
-                    "Auto-update: on" if state["autoupdate_on"] else "Auto-update: off",
-                    self.on_autoupdate_toggle,
+                    "Auto-update: switching…" if self._toggle_inflight
+                    else ("Auto-update: on" if state["autoupdate_on"] else "Auto-update: off"),
+                    None if self._toggle_inflight else self.on_autoupdate_toggle,
                 ),
                 "disable": ("Disable menu bar (permanent)", self.on_disable),
                 "quit": ("Quit until next login", self.on_quit),
@@ -340,7 +379,7 @@ def run_app() -> int:
             for item_id in visible:
                 label, callback = labels[item_id]
                 entry = rumps.MenuItem(label, callback=callback)
-                if item_id == "autoupdate_toggle":
+                if item_id == "autoupdate_toggle" and not self._toggle_inflight:
                     entry.state = 1 if state["autoupdate_on"] else 0
                 if item_id == "disable":
                     entries.append(rumps.separator)
@@ -365,8 +404,22 @@ def run_app() -> int:
             self._spawn(action_start_ollama, refresh_after=True)
 
         def on_autoupdate_toggle(self, _):
+            # Guard against double-fire while the (up to 180s) npx
+            # worker runs — the item is disabled and relabelled until
+            # the post-worker refresh (QG r2 minor).
+            if self._toggle_inflight:
+                return
+            self._toggle_inflight = True
             enable = not read_state()["autoupdate_on"]
-            self._spawn(lambda: action_autoupdate(enable=enable), refresh_after=True)
+
+            def work():
+                try:
+                    action_autoupdate(enable=enable)
+                finally:
+                    self._toggle_inflight = False
+
+            self._spawn(work, refresh_after=True)
+            self.refresh(None)
 
         def on_disable(self, _):
             try:

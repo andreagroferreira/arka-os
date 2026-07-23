@@ -65,13 +65,13 @@ class TestAdapterCapabilities:
         assert caps["agent_dispatch"] is False
         assert caps["hooks"] is False
 
-    def test_opencode_is_file_ops_only_until_headless_is_verified(self):
-        # Foundation PR-6 honesty: `opencode run` exists upstream but is
-        # NOT live-verified (codex precedent) — the matrix must not
-        # overclaim until that verification lands.
+    def test_opencode_is_headless_after_live_verification(self):
+        # Follow-up to Foundation PR-6: `opencode run --format json`
+        # live-verified against opencode 1.18.4 (2026-07-23) — headless
+        # flips to True with the verified parser in opencode.py.
         caps = OpenCodeAdapter().capabilities()
         assert caps["file_ops"] is True
-        assert caps["headless"] is False
+        assert caps["headless"] is True
         assert caps["agent_dispatch"] is False
         assert caps["hooks"] is False
 
@@ -139,6 +139,7 @@ class TestCapabilitiesCli:
         assert matrix["codex"]["headless_available"] is False
         assert matrix["gemini"]["headless_available"] is False
         assert matrix["cursor"]["headless_available"] is False
+        assert matrix["opencode"]["headless_available"] is False
 
     def test_cli_table_output(self, capsys):
         assert main([]) == 0
