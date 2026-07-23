@@ -32,17 +32,20 @@ class TestRuntimeRegistry:
         with pytest.raises(ValueError, match="Unknown runtime"):
             get_adapter("unknown-runtime")
 
-    def test_list_runtimes_returns_all_four(self):
+    def test_list_runtimes_returns_all_five(self):
+        # Foundation PR-6: opencode joins the registry (deliberate lock
+        # update — this count moves only with a new runtime adapter).
         runtimes = list_runtimes()
-        assert len(runtimes) == 4
+        assert len(runtimes) == 5
         ids = {r["id"] for r in runtimes}
-        assert ids == {"claude-code", "codex", "gemini", "cursor"}
+        assert ids == {"claude-code", "codex", "gemini", "cursor", "opencode"}
 
 
 class TestRuntimeConfig:
     """Test runtime configurations."""
 
-    @pytest.mark.parametrize("runtime_id", ["claude-code", "codex", "gemini", "cursor"])
+    @pytest.mark.parametrize(
+        "runtime_id", ["claude-code", "codex", "gemini", "cursor", "opencode"])
     def test_config_has_required_fields(self, runtime_id):
         adapter = get_adapter(runtime_id)
         config = adapter.get_config()
@@ -72,7 +75,8 @@ class TestRuntimeConfig:
 class TestContextInjection:
     """Test context injection across runtimes."""
 
-    @pytest.mark.parametrize("runtime_id", ["claude-code", "codex", "gemini", "cursor"])
+    @pytest.mark.parametrize(
+        "runtime_id", ["claude-code", "codex", "gemini", "cursor", "opencode"])
     def test_inject_context_returns_string(self, runtime_id):
         adapter = get_adapter(runtime_id)
         layers = {"dept": "dev", "agent": "cto", "project": "arkaos"}
@@ -91,7 +95,8 @@ class TestContextInjection:
 class TestAgentDispatch:
     """Test agent dispatching."""
 
-    @pytest.mark.parametrize("runtime_id", ["claude-code", "codex", "gemini", "cursor"])
+    @pytest.mark.parametrize(
+        "runtime_id", ["claude-code", "codex", "gemini", "cursor", "opencode"])
     def test_dispatch_returns_result(self, runtime_id):
         adapter = get_adapter(runtime_id)
         context = AgentContext(
