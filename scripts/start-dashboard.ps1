@@ -208,6 +208,24 @@ function Start-NuxtDev {
     }
 }
 
+function Start-NuxtBuild {
+    param([string]$WorkingDir)
+    $nuxtBin = Join-Path $WorkingDir 'node_modules\nuxt\bin\nuxt.mjs'
+    if (-not (Test-Path -LiteralPath $nuxtBin)) { return $false }
+    Write-Host '  Building dashboard for production (nuxt build)...'
+    try {
+        $proc = Start-Process -FilePath 'node' `
+            -ArgumentList @($nuxtBin, 'build') `
+            -WorkingDirectory $WorkingDir `
+            -NoNewWindow `
+            -Wait `
+            -PassThru
+        return ($proc.ExitCode -eq 0)
+    } catch {
+        return $false
+    }
+}
+
 if (Test-Path -LiteralPath $nuxtServer) {
     Write-Host "  Starting UI on :$uiPort..."
     $savedPort = $env:PORT
@@ -225,8 +243,30 @@ if (Test-Path -LiteralPath $nuxtServer) {
         $env:NUXT_PUBLIC_API_BASE = $savedApi
     }
 } elseif (Test-Path -LiteralPath $nuxtNodeModules) {
-    Write-Host "  Starting UI (dev) on :$uiPort..."
-    $uiProc = Start-NuxtDev -Port $uiPort -ApiPort $apiPort -WorkingDir $dashboardDir
+    # Attempt a production build so we serve the compiled Nitro bundle
+    # instead of the Vite dev server (which has Node-24 / CJS compat issues
+    # on Windows, e.g. striptags default-export failure).
+    $buildOk = Start-NuxtBuild -WorkingDir $dashboardDir
+    if ($buildOk -and (Test-Path -LiteralPath $nuxtServer)) {
+        Write-Host "  Starting UI on :$uiPort..."
+        $savedPort = $env:PORT
+        $savedApi  = $env:NUXT_PUBLIC_API_BASE
+        $env:PORT = "$uiPort"
+        $env:NUXT_PUBLIC_API_BASE = "http://localhost:$apiPort"
+        try {
+            $uiProc = Start-Process -FilePath 'node' `
+                -ArgumentList @($nuxtServer) `
+                -WorkingDirectory $dashboardDir `
+                -NoNewWindow `
+                -PassThru
+        } finally {
+            $env:PORT = $savedPort
+            $env:NUXT_PUBLIC_API_BASE = $savedApi
+        }
+    } else {
+        Write-Host "  Starting UI (dev) on :$uiPort..."
+        $uiProc = Start-NuxtDev -Port $uiPort -ApiPort $apiPort -WorkingDir $dashboardDir
+    }
 } else {
     # Auto-install and start. The dashboard pins pnpm (package.json
     # packageManager) — npm's flat node_modules layout breaks Nuxt 4's
