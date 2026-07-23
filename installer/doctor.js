@@ -13,6 +13,7 @@ import {
   parseExecutionModel,
   resolveServicesForProfile,
 } from "./services.js";
+import { menubarHealthy } from "./menubar.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
 
@@ -760,6 +761,16 @@ export const checks = [
         ? `Run: ollama pull ${resolved.model}  (or: npx arkaos doctor --fix)`
         : "Configure: npx arkaos models set execution ollama/<model>";
     },
+  },
+  {
+    name: "menubar",
+    description: "Menu bar launcher running (macOS — ▲ quick actions)",
+    severity: "warn",
+    // Live probe, not file decoration: menubarHealthy composes file
+    // presence + opt-out semantics + `launchctl list` (QG M2). Every
+    // branch is unit-tested via the injectable exec in menubar.test.js.
+    check: () => menubarHealthy(),
+    fix: () => "Run: npx arkaos menubar enable  (opt-out permanently: npx arkaos menubar disable)",
   },
 ];
 
