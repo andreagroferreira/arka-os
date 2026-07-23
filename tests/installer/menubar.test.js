@@ -156,7 +156,10 @@ function pyProbe(flag, { files = {}, ollama = "" } = {}) {
     env: {
       ...process.env,
       ARKA_MENUBAR_HOME: home,
-      ...(ollama ? { ARKA_MENUBAR_OLLAMA: ollama } : {}),
+      // Always set explicitly — a developer machine's real
+      // ARKA_MENUBAR_OLLAMA must never leak through the spread
+      // (hermeticity, QG r2 minor).
+      ARKA_MENUBAR_OLLAMA: ollama || "",
     },
     encoding: "utf8",
     timeout: 15000,

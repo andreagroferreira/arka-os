@@ -348,7 +348,12 @@ def run_app() -> int:
             self.menu.update(entries)
 
         def on_check_updates(self, _):
-            action_check_updates()
+            # Popen is non-blocking, but a fork/exec OSError must not
+            # propagate into the rumps callback (QG r2 minor).
+            try:
+                action_check_updates()
+            except Exception as err:
+                log_line(f"check_updates: {err}")
 
         def on_open_dashboard(self, _):
             self._spawn(action_open_dashboard)

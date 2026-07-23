@@ -603,7 +603,9 @@ export async function update({ skillsFlag = "" } = {}) {
       if (menubarStatus().optout) {
         detail("         · Menu bar launcher: user opt-out respected");
       } else {
-        pipInstall("rumps", { log, timeout: 120000 });
+        if (!pipInstall("rumps", { log, timeout: 120000 })) {
+          warn("rumps install failed — menu bar app will hint on first run");
+        }
         const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
         if (mb.action === "enabled") ok("Menu bar launcher enabled (▲ in the macOS menu bar)");
         else if (mb.action === "already-enabled") ok("Menu bar launcher active");
