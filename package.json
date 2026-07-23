@@ -52,6 +52,7 @@
     "bin/arka-claude.cmd",
     "bin/arka-claude.ps1",
     "bin/arka-doctor",
+    "bin/arka-menubar.py",
     "bin/arka-providers",
     "bin/arka-py",
     "bin/arka-py.cmd",

@@ -13,6 +13,7 @@ import {
   parseExecutionModel,
   resolveServicesForProfile,
 } from "./services.js";
+import { status as menubarStatus } from "./menubar.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
 
@@ -760,6 +761,18 @@ export const checks = [
         ? `Run: ollama pull ${resolved.model}  (or: npx arkaos doctor --fix)`
         : "Configure: npx arkaos models set execution ollama/<model>";
     },
+  },
+  {
+    name: "menubar",
+    description: "Menu bar launcher installed (macOS — ▲ quick actions)",
+    severity: "warn",
+    check: () => {
+      if (process.platform !== "darwin") return true; // not applicable
+      const s = menubarStatus();
+      // A persisted opt-out is a healthy, chosen state — not a warning.
+      return s.optout || s.installed;
+    },
+    fix: () => "Run: npx arkaos menubar enable",
   },
 ];
 

@@ -350,6 +350,30 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
     detail(`         Warning: auto-update daemon not enabled (${err.message})`);
   }
 
+  // Foundation PR-5 — menu bar launcher (macOS only), default-on with
+  // persisted opt-out (npx arkaos menubar disable). rumps install and
+  // launchd wiring are best-effort: a failure can never break install.
+  if (process.platform === "darwin") {
+    try {
+      if (pipInstall("rumps", { log: (m) => detail(m), timeout: 120000 })) {
+        ok("rumps installed (menu bar framework)");
+      } else {
+        warn("rumps install failed — menu bar app will hint on first run");
+      }
+      const { ensureDefaultEnabled: ensureMenubar } = await import("./menubar.js");
+      const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
+      if (mb.action === "enabled") {
+        detail("         Menu bar launcher enabled (▲ in the macOS menu bar).");
+      } else if (mb.action === "optout") {
+        detail("         Menu bar launcher: user opt-out respected.");
+      } else if (mb.action === "partial") {
+        detail(`         Menu bar launcher: ${mb.message}`);
+      }
+    } catch (err) {
+      detail(`         Warning: could not enable menu bar launcher (${err.message})`);
+    }
+  }
+
   // PR28 v2.47.0 — scaffold the user-mutable files the discipline-arc
   // commands depend on: redaction-clients.json (leak scanner config)
   // and reorganize-proposals/ (daily proposal output). Idempotent.

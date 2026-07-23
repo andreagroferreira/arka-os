@@ -1,0 +1,295 @@
+#!/usr/bin/env python3
+"""ArkaOS menu bar launcher (Foundation PR-5).
+
+A lightweight macOS menu bar app (rumps) that surfaces the ArkaOS
+runtime state and one-click actions:
+
+  - Check for updates      -> scripts/auto-update.sh --force (PR-1 daemon)
+  - Open Dashboard         -> start-dashboard.sh ensure + open UI port
+  - Start Ollama           -> open -a Ollama (fallback: ollama serve)
+                              [local-ai profile only, when stopped]
+  - Doctor                 -> Terminal running `npx arkaos doctor`
+  - Auto-update on/off     -> npx arkaos autoupdate enable|disable
+  - Quit
+
+Posture (matches scripts/auto-update.sh): every failure path logs and
+exits 0 — a broken login item must never crash. rumps import is guarded:
+non-macOS, missing rumps, or headless -> clean exit 0 with a hint.
+
+State model and menu-visibility logic are PURE functions so tests
+exercise them via the introspection flags without rumps or a display:
+
+  arka-menubar.py --print-state   JSON of read_state()
+  arka-menubar.py --print-menu    JSON of visible menu item ids
+
+Test hooks (env): ARKA_MENUBAR_HOME overrides the ~/.arkaos parent dir;
+ARKA_MENUBAR_OLLAMA (absent|stopped|running) overrides the live probe.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+VALID_PROFILES = ("essential", "complete", "local-ai")
+REFRESH_SECONDS = 60
+TITLE = "▲"  # ▲ — brand wordmark glyph
+TITLE_PENDING = "▲ •"  # ▲ • — sync pending badge
+
+
+def arka_home() -> Path:
+    override = os.environ.get("ARKA_MENUBAR_HOME", "")
+    base = Path(override) if override else Path.home()
+    return base / ".arkaos"
+
+
+# ── Pure state model ─────────────────────────────────────────────────────
+
+
+def read_state(home: Path | None = None) -> dict:
+    """Read-only snapshot of the runtime state. Never throws."""
+    home = home or arka_home()
+    state = {
+        "version": None,
+        "sync_pending": False,
+        "profile": "essential",
+        "autoupdate_on": True,
+    }
+    try:
+        manifest = json.loads((home / "install-manifest.json").read_text())
+        state["version"] = manifest.get("version") or None
+    except Exception:
+        pass
+    try:
+        sync = json.loads((home / "sync-state.json").read_text())
+        state["sync_pending"] = sync.get("version") == "pending-sync"
+    except Exception:
+        pass
+    try:
+        profile = json.loads((home / "profile.json").read_text())
+        value = str(profile.get("installProfile", "essential")).strip().lower()
+        state["profile"] = value if value in VALID_PROFILES else "essential"
+    except Exception:
+        pass
+    state["autoupdate_on"] = not (home / "autoupdate.optout").exists()
+    return state
+
+
+def ollama_status() -> str:
+    """absent | stopped | running — read-only probes, short timeouts."""
+    override = os.environ.get("ARKA_MENUBAR_OLLAMA", "")
+    if override in ("absent", "stopped", "running"):
+        return override
+    if shutil.which("ollama") is None:
+        return "absent"
+    try:
+        subprocess.run(
+            ["ollama", "list"], capture_output=True, timeout=2, check=True
+        )
+        return "running"
+    except Exception:
+        return "stopped"
+
+
+def menu_items(state: dict, ollama: str) -> list:
+    """Pure: visible menu item ids for a given state."""
+    items = ["check_updates", "open_dashboard", "doctor"]
+    if state.get("profile") == "local-ai" and ollama == "stopped":
+        items.append("start_ollama")
+    items.append("autoupdate_toggle")
+    items.append("quit")
+    return items
+
+
+def title_for(state: dict) -> str:
+    return TITLE_PENDING if state.get("sync_pending") else TITLE
+
+
+# ── Action helpers (subprocess, never blocking the UI thread) ────────────
+
+
+def stable_script(name: str) -> Path | None:
+    """Resolve a scripts/ file: purge-proof ~/.arkaos/lib snapshot first,
+    then the .repo-path reference (autoupdate.js::stableRoot parity)."""
+    home = arka_home()
+    lib = home / "lib" / "scripts" / name
+    if lib.exists():
+        return lib
+    try:
+        repo = Path((home / ".repo-path").read_text().strip())
+        candidate = repo / "scripts" / name
+        if candidate.exists():
+            return candidate
+    except Exception:
+        pass
+    return None
+
+
+def log_line(message: str) -> None:
+    try:
+        log_dir = arka_home() / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "menubar.log", "a", encoding="utf-8") as handle:
+            handle.write(message.rstrip() + "\n")
+    except Exception:
+        pass
+
+
+def action_check_updates() -> None:
+    script = stable_script("auto-update.sh")
+    if script is None:
+        log_line("check_updates: auto-update.sh not found")
+        return
+    subprocess.Popen(["/bin/bash", str(script), "--force"])
+
+
+def action_open_dashboard() -> None:
+    script = stable_script("start-dashboard.sh")
+    if script is not None:
+        try:
+            subprocess.run(["/bin/bash", str(script), "ensure"], timeout=120)
+        except Exception as err:
+            log_line(f"open_dashboard: ensure failed ({err})")
+    ui_port = ""
+    try:
+        for line in (arka_home() / "dashboard.ports").read_text().splitlines():
+            if line.startswith("UI_PORT="):
+                ui_port = line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    if ui_port.isdigit():
+        subprocess.run(["open", f"http://localhost:{ui_port}"])
+    else:
+        log_line("open_dashboard: no UI_PORT — run: npx arkaos dashboard")
+
+
+def action_start_ollama() -> None:
+    # Operator decision (PR-5 Phase 0): the app first, `serve` as fallback.
+    result = subprocess.run(["open", "-a", "Ollama"], capture_output=True)
+    if result.returncode != 0:
+        if shutil.which("ollama"):
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            log_line("start_ollama: neither Ollama.app nor ollama binary found")
+
+
+def action_doctor() -> None:
+    subprocess.run([
+        "osascript", "-e",
+        'tell application "Terminal" to activate',
+        "-e",
+        'tell application "Terminal" to do script "npx arkaos doctor"',
+    ], capture_output=True)
+
+
+def action_autoupdate(enable: bool) -> None:
+    verb = "enable" if enable else "disable"
+    subprocess.run(["npx", "arkaos", "autoupdate", verb], capture_output=True)
+
+
+# ── rumps app (guarded import — never a crashing login item) ─────────────
+
+
+def run_app() -> int:
+    if sys.platform != "darwin":
+        print("arka-menubar: macOS only — nothing to do")
+        return 0
+    try:
+        import rumps
+    except Exception as err:  # missing dep, headless session, SIP oddity
+        print(
+            "arka-menubar: rumps unavailable "
+            f"({err}) — install: ~/.arkaos/venv/bin/pip install rumps"
+        )
+        return 0
+
+    class ArkaMenuBar(rumps.App):
+        def __init__(self):
+            super().__init__(TITLE, quit_button=None)
+            self._rumps = rumps
+            self.refresh(None)
+            self.timer = rumps.Timer(self.refresh, REFRESH_SECONDS)
+            self.timer.start()
+
+        def refresh(self, _sender):
+            state = read_state()
+            ollama = ollama_status()
+            self.title = title_for(state)
+            self.menu.clear()
+            version = state["version"] or "unknown"
+            info = rumps.MenuItem(f"ArkaOS v{version}")
+            info.set_callback(None)  # informational, not clickable
+            entries = [info]
+            if state["sync_pending"]:
+                pending = rumps.MenuItem("Sync pending — open a Claude session")
+                pending.set_callback(None)
+                entries.append(pending)
+            entries.append(None)  # separator
+            visible = menu_items(state, ollama)
+            labels = {
+                "check_updates": ("Check for updates", self.on_check_updates),
+                "open_dashboard": ("Open Dashboard", self.on_open_dashboard),
+                "doctor": ("Run Doctor", self.on_doctor),
+                "start_ollama": ("Start Ollama", self.on_start_ollama),
+                "autoupdate_toggle": (
+                    "Auto-update: on" if state["autoupdate_on"] else "Auto-update: off",
+                    self.on_autoupdate_toggle,
+                ),
+                "quit": ("Quit", self.on_quit),
+            }
+            for item_id in visible:
+                label, callback = labels[item_id]
+                entry = rumps.MenuItem(label, callback=callback)
+                if item_id == "autoupdate_toggle":
+                    entry.state = 1 if state["autoupdate_on"] else 0
+                if item_id == "quit":
+                    entries.append(None)
+                entries.append(entry)
+            self.menu.update(entries)
+
+        def on_check_updates(self, _):
+            action_check_updates()
+
+        def on_open_dashboard(self, _):
+            action_open_dashboard()
+
+        def on_doctor(self, _):
+            action_doctor()
+
+        def on_start_ollama(self, _):
+            action_start_ollama()
+            self.refresh(None)
+
+        def on_autoupdate_toggle(self, _):
+            action_autoupdate(enable=not read_state()["autoupdate_on"])
+            self.refresh(None)
+
+        def on_quit(self, _):
+            self._rumps.quit_application()
+
+    try:
+        ArkaMenuBar().run()
+    except Exception as err:
+        log_line(f"fatal: {err}")
+        print(f"arka-menubar: exiting cleanly after error ({err})")
+    return 0
+
+
+def main(argv: list) -> int:
+    if "--print-state" in argv:
+        print(json.dumps(read_state()))
+        return 0
+    if "--print-menu" in argv:
+        print(json.dumps(menu_items(read_state(), ollama_status())))
+        return 0
+    return run_app()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

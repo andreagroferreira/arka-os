@@ -592,6 +592,21 @@ export async function update({ skillsFlag = "" } = {}) {
     warn(`Auto-update daemon not enabled (${err.message})`);
   }
 
+  // ── 7c. Menu bar launcher (Foundation PR-5) — macOS, default-on ──
+  if (process.platform === "darwin") {
+    try {
+      pipInstall("rumps", { log, timeout: 120000 });
+      const { ensureDefaultEnabled: ensureMenubar } = await import("./menubar.js");
+      const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
+      if (mb.action === "enabled") ok("Menu bar launcher enabled (▲ in the macOS menu bar)");
+      else if (mb.action === "already-enabled") ok("Menu bar launcher active");
+      else if (mb.action === "optout") detail("         · Menu bar launcher: user opt-out respected");
+      else if (mb.action === "partial") warn(`Menu bar launcher: ${mb.message}`);
+    } catch (err) {
+      warn(`Menu bar launcher not enabled (${err.message})`);
+    }
+  }
+
   // ── 8. Update manifest ──
   section(8, 9, "Finalizing...");
   manifest.version = VERSION;
