@@ -5,6 +5,16 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.35.0] - 2026-07-23
+
+Foundation campaign complete — PR-3..6 close the six mandatory base points.
+
+### Added
+- **Interactive installer with profiles** (#390): @clack/prompts wizard with graceful readline/plain fallback (`ARKA_UI_PLAIN=1`), install profiles essential/complete/local-ai persisted in profile.json, `--profile` CLI flag, and runtime-derived product counts (no more hand-typed numbers).
+- **Service provisioning & reconciliation** (#393): data-driven `config/install-profiles.json` (acyclic extends chain), `reconcileServices` with injectable effects — never sudo, consent-gated brew/ollama, headless-safe for the update daemon; profile-aware doctor (below-profile checks report skipped, `--fix` reconciles); Model Fabric execution-model parser (zero deps).
+- **macOS menu bar launcher** (#394): rumps app (▲) — update check, dashboard, doctor, Start Ollama (local-ai), auto-update toggle, discoverable permanent disable. Default-on with persisted opt-out, purge-proof `~/.arkaos/bin` deployment, live `launchctl` doctor probe, runs on the system python 3.9 fallback. `npx arkaos menubar <enable|disable|status>`.
+- **OpenCode first-class** (#397): runtime detection + installer adapter, 25 native agents + 16 department router commands generated from the registries, non-destructive `opencode.json` MCP merge (user keys always win), thin Python adapter with honest capabilities (matrix now covers five runtimes).
+
 ## [4.34.0] - 2026-07-22
 
 Foundation campaign PR-1 + PR-2 — the first two mandatory base points.
