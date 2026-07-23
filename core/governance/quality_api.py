@@ -42,14 +42,14 @@ def _load_queue() -> list[dict]:
     if not _QUEUE_FILE.exists():
         return []
     try:
-        return json.loads(_QUEUE_FILE.read_text())
+        return json.loads(_QUEUE_FILE.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return []
 
 
 def _save_queue(queue: list[dict]) -> None:
     _ensure_state_dir()
-    _QUEUE_FILE.write_text(json.dumps(queue, indent=2))
+    _QUEUE_FILE.write_text(json.dumps(queue, indent=2), encoding="utf-8")
 
 
 def _load_workflows() -> list[dict]:
@@ -57,14 +57,14 @@ def _load_workflows() -> list[dict]:
     if not _WORKFLOWS_FILE.exists():
         return []
     try:
-        return json.loads(_WORKFLOWS_FILE.read_text())
+        return json.loads(_WORKFLOWS_FILE.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return []
 
 
 def _save_workflows(workflows: list[dict]) -> None:
     _ensure_state_dir()
-    _WORKFLOWS_FILE.write_text(json.dumps(workflows, indent=2))
+    _WORKFLOWS_FILE.write_text(json.dumps(workflows, indent=2), encoding="utf-8")
 
 
 def submit(

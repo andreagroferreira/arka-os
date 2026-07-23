@@ -73,7 +73,7 @@ class PersonaManager:
             output_dir = Path(agents_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
             output_path = output_dir / f"{agent_id}.yaml"
-            with open(output_path, "w") as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 yaml.dump(agent_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
         # Track the clone
@@ -88,13 +88,13 @@ class PersonaManager:
             return
         self._storage_path.parent.mkdir(parents=True, exist_ok=True)
         data = {pid: p.model_dump(mode="json") for pid, p in self._personas.items()}
-        with open(self._storage_path, "w") as f:
+        with open(self._storage_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     def _load(self) -> None:
         if self._storage_path is None or not self._storage_path.exists():
             return
-        content = self._storage_path.read_text().strip()
+        content = self._storage_path.read_text(encoding="utf-8").strip()
         if not content:
             return
         data = json.loads(content)
