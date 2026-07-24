@@ -390,24 +390,54 @@ def _foreign_pytest_can_collect(
     return probe.returncode in (0, 5)
 
 
+def _degrade_pytest_no_tests(result: CheckResult) -> CheckResult:
+    """Map pytest exit 5 (no tests collected) to insufficient evidence.
+
+    A bare ``pytest`` in a Python project that ships no tests exits 5.
+    Absence of tests is not evidence of FAILURE, yet ``passed =
+    returncode == 0`` read exit 5 as FAIL and ``_derive_overall`` then
+    forced REJECTED at the QG (issue #354). ``_foreign_pytest_can_collect``
+    already treats exit 5 as a valid import path — this keeps that
+    precedent for the verdict: exit 5 becomes ``passed=None``
+    (non-conclusive), never ``False``.
+    """
+    if result.exit_code != 5:
+        return result
+    prefix = "no tests collected (pytest exit 5) — insufficient evidence; "
+    return replace(result, passed=None, summary=prefix + result.summary)
+
+
 def _check_tests(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
     if test_command:
-        return _run("tests", shlex.split(test_command), project_dir, timeout)
+        argv = shlex.split(test_command)
+        result = _run("tests", argv, project_dir, timeout)
+        # exit 5 is pytest's "no tests collected"; scan the first 3
+        # tokens so `python -m pytest` / `arka-py -m pytest` degrade too,
+        # while non-pytest runners (npm test) stay a real FAIL. Bounded to
+        # argv[:3] so a later test-path arg named *pytest* never matches
+        # (issue #354).
+        if any("pytest" in Path(tok).name for tok in argv[:3]):
+            return _degrade_pytest_no_tests(result)
+        return result
     if _has_python(project_dir, changed):
         local_pytest = _project_pytest(project_dir)
         if local_pytest:
             return _labelled(
-                _run("tests", [*local_pytest, "-q"], project_dir, timeout),
+                _degrade_pytest_no_tests(
+                    _run("tests", [*local_pytest, "-q"], project_dir, timeout),
+                ),
                 "tests(project-venv)",
             )
         pytest_cmd = _tool_cmd("pytest")
         if pytest_cmd and _foreign_pytest_can_collect(
             pytest_cmd, project_dir, timeout
         ):
-            return _run("tests", [*pytest_cmd, "-q"], project_dir, timeout)
+            return _degrade_pytest_no_tests(
+                _run("tests", [*pytest_cmd, "-q"], project_dir, timeout),
+            )
         if pytest_cmd:
             return _skip(
                 "tests",
