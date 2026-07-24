@@ -20,7 +20,8 @@
   /* texto */
   --text:#E9EBF5; --text-2:#9AA1BD; --text-3:#5D6480;
   /* SIGNAL — verde é VIDA: só live, running, primário */
-  --signal:#00FF88; --signal-dim:rgba(0,255,136,.14); --signal-glow:rgba(0,255,136,.35);
+  --signal:#00FF88; --signal-bright:#7DFFC0; --on-signal:#062B1A;
+  --signal-dim:rgba(0,255,136,.14); --signal-glow:rgba(0,255,136,.35);
   /* MIND — violeta é a 2ª voz: IA, insights, fila, dataviz */
   --mind:#8B87F9; --mind-dim:rgba(139,135,249,.14);
   /* estados */
@@ -46,16 +47,15 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 /* rail de ícones */
 .rail{background:var(--panel);border-right:1px solid var(--line-soft);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px}
 .rail .logo{width:32px;height:32px;display:grid;place-items:center;margin-bottom:12px}
-.rail .logo svg{filter:drop-shadow(0 0 8px var(--signal-glow))}
 .rail button{width:38px;height:38px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--text-3);transition:all var(--dur) var(--ease)}
 .rail button:hover{color:var(--text);background:var(--surface)}
-.rail button.on{color:var(--signal);background:var(--signal-dim)}
+.rail button.on{color:var(--text);background:var(--surface-2)}
 .rail .spacer{flex:1}
 
 /* painel contextual */
 .panel{background:var(--panel);border-right:1px solid var(--line-soft);display:flex;flex-direction:column;overflow:hidden}
 .ws{display:flex;align-items:center;gap:8px;padding:14px 14px 10px}
-.ws .badge{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--signal-dim),var(--mind-dim));display:grid;place-items:center;font-weight:700;font-size:11px;color:var(--signal)}
+.ws .badge{width:22px;height:22px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:11px;color:var(--text)}
 .ws b{font-size:13px;font-weight:600}
 .search{margin:2px 12px 10px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:7px 10px;color:var(--text-3);font-size:12.5px}
 .search kbd{margin-left:auto;font-family:var(--font-data);font-size:10px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--text-3)}
@@ -63,7 +63,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .navgrp h6{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:6px 8px}
 .nav a{display:flex;align-items:center;gap:9px;padding:6.5px 8px;border-radius:var(--r-sm);color:var(--text-2);font-size:13px;text-decoration:none;transition:all var(--dur) var(--ease)}
 .nav a:hover{background:var(--surface);color:var(--text)}
-.nav a.on{background:var(--surface);color:var(--text);box-shadow:inset 2px 0 0 var(--signal)}
+.nav a.on{background:var(--surface);color:var(--text);box-shadow:inset 2px 0 0 var(--text-2)}
 .nav a .live{margin-left:auto;font-family:var(--font-data);font-size:10.5px;color:var(--signal)}
 .nav a .cnt{margin-left:auto;font-family:var(--font-data);font-size:10.5px;color:var(--text-3)}
 .nav svg{width:15px;height:15px;stroke-width:1.75}
@@ -74,7 +74,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .credit .row{display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);margin-bottom:6px}
 .credit .row b{color:var(--text);font-weight:500}
 .credit .bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
-.credit .bar i{display:block;height:100%;width:63%;background:linear-gradient(90deg,var(--signal),#7DFFC0);border-radius:2px}
+.credit .bar i{display:block;height:100%;width:63%;background:linear-gradient(90deg,var(--signal),var(--signal-bright));border-radius:2px}
 .credit small{display:block;margin-top:6px;font-size:10.5px;color:var(--text-3)}
 .profile{display:flex;align-items:center;gap:9px;padding:12px 14px;border-top:1px solid var(--line-soft)}
 .avatar{width:26px;height:26px;border-radius:50%;background:var(--mind-dim);color:var(--mind);display:grid;place-items:center;font-size:10.5px;font-weight:600}
@@ -89,10 +89,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .tabs{display:flex;gap:2px;margin-left:10px}
 .tabs button{padding:6px 12px;border-radius:var(--r-sm);font-size:12.5px;color:var(--text-2);transition:all var(--dur) var(--ease)}
 .tabs button:hover{color:var(--text);background:var(--surface)}
-.tabs button.on{color:var(--text);background:var(--surface);box-shadow:inset 0 -2px 0 var(--signal)}
+.tabs button.on{color:var(--text);background:var(--surface);box-shadow:inset 0 -2px 0 var(--text-2)}
 .topbar .actions{margin-left:auto;display:flex;gap:8px;align-items:center}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:6.5px 13px;border-radius:var(--r-md);font-size:12.5px;font-weight:500;transition:all var(--dur) var(--ease)}
-.btn.primary{background:var(--signal);color:#062B1A}
+.btn.primary{background:var(--signal);color:var(--on-signal)}
 .btn.primary:hover{box-shadow:0 0 18px var(--signal-glow)}
 .btn.ghost{color:var(--text-2);border:1px solid var(--line)}
 .btn.ghost:hover{color:var(--text);background:var(--surface)}
@@ -120,9 +120,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .tile h6{font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
 .tile .v{font-family:var(--font-data);font-size:26px;font-weight:600;letter-spacing:-.01em}
 .tile .sub{font-size:11px;color:var(--text-3);margin-top:4px}
-.tile.live{border-color:rgba(0,255,136,.25)}
-.tile.live h6{color:var(--signal)}
-.delta-up{color:var(--signal)} .delta-mind{color:var(--mind)}
+.delta-mind{color:var(--mind)}
 
 /* constelação — a assinatura */
 .constellation{grid-column:span 8;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;position:relative;min-height:300px}
@@ -269,10 +267,10 @@ td.num{font-family:var(--font-data);font-size:11.5px;color:var(--text-2);text-al
           <span class="status">3 agents a trabalhar agora · <span class="mono">all systems live</span></span>
         </div>
 
-        <div class="tile live g">
+        <div class="tile g">
           <h6>Custo hoje</h6>
           <div class="v">$8.19</div>
-          <div class="sub"><span class="delta-up">▲ 12%</span> vs ontem · cap $25</div>
+          <div class="sub">▲ 12% vs ontem · cap $25</div>
         </div>
         <div class="tile g">
           <h6>Chamadas</h6>

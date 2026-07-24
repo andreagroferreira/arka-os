@@ -2,7 +2,8 @@
 
 > Fase 0 da campanha "ArkaOS APP". Direção validada pelo operador em
 > 2026-07-24 sobre o protótipo `prototype-mission-control.html`
-> (sha256 `9d81c9f1151b59a1…`). Este documento é a fonte de verdade da
+> (sha256 `3da191e574d456ce…` — revisão pós-QG r1: seleção de navegação
+> neutra, logo sem glow, badge neutro, deltas de custo neutros). Este documento é a fonte de verdade da
 > Fase 2 (implementação dos tokens no novo frontend); o
 > `dashboard/DESIGN-SYSTEM.md` v1 fica obsoleto quando a Fase 2 arrancar.
 
@@ -40,6 +41,8 @@
 | Token | Valor | Papel |
 |---|---|---|
 | `signal` | `#00FF88` | **VIDA** — ver regra §3 |
+| `signal-bright` | `#7DFFC0` | Fim de gradiente em barras vivas (crédito) |
+| `on-signal` | `#062B1A` | Texto sobre superfícies `signal` (CTA primário) |
 | `signal-dim` | `rgba(0,255,136,.14)` | Fundos de estado vivo |
 | `signal-glow` | `rgba(0,255,136,.35)` | Glow (só elementos vivos) |
 | `mind` | `#8B87F9` | **MENTE** — IA, fila, insights, dataviz série 2 |
@@ -85,6 +88,17 @@ sombras pesadas. Glow é reservado (§3).
 1. Trabalho em fila / agendado
 2. Superfícies de inteligência (insights, Dreaming, cognition)
 3. Segunda série em gráficos; avatares neutros
+
+**Carve-out único e deliberado:** o anel de foco de teclado
+(`:focus-visible`) usa `signal` por contraste de acessibilidade — é
+feedback de interação ativa, não decoração. Nenhum outro carve-out
+existe.
+
+**Explicitamente NEUTROS (nunca verde):** estado de seleção/navegação
+("estás aqui" — rail, painel, tabs usam marcador `text-2` sobre
+`surface`), o badge do workspace, o logotipo (marca estática não
+brilha), e **deltas de custo** — custo a subir não é sucesso; deltas de
+custo são neutros ou `warn`, nunca `signal`.
 
 **Tudo o resto é neutro.** Se um ecrã tem verde em mais de ~5% da área,
 está errado. O erro do Pulse v1 — tudo brilha, nada significa — é o
