@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ArkaOS — Mission Control · Protótipo Aurora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ========== AURORA TOKENS v2 — ArkaOS APP ========== */
+:root{
+  /* base indigo-carbon (nunca preto puro, nunca slate default) */
+  --void:#0B0D16;          /* fundo raiz */
+  --panel:#0F121D;         /* rail + painel */
+  --surface:#141827;       /* cartões */
+  --surface-2:#181D30;     /* hover/elevado */
+  --line:#20263C;          /* bordas */
+  --line-soft:#181D2E;
+  /* texto */
+  --text:#E9EBF5; --text-2:#9AA1BD; --text-3:#5D6480;
+  /* SIGNAL — verde é VIDA: só live, running, primário */
+  --signal:#00FF88; --signal-dim:rgba(0,255,136,.14); --signal-glow:rgba(0,255,136,.35);
+  /* MIND — violeta é a 2ª voz: IA, insights, fila, dataviz */
+  --mind:#8B87F9; --mind-dim:rgba(139,135,249,.14);
+  /* estados */
+  --warn:#FFB454; --alert:#FF5C77; --info:#4CC2FF;
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+  --dur:180ms; --ease:cubic-bezier(.22,.7,.35,1);
+  --font-ui:'Geist',system-ui,sans-serif;
+  --font-data:'JetBrains Mono',ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:var(--font-ui);background:var(--void);color:var(--text);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:var(--r-sm)}
+.mono{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+
+/* ========== SHELL: rail + painel + main (ClickUp-like) ========== */
+.shell{display:grid;grid-template-columns:56px 236px 1fr;height:100vh}
+
+/* rail de ícones */
+.rail{background:var(--panel);border-right:1px solid var(--line-soft);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px}
+.rail .logo{width:32px;height:32px;display:grid;place-items:center;margin-bottom:12px}
+.rail .logo svg{filter:drop-shadow(0 0 8px var(--signal-glow))}
+.rail button{width:38px;height:38px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--text-3);transition:all var(--dur) var(--ease)}
+.rail button:hover{color:var(--text);background:var(--surface)}
+.rail button.on{color:var(--signal);background:var(--signal-dim)}
+.rail .spacer{flex:1}
+
+/* painel contextual */
+.panel{background:var(--panel);border-right:1px solid var(--line-soft);display:flex;flex-direction:column;overflow:hidden}
+.ws{display:flex;align-items:center;gap:8px;padding:14px 14px 10px}
+.ws .badge{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--signal-dim),var(--mind-dim));display:grid;place-items:center;font-weight:700;font-size:11px;color:var(--signal)}
+.ws b{font-size:13px;font-weight:600}
+.search{margin:2px 12px 10px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:7px 10px;color:var(--text-3);font-size:12.5px}
+.search kbd{margin-left:auto;font-family:var(--font-data);font-size:10px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--text-3)}
+.navgrp{padding:8px 8px 2px}
+.navgrp h6{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:6px 8px}
+.nav a{display:flex;align-items:center;gap:9px;padding:6.5px 8px;border-radius:var(--r-sm);color:var(--text-2);font-size:13px;text-decoration:none;transition:all var(--dur) var(--ease)}
+.nav a:hover{background:var(--surface);color:var(--text)}
+.nav a.on{background:var(--surface);color:var(--text);box-shadow:inset 2px 0 0 var(--signal)}
+.nav a .live{margin-left:auto;font-family:var(--font-data);font-size:10.5px;color:var(--signal)}
+.nav a .cnt{margin-left:auto;font-family:var(--font-data);font-size:10.5px;color:var(--text-3)}
+.nav svg{width:15px;height:15px;stroke-width:1.75}
+.panel .spacer{flex:1}
+
+/* medidor de crédito — mandatório */
+.credit{margin:10px 12px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md)}
+.credit .row{display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);margin-bottom:6px}
+.credit .row b{color:var(--text);font-weight:500}
+.credit .bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.credit .bar i{display:block;height:100%;width:63%;background:linear-gradient(90deg,var(--signal),#7DFFC0);border-radius:2px}
+.credit small{display:block;margin-top:6px;font-size:10.5px;color:var(--text-3)}
+.profile{display:flex;align-items:center;gap:9px;padding:12px 14px;border-top:1px solid var(--line-soft)}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--mind-dim);color:var(--mind);display:grid;place-items:center;font-size:10.5px;font-weight:600}
+.profile span{font-size:12.5px;color:var(--text-2)}
+.profile .dot{margin-left:auto}
+
+/* ========== MAIN ========== */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:14px;padding:0 20px;height:52px;border-bottom:1px solid var(--line-soft)}
+.crumb{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-3)}
+.crumb b{color:var(--text);font-weight:500}
+.tabs{display:flex;gap:2px;margin-left:10px}
+.tabs button{padding:6px 12px;border-radius:var(--r-sm);font-size:12.5px;color:var(--text-2);transition:all var(--dur) var(--ease)}
+.tabs button:hover{color:var(--text);background:var(--surface)}
+.tabs button.on{color:var(--text);background:var(--surface);box-shadow:inset 0 -2px 0 var(--signal)}
+.topbar .actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6.5px 13px;border-radius:var(--r-md);font-size:12.5px;font-weight:500;transition:all var(--dur) var(--ease)}
+.btn.primary{background:var(--signal);color:#062B1A}
+.btn.primary:hover{box-shadow:0 0 18px var(--signal-glow)}
+.btn.ghost{color:var(--text-2);border:1px solid var(--line)}
+.btn.ghost:hover{color:var(--text);background:var(--surface)}
+
+.content{flex:1;overflow-y:auto;padding:22px 24px 40px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;max-width:1240px}
+
+/* entrada em cascata */
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.g{animation:rise .4s var(--ease) both}
+.g:nth-child(1){animation-delay:.02s}.g:nth-child(2){animation-delay:.06s}
+.g:nth-child(3){animation-delay:.10s}.g:nth-child(4){animation-delay:.14s}
+.g:nth-child(5){animation-delay:.18s}.g:nth-child(6){animation-delay:.22s}
+.g:nth-child(7){animation-delay:.26s}.g:nth-child(8){animation-delay:.30s}
+
+/* saudação compacta — sem serifas, Geist 600 */
+.hello{grid-column:1/-1;display:flex;align-items:baseline;gap:14px;padding:2px 2px 6px}
+.hello h1{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.hello .status{font-size:12.5px;color:var(--text-2)}
+.hello .status .mono{color:var(--signal)}
+
+/* stat tiles */
+.tile{grid-column:span 3;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;transition:all var(--dur) var(--ease)}
+.tile:hover{transform:translateY(-1px);border-color:var(--line);background:var(--surface-2)}
+.tile h6{font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+.tile .v{font-family:var(--font-data);font-size:26px;font-weight:600;letter-spacing:-.01em}
+.tile .sub{font-size:11px;color:var(--text-3);margin-top:4px}
+.tile.live{border-color:rgba(0,255,136,.25)}
+.tile.live h6{color:var(--signal)}
+.delta-up{color:var(--signal)} .delta-mind{color:var(--mind)}
+
+/* constelação — a assinatura */
+.constellation{grid-column:span 8;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;position:relative;min-height:300px}
+.constellation header,.card header{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+.constellation header h5,.card header h5{font-size:12px;font-weight:600;letter-spacing:.02em}
+.constellation header .hint,.card header .hint{margin-left:auto;font-size:11px;color:var(--text-3)}
+.constellation canvas{display:block;width:100%;height:264px}
+.legend{position:absolute;bottom:10px;left:14px;display:flex;gap:14px;font-size:10.5px;color:var(--text-3)}
+.legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.legend .a i{background:var(--signal);box-shadow:0 0 6px var(--signal-glow)}
+.legend .b i{background:var(--mind)}
+.legend .c i{background:var(--text-3)}
+
+/* live feed */
+.card{grid-column:span 4;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.feed{list-style:none;padding:6px 0}
+.feed li{display:flex;gap:10px;padding:8px 16px;font-size:12px;color:var(--text-2)}
+.feed li:hover{background:var(--surface-2)}
+.feed .t{font-family:var(--font-data);font-size:10.5px;color:var(--text-3);min-width:38px;padding-top:1px}
+.feed b{color:var(--text);font-weight:500}
+.feed .tag{font-family:var(--font-data);font-size:10px;padding:1px 6px;border-radius:4px;margin-left:4px}
+.feed .tag.qg{background:var(--mind-dim);color:var(--mind)}
+.feed .tag.ok{background:var(--signal-dim);color:var(--signal)}
+.feed .tag.wr{background:rgba(255,180,84,.12);color:var(--warn)}
+
+/* LIVE OPS — grupos ClickUp */
+.ops{grid-column:1/-1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.grp{border-bottom:1px solid var(--line-soft)}
+.grp:last-child{border-bottom:none}
+.grp>header{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer}
+.grp .pill{font-size:10.5px;font-weight:600;letter-spacing:.05em;padding:3px 10px;border-radius:999px}
+.grp.running .pill{background:var(--signal-dim);color:var(--signal)}
+.grp.queued .pill{background:var(--mind-dim);color:var(--mind)}
+.grp.done .pill{background:var(--line);color:var(--text-2)}
+.grp .n{font-family:var(--font-data);font-size:11px;color:var(--text-3)}
+.grp .cols{margin-left:auto;display:flex;gap:0;font-size:10.5px;color:var(--text-3)}
+.grp .cols span{width:92px;text-align:right}
+table.rows{width:100%;border-collapse:collapse}
+.rows td{padding:9px 16px;font-size:12.5px;border-top:1px solid var(--line-soft)}
+.rows tr{transition:background var(--dur) var(--ease)}
+.rows tr:hover{background:var(--surface-2)}
+.who{display:flex;align-items:center;gap:10px}
+.who .av{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:9.5px;font-weight:600}
+.av.g{background:var(--signal-dim);color:var(--signal)}
+.av.m{background:var(--mind-dim);color:var(--mind)}
+.who b{font-weight:500}
+.who small{display:block;font-size:11px;color:var(--text-3)}
+.dept{font-size:10.5px;font-family:var(--font-data);padding:2px 8px;border-radius:4px;background:var(--panel);border:1px solid var(--line);color:var(--text-2)}
+td.num{font-family:var(--font-data);font-size:11.5px;color:var(--text-2);text-align:right;width:92px}
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--signal);box-shadow:0 0 8px var(--signal-glow);margin-right:8px;animation:pulse 1.6s ease-in-out infinite}
+.qdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--mind);margin-right:8px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.stream{font-family:var(--font-data);font-size:10.5px;color:var(--signal)}
+.stream::after{content:'▍';animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* barra de sistema */
+.sysbar{display:flex;align-items:center;gap:8px;padding:8px 24px;border-top:1px solid var(--line-soft);font-family:var(--font-data);font-size:11px;color:var(--text-3)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--signal);box-shadow:0 0 8px var(--signal-glow);animation:pulse 2.4s ease-in-out infinite}
+.sysbar .sep{color:var(--line)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- RAIL -->
+  <nav class="rail" aria-label="Navegação principal">
+    <div class="logo" title="ArkaOS">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3 L20 19 H16.5 L12 9.5 L7.5 19 H4 Z" fill="#00FF88"/>
+        <rect x="9" y="21" width="6" height="1.6" rx="0.8" fill="#00FF88" opacity=".85"/>
+      </svg>
+    </div>
+    <button class="on" aria-label="Mission Control"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></button>
+    <button aria-label="Agents"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="9" r="2.4"/><path d="M16 15.2c2.6.3 4.5 2 4.5 4.8"/></svg></button>
+    <button aria-label="Scheduler"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/></svg></button>
+    <button aria-label="Terminal"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m5 7 5 5-5 5"/><path d="M12 19h7"/></svg></button>
+    <button aria-label="Knowledge"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 18.5Z"/><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"/></svg></button>
+    <div class="spacer"></div>
+    <button aria-label="Definições"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.06-.4.1-.8.1-1.2Z"/></svg></button>
+  </nav>
+
+  <!-- PAINEL -->
+  <aside class="panel">
+    <div class="ws"><span class="badge">▲</span><b>ArkaOS</b></div>
+    <div class="search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Pesquisar <kbd>⌘K</kbd></div>
+
+    <div class="navgrp nav">
+      <h6>Workspace</h6>
+      <a href="#" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg> Mission Control</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 8L9 4l-3 8H2"/></svg> Live Ops <span class="live">3 ●</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg> Agents <span class="cnt">89</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg> Departments <span class="cnt">17</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg> Workflows</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/></svg> Scheduler <span class="cnt">4</span></a>
+    </div>
+
+    <div class="navgrp nav">
+      <h6>Recursos</h6>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Models &amp; Providers</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4m18 0v4a2 2 0 0 1-2 2h-4"/></svg> MCP Servers <span class="cnt">11</span></a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 18.5Z"/></svg> Knowledge</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Budget</a>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="credit">
+      <div class="row"><span>Agent SDK credit</span><b class="mono">$63 / $100</b></div>
+      <div class="bar"><i></i></div>
+      <small>Renova a 1 Ago · plano Max 5×</small>
+    </div>
+    <div class="profile">
+      <span class="avatar">AF</span><span>André · founder</span>
+      <span class="dot" title="online"></span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="crumb">ArkaOS <span>/</span> <b>Mission Control</b></div>
+      <div class="tabs">
+        <button class="on">Overview</button>
+        <button>Live Ops</button>
+        <button>Timeline</button>
+        <button>Board</button>
+      </div>
+      <div class="actions">
+        <button class="btn ghost">Refresh</button>
+        <button class="btn primary">▲ Nova missão</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="grid">
+
+        <div class="hello g">
+          <h1>Olá, André</h1>
+          <span class="status">3 agents a trabalhar agora · <span class="mono">all systems live</span></span>
+        </div>
+
+        <div class="tile live g">
+          <h6>Custo hoje</h6>
+          <div class="v">$8.19</div>
+          <div class="sub"><span class="delta-up">▲ 12%</span> vs ontem · cap $25</div>
+        </div>
+        <div class="tile g">
+          <h6>Chamadas</h6>
+          <div class="v">59</div>
+          <div class="sub">média 4.1s por chamada</div>
+        </div>
+        <div class="tile g">
+          <h6>Tokens in / out</h6>
+          <div class="v">8.2M</div>
+          <div class="sub">8.1M in · 48.4k out</div>
+        </div>
+        <div class="tile g">
+          <h6>Cache hit</h6>
+          <div class="v">92%</div>
+          <div class="sub"><span class="delta-mind">◆ $31.40</span> poupados hoje</div>
+        </div>
+
+        <section class="constellation g" aria-label="Constelação de agents">
+          <header><h5>AGENT CONSTELLATION</h5><span class="hint">verde = a trabalhar agora · violeta = na fila</span></header>
+          <canvas id="cosmos" width="820" height="264" role="img" aria-label="Mapa vivo dos 89 agents por departamento; 3 ativos"></canvas>
+          <div class="legend">
+            <span class="a"><i></i>ativo</span>
+            <span class="b"><i></i>na fila</span>
+            <span class="c"><i></i>idle</span>
+          </div>
+        </section>
+
+        <section class="card g" aria-label="Live feed">
+          <header><h5>LIVE FEED</h5><span class="hint">tempo real</span></header>
+          <ul class="feed">
+            <li><span class="t">15:42</span><div><b>Marta</b> abriu revisão QG <span class="tag qg">quality</span><br>PR #401 · adversarial</div></li>
+            <li><span class="t">15:41</span><div><b>Gabriel</b> editou <span class="mono">evidence_checks.py</span> <span class="tag wr">write</span></div></li>
+            <li><span class="t">15:39</span><div><b>Clara</b> citou 3 notas do vault <span class="tag ok">kb</span></div></li>
+            <li><span class="t">15:36</span><div><b>Scheduler</b> disparou <span class="mono">daily-digest</span></div></li>
+            <li><span class="t">15:31</span><div><b>Paulo</b> fechou task · testes <span class="mono">81 pass</span> <span class="tag ok">exit 0</span></div></li>
+            <li><span class="t">15:28</span><div><b>Gateway</b> route <span class="mono">execution→ollama/kimi</span></div></li>
+          </ul>
+        </section>
+
+        <section class="ops g" aria-label="Operações ao vivo">
+          <div class="grp running">
+            <header>
+              <span class="pill">A CORRER</span><span class="n">3</span>
+              <div class="cols"><span>dept</span><span>runtime</span><span>decorrido</span><span>custo</span></div>
+            </header>
+            <table class="rows">
+              <tr>
+                <td><div class="who"><span class="pulse"></span><span class="av g">M</span><div><b>Marta</b><small class="stream">a rever o diff do PR #401</small></div></div></td>
+                <td><span class="dept">quality</span></td>
+                <td class="num">opus</td>
+                <td class="num">4m 12s</td>
+                <td class="num">$0.84</td>
+              </tr>
+              <tr>
+                <td><div class="who"><span class="pulse"></span><span class="av g">G</span><div><b>Gabriel</b><small class="stream">a escrever testes de integração</small></div></div></td>
+                <td><span class="dept">dev</span></td>
+                <td class="num">fable</td>
+                <td class="num">11m 03s</td>
+                <td class="num">$1.27</td>
+              </tr>
+              <tr>
+                <td><div class="who"><span class="pulse"></span><span class="av g">C</span><div><b>Clara</b><small class="stream">research: pricing de design partners</small></div></div></td>
+                <td><span class="dept">kb</span></td>
+                <td class="num">kimi · local</td>
+                <td class="num">2m 44s</td>
+                <td class="num">$0.00</td>
+              </tr>
+            </table>
+          </div>
+          <div class="grp queued">
+            <header>
+              <span class="pill">NA FILA</span><span class="n">2</span>
+            </header>
+            <table class="rows">
+              <tr>
+                <td><div class="who"><span class="qdot"></span><span class="av m">E</span><div><b>Eduardo</b><small>QG copy · aguarda a Marta</small></div></div></td>
+                <td><span class="dept">quality</span></td>
+                <td class="num">opus</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+              </tr>
+              <tr>
+                <td><div class="who"><span class="qdot"></span><span class="av m">D</span><div><b>Daniel</b><small>agendado · sync 76 projetos às 18:00</small></div></div></td>
+                <td><span class="dept">ops</span></td>
+                <td class="num">sonnet</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+              </tr>
+            </table>
+          </div>
+          <div class="grp done">
+            <header>
+              <span class="pill">CONCLUÍDO HOJE</span><span class="n">14</span>
+            </header>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="sysbar">
+      <span class="dot"></span> all systems live
+      <span class="sep">·</span> 89 agents <span class="sep">·</span> 17 departments
+      <span class="sep">·</span> gateway: mixed <span class="sep">·</span> v4.38.0
+    </div>
+  </main>
+</div>
+
+<script>
+// Constelação — nós por departamento; verde pulsa só nos ATIVOS
+const canvas = document.getElementById('cosmos');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const depts = [
+  {n:'dev',x:.18,y:.38,k:9},{n:'quality',x:.34,y:.62,k:3},{n:'kb',x:.30,y:.22,k:3},
+  {n:'mkt',x:.48,y:.30,k:4},{n:'ops',x:.56,y:.66,k:2},{n:'strat',x:.66,y:.24,k:3},
+  {n:'fin',x:.74,y:.55,k:3},{n:'brand',x:.86,y:.32,k:4},{n:'pm',x:.44,y:.80,k:3},
+  {n:'sales',x:.88,y:.72,k:2}
+];
+const active = [{d:0,i:2},{d:1,i:0},{d:2,i:1}];   // Gabriel, Marta, Clara
+const queued = [{d:1,i:1},{d:4,i:0}];
+
+const nodes=[];
+depts.forEach((d,di)=>{
+  const cx=d.x*W, cy=d.y*H;
+  nodes.push({x:cx,y:cy,r:3.5,hub:true,label:d.n});
+  for(let i=0;i<d.k;i++){
+    const a=(i/d.k)*Math.PI*2 + di, rr=22+((i*13)%16);
+    const st = active.some(s=>s.d===di&&s.i===i)?'a':queued.some(s=>s.d===di&&s.i===i)?'q':'i';
+    nodes.push({x:cx+Math.cos(a)*rr,y:cy+Math.sin(a)*rr,r:2.2,hub:false,hx:cx,hy:cy,st});
+  }
+});
+
+let t=0;
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // ligações
+  ctx.lineWidth=.6;
+  nodes.filter(n=>!n.hub).forEach(n=>{
+    ctx.strokeStyle = n.st==='a' ? 'rgba(0,255,136,.35)' : n.st==='q' ? 'rgba(139,135,249,.25)' : 'rgba(93,100,128,.12)';
+    ctx.beginPath();ctx.moveTo(n.hx,n.hy);ctx.lineTo(n.x,n.y);ctx.stroke();
+  });
+  // nós
+  nodes.forEach(n=>{
+    if(n.hub){
+      ctx.fillStyle='rgba(154,161,189,.8)';
+      ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,7);ctx.fill();
+      ctx.fillStyle='rgba(93,100,128,.9)';
+      ctx.font='9px JetBrains Mono';ctx.textAlign='center';
+      ctx.fillText(n.label.toUpperCase(),n.x,n.y-9);
+    } else if(n.st==='a'){
+      const p = reduced?1:(.6+.4*Math.sin(t/26+n.x));
+      ctx.shadowColor='rgba(0,255,136,.8)';ctx.shadowBlur=10*p;
+      ctx.fillStyle=`rgba(0,255,136,${p})`;
+      ctx.beginPath();ctx.arc(n.x,n.y,n.r+1.2,0,7);ctx.fill();
+      ctx.shadowBlur=0;
+    } else if(n.st==='q'){
+      ctx.fillStyle='rgba(139,135,249,.8)';
+      ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,7);ctx.fill();
+    } else {
+      ctx.fillStyle='rgba(93,100,128,.45)';
+      ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,7);ctx.fill();
+    }
+  });
+  t++;
+  if(!reduced) requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
