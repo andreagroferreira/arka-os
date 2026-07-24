@@ -3,7 +3,9 @@
 > Fase 0 da campanha "ArkaOS APP". Direção validada pelo operador em
 > 2026-07-24 após 4 iterações visuais sobre 18 referências fornecidas
 > ("agora sim estamos no caminho certo"). Protótipo canónico:
-> `prototype-mission-control.html` (sha256 `2fdbfa854a60f9d9…`).
+> `prototype-mission-control.html` (sha256 `d48cc6bc6193e98c…` —
+> rev. pós-QG r2: valor final dos count-ups fora do guard reduced-motion,
+> tick gradient no violeta canónico, aria-label no gráfico de custo).
 > Este documento é a fonte de verdade da implementação Nuxt (página a
 > página, com confirmação do operador por página); substitui o
 > `dashboard/DESIGN-SYSTEM.md` v1 e as revisões v1-v3 desta direção.
@@ -82,7 +84,7 @@ sombras só em overlays (tooltips, popovers).
 
 ## 3. A regra do gradiente
 
-O gradiente magenta→violeta é a assinatura sonora da marca. Pode aparecer em:
+O gradiente magenta→violeta é a assinatura visual da marca. Pode aparecer em:
 
 1. **Marca**: logo na APP, wordmark, badge de workspace (tinta subtil)
 2. **Ação primária**: o único CTA primário do ecrã (pill gradiente)

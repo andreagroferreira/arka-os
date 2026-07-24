@@ -73,7 +73,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .credit .row b{color:var(--text);font-weight:500}
 .ticks{height:8px;border-radius:3px;display:flex;gap:3px}
 .ticks i{flex:1;border-radius:2px;background:var(--line)}
-.ticks i.f{background:linear-gradient(180deg,#FF4D9A,#B44DF6)}
+.ticks i.f{background:linear-gradient(180deg,#FF4D9A,#8B5CF6)}
 .credit small{display:block;margin-top:8px;font-size:10.5px;color:var(--text-3)}
 .profile{display:flex;align-items:center;gap:10px;padding:13px 14px;border-top:1px solid var(--line-soft)}
 .avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:600;color:#fff;
@@ -331,7 +331,7 @@ td.num{font-family:var(--font-data);font-size:11.5px;color:var(--text-2);text-al
           <div class="cardhead"><h5>CUSTO ACUMULADO</h5>
             <div class="pills"><button>1D</button><button class="on">30D</button><button>90D</button></div>
           </div>
-          <canvas id="spendc"></canvas>
+          <canvas id="spendc" role="img" aria-label="Custo acumulado 30 dias: curva ascendente até $195.82"></canvas>
         </section>
 
         <section class="card feedcard g" aria-label="Live feed">
@@ -731,18 +731,24 @@ addEventListener('resize',()=>{resize();drawSpend();});
 resize();draw();drawSpend();
 if(reduced){draw();}
 
+/* count-ups: o valor final é DADOS, nunca refém da animação —
+   com reduced-motion (ou GSAP ausente) escreve-se imediatamente */
+document.querySelectorAll('[data-count]').forEach(el=>{
+  const target=parseFloat(el.dataset.count);
+  const pre=el.dataset.prefix||'',suf=el.dataset.suffix||'';
+  const dec=(String(el.dataset.count).split('.')[1]||'').length;
+  const setFinal=()=>{el.textContent=pre+target.toFixed(dec)+suf;};
+  if(reduced||!window.gsap){setFinal();return;}
+  const o={v:0};
+  gsap.to(o,{v:target,duration:1.2,ease:'power2.out',delay:.35,
+    onUpdate:()=>{el.textContent=pre+o.v.toFixed(dec)+suf;},onComplete:setFinal});
+});
+
 /* ============ GSAP glue ============ */
 if(!reduced && window.gsap){
   gsap.from('.g',{opacity:0,y:16,duration:.6,ease:'power3.out',stagger:.08});
   gsap.from('.rail button, .rail .logo',{opacity:0,x:-10,duration:.4,ease:'power2.out',stagger:.04});
   gsap.from('.panel',{opacity:0,x:-8,duration:.4,ease:'power2.out'});
-  document.querySelectorAll('[data-count]').forEach(el=>{
-    const target=parseFloat(el.dataset.count);
-    const pre=el.dataset.prefix||'',suf=el.dataset.suffix||'';
-    const dec=String(el.dataset.count).includes('.')?2:0;
-    const o={v:0};
-    gsap.to(o,{v:target,duration:1.2,ease:'power2.out',delay:.35,onUpdate:()=>{el.textContent=pre+o.v.toFixed(dec)+suf;}});
-  });
   document.querySelectorAll('.magnetic').forEach(el=>{
     const qx=gsap.quickTo(el,'x',{duration:.3,ease:'power3'});
     const qy=gsap.quickTo(el,'y',{duration:.3,ease:'power3'});
