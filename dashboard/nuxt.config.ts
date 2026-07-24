@@ -14,13 +14,6 @@ export default defineNuxtConfig({
     enabled: true
   },
 
-  app: {
-    pageTransition: {
-      name: 'arka-page',
-      mode: 'out-in'
-    }
-  },
-
   css: ['~/assets/css/main.css'],
 
   colorMode: {
