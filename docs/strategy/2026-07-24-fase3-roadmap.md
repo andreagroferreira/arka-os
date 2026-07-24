@@ -1,7 +1,7 @@
 ---
 id: STRAT-2026-07-24-fase3-roadmap
 title: "Fase 3 — Roadmap de 90 dias: do runtime shipped à primeira receita"
-status: draft — aguarda aprovação do operador
+status: accepted — aprovado pelo operador 2026-07-24; gate dia-60 (≥2 partners, vs os 3 do critério interim do SWOT) ratificado conscientemente na mesma decisão
 date: 2026-07-24
 author: Tomas (Strategy), com re-baseline técnico de Marco (CTO)
 related:
