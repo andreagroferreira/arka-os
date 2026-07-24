@@ -135,13 +135,13 @@ class TaskManager:
             "counter": self._counter,
             "tasks": {tid: t.model_dump(mode="json") for tid, t in self._tasks.items()},
         }
-        with open(self._storage_path, "w") as f:
+        with open(self._storage_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     def _load(self) -> None:
         if self._storage_path is None or not self._storage_path.exists():
             return
-        content = self._storage_path.read_text().strip()
+        content = self._storage_path.read_text(encoding="utf-8").strip()
         if not content:
             return
         data = json.loads(content)

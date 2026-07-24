@@ -146,7 +146,7 @@ def load_constitution(path: str | Path) -> Constitution:
     if not path.exists():
         raise FileNotFoundError(f"Constitution file not found: {path}")
 
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     return Constitution.model_validate(data)

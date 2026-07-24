@@ -131,7 +131,7 @@ class ObsidianWriter:
         if config_path.exists():
             try:
                 from core.runtime.path_resolver import resolve
-                config = json.loads(config_path.read_text())
+                config = json.loads(config_path.read_text(encoding="utf-8"))
                 vault = resolve(config.get("vault_path", ""))
                 if vault and not vault.startswith("${") and Path(vault).exists():
                     return Path(vault)

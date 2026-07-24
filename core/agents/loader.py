@@ -24,7 +24,7 @@ def load_agent(path: str | Path) -> Agent:
     if not path.exists():
         raise FileNotFoundError(f"Agent file not found: {path}")
 
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if data is None:

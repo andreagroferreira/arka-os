@@ -79,17 +79,23 @@ def read_state(home: Path | None = None) -> dict:
         "autoupdate_on": True,
     }
     try:
-        manifest = json.loads((home / "install-manifest.json").read_text())
+        manifest = json.loads(
+            (home / "install-manifest.json").read_text(encoding="utf-8")
+        )
         state["version"] = manifest.get("version") or None
     except Exception:
         pass
     try:
-        sync = json.loads((home / "sync-state.json").read_text())
+        sync = json.loads(
+            (home / "sync-state.json").read_text(encoding="utf-8")
+        )
         state["sync_pending"] = sync.get("version") == "pending-sync"
     except Exception:
         pass
     try:
-        profile = json.loads((home / "profile.json").read_text())
+        profile = json.loads(
+            (home / "profile.json").read_text(encoding="utf-8")
+        )
         value = str(profile.get("installProfile", "essential")).strip().lower()
         state["profile"] = value if value in VALID_PROFILES else "essential"
     except Exception:
@@ -154,7 +160,7 @@ def stable_script(name: str) -> Path | None:
     if lib.exists():
         return lib
     try:
-        repo = Path((home / ".repo-path").read_text().strip())
+        repo = Path((home / ".repo-path").read_text(encoding="utf-8").strip())
         candidate = repo / "scripts" / name
         if candidate.exists():
             return candidate
@@ -190,7 +196,8 @@ def action_open_dashboard() -> None:
             log_line(f"open_dashboard: ensure failed ({err})")
     ui_port = ""
     try:
-        for line in (arka_home() / "dashboard.ports").read_text().splitlines():
+        ports = (arka_home() / "dashboard.ports").read_text(encoding="utf-8")
+        for line in ports.splitlines():
             if line.startswith("UI_PORT="):
                 ui_port = line.split("=", 1)[1].strip()
     except Exception:

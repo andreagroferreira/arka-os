@@ -204,7 +204,7 @@ def _spawn_detached(cmd: list[str], repo: str, log_path: Path | None = None) -> 
     try:
         if log_path is not None:
             log_path.parent.mkdir(parents=True, exist_ok=True)
-            handle = log_path.open("a")
+            handle = log_path.open("a", encoding="utf-8")
             stdout = handle
         subprocess.Popen(
             cmd,
