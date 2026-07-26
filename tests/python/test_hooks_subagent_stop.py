@@ -70,10 +70,12 @@ def test_phantom_action_flagged_and_nudged(tmp_path, capsys, monkeypatch):
     )
     assert main({"session_id": "s1", "subagent_type": "paulo",
                  "transcript_path": transcript}) == 0
-    # The nudge reaches the model via stdout additionalContext — Claude
-    # Code discards hook stderr at exit 0, so stderr would be inert.
-    out = json.loads(capsys.readouterr().out)
-    nudge = out["hookSpecificOutput"]["additionalContext"]
+    # The nudge is QUEUED, not emitted: SubagentStop context wakes the
+    # subagent it describes (65 measured re-entries before this change).
+    assert capsys.readouterr().out.strip() == ""
+    from core.governance.reviewer_ledger import notices_context
+
+    nudge = notices_context("s1")
     assert "[arka:subagent-qa]" in nudge
     assert "Quality Gate" in nudge
     rows = _telemetry(tmp_path)
@@ -199,11 +201,12 @@ def _agent_transcript(tmp_path, agent_id, text):
 def test_last_assistant_message_is_preferred(tmp_path):
     """The payload carries the reviewer's text — no transcript parsing."""
     parent = _parent_transcript(tmp_path, "orchestrator status update")
-    text = subagent_stop._subagent_text(
+    text, source = subagent_stop._subagent_text(
         {"last_assistant_message": VERDICT_TEXT, "transcript_path": parent},
         parent, Path(parent).read_text(encoding="utf-8"),
     )
     assert text == VERDICT_TEXT
+    assert source == "payload"
 
 
 def test_falls_back_to_the_agent_transcript_never_the_parent(tmp_path):
@@ -212,13 +215,14 @@ def test_falls_back_to_the_agent_transcript_never_the_parent(tmp_path):
     name with a hash. The subagent's file is the only valid source."""
     parent = _parent_transcript(tmp_path, "orchestrator status update")
     agent = _agent_transcript(tmp_path, "abc123", VERDICT_TEXT)
-    text = subagent_stop._subagent_text(
+    text, source = subagent_stop._subagent_text(
         {"agent_transcript_path": agent, "transcript_path": parent},
         parent, Path(parent).read_text(encoding="utf-8"),
     )
     assert "arka-qgverdict" in text
     assert "orchestrator status update" not in text
     assert "<tool_use:" not in text
+    assert source == "agent-transcript"
 
 
 def test_no_subagent_source_is_never_attributable(tmp_path):
@@ -226,13 +230,24 @@ def test_no_subagent_source_is_never_attributable(tmp_path):
     be proven, so the ledger must not write. Missing a verdict beats
     fabricating one."""
     parent = _parent_transcript(tmp_path, "orchestrator status update")
-    assert subagent_stop._attributable({"transcript_path": parent}, parent) is False
-    assert subagent_stop._attributable(
-        {"transcript_path": parent, "agent_transcript_path": parent}, parent
-    ) is False
-    assert subagent_stop._attributable(
-        {"last_assistant_message": "words", "transcript_path": parent}, parent
-    ) is True
+    # Keyed on where the text CAME FROM, not on which field was present:
+    # an unreadable agent_transcript_path falls through to the parent, and
+    # gating on the field alone signed the orchestrator's words.
+    assert subagent_stop._attributable("parent", "orchestrator words") is False
+    assert subagent_stop._attributable("payload", "reviewer words") is True
+    assert subagent_stop._attributable("agent-transcript", "reviewer words") is True
+    # A tool-call placeholder is not a verdict.
+    assert subagent_stop._attributable("payload", "<tool_use:Write>") is False
+    assert subagent_stop._attributable("agent-transcript", "  ") is False
+
+    # End-to-end: a payload naming a path that does not resolve must not
+    # produce a record, even though the FIELD is present.
+    missing = str(tmp_path / "does-not-exist.jsonl")
+    _, source = subagent_stop._subagent_text(
+        {"agent_transcript_path": missing, "transcript_path": parent},
+        parent, Path(parent).read_text(encoding="utf-8"),
+    )
+    assert source == "parent", "an unreadable agent transcript must not be trusted"
 
 
 def test_unattributable_run_writes_no_artifact(tmp_path, capsys):
@@ -248,9 +263,13 @@ def test_reviewer_verdict_reaches_the_orchestrator_with_artifact(tmp_path, capsy
     assert main({"session_id": "qg-1", "subagent_type": "francisca-tech",
                  "transcript_path": parent,
                  "last_assistant_message": VERDICT_TEXT}) == 0
-    payload = json.loads(capsys.readouterr().out.strip().splitlines()[0])
-    context = payload["hookSpecificOutput"]["additionalContext"]
-    assert payload["hookSpecificOutput"]["hookEventName"] == "SubagentStop"
+    assert capsys.readouterr().out.strip() == "", (
+        "SubagentStop context is delivered to the SUBAGENT — emitting here "
+        "wakes the agent that just stopped instead of the orchestrator"
+    )
+    from core.governance.reviewer_ledger import notices_context
+
+    context = notices_context("qg-1")
     assert "[arka:qg:reviewer-verdict] francisca-tech REJECTED" in context
     assert "blockers=1" in context
     assert "quote the verdict verbatim" in context
@@ -301,9 +320,10 @@ def test_unparsed_verdict_still_points_at_the_artifact(tmp_path, capsys):
     assert main({"session_id": "qg-3", "subagent_type": "eduardo-copy",
                  "transcript_path": parent,
                  "last_assistant_message": broken}) == 0
-    context = json.loads(
-        capsys.readouterr().out.strip().splitlines()[0]
-    )["hookSpecificOutput"]["additionalContext"]
+    assert capsys.readouterr().out.strip() == ""
+    from core.governance.reviewer_ledger import notices_context
+
+    context = notices_context("qg-3")
     assert "verdict-unparsed" in context
     assert "artifact=" in context
 

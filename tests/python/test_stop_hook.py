@@ -216,3 +216,32 @@ def test_main_enqueues_capture_before_wf_marker_gate(monkeypatch, tmp_path):
         c for c in calls if "core.memory.turn_capture" in c[0][0]
     ]
     assert len(capture_calls) == 1
+
+
+def test_stop_delivers_queued_reviewer_verdicts(tmp_path, monkeypatch, capsys):
+    """The orchestrator learns of a reviewer verdict HERE: Stop's
+    additionalContext is 'delivered to the model', SubagentStop's is
+    'delivered to the subagent' (2.1.220 contract)."""
+    import json as _json
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    from core.governance import reviewer_ledger
+    from core.hooks import stop as stop_hook
+
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    reviewer_ledger.queue_notice(
+        "stop-notice", None, "[arka:subagent-qa] francisca-tech needs gating"
+    )
+    stop_hook._emit_subagent_notices("stop-notice")
+    payload = _json.loads(capsys.readouterr().out.strip())
+    assert payload["hookSpecificOutput"]["hookEventName"] == "Stop"
+    assert "[arka:subagent-qa]" in payload["hookSpecificOutput"]["additionalContext"]
+
+
+def test_stop_is_silent_without_notices(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    from core.hooks import stop as stop_hook
+
+    stop_hook._emit_subagent_notices("stop-empty")
+    assert capsys.readouterr().out.strip() == ""

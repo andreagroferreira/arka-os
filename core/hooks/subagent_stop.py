@@ -8,14 +8,16 @@ WARN-only (this hook never blocks — the subagent already ran):
    (the ArkaOS QG story: nothing a specialist ships is invisible).
 2. Run the same honesty checks the Stop hook runs on the main turn —
    phantom-action (does the output narrate effects with no tool calls?)
-   and meta-tag presence — and, when the output looks deliverable-shaped,
-   emit the nudge on stdout as ``hookSpecificOutput.additionalContext``
-   so the orchestrator routes it through the Quality Gate (hook stderr
-   is discarded at exit 0 — a stderr nudge would be inert).
-3. For Quality Gate reviewers, capture the verdict verbatim to the
-   reviewer ledger and hand the orchestrator the verdict line plus the
-   artifact path — the reviewer's direct channel, which no aggregator
-   paraphrase sits in front of (``core/governance/reviewer_ledger.py``).
+   and meta-tag presence — and record the result to telemetry.
+3. For Quality Gate reviewers and the aggregator, capture the output
+   verbatim to the reviewer ledger (``core/governance/reviewer_ledger``)
+   so no aggregator paraphrase sits between a verdict and the operator.
+
+This hook writes NOTHING to stdout. SubagentStop's additionalContext is
+"delivered to the subagent" (2.1.220 contract), so anything emitted here
+wakes the agent that just stopped rather than informing the
+orchestrator. The orchestrator is told at its own turn end, by the Stop
+hook.
 
 Telemetry (warn mode, same discipline as the Stop hook): one line per
 subagent to ``~/.arkaos/telemetry/subagent-stop.jsonl``. Gate flag
@@ -26,11 +28,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
 from core.hooks._shared import (
-    emit_additional_context,
     ensure_root_on_path,
     get_str,
     read_stdin_json,
@@ -39,6 +41,9 @@ from core.hooks._shared import (
 )
 
 _TELEMETRY = Path.home() / ".arkaos" / "telemetry" / "subagent-stop.jsonl"
+# What flow_enforcer._extract_text yields when a turn's last content
+# block is a tool call rather than prose.
+_PLACEHOLDER_RE = re.compile(r"(<tool_use:[^>]*>\s*)+")
 # A subagent output "looks deliverable-shaped" when it claims a build/fix
 # a human would want gated — a cheap heuristic, warn-only, never blocks.
 _DELIVERABLE_RE = None  # compiled lazily
@@ -61,8 +66,12 @@ def _read_transcript(path: str) -> str | None:
         return None
 
 
-def _subagent_text(stdin_json: dict, transcript_path: str, raw: str | None) -> str:
-    """The SUBAGENT's own last message, from the payload the runtime sends.
+def _subagent_text(
+    stdin_json: dict, transcript_path: str, raw: str | None
+) -> tuple[str, str]:
+    """The SUBAGENT's own last message and WHERE it came from.
+
+    The source tag is what gates the ledger — see ``_attributable``.
 
     ``last_assistant_message`` carries the subagent's final text directly
     ("avoids the need to read and parse the transcript file", per the
@@ -76,17 +85,17 @@ def _subagent_text(stdin_json: dict, transcript_path: str, raw: str | None) -> s
     """
     direct = get_str(stdin_json, "last_assistant_message")
     if direct.strip():
-        return direct
+        return direct, "payload"
 
     agent_transcript = get_str(stdin_json, "agent_transcript_path")
     if agent_transcript and agent_transcript != transcript_path:
         scoped = _last_message(agent_transcript, None)
         if scoped:
-            return scoped
+            return scoped, "agent-transcript"
 
-    # No subagent-scoped source: fall back for the QA checks only. The
-    # ledger never writes from here — see _attributable().
-    return _last_message(transcript_path, raw)
+    # No subagent-scoped source. The text below is the PARENT's — usable
+    # for the QA counters, never for a ledger record.
+    return _last_message(transcript_path, raw), "parent"
 
 
 def _last_message(path: str, raw: str | None) -> str:
@@ -99,18 +108,23 @@ def _last_message(path: str, raw: str | None) -> str:
         return ""
 
 
-def _attributable(stdin_json: dict, transcript_path: str) -> bool:
+def _attributable(source: str, text: str) -> bool:
     """True only when the text provably came from the subagent itself.
 
-    Fail closed on attribution: a ledger record is signed evidence
-    carrying a reviewer's name, so writing one from an unprovable source
-    fabricates it. Missing a verdict is recoverable; a hashed record of
-    words the reviewer never wrote is not.
+    Keyed on where the text ACTUALLY came from, not on which payload
+    field was present: an ``agent_transcript_path`` that is empty or
+    unreadable silently falls through to the parent, and gating on the
+    field alone would sign the orchestrator's words with a reviewer's
+    name — the round-1 failure.
+
+    A tool-call placeholder (``<tool_use:Write>``) is not a verdict
+    either; it is what a transcript tail serialises to when the agent's
+    last act was a tool call.
     """
-    if get_str(stdin_json, "last_assistant_message").strip():
-        return True
-    agent_transcript = get_str(stdin_json, "agent_transcript_path")
-    return bool(agent_transcript) and agent_transcript != transcript_path
+    if source not in ("payload", "agent-transcript"):
+        return False
+    stripped = text.strip()
+    return bool(stripped) and not _PLACEHOLDER_RE.fullmatch(stripped)
 
 
 def _persist_output(session_id: str, agent_id: str, text: str) -> None:
@@ -203,45 +217,23 @@ def _record_reviewer(session_id: str, agent_id: str, text: str) -> dict | None:
 
 
 def _ledger_capture(
-    stdin_json: dict, session_id: str, agent_id: str, text: str
+    source: str, session_id: str, agent_id: str, text: str
 ) -> dict | None:
     """Capture to the ledger only when attribution is proven."""
-    transcript_path = get_str(stdin_json, "transcript_path")
-    if not _attributable(stdin_json, transcript_path):
+    if not _attributable(source, text):
         return None
     return _record_reviewer(session_id, agent_id, text)
 
 
-def _reviewer_channel(record: dict | None) -> str:
-    """The reviewer's direct line to the orchestrator: verdict + artifact.
-
-    SubagentStop additionalContext reaches the ORCHESTRATOR, so the
-    reviewer's own verdict and the path to its verbatim record arrive
-    without passing through the aggregator's prose.
-    """
-    if not record:
-        return ""
-    reviewer = record.get("reviewer_id", "reviewer")
-    verdict = (record.get("verdict") or {}).get("verdict")
-    path = record.get("path", "")
-    if not verdict:
-        if record.get("parse_error"):
-            return (
-                f"[arka:qg:reviewer-verdict] {reviewer} verdict-unparsed"
-                f" ({record['parse_error']}) artifact={path} — read the"
-                f" artifact and quote it verbatim; do not summarise."
-            )
-        return ""
-    blockers = (record.get("verdict") or {}).get("blockers") or []
-    return (
-        f"[arka:qg:reviewer-verdict] {reviewer} {verdict}"
-        f" blockers={len(blockers)} artifact={path} — read the artifact"
-        f" and quote the verdict verbatim to the operator; do not"
-        f" summarise or paraphrase it."
-    )
-
-
 def _nudge(agent_id: str, qa: dict) -> str:
+    """The QA concern in one line, or "" when there is none.
+
+    No longer emitted here — SubagentStop context wakes the subagent it
+    describes, and a Quality Gate verdict is deliverable-shaped by
+    construction, so this re-entered every reviewer that omitted an
+    ``[arka:meta]`` line (65 measured re-entries). The Stop hook carries
+    it to the orchestrator instead.
+    """
     parts = []
     if qa.get("phantom") == "phantom-action":
         parts.append("narrates effects with no tool calls in the subagent turn")
@@ -272,28 +264,39 @@ def main(stdin_json: dict | None = None) -> int:
         return 0
 
     raw = _read_transcript(transcript_path)
-    text = _subagent_text(stdin_json, transcript_path, raw)
+    text, source = _subagent_text(stdin_json, transcript_path, raw)
     if not text:
         return 0
 
     _persist_output(session_id, agent_id, text)
-    ledger = _ledger_capture(stdin_json, session_id, agent_id, text)
+    ledger = _ledger_capture(source, session_id, agent_id, text)
     qa = _run_qa(text, raw)
     _record(session_id, agent_id, qa)
-    _emit(ledger, agent_id, qa)
+    _queue_for_orchestrator(session_id, ledger, _nudge(agent_id, qa))
     return 0
 
 
-def _emit(ledger: dict | None, agent_id: str, qa: dict) -> None:
-    """Reviewer verdict line + QA nudge, both to the ORCHESTRATOR.
+def _queue_for_orchestrator(
+    session_id: str, ledger: dict | None, nudge: str
+) -> None:
+    """Hand the orchestrator its notice via the Stop hook, not this one.
 
-    Claude Code discards hook stderr at exit 0 (it only surfaces stderr
-    on a deny/exit 2), so additionalContext on stdout is the channel the
-    model actually receives.
+    The 2.1.220 contract is explicit: SubagentStop's additionalContext is
+    "delivered to the subagent; the subagent continues so it can act on
+    it", while Stop's is "delivered to the model". Emitting here woke the
+    agent that just finished — 65 measured re-entries, and 15 ledger
+    records for 3 reviewer dispatches. The notice is queued instead and
+    read at the orchestrator's own turn end
+    (``core.governance.reviewer_ledger.queue_notice``).
     """
-    parts = [p for p in (_reviewer_channel(ledger), _nudge(agent_id, qa)) if p]
-    if parts:
-        emit_additional_context("SubagentStop", "\n".join(parts))
+    if not session_id or (ledger is None and not nudge):
+        return
+    try:
+        from core.governance.reviewer_ledger import queue_notice
+
+        queue_notice(session_id, ledger, nudge)
+    except Exception:  # notices are best-effort — the hook never breaks
+        pass
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -34,6 +34,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from core.hooks._shared import (
+    emit_additional_context,
     ensure_root_on_path,
     get_str,
     read_stdin_json,
@@ -506,6 +507,25 @@ def _enqueue_routing_rebuild() -> None:
         pass
 
 
+def _emit_subagent_notices(session_id: str) -> None:
+    """Deliver queued reviewer verdicts and QA nudges to the orchestrator.
+
+    Drains ``core.governance.reviewer_ledger`` notices, so a QG reviewer's
+    verdict and the path to its verbatim artifact arrive without passing
+    through the aggregator's prose.
+    """
+    if not session_id or not safe_session_id(session_id):
+        return
+    try:
+        from core.governance.reviewer_ledger import notices_context
+
+        context = notices_context(session_id)
+    except Exception:  # notices are best-effort — this hook never blocks
+        return
+    if context:
+        emit_additional_context("Stop", context)
+
+
 def main(stdin_json: dict | None = None) -> int:
     if stdin_json is None:
         stdin_json, _ = read_stdin_json()
@@ -530,6 +550,11 @@ def main(stdin_json: dict | None = None) -> int:
     raw = _read_transcript(transcript_path)
 
     _native_usage(transcript_path, session_id, raw)
+
+    # Reviewer verdicts captured at SubagentStop reach the orchestrator
+    # HERE: Stop's additionalContext is "delivered to the model", while
+    # SubagentStop's is "delivered to the subagent" (2.1.220 contract).
+    _emit_subagent_notices(session_id)
 
     with contextlib.suppress(Exception):
         _enqueue_turn_capture(session_id, transcript_path, cwd)

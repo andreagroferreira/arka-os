@@ -350,3 +350,98 @@ def sweep_expired(days: int = 90) -> int:
     except Exception:
         return removed
     return removed
+
+
+def _notice_path(session_id: str) -> Path | None:
+    session_dir = ledger_root() / session_id
+    return session_dir / "NOTICES.jsonl" if _safe_id(session_id) else None
+
+
+def _notice_entry(record: dict | None, nudge: str) -> dict | None:
+    entry: dict = {"ts": datetime.now(UTC).isoformat()}
+    if record is not None:
+        verdict = record.get("verdict") or {}
+        entry.update({
+            "kind": "reviewer-verdict",
+            "reviewer_id": record.get("reviewer_id"),
+            "verdict": verdict.get("verdict"),
+            # Only claims the reviewer stands behind: a REFUTED entry is
+            # one they considered and dismissed, so counting it would
+            # inflate the headline the orchestrator reads.
+            "blockers": sum(
+                1 for blocker in (verdict.get("blockers") or [])
+                if (blocker or {}).get("verdict") != "REFUTED"
+            ),
+            "parse_error": record.get("parse_error"),
+            "artifact": record.get("path"),
+        })
+        return entry
+    if nudge:
+        entry.update({"kind": "subagent-qa", "message": nudge})
+        return entry
+    return None
+
+
+def queue_notice(session_id: str, record: dict | None, nudge: str) -> None:
+    """Queue a subagent notice for the ORCHESTRATOR's next turn end.
+
+    SubagentStop cannot tell the orchestrator anything: its
+    additionalContext is "delivered to the subagent" (2.1.220), so
+    emitting there wakes the agent that just stopped. The Stop hook's
+    context IS delivered to the model, so notices are parked here and
+    drained at the orchestrator's own turn end.
+    """
+    try:
+        path = _notice_path(session_id)
+        if path is None:
+            return
+        entry = _notice_entry(record, nudge)
+        if entry is None:
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        os.chmod(path, 0o600)
+    except Exception:
+        return
+
+
+def drain_notices(session_id: str) -> list[dict]:
+    """Read and clear the queued notices for a session ([] when none)."""
+    try:
+        path = _notice_path(session_id)
+        if path is None or not path.is_file():
+            return []
+        entries = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        path.unlink(missing_ok=True)
+        return entries
+    except Exception:
+        return []
+
+
+def notices_context(session_id: str) -> str:
+    """The orchestrator-facing block for the Stop hook ("" when empty)."""
+    lines = []
+    for entry in drain_notices(session_id):
+        if entry.get("kind") == "reviewer-verdict":
+            verdict = entry.get("verdict")
+            head = (
+                f"{entry.get('reviewer_id')} {verdict}"
+                f" blockers={entry.get('blockers', 0)}"
+                if verdict
+                else f"{entry.get('reviewer_id')} verdict-unparsed"
+                f" ({entry.get('parse_error')})"
+            )
+            lines.append(
+                f"[arka:qg:reviewer-verdict] {head}"
+                f" artifact={entry.get('artifact')} — read the artifact and"
+                f" quote the verdict verbatim to the operator; do not"
+                f" summarise or paraphrase it."
+            )
+        elif entry.get("message"):
+            lines.append(entry["message"])
+    return "\n".join(lines)

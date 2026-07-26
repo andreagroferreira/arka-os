@@ -325,3 +325,59 @@ class TestSweepSafety:
         assert (victim / "important.json").is_file(), "sweep followed a symlink"
         assert (victim / "important.txt").is_file()
         assert link.is_symlink(), "the link itself must survive too"
+
+
+class TestOrchestratorNotices:
+    """SubagentStop cannot tell the orchestrator anything — its context is
+    'delivered to the subagent' (2.1.220). Notices are queued and drained
+    by the Stop hook, whose context IS 'delivered to the model'."""
+
+    def test_verdict_notice_round_trip(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-notice", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        reviewer_ledger.queue_notice("sess-notice", record, "")
+        context = reviewer_ledger.notices_context("sess-notice")
+        assert "[arka:qg:reviewer-verdict] francisca-tech REJECTED" in context
+        assert "blockers=2" in context
+        assert record["path"] in context
+        assert "quote the verdict verbatim" in context
+
+    def test_refuted_blockers_are_not_counted(self, ledger_home):
+        """A REFUTED claim is one the reviewer considered and dismissed;
+        counting it inflates the headline the orchestrator reads."""
+        body = dict(VERDICT_BODY, blockers=[
+            {"check": "lint", "detail": "d", "file": "a.py",
+             "verdict": "CONFIRMED"},
+            {"check": "perf", "detail": "d", "file": "b.py",
+             "verdict": "REFUTED"},
+            {"check": "sec", "detail": "d", "file": "c.py",
+             "verdict": "REFUTED"},
+        ])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-refuted", "eduardo-copy", _reviewer_output(body), "subagent-stop"
+        )
+        reviewer_ledger.queue_notice("sess-refuted", record, "")
+        assert "blockers=1" in reviewer_ledger.notices_context("sess-refuted")
+
+    def test_draining_is_one_shot(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-once", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        reviewer_ledger.queue_notice("sess-once", record, "")
+        assert reviewer_ledger.notices_context("sess-once")
+        assert reviewer_ledger.notices_context("sess-once") == "", (
+            "a notice re-delivered every turn is the re-entry loop again"
+        )
+
+    def test_nudge_only_notice(self, ledger_home):
+        reviewer_ledger.queue_notice("sess-nudge", None, "[arka:subagent-qa] x")
+        assert "[arka:subagent-qa] x" in reviewer_ledger.notices_context("sess-nudge")
+
+    def test_nothing_to_say_writes_nothing(self, ledger_home):
+        reviewer_ledger.queue_notice("sess-quiet", None, "")
+        assert reviewer_ledger.notices_context("sess-quiet") == ""
+
+    def test_unsafe_session_id_is_inert(self, ledger_home):
+        reviewer_ledger.queue_notice("../escape", None, "x")
+        assert reviewer_ledger.notices_context("../escape") == ""
