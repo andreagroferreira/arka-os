@@ -12,6 +12,10 @@ WARN-only (this hook never blocks — the subagent already ran):
    emit the nudge on stdout as ``hookSpecificOutput.additionalContext``
    so the orchestrator routes it through the Quality Gate (hook stderr
    is discarded at exit 0 — a stderr nudge would be inert).
+3. For Quality Gate reviewers, capture the verdict verbatim to the
+   reviewer ledger and hand the orchestrator the verdict line plus the
+   artifact path — the reviewer's direct channel, which no aggregator
+   paraphrase sits in front of (``core/governance/reviewer_ledger.py``).
 
 Telemetry (warn mode, same discipline as the Stop hook): one line per
 subagent to ``~/.arkaos/telemetry/subagent-stop.jsonl``. Gate flag
@@ -58,7 +62,21 @@ def _read_transcript(path: str) -> str | None:
 
 
 def _final_assistant_text(transcript_path: str, raw: str | None) -> str:
+    """The SUBAGENT's last message — sidechain scope, not the main turn.
+
+    Reading the raw tail returned the parent's in-flight turn instead:
+    at SubagentStop time the last main-scope record is the one holding
+    the Task call, which serialises as ``<tool_use:Agent>``. Every
+    persisted reviewer output on disk was that 16-byte placeholder.
+    """
     try:
+        from core.workflow.transcript_scope import split_by_scope
+
+        if raw is not None:
+            split = split_by_scope(raw)
+            if split.sidechain:
+                return split.sidechain[-1]
+
         from core.workflow.flow_enforcer import _load_last_assistant_messages
 
         msgs = _load_last_assistant_messages(transcript_path, 1, raw_text=raw)
@@ -78,6 +96,9 @@ def _persist_output(session_id: str, agent_id: str, text: str) -> None:
             clean, _counts = sanitize_text(text[:4000])
         except SanitizerConfigMissing:
             clean = ""  # no sanitizer config => metadata only (recipes precedent)
+            # QG reviewers keep their words: the ledger is local-only
+            # (0600) and is not the training corpus this fail-closed
+            # branch protects. core/governance/reviewer_ledger.py.
         store = SessionStore(session_id)
         store.save_agent_output(AgentOutput(
             agent_id=agent_id or "subagent",
@@ -133,6 +154,54 @@ def _record(session_id: str, agent_id: str, qa: dict) -> None:
         pass
 
 
+def _record_reviewer(session_id: str, agent_id: str, text: str) -> dict | None:
+    """Cross-check capture of a QG reviewer's verdict (see the ledger).
+
+    Independent of the PostToolUse writer: the two sources dedupe on the
+    output hash, so a divergence between them is a tamper signal rather
+    than a silent overwrite.
+    """
+    try:
+        from core.governance.reviewer_ledger import record_reviewer_output
+
+        return record_reviewer_output(
+            session_id=session_id,
+            reviewer_id=agent_id,
+            raw_output=text,
+            source="subagent-stop",
+        )
+    except Exception:
+        return None
+
+
+def _reviewer_channel(record: dict | None) -> str:
+    """Francisca's direct line to the orchestrator: verdict + artifact path.
+
+    SubagentStop additionalContext reaches the ORCHESTRATOR, so the
+    reviewer's own verdict and the path to its verbatim record arrive
+    without passing through the aggregator's prose.
+    """
+    if not record:
+        return ""
+    reviewer = record.get("reviewer_id", "reviewer")
+    verdict = (record.get("verdict") or {}).get("verdict")
+    path = record.get("path", "")
+    if not verdict:
+        if record.get("parse_error"):
+            return (
+                f"[arka:qg:reviewer-verdict] {reviewer} verdict-unparsed"
+                f" ({record['parse_error']}) artifact={path} — read the"
+                f" artifact and quote it verbatim; do not summarise."
+            )
+        return ""
+    blockers = (record.get("verdict") or {}).get("blockers") or []
+    return (
+        f"[arka:qg:reviewer-verdict] {reviewer} {verdict}"
+        f" blockers={len(blockers)} artifact={path} — reproduce this"
+        f" verdict VERBATIM to the operator; paraphrase is a relay."
+    )
+
+
 def _nudge(agent_id: str, qa: dict) -> str:
     parts = []
     if qa.get("phantom") == "phantom-action":
@@ -169,6 +238,7 @@ def main(stdin_json: dict | None = None) -> int:
         return 0
 
     _persist_output(session_id, agent_id, text)
+    ledger_record = _record_reviewer(session_id, agent_id, text)
     qa = _run_qa(text, raw)
     _record(session_id, agent_id, qa)
 
@@ -176,9 +246,9 @@ def main(stdin_json: dict | None = None) -> int:
     # stderr at exit 0 (it only surfaces stderr on a deny/exit 2), so a
     # stderr nudge here would be inert. additionalContext on stdout is the
     # channel the model actually receives.
-    nudge = _nudge(agent_id, qa)
-    if nudge:
-        emit_additional_context("SubagentStop", nudge)
+    parts = [p for p in (_reviewer_channel(ledger_record), _nudge(agent_id, qa)) if p]
+    if parts:
+        emit_additional_context("SubagentStop", "\n".join(parts))
     return 0
 
 

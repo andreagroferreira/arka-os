@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -140,3 +141,96 @@ def test_persist_sanitizes(tmp_path, monkeypatch):
     assert len(outputs) == 1
     assert outputs[0].output == ""  # refused text, metadata row kept
     assert outputs[0].phase_id == "subagent-stop"
+
+
+# ─── reviewer channel (PR-B1) ────────────────────────────────────────────
+
+
+def _scoped_transcript(tmp_path, main_text, sidechain_text):
+    """Main-scope turn holding the in-flight Task call + the subagent's reply.
+
+    Mirrors what Claude Code writes: at SubagentStop the LAST record in
+    the transcript is the parent's turn (whose content serialises as
+    ``<tool_use:Agent>``), and the reviewer's actual words carry
+    ``isSidechain: true``.
+    """
+    lines = [
+        {"type": "user", "message": {"role": "user", "content": "review it"}},
+        {"type": "assistant", "isSidechain": True,
+         "message": {"role": "assistant", "content": [
+             {"type": "text", "text": sidechain_text}]}},
+        {"type": "assistant", "isSidechain": False,
+         "message": {"role": "assistant", "content": [
+             {"type": "tool_use", "name": "Agent", "input": {}}]}},
+        {"type": "assistant", "isSidechain": False,
+         "message": {"role": "assistant", "content": [
+             {"type": "text", "text": main_text}]}},
+    ]
+    path = tmp_path / "scoped.jsonl"
+    path.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
+    return str(path)
+
+
+VERDICT_TEXT = (
+    "Technical review complete.\n\n```arka-qgverdict\n"
+    + json.dumps({
+        "verdict": "REJECTED",
+        "evidence_report": {"overall": "fail", "checks_ran": ["lint"],
+                            "checks_failed": ["lint"], "checks_skipped": []},
+        "blockers": [{"check": "lint", "detail": "ruff exit 1",
+                      "file": "a.py", "verdict": "CONFIRMED"}],
+        "reviewer": "tech-director-francisca",
+    })
+    + "\n```\n"
+)
+
+
+def test_reads_the_subagent_scope_not_the_parent_turn(tmp_path):
+    """Regression: every persisted reviewer output on disk was the 16-byte
+    string '<tool_use:Agent>' — the parent's in-flight turn, read from
+    the wrong transcript scope. The reviewer's words never survived."""
+    transcript = _scoped_transcript(tmp_path, "parent narration", VERDICT_TEXT)
+    raw = Path(transcript).read_text(encoding="utf-8")
+    text = subagent_stop._final_assistant_text(transcript, raw)
+    assert "<tool_use:" not in text, "read the parent's tool call, not the reviewer"
+    assert "arka-qgverdict" in text
+
+
+def test_reviewer_verdict_reaches_the_orchestrator_with_artifact(tmp_path, capsys):
+    transcript = _scoped_transcript(tmp_path, "parent narration", VERDICT_TEXT)
+    assert main({"session_id": "qg-1", "subagent_type": "francisca-tech",
+                 "transcript_path": transcript}) == 0
+    payload = json.loads(capsys.readouterr().out.strip().splitlines()[0])
+    context = payload["hookSpecificOutput"]["additionalContext"]
+    assert payload["hookSpecificOutput"]["hookEventName"] == "SubagentStop"
+    assert "[arka:qg:reviewer-verdict] francisca-tech REJECTED" in context
+    assert "blockers=1" in context
+    assert "VERBATIM" in context
+
+    artifact = tmp_path / ".arkaos" / "quality-gate" / "qg-1" / "francisca-tech-1.json"
+    assert artifact.is_file(), "the verdict must be on disk before the aggregator sees it"
+    record = json.loads(artifact.read_text(encoding="utf-8"))
+    assert record["verdict"]["verdict"] == "REJECTED"
+    assert record["raw_output"] == VERDICT_TEXT
+    assert record["source"] == "subagent-stop"
+
+
+def test_non_reviewer_subagent_gets_no_verdict_channel(tmp_path, capsys):
+    transcript = _scoped_transcript(tmp_path, "parent", "Implemented the queue.")
+    assert main({"session_id": "qg-2", "subagent_type": "frontend-dev",
+                 "transcript_path": transcript}) == 0
+    out = capsys.readouterr().out
+    assert "[arka:qg:reviewer-verdict]" not in out
+    assert not (tmp_path / ".arkaos" / "quality-gate" / "qg-2").exists()
+
+
+def test_unparsed_verdict_still_points_at_the_artifact(tmp_path, capsys):
+    broken = "Review done.\n\n```arka-qgverdict\n{bad json,,}\n```\n"
+    transcript = _scoped_transcript(tmp_path, "parent", broken)
+    assert main({"session_id": "qg-3", "subagent_type": "eduardo-copy",
+                 "transcript_path": transcript}) == 0
+    context = json.loads(
+        capsys.readouterr().out.strip().splitlines()[0]
+    )["hookSpecificOutput"]["additionalContext"]
+    assert "verdict-unparsed" in context
+    assert "artifact=" in context
