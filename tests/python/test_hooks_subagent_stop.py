@@ -373,3 +373,35 @@ def test_missing_or_odd_payload_is_empty():
     assert _task_result_text({"tool_response": {"success": True}}) == ""
     # The legacy key the hook used to read does not exist in the runtime.
     assert _task_result_text({"tool_output": "ignored"}) == ""
+
+
+def test_agent_transcript_equal_to_parent_is_refused(tmp_path):
+    """The round-1 fabrication root cause: when the payload names the
+    PARENT file as the agent transcript, reading it returns the
+    orchestrator's words. Removing the `!=` guard survived every test
+    until this one (found by an independent mutation set)."""
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    text, source = subagent_stop._subagent_text(
+        {"agent_transcript_path": parent, "transcript_path": parent},
+        parent, Path(parent).read_text(encoding="utf-8"),
+    )
+    assert source == "parent", "the parent file is never a subagent source"
+    assert subagent_stop._attributable(source, text) is False
+
+    # End to end: no artifact, whatever the payload claims.
+    assert main({"session_id": "qg-selfpath", "subagent_type": "francisca-tech",
+                 "transcript_path": parent,
+                 "agent_transcript_path": parent}) == 0
+    assert not (tmp_path / ".arkaos" / "quality-gate" / "qg-selfpath").exists()
+
+
+def test_placeholder_match_is_anchored(tmp_path):
+    """`fullmatch`, not `search`: a legitimate verdict that MENTIONS a
+    tool-call placeholder must still be captured."""
+    body = VERDICT_TEXT.replace(
+        "Technical review complete.",
+        "Technical review complete. The persisted output was <tool_use:Agent>.",
+    )
+    assert subagent_stop._attributable("payload", body) is True
+    assert subagent_stop._attributable("payload", "<tool_use:Agent>") is False
+    assert subagent_stop._attributable("payload", "<tool_use:A><tool_use:B>") is False
