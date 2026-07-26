@@ -21,12 +21,21 @@ writer only sees synchronous dispatches — so treat that as collision
 safety, not as a delivered two-source cross-check.)
 
 ATTRIBUTION IS FAIL-CLOSED. A record here is signed evidence carrying a
-reviewer's name, so it is written only from a source that provably
-belongs to that reviewer (the SubagentStop payload's
-``last_assistant_message`` / ``agent_transcript_path``). Missing a
-verdict is recoverable; a hashed record of words the reviewer never
-wrote is not — that failure produced three identical-hash artifacts
-under three reviewer names before this rule existed.
+reviewer's name, so it is written only from a subagent-scoped source.
+Two writers qualify, and ``CAPTURE_SOURCES`` is enforced here rather
+than trusted to either of them:
+
+- ``subagent-stop`` — the SubagentStop payload's
+  ``last_assistant_message`` or ``agent_transcript_path``, gated by
+  ``core.hooks.subagent_stop._attributable`` on where the text actually
+  came from (never the parent transcript);
+- ``post-tool-use`` — ``tool_response.content`` of a SYNCHRONOUS Task
+  dispatch, which is the subagent's own returned text. Async dispatches
+  carry no output at that point and are skipped.
+
+Missing a verdict is recoverable; a hashed record of words the reviewer
+never wrote is not — that failure produced three identical-hash
+artifacts under three reviewer names before this rule existed.
 
 Sanitization boundary, on purpose: the ledger is a LOCAL-ONLY surface
 (files 0600, session directories 0700, never shipped, no reader outside
@@ -181,26 +190,30 @@ def _records_for(session_dir: Path, reviewer_id: str) -> list[Path]:
 
 
 def _write_record(session_dir: Path, record: dict) -> Path | None:
-    """Create the record exclusively; retry the seq on collision."""
+    """Create the record exclusively.
+
+    The filename carries the digest, so two DIFFERENT texts never
+    collide even at the same seq — a collision therefore means another
+    writer captured this exact text first, and the answer is to adopt
+    its file, not to bump the seq. Bumping produced ``-1-<sha>`` and
+    ``-2-<sha>``: the same verdict filed twice, which is precisely the
+    duplicate the digest-in-the-name was meant to prevent.
+    """
     digest8 = record["raw_sha256"][:8]
-    for attempt in range(20):
-        seq = record["seq"] + attempt
-        path = session_dir / f"{record['reviewer_id']}-{seq}-{digest8}.json"
-        if path.exists():
-            return path  # same text, same seq — already captured
-        record["seq"] = seq
-        body = json.dumps(record, ensure_ascii=False, indent=2)
-        try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-        except FileExistsError:
-            continue
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                fh.write(body)
-        except OSError:
-            return None
-        return path
-    return None
+    path = session_dir / f"{record['reviewer_id']}-{record['seq']}-{digest8}.json"
+    body = json.dumps(record, ensure_ascii=False, indent=2)
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        return path  # same reviewer, same seq, same text: already captured
+    except OSError:
+        return None
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(body)
+    except OSError:
+        return None
+    return path
 
 
 def _build_record(
@@ -282,46 +295,27 @@ def _capture(
 
 
 def _find_by_digest(paths: list[Path], digest: str) -> dict | None:
+    """Prior capture of this exact text, matched on the FILENAME digest.
+
+    Reading the body to compare hashes raced the writer: a file created
+    with O_EXCL is visible before its content is flushed, so a
+    concurrent capture parsed nothing, believed the text was new, and
+    filed a duplicate under the next seq. The digest is in the name, so
+    the check needs no content at all.
+    """
+    suffix = f"-{digest[:8]}.json"
     for path in paths:
+        if not path.name.endswith(suffix):
+            continue
         try:
             prior = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            continue
-        if prior.get("raw_sha256") == digest:
-            prior["path"] = str(path)
-            return prior
+            # Named as this text but not yet readable: a concurrent
+            # writer owns it. Report the capture rather than duplicate it.
+            return {"raw_sha256": digest, "path": str(path), "pending": True}
+        prior["path"] = str(path)
+        return prior
     return None
-
-
-def latest_verdicts(session_id: str) -> dict[str, dict]:
-    """Highest-seq record per reviewer for a session ({} on any failure).
-
-    Ordered by the ``seq`` field, not by filename: lexical order puts
-    ``-10`` before ``-2``, so a redo loop past nine rounds would return
-    a stale verdict.
-    """
-    try:
-        if not _safe_id(session_id):
-            return {}
-        session_dir = ledger_root() / session_id
-        if not session_dir.is_dir():
-            return {}
-        result: dict[str, dict] = {}
-        for path in sorted(session_dir.glob("*.json")):
-            try:
-                record = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                continue
-            reviewer = record.get("reviewer_id")
-            if not reviewer:
-                continue
-            record["path"] = str(path)
-            current = result.get(reviewer)
-            if current is None or record.get("seq", 0) >= current.get("seq", 0):
-                result[reviewer] = record
-        return result
-    except Exception:
-        return {}
 
 
 def _expired(session_dir: Path, cutoff: datetime) -> bool:

@@ -525,8 +525,12 @@ def _emit_subagent_notices(session_id: str) -> None:
     if not context:
         return
     # Emit first, clear second: a verdict lost to a failed delivery is
-    # the relay failure this whole surface exists to prevent.
-    emit_additional_context("Stop", context)
+    # the relay failure this whole surface exists to prevent. The emit is
+    # guarded too — a stdout error must not abort the rest of this hook.
+    try:
+        emit_additional_context("Stop", context)
+    except Exception:
+        return  # notices stay queued for the next turn
     clear_notices(session_id)
 
 

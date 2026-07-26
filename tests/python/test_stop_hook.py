@@ -245,3 +245,25 @@ def test_stop_is_silent_without_notices(tmp_path, monkeypatch, capsys):
 
     stop_hook._emit_subagent_notices("stop-empty")
     assert capsys.readouterr().out.strip() == ""
+
+
+def test_notices_survive_a_failed_emit(tmp_path, monkeypatch):
+    """Clearing before emitting loses the verdict permanently — the exact
+    relay failure this surface exists to prevent. A failed delivery must
+    leave the queue intact for the next turn, and must not abort the hook."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    from core.governance import reviewer_ledger
+    from core.hooks import stop as stop_hook
+
+    reviewer_ledger.queue_notice("stop-fail", None, "[arka:subagent-qa] pending")
+
+    def _boom(_event, _context):
+        raise OSError("stdout closed")
+
+    monkeypatch.setattr(stop_hook, "emit_additional_context", _boom)
+    stop_hook._emit_subagent_notices("stop-fail")  # must not raise
+
+    assert "[arka:subagent-qa] pending" in reviewer_ledger.notices_context(
+        "stop-fail"
+    ), "a failed emit must not consume the queue"

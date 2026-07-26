@@ -419,3 +419,57 @@ def test_symlinked_agent_transcript_to_parent_is_refused(tmp_path):
     )
     assert source == "parent"
     assert subagent_stop._attributable(source, text) is False
+
+
+def test_post_tool_use_writer_reaches_the_ledger(tmp_path, monkeypatch):
+    """Integration cover for the PostToolUse writer: _task_result_text was
+    unit-tested, its wiring was not (0% coverage on the call site)."""
+    from core.hooks import post_tool_use
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    post_tool_use._record_reviewer_output(
+        "francisca-tech",
+        {"tool_response": {"content": [{"type": "text", "text": VERDICT_TEXT}]}},
+        "ptu-live",
+    )
+    records = list((tmp_path / ".arkaos" / "quality-gate" / "ptu-live").glob("*.json"))
+    assert len(records) == 1
+    record = json.loads(records[0].read_text(encoding="utf-8"))
+    assert record["source"] == "post-tool-use"
+    assert record["raw_output"] == VERDICT_TEXT
+    assert record["verdict"]["verdict"] == "REJECTED"
+
+
+def test_post_tool_use_writer_skips_async_and_non_reviewers(tmp_path, monkeypatch):
+    from core.hooks import post_tool_use
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    post_tool_use._record_reviewer_output(
+        "francisca-tech",
+        {"tool_response": {"agentId": "a1", "isAsync": True,
+                           "content": [{"type": "text", "text": "Async agent launched"}]}},
+        "ptu-async",
+    )
+    post_tool_use._record_reviewer_output(
+        "frontend-dev",
+        {"tool_response": {"content": [{"type": "text", "text": VERDICT_TEXT}]}},
+        "ptu-nonreviewer",
+    )
+    root = tmp_path / ".arkaos" / "quality-gate"
+    assert not (root / "ptu-async").exists()
+    assert not (root / "ptu-nonreviewer").exists()
+
+
+def test_post_tool_use_writer_never_raises(tmp_path, monkeypatch):
+    """A null text block raised TypeError and aborted main() mid-turn."""
+    from core.hooks import post_tool_use
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    post_tool_use._record_reviewer_output(
+        "francisca-tech",
+        {"tool_response": {"content": [{"type": "text", "text": None}]}},
+        "ptu-null",
+    )

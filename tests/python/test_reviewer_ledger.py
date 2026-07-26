@@ -176,32 +176,6 @@ class TestSanitizerBoundary:
         assert record["sanitized"] is False
 
 
-class TestReadback:
-    def test_latest_verdicts_per_reviewer(self, ledger_home):
-        reviewer_ledger.record_reviewer_output(
-            "sess-9", "francisca-tech", _reviewer_output(), "post-tool-use"
-        )
-        reviewer_ledger.record_reviewer_output(
-            "sess-9", "eduardo-copy",
-            _reviewer_output(dict(VERDICT_BODY, reviewer="copy-director-eduardo")),
-            "post-tool-use",
-        )
-        latest = reviewer_ledger.latest_verdicts("sess-9")
-        assert set(latest) == {"francisca-tech", "eduardo-copy"}
-
-    def test_empty_for_unknown_session(self, ledger_home):
-        assert reviewer_ledger.latest_verdicts("nope") == {}
-
-    def test_corrupt_file_is_skipped_not_raised(self, ledger_home):
-        reviewer_ledger.record_reviewer_output(
-            "sess-10", "francisca-tech", _reviewer_output(), "post-tool-use"
-        )
-        (reviewer_ledger.ledger_root() / "sess-10" / "junk.json").write_text(
-            "{{{", encoding="utf-8"
-        )
-        assert set(reviewer_ledger.latest_verdicts("sess-10")) == {"francisca-tech"}
-
-
 class TestRetention:
     def test_sweep_removes_only_expired(self, ledger_home):
         import time
@@ -283,26 +257,20 @@ class TestCollisionSafety:
         )
         assert record["seq"] == 1, "seq must count only this reviewer's records"
 
-    def test_latest_verdicts_past_nine_rounds(self, ledger_home):
-        """Lexical filename order puts -10 before -2: a redo loop past
-        nine rounds returned a stale verdict."""
-        for i in range(11):
-            reviewer_ledger.record_reviewer_output(
-                "sess-many", "francisca-tech",
-                _reviewer_output(dict(VERDICT_BODY, notes=f"round {i}")),
-                "subagent-stop",
-            )
-        latest = reviewer_ledger.latest_verdicts("sess-many")
-        assert latest["francisca-tech"]["seq"] == 11
-
     def test_dot_ids_are_rejected(self, ledger_home):
         """'.' and '..' match the safe-id charset and would resolve the
-        ledger onto ~/.arkaos itself."""
+        ledger onto ~/.arkaos itself, scattering verdict files there."""
         for bad in (".", ".."):
             assert reviewer_ledger.record_reviewer_output(
                 bad, "francisca-tech", _reviewer_output(), "subagent-stop"
             ) is None
-            assert reviewer_ledger.latest_verdicts(bad) == {}
+            assert reviewer_ledger.record_reviewer_output(
+                "sess-ok", bad, _reviewer_output(), "subagent-stop"
+            ) is None
+            reviewer_ledger.queue_notice(bad, None, "x")
+            assert reviewer_ledger.notices_context(bad) == ""
+        root = reviewer_ledger.ledger_root()
+        assert not list(root.glob("*.json")), "no record may land in the root"
 
 
 class TestSweepSafety:
@@ -464,3 +432,49 @@ class TestTruthfulness:
         reviewer_ledger.queue_notice("sess-torn", None, "[arka:subagent-qa] third")
         context = reviewer_ledger.notices_context("sess-torn")
         assert "first" in context and "third" in context
+
+
+class TestConcurrentCapture:
+    def test_same_text_racing_writers_produce_one_record(self, ledger_home):
+        """A file created with O_EXCL is visible before its content is
+        flushed: the concurrent writer parsed nothing, believed the text
+        was new, and filed a duplicate under the next seq. The digest is
+        in the filename, so dedup needs no content."""
+        import threading
+
+        raw = _reviewer_output()
+        barrier = threading.Barrier(2)
+
+        def capture(source):
+            barrier.wait()
+            reviewer_ledger.record_reviewer_output(
+                "sess-race", "francisca-tech", raw, source
+            )
+
+        threads = [
+            threading.Thread(target=capture, args=(s,))
+            for s in ("post-tool-use", "subagent-stop")
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        files = list((reviewer_ledger.ledger_root() / "sess-race").glob("*.json"))
+        assert len(files) == 1, f"identical text must dedupe, got {files}"
+
+    def test_half_written_record_is_not_duplicated(self, ledger_home):
+        """Simulates the exact race window: the name exists, the body does
+        not parse yet."""
+        raw = _reviewer_output()
+        digest = __import__("hashlib").sha256(raw.encode()).hexdigest()
+        session_dir = reviewer_ledger.ledger_root() / "sess-half"
+        session_dir.mkdir(parents=True)
+        (session_dir / f"francisca-tech-1-{digest[:8]}.json").write_text(
+            "", encoding="utf-8"
+        )
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-half", "francisca-tech", raw, "subagent-stop"
+        )
+        assert record is not None and record.get("pending") is True
+        assert len(list(session_dir.glob("*.json"))) == 1
