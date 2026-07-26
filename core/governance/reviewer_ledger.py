@@ -103,6 +103,11 @@ _VERDICT_FENCE_RE = re.compile(
 )
 _JSON_FENCE_RE = re.compile(r"```json\s*\n(.*?)```", re.DOTALL)
 
+# The only names this module writes into a session directory. Retention
+# checks every entry against these before deleting anything.
+_NOTICES_NAME = "NOTICES.jsonl"
+_RECORD_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}-\d+-[0-9a-f]{8}\.json$")
+
 
 def ledger_root() -> Path:
     """Resolved at call time so tests can repoint HOME."""
@@ -331,11 +336,10 @@ def record_reviewer_output(
 ) -> dict | None:
     """Persist one reviewer dispatch verbatim. Returns the record or None.
 
-    Never raises. Deduplicates on the 8-hex digest prefix carried in the
-    filename (32 bits, not the full 256) so the two writers do not
-    double-record the same output: two DIFFERENT texts colliding on that
-    prefix at the same seq would be adopted as one. Noted, not engineered
-    for — the full digest stays in the record for verification.
+    Never raises. Deduplicates by finding the 8-hex digest prefix in a
+    filename and then confirming the full 256-bit ``raw_sha256`` in the
+    body, so the two writers do not double-record the same output and a
+    32-bit filename collision cannot adopt a different text.
     """
     try:
         if not raw_output or not is_reviewer(reviewer_id):
@@ -398,6 +402,8 @@ def _find_by_digest(paths: list[Path], digest: str) -> dict | None:
             # or written by an older build). Treat it as absent so the
             # verdict is captured again rather than lost behind a name.
             continue
+        if prior.get("raw_sha256") != digest:
+            continue  # 32-bit filename match, 256-bit body disagrees
         prior["path"] = str(path)
         return prior
     return None
@@ -411,20 +417,33 @@ def _expired(session_dir: Path, cutoff: datetime) -> bool:
     return mtime < cutoff
 
 
+def _is_own_file(item: Path) -> bool:
+    """True only for names this module writes."""
+    if item.is_symlink() or not item.is_file():
+        return False
+    name = item.name
+    if name == _NOTICES_NAME or name.startswith(f"{_NOTICES_NAME}.claim-"):
+        return True
+    if name.startswith(".") and ".tmp-" in name:
+        return True  # an interrupted atomic publish
+    return bool(_RECORD_NAME_RE.fullmatch(name))
+
+
 def _purge(session_dir: Path) -> bool:
     """Remove a session's records. Only own files; never recursive.
 
-    Both passes use ``iterdir``, which covers ``NOTICES.jsonl`` too:
-    matching ``*.json`` alone deleted every verdict, then failed the
-    rmdir on the leftover notices file and reported zero removed —
-    destruction with a clean receipt. A directory holding anything the
-    ledger did not write (a subdirectory, a symlink) is refused whole.
+    Every entry is checked against the ledger's own naming before
+    anything is deleted: unlinking whatever happened to be a regular
+    file destroyed an operator's notes that this module never wrote.
+    A directory holding anything else is refused whole — and refused
+    BEFORE the first unlink, so a refusal never leaves the verdicts
+    already gone (destruction with a clean receipt).
     """
     try:
-        for item in session_dir.iterdir():
-            if item.is_symlink() or item.is_dir():
-                return False  # foreign content: leave the whole dir alone
-        for item in session_dir.iterdir():
+        items = list(session_dir.iterdir())
+        if not all(_is_own_file(item) for item in items):
+            return False  # foreign content: leave the whole dir alone
+        for item in items:
             item.unlink()
         session_dir.rmdir()
         return True
@@ -445,6 +464,11 @@ def sweep_expired(days: int = 90) -> int:
             # session dir would take its target's contents with it.
             if session_dir.is_symlink() or not session_dir.is_dir():
                 continue
+            # A dot-directory is not a session: `.quarantine/` holds
+            # invalidated verdicts kept deliberately as evidence, and
+            # retention must never age those out.
+            if session_dir.name.startswith(".") or not _safe_id(session_dir.name):
+                continue
             if not _expired(session_dir, cutoff):
                 continue
             if _purge(session_dir):
@@ -456,7 +480,7 @@ def sweep_expired(days: int = 90) -> int:
 
 def _notice_path(session_id: str) -> Path | None:
     session_dir = ledger_root() / session_id
-    return session_dir / "NOTICES.jsonl" if _safe_id(session_id) else None
+    return session_dir / _NOTICES_NAME if _safe_id(session_id) else None
 
 
 def _notice_entry(record: dict | None, nudge: str) -> dict | None:
@@ -512,48 +536,107 @@ def queue_notice(session_id: str, record: dict | None, nudge: str) -> None:
         return
 
 
-def read_notices(session_id: str) -> list[dict]:
-    """Queued notices for a session, WITHOUT clearing them ([] when none)."""
+def _read_lines(path: Path) -> list[dict]:
+    entries = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            entries.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue  # a torn append must not swallow the rest
+    return entries
+
+
+def take_notices(session_id: str) -> tuple[list[dict], list[Path]]:
+    """Claim the queued notices. Returns (entries, tokens).
+
+    The live queue is RENAMED aside before it is read, so a SubagentStop
+    that appends while the orchestrator is being told creates a fresh
+    queue and is delivered next turn. Deleting the whole file after the
+    read destroyed anything that arrived in that window — a reviewer's
+    verdict lost between the read and the unlink.
+
+    Leftover claim files from an interrupted drain are picked up too, so
+    a crash re-delivers rather than loses.
+    """
+    entries: list[dict] = []
+    tokens: list[Path] = []
     try:
         path = _notice_path(session_id)
-        if path is None or not path.is_file():
+        if path is None:
+            return [], []
+        for stale in sorted(path.parent.glob(f"{path.name}.claim-*")):
+            tokens.append(stale)
+            entries.extend(_read_lines(stale))
+        claim = _claim_queue(path)
+        if claim is not None:
+            tokens.append(claim)
+            entries.extend(_read_lines(claim))
+    except Exception:
+        return entries, tokens
+    return entries, tokens
+
+
+def _claim_queue(path: Path) -> Path | None:
+    """Rename the live queue aside; None when there is nothing to claim."""
+    if not path.is_file():
+        return None
+    claim = path.with_name(f"{path.name}.claim-{os.getpid()}-{uuid4().hex[:8]}")
+    try:
+        os.replace(path, claim)
+    except OSError:
+        return None
+    return claim
+
+
+def read_notices(session_id: str) -> list[dict]:
+    """Queued notices for a session, WITHOUT claiming them ([] when none)."""
+    try:
+        path = _notice_path(session_id)
+        if path is None:
             return []
-        entries = []
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            try:
-                entries.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue  # a torn append must not swallow the rest
+        entries: list[dict] = []
+        for claimed in sorted(path.parent.glob(f"{path.name}.claim-*")):
+            entries.extend(_read_lines(claimed))
+        if path.is_file():
+            entries.extend(_read_lines(path))
         return entries
     except Exception:
         return []
 
 
-def clear_notices(session_id: str) -> None:
-    """Drop the queue — call only AFTER the notices have been delivered.
+def clear_notices(session_id: str, tokens: list[Path] | None = None) -> None:
+    """Drop the CLAIMED notices — call only AFTER they were delivered.
 
-    Split from the read so a failed delivery cannot lose a verdict: the
-    queue used to be unlinked before the caller emitted, and the emit
-    sits outside that call's try/except.
+    Only the claim files handed out by ``take_notices`` are removed, so
+    anything queued since the claim survives untouched.
     """
     try:
-        path = _notice_path(session_id)
-        if path is not None:
-            path.unlink(missing_ok=True)
+        if tokens is None:
+            path = _notice_path(session_id)
+            tokens = sorted(path.parent.glob(f"{path.name}.claim-*")) if path else []
+        for token in tokens:
+            with contextlib.suppress(OSError):
+                token.unlink(missing_ok=True)
     except Exception:
         return
 
 
 def notices_context(session_id: str) -> str:
-    """The orchestrator-facing block for the Stop hook ("" when empty).
+    """The orchestrator-facing block, read WITHOUT claiming ("" if none)."""
+    return _render(read_notices(session_id))
 
-    Does NOT clear the queue — the caller clears it once the context has
-    actually been emitted (see ``clear_notices``).
-    """
+
+def claim_notices_context(session_id: str) -> tuple[str, list[Path]]:
+    """The block plus the claim tokens to clear once it is delivered."""
+    entries, tokens = take_notices(session_id)
+    return _render(entries), tokens
+
+
+def _render(entries: list[dict]) -> str:
     lines = []
-    for entry in read_notices(session_id):
+    for entry in entries:
         if entry.get("kind") == "reviewer-verdict":
             verdict = entry.get("verdict")
             if verdict:

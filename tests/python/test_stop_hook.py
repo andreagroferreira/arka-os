@@ -267,3 +267,32 @@ def test_notices_survive_a_failed_emit(tmp_path, monkeypatch):
     assert "[arka:subagent-qa] pending" in reviewer_ledger.notices_context(
         "stop-fail"
     ), "a failed emit must not consume the queue"
+
+
+def test_stop_main_delivers_notices_end_to_end(tmp_path, monkeypatch, capsys):
+    """The feature's LAST hop: the only path by which the operator ever
+    learns a verdict exists. Deleting _emit_subagent_notices from main()
+    left the whole suite green — the same gap closed for post_tool_use
+    and session_end, left open on the one that matters most."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    from core.governance import reviewer_ledger
+    from core.hooks import stop as stop_hook
+
+    reviewer_ledger.queue_notice(
+        "stop-e2e", None, "[arka:subagent-qa] francisca-tech needs gating"
+    )
+    transcript = tmp_path / "t.jsonl"
+    transcript.write_text("", encoding="utf-8")
+    assert stop_hook.main({
+        "session_id": "stop-e2e",
+        "transcript_path": str(transcript),
+        "cwd": "/tmp",
+    }) == 0
+    out = capsys.readouterr().out
+    assert "[arka:subagent-qa]" in out, "main() must deliver queued notices"
+    payload = json.loads(out.strip().splitlines()[0])
+    assert payload["hookSpecificOutput"]["hookEventName"] == "Stop"
+    assert reviewer_ledger.notices_context("stop-e2e") == "", (
+        "a delivered notice must be cleared"
+    )

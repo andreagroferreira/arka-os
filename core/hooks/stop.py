@@ -517,21 +517,26 @@ def _emit_subagent_notices(session_id: str) -> None:
     if not session_id or not safe_session_id(session_id):
         return
     try:
-        from core.governance.reviewer_ledger import clear_notices, notices_context
+        from core.governance.reviewer_ledger import (
+            claim_notices_context,
+            clear_notices,
+        )
 
-        context = notices_context(session_id)
+        context, tokens = claim_notices_context(session_id)
     except Exception:  # notices are best-effort — this hook never blocks
         return
     if not context:
         return
-    # Emit first, clear second: a verdict lost to a failed delivery is
-    # the relay failure this whole surface exists to prevent. The emit is
-    # guarded too — a stdout error must not abort the rest of this hook.
+    # Emit first, clear second, and clear only what was CLAIMED: a
+    # verdict lost to a failed delivery — or to a SubagentStop that
+    # queued while this ran — is the relay failure this surface exists
+    # to prevent. The emit is guarded too, so a stdout error cannot
+    # abort the rest of the hook.
     try:
         emit_additional_context("Stop", context)
     except Exception:
-        return  # notices stay queued for the next turn
-    clear_notices(session_id)
+        return  # the claim survives and is re-delivered next turn
+    clear_notices(session_id, tokens)
 
 
 def main(stdin_json: dict | None = None) -> int:

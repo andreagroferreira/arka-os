@@ -348,8 +348,49 @@ class TestOrchestratorNotices:
             "reading must not consume: an emit that fails after the read "
             "would drop the verdict entirely"
         )
-        reviewer_ledger.clear_notices("sess-once")
+        context, tokens = reviewer_ledger.claim_notices_context("sess-once")
+        assert context and tokens
+        assert reviewer_ledger.notices_context("sess-once"), (
+            "a claim that is never cleared must still be re-deliverable"
+        )
+        reviewer_ledger.clear_notices("sess-once", tokens)
         assert reviewer_ledger.notices_context("sess-once") == ""
+
+    def test_a_notice_queued_during_delivery_is_not_destroyed(self, ledger_home):
+        """The whole queue file used to be unlinked after the read, so a
+        SubagentStop that appended while the orchestrator was being told
+        was destroyed unread — a reviewer verdict lost in the window."""
+        first = reviewer_ledger.record_reviewer_output(
+            "sess-window", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        reviewer_ledger.queue_notice("sess-window", first, "")
+        context, tokens = reviewer_ledger.claim_notices_context("sess-window")
+        assert "francisca-tech" in context
+
+        # A second reviewer finishes DURING the delivery.
+        late = reviewer_ledger.record_reviewer_output(
+            "sess-window", "eduardo-copy",
+            _reviewer_output(dict(VERDICT_BODY, reviewer="copy-director-eduardo")),
+            "subagent-stop",
+        )
+        reviewer_ledger.queue_notice("sess-window", late, "")
+        reviewer_ledger.clear_notices("sess-window", tokens)
+
+        remaining = reviewer_ledger.notices_context("sess-window")
+        assert "eduardo-copy" in remaining, "the late verdict must survive"
+        assert "francisca-tech" not in remaining, "the delivered one is gone"
+
+    def test_an_interrupted_claim_is_re_delivered(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-crash", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        reviewer_ledger.queue_notice("sess-crash", record, "")
+        _context, _tokens = reviewer_ledger.claim_notices_context("sess-crash")
+        # Simulate a crash before clear_notices: the claim file remains.
+        again, tokens = reviewer_ledger.claim_notices_context("sess-crash")
+        assert "francisca-tech" in again, "a crashed drain must re-deliver"
+        reviewer_ledger.clear_notices("sess-crash", tokens)
+        assert reviewer_ledger.notices_context("sess-crash") == ""
 
     def test_nudge_only_notice(self, ledger_home):
         reviewer_ledger.queue_notice("sess-nudge", None, "[arka:subagent-qa] x")
@@ -615,3 +656,119 @@ class TestDigestHonesty:
         assert record["stored_sha256"] == hashlib.sha256(
             record["raw_output"].encode()
         ).hexdigest(), "the operator must be able to verify what is on disk"
+
+
+class TestSweepScope:
+    def test_quarantine_is_never_swept(self, ledger_home):
+        """.quarantine/ holds invalidated verdicts kept deliberately as
+        evidence; retention must never age them out."""
+        import time
+
+        quarantine = reviewer_ledger.ledger_root() / ".quarantine"
+        quarantine.mkdir(parents=True)
+        kept = quarantine / "fabricated-francisca-tech-1.json"
+        kept.write_text("{}", encoding="utf-8")
+        ancient = time.time() - (300 * 86400)
+        os.utime(quarantine, (ancient, ancient))
+
+        assert reviewer_ledger.sweep_expired(days=90) == 0
+        assert kept.is_file(), "quarantined evidence must survive retention"
+
+    def test_foreign_file_is_never_deleted(self, ledger_home):
+        """Unlinking whatever happened to be a regular file destroyed an
+        operator's notes this module never wrote."""
+        import time
+
+        reviewer_ledger.record_reviewer_output(
+            "sess-notes", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        session_dir = reviewer_ledger.ledger_root() / "sess-notes"
+        notes = session_dir / "operators-notes.txt"
+        notes.write_text("do not delete", encoding="utf-8")
+        ancient = time.time() - (200 * 86400)
+        os.utime(session_dir, (ancient, ancient))
+
+        assert reviewer_ledger.sweep_expired(days=90) == 0
+        assert notes.is_file(), "a file the ledger did not write must survive"
+        assert list(session_dir.glob("*.json")), (
+            "and the refusal must come BEFORE any unlink"
+        )
+
+
+class TestWriteGuards:
+    """Both exception arms of _write_record are load-bearing and both
+    survived mutation until now."""
+
+    def test_adopt_on_existing_name_returns_the_record(self, ledger_home):
+        """`except FileExistsError: pass` — under `return None` instead,
+        7 of 8 concurrent writers reported failure for a verdict that IS
+        on disk, and the notice for it was never queued."""
+        raw = _reviewer_output()
+        first = reviewer_ledger.record_reviewer_output(
+            "sess-adopt", "francisca-tech", raw, "post-tool-use"
+        )
+        session_dir = reviewer_ledger.ledger_root() / "sess-adopt"
+        # Force the collision path: the name exists, the dedup scan is
+        # bypassed by removing nothing — a second writer at the same seq.
+        record = reviewer_ledger._build_record(
+            "sess-adopt", "francisca-tech", raw, "subagent-stop",
+            first["raw_sha256"], 1,
+        )
+        path = reviewer_ledger._write_record(session_dir, record)
+        assert path is not None, "an existing name means already captured"
+        assert Path(path).is_file()
+        assert json.loads(Path(path).read_text())["raw_sha256"] == (
+            first["raw_sha256"]
+        )
+
+    def test_failed_link_never_returns_a_path(self, ledger_home, monkeypatch):
+        """`except OSError: return None` — under `pass` instead, the
+        record claimed a path for a file that was never created and the
+        notice pointed the operator at it."""
+        raw = _reviewer_output()
+        session_dir = reviewer_ledger.ledger_root() / "sess-linkfail"
+        session_dir.mkdir(parents=True)
+
+        def _boom(_src, _dst):
+            raise OSError("cross-device link")
+
+        monkeypatch.setattr(reviewer_ledger.os, "link", _boom)
+        record = reviewer_ledger._build_record(
+            "sess-linkfail", "francisca-tech", raw, "subagent-stop", "a" * 64, 1,
+        )
+        assert reviewer_ledger._write_record(session_dir, record) is None
+        assert not list(session_dir.glob("*.json")), "no phantom artifact"
+        assert not list(session_dir.glob(".*tmp*")), "temp must be cleaned up"
+
+    def test_record_reviewer_output_returns_none_when_publish_fails(
+        self, ledger_home, monkeypatch
+    ):
+        def _boom(_src, _dst):
+            raise OSError("cross-device link")
+
+        monkeypatch.setattr(reviewer_ledger.os, "link", _boom)
+        assert reviewer_ledger.record_reviewer_output(
+            "sess-nopath", "francisca-tech", _reviewer_output(), "subagent-stop"
+        ) is None
+
+
+def test_prefix_collision_does_not_adopt_a_different_text(ledger_home):
+    """The filename carries 32 bits of the digest; the body carries 256.
+    A prefix match with a different body is a different verdict."""
+    raw = _reviewer_output()
+    record = reviewer_ledger.record_reviewer_output(
+        "sess-collide", "francisca-tech", raw, "subagent-stop"
+    )
+    session_dir = reviewer_ledger.ledger_root() / "sess-collide"
+    # Same 8-hex prefix in the name, a different full digest in the body.
+    prefix = record["raw_sha256"][:8]
+    impostor = session_dir / f"francisca-tech-9-{prefix}.json"
+    impostor.write_text(
+        json.dumps({"raw_sha256": "f" * 64, "raw_output": "someone else"}),
+        encoding="utf-8",
+    )
+    again = reviewer_ledger.record_reviewer_output(
+        "sess-collide", "francisca-tech", raw, "post-tool-use"
+    )
+    assert again["raw_sha256"] == record["raw_sha256"]
+    assert again["raw_output"] == raw, "must not adopt the impostor's body"
