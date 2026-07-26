@@ -27,16 +27,18 @@ delegated ONCE to ``<venv>/bin/python3 -m core.hooks.post_tool_use
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.hooks._shared import (
+    emit_additional_context,
     ensure_root_on_path,
     get_str,
     read_stdin_json,
@@ -94,18 +96,14 @@ _CATEGORY_RES: tuple[tuple[str, re.Pattern], ...] = (
 
 def _locked(fh) -> None:
     if _HAS_FLOCK:
-        try:
+        with contextlib.suppress(OSError):
             fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-        except OSError:
-            pass
 
 
 def _unlocked(fh) -> None:
     if _HAS_FLOCK:
-        try:
+        with contextlib.suppress(OSError):
             fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-        except OSError:
-            pass
 
 
 # ─── Section 1: flow marker cache ────────────────────────────────────────
@@ -179,7 +177,7 @@ def _record_pattern_stub(tool_output: str, prompt: str) -> None:
         # REPLACE an enriched card with this fresh empty stub (data loss).
         if reinforce_pattern(pid):
             return
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         record_pattern(PatternCard(
             id=pid,
             name=pname,
@@ -300,7 +298,7 @@ def _store_gotcha(
     gotchas_file = Path.home() / ".arkaos" / "gotchas.json"
     lock_file = Path.home() / ".arkaos" / "gotchas.lock"
     gotchas_file.parent.mkdir(parents=True, exist_ok=True)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         with lock_file.open("a", encoding="utf-8") as lock_fh:
             _locked(lock_fh)
@@ -427,15 +425,14 @@ def _run_workflow_sections(input_data: dict, persist: list, msg: str) -> str:
     Raises ImportError when the interpreter lacks the dependencies —
     caller falls back to the venv delegate.
     """
-    import yaml  # noqa: F401 — probe: forge + core.workflow need it
+    import yaml
+
     from core.workflow.enforcer import enforce_tool
     from core.workflow.state import add_violation
 
     for rule_id, message, tool, file_path in persist:
-        try:
+        with contextlib.suppress(Exception):
             add_violation(rule_id, message, tool, file_path)
-        except Exception:
-            pass
 
     msg = _enforcer_messages(input_data, enforce_tool, add_violation, msg)
     if not msg:
@@ -468,10 +465,8 @@ def _enforcer_messages(input_data, enforce_tool, add_violation, msg: str) -> str
     if not result.violations:
         return msg
     for v in result.violations:
-        try:
+        with contextlib.suppress(Exception):
             add_violation(v.rule_id, v.message, v.tool, v.file_path, v.severity)
-        except Exception:
-            pass
     for message in result.messages:
         if message:
             msg = f"{msg}\n{message}" if msg else message
@@ -585,7 +580,7 @@ def _log_metrics(duration_ms: int) -> None:
     metrics_file = Path.home() / ".arkaos" / "hook-metrics.json"
     lock_file = Path.home() / ".arkaos" / "hook-metrics.lock"
     metrics_file.parent.mkdir(parents=True, exist_ok=True)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         with lock_file.open("a", encoding="utf-8") as lock_fh:
             _locked(lock_fh)
@@ -642,7 +637,7 @@ def main(stdin_json: dict | None = None) -> int:
     try:
         from core.runtime.mcp_telemetry import record as _record_mcp_usage
         _record_mcp_usage(tool_name, session_id=session_id)
-    except Exception:  # noqa: BLE001 — telemetry must never break the hook
+    except Exception:
         pass
 
     # Interaction Reform PR3 — the native plan-mode approve button IS
@@ -655,7 +650,7 @@ def main(stdin_json: dict | None = None) -> int:
                 plan_approval.mark_approved(
                     session_id, source="exit-plan-mode"
                 )
-        except Exception:  # noqa: BLE001 — hooks never break the turn
+        except Exception:
             pass
 
     if tool_name in ("Task", "Agent"):
@@ -695,7 +690,7 @@ def main(stdin_json: dict | None = None) -> int:
     _log_metrics(int((time.monotonic() - start) * 1000))
 
     if violation_msg:
-        print(json.dumps({"additionalContext": violation_msg}))
+        emit_additional_context("PostToolUse", violation_msg)
     else:
         print("{}")
     return 0
@@ -709,10 +704,8 @@ def _workflow_sections_main() -> int:
     input_data = payload.get("input", {})
     persist = [tuple(item) for item in payload.get("persist", [])]
     msg = str(payload.get("violation_msg", ""))
-    try:
+    with contextlib.suppress(Exception):
         msg = _run_workflow_sections(input_data, persist, msg)
-    except Exception:
-        pass
     print(json.dumps({"violation_msg": msg}))
     return 0
 
@@ -726,4 +719,4 @@ if __name__ == "__main__":
         raise
     except Exception:
         print("{}")
-        raise SystemExit(0)
+        raise SystemExit(0) from None

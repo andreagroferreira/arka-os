@@ -438,13 +438,13 @@ curl http://localhost:3334/api/metrics
       "p95_ms": 198,
       "errors": 0
     },
-    "post-tool-use-v2": {
+    "post-tool-use": {
       "calls_today": 1847,
       "avg_ms": 3,
       "p95_ms": 8,
       "errors": 0
     },
-    "pre-compact-v2": {
+    "pre-compact": {
       "calls_today": 4,
       "avg_ms": 45,
       "p95_ms": 62,
@@ -453,6 +453,11 @@ curl http://localhost:3334/api/metrics
   }
 }
 ```
+
+Metric keys are the labels the hooks emit, not filenames.
+`user-prompt-submit-v2` is a legacy label kept for telemetry continuity
+(`core/hooks/user_prompt_submit.py`); the other hooks emit their plain
+names.
 
 ## Python CLI Tools
 

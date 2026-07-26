@@ -12,8 +12,9 @@ greeting — ``systemMessage`` carries ONLY banner+greeting, workflow/forge
 state, and the drift warning. Everything the MODEL needs but the user
 should not scroll through (evidence-flow contract, meta-tag contract,
 authority brief, Model Fabric directive, [SESSION] resume,
-[SESSION-MEMORY] recap) ships via ``hookSpecificOutput.
-additionalContext`` — same enforcement, zero wall of text.
+[SESSION-MEMORY] recap) ships via the payload's
+``hookSpecificOutput.additionalContext`` — same enforcement, zero
+wall of text.
 Background side effects (reorganizer trigger, dashboard ensure) stay
 detached and are config-gated (``cognition.reorganize_on_session``).
 
@@ -31,7 +32,12 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-from core.hooks._shared import get_str, read_stdin_json, repo_path
+from core.hooks._shared import (
+    additional_context_payload,
+    get_str,
+    read_stdin_json,
+    repo_path,
+)
 
 _BUDGET_MS = 300
 _RECAP_ITEMS = 3
@@ -246,7 +252,8 @@ def _ensure_dashboard(repo: str, config: dict) -> None:
         if not script.is_file():
             return
         _spawn_detached(
-            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script), "ensure"],
+            ["powershell", "-NoProfile", "-NonInteractive",
+             "-ExecutionPolicy", "Bypass", "-File", str(script), "ensure"],
             repo,
             log_path=Path.home() / ".arkaos" / "logs" / "dashboard-ensure.log",
         )
@@ -402,10 +409,12 @@ def main(stdin_json: dict | None = None) -> int:
         context = ""
     payload: dict = {"systemMessage": visible}
     if context:
-        payload["hookSpecificOutput"] = {
-            "hookEventName": "SessionStart",
-            "additionalContext": context,
-        }
+        # Assign the sub-dict key explicitly — SessionStart's wrapper also
+        # accepts other fields (sessionTitle, watchPaths, …) and a blanket
+        # update() would silently replace the whole sub-dict if one lands.
+        payload["hookSpecificOutput"] = additional_context_payload(
+            "SessionStart", context
+        )["hookSpecificOutput"]
     print(json.dumps(payload))
     return 0
 

@@ -165,7 +165,7 @@ After each tool call, check 3 rules:
 
 **Violation output:** Each violation is written to the state file AND output as `additionalContext` warning in the hook response:
 ```json
-{"additionalContext": "VIOLATION [spec-driven]: Code edited without completed spec (src/auth.py). Complete the spec phase before writing code."}
+{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "VIOLATION [spec-driven]: Code edited without completed spec (src/auth.py). Complete the spec phase before writing code."}}
 ```
 
 ## Testing

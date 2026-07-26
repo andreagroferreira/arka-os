@@ -1,4 +1,4 @@
-"""Synapse v2 engine — orchestrates all 8 layers with caching and filtering.
+"""Synapse v2 engine — orchestrates all registered layers with caching and filtering.
 
 Design goals:
 - <100ms total latency for all layers
@@ -36,7 +36,7 @@ class SynapseResult:
 
 
 class SynapseEngine:
-    """9-layer context injection engine.
+    """Context injection engine.
 
     Computes all registered layers, caches results per TTL,
     filters empty results, and combines into a compact context string.

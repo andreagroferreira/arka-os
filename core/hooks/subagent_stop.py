@@ -9,7 +9,9 @@ WARN-only (this hook never blocks — the subagent already ran):
 2. Run the same honesty checks the Stop hook runs on the main turn —
    phantom-action (does the output narrate effects with no tool calls?)
    and meta-tag presence — and, when the output looks deliverable-shaped,
-   emit a stderr nudge to route it through the Quality Gate.
+   emit the nudge on stdout as ``hookSpecificOutput.additionalContext``
+   so the orchestrator routes it through the Quality Gate (hook stderr
+   is discarded at exit 0 — a stderr nudge would be inert).
 
 Telemetry (warn mode, same discipline as the Stop hook): one line per
 subagent to ``~/.arkaos/telemetry/subagent-stop.jsonl``. Gate flag
@@ -24,6 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from core.hooks._shared import (
+    emit_additional_context,
     ensure_root_on_path,
     get_str,
     read_stdin_json,
@@ -175,10 +178,7 @@ def main(stdin_json: dict | None = None) -> int:
     # channel the model actually receives.
     nudge = _nudge(agent_id, qa)
     if nudge:
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "SubagentStop",
-            "additionalContext": nudge,
-        }}))
+        emit_additional_context("SubagentStop", nudge)
     return 0
 
 

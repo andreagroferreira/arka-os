@@ -70,6 +70,17 @@ def _env(hook_home: dict) -> dict[str, str]:
     return {k: v for k, v in hook_home.items() if not k.startswith("_")}
 
 
+def _ctx(result: subprocess.CompletedProcess) -> str:
+    """additionalContext from a hook payload (Claude Code contract shape).
+
+    The runtime only delivers context inside hookSpecificOutput with a
+    hookEventName — asserting through this helper keeps every test pinned
+    to the shape the runtime actually parses.
+    """
+    payload = json.loads(result.stdout)
+    return payload["hookSpecificOutput"]["additionalContext"]
+
+
 # ─── pre_tool_use ────────────────────────────────────────────────────────
 
 
@@ -123,6 +134,7 @@ class TestPreToolUse:
         # Exhaust the grace budget in the isolated auth dir so the hard
         # deny path fires (resilience fix graces the first turns).
         import os as _os
+
         from core.workflow import flow_authorization
         _prev = _os.environ.get("ARKA_FLOW_AUTH_DIR")
         _os.environ["ARKA_FLOW_AUTH_DIR"] = hook_home["ARKA_FLOW_AUTH_DIR"]
@@ -349,16 +361,14 @@ class TestUserPromptSubmit:
             "userInput": "hello there", "session_id": "ups-basic",
         }, _env(hook_home))
         assert result.returncode == 0
-        out = json.loads(result.stdout)
-        assert "[ARKA:ROUTE]" in out["additionalContext"]
+        assert "[ARKA:ROUTE]" in _ctx(result)
 
     def test_classifier_marks_flow_required(self, hook_home):
         result = _run_module("core.hooks.user_prompt_submit", {
             "userInput": "implement the new payment feature",
             "session_id": "ups-classify",
         }, _env(hook_home))
-        out = json.loads(result.stdout)
-        assert "[ARKA:WORKFLOW-REQUIRED]" in out["additionalContext"]
+        assert "[ARKA:WORKFLOW-REQUIRED]" in _ctx(result)
         marker = Path(hook_home["ARKA_WF_REQUIRED_DIR"]) / "ups-classify"
         assert marker.is_file()
 
@@ -367,8 +377,7 @@ class TestUserPromptSubmit:
             "userInput": "/dev implement feature",
             "session_id": "ups-slash",
         }, _env(hook_home))
-        out = json.loads(result.stdout)
-        assert "[ARKA:WORKFLOW-REQUIRED]" not in out["additionalContext"]
+        assert "[ARKA:WORKFLOW-REQUIRED]" not in _ctx(result)
         marker = Path(hook_home["ARKA_WF_REQUIRED_DIR"]) / "ups-slash"
         assert not marker.exists()
 
@@ -378,7 +387,7 @@ class TestUserPromptSubmit:
             "userInput": "cria um site melhor",
             "session_id": "ups-refine",
         }, _env(hook_home))
-        out = json.loads(result.stdout)["additionalContext"]
+        out = _ctx(result)
         assert "[arka:refine-suggested]" in out
 
     def test_specific_code_request_has_no_refine_suggestion(self, hook_home):
@@ -389,7 +398,7 @@ class TestUserPromptSubmit:
             ),
             "session_id": "ups-no-refine",
         }, _env(hook_home))
-        out = json.loads(result.stdout)["additionalContext"]
+        out = _ctx(result)
         assert "[arka:refine-suggested]" not in out
 
     def test_slash_command_never_gets_refine_suggestion(self, hook_home):
@@ -397,7 +406,7 @@ class TestUserPromptSubmit:
             "userInput": "/arka refine faz um site",
             "session_id": "ups-refine-slash",
         }, _env(hook_home))
-        out = json.loads(result.stdout)["additionalContext"]
+        out = _ctx(result)
         assert "[arka:refine-suggested]" not in out
 
     @pytest.mark.parametrize("prompt", [
@@ -415,7 +424,7 @@ class TestUserPromptSubmit:
         result = _run_module("core.hooks.user_prompt_submit", {
             "userInput": prompt, "session_id": "ups-concrete",
         }, _env(hook_home))
-        out = json.loads(result.stdout)["additionalContext"]
+        out = _ctx(result)
         assert "[arka:refine-suggested]" not in out, prompt
 
     def test_surfaces_kb_cite_nudge_on_high_effort(self, hook_home):
@@ -430,8 +439,7 @@ class TestUserPromptSubmit:
             "userInput": "hi", "session_id": sid,
             "effort": {"level": "high"},
         }, _env(hook_home))
-        out = json.loads(result.stdout)
-        assert "[arka:suggest] KB-first nudge" in out["additionalContext"]
+        assert "[arka:suggest] KB-first nudge" in _ctx(result)
         assert not (cite_dir / f"{sid}.json").exists()  # one-shot
 
     def test_suppresses_nudge_on_low_effort(self, hook_home):
@@ -448,8 +456,7 @@ class TestUserPromptSubmit:
                 "userInput": "hi", "session_id": sid,
                 "effort": {"level": "low"},
             }, _env(hook_home))
-            out = json.loads(result.stdout)
-            assert "KB-first nudge" not in out["additionalContext"]
+            assert "KB-first nudge" not in _ctx(result)
         finally:
             nudge_file.unlink(missing_ok=True)
 
@@ -464,10 +471,7 @@ class TestUserPromptSubmit:
         result = _run_module("core.hooks.user_prompt_submit", {
             "userInput": "hello", "session_id": "ups-sync",
         }, _env(hook_home))
-        out = json.loads(result.stdout)
-        assert "[arka:update-available] ArkaOS v9.9.9" in (
-            out["additionalContext"]
-        )
+        assert "[arka:update-available] ArkaOS v9.9.9" in _ctx(result)
 
 
 # ─── pure helpers (in-process) ───────────────────────────────────────────
