@@ -73,6 +73,15 @@ REVIEWER_IDS = frozenset({
 AGGREGATOR_IDS = frozenset({"cqo-marta", "marta-cqo", "cqo"})
 LEDGER_IDS = REVIEWER_IDS | AGGREGATOR_IDS
 
+# One identity per person: a verdict's ``reviewer`` field and the id the
+# dispatch carried are different spellings of the same reviewer. Used to
+# tell a reviewer's OWN verdict from one they quoted.
+IDENTITY_ALIASES: tuple[frozenset[str], ...] = (
+    frozenset({"copy-director-eduardo", "eduardo-copy", "copy-director"}),
+    frozenset({"tech-director-francisca", "francisca-tech", "tech-ux-director"}),
+    AGGREGATOR_IDS,
+)
+
 # The only provenances that may produce a signed record. Both are
 # subagent-scoped by construction: PostToolUse reads the Task result,
 # SubagentStop reads the subagent's own final message.
@@ -130,13 +139,30 @@ def _qualifying_fences(bodies: list[str]) -> tuple[list[dict], str | None]:
     return qualifying, parse_error
 
 
-def _extract_verdict(raw_output: str) -> tuple[dict | None, str | None]:
+def _same_identity(claimed: object, dispatched: str) -> bool:
+    """True when a verdict's ``reviewer`` field names the dispatched agent."""
+    if not isinstance(claimed, str) or not claimed:
+        return True  # unclaimed: no evidence it belongs to someone else
+    if claimed == dispatched:
+        return True
+    return any(
+        claimed in group and dispatched in group for group in IDENTITY_ALIASES
+    )
+
+
+def _extract_verdict(
+    raw_output: str, reviewer_id: str = ""
+) -> tuple[dict | None, str | None]:
     """Parse the verdict block. Returns (verdict, parse_error).
 
-    The LAST qualifying fence wins: reviewers state their verdict at the
-    end of a reply and routinely quote the schema, a template, or a
-    prior round's verdict earlier on. Taking the first fence filed a
-    REJECTED review as APPROVED with no error recorded.
+    Two rules, both learned from misfiled verdicts. The LAST qualifying
+    fence wins, because reviewers state their verdict at the end and
+    quote the schema or a prior round earlier on (taking the first filed
+    a REJECTED review as APPROVED). And a fence whose ``reviewer`` field
+    names SOMEONE ELSE is a quotation, not this agent's verdict: the
+    aggregator must reproduce each reviewer verbatim, so its own record
+    took the last quoted reviewer as its own — filing a 7-blocker
+    verdict under an agent whose own list held 12.
     """
     candidates = (
         _VERDICT_FENCE_RE.findall(raw_output)
@@ -144,15 +170,30 @@ def _extract_verdict(raw_output: str) -> tuple[dict | None, str | None]:
     )
     qualifying, parse_error = _qualifying_fences(candidates)
     if not qualifying:
-        if not candidates:
-            return None, None  # no fence at all — raw text is the record
-        return None, parse_error
-
-    verdict, error = _validated(qualifying[-1])
-    if len(qualifying) > 1:
-        ambiguity = f"ambiguous: {len(qualifying)} verdict fences (last used)"
+        # No fence at all: the raw text is still the record.
+        return None, (parse_error if candidates else None)
+    own = [
+        data for data in qualifying
+        if _same_identity(data.get("reviewer"), reviewer_id)
+    ]
+    if not own:
+        return None, _foreign_fences_error(qualifying, reviewer_id)
+    verdict, error = _validated(own[-1])
+    if len(own) > 1:
+        ambiguity = f"ambiguous: {len(own)} own verdict fences (last used)"
         error = f"{ambiguity}; {error}" if error else ambiguity
     return verdict, error
+
+
+def _foreign_fences_error(qualifying: list[dict], reviewer_id: str) -> str:
+    quoted = sorted({
+        str(data.get("reviewer")) for data in qualifying
+        if isinstance(data.get("reviewer"), str)
+    })
+    return (
+        f"{len(qualifying)} verdict fences, none authored by "
+        f"{reviewer_id or 'this agent'} (quoted: {', '.join(quoted)})"
+    )
 
 
 def _sanitize(raw_output: str) -> tuple[str, bool]:
@@ -250,7 +291,7 @@ def _build_record(
     digest: str,
     seq: int,
 ) -> dict:
-    verdict, parse_error = _extract_verdict(raw_output)
+    verdict, parse_error = _extract_verdict(raw_output, reviewer_id)
     stored, sanitized = _sanitize(raw_output)
     return {
         "ts": datetime.now(UTC).isoformat(),

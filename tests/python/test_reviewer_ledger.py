@@ -79,7 +79,9 @@ class TestCapture:
         """Deployed reviewers emit ```json today — capture must not depend
         on them adopting the new fence before the channel works."""
         record = reviewer_ledger.record_reviewer_output(
-            "sess-json", "eduardo-copy", _reviewer_output(fence="json"),
+            "sess-json", "eduardo-copy",
+            _reviewer_output(dict(VERDICT_BODY, reviewer="copy-director-eduardo"),
+                             fence="json"),
             "post-tool-use",
         )
         assert record["verdict"]["verdict"] == "REJECTED"
@@ -218,7 +220,7 @@ class TestVerdictSelection:
             "sess-fence", "francisca-tech", raw, "subagent-stop"
         )
         assert record["verdict"]["verdict"] == "REJECTED"
-        assert "ambiguous: 2 verdict fences" in record["parse_error"]
+        assert "ambiguous: 2 own verdict fences" in record["parse_error"]
 
     def test_arka_fence_outranks_a_json_fence(self, ledger_home):
         raw = (
@@ -327,6 +329,7 @@ class TestOrchestratorNotices:
             {"check": "sec", "detail": "d", "file": "c.py",
              "verdict": "REFUTED"},
         ])
+        body = dict(body, reviewer="copy-director-eduardo")
         record = reviewer_ledger.record_reviewer_output(
             "sess-refuted", "eduardo-copy", _reviewer_output(body), "subagent-stop"
         )
@@ -509,3 +512,67 @@ class TestConcurrentCapture:
         for path in session_dir.glob("*.json"):
             assert json.loads(path.read_text(encoding="utf-8"))["raw_sha256"]
         assert not list(session_dir.glob(".*tmp*")), "temp files must not linger"
+
+
+class TestVerdictOwnership:
+    """The aggregator is REQUIRED to quote each reviewer verbatim, so the
+    last fence in its reply belongs to someone else. Filing it as the
+    aggregator's own put a 7-blocker verdict under an agent whose own
+    list held 12 — observed live in marta-cqo-6-c15aff5e.json."""
+
+    def _quoting_reply(self) -> str:
+        eduardo = dict(VERDICT_BODY, reviewer="copy-director-eduardo",
+                       blockers=[{"check": "copy", "detail": "d",
+                                  "file": "a.md", "verdict": "CONFIRMED"}])
+        francisca = dict(VERDICT_BODY, reviewer="tech-director-francisca")
+        return (
+            "### Eduardo — verbatim\n\n```json\n" + json.dumps(eduardo) + "\n```\n"
+            "### Francisca — verbatim\n\n```json\n" + json.dumps(francisca) + "\n```\n"
+        )
+
+    def test_quoted_reviewers_are_not_filed_as_the_aggregator(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-quote", "marta-cqo", self._quoting_reply(), "subagent-stop"
+        )
+        assert record["verdict"] is None, "a quotation is not the quoter's verdict"
+        assert "none authored by marta-cqo" in record["parse_error"]
+        assert "tech-director-francisca" in record["parse_error"]
+        reviewer_ledger.queue_notice("sess-quote", record, "")
+        context = reviewer_ledger.notices_context("sess-quote")
+        assert "marta-cqo verdict-unparsed" in context
+        assert "blockers=" not in context, "no borrowed blocker count"
+
+    def test_own_verdict_after_quotations_is_used(self, ledger_home):
+        own = dict(VERDICT_BODY, reviewer="cqo-marta", blockers=[
+            {"check": "a", "detail": "d", "file": "f", "verdict": "CONFIRMED"},
+            {"check": "b", "detail": "d", "file": "f", "verdict": "CONFIRMED"},
+            {"check": "c", "detail": "d", "file": "f", "verdict": "CONFIRMED"},
+        ])
+        raw = self._quoting_reply() + "\n```json\n" + json.dumps(own) + "\n```\n"
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-own", "marta-cqo", raw, "subagent-stop"
+        )
+        assert record["verdict"]["reviewer"] == "cqo-marta"
+        assert len(record["verdict"]["blockers"]) == 3
+        reviewer_ledger.queue_notice("sess-own", record, "")
+        assert "marta-cqo REJECTED blockers=3" in (
+            reviewer_ledger.notices_context("sess-own")
+        )
+
+    def test_alias_spellings_count_as_the_same_person(self, ledger_home):
+        raw = _reviewer_output(dict(VERDICT_BODY, reviewer="tech-director-francisca"))
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-alias", "francisca-tech", raw, "subagent-stop"
+        )
+        assert record["verdict"]["verdict"] == "REJECTED", (
+            "the dispatch id and the verdict's reviewer field are different "
+            "spellings of the same reviewer"
+        )
+
+    def test_unclaimed_verdict_is_still_the_dispatched_agent(self, ledger_home):
+        body = {k: v for k, v in VERDICT_BODY.items() if k != "reviewer"}
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-unclaimed", "francisca-tech", _reviewer_output(body),
+            "subagent-stop",
+        )
+        assert record["verdict"] is not None
