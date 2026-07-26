@@ -69,9 +69,9 @@ ArkaOS Migration: v1 --> v2
 
 [4/5] Updating hooks...
   Removed: user-prompt-submit.sh (v1)
-  Installed: user-prompt-submit-v2.sh
-  Installed: post-tool-use-v2.sh
-  Installed: pre-compact-v2.sh
+  Installed: user-prompt-submit.sh
+  Installed: post-tool-use.sh
+  Installed: pre-compact.sh
 
 [5/5] Verifying...
   [PASS] v2 installed at ~/.arkaos

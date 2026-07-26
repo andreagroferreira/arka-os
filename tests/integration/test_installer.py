@@ -1,8 +1,9 @@
 """Smoke tests for the ArkaOS installer."""
 
-import pytest
 import subprocess
 from pathlib import Path
+
+import pytest
 
 BASE_DIR = Path(__file__).parent.parent.parent
 
@@ -55,9 +56,9 @@ class TestHookScripts:
     """Hook scripts must be executable and valid bash."""
 
     @pytest.mark.parametrize("hook", [
-        "config/hooks/user-prompt-submit-v2.sh",
-        "config/hooks/post-tool-use-v2.sh",
-        "config/hooks/pre-compact-v2.sh",
+        "config/hooks/user-prompt-submit.sh",
+        "config/hooks/post-tool-use.sh",
+        "config/hooks/pre-compact.sh",
     ])
     def test_hook_is_bash(self, hook):
         path = BASE_DIR / hook
@@ -66,9 +67,9 @@ class TestHookScripts:
             assert content.startswith("#!/usr/bin/env bash"), f"{hook} missing bash shebang"
 
     @pytest.mark.parametrize("hook", [
-        "config/hooks/user-prompt-submit-v2.sh",
-        "config/hooks/post-tool-use-v2.sh",
-        "config/hooks/pre-compact-v2.sh",
+        "config/hooks/user-prompt-submit.sh",
+        "config/hooks/post-tool-use.sh",
+        "config/hooks/pre-compact.sh",
     ])
     def test_hook_syntax_valid(self, hook):
         path = BASE_DIR / hook
@@ -104,7 +105,8 @@ class TestPackageJson:
         import json
         pkg = json.loads((BASE_DIR / "package.json").read_text(encoding="utf-8"))
         assert pkg["name"] == "arkaos"
-        assert pkg["version"].startswith("2.")
+        repo_version = (BASE_DIR / "VERSION").read_text(encoding="utf-8").strip()
+        assert pkg["version"] == repo_version
         assert "arkaos" in pkg["bin"]
 
     def test_pyproject_valid(self):

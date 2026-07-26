@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-import sys
 import tarfile
 import tempfile
 from io import BytesIO
@@ -56,7 +55,13 @@ def _run_hook(tree: Path, prompt: str) -> int:
     if not out:
         return 0
     try:
-        context = json.loads(out).get("additionalContext", "")
+        payload = json.loads(out)
+        # Current shape (hookSpecificOutput wrapper) with fallback to the
+        # legacy top-level key — old git refs under benchmark still emit it.
+        context = (
+            payload.get("hookSpecificOutput", {}).get("additionalContext")
+            or payload.get("additionalContext", "")
+        )
     except json.JSONDecodeError:
         context = out
     return len(context.encode("utf-8"))
@@ -113,10 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", dest="as_json")
     args = parser.parse_args(argv)
 
-    if args.ref:
-        report = compare(args.ref)
-    else:
-        report = {"current": measure(REPO_ROOT)}
+    report = compare(args.ref) if args.ref else {"current": measure(REPO_ROOT)}
 
     if args.as_json:
         print(json.dumps(report, indent=2, ensure_ascii=False))

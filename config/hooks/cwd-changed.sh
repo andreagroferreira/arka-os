@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # ============================================================================
 # ArkaOS — CwdChanged Hook
-# Fires when the working directory changes. Detects ecosystem and injects
-# project context so Claude knows which squad and stack to use.
+# Fires when the working directory changes. Detects the ecosystem/stack
+# and surfaces a systemMessage naming them (the one deliverable surface
+# on this event — CwdChanged's hookSpecificOutput accepts watchPaths
+# only).
 # ============================================================================
 
 input=$(cat)
@@ -116,7 +118,12 @@ if [ -n "$DESCRIPTOR" ]; then
 fi
 
 if [ -n "$CONTEXT" ]; then
-  # Build the JSON with jq so any quote/backslash in the ecosystem name or
+  # CwdChanged's hookSpecificOutput accepts watchPaths ONLY (Claude Code
+  # 2.1.220 schema) — additionalContext is unreachable on this event. The
+  # top-level systemMessage key IS consumed and surfaced to the operator.
+  # On later prompts the cwd-reading Synapse layers refresh (git branch,
+  # graph context, knowledge retrieval, cwd-scoped session memory).
+  # Built with jq so any quote/backslash in the ecosystem name or
   # descriptor path is escaped, never breaking the envelope (OWASP A03).
-  jq -nc --arg ctx "$CONTEXT" '{additionalContext: $ctx}'
+  jq -nc --arg msg "$CONTEXT" '{systemMessage: $msg}'
 fi

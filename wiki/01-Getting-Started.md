@@ -178,7 +178,7 @@ Your configuration and knowledge base are preserved. See
 |---|---|
 | "Synapse engine not responsive" | `cd ~/.arkaos && pip install -r requirements.txt && npx arkaos doctor` |
 | "No agents loaded" | `npx arkaos install --force` |
-| "Hook not firing" | Check `~/.claude/settings.json` references `user-prompt-submit-v2.sh` |
+| "Hook not firing" | Check `~/.claude/settings.json` references `user-prompt-submit.sh` |
 | "Knowledge search returns nothing" | Run `npx arkaos index` first |
 | Dashboard won't start | Free ports 3333/3334: `lsof -i :3333` |
 

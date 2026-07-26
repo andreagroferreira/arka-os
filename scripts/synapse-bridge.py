@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Synapse Bridge — standalone script for hook integration.
 
-Reads JSON from stdin, runs the 8-layer Synapse engine, outputs JSON to stdout.
+Reads JSON from stdin, runs the Synapse engine, outputs JSON to stdout.
 Loads constitution, agent registry, and command registry automatically.
 
 Usage:

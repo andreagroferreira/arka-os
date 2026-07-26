@@ -37,6 +37,7 @@ import time
 from pathlib import Path
 
 from core.hooks._shared import (
+    emit_additional_context,
     ensure_root_on_path,
     get_str,
     read_stdin_json,
@@ -541,7 +542,7 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
 
     migration = _v1_migration_notice()
     if migration is not None:
-        print(json.dumps({"additionalContext": migration}))
+        emit_additional_context("UserPromptSubmit", migration)
         return 0
 
     sync_notice = _sync_notice()
@@ -667,7 +668,7 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
             out = f"{out}\n{nudge}"
     if context_hits:
         out = f"{out}\n{context_hits}"
-    print(json.dumps({"additionalContext": out}))
+    emit_additional_context("UserPromptSubmit", out)
 
     _log_metrics(int((time.monotonic() - start) * 1000), user_input)
     return 0
@@ -680,5 +681,5 @@ if __name__ == "__main__":
         raise
     except Exception:
         # Fail open with the minimal constitution context.
-        print(json.dumps({"additionalContext": _L0_FALLBACK}))
+        emit_additional_context("UserPromptSubmit", _L0_FALLBACK)
         raise SystemExit(0) from None

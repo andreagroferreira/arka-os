@@ -277,7 +277,7 @@ Verify hooks are registered for your runtime:
 cat ~/.claude/settings.json | grep arkaos
 ```
 
-Hooks should reference `user-prompt-submit-v2.sh`, `post-tool-use-v2.sh`, and `pre-compact-v2.sh`.
+Hooks should reference `user-prompt-submit.sh`, `post-tool-use.sh`, and `pre-compact.sh`.
 
 ### "Knowledge search returns no results"
 

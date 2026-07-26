@@ -10,7 +10,7 @@ Every interaction with ArkaOS follows this path:
 You type something in your AI coding tool
        |
        v
-[Hook] user-prompt-submit-v2.sh fires
+[Hook] user-prompt-submit.sh fires
        |
        v
 [Bridge] scripts/synapse-bridge.py receives your input as JSON
@@ -44,7 +44,7 @@ You type something in your AI coding tool
 [AI] Claude/Codex/Gemini/Cursor processes with full ArkaOS context
        |
        v
-[Hook] post-tool-use-v2.sh tracks error patterns
+[Hook] post-tool-use.sh tracks error patterns
        |
        v
 [Output] Results saved to Obsidian vault with frontmatter
@@ -328,19 +328,19 @@ Multi-runtime support via adapter pattern.
 
 Hooks are bash scripts that fire at specific points in the AI tool's lifecycle.
 
-### `user-prompt-submit-v2.sh`
+### `user-prompt-submit.sh`
 
 **When:** Every time you submit a prompt.
 
 **What it does:**
 1. Captures your input text
-2. Calls `python scripts/synapse-bridge.py` with the input
+2. Delegates to `python -m core.hooks.user_prompt_submit` (Synapse bridge)
 3. Receives the context string (all 12 Synapse layers merged)
-4. Injects the context into the prompt as a system-level prefix
+4. Ships it as `hookSpecificOutput.additionalContext` for the model
 
-**File path:** `~/.arkaos/hooks/user-prompt-submit-v2.sh`
+**File path:** `~/.arkaos/config/hooks/user-prompt-submit.sh`
 
-### `post-tool-use-v2.sh`
+### `post-tool-use.sh`
 
 **When:** After every tool call (file read, bash command, etc.)
 
@@ -349,9 +349,9 @@ Hooks are bash scripts that fire at specific points in the AI tool's lifecycle.
 2. Records errors in `gotchas.json` for the project
 3. Tracks tool usage for budget accounting
 
-**File path:** `~/.arkaos/hooks/post-tool-use-v2.sh`
+**File path:** `~/.arkaos/config/hooks/post-tool-use.sh`
 
-### `pre-compact-v2.sh`
+### `pre-compact.sh`
 
 **When:** Before Claude Code compacts conversation (when context gets large)
 
@@ -360,7 +360,7 @@ Hooks are bash scripts that fire at specific points in the AI tool's lifecycle.
 2. Preserves agent memory and task state
 3. Ensures no context is lost during compaction
 
-**File path:** `~/.arkaos/hooks/pre-compact-v2.sh`
+**File path:** `~/.arkaos/config/hooks/pre-compact.sh`
 
 ## Dashboard Architecture
 

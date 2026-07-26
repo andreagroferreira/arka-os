@@ -2,13 +2,17 @@
 # ArkaOS — CwdChanged Hook (Windows / PowerShell 5.1+)
 #
 # Port of config/hooks/cwd-changed.sh. Fires when the working directory
-# changes. Detects ecosystem and stack so Claude knows which squad and
-# tooling apply to the project.
+# changes. Detects the ecosystem/stack and surfaces them to the operator
+# as a system message.
 #
 # Contract:
 # - Reads a JSON object on stdin with a `cwd` field.
-# - Emits `{"additionalContext": "..."}` on stdout when context is found,
-#   or nothing (and exit 0) when there is nothing to say.
+# - Emits `{"systemMessage": "..."}` on stdout when context is found, or
+#   nothing (and exit 0) when there is nothing to say. CwdChanged's
+#   hookSpecificOutput accepts watchPaths only (Claude Code 2.1.220) —
+#   additionalContext is unreachable on this event. On later prompts the
+#   cwd-reading Synapse layers refresh (git branch, graph context,
+#   knowledge retrieval, cwd-scoped session memory).
 # ============================================================================
 
 $ErrorActionPreference = 'Stop'
@@ -148,5 +152,7 @@ if ($descriptor) {
 }
 
 if ($context) {
-    [pscustomobject]@{ additionalContext = $context } | ConvertTo-Json -Compress
+    # CwdChanged accepts no additionalContext (watchPaths only) — the
+    # top-level systemMessage is the one deliverable surface on this event.
+    [pscustomobject]@{ systemMessage = $context } | ConvertTo-Json -Compress
 }

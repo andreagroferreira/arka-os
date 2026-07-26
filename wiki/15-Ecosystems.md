@@ -40,7 +40,7 @@ client_energy       → 3 projects (portal, API, analytics)
 
 ## How context loads automatically
 
-When you `cd` into a project directory, the **CwdChanged hook** fires. It reads the project's `.arkaos.json`, resolves the ecosystem slug, and injects a context block before your next turn. You don't type anything — ArkaOS already knows where it is.
+When you `cd` into a project directory, the **CwdChanged hook** fires. It reads `~/.arkaos/ecosystems.json`, matches the new working directory against the registered project names to resolve the ecosystem slug, and surfaces a system message naming the ecosystem and its dedicated command. The system message is the whole delivery on this event — the ecosystem is announced once, to you. On the next prompt, the Synapse layers that read the cwd refresh: the git branch tag (feature branches only — it stays quiet on main, master, and dev), the graph context, the knowledge retrieval, and the cross-session memory scoped to the directory. You don't type anything to be located — ArkaOS already knows where it is.
 
 **Example — opening the ClientRetail frontend:**
 
@@ -48,22 +48,17 @@ When you `cd` into a project directory, the **CwdChanged hook** fires. It reads 
 cd ~/Work/client-retail-frontend
 ```
 
-Next prompt, Synapse's Layer 2 (project context) and Layer 3 (ecosystem context) are populated:
+The hook surfaces:
 
 ```
-[arka:context] ecosystem=client_retail project=frontend stack=Nuxt4/TypeScript
-[arka:context] related: client_retail_api (Laravel 11), client_retail_admin (Nuxt4)
-[arka:context] kb=14 notes loaded (patterns, ADRs, prior decisions)
-[arka:context] pending insights=2 (from last Dreaming run)
+[arka:project-context] Ecosystem: ClientRetail (client_retail) | Stack: nuxt | Use /arka-client_retail for dedicated squad routing.
 ```
 
-The agent now knows:
-- This is a Nuxt 4 / TypeScript frontend.
-- The backend API is in a sibling project (`client_retail_api`).
-- Fourteen knowledge-base notes are already loaded — no re-explaining needed.
-- Two overnight reflections are waiting.
+From there:
+- `/arka-client_retail` loads the full squad context on demand.
+- Your next prompts carry the feature-branch tag, the graph context, the knowledge retrieval, and the cross-session memory scoped to this directory.
 
-Compare this to starting fresh with no `.arkaos.json`: the agent knows only what it can infer from the files in the directory.
+Compare this to an unregistered project: the hook reports the detected stack with an `/arka onboard` suggestion — or emits nothing at all when the directory carries no recognizable stack markers and no project descriptor (a lone descriptor still surfaces its path).
 
 ---
 
@@ -74,9 +69,9 @@ When work is completed in any project inside an ecosystem, the Auto-Documentor (
 **Example chain for ClientRetail:**
 
 ```
-client_retail_api/auth-pattern.md
-  ↔ client_retail_frontend/auth-composable.md
-  ↔ client_retail_admin/session-handling.md
+client-retail-api/auth-pattern.md
+  ↔ client-retail-frontend/auth-composable.md
+  ↔ client-retail-admin/session-handling.md
 ```
 
 The next time any agent in the ClientRetail ecosystem touches authentication, all three notes are in context before it starts. A solution developed in the API project informs the frontend implementation automatically.
@@ -113,7 +108,7 @@ Pending reflections from Dreaming (ClientFashion):
 
 1. [technical] Product sync retry — improve
    Current fixed-interval retry can cause thundering herd under load.
-   Exponential backoff with jitter is a validated pattern from client_retail_api.
+   Exponential backoff with jitter is a validated pattern from client-retail-api.
    Want me to apply it?
 
 2. [business] Offer structure — review
@@ -142,10 +137,10 @@ A mid-market retailer running a custom e-commerce stack.
 
 | Project | Stack | Role |
 |---|---|---|
-| `client_retail_api` | Laravel 11 + PostgreSQL | Backend API, order management |
-| `client_retail_frontend` | Nuxt 4 + TypeScript | Customer-facing storefront |
-| `client_retail_admin` | Nuxt 4 + TypeScript | Internal admin panel |
-| `client_retail_docs` | Markdown/VitePress | Developer and integration docs |
+| `client-retail-api` | Laravel 11 + PostgreSQL | Backend API, order management |
+| `client-retail-frontend` | Nuxt 4 + TypeScript | Customer-facing storefront |
+| `client-retail-admin` | Nuxt 4 + TypeScript | Internal admin panel |
+| `client-retail-docs` | Markdown/VitePress | Developer and integration docs |
 
 Shared squad: Paulo (Tech Lead), a backend specialist, a frontend specialist, Ricardo (E-Commerce Lead) for store optimization work.
 
@@ -212,44 +207,62 @@ The installer detects your stack and creates `.arkaos.json`.
 
 ### Step 2 — Link projects to an ecosystem
 
-Edit `~/.arkaos/projects/client_retail_api.md` (created by `init`) and add the ecosystem field:
+Create (or edit) `~/.arkaos/projects/client-retail-api.md` with the
+fields below. The file name must match the project **directory** name
+— the CwdChanged hook looks up `<basename of cwd>.md`:
 
 ```yaml
 ---
-slug: client_retail_api
+name: client-retail-api
+path: /Users/you/Work/client-retail-api
 ecosystem: client_retail
 stack: laravel
 ---
 ```
 
-Repeat for each project in the ecosystem. Or pass the flag at init time:
-
-```bash
-npx arkaos init --ecosystem client_retail
-```
+`path` is mandatory and must be absolute — descriptor discovery skips
+any file without it. Repeat for each project in the ecosystem.
 
 ### Step 3 — Define the ecosystem registry entry
 
-Add an entry to `~/.arkaos/ecosystems.json`:
+Add an entry to `~/.arkaos/ecosystems.json` (note the top-level
+`"ecosystems"` wrapper — every consumer reads it):
 
 ```json
 {
-  "client_retail": {
-    "display_name": "ClientRetail",
-    "domain_tags": ["ecommerce", "laravel", "nuxt"],
-    "projects": [
-      "client_retail_api",
-      "client_retail_frontend",
-      "client_retail_admin",
-      "client_retail_docs"
-    ],
-    "squad": {
-      "lead": "paulo",
-      "specialists": ["backend-dev", "frontend-dev", "cro-specialist"]
+  "ecosystems": {
+    "client_retail": {
+      "name": "ClientRetail",
+      "domain_tags": ["ecommerce", "laravel", "nuxt"],
+      "projects": [
+        "client-retail-api",
+        "client-retail-frontend",
+        "client-retail-admin",
+        "client-retail-docs"
+      ],
+      "project_paths": {
+        "client-retail-api": "/Users/you/Work/client-retail-api",
+        "client-retail-frontend": "/Users/you/Work/client-retail-frontend",
+        "client-retail-admin": "/Users/you/Work/client-retail-admin",
+        "client-retail-docs": "/Users/you/Work/client-retail-docs"
+      },
+      "squad": {
+        "lead": "paulo",
+        "specialists": ["backend-dev", "frontend-dev", "cro-specialist"]
+      }
     }
   }
 }
 ```
+
+The two keys have separate roles. `projects` entries are matched as
+substrings of the new working directory, so register the **directory
+names** exactly as they appear on disk — they drive `cd` detection
+only. `project_paths` makes an ecosystem's projects discoverable to
+`/arka update` sync **by path** — sync also picks up `~/.arkaos/projects/`
+descriptors and scanned project directories, so list a project here to
+guarantee it is found regardless of descriptor state. Use **absolute
+paths** — discovery does not expand `~`.
 
 ### Step 4 — Sync
 
@@ -263,7 +276,8 @@ This syncs the registry, validates all project descriptors, and confirms the Cwd
 
 ```bash
 cd ~/Work/client-retail-api
-# Open your AI tool — you should see [arka:context] ecosystem=client_retail
+# Open your AI tool — the hook surfaces:
+# [arka:project-context] Ecosystem: ClientRetail (client_retail) | Stack: laravel | Use /arka-client_retail for dedicated squad routing.
 ```
 
 ---
@@ -273,7 +287,7 @@ cd ~/Work/client-retail-api
 | Capability | Plain project | Ecosystem |
 |---|---|---|
 | Stack auto-detected | Yes | Yes |
-| Context injected on `cd` | Project only | Project + all sibling projects |
+| System message on `cd` | Detected stack only | Ecosystem + stack + dedicated squad command |
 | Knowledge base | Project-scoped | Ecosystem-scoped (cross-project links) |
 | Dedicated squad | No | Yes — same agents across all projects |
 | Overnight insights | Generic | Scoped to the ecosystem's domain |

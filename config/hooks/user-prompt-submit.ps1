@@ -1,14 +1,16 @@
 # ============================================================================
 # ArkaOS v2 - UserPromptSubmit Hook (Synapse Bridge) (Windows / PowerShell 5.1+)
 #
-# Port of config/hooks/user-prompt-submit.sh. Calls the Python Synapse bridge
-# for 8-layer context injection, with a pure-PowerShell fallback for
-# installations where Python is unavailable or the bridge is missing.
+# Port of config/hooks/user-prompt-submit.sh. Calls the Python Synapse
+# bridge for layered context injection, with a pure-PowerShell fallback
+# for installations where Python is unavailable or the bridge is missing.
 #
 # Contract:
 # - Reads a JSON payload from stdin (userInput / message / raw).
 # - Emits a single-line JSON object on stdout:
-#       {"additionalContext": "<sync-notice><synapse-or-fallback>"}
+#       {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
+#        "additionalContext": "<sync-notice><route-reminder> <synapse-or-fallback>"}}
+#   (a top-level additionalContext key is ignored by Claude Code)
 # - Side effect: writes one line to the cache metrics JSONL.
 #
 # Target latency: <100ms (hook timeout is 10s in settings).
@@ -54,7 +56,7 @@ if (-not $v2Installed) {
     foreach ($v1 in $v1Paths) {
         if ((Test-Path -LiteralPath $v1 -PathType Container) -and -not (Test-Path -LiteralPath $migrationMarker)) {
             $msg = "[MIGRATION] ArkaOS v1 detected at $v1. Run: npx arkaos migrate - This will backup v1, preserve your data, and install v2. See: https://github.com/andreagroferreira/arka-os#install"
-            [pscustomobject]@{ additionalContext = $msg } | ConvertTo-Json -Compress
+            [pscustomobject]@{ hookSpecificOutput = [pscustomobject]@{ hookEventName = 'UserPromptSubmit'; additionalContext = $msg } } | ConvertTo-Json -Compress -Depth 4
             exit 0
         }
     }
@@ -336,7 +338,7 @@ $routeReminder = '[arka:route] Every response MUST route through a department sq
 
 # --- Output ----------------------------------------------------------------
 $additionalContext = "$syncNotice$routeReminder $pythonResult"
-[pscustomobject]@{ additionalContext = $additionalContext } | ConvertTo-Json -Compress
+[pscustomobject]@{ hookSpecificOutput = [pscustomobject]@{ hookEventName = 'UserPromptSubmit'; additionalContext = $additionalContext } } | ConvertTo-Json -Compress -Depth 4
 
 # --- Metrics (JSONL append) ------------------------------------------------
 $elapsed = [int]$sw.ElapsedMilliseconds

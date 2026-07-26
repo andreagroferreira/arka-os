@@ -128,3 +128,23 @@ def emit_deny_json(reason: str) -> None:
             "permissionDecisionReason": reason,
         }
     }))
+
+
+def additional_context_payload(event_name: str, context: str) -> dict:
+    """Build the additionalContext payload in the shape Claude Code accepts.
+
+    A top-level {"additionalContext": ...} is an unrecognised key that the
+    runtime silently ignores — context is ONLY delivered inside
+    hookSpecificOutput with an explicit hookEventName.
+    """
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": event_name,
+            "additionalContext": context,
+        }
+    }
+
+
+def emit_additional_context(event_name: str, context: str) -> None:
+    """Print the additionalContext payload to stdout (single construction site)."""
+    print(json.dumps(additional_context_payload(event_name, context)))
