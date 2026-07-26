@@ -49,12 +49,14 @@ promotes these artifacts into a shared corpus must redact at that edge.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
 # Reviewer identities: constitution ids (config/constitution.yaml,
 # quality_gate.agents), deployed agent-file names, and the legacy persona
@@ -77,8 +79,8 @@ LEDGER_IDS = REVIEWER_IDS | AGGREGATOR_IDS
 CAPTURE_SOURCES = frozenset({"post-tool-use", "subagent-stop"})
 
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
-# "." and ".." match the character class above and would resolve the
-# ledger onto ~/.arkaos itself.
+# "." and ".." match the character class above: "." would scatter
+# records across the ledger root, ".." onto ~/.arkaos itself.
 _DOT_IDS = frozenset({".", ".."})
 # Primary contract: a fenced ```arka-qgverdict block. Compatibility: a
 # plain ```json fence whose body parses and carries a "verdict" key —
@@ -190,30 +192,54 @@ def _records_for(session_dir: Path, reviewer_id: str) -> list[Path]:
 
 
 def _write_record(session_dir: Path, record: dict) -> Path | None:
-    """Create the record exclusively.
+    """Publish the record atomically: complete body, then the name.
 
     The filename carries the digest, so two DIFFERENT texts never
     collide even at the same seq — a collision therefore means another
     writer captured this exact text first, and the answer is to adopt
-    its file, not to bump the seq. Bumping produced ``-1-<sha>`` and
-    ``-2-<sha>``: the same verdict filed twice, which is precisely the
-    duplicate the digest-in-the-name was meant to prevent.
+    its file, not to bump the seq (bumping filed the same verdict twice).
+
+    Body first, name second, via a temp file and ``os.link``. Creating
+    the final name with O_EXCL and writing afterwards published an empty
+    file the instant the name existed: a hook killed on its timeout
+    budget in that window left a 0-byte record that shadowed the real
+    verdict forever, and the operator was told the reviewer had filed
+    none. A name in this directory now always implies complete content.
     """
     digest8 = record["raw_sha256"][:8]
     path = session_dir / f"{record['reviewer_id']}-{record['seq']}-{digest8}.json"
-    body = json.dumps(record, ensure_ascii=False, indent=2)
+    tmp = _write_temp(session_dir, path.name, record)
+    if tmp is None:
+        return None
     try:
-        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.link(tmp, path)
     except FileExistsError:
-        return path  # same reviewer, same seq, same text: already captured
+        pass  # same reviewer, seq and text: another writer got there first
     except OSError:
         return None
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(body)
-    except OSError:
-        return None
+    finally:
+        with contextlib.suppress(OSError):
+            tmp.unlink(missing_ok=True)
     return path
+
+
+def _write_temp(session_dir: Path, name: str, record: dict) -> Path | None:
+    """The complete body under a private name, fsynced."""
+    # pid AND a random suffix: two threads of one process share the pid,
+    # so a pid-only name had them clobber each other's temp file and both
+    # writers returned empty-handed.
+    tmp = session_dir / f".{name}.tmp-{os.getpid()}-{uuid4().hex[:8]}"
+    try:
+        fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, ensure_ascii=False, indent=2))
+            fh.flush()
+            os.fsync(fh.fileno())
+    except OSError:
+        with contextlib.suppress(OSError):
+            tmp.unlink(missing_ok=True)
+        return None
+    return tmp
 
 
 def _build_record(
@@ -310,9 +336,10 @@ def _find_by_digest(paths: list[Path], digest: str) -> dict | None:
         try:
             prior = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            # Named as this text but not yet readable: a concurrent
-            # writer owns it. Report the capture rather than duplicate it.
-            return {"raw_sha256": digest, "path": str(path), "pending": True}
+            # Unreadable despite the atomic publish (truncated on disk,
+            # or written by an older build). Treat it as absent so the
+            # verdict is captured again rather than lost behind a name.
+            continue
         prior["path"] = str(path)
         return prior
     return None

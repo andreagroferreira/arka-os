@@ -26,6 +26,7 @@ subagent to ``~/.arkaos/telemetry/subagent-stop.jsonl``. Gate flag
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -101,12 +102,16 @@ def _subagent_text(
 def _same_file(candidate: str, parent: str) -> bool:
     """True when both paths resolve to the same file.
 
-    A plain string comparison is bypassed by a symlink or a relative
-    path pointing back at the parent transcript — the source of the
-    round-1 fabrication.
+    Inode identity first: comparing resolved NAMES is bypassed by a
+    hardlink or, on a case-insensitive filesystem, by a case variant —
+    both would read the parent transcript and sign it with a reviewer's
+    name, the round-1 fabrication. The name comparison stays as the
+    fallback for paths that do not exist yet.
     """
     if candidate == parent:
         return True
+    with contextlib.suppress(OSError, ValueError):
+        return os.path.samefile(candidate, parent)
     try:
         return Path(candidate).resolve() == Path(parent).resolve()
     except (OSError, ValueError):
@@ -244,8 +249,8 @@ def _nudge(agent_id: str, qa: dict) -> str:
     """The QA concern in one line, or "" when there is none.
 
     No longer emitted here — SubagentStop context wakes the subagent it
-    describes, and a Quality Gate verdict is deliverable-shaped by
-    construction, so this re-entered every reviewer that omitted an
+    describes, and a Quality Gate verdict trips the deliverable
+    heuristic in practice, so this re-entered every reviewer that omitted an
     ``[arka:meta]`` line (65 measured re-entries). The Stop hook carries
     it to the orchestrator instead.
     """

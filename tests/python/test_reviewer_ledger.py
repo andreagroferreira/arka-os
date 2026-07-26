@@ -69,6 +69,11 @@ class TestCapture:
         assert len(record["verdict"]["blockers"]) == 2
         assert record["source"] == "post-tool-use"
         assert Path(record["path"]).is_file()
+        session_dir = Path(record["path"]).parent
+        mode = os.stat(session_dir).st_mode & 0o777
+        assert mode == 0o700, (
+            f"the record path must tighten the session dir too, got {oct(mode)}"
+        )
 
     def test_accepts_plain_json_fence(self, ledger_home):
         """Deployed reviewers emit ```json today — capture must not depend
@@ -423,6 +428,10 @@ class TestTruthfulness:
 
         assert reviewer_ledger.sweep_expired(days=90) == 0
         assert session_dir.is_dir(), "foreign content must be left alone"
+        assert list(session_dir.glob("*.json")), (
+            "a refused sweep must not have deleted the verdicts first — "
+            "that is destruction with a clean receipt"
+        )
 
     def test_torn_notice_line_does_not_swallow_the_rest(self, ledger_home):
         reviewer_ledger.queue_notice("sess-torn", None, "[arka:subagent-qa] first")
@@ -463,18 +472,40 @@ class TestConcurrentCapture:
         files = list((reviewer_ledger.ledger_root() / "sess-race").glob("*.json"))
         assert len(files) == 1, f"identical text must dedupe, got {files}"
 
-    def test_half_written_record_is_not_duplicated(self, ledger_home):
-        """Simulates the exact race window: the name exists, the body does
-        not parse yet."""
+    def test_torn_file_never_shadows_the_verdict(self, ledger_home):
+        """Publishing the NAME before the BODY let a hook killed on its
+        timeout budget leave a 0-byte record that shadowed the real
+        verdict forever, while the operator was told the reviewer filed
+        none. A name must always imply complete content."""
         raw = _reviewer_output()
         digest = __import__("hashlib").sha256(raw.encode()).hexdigest()
-        session_dir = reviewer_ledger.ledger_root() / "sess-half"
+        session_dir = reviewer_ledger.ledger_root() / "sess-torn-file"
         session_dir.mkdir(parents=True)
         (session_dir / f"francisca-tech-1-{digest[:8]}.json").write_text(
             "", encoding="utf-8"
         )
         record = reviewer_ledger.record_reviewer_output(
-            "sess-half", "francisca-tech", raw, "subagent-stop"
+            "sess-torn-file", "francisca-tech", raw, "subagent-stop"
         )
-        assert record is not None and record.get("pending") is True
-        assert len(list(session_dir.glob("*.json"))) == 1
+        assert record is not None
+        assert record["verdict"]["verdict"] == "REJECTED", (
+            "a torn file must never stand in for the verdict"
+        )
+        assert record.get("reviewer_id") == "francisca-tech"
+        reviewer_ledger.queue_notice("sess-torn-file", record, "")
+        context = reviewer_ledger.notices_context("sess-torn-file")
+        assert "None" not in context, context
+        assert "francisca-tech REJECTED" in context
+
+    def test_publish_is_atomic_no_partial_names(self, ledger_home):
+        """Every visible record parses: the body lands before the name."""
+        for i in range(25):
+            reviewer_ledger.record_reviewer_output(
+                "sess-atomic", "francisca-tech",
+                _reviewer_output(dict(VERDICT_BODY, notes=f"r{i}")),
+                "subagent-stop",
+            )
+        session_dir = reviewer_ledger.ledger_root() / "sess-atomic"
+        for path in session_dir.glob("*.json"):
+            assert json.loads(path.read_text(encoding="utf-8"))["raw_sha256"]
+        assert not list(session_dir.glob(".*tmp*")), "temp files must not linger"

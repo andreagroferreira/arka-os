@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -462,8 +463,19 @@ def test_post_tool_use_writer_skips_async_and_non_reviewers(tmp_path, monkeypatc
     assert not (root / "ptu-nonreviewer").exists()
 
 
-def test_post_tool_use_writer_never_raises(tmp_path, monkeypatch):
-    """A null text block raised TypeError and aborted main() mid-turn."""
+def test_null_text_block_does_not_lose_the_rest(tmp_path, monkeypatch):
+    """A null text block raised TypeError and aborted main() mid-turn.
+
+    Asserted at the extraction level: _record_reviewer_output swallows
+    exceptions, so calling it proves nothing on its own.
+    """
+    from core.hooks.post_tool_use import _task_result_text
+
+    assert _task_result_text({"tool_response": {"content": [
+        {"type": "text", "text": None},
+        {"type": "text", "text": "the real verdict"},
+    ]}}) == "the real verdict"
+
     from core.hooks import post_tool_use
 
     monkeypatch.setenv("HOME", str(tmp_path))
@@ -473,3 +485,42 @@ def test_post_tool_use_writer_never_raises(tmp_path, monkeypatch):
         {"tool_response": {"content": [{"type": "text", "text": None}]}},
         "ptu-null",
     )
+
+
+def test_post_tool_use_main_drives_the_writer(tmp_path, monkeypatch, capsys):
+    """The production call site had no cover: deleting it from main()
+    left the whole suite green (independent mutation, round 4)."""
+    from core.hooks import post_tool_use
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    assert post_tool_use.main({
+        "tool_name": "Task",
+        "session_id": "ptu-main",
+        "cwd": "/tmp",
+        "transcript_path": "",
+        "tool_input": {"subagent_type": "francisca-tech"},
+        "tool_response": {"content": [{"type": "text", "text": VERDICT_TEXT}]},
+    }) == 0
+    capsys.readouterr()
+    records = list((tmp_path / ".arkaos" / "quality-gate" / "ptu-main").glob("*.json"))
+    assert len(records) == 1, "main() must drive the ledger writer"
+    assert json.loads(records[0].read_text())["source"] == "post-tool-use"
+
+
+def test_hardlinked_agent_transcript_is_refused(tmp_path):
+    """Comparing resolved NAMES is bypassed by a hardlink (and, on a
+    case-insensitive filesystem, by a case variant): both read the
+    parent transcript and would sign it with a reviewer's name."""
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    hard = tmp_path / "agent-looks-real.jsonl"
+    os.link(parent, hard)
+    assert Path(hard).resolve() != Path(parent).resolve(), (
+        "fixture must exercise inode identity, not name identity"
+    )
+    text, source = subagent_stop._subagent_text(
+        {"agent_transcript_path": str(hard), "transcript_path": parent},
+        parent, Path(parent).read_text(encoding="utf-8"),
+    )
+    assert source == "parent", "inode identity must win over the name"
+    assert subagent_stop._attributable(source, text) is False
