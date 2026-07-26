@@ -1,6 +1,6 @@
 """SubagentStop — consolidated entrypoint (F2-4, Claude Code reform).
 
-Fires when a dispatched subagent (Task tool) finishes. Two jobs, both
+Fires when a dispatched subagent (Task tool) finishes. Three jobs, all
 WARN-only (this hook never blocks — the subagent already ran):
 
 1. Persist the subagent's final output to the session store so the
@@ -61,28 +61,56 @@ def _read_transcript(path: str) -> str | None:
         return None
 
 
-def _final_assistant_text(transcript_path: str, raw: str | None) -> str:
-    """The SUBAGENT's last message — sidechain scope, not the main turn.
+def _subagent_text(stdin_json: dict, transcript_path: str, raw: str | None) -> str:
+    """The SUBAGENT's own last message, from the payload the runtime sends.
 
-    Reading the raw tail returned the parent's in-flight turn instead:
-    at SubagentStop time the last main-scope record is the one holding
-    the Task call, which serialises as ``<tool_use:Agent>``. Every
-    persisted reviewer output on disk was that 16-byte placeholder.
+    ``last_assistant_message`` carries the subagent's final text directly
+    ("avoids the need to read and parse the transcript file", per the
+    2.1.220 hook contract); ``agent_transcript_path`` points at the
+    subagent's OWN jsonl (``<session>/subagents/agent-<id>.jsonl``).
+
+    Neither is the parent transcript at ``transcript_path``: that file
+    holds only main-scope records, so reading its tail returned the
+    orchestrator's in-flight turn — serialised as ``<tool_use:Agent>``,
+    which is what every persisted reviewer output on disk contained.
     """
+    direct = get_str(stdin_json, "last_assistant_message")
+    if direct.strip():
+        return direct
+
+    agent_transcript = get_str(stdin_json, "agent_transcript_path")
+    if agent_transcript and agent_transcript != transcript_path:
+        scoped = _last_message(agent_transcript, None)
+        if scoped:
+            return scoped
+
+    # No subagent-scoped source: fall back for the QA checks only. The
+    # ledger never writes from here — see _attributable().
+    return _last_message(transcript_path, raw)
+
+
+def _last_message(path: str, raw: str | None) -> str:
     try:
-        from core.workflow.transcript_scope import split_by_scope
-
-        if raw is not None:
-            split = split_by_scope(raw)
-            if split.sidechain:
-                return split.sidechain[-1]
-
         from core.workflow.flow_enforcer import _load_last_assistant_messages
 
-        msgs = _load_last_assistant_messages(transcript_path, 1, raw_text=raw)
+        msgs = _load_last_assistant_messages(path, 1, raw_text=raw)
         return msgs[-1] if msgs else ""
     except Exception:  # best-effort — hook never breaks
         return ""
+
+
+def _attributable(stdin_json: dict, transcript_path: str) -> bool:
+    """True only when the text provably came from the subagent itself.
+
+    Fail closed on attribution: a ledger record is signed evidence
+    carrying a reviewer's name, so writing one from an unprovable source
+    fabricates it. Missing a verdict is recoverable; a hashed record of
+    words the reviewer never wrote is not.
+    """
+    if get_str(stdin_json, "last_assistant_message").strip():
+        return True
+    agent_transcript = get_str(stdin_json, "agent_transcript_path")
+    return bool(agent_transcript) and agent_transcript != transcript_path
 
 
 def _persist_output(session_id: str, agent_id: str, text: str) -> None:
@@ -174,8 +202,18 @@ def _record_reviewer(session_id: str, agent_id: str, text: str) -> dict | None:
         return None
 
 
+def _ledger_capture(
+    stdin_json: dict, session_id: str, agent_id: str, text: str
+) -> dict | None:
+    """Capture to the ledger only when attribution is proven."""
+    transcript_path = get_str(stdin_json, "transcript_path")
+    if not _attributable(stdin_json, transcript_path):
+        return None
+    return _record_reviewer(session_id, agent_id, text)
+
+
 def _reviewer_channel(record: dict | None) -> str:
-    """Francisca's direct line to the orchestrator: verdict + artifact path.
+    """The reviewer's direct line to the orchestrator: verdict + artifact.
 
     SubagentStop additionalContext reaches the ORCHESTRATOR, so the
     reviewer's own verdict and the path to its verbatim record arrive
@@ -197,8 +235,9 @@ def _reviewer_channel(record: dict | None) -> str:
     blockers = (record.get("verdict") or {}).get("blockers") or []
     return (
         f"[arka:qg:reviewer-verdict] {reviewer} {verdict}"
-        f" blockers={len(blockers)} artifact={path} — reproduce this"
-        f" verdict VERBATIM to the operator; paraphrase is a relay."
+        f" blockers={len(blockers)} artifact={path} — read the artifact"
+        f" and quote the verdict verbatim to the operator; do not"
+        f" summarise or paraphrase it."
     )
 
 
@@ -233,23 +272,28 @@ def main(stdin_json: dict | None = None) -> int:
         return 0
 
     raw = _read_transcript(transcript_path)
-    text = _final_assistant_text(transcript_path, raw)
+    text = _subagent_text(stdin_json, transcript_path, raw)
     if not text:
         return 0
 
     _persist_output(session_id, agent_id, text)
-    ledger_record = _record_reviewer(session_id, agent_id, text)
+    ledger = _ledger_capture(stdin_json, session_id, agent_id, text)
     qa = _run_qa(text, raw)
     _record(session_id, agent_id, qa)
+    _emit(ledger, agent_id, qa)
+    return 0
 
-    # The nudge must reach the ORCHESTRATOR. Claude Code discards hook
-    # stderr at exit 0 (it only surfaces stderr on a deny/exit 2), so a
-    # stderr nudge here would be inert. additionalContext on stdout is the
-    # channel the model actually receives.
-    parts = [p for p in (_reviewer_channel(ledger_record), _nudge(agent_id, qa)) if p]
+
+def _emit(ledger: dict | None, agent_id: str, qa: dict) -> None:
+    """Reviewer verdict line + QA nudge, both to the ORCHESTRATOR.
+
+    Claude Code discards hook stderr at exit 0 (it only surfaces stderr
+    on a deny/exit 2), so additionalContext on stdout is the channel the
+    model actually receives.
+    """
+    parts = [p for p in (_reviewer_channel(ledger), _nudge(agent_id, qa)) if p]
     if parts:
         emit_additional_context("SubagentStop", "\n".join(parts))
-    return 0
 
 
 if __name__ == "__main__":  # pragma: no cover

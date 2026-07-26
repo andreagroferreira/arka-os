@@ -144,31 +144,13 @@ def test_persist_sanitizes(tmp_path, monkeypatch):
 
 
 # ─── reviewer channel (PR-B1) ────────────────────────────────────────────
-
-
-def _scoped_transcript(tmp_path, main_text, sidechain_text):
-    """Main-scope turn holding the in-flight Task call + the subagent's reply.
-
-    Mirrors what Claude Code writes: at SubagentStop the LAST record in
-    the transcript is the parent's turn (whose content serialises as
-    ``<tool_use:Agent>``), and the reviewer's actual words carry
-    ``isSidechain: true``.
-    """
-    lines = [
-        {"type": "user", "message": {"role": "user", "content": "review it"}},
-        {"type": "assistant", "isSidechain": True,
-         "message": {"role": "assistant", "content": [
-             {"type": "text", "text": sidechain_text}]}},
-        {"type": "assistant", "isSidechain": False,
-         "message": {"role": "assistant", "content": [
-             {"type": "tool_use", "name": "Agent", "input": {}}]}},
-        {"type": "assistant", "isSidechain": False,
-         "message": {"role": "assistant", "content": [
-             {"type": "text", "text": main_text}]}},
-    ]
-    path = tmp_path / "scoped.jsonl"
-    path.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
-    return str(path)
+#
+# Payload shape verified against Claude Code 2.1.220: SubagentStop sends
+# `last_assistant_message` (the subagent's own final text) and
+# `agent_transcript_path` (<session>/subagents/agent-<id>.jsonl). The
+# parent transcript at `transcript_path` holds ONLY main-scope records —
+# reading its tail returns the orchestrator's turn, which is how three
+# identical-hash artifacts were once filed under three reviewer names.
 
 
 VERDICT_TEXT = (
@@ -185,50 +167,140 @@ VERDICT_TEXT = (
 )
 
 
-def test_reads_the_subagent_scope_not_the_parent_turn(tmp_path):
-    """Regression: every persisted reviewer output on disk was the 16-byte
-    string '<tool_use:Agent>' — the parent's in-flight turn, read from
-    the wrong transcript scope. The reviewer's words never survived."""
-    transcript = _scoped_transcript(tmp_path, "parent narration", VERDICT_TEXT)
-    raw = Path(transcript).read_text(encoding="utf-8")
-    text = subagent_stop._final_assistant_text(transcript, raw)
-    assert "<tool_use:" not in text, "read the parent's tool call, not the reviewer"
+def _parent_transcript(tmp_path, orchestrator_text):
+    """The parent file CC passes as transcript_path: main scope only."""
+    lines = [
+        {"type": "user", "message": {"role": "user", "content": "review it"}},
+        {"type": "assistant", "isSidechain": False,
+         "message": {"role": "assistant", "content": [
+             {"type": "tool_use", "name": "Agent", "input": {}}]}},
+        {"type": "assistant", "isSidechain": False,
+         "message": {"role": "assistant", "content": [
+             {"type": "text", "text": orchestrator_text}]}},
+    ]
+    path = tmp_path / "parent.jsonl"
+    path.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
+    return str(path)
+
+
+def _agent_transcript(tmp_path, agent_id, text):
+    """The subagent's own file, as written under <session>/subagents/."""
+    subdir = tmp_path / "parent" / "subagents"
+    subdir.mkdir(parents=True, exist_ok=True)
+    path = subdir / f"agent-{agent_id}.jsonl"
+    path.write_text(json.dumps(
+        {"type": "assistant", "isSidechain": True,
+         "message": {"role": "assistant", "content": [
+             {"type": "text", "text": text}]}}
+    ), encoding="utf-8")
+    return str(path)
+
+
+def test_last_assistant_message_is_preferred(tmp_path):
+    """The payload carries the reviewer's text — no transcript parsing."""
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    text = subagent_stop._subagent_text(
+        {"last_assistant_message": VERDICT_TEXT, "transcript_path": parent},
+        parent, Path(parent).read_text(encoding="utf-8"),
+    )
+    assert text == VERDICT_TEXT
+
+
+def test_falls_back_to_the_agent_transcript_never_the_parent(tmp_path):
+    """Regression: reading the parent returned '<tool_use:Agent>' or the
+    orchestrator's own words, which were then filed under the reviewer's
+    name with a hash. The subagent's file is the only valid source."""
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    agent = _agent_transcript(tmp_path, "abc123", VERDICT_TEXT)
+    text = subagent_stop._subagent_text(
+        {"agent_transcript_path": agent, "transcript_path": parent},
+        parent, Path(parent).read_text(encoding="utf-8"),
+    )
     assert "arka-qgverdict" in text
+    assert "orchestrator status update" not in text
+    assert "<tool_use:" not in text
+
+
+def test_no_subagent_source_is_never_attributable(tmp_path):
+    """Fail closed: with only the parent transcript, attribution cannot
+    be proven, so the ledger must not write. Missing a verdict beats
+    fabricating one."""
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    assert subagent_stop._attributable({"transcript_path": parent}, parent) is False
+    assert subagent_stop._attributable(
+        {"transcript_path": parent, "agent_transcript_path": parent}, parent
+    ) is False
+    assert subagent_stop._attributable(
+        {"last_assistant_message": "words", "transcript_path": parent}, parent
+    ) is True
+
+
+def test_unattributable_run_writes_no_artifact(tmp_path, capsys):
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    assert main({"session_id": "qg-noattr", "subagent_type": "francisca-tech",
+                 "transcript_path": parent}) == 0
+    assert not (tmp_path / ".arkaos" / "quality-gate" / "qg-noattr").exists()
+    assert "[arka:qg:reviewer-verdict]" not in capsys.readouterr().out
 
 
 def test_reviewer_verdict_reaches_the_orchestrator_with_artifact(tmp_path, capsys):
-    transcript = _scoped_transcript(tmp_path, "parent narration", VERDICT_TEXT)
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
     assert main({"session_id": "qg-1", "subagent_type": "francisca-tech",
-                 "transcript_path": transcript}) == 0
+                 "transcript_path": parent,
+                 "last_assistant_message": VERDICT_TEXT}) == 0
     payload = json.loads(capsys.readouterr().out.strip().splitlines()[0])
     context = payload["hookSpecificOutput"]["additionalContext"]
     assert payload["hookSpecificOutput"]["hookEventName"] == "SubagentStop"
     assert "[arka:qg:reviewer-verdict] francisca-tech REJECTED" in context
     assert "blockers=1" in context
-    assert "VERBATIM" in context
+    assert "quote the verdict verbatim" in context
 
-    artifact = tmp_path / ".arkaos" / "quality-gate" / "qg-1" / "francisca-tech-1.json"
-    assert artifact.is_file(), "the verdict must be on disk before the aggregator sees it"
-    record = json.loads(artifact.read_text(encoding="utf-8"))
+    records = list(
+        (tmp_path / ".arkaos" / "quality-gate" / "qg-1").glob("francisca-tech-*.json")
+    )
+    assert len(records) == 1, "the verdict must be on disk before the aggregator sees it"
+    record = json.loads(records[0].read_text(encoding="utf-8"))
     assert record["verdict"]["verdict"] == "REJECTED"
     assert record["raw_output"] == VERDICT_TEXT
     assert record["source"] == "subagent-stop"
 
 
+def test_two_reviewers_get_distinct_records(tmp_path):
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    for reviewer in ("francisca-tech", "eduardo-copy"):
+        main({"session_id": "qg-two", "subagent_type": reviewer,
+              "transcript_path": parent,
+              "last_assistant_message": f"{reviewer} says:\n{VERDICT_TEXT}"})
+    files = sorted((tmp_path / ".arkaos" / "quality-gate" / "qg-two").glob("*.json"))
+    assert len(files) == 2
+    digests = {json.loads(f.read_text())["raw_sha256"] for f in files}
+    assert len(digests) == 2, "distinct reviewers must not share a hash"
+
+
+def test_agent_type_is_used_when_subagent_type_is_absent(tmp_path):
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    main({"session_id": "qg-atype", "agent_type": "eduardo-copy",
+          "transcript_path": parent, "last_assistant_message": VERDICT_TEXT})
+    files = list((tmp_path / ".arkaos" / "quality-gate" / "qg-atype").glob("*.json"))
+    assert [f.name.split("-1-")[0] for f in files] == ["eduardo-copy"]
+
+
 def test_non_reviewer_subagent_gets_no_verdict_channel(tmp_path, capsys):
-    transcript = _scoped_transcript(tmp_path, "parent", "Implemented the queue.")
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
     assert main({"session_id": "qg-2", "subagent_type": "frontend-dev",
-                 "transcript_path": transcript}) == 0
+                 "transcript_path": parent,
+                 "last_assistant_message": "Implemented the queue."}) == 0
     out = capsys.readouterr().out
     assert "[arka:qg:reviewer-verdict]" not in out
     assert not (tmp_path / ".arkaos" / "quality-gate" / "qg-2").exists()
 
 
 def test_unparsed_verdict_still_points_at_the_artifact(tmp_path, capsys):
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
     broken = "Review done.\n\n```arka-qgverdict\n{bad json,,}\n```\n"
-    transcript = _scoped_transcript(tmp_path, "parent", broken)
     assert main({"session_id": "qg-3", "subagent_type": "eduardo-copy",
-                 "transcript_path": transcript}) == 0
+                 "transcript_path": parent,
+                 "last_assistant_message": broken}) == 0
     context = json.loads(
         capsys.readouterr().out.strip().splitlines()[0]
     )["hookSpecificOutput"]["additionalContext"]

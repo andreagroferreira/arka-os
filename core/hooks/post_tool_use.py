@@ -199,18 +199,47 @@ def _record_pattern_stub(tool_output: str, prompt: str) -> None:
         pass
 
 
+def _task_result_text(stdin_json: dict) -> str:
+    """The subagent's returned text from a SYNCHRONOUS Task dispatch.
+
+    The payload key is ``tool_response`` (2.1.220 hook contract); it is
+    an object, and for a Task it carries the reply under ``content``.
+    An ASYNC dispatch returns only ``{agentId, status, ...}`` — there is
+    no output at PostToolUse time, so nothing is captured and the
+    SubagentStop writer is the one that sees it.
+    """
+    response = stdin_json.get("tool_response")
+    if isinstance(response, str):
+        return response
+    if not isinstance(response, dict) or response.get("isAsync"):
+        return ""
+    content = response.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        )
+    return ""
+
+
 def _record_reviewer_output(
-    subagent_type: str, tool_output: str, session_id: str
+    subagent_type: str, stdin_json: dict, session_id: str
 ) -> None:
     """Persist a QG reviewer's verbatim output to the ledger."""
-    if not subagent_type or not tool_output:
+    if not subagent_type:
+        return
+    text = _task_result_text(stdin_json)
+    if not text:
         return
     try:
         from core.governance.reviewer_ledger import record_reviewer_output
         record_reviewer_output(
             session_id=session_id,
             reviewer_id=subagent_type,
-            raw_output=tool_output,
+            raw_output=text,
             source="post-tool-use",
         )
     except Exception:
@@ -678,11 +707,12 @@ def main(stdin_json: dict | None = None) -> int:
 
     if tool_name in ("Task", "Agent"):
         subagent_type = get_str(stdin_json, "tool_input", "subagent_type")
-        # tool_output IS the subagent's literal returned string — the one
-        # surface the reviewer cannot fail to use and the aggregator
-        # cannot paraphrase. Runs before the CQO branch so a reviewer
-        # verdict lands even when the aggregate later goes missing.
-        _record_reviewer_output(subagent_type, tool_output, session_id)
+        # Synchronous dispatches carry the subagent's reply in
+        # tool_response.content — captured here, before the CQO branch,
+        # so a reviewer verdict lands even when the aggregate later goes
+        # missing. Async dispatches carry no output at this point; their
+        # capture happens at SubagentStop.
+        _record_reviewer_output(subagent_type, stdin_json, session_id)
         if subagent_type in _CQO_IDS:
             prompt = get_str(stdin_json, "tool_input", "prompt")
             _record_cqo_rejected(tool_output, prompt, session_id)
