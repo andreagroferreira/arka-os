@@ -288,8 +288,12 @@ class TestSweepSafety:
         victim.mkdir()
         # A .json file, so the sweep's own unlink filter cannot make this
         # test pass for the wrong reason (a mutation survived that way).
-        (victim / "important.json").write_text("{}", encoding="utf-8")
-        (victim / "important.txt").write_text("keep me", encoding="utf-8")
+        # A name the ledger DOES write, so only the symlink guard can
+        # save it: a foreign name would be refused by _is_own_file and
+        # the test would pass even with the symlink check removed.
+        (victim / "francisca-tech-1-deadbeef.json").write_text(
+            "{}", encoding="utf-8"
+        )
         reviewer_ledger.ledger_root().mkdir(parents=True, exist_ok=True)
         link = reviewer_ledger.ledger_root() / "linked-session"
         link.symlink_to(victim)
@@ -297,8 +301,10 @@ class TestSweepSafety:
         os.utime(victim, (ancient, ancient))
 
         reviewer_ledger.sweep_expired(days=90)
-        assert (victim / "important.json").is_file(), "sweep followed a symlink"
-        assert (victim / "important.txt").is_file()
+        assert (victim / "francisca-tech-1-deadbeef.json").is_file(), (
+            "sweep followed a symlink into a directory it does not own"
+        )
+        assert victim.is_dir()
         assert link.is_symlink(), "the link itself must survive too"
 
 
