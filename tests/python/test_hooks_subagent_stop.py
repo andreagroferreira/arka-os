@@ -306,3 +306,50 @@ def test_unparsed_verdict_still_points_at_the_artifact(tmp_path, capsys):
     )["hookSpecificOutput"]["additionalContext"]
     assert "verdict-unparsed" in context
     assert "artifact=" in context
+
+
+# ─── PostToolUse task-result extraction (PR-B1) ──────────────────────────
+#
+# The payload key is `tool_response` — `tool_output` does not exist in the
+# 2.1.220 binary. An ASYNC Task returns {agentId, status, isAsync} with no
+# output at PostToolUse time; capturing from it would file a status blob
+# as a reviewer's verdict.
+
+
+def test_async_task_yields_no_capturable_text():
+    """An async dispatch has no reviewer output yet, and the text it does
+    carry is harness metadata ("Async agent launched successfully…").
+    Capturing it would file that blob under the reviewer's name."""
+    from core.hooks.post_tool_use import _task_result_text
+
+    observed = {
+        "agentId": "a1", "status": "running", "isAsync": True,
+        "canReadOutputFile": True, "outputFile": "/tmp/a1.output",
+        "description": "QG review", "prompt": "review it",
+        "resolvedModel": "opus",
+    }
+    assert _task_result_text({"tool_response": observed}) == ""
+    # Same dispatch, with the harness text the model is shown attached.
+    assert _task_result_text({"tool_response": dict(observed, content=[
+        {"type": "text", "text": "Async agent launched successfully. (…)"},
+    ])}) == ""
+
+
+def test_sync_task_text_is_extracted():
+    from core.hooks.post_tool_use import _task_result_text
+
+    assert _task_result_text({"tool_response": {
+        "content": [{"type": "text", "text": VERDICT_TEXT}],
+    }}) == VERDICT_TEXT
+    assert _task_result_text({"tool_response": {"content": "plain"}}) == "plain"
+    assert _task_result_text({"tool_response": "bare string"}) == "bare string"
+
+
+def test_missing_or_odd_payload_is_empty():
+    from core.hooks.post_tool_use import _task_result_text
+
+    assert _task_result_text({}) == ""
+    assert _task_result_text({"tool_response": None}) == ""
+    assert _task_result_text({"tool_response": {"success": True}}) == ""
+    # The legacy key the hook used to read does not exist in the runtime.
+    assert _task_result_text({"tool_output": "ignored"}) == ""
