@@ -2,7 +2,8 @@
 
 Before this module, a reviewer's QGVerdict existed only as subagent final
 text inside the aggregator's context: of 81 corpus records, 80 were
-authored by the aggregator, one was malformed, and none by a reviewer.
+authored by the aggregator and none by a reviewer (the remaining record
+is a hand-written verdict-invalidation, not a verdict).
 This ledger captures each reviewer dispatch at the HOOK boundary — a
 surface the reviewer cannot fail to use and the aggregator cannot
 distort — so the operator can read each verdict verbatim, with a digest
@@ -25,8 +26,8 @@ wrote is not — that failure produced three identical-hash artifacts
 under three reviewer names before this rule existed.
 
 Sanitization boundary, on purpose: the ledger is a LOCAL-ONLY surface
-(files 0600, directory 0700, never shipped, no reader outside this
-module). When the redaction config is missing the raw text is stored
+(files 0600, session directories 0700, never shipped, no reader outside
+this module). When the redaction config is missing the raw text is stored
 with ``sanitized: false`` instead of being erased — erasing the
 reviewer's words is the relay failure this module exists to end. The
 fail-closed contract of ``core.evals.sanitizer`` is unchanged for the
@@ -57,6 +58,11 @@ REVIEWER_IDS = frozenset({
 })
 AGGREGATOR_IDS = frozenset({"cqo-marta", "marta-cqo", "cqo"})
 LEDGER_IDS = REVIEWER_IDS | AGGREGATOR_IDS
+
+# The only provenances that may produce a signed record. Both are
+# subagent-scoped by construction: PostToolUse reads the Task result,
+# SubagentStop reads the subagent's own final message.
+CAPTURE_SOURCES = frozenset({"post-tool-use", "subagent-stop"})
 
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 # "." and ".." match the character class above and would resolve the
@@ -236,6 +242,11 @@ def record_reviewer_output(
             return None
         if not _safe_id(reviewer_id):
             return None
+        # The fail-closed attribution rule is enforced HERE, not only in
+        # the hook that calls this: a record carries a reviewer's name,
+        # so an unknown provenance must never produce one.
+        if source not in CAPTURE_SOURCES:
+            return None
         session_dir = _session_dir(session_id)
         if session_dir is None:
             return None
@@ -319,11 +330,18 @@ def _expired(session_dir: Path, cutoff: datetime) -> bool:
 
 
 def _purge(session_dir: Path) -> bool:
-    """Remove a session's records. Only ``*.json``; never recursive."""
+    """Remove a session's records. Only own files; never recursive.
+
+    The glob covers ``NOTICES.jsonl`` too: matching ``*.json`` alone
+    deleted every verdict, then failed the rmdir on the leftover notices
+    file and reported zero removed — destruction with a clean receipt.
+    """
     try:
-        for item in session_dir.glob("*.json"):
-            if not item.is_symlink():
-                item.unlink()
+        for item in session_dir.iterdir():
+            if item.is_symlink() or item.is_dir():
+                return False  # foreign content: leave the whole dir alone
+        for item in session_dir.iterdir():
+            item.unlink()
         session_dir.rmdir()
         return True
     except OSError:
@@ -399,6 +417,10 @@ def queue_notice(session_id: str, record: dict | None, nudge: str) -> None:
         if entry is None:
             return
         path.parent.mkdir(parents=True, exist_ok=True)
+        # mkdir honours the umask (0o755 in practice); the session dir
+        # holds verdict records, so it is tightened here as well as in
+        # _session_dir — whichever writer creates it first.
+        os.chmod(path.parent, 0o700)
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
         os.chmod(path, 0o600)
@@ -412,11 +434,14 @@ def drain_notices(session_id: str) -> list[dict]:
         path = _notice_path(session_id)
         if path is None or not path.is_file():
             return []
-        entries = [
-            json.loads(line)
-            for line in path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
+        entries = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue  # a torn append must not swallow the rest
         path.unlink(missing_ok=True)
         return entries
     except Exception:
@@ -429,13 +454,17 @@ def notices_context(session_id: str) -> str:
     for entry in drain_notices(session_id):
         if entry.get("kind") == "reviewer-verdict":
             verdict = entry.get("verdict")
-            head = (
-                f"{entry.get('reviewer_id')} {verdict}"
-                f" blockers={entry.get('blockers', 0)}"
-                if verdict
-                else f"{entry.get('reviewer_id')} verdict-unparsed"
-                f" ({entry.get('parse_error')})"
-            )
+            if verdict:
+                head = (
+                    f"{entry.get('reviewer_id')} {verdict}"
+                    f" blockers={entry.get('blockers', 0)}"
+                )
+            else:
+                # A reviewer who filed no parsable verdict is exactly who
+                # this line exists to surface — printing a Python None
+                # here tells the operator nothing.
+                reason = entry.get("parse_error") or "no verdict block in the reply"
+                head = f"{entry.get('reviewer_id')} verdict-unparsed ({reason})"
             lines.append(
                 f"[arka:qg:reviewer-verdict] {head}"
                 f" artifact={entry.get('artifact')} — read the artifact and"

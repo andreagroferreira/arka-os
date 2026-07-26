@@ -381,3 +381,81 @@ class TestOrchestratorNotices:
     def test_unsafe_session_id_is_inert(self, ledger_home):
         reviewer_ledger.queue_notice("../escape", None, "x")
         assert reviewer_ledger.notices_context("../escape") == ""
+
+
+class TestTruthfulness:
+    """The module's own claims must hold — it exists so records can be
+    trusted, and a false statement about itself is the same defect class
+    it was built to end."""
+
+    def test_notice_names_a_reason_not_a_python_none(self, ledger_home):
+        """A reviewer who filed no parsable verdict is exactly who this
+        line exists to surface; printing None tells the operator nothing."""
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-none", "eduardo-copy", "Approved, looks good.", "subagent-stop"
+        )
+        assert record["parse_error"] is None
+        reviewer_ledger.queue_notice("sess-none", record, "")
+        context = reviewer_ledger.notices_context("sess-none")
+        assert "(None)" not in context
+        assert "no verdict block in the reply" in context
+
+    def test_queue_notice_tightens_the_session_dir(self, ledger_home):
+        """mkdir honours the umask (0o755); the dir holds verdicts."""
+        reviewer_ledger.queue_notice("sess-perm2", None, "[arka:subagent-qa] x")
+        mode = os.stat(reviewer_ledger.ledger_root() / "sess-perm2").st_mode & 0o777
+        assert mode == 0o700, f"session dir must be 0700, got {oct(mode)}"
+
+    def test_capture_refuses_an_unknown_source(self, ledger_home):
+        """The fail-closed rule is enforced in the ledger, not only in
+        the hook: post_tool_use does not consult _attributable."""
+        assert reviewer_ledger.record_reviewer_output(
+            "sess-src", "francisca-tech", _reviewer_output(), "parent"
+        ) is None
+        assert reviewer_ledger.record_reviewer_output(
+            "sess-src", "francisca-tech", _reviewer_output(), ""
+        ) is None
+        assert reviewer_ledger.record_reviewer_output(
+            "sess-src", "francisca-tech", _reviewer_output(), "subagent-stop"
+        ) is not None
+
+    def test_sweep_never_destroys_while_reporting_zero(self, ledger_home):
+        """Globbing *.json deleted every verdict, then failed the rmdir on
+        NOTICES.jsonl and returned 0 — destruction with a clean receipt."""
+        import time
+
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-sweep", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        reviewer_ledger.queue_notice("sess-sweep", record, "")
+        session_dir = reviewer_ledger.ledger_root() / "sess-sweep"
+        assert (session_dir / "NOTICES.jsonl").is_file()
+        ancient = time.time() - (100 * 86400)
+        os.utime(session_dir, (ancient, ancient))
+
+        removed = reviewer_ledger.sweep_expired(days=90)
+        assert removed == 1, "a sweep that deletes must report what it deleted"
+        assert not session_dir.exists()
+
+    def test_sweep_leaves_a_dir_holding_foreign_content(self, ledger_home):
+        import time
+
+        reviewer_ledger.record_reviewer_output(
+            "sess-foreign", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        session_dir = reviewer_ledger.ledger_root() / "sess-foreign"
+        (session_dir / "nested").mkdir()
+        ancient = time.time() - (100 * 86400)
+        os.utime(session_dir, (ancient, ancient))
+
+        assert reviewer_ledger.sweep_expired(days=90) == 0
+        assert session_dir.is_dir(), "foreign content must be left alone"
+
+    def test_torn_notice_line_does_not_swallow_the_rest(self, ledger_home):
+        reviewer_ledger.queue_notice("sess-torn", None, "[arka:subagent-qa] first")
+        path = reviewer_ledger.ledger_root() / "sess-torn" / "NOTICES.jsonl"
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write('{"kind": "subagent-qa", "mess\n')
+        reviewer_ledger.queue_notice("sess-torn", None, "[arka:subagent-qa] third")
+        context = reviewer_ledger.notices_context("sess-torn")
+        assert "first" in context and "third" in context

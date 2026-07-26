@@ -107,6 +107,21 @@ def _end_session(session_id: str) -> None:
         pass
 
 
+def _sweep_reviewer_ledger() -> None:
+    """Age out reviewer verdicts older than the retention window.
+
+    Session end is the retention consumer: the ledger keeps a reviewer's
+    complete verbatim output, so an unbounded store is a growing
+    local-only corpus nobody prunes.
+    """
+    try:
+        from core.governance.reviewer_ledger import sweep_expired
+
+        sweep_expired()
+    except Exception:  # retention is best-effort — this hook never blocks
+        pass
+
+
 def main(stdin_json: dict | None = None) -> int:
     if stdin_json is None:
         stdin_json, _ = read_stdin_json()
@@ -120,6 +135,7 @@ def main(stdin_json: dict | None = None) -> int:
 
     write_digest(session_id, transcript_path)
     _end_session(session_id)
+    _sweep_reviewer_ledger()
     return 0
 
 

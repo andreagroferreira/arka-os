@@ -217,8 +217,10 @@ def _task_result_text(stdin_json: dict) -> str:
     if isinstance(content, str):
         return content
     if isinstance(content, list):
+        # `or ""`: a text block whose "text" is null would otherwise raise
+        # TypeError inside join, aborting the hook mid-turn.
         return "".join(
-            block.get("text", "")
+            str(block.get("text") or "")
             for block in content
             if isinstance(block, dict) and block.get("type") == "text"
         )
@@ -231,10 +233,10 @@ def _record_reviewer_output(
     """Persist a QG reviewer's verbatim output to the ledger."""
     if not subagent_type:
         return
-    text = _task_result_text(stdin_json)
-    if not text:
-        return
     try:
+        text = _task_result_text(stdin_json)
+        if not text:
+            return
         from core.governance.reviewer_ledger import record_reviewer_output
         record_reviewer_output(
             session_id=session_id,
