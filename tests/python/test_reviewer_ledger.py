@@ -265,8 +265,8 @@ class TestCollisionSafety:
         assert record["seq"] == 1, "seq must count only this reviewer's records"
 
     def test_dot_ids_are_rejected(self, ledger_home):
-        """'.' and '..' match the safe-id charset and would resolve the
-        ledger onto ~/.arkaos itself, scattering verdict files there."""
+        """'.' and '..' match the safe-id charset: '.' would scatter
+        records across the ledger root, '..' onto ~/.arkaos itself."""
         for bad in (".", ".."):
             assert reviewer_ledger.record_reviewer_output(
                 bad, "francisca-tech", _reviewer_output(), "subagent-stop"
@@ -576,3 +576,42 @@ class TestVerdictOwnership:
             "subagent-stop",
         )
         assert record["verdict"] is not None
+
+
+class TestDigestHonesty:
+    """The headline promise is verifiable: the operator can hash the file
+    they are reading and get stored_sha256. raw_sha256 is the dedup key
+    over the text as returned, which redaction may have rewritten."""
+
+    def test_stored_digest_matches_the_file_on_disk(self, ledger_home):
+        import hashlib
+
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-digest", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        on_disk = json.loads(Path(record["path"]).read_text(encoding="utf-8"))
+        assert on_disk["stored_sha256"] == hashlib.sha256(
+            on_disk["raw_output"].encode("utf-8")
+        ).hexdigest()
+
+    def test_digests_diverge_only_when_redaction_rewrote_the_text(
+        self, ledger_home, monkeypatch
+    ):
+        import hashlib
+
+        from core.evals import sanitizer
+
+        monkeypatch.setattr(
+            sanitizer, "sanitize_text",
+            lambda text: (text.replace("Two blockers", "[REDACTED]"), {"n": 1}),
+        )
+        raw = _reviewer_output()
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-redacted", "francisca-tech", raw, "subagent-stop"
+        )
+        assert record["sanitized"] is True
+        assert record["raw_sha256"] == hashlib.sha256(raw.encode()).hexdigest()
+        assert record["stored_sha256"] != record["raw_sha256"]
+        assert record["stored_sha256"] == hashlib.sha256(
+            record["raw_output"].encode()
+        ).hexdigest(), "the operator must be able to verify what is on disk"

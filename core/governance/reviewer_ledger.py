@@ -6,16 +6,20 @@ authored by the aggregator and none by a reviewer (the remaining record
 is a hand-written verdict-invalidation, not a verdict).
 This ledger captures each reviewer dispatch at the HOOK boundary — a
 surface the reviewer cannot fail to use and the aggregator cannot
-distort — so the operator can read each verdict verbatim, with a digest
-that makes any tampering evident:
+distort — so the operator can read each verdict as the reviewer wrote
+it, with digests that make any tampering evident:
 
     ~/.arkaos/quality-gate/<session_id>/<reviewer_id>-<seq>-<sha8>.json
 
-Each record carries the reviewer's COMPLETE returned text (untruncated),
-its sha256, the parsed QGVerdict when a fenced block is present (parse
-failures are recorded, never silent), and the capture source. The digest
-is part of the filename, so two captures that disagree can never
-overwrite each other: divergent text always lands as a second record.
+Each record carries the reviewer's returned text UNTRUNCATED, the parsed
+QGVerdict when a fenced block is present (parse failures are recorded,
+never silent), the capture source, and two digests: ``stored_sha256``
+over the text on disk, which is what the operator verifies, and
+``raw_sha256`` over the text as returned, which is the dedup key. They
+are equal unless redaction rewrote the text, and ``sanitized`` says
+which case a record is. The dedup digest is part of the filename, so two
+captures that disagree can never overwrite each other: divergent text
+always lands as a second record.
 (In the field every record has come from SubagentStop — the PostToolUse
 writer only sees synchronous dispatches — so treat that as collision
 safety, not as a delivered two-source cross-check.)
@@ -302,6 +306,12 @@ def _build_record(
         "session_id": session_id,
         "reviewer_id": reviewer_id,
         "seq": seq,
+        # ``stored_sha256`` is the digest OF WHAT IS ON DISK, so the
+        # operator can verify the file they are reading. ``raw_sha256``
+        # is the digest of the text as returned, which is the dedup key
+        # across writers; the two differ only when redaction rewrote the
+        # text, and ``sanitized`` says which case this is.
+        "stored_sha256": hashlib.sha256(stored.encode("utf-8")).hexdigest(),
         "raw_output": stored,
         "raw_sha256": digest,
         "verdict": verdict,
@@ -321,8 +331,11 @@ def record_reviewer_output(
 ) -> dict | None:
     """Persist one reviewer dispatch verbatim. Returns the record or None.
 
-    Never raises. Deduplicates on raw_sha256 so the two writers do not
-    double-record the same output.
+    Never raises. Deduplicates on the 8-hex digest prefix carried in the
+    filename (32 bits, not the full 256) so the two writers do not
+    double-record the same output: two DIFFERENT texts colliding on that
+    prefix at the same seq would be adopted as one. Noted, not engineered
+    for — the full digest stays in the record for verification.
     """
     try:
         if not raw_output or not is_reviewer(reviewer_id):
@@ -401,9 +414,11 @@ def _expired(session_dir: Path, cutoff: datetime) -> bool:
 def _purge(session_dir: Path) -> bool:
     """Remove a session's records. Only own files; never recursive.
 
-    The glob covers ``NOTICES.jsonl`` too: matching ``*.json`` alone
-    deleted every verdict, then failed the rmdir on the leftover notices
-    file and reported zero removed — destruction with a clean receipt.
+    Both passes use ``iterdir``, which covers ``NOTICES.jsonl`` too:
+    matching ``*.json`` alone deleted every verdict, then failed the
+    rmdir on the leftover notices file and reported zero removed —
+    destruction with a clean receipt. A directory holding anything the
+    ledger did not write (a subdirectory, a symlink) is refused whole.
     """
     try:
         for item in session_dir.iterdir():
