@@ -405,3 +405,17 @@ def test_placeholder_match_is_anchored(tmp_path):
     assert subagent_stop._attributable("payload", body) is True
     assert subagent_stop._attributable("payload", "<tool_use:Agent>") is False
     assert subagent_stop._attributable("payload", "<tool_use:A><tool_use:B>") is False
+
+
+def test_symlinked_agent_transcript_to_parent_is_refused(tmp_path):
+    """A string compare is bypassed by a symlink pointing back at the
+    parent — the round-1 fabrication path with one extra hop."""
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    link = tmp_path / "looks-like-an-agent-file.jsonl"
+    link.symlink_to(parent)
+    text, source = subagent_stop._subagent_text(
+        {"agent_transcript_path": str(link), "transcript_path": parent},
+        parent, Path(parent).read_text(encoding="utf-8"),
+    )
+    assert source == "parent"
+    assert subagent_stop._attributable(source, text) is False

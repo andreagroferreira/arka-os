@@ -88,7 +88,7 @@ def _subagent_text(
         return direct, "payload"
 
     agent_transcript = get_str(stdin_json, "agent_transcript_path")
-    if agent_transcript and agent_transcript != transcript_path:
+    if agent_transcript and not _same_file(agent_transcript, transcript_path):
         scoped = _last_message(agent_transcript, None)
         if scoped:
             return scoped, "agent-transcript"
@@ -96,6 +96,21 @@ def _subagent_text(
     # No subagent-scoped source. The text below is the PARENT's — usable
     # for the QA counters, never for a ledger record.
     return _last_message(transcript_path, raw), "parent"
+
+
+def _same_file(candidate: str, parent: str) -> bool:
+    """True when both paths resolve to the same file.
+
+    A plain string comparison is bypassed by a symlink or a relative
+    path pointing back at the parent transcript — the source of the
+    round-1 fabrication.
+    """
+    if candidate == parent:
+        return True
+    try:
+        return Path(candidate).resolve() == Path(parent).resolve()
+    except (OSError, ValueError):
+        return False
 
 
 def _last_message(path: str, raw: str | None) -> str:

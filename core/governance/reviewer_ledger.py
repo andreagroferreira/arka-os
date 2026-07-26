@@ -16,6 +16,9 @@ its sha256, the parsed QGVerdict when a fenced block is present (parse
 failures are recorded, never silent), and the capture source. The digest
 is part of the filename, so two captures that disagree can never
 overwrite each other: divergent text always lands as a second record.
+(In the field every record has come from SubagentStop — the PostToolUse
+writer only sees synchronous dispatches — so treat that as collision
+safety, not as a delivered two-source cross-check.)
 
 ATTRIBUTION IS FAIL-CLOSED. A record here is signed evidence carrying a
 reviewer's name, so it is written only from a source that provably
@@ -428,8 +431,8 @@ def queue_notice(session_id: str, record: dict | None, nudge: str) -> None:
         return
 
 
-def drain_notices(session_id: str) -> list[dict]:
-    """Read and clear the queued notices for a session ([] when none)."""
+def read_notices(session_id: str) -> list[dict]:
+    """Queued notices for a session, WITHOUT clearing them ([] when none)."""
     try:
         path = _notice_path(session_id)
         if path is None or not path.is_file():
@@ -442,16 +445,34 @@ def drain_notices(session_id: str) -> list[dict]:
                 entries.append(json.loads(line))
             except json.JSONDecodeError:
                 continue  # a torn append must not swallow the rest
-        path.unlink(missing_ok=True)
         return entries
     except Exception:
         return []
 
 
+def clear_notices(session_id: str) -> None:
+    """Drop the queue — call only AFTER the notices have been delivered.
+
+    Split from the read so a failed delivery cannot lose a verdict: the
+    queue used to be unlinked before the caller emitted, and the emit
+    sits outside that call's try/except.
+    """
+    try:
+        path = _notice_path(session_id)
+        if path is not None:
+            path.unlink(missing_ok=True)
+    except Exception:
+        return
+
+
 def notices_context(session_id: str) -> str:
-    """The orchestrator-facing block for the Stop hook ("" when empty)."""
+    """The orchestrator-facing block for the Stop hook ("" when empty).
+
+    Does NOT clear the queue — the caller clears it once the context has
+    actually been emitted (see ``clear_notices``).
+    """
     lines = []
-    for entry in drain_notices(session_id):
+    for entry in read_notices(session_id):
         if entry.get("kind") == "reviewer-verdict":
             verdict = entry.get("verdict")
             if verdict:

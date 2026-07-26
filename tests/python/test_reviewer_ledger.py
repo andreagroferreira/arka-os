@@ -360,15 +360,20 @@ class TestOrchestratorNotices:
         reviewer_ledger.queue_notice("sess-refuted", record, "")
         assert "blockers=1" in reviewer_ledger.notices_context("sess-refuted")
 
-    def test_draining_is_one_shot(self, ledger_home):
+    def test_reading_does_not_clear_and_clearing_is_one_shot(self, ledger_home):
+        """Read and clear are split so a failed delivery cannot lose a
+        verdict; once cleared, re-delivery would be the loop again."""
         record = reviewer_ledger.record_reviewer_output(
             "sess-once", "francisca-tech", _reviewer_output(), "subagent-stop"
         )
         reviewer_ledger.queue_notice("sess-once", record, "")
         assert reviewer_ledger.notices_context("sess-once")
-        assert reviewer_ledger.notices_context("sess-once") == "", (
-            "a notice re-delivered every turn is the re-entry loop again"
+        assert reviewer_ledger.notices_context("sess-once"), (
+            "reading must not consume: an emit that fails after the read "
+            "would drop the verdict entirely"
         )
+        reviewer_ledger.clear_notices("sess-once")
+        assert reviewer_ledger.notices_context("sess-once") == ""
 
     def test_nudge_only_notice(self, ledger_home):
         reviewer_ledger.queue_notice("sess-nudge", None, "[arka:subagent-qa] x")

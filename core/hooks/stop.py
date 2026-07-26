@@ -517,13 +517,17 @@ def _emit_subagent_notices(session_id: str) -> None:
     if not session_id or not safe_session_id(session_id):
         return
     try:
-        from core.governance.reviewer_ledger import notices_context
+        from core.governance.reviewer_ledger import clear_notices, notices_context
 
         context = notices_context(session_id)
     except Exception:  # notices are best-effort — this hook never blocks
         return
-    if context:
-        emit_additional_context("Stop", context)
+    if not context:
+        return
+    # Emit first, clear second: a verdict lost to a failed delivery is
+    # the relay failure this whole surface exists to prevent.
+    emit_additional_context("Stop", context)
+    clear_notices(session_id)
 
 
 def main(stdin_json: dict | None = None) -> int:
