@@ -178,6 +178,10 @@ def _extract_verdict(
     ]
     if not own:
         return None, _foreign_fences_error(qualifying, reviewer_id)
+    return _own_verdict(own)
+
+
+def _own_verdict(own: list[dict]) -> tuple[dict | None, str | None]:
     verdict, error = _validated(own[-1])
     if len(own) > 1:
         ambiguity = f"ambiguous: {len(own)} own verdict fences (last used)"
