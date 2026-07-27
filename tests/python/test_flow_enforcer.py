@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
+from hook_shell import BASH
+
 from core.workflow import flow_enforcer, marker_cache
 from core.workflow.flow_enforcer import (
     Decision,
@@ -436,7 +438,7 @@ def test_bash_classifier_rejects_unsafe_session_ids(tmp_path, monkeypatch):
 
     for hostile in ["../PWNED", "foo/bar", "foo\\bar", "with space", "x" * 200, ""]:
         subprocess.run(
-            ["bash", str(lib), "mark", hostile],
+            [BASH, str(lib), "mark", hostile],
             env={**os.environ, "ARKA_WF_REQUIRED_DIR": str(fake_dir)},
             check=False,
             capture_output=True,
@@ -447,7 +449,7 @@ def test_bash_classifier_rejects_unsafe_session_ids(tmp_path, monkeypatch):
 
     # Sanity: a safe id *is* accepted
     subprocess.run(
-        ["bash", str(lib), "mark", "safe-id-1"],
+        [BASH, str(lib), "mark", "safe-id-1"],
         env={**os.environ, "ARKA_WF_REQUIRED_DIR": str(fake_dir)},
         check=True,
         capture_output=True,

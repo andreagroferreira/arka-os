@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+from hook_shell import BASH
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HOOKS_SRC = REPO_ROOT / "config" / "hooks"
 
@@ -59,7 +61,7 @@ def _run_wrapper(
     # exactly the failure this suite guards against (works from the repo
     # cwd, breaks everywhere else).
     return subprocess.run(
-        ["bash", str(wrapper)],
+        [BASH, str(wrapper)],
         input="{}",
         env=env,
         cwd=str(home),

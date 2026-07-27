@@ -18,6 +18,8 @@ from pathlib import Path
 
 import pytest
 
+from hook_shell import BASH
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STOP_SH = REPO_ROOT / "config" / "hooks" / "stop.sh"
 STOP_PS1 = REPO_ROOT / "config" / "hooks" / "stop.ps1"
@@ -80,7 +82,7 @@ def _run_stop_sh(
     env["ARKA_STOP_LINT"] = "0"
 
     subprocess.run(
-        ["bash", str(STOP_SH)],
+        [BASH, str(STOP_SH)],
         input=json.dumps(payload).encode("utf-8"),
         env=env,
         timeout=15,

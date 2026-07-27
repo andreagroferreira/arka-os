@@ -22,6 +22,8 @@ from pathlib import Path
 
 import pytest
 
+from hook_shell import BASH
+
 from core.workflow import flow_enforcer, marker_cache
 from core.workflow.flow_enforcer import Decision, evaluate, mark_flow_required
 
@@ -332,7 +334,7 @@ def test_post_tool_use_sh_no_marker_when_absent(tmp_path, monkeypatch):
         "assistant_message": "plain prose, no flow marker at all",
     })
     subprocess.run(
-        ["bash", str(script)],
+        [BASH, str(script)],
         input=payload,
         capture_output=True,
         text=True,
@@ -370,7 +372,7 @@ def test_post_tool_use_sh_confirms_auth_from_transcript(tmp_path, monkeypatch):
         "transcript_path": str(transcript),
     })
     subprocess.run(
-        ["bash", str(script)],
+        [BASH, str(script)],
         input=payload,
         capture_output=True,
         text=True,
