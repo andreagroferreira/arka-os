@@ -96,10 +96,7 @@ IDENTITY_ALIASES: tuple[frozenset[str], ...] = (
 CAPTURE_SOURCES = frozenset({"post-tool-use", "subagent-stop"})
 
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
-# Leading dots match the character class above but are never ids this
-# module serves: "." would scatter records across the ledger root, ".."
-# onto ~/.arkaos itself, and ".quarantine" filed LIVE records into the
-# evidence directory that the sweep deliberately refuses to touch.
+
 # Primary contract: a fenced ```arka-qgverdict block. Compatibility: a
 # plain ```json fence whose body parses and carries a "verdict" key —
 # the shape the deployed reviewer agents emit today.
@@ -228,6 +225,11 @@ def _sanitize(raw_output: str) -> tuple[str, bool]:
 
 
 def _safe_id(value: str) -> bool:
+    # Leading dots match _SAFE_ID_RE's character class but are never ids
+    # this module serves: "." would scatter records across the ledger
+    # root, ".." onto ~/.arkaos itself, and ".quarantine" filed LIVE
+    # records into the evidence directory that the sweep deliberately
+    # skips.
     return (
         bool(value)
         and not value.startswith(".")

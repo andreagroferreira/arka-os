@@ -221,9 +221,11 @@ def _record_reviewer(session_id: str, agent_id: str, text: str) -> dict | None:
 
     Independent of the PostToolUse writer: the two sources dedupe on the
     output hash, so divergent text lands as a second record rather than
-    an overwrite. Treat that as collision safety, NOT as a delivered
-    cross-check — in the field every record has come from here, because
-    the PostToolUse writer only sees synchronous dispatches.
+    an overwrite — except inside the ~2^-32 scan-to-link window, where
+    _publish adopts on the name alone (reviewer_ledger._write_record).
+    Treat that as collision safety, NOT as a delivered cross-check — in
+    the field every record has come from here, because the PostToolUse
+    writer only sees synchronous dispatches.
     """
     try:
         from core.governance.reviewer_ledger import record_reviewer_output

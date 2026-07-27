@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from core.governance import reviewer_ledger
 from core.hooks import subagent_stop
 from core.hooks.subagent_stop import main
 
@@ -89,9 +90,11 @@ def test_no_nudge_when_not_deliverable(tmp_path, capsys, monkeypatch):
     transcript = _transcript(tmp_path, "Here is a summary of the options.", with_tool=False)
     main({"session_id": "s1", "subagent_type": "analyst",
           "transcript_path": transcript})
-    # No deliverable => no stdout nudge (but the telemetry row is still
-    # written, which is the durable record).
+    # The hook writes nothing to stdout on ANY path; what a
+    # non-deliverable must not do is queue a nudge for the orchestrator.
+    # The telemetry row is still written, which is the durable record.
     assert capsys.readouterr().out.strip() == ""
+    assert reviewer_ledger.notices_context("s1") == ""
     assert len(_telemetry(tmp_path)) == 1
 
 

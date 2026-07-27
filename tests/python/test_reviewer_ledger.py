@@ -124,7 +124,8 @@ class TestCapture:
         assert len(files) == 1
 
     def test_divergent_text_is_a_second_record(self, ledger_home):
-        """Two sources disagreeing is a tamper signal, not an overwrite."""
+        """Divergent captures land as separate records — collision safety,
+        not a delivered tamper signal (see the ledger module docstring)."""
         reviewer_ledger.record_reviewer_output(
             "sess-4", "francisca-tech", _reviewer_output(), "post-tool-use"
         )
@@ -240,7 +241,9 @@ class TestVerdictSelection:
 class TestCollisionSafety:
     def test_divergent_text_never_overwrites(self, ledger_home):
         """The digest is in the filename, so two captures that disagree
-        cannot collapse into one file even at the same seq."""
+        cannot collapse into one file at the same seq unless their 8-hex
+        prefixes also collide (~2^-32), which _publish adopts on name
+        alone."""
         reviewer_ledger.record_reviewer_output(
             "sess-div", "francisca-tech", _reviewer_output(), "post-tool-use"
         )
@@ -299,7 +302,8 @@ class TestCollisionSafety:
     def test_a_dot_session_id_cannot_write_into_the_quarantine(self, ledger_home):
         """'.quarantine' matches the safe-id charset, so a session by that
         name filed LIVE records into the evidence directory — which the
-        sweep deliberately refuses to age out and _purge refuses to touch."""
+        sweep deliberately refuses to age out (its dot-directory skip is
+        the whole guard)."""
         assert reviewer_ledger.record_reviewer_output(
             ".quarantine", "francisca-tech", _reviewer_output(), "subagent-stop"
         ) is None
@@ -889,9 +893,10 @@ def test_sanitized_reports_whether_redaction_ran_not_whether_it_changed(
 
 
 class TestUnpinnedInvariants:
-    """Guards Francisca's independent set proved deletable with the suite
-    green. Each mutation was applied and re-run before the pin was
-    written."""
+    """Round-6 pins: three guards Francisca's independent set proved
+    deletable with the suite green, plus the capture-failure telemetry
+    introduced in the same commit to close her B5. Each mutation was
+    applied and re-run before the pin was written."""
 
     def test_reviewer_identities_are_not_interchangeable(self, ledger_home):
         """Fusing the two alias groups makes Eduardo and Francisca one
