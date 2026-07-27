@@ -18,8 +18,32 @@ export ARKA_HOOK_CWD="$_HOOK_CWD"
 _ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
 if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
 
+# ─── Resolve the root via the shared resolver (one root per session) ───
+# Reading .repo-path raw diverged from every other hook: the file points
+# at an npx cache that `npm cache clean` can purge, while
+# arka_resolve_root falls through to the ~/.arkaos/lib snapshot. The
+# chosen root AND source both travel to the entrypoint so the session
+# can name the root it actually ran from ([arka:root]).
 REPO=""
-[ -f "$HOME/.arkaos/.repo-path" ] && REPO=$(cat "$HOME/.arkaos/.repo-path")
+ARKA_ROOT_SOURCE="legacy"
+if command -v arka_resolve_root >/dev/null 2>&1; then
+  [ -n "${ARKAOS_ROOT:-}" ] && ARKA_ROOT_SOURCE="env"
+  REPO="$(arka_resolve_root)"
+  if [ "$ARKA_ROOT_SOURCE" != "env" ]; then
+    if [ -f "$HOME/.arkaos/.repo-path" ] \
+       && [ "$REPO" = "$(cat "$HOME/.arkaos/.repo-path" 2>/dev/null)" ]; then
+      ARKA_ROOT_SOURCE="repo-path"
+    elif [ "$REPO" = "$HOME/.arkaos/lib" ]; then
+      ARKA_ROOT_SOURCE="lib-snapshot"
+    else
+      ARKA_ROOT_SOURCE="fallback"
+    fi
+  fi
+elif [ -f "$HOME/.arkaos/.repo-path" ]; then
+  REPO=$(cat "$HOME/.arkaos/.repo-path")
+fi
+export ARKA_ROOT_SOURCE
+export ARKA_ROOT="$REPO"
 
 # The MODULE file is the guard, not just core/: an older installed
 # snapshot without it would exec into "No module named ..." (exit 1,

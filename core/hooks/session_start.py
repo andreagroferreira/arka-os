@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -40,6 +41,7 @@ from core.hooks._shared import (
 )
 
 _BUDGET_MS = 300
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 _RECAP_ITEMS = 3
 _SUMMARY_CHARS = 130
 
@@ -204,6 +206,31 @@ def _session_resume() -> str:
     return "\n\n[SESSION] " + ctx.replace("\n", "\n[SESSION] ")
 
 
+def _root_line() -> str:
+    """Name the root the session ran from and what chose it (PR-A2).
+
+    The wrapper exports the root it resolved and cd'd into (ARKA_ROOT)
+    alongside the source; re-reading .repo-path here named a root the
+    session had not run from whenever the resolver did not choose the
+    .repo-path entry (sources env, lib-snapshot, fallback) — the exact
+    split this line exists to expose. Values are clamped to their
+    first line with control characters stripped: this text reaches the
+    model context, and a multi-line value could forge routing tags in
+    that channel.
+    """
+    root = os.environ.get("ARKA_ROOT") or repo_path() or os.getcwd()
+    source = os.environ.get("ARKA_ROOT_SOURCE") or "unknown"
+    return (
+        f"\n\n[arka:root] {_marker_safe(root)}"
+        f" (source: {_marker_safe(source)})"
+    )
+
+
+def _marker_safe(value: str) -> str:
+    """First line only, control characters stripped."""
+    return _CONTROL_RE.sub("", value.splitlines()[0]) if value else value
+
+
 def _spawn_detached(cmd: list[str], repo: str, log_path: Path | None = None) -> None:
     stdout = subprocess.DEVNULL
     handle = None
@@ -325,6 +352,7 @@ def build_context(cwd: str) -> str:
         _authority_brief(cwd),
         _model_fabric(),
         _session_resume(),
+        _root_line(),
     ]
     recap = build_recap(cwd)
     if recap:

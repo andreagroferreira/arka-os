@@ -392,6 +392,27 @@ export const checks = [
     fix: () => "Run: npx arkaos@latest update (recreates the ~/.arkaos/lib core snapshot)",
   },
   {
+    name: "root-consistency",
+    description: "One ArkaOS root per session (no ARKAOS_ROOT split root)",
+    severity: "warn",
+    check: () => {
+      // An exported ARKAOS_ROOT overrides every hook's root resolver
+      // (arka_resolve_root / resolve_arkaos_root / Resolve-ArkaRoot).
+      // That is fine when — after trimming and trailing-slash
+      // normalisation — it names the lib snapshot or the .repo-path
+      // entry, and a split root when it points somewhere else (a dev
+      // tree serving some hooks while the snapshot serves the rest).
+      const norm = (v) => v.trim().replace(/\/+$/, "");
+      const override = norm(process.env.ARKAOS_ROOT || "");
+      if (!override) return true;
+      if (override === join(INSTALL_DIR, "lib")) return true;
+      const p = join(INSTALL_DIR, ".repo-path");
+      return existsSync(p) && norm(readFileSync(p, "utf-8")) === override;
+    },
+    fix: () =>
+      "Remove the ARKAOS_ROOT export from your shell rc (~/.zshrc) — the hooks resolve the root themselves",
+  },
+  {
     name: "profile",
     description: "User profile exists",
     severity: "warn",

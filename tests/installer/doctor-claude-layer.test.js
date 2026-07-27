@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   checks,
@@ -34,8 +34,9 @@ const CLAUDE_LAYER_CHECKS = [
 // 26 pre-#358 POSIX checks + 10 migrated Claude-layer + 1 autoupdate
 // (Foundation PR-1) + 4 install-profile checks (Foundation PR-4:
 // install-profile, litellm-proxy, whisper, ollama-execution-model) +
-// 1 menubar (Foundation PR-5); Windows appends 4.
-const EXPECTED_TOTAL = 42 + (IS_WINDOWS ? 4 : 0);
+// 1 menubar (Foundation PR-5) + 1 root-consistency (repair PR-A2);
+// Windows appends 4.
+const EXPECTED_TOTAL = 43 + (IS_WINDOWS ? 4 : 0);
 
 const byName = Object.fromEntries(checks.map((c) => [c.name, c]));
 
@@ -201,5 +202,30 @@ test("deployedSkillCount: counts only arka-* dirs holding a SKILL.md", () => {
     assert.equal(deployedSkillCount(dir), 1, "non arka-* dirs must not count");
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ─── root-consistency (repair PR-A2) ────────────────────────────────────
+
+test("root-consistency: split root warns, same-root spellings pass", () => {
+  const entry = byName["root-consistency"];
+  assert.ok(entry, "missing doctor check: root-consistency");
+  assert.equal(entry.severity, "warn", "advisory, never fails the install");
+  assert.ok(entry.fix().includes("shell rc"), "fix must say where to remove it");
+
+  const saved = process.env.ARKAOS_ROOT;
+  try {
+    delete process.env.ARKAOS_ROOT;
+    assert.equal(entry.check(), true, "no override => one root, consistent");
+    process.env.ARKAOS_ROOT = join(homedir(), ".arkaos", "lib") + "/";
+    assert.equal(
+      entry.check(), true,
+      "a trailing slash on the snapshot names the same root"
+    );
+    process.env.ARKAOS_ROOT = join(tmpdir(), "somewhere-else-entirely");
+    assert.equal(entry.check(), false, "an unrelated override is a split root");
+  } finally {
+    if (saved === undefined) delete process.env.ARKAOS_ROOT;
+    else process.env.ARKAOS_ROOT = saved;
   }
 });
