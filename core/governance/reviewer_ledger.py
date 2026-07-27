@@ -21,7 +21,9 @@ changed anything: the two digests differ only when it rewrote the text,
 so a record with ``sanitized: true`` and equal digests was inspected and
 left alone. The dedup digest is part of the filename, so two captures
 that disagree land as separate records instead of overwriting each
-other — the full 256 bits are confirmed before any adoption.
+other. Adopting a prior record confirms the full 256 bits on the scan
+path; the late collision arm in ``_publish`` adopts on name alone (the
+~2^-32 window is described at ``_write_record``).
 (In the field every record has come from SubagentStop — the PostToolUse
 writer only sees synchronous dispatches — so treat that as collision
 safety, not as a delivered two-source cross-check.)
@@ -94,9 +96,10 @@ IDENTITY_ALIASES: tuple[frozenset[str], ...] = (
 CAPTURE_SOURCES = frozenset({"post-tool-use", "subagent-stop"})
 
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
-# "." and ".." match the character class above: "." would scatter
-# records across the ledger root, ".." onto ~/.arkaos itself.
-_DOT_IDS = frozenset({".", ".."})
+# Leading dots match the character class above but are never ids this
+# module serves: "." would scatter records across the ledger root, ".."
+# onto ~/.arkaos itself, and ".quarantine" filed LIVE records into the
+# evidence directory that the sweep deliberately refuses to touch.
 # Primary contract: a fenced ```arka-qgverdict block. Compatibility: a
 # plain ```json fence whose body parses and carries a "verdict" key —
 # the shape the deployed reviewer agents emit today.
@@ -225,7 +228,11 @@ def _sanitize(raw_output: str) -> tuple[str, bool]:
 
 
 def _safe_id(value: str) -> bool:
-    return bool(value) and value not in _DOT_IDS and bool(_SAFE_ID_RE.match(value))
+    return (
+        bool(value)
+        and not value.startswith(".")
+        and bool(_SAFE_ID_RE.match(value))
+    )
 
 
 def _session_dir(session_id: str) -> Path | None:
@@ -254,9 +261,11 @@ def _write_record(session_dir: Path, record: dict) -> Path | None:
     collide only on a prefix match at the same seq (~2^-32). A collision
     therefore means, in practice, that another writer captured this
     exact text first, and the answer is to adopt its file rather than
-    bump the seq (bumping filed the same verdict twice). The remaining
-    224 bits are confirmed by ``_find_by_digest`` before any adoption,
-    so a prefix collision cannot substitute a different text.
+    bump the seq (bumping filed the same verdict twice). The scan in
+    ``_capture`` confirms the remaining 224 bits before adopting; the
+    ``FileExistsError`` arm in ``_publish`` sees only the name, so a
+    divergent text that lands at the same seq inside the scan-to-link
+    window is silently dropped, not filed as its own record.
 
     Body first, name second, via a temp file and ``os.link``. Creating
     the final name with O_EXCL and writing afterwards published an empty
@@ -345,7 +354,8 @@ def record_reviewer_output(
     Never raises. Deduplicates by finding the 8-hex digest prefix in a
     filename and then confirming the full 256-bit ``raw_sha256`` in the
     body, so the two writers do not double-record the same output and a
-    32-bit filename collision cannot adopt a different text.
+    32-bit filename collision cannot adopt a different text on the scan
+    path (for the late scan-to-link window, see ``_write_record``).
     """
     try:
         if not raw_output or not is_reviewer(reviewer_id):
@@ -415,13 +425,12 @@ def _capture(
 
 
 def _find_by_digest(paths: list[Path], digest: str) -> dict | None:
-    """Prior capture of this exact text, matched on the FILENAME digest.
+    """Prior capture of this exact text: found by name, confirmed by body.
 
-    Reading the body to compare hashes raced the writer: a file created
-    with O_EXCL is visible before its content is flushed, so a
-    concurrent capture parsed nothing, believed the text was new, and
-    filed a duplicate under the next seq. The digest is in the name, so
-    the check needs no content at all.
+    The 32-bit digest prefix in the filename narrows the candidates
+    without hashing any content; the stored ``raw_sha256`` then confirms
+    the full digest. Reading the body is safe here because a published
+    name always implies complete content (``_write_record``).
     """
     suffix = f"-{digest[:8]}.json"
     for path in paths:
@@ -533,6 +542,10 @@ def _notice_entry(record: dict | None, nudge: str) -> dict | None:
             "parse_error": record.get("parse_error"),
             "artifact": record.get("path"),
         })
+        # The record supersedes the nudge: the only nudge produced says
+        # "route it through the Quality Gate", and a captured verdict IS
+        # the Quality Gate speaking — forwarding both would ask for a
+        # review of a review.
         return entry
     if nudge:
         entry.update({"kind": "subagent-qa", "message": nudge})

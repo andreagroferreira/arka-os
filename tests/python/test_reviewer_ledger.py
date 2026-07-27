@@ -279,6 +279,34 @@ class TestCollisionSafety:
         root = reviewer_ledger.ledger_root()
         assert not list(root.glob("*.json")), "no record may land in the root"
 
+    def test_divergent_text_takes_the_next_seq(self, ledger_home):
+        """The seq must actually count. A constant seq=1 still lands both
+        records — the digest is in the name — so counting files leaves
+        the increment itself unpinned."""
+        first = reviewer_ledger.record_reviewer_output(
+            "sess-seq", "francisca-tech", _reviewer_output(), "post-tool-use"
+        )
+        altered = dict(VERDICT_BODY, verdict="APPROVED", blockers=[])
+        second = reviewer_ledger.record_reviewer_output(
+            "sess-seq", "francisca-tech", _reviewer_output(altered),
+            "subagent-stop",
+        )
+        assert first["seq"] == 1
+        assert second["seq"] == 2, "a divergent capture must take the next seq"
+        assert "-1-" in Path(first["path"]).name
+        assert "-2-" in Path(second["path"]).name
+
+    def test_a_dot_session_id_cannot_write_into_the_quarantine(self, ledger_home):
+        """'.quarantine' matches the safe-id charset, so a session by that
+        name filed LIVE records into the evidence directory — which the
+        sweep deliberately refuses to age out and _purge refuses to touch."""
+        assert reviewer_ledger.record_reviewer_output(
+            ".quarantine", "francisca-tech", _reviewer_output(), "subagent-stop"
+        ) is None
+        assert not (reviewer_ledger.ledger_root() / ".quarantine").exists()
+        reviewer_ledger.queue_notice(".quarantine", None, "[arka:subagent-qa] x")
+        assert reviewer_ledger.notices_context(".quarantine") == ""
+
 
 class TestSweepSafety:
     def test_symlinked_session_dir_is_never_followed(self, ledger_home, tmp_path):
@@ -306,6 +334,26 @@ class TestSweepSafety:
         )
         assert victim.is_dir()
         assert link.is_symlink(), "the link itself must survive too"
+
+    def test_an_interrupted_publish_does_not_block_the_sweep(self, ledger_home):
+        """A crash between temp-write and link leaves a .tmp- file behind.
+        _purge must recognise it as the ledger's own, or the session dir
+        is refused whole and retention never reclaims it."""
+        import time
+
+        reviewer_ledger.record_reviewer_output(
+            "sess-stale", "francisca-tech", _reviewer_output(), "post-tool-use"
+        )
+        session_dir = reviewer_ledger.ledger_root() / "sess-stale"
+        stale = session_dir / ".francisca-tech-2-deadbeef.json.tmp-99-abcd1234"
+        stale.write_text("{}", encoding="utf-8")
+        ancient = time.time() - (100 * 86400)
+        os.utime(session_dir, (ancient, ancient))
+
+        assert reviewer_ledger.sweep_expired(days=90) == 1, (
+            "a stale temp file must not block the sweep"
+        )
+        assert not session_dir.exists()
 
 
 class TestOrchestratorNotices:
@@ -402,6 +450,23 @@ class TestOrchestratorNotices:
         reviewer_ledger.queue_notice("sess-nudge", None, "[arka:subagent-qa] x")
         assert "[arka:subagent-qa] x" in reviewer_ledger.notices_context("sess-nudge")
 
+    def test_a_record_supersedes_the_nudge(self, ledger_home):
+        """The real producer (subagent_stop) passes record and nudge
+        together on every reviewer dispatch. The only nudge produced says
+        "route it through the Quality Gate" — and a captured verdict IS
+        the Quality Gate speaking, so the nudge is dropped by design."""
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-both", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        reviewer_ledger.queue_notice(
+            "sess-both", record, "[arka:subagent-qa] never delivered"
+        )
+        context = reviewer_ledger.notices_context("sess-both")
+        assert "[arka:qg:reviewer-verdict] francisca-tech" in context
+        assert "[arka:subagent-qa]" not in context, (
+            "a verdict must not arrive alongside advice to go get one"
+        )
+
     def test_nothing_to_say_writes_nothing(self, ledger_home):
         reviewer_ledger.queue_notice("sess-quiet", None, "")
         assert reviewer_ledger.notices_context("sess-quiet") == ""
@@ -433,6 +498,14 @@ class TestTruthfulness:
         reviewer_ledger.queue_notice("sess-perm2", None, "[arka:subagent-qa] x")
         mode = os.stat(reviewer_ledger.ledger_root() / "sess-perm2").st_mode & 0o777
         assert mode == 0o700, f"session dir must be 0700, got {oct(mode)}"
+
+    def test_the_queue_file_is_owner_only(self, ledger_home):
+        """The queue names reviewers and verdicts — 0600 like the records
+        it points at, not the 0644 the umask would leave."""
+        reviewer_ledger.queue_notice("sess-perm3", None, "[arka:subagent-qa] x")
+        path = reviewer_ledger.ledger_root() / "sess-perm3" / "NOTICES.jsonl"
+        mode = os.stat(path).st_mode & 0o777
+        assert mode == 0o600, f"queue file must be 0600, got {oct(mode)}"
 
     def test_capture_refuses_an_unknown_source(self, ledger_home):
         """The fail-closed rule is enforced in the ledger, not only in
