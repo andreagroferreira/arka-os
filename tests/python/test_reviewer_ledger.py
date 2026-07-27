@@ -302,8 +302,8 @@ class TestCollisionSafety:
     def test_a_dot_session_id_cannot_write_into_the_quarantine(self, ledger_home):
         """'.quarantine' matches the safe-id charset, so a session by that
         name filed LIVE records into the evidence directory — which the
-        sweep deliberately refuses to age out (its dot-directory skip is
-        the whole guard)."""
+        sweep deliberately refuses to age out (sweep_expired's entry skip
+        is the whole guard; _purge contributes none)."""
         assert reviewer_ledger.record_reviewer_output(
             ".quarantine", "francisca-tech", _reviewer_output(), "subagent-stop"
         ) is None
@@ -751,9 +751,10 @@ class TestSweepScope:
 
         quarantine = reviewer_ledger.ledger_root() / ".quarantine"
         quarantine.mkdir(parents=True)
-        # A name _purge WOULD delete, so only the dot-directory skip can
-        # save it: a foreign name would be refused anyway and the test
-        # would pass with the skip removed.
+        # A name _purge WOULD delete, so only sweep_expired's entry skip
+        # can save it (a foreign name would be refused anyway). Both of
+        # that skip's clauses now catch a leading dot, so this pins the
+        # skip as a whole, not startswith(".") on its own.
         kept = quarantine / "francisca-tech-1-deadbeef.json"
         kept.write_text("{}", encoding="utf-8")
         ancient = time.time() - (300 * 86400)

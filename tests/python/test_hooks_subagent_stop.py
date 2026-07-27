@@ -98,6 +98,32 @@ def test_no_nudge_when_not_deliverable(tmp_path, capsys, monkeypatch):
     assert len(_telemetry(tmp_path)) == 1
 
 
+def test_a_phantom_flag_without_a_deliverable_queues_no_nudge(
+    tmp_path, capsys, monkeypatch
+):
+    """The nudge gate is deliverable AND parts. Mutated to `if parts:` it
+    survived every test that touched the hook until this one, for two
+    reasons: the only test that watched the queue for silence had EMPTY
+    parts (under 15 words, so the meta-tag check bypasses and phantom
+    passed), and every case that DID reach the gate with parts and no
+    deliverable also filed a ledger record, which supersedes the nudge.
+    Here neither holds: parts is non-empty, deliverable is False, and no
+    record is filed, so the gate's decision is finally observable."""
+    monkeypatch.setattr(subagent_stop, "_persist_output", lambda *a: None)
+    transcript = _transcript(
+        tmp_path, "I committed the change to the branch.", with_tool=False
+    )
+    assert main({"session_id": "s1", "subagent_type": "paulo",
+                 "transcript_path": transcript}) == 0
+    row = _telemetry(tmp_path)[0]
+    assert row["phantom"] == "phantom-action", "the case must be flagged"
+    assert row["deliverable"] is False, "and still not deliverable-shaped"
+    assert reviewer_ledger.notices_context("s1") == "", (
+        "a phantom flag without a deliverable must queue nothing"
+    )
+    assert capsys.readouterr().out.strip() == ""
+
+
 def test_qa_off_is_inert(tmp_path, monkeypatch):
     monkeypatch.setenv("ARKA_SUBAGENT_QA", "off")
     transcript = _transcript(tmp_path, "Implemented X.", with_tool=False)
