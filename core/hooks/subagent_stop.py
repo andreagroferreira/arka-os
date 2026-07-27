@@ -220,8 +220,10 @@ def _record_reviewer(session_id: str, agent_id: str, text: str) -> dict | None:
     """Cross-check capture of a QG reviewer's verdict (see the ledger).
 
     Independent of the PostToolUse writer: the two sources dedupe on the
-    output hash, so a divergence between them is a tamper signal rather
-    than a silent overwrite.
+    output hash, so divergent text lands as a second record rather than
+    an overwrite. Treat that as collision safety, NOT as a delivered
+    cross-check — in the field every record has come from here, because
+    the PostToolUse writer only sees synchronous dispatches.
     """
     try:
         from core.governance.reviewer_ledger import record_reviewer_output

@@ -626,9 +626,11 @@ class TestVerdictOwnership:
 
 
 class TestDigestHonesty:
-    """The headline promise is verifiable: the operator can hash the file
-    they are reading and get stored_sha256. raw_sha256 is the dedup key
-    over the text as returned, which redaction may have rewritten."""
+    """The headline promise is verifiable: hashing a record's
+    ``raw_output`` field yields its ``stored_sha256`` (the record is
+    JSON, so the digest is over the stored text, not over the file).
+    ``raw_sha256`` is the dedup key over the text as returned, which
+    redaction may have rewritten."""
 
     def test_stored_digest_matches_the_file_on_disk(self, ledger_home):
         import hashlib
@@ -778,3 +780,20 @@ def test_prefix_collision_does_not_adopt_a_different_text(ledger_home):
     )
     assert again["raw_sha256"] == record["raw_sha256"]
     assert again["raw_output"] == raw, "must not adopt the impostor's body"
+
+
+def test_sanitized_reports_whether_redaction_ran_not_whether_it_changed(
+    ledger_home, monkeypatch
+):
+    """A record with sanitized: true and equal digests was inspected and
+    left alone — the flag is about the pass running, not about a rewrite."""
+    from core.evals import sanitizer
+
+    monkeypatch.setattr(sanitizer, "sanitize_text", lambda text: (text, {}))
+    record = reviewer_ledger.record_reviewer_output(
+        "sess-noop", "francisca-tech", _reviewer_output(), "subagent-stop"
+    )
+    assert record["sanitized"] is True, "redaction ran"
+    assert record["stored_sha256"] == record["raw_sha256"], (
+        "and changed nothing, so the digests agree"
+    )

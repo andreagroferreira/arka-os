@@ -14,10 +14,12 @@ it, with digests that make any tampering evident:
 Each record carries the reviewer's returned text UNTRUNCATED, the parsed
 QGVerdict when a fenced block is present (parse failures are recorded,
 never silent), the capture source, and two digests: ``stored_sha256``
-over the text on disk, which is what the operator verifies, and
-``raw_sha256`` over the text as returned, which is the dedup key. They
-are equal unless redaction rewrote the text, and ``sanitized`` says
-which case a record is. The dedup digest is part of the filename, so two
+over the ``raw_output`` field as stored, which is what the operator
+verifies, and ``raw_sha256`` over the text as returned, which is the
+dedup key. ``sanitized`` reports whether redaction RAN, not whether it
+changed anything: the two digests differ only when it rewrote the text,
+so a record with ``sanitized: true`` and equal digests was inspected and
+left alone. The dedup digest is part of the filename, so two
 captures that disagree can never overwrite each other: divergent text
 always lands as a second record.
 (In the field every record has come from SubagentStop — the PostToolUse
