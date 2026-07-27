@@ -270,16 +270,21 @@ def _write_record(session_dir: Path, record: dict) -> Path | None:
     tmp = _write_temp(session_dir, path.name, record)
     if tmp is None:
         return None
+    return path if _publish(tmp, path) else None
+
+
+def _publish(tmp: Path, path: Path) -> bool:
+    """Link the complete temp into place; always clean the temp up."""
     try:
         os.link(tmp, path)
     except FileExistsError:
         pass  # same reviewer, seq and text: another writer got there first
     except OSError:
-        return None
+        return False
     finally:
         with contextlib.suppress(OSError):
             tmp.unlink(missing_ok=True)
-    return path
+    return True
 
 
 def _write_temp(session_dir: Path, name: str, record: dict) -> Path | None:
@@ -309,6 +314,14 @@ def _build_record(
     digest: str,
     seq: int,
 ) -> dict:
+    """One ledger record.
+
+    ``stored_sha256`` digests the ``raw_output`` FIELD — verify it by
+    hashing that field, not the file, which is the surrounding JSON.
+    ``raw_sha256`` digests the text as returned and is the dedup key.
+    They differ exactly when redaction rewrote the text; ``sanitized``
+    reports only whether the pass RAN.
+    """
     verdict, parse_error = _extract_verdict(raw_output, reviewer_id)
     stored, sanitized = _sanitize(raw_output)
     return {
@@ -316,13 +329,6 @@ def _build_record(
         "session_id": session_id,
         "reviewer_id": reviewer_id,
         "seq": seq,
-        # ``stored_sha256`` digests the ``raw_output`` FIELD, so the
-        # operator verifies it by hashing that field — not the file,
-        # which is the surrounding JSON. ``raw_sha256`` digests the text
-        # as returned and is the dedup key across writers. The two differ
-        # exactly when redaction rewrote the text; ``sanitized`` reports
-        # only whether the redaction pass RAN, so equal digests with
-        # ``sanitized: true`` mean it ran and changed nothing.
         "stored_sha256": hashlib.sha256(stored.encode("utf-8")).hexdigest(),
         "raw_output": stored,
         "raw_sha256": digest,

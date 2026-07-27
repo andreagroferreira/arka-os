@@ -674,13 +674,17 @@ class TestSweepScope:
 
         quarantine = reviewer_ledger.ledger_root() / ".quarantine"
         quarantine.mkdir(parents=True)
-        kept = quarantine / "fabricated-francisca-tech-1.json"
+        # A name _purge WOULD delete, so only the dot-directory skip can
+        # save it: a foreign name would be refused anyway and the test
+        # would pass with the skip removed.
+        kept = quarantine / "francisca-tech-1-deadbeef.json"
         kept.write_text("{}", encoding="utf-8")
         ancient = time.time() - (300 * 86400)
         os.utime(quarantine, (ancient, ancient))
 
         assert reviewer_ledger.sweep_expired(days=90) == 0
         assert kept.is_file(), "quarantined evidence must survive retention"
+        assert quarantine.is_dir()
 
     def test_foreign_file_is_never_deleted(self, ledger_home):
         """Unlinking whatever happened to be a regular file destroyed an

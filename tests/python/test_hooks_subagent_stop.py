@@ -524,3 +524,53 @@ def test_hardlinked_agent_transcript_is_refused(tmp_path):
     )
     assert source == "parent", "inode identity must win over the name"
     assert subagent_stop._attributable(source, text) is False
+
+
+# ─── CQO id widening (PR-B1) ─────────────────────────────────────────────
+
+
+def test_cqo_experience_persistence_fires_on_the_dispatched_id(
+    tmp_path, monkeypatch
+):
+    """Dispatches carry the agent-file name (marta-cqo), not the bare
+    role, so `== "cqo"` skipped the experience-persistence MUST rule on
+    ~90% of CQO dispatches. The widening shipped with no test: reverting
+    it left the whole suite green."""
+    from core.hooks import post_tool_use
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    seen: list[str] = []
+    monkeypatch.setattr(
+        post_tool_use, "_record_cqo_rejected",
+        lambda _out, _prompt, _sid: seen.append("recorded"),
+    )
+    monkeypatch.setattr(post_tool_use, "_record_pattern_stub", lambda *a: None)
+
+    for dispatched in ("cqo", "marta-cqo", "cqo-marta"):
+        seen.clear()
+        post_tool_use.main({
+            "tool_name": "Task",
+            "session_id": f"cqo-{dispatched}",
+            "cwd": "/tmp",
+            "transcript_path": "",
+            "tool_input": {
+                "subagent_type": dispatched,
+                "prompt": "[arka:reviewing francisca-tech]",
+            },
+            "tool_response": {"content": [
+                {"type": "text", "text": "Quality Gate Verdict: REJECTED"},
+            ]},
+        })
+        assert seen == ["recorded"], (
+            f"experience persistence must fire for dispatch id {dispatched!r}"
+        )
+
+    seen.clear()
+    post_tool_use.main({
+        "tool_name": "Task", "session_id": "cqo-other", "cwd": "/tmp",
+        "transcript_path": "",
+        "tool_input": {"subagent_type": "frontend-dev", "prompt": "x"},
+        "tool_response": {"content": [{"type": "text", "text": "done"}]},
+    })
+    assert seen == [], "and must not fire for a non-CQO dispatch"
