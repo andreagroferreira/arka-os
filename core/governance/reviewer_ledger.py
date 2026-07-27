@@ -314,14 +314,7 @@ def _build_record(
     digest: str,
     seq: int,
 ) -> dict:
-    """One ledger record.
-
-    ``stored_sha256`` digests the ``raw_output`` FIELD — verify it by
-    hashing that field, not the file, which is the surrounding JSON.
-    ``raw_sha256`` digests the text as returned and is the dedup key.
-    They differ exactly when redaction rewrote the text; ``sanitized``
-    reports only whether the pass RAN.
-    """
+    """One ledger record. Digest semantics: see the module docstring."""
     verdict, parse_error = _extract_verdict(raw_output, reviewer_id)
     stored, sanitized = _sanitize(raw_output)
     return {
