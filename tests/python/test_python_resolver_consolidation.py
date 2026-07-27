@@ -301,3 +301,52 @@ def test_windows_flow_hooks_use_shared_resolver():
         if re.search(r"Get-Command python3 -ErrorAction", body):
             offenders.append(f"{rel}: still resolves bare python3 first")
     assert not offenders, "\n".join(offenders)
+
+
+def test_ps1_interpreter_probes_skip_store_aliases():
+    """No PowerShell hook may select an interpreter out of WindowsApps.
+
+    %LOCALAPPDATA%\Microsoft\WindowsApps holds zero-length App Execution
+    Aliases. On a default Windows install `python3.exe` there is the Python
+    install manager, and *running* it downloads and installs a full CPython
+    into the current working directory. A hook's cwd is the user's project,
+    so one probe drops a ~3700-file Python/ tree and a
+    python_install_<timestamp>.log into their repo — reproduced on Windows
+    10 with install manager 26.3.
+
+    Every candidate list that feeds Get-Command must therefore exclude the
+    alias directory, and must try `python` before `python3` (on Windows the
+    former is the real interpreter and the latter usually just the alias).
+    """
+    offenders: list[str] = []
+    # Both PowerShell spellings of a candidate list: the bare comma form
+    # (`in 'python','py'`) and the array form (`in @("python", "py")`).
+    # arka_python.ps1 uses the latter, and it is the probe that actually
+    # *executes* each candidate, so missing it would defeat the test.
+    candidate_list = re.compile(
+        r"foreach\s*\(\s*\$\w+\s+in\s+@?\(?\s*"
+        r"((?:[\"'](?:python3?|py)[\"']\s*,?\s*)+)\)?",
+        re.IGNORECASE,
+    )
+    for path in sorted((_ROOT / "config" / "hooks").rglob("*.ps1")):
+        body = path.read_text(encoding="utf-8")
+        rel = path.relative_to(_ROOT).as_posix()
+        for match in candidate_list.finditer(body):
+            names = re.findall(r"[\"']([^\"']+)[\"']", match.group(1))
+            if names and names[0] == "python3":
+                offenders.append(
+                    f"{rel}: probes 'python3' first — on Windows that is the "
+                    "Store alias, not an interpreter"
+                )
+            # The guard must apply to the command this loop resolves: either
+            # inline in the block, or via the shared Test-StoreAlias helper
+            # (arka_python.ps1 extracts it, which is the better shape and
+            # must not be penalised by an in-block-only check).
+            window = body[match.start():match.start() + 600]
+            if "WindowsApps" not in window and "Test-StoreAlias" not in window:
+                offenders.append(
+                    f"{rel}: interpreter probe does not exclude "
+                    "\\Microsoft\\WindowsApps\\; running a Store alias "
+                    "installs CPython into the hook's cwd"
+                )
+    assert not offenders, "\n".join(offenders)

@@ -99,9 +99,14 @@ try {
         if (Test-Path -LiteralPath $venvPyUps) {
             $pythonForInvalidate = $venvPyUps
         } else {
-            foreach ($cmd in 'python3','python','py') {
+            # Skip %LOCALAPPDATA%\Microsoft\WindowsApps — python3.exe there
+            # is the Store install-manager alias, and running it installs a
+            # CPython into the cwd (the user's project, for a hook).
+            foreach ($cmd in 'python','py','python3') {
                 $resolvedUps = Get-Command $cmd -ErrorAction SilentlyContinue
-                if ($resolvedUps) { $pythonForInvalidate = $resolvedUps.Source; break }
+                if ($resolvedUps -and $resolvedUps.Source -notmatch '\\Microsoft\\WindowsApps\\') {
+                    $pythonForInvalidate = $resolvedUps.Source; break
+                }
             }
         }
         if ($pythonForInvalidate) {
@@ -230,10 +235,15 @@ function Find-Python {
     # Fallback to the typical Windows venv layout.
     $venvPy = Join-Path $env:USERPROFILE '.arkaos\venv\Scripts\python.exe'
     if (Test-Path -LiteralPath $venvPy) { return $venvPy }
-    # System python. python3 is rare on Windows; `python` and `py -3` are typical.
-    foreach ($cmd in 'python3','python','py') {
+    # System python. `python` and `py -3` are the real interpreters on
+    # Windows; python3.exe is normally just the Store install-manager alias
+    # under %LOCALAPPDATA%\Microsoft\WindowsApps, which installs a CPython
+    # into the cwd the moment it runs.
+    foreach ($cmd in 'python','py','python3') {
         $resolved = Get-Command $cmd -ErrorAction SilentlyContinue
-        if ($resolved) { return $resolved.Source }
+        if ($resolved -and $resolved.Source -notmatch '\\Microsoft\\WindowsApps\\') {
+            return $resolved.Source
+        }
     }
     return $null
 }
