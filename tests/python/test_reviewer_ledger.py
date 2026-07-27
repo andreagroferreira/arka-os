@@ -1,6 +1,6 @@
 """Reviewer ledger — the direct channel from QG reviewers to the operator.
 
-The defect these tests pin: of 81 corpus verdicts, 80 were authored by
+The defect these tests pin: of 81 corpus records, 80 were authored by
 the aggregator and none by a reviewer, and every persisted reviewer
 output on disk came from the parent transcript rather than the
 subagent's own. A reviewer's verdict must land verbatim, hashed, and
@@ -632,7 +632,7 @@ class TestDigestHonesty:
     ``raw_sha256`` is the dedup key over the text as returned, which
     redaction may have rewritten."""
 
-    def test_stored_digest_matches_the_file_on_disk(self, ledger_home):
+    def test_stored_digest_matches_the_raw_output_field(self, ledger_home):
         import hashlib
 
         record = reviewer_ledger.record_reviewer_output(
@@ -716,8 +716,9 @@ class TestWriteGuards:
             "sess-adopt", "francisca-tech", raw, "post-tool-use"
         )
         session_dir = reviewer_ledger.ledger_root() / "sess-adopt"
-        # Force the collision path: the name exists, the dedup scan is
-        # bypassed by removing nothing — a second writer at the same seq.
+        # Force the collision path: call the writer directly, so the
+        # dedup scan in record_reviewer_output is bypassed and os.link
+        # meets a name that already exists — a second writer, same seq.
         record = reviewer_ledger._build_record(
             "sess-adopt", "francisca-tech", raw, "subagent-stop",
             first["raw_sha256"], 1,
@@ -762,24 +763,35 @@ class TestWriteGuards:
 
 def test_prefix_collision_does_not_adopt_a_different_text(ledger_home):
     """The filename carries 32 bits of the digest; the body carries 256.
-    A prefix match with a different body is a different verdict."""
+    A prefix match with a different body is a different verdict.
+
+    The impostor is planted with NO genuine record present, so the
+    256-bit confirmation is the only thing standing between the capture
+    and someone else's words. An earlier version planted it at seq 9,
+    which sorts after a genuine seq 1 — the guard was never reached and
+    the test passed without exercising it.
+    """
     raw = _reviewer_output()
-    record = reviewer_ledger.record_reviewer_output(
-        "sess-collide", "francisca-tech", raw, "subagent-stop"
-    )
+    digest = __import__("hashlib").sha256(raw.encode("utf-8")).hexdigest()
     session_dir = reviewer_ledger.ledger_root() / "sess-collide"
-    # Same 8-hex prefix in the name, a different full digest in the body.
-    prefix = record["raw_sha256"][:8]
-    impostor = session_dir / f"francisca-tech-9-{prefix}.json"
+    session_dir.mkdir(parents=True)
+    impostor = session_dir / f"francisca-tech-1-{digest[:8]}.json"
     impostor.write_text(
-        json.dumps({"raw_sha256": "f" * 64, "raw_output": "someone else"}),
+        json.dumps({
+            "raw_sha256": "f" * 64,
+            "raw_output": "WORDS THE REVIEWER NEVER WROTE",
+        }),
         encoding="utf-8",
     )
-    again = reviewer_ledger.record_reviewer_output(
+    record = reviewer_ledger.record_reviewer_output(
         "sess-collide", "francisca-tech", raw, "post-tool-use"
     )
-    assert again["raw_sha256"] == record["raw_sha256"]
-    assert again["raw_output"] == raw, "must not adopt the impostor's body"
+    assert record is not None
+    assert record["raw_sha256"] == digest
+    assert record["raw_output"] == raw, (
+        "a 32-bit filename match must never substitute another text"
+    )
+    assert "NEVER WROTE" not in record["raw_output"]
 
 
 def test_sanitized_reports_whether_redaction_ran_not_whether_it_changed(

@@ -19,9 +19,9 @@ verifies, and ``raw_sha256`` over the text as returned, which is the
 dedup key. ``sanitized`` reports whether redaction RAN, not whether it
 changed anything: the two digests differ only when it rewrote the text,
 so a record with ``sanitized: true`` and equal digests was inspected and
-left alone. The dedup digest is part of the filename, so two
-captures that disagree can never overwrite each other: divergent text
-always lands as a second record.
+left alone. The dedup digest is part of the filename, so two captures
+that disagree land as separate records instead of overwriting each
+other — the full 256 bits are confirmed before any adoption.
 (In the field every record has come from SubagentStop — the PostToolUse
 writer only sees synchronous dispatches — so treat that as collision
 safety, not as a delivered two-source cross-check.)
@@ -250,10 +250,13 @@ def _records_for(session_dir: Path, reviewer_id: str) -> list[Path]:
 def _write_record(session_dir: Path, record: dict) -> Path | None:
     """Publish the record atomically: complete body, then the name.
 
-    The filename carries the digest, so two DIFFERENT texts never
-    collide even at the same seq — a collision therefore means another
-    writer captured this exact text first, and the answer is to adopt
-    its file, not to bump the seq (bumping filed the same verdict twice).
+    The filename carries 32 bits of the digest, so two different texts
+    collide only on a prefix match at the same seq (~2^-32). A collision
+    therefore means, in practice, that another writer captured this
+    exact text first, and the answer is to adopt its file rather than
+    bump the seq (bumping filed the same verdict twice). The remaining
+    224 bits are confirmed by ``_find_by_digest`` before any adoption,
+    so a prefix collision cannot substitute a different text.
 
     Body first, name second, via a temp file and ``os.link``. Creating
     the final name with O_EXCL and writing afterwards published an empty
@@ -313,11 +316,13 @@ def _build_record(
         "session_id": session_id,
         "reviewer_id": reviewer_id,
         "seq": seq,
-        # ``stored_sha256`` is the digest OF WHAT IS ON DISK, so the
-        # operator can verify the file they are reading. ``raw_sha256``
-        # is the digest of the text as returned, which is the dedup key
-        # across writers; the two differ only when redaction rewrote the
-        # text, and ``sanitized`` says which case this is.
+        # ``stored_sha256`` digests the ``raw_output`` FIELD, so the
+        # operator verifies it by hashing that field — not the file,
+        # which is the surrounding JSON. ``raw_sha256`` digests the text
+        # as returned and is the dedup key across writers. The two differ
+        # exactly when redaction rewrote the text; ``sanitized`` reports
+        # only whether the redaction pass RAN, so equal digests with
+        # ``sanitized: true`` mean it ran and changed nothing.
         "stored_sha256": hashlib.sha256(stored.encode("utf-8")).hexdigest(),
         "raw_output": stored,
         "raw_sha256": digest,
