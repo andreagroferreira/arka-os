@@ -488,6 +488,40 @@ class TestHelpers:
         assert _wf_classify("!ls") is False
         assert _wf_classify("") is False
 
+    def test_wf_classify_question_guard(self):
+        # X5 (Cross-Machine Lab): interrogative-led prompts ending in "?"
+        # are information questions even when they contain an action verb.
+        from core.hooks.user_prompt_submit import _wf_classify
+        assert _wf_classify("o que e que este projeto faz?") is False
+        assert _wf_classify("como fazes o deploy?") is False
+        assert _wf_classify("how do I implement auth here?") is False
+        assert _wf_classify("qual abordagem devo implementar?") is False
+        # Polite requests keep matching — the lead word is not interrogative.
+        assert _wf_classify("podes implementar a exportacao?") is True
+        assert _wf_classify("can you add user auth?") is True
+        # Interrogative lead without "?" stays a directive.
+        assert _wf_classify("como combinado, implementa a feature") is True
+
+    def test_wf_classify_p17_lot_decisions_preserved(self):
+        # The P17 prompt lot (ubuntu-log U-007) measured 10/10 identical
+        # decisions across platforms. This pins those decisions, with L04
+        # flipped to False — the X5 false positive this guard fixes.
+        from core.hooks.user_prompt_submit import _wf_classify
+        lot = {
+            "implementa uma nova feature de exportacao CSV": True,   # L01
+            "le os logs": False,                                     # L02
+            "corrige o bug do encoding no stop hook": True,          # L03
+            "o que e que este projeto faz?": False,                  # L04 (X5)
+            "melhora isto": True,                                    # L05
+            "add user authentication to the API": True,              # L06
+            "/arka status": False,                                   # L07
+            "cria um script que faz backup da telemetria": True,     # L08
+            "porque e que o roteamento parece pior no Windows?": False,  # L09
+            "refactor the hook wrappers to share one resolver": True,    # L10
+        }
+        for prompt, expected in lot.items():
+            assert _wf_classify(prompt) is expected, prompt
+
     def test_query_hint_priority_and_clip(self):
         from core.hooks.pre_tool_use import _query_hint
         assert _query_hint({"query": "q", "prompt": "p"}) == "q"

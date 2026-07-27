@@ -40,6 +40,13 @@ arka_wf_safe_session_id() {
 # missed prompts were short continuations ("continua", "força") or
 # ship-tier verbs ("ship", "publish", "merge", "release", "deploy")
 # that prolong existing flow-required activity.
+# Keep in sync with _WF_QUESTION_LEAD_PATTERN in core/hooks/
+# user_prompt_submit.py. Interrogative-led prompts ending in "?" are
+# information questions, not creation intent, even when they contain an
+# action verb ("o que e que este projeto faz?"). Polite requests ("podes
+# implementar X?") keep matching: their lead word is not interrogative.
+ARKA_WF_QUESTION_LEAD='^[[:space:]]*(o[[:space:]]+que|porqu[eê]|por[[:space:]]+que|para[[:space:]]+que|qual|quais|quando|onde|quem|como|what|why|which|who|whose|when|where|how|does)\b'
+
 ARKA_WF_VERB_PATTERN='(criar?|crie[ms]?|cria[mr]?|adicionar?|adiciona[mr]?|implementar?|implementa[mr]?|desenvolver?|desenvolve[mr]?|construir?|constru[ií]a?[mr]?|fazer?|faz[ae]?[mr]?|refactor(izar?)?|corrigir?|corrige[mr]?|consertar?|conserta[mr]?|continuar?|continua[mr]?|forçar?|força[mr]?|colocar?|coloca[mr]?|p[oô]r|melhorar?|melhora[mr]?|terminar?|termina[mr]?|acabar?|acaba[mr]?|publicar?|publica[mr]?|lançar?|lança[mr]?|create[sd]?|creating|build(s|ing)?|add(s|ed|ing)?|implement(s|ed|ing)?|develop(s|ed|ing)?|fix(es|ed|ing)?|refactor(s|ed|ing)?|make[sd]?|making|continue[sd]?|continuing|ship(s|ped|ping)?|merge[sd]?|merging|publish(es|ed|ing)?|release[sd]?|releasing|deploy(s|ed|ing)?|finish(es|ed|ing)?|improve[sd]?|improving)'
 
 # Classify: returns "true" if the prompt looks like a creation/
@@ -55,6 +62,19 @@ arka_wf_classify() {
     echo "false"
     return 0
   fi
+
+  # Question guard: interrogative lead + trailing "?" = information
+  # question, never creation intent (X5 false positive).
+  local trimmed
+  trimmed=$(printf '%s' "$text" | sed 's/[[:space:]]*$//')
+  case "$trimmed" in
+    *\?)
+      if echo "$text" | grep -qiE "$ARKA_WF_QUESTION_LEAD"; then
+        echo "false"
+        return 0
+      fi
+      ;;
+  esac
 
   if echo "$text" | grep -qiE "\b${ARKA_WF_VERB_PATTERN}\b"; then
     echo "true"
