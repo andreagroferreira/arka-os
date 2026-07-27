@@ -16,8 +16,9 @@ from pathlib import Path
 
 import pytest
 
+from core.shared.temp_paths import arkaos_temp_dir
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-WF_REQUIRED_DIR = Path("/tmp/arkaos-wf-required")
 
 
 def _run_module(
@@ -56,6 +57,12 @@ def hook_home(tmp_path):
     (vault / "Laravel Service Pattern.md").write_text("# note\n", encoding="utf-8")
     return {
         "HOME": str(home),
+        # Path.home() consults USERPROFILE on Windows and HOME on POSIX, and
+        # _run_module inherits os.environ — so setting HOME alone left the
+        # real profile in play and every hook read the developer's own
+        # ~/.arkaos/config.json instead of the fixture's. Same pairing as
+        # tests/python/watch/conftest.py and tests/python/diagram/conftest.py.
+        "USERPROFILE": str(home),
         "ARKA_KB_VIOLATION_DIR": str(tmp_path / "kb-violation"),
         "ARKA_KB_QUERY_DIR": str(tmp_path / "kb-query"),
         "ARKAOS_VAULT": str(vault),
@@ -124,8 +131,9 @@ class TestPreToolUse:
             encoding="utf-8",
         )
         session_id = "pre-flow-deny-pr6"
-        WF_REQUIRED_DIR.mkdir(parents=True, exist_ok=True)
-        marker = WF_REQUIRED_DIR / session_id
+        wf_dir = Path(hook_home["ARKA_WF_REQUIRED_DIR"])
+        wf_dir.mkdir(parents=True, exist_ok=True)
+        marker = wf_dir / session_id
         marker.write_text("1", encoding="utf-8")
         transcript = tmp_path / "t.jsonl"
         transcript.write_text(json.dumps(
@@ -165,8 +173,9 @@ class TestPreToolUse:
             encoding="utf-8",
         )
         session_id = "pre-flow-allow-pr6"
-        WF_REQUIRED_DIR.mkdir(parents=True, exist_ok=True)
-        marker = WF_REQUIRED_DIR / session_id
+        wf_dir = Path(hook_home["ARKA_WF_REQUIRED_DIR"])
+        wf_dir.mkdir(parents=True, exist_ok=True)
+        marker = wf_dir / session_id
         marker.write_text("1", encoding="utf-8")
         transcript = tmp_path / "t.jsonl"
         transcript.write_text(json.dumps(
@@ -268,8 +277,9 @@ class TestStop:
         transcript = tmp_path / "transcript.jsonl"
         _make_transcript(transcript, with_external=with_external)
         queue = tmp_path / "queue"
-        WF_REQUIRED_DIR.mkdir(parents=True, exist_ok=True)
-        marker = WF_REQUIRED_DIR / session_id
+        wf_dir = Path(hook_home["ARKA_WF_REQUIRED_DIR"])
+        wf_dir.mkdir(parents=True, exist_ok=True)
+        marker = wf_dir / session_id
         if wf_required:
             marker.write_text("1", encoding="utf-8")
         else:
@@ -429,7 +439,7 @@ class TestUserPromptSubmit:
 
     def test_surfaces_kb_cite_nudge_on_high_effort(self, hook_home):
         sid = "ups-nudge-high-pr6"
-        cite_dir = Path("/tmp/arkaos-cite")
+        cite_dir = arkaos_temp_dir("arkaos-cite")
         cite_dir.mkdir(parents=True, exist_ok=True)
         (cite_dir / f"{sid}.json").write_text(json.dumps({
             "passed": False, "reason": "missing",
@@ -444,7 +454,7 @@ class TestUserPromptSubmit:
 
     def test_suppresses_nudge_on_low_effort(self, hook_home):
         sid = "ups-nudge-low-pr6"
-        cite_dir = Path("/tmp/arkaos-cite")
+        cite_dir = arkaos_temp_dir("arkaos-cite")
         cite_dir.mkdir(parents=True, exist_ok=True)
         nudge_file = cite_dir / f"{sid}.json"
         nudge_file.write_text(json.dumps({

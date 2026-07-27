@@ -45,7 +45,7 @@ from core.hooks._shared import (
     resolve_arkaos_root,
     safe_session_id,
 )
-from core.shared.temp_paths import arkaos_temp_dir
+from core.shared.temp_paths import arkaos_temp_dir, wf_required_dir
 
 _CACHE_DIR = arkaos_temp_dir("arkaos-context-cache")
 _CACHE_TTL = 300  # Constitution cache: 5 minutes
@@ -462,9 +462,7 @@ def _wf_classify(text: str) -> bool:
 def _wf_mark_required(session_id: str) -> None:
     if safe_session_id(session_id) is None:
         return
-    marker_dir = Path(
-        os.environ.get("ARKA_WF_REQUIRED_DIR", str(arkaos_temp_dir("arkaos-wf-required")))
-    )
+    marker_dir = wf_required_dir()
     try:
         marker_dir.mkdir(parents=True, exist_ok=True)
         (marker_dir / session_id).write_text(

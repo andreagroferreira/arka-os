@@ -38,3 +38,17 @@ def arkaos_temp_dir(*parts: str) -> Path:
     """
     base = Path(tempfile.gettempdir()) if os.name == "nt" else Path("/tmp")
     return base.joinpath(*parts)
+
+
+def wf_required_dir() -> Path:
+    """Directory holding the workflow-required markers.
+
+    Honors ``ARKA_WF_REQUIRED_DIR`` — the same override the bash
+    classifier (``_lib/workflow-classifier.sh``) reads. It lives here and
+    not at each call site because the override used to be honored by the
+    writer only: ``flow_enforcer`` and ``stop`` resolved the default
+    directly, so setting it split writer from reader and the gate found
+    no marker and allowed everything, silently. One resolver, no drift.
+    """
+    override = os.environ.get("ARKA_WF_REQUIRED_DIR")
+    return Path(override) if override else arkaos_temp_dir("arkaos-wf-required")
