@@ -268,3 +268,47 @@ def test_reorganizer_fires_on_happy_path(monkeypatch, tmp_path):
     build_message("/repo/proj")
     assert len(calls) == 1
     assert calls[0][1:] == ["-m", "core.cognition.reorganizer_cli"]
+
+
+class TestDaemonSpawnGuard:
+    """A hook run from a test must not launch the operator's daemons.
+
+    `_ensure_dashboard` shells out to start-dashboard, which kills whatever
+    holds the port before binding it. Under pytest that means the machine
+    running the suite loses its dashboard to one served from the test tree.
+    """
+
+    @staticmethod
+    def _popen_spy(monkeypatch):
+        calls = []
+        monkeypatch.setattr(
+            session_start.subprocess, "Popen",
+            lambda *a, **k: calls.append(a[0]) or _DummyProc(),
+        )
+        return calls
+
+    def test_suppressed_under_pytest_without_any_opt_in(self, monkeypatch, tmp_path):
+        """PYTEST_CURRENT_TEST is always set here — that alone must suppress."""
+        monkeypatch.delenv("ARKA_HOOK_NO_SPAWN", raising=False)
+        calls = self._popen_spy(monkeypatch)
+        session_start._spawn_detached(["echo", "hi"], str(tmp_path))
+        assert calls == []
+
+    def test_suppressed_by_explicit_switch(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+        monkeypatch.setenv("ARKA_HOOK_NO_SPAWN", "1")
+        calls = self._popen_spy(monkeypatch)
+        session_start._spawn_detached(["echo", "hi"], str(tmp_path))
+        assert calls == []
+
+    def test_spawns_in_production_env(self, monkeypatch, tmp_path):
+        """Neither signal present (the operator's real session) — still spawns."""
+        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+        monkeypatch.delenv("ARKA_HOOK_NO_SPAWN", raising=False)
+        calls = self._popen_spy(monkeypatch)
+        session_start._spawn_detached(["echo", "hi"], str(tmp_path))
+        assert calls == [["echo", "hi"]]
+
+
+class _DummyProc:
+    pass
