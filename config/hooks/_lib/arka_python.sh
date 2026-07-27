@@ -28,24 +28,54 @@ arka_resolve_python() {
     return 0
   fi
 
+  # Scripts/python.exe is the Windows venv layout. Without it, a Git-Bash
+  # hook on Windows never matches the venv and always falls through to the
+  # PATH probe below -- which is where the Store alias lives.
   for cand in \
       "$HOME/.arkaos/venv/bin/python" \
       "$HOME/.arkaos/venv/bin/python3" \
+      "$HOME/.arkaos/venv/Scripts/python.exe" \
       "$HOME/.arkaos/.venv/bin/python" \
-      "$HOME/.arkaos/.venv/bin/python3"; do
+      "$HOME/.arkaos/.venv/bin/python3" \
+      "$HOME/.arkaos/.venv/Scripts/python.exe"; do
     if [ -x "$cand" ]; then
       printf '%s\n' "$cand"
       return 0
     fi
   done
 
-  for cand in python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
-    if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import yaml" >/dev/null 2>&1; then
+  # Never probe a Microsoft Store App Execution Alias: under Git Bash on
+  # Windows `command -v python3` resolves to .../Microsoft/WindowsApps/
+  # python3, which is the Python install manager, not an interpreter. The
+  # `import yaml` check RUNS each candidate, and running that one installs
+  # a CPython into the current working directory -- the user's project, for
+  # a hook. It could not have succeeded anyway: an alias stub carries no
+  # site packages. On POSIX nothing ever matches that path: pure no-op.
+  #
+  # `python` is LAST on purpose. On Windows it is the only real interpreter
+  # left once the alias is filtered out; on POSIX one of the entries before
+  # it always matches first, so an old box where `python` is Python 2 keeps
+  # resolving exactly as it does today.
+  for cand in python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3 python; do
+    case "$(command -v "$cand" 2>/dev/null)" in
+      "") continue ;;
+      *[Ww]indows[Aa]pps*) continue ;;
+    esac
+    if "$cand" -c "import yaml" >/dev/null 2>&1; then
       printf '%s\n' "$cand"
       return 0
     fi
   done
 
+  # Last resort. The documented contract is `python3` + rc 1, kept as-is,
+  # except where that name is the Store alias: handing an alias back to a
+  # caller that will `exec` it is the very trap this function now avoids.
+  case "$(command -v python3 2>/dev/null)" in
+    *[Ww]indows[Aa]pps*)
+      printf '%s\n' "python"
+      return 1
+      ;;
+  esac
   printf '%s\n' "python3"
   return 1
 }

@@ -350,3 +350,38 @@ def test_ps1_interpreter_probes_skip_store_aliases():
                     "installs CPython into the hook's cwd"
                 )
     assert not offenders, "\n".join(offenders)
+
+
+def test_shell_resolver_skips_store_aliases_and_knows_windows_venv():
+    """The bash twin has the same exposure under Git Bash on Windows.
+
+    `command -v python3` there resolves to the WindowsApps alias exactly as
+    Get-Command does, and arka_python.sh *runs* every candidate to check
+    `import yaml`. Worse, its venv candidates were bin/python only, so on
+    Windows the venv never matched and the PATH probe was always reached.
+    """
+    body = _RESOLVER_LIB.read_text(encoding="utf-8")
+    offenders: list[str] = []
+
+    if "Scripts/python.exe" not in body:
+        offenders.append(
+            "arka_python.sh does not know the Windows venv layout "
+            "(Scripts/python.exe), so Git Bash always falls through to the "
+            "PATH probe"
+        )
+    if "indows" not in body or "pps" not in body:
+        offenders.append(
+            "arka_python.sh does not filter Microsoft Store App Execution "
+            "Aliases; running one installs CPython into the hook's cwd"
+        )
+    # `python` must stay behind python3 and the absolute paths: promoting it
+    # would change which interpreter POSIX boxes resolve to.
+    probe = re.search(r"for cand in ((?:[^\n;]*?python[^\n;]*?))(?:;|\n)", body)
+    if probe:
+        names = probe.group(1).split()
+        if names and names[0] == "python":
+            offenders.append(
+                "arka_python.sh probes bare `python` first; on POSIX that can "
+                "select Python 2 where python3 is meant"
+            )
+    assert not offenders, "\n".join(offenders)
