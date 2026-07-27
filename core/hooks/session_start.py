@@ -24,6 +24,7 @@ module; with no usable venv it emits a static banner (fail-open).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import subprocess
@@ -391,6 +392,46 @@ def build_recap(cwd: str, budget_ms: int = _BUDGET_MS) -> str:
         return ""
 
 
+_CONTRACT_FAILURE_LOG = (
+    Path.home() / ".arkaos" / "telemetry" / "session-start-failures.jsonl"
+)
+
+
+def _contracts_unavailable_notice(exc: BaseException) -> str:
+    """Say the contracts are missing instead of returning an empty string.
+
+    build_context() produces [ARKA:EVIDENCE-FLOW], [ARKA:META-TAG],
+    [ARKA:AUTHORITY] and [ARKA:MODEL-FABRIC] — the rules the session is
+    supposed to run under. Swallowing a failure here returns the exact
+    state those blocks exist to prevent: a session with no idea the rules
+    exist, behaving like a generic assistant, with nothing anywhere saying
+    why. That is indistinguishable from the hook never having run, which
+    is precisely how the Windows delivery gap survived unnoticed for
+    months (PR #408).
+
+    Same principle the AUTHORITY brief already applies one function up:
+    one honest line beats a silent void. The greeting still never breaks
+    and the hook still exits 0.
+    """
+    with contextlib.suppress(Exception):  # telemetry must never be the thing that breaks
+        _CONTRACT_FAILURE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _CONTRACT_FAILURE_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({
+                "ts": datetime.now(UTC).isoformat(),
+                "event": "build_context_failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc)[:500],
+            }) + "\n")
+    return (
+        f"\n[ARKA:CONTRACTS] unavailable ({type(exc).__name__}) — the evidence "
+        f"flow, meta-tag, authority and model-routing contracts could not be "
+        f"built for this session. Treat their absence as a fault, not as "
+        f"permission: keep routing and gating as if they were present, and "
+        f"report the failure. Detail in "
+        f"~/.arkaos/telemetry/session-start-failures.jsonl"
+    )
+
+
 def main(stdin_json: dict | None = None) -> int:
     if stdin_json is None:
         stdin_json, _ = read_stdin_json()
@@ -405,8 +446,8 @@ def main(stdin_json: dict | None = None) -> int:
         visible = _FALLBACK_BANNER + "\n  Olá, founder\n"
     try:
         context = build_context(cwd)
-    except Exception:  # contracts are best-effort; greeting never breaks
-        context = ""
+    except Exception as exc:  # greeting never breaks — but never lie either
+        context = _contracts_unavailable_notice(exc)
     payload: dict = {"systemMessage": visible}
     if context:
         # Assign the sub-dict key explicitly — SessionStart's wrapper also
