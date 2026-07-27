@@ -813,3 +813,80 @@ def test_sanitized_reports_whether_redaction_ran_not_whether_it_changed(
     assert record["stored_sha256"] == record["raw_sha256"], (
         "and changed nothing, so the digests agree"
     )
+
+
+class TestUnpinnedInvariants:
+    """Guards Francisca's independent set proved deletable with the suite
+    green. Each mutation was applied and re-run before the pin was
+    written."""
+
+    def test_reviewer_identities_are_not_interchangeable(self, ledger_home):
+        """Fusing the two alias groups makes Eduardo and Francisca one
+        person, so either could be filed under the other's name."""
+        eduardo_verdict = _reviewer_output(
+            dict(VERDICT_BODY, reviewer="copy-director-eduardo")
+        )
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-ident", "francisca-tech", eduardo_verdict, "subagent-stop"
+        )
+        assert record["verdict"] is None, (
+            "Eduardo's verdict must never be filed as Francisca's"
+        )
+        assert "none authored by francisca-tech" in record["parse_error"]
+        assert "copy-director-eduardo" in record["parse_error"]
+
+    def test_retention_default_is_the_value_production_uses(self, ledger_home):
+        """session_end calls sweep_expired() with NO argument, so the
+        default is the only window that ever runs in production; every
+        test passing days= explicitly left it unpinned."""
+        import time
+
+        reviewer_ledger.record_reviewer_output(
+            "sess-89", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        reviewer_ledger.record_reviewer_output(
+            "sess-91", "francisca-tech",
+            _reviewer_output(dict(VERDICT_BODY, notes="older")),
+            "subagent-stop",
+        )
+        root = reviewer_ledger.ledger_root()
+        for name, age in (("sess-89", 89), ("sess-91", 91)):
+            when = time.time() - (age * 86400)
+            os.utime(root / name, (when, when))
+
+        assert reviewer_ledger.sweep_expired() == 1, "the default is 90 days"
+        assert (root / "sess-89").is_dir(), "89 days old: inside the window"
+        assert not (root / "sess-91").exists(), "91 days old: expired"
+
+    def test_a_fence_without_a_verdict_key_is_not_a_verdict(self, ledger_home):
+        """Relaxing the rule to 'is it a dict' would let any JSON block a
+        reviewer happens to quote become their verdict."""
+        raw = (
+            "Here is the evidence report I read:\n\n```json\n"
+            + json.dumps({"overall": "pass", "checks_ran": ["lint"]})
+            + "\n```\n"
+        )
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-nokey", "francisca-tech", raw, "subagent-stop"
+        )
+        assert record["verdict"] is None
+        assert "carries no 'verdict' key" in record["parse_error"]
+
+    def test_a_failed_capture_is_never_silent(self, ledger_home, monkeypatch):
+        """The outer except returns None on any failure; without a
+        telemetry line the operator is simply never told a verdict
+        existed."""
+        def _boom(*_a, **_k):
+            raise RuntimeError("disk on fire")
+
+        monkeypatch.setattr(reviewer_ledger, "_capture", _boom)
+        assert reviewer_ledger.record_reviewer_output(
+            "sess-boom", "francisca-tech", _reviewer_output(), "subagent-stop"
+        ) is None
+
+        log = ledger_home / ".arkaos" / "telemetry" / "reviewer-ledger.jsonl"
+        assert log.is_file(), "a total capture failure must leave a trace"
+        entry = json.loads(log.read_text(encoding="utf-8").splitlines()[-1])
+        assert entry["event"] == "capture-failed"
+        assert entry["reviewer_id"] == "francisca-tech"
+        assert "disk on fire" in entry["error"]

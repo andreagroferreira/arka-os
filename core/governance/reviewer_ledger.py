@@ -361,8 +361,32 @@ def record_reviewer_output(
         if session_dir is None:
             return None
         return _capture(session_dir, session_id, reviewer_id, raw_output, source)
-    except Exception:
+    except Exception as exc:
+        # Never raise — this runs inside hooks. But a capture that fails
+        # entirely must not be invisible: without this line the operator
+        # is simply never told a verdict existed.
+        _record_capture_failure(session_id, reviewer_id, source, exc)
         return None
+
+
+def _record_capture_failure(
+    session_id: str, reviewer_id: str, source: str, exc: BaseException
+) -> None:
+    """Append the failure to telemetry. Silent only if telemetry is too."""
+    try:
+        path = Path.home() / ".arkaos" / "telemetry" / "reviewer-ledger.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({
+                "ts": datetime.now(UTC).isoformat(),
+                "event": "capture-failed",
+                "session_id": session_id,
+                "reviewer_id": reviewer_id,
+                "source": source,
+                "error": f"{type(exc).__name__}: {exc}",
+            }) + "\n")
+    except Exception:
+        return
 
 
 def _capture(
