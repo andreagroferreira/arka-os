@@ -112,10 +112,9 @@ ENTRYPOINTS = [
 # only (CwdChanged accepts no additionalContext).
 PS1_EXPECTED_MARKERS = {
     "user-prompt-submit.ps1": [
-        # v1-migration early-exit emitter
-        "hookEventName = 'UserPromptSubmit'; additionalContext = $msg",
-        # main emitter
-        "hookEventName = 'UserPromptSubmit'; additionalContext = $additionalContext",
+        # Degraded/forced fallback is the only PowerShell-side emitter —
+        # the real payload comes from core.hooks.user_prompt_submit.
+        '"hookEventName": "UserPromptSubmit"',
     ],
     "cwd-changed.ps1": [
         "systemMessage = $context",
