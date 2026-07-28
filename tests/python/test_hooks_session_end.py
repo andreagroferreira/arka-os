@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 
 import pytest
 
@@ -114,3 +116,23 @@ def test_null_byte_transcript_path_never_raises(tmp_path, sanitizer_present):
     """QG B1: a null-byte path (ValueError in read_text) is swallowed."""
     assert main({"session_id": "sess-nul", "transcript_path": "/x\x00y"}) == 0
     assert _digests(tmp_path)
+
+
+def test_session_end_runs_ledger_retention(tmp_path, monkeypatch):
+    """sweep_expired had exactly one consumer and it was unpinned:
+    deleting the call from main() left the suite green."""
+    import time
+
+    from core.governance import reviewer_ledger
+    from core.hooks import session_end
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    aged = reviewer_ledger.ledger_root() / "aged-session"
+    aged.mkdir(parents=True)
+    (aged / "francisca-tech-1-deadbeef.json").write_text("{}", encoding="utf-8")
+    ancient = time.time() - (200 * 86400)
+    os.utime(aged, (ancient, ancient))
+
+    session_end.main({"session_id": "live", "transcript_path": "", "cwd": "/tmp"})
+    assert not aged.exists(), "SessionEnd must run ledger retention"

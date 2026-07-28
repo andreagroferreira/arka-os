@@ -76,6 +76,11 @@ _ERROR_LINE_RE = re.compile(
 )
 _CODE_FILE_RE = re.compile(r"\.(py|js|ts|vue|php|jsx|tsx)$")
 
+# Dispatches carry the agent-file name (marta-cqo), not the bare role —
+# the old `== "cqo"` test fired on ~9% of CQO dispatches, silently
+# skipping the experience-persistence MUST rule.
+_CQO_IDS = frozenset({"cqo", "marta-cqo", "cqo-marta"})
+
 _CATEGORY_RES: tuple[tuple[str, re.Pattern], ...] = (
     ("laravel", re.compile(
         r"(artisan|eloquent|laravel|blade|migration|composer|php )", re.I)),
@@ -190,6 +195,55 @@ def _record_pattern_stub(tool_output: str, prompt: str) -> None:
             references=[], projects_using=["arkaos"],
             created_at=ts, last_updated=ts,
         ))
+    except Exception:
+        pass
+
+
+def _task_result_text(stdin_json: dict) -> str:
+    """The subagent's returned text from a SYNCHRONOUS Task dispatch.
+
+    The payload key is ``tool_response`` (2.1.220 hook contract); it is
+    an object, and for a Task it carries the reply under ``content``.
+    An ASYNC dispatch returns only ``{agentId, status, ...}`` — there is
+    no output at PostToolUse time, so nothing is captured and the
+    SubagentStop writer is the one that sees it.
+    """
+    response = stdin_json.get("tool_response")
+    if isinstance(response, str):
+        return response
+    if not isinstance(response, dict) or response.get("isAsync"):
+        return ""
+    content = response.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        # `or ""`: a text block whose "text" is null would otherwise raise
+        # TypeError inside join, aborting the hook mid-turn.
+        return "".join(
+            str(block.get("text") or "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        )
+    return ""
+
+
+def _record_reviewer_output(
+    subagent_type: str, stdin_json: dict, session_id: str
+) -> None:
+    """Persist a QG reviewer's verbatim output to the ledger."""
+    if not subagent_type:
+        return
+    try:
+        text = _task_result_text(stdin_json)
+        if not text:
+            return
+        from core.governance.reviewer_ledger import record_reviewer_output
+        record_reviewer_output(
+            session_id=session_id,
+            reviewer_id=subagent_type,
+            raw_output=text,
+            source="post-tool-use",
+        )
     except Exception:
         pass
 
@@ -655,7 +709,13 @@ def main(stdin_json: dict | None = None) -> int:
 
     if tool_name in ("Task", "Agent"):
         subagent_type = get_str(stdin_json, "tool_input", "subagent_type")
-        if subagent_type == "cqo":
+        # Synchronous dispatches carry the subagent's reply in
+        # tool_response.content — captured here, before the CQO branch,
+        # so a reviewer verdict lands even when the aggregate later goes
+        # missing. Async dispatches carry no output at this point; their
+        # capture happens at SubagentStop.
+        _record_reviewer_output(subagent_type, stdin_json, session_id)
+        if subagent_type in _CQO_IDS:
             prompt = get_str(stdin_json, "tool_input", "prompt")
             _record_cqo_rejected(tool_output, prompt, session_id)
             _record_pattern_stub(tool_output, prompt)
