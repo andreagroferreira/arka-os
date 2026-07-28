@@ -1,0 +1,16 @@
+{
+  "session_id": "fixture-post_tool_use_failure_bash",
+  "transcript_path": "",
+  "cwd": "/tmp/projlive",
+  "permission_mode": "bypassPermissions",
+  "hook_event_name": "PostToolUseFailure",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "sh -c 'echo hello-stdout; echo boom-stderr 1>&2; exit 7'",
+    "description": "Run specified bash command"
+  },
+  "tool_use_id": "toolu_016PQxpUN2fZvjvZwy2CULQ3",
+  "error": "Exit code 7\nhello-stdout\nboom-stderr",
+  "is_interrupt": false,
+  "duration_ms": 734
+}

@@ -1,0 +1,22 @@
+{
+  "session_id": "fixture-post_tool_use_bash_benign",
+  "transcript_path": "",
+  "cwd": "/tmp/projlive",
+  "permission_mode": "bypassPermissions",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "grep zzzznotfound /etc/hosts",
+    "description": "Search for non-existent pattern in hosts file"
+  },
+  "tool_response": {
+    "stdout": "",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false,
+    "returnCodeInterpretation": "No matches found",
+    "noOutputExpected": false
+  },
+  "tool_use_id": "toolu_01JoSkQL57bbWAbQz2iMSiHj",
+  "duration_ms": 29
+}

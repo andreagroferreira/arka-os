@@ -1,0 +1,15 @@
+{
+  "session_id": "fixture-post_tool_use_failure_read",
+  "transcript_path": "",
+  "cwd": "/tmp/projlive",
+  "permission_mode": "bypassPermissions",
+  "hook_event_name": "PostToolUseFailure",
+  "tool_name": "Read",
+  "tool_input": {
+    "file_path": "/tmp/definitely-does-not-exist-9f3a.txt"
+  },
+  "tool_use_id": "toolu_01Nixq8GwKpyNKKFjEUpLuMZ",
+  "error": "File does not exist. Note: your current working directory is /tmp/projlive.",
+  "is_interrupt": false,
+  "duration_ms": 2
+}

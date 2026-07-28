@@ -166,6 +166,14 @@ export default {
       { hooks: [hookEntry(hooksDir, "post-tool-use", 5)] },
     ];
 
+    // PostToolUseFailure — a failing tool throws inside the runtime and
+    // fires THIS event, never PostToolUse (2.1.220 contract), so
+    // failed-command turns only reach the hook when it is registered
+    // here too. Same entrypoint; Python branches on hook_event_name.
+    settings.hooks.PostToolUseFailure = [
+      { hooks: [hookEntry(hooksDir, "post-tool-use", 5)] },
+    ];
+
     // PreToolUse — Flow enforcement gate (gated by hooks.hardEnforcement
     // feature flag in ~/.arkaos/config.json; no-op when flag is false).
     settings.hooks.PreToolUse = [

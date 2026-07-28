@@ -144,8 +144,8 @@ def _confirm_flow_authorization(session_id: str, transcript_path: str) -> None:
 # ─── Section 2+3: CQO verdicts, pattern stubs, activation ───────────────
 
 
-def _record_cqo_rejected(tool_output: str, prompt: str, session_id: str) -> None:
-    if not _REJECTED_RE.search(tool_output):
+def _record_cqo_rejected(tool_text: str, prompt: str, session_id: str) -> None:
+    if not _REJECTED_RE.search(tool_text):
         return
     match = _REVIEWING_RE.search(prompt)
     if not match:
@@ -153,7 +153,7 @@ def _record_cqo_rejected(tool_output: str, prompt: str, session_id: str) -> None
     try:
         from core.governance.cqo_experience_recorder import record_from_verdict
         record_from_verdict(
-            verdict_text=tool_output,
+            verdict_text=tool_text,
             agent_id=match.group(1),
             session_id=session_id,
             context="auto-recorded via PostToolUse hook (cqo dispatch REJECTED)",
@@ -162,8 +162,8 @@ def _record_cqo_rejected(tool_output: str, prompt: str, session_id: str) -> None
         pass
 
 
-def _record_pattern_stub(tool_output: str, prompt: str) -> None:
-    if not _APPROVED_RE.search(tool_output):
+def _record_pattern_stub(tool_text: str, prompt: str) -> None:
+    if not _APPROVED_RE.search(tool_text):
         return
     match = _PATTERN_SUGGEST_RE.search(prompt)
     if not match:
@@ -227,6 +227,59 @@ def _task_result_text(stdin_json: dict) -> str:
     return ""
 
 
+# A failing tool THROWS inside the runtime and fires PostToolUseFailure
+# — PostToolUse never sees it (proven live against 2.1.220: a logger
+# registered on both events fired only PostToolUseFailure for failing
+# tools; the binary's dispatcher reaches the failure event from its
+# catch block). On that event the output arrives in `error`, prefixed
+# with this envelope for Bash ("Exit code N\n<output>") and as a plain
+# message for other tools. The envelope is the runtime's wrapper, not
+# tool output.
+_EXIT_ENVELOPE_RE = re.compile(r"^Exit code (\d+)\n?")
+
+
+def _tool_text(stdin_json: dict) -> str:
+    """Textual output of the tool call under the two-event contract.
+
+    PostToolUseFailure carries it in ``error`` (envelope stripped here,
+    surfaced by ``_tool_exit_code``). PostToolUse only ever delivers a
+    structured ``tool_response`` — Bash dicts carry stdout/stderr, Task
+    dicts carry content; a plain string passes through defensively.
+    """
+    if get_str(stdin_json, "hook_event_name") == "PostToolUseFailure":
+        error = get_str(stdin_json, "error")
+        return _EXIT_ENVELOPE_RE.sub("", error, count=1)
+    response = stdin_json.get("tool_response")
+    if isinstance(response, str):
+        return response
+    if isinstance(response, dict) and (
+        "stdout" in response or "stderr" in response
+    ):
+        parts = (
+            str(response.get(key) or "") for key in ("stdout", "stderr")
+        )
+        return "\n".join(part for part in parts if part)
+    return _task_result_text(stdin_json)
+
+
+def _tool_exit_code(stdin_json: dict) -> str:
+    """Exit code derived from the event, not from a payload field.
+
+    Neither event carries an exit_code field. PostToolUseFailure is a
+    failure by definition: a leading ``Exit code N`` line in ``error``
+    yields N, any other message maps to "1" — except a user interrupt
+    (``is_interrupt``), which is not a command failure. PostToolUse is
+    always "0"; error text on successful turns is caught downstream by
+    the error-trigger scan.
+    """
+    if get_str(stdin_json, "hook_event_name") != "PostToolUseFailure":
+        return "0"
+    if stdin_json.get("is_interrupt"):
+        return "0"
+    match = _EXIT_ENVELOPE_RE.match(get_str(stdin_json, "error"))
+    return match.group(1) if match else "1"
+
+
 def _record_reviewer_output(
     subagent_type: str, stdin_json: dict, session_id: str
 ) -> None:
@@ -261,8 +314,8 @@ def _record_activation(subagent_type: str, session_id: str) -> None:
 # ─── Section 5: gotchas memory ───────────────────────────────────────────
 
 
-def _extract_error_line(tool_output: str) -> str:
-    lines = tool_output.splitlines()
+def _extract_error_line(tool_text: str) -> str:
+    lines = tool_text.splitlines()
     for line in lines:
         if _ERROR_LINE_RE.search(line):
             return line
@@ -425,16 +478,16 @@ def _detect_rule_violations(input_data: dict) -> tuple[str, list[tuple]]:
     if state is None:
         return "", []
     tool_name = get_str(input_data, "tool_name")
-    tool_output = get_str(input_data, "tool_output")
+    tool_text = _tool_text(input_data)
     violation_msg = ""
     persist: list[tuple] = []
 
     if tool_name == "Bash":
         on_master = any(
             re.match(r"^\[(master|main)", line)
-            for line in tool_output.splitlines()
+            for line in tool_text.splitlines()
         )
-        cmd_text = get_str(input_data, "command")
+        cmd_text = get_str(input_data, "tool_input", "command")
         if on_master and re.search(r"git commit", cmd_text):
             persist.append((
                 "branch-isolation",
@@ -446,7 +499,7 @@ def _detect_rule_violations(input_data: dict) -> tuple[str, list[tuple]]:
             )
 
     if tool_name in ("Write", "Edit"):
-        file_path = get_str(input_data, "file_path")
+        file_path = get_str(input_data, "tool_input", "file_path")
         if _CODE_FILE_RE.search(file_path):
             if _phase_status(state, "spec") != "completed":
                 persist.append((
@@ -507,11 +560,13 @@ def _enforcer_messages(input_data, enforce_tool, add_violation, msg: str) -> str
         except Exception:
             extra["git_branch"] = ""
     try:
+        # user_input is a prompt-side enforcer parameter with no source
+        # in either post-tool payload (2.1.220 contract).
         result = enforce_tool(
             tool_name=tool_name,
-            command=get_str(input_data, "command"),
-            file_path=get_str(input_data, "file_path"),
-            user_input=get_str(input_data, "user_input"),
+            command=get_str(input_data, "tool_input", "command"),
+            file_path=get_str(input_data, "tool_input", "file_path"),
+            user_input="",
             **extra,
         )
     except Exception:
@@ -543,7 +598,7 @@ def _forge_violation(input_data: dict, yaml_mod) -> str:
     forge_file = Path.home() / ".arkaos" / "plans" / f"{forge_id}.yaml"
     if not forge_file.is_file():
         return ""
-    edited = get_str(input_data, "file_path")
+    edited = get_str(input_data, "tool_input", "file_path")
     if not edited:
         return ""
     try:
@@ -601,8 +656,8 @@ def _workflow_sections_with_fallback(
 # ─── Section 9: cognition capture (detached, fire-and-forget) ───────────
 
 
-def _enqueue_cognition_capture(session_id: str, tool_output: str) -> None:
-    if not session_id or not tool_output:
+def _enqueue_cognition_capture(session_id: str, tool_text: str) -> None:
+    if not session_id or not tool_text:
         return
     repo = repo_path()
     if not repo or not Path(repo).is_dir():
@@ -619,7 +674,7 @@ def _enqueue_cognition_capture(session_id: str, tool_output: str) -> None:
         )
         if proc.stdin is not None:
             try:
-                proc.stdin.write(tool_output.encode("utf-8", "replace"))
+                proc.stdin.write(tool_text.encode("utf-8", "replace"))
                 proc.stdin.close()
             except (BrokenPipeError, OSError):
                 pass
@@ -672,8 +727,8 @@ def main(stdin_json: dict | None = None) -> int:
     ensure_root_on_path(root)
 
     tool_name = get_str(stdin_json, "tool_name")
-    tool_output = get_str(stdin_json, "tool_output")
-    exit_code = get_str(stdin_json, "exit_code") or "0"
+    tool_text = _tool_text(stdin_json)
+    exit_code = _tool_exit_code(stdin_json)
     cwd = get_str(stdin_json, "cwd")
     session_id = get_str(stdin_json, "session_id")
     transcript_path = get_str(stdin_json, "transcript_path")
@@ -717,17 +772,17 @@ def main(stdin_json: dict | None = None) -> int:
         _record_reviewer_output(subagent_type, stdin_json, session_id)
         if subagent_type in _CQO_IDS:
             prompt = get_str(stdin_json, "tool_input", "prompt")
-            _record_cqo_rejected(tool_output, prompt, session_id)
-            _record_pattern_stub(tool_output, prompt)
+            _record_cqo_rejected(tool_text, prompt, session_id)
+            _record_pattern_stub(tool_text, prompt)
         _record_activation(subagent_type, session_id)
 
     # Only process further if there was an error signal (same early exit
     # as the bash version — violations/metrics only run on error turns).
-    if exit_code in ("0", "") and not _ERROR_TRIGGER_RE.search(tool_output):
+    if exit_code in ("0", "") and not _ERROR_TRIGGER_RE.search(tool_text):
         print("{}")
         return 0
 
-    error_line = _extract_error_line(tool_output)
+    error_line = _extract_error_line(tool_text)
     if not error_line:
         print("{}")
         return 0
@@ -746,11 +801,17 @@ def main(stdin_json: dict | None = None) -> int:
         stdin_json, root, persist, violation_msg
     )
 
-    _enqueue_cognition_capture(session_id, tool_output)
+    _enqueue_cognition_capture(session_id, tool_text)
     _log_metrics(int((time.monotonic() - start) * 1000))
 
     if violation_msg:
-        emit_additional_context("PostToolUse", violation_msg)
+        # The runtime drops context whose hookEventName differs from the
+        # event it invoked (live probe, QG round 3) — echo the payload's
+        # own event so violations on failure turns are delivered.
+        emit_additional_context(
+            get_str(stdin_json, "hook_event_name") or "PostToolUse",
+            violation_msg,
+        )
     else:
         print("{}")
     return 0

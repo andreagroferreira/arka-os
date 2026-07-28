@@ -1064,7 +1064,8 @@ if command -v jq &>/dev/null; then
                --arg ptu "$HOOKS_DIR/post-tool-use.sh" \
                '.hooks.UserPromptSubmit = [{"hooks":[{"type":"command","command":$ups,"timeout":20}]}] |
                 .hooks.PreCompact = [{"hooks":[{"type":"command","command":$pc,"timeout":30}]}] |
-                .hooks.PostToolUse = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]' \
+                .hooks.PostToolUse = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}] |
+                .hooks.PostToolUseFailure = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]' \
                "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS"
             echo -e "  ${GREEN}✓${NC} Status line + hooks applied via field assignment"
         fi
@@ -1077,7 +1078,8 @@ if command -v jq &>/dev/null; then
                --arg ptu "$HOOKS_DIR/post-tool-use.sh" \
                '.hooks.UserPromptSubmit = [{"hooks":[{"type":"command","command":$ups,"timeout":20}]}] |
                 .hooks.PreCompact = [{"hooks":[{"type":"command","command":$pc,"timeout":30}]}] |
-                .hooks.PostToolUse = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]' \
+                .hooks.PostToolUse = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}] |
+                .hooks.PostToolUseFailure = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]' \
                "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS"
             echo -e "  ${GREEN}✓${NC} Hooks force-applied"
         fi
@@ -1096,7 +1098,8 @@ if command -v jq &>/dev/null; then
                     hooks: {
                       UserPromptSubmit: [{"hooks":[{"type":"command","command":$ups,"timeout":20}]}],
                       PreCompact: [{"hooks":[{"type":"command","command":$pc,"timeout":30}]}],
-                      PostToolUse: [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]
+                      PostToolUse: [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}],
+                      PostToolUseFailure: [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]
                     }
                   }' > "$CLAUDE_SETTINGS"
         fi

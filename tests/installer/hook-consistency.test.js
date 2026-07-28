@@ -158,7 +158,82 @@ test("gate-manifest.json is deployed whenever any shim is (same asset list)", ()
 // ─── PR-A3: the UserPromptSubmit timeout is one number everywhere ────────
 // The 10s -> 20s raise missed install.sh's three jq branches once; an
 // install landing on any of them got exactly the ceiling the change
-// removed. Locked across all three executable surfaces.
+// removed. Locked across all four surfaces that write it — the adapter,
+// install.sh's three jq branches and arka-doctor --fix, all pinned to
+// config/settings-template.json.
+
+// A failing tool throws inside the runtime and fires PostToolUseFailure,
+// never PostToolUse (proven live against the 2.1.220 binary). A surface
+// that registers only PostToolUse silently loses every failed-command
+// turn — the gotchas pipeline's primary material.
+test("PostToolUseFailure is registered wherever PostToolUse is", () => {
+  const template = JSON.parse(
+    readFileSync(join(ROOT, "config/settings-template.json"), "utf-8")
+  );
+  assert.ok(template.hooks.PostToolUseFailure,
+    "settings-template must register PostToolUseFailure");
+  assert.deepEqual(
+    template.hooks.PostToolUseFailure, template.hooks.PostToolUse,
+    "failure event must run the same hook with the same timeout");
+
+  const templateTimeout =
+    template.hooks.PostToolUseFailure[0].hooks[0].timeout;
+
+  // Presence alone is not enough on the adapter — it is the
+  // highest-traffic writer (install and update both route through
+  // configureHooks), so its timeout must be pinned too.
+  const adapterFailure = adapterSrc.match(
+    /settings\.hooks\.PostToolUseFailure\s*=[\s\S]{0,160}?hookEntry\(hooksDir, "post-tool-use", (\d+)\)/
+  );
+  assert.ok(adapterFailure, "adapter must register PostToolUseFailure");
+  assert.equal(Number(adapterFailure[1]), templateTimeout,
+    "adapter registration must agree with the template timeout");
+
+  // Same pin for the non-failure PostToolUse on both writers. The
+  // doctor pattern keeps the closing quote — a bare PostToolUse
+  // substring would also match PostToolUseFailure.
+  const adapterPost = adapterSrc.match(
+    /settings\.hooks\.PostToolUse\s*=[\s\S]{0,160}?hookEntry\(hooksDir, "post-tool-use", (\d+)\)/
+  );
+  assert.ok(adapterPost, "adapter must register PostToolUse");
+  assert.equal(Number(adapterPost[1]), templateTimeout,
+    "adapter PostToolUse timeout must agree with the template");
+
+  const installSrc = readFileSync(join(ROOT, "install.sh"), "utf-8");
+  const installTimeouts = [
+    ...installSrc.matchAll(/PostToolUseFailure[^\n]*?"timeout":(\d+)/g),
+  ].map((m) => Number(m[1]));
+  assert.ok(installTimeouts.length >= 3,
+    "install.sh must register PostToolUseFailure in its three jq branches");
+  for (const t of installTimeouts) {
+    assert.equal(t, templateTimeout,
+      "every install.sh registration must agree with the template timeout");
+  }
+
+  // bin/arka-doctor --fix replaces `.hooks` wholesale (jq `.hooks =
+  // $hooks`) whenever its hooks check fails, so whatever HOOKS_JSON
+  // omits is missing from every machine the doctor repairs.
+  const doctorSrc = readFileSync(join(ROOT, "bin", "arka-doctor"), "utf-8");
+  const doctorTimeouts = [
+    ...doctorSrc.matchAll(/PostToolUseFailure[^\n]*?"timeout":(\d+)/g),
+  ].map((m) => Number(m[1]));
+  assert.ok(doctorTimeouts.length >= 1,
+    "arka-doctor --fix must register PostToolUseFailure");
+  for (const t of doctorTimeouts) {
+    assert.equal(t, templateTimeout,
+      "arka-doctor's registration must agree with the template timeout");
+  }
+
+  const doctorPost = [
+    ...doctorSrc.matchAll(/"PostToolUse":[^\n]*?"timeout":(\d+)/g),
+  ].map((m) => Number(m[1]));
+  assert.ok(doctorPost.length >= 1,
+    "arka-doctor --fix must register PostToolUse");
+  for (const t of doctorPost) {
+    assert.equal(t, templateTimeout,
+      "arka-doctor's PostToolUse timeout must agree with the template");
+  }
+});
 
 test("UserPromptSubmit timeout is identical across template, adapter and install.sh", () => {
   const template = JSON.parse(
@@ -182,7 +257,18 @@ test("UserPromptSubmit timeout is identical across template, adapter and install
   assert.ok(installTimeouts.length >= 3,
     "install.sh must declare the UPS timeout in its three jq branches");
 
-  for (const t of [adapterTimeout, ...installTimeouts]) {
+  // arka-doctor --fix is a fourth surface writing this timeout — it
+  // shipped 10, the pre-PR-A3 value, until the PostToolUseFailure
+  // wiring swept it, so every machine it repaired landed on the
+  // ceiling PR-A3 removed.
+  const doctorSrc = readFileSync(join(ROOT, "bin", "arka-doctor"), "utf-8");
+  const doctorTimeouts = [
+    ...doctorSrc.matchAll(/UserPromptSubmit[^\n]*?"timeout":(\d+)/g),
+  ].map((m) => Number(m[1]));
+  assert.ok(doctorTimeouts.length >= 1,
+    "arka-doctor --fix must declare the UPS timeout");
+
+  for (const t of [adapterTimeout, ...installTimeouts, ...doctorTimeouts]) {
     assert.equal(t, templateTimeout,
       "every surface must agree with config/settings-template.json");
   }

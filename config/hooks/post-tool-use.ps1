@@ -6,8 +6,16 @@
 # which mistakes repeat across projects.
 #
 # Contract:
-# - Reads a hook payload JSON from stdin (tool_name, tool_output, exit_code,
-#   cwd).
+# - Reads a hook payload JSON from stdin. Registered for two events
+#   (2.1.220 contract): PostToolUse delivers a structured tool_response
+#   (Bash dicts carry stdout/stderr; this port handles the string and
+#   stdout/stderr shapes only — no Task/content path); a failing tool
+#   throws inside the runtime and fires PostToolUseFailure instead,
+#   which carries the output in `error`, prefixed "Exit code N" for
+#   Bash. The payload has no top-level output or exit-code fields.
+#   Also read: tool_name, cwd, session_id, and a legacy
+#   assistant_message the payload never carries (dead read, see
+#   core/hooks/post_tool_use.py `_confirm_flow_authorization`).
 # - Always exits 0 and writes `{}` on stdout — PostToolUse does not inject
 #   context.
 # - Side effect: updates %USERPROFILE%\.arkaos\gotchas.json and
@@ -100,7 +108,7 @@ $stdinText = [Console]::In.ReadToEnd()
 $shouldProcessGotchas = $true
 $payload = $null
 $toolName = ''
-$toolOutput = ''
+$toolText = ''
 $exitCode = '0'
 $cwd = ''
 
@@ -116,9 +124,36 @@ if ([string]::IsNullOrWhiteSpace($stdinText)) {
 
 if ($shouldProcessGotchas -and $null -ne $payload) {
     $toolName   = if ($null -ne $payload.tool_name)   { [string]$payload.tool_name   } else { '' }
-    $toolOutput = if ($null -ne $payload.tool_output) { [string]$payload.tool_output } else { '' }
-    $exitCode   = if ($null -ne $payload.exit_code)   { [string]$payload.exit_code   } else { '0' }
     $cwd        = if ($null -ne $payload.cwd)         { [string]$payload.cwd         } else { '' }
+
+    # Event → (text, exit code). Mirrors the string and stdout/stderr
+    # paths of _tool_text / _tool_exit_code in core/hooks/post_tool_use.py
+    # (no Task/content path in this port). On PostToolUseFailure the
+    # output arrives in `error`; the runtime's "Exit code N" envelope is
+    # its wrapper, not command output, so it is stripped from the text
+    # and surfaced as the exit code. A user interrupt is not a failure.
+    $eventName = if ($null -ne $payload.hook_event_name) { [string]$payload.hook_event_name } else { '' }
+    if ($eventName -eq 'PostToolUseFailure') {
+        $errText = if ($null -ne $payload.error) { [string]$payload.error } else { '' }
+        $envMatch = [regex]::Match($errText, '^Exit code (\d+)\n?')
+        if ($envMatch.Success) {
+            $exitCode = $envMatch.Groups[1].Value
+            $toolText = $errText.Substring($envMatch.Length)
+        } else {
+            $exitCode = '1'
+            $toolText = $errText
+        }
+        if ($payload.is_interrupt) { $exitCode = '0' }
+    } else {
+        $resp = $payload.tool_response
+        if ($resp -is [string]) {
+            $toolText = $resp
+        } elseif ($null -ne $resp) {
+            $stdoutPart = if ($null -ne $resp.stdout) { [string]$resp.stdout } else { '' }
+            $stderrPart = if ($null -ne $resp.stderr) { [string]$resp.stderr } else { '' }
+            $toolText = (@($stdoutPart, $stderrPart) | Where-Object { $_ }) -join "`n"
+        }
+    }
 
     # --- Flow marker cache write (v2 ALLOW accelerator) ------------------
     # Mirror of the bash hook: detect [arka:routing] or [arka:trivial] in
@@ -211,7 +246,7 @@ except Exception:
     # ─── Only process when there is actually an error ─────────────────
     $errorPattern = '(?i)(error:|fatal:|exception:|failed|ENOENT|EACCES|EPERM|panic:)'
     if ($exitCode -eq '0' -or [string]::IsNullOrEmpty($exitCode)) {
-        if ($toolOutput -notmatch $errorPattern) {
+        if ($toolText -notmatch $errorPattern) {
             $shouldProcessGotchas = $false
         }
     }
@@ -230,7 +265,7 @@ $null = New-Item -ItemType Directory -Force -Path $arkaosRuntimeDir -ErrorAction
 if ($shouldProcessGotchas) { do {
 
 # ─── Extract first meaningful error line ─────────────────────────────
-$lines = $toolOutput -split "`r?`n"
+$lines = $toolText -split "`r?`n"
 $errorLineRegex = '(?i)(error|fatal|exception|failed|ENOENT|EACCES|EPERM|panic|cannot|not found|permission denied)'
 $errorLine = $null
 foreach ($ln in $lines) {

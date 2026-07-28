@@ -228,8 +228,9 @@ class TestHelperUnit:
         )
         rc = ptu.main({
             "tool_name": "Bash", "session_id": "contract-post-violation",
-            "transcript_path": "", "cwd": "/tmp", "tool_input": {},
-            "tool_output": "error: something broke",
+            "transcript_path": "", "cwd": "/tmp",
+            "tool_input": {"command": "boom"},
+            "tool_response": {"stdout": "", "stderr": "error: something broke"},
         })
         assert rc == 0
         lines = capsys.readouterr().out.strip().splitlines()
@@ -238,6 +239,49 @@ class TestHelperUnit:
         hso = json.loads(lines[0])["hookSpecificOutput"]
         assert hso["hookEventName"] == "PostToolUse"
         assert hso["additionalContext"] == "VIOLATION [test-rule]: pinned"
+
+    def test_failure_event_violation_echoes_its_own_event_name(
+        self, monkeypatch, capsys
+    ):
+        """A violation on a PostToolUseFailure turn must carry THAT event
+        name — the runtime drops context whose hookEventName differs
+        from the event it invoked (live probe, QG round 3).
+        """
+        import core.hooks.post_tool_use as ptu
+
+        for side_effect in (
+            "_confirm_flow_authorization",
+            "_record_cqo_rejected",
+            "_record_pattern_stub",
+            "_record_activation",
+            "_store_gotcha",
+            "_enqueue_cognition_capture",
+            "_log_metrics",
+        ):
+            monkeypatch.setattr(ptu, side_effect, lambda *a, **k: None)
+        monkeypatch.setattr(
+            ptu, "_detect_rule_violations",
+            lambda payload: ("VIOLATION [test-rule]: failure-turn", []),
+        )
+        monkeypatch.setattr(
+            ptu, "_workflow_sections_with_fallback",
+            lambda payload, root, persist, msg: msg,
+        )
+        rc = ptu.main({
+            "hook_event_name": "PostToolUseFailure",
+            "tool_name": "Edit", "session_id": "contract-failure-violation",
+            "transcript_path": "", "cwd": "/tmp",
+            "tool_input": {"file_path": "/app/x.py"},
+            "error": "String to replace not found in file.",
+            "is_interrupt": False,
+        })
+        assert rc == 0
+        lines = capsys.readouterr().out.strip().splitlines()
+        assert len(lines) == 1, f"expected one payload line, got {lines!r}"
+        _assert_payload_shape(lines[0], "PostToolUseFailure")
+        hso = json.loads(lines[0])["hookSpecificOutput"]
+        assert hso["hookEventName"] == "PostToolUseFailure"
+        assert hso["additionalContext"] == "VIOLATION [test-rule]: failure-turn"
 
 
 class TestPythonEntrypoints:

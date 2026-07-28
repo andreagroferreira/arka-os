@@ -60,7 +60,7 @@ Claude Code is the primary target. It exposes the most integration points.
 
 ### Hooks
 
-ArkaOS installs five lifecycle hooks into `~/.claude/settings.json`:
+ArkaOS installs these lifecycle hooks into `~/.claude/settings.json`:
 
 | Hook | Fires | What it does |
 |---|---|---|
@@ -68,6 +68,7 @@ ArkaOS installs five lifecycle hooks into `~/.claude/settings.json`:
 | `Stop` | After every assistant turn | Compliance checks (closing marker, `[arka:meta]`, KB citation, sycophancy) + persists `[arka:gate:N]` transitions via `core/workflow/gate_checkpoint.py` for structured resume |
 | `UserPromptSubmit` | Before every prompt | Runs all 12 Synapse layers in-process (`core/hooks/user_prompt_submit.py` → `scripts/synapse-bridge.py::run_bridge`) and injects the resulting context string; adds `[ARKA:WORKFLOW-REQUIRED]` on creation/implementation verbs; runs the 4-check token hygiene pass |
 | `PostToolUse` | After every tool call | Tracks error patterns to `gotchas.json`; records tool usage for budget accounting |
+| `PostToolUseFailure` | After a failed tool call | Same entrypoint as `PostToolUse`; the runtime fires this event (with the output in `error`) when a tool throws, so failed-command turns feed the gotchas pipeline |
 | `PreCompact` | Before context compaction | Saves a session digest to Obsidian; preserves agent memory and task state |
 | `CwdChanged` | On directory change | Reloads project context (`CLAUDE.md`, `.arkaos.json`, stack detection) |
 

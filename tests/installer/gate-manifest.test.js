@@ -171,20 +171,33 @@ test("decidePre fast-allow write shapes match the Python serializers", () => {
 });
 
 test("decidePost delegates the stateful set, errors and stale auth", () => {
+  // Payloads mirror the real 2.1.220 hook contract: PostToolUse only
+  // ever delivers a structured tool_response (a failing tool throws and
+  // fires PostToolUseFailure instead, which carries the output in
+  // `error`). There is no top-level exit_code or tool_output.
   const hardOn = { state: "ok", data: { hooks: { hardEnforcement: true } } };
+  const okResp = { stdout: "ok", stderr: "", interrupted: false };
   const cases = [
-    [{ tool_name: "ExitPlanMode", exit_code: "0" }, ctxWith(), "delegate"],
-    [{ tool_name: "Task", exit_code: "0" }, ctxWith(), "delegate"],
-    [{ tool_name: "Agent", exit_code: "0" }, ctxWith(), "delegate"],
-    [{ tool_name: "Read", exit_code: "1" }, ctxWith(), "delegate"],
-    [{ tool_name: "Read", exit_code: "0", tool_output: "fatal: broken" },
+    [{ tool_name: "ExitPlanMode", tool_response: { success: true } },
+      ctxWith(), "delegate"],
+    [{ tool_name: "Task", tool_response: {} }, ctxWith(), "delegate"],
+    [{ tool_name: "Agent", tool_response: {} }, ctxWith(), "delegate"],
+    // the failure event always goes to Python — gotchas material
+    [{ hook_event_name: "PostToolUseFailure", tool_name: "Bash",
+      error: "Exit code 7\nhello-stdout\nboom-stderr", is_interrupt: false },
+      ctxWith(), "delegate"],
+    [{ hook_event_name: "PostToolUseFailure", tool_name: "Read",
+      error: "File does not exist.", is_interrupt: false },
+      ctxWith(), "delegate"],
+    // exit 0 but an error trigger inside the output dict
+    [{ tool_name: "Bash",
+      tool_response: { stdout: "", stderr: "fatal: broken" } },
       ctxWith(), "delegate"],
     // hard enforcement + no auth file → the confirm rescan is load-bearing
-    [{ tool_name: "Read", exit_code: "0", session_id: "parity-sid" },
-      ctxWith({ config: hardOn.data ? hardOn : hardOn }), "delegate"],
+    [{ tool_name: "Read", tool_response: okResp, session_id: "parity-sid" },
+      ctxWith({ config: hardOn }), "delegate"],
     // enforcement off (missing config) + benign → fast-exit
-    [{ tool_name: "Read", exit_code: "0", tool_output: "ok" },
-      ctxWith(), "fast-exit"],
+    [{ tool_name: "Read", tool_response: okResp }, ctxWith(), "fast-exit"],
   ];
   for (const [payload, ctx, expected] of cases) {
     const decision = engine.decidePost(payload, manifest, ctx);
@@ -207,7 +220,8 @@ test("decidePost Q6: fresh auth file under hard enforcement fast-exits", () => {
       env: { ARKA_FLOW_AUTH_DIR: authDir },
     });
     const fresh = engine.decidePost(
-      { tool_name: "Read", exit_code: "0", session_id: sid }, manifest, ctx
+      { tool_name: "Read", tool_response: { stdout: "ok", stderr: "" },
+        session_id: sid }, manifest, ctx
     );
     assert.equal(fresh.action, "fast-exit");
 
@@ -218,7 +232,8 @@ test("decidePost Q6: fresh auth file under hard enforcement fast-exits", () => {
         Date.now() / 1000 - manifest.numbers.auth_ttl_seconds - 10,
     }));
     const stale = engine.decidePost(
-      { tool_name: "Read", exit_code: "0", session_id: sid }, manifest, ctx
+      { tool_name: "Read", tool_response: { stdout: "ok", stderr: "" },
+        session_id: sid }, manifest, ctx
     );
     assert.equal(stale.action, "delegate");
   } finally {
@@ -229,7 +244,7 @@ test("decidePost Q6: fresh auth file under hard enforcement fast-exits", () => {
 test("decidePost replicates the mcp-usage line for MCP tools", () => {
   const decision = engine.decidePost(
     { tool_name: "mcp__plugin_claude-mem_mcp-search__search",
-      exit_code: "0", session_id: "parity-sid" },
+      tool_response: { content: [] }, session_id: "parity-sid" },
     manifest, ctxWith()
   );
   assert.equal(decision.action, "fast-exit");
@@ -239,6 +254,35 @@ test("decidePost replicates the mcp-usage line for MCP tools", () => {
   assert.equal(line.tool, "search");
   assert.equal(line.session, "parity-sid");
   assert.deepEqual(Object.keys(line), manifest.telemetry.mcp_keys);
+});
+
+test("toolText parity with the Python _tool_text helper", () => {
+  // Mirrors the PostToolUse cases of TestToolResultExtraction in
+  // tests/python/test_core_hooks_entrypoints.py (byte-identical inputs)
+  // so both surfaces stay pinned to the same behaviour on these inputs.
+  // Failure-event payloads never reach toolText — decidePost delegates
+  // them before any text derivation. Known boundary: non-string scalar
+  // stdout values can diverge (Python str() vs JS String(): True/true,
+  // 1.0/1; integers agree) — unreachable for real Bash payloads.
+  const cases = [
+    // [tool_response, expected text]
+    [{ stdout: "out line", stderr: "warn line" }, "out line\nwarn line"],
+    ["just some text", "just some text"],
+    [{ content: [{ type: "text", text: "verdict body" },
+      { type: "image", source: {} }] }, "verdict body"],
+    [undefined, ""],
+    // Pins for the branches the Python parity class does not cover
+    // one-for-one: the isAsync guard and the `or ""` falsy coercion
+    // (0 must not stringify to "0"), mirrored in engine.cjs by this
+    // commit.
+    [{ isAsync: true, content: [{ type: "text", text: "x" }] }, ""],
+    [{ stdout: 0, stderr: "" }, ""],
+  ];
+  for (const [response, text] of cases) {
+    const payload = response === undefined ? {} : { tool_response: response };
+    assert.equal(engine.toolText(payload), text,
+      `text drift for ${JSON.stringify(response)}`);
+  }
 });
 
 test("engine has no deny path (structural: output space is closed)", () => {
@@ -256,7 +300,7 @@ test("invalid or missing manifest delegates everything", () => {
       { tool_name: "Read" }, bad, ctxWith());
     assert.equal(pre.action, "delegate");
     const post = engine.decidePost(
-      { tool_name: "Read", exit_code: "0" }, bad, ctxWith());
+      { tool_name: "Read", tool_response: { stdout: "ok" } }, bad, ctxWith());
     assert.equal(post.action, "delegate");
   }
 });
