@@ -50,10 +50,13 @@ State the predicate as: *surface* (which tool calls / which moment),
 | UserPromptSubmit (`config/hooks/user-prompt-submit.sh`) | before the turn | nudges and context injection, never blocking | token hygiene checks |
 
 Constraints that are not negotiable: hooks respect their timeout budget
-(UserPromptSubmit 10s, PostToolUse 5s), never block on network, exit 0
-on the non-blocking surfaces, and parse JSON with jq (python3
-fallback). A hook that exceeds its budget degrades every turn to save
-one correction — that trade is always refused.
+(UserPromptSubmit 20s ceiling with a 6s in-hook budget, PostToolUse 5s),
+never block on network, exit 0 on the non-blocking surfaces, and parse
+JSON with jq (python3 fallback). A hook that spends its whole budget
+every turn to catch one correction is not worth its cost — that trade
+is always refused. Exceeding the in-hook budget is different: the
+deadline trims optional stages and the turn ships with
+`[arka:degraded]`, which is the house pattern, not a failure.
 
 ## Step 3 — Warn first, harden on evidence
 

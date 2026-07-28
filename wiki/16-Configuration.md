@@ -134,13 +134,15 @@ automatically. The template lives at `config/settings-template.json`.
 | Hook | Timeout | Purpose |
 |---|---|---|
 | `SessionStart` | 5 s | Evidence-flow contract injection, reorganization auto-trigger |
-| `UserPromptSubmit` | 10 s | Synapse context injection, workflow-required tag, token hygiene |
+| `UserPromptSubmit` | 20 s | Synapse context injection, workflow-required tag, token hygiene |
 | `PostToolUse` | 5 s | Error pattern tracking, budget accounting |
 | `PreCompact` | 30 s | Session digest save, agent memory preservation |
 | `CwdChanged` | 5 s | Project context reload on directory change |
 
-The `UserPromptSubmit` budget is 10 seconds. Hooks must exit 0 and never
-block execution — suggestions from the token hygiene check are advisory only.
+The `UserPromptSubmit` runtime ceiling is 20 seconds, with a 6 s in-hook
+budget (`ARKA_UPS_BUDGET_MS`) that trims optional stages before the
+ceiling is reached. Hooks must exit 0 and never block execution —
+suggestions from the token hygiene check are advisory only.
 
 ---
 

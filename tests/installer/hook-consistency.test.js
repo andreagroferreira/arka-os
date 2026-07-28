@@ -154,3 +154,37 @@ test("gate-manifest.json is deployed whenever any shim is (same asset list)", ()
   assert.ok(hookAssets.includes("gate-manifest.json"),
     "shims without a sibling manifest delegate everything — deploy it");
 });
+
+// ─── PR-A3: the UserPromptSubmit timeout is one number everywhere ────────
+// The 10s -> 20s raise missed install.sh's three jq branches once; an
+// install landing on any of them got exactly the ceiling the change
+// removed. Locked across all three executable surfaces.
+
+test("UserPromptSubmit timeout is identical across template, adapter and install.sh", () => {
+  const template = JSON.parse(
+    readFileSync(join(ROOT, "config/settings-template.json"), "utf-8")
+  );
+  const templateTimeout =
+    template.hooks.UserPromptSubmit[0].hooks[0].timeout;
+
+  const adapterMatch = adapterSrc.match(
+    /hookEntry\(hooksDir, "user-prompt-submit", (\d+)\)/
+  );
+  assert.ok(adapterMatch, "adapter must register user-prompt-submit");
+  const adapterTimeout = Number(adapterMatch[1]);
+
+  const installSrc = readFileSync(join(ROOT, "install.sh"), "utf-8");
+  const installTimeouts = [
+    ...installSrc.matchAll(
+      /UserPromptSubmit[^\n]*?"timeout":(\d+)/g
+    ),
+  ].map((m) => Number(m[1]));
+  assert.ok(installTimeouts.length >= 3,
+    "install.sh must declare the UPS timeout in its three jq branches");
+
+  for (const t of [adapterTimeout, ...installTimeouts]) {
+    assert.equal(t, templateTimeout,
+      "every surface must agree with config/settings-template.json");
+  }
+  assert.equal(templateTimeout, 20, "PR-A3 ceiling");
+});

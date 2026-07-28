@@ -20,6 +20,11 @@ Section order preserved exactly:
        closing-marker) gated by effort level
    11. additionalContext JSON output + hook metrics
 
+Sections 6, 8, 10 and the refine hint are budgeted — past the
+``ARKA_UPS_BUDGET_MS`` deadline they are skipped and named in
+``[arka:degraded]``; 1-5, 9 and 11 always run, and 7 runs unbudgeted
+only when the bridge degrades.
+
 Keep the classifier verb pattern in sync with
 ``config/hooks/_lib/workflow-classifier.sh`` (still the CLI entry).
 """
@@ -34,6 +39,7 @@ import os
 import re
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from core.hooks._shared import (
@@ -475,6 +481,34 @@ def _wf_mark_required(session_id: str) -> None:
         pass
 
 
+def _refine_hint(user_input: str) -> str:
+    """Interaction Reform PR5 — a vague code-modifying request is a
+    signal to refine the prompt (ask about the topic) BEFORE the
+    workflow. SUGGESTION only; /do decides. Not a slash command.
+
+    Calibration (QG 2026-07-09): the scorer's +20 "no files" branch is
+    a constant in the hook context (the hook never has files), so 70 is
+    the floor for ANY short prompt. Two guards keep clear asks out — a
+    higher threshold (85, above that constant) AND a concrete-target
+    carve-out applied by the caller: a prompt that names a file or a
+    code identifier ("fix the typo in README.md", "add a test to
+    AuthService") is specific, never refine-worthy.
+    """
+    try:
+        from core.forge.complexity import score_prompt_ambiguity
+        score = score_prompt_ambiguity(user_input)
+        if score >= 85:
+            return (
+                f"[arka:refine-suggested] score={score}/100 — the "
+                f"request may be vague; consider /arka refine to ask "
+                f"about the topic and compile a precise prompt "
+                f"before building."
+            )
+    except Exception:
+        pass
+    return ""
+
+
 # ─── Section 10: cognitive inject + one-shot nudges ──────────────────────
 
 
@@ -512,7 +546,9 @@ def _one_shot_nudge(subdir: str, session_id: str) -> str:
 # ─── Section 11: metrics ─────────────────────────────────────────────────
 
 
-def _log_metrics(elapsed_ms: int, user_input: str) -> None:
+def _log_metrics(
+    elapsed_ms: int, user_input: str, budget: _Budget | None = None
+) -> None:
     if elapsed_ms <= 0:
         return
     at_mentions = len(
@@ -523,13 +559,172 @@ def _log_metrics(elapsed_ms: int, user_input: str) -> None:
         with (_CACHE_DIR / "hook-metrics.jsonl").open(
             "a", encoding="utf-8"
         ) as fh:
-            fh.write(json.dumps({
+            row = {
                 "hook": "user-prompt-submit-v2",
                 "ms": elapsed_ms,
                 "at_mentions": at_mentions,
-            }) + "\n")
+            }
+            if budget is not None:
+                row["degraded"] = budget.skipped
+                row["stage_ms"] = budget.stage_ms
+            fh.write(json.dumps(row) + "\n")
     except OSError:
         pass
+
+
+# ─── Deadline budget (PR-A3) ─────────────────────────────────────────────
+
+
+class _Budget:
+    """Monotonic deadline for the per-turn hook (PR-A3).
+
+    The runtime kills UserPromptSubmit at its timeout and the turn
+    loses all hook-injected context (8 hook_cancelled on record at the
+    former 10s ceiling, raised to 20s here). Degrading is strictly
+    better: once the deadline passes, the budgeted optional stages
+    (kb-inject, token-hygiene, refine-score, cognitive-hits, nudges)
+    are skipped, the assembled context ships, and the turn carries
+    [arka:degraded] so the cut is visible. The Synapse bridge is never skipped — it is the core the
+    other stages decorate — and the tag/plan-approval work around it
+    is not budgeted. A recorded skip means the stage was not
+    EVALUATED, not that content was lost: a skipped stage might have
+    produced nothing anyway. Budget via ARKA_UPS_BUDGET_MS (default
+    6000 ms).
+    """
+
+    def __init__(self, start: float) -> None:
+        try:
+            budget_ms = int(os.environ.get("ARKA_UPS_BUDGET_MS", "6000"))
+        except ValueError:
+            budget_ms = 6000
+        self.deadline = start + budget_ms / 1000.0
+        self.skipped: list[str] = []
+        self.stage_ms: dict[str, int] = {}
+
+    def time(self, stage: str, fn: Callable[[], str]) -> str:
+        """Run a stage unconditionally, recording its duration."""
+        t0 = time.monotonic()
+        result = fn()
+        self.stage_ms[stage] = int((time.monotonic() - t0) * 1000)
+        return result
+
+    def run(self, stage: str, fn: Callable[[], str]) -> str:
+        """Run an optional stage inside the budget, or record the skip."""
+        if time.monotonic() > self.deadline:
+            self.skipped.append(stage)
+            return ""
+        return self.time(stage, fn)
+
+    def over(self, stage: str) -> bool:
+        """True when the deadline has passed; records the skip when it
+        has."""
+        if time.monotonic() > self.deadline:
+            self.skipped.append(stage)
+            return True
+        return False
+
+    def marker(self) -> str:
+        # The names, not a count: "layers=N" reads as Synapse layers
+        # (the budget never cuts one — the bridge is never skipped), and
+        # a bare number would hide WHICH work was cut. Self-describing
+        # at no cost.
+        if not self.skipped:
+            return ""
+        return (
+            f"\n[arka:degraded] skipped={','.join(self.skipped)}"
+            f" reason=budget"
+        )
+
+
+def _nudges_pending(session_id: str) -> bool:
+    """True when at least one one-shot nudge file awaits this session.
+
+    The id reaches this gate straight from stdin, and it becomes a
+    filesystem path: "../<dir>/victim" read a file the hook does not
+    own into the model context and then unlinked it (CWE-22, reproduced
+    2026-07-28). This gate now refuses anything ``safe_session_id``
+    would refuse, which also stops the three reads it guards.
+    """
+    if safe_session_id(session_id) is None:
+        return False
+    return any(
+        (arkaos_temp_dir(subdir) / f"{session_id}.json").is_file()
+        for subdir in ("arkaos-cite", "arkaos-meta", "arkaos-closing")
+    )
+
+
+def _bridge_context(
+    root: str, user_input: str, session_id: str, cwd: str, budget: _Budget
+) -> str:
+    """Synapse bridge output decorated with tags, or the fallback."""
+    python_result = budget.time("bridge", lambda: _run_bridge(
+        root, user_input, session_id, cwd
+    ))
+    if not python_result:
+        return _fallback_context()
+    wf_tag = _workflow_tag()
+    if wf_tag:
+        python_result = f"{python_result} {wf_tag}"
+    forge_tag = _forge_tag()
+    if forge_tag:
+        python_result = f"{python_result} {forge_tag}"
+    if "[knowledge:" in python_result:
+        kb_content = budget.run(
+            "kb-inject", lambda: _kb_auto_inject(root, user_input)
+        )
+        if kb_content:
+            python_result = f"{kb_content} {python_result}"
+    return python_result
+
+
+def _classify_plan_reply(session_id: str, user_input: str) -> None:
+    """Interaction Reform PR3 — when the previous turn ended at Gate 2
+    (plan on the table), classify THIS message as approval/rejection.
+    UserPromptSubmit runs before the turn's tool calls, so the token is
+    visible to the PreToolUse enforcer with no marker-invisibility
+    problem. Never blocks the hook, and is never budgeted — approval
+    state is enforcement semantics, not decoration.
+    """
+    try:
+        from core.workflow import plan_approval
+        if session_id and user_input and plan_approval.is_presented(session_id):
+            verdict = plan_approval.classify_reply(
+                user_input, has_creation_verb=_wf_classify(user_input)
+            )
+            if verdict == "approve":
+                plan_approval.mark_approved(
+                    session_id, source="text", excerpt=user_input
+                )
+            elif verdict == "reject":
+                plan_approval.mark_rejected(session_id)
+    except Exception:
+        pass
+
+
+def _assemble_output(
+    sync_notice: str,
+    workflow_directive: str,
+    python_result: str,
+    hygiene: str,
+    refine_hint: str,
+    nudges: tuple[str, str, str],
+    context_hits: str,
+    budget: _Budget,
+) -> str:
+    """Assembly order identical to the bash version."""
+    out = (
+        f"{sync_notice}{_ROUTE_REMINDER}{workflow_directive} {python_result}"
+    )
+    if hygiene:
+        out = f"{out} {hygiene}"
+    if refine_hint:
+        out = f"{out}\n{refine_hint}"
+    for nudge in nudges:
+        if nudge:
+            out = f"{out}\n{nudge}"
+    if context_hits:
+        out = f"{out}\n{context_hits}"
+    return f"{out}{budget.marker()}"
 
 
 # ─── Entry point ─────────────────────────────────────────────────────────
@@ -573,104 +768,57 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
     if not user_input:
         user_input = raw[:2000]
 
-    # ─── Synapse bridge + tags ───────────────────────────────────────
-    python_result = _run_bridge(
-        root, user_input, session_id, get_str(stdin_json, "cwd")
-    )
-    if python_result:
-        wf_tag = _workflow_tag()
-        if wf_tag:
-            python_result = f"{python_result} {wf_tag}"
-        forge_tag = _forge_tag()
-        if forge_tag:
-            python_result = f"{python_result} {forge_tag}"
-        if "[knowledge:" in python_result:
-            kb_content = _kb_auto_inject(root, user_input)
-            if kb_content:
-                python_result = f"{kb_content} {python_result}"
-    else:
-        python_result = _fallback_context()
+    budget = _Budget(start)
 
-    hygiene = _token_hygiene(
-        user_input, get_str(stdin_json, "transcript_path")
+    python_result = _bridge_context(
+        root, user_input, session_id, get_str(stdin_json, "cwd"), budget
     )
+
+    hygiene = budget.run("token-hygiene", lambda: _token_hygiene(
+        user_input, get_str(stdin_json, "transcript_path")
+    ))
 
     workflow_directive = ""
     refine_hint = ""
     if user_input and _wf_classify(user_input):
         _wf_mark_required(session_id)
         workflow_directive = _WORKFLOW_DIRECTIVE
-        # Interaction Reform PR5 — a vague code-modifying request is a
-        # signal to refine the prompt (ask about the topic) BEFORE the
-        # workflow. SUGGESTION only; /do decides. Not a slash command.
-        # Calibration (QG 2026-07-09): the scorer's +20 "no files" branch
-        # is a constant in the hook context (the hook never has files), so
-        # 70 is the floor for ANY short prompt. Two guards keep clear asks
-        # out — a higher threshold (85, above that constant) AND a
-        # concrete-target carve-out: a prompt that names a file or a code
-        # identifier ("fix the typo in README.md", "add a test to
-        # AuthService") is specific, never refine-worthy.
         if (
             not user_input.strip().startswith("/")
             and not _names_concrete_target(user_input)
         ):
-            try:
-                from core.forge.complexity import score_prompt_ambiguity
-                score = score_prompt_ambiguity(user_input)
-                if score >= 85:
-                    refine_hint = (
-                        f"[arka:refine-suggested] score={score}/100 — the "
-                        f"request may be vague; consider /arka refine to ask "
-                        f"about the topic and compile a precise prompt "
-                        f"before building."
-                    )
-            except Exception:
-                pass
-
-    # Interaction Reform PR3 — when the previous turn ended at Gate 2
-    # (plan on the table), classify THIS message as approval/rejection.
-    # UserPromptSubmit runs before the turn's tool calls, so the token
-    # is visible to the PreToolUse enforcer with no marker-invisibility
-    # problem. Never blocks the hook.
-    try:
-        from core.workflow import plan_approval
-        if session_id and user_input and plan_approval.is_presented(session_id):
-            verdict = plan_approval.classify_reply(
-                user_input, has_creation_verb=_wf_classify(user_input)
+            refine_hint = budget.run(
+                "refine-score", lambda: _refine_hint(user_input)
             )
-            if verdict == "approve":
-                plan_approval.mark_approved(
-                    session_id, source="text", excerpt=user_input
-                )
-            elif verdict == "reject":
-                plan_approval.mark_rejected(session_id)
-    except Exception:
-        pass
 
-    context_hits = _cognitive_hits(session_id)
+    _classify_plan_reply(session_id, user_input)
 
+    context_hits = budget.run(
+        "cognitive-hits", lambda: _cognitive_hits(session_id)
+    )
+
+    # over() only runs when a nudge file actually exists: one-shot
+    # nudges are empty on most turns, and recording a skip for work
+    # that had nothing to do would inflate the degraded telemetry the
+    # 6000 ms default will be judged on.
     kb_cite_nudge = meta_tag_nudge = closing_marker_nudge = ""
-    if session_id and surface_nudges:
+    if (
+        session_id and surface_nudges and _nudges_pending(session_id)
+        and not budget.over("nudges")
+    ):
         kb_cite_nudge = _one_shot_nudge("arkaos-cite", session_id)
         meta_tag_nudge = _one_shot_nudge("arkaos-meta", session_id)
         closing_marker_nudge = _one_shot_nudge("arkaos-closing", session_id)
 
-    # ─── Output (assembly order identical to the bash version) ──────
-    out = (
-        f"{sync_notice}{_ROUTE_REMINDER}{workflow_directive} {python_result}"
+    out = _assemble_output(
+        sync_notice, workflow_directive, python_result, hygiene,
+        refine_hint,
+        (kb_cite_nudge, meta_tag_nudge, closing_marker_nudge),
+        context_hits, budget,
     )
-    if hygiene:
-        out = f"{out} {hygiene}"
-    if refine_hint:
-        out = f"{out}\n{refine_hint}"
-    for nudge in (kb_cite_nudge, meta_tag_nudge, closing_marker_nudge):
-        if nudge:
-            out = f"{out}\n{nudge}"
-    if context_hits:
-        out = f"{out}\n{context_hits}"
     emit_additional_context("UserPromptSubmit", out)
 
-    _log_metrics(int((time.monotonic() - start) * 1000), user_input)
+    _log_metrics(int((time.monotonic() - start) * 1000), user_input, budget)
     return 0
 
 

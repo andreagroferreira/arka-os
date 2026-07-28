@@ -152,9 +152,13 @@ export default {
       { hooks: [hookEntry(hooksDir, "session-start", 15)] },
     ];
 
-    // UserPromptSubmit — Synapse v2 context injection
+    // UserPromptSubmit — Synapse v2 context injection. Timeout 20s: the
+    // in-hook budget (ARKA_UPS_BUDGET_MS, default 6000 ms) degrades
+    // stages long before this ceiling, so 20s is a hard stop for
+    // pathological cold starts, not the working envelope — a kill here
+    // loses all hook-injected context, a budget overrun only trims it.
     settings.hooks.UserPromptSubmit = [
-      { hooks: [hookEntry(hooksDir, "user-prompt-submit", 10)] },
+      { hooks: [hookEntry(hooksDir, "user-prompt-submit", 20)] },
     ];
 
     // PostToolUse — Error tracking

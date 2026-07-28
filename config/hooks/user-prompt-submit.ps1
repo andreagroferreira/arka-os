@@ -13,7 +13,7 @@
 #   (a top-level additionalContext key is ignored by Claude Code)
 # - Side effect: writes one line to the cache metrics JSONL.
 #
-# Target latency: <100ms (hook timeout is 10s in settings).
+# Target latency: <100ms (hook timeout is 20s in settings).
 #
 # File is pure ASCII. Any typographic characters that need to appear in the
 # output are built from [char] codes at runtime so PS 5.1's default ANSI

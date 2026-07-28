@@ -20,7 +20,8 @@
 #   - One-shot nudges (KB-cite, meta-tag, closing-marker) gated by
 #     effort level; cognitive context injection.
 #
-# Timeout: 10s | Output: JSON to stdout | Target: <100ms
+# Timeout: 20 s (in-hook budget ARKA_UPS_BUDGET_MS, default 6000 ms)
+# Output: JSON to stdout | Target: <100ms
 # ============================================================================
 
 # ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
