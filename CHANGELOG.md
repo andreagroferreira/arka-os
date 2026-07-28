@@ -5,6 +5,22 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.39.0] - 2026-07-28
+
+Enforcement chain repaired: the per-turn context channel, one root per
+session, a deadline budget, and reviewer verdicts captured verbatim.
+
+### Fixed
+- **The per-turn context channel was dead** (#406): `UserPromptSubmit` and `PostToolUse` emitted `additionalContext` as a top-level key, a shape the runtime silently ignores — so every turn's `[ARKA:ROUTE]`, workflow directive, Synapse layers and skill hints were discarded. One constructor (`emit_additional_context`) now owns the `hookSpecificOutput` shape, and a parametric contract test asserts across every entrypoint that `additionalContext` never appears top-level.
+- **Split root** (#419): `session-start.sh` was the last bash hook reading `.repo-path` raw while its six siblings resolved through `arka_resolve_root`; an exported `ARKAOS_ROOT` served the dev tree to some hooks and an npx cache to SessionStart. The wrapper now exports the resolved root and its source, every session states `[arka:root] <root> (source: …)` in context, and `npx arkaos doctor` gains a `root-consistency` check.
+
+### Added
+- **Reviewer verdict ledger** (#412): every Quality Gate reviewer dispatch is captured verbatim at the hook boundary to `~/.arkaos/quality-gate/<session>/<reviewer>-<seq>-<sha8>.json` — digests, fail-closed attribution, atomic publish, dedupe across both writers, protected quarantine and a 90-day sweep. A failed capture logs to telemetry instead of vanishing. SubagentStop no longer writes to stdout (its context wakes the subagent it describes, 65 measured re-entries); notices are queued and drained by the Stop hook, so the orchestrator reads each verdict from disk instead of relaying it.
+- **Deadline budget for the per-turn hook** (#420): a monotonic deadline (`ARKA_UPS_BUDGET_MS`, default 6000 ms) between stages. The Synapse bridge always runs; past the deadline the optional stages are skipped and the turn carries `[arka:degraded] skipped=<names> reason=budget`. Metrics rows gain `degraded` and `stage_ms`. The hook timeout moves 10s → 20s across all three executable surfaces, locked by a consistency test.
+
+### Security
+- **CWE-22 in the nudge gate** (#420): the one-shot nudge lookup turned an unsanitised `session_id` into a filesystem path, so a traversal id could read a file the hook does not own into the model context and then unlink it. The gate now refuses anything `safe_session_id` refuses.
+
 ## [4.38.0] - 2026-07-23
 
 Cross-runtime shared sessions + OpenCode autorouting.
