@@ -272,6 +272,107 @@ load helpers/setup
   ! grep -q "cwd:$REPO_DIR" "$LOG"
 }
 
+# ─── PR-A2: one root per session (session-start uses the shared resolver) ──
+
+@test "session-start.sh: ARKAOS_ROOT env wins and its source is exported" {
+  FAKE_HOME="$BATS_TEST_TMPDIR/home-a2a"
+  ENVROOT="$BATS_TEST_TMPDIR/env-root"
+  LOG="$BATS_TEST_TMPDIR/root-a2a.log"
+  mkdir -p "$FAKE_HOME/.arkaos" "$ENVROOT/core/hooks"
+  # .repo-path points at the dev tree; the env override must still win.
+  echo "$REPO_DIR" > "$FAKE_HOME/.arkaos/.repo-path"
+  touch "$ENVROOT/core/hooks/session_start.py"
+  FAKE_PY="$BATS_TEST_TMPDIR/fake-python-a2a"
+  printf '#!/usr/bin/env bash\necho "pwd:$PWD src:$ARKA_ROOT_SOURCE root:$ARKA_ROOT" >> "%s"\nexit 0\n' "$LOG" > "$FAKE_PY"
+  chmod +x "$FAKE_PY"
+
+  run bash -c "echo '{}' | HOME='$FAKE_HOME' ARKAOS_ROOT='$ENVROOT' ARKAOS_PYTHON='$FAKE_PY' bash '$REPO_DIR/config/hooks/session-start.sh'"
+  [ "$status" -eq 0 ]
+  grep -q "pwd:$ENVROOT src:env root:$ENVROOT" "$LOG"
+}
+
+@test "session-start.sh: dead .repo-path falls through to the lib snapshot" {
+  # Reading .repo-path raw ran the hook from an npx cache that
+  # `npm cache clean` purges; the shared resolver must fall through to
+  # the installer-written ~/.arkaos/lib snapshot instead.
+  FAKE_HOME="$BATS_TEST_TMPDIR/home-a2b"
+  LOG="$BATS_TEST_TMPDIR/root-a2b.log"
+  mkdir -p "$FAKE_HOME/.arkaos/lib/core/sync" "$FAKE_HOME/.arkaos/lib/core/hooks"
+  echo "$BATS_TEST_TMPDIR/purged-npx-cache" > "$FAKE_HOME/.arkaos/.repo-path"
+  touch "$FAKE_HOME/.arkaos/lib/core/sync/__init__.py"
+  touch "$FAKE_HOME/.arkaos/lib/core/hooks/session_start.py"
+  FAKE_PY="$BATS_TEST_TMPDIR/fake-python-a2b"
+  printf '#!/usr/bin/env bash\necho "pwd:$PWD src:$ARKA_ROOT_SOURCE root:$ARKA_ROOT" >> "%s"\nexit 0\n' "$LOG" > "$FAKE_PY"
+  chmod +x "$FAKE_PY"
+
+  run bash -c "echo '{}' | HOME='$FAKE_HOME' ARKAOS_ROOT='' ARKAOS_PYTHON='$FAKE_PY' bash '$REPO_DIR/config/hooks/session-start.sh'"
+  [ "$status" -eq 0 ]
+  grep -q "pwd:$FAKE_HOME/.arkaos/lib src:lib-snapshot root:$FAKE_HOME/.arkaos/lib" "$LOG"
+}
+
+@test "session-start.sh: a healthy .repo-path is labelled repo-path" {
+  # The common production source — a relabelling mutation survived the
+  # first battery because only env and lib-snapshot were pinned.
+  FAKE_HOME="$BATS_TEST_TMPDIR/home-a2c"
+  LOG="$BATS_TEST_TMPDIR/root-a2c.log"
+  mkdir -p "$FAKE_HOME/.arkaos"
+  echo "$REPO_DIR" > "$FAKE_HOME/.arkaos/.repo-path"
+  FAKE_PY="$BATS_TEST_TMPDIR/fake-python-a2c"
+  printf '#!/usr/bin/env bash\necho "src:$ARKA_ROOT_SOURCE root:$ARKA_ROOT" >> "%s"\nexit 0\n' "$LOG" > "$FAKE_PY"
+  chmod +x "$FAKE_PY"
+
+  run bash -c "echo '{}' | HOME='$FAKE_HOME' ARKAOS_ROOT='' ARKAOS_PYTHON='$FAKE_PY' bash '$REPO_DIR/config/hooks/session-start.sh'"
+  [ "$status" -eq 0 ]
+  grep -q "src:repo-path root:$REPO_DIR" "$LOG"
+}
+
+@test "session-start.sh: with no .repo-path and no snapshot the source is labelled fallback" {
+  FAKE_HOME="$BATS_TEST_TMPDIR/home-a2d"
+  LOG="$BATS_TEST_TMPDIR/root-a2d.log"
+  mkdir -p "$FAKE_HOME/.arkaos/core/hooks"
+  touch "$FAKE_HOME/.arkaos/core/hooks/session_start.py"
+  FAKE_PY="$BATS_TEST_TMPDIR/fake-python-a2d"
+  printf '#!/usr/bin/env bash\necho "src:$ARKA_ROOT_SOURCE root:$ARKA_ROOT" >> "%s"\nexit 0\n' "$LOG" > "$FAKE_PY"
+  chmod +x "$FAKE_PY"
+
+  run bash -c "echo '{}' | HOME='$FAKE_HOME' ARKAOS_ROOT='' ARKAOS_PYTHON='$FAKE_PY' bash '$REPO_DIR/config/hooks/session-start.sh'"
+  [ "$status" -eq 0 ]
+  grep -q "src:fallback root:$FAKE_HOME/.arkaos" "$LOG"
+}
+
+@test "session-start.sh: a hook with no _lib sibling is labelled legacy" {
+  # The hook deployed without its _lib sibling — an installer outcome
+  # tests/installer/hook-lib.test.js already covers — must keep working
+  # on the raw .repo-path read, labelled legacy.
+  FAKE_HOME="$BATS_TEST_TMPDIR/home-a2f"
+  LONE="$BATS_TEST_TMPDIR/lone-hook"
+  FAKEBIN="$BATS_TEST_TMPDIR/fakebin-a2f"
+  LOG="$BATS_TEST_TMPDIR/root-a2f.log"
+  mkdir -p "$FAKE_HOME/.arkaos" "$LONE" "$FAKEBIN"
+  echo "$REPO_DIR" > "$FAKE_HOME/.arkaos/.repo-path"
+  cp "$REPO_DIR/config/hooks/session-start.sh" "$LONE/"
+  printf '#!/usr/bin/env bash\necho "src:$ARKA_ROOT_SOURCE root:$ARKA_ROOT" >> "%s"\nexit 0\n' "$LOG" > "$FAKEBIN/python3"
+  chmod +x "$FAKEBIN/python3"
+
+  run bash -c "echo '{}' | HOME='$FAKE_HOME' ARKAOS_ROOT='' PATH='$FAKEBIN:$PATH' bash '$LONE/session-start.sh'"
+  [ "$status" -eq 0 ]
+  grep -q "src:legacy root:$REPO_DIR" "$LOG"
+}
+
+@test "session-start.sh: a garbage ARKAOS_ROOT degrades to the static banner" {
+  # Before PR-A2 this hook ignored ARKAOS_ROOT entirely; now a stale
+  # export wins, fails the module guard, and must fail OPEN (exit 0,
+  # valid JSON banner) — never a broken SessionStart.
+  FAKE_HOME="$BATS_TEST_TMPDIR/home-a2e"
+  mkdir -p "$FAKE_HOME/.arkaos"
+  echo "$REPO_DIR" > "$FAKE_HOME/.arkaos/.repo-path"
+
+  run bash -c "echo '{}' | HOME='$FAKE_HOME' ARKAOS_ROOT='$BATS_TEST_TMPDIR/does-not-exist' bash '$REPO_DIR/config/hooks/session-start.sh'"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq empty
+  echo "$output" | grep -q "degraded"
+}
+
 # ─── F2-1: hook latency harness ────────────────────────────────────────
 
 @test "hooks-bench.sh emits valid JSON with all hook entries" {
