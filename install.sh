@@ -1062,7 +1062,7 @@ if command -v jq &>/dev/null; then
             jq --arg ups "$HOOKS_DIR/user-prompt-submit.sh" \
                --arg pc "$HOOKS_DIR/pre-compact.sh" \
                --arg ptu "$HOOKS_DIR/post-tool-use.sh" \
-               '.hooks.UserPromptSubmit = [{"hooks":[{"type":"command","command":$ups,"timeout":10}]}] |
+               '.hooks.UserPromptSubmit = [{"hooks":[{"type":"command","command":$ups,"timeout":20}]}] |
                 .hooks.PreCompact = [{"hooks":[{"type":"command","command":$pc,"timeout":30}]}] |
                 .hooks.PostToolUse = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]' \
                "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS"
@@ -1075,7 +1075,7 @@ if command -v jq &>/dev/null; then
             jq --arg ups "$HOOKS_DIR/user-prompt-submit.sh" \
                --arg pc "$HOOKS_DIR/pre-compact.sh" \
                --arg ptu "$HOOKS_DIR/post-tool-use.sh" \
-               '.hooks.UserPromptSubmit = [{"hooks":[{"type":"command","command":$ups,"timeout":10}]}] |
+               '.hooks.UserPromptSubmit = [{"hooks":[{"type":"command","command":$ups,"timeout":20}]}] |
                 .hooks.PreCompact = [{"hooks":[{"type":"command","command":$pc,"timeout":30}]}] |
                 .hooks.PostToolUse = [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]' \
                "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS"
@@ -1094,7 +1094,7 @@ if command -v jq &>/dev/null; then
                   '{
                     statusLine: {"type":"command","command":$cmd,"padding":2},
                     hooks: {
-                      UserPromptSubmit: [{"hooks":[{"type":"command","command":$ups,"timeout":10}]}],
+                      UserPromptSubmit: [{"hooks":[{"type":"command","command":$ups,"timeout":20}]}],
                       PreCompact: [{"hooks":[{"type":"command","command":$pc,"timeout":30}]}],
                       PostToolUse: [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]
                     }

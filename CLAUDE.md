@@ -173,9 +173,12 @@ block execution — the user decides whether to act.
 | Large paste | Prompt > 2000 chars AND contains code fence | `[arka:suggest] Large paste — use @filepath` |
 | Vague reference | Phrases like "fix the bug", "that file", "esse ficheiro" without any `@` reference | `[arka:suggest] Vague reference — use @path` |
 
-Implementation: `config/hooks/token-hygiene.sh`, called from
-`config/hooks/user-prompt-submit.sh`. Hooks must respect the 10s
-UserPromptSubmit budget and never block (exit 0 only).
+Implementation: `core/hooks/user_prompt_submit.py` (Section 8; the four
+checks were ported from the legacy `config/hooks/token-hygiene.sh`),
+reached through the `config/hooks/user-prompt-submit.sh` wrapper. The
+hook must respect its in-hook budget (`ARKA_UPS_BUDGET_MS`, default
+6000 ms) under the 20 s UserPromptSubmit runtime ceiling, and never
+block (exit 0 only).
 
 Subagent discipline (MUST rule `subagent-discipline`): dispatch subagents
 only when a task requires >3 Reads, >5 Greps, or isolated context. Never

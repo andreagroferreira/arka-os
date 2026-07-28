@@ -12,6 +12,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -459,6 +460,150 @@ class TestUserPromptSubmit:
             assert "KB-first nudge" not in _ctx(result)
         finally:
             nudge_file.unlink(missing_ok=True)
+
+    # ─── PR-A3: deadline budget ──────────────────────────────────────
+
+    def test_zero_budget_still_exits_clean_and_marks_the_turn(
+        self, hook_home
+    ):
+        """End-to-end floor: at a zero budget the hook exits 0, still
+        emits the assembled context, and names the skipped stages. The
+        strong pins (bridge mandatory, exact skip semantics) live in
+        the in-process tests below, where the tracer can see them."""
+        env = _env(hook_home)
+        env["ARKA_UPS_BUDGET_MS"] = "0"
+        result = _run_module("core.hooks.user_prompt_submit", {
+            "userInput": "hello there", "session_id": "ups-budget-0",
+        }, env)
+        assert result.returncode == 0
+        out = _ctx(result)
+        assert "[ARKA:ROUTE]" in out
+        # The EXACT set, with no "nudges": this session has no one-shot
+        # file pending, and a gate that recorded a skip for work with
+        # nothing to do would inflate the telemetry the 6000 ms default
+        # will be judged on.
+        assert (
+            "[arka:degraded] skipped=token-hygiene,cognitive-hits"
+            " reason=budget"
+        ) in out
+
+    def test_generous_budget_carries_no_degraded_marker(self, hook_home):
+        env = _env(hook_home)
+        env["ARKA_UPS_BUDGET_MS"] = "60000"
+        result = _run_module("core.hooks.user_prompt_submit", {
+            "userInput": "hello there", "session_id": "ups-budget-big",
+        }, env)
+        assert "[arka:degraded]" not in _ctx(result)
+
+    def test_zero_budget_runs_the_bridge_and_names_the_skips(
+        self, hook_home, monkeypatch, capsys
+    ):
+        """The bridge is mandatory even at zero budget (a sentinel only
+        the bridge can emit must survive), and the marker carries the
+        exact skipped-stage names — a mutation that makes the bridge
+        skippable, or that neuters either skip path, dies here."""
+        from core.hooks import user_prompt_submit as ups
+
+        for key, value in _env(hook_home).items():
+            monkeypatch.setenv(key, value)
+        monkeypatch.setenv("ARKA_UPS_BUDGET_MS", "0")
+        monkeypatch.setattr(
+            ups, "_run_bridge", lambda *a: "[BRIDGE-SENTINEL]"
+        )
+        sid = "ups-budget-ip"
+        cite_dir = Path("/tmp/arkaos-cite")
+        cite_dir.mkdir(parents=True, exist_ok=True)
+        (cite_dir / f"{sid}.json").write_text(json.dumps({
+            "passed": False, "reason": "missing", "suggestion": "x",
+        }), encoding="utf-8")
+        try:
+            assert ups.main(
+                {"userInput": "hello there", "session_id": sid}, "{}"
+            ) == 0
+        finally:
+            (cite_dir / f"{sid}.json").unlink(missing_ok=True)
+        payload = json.loads(capsys.readouterr().out)
+        out = payload["hookSpecificOutput"]["additionalContext"]
+        assert "[BRIDGE-SENTINEL]" in out, "the bridge must never be skipped"
+        assert (
+            "[arka:degraded] skipped=token-hygiene,cognitive-hits,nudges"
+            " reason=budget"
+        ) in out
+
+    def test_nudge_gate_refuses_a_traversal_session_id(self, tmp_path):
+        """CWE-22: the id reaches the gate straight from stdin and
+        becomes a path. Before the guard, "../<dir>/victim" read a file
+        the hook does not own into the model context and unlinked it."""
+        from core.hooks import user_prompt_submit as ups
+
+        victim_dir = tmp_path / "victim-dir"
+        victim_dir.mkdir()
+        victim = victim_dir / "victim.json"
+        victim.write_text(json.dumps({
+            "passed": False, "reason": "missing", "suggestion": "PWNED",
+        }), encoding="utf-8")
+        traversal = f"../{victim_dir.name}/victim"
+
+        def _fake_temp_dir(_subdir: str):
+            return tmp_path / "arkaos-cite"
+
+        (tmp_path / "arkaos-cite").mkdir()
+        monkey = pytest.MonkeyPatch()
+        monkey.setattr(ups, "arkaos_temp_dir", _fake_temp_dir)
+        try:
+            assert ups._nudges_pending(traversal) is False
+        finally:
+            monkey.undo()
+        assert victim.is_file(), "a file the hook does not own must survive"
+
+    def test_budget_run_skips_after_the_deadline_and_records_it(
+        self, monkeypatch
+    ):
+        """Pins _Budget directly: past the deadline run() returns ""
+        without calling the stage, over() answers True, and both record
+        the skip that marker() then names."""
+        from core.hooks import user_prompt_submit as ups
+
+        monkeypatch.setenv("ARKA_UPS_BUDGET_MS", "0")
+        budget = ups._Budget(time.monotonic())
+        assert budget.run("x", lambda: "PAYLOAD") == ""
+        assert budget.skipped == ["x"]
+        assert budget.stage_ms == {}, "a skipped stage is never timed"
+        assert budget.over("y") is True
+        assert budget.skipped == ["x", "y"]
+        assert budget.marker() == (
+            "\n[arka:degraded] skipped=x,y reason=budget"
+        )
+
+    def test_budget_inside_the_deadline_runs_and_times(self, monkeypatch):
+        from core.hooks import user_prompt_submit as ups
+
+        monkeypatch.setenv("ARKA_UPS_BUDGET_MS", "60000")
+        budget = ups._Budget(time.monotonic())
+        assert budget.run("x", lambda: "PAYLOAD") == "PAYLOAD"
+        assert "x" in budget.stage_ms
+        assert budget.over("y") is False
+        assert budget.skipped == []
+        assert budget.marker() == ""
+
+    def test_log_metrics_records_degraded_and_stage_ms(
+        self, tmp_path, monkeypatch
+    ):
+        """PR-A3: the metrics row names what was cut and what each stage
+        cost — the telemetry that decides whether the 6000 ms default is
+        right."""
+        from core.hooks import user_prompt_submit as ups
+
+        monkeypatch.setattr(ups, "_CACHE_DIR", tmp_path)
+        budget = ups._Budget(time.monotonic())
+        budget.stage_ms["bridge"] = 12
+        budget.skipped.append("token-hygiene")
+        ups._log_metrics(5, "hi there", budget)
+        row = json.loads(
+            (tmp_path / "hook-metrics.jsonl").read_text().splitlines()[-1]
+        )
+        assert row["degraded"] == ["token-hygiene"]
+        assert row["stage_ms"]["bridge"] == 12
 
     def test_sync_notice_on_version_drift(self, hook_home, tmp_path):
         fake_repo = tmp_path / "fake-repo"
