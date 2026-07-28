@@ -199,3 +199,99 @@ class TestWindowsAdapter:
         call_args = mock_run.call_args[0][0]
         assert "schtasks" in call_args
         assert "/Create" in call_args
+
+    def test_task_run_uses_console_less_interpreter(self, adapter: WindowsAdapter) -> None:
+        """The logon task launches pythonw.exe, never python.exe.
+
+        python.exe forces Windows to allocate a console for a daemon that
+        outlives the login session; the window then stays open for hours and
+        closing it kills the scheduler.
+        """
+        venv_python = "C:\\Users\\op\\.arkaos\\venv\\Scripts\\python.exe"
+        with patch(
+            "core.cognition.scheduler.platform._python_executable",
+            return_value=venv_python,
+        ):
+            with patch.object(Path, "is_file", return_value=True):
+                cmd = adapter._build_schtasks_command()
+
+        tr_value = cmd[cmd.index("/TR") + 1]
+        assert "pythonw.exe" in tr_value
+        assert "\\python.exe" not in tr_value
+
+    def test_task_run_falls_back_when_pythonw_absent(self, adapter: WindowsAdapter) -> None:
+        """Without pythonw.exe the daemon still installs, console and all.
+
+        Embeddable distributions ship no pythonw.exe. A missing console-less
+        interpreter must degrade the experience, not block installation.
+        """
+        venv_python = "C:\\Users\\op\\.arkaos\\venv\\Scripts\\python.exe"
+        with patch(
+            "core.cognition.scheduler.platform._python_executable",
+            return_value=venv_python,
+        ):
+            with patch.object(Path, "is_file", return_value=False):
+                cmd = adapter._build_schtasks_command()
+
+        tr_value = cmd[cmd.index("/TR") + 1]
+        assert "python.exe" in tr_value
+
+    def test_task_run_quotes_both_paths(self) -> None:
+        """/TR quotes the interpreter and the script.
+
+        schtasks splits an unquoted /TR on the first space, so a profile like
+        C:\\Users\\John Doe\\ produced an invalid task.
+        """
+        spaced = WindowsAdapter(daemon_script="C:\\Users\\John Doe\\.arkaos\\daemon.py")
+        interpreter = "C:\\Users\\John Doe\\.arkaos\\venv\\Scripts\\python.exe"
+        with patch(
+            "core.cognition.scheduler.platform._python_executable",
+            return_value=interpreter,
+        ):
+            with patch.object(Path, "is_file", return_value=True):
+                cmd = spaced._build_schtasks_command()
+
+        tr_value = cmd[cmd.index("/TR") + 1]
+        assert tr_value.startswith('"')
+        assert tr_value.endswith('"')
+        assert tr_value.count('"') == 4
+
+
+# ---------------------------------------------------------------------------
+# TestPosixGeneratorsUnaffected
+#
+# The Windows console fix must not reach launchd or systemd. These tests pin
+# the two POSIX generators to the shared resolver, so any future attempt to
+# route them through a Windows-specific interpreter fails here.
+# ---------------------------------------------------------------------------
+
+class TestPosixGeneratorsUnaffected:
+    def test_plist_uses_shared_resolver_only(self, tmp_path: Path) -> None:
+        """The launchd plist is built from _python_executable, untouched."""
+        adapter = MacOSAdapter(
+            daemon_script="/usr/local/bin/scheduler-daemon.py",
+            plist_dir=str(tmp_path),
+        )
+        with patch(
+            "core.cognition.scheduler.platform._python_executable",
+            return_value="/opt/arkaos/bin/python3",
+        ):
+            plist = adapter._generate_plist()
+
+        assert "<string>/opt/arkaos/bin/python3</string>" in plist
+        assert "pythonw" not in plist
+
+    def test_unit_uses_shared_resolver_only(self, tmp_path: Path) -> None:
+        """The systemd unit is built from _python_executable, untouched."""
+        adapter = LinuxAdapter(
+            daemon_script="/usr/local/bin/scheduler-daemon.py",
+            service_dir=str(tmp_path),
+        )
+        with patch(
+            "core.cognition.scheduler.platform._python_executable",
+            return_value="/opt/arkaos/bin/python3",
+        ):
+            unit = adapter._generate_unit()
+
+        assert "ExecStart=/opt/arkaos/bin/python3 /usr/local/bin/scheduler-daemon.py" in unit
+        assert "pythonw" not in unit
