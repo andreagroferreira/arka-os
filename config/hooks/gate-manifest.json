@@ -635,13 +635,9 @@
       "flags": "i",
       "js": "(error:|fatal:|exception:|failed|ENOENT|EACCES|EPERM|panic:)",
       "py": "(error:|fatal:|exception:|failed|ENOENT|EACCES|EPERM|panic:)"
-    },
-    "success_exit_codes": [
-      "0",
-      ""
-    ]
+    }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "session_id": {
     "flags": "",
     "js": "^[A-Za-z0-9._-]{1,128}$",

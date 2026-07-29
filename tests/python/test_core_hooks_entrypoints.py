@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -69,6 +70,20 @@ def hook_home(tmp_path):
 
 def _env(hook_home: dict) -> dict[str, str]:
     return {k: v for k, v in hook_home.items() if not k.startswith("_")}
+
+
+def _fixture_payload(name: str) -> dict:
+    """A runtime-captured hook payload from fixtures/hook_payloads/.
+
+    session_id and cwd are replaced, prompt_id is dropped, and machine
+    paths are rewritten (transcript_path emptied; the path inside
+    failure_read's ``error``); every other contract field is verbatim
+    from the live capture, tool_use_id included.
+    """
+    path = (
+        Path(__file__).parent / "fixtures" / "hook_payloads" / f"{name}.json"
+    )
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _ctx(result: subprocess.CompletedProcess) -> str:
@@ -198,7 +213,9 @@ class TestPostToolUse:
             ]}}),
         ]), encoding="utf-8")
         result = _run_module("core.hooks.post_tool_use", {
-            "tool_name": "Write", "tool_output": "ok", "exit_code": "0",
+            "tool_name": "Write",
+            "tool_input": {"file_path": "/tmp/x.md", "content": "ok"},
+            "tool_response": {"filePath": "/tmp/x.md", "success": True},
             "cwd": "/tmp", "session_id": "post-marker",
             "transcript_path": str(transcript),
         }, _env(hook_home))
@@ -209,24 +226,24 @@ class TestPostToolUse:
         data = json.loads(auth.read_text(encoding="utf-8"))
         assert data["marker_type"] == "routing"
 
-    def test_clean_output_short_circuits(self, hook_home):
-        result = _run_module("core.hooks.post_tool_use", {
-            "tool_name": "Bash", "tool_output": "all good", "exit_code": "0",
-            "cwd": "/tmp", "session_id": "post-clean",
-            "assistant_message": "",
-        }, _env(hook_home))
+    def test_benign_fixture_short_circuits(self, hook_home):
+        # Runtime-captured payload (grep no-match, exit 1 interpreted as
+        # benign by the runtime — PostToolUse fired, empty output).
+        result = _run_module(
+            "core.hooks.post_tool_use",
+            _fixture_payload("post_tool_use_bash_benign"),
+            _env(hook_home),
+        )
         assert result.returncode == 0
         assert json.loads(result.stdout) == {}
         gotchas = Path(hook_home["HOME"]) / ".arkaos" / "gotchas.json"
         assert not gotchas.exists()
 
-    def test_error_output_records_gotcha(self, hook_home):
-        payload = {
-            "tool_name": "Bash",
-            "tool_output": "npm ERR! Error: ENOENT no such file",
-            "exit_code": "1", "cwd": "/tmp/projx",
-            "session_id": "post-err", "assistant_message": "",
-        }
+    def test_failure_event_records_gotcha(self, hook_home):
+        # Runtime-captured PostToolUseFailure payload: a failed Bash call
+        # (exit 7) arrives on the FAILURE event with the output inside
+        # `error`, prefixed "Exit code N" — there is no tool_response.
+        payload = _fixture_payload("post_tool_use_failure_bash")
         result = _run_module("core.hooks.post_tool_use", payload, _env(hook_home))
         assert result.returncode == 0
         assert json.loads(result.stdout) == {}
@@ -234,14 +251,240 @@ class TestPostToolUse:
         entries = json.loads(gotchas_file.read_text(encoding="utf-8"))
         assert len(entries) == 1
         assert entries[0]["count"] == 1
-        assert entries[0]["category"] == "frontend"  # npm match
-        assert entries[0]["projects"] == ["projx"]
+        assert entries[0]["tool"] == "Bash"
+        assert entries[0]["projects"] == ["projlive"]
 
-        # Same error again → count increments, no duplicate entry.
+        # Same failure again → count increments, no duplicate entry.
         _run_module("core.hooks.post_tool_use", payload, _env(hook_home))
         entries = json.loads(gotchas_file.read_text(encoding="utf-8"))
         assert len(entries) == 1
         assert entries[0]["count"] == 2
+
+    def test_failure_event_read_records_gotcha(self, hook_home):
+        # Runtime-captured PostToolUseFailure for a non-Bash tool: `error`
+        # is a plain message with no "Exit code N" prefix.
+        result = _run_module(
+            "core.hooks.post_tool_use",
+            _fixture_payload("post_tool_use_failure_read"),
+            _env(hook_home),
+        )
+        assert result.returncode == 0
+        gotchas_file = Path(hook_home["HOME"]) / ".arkaos" / "gotchas.json"
+        entries = json.loads(gotchas_file.read_text(encoding="utf-8"))
+        assert len(entries) == 1
+        assert entries[0]["tool"] == "Read"
+
+    def test_error_trigger_in_stdout_records_gotcha(self, hook_home):
+        # Runtime-captured payload: exit 0 but stdout carries an error
+        # trigger (real success payloads merge stderr into stdout) — the
+        # dict-shaped tool_response must feed the error pipeline.
+        result = _run_module(
+            "core.hooks.post_tool_use",
+            _fixture_payload("post_tool_use_bash_trigger"),
+            _env(hook_home),
+        )
+        assert result.returncode == 0
+        gotchas_file = Path(hook_home["HOME"]) / ".arkaos" / "gotchas.json"
+        entries = json.loads(gotchas_file.read_text(encoding="utf-8"))
+        assert len(entries) == 1
+        assert entries[0]["category"] == "git"  # "fatal: not a git repository"
+        assert entries[0]["projects"] == ["projlive"]
+
+
+class TestToolResultExtraction:
+    """In-process pins for the two-event 2.1.220 contract helpers.
+
+    PostToolUse only ever delivers a structured tool_response (failures
+    throw and fire PostToolUseFailure instead, proven live against the
+    binary); the failure event carries the output in `error`, prefixed
+    "Exit code N" for Bash, plain message for other tools.
+    """
+
+    def _mod(self):
+        from core.hooks import post_tool_use
+        return post_tool_use
+
+    def test_success_dict_joins_stdout_and_stderr(self):
+        mod = self._mod()
+        payload = {"tool_response": {
+            "stdout": "out line", "stderr": "warn line",
+        }}
+        assert mod._tool_text(payload) == "out line\nwarn line"
+        assert mod._tool_exit_code(payload) == "0"
+
+    def test_failure_event_strips_exit_envelope(self):
+        mod = self._mod()
+        payload = {
+            "hook_event_name": "PostToolUseFailure",
+            "error": "Exit code 7\nhello-stdout\nboom-stderr",
+            "is_interrupt": False,
+        }
+        assert mod._tool_text(payload) == "hello-stdout\nboom-stderr"
+        assert mod._tool_exit_code(payload) == "7"
+
+    def test_failure_event_plain_error_is_code_one(self):
+        mod = self._mod()
+        payload = {
+            "hook_event_name": "PostToolUseFailure",
+            "error": "File does not exist.",
+            "is_interrupt": False,
+        }
+        assert mod._tool_text(payload) == "File does not exist."
+        assert mod._tool_exit_code(payload) == "1"
+
+    def test_failure_envelope_only_matches_as_prefix(self):
+        # Pin for the ^ anchor: an "Exit code N" line mid-error is
+        # content, not envelope.
+        mod = self._mod()
+        payload = {
+            "hook_event_name": "PostToolUseFailure",
+            "error": "tests failed\nExit code 2\nmore output",
+            "is_interrupt": False,
+        }
+        assert mod._tool_text(payload) == "tests failed\nExit code 2\nmore output"
+        assert mod._tool_exit_code(payload) == "1"
+
+    def test_interrupt_is_not_a_failure_signal(self):
+        mod = self._mod()
+        payload = {
+            "hook_event_name": "PostToolUseFailure",
+            "error": "[Request interrupted by user]",
+            "is_interrupt": True,
+        }
+        assert mod._tool_exit_code(payload) == "0"
+
+    def test_plain_string_response_passes_through(self):
+        mod = self._mod()
+        payload = {"tool_response": "just some text"}
+        assert mod._tool_text(payload) == "just some text"
+        assert mod._tool_exit_code(payload) == "0"
+
+    def test_task_content_list_still_extracts(self):
+        mod = self._mod()
+        payload = {"tool_response": {"content": [
+            {"type": "text", "text": "verdict body"},
+            {"type": "image", "source": {}},
+        ]}}
+        assert mod._tool_text(payload) == "verdict body"
+        assert mod._tool_exit_code(payload) == "0"
+
+    def test_missing_response_is_empty_success(self):
+        mod = self._mod()
+        assert mod._tool_text({}) == ""
+        assert mod._tool_exit_code({}) == "0"
+
+    def test_failure_envelope_with_no_output_leaves_no_text(self):
+        mod = self._mod()
+        payload = {
+            "hook_event_name": "PostToolUseFailure",
+            "error": "Exit code 1",
+            "is_interrupt": False,
+        }
+        assert mod._tool_text(payload) == ""
+        assert mod._tool_exit_code(payload) == "1"
+
+
+class TestDetectRuleViolations:
+    """The stdlib rules and the forge scope-creep check must read
+    tool_input.* (2.1.220), not dead keys.
+
+    These call the helpers directly; in production sections 6-8 only
+    run on turns that carry an error signal (main()'s early exit).
+    """
+
+    def _with_state(self, monkeypatch, tmp_path, phases: dict):
+        home = tmp_path / "vhome"
+        (home / ".arkaos").mkdir(parents=True)
+        (home / ".arkaos" / "workflow-state.json").write_text(
+            json.dumps({"phases": phases}), encoding="utf-8",
+        )
+        monkeypatch.setenv("HOME", str(home))
+
+    def test_commit_on_master_flags_branch_isolation(
+        self, monkeypatch, tmp_path
+    ):
+        self._with_state(monkeypatch, tmp_path, {})
+        from core.hooks.post_tool_use import _detect_rule_violations
+        msg, persist = _detect_rule_violations({
+            "tool_name": "Bash",
+            "tool_input": {"command": "git commit -m 'x'"},
+            "tool_response": {
+                "stdout": "[master abc1234] x", "stderr": "",
+            },
+        })
+        assert "branch-isolation" in msg
+        assert persist and persist[0][0] == "branch-isolation"
+
+    def test_code_edit_without_spec_flags_spec_driven(
+        self, monkeypatch, tmp_path
+    ):
+        self._with_state(
+            monkeypatch, tmp_path, {"spec": {"status": "pending"}},
+        )
+        from core.hooks.post_tool_use import _detect_rule_violations
+        msg, persist = _detect_rule_violations({
+            "tool_name": "Write",
+            "tool_input": {"file_path": "/app/service.py"},
+            "tool_response": {"filePath": "/app/service.py"},
+        })
+        assert "spec-driven" in msg
+        assert persist and persist[0][0] == "spec-driven"
+
+    def test_forge_scope_creep_reads_tool_input_path(
+        self, monkeypatch, tmp_path
+    ):
+        import yaml as yaml_mod
+        home = tmp_path / "fhome"
+        plans = home / ".arkaos" / "plans"
+        plans.mkdir(parents=True)
+        (plans / "active.yaml").write_text("forge-1", encoding="utf-8")
+        (plans / "forge-1.yaml").write_text(yaml_mod.safe_dump({
+            "status": "executing",
+            "plan_phases": [{"deliverables": ["core/allowed.py"]}],
+        }), encoding="utf-8")
+        monkeypatch.setenv("HOME", str(home))
+        from core.hooks.post_tool_use import _forge_violation
+        msg = _forge_violation({
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "/app/unrelated.py"},
+            "tool_response": {"filePath": "/app/unrelated.py"},
+        }, yaml_mod)
+        assert msg, "edit outside plan deliverables must flag scope creep"
+        allowed = _forge_violation({
+            "tool_name": "Edit",
+            "tool_input": {"file_path": "/repo/core/allowed.py"},
+            "tool_response": {"filePath": "/repo/core/allowed.py"},
+        }, yaml_mod)
+        assert allowed == ""
+
+
+def test_dead_payload_keys_never_read_again():
+    """Contract lock: the 2.1.220 payload has no top-level tool_output or
+    exit_code — PostToolUse carries tool_input/tool_response (proven
+    against the binary; the old keys read empty forever). A reintroduced
+    read would silently kill gotchas, violations and cognition capture,
+    exactly the regression this PR repairs.
+    """
+    surfaces = [
+        REPO_ROOT / "core" / "hooks" / "post_tool_use.py",
+        REPO_ROOT / "config" / "hooks" / "_lib" / "fastpath" / "engine.cjs",
+        REPO_ROOT / "config" / "hooks" / "post-tool-use.ps1",
+    ]
+    payload_exit_reads = re.compile(
+        r"get_str\([^)]*[\"']exit_code[\"']\)"   # python
+        r"|payload\.exit_code"                     # cjs / ps1
+        r"|stdin_json\.get\([\"']exit_code[\"']\)"
+    )
+    for surface in surfaces:
+        text = surface.read_text(encoding="utf-8")
+        # The dead-key string is banned outright — comments included —
+        # so the lock stays a plain substring check with no parser.
+        assert "tool_output" not in text, (
+            f"dead payload key string present in {surface.name}"
+        )
+        assert not payload_exit_reads.search(text), (
+            f"top-level exit_code read in {surface.name}"
+        )
 
 
 # ─── stop ────────────────────────────────────────────────────────────────

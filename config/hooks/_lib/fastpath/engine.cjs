@@ -17,7 +17,10 @@
  * this file — that is exactly the drift the manifest exists to kill.
  */
 
-const SCHEMA_VERSION = 1;
+// v2: post.success_exit_codes removed with the PostToolUseFailure
+// wiring — an old engine + new manifest mismatch now delegates via
+// validateManifest instead of crashing into the shim's fail-open {}.
+const SCHEMA_VERSION = 2;
 
 /** Python truthiness — NOT JS Boolean(): [] and {} are falsy in Python,
  *  "false" (non-empty string) is truthy in both. flow_enforcer coerces
@@ -255,6 +258,34 @@ function flowAuthFresh(sid, manifest, ctx) {
   return nowSeconds - ts <= manifest.numbers.auth_ttl_seconds;
 }
 
+/** Textual output of a PostToolUse tool_response — parity with the
+ *  PostToolUse paths of _tool_text in post_tool_use.py (string,
+ *  stdout/stderr and Task/content shapes, isAsync guard and Python's
+ *  `or ""` falsy coercion included). Failure-event payloads never
+ *  reach this — decidePost delegates PostToolUseFailure outright. */
+function toolText(payload) {
+  const response = payload.tool_response;
+  if (typeof response === "string") return response;
+  if (response && typeof response === "object") {
+    if ("stdout" in response || "stderr" in response) {
+      return [response.stdout, response.stderr]
+        .map((part) => String(part || ""))
+        .filter(Boolean)
+        .join("\n");
+    }
+    if (response.isAsync) return "";
+    const content = response.content;
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) {
+      return content
+        .filter((block) => block && block.type === "text")
+        .map((block) => String(block.text || ""))
+        .join("");
+    }
+  }
+  return "";
+}
+
 /**
  * PostToolUse decision. Returns
  *   {action:"fast-exit", stdout:"{}", writes:[...]} — mcp telemetry only
@@ -267,18 +298,23 @@ function decidePost(payload, manifest, ctx) {
   }
   const toolName = String(payload.tool_name || "");
 
+  // A failing tool throws inside the runtime and fires
+  // PostToolUseFailure (2.1.220 contract) — failed-command turns are
+  // the gotchas pipeline's primary material, so they always go to
+  // Python. Rare by construction: no fast path is worth having here.
+  if (payload.hook_event_name === "PostToolUseFailure") {
+    return { action: "delegate", reason: "failure-event" };
+  }
+
   // Q3/Q4 — plan approval (G2) + subagent tracking live in Python.
   if (manifest.tools.post_delegate_always.includes(toolName)) {
     return { action: "delegate", reason: "post-stateful-tool" };
   }
 
   // Q5 — error path: gotchas, violations, cognition capture, metrics.
-  const exitCode = String(payload.exit_code ?? "") || "0";
-  if (!manifest.post.success_exit_codes.includes(exitCode)) {
-    return { action: "delegate", reason: "error-exit-code" };
-  }
-  const toolOutput = String(payload.tool_output ?? "");
-  if (compileRegex(manifest.post.error_trigger).test(toolOutput)) {
+  // PostToolUse never carries an exit code (failures fire the event
+  // above), so the only error signal on this path is trigger text.
+  if (compileRegex(manifest.post.error_trigger).test(toolText(payload))) {
     return { action: "delegate", reason: "error-trigger" };
   }
 
@@ -333,5 +369,6 @@ module.exports = {
   pythonTruthy,
   readJsonFile,
   safeSessionId,
+  toolText,
   validateManifest,
 };

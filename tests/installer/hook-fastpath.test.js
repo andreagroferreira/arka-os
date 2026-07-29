@@ -195,7 +195,7 @@ test("Q6: benign MCP call fast-exits '{}' and appends mcp-usage", () => {
   try {
     const r = runShim(sandbox, "post-tool-use.cjs", {
       tool_name: "mcp__obsidian__search_notes", session_id: "fp-sid",
-      exit_code: "0", tool_output: "3 notes",
+      tool_response: { stdout: "3 notes", stderr: "" },
     });
     assert.equal(r.status, 0);
     assert.equal(r.stdout.trim(), "{}");
@@ -219,7 +219,7 @@ test("Q7: hard enforcement without fresh auth delegates to Python", () => {
     mkdirSync(authDir);
     const r = runShim(sandbox, "post-tool-use.cjs", {
       tool_name: "Read", session_id: "fp-sid",
-      exit_code: "0", tool_output: "ok",
+      tool_response: { stdout: "ok", stderr: "" },
     }, { ARKA_FLOW_AUTH_DIR: authDir });
     assert.equal(r.status, 0);
     assert.ok(existsSync(
@@ -233,7 +233,7 @@ test("Q7: hard enforcement without fresh auth delegates to Python", () => {
     rmSync(join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt"));
     const fresh = runShim(sandbox, "post-tool-use.cjs", {
       tool_name: "Read", session_id: "fp-sid",
-      exit_code: "0", tool_output: "ok",
+      tool_response: { stdout: "ok", stderr: "" },
     }, { ARKA_FLOW_AUTH_DIR: authDir });
     assert.equal(fresh.status, 0);
     assert.equal(fresh.stdout.trim(), "{}");
@@ -249,7 +249,22 @@ test("Post error output delegates (gotchas pipeline is Python's)", () => {
   try {
     const r = runShim(sandbox, "post-tool-use.cjs", {
       tool_name: "Bash", session_id: "fp-sid",
-      exit_code: "0", tool_output: "fatal: not a git repository",
+      tool_response: { stdout: "", stderr: "fatal: not a git repository" },
+    });
+    assert.equal(r.status, 0);
+    assert.equal(r.stdout.trim(), '{"stub":true}');
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("PostToolUseFailure delegates outright (failed turns are Python's)", () => {
+  const sandbox = makeSandbox();
+  try {
+    const r = runShim(sandbox, "post-tool-use.cjs", {
+      hook_event_name: "PostToolUseFailure", tool_name: "Bash",
+      session_id: "fp-sid", is_interrupt: false,
+      error: "Exit code 7\nhello-stdout\nboom-stderr",
     });
     assert.equal(r.status, 0);
     assert.equal(r.stdout.trim(), '{"stub":true}');
@@ -271,7 +286,7 @@ test("QG B3: split deploy (engine.cjs missing) delegates instead of crashing", (
 
     const post = runShim(sandbox, "post-tool-use.cjs", {
       tool_name: "Read", session_id: "fp-sid",
-      exit_code: "0", tool_output: "ok",
+      tool_response: { stdout: "ok", stderr: "" },
     });
     assert.equal(post.status, 0);
     assert.ok(existsSync(
@@ -286,7 +301,7 @@ test("QG B3: split deploy (engine.cjs missing) delegates instead of crashing", (
     assert.equal(preOpen.stdout, "");
     const postOpen = runShim(sandbox, "post-tool-use.cjs", {
       tool_name: "Read", session_id: "fp-sid",
-      exit_code: "0", tool_output: "ok",
+      tool_response: { stdout: "ok", stderr: "" },
     });
     assert.equal(postOpen.status, 0);
     assert.equal(postOpen.stdout.trim(), "{}");

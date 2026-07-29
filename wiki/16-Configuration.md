@@ -136,6 +136,7 @@ automatically. The template lives at `config/settings-template.json`.
 | `SessionStart` | 5 s | Evidence-flow contract injection, reorganization auto-trigger |
 | `UserPromptSubmit` | 20 s | Synapse context injection, workflow-required tag, token hygiene |
 | `PostToolUse` | 5 s | Error pattern tracking, budget accounting |
+| `PostToolUseFailure` | 5 s | Failed tool calls (the runtime fires this event, not `PostToolUse`, when a tool throws) — same entrypoint |
 | `PreCompact` | 30 s | Session digest save, agent memory preservation |
 | `CwdChanged` | 5 s | Project context reload on directory change |
 

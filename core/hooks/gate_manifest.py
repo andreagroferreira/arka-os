@@ -34,7 +34,12 @@ import re
 from dataclasses import asdict
 from pathlib import Path
 
-_SCHEMA_VERSION = 1
+# v2: `post.success_exit_codes` removed (PostToolUse never carries an
+# exit code; failures fire PostToolUseFailure, which the shim delegates
+# outright). The bump makes an old engine reading a new manifest
+# delegate everything instead of crashing into the shim's fail-open
+# `{}` — a partial deploy must degrade to Python, never drop turns.
+_SCHEMA_VERSION = 2
 
 # Python-only regex constructs that would compile differently (or not at
 # all) under JavaScript's RegExp. The generator refuses to export any
@@ -177,7 +182,7 @@ def _tool_sets() -> dict:
     from core.hooks import pre_tool_use
     from core.workflow import flow_enforcer, research_gate
 
-    if pre_tool_use._FLOW_GATED_TOOLS != flow_enforcer.EFFECT_TOOLS_ALWAYS | {"Bash"}:
+    if flow_enforcer.EFFECT_TOOLS_ALWAYS | {"Bash"} != pre_tool_use._FLOW_GATED_TOOLS:
         raise ValueError(
             "pre_tool_use._FLOW_GATED_TOOLS no longer equals "
             "flow_enforcer.EFFECT_TOOLS_ALWAYS + Bash — re-derive the "
@@ -258,9 +263,9 @@ def _flags_and_budget() -> dict:
 
 
 def _state_and_paths() -> dict:
+    from core.runtime import mcp_telemetry
     from core.shared.temp_paths import arkaos_temp_dir
     from core.workflow import flow_authorization, flow_enforcer, research_gate
-    from core.runtime import mcp_telemetry
 
     auth_dir = arkaos_temp_dir("arkaos-flow-auth")
     if str(auth_dir.parent) != "/tmp":  # pragma: no cover — POSIX only
@@ -290,11 +295,11 @@ def _state_and_paths() -> dict:
 
 def build_manifest() -> dict:
     """Assemble the manifest from the real gate constants (import-time)."""
-    from core.hooks import post_tool_use, pre_tool_use  # noqa: F401
+    from core.hooks import post_tool_use, pre_tool_use
     from core.shared import safe_session_id as ssid
 
     state = _state_and_paths()
-    if pre_tool_use._ASSISTANT_WINDOW != state["numbers"]["assistant_window"]:
+    if state["numbers"]["assistant_window"] != pre_tool_use._ASSISTANT_WINDOW:
         raise ValueError("ASSISTANT_WINDOW diverged between hook and enforcer")
     return {
         "schema_version": _SCHEMA_VERSION,
@@ -312,9 +317,12 @@ def build_manifest() -> dict:
         ],
         "tools": _tool_sets(),
         "bash": _bash_classifier(),
+        # No exit-code corpus: PostToolUse never carries one (a failing
+        # tool throws and fires PostToolUseFailure, which the shim
+        # delegates outright), so trigger text is the only error signal
+        # the fast path needs.
         "post": {
             "error_trigger": _js_pattern(post_tool_use._ERROR_TRIGGER_RE),
-            "success_exit_codes": ["0", ""],
         },
         "session_id": {
             **_js_pattern(ssid.SAFE_SESSION_ID_RE),

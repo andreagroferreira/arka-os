@@ -162,9 +162,10 @@ if [ "$FIX_MODE" = true ] && [ "$HOOKS_OK" = false ]; then
       --arg pc "$HOOKS_DIR/pre-compact.sh" \
       --arg ptu "$HOOKS_DIR/post-tool-use.sh" \
       '{
-        "UserPromptSubmit": [{"hooks":[{"type":"command","command":$ups,"timeout":10}]}],
+        "UserPromptSubmit": [{"hooks":[{"type":"command","command":$ups,"timeout":20}]}],
         "PreCompact": [{"hooks":[{"type":"command","command":$pc,"timeout":30}]}],
-        "PostToolUse": [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]
+        "PostToolUse": [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}],
+        "PostToolUseFailure": [{"hooks":[{"type":"command","command":$ptu,"timeout":5}]}]
       }')
     jq --argjson hooks "$HOOKS_JSON" '.hooks = $hooks' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && \
       mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
