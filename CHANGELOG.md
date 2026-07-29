@@ -5,6 +5,15 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.40.0] - 2026-07-29
+
+The failed-tool pipeline, actually wired: PostToolUse's dead payload
+reads and the never-registered PostToolUseFailure event.
+
+### Fixed
+- **PostToolUse read a payload that does not exist, and failed tools never reached the hook** (#423): consumers read top-level output/exit-code keys absent from the 2.1.220 contract (every read was empty forever — gotchas, workflow violation rules, enforcer, forge scope-creep, cognition capture and hook metrics were dead, and the fastpath fast-exited the same turns). Worse, a failing tool throws inside the runtime and fires `PostToolUseFailure`, which ArkaOS never registered. The two-event contract is now wired end to end: the failure event is registered on every surface that registers hooks (template, adapter, `install.sh`, `arka-doctor --fix` — consistency-locked with pinned timeouts), text and exit code derive from `tool_response`/`error` per event, violation output echoes the invoking event's name, and the fastpath delegates failure turns to Python. Test fixtures are payloads captured live from the runtime. `arka-doctor --fix` also stops writing the pre-4.39.0 `UserPromptSubmit` timeout onto the machines it repairs.
+- **CI: mcp pinned below 2** (#423, #424): mcp 2.0.0 removed `mcp.server.fastmcp`, the 1.x import path the arka-tools server uses; the unpinned extra let CI resolve the new major and every python-tests job died at collection. Ceiling `<2` on both envs until the 2.x migration.
+
 ## [4.39.0] - 2026-07-28
 
 Enforcement chain repaired: the per-turn context channel, one root per
