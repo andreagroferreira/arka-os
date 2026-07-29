@@ -5,6 +5,17 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.41.0] - 2026-07-29
+
+Integrity digests for the Quality Gate chain: the material that lets
+an aggregate PROVE reviewers and verdict refer to the same evidence.
+
+### Added
+- **QG integrity digests** (#425): `core/governance/qg_digest.py` ships `evidence_digest` and `verdict_digest` over canonical JSON (sorted keys, compact separators, UTF-8 with surrogatepass, `allow_nan=False`; a golden vector freezes the canonical bytes). `EvidenceReport.to_dict()` embeds a self-consistent `report_digest` that flows to reviewers via the existing `--json` path. QGVerdict gains `evidence_digest`/`reviewer_output_sha256` and JudgeVerdict gains `judged_sha256` (optional, hex-64 validated); `tree_digest` is RESERVED and enforced-empty until its primitive ships in a dedicated PR — `docs/adr/2026-07-29-tree-digest-corpus.md` records the six reproduced wrong-digest routes that got it cut and stands as that PR's acceptance spec. Verification wiring lands in the next PR; nothing consumes the digests yet.
+
+### Fixed
+- **Reviewer ledger harvested digest values from rejected verdicts** (#425): the fail-soft capture copied `evidence_digest`/`tree_digest` into the indexed columns even when the validator had rejected the verdict. On any parse error the digest columns are now nulled while the raw text is preserved — proven in production during this PR's own gate, when a reviewer's verdict failed to parse and the guard correctly kept its digests out of the corpus.
+
 ## [4.40.0] - 2026-07-29
 
 The failed-tool pipeline, actually wired: PostToolUse's dead payload
