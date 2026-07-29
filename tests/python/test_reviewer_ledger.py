@@ -969,3 +969,41 @@ class TestUnpinnedInvariants:
         assert entry["event"] == "capture-failed"
         assert entry["reviewer_id"] == "francisca-tech"
         assert "disk on fire" in entry["error"]
+
+
+class TestRejectedDigestsNeverHarvested:
+    """QG r12: _validated is fail-soft (raw text is never lost), but a
+    value the validator REJECTED must not enter the corpus through the
+    harvested digest columns."""
+
+    def test_rejected_tree_digest_not_harvested(self, tmp_path, monkeypatch):
+        import json
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        from core.governance import reviewer_ledger
+
+        verdict = {
+            "verdict": "REJECTED",
+            "evidence_report": {"overall": "fail"},
+            "reviewer": "francisca-tech",
+            "model_used": "opus",
+            "tree_digest": "a" * 64,  # RESERVED — validator rejects it
+            # Non-hex value on the OTHER guarded column too: without it,
+            # the evidence_digest assertion below is vacuous (.get() on a
+            # missing key is None with or without the guard) — QG r13.
+            "evidence_digest": "NOT-A-DIGEST",
+        }
+        raw = (
+            "review text\n```arka-qgverdict\n"
+            + json.dumps(verdict) + "\n```\n"
+        )
+        record = reviewer_ledger.record_reviewer_output(
+            session_id="r12-harvest", reviewer_id="francisca-tech",
+            raw_output=raw, source="post-tool-use",
+        )
+        assert record is not None
+        assert record["parse_error"]  # rejection is on record
+        assert record["tree_digest"] is None  # but never harvested
+        assert record["evidence_digest"] is None
+        # The raw text itself is preserved — fail-soft, not fail-lossy.
+        assert "a" * 64 in record["raw_output"]

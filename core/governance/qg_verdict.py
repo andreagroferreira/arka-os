@@ -15,9 +15,12 @@ schema when dispatching reviewers via the Agent tool.
 
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+_SHA256_HEX_RE = re.compile(r"[0-9a-f]{64}")
 
 
 class QGBlocker(BaseModel):
@@ -66,9 +69,55 @@ class QGVerdict(BaseModel):
             "evidence is insufficient"
         ),
     )
+    # PR-B2 integrity digests — optional so the pre-B2 verdict corpus
+    # stays valid. evidence_digest and reviewer_output_sha256 must be
+    # real sha256 hex when present; tree_digest is RESERVED and
+    # rejects ANY value (see its description and the validator).
+    evidence_digest: str = Field(
+        default="",
+        description=(
+            "sha256 of the EvidenceReport the reviewer interpreted "
+            "(report_digest from the --json output); empty when the "
+            "report carried none"
+        ),
+    )
+    tree_digest: str = Field(
+        default="",
+        description=(
+            "RESERVED — must be empty. The producing primitive will "
+            "ship in its own PR (acceptance spec: "
+            "docs/adr/2026-07-29-tree-digest-corpus.md); until it "
+            "exists, a non-empty value is rejected so no unverifiable "
+            "digest can enter the corpus."
+        ),
+    )
+    reviewer_output_sha256: str = Field(
+        default="",
+        description=(
+            "sha256 of the reviewer's own raw output, as captured by the "
+            "ledger (raw_sha256); empty when not yet ledgered"
+        ),
+    )
 
     @model_validator(mode="after")
-    def enforce_evidence_floor(self) -> "QGVerdict":
+    def digests_are_sha256_hex_or_empty(self) -> QGVerdict:
+        for name in ("evidence_digest", "reviewer_output_sha256"):
+            value = getattr(self, name)
+            if value and not _SHA256_HEX_RE.fullmatch(value):
+                raise ValueError(
+                    f"{name} must be 64 lowercase hex chars or empty, "
+                    f"got {value!r}"
+                )
+        if self.tree_digest:
+            raise ValueError(
+                "tree_digest is RESERVED and must be empty until the "
+                "tree-digest primitive ships in its own PR — an "
+                "unverifiable digest must not enter the corpus"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def enforce_evidence_floor(self) -> QGVerdict:
         """APPROVED cannot coexist with failing evidence (evidence floor)."""
         if self.verdict == "APPROVED" and self.evidence_report.overall == "fail":
             raise ValueError(

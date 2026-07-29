@@ -36,6 +36,7 @@ import time
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
+from core.governance.qg_digest import evidence_digest
 from core.shared.test_evidence import coverage_percent_from_xml
 
 TIMEOUT_SECONDS = 300
@@ -119,11 +120,16 @@ class EvidenceReport:
     results: list[CheckResult] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "project_dir": self.project_dir,
             "overall": self.overall,
             "results": [asdict(r) for r in self.results],
         }
+        # PR-B2: the digest excludes its own key, so recomputing over
+        # the embedded dict reproduces it — reviewers can quote it and
+        # the aggregate verifies it once PR-B3 wires the check.
+        payload["report_digest"] = evidence_digest(payload)
+        return payload
 
 
 # ─── Subprocess plumbing ────────────────────────────────────────────────

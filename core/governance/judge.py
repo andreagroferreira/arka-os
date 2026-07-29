@@ -24,6 +24,7 @@ it.
 
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -69,12 +70,22 @@ class JudgeVerdict(BaseModel):
         max_length=120,
         description="Opening excerpt of the judged artifact (auditability)",
     )
+    # PR-B2: a real content hash alongside the prose excerpt above —
+    # judged_digest stays an excerpt (not repurposed); judged_sha256 is
+    # the verifiable one. Optional so existing verdicts stay valid.
+    judged_sha256: str = Field(
+        default="",
+        description=(
+            "sha256 of the judged artifact's full text; empty when the "
+            "caller did not hash it"
+        ),
+    )
     reviewer: str = Field(description="Judge id, e.g. plan-judge-g2")
     model_used: str = Field(description="Model tier the judgment ran on")
     notes: str = ""
 
     @model_validator(mode="after")
-    def revise_requires_actionable_findings(self) -> "JudgeVerdict":
+    def revise_requires_actionable_findings(self) -> JudgeVerdict:
         """REVISE must cite at least one blocker/major finding —
         a judge cannot loop work back on narrative alone."""
         if self.verdict == "REVISE":
@@ -89,6 +100,17 @@ class JudgeVerdict(BaseModel):
                     "non-REFUTED) finding — judges loop work on evidence, "
                     "never on narrative"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def judged_sha256_is_hex_or_empty(self) -> JudgeVerdict:
+        if self.judged_sha256 and not re.fullmatch(
+            r"[0-9a-f]{64}", self.judged_sha256
+        ):
+            raise ValueError(
+                "judged_sha256 must be 64 lowercase hex chars or empty, "
+                f"got {self.judged_sha256!r}"
+            )
         return self
 
 
