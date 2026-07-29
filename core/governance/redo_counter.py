@@ -10,13 +10,18 @@ State: ``~/.arkaos/quality-gate/redo-counters.json`` keyed by session id.
 
 from __future__ import annotations
 
+import contextlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
 
 REDO_CAP = 2
 
-_STATE_PATH = Path.home() / ".arkaos" / "quality-gate" / "redo-counters.json"
+
+def _state_path() -> Path:
+    """Resolved at call time so tests can repoint HOME — the import-time
+    constant it replaces froze the REAL home before monkeypatching."""
+    return Path.home() / ".arkaos" / "quality-gate" / "redo-counters.json"
 
 
 @dataclass(frozen=True)
@@ -49,7 +54,7 @@ def _load(path: Path) -> dict:
 
 def record_rejected(session_id: str, path: Path | None = None) -> RedoState:
     """Increment the REJECTED counter; escalate above the cap."""
-    state_path = path or _STATE_PATH
+    state_path = path or _state_path()
     data = _load(state_path)
     count = int(data.get(session_id, 0) or 0) + 1
     data[session_id] = count
@@ -64,18 +69,18 @@ def record_rejected(session_id: str, path: Path | None = None) -> RedoState:
 
 def reset(session_id: str, path: Path | None = None) -> None:
     """Clear the counter — called on APPROVED."""
-    state_path = path or _STATE_PATH
+    state_path = path or _state_path()
     data = _load(state_path)
     if session_id in data:
         del data[session_id]
-        try:
-            state_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            state_path.write_text(
+                json.dumps(data, indent=2), encoding="utf-8"
+            )
 
 
 def current(session_id: str, path: Path | None = None) -> RedoState:
     """Read-only view of the counter."""
-    count = int(_load(path or _STATE_PATH).get(session_id, 0) or 0)
+    count = int(_load(path or _state_path()).get(session_id, 0) or 0)
     return RedoState(session_id=session_id, count=count,
                      escalate=count > REDO_CAP)

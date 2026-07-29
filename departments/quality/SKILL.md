@@ -47,8 +47,11 @@ Any Department Workflow:
     5. If ALL approve → Marta issues final APPROVED verdict
     6. Record the label (evals ADR 2026-07-09): pipe Marta's final
        QGVerdict JSON to
-       `arka-py -m core.evals.record_cli --department <dept>
-        [--deliverable <title>] [--eval-task-id <id>] [--session-id <id>]`
+       `arka-py -m core.evals.record_cli --kind qg --session-id <session>
+        --department <dept> [--deliverable <title>] [--eval-task-id <id>]`
+       (the aggregate path REQUIRES --session-id: the
+       anti-self-approval guard reads that session's reviewer ledger
+       and refuses an aggregate it cannot support)
        — every verdict feeds the eval/distillation corpus
        (~/.arkaos/telemetry/qg-verdicts.jsonl). Applies to EVERY review,
        not only eval runs; --eval-task-id only when the review judged a

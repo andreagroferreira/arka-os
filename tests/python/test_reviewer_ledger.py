@@ -971,6 +971,52 @@ class TestUnpinnedInvariants:
         assert "disk on fire" in entry["error"]
 
 
+class TestBalancedFenceExtraction:
+    """QG r13 production incident: francisca-tech-17's notes STRING
+    contained a literal fence pair, the first-close cut ended the JSON
+    mid-string ("Unterminated string"), and a completed verdict lost
+    its structured columns. Balanced extraction recovers it."""
+
+    def _verdict(self, notes: str) -> dict:
+        return {
+            "verdict": "REJECTED",
+            "evidence_report": {"overall": "fail"},
+            "reviewer": "francisca-tech",
+            "model_used": "opus",
+            "notes": notes,
+        }
+
+    def test_fences_inside_a_json_string_still_parse(self):
+        import json as _json
+
+        notes = "probes: ```json vs ```arka-qgverdict fences, hex sweep"
+        raw = (
+            "review text\n```arka-qgverdict\n"
+            + _json.dumps(self._verdict(notes), indent=2)
+            + "\n```\ntrailing prose"
+        )
+        verdict, error = reviewer_ledger._extract_verdict(
+            raw, "francisca-tech"
+        )
+        assert error is None
+        assert verdict is not None and verdict["notes"] == notes
+
+    def test_unparseable_fence_keeps_first_close_error(self):
+        raw = "text\n```arka-qgverdict\n{broken json\n```\ntail"
+        verdict, error = reviewer_ledger._extract_verdict(
+            raw, "francisca-tech"
+        )
+        assert verdict is None
+        assert error and "json:" in error
+
+    def test_unterminated_fence_yields_no_body(self):
+        raw = "text\n```arka-qgverdict\n{\"verdict\": \"REJECTED\""
+        verdict, error = reviewer_ledger._extract_verdict(
+            raw, "francisca-tech"
+        )
+        assert verdict is None and error is None
+
+
 class TestRejectedDigestsNeverHarvested:
     """QG r12: _validated is fail-soft (raw text is never lost), but a
     value the validator REJECTED must not enter the corpus through the

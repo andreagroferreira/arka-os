@@ -99,15 +99,22 @@ _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 # Primary contract: a fenced ```arka-qgverdict block. Compatibility: a
 # plain ```json fence whose body parses and carries a "verdict" key —
-# the shape the deployed reviewer agents emit today.
-_VERDICT_FENCE_RE = re.compile(
-    r"```arka-qgverdict\s*\n(.*?)```", re.DOTALL
-)
-_JSON_FENCE_RE = re.compile(r"```json\s*\n(.*?)```", re.DOTALL)
+# the shape the deployed reviewer agents emit today. Bodies are cut by
+# _fence_bodies; the balanced-JSON account lives in _balanced_body's
+# docstring.
+_VERDICT_OPEN_RE = re.compile(r"```arka-qgverdict[ \t]*\n")
+_JSON_OPEN_RE = re.compile(r"```json[ \t]*\n")
+_FENCE_CLOSE = "```"
 
-# The only names this module writes into a session directory. Retention
-# checks every entry against these before deleting anything.
+# The names the ledger owns in a session directory — written here, or
+# by aggregate_guard.write_aggregate (PR-B3). Retention checks every
+# entry against these before deleting anything.
 _NOTICES_NAME = "NOTICES.jsonl"
+# Written by aggregate_guard.write_aggregate (PR-B3) into the session
+# directory this module retains — owned here so sweep_expired keeps
+# working for sessions that PASS the gate (an unowned name made _purge
+# refuse the whole directory and turned retention into a no-op).
+AGGREGATE_NAME = "AGGREGATE.json"
 _RECORD_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}-\d+-[0-9a-f]{8}\.json$")
 
 
@@ -131,6 +138,44 @@ def _validated(data: dict) -> tuple[dict, str | None]:
         return QGVerdict.model_validate(data).model_dump(), None
     except Exception as exc:
         return data, f"schema: {exc}"
+
+
+def _balanced_body(text: str, start: int) -> tuple[str, int] | None:
+    """Body and next scan position for the fence opened before ``start``.
+
+    Candidate closes are tried in order and the first body that parses
+    as JSON wins. A verdict whose notes STRING mentions fences broke
+    the naive first-close cut (francisca-tech-17: the extracted body
+    ended mid-string, "Unterminated string"); trying later closes
+    recovers it. When no candidate parses, the first-close body is kept
+    so the parse error still lands on the record.
+    """
+    closes = [m.start() for m in re.finditer(_FENCE_CLOSE, text[start:])]
+    if not closes:
+        return None  # unterminated fence: no body at all
+    for close in closes:
+        body = text[start:start + close]
+        try:
+            json.loads(body)
+        except json.JSONDecodeError:
+            continue
+        return body, start + close + len(_FENCE_CLOSE)
+    return text[start:start + closes[0]], start + closes[0] + len(_FENCE_CLOSE)
+
+
+def _fence_bodies(raw_output: str, open_re: re.Pattern[str]) -> list[str]:
+    """Every fence body for ``open_re``, balanced-JSON aware."""
+    bodies: list[str] = []
+    pos = 0
+    while True:
+        opened = open_re.search(raw_output, pos)
+        if not opened:
+            return bodies
+        cut = _balanced_body(raw_output, opened.end())
+        if cut is None:
+            return bodies
+        body, pos = cut
+        bodies.append(body)
 
 
 def _qualifying_fences(bodies: list[str]) -> tuple[list[dict], str | None]:
@@ -176,8 +221,8 @@ def _extract_verdict(
     verdict under an agent whose own list held 12.
     """
     candidates = (
-        _VERDICT_FENCE_RE.findall(raw_output)
-        or _JSON_FENCE_RE.findall(raw_output)
+        _fence_bodies(raw_output, _VERDICT_OPEN_RE)
+        or _fence_bodies(raw_output, _JSON_OPEN_RE)
     )
     qualifying, parse_error = _qualifying_fences(candidates)
     if not qualifying:
@@ -233,7 +278,7 @@ def _safe_id(value: str) -> bool:
     return (
         bool(value)
         and not value.startswith(".")
-        and bool(_SAFE_ID_RE.match(value))
+        and bool(_SAFE_ID_RE.fullmatch(value))
     )
 
 
@@ -470,12 +515,15 @@ def _expired(session_dir: Path, cutoff: datetime) -> bool:
 
 
 def _is_own_file(item: Path) -> bool:
-    """True only for names this module writes."""
+    """True only for names the ledger OWNS: those this module writes,
+    plus the aggregate written by aggregate_guard (PR-B3)."""
     if item.is_symlink() or not item.is_file():
         return False
     name = item.name
     if name == _NOTICES_NAME or name.startswith(f"{_NOTICES_NAME}.claim-"):
         return True
+    if name == AGGREGATE_NAME:
+        return True  # the accepted aggregate (aggregate_guard, PR-B3)
     if name.startswith(".") and ".tmp-" in name:
         return True  # an interrupted atomic publish
     return bool(_RECORD_NAME_RE.fullmatch(name))
