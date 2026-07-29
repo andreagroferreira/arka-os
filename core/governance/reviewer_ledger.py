@@ -338,8 +338,17 @@ def _build_record(
         "raw_sha256": digest,
         "verdict": verdict,
         "parse_error": parse_error,
-        "evidence_digest": (verdict or {}).get("evidence_digest"),
-        "tree_digest": (verdict or {}).get("tree_digest"),
+        # Digest columns are harvested ONLY from a VALIDATED verdict:
+        # _validated is fail-soft (it keeps the raw dict so no review
+        # text is ever lost), but a value the validator rejected must
+        # not enter the corpus through these columns (QG r12 — a
+        # rejected tree_digest was reproduced landing on disk here).
+        "evidence_digest": (
+            None if parse_error else (verdict or {}).get("evidence_digest")
+        ),
+        "tree_digest": (
+            None if parse_error else (verdict or {}).get("tree_digest")
+        ),
         "source": source,
         "sanitized": sanitized,
     }
