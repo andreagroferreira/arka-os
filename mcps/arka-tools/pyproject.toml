@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "ArkaOS programmatic MCP tools — KB search, workflow state, Quality Gate, recipes, session memory, telemetry"
 requires-python = ">=3.11"
 dependencies = [
-    "mcp[cli]>=1.2.0",
+    "mcp[cli]>=1.2.0,<2",  # <2: mcp 2.0.0 removed mcp.server.fastmcp (1.x import path)
     "pydantic>=2.0",
     "pyyaml>=6.0",
 ]
