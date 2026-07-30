@@ -96,6 +96,19 @@ _WF_VERB_PATTERN = (
 )
 _WF_VERB_RE = re.compile(rf"\b{_WF_VERB_PATTERN}\b", re.IGNORECASE)
 
+# Keep in sync with ARKA_WF_QUESTION_LEAD in _lib/workflow-classifier.sh.
+# Interrogative-led prompts that end in "?" are information questions, not
+# creation intent, even when they contain an action verb ("o que e que este
+# projeto faz?"). Polite requests ("podes implementar X?") keep matching:
+# their lead word is not interrogative.
+_WF_QUESTION_LEAD_PATTERN = (
+    r"(o\s+que|porqu[eê]|por\s+que|para\s+que|qual|quais|quando|onde|quem|como"
+    r"|what|why|which|who|whose|when|where|how|does)"
+)
+_WF_QUESTION_LEAD_RE = re.compile(
+    rf"^\s*{_WF_QUESTION_LEAD_PATTERN}\b", re.IGNORECASE
+)
+
 _STOPWORDS = frozenset([
     "the", "a", "an", "and", "or", "but", "if", "then", "of", "for", "to", "in", "on",
     "at", "by", "with", "from", "is", "are", "was", "were", "be", "been", "being", "do",
@@ -461,6 +474,9 @@ def _token_hygiene(prompt: str, transcript_path: str) -> str:
 
 def _wf_classify(text: str) -> bool:
     if not text or text[0] in ("/", "!"):
+        return False
+    stripped = text.strip()
+    if stripped.endswith("?") and _WF_QUESTION_LEAD_RE.match(stripped):
         return False
     return bool(_WF_VERB_RE.search(text))
 
