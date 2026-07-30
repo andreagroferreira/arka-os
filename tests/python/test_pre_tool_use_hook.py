@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from hook_shell import BASH
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HOOK_PATH = REPO_ROOT / "config" / "hooks" / "pre-tool-use.sh"
@@ -59,7 +61,7 @@ def hook_env(tmp_path, monkeypatch):
 
 def _run_hook(payload: dict, env: dict) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["bash", str(HOOK_PATH)],
+        [BASH, str(HOOK_PATH)],
         input=json.dumps(payload),
         capture_output=True,
         text=True,
