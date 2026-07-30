@@ -115,6 +115,13 @@ _NOTICES_NAME = "NOTICES.jsonl"
 # working for sessions that PASS the gate (an unowned name made _purge
 # refuse the whole directory and turned retention into a no-op).
 AGGREGATE_NAME = "AGGREGATE.json"
+# Stamped by the SessionEnd hook (mark_session_ended, PR-B4): a session
+# whose ledger carries this marker has ended, so its reviewer records
+# are no longer a live quorum — aggregate_guard refuses an APPROVED
+# aggregate that cites an ended session. Dot-prefixed on purpose: the
+# record pool skips dot names, so the stamp can never count as a
+# verdict.
+ENDED_NAME = ".ended"
 _RECORD_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}-\d+-[0-9a-f]{8}\.json$")
 
 
@@ -506,6 +513,31 @@ def _find_by_digest(paths: list[Path], digest: str) -> dict | None:
     return None
 
 
+def mark_session_ended(session_id: str) -> None:
+    """Stamp a session's ledger directory at SessionEnd. Never raises.
+
+    Only stamps an EXISTING directory: a session that captured no
+    reviewer verdicts holds no quorum to expire, and creating its
+    directory here would hand retention an empty dir to babysit. The
+    stamp is evidence from the hook boundary — the runtime fires
+    SessionEnd, not the orchestrator — so aggregate_guard can refuse an
+    APPROVED aggregate built on a session that already ended. A session
+    that crashes never receives SessionEnd and is never stamped; the
+    guard's docstring carries that limit honestly.
+    """
+    try:
+        if not _safe_id(session_id):
+            return
+        session_dir = ledger_root() / session_id
+        if not session_dir.is_dir():
+            return
+        stamp = session_dir / ENDED_NAME
+        stamp.touch()
+        os.chmod(stamp, 0o600)
+    except Exception:
+        return  # SessionEnd is best-effort; a failed stamp never blocks
+
+
 def _expired(session_dir: Path, cutoff: datetime) -> bool:
     try:
         mtime = datetime.fromtimestamp(session_dir.stat().st_mtime, tz=UTC)
@@ -524,6 +556,8 @@ def _is_own_file(item: Path) -> bool:
         return True
     if name == AGGREGATE_NAME:
         return True  # the accepted aggregate (aggregate_guard, PR-B3)
+    if name == ENDED_NAME:
+        return True  # the SessionEnd stamp (mark_session_ended, PR-B4)
     if name.startswith(".") and ".tmp-" in name:
         return True  # an interrupted atomic publish
     return bool(_RECORD_NAME_RE.fullmatch(name))

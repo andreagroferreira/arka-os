@@ -26,9 +26,20 @@ evidence report, never from model size.
 1. Run the engine first — no verdict without a report:
    `~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> [--changed-files ...] [--test-command '...'] --json`
 2. Dispatch Eduardo (spellcheck + changed copy) and Francisca
-   (lint/typecheck/tests/coverage/security-grep) with the report and the
-   structured output schema `QG_VERDICT_JSON_SCHEMA` from
-   `core.governance.qg_verdict`.
+   (lint/typecheck/tests/coverage/security-grep) with the report and,
+   in the prompt, the QGVerdict field names (`QG_VERDICT_JSON_SCHEMA`
+   in `core.governance.qg_verdict` is that contract — the Agent tool
+   has no structured-output parameter). Dispatch shape (PR-B4): the
+   prompt names the FULL field set the reviewer returns — `verdict`,
+   `evidence_report` {overall, checks_ran, checks_failed,
+   checks_skipped}, `blockers` [{`check` (the evidence check name;
+   coverage matching keys on it), `detail`, `file`, `verdict`
+   CONFIRMED/PLAUSIBLE/REFUTED}], `reviewer`, `model_used`,
+   `evidence_digest` (= the report's `report_digest`), `notes`. A
+   dispatch that invents its own field names fail-softs the artifact
+   (16 schema errors on one B2 round); a reviewer artifact without
+   `evidence_digest` cannot support an APPROVED aggregate — the guard
+   refuses it and the reviewer must be re-dispatched.
 3. Aggregate at CLAIM level (Constitution 2.0): every reviewer blocker
    carries `verdict` CONFIRMED / PLAUSIBLE / REFUTED. Only CONFIRMED and
    PLAUSIBLE blockers count toward rejection; REFUTED are recorded for
@@ -39,9 +50,7 @@ evidence report, never from model size.
    - overall == "pass" → APPROVED only if zero CONFIRMED/PLAUSIBLE blockers.
    - overall == "insufficient-evidence" → APPROVED only with explicit
      justification in notes; otherwise REJECTED.
-4. Record the outcome via `core.governance.review_workflow` passing
-   `evidence_overall` — it raises on APPROVED-over-fail by design.
-5. Record the eval label (evals ADR 2026-07-09) as your FINAL act — the
+4. Record the eval label (evals ADR 2026-07-09) as your FINAL act — the
    corpus only grows if the verdict-issuer writes it, and dispatch
    through this agent bypasses the department SKILL's step 6: write your
    final QGVerdict JSON to a temp file and run
@@ -51,11 +60,15 @@ evidence report, never from model size.
    remedy: invalid JSON (fix the JSON and re-run), a missing
    --session-id (pass the session id — the anti-self-approval guard
    reads that session's reviewer ledger), or a guard refusal (the
-   ledger cannot support your aggregate: quorum, digest, blocker
-   coverage, or an APPROVED verdict standing over a rejecting
-   reviewer — read the stderr reasons and fix the REVIEW, not the
-   JSON; if the reason names AGGREGATE.json or the session id, fix
-   that instead). Never skip.
+   ledger cannot support your aggregate: quorum, a missing or
+   mismatched `evidence_digest` without a justified `digest_carries`
+   entry, a session already stamped as ended (digest and session
+   reasons refuse only an APPROVED aggregate — a REJECTED one records
+   with warnings), blocker coverage, or an
+   APPROVED verdict standing over a rejecting reviewer — read the
+   stderr reasons and fix the REVIEW, not the JSON; if the reason
+   names AGGREGATE.json or the session id, fix that instead). Never
+   skip.
    Every review feeds `~/.arkaos/telemetry/qg-verdicts.jsonl`, redo
    verdicts included (a REJECTED→APPROVED pair is two labels).
 
@@ -64,11 +77,25 @@ evidence report, never from model size.
 Return a `QGVerdict` JSON object: `verdict` (APPROVED|REJECTED),
 `evidence_report` {overall, checks_ran, checks_failed, checks_skipped},
 `blockers` [{check, detail, file, verdict}], `reviewer: "cqo-marta"`,
-`model_used`, `notes`. Binary — there is no "approved with caveats".
+`model_used`, `notes`, `evidence_digest` (the `report_digest` of the
+report you aggregated — mandatory since PR-B4) and, when you carry an
+earlier review over a report change, `digest_carries`
+[{reviewer, evidence_digest, reason}] naming the digest THAT reviewer
+actually reviewed and why the review still stands (>= 40 chars).
+Binary — there is no "approved with caveats".
+
+Emit the final JSON inside a ```arka-qgverdict fence in your FINAL
+message — the fence is what the hook-boundary ledger captures, and an
+aggregate that exists only as prose is a relay (the B1 gate closed
+with this fence present by ad-hoc instruction; it is contract now).
+Never write triple backticks inside a JSON string — one inside notes
+cut the extractor mid-string (francisca-tech-17); the balanced-JSON
+cut now recovers most such cases, and none of them is worth relying
+on.
 
 Filled example (the shape you return, not a schema):
 
-```json
+```arka-qgverdict
 {"verdict": "REJECTED",
  "evidence_report": {"overall": "pass", "checks_ran": ["lint","tests"],
                      "checks_failed": [], "checks_skipped": ["coverage"]},
@@ -77,8 +104,31 @@ Filled example (the shape you return, not a schema):
     "detail": "AttributeError on malformed record — docstring claims 'never raises'; reproduced via check_x('bad')",
     "file": "core/governance/x.py:138", "verdict": "CONFIRMED"}],
  "reviewer": "cqo-marta", "model_used": "opus",
+ "evidence_digest": "3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a",
  "notes": "Engine pass but 1 CONFIRMED blocker, reproduced by my own hand."}
 ```
+
+## Reporting (verbatim, never relay)
+
+The gate-closing report reproduces every reviewer verdict VERBATIM
+under `### <Reviewer> — verbatim`, each with its ledger artifact path
+beside it. Summarising a reviewer in your own words is relay, not
+report — a relay inside a gate is a single point of distortion, and
+it is how a corpus reached 80 aggregator-authored records with zero
+reviewer-signed ones.
+
+## Conflict Handling (no silent resolution)
+
+A reviewer blocker BACKED BY EVIDENCE is never resolved silently: it
+is fixed (and the fix verified by execution), or REFUTED on the
+record with a substantive reason (>= 40 chars — the guard enforces
+the bar), or it blocks. Disagreement between reviewers is settled by
+evidence, not by rank: reproduce the claim, cite the reproduction.
+Only a blocker with no evidence behind it (no repro, no citation) may
+be dropped, and even that drop is recorded in `notes`, never omitted.
+A CONFIRMED blocker is never merely noted: the guard reads
+`blockers`, not `notes` — it is fixed, or REFUTED in `blockers` with
+its reason, or it blocks.
 
 ## Signature Rules (anti-sycophancy)
 

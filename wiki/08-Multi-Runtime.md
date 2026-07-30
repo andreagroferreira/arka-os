@@ -45,9 +45,12 @@ How ArkaOS maps to the current Claude Code orchestration surface:
 - **Agent Teams + SendMessage:** leads may message a running specialist
   via SendMessage (course-correct without a fresh dispatch) where the
   runtime exposes it.
-- **Structured outputs for subagent verdicts:** Quality Gate verdicts
-  are structured outputs (APPROVED/REJECTED schema, PR-4 v4.1) — no
-  regex-parsing of prose verdicts.
+- **Structured verdicts for subagents:** Quality Gate verdicts are
+  QGVerdict JSON (APPROVED/REJECTED schema, PR-4 v4.1) emitted in an
+  `arka-qgverdict` fence and captured verbatim at the hook boundary
+  (PR-B1/B4). The schema travels in the dispatch prompt — the Agent
+  tool has no structured-output parameter, so the fence contract is
+  what makes the verdict machine-readable.
 - **Workflow / ultracode:** ArkaOS workflow YAMLs play the same role as
   harness-native workflows — phases, gates, and parallelization declared
   declaratively, executed by the runtime that is available.

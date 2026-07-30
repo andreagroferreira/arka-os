@@ -8,14 +8,19 @@ flow skill instructions), closing the "labels gratuitos" loop from the
 evals ADR.
 
 ``--kind qg`` is the AGGREGATE path and runs the anti-self-approval
-guard (PR-B3): ``--session-id`` is mandatory and validated, the
-session's reviewer ledger must hold at least two hook-captured
-reviewer verdicts, no evidence_digest present on both sides may
-disagree (an absent digest warns — PR-B4 makes dispatch populate it),
-no CONFIRMED reviewer blocker may disappear silently, and an APPROVED
-aggregate may not stand over a rejecting reviewer. The label records
-ONLY once AGGREGATE.json is verifiably on disk — an
-accepted-but-unwritten aggregate is a refusal, not a success.
+guard (PR-B3, hardened in PR-B4): ``--session-id`` is mandatory and
+validated, the session's reviewer ledger must hold at least two
+hook-captured reviewer verdicts, the digest chain must hold (the
+aggregate and every counted reviewer artifact carry evidence_digest;
+a reviewer's digest that predates the final report needs an explicit
+``digest_carries`` justification), the session must not be stamped
+ended, no CONFIRMED reviewer blocker may disappear silently, and an
+APPROVED aggregate may not stand over a rejecting reviewer.
+Dispatch-shape refusals are verdict-aware: they refuse an APPROVED
+aggregate and demote to warnings on a REJECTED one, so a rejection
+label survives a bad delta. The label records ONLY once
+AGGREGATE.json is verifiably on disk — an accepted-but-unwritten
+aggregate is a refusal, not a success.
 
 ``--kind reviewer`` records an individual reviewer's verdict as a
 label and cross-references the ledger by ``verdict_digest`` — it never

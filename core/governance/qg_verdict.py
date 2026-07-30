@@ -9,8 +9,10 @@ The verdict is INTERPRETATION of an ``EvidenceReport`` from
   - ``APPROVED`` requires ``overall == "pass"``, or
     ``insufficient-evidence`` with an explicit justification in notes.
 
-``QG_VERDICT_JSON_SCHEMA`` is the dict to pass as the structured-output
-schema when dispatching reviewers via the Agent tool.
+``QG_VERDICT_JSON_SCHEMA`` is the field contract to name INSIDE the
+dispatch prompt — the Agent tool has no structured-output parameter
+(PR-B4 dispatch shape; see the Reviewer Dispatch Contract in
+departments/quality/SKILL.md).
 """
 
 from __future__ import annotations
@@ -43,6 +45,44 @@ class QGBlocker(BaseModel):
             "NOT count toward rejection)"
         ),
     )
+
+
+class QGDigestCarry(BaseModel):
+    """One justified digest carry on an AGGREGATE verdict (PR-B4).
+
+    Per-reviewer digest equality would force a re-dispatch of every
+    reviewer whenever the evidence report changes at all. When the
+    aggregator judges an earlier review still valid against the final
+    report — a message-only amend, a doc-only delta — it declares the
+    carry HERE, naming the reviewer, the digest that reviewer actually
+    reviewed, and the reason. The guard accepts the mismatch only when
+    the declared digest matches the reviewer's own artifact and the
+    reason is substantive; anything less refuses an APPROVED aggregate.
+    """
+
+    reviewer: str = Field(description="Reviewer id whose review is carried")
+    evidence_digest: str = Field(
+        description=(
+            "sha256 of the report that reviewer actually reviewed — "
+            "must equal the evidence_digest in their ledger artifact"
+        )
+    )
+    reason: str = Field(
+        description=(
+            "Why the earlier review still stands against the final "
+            "report (>= 40 chars — same bar as a REFUTED drop)"
+        )
+    )
+
+    @model_validator(mode="after")
+    def digest_is_sha256_hex(self) -> QGDigestCarry:
+        if not _SHA256_HEX_RE.fullmatch(self.evidence_digest):
+            raise ValueError(
+                "a digest carry must name the exact report digest the "
+                f"reviewer reviewed (64 hex chars), got "
+                f"{self.evidence_digest!r}"
+            )
+        return self
 
 
 class QGEvidenceSummary(BaseModel):
@@ -96,6 +136,20 @@ class QGVerdict(BaseModel):
         description=(
             "sha256 of the reviewer's own raw output, as captured by the "
             "ledger (raw_sha256); empty when not yet ledgered"
+        ),
+    )
+    # PR-B4: aggregate-only, optional so the existing corpus stays
+    # valid. Reviewer verdicts have no use for it (the guard reads it
+    # from the aggregate side only).
+    digest_carries: list[QGDigestCarry] = Field(
+        default_factory=list,
+        description=(
+            "AGGREGATE only: justified carries for reviewers whose "
+            "review the aggregator judges still valid against the "
+            "final report — typically an earlier report revision; the "
+            "guard verifies the declared digest against the reviewer's "
+            "own artifact, never digest precedence (digests are "
+            "unordered — see QGDigestCarry)"
         ),
     )
 
