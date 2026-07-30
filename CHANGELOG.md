@@ -5,6 +5,17 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.42.0] - 2026-07-30
+
+The anti-self-approval guard: an aggregate verdict the reviewer
+ledger cannot support is now unrecordable.
+
+### Added
+- **Quality Gate aggregate guard** (#434): `core/governance/aggregate_guard.py` makes the 2026-07-20 incident shape — an aggregate verdict recorded with zero reviewer artifacts behind it — unrecordable. `record_cli --kind qg` requires `--session-id` and only records with a quorum of >= 2 hook-captured reviewer verdicts from distinct people (identity aliases collapse; the aggregator never counts). Two-level supersession lets multi-round sessions close honestly (within a reviewer spelling: seq, then verdict severity, then the record clock; across spellings: a total order where a clockless rejecting record is unsupersedable). `evidence_digest` is compared against the artifacts on disk — the guard's first consumption of the v4.41.0 integrity digests — a CONFIRMED reviewer blocker never disappears silently, and an APPROVED aggregate never stands over a rejecting reviewer. Accepted aggregates land in `AGGREGATE.json` (atomic, verified, owned by the ledger's retention sweep). `--kind reviewer` refuses aggregator identities; labels carry `kind`/`round`/`head` on the envelope. During its own 7-round gate the guard refused its own CQO's label twice — correctly, on a real digest mismatch.
+
+### Fixed
+- **Reviewer ledger fence extraction is balanced-JSON aware** (#434): a verdict whose notes string mentioned code fences lost its structured columns in production; candidate closes are now tried until one parses. `_safe_id` uses fullmatch (a trailing newline passed the `$` anchor). The ledger now owns `AGGREGATE.json` so the 90-day retention sweep keeps working for sessions that pass the gate. `redo_counter` resolves its state path at call time.
+
 ## [4.41.0] - 2026-07-29
 
 Integrity digests for the Quality Gate chain: the material that lets
