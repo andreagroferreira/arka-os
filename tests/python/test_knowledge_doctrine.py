@@ -203,21 +203,42 @@ class TestDoctrineNotes:
             store, "prompt", {"/v/Resources/Books/ch.md"}
         ) == []
 
-    def test_source_with_more_chunks_wins_flat_score_band(self, monkeypatch):
+    def test_collection_with_more_chunks_wins_flat_score_band(self, monkeypatch):
         # Validation-matrix regression (2026-07-30): 3 chunks at 0.575 from
-        # the topically-right book must outrank lone 0.577 strays.
+        # the topically-right book must outrank lone 0.577 strays — and the
+        # bonus counts per COLLECTION (parent folder), because chunk
+        # boundaries move between index builds: the same book's matches
+        # landed in one file on one build and across chapters on the next.
         monkeypatch.setattr(
             doctrine, "derive_doctrine_query", lambda p, vocab_path=None: "notes q"
         )
         store = _FakeStore([
             _hit("/v/Books/LDD/moc.md", "doctrine", score=0.577),
             _hit("/v/Books/Philosophy/moc.md", "doctrine", score=0.575),
-            _hit("/v/Books/SmartNotes/ch11.md", "doctrine", score=0.575),
-            _hit("/v/Books/SmartNotes/ch11.md", "doctrine", score=0.575),
-            _hit("/v/Books/SmartNotes/ch11.md", "doctrine", score=0.574),
+            _hit("/v/Books/SmartNotes/ch01.md", "doctrine", score=0.575),
+            _hit("/v/Books/SmartNotes/ch03.md", "doctrine", score=0.575),
+            _hit("/v/Books/SmartNotes/ch12.md", "doctrine", score=0.574),
         ])
         hits = doctrine.doctrine_notes(store, "prompt", set())
-        assert hits[0]["source"] == "/v/Books/SmartNotes/ch11.md"
+        assert hits[0]["source"].startswith("/v/Books/SmartNotes/")
+
+    def test_coherence_bonus_is_capped_against_volume(self, monkeypatch):
+        # Uncapped, a 40-chapter book flooded three unrelated probes by
+        # sheer volume (validation matrix 2026-07-30). The bonus breaks
+        # near-ties; it must never beat a real score gap.
+        monkeypatch.setattr(
+            doctrine, "derive_doctrine_query", lambda p, vocab_path=None: "q"
+        )
+        big_book = [
+            _hit(f"/v/Books/BigBook/ch{i:02d}.md", "doctrine", score=0.560)
+            for i in range(10)
+        ]
+        store = _FakeStore([
+            _hit("/v/Books/RightBook/ch1.md", "doctrine", score=0.590),
+            *big_book,
+        ])
+        hits = doctrine.doctrine_notes(store, "prompt", set())
+        assert hits[0]["source"] == "/v/Books/RightBook/ch1.md"
 
     def test_store_error_fails_open(self, monkeypatch):
         monkeypatch.setattr(

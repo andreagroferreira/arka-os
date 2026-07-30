@@ -305,13 +305,19 @@ def doctrine_notes(
         hits = list(store.search(query, top_k=_DOCTRINE_TOP_K)) or []
     except Exception:
         return []
-    # Aggregate by SOURCE before picking: on a nearly-flat score band a
-    # source with several chunks in the deep top-K is topically stronger
-    # than a single stray chunk from another collection (validation
-    # matrix 2026-07-30: the right book had 3 chunks at 0.575 and lost
-    # every slot to lone 0.577 chunks). Rank = best score + a small
-    # per-extra-chunk bonus — never enough to beat a genuinely better match.
+    # Aggregate before picking: on a nearly-flat score band a collection
+    # with several chunks in the deep top-K is topically stronger than a
+    # single stray chunk from another book (validation matrix 2026-07-30:
+    # the right book had 3 chunks at 0.575 and lost every slot to lone
+    # 0.577 strays). Two hard-won calibrations, both measured live:
+    #   - the bonus counts hits per COLLECTION (parent folder), not per
+    #     file — chunk boundaries move between index builds, and the same
+    #     book's matches landed in 1 file on one build and 4 on the next;
+    #   - the bonus is CAPPED at 2 extra hits (+0.01) — uncapped, a
+    #     40-chapter book flooded three unrelated probes by sheer volume.
+    #     It exists to break near-ties, never to beat a real score gap.
     by_source: dict[str, dict] = {}
+    collection_hits: dict[str, int] = {}
     for hit in hits:
         if hit.get("retrieval") == "keyword-degraded":
             # No similarity exists — never present keyword noise as doctrine.
@@ -323,16 +329,19 @@ def doctrine_notes(
         source = hit.get("source", "") or ""
         if not source or source in exclude_sources:
             continue
+        collection = str(Path(source).parent)
+        collection_hits[collection] = collection_hits.get(collection, 0) + 1
         entry = by_source.get(source)
         if entry is None:
-            by_source[source] = {"hit": hit, "n": 1}
-        else:
-            entry["n"] += 1
-            if float(hit.get("score") or 0.0) > float(entry["hit"].get("score") or 0.0):
-                entry["hit"] = hit
+            by_source[source] = {"hit": hit, "collection": collection}
+        elif float(hit.get("score") or 0.0) > float(entry["hit"].get("score") or 0.0):
+            entry["hit"] = hit
     ranked = sorted(
         by_source.values(),
-        key=lambda e: float(e["hit"].get("score") or 0.0) + 0.005 * (e["n"] - 1),
+        key=lambda e: (
+            float(e["hit"].get("score") or 0.0)
+            + 0.005 * min(2, collection_hits.get(e["collection"], 1) - 1)
+        ),
         reverse=True,
     )
     return [e["hit"] for e in ranked[:_MAX_DOCTRINE_NOTES]]
