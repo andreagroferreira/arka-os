@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, statSync, renameSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { platform } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -31,8 +31,12 @@ export function deployProjectAgents(projectDir, sourceRoot = ARKAOS_ROOT) {
   let deployed = 0;
   try {
     mkdirSync(agentsDest, { recursive: true });
-    for (const file of readdirSync(agentsSrc)) {
-      if (!file.endsWith(".md")) continue;
+    const sourceFiles = readdirSync(agentsSrc).filter((f) => f.endsWith(".md"));
+    retireLegacyPersonas(
+      agentsDest,
+      new Set(sourceFiles.map((f) => f.slice(0, -3))),
+    );
+    for (const file of sourceFiles) {
       const srcFile = join(agentsSrc, file);
       try {
         if (!statSync(srcFile).isFile()) continue;
@@ -46,6 +50,65 @@ export function deployProjectAgents(projectDir, sourceRoot = ARKAOS_ROOT) {
     return deployed;
   }
   return deployed;
+}
+
+// PR-B5 (N5): personas from the v1 agent payload predate the QGVerdict
+// contract. Left in place they stay dispatchable — a Quality Gate in that
+// project reaches `cqo` (no contract, no fence) instead of `marta-cqo`,
+// which is exactly the dead-relay shape the campaign repaired. Retirement
+// is a rename into .claude/agents/.arkaos-legacy/, never a delete, and
+// only fires under a double guard: the name is on this list AND absent
+// from the current source set (a name ArkaOS ships again is deployed,
+// not retired). Files outside the list are untouched — they are the
+// user's.
+export const LEGACY_PERSONAS = new Set([
+  "analyst",
+  "content-creator",
+  "copy-director",
+  "cqo",
+  "creative-director",
+  "devops",
+  "ecommerce-manager",
+  "motion-designer",
+  "qa",
+  "security",
+  "senior-dev",
+  "strategist",
+  "tech-lead",
+  "tech-ux-director",
+]);
+
+function retireLegacyPersonas(agentsDest, sourceNames) {
+  const legacyDir = join(agentsDest, ".arkaos-legacy");
+  let retired = 0;
+  let entries;
+  try {
+    entries = readdirSync(agentsDest);
+  } catch {
+    return 0;
+  }
+  for (const file of entries) {
+    if (!file.endsWith(".md")) continue;
+    const base = file.slice(0, -3);
+    if (!LEGACY_PERSONAS.has(base) || sourceNames.has(base)) continue;
+    try {
+      mkdirSync(legacyDir, { recursive: true });
+      let dest = join(legacyDir, file);
+      for (let n = 1; existsSync(dest); n++) {
+        dest = join(legacyDir, `${base}-${n}.md`);
+      }
+      renameSync(join(agentsDest, file), dest);
+      // Never silent (QG r1 M3): these are generic names — the owner
+      // must see the move and where the file went.
+      console.log(
+        `         Retired v1 persona: ${file} -> .claude/agents/.arkaos-legacy/`
+      );
+      retired++;
+    } catch {
+      // Best-effort: an unmovable persona stays in place, never deleted.
+    }
+  }
+  return retired;
 }
 
 /**
@@ -179,6 +242,28 @@ export default {
     settings.hooks.PreToolUse = [
       { hooks: [hookEntry(hooksDir, "pre-tool-use", 10)] },
     ];
+
+    // PreToolUse (Task matcher) — dynamic agent provisioning (PR-B5,
+    // N3). config/settings-template.json declared this entry for
+    // months, but the template is not the executed path: THIS adapter
+    // writes settings.json, and it never registered the hook, so
+    // agent-provision.sh shipped in the package and was never deployed
+    // on the npm path while projects dispatched v1 personas.
+    // POSIX-only (no .ps1 port exists) and conditional on the script
+    // existing — an older package must not register a dead command
+    // (same rule as the fastpath shim above).
+    if (!IS_WINDOWS && existsSync(join(hooksDir, "agent-provision.sh"))) {
+      settings.hooks.PreToolUse.push({
+        matcher: "Task",
+        hooks: [
+          {
+            type: "command",
+            command: join(hooksDir, "agent-provision.sh"),
+            timeout: 10,
+          },
+        ],
+      });
+    }
 
     // Stop — Flow completion validator (WARN mode in v2.20.0; promotion
     // to STRICT mode is gated on ≥ 2 weeks of clean telemetry per ADR

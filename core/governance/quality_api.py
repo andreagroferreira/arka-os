@@ -8,25 +8,14 @@ Provides a simple programmatic interface for the Quality Gate system:
 """
 
 import json
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
 from core.governance.quality_router import (
-    QualityRouter,
-    ReviewAssignment,
-    ReviewerType,
     DeliverableType,
-    ReviewPriority,
-    route_deliverable,
+    QualityRouter,
 )
-from core.governance.review_workflow import (
-    ReviewWorkflowEngine,
-    ReviewWorkflow,
-    ReviewPhase,
-    Verdict,
-    ReviewerOpinion,
-)
-
 
 _STATE_DIR = Path.home() / ".arkaos" / "quality-gate"
 _QUEUE_FILE = _STATE_DIR / "queue.json"
@@ -147,6 +136,14 @@ def record_verdict(
 ) -> bool:
     """Record a reviewer's verdict for a submission.
 
+    .. deprecated:: 4.44.0 (PR-B5)
+        Writes an unguarded label: no ledger artifact, no digest, no
+        aggregate guard. Use ``core.evals.record_cli``: ``--kind qg``
+        passes ``aggregate_guard.check_aggregate``, which requires at
+        least two hook-captured reviewer artifacts in the session
+        ledger; ``--kind reviewer`` remains an unguarded label path —
+        its ledger cross-reference is provenance, not admission.
+
     Args:
         submission_id: ID of the submission
         reviewer: Agent ID of reviewer
@@ -157,8 +154,6 @@ def record_verdict(
     Returns:
         True if verdict recorded successfully
     """
-    reviewer_type = ReviewerType(reviewer) if reviewer in [r.value for r in ReviewerType] else None
-
     queue = _load_queue()
     for item in queue:
         if item["id"] == submission_id:
@@ -217,9 +212,9 @@ def clear_resolved(older_than_days: int = 7) -> int:
     Returns:
         Number of items removed
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
+    cutoff = datetime.now(UTC) - timedelta(days=older_than_days)
     queue = _load_queue()
     original_count = len(queue)
 
@@ -268,6 +263,7 @@ class QualityGateAPI:
         feedback: str = "",
         flagged_rules: list[str] | None = None,
     ) -> bool:
+        """Deprecated with the module function — see ``record_verdict``."""
         return record_verdict(submission_id, reviewer, verdict, feedback, flagged_rules)
 
     def list_pending(self, reviewer: str | None = None) -> list[dict]:

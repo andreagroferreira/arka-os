@@ -280,3 +280,45 @@ test("missing roster degrades to the dept-only deploy (older cores)", () => {
     rmSync(home, { recursive: true, force: true });
   }
 });
+
+test("v1 QG personas are never deployed and prior deploys are retired (PR-B5 B2)", () => {
+  const repo = makeRepo();
+  const home = mkdtempSync(join(tmpdir(), "arka-skilldeploy-qg-"));
+  try {
+    // The quality dept ships the v1 trio in the repo; the deploy loop
+    // must skip them — deployed to user scope they stay dispatchable
+    // without the QGVerdict contract (the dead-relay shape).
+    const quality = join(repo, "departments", "quality", "agents");
+    mkdirSync(quality, { recursive: true });
+    writeFileSync(join(quality, "cqo.md"), "---\nname: cqo\n---\nv1\n");
+    writeFileSync(
+      join(quality, "copy-director.md"), "---\nname: copy-director\n---\nv1\n");
+    writeFileSync(join(quality, "engagement.md"), "---\nname: engagement\n---\nok\n");
+
+    // A previous run already deployed one — it must be retired, not left.
+    const agentsBase = join(home, "agents");
+    mkdirSync(agentsBase, { recursive: true });
+    writeFileSync(join(agentsBase, "arka-cqo.md"), "old v1 deploy\n");
+
+    deploySkills({
+      repoRoot: repo,
+      skillsBase: join(home, "skills"),
+      agentsBase,
+      version: "9.9.9",
+    });
+
+    assert.ok(!existsSync(join(agentsBase, "arka-cqo.md")),
+      "v1 cqo must not remain dispatchable at user scope");
+    assert.ok(!existsSync(join(agentsBase, "arka-copy-director.md")),
+      "v1 copy-director must not be deployed");
+    assert.equal(
+      readFileSync(join(agentsBase, ".arkaos-legacy", "arka-cqo.md"), "utf-8"),
+      "old v1 deploy\n",
+      "the prior deploy is retired verbatim — renamed, never deleted");
+    assert.ok(existsSync(join(agentsBase, "arka-engagement.md")),
+      "non-legacy quality agents still deploy");
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(home, { recursive: true, force: true });
+  }
+});

@@ -287,6 +287,18 @@ export async function update({ skillsFlag = "" } = {}) {
       try { chmodSync(destPath, 0o755); } catch {}
     }
   }
+
+  // PR-B5 (N3): the agent-provision PreToolUse(Task) gate — POSIX-only,
+  // outside hookNames on purpose (see the same block in index.js; the
+  // consistency tests require .sh/.ps1 pairs for the universal hooks).
+  if (hookExt === ".sh") {
+    const provisionSrc = join(srcHooksDir, "agent-provision.sh");
+    if (existsSync(provisionSrc)) {
+      const provisionDest = join(destHooksDir, "agent-provision.sh");
+      writeFileSync(provisionDest, readFileSync(provisionSrc, "utf-8"));
+      try { chmodSync(provisionDest, 0o755); } catch {}
+    }
+  }
   ok("Hook scripts updated");
 
   // Shared hook libraries (config/hooks/_lib/ — the Python interpreter

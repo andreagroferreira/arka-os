@@ -817,6 +817,23 @@ function installHooks(installDir) {
     }
   }
 
+  // PR-B5 (N3): agent-provision.sh is a PreToolUse(Task) gate, not a
+  // lifecycle hook, and it is POSIX-only (no .ps1 port exists, and the
+  // adapter only registers it off-Windows). It lives OUTSIDE hookNames
+  // on purpose: that list's consistency tests require a .sh/.ps1 pair
+  // for every universal hook. Before this block the script was neither
+  // copied nor registered — settings-template.json declared it, but the
+  // template is not the executed path.
+  if (hookExt === ".sh") {
+    const provisionSrc = join(srcHooksDir, "agent-provision.sh");
+    if (existsSync(provisionSrc)) {
+      const provisionDest = join(hooksDir, "agent-provision.sh");
+      writeFileSync(provisionDest, readFileSync(provisionSrc, "utf-8"));
+      try { chmodSync(provisionDest, 0o755); } catch {}
+      ok("Hook: agent-provision.sh");
+    }
+  }
+
   if (copyHookLib(srcHooksDir, hooksDir)) {
     ok("Hook lib: _lib/");
   }

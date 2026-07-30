@@ -2,10 +2,22 @@
 # ArkaOS PreToolUse hook for dynamic agent provisioning.
 # Intercepts Task tool calls: if subagent_type is not present in the
 # project's .claude/agents/, copies it from ArkaOS core when available,
-# or blocks with an approval-request message when the agent must be
-# created via `/platform-arka agent provision <name>`.
+# or surfaces an approval-request message WITHOUT blocking when the
+# agent is unknown. The set of valid subagent_types is not enumerable
+# here — runtime built-ins (general-purpose, statusline-setup, …)
+# change with Claude Code versions and plugins add their own — so any
+# blocking arm on "unknown" breaks legitimate dispatches (QG PR-B5 r1
+# reproduced exit 2 on general-purpose). Provision when we know the
+# name; stand aside when we don't.
 
 set -euo pipefail
+
+# No jq, no payload parse. .claude/rules/bash-hooks.md:11-12 prescribes
+# a python3 fallback for jq; this gate is OPTIONAL by design, so it
+# stands aside instead of paying a python spawn on every Task call —
+# and per the same rules file ("exit code 2 = block action", last
+# bullet), exiting 0 here can never break a dispatch.
+command -v jq >/dev/null 2>&1 || exit 0
 
 # ─── Shared Python resolver (exports ARKA_PY) ──────────────────────────
 # The resolver guards its own ARKA_PY assignment with `|| true`, so sourcing
@@ -49,7 +61,6 @@ if [ -z "$core_root" ]; then
 fi
 
 if [ -d "$core_root/departments" ]; then
-    mkdir -p "$project_agents_dir"
     set +e
     "$ARKA_PY" - "$core_root" "$subagent_type" "$target" <<'PY'
 import os, re, sys
@@ -105,7 +116,10 @@ if md_path is not None:
 
 content = "\n".join(parts) + "\n"
 
-# Atomic write: temp file in same dir, then os.replace.
+# Create the parent only on the arm that actually writes (a dispatch
+# of an unknown name must not scatter empty .claude/agents/ dirs), then
+# atomic write: temp file in same dir, then os.replace.
+target.parent.mkdir(parents=True, exist_ok=True)
 tmp = target.with_suffix(".md.tmp")
 tmp.write_text(content)
 os.replace(tmp, target)
@@ -128,15 +142,22 @@ PY
     esac
 fi
 
-# Agent not in project and not in core — surface an approval-request.
+# Agent not in project, and the core lookup either found nothing or
+# never ran. Say exactly which, and NEVER block: this name may be a
+# runtime built-in or a plugin agent this script cannot know about —
+# if it truly doesn't exist, the Task dispatch itself fails with the
+# runtime's own error.
+if [ -d "$core_root/departments" ]; then
+    core_note="no ArkaOS core agent of that name was found (core searched at: $core_root)"
+else
+    core_note="the ArkaOS core lookup did not run (no departments/ under: ${core_root:-<unset>})"
+fi
 cat >&2 <<MSG
-[arka:provision-needed] Agent '$subagent_type' is not installed in this
-project and does not exist in ArkaOS core. To create it, run:
-
-    /platform-arka agent provision $subagent_type
-
-This opens the Skill Architect flow which drafts the agent YAML with
-4-framework DNA, goes through Quality Gate, and commits to core before
-propagating to the project. Blocking dispatch until the agent exists.
+[arka:provision-needed] Agent '$subagent_type' is not in this project's
+.claude/agents/, and $core_note.
+If ArkaOS should provide this agent, create it at
+.claude/agents/$subagent_type.md, or run 'npx arkaos update' so ArkaOS
+core ships a definition this gate can copy.
+Runtime built-ins and plugin agents are unaffected — dispatch proceeds.
 MSG
-exit 2
+exit 0

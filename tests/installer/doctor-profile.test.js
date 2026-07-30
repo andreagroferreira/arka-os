@@ -68,13 +68,29 @@ test("complete unlocks ffmpeg/litellm/whisper; essential skips them", () => {
   }
 });
 
-test("checks without minProfile never skip, on any profile", () => {
+test("checks without minProfile never profile-skip, on any profile", () => {
+  // PR-B5 widened checkSkipReason: a check may also declare skipIf —
+  // environment-conditional applicability (qg-agents skips outside a
+  // project directory, which is exactly the CI runner's cwd, where the
+  // gitignored .claude/agents never exists). The invariant this test
+  // pins is the PROFILE gate: without minProfile, no profile value may
+  // cause a skip. Environment-conditional checks are exercised by
+  // their own tests in doctor-claude-layer.test.js with injected dirs.
   for (const check of checks) {
-    if (check.minProfile) continue;
+    if (check.minProfile || typeof check.skipIf === "function") continue;
     for (const profile of ["essential", "complete", "local-ai"]) {
       assert.equal(checkSkipReason(check, profile), null, check.name);
     }
   }
+});
+
+test("skipIf is the exception, not a loophole: declared only by project-scoped checks", () => {
+  const withSkipIf = checks.filter((c) => typeof c.skipIf === "function");
+  assert.deepEqual(
+    withSkipIf.map((c) => c.name),
+    ["qg-agents"],
+    "a new skipIf must be added here deliberately, with its own behaviour test"
+  );
 });
 
 test("skip decision is consistent with profileIncludes", () => {
