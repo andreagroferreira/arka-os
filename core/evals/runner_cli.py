@@ -65,8 +65,11 @@ def _dispatch_prompt(task: EvalTask) -> str:
         f"O deliverable será julgado pelo Quality Gate contra estas "
         f"propriedades verificáveis:\n{properties}{rubric}\n\n"
         f"Após o verdict, regista o label com:\n"
-        f"  arka-py -m core.evals.record_cli --eval-task-id {task.id} "
-        f"--department {task.department} < verdict.json"
+        f"  arka-py -m core.evals.record_cli --kind qg "
+        f"--session-id <session> --eval-task-id {task.id} "
+        f"--department {task.department} < verdict.json\n"
+        f"(--session-id é obrigatório no caminho do agregado — o guard "
+        f"anti-self-approval lê o ledger de reviewers dessa sessão)"
     )
 
 

@@ -10,8 +10,10 @@ from core.evals.record_cli import main as record_main
 from core.evals.runner_cli import main as runner_main
 from core.evals.sanitizer import (
     SanitizerConfigMissing,
-    main as sanitizer_main,
     sanitize_text,
+)
+from core.evals.sanitizer import (
+    main as sanitizer_main,
 )
 from core.evals.verdict_labels import load_verdict_labels
 
@@ -23,19 +25,27 @@ def tmp_labels(tmp_path, monkeypatch):
     yield path
 
 
-def _verdict_json(verdict: str = "REJECTED") -> str:
+def _verdict_json(
+    verdict: str = "REJECTED", reviewer: str = "cqo-marta"
+) -> str:
     return json.dumps({
         "verdict": verdict,
         "evidence_report": {
             "overall": "fail" if verdict == "REJECTED" else "pass"
         },
-        "reviewer": "cqo-marta",
+        "reviewer": reviewer,
         "model_used": "opus",
     })
 
 
 class TestRecordCli:
-    def test_records_valid_verdict(self, tmp_labels, tmp_path, capsys):
+    def test_kind_qg_without_session_id_is_refused(
+        self, tmp_labels, tmp_path, capsys
+    ):
+        """PR-B3 contract change: --kind qg records an AGGREGATE and the
+        anti-self-approval guard makes --session-id mandatory. The
+        accept path (with a reviewer quorum on disk) lives in
+        test_self_approval_guard.py."""
         verdict_file = tmp_path / "v.json"
         verdict_file.write_text(_verdict_json(), encoding="utf-8")
         rc = record_main([
@@ -43,15 +53,55 @@ class TestRecordCli:
             "--department", "dev",
             "--eval-task-id", "dev-feature-auth-endpoint",
         ])
+        assert rc == 1
+        assert "requires --session-id" in capsys.readouterr().err
+        assert load_verdict_labels() == []
+
+    def test_kind_reviewer_records_valid_verdict(
+        self, tmp_labels, tmp_path, capsys
+    ):
+        # An aggregator identity is refused on this path (PR-B3): the
+        # reviewer kind is for the two reviewer directors.
+        verdict_file = tmp_path / "v.json"
+        verdict_file.write_text(
+            _verdict_json(reviewer="francisca-tech"), encoding="utf-8"
+        )
+        rc = record_main([
+            "--file", str(verdict_file),
+            "--kind", "reviewer",
+            "--department", "dev",
+        ])
         assert rc == 0
         out = json.loads(capsys.readouterr().out)
-        assert out == {
-            "recorded": True,
-            "verdict": "REJECTED",
-            "eval_task_id": "dev-feature-auth-endpoint",
-        }
+        assert out["recorded"] is True
+        assert out["verdict"] == "REJECTED"
         labels = load_verdict_labels()
         assert labels[0]["department"] == "dev"
+        assert labels[0]["kind"] == "reviewer"
+
+    def test_missing_file_fails_loudly_not_traceback(
+        self, tmp_labels, tmp_path, capsys
+    ):
+        """Francisca r5 M6: --file naming a missing path must refuse
+        with the reason, never exit on a raw FileNotFoundError."""
+        rc = record_main(
+            ["--file", str(tmp_path / "absent.json"), "--kind", "reviewer"]
+        )
+        assert rc == 1
+        assert "cannot read --file" in capsys.readouterr().err
+        assert load_verdict_labels() == []
+
+    def test_non_utf8_file_fails_loudly_not_traceback(
+        self, tmp_labels, tmp_path, capsys
+    ):
+        """Francisca r6 M3: a non-UTF-8 --file must refuse with the
+        reason, not raise UnicodeDecodeError through main."""
+        bad = tmp_path / "latin1.json"
+        bad.write_bytes("{'v': 'café'}".encode("latin-1"))
+        rc = record_main(["--file", str(bad), "--kind", "reviewer"])
+        assert rc == 1
+        assert "cannot read --file" in capsys.readouterr().err
+        assert load_verdict_labels() == []
 
     def test_invalid_json_fails_loudly(self, tmp_labels, tmp_path, capsys):
         bad = tmp_path / "bad.json"
@@ -132,6 +182,12 @@ class TestRunnerCli:
         assert "[EVAL RUN — task kb-moc-reorganize]" in out
         assert "core.evals.record_cli" in out
         assert "--eval-task-id kb-moc-reorganize" in out
+        # Francisca B3 r2 B1: the emitted command reaches the GUARDED
+        # aggregate path, so it must carry the flags the guard requires
+        # — the r2 emitter omitted --session-id and every eval run lost
+        # its label (rc=1, corpus untouched).
+        assert "--kind qg" in out
+        assert "--session-id" in out
 
     def test_prompt_unknown_task_fails(self, capsys):
         assert runner_main(["prompt", "nope-nope"]) == 1

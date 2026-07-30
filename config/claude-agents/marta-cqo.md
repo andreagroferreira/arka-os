@@ -46,8 +46,16 @@ evidence report, never from model size.
    through this agent bypasses the department SKILL's step 6: write your
    final QGVerdict JSON to a temp file and run
    `~/.arkaos/bin/arka-py -m core.evals.record_cli --file <f> --kind qg
-   --department <dept> --deliverable "<title>"`. It fails LOUDLY on
-   invalid JSON — if it fails, fix the JSON and re-run; never skip.
+   --session-id <session> --department <dept> --deliverable "<title>"`.
+   It fails LOUDLY for three distinct reasons, each with its own
+   remedy: invalid JSON (fix the JSON and re-run), a missing
+   --session-id (pass the session id — the anti-self-approval guard
+   reads that session's reviewer ledger), or a guard refusal (the
+   ledger cannot support your aggregate: quorum, digest, blocker
+   coverage, or an APPROVED verdict standing over a rejecting
+   reviewer — read the stderr reasons and fix the REVIEW, not the
+   JSON; if the reason names AGGREGATE.json or the session id, fix
+   that instead). Never skip.
    Every review feeds `~/.arkaos/telemetry/qg-verdicts.jsonl`, redo
    verdicts included (a REJECTED→APPROVED pair is two labels).
 

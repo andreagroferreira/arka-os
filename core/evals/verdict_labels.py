@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -49,20 +49,33 @@ def record_verdict_label(
     department: str = "",
     eval_task_id: str = "",
     session_id: str = "",
+    kind: str = "",
+    round_label: str = "",
+    head: str = "",
 ) -> None:
-    """Append one labeled QG example. Never raises (telemetry contract)."""
+    """Append one labeled QG example. Never raises (telemetry contract).
+
+    ``kind``/``round_label``/``head`` live on the envelope, not the
+    schema: QGVerdict drops unknown fields, so without them the corpus
+    could not distinguish rounds of one PR (QG r13 register).
+    ``round_label`` persists under the ``round`` key — the parameter
+    avoids shadowing the builtin.
+    """
     try:
         entry: dict[str, Any] = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "deliverable": str(deliverable or ""),
             "department": str(department or ""),
             "eval_task_id": str(eval_task_id or ""),
             "session_id": str(session_id or ""),
+            "kind": str(kind or ""),
+            "round": str(round_label or ""),
+            "head": str(head or ""),
             **verdict.model_dump(),
         }
         with _locked_append(_labels_path()) as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception:  # noqa: BLE001 — telemetry must never raise
+    except Exception:
         return
 
 
@@ -75,7 +88,7 @@ def record_judge_label(
     """Append one labeled gate-judge example. Never raises."""
     try:
         entry: dict[str, Any] = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "deliverable": str(deliverable or ""),
             "department": str(department or ""),
             "session_id": str(session_id or ""),
@@ -83,7 +96,7 @@ def record_judge_label(
         }
         with _locked_append(_judge_labels_path()) as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception:  # noqa: BLE001 — telemetry must never raise
+    except Exception:
         return
 
 
