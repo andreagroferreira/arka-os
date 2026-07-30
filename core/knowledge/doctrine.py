@@ -171,6 +171,28 @@ def update_vocabulary(vocab: dict, domains: list[str], note_title: str) -> None:
                 cooccurs[other] = cooccurs.get(other, 0) + 1
 
 
+def rebuild_vocabulary_from_sources(source_metadata) -> dict:
+    """Full vocabulary from (source, metadata) pairs of the WHOLE index.
+
+    The vocabulary must always describe the complete doctrine corpus.
+    Building it from the files touched by one indexing run breaks
+    incremental indexing: a run that ingests three new notes would
+    overwrite the sidecar with a three-note vocabulary and blind the
+    doctrine pass to everything else. The chunk metadata already in the
+    store is the always-complete source of truth, so the sidecar is
+    rebuilt from it after every run.
+    """
+    vocab: dict = {}
+    for source, metadata in source_metadata:
+        if not isinstance(metadata, dict):
+            continue
+        if metadata.get("knowledge_class") != "doctrine":
+            continue
+        domains = [d for d in (metadata.get("domains") or []) if d]
+        update_vocabulary(vocab, domains, Path(source).stem)
+    return vocab
+
+
 def save_vocabulary(vocab: dict, path: Path | None = None) -> Path:
     """Persist the domain vocabulary sidecar. Returns the written path."""
     target = path or DEFAULT_VOCAB_PATH

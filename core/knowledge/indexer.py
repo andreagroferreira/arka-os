@@ -11,9 +11,9 @@ from core.knowledge.chunker import chunk_markdown
 from core.knowledge.doctrine import (
     note_domains,
     parse_frontmatter,
+    rebuild_vocabulary_from_sources,
     resolve_knowledge_class,
     save_vocabulary,
-    update_vocabulary,
 )
 from core.knowledge.vector_store import VectorStore
 
@@ -62,7 +62,6 @@ def index_directory(
     skipped = 0
     chunks_created = 0
     doctrine_count = 0
-    vocabulary: dict = {}
 
     for i, filepath in enumerate(files):
         if on_progress:
@@ -98,7 +97,6 @@ def index_directory(
         domains = note_domains(frontmatter) if kclass == "doctrine" else []
         if kclass == "doctrine":
             doctrine_count += 1
-            update_vocabulary(vocabulary, domains, filepath.stem)
 
         # Chunk and index
         chunks = chunk_markdown(content, max_tokens=max_tokens, source=str(filepath))
@@ -119,8 +117,17 @@ def index_directory(
             chunks_created += count
             indexed += 1
 
-    if write_vocabulary and vocabulary:
-        save_vocabulary(vocabulary)
+    # The vocabulary is rebuilt from the WHOLE index, never from this
+    # run's files: with skip_indexed=True an incremental run touches only
+    # new/changed notes, and a per-run vocabulary would overwrite the
+    # sidecar with that fragment — blinding the doctrine pass to the rest
+    # of the corpus.
+    if write_vocabulary:
+        vocabulary = rebuild_vocabulary_from_sources(
+            store.distinct_source_metadata()
+        )
+        if vocabulary:
+            save_vocabulary(vocabulary)
 
     return {
         "files_scanned": total,

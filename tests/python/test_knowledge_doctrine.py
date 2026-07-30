@@ -272,6 +272,9 @@ class TestIndexerMetadata:
                 collected.append(metadata)
                 return len(texts)
 
+            def distinct_source_metadata(self):
+                return []
+
         result = index_directory(
             vault, _CaptureStore(), write_vocabulary=False
         )
@@ -292,6 +295,45 @@ class TestIndexerMetadata:
         data = json.loads(path.read_text(encoding="utf-8"))
         assert data["testing"]["count"] == 2
         assert data["testing"]["cooccurs"]["quality"] == 1
+
+    def test_incremental_run_rebuilds_vocabulary_from_whole_store(
+        self, tmp_path, monkeypatch
+    ):
+        # An incremental run that skips every file must still write a
+        # vocabulary describing the WHOLE index — a per-run vocabulary
+        # would overwrite the sidecar with a fragment and blind the
+        # doctrine pass to the rest of the corpus.
+        from core.knowledge.indexer import index_directory
+
+        vault = tmp_path / "vault"
+        (vault / "Resources").mkdir(parents=True)
+        (vault / "Resources" / "old.md").write_text(
+            "---\ntype: book-chapter\ndomain: [testing]\n---\n\n"
+            + "word " * 60,
+            encoding="utf-8",
+        )
+        vocab_path = tmp_path / "vocab.json"
+        monkeypatch.setattr(doctrine, "DEFAULT_VOCAB_PATH", vocab_path)
+
+        class _AlreadyIndexedStore:
+            def is_file_indexed(self, *a):
+                return True  # incremental run: nothing to do
+
+            def distinct_source_metadata(self):
+                return [
+                    ("/v/Resources/Books/T/ch1.md",
+                     {"knowledge_class": "doctrine", "domains": ["testing"]}),
+                    ("/v/Resources/Books/T/ch2.md",
+                     {"knowledge_class": "doctrine", "domains": ["testing", "quality"]}),
+                    ("/v/Projects/plan.md",
+                     {"knowledge_class": "operational", "domains": []}),
+                ]
+
+        result = index_directory(vault, _AlreadyIndexedStore())
+        assert result["files_indexed"] == 0
+        data = json.loads(vocab_path.read_text(encoding="utf-8"))
+        assert data["testing"]["count"] == 2  # whole store, not this run
+        assert "quality" in data
 
 
 # ─── research-gate vault resolution ──────────────────────────────────────
