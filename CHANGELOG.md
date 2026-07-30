@@ -5,6 +5,41 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.44.0] - 2026-07-30
+
+### Added
+- **QG sweep reads the guard-accepted aggregate (PR-B5, #436 — closes repair
+  workstream B):** the Stop hook's auto-doc sweep decides "QG approved" from
+  the session's `AGGREGATE.json` first — authoritative both ways and over both
+  fallbacks (the unguarded telemetry log AND the assistant's own
+  `[arka:qg:approved]` marker); marker and telemetry keep their historical
+  roles only when no aggregate exists.
+- **Agent provisioning reaches real projects:** `agent-provision.sh` is now
+  copied by both npm deploy paths (install + update) and registered by the
+  adapter as `PreToolUse` with `matcher: "Task"` (POSIX-only, conditional on
+  the script existing). The gate NEVER blocks: unknown subagent types (runtime
+  built-ins, plugin agents) pass through with a provision hint naming actions
+  that exist; the unknown-name message states exactly what was searched.
+- **v1 persona retirement:** `deployProjectAgents` retires the 14 known v1
+  personas into `.claude/agents/.arkaos-legacy/` (double guard: on the list
+  AND absent from the shipped source set; rename, never delete, logged with
+  destination). `skill-deploy` stops seeding the v1 QG trio at user scope and
+  retires its own earlier `~/.claude/agents/arka-{cqo,copy-director,tech-ux-director}.md`
+  deploys.
+- **Doctor:** `qg-agents` (fail — reviewers missing the QGVerdict contract or
+  v1 personas dispatchable at project or user scope; informational skip
+  outside a project; the fix names both `npx arkaos update` and
+  `npx arkaos init`) and `qg-ledger` (warn — channel never captured a
+  verdict). Check-count lock 43 -> 45.
+
+### Changed
+- Session-binding refusal hardened (register M4): the `.ended` stamp only
+  outlaws counted records that predate its mtime; ties stay fail-closed.
+- `review_workflow` and `quality_api.record_verdict` carry deprecation
+  docstrings pointing at the guarded `core.evals.record_cli` path.
+- wiki/08 runtime matrix: 10 lifecycle events, SubagentStop + SessionEnd rows
+  restored.
+
 ## [4.43.0] - 2026-07-30
 
 ### Added
