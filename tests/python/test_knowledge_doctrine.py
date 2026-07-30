@@ -126,6 +126,28 @@ class TestDeriveDoctrineQuery:
     def test_missing_vocab_yields_empty(self, tmp_path):
         assert doctrine.derive_doctrine_query("testing", vocab_path=tmp_path / "nope.json") == ""
 
+    def test_marca_verb_does_not_alias_to_brand(self, tmp_path):
+        # Validation-matrix regression (2026-07-30): "marca a reuniao"
+        # (schedule the meeting) must not derive a branding query.
+        vp = _vocab_file(tmp_path, {**VOCAB, "branding": {"count": 10, "cooccurs": {}}})
+        assert doctrine.derive_doctrine_query(
+            "marca a reuniao de amanha e avisa a equipa", vocab_path=vp
+        ) == ""
+
+    def test_thin_match_fills_from_strongest_domain_only(self, tmp_path):
+        # A broad 1-count co-match must not contribute its co-occurrences;
+        # only the strongest matched domain fills a thin match.
+        vocab = {
+            "zettelkasten": {"count": 15, "cooccurs": {"note-taking": 15, "pkm": 15}},
+            "organization": {"count": 1, "cooccurs": {"kafka": 3, "event-driven": 3}},
+        }
+        vp = _vocab_file(tmp_path, vocab)
+        query = doctrine.derive_doctrine_query(
+            "organiza as notas com zettelkasten", vocab_path=vp
+        )
+        assert "note-taking" in query
+        assert "kafka" not in query and "event-driven" not in query
+
 
 # ─── retrieval filter + rendering ────────────────────────────────────────
 
@@ -180,6 +202,22 @@ class TestDoctrineNotes:
         assert doctrine.doctrine_notes(
             store, "prompt", {"/v/Resources/Books/ch.md"}
         ) == []
+
+    def test_source_with_more_chunks_wins_flat_score_band(self, monkeypatch):
+        # Validation-matrix regression (2026-07-30): 3 chunks at 0.575 from
+        # the topically-right book must outrank lone 0.577 strays.
+        monkeypatch.setattr(
+            doctrine, "derive_doctrine_query", lambda p, vocab_path=None: "notes q"
+        )
+        store = _FakeStore([
+            _hit("/v/Books/LDD/moc.md", "doctrine", score=0.577),
+            _hit("/v/Books/Philosophy/moc.md", "doctrine", score=0.575),
+            _hit("/v/Books/SmartNotes/ch11.md", "doctrine", score=0.575),
+            _hit("/v/Books/SmartNotes/ch11.md", "doctrine", score=0.575),
+            _hit("/v/Books/SmartNotes/ch11.md", "doctrine", score=0.574),
+        ])
+        hits = doctrine.doctrine_notes(store, "prompt", set())
+        assert hits[0]["source"] == "/v/Books/SmartNotes/ch11.md"
 
     def test_store_error_fails_open(self, monkeypatch):
         monkeypatch.setattr(

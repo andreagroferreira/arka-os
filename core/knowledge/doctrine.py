@@ -69,8 +69,19 @@ _PT_ALIASES: dict[str, str] = {
     "integracoes": "integration", "seguranca": "security",
     "desempenho": "performance", "dados": "data", "modelacao": "modeling",
     "dominio": "domain", "escrita": "writing", "conteudo": "content",
-    "preco": "pricing", "precos": "pricing", "marca": "brand",
+    # "marca" -> "brand" was tried and removed: the verb sense ("marca a
+    # reuniao" = schedule the meeting) false-positived StoryBrand into a
+    # scheduling prompt (validation matrix, 2026-07-30).
+    "preco": "pricing", "precos": "pricing",
     "entrevista": "interviews", "entrevistas": "interviews",
+    "particionar": "partitioning", "particionamento": "partitioning",
+    "replicar": "replication", "replicacao": "replication",
+    "escalar": "scalability", "escalabilidade": "scalability",
+    "consistencia": "consistency",
+    "vies": "biases", "vieses": "biases", "enviesar": "biases",
+    "decisao": "decision-making", "decisoes": "decision-making",
+    "decidir": "decision-making", "julgamento": "judgment",
+    "heuristica": "heuristics", "heuristicas": "heuristics",
     "notas": "notes", "conhecimento": "knowledge",
     "fiabilidade": "reliability", "resiliencia": "resilience",
     "eventos": "events", "mensagens": "messaging",
@@ -240,14 +251,15 @@ def derive_doctrine_query(prompt: str, vocab_path: Path | None = None) -> str:
         return ""
     matched.sort(key=lambda d: -int(vocab[d].get("count", 0)))
     terms: list[str] = list(dict.fromkeys(matched))[:_MAX_QUERY_TERMS]
-    # Co-occurring domains only FILL a thin match — expanding a rich match
-    # dilutes the query with neighbor-collection noise (live replay).
-    if len(terms) < 3:
-        for domain in list(terms):
-            cooccurs = vocab[domain].get("cooccurs") or {}
-            for other, _n in sorted(cooccurs.items(), key=lambda kv: -kv[1])[:2]:
-                if other not in terms and len(terms) < _MAX_QUERY_TERMS:
-                    terms.append(other)
+    # Co-occurring domains only FILL a thin match, and only from the
+    # STRONGEST matched domain — filling from every match let a broad
+    # 1-count domain ("organization") drag unrelated-book noise into a
+    # zettelkasten prompt (validation matrix, 2026-07-30).
+    if len(terms) < 3 and terms:
+        cooccurs = vocab[terms[0]].get("cooccurs") or {}
+        for other, _n in sorted(cooccurs.items(), key=lambda kv: -kv[1])[:2]:
+            if other not in terms and len(terms) < _MAX_QUERY_TERMS:
+                terms.append(other)
     return " ".join(terms[:_MAX_QUERY_TERMS]) + " " + _QUERY_SUFFIX
 
 
@@ -271,8 +283,13 @@ def doctrine_notes(
         hits = list(store.search(query, top_k=_DOCTRINE_TOP_K)) or []
     except Exception:
         return []
-    picked: list[dict] = []
-    seen = set(exclude_sources)
+    # Aggregate by SOURCE before picking: on a nearly-flat score band a
+    # source with several chunks in the deep top-K is topically stronger
+    # than a single stray chunk from another collection (validation
+    # matrix 2026-07-30: the right book had 3 chunks at 0.575 and lost
+    # every slot to lone 0.577 chunks). Rank = best score + a small
+    # per-extra-chunk bonus — never enough to beat a genuinely better match.
+    by_source: dict[str, dict] = {}
     for hit in hits:
         if hit.get("retrieval") == "keyword-degraded":
             # No similarity exists — never present keyword noise as doctrine.
@@ -282,13 +299,21 @@ def doctrine_notes(
         if not _is_doctrine_hit(hit):
             continue
         source = hit.get("source", "") or ""
-        if source in seen:
+        if not source or source in exclude_sources:
             continue
-        seen.add(source)
-        picked.append(hit)
-        if len(picked) >= _MAX_DOCTRINE_NOTES:
-            break
-    return picked
+        entry = by_source.get(source)
+        if entry is None:
+            by_source[source] = {"hit": hit, "n": 1}
+        else:
+            entry["n"] += 1
+            if float(hit.get("score") or 0.0) > float(entry["hit"].get("score") or 0.0):
+                entry["hit"] = hit
+    ranked = sorted(
+        by_source.values(),
+        key=lambda e: float(e["hit"].get("score") or 0.0) + 0.005 * (e["n"] - 1),
+        reverse=True,
+    )
+    return [e["hit"] for e in ranked[:_MAX_DOCTRINE_NOTES]]
 
 
 def format_doctrine_block(hits: list[dict]) -> str:
