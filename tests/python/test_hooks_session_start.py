@@ -355,3 +355,56 @@ class TestDaemonSpawnGuard:
 
 class _DummyProc:
     pass
+class TestContractFailureIsVisible:
+    """A failure to build the contracts must not look like silence.
+
+    build_context() produces EVIDENCE-FLOW / META-TAG / AUTHORITY /
+    MODEL-FABRIC. Returning "" on failure reproduces the exact state those
+    blocks prevent, with nothing anywhere saying why.
+    """
+
+    def test_context_failure_surfaces_a_notice(self, capsys, monkeypatch, tmp_path):
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
+        monkeypatch.setattr(
+            session_start, "build_context",
+            lambda cwd: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
+        monkeypatch.setattr(
+            session_start, "_CONTRACT_FAILURE_LOG",
+            tmp_path / "telemetry" / "session-start-failures.jsonl",
+        )
+        assert main({"cwd": "/x"}) == 0  # still fails open
+        payload = json.loads(capsys.readouterr().out)
+        context = payload["hookSpecificOutput"]["additionalContext"]
+        assert "[ARKA:CONTRACTS] unavailable (RuntimeError)" in context
+        assert "not as permission" in context
+
+    def test_context_failure_is_recorded(self, capsys, monkeypatch, tmp_path):
+        log = tmp_path / "telemetry" / "session-start-failures.jsonl"
+        monkeypatch.setattr(
+            session_start, "build_context",
+            lambda cwd: (_ for _ in ()).throw(ValueError("bad config")),
+        )
+        monkeypatch.setattr(session_start, "_CONTRACT_FAILURE_LOG", log)
+        main({"cwd": "/x"})
+        capsys.readouterr()
+        record = json.loads(log.read_text(encoding="utf-8").strip())
+        assert record["event"] == "build_context_failed"
+        assert record["error_type"] == "ValueError"
+        assert "bad config" in record["error"]
+
+    def test_unwritable_telemetry_never_breaks_the_hook(self, capsys, monkeypatch, tmp_path):
+        """The recording is best-effort; the notice is not."""
+        blocker = tmp_path / "blocker"
+        blocker.write_text("not a directory", encoding="utf-8")
+        monkeypatch.setattr(
+            session_start, "build_context",
+            lambda cwd: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
+        monkeypatch.setattr(session_start, "_CONTRACT_FAILURE_LOG", blocker / "x.jsonl")
+        assert main({"cwd": "/x"}) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert "[ARKA:CONTRACTS] unavailable" in (
+            payload["hookSpecificOutput"]["additionalContext"]
+        )
