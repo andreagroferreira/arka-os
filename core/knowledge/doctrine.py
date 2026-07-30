@@ -199,8 +199,9 @@ def _normalize(token: str) -> str:
 def _variants(word: str) -> set[str]:
     """Morphological variants for matching: shared stems, never prefixes."""
     out = {word}
-    for suffix in ("ing", "tion", "sion", "ments", "ment", "ies", "ers", "er",
-                   "es", "s"):
+    for suffix in ("ing", "tion", "sion", "ments",
+                   "ment",  # codespell:ignore ment
+                   "ies", "ers", "er", "es", "s"):
         if word.endswith(suffix) and len(word) - len(suffix) >= 4:
             stem = word[: -len(suffix)]
             out.add(stem)

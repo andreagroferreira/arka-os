@@ -99,7 +99,7 @@ class TestDeriveDoctrineQuery:
         # (a prefix-based matcher did exactly that).
         vp = _vocab_file(tmp_path, VOCAB)
         query = doctrine.derive_doctrine_query(
-            "descreve o projeto e o seu historial", vocab_path=vp
+            "descreve o projeto e o seu percurso", vocab_path=vp
         )
         assert "projections" not in query
 
