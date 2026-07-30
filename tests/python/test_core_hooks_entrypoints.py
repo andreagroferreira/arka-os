@@ -910,6 +910,39 @@ class TestHelpers:
         for prompt, expected in lot.items():
             assert _wf_classify(prompt) is expected, prompt
 
+    def test_v1_migration_notice_ignores_orphan_dir(self, tmp_path, monkeypatch):
+        # Cross-Machine Lab U1: a leftover v1 dir holding one bookkeeping
+        # file re-armed the notice forever, and the early-return in main()
+        # killed the whole per-prompt chain on both platforms.
+        from core.hooks.user_prompt_submit import _v1_migration_notice
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        v1 = tmp_path / ".claude" / "skills" / "arkaos"
+        v1.mkdir(parents=True)
+        (v1 / ".arkaos-root").write_text("x", encoding="utf-8")
+        assert _v1_migration_notice() is None
+
+    def test_v1_migration_notice_fires_on_real_v1(self, tmp_path, monkeypatch):
+        from core.hooks.user_prompt_submit import _v1_migration_notice
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        v1 = tmp_path / ".claude" / "skills" / "arkaos"
+        v1.mkdir(parents=True)
+        (v1 / "SKILL.md").write_text("# v1\n", encoding="utf-8")
+        notice = _v1_migration_notice()
+        assert notice is not None and "[MIGRATION]" in notice
+
+    def test_v1_migration_notice_trusts_v2_manifest(self, tmp_path, monkeypatch):
+        # install-manifest.json is the canonical v2 signal; a functional
+        # v2 install is never nagged even when a real v1 dir remains.
+        from core.hooks.user_prompt_submit import _v1_migration_notice
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        v1 = tmp_path / ".claude" / "skills" / "arkaos"
+        v1.mkdir(parents=True)
+        (v1 / "SKILL.md").write_text("# v1\n", encoding="utf-8")
+        arkaos = tmp_path / ".arkaos"
+        arkaos.mkdir()
+        (arkaos / "install-manifest.json").write_text("{}", encoding="utf-8")
+        assert _v1_migration_notice() is None
+
     def test_query_hint_priority_and_clip(self):
         from core.hooks.pre_tool_use import _query_hint
         assert _query_hint({"query": "q", "prompt": "p"}) == "q"

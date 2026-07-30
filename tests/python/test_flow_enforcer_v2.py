@@ -310,7 +310,17 @@ def test_windows_parity_ps1_exists_with_same_logic():
     ups_text = ups.read_text(encoding="utf-8")
     assert "marker_cache" in pus_text, "PS1 post-tool-use lacks marker_cache ref"
     assert "write_marker" in pus_text, "PS1 post-tool-use lacks write_marker call"
-    assert "invalidate_marker" in ups_text, "PS1 user-prompt-submit lacks invalidate_marker"
+    # user-prompt-submit is a thin wrapper on BOTH platforms: the per-turn
+    # invalidate_marker call lives in core.hooks.user_prompt_submit, not in
+    # the shell twins (the .sh only names it in a comment). Parity here means
+    # the .ps1 delegates to the same module the .sh does — grepping for the
+    # ported token instead re-broke the wrapper it was meant to protect.
+    sh_text = (REPO_ROOT / "config" / "hooks" / "user-prompt-submit.sh").read_text(
+        encoding="utf-8"
+    )
+    module = "core.hooks.user_prompt_submit"
+    assert module in sh_text, "SH user-prompt-submit no longer delegates to the module"
+    assert module in ups_text, "PS1 user-prompt-submit lacks delegation to " + module
 
 
 # ─── Live hook smoke test (bash only — mirrors production wiring) ──────

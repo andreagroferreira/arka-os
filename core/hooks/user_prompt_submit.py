@@ -148,13 +148,26 @@ def _names_concrete_target(text: str) -> bool:
 
 
 def _v1_migration_notice() -> str | None:
+    home = Path.home()
+    # A valid v2 install manifest is the canonical signal that v2 is
+    # already functional — never nag past it. This guard existed only in
+    # the old native user-prompt-submit.ps1; hoisting it into the shared
+    # producer makes it hold on every platform.
+    if (home / ".arkaos" / "install-manifest.json").is_file():
+        return None
+    if (home / ".arkaos" / "migrated-from-v1").is_file():
+        return None
     v1_paths = (
-        Path.home() / ".claude" / "skills" / "arka-os",
-        Path.home() / ".claude" / "skills" / "arkaos",
+        home / ".claude" / "skills" / "arka-os",
+        home / ".claude" / "skills" / "arkaos",
     )
-    marker = Path.home() / ".arkaos" / "migrated-from-v1"
     for v1_path in v1_paths:
-        if v1_path.is_dir() and not marker.is_file():
+        # Require a real v1 install, not just a directory: an orphan
+        # folder holding a single bookkeeping file re-armed this notice
+        # on every prompt forever, and the early-return in main() then
+        # killed the whole per-prompt chain (Cross-Machine Lab, U1 —
+        # reproduced identically on Linux and Windows).
+        if (v1_path / "SKILL.md").is_file() or (v1_path / "skill.json").is_file():
             return (
                 f"[MIGRATION] ArkaOS v1 detected at {v1_path}. Run: npx "
                 f"arkaos migrate — This will backup v1, preserve your data, "
