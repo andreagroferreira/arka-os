@@ -200,12 +200,27 @@ def invalidate_violation(session_id: str) -> None:
 
 
 def _resolve_vault_path() -> Path | None:
+    """The operator's vault, or None. Config first, then env.
+
+    ``knowledge.vaultPath`` in ``~/.arkaos/config.json`` is the portable
+    source of truth (works identically on macOS/Windows/Linux);
+    ``ARKAOS_VAULT`` covers per-session overrides. The old hardcoded
+    ``~/Documents/Personal`` fallback was one developer's personal layout:
+    on every other machine it silently resolved to None, so nudges and
+    denials fired with no note suggestions — a fail-open no one saw.
+    """
+    try:
+        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        configured = str(
+            (data.get("knowledge") or {}).get("vaultPath") or ""
+        ).strip()
+    except (OSError, json.JSONDecodeError, AttributeError):
+        configured = ""
+    if configured and Path(configured).exists():
+        return Path(configured)
     env_vault = os.environ.get("ARKAOS_VAULT", "").strip()
     if env_vault and Path(env_vault).exists():
         return Path(env_vault)
-    config = Path.home() / "Documents" / "Personal"
-    if config.exists():
-        return config
     return None
 
 

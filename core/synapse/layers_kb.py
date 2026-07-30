@@ -661,6 +661,17 @@ class KBContextLayer(Layer):
         except Exception:
             return ""
 
+    def _safe_doctrine_block(self, prompt: str, notes: list[dict]) -> str:
+        """Doctrine block, or ''. Guarded: Synapse does not wrap compute."""
+        try:
+            from core.knowledge.doctrine import doctrine_block
+
+            return doctrine_block(
+                self._store, prompt, {n.get("path", "") for n in notes}
+            )
+        except Exception:
+            return ""
+
     def _render(self, notes: list[dict], degraded: bool, graph_block: str) -> tuple[str, str]:
         """(content, tag) for the assembled KB + graph context."""
         parts = []
@@ -688,9 +699,18 @@ class KBContextLayer(Layer):
         # Graphify graph-context is opt-in (default OFF) — a cheap no-op when
         # the flag is off, and always fail-open so it never blocks Obsidian.
         graph_block = self._safe_graph_block(ctx.user_input[:2000])
-        if not notes and not graph_block:
+        # Doctrine second pass: project-framed prompts never surface the
+        # operator's reference material through the primary retrieval
+        # (measured: 0 doctrine hits in top-60 on a real project prompt),
+        # so a derived conceptual query runs against the doctrine class.
+        # Fail-open — an empty vocabulary or store error yields no block.
+        doctrine = self._safe_doctrine_block(ctx.user_input[:2000], notes)
+        if not notes and not graph_block and not doctrine:
             return self._empty(start)
         block, tag = self._render(notes, degraded, graph_block)
+        if doctrine:
+            block = f"{block}\n{doctrine}" if block else doctrine
+            tag = f"{tag[:-1]} +doctrine]" if tag else "[kb-context:0 +doctrine]"
         return LayerResult(
             layer_id=self.id,
             tag=tag,

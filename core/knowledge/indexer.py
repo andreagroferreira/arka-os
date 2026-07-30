@@ -8,6 +8,13 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from core.knowledge.chunker import chunk_markdown
+from core.knowledge.doctrine import (
+    note_domains,
+    parse_frontmatter,
+    resolve_knowledge_class,
+    save_vocabulary,
+    update_vocabulary,
+)
 from core.knowledge.vector_store import VectorStore
 
 
@@ -23,6 +30,7 @@ def index_directory(
     on_progress: Optional[Callable[[int, int, str], None]] = None,
     max_tokens: int = 512,
     skip_indexed: bool = True,
+    write_vocabulary: bool = True,
 ) -> dict:
     """Index all markdown files in a directory.
 
@@ -33,9 +41,13 @@ def index_directory(
         on_progress: Callback(current, total, filename).
         max_tokens: Max tokens per chunk.
         skip_indexed: Skip files already indexed (by hash).
+        write_vocabulary: Persist the doctrine domain vocabulary sidecar
+            (``~/.arkaos/doctrine-domains.json``) when doctrine notes were
+            indexed. The sidecar feeds the L2.5 doctrine retrieval pass.
 
     Returns:
-        Dict with: files_scanned, files_indexed, files_skipped, chunks_created.
+        Dict with: files_scanned, files_indexed, files_skipped,
+        chunks_created, doctrine_notes.
     """
     root = Path(directory)
     if not root.exists():
@@ -49,6 +61,8 @@ def index_directory(
     indexed = 0
     skipped = 0
     chunks_created = 0
+    doctrine_count = 0
+    vocabulary: dict = {}
 
     for i, filepath in enumerate(files):
         if on_progress:
@@ -74,6 +88,18 @@ def index_directory(
         # Remove old chunks for this file (re-index)
         store.remove_file(str(filepath))
 
+        # Doctrine classification rides in every chunk's metadata so the
+        # retrieval side can filter without path heuristics. relative_path
+        # is POSIX-normalized: the same index must behave identically on
+        # Windows, macOS and Linux.
+        relative = filepath.relative_to(root)
+        frontmatter = parse_frontmatter(content)
+        kclass = resolve_knowledge_class(frontmatter, relative)
+        domains = note_domains(frontmatter) if kclass == "doctrine" else []
+        if kclass == "doctrine":
+            doctrine_count += 1
+            update_vocabulary(vocabulary, domains, filepath.stem)
+
         # Chunk and index
         chunks = chunk_markdown(content, max_tokens=max_tokens, source=str(filepath))
         if chunks:
@@ -84,14 +110,22 @@ def index_directory(
                 headings=headings,
                 source=str(filepath),
                 file_hash=fhash,
-                metadata={"relative_path": str(filepath.relative_to(root))},
+                metadata={
+                    "relative_path": relative.as_posix(),
+                    "knowledge_class": kclass,
+                    "domains": domains,
+                },
             )
             chunks_created += count
             indexed += 1
+
+    if write_vocabulary and vocabulary:
+        save_vocabulary(vocabulary)
 
     return {
         "files_scanned": total,
         "files_indexed": indexed,
         "files_skipped": skipped,
         "chunks_created": chunks_created,
+        "doctrine_notes": doctrine_count,
     }
