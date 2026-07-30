@@ -188,19 +188,28 @@ def _enforce_token_invariant(chunks: list[Chunk], max_tokens: int) -> list[Chunk
     """
     final: list[Chunk] = []
     for chunk in chunks:
-        n = _count_tokens(chunk.text)
-        if n <= max_tokens:
-            final.append(chunk)
-            continue
-        parts = max(2, (n // max_tokens) + 1)
-        step = max(1, len(chunk.text) // parts)
-        for i in range(0, len(chunk.text), step):
-            piece = chunk.text[i:i + step].strip()
-            if piece:
+        # Pieces are RE-VERIFIED and re-split until they fit: a single
+        # character-window pass left slightly-over pieces on token-dense
+        # text (measured on a live corpus: 17 chunks at 513-522 tokens,
+        # all diff/code-heavy notes). Windows shrink on every round, so
+        # this terminates.
+        pending: list[str] = [chunk.text]
+        while pending:
+            text = pending.pop(0)
+            n = _count_tokens(text)
+            if n <= max_tokens:
                 final.append(Chunk(
-                    text=piece, heading=chunk.heading,
+                    text=text, heading=chunk.heading,
                     index=0, source=chunk.source,
                 ))
+                continue
+            parts = max(2, (n // max_tokens) + 1)
+            step = max(1, len(text) // parts)
+            pieces = [
+                text[i:i + step].strip()
+                for i in range(0, len(text), step)
+            ]
+            pending = [p for p in pieces if p] + pending
     for i, chunk in enumerate(final):
         chunk.index = i
     return final

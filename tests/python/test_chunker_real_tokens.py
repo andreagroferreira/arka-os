@@ -51,6 +51,21 @@ class TestRealTokenBudget:
         for c in chunks:
             assert two_tokens_per_word(c.text) <= 512
 
+    def test_hammer_pieces_are_reverified(self, monkeypatch):
+        # Live-corpus regression: a single character-window pass left
+        # pieces at 513-522 tokens on token-dense text. The invariant
+        # must re-check every piece and re-split until it fits. The fake
+        # counter adds a constant per-piece overhead so first-pass
+        # windows land slightly over budget.
+        counter = lambda t: 2 * len(t.split()) + 100  # noqa: E731
+        monkeypatch.setattr(chunker, "_TOKEN_COUNTER", counter)
+        monkeypatch.setattr(chunker, "_TOKEN_COUNTER_FAILED", False)
+        blob = " ".join(f"tok{i}" for i in range(600))
+        chunks = chunker.chunk_markdown(blob, max_tokens=400)
+        assert chunks
+        for c in chunks:
+            assert counter(c.text) <= 400
+
     def test_headings_and_source_survive(self, two_tokens_per_word):
         body = "# Title\n\n" + " ".join(f"w{i}" for i in range(400))
         chunks = chunker.chunk_markdown(body, max_tokens=512, source="/v/x.md")
