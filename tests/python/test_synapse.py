@@ -197,7 +197,9 @@ class TestCommandHintsLayer:
         ]
         layer = CommandHintsLayer(commands=commands)
         result = layer.compute(PromptContext(user_input="build a new feature"))
-        assert "[hint:/dev feature]" in result.tag
+        # PR-A4: imperative form — the hint names the exact tool call.
+        assert "[arka:skill-hint] Skill(arka-dev) -> /dev feature" in result.tag
+        assert "[hint:" not in result.tag
 
     def test_skips_explicit_commands(self):
         commands = [{"command": "/dev feature", "keywords": ["feature"]}]
@@ -214,7 +216,7 @@ class TestCommandHintsLayer:
         layer = CommandHintsLayer(commands=commands)
         result = layer.compute(PromptContext(user_input="/arka-do build landing"))
         assert result.tag != ""  # Should NOT be empty — /arka-do needs hints
-        assert "[hint:" in result.tag
+        assert "[arka:skill-hint]" in result.tag
 
     def test_max_two_hints(self):
         commands = [
@@ -224,8 +226,8 @@ class TestCommandHintsLayer:
         ]
         layer = CommandHintsLayer(commands=commands)
         result = layer.compute(PromptContext(user_input="build something"))
-        hint_count = result.tag.count("[hint:")
-        assert hint_count <= 2
+        hint_count = result.tag.count("[arka:skill-hint]")
+        assert hint_count == 2, "top-2 exactly: three matches must yield two hints"
 
 
 # --- Engine Tests ---
@@ -357,9 +359,9 @@ class TestSynapseEngine:
              "keywords": ["build", "feature"]},
         ])
         r1 = engine.inject(PromptContext(user_input="build a feature"))
-        assert "[hint:" in r1.context_string
+        assert "[arka:skill-hint]" in r1.context_string
         r2 = engine.inject(PromptContext(user_input="/dev feature auth"))
-        assert "[hint:" not in r2.context_string
+        assert "[arka:skill-hint]" not in r2.context_string
 
     def test_session_sensitive_layer_not_cached_across_sessions(self):
         # Regression (2026-07-09 E2E audit): the cache key ignored
@@ -457,7 +459,7 @@ class TestSynapseIntegration:
         assert "project:client_retail" in result.context_string
         assert "stack:laravel" in result.context_string
         assert "[branch:feature/auth]" in result.context_string
-        assert "[hint:/dev feature]" in result.context_string
+        assert "[arka:skill-hint] Skill(arka-dev) -> /dev feature" in result.context_string
         assert "[time:" not in result.context_string  # L7 removed (P0 2026-07-08)
         # PR4.5 v3.75.1 — replaced the original hard 100ms wall-clock budget
         # with a SEMANTIC cache-effect check. Any wall-clock budget tighter

@@ -81,7 +81,7 @@ echo '{"user_input":"fix the authentication bug in the login controller"}' | pyt
 
 ```json
 {
-  "context_string": "[Constitution: branch-isolation, solid-clean-code, spec-driven...] [dept:dev] [agent:backend-dev-andre disc:C+D] [project:my-app stack:laravel 11.x] [branch:feat/auth-fix] [hint:/dev debug] [qg:active] [time:afternoon] [forge:plan-0012] [session:resume]",
+  "context_string": "[Constitution: branch-isolation, solid-clean-code, spec-driven...] [dept:dev] [agent:backend-dev-andre disc:C+D] [project:my-app stack:laravel 11.x] [branch:feat/auth-fix] [arka:skill-hint] Skill(arka-dev) -> /dev debug <issue> [qg:active] [time:afternoon] [forge:plan-0012] [session:resume]",
   "layers": {
     "L0_constitution":       {"ms": 2,  "cached": true},
     "L1_department":         {"ms": 8,  "cached": false, "detected": "dev"},

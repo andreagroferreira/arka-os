@@ -31,7 +31,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _TELEMETRY_DIR = Path.home() / ".arkaos" / "telemetry"
@@ -135,7 +135,10 @@ def _load_commands_registry() -> list[dict]:
 
 def _routing_lines(prompt: str, session_id: str, cwd: str) -> list[str]:
     """UserPromptSubmit routing parity (core/hooks/user_prompt_submit.py):
-    [ARKA:ROUTE] on every prompt + L1 [dept:X] + L5 [hint:/cmd] +
+    [ARKA:ROUTE] on every prompt + L1 [dept:X] + L5 [arka:skill-hint]
+    Skill(<hub>) -> /cmd (PR-A4 imperative form; hub resolved by
+    layers._hub_skill, never by slug concatenation — a /mkt hint
+    renders Skill(arka-marketing)) +
     [ARKA:WORKFLOW-REQUIRED] on creation/implementation prompts. The
     directive strings and the verb regex are IMPORTED from the claude
     hook — one source of truth, zero drift."""
@@ -170,7 +173,7 @@ def _routing_lines(prompt: str, session_id: str, cwd: str) -> list[str]:
             hints = CommandHintsLayer(commands=commands).compute(ctx)
             if hints.tag:
                 lines.append(hints.tag)
-    except Exception:  # noqa: BLE001 — routing hints are a bonus, never a blocker
+    except Exception:
         pass
     if prompt[0] not in ("/", "!") and _WF_VERB_RE.search(prompt):
         lines.append(_WORKFLOW_DIRECTIVE.strip())
@@ -285,7 +288,7 @@ def _action_post_tool(payload: dict) -> dict:
     _append_jsonl(
         _TELEMETRY_DIR / "opencode-tools.jsonl",
         {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "session": session_id,
             "tool": mapped,
             "ok": bool(payload.get("ok", True)),
@@ -319,7 +322,7 @@ def _enqueue_turn_capture(session_id: str, text: str, cwd: str) -> None:
                 proc.stdin.close()
             except (BrokenPipeError, OSError):
                 pass
-    except Exception:  # noqa: BLE001 — a hook bridge never breaks a turn
+    except Exception:
         pass
 
 
@@ -347,7 +350,7 @@ def _action_idle(payload: dict) -> dict:
     _append_jsonl(
         _TELEMETRY_DIR / "opencode-compliance.jsonl",
         {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "session": session_id,
             "kb_cite": result.reason,
             "meta_tag": "[arka:meta]" in text,
@@ -388,7 +391,7 @@ def _handoff_line(session_id: str, project: str) -> str:
     try:
         _handoff_marker(session_id).parent.mkdir(parents=True, exist_ok=True)
         _handoff_marker(session_id).write_text(
-            json.dumps({"shown_at": datetime.now(timezone.utc).isoformat()}),
+            json.dumps({"shown_at": datetime.now(UTC).isoformat()}),
             encoding="utf-8",
         )
     except OSError:
@@ -440,7 +443,7 @@ def _action_memory(payload: dict) -> dict:
         handoff = _handoff_line(session_id, project)
         if handoff:
             lines.insert(0, handoff)
-    except Exception:  # noqa: BLE001 — memory is a bonus, never a blocker
+    except Exception:
         return {"context": []}
     return {"context": lines[:6]}
 
@@ -460,7 +463,7 @@ def _action_compact(payload: dict) -> dict:
         current = state.get_state()
         if current:
             context.append(f"Workflow activo: {json.dumps(current)[:400]}")
-    except Exception:  # noqa: BLE001 — fail-open
+    except Exception:
         pass
     return {"context": context}
 
@@ -488,7 +491,7 @@ def main() -> int:
     else:
         try:
             result = handler(payload)
-        except Exception as exc:  # noqa: BLE001 — fail-open, never block
+        except Exception as exc:
             result = {"error": f"{type(exc).__name__}: {exc}"}
     sys.stdout.write(json.dumps(result, ensure_ascii=False) + "\n")
     return 0

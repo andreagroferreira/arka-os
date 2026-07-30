@@ -243,7 +243,9 @@ Workflow YAML files: `departments/*/workflows/*.yaml`
 
 Every request routes through a department squad. ArkaOS never responds as a generic assistant. Plain text input is resolved via `/do` orchestrator.
 
-Routing: Synapse L1 (keyword detection) + L5 (command hints) + hook context tags.
+Routing IS tool invocation: a route is fulfilled by calling the department's hub skill — `Skill(arka-dev)`, `Skill(arka-brand)`, … — before substantive work; announcing the squad in prose without invoking the skill is not routing. Never derive a hub name by concatenation: `[arka:skill-hint]` tags name the exact call (five slugs — mkt, fin, strat, lead, arka — plus `/do` resolve to differently-named hubs). Spec: `.arkaos/specs/skill-invocation-contract.yaml`.
+
+Routing: Synapse L1 (keyword detection) + L5 (imperative skill hints) + hook context tags.
 
 ## Evidence flow — 4 gates (NON-NEGOTIABLE)
 

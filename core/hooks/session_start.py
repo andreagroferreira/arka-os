@@ -76,6 +76,22 @@ _EVIDENCE_CONTRACT = (
     " 10 lines."
 )
 
+# PR-A4: routing was fulfilled in PROSE — the model announced the squad
+# and never invoked the Skill tool, so the department's workflows and
+# contracts never entered context (the label without the payload). This
+# contract defines fulfilment; enforcement stays with A5a/A5b,
+# telemetry-gated.
+_SKILL_ROUTING_CONTRACT = (
+    "\n\n[ARKA:SKILL-CONTRACT] Routing IS tool invocation. A department"
+    " route is fulfilled by calling the department's hub skill — e.g."
+    " Skill(arka-dev), Skill(arka-brand), Skill(arka-content) — BEFORE"
+    " substantive work; announcing the squad in prose without invoking"
+    " the skill is not routing; it is the label without the payload."
+    "\nNever derive a hub name by concatenation — [arka:skill-hint] tags"
+    " name the exact call to make. The [arka:trivial] bypass is"
+    " unchanged."
+)
+
 _META_TAG_CONTRACT = (
     "\n\n[ARKA:META-TAG] Every substantive response ends with a single line:"
     "\n  [arka:meta] kb=N research=X persona=Y gap=Z critic=W"
@@ -348,6 +364,7 @@ def build_context(cwd: str) -> str:
     """
     parts = [
         _EVIDENCE_CONTRACT,
+        _SKILL_ROUTING_CONTRACT,
         _META_TAG_CONTRACT,
         _authority_brief(cwd),
         _model_fabric(),
