@@ -231,7 +231,37 @@ def _marker_safe(value: str) -> str:
     return _CONTROL_RE.sub("", value.splitlines()[0]) if value else value
 
 
+def _spawning_suppressed() -> bool:
+    """Whether this process may launch the operator's background daemons.
+
+    SessionStart spawns two long-lived side processes: the dashboard
+    (`_ensure_dashboard`) and the reorganizer. Both take the *resolved repo
+    root* as their working tree, and `start-dashboard` kills whatever is
+    already on the port before binding it.
+
+    Run the hook from a test and that is a live-fire action on the machine
+    running the tests: the operator's dashboard is killed and replaced by
+    one served out of the test tree — a checkout that legitimately lacks
+    whatever local state the real install has. It looks like the dashboard
+    broke, not like a test ran. (Observed 2026-07-27: two separate pytest
+    invocations silently took over ports 3333/3334 and served a blank UI.)
+
+    ARKA_HOOK_NO_SPAWN=1 is the explicit switch. PYTEST_CURRENT_TEST is
+    honored as well, deliberately: a test author who forgets the switch
+    should lose a background process they never wanted, not the dashboard
+    they were using. pytest exports it into the environment every child
+    process inherits, so the safety net costs nothing in production, where
+    the variable is simply absent.
+    """
+    return bool(
+        os.environ.get("ARKA_HOOK_NO_SPAWN") == "1"
+        or os.environ.get("PYTEST_CURRENT_TEST")
+    )
+
+
 def _spawn_detached(cmd: list[str], repo: str, log_path: Path | None = None) -> None:
+    if _spawning_suppressed():
+        return
     stdout = subprocess.DEVNULL
     handle = None
     try:
