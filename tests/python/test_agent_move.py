@@ -20,6 +20,18 @@ def _load_dashboard_api():
     return module
 
 
+def _sibling_in(path: Path, dept: str) -> Path:
+    """Same filename under ``departments/<dept>/agents/``.
+
+    Built from path parts, never from a string replace: ``str(Path)``
+    renders ``departments\\dev\\agents`` on Windows, so a replace keyed on
+    ``"departments/dev/agents/"`` matched nothing there and the cleanup
+    silently missed the moved file — leaving a stray agent YAML tracked
+    in the repo tree after any failure mid-test.
+    """
+    return path.parents[2] / dept / "agents" / path.name
+
+
 def _create_fixture(api, dept="dev", slug="agent-move-test-fixture"):
     res = api._do_agent_create({
         "name": "Move Probe",
@@ -67,7 +79,10 @@ def test_move_rewrites_department_field_and_relocates_file():
         dst = Path(res["yaml_path"])
         assert dst.exists()
         assert not src.exists()
-        assert "departments/ops/agents/" in str(dst)
+        # Compare path parts, not a rendered string: str(Path) uses "\" on
+        # Windows, so a substring check on "departments/ops/agents/" is a
+        # guaranteed failure there regardless of where the file landed.
+        assert dst.parts[-3:] == ("ops", "agents", dst.name)
         content = dst.read_text(encoding="utf-8")
         assert "department: ops" in content
         dst.unlink()
@@ -75,9 +90,7 @@ def test_move_rewrites_department_field_and_relocates_file():
         # Defensive: remove either src or dst if any lingers
         if src.exists():
             src.unlink()
-        candidate = Path(
-            str(src).replace("departments/dev/agents/", "departments/ops/agents/")
-        )
+        candidate = _sibling_in(src, "ops")
         if candidate.exists():
             candidate.unlink()
 
@@ -99,9 +112,7 @@ def test_move_refuses_overwrite():
         for f in (src, other):
             if f.exists():
                 f.unlink()
-        candidate = Path(
-            str(src).replace("departments/dev/agents/", "departments/ops/agents/")
-        )
+        candidate = _sibling_in(src, "ops")
         if candidate.exists() and candidate != other:
             candidate.unlink()
 
