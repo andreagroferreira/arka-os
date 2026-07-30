@@ -296,3 +296,86 @@ def test_stop_main_delivers_notices_end_to_end(tmp_path, monkeypatch, capsys):
     assert reviewer_ledger.notices_context("stop-e2e") == "", (
         "a delivered notice must be cleared"
     )
+
+
+# ─── PR-B5: in-process coverage of the full main() path ─────────────────
+#
+# The module's real-world entry is `bash stop.sh`, and a bash parent
+# severs the coverage trace (verified with coverage 7.15 patch =
+# subprocess — the .pth hook the child would need is not installed), so
+# the e2e tests above execute main()/_flow_checks without measuring
+# them. main() takes an injected payload precisely so the same path can
+# run in-process; these tests close the module's measured-coverage debt
+# without duplicating the e2e assertions.
+
+
+class TestMainInProcess:
+    def _env(self, monkeypatch, tmp_path):
+        from core.hooks import stop as stop_hook
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        monkeypatch.setenv("ARKAOS_ROOT", str(REPO_ROOT))
+        monkeypatch.setenv("ARKA_STOP_LINT", "0")
+        monkeypatch.setenv("ARKA_SESSION_MEMORY", "0")
+        monkeypatch.setenv("ARKA_AUTO_DOC_QUEUE", str(tmp_path / "queue"))
+        # No detached workers from a unit test — same rule as the
+        # enqueue tests above.
+        monkeypatch.setattr(
+            "subprocess.Popen", lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("no detached spawns from in-process tests")
+            )
+        )
+        # Keep the shared /tmp marker dir out of unit tests entirely.
+        monkeypatch.setattr(
+            stop_hook, "arkaos_temp_dir", lambda name: tmp_path / name
+        )
+        return stop_hook
+
+    def test_stop_hook_active_short_circuits(self, monkeypatch, tmp_path):
+        stop_hook = self._env(monkeypatch, tmp_path)
+        assert stop_hook.main(
+            {"stop_hook_active": "true", "session_id": "sess-ip0"}
+        ) == 0
+
+    def test_full_path_without_wf_marker(self, monkeypatch, tmp_path, capsys):
+        """No workflow marker: main() still runs dna-fidelity, native
+        usage, notice delivery and the enqueue guards, then returns 0."""
+        stop_hook = self._env(monkeypatch, tmp_path)
+        transcript = tmp_path / "t.jsonl"
+        _make_transcript(transcript, with_external=True)
+        rc = stop_hook.main({
+            "session_id": "sess-ip1",
+            "transcript_path": str(transcript),
+            "cwd": str(tmp_path),
+            "assistant_message": "[arka:qg:approved] done",
+        })
+        assert rc == 0
+        capsys.readouterr()
+
+    def test_full_path_with_wf_marker_runs_flow_checks(
+        self, monkeypatch, tmp_path, capsys
+    ):
+        """The flagged-session path: marker present, flow checks and the
+        auto-doc sweep run in-process, the marker is consumed."""
+        stop_hook = self._env(monkeypatch, tmp_path)
+        transcript = tmp_path / "t.jsonl"
+        _make_transcript(transcript, with_external=True)
+        marker_dir = tmp_path / "arkaos-wf-required"
+        marker_dir.mkdir(parents=True)
+        (marker_dir / "sess-ip2").write_text("1", encoding="utf-8")
+        rc = stop_hook.main({
+            "session_id": "sess-ip2",
+            "transcript_path": str(transcript),
+            "cwd": str(tmp_path),
+        })
+        assert rc == 0
+        assert not (marker_dir / "sess-ip2").exists(), (
+            "the workflow marker must be consumed"
+        )
+        queue = tmp_path / "queue" / "pending"
+        pending = list(queue.glob("*.json")) if queue.exists() else []
+        assert len(pending) == 1, (
+            "QG-approved + external research must enqueue the auto-doc job"
+        )
+        capsys.readouterr()

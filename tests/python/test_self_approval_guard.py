@@ -1541,3 +1541,144 @@ class TestCheckKeyContract:
         )
         assert result.ok
         assert not any("without a check key" in w for w in result.warnings)
+
+
+class TestSessionBindingMtime:
+    """M4 (PR-B5): the stamp only outlaws records that PREDATE it.
+
+    A counted record captured strictly after the stamp's mtime proves
+    the hook boundary came back to life under this session id, so the
+    refusal lifts; ties and older records keep it (fail-closed).
+    """
+
+    def _quorum(self, session_id):
+        _write_ledger_record(session_id, "francisca-tech", seq=1)
+        _write_ledger_record(session_id, "eduardo-copy", seq=2)
+
+    def _stamp_at(self, session_id, when: float):
+        import os
+
+        from core.governance.reviewer_ledger import ENDED_NAME
+
+        stamp = ledger_root() / session_id / ENDED_NAME
+        stamp.touch()
+        os.utime(stamp, (when, when))
+
+    def test_record_captured_after_stamp_lifts_refusal(self, guard_home):
+        import time
+
+        self._quorum("sess-m4a")
+        self._stamp_at("sess-m4a", time.time() - 3600)
+        result = check_aggregate(_aggregate(), "sess-m4a")
+        assert result.ok
+
+    def test_records_predating_stamp_still_refused(self, guard_home):
+        import os
+        import time
+
+        self._quorum("sess-m4b")
+        past = time.time() - 3600
+        for item in (ledger_root() / "sess-m4b").iterdir():
+            os.utime(item, (past, past))
+        self._stamp_at("sess-m4b", time.time())
+        result = check_aggregate(_aggregate(), "sess-m4b")
+        assert not result.ok
+        assert any(
+            "not a reusable quorum token" in r for r in result.reasons
+        )
+
+    def test_newest_record_decides_with_mixed_ages(self, guard_home):
+        """One record predates the stamp, one postdates it: the NEWEST
+        decides (this is the pin that kills a max→min mutant — with
+        uniform ages the two are indistinguishable)."""
+        import os
+        import time
+
+        self._quorum("sess-m4d")
+        session_dir = ledger_root() / "sess-m4d"
+        now = time.time()
+        ages = [now - 7200, now]  # one old, one fresh
+        for item, when in zip(
+            sorted(session_dir.iterdir()), ages, strict=True
+        ):
+            os.utime(item, (when, when))
+        self._stamp_at("sess-m4d", now - 3600)  # stamp between them
+        result = check_aggregate(_aggregate(), "sess-m4d")
+        assert result.ok
+
+    def test_mtime_tie_keeps_the_refusal(self, guard_home):
+        """Equality cannot distinguish before from after — fail-closed."""
+        import os
+        import time
+
+        self._quorum("sess-m4c")
+        now = time.time()
+        for item in (ledger_root() / "sess-m4c").iterdir():
+            os.utime(item, (now, now))
+        self._stamp_at("sess-m4c", now)
+        result = check_aggregate(_aggregate(), "sess-m4c")
+        assert not result.ok
+
+    def test_ghost_artifact_keeps_the_refusal(self, guard_home):
+        """The OSError path: a counted name that vanished between the
+        listing and the stat cannot prove liveness — fail-closed."""
+        from core.governance.aggregate_guard import _ended_issues
+
+        self._quorum("sess-m4e")
+        self._stamp_at("sess-m4e", 0)  # ancient stamp — records ARE newer
+        issues = _ended_issues("sess-m4e", ["ghost.json"])
+        assert issues, "an unreadable record set must keep the refusal"
+
+    def test_stamp_is_chmod_0600(self, guard_home):
+        """M11 pin: mark_session_ended tightens the stamp to 0600 —
+        defence-in-depth under the 0700 session dir, and this pin is
+        what kills the chmod-removal mutant."""
+        import stat
+
+        from core.governance.reviewer_ledger import (
+            ENDED_NAME,
+            mark_session_ended,
+        )
+
+        self._quorum("sess-m11")
+        mark_session_ended("sess-m11")
+        stamp = ledger_root() / "sess-m11" / ENDED_NAME
+        assert stat.S_IMODE(stamp.stat().st_mode) == 0o600
+
+
+class TestBlockerReasonBranches:
+    """M12 (PR-B5): the previously unexercised _blocker_reasons paths."""
+
+    def test_non_dict_blockers_are_skipped(self, guard_home):
+        """A malformed blocker entry (string, int) never produces a
+        coverage reason and never crashes the guard."""
+        _write_ledger_record(
+            "sess-m12a", "francisca-tech", seq=1,
+            verdict=_reviewer_verdict(
+                "francisca-tech", blockers=["just a string", 42]
+            ),
+        )
+        _write_ledger_record("sess-m12a", "eduardo-copy", seq=2)
+        result = check_aggregate(_aggregate(), "sess-m12a")
+        assert result.ok
+
+    def test_refuted_and_plausible_blockers_never_bind(self, guard_home):
+        """Only CONFIRMED binds coverage — REFUTED/PLAUSIBLE entries
+        (telemetry, not findings) leave an APPROVED aggregate alone."""
+        blockers = [
+            {
+                "check": "lint", "detail": "refuted claim",
+                "file": "a.py", "verdict": "REFUTED",
+            },
+            {
+                "check": "tests", "detail": "plausible claim",
+                "file": "b.py", "verdict": "PLAUSIBLE",
+            },
+        ]
+        _write_ledger_record(
+            "sess-m12b", "francisca-tech", seq=1,
+            verdict=_reviewer_verdict("francisca-tech", blockers=blockers),
+        )
+        _write_ledger_record("sess-m12b", "eduardo-copy", seq=2)
+        result = check_aggregate(_aggregate(), "sess-m12b")
+        assert result.ok

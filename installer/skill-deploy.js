@@ -1,6 +1,6 @@
 import {
   copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync,
-  statSync, writeFileSync,
+  renameSync, statSync, writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 
@@ -64,7 +64,8 @@ function deployTopLevelSkill(skillSrcDir, arkaName, skillsBase) {
 /**
  * Deploy the full skill surface: main /arka skill (+ nested reference
  * bundle), department hubs, sub-skills, meta skills and agent personas.
- * Copy-only — never deletes anything already deployed.
+ * Copy-and-retire — never deletes anything already deployed (the v1 QG
+ * persona retirement renames into .arkaos-legacy/, it does not delete).
  *
  * Returns per-category counts so both callers can keep their own log
  * style. `version`/`repoRoot` stamp the main skill's VERSION and
@@ -145,6 +146,7 @@ export function deploySkills({
     // owner to a dispatchable source; hand-authored dept .md files win
     // (already deployed above), compiled ones fill the gaps.
     counts.agents += deployGateOwners(repoRoot, agentsBase, written);
+    retireLegacyQgPersonas(agentsBase);
   }
 
   log(counts);
@@ -205,10 +207,49 @@ function deployAgents(deptRoot, agentsBase, written = new Set()) {
   return deployed;
 }
 
+// PR-B5 (QG r1 B2): the three v1 Quality Gate personas predate the
+// QGVerdict contract. Deployed to ~/.claude/agents/ they keep a
+// contract-less cqo / copy-director / tech-ux-director dispatchable at
+// USER scope even after every project is repaired — the dead-relay
+// shape workstream B closes. The dept loop skips them, and the targets
+// this deployer itself wrote in earlier runs are retired — renamed
+// into .arkaos-legacy/, never deleted (the copy-only contract holds:
+// no delete primitive here). The real reviewers ship per project from
+// config/claude-agents/ via deployProjectAgents.
+const LEGACY_QG_PERSONA_FILES = [
+  "cqo.md", "copy-director.md", "tech-ux-director.md",
+];
+
+function retireLegacyQgPersonas(agentsBase) {
+  let retired = 0;
+  const legacyDir = join(agentsBase, ".arkaos-legacy");
+  for (const file of LEGACY_QG_PERSONA_FILES) {
+    const deployedName = `arka-${file}`;
+    const src = join(agentsBase, deployedName);
+    if (!existsSync(src)) continue;
+    try {
+      mkdirSync(legacyDir, { recursive: true });
+      let dest = join(legacyDir, deployedName);
+      for (let n = 1; existsSync(dest); n++) {
+        dest = join(legacyDir, `arka-${file.slice(0, -3)}-${n}.md`);
+      }
+      renameSync(src, dest);
+      // Full resolved destination: this retirement moves files in the
+      // user's HOME — the scope a reader is least able to guess.
+      console.log(`         Retired v1 QG persona: ${deployedName} -> ${dest}`);
+      retired++;
+    } catch {
+      // Best-effort — an unmovable persona stays in place, never deleted.
+    }
+  }
+  return retired;
+}
+
 function deployDeptAgents(agentsSrc, agentsBase, written) {
   let deployed = 0;
   for (const file of readdirSync(agentsSrc)) {
     if (!file.endsWith(".md")) continue;
+    if (LEGACY_QG_PERSONA_FILES.includes(file)) continue;
     const srcFile = join(agentsSrc, file);
     try {
       if (!statSync(srcFile).isFile()) continue;

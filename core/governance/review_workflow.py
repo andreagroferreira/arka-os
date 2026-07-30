@@ -1,5 +1,15 @@
 """Review Workflow Engine — structured review phases for Quality Gate.
 
+.. deprecated:: 4.44.0 (PR-B5)
+    This engine models review phases in memory and records verdicts
+    WITHOUT the reviewer ledger or the aggregate guard behind them —
+    nothing here proves a verdict was authored at the hook boundary.
+    The guarded path is ``core.evals.record_cli``: ``--kind qg`` passes
+    ``aggregate_guard.check_aggregate``, which requires hook-captured
+    reviewer artifacts in the session ledger. The module stays
+    importable because live tests pin its phase mechanics, but no new
+    caller should route verdicts through it.
+
 Phases:
 1. Submission — deliverable submitted for review
 2. Triage — initial assessment, assign reviewers
@@ -16,13 +26,17 @@ Verdicts:
 """
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Callable
 
 
-class ReviewPhase(str, Enum):
+# UP042 suppressed on the three enums below: switching to StrEnum changes
+# str(member) from "Verdict.APPROVED" to "APPROVED" — behaviour, not
+# style — and this module is deprecated (see the module docstring), not
+# being modernised.
+class ReviewPhase(str, Enum):  # noqa: UP042
     SUBMISSION = "submission"
     TRIAGE = "triage"
     REVIEW = "review"
@@ -31,14 +45,14 @@ class ReviewPhase(str, Enum):
     DELIVERY = "delivery"
 
 
-class Verdict(str, Enum):
+class Verdict(str, Enum):  # noqa: UP042
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     REQUEST_CHANGES = "REQUEST_CHANGES"
     ESCALATE = "ESCALATE"
 
 
-class ReviewerOpinion(str, Enum):
+class ReviewerOpinion(str, Enum):  # noqa: UP042
     APPROVE = "APPROVE"
     REJECT = "REJECT"
     CHANGES = "REQUEST_CHANGES"
@@ -79,7 +93,7 @@ class ReviewWorkflow:
 
     def __post_init__(self):
         if not self.submitted_at:
-            self.submitted_at = datetime.now(timezone.utc).isoformat()
+            self.submitted_at = datetime.now(UTC).isoformat()
 
 
 @dataclass
@@ -156,7 +170,7 @@ class ReviewWorkflowEngine:
         self._announce_phase_start(ReviewPhase.TRIAGE, workflow_id)
 
         workflow.phase = ReviewPhase.TRIAGE
-        workflow.triage_at = datetime.now(timezone.utc).isoformat()
+        workflow.triage_at = datetime.now(UTC).isoformat()
 
         result = PhaseResult(
             phase=ReviewPhase.TRIAGE,
@@ -191,7 +205,7 @@ class ReviewWorkflowEngine:
         self._announce_phase_start(ReviewPhase.REVIEW, workflow_id)
 
         workflow.phase = ReviewPhase.REVIEW
-        workflow.review_started_at = datetime.now(timezone.utc).isoformat()
+        workflow.review_started_at = datetime.now(UTC).isoformat()
 
         result = PhaseResult(
             phase=ReviewPhase.REVIEW,
@@ -248,7 +262,7 @@ class ReviewWorkflowEngine:
             opinion=opinion,
             comments=comments,
             flagged_rules=flagged_rules or [],
-            voted_at=datetime.now(timezone.utc).isoformat(),
+            voted_at=datetime.now(UTC).isoformat(),
             evidence_overall=evidence_overall,
         )
         workflow.votes.append(vote)
@@ -279,7 +293,7 @@ class ReviewWorkflowEngine:
         self._announce_phase_start(ReviewPhase.DELIBERATION, workflow_id)
 
         workflow.phase = ReviewPhase.DELIBERATION
-        workflow.deliberation_at = datetime.now(timezone.utc).isoformat()
+        workflow.deliberation_at = datetime.now(UTC).isoformat()
 
         result = PhaseResult(
             phase=ReviewPhase.DELIBERATION,
@@ -331,7 +345,7 @@ class ReviewWorkflowEngine:
         workflow.phase = ReviewPhase.VERDICT
         workflow.verdict = verdict
         workflow.feedback = feedback
-        workflow.verdict_at = datetime.now(timezone.utc).isoformat()
+        workflow.verdict_at = datetime.now(UTC).isoformat()
 
         self._announce_verdict(verdict, workflow_id)
 
@@ -370,7 +384,7 @@ class ReviewWorkflowEngine:
             )
 
         workflow.phase = ReviewPhase.DELIVERY
-        workflow.delivered_at = datetime.now(timezone.utc).isoformat()
+        workflow.delivered_at = datetime.now(UTC).isoformat()
 
         result = PhaseResult(
             phase=ReviewPhase.DELIVERY,

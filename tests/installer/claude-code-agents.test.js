@@ -16,7 +16,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const { deployProjectAgents } = await import(
+const { deployProjectAgents, LEGACY_PERSONAS } = await import(
   join(ROOT, "installer", "adapters", "claude-code.js")
 );
 
@@ -125,4 +125,104 @@ test("re-deploy overwrites ArkaOS-owned definitions by name", () => {
   } finally {
     cleanup();
   }
+});
+
+// ─── PR-B5 (N5): v1 persona retirement ──────────────────────────────────
+//
+// Verified live on 2026-07-30: a real project carried cqo.md,
+// copy-director.md and tech-ux-director.md (v1, no QGVerdict contract)
+// and NONE of the actual reviewers — every Quality Gate there dispatched
+// a contract-less persona. Deploy now retires the known v1 names into
+// .arkaos-legacy/ before copying the current catalog.
+
+test("retires v1 personas into .arkaos-legacy/ and deploys reviewers", () => {
+  const { dir, cleanup } = makeTmpDir("arkaos-agents-retire-");
+  try {
+    const agentsDir = join(dir, ".claude", "agents");
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(join(agentsDir, "cqo.md"), "v1 persona body\n");
+    writeFileSync(join(agentsDir, "architect.md"), "stale but live name\n");
+
+    deployProjectAgents(dir, ROOT);
+
+    assert.ok(
+      !existsSync(join(agentsDir, "cqo.md")),
+      "a v1 persona must leave the dispatch path"
+    );
+    assert.equal(
+      readFileSync(join(agentsDir, ".arkaos-legacy", "cqo.md"), "utf-8"),
+      "v1 persona body\n",
+      "retired verbatim — renamed, never deleted"
+    );
+    assert.match(
+      readFileSync(join(agentsDir, "architect.md"), "utf-8"),
+      /name: architect/,
+      "a name still shipped by ArkaOS is overwritten by source, not retired"
+    );
+    assert.ok(!existsSync(join(agentsDir, ".arkaos-legacy", "architect.md")));
+    assert.ok(existsSync(join(agentsDir, "francisca-tech.md")));
+  } finally {
+    cleanup();
+  }
+});
+
+test("retire collision appends a numeric suffix, never overwrites", () => {
+  const { dir, cleanup } = makeTmpDir("arkaos-agents-retire-collide-");
+  try {
+    const agentsDir = join(dir, ".claude", "agents");
+    const legacyDir = join(agentsDir, ".arkaos-legacy");
+    mkdirSync(legacyDir, { recursive: true });
+    writeFileSync(join(legacyDir, "cqo.md"), "first retirement\n");
+    writeFileSync(join(agentsDir, "cqo.md"), "second retirement\n");
+
+    deployProjectAgents(dir, ROOT);
+
+    assert.equal(
+      readFileSync(join(legacyDir, "cqo.md"), "utf-8"),
+      "first retirement\n",
+      "an earlier retirement is never overwritten"
+    );
+    assert.equal(
+      readFileSync(join(legacyDir, "cqo-1.md"), "utf-8"),
+      "second retirement\n",
+      "the collision lands under a numeric suffix"
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("user files outside the legacy list are never retired", () => {
+  const { dir, cleanup } = makeTmpDir("arkaos-agents-retire-user-");
+  try {
+    const agentsDir = join(dir, ".claude", "agents");
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(join(agentsDir, "my-custom-agent.md"), "mine\n");
+
+    deployProjectAgents(dir, ROOT);
+
+    assert.equal(
+      readFileSync(join(agentsDir, "my-custom-agent.md"), "utf-8"),
+      "mine\n",
+      "a user agent stays exactly where it was"
+    );
+    assert.ok(!existsSync(join(agentsDir, ".arkaos-legacy", "my-custom-agent.md")));
+  } finally {
+    cleanup();
+  }
+});
+
+test("LEGACY_PERSONAS never intersects the shipped source set", () => {
+  // The double guard in code (named AND absent from source) is backed
+  // structurally here: a v1 name returning to config/claude-agents/
+  // must be removed from the retirement list first.
+  const shipped = readdirSync(join(ROOT, "config", "claude-agents"))
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => f.slice(0, -3));
+  const overlap = shipped.filter((name) => LEGACY_PERSONAS.has(name));
+  assert.deepEqual(
+    overlap,
+    [],
+    "a shipped agent name may never sit on the retirement list"
+  );
 });

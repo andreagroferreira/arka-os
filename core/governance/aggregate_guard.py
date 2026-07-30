@@ -391,12 +391,33 @@ def _digest_issues(
     return issues, notes
 
 
-def _ended_issues(session_id: str) -> list[str]:
-    """A stamped session is not a live quorum (PR-B4 session binding)."""
+def _ended_issues(session_id: str, artifact_names: list[str]) -> list[str]:
+    """A stamped session is not a live quorum (PR-B4 session binding).
+
+    M4 hardening (PR-B5): the stamp only outlaws records that PREDATE
+    it. A counted record captured strictly after the stamp's mtime
+    proves the hook boundary came back to life under this session id —
+    never observed on the dev machine, where the stamp shipped one
+    release earlier and the ledger held a single stamped session when
+    this was written; the refusal must not outlive its own evidence.
+    Ties and unreadable mtimes keep the refusal: equality cannot
+    distinguish before from after, and fail-closed is the guard's
+    resting state.
+    """
     from core.governance.reviewer_ledger import ENDED_NAME
 
-    if not (ledger_root() / session_id / ENDED_NAME).is_file():
+    session_dir = ledger_root() / session_id
+    stamp = session_dir / ENDED_NAME
+    if not stamp.is_file():
         return []
+    try:
+        newest = max(
+            (session_dir / name).stat().st_mtime for name in artifact_names
+        )
+        if newest > stamp.stat().st_mtime:
+            return []
+    except (OSError, ValueError):
+        pass  # no readable counted record newer than the stamp
     return [
         f"session {session_id} is marked ended (SessionEnd stamped its "
         "ledger) — a past session's reviewer records are not a reusable "
@@ -568,7 +589,9 @@ def check_aggregate(aggregate: dict, session_id: str) -> GuardResult:
             reviewers, [name for name, _ in counted]
         )
     verdicts = [(str(r.get("reviewer_id")), r["verdict"]) for _, r in counted]
-    reasons, warnings = _reasons(aggregate, verdicts, session_id)
+    reasons, warnings = _reasons(
+        aggregate, verdicts, session_id, [name for name, _ in counted]
+    )
     return GuardResult(
         ok=not reasons,
         reasons=reasons,
@@ -579,7 +602,10 @@ def check_aggregate(aggregate: dict, session_id: str) -> GuardResult:
 
 
 def _reasons(
-    aggregate: dict, verdicts: list[tuple[str, dict]], session_id: str
+    aggregate: dict,
+    verdicts: list[tuple[str, dict]],
+    session_id: str,
+    artifact_names: list[str],
 ) -> tuple[list[str], list[str]]:
     """Every refusal reason and warning for one aggregate.
 
@@ -594,7 +620,7 @@ def _reasons(
     """
     approved = _norm(aggregate.get("verdict")) == "approved"
     issues, notes = _digest_issues(aggregate, verdicts)
-    issues += _ended_issues(session_id)
+    issues += _ended_issues(session_id, artifact_names)
     reasons = (
         _verdict_reasons(aggregate, verdicts)
         + _blocker_reasons(aggregate, verdicts, approved)
