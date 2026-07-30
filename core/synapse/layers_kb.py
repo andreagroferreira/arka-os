@@ -601,13 +601,24 @@ class KBContextLayer(Layer):
         return ctx.extra.get("session_id", "") if ctx.extra else ""
 
     def _record(self, ctx: PromptContext, hit_count: int) -> None:
+        """Record the automatic injection under its OWN marker kind.
+
+        This used to call ``record_obsidian_query`` — the same marker the
+        research gate reads to decide "KB-first was respected". Since this
+        method runs unconditionally on every prompt, the gate was satisfied
+        by the injection mechanism itself and could never fire (observed
+        live: a marker whose recorded query was the user's one-word reply
+        "sim", hit_count 5, allowing WebSearch as "kb-consulted"). The
+        injection is telemetry, not evidence; genuine consults are recorded
+        by PostToolUse on real ``mcp__obsidian__*`` calls.
+        """
         session_id = self._session_id(ctx)
         if not session_id:
             return
         try:
-            from core.synapse.kb_cache import record_obsidian_query
+            from core.synapse.kb_cache import record_injected_context
 
-            record_obsidian_query(session_id, ctx.user_input, hit_count)
+            record_injected_context(session_id, ctx.user_input, hit_count)
         except Exception:
             pass
 

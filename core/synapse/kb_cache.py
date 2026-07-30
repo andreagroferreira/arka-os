@@ -473,9 +473,32 @@ def invalidate_graphify_query(session_id: str) -> None:
     _invalidate_query(session_id, kind="graphify")
 
 
-def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> None:
-    """Record that an Obsidian search ran in this turn.
+def record_injected_context(session_id: str, query: str, hit_count: int = 0) -> None:
+    """Record that Synapse L2.5 auto-injected KB context this turn.
 
+    Telemetry, NOT evidence: the research gate deliberately ignores this
+    kind. When L2.5 wrote the "obsidian" kind instead, the gate was
+    satisfied by the injection mechanism itself on every prompt and could
+    never fire — the self-certification failure this split removes.
+    """
+    _record_query(session_id, query, hit_count, kind="injected")
+
+
+def read_injected_context(session_id: str) -> dict | None:
+    """Return the turn-scoped injection record, or None if absent."""
+    return _read_query(session_id, kind="injected")
+
+
+def invalidate_injected_context(session_id: str) -> None:
+    """Clear the per-turn injection marker. Idempotent."""
+    _invalidate_query(session_id, kind="injected")
+
+
+def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> None:
+    """Record that a GENUINE Obsidian consult ran in this turn.
+
+    Written by the PostToolUse hook on real ``mcp__obsidian__*`` calls —
+    never by the injection layer (see :func:`record_injected_context`).
     Consumed by `core.workflow.research_gate` (Task #6) to decide whether
     KB-first was respected before external research runs.
 
