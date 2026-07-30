@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.43.0] - 2026-07-30
+
+### Added
+- **Quality Gate dispatch-shape enforcement (PR-B4, #435):** the anti-self-approval
+  guard now requires `evidence_digest` on the aggregate AND on every counted
+  reviewer artifact — a digest-less artifact cannot support an APPROVED
+  aggregate. CONFIRMED blockers filed without a `check` key draw a warning.
+- **Session binding:** the SessionEnd hook stamps the session's reviewer-ledger
+  directory (`.ended`, owned by retention); an APPROVED aggregate citing a
+  stamped session is refused — a past session's ledger is no longer a reusable
+  quorum token. Limits stated honestly in the guard's trust-boundary docstring.
+- **Per-reviewer digest carry:** new `QGDigestCarry` schema + `digest_carries`
+  field — an aggregate may carry an earlier review over a report change only by
+  naming the digest that reviewer actually reviewed, with a substantive reason
+  (>= 40 chars); wrong digest or bare reason refuses.
+- `test_agent_contract_parity.py`: pins the QG agent contract markers
+  (arka-qgverdict fence, evidence_digest, verbatim heading, pinned tools) in
+  `config/claude-agents/` and in deployed copies when present.
+
+### Changed
+- **Verdict-aware refusal:** dispatch-shape issues refuse only an APPROVED
+  aggregate and are demoted to warnings on a REJECTED one, so a rejection label
+  survives the case where the CQO catches a bad delta; fabrication vectors
+  (quorum, APPROVED-over-rejecting, vanishing CONFIRMED blockers) stay
+  verdict-blind.
+- **QG agent contracts:** marta-cqo gains the mandatory arka-qgverdict fence,
+  verbatim reproduction (`### <Reviewer> — verbatim`), a Conflict Handling
+  section (no silent resolution) and the full dispatch field enumeration; both
+  reviewer contracts pin the fence, check-key contract and evidence_digest.
+- Quality SKILL: phantom `output_schema` Agent param removed (the Agent tool has
+  no structured-output parameter — the schema travels in the dispatch prompt);
+  step 4.5 verbatim reporting; reviewers run on the best available model per
+  `quality_gate.model_policy` (sonnet-default claim removed).
+- Constitution: `inter-agent-checkpoints` enforcement self-contradiction
+  resolved in favour of visibility (amendments.history entry 4.43.0).
+- CORE-ENGINE.md rows for `quality_api`/`review_workflow` now state actual
+  consumers and the PR-B5 dead-import hazard; checkpoint SKILL drops its stale
+  13-phase reference; wiki/08 states the fence mechanism.
+
 ## [4.42.0] - 2026-07-30
 
 The anti-self-approval guard: an aggregate verdict the reviewer
