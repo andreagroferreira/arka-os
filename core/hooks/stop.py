@@ -42,7 +42,7 @@ from core.hooks._shared import (
     resolve_arkaos_root,
     safe_session_id,
 )
-from core.shared.temp_paths import arkaos_temp_dir
+from core.shared.temp_paths import arkaos_temp_dir, wf_required_dir
 
 _DISPATCH_RE = re.compile(
     r"\[arka:dispatch\][ \t]*[A-Za-z0-9_-]+[ \t]*->[ \t]*([A-Za-z0-9_-]+)",
@@ -575,7 +575,7 @@ def main(stdin_json: dict | None = None) -> int:
     _enqueue_routing_rebuild()
 
     # Only evaluate sessions where the classifier flagged creation intent.
-    wf_marker = arkaos_temp_dir("arkaos-wf-required") / session_id if session_id else None
+    wf_marker = wf_required_dir() / session_id if session_id else None
     if wf_marker is None or not safe_session_id(session_id) or not wf_marker.is_file():
         return 0
 
