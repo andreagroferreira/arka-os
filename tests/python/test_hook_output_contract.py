@@ -373,6 +373,91 @@ class TestSourceGuards:
                 )
 
 
+class TestTwinWrapperParity:
+    """Guards against twin drift between the .sh and .ps1 wrappers.
+
+    A wrapper pair drifts silently: both run, both exit 0, both emit valid
+    JSON — and one of them quietly stops carrying half the payload. That is
+    exactly how session-start.ps1 spent releases emitting only the banner
+    while session-start.sh delegated to Python and shipped the four
+    operating contracts (EVIDENCE-FLOW, META-TAG, AUTHORITY, MODEL-FABRIC)
+    to the model. A source diff of the two files would not have caught it:
+    they are different languages and were never meant to match line for
+    line. What must match is the *producer they delegate to*.
+    """
+
+    # Twins whose .sh delegates the whole event to one python module. Both
+    # sides must name that module — that is the parity contract.
+    DELEGATING_TWINS = {
+        "session-start": "core.hooks.session_start",
+        "session-end": "core.hooks.session_end",
+        "subagent-stop": "core.hooks.subagent_stop",
+    }
+
+    # Known drift, recorded rather than hidden. These .ps1 files do call
+    # Python, but through inline scripts against specific functions instead
+    # of delegating the event to the module its .sh twin uses. They are a
+    # different architecture, not a missing one, so failing CI on them today
+    # would block unrelated work — but leaving them undocumented is how the
+    # session-start drift survived. Moving one of these into
+    # DELEGATING_TWINS is the definition of done for porting it.
+    KNOWN_DRIFTED_TWINS = {
+        "pre-tool-use": "core.hooks.pre_tool_use",
+        "post-tool-use": "core.hooks.post_tool_use",
+        "stop": "core.hooks.stop",
+        "user-prompt-submit": "core.hooks.user_prompt_submit",
+    }
+
+    @pytest.mark.parametrize("stem,module", sorted(DELEGATING_TWINS.items()))
+    def test_twins_delegate_to_the_same_producer(self, stem, module):
+        sh_path = HOOKS_SH_DIR / f"{stem}.sh"
+        ps1_path = HOOKS_SH_DIR / f"{stem}.ps1"
+        if not ps1_path.is_file():
+            pytest.skip(f"{stem}.ps1 not shipped")
+
+        sh_text = sh_path.read_text(encoding="utf-8", errors="replace")
+        ps1_text = ps1_path.read_text(encoding="utf-8", errors="replace")
+
+        assert module in sh_text, (
+            f"{sh_path.name} no longer delegates to {module} — update this "
+            "test deliberately, or the twin contract is meaningless"
+        )
+        assert module in ps1_text, (
+            f"{ps1_path.name} does not delegate to {module} while its .sh "
+            f"twin does. This is the session-start failure mode: the "
+            f"PowerShell side reimplements part of the payload, drifts as "
+            f"the producer evolves, and silently ships less context to the "
+            f"model on Windows. Delegate to {module} instead of porting the "
+            "payload."
+        )
+
+    @pytest.mark.parametrize("stem,module", sorted(KNOWN_DRIFTED_TWINS.items()))
+    def test_known_drift_is_still_drifted(self, stem, module):
+        # Inverted guard: when someone ports one of these, this test fails
+        # and points at the bookkeeping. Prevents the allowlist from
+        # outliving the debt it records.
+        ps1_path = HOOKS_SH_DIR / f"{stem}.ps1"
+        if not ps1_path.is_file():
+            pytest.skip(f"{stem}.ps1 not shipped")
+        ps1_text = ps1_path.read_text(encoding="utf-8", errors="replace")
+        assert module not in ps1_text, (
+            f"{ps1_path.name} now delegates to {module} — move '{stem}' from "
+            "KNOWN_DRIFTED_TWINS to DELEGATING_TWINS so the parity contract "
+            "starts guarding it"
+        )
+
+    def test_session_start_ps1_does_not_rebuild_the_banner(self):
+        # Narrow regression pin for the bug this class was written for: the
+        # old .ps1 read profile.json and laid out the box itself. A wrapper
+        # that reads the profile is a wrapper that has started reimplementing
+        # the producer again.
+        text = (HOOKS_SH_DIR / "session-start.ps1").read_text(encoding="utf-8")
+        assert "profile.json" not in text, (
+            "session-start.ps1 reads profile.json again — the banner is "
+            "built by core.hooks.session_start, not by the wrapper"
+        )
+
+
 class TestShellFallbackParity:
     def test_user_prompt_submit_fallback_shape(self, contract_home):
         env = dict(os.environ)
