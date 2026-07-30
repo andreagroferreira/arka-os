@@ -53,7 +53,12 @@ Any work item whose execution would block the user for **> 30 seconds**
 Per the brainstorm (Marta + Tomas):
 
 - **Technical conflicts** between reviewers (e.g. Eduardo + Francisca
-  disagree on a code-style call) → Marta resolves silently.
+  disagree on a code-style call) → Marta resolves ON THE RECORD:
+  evidence decides (reproduce the claim, cite the reproduction), and
+  the resolution lands in her verdict notes. A blocker backed by
+  evidence is fixed or REFUTED with a substantive reason — never
+  dropped silently (constitution `inter-agent-checkpoints` enforcement
+  + `evidence-flow`; the aggregate guard enforces the bar).
 - **Strategic / taste / business-knowledge conflicts** → Marta surfaces
   the disagreement at the next checkpoint: *"Eduardo + Francisca
   discordam em X, eu inclino para A — qual o teu input?"*. The user
@@ -74,8 +79,10 @@ Tens contexto a acrescentar antes de eu arrancar? (Silêncio = procedo.)
   follows by emitting checkpoint markers between agent calls.
 - Does not block the user. The user is free to stay silent (proceed)
   or to send any message (parsed by `parse_user_injection`).
-- Does not bypass the mandatory 13-phase flow. Checkpoints are
-  emitted **inside** the per-todo loop of Phase 11.
+- Does not bypass the mandatory 4-gate evidence flow (the 13-phase
+  flow it referenced was replaced in v4.1.0 — constitution
+  `evidence-flow`). Checkpoints are emitted **inside** Gate 3
+  execution, between sub-dispatches; Gate 4 still runs.
 
 ## Cross-references
 

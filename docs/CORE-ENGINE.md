@@ -138,9 +138,9 @@ Governance enforces the Constitution at runtime. The Quality Gate (Marta orchest
 | File | Responsibility |
 |---|---|
 | `constitution.py` | `Constitution` Pydantic model; `load_constitution(path)`; `compress_for_context()` — produces the L0 Synapse string |
-| `quality_api.py` | `list_pending()`, `list_approved(limit)` — used by Synapse L6 and the dashboard; owns QG record persistence |
+| `quality_api.py` | `list_pending()`, `query()`, `submit()` — consumed by the arka-tools MCP server (`mcps/arka-tools/server.py`); `list_pending()` + `list_approved(limit)` by Synapse L6 (`core/synapse/layers.py:480`). Its `record_verdict()` has no live callers (only the unused `QualityGateAPI` wrapper in the same file): live verdict persistence is the reviewer ledger + `record_cli` (PR-B1/B3) |
 | `quality_router.py` | Routes incoming review requests to the correct QG reviewer (Eduardo for copy, Francisca for tech) |
-| `review_workflow.py` | Step-by-step QG review workflow: orchestrates Eduardo + Francisca, collects APPROVED/REJECTED verdicts |
+| `review_workflow.py` | In-memory review workflow; imported by `quality_api.py` (five names, all unused), by `test_quality_gate.py`, and by the 4-gate e2e `test_evidence_flow_e2e.py` — records nothing the live gate reads (a PR-B5 deprecation must drop the dead import in `quality_api` AND re-point the e2e, or both break) |
 | `agent_experiences.py` | `Experience` model; `query_experiences(agent_id, limit)` — used by Synapse L2.6 |
 | `agent_experiences_cli.py` | CLI for recording and querying agent experiences |
 | `cqo_experience_recorder.py` | Records QG outcomes as experiences for the dispatched specialist |

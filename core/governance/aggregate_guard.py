@@ -5,12 +5,19 @@ reviewer artifacts behind it — the orchestrator's own words, recorded
 as a completed gate. This guard makes that shape unrecordable AS AN
 AGGREGATE: an aggregate verdict is only recorded when the session's
 reviewer ledger holds at least two HOOK-CAPTURED reviewer verdicts,
-no evidence_digest present on both sides disagrees (dispatch does not
-yet REQUIRE the digest — PR-B4 makes it mandatory; an absent digest
-warns instead of refusing, and when reviewers do populate it, as this
-PR's own r1 artifacts did, the comparison decides), no CONFIRMED
-reviewer blocker disappears silently, and an APPROVED aggregate
-stands over no rejecting reviewer.
+the digest chain holds (PR-B4 dispatch shape: the aggregate and every
+counted reviewer artifact must carry evidence_digest, and each
+reviewer's digest must match the aggregate's — or be excused by an
+explicit, justified ``digest_carries`` entry naming the report that
+reviewer actually reviewed), no CONFIRMED reviewer blocker disappears
+silently, and an APPROVED aggregate stands over no rejecting reviewer.
+
+Severity is verdict-aware (PR-B4): fabrication vectors — quorum, an
+APPROVED over a rejecting reviewer, a vanishing CONFIRMED blocker —
+refuse regardless of verdict; dispatch-shape issues (digest chain,
+session binding) refuse only an APPROVED aggregate and demote to
+warnings on a REJECTED one, so a rejection label survives exactly the
+case where the CQO catches a bad delta.
 
 Only records whose ``source`` is in ``CAPTURE_SOURCES`` count: a
 record the orchestrator could write itself (any other source) would
@@ -27,16 +34,21 @@ home directory and this guard runs in the same trust domain as the
 orchestrator it polices — a determined orchestrator could forge
 records with a file write, either to FABRICATE a quorum or to
 SUPPRESS an existing verdict (a forged newer record supersedes it —
-same capability ceiling, different mechanics). Session ids are
-validated against the ledger's safety rule, but nothing yet binds an
-aggregate to the runtime session that produced the reviews — a past
-session holding two reviewer records is a reusable quorum token
-until PR-B4 binds the dispatch side. And ``--kind reviewer``
-(record_cli) remains an unguarded label path for reviewer
-identities: its ledger cross-reference is provenance, not
-admission. The guard turns ACCIDENTAL self-approval into
-deliberate, transcript-visible forgery; it does not and cannot make
-forgery impossible from inside the same account.
+same capability ceiling, different mechanics). Session binding
+(PR-B4) closes the COMMON reuse path, not every path: the SessionEnd
+hook stamps a session's ledger directory (``.ended``), and an
+APPROVED aggregate citing a stamped session is refused. A session
+that crashes never fires SessionEnd and stays unstamped — and in
+observed practice SessionEnd fires for a minority of sessions, so an
+unstamped ledger proves nothing about liveness. A session still open
+elsewhere is citable from this one, and the stamp itself is a file
+the same account could delete: the binding is evidence from the
+hook boundary, not a cryptographic seal. ``--kind
+reviewer`` (record_cli) likewise remains an unguarded label path for
+reviewer identities: its ledger cross-reference is provenance, not
+admission. The guard turns ACCIDENTAL self-approval into deliberate,
+transcript-visible forgery; it does not and cannot make forgery
+impossible from inside the same account.
 """
 
 from __future__ import annotations
@@ -286,35 +298,136 @@ def _covered(key: frozenset[str], aggregate: dict, approved: bool) -> str:
     return "absent"
 
 
-def _digest_reasons(
+def _carries(aggregate: dict) -> dict[str, dict]:
+    """Declared digest carries, keyed by canonical reviewer identity."""
+    carries: dict[str, dict] = {}
+    for entry in aggregate.get("digest_carries") or []:
+        if isinstance(entry, dict):
+            carries[_identity(str(entry.get("reviewer") or ""))] = entry
+    return carries
+
+
+def _carry_issue(
+    reviewer_id: str, their: str, agg_digest: str, carry: dict | None
+) -> str | None:
+    """Why a digest mismatch is NOT excused by a declared carry.
+
+    None means the carry stands: it names the digest the reviewer's own
+    artifact carries, with a substantive reason. Anything else is the
+    plain mismatch — an undeclared carry, a carry pointing at a digest
+    the reviewer never reviewed, or a bare justification.
+    """
+    if carry is None:
+        return (
+            f"evidence_digest mismatch: {reviewer_id} reviewed "
+            f"{their[:12]}…, aggregate cites {agg_digest[:12]}… — not "
+            "the same evidence report; re-dispatch the reviewer or "
+            "declare a justified digest_carries entry (PR-B4)"
+        )
+    if _norm(carry.get("evidence_digest")) != their:
+        return (
+            f"digest carry for {reviewer_id} names "
+            f"{_norm(carry.get('evidence_digest'))[:12]}… but the "
+            f"reviewer's artifact carries {their[:12]}… — a carry must "
+            "cite the report that reviewer actually reviewed"
+        )
+    if len(_norm(carry.get("reason"))) < _MIN_REFUTE_DETAIL:
+        return (
+            f"digest carry for {reviewer_id} lacks a substantive reason "
+            f"(>= {_MIN_REFUTE_DETAIL} chars — the same bar as a REFUTED "
+            "drop): why does the earlier review still stand?"
+        )
+    return None
+
+
+_MISSING_AGGREGATE_DIGEST = (
+    "aggregate carries no evidence_digest — the dispatch shape (PR-B4) "
+    "requires the aggregator to cite the report it aggregated "
+    "(report_digest from the evidence --json output)"
+)
+_MISSING_REVIEWER_DIGEST = (
+    "{rid} artifact carries no evidence_digest — the dispatch must "
+    "populate it (PR-B4 dispatch shape); re-dispatch that reviewer "
+    "with the report_digest"
+)
+_CARRY_ACCEPTED = (
+    "digest carry accepted: {rid} reviewed {their}… while the "
+    "aggregate cites {agg}… — justification on the record"
+)
+
+
+def _digest_issues(
     aggregate: dict, verdicts: list[tuple[str, dict]]
 ) -> tuple[list[str], list[str]]:
-    """Compare evidence_digest across aggregate and reviewer verdicts."""
-    reasons: list[str] = []
-    warnings: list[str] = []
+    """Dispatch-shape and integrity issues on the digest chain (PR-B4).
+
+    Returns (issues, notes). Issues are verdict-aware at the caller:
+    they refuse an APPROVED aggregate and are demoted to warnings on a
+    REJECTED one. Notes (accepted carries) are always warnings — a
+    carry is legitimate, and legitimate is not invisible.
+    """
+    issues: list[str] = []
+    notes: list[str] = []
     agg_digest = _norm(aggregate.get("evidence_digest"))
     if not agg_digest:
-        warnings.append("aggregate carries no evidence_digest")
-        return reasons, warnings
-    seen_any = False
+        issues.append(_MISSING_AGGREGATE_DIGEST)
+    carries = _carries(aggregate)
     for reviewer_id, verdict in verdicts:
         their = _norm(verdict.get("evidence_digest"))
         if not their:
+            issues.append(_MISSING_REVIEWER_DIGEST.format(rid=reviewer_id))
             continue
-        seen_any = True
-        if their != agg_digest:
-            reasons.append(
-                f"evidence_digest mismatch: {reviewer_id} reviewed "
-                f"{their[:12]}…, aggregate cites {agg_digest[:12]}… — "
-                "not the same evidence report"
-            )
-    if not seen_any:
-        warnings.append(
-            "no reviewer artifact carries evidence_digest (dispatch "
-            "shape — PR-B4 enforces it); digest comparison had nothing "
-            "to bite on"
+        if not agg_digest or their == agg_digest:
+            continue
+        issue = _carry_issue(
+            reviewer_id, their, agg_digest, carries.get(_identity(reviewer_id))
         )
-    return reasons, warnings
+        if issue is not None:
+            issues.append(issue)
+        else:
+            notes.append(_CARRY_ACCEPTED.format(
+                rid=reviewer_id, their=their[:12], agg=agg_digest[:12]
+            ))
+    return issues, notes
+
+
+def _ended_issues(session_id: str) -> list[str]:
+    """A stamped session is not a live quorum (PR-B4 session binding)."""
+    from core.governance.reviewer_ledger import ENDED_NAME
+
+    if not (ledger_root() / session_id / ENDED_NAME).is_file():
+        return []
+    return [
+        f"session {session_id} is marked ended (SessionEnd stamped its "
+        "ledger) — a past session's reviewer records are not a reusable "
+        "quorum token; run the reviews in the live session"
+    ]
+
+
+def _check_key_warnings(
+    verdicts: list[tuple[str, dict]]
+) -> list[str]:
+    """CONFIRMED blockers filed without a check key — warning only.
+
+    Coverage still matches on detail/file tokens (_blocker_key keeps
+    liveness), but the dispatch shape asks reviewers to name the
+    evidence check so coverage means shared vocabulary, not prose luck.
+    """
+    warnings: list[str] = []
+    for reviewer_id, verdict in verdicts:
+        for blocker in verdict.get("blockers") or []:
+            if not isinstance(blocker, dict):
+                continue
+            if _norm(blocker.get("verdict")) != "confirmed":
+                continue
+            if not _tokens(blocker.get("check")) and _blocker_key(blocker):
+                warnings.append(
+                    f"CONFIRMED blocker ({reviewer_id}) filed without a "
+                    "check key — matched on detail/file tokens; the "
+                    "dispatch shape (PR-B4) asks for the evidence check "
+                    "name in 'check'"
+                )
+    return warnings
 
 
 _COVERAGE_REASONS = {
@@ -455,7 +568,7 @@ def check_aggregate(aggregate: dict, session_id: str) -> GuardResult:
             reviewers, [name for name, _ in counted]
         )
     verdicts = [(str(r.get("reviewer_id")), r["verdict"]) for _, r in counted]
-    reasons, warnings = _reasons(aggregate, verdicts)
+    reasons, warnings = _reasons(aggregate, verdicts, session_id)
     return GuardResult(
         ok=not reasons,
         reasons=reasons,
@@ -466,17 +579,39 @@ def check_aggregate(aggregate: dict, session_id: str) -> GuardResult:
 
 
 def _reasons(
-    aggregate: dict, verdicts: list[tuple[str, dict]]
+    aggregate: dict, verdicts: list[tuple[str, dict]], session_id: str
 ) -> tuple[list[str], list[str]]:
-    """Every refusal reason and warning for one aggregate."""
+    """Every refusal reason and warning for one aggregate.
+
+    Two severities, split on the aggregate's own verdict (PR-B4 item 7).
+    Fabrication vectors — an APPROVED standing over a rejecting
+    reviewer, a CONFIRMED blocker vanishing — refuse regardless of
+    verdict. Dispatch-shape issues (digest chain, session binding)
+    refuse only an APPROVED aggregate: refusing a REJECTED one over
+    shape would throw away the rejection label in exactly the case
+    where the CQO catches a bad delta, and a recorded rejection
+    launders nothing — the redo loop continues either way.
+    """
     approved = _norm(aggregate.get("verdict")) == "approved"
-    digest_reasons, warnings = _digest_reasons(aggregate, verdicts)
+    issues, notes = _digest_issues(aggregate, verdicts)
+    issues += _ended_issues(session_id)
     reasons = (
-        digest_reasons
-        + _verdict_reasons(aggregate, verdicts)
+        _verdict_reasons(aggregate, verdicts)
         + _blocker_reasons(aggregate, verdicts, approved)
     )
-    return reasons, warnings + _own_finding_warnings(aggregate, verdicts)
+    warnings = (
+        notes
+        + _check_key_warnings(verdicts)
+        + _own_finding_warnings(aggregate, verdicts)
+    )
+    if approved:
+        return issues + reasons, warnings
+    demoted = [
+        f"{issue} [recorded anyway: the refusal is verdict-aware "
+        "(PR-B4) — a REJECTED label is never lost to dispatch shape]"
+        for issue in issues
+    ]
+    return reasons, demoted + warnings
 
 
 def write_aggregate(

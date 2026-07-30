@@ -40,7 +40,9 @@ def _reviewer_verdict(
     reviewer: str = "francisca-tech",
     verdict: str = "APPROVED",
     blockers: list | None = None,
-    evidence_digest: str = "",
+    # A well-shaped dispatch is the baseline since PR-B4 made the
+    # digest mandatory; shape-specific tests pass "" explicitly.
+    evidence_digest: str = DIGEST_A,
 ) -> dict:
     body = {
         "verdict": verdict,
@@ -89,7 +91,7 @@ def _write_ledger_record(
 def _aggregate(
     verdict: str = "APPROVED",
     blockers: list | None = None,
-    evidence_digest: str = "",
+    evidence_digest: str = DIGEST_A,
 ) -> dict:
     body = {
         "verdict": verdict,
@@ -224,21 +226,55 @@ class TestDigests:
         )
         assert not result.ok
 
-    def test_absent_reviewer_digests_warn_but_pass(self, guard_home):
-        """Absent reviewer digests (dispatch does not require them
-        yet — PR-B4); the comparison decides whenever they are there."""
+    def test_absent_reviewer_digest_refuses_approved(self, guard_home):
+        """PR-B4 dispatch shape: a digest-less reviewer artifact means
+        the dispatch was malformed — an APPROVED aggregate is refused."""
         self._quorum("sess-d4")
         result = check_aggregate(
             _aggregate(evidence_digest=DIGEST_A), "sess-d4"
         )
-        assert result.ok
-        assert any("nothing to bite on" in w for w in result.warnings)
+        assert not result.ok
+        missing = [r for r in result.reasons if "must populate it" in r]
+        # Each refusal names WHICH reviewer to re-dispatch (Francisca
+        # B4 r2 M9: a literal in place of rid still refuses, but sends
+        # the operator after the wrong reviewer — both names required,
+        # so no single hardcoded literal can satisfy this).
+        assert any("francisca-tech" in r for r in missing)
+        assert any("eduardo-copy" in r for r in missing)
 
-    def test_absent_aggregate_digest_warns(self, guard_home):
-        self._quorum("sess-d5", DIGEST_A, DIGEST_A)
-        result = check_aggregate(_aggregate(), "sess-d5")
+    def test_absent_reviewer_digest_warns_on_rejected(self, guard_home):
+        """Verdict-aware (item 7): the same shape violation on a
+        REJECTED aggregate records with a warning — a rejection label
+        is never thrown away over dispatch shape."""
+        self._quorum("sess-d4b")
+        result = check_aggregate(
+            _aggregate("REJECTED", evidence_digest=DIGEST_A), "sess-d4b"
+        )
         assert result.ok
-        assert any("no evidence_digest" in w for w in result.warnings)
+        assert any("must populate it" in w for w in result.warnings)
+        assert any("recorded anyway" in w for w in result.warnings)
+
+    def test_absent_aggregate_digest_refuses_approved(self, guard_home):
+        self._quorum("sess-d5", DIGEST_A, DIGEST_A)
+        result = check_aggregate(
+            _aggregate(evidence_digest=""), "sess-d5"
+        )
+        assert not result.ok
+        assert any(
+            "aggregate carries no evidence_digest" in r
+            for r in result.reasons
+        )
+
+    def test_absent_aggregate_digest_warns_on_rejected(self, guard_home):
+        self._quorum("sess-d5b", DIGEST_A, DIGEST_A)
+        result = check_aggregate(
+            _aggregate("REJECTED", evidence_digest=""), "sess-d5b"
+        )
+        assert result.ok
+        assert any(
+            "aggregate carries no evidence_digest" in w
+            for w in result.warnings
+        )
 
 
 class TestBlockerFlow:
@@ -1189,3 +1225,319 @@ class TestRecordCliIntegration:
         assert rc == 1
         assert "aggregator identity" in capsys.readouterr().err
         assert load_verdict_labels() == []
+
+
+class TestDigestCarry:
+    """PR-B4 item 11: per-reviewer digest equality forced a re-dispatch
+    of every reviewer on ANY report change; a justified carry naming
+    the report that reviewer actually reviewed now excuses the
+    mismatch — and nothing less than that does."""
+
+    CARRY_REASON = (
+        "message-only amend after her round: tree byte-identical to the "
+        "reviewed head, diff is commit prose only"
+    )
+
+    def _split_quorum(self, session_id):
+        """Francisca reviewed report A (earlier round), Eduardo the
+        final report B."""
+        _write_ledger_record(
+            session_id, "francisca-tech", seq=1,
+            verdict=_reviewer_verdict(
+                "francisca-tech", evidence_digest=DIGEST_A
+            ),
+        )
+        _write_ledger_record(
+            session_id, "eduardo-copy", seq=2,
+            verdict=_reviewer_verdict(
+                "eduardo-copy", evidence_digest=DIGEST_B
+            ),
+        )
+
+    def _carry(self, reviewer="francisca-tech", digest=DIGEST_A, reason=None):
+        return {
+            "reviewer": reviewer,
+            "evidence_digest": digest,
+            "reason": self.CARRY_REASON if reason is None else reason,
+        }
+
+    def test_justified_carry_passes_and_lands_on_the_record(self, guard_home):
+        self._split_quorum("sess-c1")
+        agg = _aggregate(evidence_digest=DIGEST_B)
+        agg["digest_carries"] = [self._carry()]
+        result = check_aggregate(agg, "sess-c1")
+        assert result.ok
+        note = next(w for w in result.warnings if "carry accepted" in w)
+        # The reviewer's OWN digest comes first, the aggregate's second
+        # (Francisca B4 r2 M8: the constant hoist moved message
+        # assembly away from the values, where an argument swap hides).
+        assert note.index(DIGEST_A[:12]) < note.index(DIGEST_B[:12])
+
+    def test_undeclared_mismatch_still_refuses_approved(self, guard_home):
+        self._split_quorum("sess-c2")
+        result = check_aggregate(
+            _aggregate(evidence_digest=DIGEST_B), "sess-c2"
+        )
+        assert not result.ok
+        assert any("digest_carries" in r for r in result.reasons)
+
+    def test_mismatch_on_rejected_records_with_warning(self, guard_home):
+        """Item 7 end to end: the CQO catches a bad delta and REJECTS —
+        the rejection label survives the digest mismatch."""
+        self._split_quorum("sess-c3")
+        result = check_aggregate(
+            _aggregate("REJECTED", evidence_digest=DIGEST_B), "sess-c3"
+        )
+        assert result.ok
+        assert any("mismatch" in w for w in result.warnings)
+        assert any("recorded anyway" in w for w in result.warnings)
+
+    def test_carry_naming_a_report_never_reviewed_refused(self, guard_home):
+        """A carry that cites the AGGREGATE's digest instead of the
+        reviewer's is laundering with paperwork."""
+        self._split_quorum("sess-c4")
+        agg = _aggregate(evidence_digest=DIGEST_B)
+        agg["digest_carries"] = [self._carry(digest=DIGEST_B)]
+        result = check_aggregate(agg, "sess-c4")
+        assert not result.ok
+        assert any("actually reviewed" in r for r in result.reasons)
+
+    def test_carry_with_bare_reason_refused(self, guard_home):
+        self._split_quorum("sess-c5")
+        agg = _aggregate(evidence_digest=DIGEST_B)
+        agg["digest_carries"] = [self._carry(reason="n/a")]
+        result = check_aggregate(agg, "sess-c5")
+        assert not result.ok
+        assert any("substantive reason" in r for r in result.reasons)
+
+    def test_carry_matches_across_alias_spellings(self, guard_home):
+        """A carry declared under the constitution spelling covers the
+        deployed-agent spelling — one person, one identity."""
+        self._split_quorum("sess-c6")
+        agg = _aggregate(evidence_digest=DIGEST_B)
+        agg["digest_carries"] = [self._carry(reviewer="tech-director-francisca")]
+        result = check_aggregate(agg, "sess-c6")
+        assert result.ok
+
+    def test_carry_matches_when_ledger_uses_alias_spelling(self, guard_home):
+        """The mirror pin: the LEDGER record under the constitution
+        spelling, the carry under the deployed-agent id. Both lookups
+        must go through _identity — keying either side raw breaks one
+        direction and not the other."""
+        _write_ledger_record(
+            "sess-c6b", "tech-director-francisca", seq=1,
+            verdict=_reviewer_verdict(
+                "tech-director-francisca", evidence_digest=DIGEST_A
+            ),
+        )
+        _write_ledger_record(
+            "sess-c6b", "eduardo-copy", seq=2,
+            verdict=_reviewer_verdict(
+                "eduardo-copy", evidence_digest=DIGEST_B
+            ),
+        )
+        agg = _aggregate(evidence_digest=DIGEST_B)
+        agg["digest_carries"] = [self._carry(reviewer="francisca-tech")]
+        result = check_aggregate(agg, "sess-c6b")
+        assert result.ok
+
+    def test_uppercase_reviewer_digest_still_matches(self, guard_home):
+        """The comparison is case-normalised on BOTH sides (_norm) —
+        load-bearing because the schema's hex rule is lowercase-only
+        on the VALIDATED aggregate side while the ledger stores the
+        raw captured fence, so an upper-case reviewer digest is a live
+        shape (Francisca B4 r1 M3; her F23 mutant survived unpinned)."""
+        _write_ledger_record(
+            "sess-c8", "francisca-tech", seq=1,
+            verdict=_reviewer_verdict(
+                "francisca-tech", evidence_digest=DIGEST_A.upper()
+            ),
+        )
+        _write_ledger_record("sess-c8", "eduardo-copy", seq=2)
+        result = check_aggregate(_aggregate(), "sess-c8")
+        assert result.ok
+        assert not any("mismatch" in r for r in result.reasons)
+        # Mirror: the AGGREGATE side is normalised too (schema hex is
+        # lowercase-only at the CLI, but check_aggregate takes raw
+        # dicts from direct callers).
+        _write_ledger_record("sess-c9", "francisca-tech", seq=1)
+        _write_ledger_record("sess-c9", "eduardo-copy", seq=2)
+        upper = check_aggregate(
+            _aggregate(evidence_digest=DIGEST_A.upper()), "sess-c9"
+        )
+        assert upper.ok
+        assert not any("mismatch" in r for r in upper.reasons)
+
+    def test_carry_for_matching_reviewer_is_inert(self, guard_home):
+        """A carry for a reviewer whose digest already matches changes
+        nothing — no refusal, no accepted-carry note."""
+        _write_ledger_record("sess-c7", "francisca-tech", seq=1)
+        _write_ledger_record("sess-c7", "eduardo-copy", seq=2)
+        agg = _aggregate()
+        agg["digest_carries"] = [self._carry(digest=DIGEST_A)]
+        result = check_aggregate(agg, "sess-c7")
+        assert result.ok
+        assert not any("carry accepted" in w for w in result.warnings)
+
+
+class TestSessionBinding:
+    """PR-B4 item 1: a past session's ledger was a reusable quorum
+    token; the SessionEnd stamp closes the common path."""
+
+    def _quorum(self, session_id):
+        _write_ledger_record(session_id, "francisca-tech", seq=1)
+        _write_ledger_record(session_id, "eduardo-copy", seq=2)
+
+    def _stamp(self, session_id):
+        from core.governance.reviewer_ledger import ENDED_NAME
+
+        (ledger_root() / session_id / ENDED_NAME).touch()
+
+    def test_ended_session_refuses_approved(self, guard_home):
+        self._quorum("sess-s1")
+        self._stamp("sess-s1")
+        result = check_aggregate(_aggregate(), "sess-s1")
+        assert not result.ok
+        assert any(
+            "not a reusable quorum token" in r for r in result.reasons
+        )
+
+    def test_ended_session_warns_on_rejected(self, guard_home):
+        self._quorum("sess-s2")
+        self._stamp("sess-s2")
+        result = check_aggregate(_aggregate("REJECTED"), "sess-s2")
+        assert result.ok
+        assert any(
+            "not a reusable quorum token" in w for w in result.warnings
+        )
+
+    def test_stamp_never_enters_the_quorum_pool(self, guard_home):
+        """Dot-prefixed on purpose: the stamp is a marker, not a record.
+
+        The record pool is doubly defended (_session_records skips dot
+        names AND _RECORD_NAME_RE rejects the stamp), so exclusion
+        alone survives a renamed constant — the dot prefix itself is
+        pinned because .quarantine/tmp handling and the sweep's
+        dot-skip all assume it (Francisca B4 r1 M2)."""
+        from core.governance.reviewer_ledger import ENDED_NAME
+
+        assert ENDED_NAME.startswith(".")
+        self._quorum("sess-s3")
+        self._stamp("sess-s3")
+        result = check_aggregate(_aggregate("REJECTED"), "sess-s3")
+        assert sorted(result.reviewers) == ["eduardo-copy", "francisca-tech"]
+
+    def test_mark_session_ended_stamps_only_existing_dirs(self, guard_home):
+        from core.governance.reviewer_ledger import (
+            ENDED_NAME,
+            mark_session_ended,
+        )
+
+        mark_session_ended("sess-never-captured")
+        assert not (ledger_root() / "sess-never-captured").exists()
+        self._quorum("sess-s4")
+        mark_session_ended("sess-s4")
+        assert (ledger_root() / "sess-s4" / ENDED_NAME).is_file()
+
+    def test_mark_session_ended_refuses_hostile_ids(self, guard_home):
+        """_safe_id is the load-bearing guard here, not is_dir():
+        Francisca's F12 mutant (validator deleted) passed the old
+        version because every hostile path also failed to resolve.
+        The dot-directory case resolves to an EXISTING dir — only the
+        validator stops the stamp."""
+        from core.governance.reviewer_ledger import (
+            ENDED_NAME,
+            mark_session_ended,
+        )
+
+        quarantine = ledger_root() / ".quarantine"
+        quarantine.mkdir(parents=True)
+        for hostile in ("../escape", ".quarantine", "", "a/b"):
+            mark_session_ended(hostile)  # must not raise, must not stamp
+        assert not (ledger_root() / ".." / "escape").exists()
+        assert not (quarantine / ENDED_NAME).exists()
+        # "" must never stamp the ledger root itself.
+        assert not (ledger_root() / ENDED_NAME).exists()
+
+    def test_retention_still_purges_a_stamped_session(self, guard_home):
+        """The stamp is an OWNED name — a stamped dir must not turn
+        retention into a no-op (the NOTICES.jsonl lesson, PR-B1)."""
+        import os
+        import time
+
+        from core.governance.reviewer_ledger import sweep_expired
+
+        self._quorum("sess-s5")
+        self._stamp("sess-s5")
+        session_dir = ledger_root() / "sess-s5"
+        old = time.time() - 200 * 86400
+        os.utime(session_dir, (old, old))
+        assert sweep_expired(days=90) == 1
+        assert not session_dir.exists()
+
+
+class TestCheckKeyContract:
+    """PR-B4 item 1: coverage matching wants shared check vocabulary —
+    a CONFIRMED blocker filed without a check key warns, never blocks
+    (liveness stays with _blocker_key's detail/file fallback)."""
+
+    def test_confirmed_blocker_without_check_key_warns(self, guard_home):
+        blocker = {
+            "check": "", "verdict": "CONFIRMED",
+            "detail": "the mutation battery leaves _cross_key unpinned",
+        }
+        _write_ledger_record(
+            "sess-k1", "francisca-tech", seq=1,
+            verdict=_reviewer_verdict(
+                "francisca-tech", "REJECTED", blockers=[blocker]
+            ),
+        )
+        _write_ledger_record("sess-k1", "eduardo-copy", seq=2)
+        result = check_aggregate(
+            _aggregate("REJECTED", blockers=[dict(blocker)]), "sess-k1"
+        )
+        assert result.ok
+        assert any("without a check key" in w for w in result.warnings)
+
+    def test_unmatchable_blocker_never_draws_the_check_key_warning(
+        self, guard_home
+    ):
+        """A CONFIRMED blocker with empty check AND empty detail/file
+        draws the cannot-be-matched liveness reason, never a spurious
+        check-key warning on top (Francisca B4 r2 M10: the second
+        conjunct of the warning condition was unpinned in the
+        direction F19 does not cover)."""
+        blocker = {"check": "", "detail": "", "file": None,
+                   "verdict": "CONFIRMED"}
+        _write_ledger_record(
+            "sess-k3", "francisca-tech", seq=1,
+            verdict=_reviewer_verdict(
+                "francisca-tech", "REJECTED", blockers=[blocker]
+            ),
+        )
+        _write_ledger_record("sess-k3", "eduardo-copy", seq=2)
+        result = check_aggregate(_aggregate("REJECTED"), "sess-k3")
+        assert any("cannot be matched" in r for r in result.reasons)
+        assert not any("without a check key" in w for w in result.warnings)
+
+    def test_blocker_with_check_key_never_draws_the_warning(self, guard_home):
+        """The false-positive side, pinned on a fixture that actually
+        presents a keyed CONFIRMED blocker (Francisca B4 r1 B2: the
+        blocker-less version could not fail, and her F19 mutant —
+        warn on EVERY CONFIRMED blocker — survived the whole suite)."""
+        blocker = {
+            "check": "tests", "detail": "half-pinned guard",
+            "file": "x.py", "verdict": "CONFIRMED",
+        }
+        _write_ledger_record(
+            "sess-k2", "francisca-tech", seq=1,
+            verdict=_reviewer_verdict(
+                "francisca-tech", "REJECTED", blockers=[blocker]
+            ),
+        )
+        _write_ledger_record("sess-k2", "eduardo-copy", seq=2)
+        result = check_aggregate(
+            _aggregate("REJECTED", blockers=[dict(blocker)]), "sess-k2"
+        )
+        assert result.ok
+        assert not any("without a check key" in w for w in result.warnings)

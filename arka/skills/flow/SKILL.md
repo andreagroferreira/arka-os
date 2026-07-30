@@ -142,6 +142,10 @@ resumes at the right gate.
   Time and token cost are not acceptable answers to any of the three.
 - Quality Gate REJECTED loops back at most twice; a third REJECTED
   escalates to the operator with the full verdict.
+- The gate-closing report reproduces each reviewer verdict VERBATIM
+  under `### <Reviewer> — verbatim`, with the ledger artifact path
+  (`~/.arkaos/quality-gate/<session>/`) beside it. Summarising a
+  reviewer in your own words is relay, not report.
 - Close with an honest summary: what changed, where, how it was
   verified (real commands + results), what remains open.
 

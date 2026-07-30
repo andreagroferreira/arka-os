@@ -54,8 +54,18 @@ you did not attempt to reproduce is PLAUSIBLE at best, never CONFIRMED.
 Return a `QGVerdict` JSON object (schema: `QG_VERDICT_JSON_SCHEMA` in
 `core.governance.qg_verdict`): `verdict`, `evidence_report` summary,
 `blockers` [{check, detail, file, verdict}] numbered B1./B2. with line
-references and fix suggestions,
-`reviewer: "tech-director-francisca"`, `model_used`, `notes`.
+references and fix suggestions — `check` names the evidence check or
+rubric area (the aggregate's coverage matching keys on it; never
+leave it empty) —, `reviewer: "tech-director-francisca"`,
+`model_used`, `evidence_digest` (the `report_digest` of the report
+you interpreted — mandatory since PR-B4; an artifact without it
+cannot support an APPROVED aggregate), `notes`.
+
+Emit the JSON inside a ```arka-qgverdict fence in your FINAL message —
+the fence is what the hook-boundary ledger captures verbatim. Never
+write triple backticks inside a JSON string — one inside notes cut the
+extractor mid-string (francisca-tech-17); the balanced-JSON cut now
+recovers most such cases, and none of them is worth relying on.
 
 Model tier: single source is constitution `quality_gate.model_policy` —
 Quality Gate reviewers run on the best model available (frontier tier,

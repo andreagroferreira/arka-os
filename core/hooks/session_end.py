@@ -122,6 +122,21 @@ def _sweep_reviewer_ledger() -> None:
         pass
 
 
+def _stamp_ledger_ended(session_id: str) -> None:
+    """Mark this session's reviewer ledger as ended (PR-B4 binding).
+
+    The stamp is what lets aggregate_guard refuse an APPROVED aggregate
+    built on a PAST session's reviewer records — without it, any old
+    session directory is a reusable quorum token.
+    """
+    try:
+        from core.governance.reviewer_ledger import mark_session_ended
+
+        mark_session_ended(session_id)
+    except Exception:  # best-effort — this hook never blocks
+        pass
+
+
 def main(stdin_json: dict | None = None) -> int:
     if stdin_json is None:
         stdin_json, _ = read_stdin_json()
@@ -135,6 +150,7 @@ def main(stdin_json: dict | None = None) -> int:
 
     write_digest(session_id, transcript_path)
     _end_session(session_id)
+    _stamp_ledger_ended(session_id)
     _sweep_reviewer_ledger()
     return 0
 

@@ -55,10 +55,21 @@ DOCUMENTATION-scope prose it is advisory.
 Return a `QGVerdict` JSON object (schema: `QG_VERDICT_JSON_SCHEMA` in
 `core.governance.qg_verdict`): `verdict`, `evidence_report` summary,
 `blockers` [{check, detail, file, verdict}] with exact location and
-correction — `verdict` is claim-level: CONFIRMED (you verified the
+correction — `check` names the evidence check or rubric area (the
+aggregate's coverage matching keys on it; never leave it empty),
+`verdict` is claim-level: CONFIRMED (you verified the
 error on the page/line), PLAUSIBLE (credible, unverified), REFUTED
 (disproven; recorded, never counts toward rejection) —,
-`reviewer: "copy-director-eduardo"`, `model_used`, `notes`.
+`reviewer: "copy-director-eduardo"`, `model_used`, `evidence_digest`
+(the `report_digest` of the report you interpreted — mandatory since
+PR-B4; an artifact without it cannot support an APPROVED aggregate),
+`notes`.
+
+Emit the JSON inside a ```arka-qgverdict fence in your FINAL message —
+the fence is what the hook-boundary ledger captures verbatim. Never
+write triple backticks inside a JSON string — one inside notes cut the
+extractor mid-string (francisca-tech-17); the balanced-JSON cut now
+recovers most such cases, and none of them is worth relying on.
 
 Model tier: single source is constitution `quality_gate.model_policy` —
 Quality Gate reviewers run on the best model available (frontier tier,
