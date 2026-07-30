@@ -150,10 +150,17 @@ class ClaudeCodeAdapter(RuntimeAdapter):
 def _run_claude_cli(cmd: list[str]) -> subprocess.CompletedProcess:
     from core.runtime.llm_provider import LLMUnavailable
 
+    # On Windows the caller is often a console-less pythonw.exe (scheduler
+    # daemon, dreaming). Spawning the console-subsystem claude.exe without
+    # this flag allocates a visible console window per call; closing it kills
+    # the child with 0xC000013A and the cluster is silently skipped.
+    # CREATE_NO_WINDOW is absent on POSIX, where 0 means "no extra flags".
+    no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     try:
         return subprocess.run(
             cmd, capture_output=True, text=True, encoding="utf-8",
-            errors="replace", timeout=60, check=False
+            errors="replace", timeout=60, check=False,
+            creationflags=no_window
         )
     except subprocess.TimeoutExpired as exc:
         raise LLMUnavailable("claude CLI timed out after 60s") from exc

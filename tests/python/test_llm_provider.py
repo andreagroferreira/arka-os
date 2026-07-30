@@ -420,6 +420,36 @@ class TestAdapterHeadless:
         with pytest.raises(NotImplementedError, match="claude CLI not found"):
             ClaudeCodeAdapter().headless_complete("hi")
 
+    def test_claude_code_spawns_cli_without_a_console(self, monkeypatch):
+        """The CLI must never be handed a console window of its own.
+
+        Callers include the dreaming task, which runs under a console-less
+        pythonw.exe. Without the flag Windows allocates a fresh console per
+        call; it shows nothing (stdout is piped), so the operator closes it,
+        the child dies with 0xC000013A, and the cluster is skipped as
+        "provider unavailable".
+        """
+        import subprocess as _sp
+        import sys
+
+        captured = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured.update(kwargs)
+            return _sp.CompletedProcess(
+                cmd, 0, stdout=json.dumps({"result": "ok"}), stderr="",
+            )
+
+        monkeypatch.setattr(
+            "core.runtime.claude_code.shutil.which", lambda _name: "/bin/claude"
+        )
+        monkeypatch.setattr("core.runtime.claude_code.subprocess.run", _fake_run)
+
+        ClaudeCodeAdapter().headless_complete("hi")
+
+        expected = 0x08000000 if sys.platform == "win32" else 0
+        assert captured["creationflags"] == expected
+
     def test_codex_adapter_refuses_when_cli_missing(self, monkeypatch):
         # PR-6 v4.1.0: codex headless is implemented (codex exec --json);
         # the adapter only refuses when the binary is absent from PATH.
