@@ -391,6 +391,7 @@ class TestTwinWrapperParity:
         "session-start": "core.hooks.session_start",
         "session-end": "core.hooks.session_end",
         "subagent-stop": "core.hooks.subagent_stop",
+        "user-prompt-submit": "core.hooks.user_prompt_submit",
     }
 
     # Known drift, recorded rather than hidden. These .ps1 files do call
@@ -404,7 +405,6 @@ class TestTwinWrapperParity:
         "pre-tool-use": "core.hooks.pre_tool_use",
         "post-tool-use": "core.hooks.post_tool_use",
         "stop": "core.hooks.stop",
-        "user-prompt-submit": "core.hooks.user_prompt_submit",
     }
 
     @pytest.mark.parametrize("stem,module", sorted(DELEGATING_TWINS.items()))
