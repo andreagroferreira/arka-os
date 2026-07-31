@@ -97,6 +97,19 @@ _SECURITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("curl-pipe-shell", re.compile(r"curl[^|\n]*\|\s*(?:ba|z)?sh\b")),
 )
 
+# Sanctioned per-line suppression: `arka:sec-ok(<pattern-id>): <reason>`.
+# A line that DEFINES a dangerous pattern — a deny rule, an egress
+# scanner signature — necessarily contains the pattern it names, and a
+# sweep with no escape valve forces either scanner evasion (splitting
+# the literal) or a permanently red gate. The valve is deliberately
+# narrow: the id must name the exact matched pattern and the reason
+# must be non-empty. The reason is a formality for the record; the
+# CONTROL is visibility — every suppression is carried in the
+# structured `suppressions` / `suppressed_count` fields of the
+# CheckResult (immune to summary truncation), and the string summary
+# ends with a `(+N more suppressed)` marker when the listing is capped.
+_SEC_OK_RE = re.compile(r"arka:sec-ok\(([a-z0-9-]+)\):\s*(\S.+)")
+
 
 @dataclass
 class CheckResult:
@@ -109,6 +122,11 @@ class CheckResult:
     exit_code: int | None
     summary: str
     details_path: str | None = None
+    # security-grep only: the FULL suppression record, structured so it
+    # bypasses summary truncation entirely. Empty for other checks and
+    # for pre-existing corpus records.
+    suppressions: list[str] = field(default_factory=list)
+    suppressed_count: int = 0
 
 
 @dataclass
@@ -509,26 +527,48 @@ def _check_coverage(
     return _skip("coverage", "no coverage.xml or junit.xml on disk")
 
 
-def _grep_lines(path: Path, lines: list[str]) -> list[str]:
-    hits = []
-    for lineno_or_text in lines:
-        for name, pattern in _SECURITY_PATTERNS:
-            if pattern.search(lineno_or_text):
-                hits.append(f"{path} [{name}]: {lineno_or_text.strip()[:120]}")
-    return hits
+def _line_matches(line: str) -> tuple[list[str], list[str]]:
+    """(flagged, suppressed) pattern names for one line.
+
+    A pattern is suppressed only when the line carries an
+    ``arka:sec-ok(<id>): <reason>`` annotation whose id names EXACTLY
+    that pattern and whose reason is non-empty. A wrong id, a bare
+    annotation, or an empty reason suppresses nothing.
+    """
+    ok = _SEC_OK_RE.search(line)
+    allowed = ok.group(1) if ok else None
+    flagged: list[str] = []
+    suppressed: list[str] = []
+    for name, pattern in _SECURITY_PATTERNS:
+        if pattern.search(line):
+            (suppressed if name == allowed else flagged).append(name)
+    return flagged, suppressed
 
 
-def _grep_file(path: Path) -> list[str]:
+def _grep_lines(
+    path: Path, lines: list[tuple[int, str]]
+) -> tuple[list[str], list[str]]:
+    hits, suppressed = [], []
+    for lineno, text in lines:
+        flagged, quiet = _line_matches(text)
+        hits.extend(
+            f"{path}:{lineno} [{n}]: {text.strip()[:120]}" for n in flagged
+        )
+        suppressed.extend(f"{path}:{lineno} [{n}]" for n in quiet)
+    return hits, suppressed
+
+
+def _grep_file(path: Path) -> tuple[list[str], list[str]]:
     try:
         text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
-        return []
-    hits = []
+        return [], []
+    hits, suppressed = [], []
     for lineno, line in enumerate(text.splitlines(), start=1):
-        for name, pattern in _SECURITY_PATTERNS:
-            if pattern.search(line):
-                hits.append(f"{path}:{lineno} [{name}]")
-    return hits
+        flagged, quiet = _line_matches(line)
+        hits.extend(f"{path}:{lineno} [{n}]" for n in flagged)
+        suppressed.extend(f"{path}:{lineno} [{n}]" for n in quiet)
+    return hits, suppressed
 
 
 def _diff_base(project_dir: Path) -> str | None:
@@ -543,11 +583,18 @@ def _diff_base(project_dir: Path) -> str | None:
     return None
 
 
-def _added_lines(project_dir: Path, base: str, name: str) -> list[str] | None:
-    """Lines ADDED by this change (committed + working tree) vs base.
+_HUNK_HEADER_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 
-    Returns None when git cannot answer — callers fall back to the
-    whole-file scan rather than silently passing.
+
+def _added_lines(
+    project_dir: Path, base: str, name: str
+) -> list[tuple[int, str]] | None:
+    """(line number, text) pairs ADDED by this change vs base.
+
+    Line numbers come from the ``+`` side of the ``-U0`` hunk headers,
+    so findings carry a location in both scan modes. Returns None when
+    git cannot answer — callers fall back to the whole-file scan
+    rather than silently passing.
     """
     proc = subprocess.run(
         ["git", "diff", "-U0", base, "--", name],
@@ -555,11 +602,16 @@ def _added_lines(project_dir: Path, base: str, name: str) -> list[str] | None:
     )
     if proc.returncode != 0:
         return None
-    return [
-        line[1:]
-        for line in proc.stdout.splitlines()
-        if line.startswith("+") and not line.startswith("+++")
-    ]
+    added: list[tuple[int, str]] = []
+    lineno = 0
+    for line in proc.stdout.splitlines():
+        header = _HUNK_HEADER_RE.match(line)
+        if header:
+            lineno = int(header.group(1))
+        elif line.startswith("+") and not line.startswith("+++"):
+            added.append((lineno, line[1:]))
+            lineno += 1
+    return added
 
 
 def _check_security_grep(
@@ -578,29 +630,56 @@ def _check_security_grep(
     if not changed:
         return _skip("security-grep", "no changed files provided")
     base = _diff_base(project_dir)
-    hits: list[str] = []
+    hits, suppressed = [], []
     mode = "added-lines" if base else "whole-file"
     for name in changed:
-        path = Path(name)
-        if not path.is_absolute():
-            path = project_dir / name
-        if not path.is_file():
+        path = _resolve_changed_file(project_dir, name)
+        if path is None:
             continue
         added = _added_lines(project_dir, base, name) if base else None
-        if added is None:
-            hits.extend(_grep_file(path))
-        else:
-            hits.extend(_grep_lines(path, added))
+        found, quiet = (
+            _grep_file(path) if added is None else _grep_lines(path, added)
+        )
+        hits.extend(found)
+        suppressed.extend(quiet)
+    return CheckResult(
+        check="security-grep", ran=True, passed=not hits,
+        command=f"security-grep ({mode}) over {len(changed)} changed file(s)",
+        exit_code=None, summary=_tail(_grep_summary(hits, suppressed)),
+        suppressions=list(suppressed), suppressed_count=len(suppressed),
+    )
+
+
+def _resolve_changed_file(project_dir: Path, name: str) -> Path | None:
+    path = Path(name)
+    if not path.is_absolute():
+        path = project_dir / name
+    return path if path.is_file() else None
+
+
+def _grep_summary(hits: list[str], suppressed: list[str]) -> str:
+    """String form of the sweep outcome, capped but never quietly.
+
+    Both listings cap at ``_MAX_GREP_HITS`` with an explicit ``+N
+    more`` marker. The suppression record rides at the END of the
+    string because ``_tail`` keeps the tail — and the authoritative
+    record is the structured ``suppressions`` field, not this string.
+    """
     summary = (
         "no security patterns matched"
         if not hits
         else "; ".join(hits[:_MAX_GREP_HITS])
     )
-    return CheckResult(
-        check="security-grep", ran=True, passed=not hits,
-        command=f"security-grep ({mode}) over {len(changed)} changed file(s)",
-        exit_code=None, summary=_tail(summary),
-    )
+    if len(hits) > _MAX_GREP_HITS:
+        summary += f" (+{len(hits) - _MAX_GREP_HITS} more hits)"
+    if suppressed:
+        summary += (
+            f"; suppressed with arka:sec-ok justification: "
+            f"{'; '.join(suppressed[:_MAX_GREP_HITS])}"
+        )
+        if len(suppressed) > _MAX_GREP_HITS:
+            summary += f" (+{len(suppressed) - _MAX_GREP_HITS} more suppressed)"
+    return summary
 
 
 def _check_spellcheck(
