@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.45.0] - 2026-07-31
+
+### Added
+- **Explicit Skill invocation contract (PR-A4, #438 — repair workstream A):**
+  routing IS tool invocation. The SessionStart context gains
+  `[ARKA:SKILL-CONTRACT]` — a department route is fulfilled by calling the
+  department's hub skill BEFORE substantive work; announcing the squad in
+  prose without invoking the skill is not routing. Hub names are never
+  derived by concatenation (the `arka-<dept>` template produced
+  `Skill(arka-lead)`, a hub no deploy path creates).
+- **Imperative Synapse L5 hints:** `[hint:/cmd]` becomes
+  `[arka:skill-hint] Skill(arka-dev) -> /dev feature <description>` — the
+  exact call to make. Department -> hub map with six load-bearing keys
+  (mkt/fin/strat/lead aliases + the two orchestrator entries), parity-pinned
+  to the repo's alias table; each hint pairs the hub with its OWN command
+  (the top-2 legitimately spans departments on the live registry).
+- Output style and CLAUDE.md rewritten invocation-first; the announce-only
+  bullet that taught routing-theatre is gone.
+
+### Changed
+- Zero enforcement change: no gate reads the new marker yet (A5a shadow-deny
+  and the A5b flip stay telemetry-gated per the campaign plan).
+
 ## [4.44.0] - 2026-07-30
 
 ### Added
