@@ -1,0 +1,120 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: harness-manager
+  project: arka-os
+  status: approved
+  date_created: "2026-08-01"
+  date_approved: "2026-08-01"
+  approved_by: operator
+  canonical: "Obsidian: Projects/ArkaOS/Specs/SPEC-harness-manager.md"
+  overview: >
+    PR-C2 — feat(harness): ClaudeConfigManager + `npx arkaos harness`.
+    Second slice of workstream C. Builds the WRITE side on the C1
+    read-only foundation: a manager that asserts ArkaOS ownership of
+    the Claude Code harness under the ownership policies that apply to
+    the claude-code surfaces — own-subset for hooks and
+    autoMode.hard_deny, seed for statusLine and worktree; own and
+    operator stay declared vocabulary until a surface needs them — an
+    ownership manifest at
+    ~/.arkaos/ownership.json recording what was asserted and when, a
+    mutation audit trail at ~/.arkaos/audit/harness-mutations.jsonl
+    (keys and surfaces only — NEVER env values), and the CLI verbs
+    status | assert | restore | harden | flags wired through
+    installer/cli.js -> core.harness.cli (same spawnSync pattern as
+    `npx arkaos shield`). Inherits M6 from the C1 gate register:
+    drift/assert must detect a hook entry whose command points at a
+    STALE ArkaOS root (basename matching alone reads it as
+    present-and-correct).
+  acceptance_criteria:
+    - "status: read-only — drift report + manifest state, JSON with
+      --json; never mutates (byte-identical settings before/after)"
+    - "assert: applies the runtime spec under the policies — own-subset
+      surfaces (hooks, autoMode.hard_deny) get ArkaOS entries ensured
+      and operator entries preserved verbatim; seed surfaces
+      (statusLine, worktree) are written ONLY when absent — an
+      operator-adopted seed surface is never reverted by assert;
+      operator surfaces are never touched"
+    - "restore: assert PLUS re-seeding adopted seed surfaces back to
+      the ArkaOS defaults — the explicit override, named restore so the
+      operator chooses it deliberately"
+    - "harden: assert PLUS a harness_scanner grade of the resulting
+      tree; exits 2 when the grade is below B (any CRITICAL forces F —
+      core/governance/harness_scanner.py). The hard-deny merge is not
+      harden's addition: every assert does it"
+    - "REFUSAL over coercion (QG r1): a settings file that cannot be
+      READ is never overwritten (report.refused, exit 1), and an
+      operator value of an unexpected TYPE is left untouched with a
+      `refused` action — r1 clobbered env/permissions/plugins on a
+      corrupt file and deleted operator hooks and deny rules on a type
+      mismatch, both reporting success"
+    - "the accepted hook directories include ~/.arkaos/config/hooks,
+      where the installer actually deploys (QG r1 B1: every healthy
+      install read as stale-root and was repointed at the purgeable
+      npx cache); a repair preserves the existing .sh/.ps1/.cjs suffix
+      so the Node fastpath is never silently downgraded"
+    - "hook commands are normalised before matching (quotes stripped,
+      interpreter prefix dropped) — matching the raw string appended a
+      DUPLICATE registration, firing every ArkaOS hook twice"
+    - "created and repaired hook commands are WRITTEN into
+      ~/.arkaos/config/hooks whenever the install is there, because
+      the resolved root is routinely an npx cache that `npm cache
+      clean` purges; the resolved root is the fallback for a source
+      checkout with no install (QG r2, Francisca B1)"
+    - "a hook command is matched on the tokens up to the first shell
+      operator, so a redirect whose target carries a hook suffix
+      (`stop.sh 2>/tmp/hook-debug.sh`) or a suffix-less script
+      (`bash <dir>/stop 2>/dev/null`) cannot hide the ArkaOS entry and
+      duplicate the registration (QG r2, Francisca B2)"
+    - "the cut fires only where a SHELL would see an operator (token
+      start, after a hook script, after a file-descriptor number), so
+      an install path containing `&` or `;` is a path and not a
+      command boundary; assert stays idempotent — three consecutive
+      asserts leave exactly one registration per event (QG r4,
+      Francisca B2: cutting on the character rather than the position
+      made the manager stop recognising its own entry and append a
+      group per run)"
+    - "an entry whose every divergence is unrepairable is reported as
+      `unrepaired`, never as `repaired` — a repaired label on a
+      surface nothing repaired is the silent success this package
+      exists to kill (QG r3, Eduardo)"
+    - "flag VALUES are validated per flag (hardEnforcement /
+      specialistEnforcement: true|false; frontendGate: off|warn|hard)
+      — the gates read the first two with bool(), so an unvalidated
+      'warn' silently meant hard enforcement"
+    - "flags: reads and sets the enforcement feature flags in
+      ~/.arkaos/config.json (hooks.hardEnforcement, hooks.frontendGate,
+      hooks.specialistEnforcement) — set requires an explicit
+      --set name=value; never flips implicitly"
+    - "every mutation appends one audit line (ts, verb, surface,
+      action, detail, plus the surface sha256 on settings mutations; a
+      flag mutation carries the value TYPE name in detail and no
+      digest) to ~/.arkaos/audit/harness-mutations.jsonl — never a
+      settings value, never an env var value"
+    - "the manifest records surface, policy, last_asserted,
+      content_sha256 for every surface the run actually asserted;
+      surfaces skipped as adopted or refused are written back
+      unstamped; load via the C1 tolerant loader"
+    - "self-consistency (plan C2): assert into a tmp HOME then
+      harness_scanner.scan() on the result scores grade A or B with
+      zero CRITICAL findings"
+    - "M6 (inherited, #439 register): drift gains root-staleness — a
+      hook entry whose command basename matches but whose directory is
+      neither the current resolved root's hooks dir nor the deployed
+      ~/.arkaos tree reports diverged (stale-root), and assert repairs
+      it; operator hooks (non-ArkaOS basenames) stay untouched"
+    - writes go through the C1 atomic writer; a crash mid-assert leaves
+      the previous settings intact
+    - CLI wiring in installer/cli.js follows the shield spawnSync
+      pattern verbatim (exit code propagated); help text updated; the
+      CLI never surfaces a traceback — an unexpected exception exits 1
+      with one line
+    - "suite green, ruff clean; no bats coverage — shield has none
+      either, so there is no CLI bats harness to mirror"
+  non_goals:
+    - no shield --fix (C3), no installer ownership handover (C4), no
+      CLAUDE.md managed block (C5), no API/APP surface (C6-C9)
+    - no mcpServers / enabledPlugins / keybindings (C10 deferred)
+    - flag FLIPS to hard remain operator decisions (A5b criteria) —
+      flags only reads/sets what the operator names explicitly

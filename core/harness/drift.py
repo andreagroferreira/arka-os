@@ -26,6 +26,9 @@ ignore the report (the harness_scanner noise lesson).
 
 from __future__ import annotations
 
+import os
+import re
+import shlex
 import sys
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -187,16 +190,147 @@ def _check_hooks(
     hooks = settings.get("hooks")
     hooks = hooks if isinstance(hooks, dict) else {}
     is_windows = (platform or sys.platform) == "win32"
+    accepted = _accepted_hook_dirs(report.settings_path, hooks_root)
     for reg in spec.hook_registrations:
         if reg.posix_only and is_windows:
             continue
         if reg.conditional and not _script_deployed(reg, hooks_root):
             continue
-        _check_registration(report, reg, hooks.get(reg.event))
+        _check_registration(report, reg, hooks.get(reg.event), accepted)
+
+
+def _accepted_hook_dirs(
+    settings_path: Path, hooks_root: str | None
+) -> frozenset[str] | None:
+    """Directories an ArkaOS hook command may legitimately live in.
+
+    Three: what the installer writes (``~/.arkaos/config/hooks`` —
+    adapters/claude-code.js joins installDir with config/hooks;
+    omitting it read every healthy install as stale and repointed it
+    at the purgeable npx cache, QG C2 r1 Francisca B1), the
+    ``~/.arkaos/lib`` snapshot, and the current resolved root.
+    Anything else with an ArkaOS basename is a STALE root — the
+    split-root failure mode basename matching hid (#439 M6).
+
+    None when the root cannot be resolved: without a reference point
+    staleness cannot be judged, and flagging everything is noise.
+    """
+    home = settings_path.parent.parent  # <home>/.claude/settings.json
+    try:
+        arkaos = paths.arkaos_home(home)
+        return frozenset(
+            _normalised(candidate)
+            for candidate in (
+                arkaos / "config" / "hooks",
+                arkaos / "lib" / "config" / "hooks",
+                paths.hooks_dir(hooks_root),
+            )
+        )
+    except OSError:
+        return None
+
+
+def _normalised(path: Path) -> str:
+    """Comparable form of a directory path.
+
+    Case-folded and lexically normalised: a case variant or a ``..``
+    segment names the same directory on the operator's filesystem and
+    must not read as a different root (QG C2 r1 M2). ``resolve()`` is
+    deliberately not used — it hits the filesystem and would make a
+    read-only scan depend on what happens to exist.
+    """
+    return os.path.normcase(os.path.normpath(str(path)))
+
+
+def hook_command_path(command: object) -> Path:
+    """The script path inside a hook ``command`` string.
+
+    Operators write commands with surrounding quotes and with
+    interpreter prefixes (``bash /path/hook.sh``); matching on the raw
+    string appended a DUPLICATE registration and stripped the prefix
+    (QG C2 r1, Francisca B7). One normaliser, used by every consumer.
+    """
+    text = str(command or "").strip()
+    if not text:
+        return Path("")
+    parts = shlex.split(text) if _splittable(text) else [text]
+    parts = _before_shell_operator(parts)
+    for token in reversed(parts):
+        if token.endswith(_HOOK_SUFFIXES):
+            return Path(token)
+    for token in reversed(parts):
+        if "/" in token or "\\" in token:
+            return Path(token)
+    return Path(parts[-1]) if parts else Path("")
+
+
+_SHELL_OPERATOR_RE = re.compile(r"[|;&>]")
+_HOOK_SUFFIXES = (".sh", ".ps1", ".cjs")
+
+
+def _before_shell_operator(parts: list[str]) -> list[str]:
+    """Tokens up to the first shell operator.
+
+    Load-bearing whenever the SECOND command or the redirect target
+    would win the scan: ``stop.sh 2>/tmp/hook-debug.sh`` ends in a
+    hook suffix, ``stop.sh && /usr/local/bin/notify.sh`` chains a
+    second script, and ``bash <dir>/stop 2>/dev/null`` has no suffix
+    at all — in each case the wrong token is read as the script, the
+    ArkaOS entry goes unrecognised, and assert appends a SECOND
+    registration that fires the hook twice (QG C2 r2 Francisca B2;
+    the ``2>/dev/null`` example first documented here was already
+    handled by the suffix scan, QG C2 r3 Eduardo).
+
+    Operators attach to the previous token as often as they stand
+    alone (``stop.sh;`` vs ``stop.sh ;``), so both forms cut.
+    """
+    kept: list[str] = []
+    for token in parts:
+        head = _operator_head(token)
+        if head is None:
+            kept.append(token)
+            continue
+        if head:
+            kept.append(head)
+        break
+    return kept or parts
+
+
+def _operator_head(token: str) -> str | None:
+    """Text before a genuine shell operator in ``token``, else None.
+
+    An operator CHARACTER is not an operator POSITION: a directory
+    named ``R&D`` or ``a;b`` is an ordinary path, and cutting there
+    made the manager stop recognising the entry it had just written —
+    assert went non-idempotent, appending a Stop group per run
+    (QG C2 r4, Francisca B2; the regression came from the r3 fix for
+    the duplication bug, not from the original code). A cut is
+    genuine only where a shell would see one: at the start of the
+    token, right after a hook script, or after a file-descriptor
+    number.
+    """
+    match = _SHELL_OPERATOR_RE.search(token)
+    if match is None:
+        return None
+    head = token[: match.start()]
+    if not head or head.isdigit() or head.endswith(_HOOK_SUFFIXES):
+        return head
+    return None
+
+
+def _splittable(text: str) -> bool:
+    try:
+        shlex.split(text)
+        return True
+    except ValueError:
+        return False
 
 
 def _check_registration(
-    report: DriftReport, reg: HookRegistration, entries: Any
+    report: DriftReport,
+    reg: HookRegistration,
+    entries: Any,
+    accepted: frozenset[str] | None,
 ) -> None:
     where = f"hooks.{reg.event}" + (
         f"[matcher={reg.matcher}]" if reg.matcher else ""
@@ -210,14 +344,31 @@ def _check_registration(
             )
         )
         return
+    for detail in entry_divergences(entry, reg, accepted):
+        report.findings.append(
+            DriftFinding("settings:hooks", DriftStatus.DIVERGED, where, detail)
+        )
+
+
+def entry_divergences(
+    entry: dict, reg: HookRegistration, accepted: frozenset[str] | None
+) -> list[str]:
+    """Why an existing ArkaOS entry diverges from spec — [] when clean.
+
+    Shared with the C2 manager so drift and repair can never disagree
+    about what counts as divergent.
+    """
+    divergences = []
     timeout = entry.get("timeout")
     if timeout != reg.timeout:
-        report.findings.append(
-            DriftFinding(
-                "settings:hooks", DriftStatus.DIVERGED, where,
-                f"timeout is {timeout!r}, spec says {reg.timeout}",
-            )
+        divergences.append(f"timeout is {timeout!r}, spec says {reg.timeout}")
+    command_dir = hook_command_path(entry.get("command")).parent
+    if accepted is not None and _normalised(command_dir) not in accepted:
+        divergences.append(
+            f"stale-root: {reg.script} points at {command_dir}, not "
+            f"the current ArkaOS hooks dir"
         )
+    return divergences
 
 
 def _find_entry(reg: HookRegistration, entries: Any) -> dict | None:
@@ -233,8 +384,8 @@ def _find_entry(reg: HookRegistration, entries: Any) -> dict | None:
         for inner in group.get("hooks") or []:
             if not isinstance(inner, dict):
                 continue
-            command = str(inner.get("command", ""))
-            if command and Path(command).name in wanted:
+            name = hook_command_path(inner.get("command")).name
+            if name and name in wanted:
                 return inner
     return None
 
