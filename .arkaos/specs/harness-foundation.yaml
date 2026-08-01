@@ -1,0 +1,76 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: harness-foundation
+  project: arka-os
+  status: approved
+  date_created: "2026-07-31"
+  date_approved: "2026-07-31"
+  approved_by: operator
+  canonical: "Obsidian: Projects/ArkaOS/Specs/SPEC-harness-foundation.md"
+  overview: >
+    PR-C1 — feat(harness): core/harness/ foundation. Opens workstream C
+    of the 2026-07 repair campaign (the ArkaOS dashboard app as owner
+    of the Claude Code
+    harness). Ships the read-only foundation the ClaudeConfigManager
+    (C2) builds on: paths.py (call-time path resolution — no
+    import-time root capture), json_store.py (tolerant reads, atomic
+    writes, order-preserving merge_unique with first-occurrence-wins),
+    manifest.py (Pydantic schema for ~/.arkaos/ownership.json with the
+    own / own-subset / seed / operator policy vocabulary), spec.py
+    (desired-state registry keyed by runtime: the hard-deny rules and
+    the hook registrations ported from the installer, parity-pinned to
+    the JS sources), drift.py (spec-vs-disk comparison, read-only,
+    never raises on hostile input). No CLI, no mutation of the
+    operator's machine, no dashboard surface — those are C2+.
+  acceptance_criteria:
+    - paths are resolved at call time; no module-level path constants
+    - json_store.load_json never raises on missing / binary / truncated
+      / non-object / oversized input — it reports an error string
+    - json_store.write_json_atomic goes through same-dir tmp + rename
+      and leaves no partial file behind on failure
+    - merge_unique preserves order and first occurrence wins (operator
+      entries stay ahead of defaults when the caller puts them first)
+    - manifest policy vocabulary is exactly own / own-subset / seed /
+      operator; unknown policies fail validation
+    - manifest.load is tolerant (None + error on garbage, never raises)
+    - spec hard-deny rules are equal in full, same content and order, to
+      DEFAULT_HARD_DENY_RULES in installer/hard-deny.js (parity test
+      parses the JS source)
+    - spec hook registrations match installer/adapters/claude-code.js
+      exactly — event set, script names, timeouts, Task matcher,
+      posix-only and conditional flags (parity test parses the JS)
+    - unknown runtime is an explicit error, never a silent empty spec
+    - drift.scan built from a settings.json seeded to spec reports zero
+      missing / diverged findings
+    - drift.scan flags a removed hook as missing, a changed timeout as
+      diverged, missing hard-deny defaults as missing (one aggregated
+      finding), and never flags operator additions (extra hooks, extra
+      deny rules) as drift
+    - seed surfaces (statusLine, worktree) changed by the operator
+      report adopted — operator wins, not a defect
+    - drift.scan never raises on unreadable or hostile settings input
+    - "scope addition (evidence floor, declared): security-grep gains a
+      sanctioned per-line suppression `arka:sec-ok(<pattern-id>):
+      <reason>` — exact id required, non-empty reason required; wrong
+      id, bare annotation or annotation on another line never
+      suppresses. Needed because the hard-deny rule literals in spec.py
+      ARE the curl-pipe-shell pattern, and the aggregate guard refuses
+      APPROVED-over-fail by construction (scanner evasion via split
+      literals is not an option)"
+    - "suppression visibility survives truncation (QG r1 B1): the FULL
+      suppression record rides in structured CheckResult fields
+      (suppressions list + suppressed_count) immune to summary caps;
+      the string summary caps both listings at 20 with explicit '+N
+      more' markers, the suppression marker at the END where _tail
+      keeps it; findings carry file:line in BOTH scan modes (added-lines
+      line numbers come from the -U0 hunk headers)"
+    - suite green, ruff clean
+  non_goals:
+    - no writes to ~/.claude or ~/.arkaos on the operator's machine
+    - no CLI (npx arkaos harness — C2), no shield --fix (C3), no
+      installer changes (C4), no CLAUDE.md managed block (C5), no API
+      or ArkaOS dashboard app page (C6-C9)
+    - no mcpServers / enabledPlugins / keybindings coverage (C10
+      deferred by plan)
