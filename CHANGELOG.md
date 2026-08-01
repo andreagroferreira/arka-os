@@ -5,6 +5,43 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.46.0] - 2026-08-01
+
+### Added
+- **Harness ownership foundation (PR-C1, #439 — repair workstream C):**
+  new read-only `core/harness/` package the `ClaudeConfigManager` (C2)
+  builds on — `paths` (call-time resolution, no import-time capture),
+  `json_store` (tolerant loads that never raise on hostile input, atomic
+  same-dir tmp + rename writer preserving permission bits,
+  first-occurrence-wins `merge_unique`), `manifest` (Pydantic schema for
+  `~/.arkaos/ownership.json` with the own / own-subset / seed / operator
+  policy vocabulary), `spec` (desired-state registry keyed by runtime:
+  the 31 hard-deny rules + 11 hook registrations ported from the
+  installer sources, parity PINNED by tests that parse the JS), and
+  `drift` (spec-vs-disk scan under the never-raises contract; operator
+  additions are never drift, adopted seed surfaces never fail the
+  report). Nothing mutates the operator's machine.
+- **Deny-by-default egress policy (PR-D1, #440 — repair workstream D):**
+  new `core/egress/` package, the confidentiality guard every notebooklm
+  upload will pass (D2 wires the chokepoint — nothing calls it yet).
+  `policy.evaluate` never raises, structurally: redaction fail-closed
+  over the shared client-identifier list, a SUBSTRING residual layer
+  deliberately looser than the sanitizer (compound tokens are denied,
+  never leaked), secret and operator-home-path findings, expiring
+  allowlist (client identifiers are never allowlistable), and a hashed
+  JSONL audit trail whose finding tokens are keyed with a per-install
+  HMAC salt — an ALLOW that cannot be audited flips to denied. ADR:
+  `docs/adr/2026-07-31-egress-policy.md`.
+- **Sanctioned security-grep suppression** in the evidence engine:
+  `arka:sec-ok(<pattern-id>): <reason>` — exact pattern id + non-empty
+  reason required; every suppression is carried in structured
+  `suppressions`/`suppressed_count` fields immune to summary truncation,
+  and findings carry `file:line` in BOTH scan modes.
+
+### Fixed
+- security-grep added-lines mode now reports line numbers (parsed from
+  the `-U0` hunk headers) instead of bare file paths.
+
 ## [4.45.0] - 2026-07-31
 
 ### Added
