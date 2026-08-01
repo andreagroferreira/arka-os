@@ -47,7 +47,11 @@ class SurfaceRecord(BaseModel):
     )
     content_sha256: str | None = Field(
         default=None,
-        description="Digest of the ArkaOS-owned content at last assert",
+        description=(
+            "Digest of the surface content at last assert; on "
+            "own-subset surfaces this includes the operator entries "
+            "preserved alongside the ArkaOS ones"
+        ),
     )
 
 
