@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.47.0] - 2026-08-02
 
 ### Added
+- **NotebookLM chokepoint (PR-D2 — repair workstream D):** new
+  `core/kb/nlm_client.py`, the D1 egress guard's first call site, and
+  the only one NotebookLM needs. Every payload passes
+  `policy.evaluate` BEFORE a subprocess is constructed, so a denied
+  payload never reaches argv, an env var, a temp file or the CLI;
+  what leaves is the redacted text the decision carried. No argv
+  pass-through: callers pass typed options (`notebook`,
+  `output_format`) matched against a closed pattern and a closed set,
+  and the module renders argv itself. Degradation is a contract —
+  tool absent, timeout, nonzero exit, rejected argument, unusable
+  home and guard failure all return a `NotebookLMResult` carrying
+  `[arka:source-skipped]`, and `send()` and `check()` never raise.
+  The payload rides in a temp file — 0600, removed in a finally —
+  inside a 0700 `NOTEBOOKLM_HOME` opened `O_NOFOLLOW`; telemetry is
+  0600 in a 0700 directory and carries digests and finding KINDS,
+  never the payload, a token or a path. An import-graph test keeps
+  `core.kb` out of `core/governance`, `core/workflow` and
+  `core/release`, so a broken upstream can stall research but never a
+  gate or a release. Every path a call reads or writes under the home
+  — payload, telemetry trail, D1's audit trail and salt, and the
+  identifier list the guard redacts against — is screened at every
+  position, on every door, for a symlink the operator does not own; a
+  test walks what a real call creates and fails on anything the
+  screened set does not cover.
 - **Harness ownership manager (PR-C2, #441 — repair workstream C):**
   `npx arkaos harness status|assert|restore|harden|flags`. The manager
   asserts ArkaOS ownership of the Claude Code harness under the
@@ -40,6 +64,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Writes target the INSTALLED tree (`~/.arkaos/config/hooks`) rather
   than the resolved root, which is routinely an npx cache that
   `npm cache clean` purges.
+- **`core.egress.policy.payload_digest` is public (PR-D2 — repair
+  workstream D):** D2 is the guard's first caller outside the package,
+  and reaching for the private name would have made a rename a silent
+  break downstream.
+
+### Fixed
+- **Egress guard: `home` now scopes the redaction config (PR-D2 —
+  repair workstream D):** `policy.evaluate`'s `home` scoped the
+  home-path check, the allowlist and the audit trail but not the
+  client-identifier list, so a caller passing `home=` judged paths
+  against one machine while redacting against another — and the
+  residual-identifier layer, the substring pass that catches compounds
+  like `<client>2026`, which word-boundary redaction leaves intact,
+  read the real machine's list. Both passes are scoped now. No shipped
+  code path reached it: D1 landed in 4.46.0 with zero call sites, so
+  only a hand-written caller of `policy.evaluate(home=...)` could have
+  been affected.
 
 ## [4.46.0] - 2026-08-01
 
@@ -59,7 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   report). Nothing mutates the operator's machine.
 - **Deny-by-default egress policy (PR-D1, #440 — repair workstream D):**
   new `core/egress/` package, the confidentiality guard every notebooklm
-  upload will pass (D2 wires the chokepoint — nothing calls it yet).
+  upload passes (wired by D2, above).
   `policy.evaluate` never raises, structurally: redaction fail-closed
   over the shared client-identifier list, a SUBSTRING residual layer
   deliberately looser than the sanitizer (compound tokens are denied,
@@ -3575,7 +3616,7 @@ communication tone. Red removed, green added.
 
 ### Added (Persona archetypes catalog page — PR94b)
 
-New `/personas/archetypes` route with a browseable card grid of the
+New `/personas/archetypes` route with a browsable card grid of the
 8 starter archetypes from PR93b. Each card shows MBTI / DISC /
 Enneagram badges + description + "Create from this" button that
 deep-links to `/personas/new?archetype=<id>`. The wizard auto-detects
