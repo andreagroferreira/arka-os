@@ -5,6 +5,42 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.47.0] - 2026-08-02
+
+### Added
+- **Harness ownership manager (PR-C2, #441 — repair workstream C):**
+  `npx arkaos harness status|assert|restore|harden|flags`. The manager
+  asserts ArkaOS ownership of the Claude Code harness under the
+  policies that apply to the claude-code surfaces — own-subset for
+  hooks and `autoMode.hard_deny`, seed for `statusLine` and
+  `worktree`. `assert` ensures the ArkaOS entries while preserving
+  operator entries verbatim and never reverting an adopted seed
+  surface; `restore` is the explicitly named override that re-seeds;
+  `harden` adds a `harness_scanner` grade and exits 2 below B;
+  `flags` sets one named enforcement flag whose VALUE is validated
+  against that flag's own vocabulary. Every mutation appends surface,
+  action and either the surface digest or a type name to
+  `~/.arkaos/audit/harness-mutations.jsonl` — settings values and env
+  values never appear. The ownership manifest records `last_asserted`
+  and a per-surface `content_sha256`.
+- **Stale-root detection (M6 from the #439 register):** a hook command
+  whose basename matches but whose directory is not an accepted
+  ArkaOS hooks dir reads as DIVERGED, the split-root failure mode
+  basename matching hid. Commands are normalised before matching —
+  quotes, interpreter prefix, and a cut at the first shell operator
+  that fires only where a shell would see one, so an install path
+  containing `&` or `;` stays a path.
+
+### Changed
+- **Refusal is the default on anything unexpected:** a settings file
+  that cannot be read is never overwritten (CLI exit 1), an operator
+  value of the wrong type is left untouched with a `refused` action,
+  and an entry whose every divergence is unrepairable is reported as
+  `unrepaired` rather than `repaired`.
+- Writes target the INSTALLED tree (`~/.arkaos/config/hooks`) rather
+  than the resolved root, which is routinely an npx cache that
+  `npm cache clean` purges.
+
 ## [4.46.0] - 2026-08-01
 
 ### Added
