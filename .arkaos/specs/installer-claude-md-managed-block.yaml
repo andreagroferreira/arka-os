@@ -1,0 +1,137 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: installer-claude-md-managed-block
+  project: arka-os
+  status: approved
+  date_created: "2026-08-03"
+  date_approved: "2026-08-03"
+  approved_by: operator
+  # The operator approved the campaign plan's requirement for PR-C5
+  # ("known-hashes -> replace; unknown content -> prepend, NEVER lose")
+  # and authorised execution. The text below elaborates it.
+  canonical: "~/.claude/plans/o-que-temos-a-swirling-cascade.md (PR 4, C5)"
+  overview: >
+    `npx arkaos update` destroys operator edits to ~/.claude/CLAUDE.md.
+    installer/update.js copies the packaged template over the live file
+    with no guard, no backup and no merge, while installer/index.js on a
+    fresh install refuses to touch an existing file. The same path is
+    sacred on one code path and disposable on the other — and the one
+    that destroys is the only one that ever meets operator content,
+    because people edit CLAUDE.md AFTER installing.
+  incident:
+    - >-
+      NOT hypothetical, and not only reachable by an explicit command.
+      Measured on the operator's machine, from the registry and the
+      daemon's own log: v5.0.0 was published at 2026-08-03 21:08:37Z
+      (22:08:37 local); the launchd autoupdater
+      (io.wizardingcode.arkaos.updater.plist, StartCalendarInterval
+      10:30 + RunAtLoad — publication does NOT trigger it) started its
+      next unattended run at 22:14:01 local (the log does not record
+      what triggered that run), took the new release and ran update.js,
+      whose blind copy overwrote ~/.claude/CLAUDE.md inside that run —
+      auto-update.log step 4/9, between the 22:14:01 start and the
+      22:14:07 success line — deleting the operator's three-line
+      `/graphify` registration. Further proof: sync-state.json reset to
+      pending-sync, the graphify SKILL still present on disk with only
+      its registration gone, and the destroyed content recoverable only
+      because two independent copies happened to exist in the live
+      session transcript. An earlier revision of this passage claimed
+      "publishing caused the run" and "mtime equals the release
+      minute"; both were refuted by measurement in the QG aggregate
+      and corrected here.
+    - >-
+      The autoupdater is what makes this severe: the operator does not
+      have to run anything. After any release is published, the next
+      unattended run — scheduled or at load — destroys local
+      customisation on every machine with the updater enabled; the
+      exposure is every such run, not a one-minute window.
+  design_decisions:
+    - >-
+      the shipped instructions live inside an explicitly MARKED region;
+      once the block exists nothing outside it is rewritten, and
+      adoption never loses an operator byte. Marker convention is the
+      one already in the tree, not a third invention: HTML comments in
+      the shape used by `arka:feature:<name>:start/end` (core/sync) and
+      `arka:kb-first-prefix begin/end` (skills). Delimiters:
+      `<!-- arka:user-instructions:start -->` /
+      `<!-- arka:user-instructions:end -->`.
+    - >-
+      an UNMARKED existing file is adopted, never replaced. Two cases,
+      and the distinction is the whole point. (a) Its content matches a
+      KNOWN shipped template hash -> it is ours, wrap it in markers.
+      (b) It does not match -> it carries operator edits, so the managed
+      block is PREPENDED and every existing byte is preserved below it.
+      Case (b) must never lose a byte, and that is the acceptance
+      criterion the incident above would have failed. QG C5 r1
+      elaboration (Francisca B2, reproduced on the operator's live
+      file): a file that STARTS WITH the shipped template — the modal
+      pre-C5 shape, since every existing install was blind-copied from
+      this template and edited below it — is case (a) for its prefix
+      and case (b) for its remainder. The prefix is absorbed into the
+      managed block and only the remainder is preserved below it; a
+      plain prepend would duplicate the entire instruction set on the
+      product's highest-leverage prompt surface.
+    - >-
+      known-hash set is small and derived, not hand-typed: the template
+      has exactly ONE revision in git history (05ce86e2, 2026-04-08),
+      whose content hashes identically to the current file
+      (cf7c007c9568fe3e...). A derived, test-locked list plus a test
+      that fails when a new template revision lands without extending
+      it.
+    - >-
+      a BACKUP is written before any mutation, with the timestamped
+      name and printed path the C2/C3 harness work established. A tool
+      that has already destroyed data once earns no silent writes.
+    - >-
+      once a file is managed, the update path NEVER writes outside the
+      block, so a file whose block is missing (operator deleted the
+      markers deliberately) is left alone with a NOTICE, not silently
+      re-seeded. The operator removing our block is a decision, not
+      corruption.
+    - >-
+      fresh install (installer/index.js) keeps its existing preserve
+      semantics and gains the markers, so a file created today is
+      already adoptable tomorrow without the hash path.
+  acceptance_criteria:
+    - >-
+      an operator file survives an update byte-for-byte: a file that
+      starts with the shipped template keeps its remainder below the
+      managed block, with the prefix absorbed into it; any other
+      unmarked file that does not match a known template hash is
+      preserved whole below the block — reproduced
+      with the exact three-line /graphify block this bug destroyed on
+      2026-08-03, which must come back identical
+    - >-
+      a file whose content matches a known template hash is wrapped in
+      markers and its shipped text updated, with no duplication
+    - >-
+      running the update TWICE is idempotent: no second block, no
+      growth, byte-identical result (the C2 lesson — the non-idempotent
+      assert that produced 1->2->3 groups per run)
+    - >-
+      a file whose managed markers were deleted by the operator is NOT
+      re-seeded; the run says so and exits without writing
+    - >-
+      a backup exists before any mutation and its path is printed; the
+      backup restores the pre-update file byte-for-byte
+    - >-
+      malformed marker states are refusals with a reason, never a
+      traceback and never a silent overwrite: start without end, end
+      without start, nested, or inverted order. A non-UTF-8 file is
+      likewise a refusal (QG C5 r1, Francisca B1): rewriting a lossy
+      decode would corrupt bytes outside the block while reporting
+      success
+    - >-
+      installer/index.js on a fresh install writes the template WITH
+      markers, and the existing "already exists (preserved)" behaviour
+      is unchanged
+    - >-
+      full python and npm suites green at the head
+  out_of_scope:
+    - >-
+      other files the installer copies into the operator's home. This PR
+      fixes CLAUDE.md, which is the one with a proven incident. A sweep
+      for the same shape elsewhere is filed, not bundled — the C3 lesson
+      that six of seven rounds produced a defect from a scope extension.

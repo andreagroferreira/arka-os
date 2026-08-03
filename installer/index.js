@@ -13,6 +13,7 @@ import { deployCoreSnapshot } from "./core-snapshot.js";
 import { getUi } from "./ui.js";
 import { buildProfileRecord } from "./profile.js";
 import { readProductStats, productStatsLines } from "./product-stats.js";
+import { installUserClaudeMd, describeSyncResult } from "./claude-md.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -217,14 +218,15 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
       ok("arka-py interpreter shim installed");
     }
   }
-  const claudeMdSrc = join(ARKAOS_ROOT, "config", "user-claude.md");
-  const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");
-  if (existsSync(claudeMdSrc) && !existsSync(userClaudeMd)) {
-    copyFileSync(claudeMdSrc, userClaudeMd);
-    ok("~/.claude/CLAUDE.md created (ArkaOS user instructions)");
-  } else if (existsSync(userClaudeMd)) {
-    ok("~/.claude/CLAUDE.md already exists (preserved)");
-  }
+  // Fresh install writes the template inside managed markers (PR-C5) so
+  // later updates can manage the file via its markers, no hash path
+  // needed; an existing file keeps the historical preserve semantics.
+  const claudeMdResult = installUserClaudeMd({
+    home: homedir(),
+    templatePath: join(ARKAOS_ROOT, "config", "user-claude.md"),
+  });
+  const claudeMdReport = describeSyncResult(claudeMdResult);
+  (claudeMdReport.level === "warn" ? warn : ok)(claudeMdReport.message);
 
   // ═══ Step 10: Deploy Cognitive Scheduler ═══
   step(10, 14, "Deploying cognitive scheduler...");
