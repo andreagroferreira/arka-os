@@ -685,7 +685,36 @@ def _enqueue_cognition_capture(session_id: str, tool_text: str) -> None:
 # ─── Section 10: metrics ─────────────────────────────────────────────────
 
 
-def _log_metrics(duration_ms: int) -> None:
+def _shadow_attribution() -> dict:
+    """PR-A5a: label this (delegated) run with the flag states. The
+    labels partition by FLAG STATE only — stateful-tool and error-turn
+    delegations carry the same flags — so the shadow-forced population
+    is isolated by combining them with the ``delegation`` field
+    (``_delegation_kind``): enforcement=false, shadow=true,
+    delegation="benign" is the flow-auth rescan population that only
+    reaches Python because of shadow-deny (engine.cjs Q6), plus the
+    negligible direct-invocation/fastpath-off runs. Empty on stripped
+    installs."""
+    try:
+        from core.workflow.flow_enforcer import _feature_flag_on, shadow_deny_on
+        return {"enforcement": _feature_flag_on(), "shadow": shadow_deny_on()}
+    except Exception:
+        return {}
+
+
+def _delegation_kind(stdin_json: dict, tool_name: str, benign: bool) -> str:
+    """Why this run reached Python, derived from the payload in the same
+    precedence the shim decides delegation (engine.cjs decidePost:
+    failure event, then the stateful set, then the error trigger —
+    everything else on this path is the Q6 flow-auth rescan)."""
+    if get_str(stdin_json, "hook_event_name") == "PostToolUseFailure":
+        return "error"
+    if tool_name in ("ExitPlanMode", "Task", "Agent"):
+        return "stateful"
+    return "benign" if benign else "error"
+
+
+def _log_metrics(duration_ms: int, attribution: dict | None = None) -> None:
     metrics_file = Path.home() / ".arkaos" / "hook-metrics.json"
     lock_file = Path.home() / ".arkaos" / "hook-metrics.lock"
     metrics_file.parent.mkdir(parents=True, exist_ok=True)
@@ -706,6 +735,7 @@ def _log_metrics(duration_ms: int) -> None:
                     "hook": "post-tool-use",
                     "duration_ms": duration_ms,
                     "timestamp": now,
+                    **(attribution or {}),
                 })
                 tmp = metrics_file.with_suffix(".json.tmp")
                 tmp.write_text(json.dumps(entries[-500:]), encoding="utf-8")
@@ -776,9 +806,17 @@ def main(stdin_json: dict | None = None) -> int:
             _record_pattern_stub(tool_text, prompt)
         _record_activation(subagent_type, session_id)
 
-    # Only process further if there was an error signal (same early exit
-    # as the bash version — violations/metrics only run on error turns).
+    # Only process violations/gotchas further on error turns (same early
+    # exit as the bash version). Metrics ARE logged here first: benign
+    # turns are exactly where the shadow-forced flow-auth delegations
+    # live — skipping them left the kill-switch population unrecorded
+    # (QG r2, Eduardo B1 + Francisca B3).
     if exit_code in ("0", "") and not _ERROR_TRIGGER_RE.search(tool_text):
+        _log_metrics(
+            int((time.monotonic() - start) * 1000),
+            {**_shadow_attribution(),
+             "delegation": _delegation_kind(stdin_json, tool_name, True)},
+        )
         print("{}")
         return 0
 
@@ -802,7 +840,11 @@ def main(stdin_json: dict | None = None) -> int:
     )
 
     _enqueue_cognition_capture(session_id, tool_text)
-    _log_metrics(int((time.monotonic() - start) * 1000))
+    _log_metrics(
+        int((time.monotonic() - start) * 1000),
+        {**_shadow_attribution(),
+         "delegation": _delegation_kind(stdin_json, tool_name, False)},
+    )
 
     if violation_msg:
         # The runtime drops context whose hookEventName differs from the

@@ -249,6 +249,18 @@ def _flags_and_budget() -> dict:
             "on_corrupt": False,
             "coercion": "python-truthy",
         },
+        "shadowDeny": {
+            "path": ["hooks", "shadowDeny"],
+            # flow_enforcer.shadow_deny_on: DEFAULT ON — missing file,
+            # corrupt JSON, or missing key all mean ON (PR-A5a telemetry
+            # collects by default); an explicit value is python-truthy.
+            # The engine additionally treats a MISSING MANIFEST ENTRY as
+            # ON: delegation is the degrade-to-latency direction.
+            "on_missing_file": True,
+            "on_corrupt": True,
+            "on_missing_key": True,
+            "coercion": "python-truthy",
+        },
         "budget": {
             "section": "budget",
             "cap_keys": ["hardCapUsd", "dailyCapUsd"],

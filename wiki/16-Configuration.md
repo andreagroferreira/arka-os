@@ -55,15 +55,21 @@ if `subagent` is unavailable, it falls through silently.
 {
   "hooks": {
     "hardEnforcement": true,
-    "kbFirst": false
+    "frontendGate": "warn",
+    "specialistEnforcement": false,
+    "shadowDeny": true,
+    "kbFirst": true
   }
 }
 ```
 
 | Key | Default | What it controls |
 |---|---|---|
-| `hooks.hardEnforcement` | `true` | Gates `Write`, `Edit`, `MultiEdit`, and `Task` tool calls behind a `PreToolUse` hook that requires a `[arka:routing]` or `[arka:trivial]` marker in the recent assistant messages. When `false`, violations are logged but not blocked. Has no effect on Cursor (no `PreToolUse` hook support). |
-| `hooks.kbFirst` | `false` | Research gate: on the first external research attempt (`Context7`, `WebSearch`, `WebFetch`, `Firecrawl`) without a prior Obsidian query, emits a nudge listing top 3 vault hits and allows the call; on the second attempt in the same turn, denies. Dormant at `false` until you enable it. |
+| `hooks.hardEnforcement` | `true` | Gates `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, `Task`, and `Skill` tool calls (plus Bash commands classified as effects) behind a `PreToolUse` hook that requires a `[arka:routing]` or `[arka:trivial]` marker in the recent assistant messages. When `false`, the shadow-deny telemetry (`hooks.shadowDeny` below — on unless you disable it) records what the gate would have decided, without blocking. Has no effect on Cursor (no `PreToolUse` hook support). |
+| `hooks.frontendGate` | `"warn"` | Frontend excellence gate on UI file edits (`.vue`, `.tsx`, stylesheets, `.html`, …): requires the structured `[arka:design] benchmark=<Company> skills=<comma,list>` marker in the recent assistant messages. `"warn"` (or absent) nudges and allows; `"hard"`/`true` denies without the marker; `"off"`/`false` disables the gate. In warn and off modes, shadow-deny records what hard mode would have decided. |
+| `hooks.specialistEnforcement` | `false` | Specialist-dispatch gate: blocks squad leads from writing to specialist-owned files (per `config/agent-ownership.yaml`) without dispatching the owning specialist. When `false`, shadow-deny records what the gate would have decided. |
+| `hooks.shadowDeny` | `true` (implicit) | Shadow-deny telemetry: while an enforcement flag above is off (or its gate is in warn mode), the gate still evaluates and records `would_block` + `shadow_reason` + `shadow_ms` in its telemetry file — always allowing, never printing. This is the data that gates the future hard-enforcement flip (promotion needs would_block < 5% and zero sequences of more than 2 consecutive would-blocks in a session, over ≥ 7 days and ≥ 300 gated calls). Kill switch: set it to `false` if hook latency regresses by more than 50 ms at p90 — measure the pre-side from `shadow_ms` and the post-side from the `hook-metrics.json` entries with `delegation` benign, `shadow` true, and `enforcement` false. Only an explicit falsy value disables it — a missing file, corrupt JSON, or missing key all mean `true`. |
+| `hooks.kbFirst` | `true` (seeded) | Research gate: on the first external research attempt (`Context7`, `WebSearch`, `WebFetch`, `Firecrawl`) without a prior Obsidian query, emits a nudge listing top 3 vault hits and allows the call; on the second attempt in the same turn, denies. Seeded to `true` by the installer when unset; an explicit `false` disables it and is preserved. |
 
 ---
 
@@ -173,7 +179,10 @@ ArkaOS writes operational data to `~/.arkaos/`:
 | File | Contents |
 |---|---|
 | `telemetry/llm-cost.jsonl` | One record per LLM call: tokens, cache hits, estimated cost in USD. Append-only. Used by `/arka costs`. |
-| `telemetry/enforcement.jsonl` | One record per tool-call gate decision: tool name, reason, allowed/blocked. Used by `/arka enforcement`. |
+| `telemetry/enforcement.jsonl` | One record per tool-call gate decision: tool name, reason, allowed/blocked, plus the shadow-deny fields (`would_block`, `shadow_reason`, `shadow_ms`). Used by `/arka enforcement`. |
+| `telemetry/frontend-gate.jsonl` | One record per UI-file gate decision (frontend excellence gate), including the shadow-deny fields. |
+| `telemetry/specialist-dispatch.jsonl` | One record per specialist-dispatch gate decision, including bypass accounting and the shadow-deny fields. |
+| `hook-metrics.json` | Rolling window (last 500) of hook run durations. Post-tool-use entries written by the Python hook on POSIX carry `enforcement`/`shadow` flag labels and a `delegation` kind (benign/stateful/error); the shadow-forced population for the shadow-deny kill switch is the `delegation` benign, `shadow` true, `enforcement` false subset. |
 | `telemetry/compliance.jsonl` | One record per stop-hook check: closing marker, `[arka:meta]` tag, KB citation, sycophancy verdict. Used by `/arka compliance`. |
 | `reorganize-proposals/<date>.md` | Daily reorganization proposals from `/arka reorganize`. Never auto-applied. |
 | `plans/` | Plans saved during Gate 2 (PLAN) of the evidence flow. |

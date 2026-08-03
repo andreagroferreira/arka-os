@@ -7,8 +7,8 @@ import pytest
 
 from core.workflow import frontend_gate
 from core.workflow.frontend_gate import (
-    Decision,
     MARKER_TEMPLATE,
+    Decision,
     evaluate,
     is_heuristic_ui_file,
     is_ui_file,
@@ -30,9 +30,16 @@ def _isolated_design_auth(tmp_path, monkeypatch):
 
 @pytest.fixture
 def config(tmp_path, monkeypatch):
-    """Point CONFIG_PATH/TELEMETRY_PATH at tmp; return a mode-setter."""
+    """Point CONFIG_PATH/TELEMETRY_PATH at tmp; return a mode-setter.
+
+    flow_enforcer.CONFIG_PATH is patched to the SAME file because
+    shadow_deny_on (PR-A5a) reads it in off/warn modes — without the
+    patch these tests would read the operator's real config."""
     config_path = tmp_path / "config.json"
     monkeypatch.setattr(frontend_gate, "CONFIG_PATH", config_path)
+    from core.workflow import flow_enforcer
+    monkeypatch.setattr(flow_enforcer, "CONFIG_PATH", config_path)
+    flow_enforcer.shadow_deny_on.cache_clear()
     monkeypatch.setattr(
         frontend_gate, "TELEMETRY_PATH", tmp_path / "telemetry" / "fg.jsonl"
     )
@@ -42,6 +49,7 @@ def config(tmp_path, monkeypatch):
         config_path.write_text(
             json.dumps({"hooks": {"frontendGate": value}}), encoding="utf-8"
         )
+        flow_enforcer.shadow_deny_on.cache_clear()
 
     return set_mode
 
@@ -161,9 +169,14 @@ class TestModes:
         assert not _evaluate([]).allow
 
     def test_off_disables_gate(self, config):
+        # Off still ALLOWS unconditionally; shadow-deny (PR-A5a)
+        # defaults ON and records what hard mode would have decided.
         config(False)
         decision = _evaluate([])
         assert decision.allow and decision.reason == "flag-off"
+        assert decision.would_block is True
+        assert decision.shadow_reason == "no-design-marker"
+        assert decision.to_stderr_message() == ""
 
     def test_corrupt_config_degrades_to_warn(self, config, monkeypatch):
         frontend_gate.CONFIG_PATH.write_text("{not json", encoding="utf-8")

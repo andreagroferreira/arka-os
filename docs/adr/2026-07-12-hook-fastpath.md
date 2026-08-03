@@ -44,7 +44,7 @@ build.
 |---|---|---|
 | Pre P4 | tool ∉ flow-gated ∧ ∉ research set | kb_first.jsonl append (`tool-not-gated`) |
 | Pre P5 | Bash ∧ discovery (`bash_is_effect` replica) ∧ no active budget cap | kb_first + enforcement.jsonl appends |
-| Post Q6 | benign exit ∧ no error-trigger ∧ tool ∉ {ExitPlanMode, Task, Agent} ∧ (hardEnforcement off ∨ flow-auth fresh) | mcp-usage.jsonl append for `mcp__*`, stdout `{}` |
+| Post Q6 | benign exit ∧ no error-trigger ∧ tool ∉ {ExitPlanMode, Task, Agent} ∧ ((hardEnforcement off ∧ shadowDeny off) ∨ flow-auth fresh) | mcp-usage.jsonl append for `mcp__*`, stdout `{}` |
 
 Key semantic pins (all corpus-tested):
 
@@ -68,12 +68,37 @@ Key semantic pins (all corpus-tested):
 
 Python's PostToolUse re-confirms flow authorization from the transcript
 on every call. The shim skips that rescan only when it is provably
-redundant: hardEnforcement off (the pre-side flag check short-circuits
-before ever reading auth) or a confirmed auth within TTL. The skipped
-refresh self-heals: when the auth ages past TTL, Q7 delegates, Python
-rescans and re-confirms, and Q6 resumes. Worst case is one delegated
-call every 12h; flipping hardEnforcement ON mid-session behaves the
-same way (first stale-auth call delegates and re-confirms).
+redundant (this condition is amended below): hardEnforcement off (the
+pre-side flag check short-circuits before ever reading auth) or a
+confirmed auth within TTL. The skipped refresh self-heals: when the auth
+ages past TTL, Q7 delegates, Python rescans and re-confirms, and Q6
+resumes. Worst case is one delegated call every 12h; flipping
+hardEnforcement ON mid-session behaves the same way (first stale-auth
+call delegates and re-confirms).
+
+**Amended 2026-08-03 (PR-A5a shadow-deny):** the rescan is also
+load-bearing when `hooks.shadowDeny` is on — the shadow evaluation runs
+the same grace/confirm state machine with hardEnforcement off, and
+skipping the rescan would overstate its `would_block` telemetry. The
+Q6 skip condition is now "(hardEnforcement off AND shadowDeny off) or
+flow-auth fresh"; `shadowDeny` defaults on (missing file/key or corrupt
+config all mean on — `engine.cjs shadowDenyOn`, mirrored from
+`flow_enforcer.shadow_deny_on` via `manifest.flags.shadowDeny`). A
+missing manifest entry (old manifest + new engine, mid-upgrade only)
+also reads as on — delegation is the degrade-to-latency direction.
+The cost of the extra delegations this forces (the Python chain instead
+of the node fast-exit, until a session confirms flow auth) is priced in
+`~/.arkaos/hook-metrics.json`: post-tool-use entries written by the
+Python hook on POSIX carry `enforcement`/`shadow` flag labels plus a
+`delegation` kind derived from the payload in the shim's own decision
+precedence (failure event, then the stateful set, then the error
+trigger — everything else is benign), and metrics are logged on benign
+turns too, which is exactly where the shadow-forced rescans live. The
+flag labels alone partition by flag state (stateful and error
+delegations carry the same flags); the shadow-forced population is the
+delegation="benign", shadow=true, enforcement=false subset. The
+pre-side cost is measured separately from the `shadow_ms` telemetry
+field.
 
 ### Telemetry parity
 

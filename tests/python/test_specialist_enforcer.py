@@ -36,11 +36,19 @@ def _isolated_specialist_auth(tmp_path, monkeypatch):
 
 @pytest.fixture
 def tmp_config(tmp_path, monkeypatch):
-    """Isolate config + telemetry + ownership paths to tmp_path."""
+    """Isolate config + telemetry + ownership paths to tmp_path.
+
+    flow_enforcer.CONFIG_PATH is patched to the SAME file because
+    shadow_deny_on (PR-A5a) reads it on every flag-off evaluation —
+    without the patch these tests would read the operator's real
+    ~/.arkaos/config.json."""
     home = tmp_path / "home"
     home.mkdir()
     ownership_yaml = tmp_path / "agent-ownership.yaml"
     monkeypatch.setattr(specialist_enforcer, "CONFIG_PATH", home / "config.json")
+    from core.workflow import flow_enforcer
+    monkeypatch.setattr(flow_enforcer, "CONFIG_PATH", home / "config.json")
+    flow_enforcer.shadow_deny_on.cache_clear()
     monkeypatch.setattr(
         specialist_enforcer,
         "TELEMETRY_PATH",
@@ -59,6 +67,8 @@ def _write_config(home: Path, hard_enforcement: bool) -> None:
         json.dumps({"hooks": {"specialistEnforcement": hard_enforcement}}),
         encoding="utf-8",
     )
+    from core.workflow import flow_enforcer
+    flow_enforcer.shadow_deny_on.cache_clear()
 
 
 def _write_ownership(path: Path, rules: list[dict] | None = None) -> None:
@@ -143,7 +153,9 @@ def test_task_tool_always_allows(tmp_config):
 
 def test_feature_flag_off_allows_all(tmp_config):
     _write_ownership(tmp_config["ownership_yaml"])
-    # No config.json → flag defaults to off
+    # No config.json → flag defaults to off; shadow-deny (PR-A5a)
+    # defaults ON: the pipeline runs silently and records the would-be
+    # outcome (no persona in an unreadable transcript → never-routed).
     d = evaluate(
         tool_name="Write",
         transcript_path="/nonexistent",
@@ -152,6 +164,8 @@ def test_feature_flag_off_allows_all(tmp_config):
     )
     assert d.allow is True
     assert d.reason == "feature-flag-off"
+    assert d.would_block is False
+    assert d.shadow_reason == "never-routed"
 
 
 def test_feature_flag_explicit_false(tmp_config):
@@ -165,6 +179,8 @@ def test_feature_flag_explicit_false(tmp_config):
     )
     assert d.allow is True
     assert d.reason == "feature-flag-off"
+    assert d.would_block is False
+    assert d.shadow_reason == "never-routed"
 
 
 # ─── No routing tag → defer to flow_enforcer ──────────────────────────
