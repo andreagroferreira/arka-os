@@ -28,6 +28,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from core.egress import allowlist, audit, redact
 from core.governance.harness_scanner import secret_labels
@@ -42,7 +43,7 @@ class Finding:
     #          # | audit-unavailable | payload-not-text | guard-failure
     token: str
 
-    def to_audit(self, salt: bytes = b"") -> dict:
+    def to_audit(self, salt: bytes = b"") -> dict[str, Any]:
         return {
             "kind": self.kind,
             "token_sha16": (
@@ -64,7 +65,7 @@ class EgressDecision:
     redacted_sha256: str = ""
     audited: bool = False
 
-    def to_audit(self, salt: bytes = b"") -> dict:
+    def to_audit(self, salt: bytes = b"") -> dict[str, Any]:
         return {
             "allowed": self.allowed,
             "destination": self.destination,
@@ -99,24 +100,41 @@ def evaluate(
 ) -> EgressDecision:
     """Judge one payload against the policy. Never raises.
 
-    ``home`` scopes the home-path check and the default allowlist /
-    audit locations; ``now`` pins allowlist expiry for tests.
+    ``home`` scopes the home-path check, the redaction config and the
+    default allowlist / audit locations; ``now`` pins allowlist expiry
+    for tests.
     """
     destination = _safe_str(destination)
-    # Digest computed ONCE, before any failure path, so no handler
-    # ever re-executes the operation that failed (QG D1 r2 E-B1).
-    payload_digest = _sha256(text) if isinstance(text, str) else ""
+    # ONCE, before any failure path, so no handler re-runs what
+    # failed. Named `digest`: `payload_digest` shadowed the public
+    # function here (QG D2 r12, Francisca M2).
+    digest = payload_digest(text) if isinstance(text, str) else ""
     try:
         decision = _judge(
             text, destination, config_path, home, allowlist_path, now
         )
     except Exception as exc:  # never-raises boundary — deny, not crash
-        decision = EgressDecision(
-            allowed=False, destination=destination,
-            payload_sha256=payload_digest,
-            findings=[Finding("guard-failure", type(exc).__name__)],
-        )
+        decision = _guard_failure(destination, digest, exc)
     return _audited(decision, home, audit_path, now)
+
+
+def _guard_failure(
+    destination: str, digest: str, exc: BaseException
+) -> EgressDecision:
+    return EgressDecision(
+        allowed=False, destination=destination, payload_sha256=digest,
+        findings=[Finding("guard-failure", type(exc).__name__)],
+    )
+
+
+def default_redaction_config_path(home: Path | None = None) -> Path:
+    """The identifier list *home* implies.
+
+    Mirrors ``leak_scanner._DEFAULT_CONFIG_PATH`` for the real home, so
+    scoping by ``home`` never changes production behaviour — pinned by
+    ``test_egress_policy.py`` rather than by this comment.
+    """
+    return (home or Path.home()) / ".arkaos" / "redaction-clients.json"
 
 
 def _safe_str(value: object) -> str:
@@ -150,7 +168,7 @@ def _audited(
     return decision
 
 
-def enforce(text: object, destination: str, **kwargs) -> str:
+def enforce(text: object, destination: str, **kwargs: Any) -> str:
     """The redacted text cleared to leave, or :class:`EgressDeniedError`."""
     decision = evaluate(text, destination, **kwargs)
     if not decision.allowed or decision.redacted_text is None:
@@ -167,41 +185,70 @@ def _judge(
     now: datetime | None,
 ) -> EgressDecision:
     if not isinstance(text, str):
-        return EgressDecision(
-            allowed=False, destination=destination, payload_sha256="",
-            findings=[Finding("payload-not-text", type(text).__name__)],
-        )
+        return _not_text(destination, text)
     decision = EgressDecision(
         allowed=False, destination=destination,
-        payload_sha256=_sha256(text),
+        payload_sha256=payload_digest(text),
     )
-    clean, failure = _redacted(text, config_path)
-    if failure is not None:
-        decision.findings.append(failure)
+    # One scoped path for both layers: scoping only the redaction call
+    # left residual_identifiers reading the real machine's list
+    # (QG D2 r3, Francisca B1).
+    scoped = _scoped_config(config_path, home)
+    clean = _redacted(text, scoped)
+    if isinstance(clean, Finding):
+        decision.findings.append(clean)
         return decision
     _collect_findings(
-        decision, clean, destination, config_path, home, allowlist_path, now
+        decision, clean, destination, scoped, home, allowlist_path, now
     )
     if not decision.findings:
         decision.allowed = True
         decision.redacted_text = clean
-        decision.redacted_sha256 = _sha256(clean)
+        decision.redacted_sha256 = payload_digest(clean)
     return decision
 
 
-def _sha256(text: str) -> str:
+def _not_text(destination: str, text: object) -> EgressDecision:
+    return EgressDecision(
+        allowed=False, destination=destination, payload_sha256="",
+        findings=[Finding("payload-not-text", type(text).__name__)],
+    )
+
+
+def payload_digest(text: str) -> str:
     """Total over any str — surrogatepass, because a payload holding a
     lone surrogate (routine from errors="surrogateescape" decoding or
     json.loads of an escape) must be DIGESTIBLE to be denied with an
-    audit line (QG D1 r2 E-B1)."""
+    audit line (QG D1 r2 E-B1).
+
+    Public because callers outside this package need the same digest
+    the audit trail records; reaching for a private symbol made a D1
+    rename a silent runtime break downstream (QG D2 r1, Francisca M6).
+    """
     payload = text.encode("utf-8", errors="surrogatepass")
     return hashlib.sha256(payload).hexdigest()
 
 
-def _redacted(
-    text: str, config_path: Path | None
-) -> tuple[str | None, Finding | None]:
-    """``(clean_text, None)`` or ``(None, denial_finding)``.
+def _scoped_config(config_path: Path | None, home: Path | None) -> Path | None:
+    """The redaction config *home* implies, unless one was named.
+
+    ``home`` scoped ``allowlist_path`` and ``audit_path`` but NOT the
+    redaction config, so a caller passing ``home=`` and forgetting
+    ``config_path`` judged paths against one home while redacting
+    against another (QG D2 r1, Francisca M7).
+
+    Called from inside ``_judge``, i.e. inside ``evaluate``'s try: the
+    same defaulting one frame up sat OUTSIDE it, and a non-Path home
+    turned the never-raises boundary into a TypeError — the very shape
+    QG D1 r2 F-M5 already closed once.
+    """
+    if config_path is not None or home is None:
+        return config_path
+    return default_redaction_config_path(home)
+
+
+def _redacted(text: str, config_path: Path | None) -> str | Finding:
+    """The clean text, or the finding that denies it.
 
     A redaction that CRASHES proves nothing about the payload — same
     posture as a missing config: denied, never allowlistable (QG D1
@@ -209,11 +256,16 @@ def _redacted(
     """
     try:
         clean, _counts = redact.redact(text, config_path)
-        return clean, None
+        # Annotated: redact() is untyped, so `clean` arrives as Any and
+        # the union return silently degrades to Any (mypy no-any-return,
+        # surfaced only with --follow-imports=skip —
+        # QG D2 r3, Francisca M3).
+        clean_text: str = clean
+        return clean_text
     except redact.SanitizerConfigMissing:
-        return None, Finding("redaction-config-missing", "")
+        return Finding("redaction-config-missing", "")
     except Exception as exc:
-        return None, Finding("redaction-failed", type(exc).__name__)
+        return Finding("redaction-failed", type(exc).__name__)
 
 
 def _collect_findings(

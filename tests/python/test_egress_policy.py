@@ -102,6 +102,69 @@ class TestRedaction:
         assert "[CLIENT-1]" in decision.redacted_text
         assert decision.redacted_sha256 != decision.payload_sha256
 
+    def test_home_scopes_the_redaction_config(self, tmp_path):
+        """``home`` scoped the allowlist and the audit trail but not the
+        redaction config, so a caller who passed home= and forgot
+        config_path redacted against the REAL machine's list while
+        judging paths against tmp_path (QG D2 r1, Francisca M7)."""
+        home = tmp_path / "home"
+        (home / ".arkaos").mkdir(parents=True)
+        (home / ".arkaos" / "redaction-clients.json").write_text(
+            json.dumps({"clients": ["zetacorp"]}), encoding="utf-8"
+        )
+        decision = evaluate(
+            "the zetacorp migration", DEST, home=home,
+            allowlist_path=tmp_path / "allow.json",
+            audit_path=tmp_path / "audit.jsonl", now=NOW,
+        )
+        assert decision.allowed
+        assert "zetacorp" not in decision.redacted_text.lower()
+
+    def test_home_scopes_the_residual_layer_too(self, tmp_path):
+        """Scoping only the redaction call left residual_identifiers
+        reading the REAL machine's list: a compound token from the
+        home-scoped list passed the guard intact, because the
+        sanitizer's word boundary skips <client>2026 and the second
+        layer never saw the name (QG D2 r3, Francisca B1)."""
+        home = tmp_path / "home"
+        (home / ".arkaos").mkdir(parents=True)
+        (home / ".arkaos" / "redaction-clients.json").write_text(
+            json.dumps({"clients": ["zetacorp"]}), encoding="utf-8"
+        )
+        decision = evaluate(
+            "the zetacorp2026 migration", DEST, home=home,
+            allowlist_path=tmp_path / "allow.json",
+            audit_path=tmp_path / "audit.jsonl", now=NOW,
+        )
+        assert not decision.allowed
+        assert kinds(decision) == ["client-identifier"]
+        assert decision.redacted_text is None
+
+    def test_the_scoped_default_matches_the_sanitizer_default(self):
+        """Scoping must not MOVE the production path: the home-derived
+        default and the sanitizer's own default are the same file."""
+        from core.governance import leak_scanner
+
+        assert (
+            policy.default_redaction_config_path()
+            == leak_scanner._DEFAULT_CONFIG_PATH
+        )
+
+    def test_an_explicit_config_path_still_wins_over_home(self, tmp_path):
+        home = tmp_path / "home"
+        (home / ".arkaos").mkdir(parents=True)
+        (home / ".arkaos" / "redaction-clients.json").write_text(
+            json.dumps({"clients": ["zetacorp"]}), encoding="utf-8"
+        )
+        decision = evaluate(
+            "the Acme-Alpha numbers", DEST, home=home,
+            config_path=write_clients(tmp_path),
+            allowlist_path=tmp_path / "allow.json",
+            audit_path=tmp_path / "audit.jsonl", now=NOW,
+        )
+        assert decision.allowed
+        assert "[CLIENT-1]" in decision.redacted_text
+
     def test_clean_payload_passes_unchanged(self, tmp_path):
         decision = run(tmp_path, "generic research question")
         assert decision.allowed
@@ -264,6 +327,14 @@ class TestNeverRaises:
         in r2 (QG D1 r2 F-M5) — now it denies via the path guard."""
         decision = evaluate("hello", DEST, home="not-a-path")
         assert not decision.allowed
+
+    def test_non_path_home_survives_the_config_defaulting(self):
+        """The home-scoped config default re-created F-M5's shape when
+        it sat one frame up: `str / str` is a TypeError, and outside
+        the try it escaped the never-raises boundary. It now denies."""
+        decision = evaluate("hello", DEST, home=object())
+        assert not decision.allowed
+        assert "guard-failure" in kinds(decision)
 
 
 class TestSecretsAndPaths:
