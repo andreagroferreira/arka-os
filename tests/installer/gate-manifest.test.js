@@ -133,6 +133,31 @@ test("hardEnforcementOn mirrors flow_enforcer flag resolution", () => {
   assert.equal(on({}), false);
 });
 
+test("shadowDenyOn mirrors flow_enforcer.shadow_deny_on (default ON)", () => {
+  const on = (data) =>
+    engine.shadowDenyOn({ state: "ok", data }, manifest);
+  // Missing file / corrupt JSON → ON (collect by default).
+  assert.equal(engine.shadowDenyOn(
+    { state: "missing", data: null }, manifest), true);
+  assert.equal(engine.shadowDenyOn(
+    { state: "corrupt", data: null }, manifest), true);
+  // Missing hooks section or missing key → ON.
+  assert.equal(on({}), true);
+  assert.equal(on({ hooks: {} }), true);
+  assert.equal(on({ hooks: [] }), true);
+  // Explicit value → python-truthy.
+  assert.equal(on({ hooks: { shadowDeny: true } }), true);
+  assert.equal(on({ hooks: { shadowDeny: false } }), false);
+  assert.equal(on({ hooks: { shadowDeny: "false" } }), true); // py-truthy
+  assert.equal(on({ hooks: { shadowDeny: [] } }), false);     // py bool([])
+  assert.equal(on({ hooks: { shadowDeny: {} } }), false);
+  // Old manifest without the flag entry → ON (delegate direction).
+  const stripped = JSON.parse(JSON.stringify(manifest));
+  delete stripped.flags.shadowDeny;
+  assert.equal(engine.shadowDenyOn(
+    { state: "ok", data: { hooks: { shadowDeny: false } } }, stripped), true);
+});
+
 test("decidePre Bash: discovery fast-allows only with no active budget", () => {
   const payload = {
     tool_name: "Bash", session_id: "parity-sid", cwd: "/w",
@@ -196,8 +221,14 @@ test("decidePost delegates the stateful set, errors and stale auth", () => {
     // hard enforcement + no auth file → the confirm rescan is load-bearing
     [{ tool_name: "Read", tool_response: okResp, session_id: "parity-sid" },
       ctxWith({ config: hardOn }), "delegate"],
-    // enforcement off (missing config) + benign → fast-exit
-    [{ tool_name: "Read", tool_response: okResp }, ctxWith(), "fast-exit"],
+    // enforcement off but shadow-deny defaults ON (PR-A5a): the confirm
+    // rescan feeds the shadow grace ladder → no fresh auth → delegate
+    [{ tool_name: "Read", tool_response: okResp }, ctxWith(), "delegate"],
+    // both off (shadow kill-switch thrown) + benign → fast-exit
+    [{ tool_name: "Read", tool_response: okResp },
+      ctxWith({ config: {
+        state: "ok", data: { hooks: { shadowDeny: false } } } }),
+      "fast-exit"],
   ];
   for (const [payload, ctx, expected] of cases) {
     const decision = engine.decidePost(payload, manifest, ctx);
@@ -242,10 +273,14 @@ test("decidePost Q6: fresh auth file under hard enforcement fast-exits", () => {
 });
 
 test("decidePost replicates the mcp-usage line for MCP tools", () => {
+  // shadowDeny off so the flow-auth rescan (PR-A5a) does not delegate
+  // before the MCP write path — this test pins the write shape only.
   const decision = engine.decidePost(
     { tool_name: "mcp__plugin_claude-mem_mcp-search__search",
       tool_response: { content: [] }, session_id: "parity-sid" },
-    manifest, ctxWith()
+    manifest,
+    ctxWith({ config: {
+      state: "ok", data: { hooks: { shadowDeny: false } } } })
   );
   assert.equal(decision.action, "fast-exit");
   assert.equal(decision.stdout, "{}");

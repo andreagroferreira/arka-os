@@ -193,6 +193,11 @@ test("corrupt stdin delegates; with the .sh also broken it fails open per event"
 test("Q6: benign MCP call fast-exits '{}' and appends mcp-usage", () => {
   const sandbox = makeSandbox();
   try {
+    // shadowDeny off so the flow-auth rescan (PR-A5a) does not delegate
+    // before the MCP write path — this test pins the fast-exit shape.
+    mkdirSync(join(sandbox.home, ".arkaos"), { recursive: true });
+    writeFileSync(join(sandbox.home, ".arkaos", "config.json"),
+      JSON.stringify({ hooks: { shadowDeny: false } }));
     const r = runShim(sandbox, "post-tool-use.cjs", {
       tool_name: "mcp__obsidian__search_notes", session_id: "fp-sid",
       tool_response: { stdout: "3 notes", stderr: "" },
@@ -227,6 +232,38 @@ test("Q7: hard enforcement without fresh auth delegates to Python", () => {
       "confirm rescan is load-bearing here — must delegate");
 
     // Fresh auth flips it to fast-exit.
+    writeFileSync(join(authDir, "fp-sid.json"), JSON.stringify({
+      marker_type: "routing", confirmed_ts: Date.now() / 1000 - 30,
+    }));
+    rmSync(join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt"));
+    const fresh = runShim(sandbox, "post-tool-use.cjs", {
+      tool_name: "Read", session_id: "fp-sid",
+      tool_response: { stdout: "ok", stderr: "" },
+    }, { ARKA_FLOW_AUTH_DIR: authDir });
+    assert.equal(fresh.status, 0);
+    assert.equal(fresh.stdout.trim(), "{}");
+    assert.ok(!existsSync(
+      join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt")));
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("Q6 shadow (PR-A5a): default config delegates the confirm rescan", () => {
+  const sandbox = makeSandbox();
+  try {
+    const authDir = join(sandbox.root, "flow-auth");
+    mkdirSync(authDir);
+    const r = runShim(sandbox, "post-tool-use.cjs", {
+      tool_name: "Read", session_id: "fp-sid",
+      tool_response: { stdout: "ok", stderr: "" },
+    }, { ARKA_FLOW_AUTH_DIR: authDir });
+    assert.equal(r.status, 0);
+    assert.ok(existsSync(
+      join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt")),
+      "shadow-deny keeps the confirm rescan load-bearing with no config");
+
+    // A fresh auth still fast-exits under shadow — same self-heal as Q7.
     writeFileSync(join(authDir, "fp-sid.json"), JSON.stringify({
       marker_type: "routing", confirmed_ts: Date.now() / 1000 - 30,
     }));

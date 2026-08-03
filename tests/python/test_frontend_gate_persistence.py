@@ -29,6 +29,12 @@ def _isolated(tmp_path, monkeypatch):
     config = tmp_path / "config.json"
     config.write_text(json.dumps({"hooks": {"frontendGate": "hard"}}), encoding="utf-8")
     monkeypatch.setattr(frontend_gate, "CONFIG_PATH", config)
+    # shadow_deny_on (PR-A5a) reads flow_enforcer.CONFIG_PATH through a
+    # process-global lru_cache — patch and clear, or a value cached by
+    # another test file leaks into the warn-mode annotation here.
+    from core.workflow import flow_enforcer
+    monkeypatch.setattr(flow_enforcer, "CONFIG_PATH", config)
+    flow_enforcer.shadow_deny_on.cache_clear()
 
 
 def _evaluate(session: str, messages: list[str]) -> frontend_gate.Decision:

@@ -152,6 +152,28 @@ function hardEnforcementOn(configResult, manifest) {
   return pythonTruthy(hooks[key]);
 }
 
+/** flow_enforcer.shadow_deny_on (PR-A5a): DEFAULT ON — missing config
+ *  file, corrupt JSON, or missing key all mean ON; an explicit value is
+ *  python-truthy. A missing MANIFEST entry (old manifest + new engine,
+ *  mid-upgrade only) also means ON: delegation is the
+ *  degrade-to-latency direction, never a skipped state write. */
+function shadowDenyOn(configResult, manifest) {
+  const spec = manifest.flags && manifest.flags.shadowDeny;
+  if (!spec) return true;
+  if (configResult.state !== "ok") return true;
+  const [section, key] = spec.path;
+  const data = configResult.data;
+  const hooks =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? data[section]
+      : null;
+  if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) {
+    return true;
+  }
+  if (!(key in hooks)) return true;
+  return pythonTruthy(hooks[key]);
+}
+
 function telemetryLine(prefix, template, now) {
   return JSON.stringify({ ...prefix, ...template }) + "\n";
 }
@@ -319,16 +341,17 @@ function decidePost(payload, manifest, ctx) {
   }
 
   // Q6/Q7 — the only remaining Python work on this path is the flow-auth
-  // confirm rescan. Redundant when enforcement is off (the pre-side flag
-  // check short-circuits before ever reading auth) or when a confirmed
-  // auth is fresh; load-bearing otherwise (GRACE_CAP exhaustion) →
-  // delegate.
+  // confirm rescan. Load-bearing when hard enforcement OR shadow-deny
+  // (PR-A5a) consumes the grace/confirm state — without the rescan the
+  // shadow grace ladder overstates would_block; redundant only when
+  // both are off or a confirmed auth is fresh → delegate otherwise.
   const sid = String(payload.session_id || "");
   const enforcementOff =
     ctx.config.state !== "missing"
       ? !hardEnforcementOn(ctx.config, manifest)
       : true; // missing config file → flag definitively false
-  if (!enforcementOff && !flowAuthFresh(sid, manifest, ctx)) {
+  const shadowOn = shadowDenyOn(ctx.config, manifest);
+  if ((!enforcementOff || shadowOn) && !flowAuthFresh(sid, manifest, ctx)) {
     return { action: "delegate", reason: "flow-auth-not-fresh" };
   }
 
@@ -369,6 +392,7 @@ module.exports = {
   pythonTruthy,
   readJsonFile,
   safeSessionId,
+  shadowDenyOn,
   toolText,
   validateManifest,
 };

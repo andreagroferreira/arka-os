@@ -20,8 +20,6 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict
-from pathlib import Path
 
 import pytest
 
@@ -137,6 +135,38 @@ def test_mcp_record_matches_manifest_keys(committed, tmp_path):
     assert line["server"] == "obsidian"
     assert line["tool"] == "search_notes"
     assert not record("Read", session_id="s1", path=dest)
+
+
+def test_shadow_deny_flag_semantics(committed, tmp_path, monkeypatch):
+    """Pin the {missing file, corrupt, missing key, python-truthy}
+    declarations the manifest makes for flags.shadowDeny against the
+    real flow_enforcer.shadow_deny_on resolution (QG r1 advisory —
+    exactly the drift the manifest exists to kill)."""
+    from core.workflow import flow_enforcer
+
+    config = tmp_path / "config.json"
+    monkeypatch.setattr(flow_enforcer, "CONFIG_PATH", config)
+    flags = committed["flags"]["shadowDeny"]
+
+    def resolve() -> bool:
+        flow_enforcer.shadow_deny_on.cache_clear()
+        return flow_enforcer.shadow_deny_on()
+
+    assert resolve() is flags["on_missing_file"]
+    config.write_text("{not json", encoding="utf-8")
+    assert resolve() is flags["on_corrupt"]
+    config.write_text(json.dumps({"hooks": {}}), encoding="utf-8")
+    assert resolve() is flags["on_missing_key"]
+    for raw, expected in [
+        (True, True), (False, False), ("false", True),  # python-truthy!
+        ("", False), (0, False), ([], False), ({}, False), (1, True),
+    ]:
+        config.write_text(
+            json.dumps({"hooks": {"shadowDeny": raw}}), encoding="utf-8"
+        )
+        assert resolve() is expected, (
+            f"shadowDeny={raw!r} must resolve {expected}"
+        )
 
 
 def test_hard_enforcement_flag_semantics(committed, tmp_path, monkeypatch):
