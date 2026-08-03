@@ -5,7 +5,7 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.47.0] - 2026-08-02
+## [4.48.0] - 2026-08-03
 
 ### Added
 - **NotebookLM chokepoint (PR-D2 — repair workstream D):** new
@@ -32,6 +32,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   position, on every door, for a symlink the operator does not own; a
   test walks what a real call creates and fails on anything the
   screened set does not cover.
+
+### Changed
+- **`core.egress.policy.payload_digest` is public (PR-D2 — repair
+  workstream D):** D2 is the guard's first caller outside the package,
+  and reaching for the private name would have made a rename a silent
+  break downstream.
+
+
+### Fixed
+- **Egress guard: `home` now scopes the redaction config (PR-D2 —
+  repair workstream D):** `policy.evaluate`'s `home` scoped the
+  home-path check, the allowlist and the audit trail but not the
+  client-identifier list, so a caller passing `home=` judged paths
+  against one machine while redacting against another — and the
+  residual-identifier layer, the substring pass that catches compounds
+  like `<client>2026`, which word-boundary redaction leaves intact,
+  read the real machine's list. Both passes are scoped now. No shipped
+  code path reached it: D1 landed in 4.46.0 with zero call sites, so
+  only a hand-written caller of `policy.evaluate(home=...)` could have
+  been affected.
+
+
+## [4.47.0] - 2026-08-02
+
+### Added
 - **Harness ownership manager (PR-C2, #441 — repair workstream C):**
   `npx arkaos harness status|assert|restore|harden|flags`. The manager
   asserts ArkaOS ownership of the Claude Code harness under the
@@ -64,24 +89,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Writes target the INSTALLED tree (`~/.arkaos/config/hooks`) rather
   than the resolved root, which is routinely an npx cache that
   `npm cache clean` purges.
-- **`core.egress.policy.payload_digest` is public (PR-D2 — repair
-  workstream D):** D2 is the guard's first caller outside the package,
-  and reaching for the private name would have made a rename a silent
-  break downstream.
-
-### Fixed
-- **Egress guard: `home` now scopes the redaction config (PR-D2 —
-  repair workstream D):** `policy.evaluate`'s `home` scoped the
-  home-path check, the allowlist and the audit trail but not the
-  client-identifier list, so a caller passing `home=` judged paths
-  against one machine while redacting against another — and the
-  residual-identifier layer, the substring pass that catches compounds
-  like `<client>2026`, which word-boundary redaction leaves intact,
-  read the real machine's list. Both passes are scoped now. No shipped
-  code path reached it: D1 landed in 4.46.0 with zero call sites, so
-  only a hand-written caller of `policy.evaluate(home=...)` could have
-  been affected.
-
 ## [4.46.0] - 2026-08-01
 
 ### Added
