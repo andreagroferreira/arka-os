@@ -1,0 +1,197 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: harness-remediation
+  project: arka-os
+  status: approved
+  date_created: "2026-08-03"
+  date_approved: "2026-08-03"
+  approved_by: operator
+  # The approval covers the campaign plan's requirement (an explicit
+  # non-fixable list, never a silent skip). The text below was amended
+  # after that approval at QG C3 r1/r2/r5/r6/r7/r8/r9/r10 to match the shipped code;
+  # the operator has not re-read it (QG C3 r2, Francisca).
+  amended: "2026-08-03 (QG C3 r1, r2, r5, r6, r7, r8, r9, r10)"
+  amended_by: paulo
+  canonical: "~/.claude/plans/o-que-temos-a-swirling-cascade.md (PR 3, C3)"
+  overview: >
+    PR-C3 — feat(harness): shield --fix. The scanner shipped in an
+    earlier campaign slice grades the harness and names a fix for every
+    finding, but nothing applies them: the operator reads grade F and
+    edits JSON by hand. This closes that loop. `arkaos shield --fix`
+    remediates the findings that can be remediated MECHANICALLY and
+    SAFELY, and prints — never hides — every finding it did not touch,
+    with the reason it is not mechanically fixable. A remediator that
+    skips silently is worse than none: it converts an unfixed
+    vulnerability into a clean-looking run.
+  design_decisions:
+    - >-
+      the fixable set is CLOSED and small: settings-dangerous-allow
+      whose COMMAND WORD is dangerous (remove the allow rule — strictly
+      privilege-reducing), and settings-no-deny / settings-bypass-mode
+      (seed the ArkaOS hard-deny defaults, the same list the installer
+      and the C2 manager use). Everything else is declared non-fixable
+      with a reason, per finding. AMENDED at QG C3 r1: the original
+      draft listed settings-unscoped-allow as fixable; it is not. The
+      scanner's own fix for it is 'scope it to a pattern' and only the
+      operator knows which, so dropping the rule would apply a
+      DIFFERENT fix from the one named. Both reviewers backed the
+      decision on the merits; the spec text was the thing that was
+      wrong
+    - >-
+      removing an allow rule is DESTRUCTIVE to operator intent even
+      though it reduces privilege, so --fix writes a timestamped backup
+      of EACH file before it writes that file, prints every backup
+      path, and lists every removed rule verbatim so the operator can
+      restore any of them deliberately. Because each file is backed up
+      and written in turn, a run can write one file and fail the next: that state is
+      reported as a PARTIAL APPLY naming which files reached disk,
+      never as "nothing was written"
+    - >-
+      non-fixable is a per-finding TAXONOMY, not a bucket: needs-human
+      (only the operator knows the right pattern or whether a secret is
+      real), out-of-scope (the finding is about a file this remediator
+      does not own, e.g. MCP manifests and instruction files), and
+      unknown-rule (a scanner rule this module has never heard of — the
+      fail-loud case that keeps a new scanner rule from being silently
+      ignored)
+    - >-
+      dry-run is the DEFAULT of the fixer: `--fix` without `--apply`
+      prints the plan and writes nothing; `--fix --apply` writes. A
+      security tool whose first invocation mutates the operator's
+      config teaches operators not to run it
+    - >-
+      the remediator never raises: a corrupt or unreadable settings
+      file is a refusal with a reason, not a traceback, and the process
+      still reports the scan (same never-raises contract as the scanner
+      and the C1/C2 harness modules)
+    - >-
+      exit codes stay the scanner's contract, computed from a RE-SCAN
+      after applying: 0 = A/B, 1 = C/D, 2 = F, any CRITICAL, or a
+      REFUSAL. A fix run that leaves criticals still exits 2
+    - >-
+      a root the operator NAMED and the tool could not read is never
+      silently dropped: it is REFUSED by name on stderr and exits 2 on
+      BOTH the read-only and the --fix path, even when other roots were
+      readable and reported normally. A config we never opened cannot
+      be graded, and grading it A is the clean-looking run this feature
+      exists to prevent (QG C3 r5, r6)
+    - >-
+      only a MISSING default root is exempt: it is NOTED on stderr,
+      never refused, because a fresh machine has no ~/.claude and every
+      CI container would fail on it (QG C3 r6, Francisca verified the
+      constraint against a HOME with no .claude). A default root that
+      EXISTS and cannot be read is NOT exempt — it raises inside the
+      scan and refuses like any other, which is the container-uid case
+      (QG C3 r7, Eduardo B1)
+    - >-
+      every root notice goes to stderr, never stdout, so --json output
+      stays machine-parseable
+    - >-
+      the refusal must never depend on a pathlib predicate raising.
+      Python 3.14 reimplemented Path.is_file()/is_dir() to delegate to
+      os.path, which swallows every OSError and answers False, so an
+      unreadable config read as absent and the whole refusal family went
+      silent — Grade A on a directory nobody opened, on exactly the
+      venv-less machines the launcher points at an ambient python3. Both
+      probes stat explicitly: ENOENT/ENOTDIR mean absent, every other
+      errno propagates. Pinned by errno-mapping tests, not by an
+      interpreter version (QG C3 r9, Francisca B1)
+    - >-
+      the same rule reaches the HOOK TARGET probe. `_check_hook_script`
+      stats ONCE and names three outcomes: absent (hook-script-missing),
+      unreadable (hook-script-unreadable, HIGH — "unaudited, not clean"),
+      or readable, whose mode bits are then tested from that same stat.
+      With path.exists() the 3.13 raise reached the per-file backstop,
+      which DISCARDED every finding already found for that settings file
+      and left one LOW scanner-error: a config carrying a CRITICAL
+      dangerous-allow graded A (98/100) and exited 0, and that is the
+      JSON installer/doctor.js reads. One unstat-able hook target
+      laundered the whole file, on the interpreter this repo's venv runs
+      (QG C3 r10, Francisca B1, reproduced side by side). The mode check
+      no longer stats a second time and no longer answers "safe" when it
+      could not look
+  known_limitations:
+    - >-
+      A readable root containing ZERO config files prints "Grade A
+      (100/100) — nothing to report." and exits 0 on both the read-only
+      and the --fix path. Pre-existing on master, non-blocking,
+      deliberately NOT fixed in PR-C3 because it changes render() for a
+      case this PR does not touch, in a PR where six of seven QG rounds
+      produced a new defect from a scope extension. It differs in kind
+      from the refusal family — the root WAS opened and read, and "0
+      config files scanned" prints directly above, so the output
+      composes badly rather than lying (QG C3 r8, Francisca M2, deferral
+      upheld on the merits). Suggested fix when it is taken: suppress
+      the score when files_scanned == 0.
+    - >-
+      remediation.py's path.exists() calls sit outside fix()'s try and
+      raise on 3.13, but are unreachable in practice because scan()
+      short-circuits first — verified with a settings.json symlinked
+      into a mode-000 directory, which refuses and exits 2 on both
+      interpreters, for scan and for --fix (QG C3 r10, Francisca,
+      recorded REFUTED). Left alone; revisit if that ordering changes.
+    - >-
+      remediation.py's `perms is None` guard in _stage is currently
+      UNREACHABLE through fix(): the scanner emits no finding at all for
+      a permissions-less settings file, so _stage returns before it.
+      KEEP the guard — if settings-no-deny is ever hardened to cover a
+      permissions-less file, the branch goes live unpinned and the
+      Optional narrowing below it becomes a real None dereference (QG C3
+      r8, Francisca M3).
+  acceptance_criteria:
+    - >-
+      EVERY finding that survives a --fix --apply run is named in the
+      skipped list — the anti-silence invariant, pinned across BOTH
+      settings files the scanner reads, not just settings.json
+    - >-
+      every scanner rule is classified: fixable or non-fixable with a
+      reason; a rule the module does not know is reported as
+      unknown-rule and never silently dropped, pinned by a test that
+      reads every rule id out of the scanner's source
+    - >-
+      --fix without --apply writes nothing (proven by byte-for-byte
+      content equality) and prints the plan
+    - >-
+      a root the operator NAMED and the tool could not read exits 2 and
+      is named on stderr, whether it was the only root or sat beside
+      readable ones; the readable roots still report their grade on
+      stdout. Both arms are pinned, the multi-root one on the read-only
+      AND the --fix path (QG C3 r7, Francisca B1: mutating the two
+      guards together survived the whole suite)
+    - >-
+      a root that RAISED while being scanned exits 2 even when it is a
+      DEFAULT root and even when another root reported; only a MISSING
+      default root exits with the grade of the roots that WERE read
+    - >-
+      --fix --apply removes exactly the dangerous-COMMAND allow rules,
+      leaves every other allow rule untouched — including unscoped ones
+      and rules flagged only by the scanner's free-text branch, both of
+      which are reported as needs-human — and seeds the hard-deny
+      defaults into the file whose own finding raised them
+    - >-
+      a backup is written before each file is mutated and every backup
+      path is printed; the backup restores the original byte-for-byte;
+      a partial apply names the files that were written and the files
+      that were not
+    - >-
+      removed rules are listed verbatim in the report
+    - >-
+      a corrupt settings file mutates nothing and is NAMED in the
+      skipped list; a file that blocks a planned write produces an
+      explicit refusal whose reason renders, and a failed --apply never
+      reads as a dry run
+    - >-
+      measured on a COPY of the operator's real profile (53 findings,
+      grade F, score 0, across settings.json AND settings.local.json):
+      3 findings remain, score 25, with 48 dangerous rules removed, 62
+      hard-deny rules seeded and every one of the 3 survivors named in
+      skipped. The grade stays F because a CRITICAL survives by
+      construction — --fix cannot choose the operator's pattern for an
+      unscoped rule, and says so instead of pretending
+    - >-
+      npx arkaos shield --fix is wired and documented; exit codes are
+      the scanner's, computed from the post-fix re-scan
+    - >-
+      full python and npm suites green at the head

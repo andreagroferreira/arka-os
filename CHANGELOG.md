@@ -5,6 +5,91 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-08-03
+
+### Added
+
+- **`npx arkaos shield --fix` (PR-C3).** The scanner named a fix for
+  every finding; nothing applied them. `--fix` now plans the mechanical
+  ones and `--fix --apply` writes them, after taking a timestamped
+  backup of each file and printing every backup path. Dry run is the
+  default; `--apply` without `--fix` is an error, not a silent
+  read-only scan. Fixable: allow rules granting a dangerous COMMAND
+  (removed) and a missing deny list (seeded with the ArkaOS hard-deny
+  defaults). Everything else — unscoped rules that need a pattern only
+  the operator can choose, secrets, MCP manifests, instruction files —
+  is REPORTED with a reason and never guessed at, because a remediator
+  that skips silently turns an unfixed vulnerability into a
+  clean-looking run. Every settings file the scanner reads is covered,
+  symlinked configs are written through to their target, and a run that
+  writes one file and fails another names which reached disk. Exit codes
+  follow the scanner's contract, computed from the post-fix re-scan.
+
+  Measured on a copy of a real grade-F profile: 53 findings to 3, 48
+  dangerous rules removed, 62 hard-deny rules seeded, every survivor
+  named. The grade stays F by design — `--fix` cannot choose the
+  operator's pattern for an unscoped rule, and says so.
+
+### Changed
+
+- **BREAKING for anything that gates on `shield`'s exit code: a root it
+  could not read now exits 2 instead of grading clean.** Two old
+  behaviours collapse into it. A root that was silently DROPPED and
+  graded clean — a path you named that does not exist, or a settings
+  FILE passed where its directory was expected — came back `Grade A
+  (100/100) — nothing to report.` with exit 0 (shipped in 4.16.0,
+  re-verified by executing the 4.49.0 CLI). A root that RAISED while
+  being scanned — a directory that cannot be listed, a root-owned
+  config, a container uid mismatch, and the DEFAULT roots are included
+  here — came back as an unhandled `PermissionError` traceback (also
+  re-verified against 4.49.0). Both now print the path on stderr and
+  exit 2, on the read-only path and the `--fix` path alike, while the
+  roots that WERE readable still report normally. Only a MISSING
+  default root is exempt: a fresh machine with no `~/.claude` is noted,
+  not failed, so CI containers do not break on it. A container whose
+  `~/.claude` EXISTS but is unreadable by the running uid DOES now exit
+  2 — if that is your pipeline, name the roots you want scanned or fix
+  the permissions before you upgrade. `--json` stdout stays parseable
+  because every notice goes to stderr. If a pipeline gated on the old
+  exit 0, it was gating on a config that was never read.
+
+- **`shield` no longer depends on a `pathlib` predicate to report an
+  unreadable config, so the refusal holds on every supported Python.**
+  Python 3.14 reimplemented `Path.is_file()` and `Path.is_dir()` to
+  delegate to `os.path`, which swallows every `OSError` and answers
+  False. The scanner probed candidates with `is_file()` and the CLI
+  probed roots with `is_dir()`, so on 3.14 an unreadable config read as
+  "not there": `0 config files scanned`, `Grade A (100/100) — nothing
+  to report.`, exit 0 — on 3.13 the same directory refused and exited
+  2. That hit precisely the machines with no ArkaOS venv, where the
+  launcher falls back to an ambient `python3`: fresh installs and CI
+  containers. The file probe and the root probe now stat explicitly and
+  treat only `ENOENT`/`ENOTDIR` as "absent"; every other errno
+  propagates as the refusal it is. Verified side by side on 3.13.13 and
+  3.14.2, for a named root and for the default pair. **If you ran
+  `shield` under 3.14 before 5.0.0, any run that printed `0 config
+  files scanned` with Grade A graded nothing — re-run it on 5.0.0
+  before you trust that result.**
+
+- **A hook target `shield` could not read no longer erases the rest of
+  that config's findings.** The hook check probed with `path.exists()`,
+  which raises on Python 3.13. The raise reached the per-file backstop,
+  which replaces everything found in that settings file with a single
+  LOW `scanner-error`. Measured: one `settings.json` carrying a CRITICAL
+  dangerous-allow, plus a hook pointing into a directory the account
+  could not list, graded **A (98/100) and exited 0** on 3.13 — and that
+  is the JSON `npx arkaos doctor` reads for its security line. One
+  unreadable hook target laundered the whole file. The check now stats
+  once and names three outcomes: absent, unreadable
+  (`hook-script-unreadable`, HIGH — unaudited, never clean), or
+  readable, whose permission bits come from that same stat instead of a
+  second one that answered "safe" when it could not look. **How to tell
+  whether you were hit: any `shield` run whose output carried a
+  `scanner-error` line threw away everything else it had found in that
+  settings file, so the grade printed beside it describes nothing of
+  that file. `doctor` never showed you this — it prints CRITICALs and
+  the grade, not LOW findings. Re-scan on 5.0.0.**
+
 ## [4.49.0] - 2026-08-03
 
 ### Added

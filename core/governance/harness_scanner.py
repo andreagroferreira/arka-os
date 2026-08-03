@@ -19,10 +19,12 @@ with a letter grade; it prints nothing, exits nothing, and touches
 nothing. The ``--fix`` path is a later slice and must be able to trust
 that a scan never mutated what it measured.
 
-Never raises on hostile input. A settings file that is truncated,
+Never raises on hostile CONTENT. A settings file that is truncated,
 binary, or full of nulls is a FINDING, not a traceback — a scanner that
 dies on the config it was pointed at reports nothing at all, which is
-the worst possible outcome for a security tool.
+the worst possible outcome for a security tool. A config it could not
+READ is the opposite case and raises deliberately, so the caller can
+refuse it by name instead of grading what it never opened; see `scan`.
 
 Engine behind ``npx arkaos shield`` and the ``doctor`` advisory section.
 """
@@ -37,6 +39,34 @@ from enum import StrEnum
 from pathlib import Path
 
 _MAX_FILE_BYTES = 2 * 1024 * 1024
+
+
+def is_readable_file(path: Path) -> bool:
+    """Is `path` a regular file — and RAISE when we could not find out.
+
+    `Path.is_file()` cannot carry this contract across interpreters.
+    Python 3.14 reimplemented it to delegate to `os.path.isfile()`,
+    which swallows every OSError and answers False, so an unreadable
+    config read as "not there": the scanner counted zero files and
+    printed "Grade A (100/100) — nothing to report." for a directory it
+    never opened, on exactly the fresh machines and CI containers where
+    no venv exists and an ambient python3 is selected. The root and the
+    config file reach this call as `root / name`, and their two refusals
+    are built on this raise. `_check_hook_script` repeats the same
+    raising stat but renders EACCES as a HIGH `hook-script-unreadable`
+    finding, which grades B and exits 0 — the same discipline, and
+    deliberately NOT a refusal, since a refusal here means exit 2 (QG C3
+    r9 and r10, Francisca, reproduced side by side on 3.13 and 3.14;
+    vocabulary corrected at r15 by Marta, who executed the exit code).
+
+    ENOENT and ENOTDIR mean the file is absent, which is a real answer.
+    Every other errno — EACCES, EPERM, ELOOP — means we could not look,
+    which is not an answer and must never be graded.
+    """
+    try:
+        return stat.S_ISREG(path.stat().st_mode)
+    except (FileNotFoundError, NotADirectoryError):
+        return False
 
 
 class Severity(StrEnum):
@@ -421,31 +451,67 @@ def _check_hook_command(command: str, where: str) -> list[Finding]:
 
 
 def _check_hook_script(command: str, where: str) -> list[Finding]:
-    """The file the hook executes — does it exist, can anyone rewrite it?"""
+    """The file the hook executes — does it exist, can anyone rewrite it?
+
+    ONE stat, three named outcomes. `path.exists()` could not carry this:
+    it raises on 3.13 and answers False on 3.14, and the raise reached
+    the per-file backstop, which throws away every finding already found
+    for that settings file and leaves one LOW `scanner-error`. Measured
+    on one config holding a CRITICAL dangerous-allow plus a hook whose
+    target sat in a mode-000 directory: 3.14 graded F (51/100, 3
+    findings, exit 2), 3.13 graded **A (98/100), exit 0**, rules
+    `['scanner-error']` — and that is the JSON `installer/doctor.js`
+    reads. One unstat-able hook target laundered every CRITICAL in the
+    file (QG C3 r10, Francisca B1, reproduced side by side).
+    """
     path = _script_path(command)
     if path is None:
         return []
-    if not path.exists():
-        return [Finding(
-            rule="hook-script-missing",
-            severity=Severity.HIGH,
-            where=where,
-            detail=f"the hook points at {path}, which does not exist — the "
-                   f"hook silently does nothing.",
-            fix="Restore the script, or remove the hook. If it is an "
-                "ArkaOS hook, `npx arkaos install --force` reinstalls it.",
-        )]
-    if _is_group_or_world_writable(path):
-        return [Finding(
-            rule="hook-world-writable",
-            severity=Severity.HIGH,
-            where=where,
-            detail=f"{path} is writable by group or others — any local "
-                   f"process can rewrite what the agent executes on every "
-                   f"tool call.",
-            fix=f"chmod go-w {path}",
-        )]
+    try:
+        mode = path.stat().st_mode
+    except (FileNotFoundError, NotADirectoryError):
+        return [_hook_script_missing(path, where)]
+    except OSError as exc:
+        return [_hook_script_unreadable(path, where, exc)]
+    if _is_group_or_world_writable(mode):
+        return [_hook_world_writable(path, where)]
     return []
+
+
+def _hook_script_missing(path: Path, where: str) -> Finding:
+    return Finding(
+        rule="hook-script-missing",
+        severity=Severity.HIGH,
+        where=where,
+        detail=f"the hook points at {path}, which does not exist — the "
+               f"hook silently does nothing.",
+        fix="Restore the script, or remove the hook. If it is an "
+            "ArkaOS hook, `npx arkaos install --force` reinstalls it.",
+    )
+
+
+def _hook_script_unreadable(path: Path, where: str, exc: OSError) -> Finding:
+    return Finding(
+        rule="hook-script-unreadable",
+        severity=Severity.HIGH,
+        where=where,
+        detail=f"the hook points at {path}, which could not be read "
+               f"({exc.strerror}) — its permissions and its contents are "
+               f"UNAUDITED. Treat as unaudited, not as clean.",
+        fix=f"Make {path} readable by the account that runs the agent, or "
+            f"point the hook somewhere auditable.",
+    )
+
+
+def _hook_world_writable(path: Path, where: str) -> Finding:
+    return Finding(
+        rule="hook-world-writable",
+        severity=Severity.HIGH,
+        where=where,
+        detail=f"{path} is writable by group or others — any local process "
+               f"can rewrite what the agent executes on every tool call.",
+        fix=f"chmod go-w {path}",
+    )
 
 
 def _script_path(command: str) -> Path | None:
@@ -465,11 +531,13 @@ def _script_path(command: str) -> Path | None:
         return Path(first)
 
 
-def _is_group_or_world_writable(path: Path) -> bool:
-    try:
-        mode = path.stat().st_mode
-    except OSError:
-        return False
+def _is_group_or_world_writable(mode: int) -> bool:
+    """Mode bits only. The stat that produced them owns the error path.
+
+    This used to stat the file itself and swallow OSError into False —
+    "we could not tell" answering "safe", the exact direction a security
+    check must never take (QG C3 r10, Francisca B1).
+    """
     return bool(mode & (stat.S_IWGRP | stat.S_IWOTH))
 
 
@@ -755,7 +823,17 @@ def _safe_scan_file(
 
 
 def scan(root: Path) -> ScanReport:
-    """Scan a harness config tree. Read-only. Never raises."""
+    """Scan a harness config tree. Read-only.
+
+    RAISES, deliberately, when a config cannot be READ: an unreadable
+    root or candidate propagates its OSError so the caller can refuse it
+    by name. Callers must use `harness_scanner_cli._safe_scan`, which is
+    built to catch exactly that. Per-FILE failures do not raise — they
+    are absorbed by `_safe_scan_file` into a `scanner-error` finding, so
+    one malformed config cannot end the scan (QG C3 r10, Francisca M2:
+    "Never raises" became false when the refusal family was built on the
+    raise, and the two docstrings said opposite things).
+    """
     try:
         root = Path(root).expanduser()
     except (RuntimeError, ValueError):
@@ -769,7 +847,7 @@ def scan(root: Path) -> ScanReport:
     for names, scanner in groups:
         for name in names:
             path = root / name
-            if path.is_file():
+            if is_readable_file(path):
                 report.files_scanned += 1
                 report.findings.extend(_safe_scan_file(scanner, path, name))
     report.findings.sort(key=lambda f: (-PENALTY[f.severity], f.rule))
