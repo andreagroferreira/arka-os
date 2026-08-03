@@ -10,6 +10,7 @@ import { deployCoreSnapshot } from "./core-snapshot.js";
 import { getRuntimeConfig } from "./detect-runtime.js";
 import { loadAdapter } from "./index.js";
 import { migrateUserData, printMigrationReport } from "./migrate-user-data.js";
+import { syncUserClaudeMd, describeSyncResult } from "./claude-md.js";
 import { resolveFile } from "./path-resolver.js";
 import { IS_WINDOWS, HOOK_EXT } from "./platform.js";
 import { getUi } from "./ui.js";
@@ -368,13 +369,17 @@ export async function update({ skillsFlag = "" } = {}) {
       ok("arka-py interpreter shim updated");
     }
   }
-  const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");
-  const claudeMdSrc = join(ARKAOS_ROOT, "config", "user-claude.md");
-  if (existsSync(claudeMdSrc)) {
-    mkdirSync(join(homedir(), ".claude"), { recursive: true });
-    copyFileSync(claudeMdSrc, userClaudeMd);
-    ok("~/.claude/CLAUDE.md updated");
-  }
+  // Managed-block sync: once the block exists only the marked region is
+  // rewritten; an unmarked file is adopted (wrapped or prepended to) and
+  // no operator byte is lost (PR-C5 — the blind copy here destroyed the
+  // operator's CLAUDE.md via the autoupdater on 2026-08-03).
+  const claudeMdResult = syncUserClaudeMd({
+    home: homedir(),
+    templatePath: join(ARKAOS_ROOT, "config", "user-claude.md"),
+  });
+  const claudeMdReport = describeSyncResult(claudeMdResult);
+  (claudeMdReport.level === "warn" ? warn : ok)(claudeMdReport.message);
+  if (claudeMdReport.detail) detail(`         ${claudeMdReport.detail}`);
 
   // ── 5. Update Cognitive Scheduler ──
   section(5, 9, "Updating cognitive scheduler...");
