@@ -5,6 +5,30 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-08-04
+
+### Fixed
+
+- **`npx arkaos update` no longer destroys operator edits to `~/.claude/CLAUDE.md`** (PR-C5, #447).
+  The update path used to copy the packaged template straight over the live
+  file; on 2026-08-03 the launchd autoupdater's unattended run did exactly
+  that and deleted operator content. Shipped instructions now live inside an
+  explicitly marked region (`<!-- arka:user-instructions:start/end -->`) and
+  the update path only ever rewrites that block:
+  - an unmarked file is adopted, never replaced: a file matching a known
+    template hash — or starting with the shipped template, the common
+    pre-5.1 shape — is wrapped with any operator remainder preserved below
+    the block; anything else is preserved whole below a prepended block
+  - operator-deleted markers are respected with a notice, never re-seeded
+    (adoption state in `~/.arkaos/claude-md-state.json`)
+  - malformed marker states and non-UTF-8 files are refusals with a reason,
+    never a silent overwrite
+  - a timestamped backup (`CLAUDE.md.arkaos-backup-<stamp>`) precedes every
+    mutation and its path is printed; writes are atomic and land through
+    resolved symlinks
+  - fresh installs write the template already wrapped; the existing
+    "already exists (preserved)" behaviour is unchanged
+
 ## [5.0.0] - 2026-08-03
 
 ### Added
