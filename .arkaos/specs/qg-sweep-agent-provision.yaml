@@ -1,0 +1,31 @@
+spec:
+  feature: qg-sweep-agent-provision
+  project: arka-os
+  status: approved
+  date_created: "2026-07-30"
+  date_approved: "2026-07-30"
+  approved_by: operator
+  canonical: "Obsidian: Projects/ArkaOS/Specs/SPEC-qg-sweep-agent-provision.md"
+  overview: >
+    PR-B5 — fix(qg): sweep + provisão de agents. Closes workstream B of
+    the 2026-07 repair campaign. The Stop-hook QG sweep reads the
+    guard-accepted AGGREGATE.json (authoritative both ways) before the
+    unguarded telemetry fallback; the installer copies AND registers
+    agent-provision.sh as a PreToolUse(Task) gate (POSIX-only); v1
+    personas are retired into .claude/agents/.arkaos-legacy/ under a
+    double guard; doctor gains qg-agents (fail) + qg-ledger (warn);
+    review_workflow and quality_api.record_verdict carry deprecation
+    docstrings pointing at record_cli. Register #435 carries: M4 stamp
+    mtime hardening, M11 chmod pin, M12 _blocker_reasons branches,
+    wiki/08 lifecycle counts.
+  acceptance_criteria:
+    - approved aggregate enqueues without marker
+    - rejected aggregate is never rescued by stale telemetry
+    - absent/malformed/foreign aggregate falls back
+    - adapter registers Task-matcher gate idempotently, POSIX-only,
+      conditional on the script existing
+    - v1 personas retired verbatim with collision suffixes, never deleted
+    - doctor qg-agents fail / qg-ledger warn / skip outside a project
+    - stamp chmod 0600 pinned; binding refusal only when the newest
+      counted record predates the stamp mtime
+    - deprecations visible, no call-site behaviour change
