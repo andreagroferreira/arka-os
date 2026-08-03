@@ -2936,6 +2936,19 @@
         "origin": "arkaos"
       }
     },
+    "research-deep": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "research-plan": {
       "depts": [
         "kb"
