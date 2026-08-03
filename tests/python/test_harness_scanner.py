@@ -263,6 +263,67 @@ class TestHooks:
         ]}})
         assert "hook-script-missing" in rules_in(scan(tmp_path))
 
+    def test_unreadable_script_never_erases_the_files_criticals(
+            self, tmp_path):
+        """QG C3 r10, Francisca B1 — the blast radius, pinned.
+
+        `path.exists()` raised on 3.13, the per-file backstop caught it,
+        and every finding already accumulated for that settings file was
+        replaced by one LOW `scanner-error`: a config carrying a CRITICAL
+        dangerous-allow graded **A (98/100), exit 0**. One unstat-able
+        hook target laundered the whole file.
+        """
+        import os
+
+        if os.geteuid() == 0:
+            pytest.skip("mode 000 does not stop root")
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        (vault / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+        write(tmp_path, "settings.json", {
+            "permissions": {"allow": ["Bash(rm:*)"], "deny": []},
+            "hooks": {"Stop": [
+                {"hooks": [{"command": str(vault / "hook.sh")}]},
+            ]},
+        })
+        vault.chmod(0o000)
+        try:
+            report = scan(tmp_path)
+        finally:
+            vault.chmod(0o755)
+        rules = rules_in(report)
+        assert "scanner-error" not in rules, "the file must not be discarded"
+        assert "hook-script-unreadable" in rules, "unaudited, and named"
+        unreadable = next(f for f in report.findings
+                          if f.rule == "hook-script-unreadable")
+        assert unreadable.severity is Severity.HIGH, (
+            "QG C3 r11, Francisca M1: severity is gate-relevant — three "
+            "unreadable hooks give exit 1 grade D at HIGH and exit 0 "
+            "grade A at LOW, and the mutation to LOW survived 196 tests"
+        )
+        assert "settings-dangerous-allow" in rules, (
+            "the CRITICAL this config carries must survive an unreadable hook"
+        )
+
+    def test_unreadable_script_is_not_reported_as_missing(self, tmp_path):
+        """Two different answers: could not look, versus is not there."""
+        import os
+
+        if os.geteuid() == 0:
+            pytest.skip("mode 000 does not stop root")
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        (vault / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+        write(tmp_path, "settings.json", {"hooks": {"Stop": [
+            {"hooks": [{"command": str(vault / "hook.sh")}]},
+        ]}})
+        vault.chmod(0o000)
+        try:
+            rules = rules_in(scan(tmp_path))
+        finally:
+            vault.chmod(0o755)
+        assert "hook-script-missing" not in rules
+
     def test_world_writable_script(self, tmp_path):
         hook = tmp_path / "hook.sh"
         hook.write_text("#!/bin/sh\n", encoding="utf-8")

@@ -75,7 +75,7 @@ Usage:
   npx arkaos models set <role> <provider>/<model>  Re-route a role
   npx arkaos mcp start        Start the arka-tools MCP server (stdio; --write enables writes)
   npx arkaos update --skills <curated|full>  Choose the deployed skill set (default: curated on fresh installs)
-  npx arkaos shield           Scan the harness config for vulnerabilities (--json)
+  npx arkaos shield           Scan the harness config for vulnerabilities (--json, --fix)
   npx arkaos harness <verb>   Assert/report harness ownership (status|assert|restore|harden|flags)
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
@@ -104,6 +104,8 @@ Examples:
   npx arkaos doctor                     Verify installation health
   npx arkaos shield                     Scan the harness config (exit 2 = critical)
   npx arkaos shield --json              Machine-readable, for CI
+  npx arkaos shield --fix               Plan the mechanical fixes; writes nothing (--apply to write)
+  npx arkaos shield --fix --apply       Apply them, after a timestamped backup
   npx arkaos harness status             Drift report + ownership manifest (--json)
   npx arkaos harness assert             Apply the spec under the policies (seed stays adopted)
   npx arkaos harness restore            Assert + re-seed operator-adopted seed surfaces
@@ -277,8 +279,12 @@ async function main() {
 
     case "shield": {
       // The harness config as attack surface. Exit code is the contract
-      // CI gates on (0 = A/B, 1 = C/D, 2 = F or any CRITICAL), so the
-      // child's code is propagated verbatim rather than collapsed to 1.
+      // CI gates on (0 = A/B, 1 = C/D, 2 = F, any CRITICAL, or a root
+      // we could not read — any root the operator named, every root
+      // when none was readable, or any root that raised while being
+      // scanned; only a MISSING default root is noted instead of
+      // failing), so the child's code is propagated verbatim rather
+      // than collapsed to 1.
       const { spawnSync } = await import("node:child_process");
       const repoRootShield = join(__dirname, "..");
       const pyShield = getArkaosPython();
