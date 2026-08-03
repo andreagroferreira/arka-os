@@ -1,3 +1,6 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
 spec:
   feature: skill-invocation-contract
   project: arka-os

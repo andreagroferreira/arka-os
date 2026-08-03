@@ -24,6 +24,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/kb learn <url>` | Ingest content (YouTube, article, PDF) into KB | Enterprise |
 | `/kb research <topic>` | Research plan and execution with source evaluation | Focused |
 | `/kb ai-research <topic>` | AI-augmented research (Elicit, Perplexity, Claude) | Focused |
+| `/kb research-deep <question>` | Ladder over the operator's own corpus: Obsidian → NotebookLM (egress-guarded) → web, with vault write-back | Focused |
 | `/kb persona <name>` | Build or view a persona from the KB | Enterprise |
 | `/kb moc <cluster>` | Create/update Map of Content | Specialist |
 | `/kb zettelkasten <note>` | Process a note through Zettelkasten workflow | Specialist |

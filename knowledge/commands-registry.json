@@ -1,8 +1,8 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-21T18:43:13Z",
-    "total_commands": 297,
+    "generated": "2026-08-03T12:09:34Z",
+    "total_commands": 298,
     "generator": "core/registry/generator.py",
     "departments": {
       "arka": 22,
@@ -12,7 +12,7 @@
       "dev": 36,
       "ecom": 18,
       "fin": 10,
-      "kb": 22,
+      "kb": 23,
       "landing": 17,
       "leadership": 10,
       "mkt": 30,
@@ -2355,6 +2355,28 @@
       "command": "/kb ai-research <topic>",
       "department": "kb",
       "description": "AI-augmented research (Elicit, Perplexity, Claude)",
+      "lead_agent": "arka-kb",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "kb-research-deep",
+      "command": "/kb research-deep <question>",
+      "department": "kb",
+      "description": "Ladder over the operator's own corpus: Obsidian → NotebookLM (egress-guarded) → web, with vault write-back",
       "lead_agent": "arka-kb",
       "keywords": [
         "learn",
