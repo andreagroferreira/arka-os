@@ -5,6 +5,55 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.49.0] - 2026-08-03
+
+### Added
+
+- **Shadow-deny telemetry across the three PreToolUse gates (PR-A5a).** With
+  the enforcement flags off, `flow_enforcer`, `frontend_gate` and
+  `specialist_enforcer` evaluate anyway and record what they WOULD have
+  decided — `would_block`, `shadow_reason` and `shadow_ms` in their existing
+  telemetry files — while always allowing and never printing. This is the
+  data that gates the future hard-enforcement flip (would_block < 5%, zero
+  sequences of more than 2 consecutive would-blocks in a session, over >= 7
+  days and >= 300 gated calls). Kill switch `hooks.shadowDeny`, on unless
+  explicitly disabled; the pre-side cost is measured from `shadow_ms` and the
+  post-side from the `delegation`/`shadow`/`enforcement` labels now written
+  to `hook-metrics.json` on benign turns too.
+- **`kb/research-deep` skill (PR-D3).** The heavy-research ladder: Obsidian
+  vault first (mandatory), then the operator's NotebookLM notebook through
+  the `core.kb.nlm_client` chokepoint, then the open web for the residual
+  gap, then a synthesis note written back to the vault with provenance
+  frontmatter (`egress_decision`, `egress_reason`, `degraded`,
+  `payload_sha256`). Degradation is a contract: an unusable or refused
+  result puts its `[arka:source-skipped]` marker on record and the ladder
+  continues. Ships via the `arkaos-kb` marketplace plugin, outside the
+  curated set. `/kb` goes from 12 to 13 commands; core skills 332 to 333.
+- **Two new drift locks.** `test_kb_research_deep.py` pins every fact the
+  skill quotes about the chokepoint to the real module — allowed actions and
+  formats, result fields as whole tokens inside code regions, the marker
+  prefix, the install hint, and the no-shell-interpolation shape of both the
+  research text and the scratch path. `test_specs_wellformed.py` pins that
+  every `.arkaos/specs/*.yaml` parses under `yaml.safe_load` and carries the
+  column-0 `status:` mirror the spec-driven gate matches.
+
+### Fixed
+
+- **Three of the eight specs were invisible to the spec-driven gate.**
+  `shadow-deny.yaml` did not parse at all (colon-space plain scalars in
+  block-sequence entries) and it, `qg-sweep-agent-provision.yaml` and
+  `skill-invocation-contract.yaml` carried no column-0 `status:` mirror, so
+  `rules_registry` reported them inactive — the gate could not see the specs
+  of the features it gates. Surfaced by the new lock on its first day.
+- **`engine.cjs` `decidePost`** now delegates the flow-auth confirm rescan
+  when shadow-deny is on; without it the post-side confirm never runs and
+  the shadow grace ladder overstates `would_block`. A missing manifest flag
+  entry reads as on — delegation degrades to latency, never to a skipped
+  deny.
+- Inherited ruff findings in `flow_enforcer` and `frontend_gate` cleared
+  (SIM105, SIM103, B033, UP017 ×4, RUF100); the bash classifier set is
+  unchanged, proven by the byte-identical manifest regeneration.
+
 ## [4.48.0] - 2026-08-03
 
 ### Added
