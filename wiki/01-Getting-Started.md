@@ -204,3 +204,4 @@ Your configuration and knowledge base are preserved. See
 - [The Evidence Flow (4 Gates)](03-The-13-Phase-Flow.md) — how a request is handled end to end
 - [Commands Reference](05-Commands-Reference.md) — every command with examples
 - [Departments](04-Departments/) — what each team does and when to use it
+- [For Everyone](20-For-Everyone.md) — the plain-language guide (no coding required)
