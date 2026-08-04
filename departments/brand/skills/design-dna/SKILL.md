@@ -36,6 +36,7 @@ metadata:
 
 > **Agent:** Valentina (Creative Director) with Nia (extraction) and Iris (tokens)
 > **Framework:** 3-dimension DNA schema (design_system / design_style / visual_effects)
+> **Squad reference:** `departments/brand/references/uiux-knowledge-and-tools.md` (§3 tokens, §8 anti-default, §9 marker)
 
 ## What It Does
 
@@ -67,7 +68,7 @@ should be extended or dropped for this project.
 > (template marketplaces, signature designer work — decline and say why),
 > the **SSRF safety rules** for any live URL, and the **attestation gate**
 > on the finished profile. They are specified in
-> `brand/design-system/references/design-dna-study.md` and apply here
+> `departments/brand/skills/design-system/references/design-dna-study.md` and apply here
 > unchanged. Extraction is *structure, not pixels*: a DNA profile is a
 > description of how a design works, never a copy of it.
 
@@ -82,7 +83,7 @@ a live URL, real extraction beats estimation every time — do not eyeball what
 a script can read.
 
 The doctrine for reading a page's design lives in
-`brand/design-system/references/design-dna-study.md`. Read it before judging
+`departments/brand/skills/design-system/references/design-dna-study.md`. Read it before judging
 a reference: it is the observational method; this skill is the workflow that
 consumes it.
 
@@ -120,6 +121,18 @@ that stops at a JSON blob nobody adopts has not finished.
 Run the quality checks in
 [references/generation-guide.md](references/generation-guide.md) before
 delivering.
+
+**Stamp the generated CSS.** The first non-empty line carries the
+`[arka:design-dna]` companion stamp defined in the squad reference (§9),
+filled from the extracted profile rather than invented:
+
+```
+/* [arka:design-dna] macrostructure=<name> genre=<genre> anchor=<oklch|hex> display=<font> body=<font> critique=P#H#E#S#R#V# */
+```
+
+`landing/page-architect` greps this stamp across previous outputs to
+enforce structural diversification, so an unstamped DNA build is invisible
+to that rule and the next page can silently repeat this one's rhythm.
 
 ## Output
 
