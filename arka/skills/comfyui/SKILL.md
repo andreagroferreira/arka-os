@@ -115,7 +115,7 @@ Three workflow tiers based on task complexity:
 | Tier | Phases | When |
 |------|--------|------|
 | Enterprise | 7-10 phases | Complex features, multi-file changes |
-| Focused | 3-5 phases | Medium tasks, single-domain changes |
+| Focused | 3-4 phases | Medium tasks, single-domain changes |
 | Specialist | 1-2 phases | Simple tasks, quick fixes |
 
 Tier selection is automatic based on complexity assessment.
