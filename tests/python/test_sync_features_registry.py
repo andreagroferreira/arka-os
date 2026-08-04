@@ -99,3 +99,35 @@ def test_detection_pattern_does_not_overmatch_summary_prose(path: Path):
         f"unrelated summary prose ({match.group(0)!r}) — the feature would be "
         "considered present and its mandatory section never injected"
     )
+
+
+_SKILLS_MANIFEST = _ROOT / "knowledge" / "skills-manifest.json"
+
+
+def _installed_skill_slugs() -> list[str]:
+    import json
+
+    manifest = json.loads(_SKILLS_MANIFEST.read_text(encoding="utf-8"))
+    return [f"arka-{slug}" for slug in manifest["skills"]]
+
+
+@pytest.mark.parametrize("path", _FEATURE_FILES, ids=lambda p: p.stem)
+def test_detection_pattern_does_not_match_other_skill_slugs(path: Path):
+    """QG 2026-08-04 (PR #449 register): the bare `arka-spec` alternative
+    also matched the unrelated slug `arka-spec-miner`, so a loader that
+    merely mentioned that skill would be scored as already having the
+    section and silently skipped for a legitimate injection. Keyword
+    alternatives must not fire inside another installed skill's slug."""
+    spec = _load(path)
+    for slug in _installed_skill_slugs():
+        prose = f"See the {slug} skill for details."
+        match = re.search(spec.detection_pattern, prose)
+        if match is None:
+            continue
+        # A keyword alternative may legitimately match the exact skill it
+        # names (the incidental-token mechanism, sync-engine.md:78) —
+        # never a fragment of a longer slug.
+        assert match.group(0) == slug, (
+            f"{path.name}: detection_pattern {spec.detection_pattern!r} "
+            f"matches a fragment of the unrelated installed slug {slug!r}"
+        )

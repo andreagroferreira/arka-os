@@ -2,7 +2,7 @@ name: spec-driven-gate
 added_in: "2.13.0"
 mandatory: true
 section_title: "Spec-Driven Development"
-detection_pattern: "arka:feature:spec-driven-gate|## Spec-Driven Development|arka-spec"
+detection_pattern: "arka:feature:spec-driven-gate|## Spec-Driven Development|arka-spec(?![a-z-])"
 deprecated_in: null
 content: |
   <!-- arka:feature:spec-driven-gate:start -->
