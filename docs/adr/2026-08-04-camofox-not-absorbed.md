@@ -72,10 +72,9 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
 - **Reopening condition:** a specific, authorised collection target that the
   existing layers demonstrably cannot reach, named with the failure on
   record. Reopened that way, the entry starts at `category: optional` in
-  `mcps/registry.json` — never `base`, and note that `optional` and
-  `runtime` are the only alternatives that schema accepts — and is listed
-  under `deferred` for every stack in `config/mcp-policy.yaml`, which is a
-  separate bucket vocabulary. `CAMOFOX_CRASH_REPORT_ENABLED=false` is
+  `mcps/registry.json` — never `base` — and is listed under `deferred` for
+  every stack in `config/mcp-policy.yaml`, which is a separate bucket
+  vocabulary. `CAMOFOX_CRASH_REPORT_ENABLED=false` is
   pinned in the server config, and the egress policy is consulted before
   any client data reaches a page.
 - This ADR exists so the question is not re-litigated from the star count.

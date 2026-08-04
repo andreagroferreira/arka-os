@@ -3,7 +3,7 @@ name: research
 description: >
   Dev-scoped technical research (Lucas, Analyst): library evaluation,
   framework/package selection, code pattern comparison, and engineering
-  best-practice discovery across three sources — Context7 for the
+  best-practice discovery grounded in the KB first, then Context7 for the
   documented contract, gh-grep for how public repos really implement it,
   and web research — ending in a trade-off report with a recommendation.
   TRIGGER: user types "/dev research", "avalia a biblioteca", "que
@@ -21,22 +21,24 @@ description: >
 
 # Research
 
-> **Agent:** Lucas (Analyst) | **Framework:** Context7 + gh-grep + Web Research
+> **Agent:** Lucas (Analyst) | **Framework:** KB-first + Context7 + gh-grep + Web Research
 
 ## What It Does
 
 Research a technical topic: library evaluation, pattern comparison, best practice discovery.
 
-## Three sources, three questions
+## Sources, and the question each one answers
 
-Run all three before writing a recommendation. Each answers something the
-others cannot, and a report built on one of them is a report with a blind spot.
+Work through all four before writing a recommendation. Each answers
+something the others cannot, and a report built on one of them is a report
+with a blind spot.
 
 | Source | Question it answers |
 | --- | --- |
 | Obsidian + Graphify | what WE already decided, and what it cost us |
 | `mcp__context7__query-docs` | what the maintainer documents — the contract |
 | `mcp__gh-grep__searchGitHub` | what N teams actually shipped — the practice |
+| WebSearch / WebFetch | everything that is not code: pricing, licensing, maintainer intent, incident history |
 
 The gap between the last two is often the finding itself: an API that is
 documented one way and used another way in every real repo is telling you

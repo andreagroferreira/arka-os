@@ -37,7 +37,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/dev performance <target>` | Performance audit (CWV, API latency, DB) | Focused |
 | `/dev pipeline <project>` | CI/CD pipeline design and setup | Focused |
 | `/dev clean-review <file>` | Clean Code + SOLID compliance review | Specialist |
-| `/dev research <topic>` | Library evaluation and pattern discovery (KB + Context7 + gh-grep) | Specialist |
+| `/dev research <topic>` | Library evaluation and pattern discovery (KB + Context7 + gh-grep + web) | Specialist |
 | `/dev spec <description>` | Create feature specification (mandatory pre-impl) | Specialist |
 | `/dev scaffold <type> <name>` | Project scaffolding from starter repos | Specialist |
 | `/dev do <description>` | Smart routing to the right dev command | Orchestrator |

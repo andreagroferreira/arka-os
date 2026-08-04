@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-08-04T20:46:57Z",
+    "generated": "2026-08-04T21:10:45Z",
     "total_commands": 299,
     "generator": "core/registry/generator.py",
     "departments": {
@@ -1748,7 +1748,7 @@
       "id": "dev-research",
       "command": "/dev research <topic>",
       "department": "dev",
-      "description": "Library evaluation and pattern discovery (KB + Context7 + gh-grep)",
+      "description": "Library evaluation and pattern discovery (KB + Context7 + gh-grep + web)",
       "lead_agent": "arka-dev",
       "keywords": [
         "research",

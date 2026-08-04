@@ -80,7 +80,11 @@ def _clean_description(raw: str | None, fallback: str) -> str:
     text = re.sub(r"\s+", " ", text).strip()
     text = re.sub(r"\s+\.", ".", text)
     if len(text) > 180:
-        text = text[:177].rstrip() + "..."
+        head = text[:177]
+        # Cut on a word boundary: a mid-word slice emits fragments that read
+        # as typos to spellcheckers ("CLEAN" -> "CLEA", "with" -> "wit").
+        boundary = head.rfind(" ")
+        text = (head[:boundary] if boundary > 0 else head).rstrip(" ,;:—-") + "..."
     return text or fallback
 
 
