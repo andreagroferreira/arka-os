@@ -13,9 +13,11 @@ description: >
   image, URL) and asks for the look to be reproduced.
   SKIP: building a design system from scratch with no reference artefact ->
   brand/design-system (it specifies a system; this one reverse-engineers
-  one); only a colour palette -> brand/colors; judging an existing UI against
-  brand guidelines -> brand/design-review; the full identity package
-  (strategy, verbal, visual) -> brand/identity-system.
+  one); designing a palette from a brief or a mood with no reference to
+  sample -> brand/colors (a palette pulled FROM a reference stays here);
+  judging an existing UI against brand guidelines -> brand/design-review;
+  the full identity package (strategy, verbal, visual) ->
+  brand/identity-system.
 metadata:
   origin: community
   source: https://github.com/zanwei/design-dna
@@ -51,6 +53,15 @@ Present the schema and its three dimensions, then ask whether any dimension
 should be extended or dropped for this project.
 
 ## Phase 2 — Analyse
+
+> **Gate before any fetch.** This skill inherits the study protocol's
+> guardrails in full, and they are not negotiable: the **refusal layer**
+> (template marketplaces, signature designer work — decline and say why),
+> the **SSRF safety rules** for any live URL, and the **attestation gate**
+> on the finished profile. They are specified in
+> `brand/design-system/references/design-dna-study.md` and apply here
+> unchanged. Extraction is *structure, not pixels*: a DNA profile is a
+> description of how a design works, never a copy of it.
 
 For each reference supplied (image, screenshot, or URL), populate every
 schema field. Where references conflict, name the dominant pattern and note

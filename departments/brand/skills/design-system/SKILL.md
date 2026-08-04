@@ -74,6 +74,13 @@ A production design system in 5 deliverables:
 
 ## Study mode (design DNA extraction)
 
+> **Entry point:** a request that leads with a reference now routes to
+> `brand/design-dna`, which runs this same protocol with the same
+> guardrails and adds the qualitative and visual-effects dimensions. This
+> section stays because the study still runs *inside* a design-system
+> engagement whenever a reference turns up mid-brief — the protocol below
+> is the one both skills execute.
+
 When the operator brings a **reference** — a screenshot or a live URL —
 instead of a brief, run the study protocol in
 `references/design-dna-study.md`: it extracts structural DNA
