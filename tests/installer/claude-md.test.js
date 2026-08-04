@@ -6,15 +6,16 @@
 // adopted (known template hash or template prefix -> wrap keeping the
 // operator remainder, anything else -> prepend; never lose a byte); a
 // backup precedes every mutation; deleted markers are respected, not
-// re-seeded; malformed markers and non-UTF-8 files are refusals; fresh
-// installs write the template already wrapped.
+// re-seeded; malformed markers, non-UTF-8 files and broken symlinks are
+// refusals; a rewrite preserves the file mode and fresh files respect
+// the umask; fresh installs write the template already wrapped.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
 import {
   mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync,
-  existsSync, rmSync, symlinkSync, lstatSync,
+  existsSync, rmSync, symlinkSync, lstatSync, statSync, chmodSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -23,7 +24,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   MARKER_START, MARKER_END, KNOWN_TEMPLATE_HASHES, sha256,
-  renderManagedBlock, analyzeMarkers, planUpdate,
+  renderManagedBlock, analyzeMarkers, planUpdate, tempPathFor,
   syncUserClaudeMd, installUserClaudeMd, describeSyncResult,
 } = await import(join(ROOT, "installer", "claude-md.js"));
 
@@ -91,7 +92,7 @@ test("incident reproduction: operator remainder survives byte-for-byte, shipped 
     // The modal path must TELL the operator their content survived —
     // after a data-loss incident, the common path prints the reassurance.
     assert.equal(result.preservedRemainder, true);
-    assert.match(describeSyncResult(result).message, /your content preserved below the block/);
+    assert.match(describeSyncResult(result).message, /your content preserved below the managed block/);
   } finally {
     cleanup();
   }
@@ -393,6 +394,84 @@ test("a symlinked CLAUDE.md is written through to its target, the link survives"
   }
 });
 
+test("a broken symlink at the target is a refusal — the link is never replaced (M3)", () => {
+  // existsSync follows links, so a dangling link reads as "no file";
+  // before the guard the create path replaced the LINK with a regular
+  // file. Both entry points must refuse and leave the link untouched.
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const target = join(dir, ".claude", "CLAUDE.md");
+    mkdirSync(dirname(target), { recursive: true });
+    symlinkSync(join(dir, "does-not-exist.md"), target);
+
+    const updated = sync(dir);
+    assert.equal(updated.action, "refuse");
+    assert.match(updated.reason, /symlink/);
+    assert.ok(lstatSync(target).isSymbolicLink(), "the dangling link must survive the update path");
+
+    const installed = installUserClaudeMd({ home: dir, templatePath: TEMPLATE_PATH });
+    assert.equal(installed.action, "refuse");
+    assert.ok(lstatSync(target).isSymbolicLink(), "the dangling link must survive the install path");
+  } finally {
+    cleanup();
+  }
+});
+
+test("a restrictive file mode survives a managed rewrite — 0600 never widens (M1, CWE-732)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const path = writeUserClaudeMd(dir, renderManagedBlock("# Old shipped text\n"));
+    chmodSync(path, 0o600);
+
+    const result = sync(dir);
+
+    assert.equal(result.action, "replace-block");
+    assert.equal(statSync(path).mode & 0o7777, 0o600);
+  } finally {
+    cleanup();
+  }
+});
+
+test("a freshly created CLAUDE.md respects the operator's umask, like master's plain write (M1)", () => {
+  // umask-relative on purpose: asserting a literal 0644 locked in a
+  // widening for umask-077 operators (QG r1, Francisca B1). The
+  // sibling is written by a plain writeFileSync — the master baseline.
+  // The umask is forced to 077 for the duration so a hard-coded mode
+  // diverges from the baseline regardless of the ambient umask — at
+  // the CI default 022 a faithful reintroduction of the widening
+  // passed all tests (QG r2, Francisca A1, mutant M7).
+  const { dir, cleanup } = makeTmpHome();
+  const prevUmask = process.umask(0o077);
+  try {
+    const result = installUserClaudeMd({ home: dir, templatePath: TEMPLATE_PATH });
+
+    assert.equal(result.action, "created");
+    const sibling = join(dir, "umask-sibling");
+    writeFileSync(sibling, "baseline");
+    assert.equal(
+      statSync(join(dir, ".claude", "CLAUDE.md")).mode & 0o7777,
+      statSync(sibling).mode & 0o7777,
+    );
+  } finally {
+    process.umask(prevUmask);
+    cleanup();
+  }
+});
+
+test("atomic-write invariants hidden by the rename or by the ambient umask are source-pinned", () => {
+  // After renameSync neither the replace-path temp's 0600 nor the
+  // chmod-before-rename ordering can be observed (QG r1 mutants 3+4
+  // survived every behavioural test). The third pin holds the fresh
+  // branch to a bare two-argument write — the spec criterion "never a
+  // hard-coded mode" enforced at the source (QG r2, Eduardo + Francisca
+  // A1). These pins fail safe — a false red on a refactor, never a
+  // false green.
+  const src = readFileSync(join(ROOT, "installer", "claude-md.js"), "utf-8");
+  assert.match(src, /writeFileSync\(tmp, content, \{ mode: 0o600 \}\)/);
+  assert.match(src, /chmodSync\(tmp, existingMode\)/);
+  assert.match(src, /if \(existingMode === null\) \{\s*writeFileSync\(tmp, content\);/);
+});
+
 test("no temp file is left behind after a sync", () => {
   const { dir, cleanup } = makeTmpHome();
   try {
@@ -406,10 +485,14 @@ test("no temp file is left behind after a sync", () => {
 });
 
 test("atomic temp names are PID-scoped so concurrent processes cannot collide", () => {
-  // The temp name cannot be observed after the rename, so this pins the
-  // source: a fixed temp name would survive every behavioural test.
+  // Behavioural half: two pids must yield two names, and the default
+  // pid is the current process. The name is unobservable after the
+  // rename, so a minimal source pin still holds writeAtomic to USING
+  // the helper — without it a mutant could inline a fixed temp name.
+  assert.notEqual(tempPathFor("/h/CLAUDE.md", 111), tempPathFor("/h/CLAUDE.md", 222));
+  assert.equal(tempPathFor("/h/CLAUDE.md"), tempPathFor("/h/CLAUDE.md", process.pid));
   const src = readFileSync(join(ROOT, "installer", "claude-md.js"), "utf-8");
-  assert.match(src, /arkaos-tmp-\$\{process\.pid\}/);
+  assert.match(src, /const tmp = tempPathFor\(real\)/);
 });
 
 test("describeSyncResult falls back to a warning on an unknown action", () => {

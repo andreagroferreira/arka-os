@@ -23,9 +23,9 @@ spec:
   incident:
     - >-
       NOT hypothetical, and not only reachable by an explicit command.
-      Measured on the operator's machine, from the registry and the
-      daemon's own log: v5.0.0 was published at 2026-08-03 21:08:37Z
-      (22:08:37 local); the launchd autoupdater
+      Measured on the operator's machine, from the registry, the
+      daemon's own log, and the launchd plist: v5.0.0 was published
+      at 2026-08-03 21:08:37Z (22:08:37 local); the launchd autoupdater
       (io.wizardingcode.arkaos.updater.plist, StartCalendarInterval
       10:30 + RunAtLoad — publication does NOT trigger it) started its
       next unattended run at 22:14:01 local (the log does not record
@@ -100,9 +100,9 @@ spec:
       starts with the shipped template keeps its remainder below the
       managed block, with the prefix absorbed into it; any other
       unmarked file that does not match a known template hash is
-      preserved whole below the block — reproduced
-      with the exact three-line /graphify block this bug destroyed on
-      2026-08-03, which must come back identical
+      preserved whole below the block — reproduced with the exact
+      three-line /graphify block this bug destroyed on 2026-08-03,
+      which must come back identical
     - >-
       a file whose content matches a known template hash is wrapped in
       markers and its shipped text updated, with no duplication
@@ -127,6 +127,16 @@ spec:
       installer/index.js on a fresh install writes the template WITH
       markers, and the existing "already exists (preserved)" behaviour
       is unchanged
+    - >-
+      a rewrite preserves the existing file's mode — a 0600 CLAUDE.md
+      never comes back 0644 (CWE-732, C5 register M1); the replace-path
+      temp starts at 0600 (source-pinned — unobservable after the
+      rename) and freshly created files respect the operator's umask,
+      never a hard-coded mode
+    - >-
+      a broken symlink at the target is a refusal on both entry
+      points, never silently replaced by a regular file (C5 register
+      M3)
     - >-
       full python and npm suites green at the head
   out_of_scope:
