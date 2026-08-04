@@ -27,6 +27,7 @@ import configparser
 import fnmatch
 import importlib.util
 import json
+import os
 import re
 import shlex
 import shutil
@@ -163,6 +164,14 @@ def _skip(check: str, reason: str) -> CheckResult:
         check=check, ran=False, passed=None, command="",
         exit_code=None, summary=reason,
     )
+
+
+def _expand_argv(argv: list[str]) -> list[str]:
+    """Expand a leading `~` in each token; shlex.split leaves it literal."""
+    return [
+        os.path.expanduser(tok) if tok.startswith("~") else tok
+        for tok in argv
+    ]
 
 
 def _run(
@@ -447,8 +456,18 @@ def _check_tests(
     test_command: str | None, timeout: int,
 ) -> CheckResult:
     if test_command:
-        argv = shlex.split(test_command)
+        argv = _expand_argv(shlex.split(test_command))
         result = _run("tests", argv, project_dir, timeout)
+        if not result.ran:
+            # A command the operator pinned explicitly is not optional.
+            # _run reports an unresolvable binary as ran=False, which an
+            # aggregator reads as "not applicable" — so a typo in the
+            # path would let a PR through on a suite that never ran.
+            return CheckResult(
+                check="tests", ran=True, passed=False,
+                command=" ".join(argv), exit_code=None,
+                summary=f"pinned --test-command could not run: {result.summary}",
+            )
         # exit 5 is pytest's "no tests collected"; scan the first 3
         # tokens so `python -m pytest` / `arka-py -m pytest` degrade too,
         # while non-pytest runners (npm test) stay a real FAIL. Bounded to

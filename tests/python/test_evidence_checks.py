@@ -298,6 +298,46 @@ def test_tests_check_with_failing_override(tmp_path):
     assert report.overall == "fail"
 
 
+def test_pinned_test_command_that_cannot_run_fails_not_skips(tmp_path):
+    """An unresolvable --test-command is a FAILURE, never a silent skip.
+
+    The operator pinned that exact command; being unable to run it is
+    evidence the suite did not run, and `ran=False` reads to an
+    aggregator as "not applicable" — a fail-open in the gate itself.
+    """
+    report = run_evidence_checks(
+        tmp_path,
+        checks=["tests"],
+        test_command="/nonexistent/interpreter -m pytest",
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is False
+    assert "not found" in result.summary
+    assert report.overall == "fail"
+
+
+def test_pinned_test_command_expands_user_home(tmp_path):
+    """`~` in a pinned command resolves; shlex.split does not expand it.
+
+    Reported by the Quality Gate 2026-08-04: `~/.arkaos/bin/arka-py`
+    reached subprocess verbatim, raised FileNotFoundError, and the check
+    silently skipped while reporting overall pass.
+    """
+    home = os.path.expanduser("~")
+    if not sys.executable.startswith(home):
+        import pytest
+
+        pytest.skip("interpreter lives outside HOME; cannot build a ~ path")
+    tilde_cmd = "~" + sys.executable[len(home):]
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command=f"{tilde_cmd} -c pass",
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is True
+
+
 def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):
     def fake_run(*args, **kwargs):
         raise subprocess.TimeoutExpired(cmd=args[0], timeout=1)
