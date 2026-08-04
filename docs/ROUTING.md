@@ -55,7 +55,11 @@ surfaces) requires an actual hub-skill invocation:
   `do → arka`; unknown departments fall back to `arka-<dept>` and never
   raise. A structural test proves all 17 registry departments resolve to
   existing hubs.
-- CLI.md and CLAUDE.md carry the same contract in tool form.
+- `docs/COMMANDS.md` and `CLAUDE.md` carry the same contract in tool
+  form; `tests/python/test_skill_invocation_contract.py` proves all 17
+  registry departments and every command prefix resolve to existing
+  hubs (`test_every_registry_department_resolves_to_an_existing_hub`,
+  `test_every_command_prefix_resolves_to_an_existing_hub`).
 
 ## Stage 3 — Learn: routing scores
 
