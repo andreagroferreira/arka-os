@@ -1352,3 +1352,110 @@ def test_design_slop_advisory_only_summary_makes_no_hard_threat(
     assert result.passed is True
     assert "fails when" not in result.summary
     assert "advisory finding(s)" in result.summary
+
+
+class TestZeroDiffSkips:
+    """QG 2026-08-04 (PR #449): an EMPTY changed-file list bypassed the
+    scoped paths via `if changed:` and fell through to the project-wide
+    run, so a zero-write deliverable inherited master's 1602-error ruff
+    baseline as overall=fail. Known-empty ([]) now skips; None (scope
+    unknown) still runs project-wide."""
+
+    @staticmethod
+    def _fake_run(sink):
+        from core.governance import evidence_checks as ec
+
+        def fake_run(name, cmd, project_dir, timeout):
+            sink.append(cmd)
+            return ec.CheckResult(
+                check=name, ran=True, passed=True,
+                command=" ".join(map(str, cmd)), exit_code=0, summary="ok",
+            )
+
+        return fake_run
+
+    def test_lint_empty_diff_skips_without_running(
+        self, tmp_path, monkeypatch,
+    ):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+        monkeypatch.setattr(ec, "_ruff_cmd", lambda: ["ruff"])
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_lint(tmp_path, [], None, timeout=30)
+        assert not result.ran
+        assert "empty diff" in result.summary, (
+            "known-empty skip must carry the discriminating wording, "
+            f"got: {result.summary}"
+        )
+        assert not ran, "zero-diff must never reach a lint run"
+
+    def test_lint_none_still_runs_project_wide(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+        monkeypatch.setattr(ec, "_ruff_cmd", lambda: ["ruff"])
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_lint(tmp_path, None, None, timeout=30)
+        assert result.ran
+        assert ran and ran[0][-1] == ".", (
+            "None (scope unknown) keeps the project-wide run"
+        )
+
+    def test_typecheck_empty_diff_skips_before_config_detection(
+        self, tmp_path, monkeypatch,
+    ):
+        from core.governance import evidence_checks as ec
+
+        monkeypatch.setattr(ec, "_mypy_configured", lambda p: True)
+        monkeypatch.setattr(ec.shutil, "which", lambda name: "/usr/bin/mypy")
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_typecheck(tmp_path, [], None, timeout=30)
+        assert not result.ran
+        assert "empty diff" in result.summary, (
+            "known-empty skip must carry the discriminating wording, "
+            f"got: {result.summary}"
+        )
+        assert not ran, "zero-diff must skip even with mypy configured"
+
+    def test_typecheck_none_runs_when_configured(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        monkeypatch.setattr(ec, "_mypy_configured", lambda p: True)
+        monkeypatch.setattr(ec.shutil, "which", lambda name: "/usr/bin/mypy")
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_typecheck(tmp_path, None, None, timeout=30)
+        assert result.ran
+        assert ran and ran[0][0] == "mypy"
+
+    def test_csv_distinguishes_empty_from_absent(self):
+        from core.governance import evidence_checks as ec
+
+        assert ec._csv(None) is None
+        assert ec._csv("") == []
+        assert ec._csv("a.py, b.md") == ["a.py", "b.md"]
+
+    def test_zero_diff_report_is_not_fail(self, tmp_path, monkeypatch):
+        """End-to-end through run_evidence_checks: a zero-diff run of
+        lint+typecheck yields insufficient-evidence, never a fail
+        inherited from the project-wide baseline."""
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+
+        def boom(name, cmd, project_dir, timeout):  # pragma: no cover
+            raise AssertionError(f"no check may execute on zero diff: {cmd}")
+
+        monkeypatch.setattr(ec, "_run", boom)
+        report = ec.run_evidence_checks(
+            tmp_path, changed_files=[], checks=["lint", "typecheck"],
+        )
+        assert report.overall == "insufficient-evidence"
+        assert all(not r.ran for r in report.results), (
+            "a check ran on zero diff: "
+            f"{[r.check for r in report.results if r.ran]}"
+        )
