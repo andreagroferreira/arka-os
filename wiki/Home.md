@@ -53,6 +53,7 @@ prefix; the Quality Gate runs automatically on every workflow.
 | [16 · Configuration](16-Configuration.md) | Feature flags, kill switches, settings |
 | [17 · Skill Packs](17-Skill-Packs.md) | The curated core, the plugin marketplace, and the CI-enforced context budget |
 | [18 · Integrations & Tools](18-Integrations-and-Tools.md) | MCP servers, media engines, the knowledge pipeline, Graphify |
+| [19 · Token Economy](19-Token-Economy.md) | Model routing, cost telemetry, the CostGovernor, context economy |
 
 ## Evidence
 

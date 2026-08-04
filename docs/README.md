@@ -35,6 +35,8 @@ step-by-step guide, see the [`wiki/`](../wiki/Home.md).
 | [DEPARTMENTS.md](DEPARTMENTS.md) | Department reference |
 | [USE-CASES.md](USE-CASES.md) | Scenarios by role |
 | [INTEGRATIONS.md](INTEGRATIONS.md) | MCP servers, media engines, knowledge pipeline |
+| [ROUTING.md](ROUTING.md) | How a request becomes a squad + command |
+| [TOKEN-ECONOMY.md](TOKEN-ECONOMY.md) | Model routing, telemetry, cost governance |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | Origins of derived open-source material |
 | [MIGRATION-V1-V2.md](MIGRATION-V1-V2.md) | Migrating from the v1 (bash-only) release |
 | [adr/](adr/) | Architecture Decision Records (9 ADRs) |

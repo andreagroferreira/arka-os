@@ -170,7 +170,12 @@ estimated cost. This is visibility only — it never blocks.
 ```
 
 A soft advisory appears when a single session exceeds $5 equivalent. There are
-no hard caps.
+no hard caps — the only enforced ceiling is the opt-in
+[CostGovernor](19-Token-Economy.md) (per-project `hardCapUsd`/`dailyCapUsd`
+in `.arkaos.json`), which can deny (exit 2) or warn when a cap is exceeded.
+See [19 · Token Economy](19-Token-Economy.md) for the full economy: role→model
+routing (`~/.arkaos/models.yaml`), quality-first defaults, context
+compaction, and the Token Hygiene checks.
 
 ---
 
