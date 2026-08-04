@@ -52,7 +52,7 @@ Expected output:
 [PASS] Synapse engine responsive (~84ms cold)
 [PASS] Knowledge DB initialized
 [PASS] 89 agents loaded
-[PASS] 333 skills validated
+[PASS] 334 skills validated
 All checks passed.
 ```
 
@@ -190,7 +190,7 @@ Your configuration and knowledge base are preserved. See
 | Component | Count |
 |---|---|
 | Agents | 89 across 17 departments (88 unique) |
-| Skills | 333 core + 259 plugin (see [Skill Packs](17-Skill-Packs.md)) |
+| Skills | 334 core + 260 plugin (see [Skill Packs](17-Skill-Packs.md)) |
 | Commands | 298 across 17 departments |
 | Synapse layers | 12 for context injection |
 | Dashboard pages | 8 |

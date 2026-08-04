@@ -72,7 +72,7 @@ a script can read.
 
 The doctrine for reading a page's design lives in
 `brand/design-system/references/design-dna-study.md`. Read it before judging
-a reference: it is the observational method, this skill is the workflow that
+a reference: it is the observational method; this skill is the workflow that
 consumes it.
 
 For `visual_effects`, scan the source for `<canvas>`, WebGL contexts,
@@ -101,6 +101,10 @@ hero:
 Record the tier in `visual_effects.overview.performance_tier` and hand the
 build to the frontend squad — this skill decides WHAT the effect is and how
 strong, not how to code it.
+
+**Hand the token file to Iris** (`design-ops-lead`): she owns the design
+token custody and the handoff into the component library, so a DNA profile
+that stops at a JSON blob nobody adopts has not finished.
 
 Run the quality checks in
 [references/generation-guide.md](references/generation-guide.md) before

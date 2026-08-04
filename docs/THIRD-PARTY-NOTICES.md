@@ -213,10 +213,11 @@ Material derived from this project:
 |---|---|---|
 | DNA schema | `departments/brand/skills/design-dna/references/schema.md` | Verbatim — the 3-dimension field list (`design_system` tokens, `design_style` qualitative, `visual_effects` WebGL/shader/scroll) |
 | Generation guide | `departments/brand/skills/design-dna/references/generation-guide.md` | Verbatim — priority order, per-dimension mapping to code, effect implementation patterns by performance tier |
-| Skill procedure | `departments/brand/skills/design-dna/SKILL.md` | Rewritten to the ArkaOS standard, not verbatim: the 3-phase workflow and dimension semantics are upstream's, while the routing contract (TRIGGER/SKIP), the KB-first prefix, the delegation of phase-1 extraction to Nia (`extraction-script-writer`), and the effect-tier handoff table naming `dev/gsap`, `dev/canvas-generative` and `dev/threejs` are ArkaOS |
+| Skill procedure | `departments/brand/skills/design-dna/SKILL.md` | Rewritten to the ArkaOS standard, not verbatim: the 3-phase workflow and dimension semantics are upstream's, while the routing contract (TRIGGER/SKIP), the KB-first prefix, the delegation of the measurable phase-2 extraction to Nia (`extraction-script-writer`), and the effect-tier table keyed to performance cost are ArkaOS |
 
-Not carried over: the six translated READMEs (`README.{es,ja,ko,zh-CN,zh-TW}.md`)
-and `docs/example-style-transfer.png`, none of which the skill needs.
+Not carried over: the five translated READMEs
+(`README.{es,ja,ko,zh-CN,zh-TW}.md`) and
+`docs/example-style-transfer.png`, none of which the skill needs.
 
 The MIT permission notice and copyright line above apply to all copies
 and substantial portions of the derived material.
