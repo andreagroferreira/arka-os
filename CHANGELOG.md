@@ -5,6 +5,39 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0] - 2026-08-04
+
+### Fixed
+
+- **Evidence engine: a known-empty diff no longer inherits master's
+  project-wide lint/type debt** (#449). With `changed == []` the guard
+  `if changed:` skipped both the scoped run and the honest skip and fell
+  through to project-wide ruff, so a zero-write deliverable was gated on
+  1602 pre-existing errors as `overall=fail` (this carried three Quality
+  Gate rejections before the root cause was isolated). Lint and typecheck
+  now skip explicitly with "no changed files (empty diff)"; `None` still
+  means scope-unknown and keeps the project-wide run; the CLI maps
+  `--changed-files ""` to the known-empty contract.
+- **Sync feature registry: Focused tier corrected to 3-4 phases** (#450),
+  aligning `workflow-tiers.yaml` with `core/workflow/schema.py` — the
+  wrong 3-5 figure was being injected into every skill carrying the
+  managed block.
+- **Detection keyword alternatives anchored** (#450): bare `arka-spec` /
+  `arka-forge` tokens matched inside longer slugs (e.g. `arka-spec-miner`),
+  scoring a feature as present in loaders that merely mention such a
+  skill. Both alternatives now carry `(?![\w-])`, locked by
+  manifest-driven and pattern-derived collision tests, plus a new lock
+  asserting every in-repo `arka:feature` marker region is byte-identical
+  to the registry content.
+
+### Docs
+
+- Generated skills/workflows catalogs with drift locks, per-department
+  command surface tables, integrations reference, routing and
+  token-economy references, plain-language guide (wiki 19-20),
+  contributing playbook, and stale-count reconciliation across docs and
+  wiki (89 agents, 333 skills, 29 MUST).
+
 ## [5.1.1] - 2026-08-04
 
 ### Fixed
