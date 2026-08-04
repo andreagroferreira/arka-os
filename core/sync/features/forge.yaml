@@ -2,7 +2,7 @@ name: forge-integration
 added_in: "2.14.0"
 mandatory: true
 section_title: "Forge Integration"
-detection_pattern: "arka:feature:forge-integration|## Forge Integration|arka-forge(?![a-z-])"
+detection_pattern: "arka:feature:forge-integration|## Forge Integration|arka-forge(?![\\w-])"
 deprecated_in: null
 content: |
   <!-- arka:feature:forge-integration:start -->
