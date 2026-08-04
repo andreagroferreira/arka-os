@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/kb` · **Lead:** Clara (Tier 1) · **Agents:** 4 · **Skills:** 13
+> **Prefix:** `/kb` · **Lead:** Clara (Tier 1) · **Agents:** 4 · **Skills:** 17
 
 Knowledge Management is the squad responsible for building, organizing, and querying the team's institutional memory. It ingests raw sources — YouTube videos, PDFs, articles, research papers — processes them into permanent, linked notes, and surfaces the right context to every other department on demand. The vault lives in Obsidian; everything in it is linked, attributed, and evergreen.
 

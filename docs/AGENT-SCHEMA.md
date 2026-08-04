@@ -6,7 +6,7 @@ Reference for contributors defining or auditing ArkaOS agent YAML files.
 
 Every ArkaOS agent is a single YAML file under `departments/<dept>/agents/<id>.yaml`. The file is parsed by Pydantic (`core/agents/schema.py`), validated for cross-framework consistency (`core/agents/validator.py`), and loaded into the `DNARegistry` at runtime (`core/agents/dna_registry.py`).
 
-The repository currently contains 82 agents across 17 departments, organized into four tiers.
+The repository currently contains 89 agent files (88 unique agents) across 17 departments, organized into four tiers.
 
 ## Agent Tiers
 

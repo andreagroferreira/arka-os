@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/sales` · **Lead:** Miguel (Tier 1) · **Agents:** 4 · **Skills:** 10
+> **Prefix:** `/sales` · **Lead:** Miguel (Tier 1) · **Agents:** 4 · **Skills:** 13
 
 The Sales department handles the full revenue cycle from first contact to signed deal. Miguel leads with a consultative, qualification-first approach grounded in SPIN Selling and the Challenger Sale — both of which emphasise understanding the customer's situation before positioning any solution. The squad covers prospecting, deal qualification, proposal writing, objection handling, negotiation, and pipeline forecasting.
 

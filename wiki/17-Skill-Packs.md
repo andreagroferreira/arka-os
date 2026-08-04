@@ -1,10 +1,14 @@
 # 17 · Skill Packs
 
-The curated core and the plugin marketplace. ArkaOS ships 275 skills, and you should not pay context rent for all of them in every session. Since v4.14 the distribution model has two halves: a curated core that installs by default, and 16 department packs you add when you need them.
+The curated core and the plugin marketplace. ArkaOS ships 333 core skills
+(318 department + 15 `/arka` meta skills), and you should not pay context rent
+for all of them in every session. Since v4.14 the distribution model has two
+halves: a curated core that installs by default, and 16 department packs (259
+plugin skills) you add when you need them.
 
 ## Why a curated core
 
-Every skill you install adds its name and description to what your AI runtime can load per session. Install 275 and you pay for 275, whether the session is about code review or cart recovery. Collections that dump everything into the context window perform worse for it.
+Every skill you install adds its name and description to what your AI runtime can load per session. Install 333 and you pay for 333, whether the session is about code review or cart recovery. Collections that dump everything into the context window perform worse for it.
 
 The curated core keeps the always-on surface small and enforces that in CI: the build fails if the default install grows past 80 skills or 40,000 description characters. The audit runs from the repository, so the promise is checkable:
 
@@ -19,7 +23,7 @@ What the core contains:
 | Main orchestrator | `/arka`, routing, standups, system commands |
 | 17 department hubs | One entry point per department (`/dev`, `/mkt`, `/fin`, ...) |
 | 14 meta skills | The cross-cutting machinery: evidence flow, Forge planning, fusion, recipes, research |
-| 37 curated sub-skills | The two or three most used skills of each department, chosen by usage |
+| 42 curated sub-skills | The two or three most used skills of each department, chosen by usage |
 
 ## Installing a department pack
 

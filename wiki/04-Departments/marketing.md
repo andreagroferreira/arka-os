@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/mkt` · **Lead:** Luna (Tier 1) · **Agents:** 4 · **Skills:** 14
+> **Prefix:** `/mkt` · **Lead:** Luna (Tier 1) · **Agents:** 7 · **Skills:** 32
 
 The Marketing & Growth department drives sustainable acquisition, retention, and revenue across every channel. Luna's squad operates at the intersection of data and psychology — diagnosing where growth is leaking, designing self-reinforcing loops, and running the paid, organic, and content engines in parallel.
 

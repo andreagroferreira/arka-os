@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/saas` · **Lead:** Tiago (Tier 1) · **Agents:** 5 · **Skills:** 17
+> **Prefix:** `/saas` · **Lead:** Tiago (Tier 1) · **Agents:** 5 · **Skills:** 18
 
 The SaaS department handles the full revenue engine of a subscription business: product-led growth strategy, pricing, SaaS metrics modeling, customer success, churn diagnosis, and growth experimentation. Tiago and Vicente operate as dual leads — Tiago owns PLG strategy and benchmarking, Vicente owns the RevOps layer that connects marketing, sales, and customer success into a single revenue motion.
 

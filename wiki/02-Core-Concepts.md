@@ -24,8 +24,8 @@ A **squad** is a working team. Two kinds:
 
 This is a **matrix structure**: agents belong to a home department but can be
 borrowed into project squads. (One agent, `cro-specialist`, is even
-permanently shared by E-Commerce and Landing — which is why the repo has 82
-agent files but 81 unique agents.)
+permanently shared by E-Commerce and Landing — which is why the repo has 89
+agent files but 88 unique agents.)
 
 See [Departments](04-Departments/) for the full roster.
 
@@ -49,9 +49,9 @@ mission-driven org structures (SpaceX, Google, Anthropic):
 | Tier | Role | Count | Authority |
 |---|---|---|---|
 | **0** | C-Suite | 6 | Veto, approve architecture/budget, block release/delivery |
-| **1** | Squad Leads | 18 | Orchestrate their squad, decide within their domain, delegate |
-| **2** | Specialists | 55 | Implement, review, recommend |
-| **3** | Support | 3 | Research, document, validate |
+| **1** | Squad Leads | 19 | Orchestrate their squad, decide within their domain, delegate |
+| **2** | Specialists | 60 | Implement, review, recommend |
+| **3** | Support | 4 | Research, document, validate |
 
 The **C-Suite** (Tier 0) is Marco (CTO), Helena (CFO), Sofia (COO),
 Marta (CQO), Eduardo (Copy Director), and Francisca (Tech & UX Director). They
@@ -80,20 +80,24 @@ reference-company citations.
 ## 5. The constitution
 
 ArkaOS is governed by a constitution (`config/constitution.yaml`) with four
-enforcement levels:
+enforcement levels (Constitution 2.0):
 
 | Level | Count | Meaning |
 |---|---|---|
-| **NON-NEGOTIABLE** | 25 | Hard rules. Cannot be bypassed by any task, runtime, or convenience. |
+| **NON-NEGOTIABLE** | 6 | Hard rules, verifiable by evidence at a gate. Cannot be bypassed by any task, runtime, or convenience. |
 | **QUALITY GATE** | — | Marta (CQO) + Eduardo + Francisca review every workflow. Binary verdict. |
-| **MUST** | 11 | Strong defaults — conventional commits, ≥80% coverage, model routing, etc. |
-| **SHOULD** | 8 | Recommended — research-first, self-critique, KB contribution, etc. |
+| **MUST** | 29 | Strong defaults — conventional commits, ≥80% coverage, model routing, etc. |
+| **SHOULD** | 12 | Recommended — research-first, self-critique, KB contribution, etc. |
 
 Some non-negotiables you'll feel immediately: **squad-routing** (every request
 goes through a department), **evidence-flow** (the 4-gate evidence flow runs on
 every non-trivial request — gates pass on command output and exit codes, not
 narration), **mandatory-qa** (nothing ships without the Quality Gate),
 **spec-driven** (no code without an approved spec), and **arkaos-not-yes-man**.
+
+> Counts are read from `config/constitution.yaml` (6 NON-NEGOTIABLE · 29 MUST ·
+> 12 SHOULD) — the 25/11/8 split of earlier versions was retired in
+> Constitution 2.0.
 
 ---
 

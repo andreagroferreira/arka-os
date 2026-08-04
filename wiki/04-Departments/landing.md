@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/landing` · **Lead:** Ines (Tier 1) · **Agents:** 4 · **Skills:** 15
+> **Prefix:** `/landing` · **Lead:** Ines (Tier 1) · **Agents:** 4 · **Skills:** 18
 
 The Landing Pages & Funnels department owns conversion — from the moment a prospect clicks to the moment they buy. Ines and her squad design offers, write the copy, build the page architecture, run the tests, and wire the affiliate layer. Every deliverable is grounded in the conversion canon: Hormozi's offer economics, Schwartz's awareness-matching, and Brunson's ascension ladder.
 

@@ -59,7 +59,7 @@ npx arkaos keys list
 
 Every department has a prefix. You can use the prefix with a skill name, or just describe what you need in plain language and ArkaOS routes it automatically.
 
-### `/dev` -- Development (41 skills, 10 agents)
+### `/dev` -- Development (64 skills, 15 agents)
 
 Led by Paulo (Tech Lead). Full-stack development from architecture to deployment.
 
@@ -95,7 +95,7 @@ Led by Paulo (Tech Lead). Full-stack development from architecture to deployment
 /dev debug "payments failing after Stripe webhook"
 ```
 
-### `/mkt` -- Marketing (14 skills, 4 agents)
+### `/mkt` -- Marketing (32 skills, 7 agents)
 
 Led by Luna (Marketing Lead). Growth strategies, SEO, email, and paid campaigns.
 
@@ -125,7 +125,7 @@ Led by Luna (Marketing Lead). Growth strategies, SEO, email, and paid campaigns.
 /mkt ab-test "pricing page hero section"
 ```
 
-### `/brand` -- Brand and Design (12 skills, 4 agents)
+### `/brand` -- Brand and Design (13 skills, 10 agents)
 
 Led by Valentina (Creative Director). Full brand identity from strategy to visual design.
 
@@ -176,7 +176,7 @@ Led by Helena (CFO). Financial modeling, valuation, and investment analysis.
 /fin pitch-deck "seed round, pre-revenue, AI healthcare"
 ```
 
-### `/strat` -- Strategy (9 skills, 3 agents)
+### `/strat` -- Strategy (11 skills, 4 agents)
 
 Led by Tomas (Strategy Director). Market analysis and strategic planning.
 
@@ -197,7 +197,7 @@ Led by Tomas (Strategy Director). Market analysis and strategic planning.
 /strat competitor-intelligence "Shopify vs WooCommerce vs BigCommerce"
 ```
 
-### `/ecom` -- E-Commerce (12 skills, 4 agents)
+### `/ecom` -- E-Commerce (14 skills, 4 agents)
 
 Led by Ricardo (E-Commerce Lead). Store optimization, CRO, and pricing.
 
@@ -215,7 +215,7 @@ Led by Ricardo (E-Commerce Lead). Store optimization, CRO, and pricing.
 /ecom rfm-analysis
 ```
 
-### `/kb` -- Knowledge (12 skills, 4 agents)
+### `/kb` -- Knowledge (17 skills, 4 agents)
 
 Led by Clara (Knowledge Lead). Research, learning, and knowledge management.
 
@@ -233,7 +233,7 @@ Led by Clara (Knowledge Lead). Research, learning, and knowledge management.
 /kb zettelkasten "machine learning fundamentals"
 ```
 
-### `/ops` -- Operations (15 skills, 3 agents)
+### `/ops` -- Operations (23 skills, 3 agents)
 
 Led by Daniel (Ops Lead). Process automation, compliance, and risk management.
 
@@ -257,7 +257,7 @@ Led by Daniel (Ops Lead). Process automation, compliance, and risk management.
 /ops automate "invoice processing workflow"
 ```
 
-### `/pm` -- Project Management (13 skills, 3 agents)
+### `/pm` -- Project Management (14 skills, 4 agents)
 
 Led by Carolina (PM Director). Agile planning, discovery, and delivery.
 
@@ -278,7 +278,7 @@ Led by Carolina (PM Director). Agile planning, discovery, and delivery.
 /pm shape-up "redesign the billing page"
 ```
 
-### `/saas` -- SaaS (15 skills, 4 agents)
+### `/saas` -- SaaS (18 skills, 5 agents)
 
 Led by Tiago (SaaS Strategist). Validation, metrics, and growth for SaaS products.
 
@@ -302,7 +302,7 @@ Led by Tiago (SaaS Strategist). Validation, metrics, and growth for SaaS product
 /saas saas-scaffold "Nuxt 4 + Supabase + Stripe"
 ```
 
-### `/landing` -- Landing Pages (15 skills, 4 agents)
+### `/landing` -- Landing Pages (18 skills, 4 agents)
 
 Led by Ines (Landing Lead). High-converting copy, funnels, and page generation.
 
@@ -323,7 +323,7 @@ Led by Ines (Landing Lead). High-converting copy, funnels, and page generation.
 /landing page-optimize "current conversion rate 2.1%"
 ```
 
-### `/content` -- Content (14 skills, 4 agents)
+### `/content` -- Content (19 skills, 8 agents)
 
 Led by Rafael (Content Strategist). Viral content, hooks, scripts, and repurposing.
 
@@ -344,7 +344,7 @@ Led by Rafael (Content Strategist). Viral content, hooks, scripts, and repurposi
 /content content-os "weekly publishing cadence, 3 platforms"
 ```
 
-### `/community` -- Communities (14 skills, 3 agents)
+### `/community` -- Communities (15 skills, 3 agents)
 
 Led by Beatriz (Community Strategist). Groups, membership, and engagement.
 
@@ -362,7 +362,7 @@ Led by Beatriz (Community Strategist). Groups, membership, and engagement.
 /community membership-model "3-tier, $29/$99/$299"
 ```
 
-### `/sales` -- Sales (10 skills, 3 agents)
+### `/sales` -- Sales (13 skills, 4 agents)
 
 Led by Miguel (Sales Director). Pipeline management and selling frameworks.
 
@@ -398,7 +398,7 @@ Led by Rodrigo (Leadership Lead). Team health, OKRs, and culture building.
 /lead culture-playbook "remote-first startup, 20 people"
 ```
 
-### `/org` -- Organization (10 skills, 3 agents)
+### `/org` -- Organization (12 skills, 5 agents)
 
 Led by Sofia (COO). Organizational design and team structure.
 

@@ -1,7 +1,7 @@
 ---
 name: arka-dev
 description: >
-  Full-stack development department. Enterprise-grade 9-agent team with structured
+  Full-stack development department. Enterprise-grade 15-agent team with structured
   multi-phase workflows. Implements features, APIs, reviews code, manages architecture,
   security audits, CI/CD, database design, and AI-assisted development.
   Frameworks: Clean Architecture, DDD, TDD, DORA Metrics, OWASP Top 10.

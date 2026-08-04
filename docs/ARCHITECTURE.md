@@ -422,9 +422,9 @@ npx arkaos dashboard
 │   ├── runtime/                    # Multi-runtime adapters
 │   └── specs/                      # Living specifications
 ├── departments/                    # 17 departments
-│   ├── dev/                        # 10 agents, 41 skills, 3 workflows
-│   ├── marketing/                  # 4 agents, 14 skills
-│   ├── brand/                      # 4 agents, 12 skills
+│   ├── dev/                        # 15 agents, 64 skills, 3 workflows
+│   ├── marketing/                  # 7 agents, 32 skills
+│   ├── brand/                      # 10 agents, 13 skills
 │   └── ...                         # (14 more departments)
 ├── hooks/                          # Bash hooks for runtimes
 ├── scripts/                        # Synapse bridge + CLI tools
