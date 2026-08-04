@@ -52,6 +52,7 @@ prefix; the Quality Gate runs automatically on every workflow.
 | [09 · Knowledge Base](09-Knowledge-Base.md) | Obsidian + vector DB, ingestion, personas |
 | [16 · Configuration](16-Configuration.md) | Feature flags, kill switches, settings |
 | [17 · Skill Packs](17-Skill-Packs.md) | The curated core, the plugin marketplace, and the CI-enforced context budget |
+| [18 · Integrations & Tools](18-Integrations-and-Tools.md) | MCP servers, media engines, the knowledge pipeline, Graphify |
 
 ## Evidence
 
