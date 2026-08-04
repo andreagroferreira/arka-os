@@ -82,7 +82,7 @@ The Forge for multi-agent planning before execution.
 - Phase 0.5: Forge analysis (after spec creation, before squad planning)
 - Complexity assessment: automatic via Synapse L8 (ForgeContextLayer)
 - Manual invocation: `/forge` command
-- Handoff: Forge outputs structured plan -> squad executes phases
+- Handoff: Forge outputs structured plan → squad executes phases
 <!-- arka:feature:forge-integration:end -->
 
 <!-- arka:feature:quality-gate:start -->

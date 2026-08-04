@@ -131,3 +131,65 @@ def test_detection_pattern_does_not_match_other_skill_slugs(path: Path):
             f"{path.name}: detection_pattern {spec.detection_pattern!r} "
             f"matches a fragment of the unrelated installed slug {slug!r}"
         )
+
+
+def _keyword_alternatives(pattern: str) -> list[str]:
+    """Bare-token alternatives of a detection_pattern (marker/heading excluded),
+    with any trailing lookahead anchor stripped."""
+    import re as _re
+
+    alts = []
+    for alt in pattern.split("|"):
+        if alt.startswith("arka:feature:") or alt.startswith("## "):
+            continue
+        alts.append(_re.sub(r"\(\?!\[[^]]*\]\)$", "", alt))
+    return alts
+
+
+@pytest.mark.parametrize("path", _FEATURE_FILES, ids=lambda p: p.stem)
+def test_keyword_alternatives_do_not_match_longer_tokens(path: Path):
+    """QG 2026-08-04 (PR #450): the manifest-driven collision test was
+    vacuous for `arka-forge` (no manifest slug contains "forge"), so a
+    revert of that anchor survived the suite. Probes are derived from the
+    pattern's own keyword alternatives, locking every anchor regardless
+    of what the manifest happens to contain — including digit, underscore
+    and uppercase continuations, which `(?![a-z-])` wrongly admitted."""
+    spec = _load(path)
+    for alt in _keyword_alternatives(spec.detection_pattern):
+        for suffix in ("-miner", "2", "_x", "Xtra"):
+            probe = f"See the {alt}{suffix} skill for details."
+            match = re.search(spec.detection_pattern, probe)
+            assert match is None, (
+                f"{path.name}: keyword alternative {alt!r} matches inside "
+                f"the longer token {alt + suffix!r}"
+            )
+
+
+_REPO_MARKER_DIRS = ("arka", "departments")
+
+
+def test_repo_marker_regions_match_registry_content():
+    """Every in-repo file carrying real `arka:feature` markers must hold
+    each marker-delimited region byte-identical to the registry `content`
+    — the hole that let a stale figure live undetected inside a marked
+    block (QG 2026-08-04, PR #450 blocker 3)."""
+    specs = {s.name: s for s in map(_load, _FEATURE_FILES)}
+    checked = 0
+    for base in _REPO_MARKER_DIRS:
+        for md in (_ROOT / base).rglob("*.md"):
+            text = md.read_text(encoding="utf-8")
+            for name, spec in specs.items():
+                region = re.search(
+                    rf"<!-- arka:feature:{name}:start -->.*?"
+                    rf"<!-- arka:feature:{name}:end -->",
+                    text,
+                    re.DOTALL,
+                )
+                if region is None:
+                    continue
+                checked += 1
+                assert region.group(0).strip() == spec.content.strip(), (
+                    f"{md.relative_to(_ROOT)}: marker region for "
+                    f"{name!r} drifts from the registry content"
+                )
+    assert checked, "no in-repo marker regions found — glob or dirs wrong"
