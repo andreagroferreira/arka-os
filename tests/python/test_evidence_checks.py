@@ -347,6 +347,26 @@ def test_pinned_test_command_expands_user_home(tmp_path, monkeypatch):
     assert result.command == str(runner), "the ~ must be expanded before exec"
 
 
+def test_expand_argv_leaves_non_path_tilde_tokens_alone():
+    """Only argv[0] and `~/`-form paths expand.
+
+    A bare `~word` later in the command is far more likely to be a filter
+    expression than a home directory — `pytest -k ~root` must not become
+    `pytest -k /var/root`.
+    """
+    argv = evidence_checks._expand_argv(["pytest", "-k", "~root", "~/x.py"])
+    assert argv[0] == "pytest"
+    assert argv[2] == "~root", "a bare ~word is not a path"
+    assert argv[3] == os.path.expanduser("~/x.py")
+
+
+def test_expand_argv_expands_tilde_user_in_argv0():
+    """argv[0] is always a program path, so the `~user` form expands there."""
+    argv = evidence_checks._expand_argv(["~/bin/py", "-c", "pass"])
+    assert argv[0] == os.path.expanduser("~/bin/py")
+    assert argv[1:] == ["-c", "pass"]
+
+
 def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):
     def fake_run(*args, **kwargs):
         raise subprocess.TimeoutExpired(cmd=args[0], timeout=1)
