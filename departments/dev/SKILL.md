@@ -37,6 +37,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/dev performance <target>` | Performance audit (CWV, API latency, DB) | Focused |
 | `/dev pipeline <project>` | CI/CD pipeline design and setup | Focused |
 | `/dev clean-review <file>` | Clean Code + SOLID compliance review | Specialist |
+| `/dev research <topic>` | Library evaluation and pattern discovery (KB + Context7 + gh-grep) | Specialist |
 | `/dev spec <description>` | Create feature specification (mandatory pre-impl) | Specialist |
 | `/dev scaffold <type> <name>` | Project scaffolding from starter repos | Specialist |
 | `/dev do <description>` | Smart routing to the right dev command | Orchestrator |
@@ -89,16 +90,21 @@ grep with regex over public repositories — in Phase 1 RESEARCH and in
 Diagnose, whenever an external API, library idiom, or error signature is
 unfamiliar or disputed.
 
-Query it with **code tokens**, not sentences: `useSyncExternalStore`,
-`from sqlalchemy.orm import`, `Cannot read properties of undefined`. Filter
-by language and path. A natural-language query returns nothing useful and
-is the usual reason this tool gets abandoned.
+Query it with **code tokens**: `useSyncExternalStore`, `from
+sqlalchemy.orm import`, `Cannot read properties of undefined`. Filter by
+language and path. A natural-language sentence returns noise, so a first
+attempt that phrases the question in prose will look like the tool failing
+when it is the query that failed.
 
 Pair it with Context7, which answers the complementary question: Context7
 gives the documented contract, gh-grep gives the practice N teams actually
 shipped. Where they disagree, the docs win and the divergence itself is
-worth reporting. Results are a prior about practice, never ground truth,
-and never a substitute for reading our own code.
+worth reporting. Treat results as a prior about practice — they carry no
+authority over our own code, which you still read directly.
+
+Skip it for private code (it indexes public repositories only — use
+`codebase-memory` or the KB), for documentation lookups (Context7), and for
+anything that is not code (WebSearch, Firecrawl).
 
 ## Focused Workflow (4 Phases)
 

@@ -49,9 +49,9 @@ reinstall the world) before reading what the tool actually said.
 4. **When the signature is unfamiliar, search it.** Paste the literal
    error string into `mcp__gh-grep__searchGitHub` (strip the paths and
    line numbers, keep the message). Repos that hit the same signature
-   carry the fix in the surrounding config or lockfile — often faster
-   than the issue tracker, and it shows which fixes were adopted rather
-   than merely proposed.
+   often carry the fix in the surrounding config or lockfile, and the
+   search shows which fixes were adopted rather than merely proposed —
+   frequently faster than reading the issue tracker.
 5. **Fix the root, not the symptom.** A cast that silences a type error
    the compiler was right about is a deferred production bug.
 6. **Prove it.** Two consecutive clean builds — one incremental, one

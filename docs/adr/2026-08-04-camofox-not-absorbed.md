@@ -38,10 +38,10 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
 2. **Its outbound telemetry is incompatible with this environment.** Per
    the upstream README (read 2026-08-04; the source is not vendored here,
    so this rests on the project's own description and was not verified
-   against `lib/reporter.js`), the package files anonymised crash and hang
-   reports **as GitHub Issues**, automatically, opt-out via
-   `CAMOFOX_CRASH_REPORT_ENABLED=false`. Private domains are HMAC-hashed
-   and paths stripped, but the operator serves
+   against `lib/reporter.js`), camofox-browser automatically files
+   anonymised crash and hang reports **as GitHub Issues**; opting out
+   requires `CAMOFOX_CRASH_REPORT_ENABLED=false`. Private domains are
+   HMAC-hashed and paths stripped, but the operator serves
    confidential clients under a standing directive that client names never
    leave the machine — the v2.18.0 npm release leaked client data once
    already, which is why `~/.arkaos/redaction-clients.json` and the
@@ -51,7 +51,8 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
    fail-closed.
 
 3. **Its core function violates the terms of service of most sites it would
-   be pointed at.** Defeating bot detection is not incidental to camofox;
+   be pointed at.** Defeating bot detection is not incidental to
+   camofox-browser;
    it is the product. Competitive research on public pages is legitimate,
    and ArkaOS does it today with ordinary browsers that identify themselves
    honestly. Building fingerprint evasion into the platform's default

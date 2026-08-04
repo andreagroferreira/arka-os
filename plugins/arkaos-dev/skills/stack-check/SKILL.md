@@ -25,8 +25,8 @@ A recommended upgrade needs more than a changelog. Search the target
 version's real configs with `mcp__gh-grep__searchGitHub` using code tokens
 from the new API — a config key, an import path, a renamed export — and read
 what teams that already migrated had to change. Repos that pin the old
-version and never moved are evidence too: an upgrade nobody adopted is a
-risk signal, not a neutral one.
+version and never moved are evidence too: treat an upgrade nobody adopted
+as a risk in its own right.
 
 ## Output
 

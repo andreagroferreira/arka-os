@@ -1,15 +1,15 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-08-03T12:09:34Z",
-    "total_commands": 298,
+    "generated": "2026-08-04T20:46:57Z",
+    "total_commands": 299,
     "generator": "core/registry/generator.py",
     "departments": {
       "arka": 22,
       "brand": 12,
       "community": 15,
       "content": 20,
-      "dev": 36,
+      "dev": 37,
       "ecom": 18,
       "fin": 10,
       "kb": 23,
@@ -1739,6 +1739,38 @@
         "debug"
       ],
       "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "dev-research",
+      "command": "/dev research <topic>",
+      "department": "dev",
+      "description": "Library evaluation and pattern discovery (KB + Context7 + gh-grep)",
+      "lead_agent": "arka-dev",
+      "keywords": [
+        "research",
+        "evaluate library",
+        "compare frameworks",
+        "investigate",
+        "look into",
+        "real-world examples",
+        "exemplos reais",
+        "como implementam os outros",
+        "how do others implement",
+        "search github code",
+        "prior art"
+      ],
+      "examples": [
+        "research payment gateways",
+        "compare React vs Vue",
+        "evaluate Stripe vs PayPal",
+        "look into GraphQL",
+        "como é que outros repos usam esta API",
+        "procura exemplos reais de uso do ScrollTrigger"
+      ],
       "source": "builtin",
       "tier": 2,
       "requires_branch": false,

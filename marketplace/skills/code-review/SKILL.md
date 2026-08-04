@@ -30,9 +30,9 @@ shows what its maintainer documents. A blocker that turns out to describe
 the reviewer's assumption rather than the library's behaviour costs the
 author a cycle and costs the review its authority.
 
-This is a check on disputed claims, not a step in every review. Findings
-about OUR code — naming, SRP, coupling, coverage — are judged by reading
-our code.
+Run this check only when a claim about someone else's library is in
+dispute. Findings about our own code — naming, SRP, coupling, coverage —
+are settled by reading the code in front of you.
 
 ## Output
 

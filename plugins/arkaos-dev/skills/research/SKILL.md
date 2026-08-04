@@ -9,9 +9,10 @@ description: >
   TRIGGER: user types "/dev research", "avalia a biblioteca", "que
   lib/framework usamos", "compara X vs Y" for code dependencies,
   "library evaluation", "which package/ORM/framework should we use",
-  "best practice" questions about implementation choices — load BEFORE
-  adding a new dependency or committing to an architecture-relevant
-  library.
+  "best practice" questions about implementation choices, and real-world
+  usage lookups ("exemplos reais", "prior art", "como implementam os
+  outros", "how do others use this API") — load BEFORE adding a new
+  dependency or committing to an architecture-relevant library.
   SKIP: general, market, or knowledge-base research whose deliverable
   is an Obsidian KB note, including "best practices for" a non-code
   topic — arka-research (/arka research, 5-source fan-out) wins;
@@ -43,8 +44,8 @@ where the sharp edge is.
 
 ### Querying gh-grep
 
-It is literal grep with regex over public repos, not semantic search. Query
-with **code tokens**; a sentence returns noise.
+It runs literal grep with regex over public repos. Query with **code
+tokens**; a sentence returns noise.
 
 Evaluating a library — is this API actually used the way the README shows?
 
