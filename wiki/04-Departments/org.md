@@ -2,11 +2,50 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/org` · **Lead:** Sofia (Tier 0 — COO) · **Agents:** 5 · **Skills:** 12
+> **Prefix:** `/org` · **Lead:** Sofia (Tier 0 — COO) · **Agents:** 5 · **Skills:** 13
 
 The Organization department is led by Sofia, who carries a dual role: she is the squad lead and the Chief Operations Officer at Tier 0, with cross-cutting authority over organizational design, process optimization, and coordination across all departments. The squad handles the structural layer of the company — how teams are shaped, how decisions get made, how OKRs cascade, and how culture is defined and audited.
 
 This department operates at the intersection of design and governance. Pedro M. applies Team Topologies to reduce cognitive load and align team shapes to Conway's Law. Matilde stewards the OKR cycle end-to-end. Afonso holds the meeting cadence and RACI infrastructure. Carla owns the people operations pipeline from hiring design through compensation benchmarking.
+
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 10 | 13 | 5 |
+
+**Commands** (10 via `/org`):
+
+| Command | What it does |
+| --- | --- |
+| `/org assess <team>` | Team assessment (health, skills, gaps) |
+| `/org comp <role>` | Compensation plan and benchmarking |
+| `/org culture` | Culture definition document |
+| `/org decide <decision>` | Decision framework (RACI, authority matrix) |
+| `/org design <company>` | Organizational structure design |
+| `/org hiring <role>` | Hiring plan with job spec and scorecard |
+| `/org meeting audit` | Meeting optimization (reduce, restructure) |
+| `/org onboarding <role>` | Employee onboarding program design |
+| `/org remote` | Remote work setup and policies |
+| `/org sop <process>` | SOP creation for organizational processes |
+
+**Skills** (13 — 12 sub-skills plus the `/org` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `compensation-plan` | Builds a compensation plan for a role: salary bands, equity/ESOP structure, benefits, and benchmarking meth... |
+| `culture-define` | Ships a production culture document: inversion-tested values, observable behaviour maps, load-bearing ritua... |
+| `decision-framework` | Builds a decision framework with RACI and a Decision Authority Matrix: who decides, who is consulted, who i... |
+| `hiring-plan` | Builds a hiring plan with the Who Method (Geoff Smart): job scorecard, sourcing channels, structured interv... |
+| `meeting-optimize` | Audits the meeting portfolio: eliminates unnecessary meetings, restructures the ones that stay, and moves w... |
+| `okr-cadence` | Runs the OKR operating cadence (Doerr CFRs): quarterly set-score-reflect cycle, weekly check-ins, public 0.... |
+| `onboarding-design` | Designs an employee onboarding program per role: first day, first week, first month, and 90-day milestones... |
+| `org-hub` | Organization & Teams department. Org design, team topologies, scaling operations, hiring plans, onboarding,... |
+| `org-design` | Designs the organization with Team Topologies (Skelton/Pais): team map, topology types, interaction modes,... |
+| `principles-audit` | Annual org-health audit against the 10 Principles of Effective Organizations: score 1-5 per principle with... |
+| `remote-setup` | Builds a remote-work playbook: async communication norms, tool stack, rituals, policies, culture preservati... |
+| `sop-process` | Creates a Standard Operating Procedure: numbered step-by-step procedure with roles, tools, exceptions, owne... |
+| `team-assess` | Assesses a single team with Team Topologies: topology type, cognitive load, skill gaps, and interaction pat... |
 
 ## The squad
 

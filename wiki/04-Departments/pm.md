@@ -2,11 +2,54 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/pm` · **Lead:** Carolina (Tier 1) · **Agents:** 4 · **Skills:** 14
+> **Prefix:** `/pm` · **Lead:** Carolina (Tier 1) · **Agents:** 4 · **Skills:** 15
 
 The Project Management department covers the full spectrum from product discovery to sprint execution. Carolina leads with Continuous Discovery as the operating philosophy — weekly customer interviews, an Opportunity Solution Tree connecting outcomes to solutions, and dual-track agile separating discovery from delivery. The squad does not treat delivery as the primary goal; outcomes are.
 
 Each specialist handles a distinct layer. Jorge holds the meeting rhythm and Scrum facilitation. Sara owns backlog health and story quality. Bárbara handles strategic programs where goals must be traced to purpose, outcomes, and activities using LogFrame. Together the squad can run a product from vague idea through shaped pitch, sprint commitment, and retrospective.
+
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 12 | 15 | 4 |
+
+**Commands** (12 via `/pm`):
+
+| Command | What it does |
+| --- | --- |
+| `/pm backlog <action>` | Backlog grooming and prioritization (RICE) |
+| `/pm discover <opportunity>` | Product discovery (OST, interviews, experiments) |
+| `/pm estimate <scope>` | Estimation and Monte Carlo forecasting |
+| `/pm kanban <action>` | Kanban board setup with WIP limits |
+| `/pm retro` | Facilitated retrospective |
+| `/pm risk <project>` | Risk register and pre-mortem |
+| `/pm roadmap <product>` | Outcome-driven product roadmap |
+| `/pm shape <feature>` | Shape Up pitch with appetite and rabbit holes |
+| `/pm sprint <action>` | Sprint planning, review, or retrospective |
+| `/pm stakeholder <project>` | Stakeholder mapping (Power/Interest grid) |
+| `/pm standup` | Structured daily standup |
+| `/pm story <description>` | User story writing with INVEST + acceptance criteria |
+
+**Skills** (15 — 14 sub-skills plus the `/pm` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `agile-po` | Full agile product ownership: INVEST user stories with Given-When-Then acceptance criteria, epic breakdown... |
+| `backlog-groom` | Backlog grooming with RICE prioritization: scores and ranks items, refines stories to INVEST-ready state, a... |
+| `discovery-plan` | Product discovery with Teresa Torres' Opportunity Solution Tree: maps a desired outcome to opportunities, s... |
+| `epic-coordination` | Turns an epic into a coordinated set of GitHub issues with an explicit dependency graph, then drives it: sw... |
+| `estimate-forecast` | Estimation and delivery forecasting: story points, throughput analysis, and Monte Carlo simulation producin... |
+| `impact-map` | Impact mapping (Gojko Adzic): connects a business goal through actors and behaviour changes to concrete del... |
+| `kanban-setup` | Kanban system design (Anderson method): board columns, WIP limits, explicit policies, and flow metrics with... |
+| `pm-hub` | Project & Product Management department. Product discovery, sprint management, roadmapping, estimation, sta... |
+| `risk-register` | Project risk register: identifies risks, scores them on a probability x impact matrix, and assigns mitigati... |
+| `roadmap-build` | Outcome-driven product roadmap: North Star metric, measurable outcome tree, Now/Next/Later three-horizon ma... |
+| `shape-pitch` | Shape Up pitch (Ryan Singer) for the betting table: problem, appetite as a time budget, fat-marker solution... |
+| `sprint-plan` | Scrum sprint planning (Scrum Guide 2020): selects backlog items, defines the sprint goal, checks team capac... |
+| `stakeholder-map` | Stakeholder mapping: power/interest grid, communication plan with cadence per quadrant, and a RACI matrix a... |
+| `standup-run` | Runs a structured daily standup — what was done, what's next, blockers — focused on flow and unblocking rat... |
+| `story-write` | Writes user stories with Jeff Patton story mapping and INVEST criteria: acceptance criteria, edge cases, te... |
 
 ## The squad
 
