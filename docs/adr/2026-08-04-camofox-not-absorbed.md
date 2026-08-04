@@ -35,10 +35,13 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
    triggers, which is the routing ambiguity the TRIGGER/SKIP contract exists
    to prevent. The 79% figure is not a gap.
 
-2. **Its outbound telemetry is incompatible with this environment.** The
-   package files anonymised crash and hang reports **as GitHub Issues**,
-   automatically, opt-out via `CAMOFOX_CRASH_REPORT_ENABLED=false`. Private
-   domains are HMAC-hashed and paths stripped, but the operator serves
+2. **Its outbound telemetry is incompatible with this environment.** Per
+   the upstream README (read 2026-08-04; the source is not vendored here,
+   so this rests on the project's own description and was not verified
+   against `lib/reporter.js`), the package files anonymised crash and hang
+   reports **as GitHub Issues**, automatically, opt-out via
+   `CAMOFOX_CRASH_REPORT_ENABLED=false`. Private domains are HMAC-hashed
+   and paths stripped, but the operator serves
    confidential clients under a standing directive that client names never
    leave the machine — the v2.18.0 npm release leaked client data once
    already, which is why `~/.arkaos/redaction-clients.json` and the
@@ -67,8 +70,11 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
 - Browser work continues on playwright, claude-in-chrome, and firecrawl.
 - **Reopening condition:** a specific, authorised collection target that the
   existing layers demonstrably cannot reach, named with the failure on
-  record. Reopened that way, the evaluation starts from `category:
-  optional`/`deferred` in `mcps/registry.json` — never `base` — with
-  `CAMOFOX_CRASH_REPORT_ENABLED=false` pinned in the server config and the
-  egress policy consulted before any client data reaches a page.
+  record. Reopened that way, the entry starts at `category: optional` in
+  `mcps/registry.json` — never `base`, and note that `optional` and
+  `runtime` are the only alternatives that schema accepts — and is listed
+  under `deferred` for every stack in `config/mcp-policy.yaml`, which is a
+  separate bucket vocabulary. `CAMOFOX_CRASH_REPORT_ENABLED=false` is
+  pinned in the server config, and the egress policy is consulted before
+  any client data reaches a page.
 - This ADR exists so the question is not re-litigated from the star count.

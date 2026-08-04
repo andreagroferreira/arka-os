@@ -83,7 +83,7 @@
 | `red-team` | dev/red-team | Offensive security engagement planning with MITRE ATT&CK and the Cyber Kill Chain: technique scoring, attack path analysis, OPSEC assessment, and crown jewel targeting — require... |
 | `refactor-plan` | dev/refactor-plan | Plan a refactoring with Martin Fowler's catalog: identify code smells, select refactoring patterns, assess risk, and ensure a test safety net before touching code.. |
 | `release` | dev/release | Release planning and execution with SemVer and DORA practice: version bump detection from conventional commits, readiness checklists (CI, coverage, audits, approvals), deploymen... |
-| `research` | dev/research | Dev-scoped technical research (Lucas, Analyst): library evaluation, framework/package selection, code pattern comparison, and engineering best-practice discovery via Context7 of... |
+| `research` | dev/research | Dev-scoped technical research (Lucas, Analyst): library evaluation, framework/package selection, code pattern comparison, and engineering best-practice discovery across three so... |
 | `runbook` | dev/runbook | Generate operational runbooks from service analysis (Google SRE): service overview, health checks, step-by-step deployment with verification, rollback procedures, incident respo... |
 | `safety-review` | dev/safety-review | Audits a change or an automation for destructive, irreversible operations — bulk deletes, DROP/TRUNCATE, force pushes, mass emails, raw disk or filesystem writes — and checks ea... |
 | `scaffold` | arka-dev-scaffold | Project scaffolding from real git starter repos: creates NEW Laravel, Nuxt, Vue, React, or Next.js projects with dependency installation, mandatory packages, MCP configuration,... |

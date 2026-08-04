@@ -3,8 +3,9 @@ name: research
 description: >
   Dev-scoped technical research (Lucas, Analyst): library evaluation,
   framework/package selection, code pattern comparison, and engineering
-  best-practice discovery via Context7 official docs + web research,
-  ending in a trade-off report with a recommendation.
+  best-practice discovery across three sources — Context7 for the
+  documented contract, gh-grep for how public repos really implement it,
+  and web research — ending in a trade-off report with a recommendation.
   TRIGGER: user types "/dev research", "avalia a biblioteca", "que
   lib/framework usamos", "compara X vs Y" for code dependencies,
   "library evaluation", "which package/ORM/framework should we use",

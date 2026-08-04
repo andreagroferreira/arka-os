@@ -205,7 +205,7 @@ enforcement_levels:
     description: "Best practices. Encouraged but not enforced."
     rules:
       - id: research-first
-        rule: "Research before building. Check Context7 for the documented contract, gh-grep for existing solutions and prior art in real public code, and the KB for what we already decided."
+        rule: "Research before building. Check Context7 for the documented contract, gh-grep for how public code really implements it, the KB for what we already decided, and existing solutions and prior art wherever they live — papers, standards, and closed-source products included."
 
       - id: self-critique
         rule: "Every implementation should include a self-critique phase"

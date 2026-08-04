@@ -85,7 +85,7 @@ is absent the phases run as before (Grep/Read exploration).
 
 `codebase-memory` answers "how does OUR code do this". When the question
 is "how does anyone do this", call `mcp__gh-grep__searchGitHub` — literal
-grep with regex over a million public repos — in Phase 1 RESEARCH and in
+grep with regex over public repositories — in Phase 1 RESEARCH and in
 Diagnose, whenever an external API, library idiom, or error signature is
 unfamiliar or disputed.
 
