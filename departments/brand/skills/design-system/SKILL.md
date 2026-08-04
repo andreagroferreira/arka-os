@@ -6,8 +6,10 @@ description: >
   pages), WCAG 2.2 AA conformance report, Storybook CSF3 story stubs, and an
   integration guide. TRIGGER: "design system", "cria o design system", "design
   tokens", "component library", "biblioteca de componentes", "/brand
-  design-system". SKIP: only a color palette -> brand/colors; implementing the
-  components in application code -> dev frontend workflows (this skill
+  design-system". SKIP: only a color palette -> brand/colors; reproducing the
+  look of an existing reference (screenshot, image, URL) -> brand/design-dna
+  (it reverse-engineers a system; this one specifies a new one); implementing
+  the components in application code -> dev frontend workflows (this skill
   specifies the system, it does not build the app); reviewing an existing UI
   against brand guidelines -> brand/design-review.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]

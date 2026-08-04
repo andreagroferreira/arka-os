@@ -198,3 +198,25 @@ Material derived from this project:
 
 The MIT permission notice and copyright line above apply to all copies
 and substantial portions of the derived material.
+
+## design-dna (the design-dna authors / zanwei)
+
+- **Source:** https://github.com/zanwei/design-dna
+- **License:** MIT — Copyright (c) 2026 the design-dna authors
+- **License text:** retained verbatim at
+  `departments/brand/skills/design-dna/references/design-dna.LICENSE`
+- **Upstream version:** main HEAD `9d9d795` (2026-04-13)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| DNA schema | `departments/brand/skills/design-dna/references/schema.md` | Verbatim — the 3-dimension field list (`design_system` tokens, `design_style` qualitative, `visual_effects` WebGL/shader/scroll) |
+| Generation guide | `departments/brand/skills/design-dna/references/generation-guide.md` | Verbatim — priority order, per-dimension mapping to code, effect implementation patterns by performance tier |
+| Skill procedure | `departments/brand/skills/design-dna/SKILL.md` | Rewritten to the ArkaOS standard, not verbatim: the 3-phase workflow and dimension semantics are upstream's, while the routing contract (TRIGGER/SKIP), the KB-first prefix, the delegation of phase-1 extraction to Nia (`extraction-script-writer`), and the effect-tier handoff table naming `dev/gsap`, `dev/canvas-generative` and `dev/threejs` are ArkaOS |
+
+Not carried over: the six translated READMEs (`README.{es,ja,ko,zh-CN,zh-TW}.md`)
+and `docs/example-style-transfer.png`, none of which the skill needs.
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.

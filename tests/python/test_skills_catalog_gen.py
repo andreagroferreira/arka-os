@@ -30,10 +30,22 @@ def test_committed_catalog_matches_fresh_regen():
 
 
 def test_catalog_headline_matches_docs_stats():
+    """The headline must equal docs_stats, whatever the count happens to be.
+
+    Derived, not pinned: the docs-as-code rule is that counts come from
+    docs_stats.py and are never hand-typed. An earlier version hard-coded
+    333 here, which made every added skill fail a test whose name promises
+    a comparison rather than a constant.
+    """
     from scripts.tools import docs_stats  # noqa: PLC0415
 
     fresh = generate()
-    headline = [l for l in fresh.splitlines() if l.startswith("**333 skills**")]
-    assert headline, "catalog must open with the 333 headline"
-    skills = docs_stats.count_skills(REPO_ROOT)
-    assert skills["core"] == 333, "docs_stats must agree with the catalog"
+    expected = docs_stats.count_skills(REPO_ROOT)["core"]
+    headline = [
+        line for line in fresh.splitlines()
+        if line.startswith(f"**{expected} skills**")
+    ]
+    assert headline, (
+        f"catalog must open with the {expected}-skill headline that "
+        "docs_stats reports; regenerate with scripts/skills_catalog_gen.py"
+    )
