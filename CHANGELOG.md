@@ -5,6 +5,28 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.1] - 2026-08-04
+
+### Fixed
+
+- **`~/.claude/CLAUDE.md` keeps its file mode across updates** (#448, CWE-732).
+  The managed-block writer used to carry the temp file's default mode through
+  the rename, so an operator's 0600 file came back 0644 (world-readable in the
+  usual 0755 `~/.claude`) on every autoupdater run. A rewrite now chmods the
+  temp to the existing file's mode before the rename, and a freshly created
+  file respects the operator's umask instead of any hard-coded mode.
+- **A broken symlink at `~/.claude/CLAUDE.md` is refused, never replaced**
+  (#448). `existsSync` follows links, so a dangling symlink read as "no file"
+  and the create path silently replaced the link itself with a regular file.
+  Both entry points (update and fresh install) now detect it via lstat and
+  refuse with a reason: "it is a symlink whose target does not exist — fix or
+  remove the link first".
+- The adopt-wrap message now reads "your content preserved below the managed
+  block", aligned with the adopt-prepend wording (#448).
+- Flaky `test_kill_terminates_child` made deterministic — the kill assertion
+  now polls `os.waitpid` under a bounded deadline instead of racing an
+  `is_alive()` short-circuit against an unreaped zombie (#448).
+
 ## [5.1.0] - 2026-08-04
 
 ### Fixed
