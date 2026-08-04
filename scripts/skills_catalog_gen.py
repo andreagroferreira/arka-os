@@ -1,7 +1,7 @@
 """Skills catalog generator — every SKILL.md in the system, one page.
 
-Documents the complete skill surface: 318 department skills plus the 15
-``/arka`` meta skills (333 total). Single source of truth: the SKILL.md
+Documents the complete skill surface: every department skill plus the
+``/arka`` meta skills. Single source of truth: the SKILL.md
 files themselves (``departments/*/skills/*/SKILL.md`` and
 ``arka/skills/*/SKILL.md``), never hand-typed counts. This script
 GENERATES:
