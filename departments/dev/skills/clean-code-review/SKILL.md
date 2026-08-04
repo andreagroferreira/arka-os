@@ -47,6 +47,14 @@ report with issues categorized as BLOCKER, WARNING, or NOTE.
 - [ ] **No business logic in controllers** — Controllers delegate to services
 - [ ] **Repository pattern** — Data access abstracted from business logic
 
+### Idiom disputes
+
+"This is not the idiomatic way to use X" is a claim about a community, and
+it needs evidence before it becomes a blocker. Grep the symbol with
+`mcp__gh-grep__searchGitHub` and let the call-sites settle it. If real repos
+split evenly between two forms, the finding is a NOTE about consistency
+within our codebase, not a violation.
+
 ## Output Format
 
 ```markdown

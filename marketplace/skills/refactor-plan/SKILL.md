@@ -26,6 +26,13 @@ analysis), `search_graph` to find duplicated implementations worth
 consolidating. The graph is a prior — verify with Read before planning
 an edit.
 
+When the refactor moves toward an unfamiliar shape — splitting a service,
+adopting a new boundary, restructuring around a library's expected layout —
+look at how public repos structure the same thing before committing to it.
+`mcp__gh-grep__searchGitHub` on the framework's structural tokens shows the
+layouts that survived contact with real teams. Precedent is an argument, not
+an authority: our constraints still decide.
+
 ## Output
 
 Refactoring plan with patterns, risk assessment, and test verification steps

@@ -81,6 +81,25 @@ Diagnose step: `get_architecture` for the structural map,
 PRIOR, not ground truth: verify with Read before editing. When the MCP
 is absent the phases run as before (Grep/Read exploration).
 
+## Real-world grounding (gh-grep MCP)
+
+`codebase-memory` answers "how does OUR code do this". When the question
+is "how does anyone do this", call `mcp__gh-grep__searchGitHub` — literal
+grep with regex over a million public repos — in Phase 1 RESEARCH and in
+Diagnose, whenever an external API, library idiom, or error signature is
+unfamiliar or disputed.
+
+Query it with **code tokens**, not sentences: `useSyncExternalStore`,
+`from sqlalchemy.orm import`, `Cannot read properties of undefined`. Filter
+by language and path. A natural-language query returns nothing useful and
+is the usual reason this tool gets abandoned.
+
+Pair it with Context7, which answers the complementary question: Context7
+gives the documented contract, gh-grep gives the practice N teams actually
+shipped. Where they disagree, the docs win and the divergence itself is
+worth reporting. Results are a prior about practice, never ground truth,
+and never a substitute for reading our own code.
+
 ## Focused Workflow (4 Phases)
 
 For `/dev debug`, `/dev refactor`, `/dev db`, `/dev performance`, `/dev pipeline`: Diagnose → Implement with tests → Rita validates → Quality Gate (Marta).

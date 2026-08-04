@@ -96,7 +96,7 @@ _META_TAG_CONTRACT = (
     "\n\n[ARKA:META-TAG] Every substantive response ends with a single line:"
     "\n  [arka:meta] kb=N research=X persona=Y gap=Z critic=W"
     "\nFields: kb=N (Obsidian/KB notes consulted), research=X (MCPs invoked:"
-    " perplexity,exa,context7,firecrawl,xmcp or 'none'), persona=Y (advisor"
+    " perplexity,exa,context7,ghgrep,firecrawl,xmcp or 'none'), persona=Y (advisor"
     " name or 'orchestrator'), gap=Z (KB gap topic or 'none'), critic=W"
     " (passed|failed|skipped)."
     "\nMandatory after: EFFECT tool calls, plan/recommendation outputs, QG"

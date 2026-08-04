@@ -27,6 +27,14 @@ description: >
 7. **Consistent response** — `{ "data": ..., "meta": { "pagination": ... } }`
 8. **Error format** — `{ "error": { "code": "VALIDATION_FAILED", "message": "...", "details": [...] } }`
 
+When the contract has to interoperate with something you do not control — a
+partner API, an SDK's expectations, a webhook consumer — check the shape
+that already exists in the wild. `mcp__gh-grep__searchGitHub` on the field
+names or the header (`X-Idempotency-Key`, `"cursor":`) shows what clients
+are already written against. Matching an established shape costs nothing
+and removes a whole class of integration surprise; diverging from one is a
+decision that belongs in the ADR with its reason.
+
 ## Output: OpenAPI Snippet
 
 ```yaml

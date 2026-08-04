@@ -22,6 +22,22 @@ external research (Context7, WebSearch, WebFetch, Firecrawl):
    explicitly declare a KB gap.
 4. Only after (1)–(3) may external tools run.
 
+**Which external tool, for code questions.** Once the KB step is done, two
+externals answer different questions and neither substitutes for the other:
+
+| Tool | Answers | Reach for it when |
+| --- | --- | --- |
+| `mcp__context7__query-docs` | the contract — what the official docs say | you need documented signatures, config keys, version changes |
+| `mcp__gh-grep__searchGitHub` | the practice — how N public repos really implement it | you need real call-sites, idioms, migration patterns, or an error signature seen in the wild |
+
+Adopting an unfamiliar API wants both: the contract, then the practice.
+`gh-grep` is **literal grep with regex over public repos** — query it with
+code tokens (`createBrowserRouter`, `defineConfig({`), never with a natural
+language sentence, and filter by language or path. What it returns is a
+prior about practice, not ground truth: confirm against the docs before
+adopting. It cannot see private code (use the KB or codebase-memory) and it
+is the wrong tool for non-code topics (use WebSearch/Firecrawl).
+
 **Fail-open:** Graphify runs on a per-user endpoint (home LAN, localhost,
 or VPS — see `knowledge.graphify` config). When it is not configured or
 not reachable, treat it as a gap and proceed with Obsidian alone; never
@@ -75,7 +91,7 @@ ends with a single line:
 | Field | Meaning | Allowed values |
 | --- | --- | --- |
 | `kb=N` | Number of Obsidian / KB notes consulted | integer ≥ 0 |
-| `research=X` | MCPs invoked (or 'none') | `none` or comma-list: `perplexity,exa,context7,firecrawl,xmcp` |
+| `research=X` | MCPs invoked (or 'none') | `none` or comma-list: `perplexity,exa,context7,ghgrep,firecrawl,xmcp` |
 | `persona=Y` | Conclave / squad-lead persona who drove the response | `Tomas`, `Marco`, `Marta`, `Eduardo`, `Francisca`, `Paulo`, `Iris`, etc., or `orchestrator` |
 | `gap=Z` | KB gap topic when external research filled a missing area | `none` or short topic slug |
 | `critic=W` | Self-critic verdict | `passed` \| `failed` \| `skipped` |

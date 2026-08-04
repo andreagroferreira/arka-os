@@ -205,7 +205,7 @@ enforcement_levels:
     description: "Best practices. Encouraged but not enforced."
     rules:
       - id: research-first
-        rule: "Research before building. Check Context7, existing solutions, and prior art."
+        rule: "Research before building. Check Context7 for the documented contract, gh-grep for existing solutions and prior art in real public code, and the KB for what we already decided."
 
       - id: self-critique
         rule: "Every implementation should include a self-critique phase"
@@ -243,7 +243,7 @@ enforcement_levels:
         enforcement: "Critic-pass-per-phase mandatory; sycophancy detector rejects 'tens razão' / 'OK doing what you say' responses without pushback; reviewer dispatch is sub-fragmented with checkpoints rather than monolithic execution."
 
       - id: always-research
-        rule: "Every substantive task consults the Client KB FIRST (Obsidian vault + memory files + project descriptors), then relevant Personas, then Context MCPs (Context7, Perplexity, Exa, Firecrawl, XMCP) for gaps. No exceptions, including mechanical edits — the KB lookup is cheap and the cost of missing context is paid by the user."
+        rule: "Every substantive task consults the Client KB FIRST (Obsidian vault + memory files + project descriptors), then relevant Personas, then Context MCPs (Context7 for documented contracts, gh-grep for how public repos really implement it, Perplexity, Exa, Firecrawl, XMCP) for gaps. No exceptions, including mechanical edits — the KB lookup is cheap and the cost of missing context is paid by the user."
         enforcement: "[arka:meta] transparency line lists kb=N research=X persona=Y on every substantive response; absence is treated as work-not-done. Hierarchy: Client KB > Personas > Context MCPs."
 
       - id: inter-agent-checkpoints
