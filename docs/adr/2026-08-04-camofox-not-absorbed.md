@@ -76,9 +76,11 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
   reason: no stack in `_STACK_TO_CATEGORIES`
   (`core/sync/mcp_syncer.py`) maps to `optional`, so the server never
   reaches a project's `.mcp.json` without an explicit user action.
-  Separately, it is listed under `deferred` for every stack in
+  It would also need listing under `deferred` for every stack in
   `config/mcp-policy.yaml`, whose bucket vocabulary is unrelated to the
-  registry's categories. `CAMOFOX_CRASH_REPORT_ENABLED=false` is
+  registry's categories. Neither file mentions camofox-browser today, and
+  this decision does not change that.
+  `CAMOFOX_CRASH_REPORT_ENABLED=false` would be
   pinned in the server config, and the egress policy is consulted before
   any client data reaches a page.
 - This ADR exists so the question is not re-litigated from the star count.

@@ -317,25 +317,34 @@ def test_pinned_test_command_that_cannot_run_fails_not_skips(tmp_path):
     assert report.overall == "fail"
 
 
-def test_pinned_test_command_expands_user_home(tmp_path):
+def test_pinned_test_command_expands_user_home(tmp_path, monkeypatch):
     """`~` in a pinned command resolves; shlex.split does not expand it.
 
     Reported by the Quality Gate 2026-08-04: `~/.arkaos/bin/arka-py`
     reached subprocess verbatim, raised FileNotFoundError, and the check
     silently skipped while reporting overall pass.
-    """
-    home = os.path.expanduser("~")
-    if not sys.executable.startswith(home):
-        import pytest
 
-        pytest.skip("interpreter lives outside HOME; cannot build a ~ path")
-    tilde_cmd = "~" + sys.executable[len(home):]
+    Hermetic: HOME is redirected into tmp_path and the runner is built
+    there. An earlier version derived the path from sys.executable and
+    skipped whenever the interpreter lived outside HOME — which is always
+    true under actions/setup-python, so the regression shipped green
+    through CI while pinning nothing.
+    """
+    fake_home = tmp_path / "home"
+    runner = fake_home / "bin" / "runner"
+    runner.parent.mkdir(parents=True)
+    runner.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    runner.chmod(0o755)
+    monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("USERPROFILE", str(fake_home))  # expanduser on Windows
+
     report = run_evidence_checks(
-        tmp_path, checks=["tests"], test_command=f"{tilde_cmd} -c pass",
+        tmp_path, checks=["tests"], test_command="~/bin/runner",
     )
     result = _result(report, "tests")
     assert result.ran is True
     assert result.passed is True
+    assert result.command == str(runner), "the ~ must be expanded before exec"
 
 
 def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):

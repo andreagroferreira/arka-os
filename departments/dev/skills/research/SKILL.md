@@ -48,9 +48,10 @@ with a blind spot.
 | `mcp__gh-grep__searchGitHub` | what N teams actually shipped — the practice |
 | WebSearch / WebFetch | everything that is not code: pricing, licensing, maintainer intent, incident history |
 
-The gap between the last two is often the finding itself: an API that is
-documented one way and used another way in every real repo is telling you
-where the sharp edge is.
+The gap between Context7 and gh-grep — between the contract and the
+practice — is often the finding itself: an API that is documented one way
+and used another way in every real repo is telling you where the sharp
+edge is.
 
 ### Querying gh-grep
 
