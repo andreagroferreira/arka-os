@@ -34,6 +34,8 @@ step-by-step guide, see the [`wiki/`](../wiki/Home.md).
 | [COMMANDS.md](COMMANDS.md) | Command reference |
 | [DEPARTMENTS.md](DEPARTMENTS.md) | Department reference |
 | [USE-CASES.md](USE-CASES.md) | Scenarios by role |
+| [INTEGRATIONS.md](INTEGRATIONS.md) | MCP servers, media engines, knowledge pipeline |
+| [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | Origins of derived open-source material |
 | [MIGRATION-V1-V2.md](MIGRATION-V1-V2.md) | Migrating from the v1 (bash-only) release |
 | [adr/](adr/) | Architecture Decision Records (9 ADRs) |
 
