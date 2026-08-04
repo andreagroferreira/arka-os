@@ -17,8 +17,8 @@
 
 import { createHash } from "node:crypto";
 import {
-  copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync,
-  renameSync, writeFileSync,
+  chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync,
+  realpathSync, renameSync, statSync, writeFileSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
 
@@ -121,16 +121,53 @@ function planBlockReplace(existing, template, markers) {
   return { action: "replace-block", content };
 }
 
+// Temp names are PID-scoped so concurrent processes cannot collide on
+// the same temp path. Exported so the tests can assert the scoping
+// behaviourally — the name is unobservable after the rename.
+export function tempPathFor(real, pid = process.pid) {
+  return `${real}.arkaos-tmp-${pid}`;
+}
+
 // A crash mid-write must never leave a truncated CLAUDE.md, and a
 // symlinked file must keep pointing at its target — renaming onto the
 // LINK would replace the link itself (the C3 remediation lesson), so
 // the write lands on the resolved path. Known trade-off of temp+rename:
 // a HARD-linked twin keeps the old inode's content.
+// The rename carries the temp file's mode with it. When a file is
+// being REPLACED, the temp starts at 0600 (never readable by group or
+// other) and is chmod-ed to the existing file's mode before the rename
+// — a 0600 CLAUDE.md must not come back 0644 (CWE-732, C5 register
+// M1). A FRESH file is written plainly so the operator's umask applies
+// exactly as master's writeFileSync did — a hard-coded 0644 here
+// WIDENED a umask-077 operator's file (QG r1, Francisca B1).
 function writeAtomic(target, content) {
   const real = existsSync(target) ? realpathSync(target) : target;
-  const tmp = `${real}.arkaos-tmp-${process.pid}`;
-  writeFileSync(tmp, content);
+  const existingMode = existsSync(real) ? statSync(real).mode & 0o7777 : null;
+  const tmp = tempPathFor(real);
+  if (existingMode === null) {
+    writeFileSync(tmp, content);
+  } else {
+    writeFileSync(tmp, content, { mode: 0o600 });
+    chmodSync(tmp, existingMode);
+  }
   renameSync(tmp, real);
+}
+
+// existsSync FOLLOWS symlinks, so a dangling link reads as "no file
+// here" and the create path would silently replace the link itself
+// with a regular file (C5 register M3). lstat sees the link; refuse
+// and leave it exactly as found.
+function brokenSymlinkReason(target) {
+  let stat;
+  try {
+    stat = lstatSync(target);
+  } catch {
+    return null;
+  }
+  if (stat.isSymbolicLink() && !existsSync(target)) {
+    return "it is a symlink whose target does not exist — fix or remove the link first";
+  }
+  return null;
 }
 
 export function backupFile(target) {
@@ -168,6 +205,8 @@ export function syncUserClaudeMd({ home, templatePath }) {
   if (!existsSync(templatePath)) return { action: "no-template" };
   const template = readFileSync(templatePath, "utf-8");
   const target = join(home, ".claude", "CLAUDE.md");
+  const brokenLink = brokenSymlinkReason(target);
+  if (brokenLink) return { action: "refuse", reason: brokenLink };
   const raw = existsSync(target) ? readFileSync(target) : null;
   // Decoding a non-UTF-8 file replaces bytes with U+FFFD and writing
   // the decode back corrupts content OUTSIDE the block (QG C5 r1,
@@ -198,6 +237,8 @@ export function syncUserClaudeMd({ home, templatePath }) {
 export function installUserClaudeMd({ home, templatePath }) {
   if (!existsSync(templatePath)) return { action: "no-template" };
   const target = join(home, ".claude", "CLAUDE.md");
+  const brokenLink = brokenSymlinkReason(target);
+  if (brokenLink) return { action: "refuse", reason: brokenLink };
   if (existsSync(target)) return { action: "preserved" };
   mkdirSync(dirname(target), { recursive: true });
   writeAtomic(target, renderManagedBlock(readFileSync(templatePath, "utf-8")));
@@ -225,7 +266,7 @@ export function describeSyncResult(result) {
     "adopt-wrap": {
       level: "ok",
       message: result.preservedRemainder
-        ? "~/.claude/CLAUDE.md adopted into managed markers — your content preserved below the block"
+        ? "~/.claude/CLAUDE.md adopted into managed markers — your content preserved below the managed block"
         : "~/.claude/CLAUDE.md adopted into managed markers",
     },
     "adopt-prepend": {

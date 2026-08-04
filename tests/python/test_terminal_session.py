@@ -74,13 +74,29 @@ def test_kill_terminates_child(manager):
     session = manager.create(shell="/bin/sh")
     pid = session.pid
     session.kill()
-    # Poll for teardown — process death + reaping after SIGTERM/SIGKILL
-    # isn't instantaneous, especially under load from the rest of the
-    # suite forking PTYs. A fixed sleep was flaky.
-    deadline = time.monotonic() + 2.0
-    while session.is_alive() and time.monotonic() < deadline:
-        time.sleep(0.02)
-    assert not session.is_alive()
+    # kill() escalates SIGTERM -> SIGKILL but can return with the child
+    # still an unreaped zombie, and is_alive() short-circuits on
+    # _closed — so the old poll exited on iteration 1 and os.kill(pid,
+    # 0) then SUCCEEDED on the zombie: that was the flake (C5 register
+    # A4). Poll os.waitpid directly — the authoritative reaping call —
+    # under a bounded deadline: deterministic, and it fails loudly
+    # instead of hanging if kill() ever stops terminating the child
+    # (QG r1, Francisca B2).
+    # ChildProcessError means kill()'s own WNOHANG poll already reaped
+    # the child — equal proof of death.
+    deadline = time.monotonic() + 10.0
+    reaped = False
+    while time.monotonic() < deadline:
+        try:
+            wpid, _ = os.waitpid(pid, os.WNOHANG)
+        except ChildProcessError:
+            reaped = True
+            break
+        if wpid == pid:
+            reaped = True
+            break
+        time.sleep(0.01)
+    assert reaped, "child not reaped within 10s — kill() did not terminate it"
     with pytest.raises(OSError):
         os.kill(pid, 0)
 
