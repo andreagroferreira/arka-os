@@ -2,11 +2,58 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/kb` · **Lead:** Clara (Tier 1) · **Agents:** 4 · **Skills:** 17
+> **Prefix:** `/kb` · **Lead:** Clara (Tier 1) · **Agents:** 4 · **Skills:** 18
 
 Knowledge Management is the squad responsible for building, organizing, and querying the team's institutional memory. It ingests raw sources — YouTube videos, PDFs, articles, research papers — processes them into permanent, linked notes, and surfaces the right context to every other department on demand. The vault lives in Obsidian; everything in it is linked, attributed, and evergreen.
 
 Reach for this squad when you need to research a topic, evaluate whether a source is trustworthy, distill learning from content you've collected, build a callable AI persona from a body of work, or keep the vault itself healthy.
+
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 23 | 18 | 4 |
+
+**Commands** (23 via `/kb`):
+
+| Command | What it does |
+| --- | --- |
+| `/kb ai-research <topic>` | AI-augmented research (Elicit, Perplexity, Claude) |
+| `/kb capabilities` | Show available tools and API keys |
+| `/kb cleanup [--older-than 90d]` | Remove old media files |
+| `/kb evaluate <source>` | Source evaluation using CRAAP test |
+| `/kb intel <competitor>` | Competitive intelligence research |
+| `/kb learn <url>` | Ingest content (YouTube, article, PDF) into KB |
+| `/kb learn-text <file/url> --persona "Name"` | Learn from text/article content (synchronous) |
+| `/kb moc <cluster>` | Create/update Map of Content |
+| `/kb para-review` | PARA organization review cycle |
+| `/kb persona <name>` | Build or view a persona from the KB |
+| `/kb personas` | List all personas and their stats |
+| `/kb process <job-id>` | Analyze a ready transcription (interactive choices) |
+| ... | 11 more — full list in [docs/COMMANDS.md](../../docs/COMMANDS.md) |
+
+**Skills** (18 — 17 sub-skills plus the `/kb` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `ai-research` | AI-augmented research: uses Perplexity, Elicit, and Claude for source gathering and synthesis, delivering a... |
+| `competitive-intel` | Competitive intelligence on a named competitor — product, pricing, positioning, marketing, team, funding —... |
+| `doc-extraction` | Turns documents — PDFs, scans, images, office exports — into verified structured data: chooses text-layer v... |
+| `doc-redaction` | Removes sensitive content from documents before they are shared, published, or ingested — client identifier... |
+| `kb-hub` | Knowledge Management & Research department. Zettelkasten, BASB, research methodology, persona building, Obs... |
+| `knowledge` | Knowledge Base department entry point powered by Obsidian: queues YouTube downloads, transcribes with Whisp... |
+| `knowledge-ops` | Writes a note to the Obsidian vault the evidence-first way and verifies it landed — a note is not "saved" u... |
+| `knowledge-review` | Knowledge freshness review of the Obsidian vault: identifies stale notes, updates progressive summaries, an... |
+| `learn-content` | Ingests a content source (YouTube video, article, PDF): downloads, transcribes, and analyzes it with 5 para... |
+| `moc-create` | Creates or updates a Map of Content (LYT, Nick Milo) when a topic cluster reaches 10+ notes, producing an O... |
+| `persona-build` | Builds or refines a callable persona from KB content: source inventory, cited belief inventory, voice signa... |
+| `research-deep` | Heavy-research ladder over the operator's own knowledge: Obsidian vault first (cite or declare the gap), th... |
+| `research-plan` | Plans and executes structured research: defines the question, gathers academic/industry/expert sources, eva... |
+| `search-kb` | Searches the Obsidian knowledge base: keyword, semantic, and cross-reference search across the vault, retur... |
+| `source-evaluate` | Evaluates a single source's reliability with the CRAAP test — Currency, Relevance, Authority, Accuracy, Pur... |
+| `taxonomy-manage` | Manages the knowledge base taxonomy: tags, categories, naming conventions, and hierarchy, delivering an upd... |
+| `write-as-persona` | Writes content in a learned persona's voice, applying their frameworks, style, and KB knowledge, with frame... |
+| `zettelkasten-process` | Processes content through the Zettelkasten workflow (Luhmann/Ahrens): fleeting -> literature -> permanent n... |
 
 ## The squad
 

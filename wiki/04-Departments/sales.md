@@ -2,11 +2,54 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/sales` · **Lead:** Miguel (Tier 1) · **Agents:** 4 · **Skills:** 13
+> **Prefix:** `/sales` · **Lead:** Miguel (Tier 1) · **Agents:** 4 · **Skills:** 14
 
 The Sales department handles the full revenue cycle from first contact to signed deal. Miguel leads with a consultative, qualification-first approach grounded in SPIN Selling and the Challenger Sale — both of which emphasise understanding the customer's situation before positioning any solution. The squad covers prospecting, deal qualification, proposal writing, objection handling, negotiation, and pipeline forecasting.
 
 This is not a broadcast-and-hope department. Every engagement starts with rigorous ICP fit scoring, every deal is tracked through a structured pipeline with velocity metrics, and every negotiation is prepared with a defined BATNA before the first counter-offer is made.
+
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 13 | 14 | 4 |
+
+**Commands** (13 via `/sales`):
+
+| Command | What it does |
+| --- | --- |
+| `/sales challenger <context>` | Challenger sale approach |
+| `/sales discovery <prospect>` | Discovery call preparation (SPIN questions) |
+| `/sales forecast` | Revenue forecast |
+| `/sales negotiate <deal>` | Negotiation strategy (BATNA) |
+| `/sales objection <objection>` | Objection handling playbook |
+| `/sales pipeline` | Pipeline analysis and recommendations |
+| `/sales pricing <product>` | Pricing negotiation strategy |
+| `/sales proposal <client>` | Sales proposal writing |
+| `/sales prospecting` | Find, qualify, and build a prospect list |
+| `/sales qualify <deal>` | Deal qualification (BANT/MEDDIC) |
+| `/sales revops` | Lead lifecycle, scoring, routing, pipeline ops |
+| `/sales sales-enablement` | Decks, one-pagers, battlecards, demo scripts |
+| ... | 1 more — full list in [docs/COMMANDS.md](../../docs/COMMANDS.md) |
+
+**Skills** (14 — 13 sub-skills plus the `/sales` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `challenger-sell` | Prepares a Challenger Sale approach (Dixon/Adamson): commercial insight to teach, message tailoring per sta... |
+| `deal-qualify` | Qualifies a deal with MEDDIC/BANT — Metrics, Economic Buyer, Decision Criteria, Decision Process, Champion... |
+| `discovery-call` | Prepares a discovery call end to end: prospect research, SPIN question bank, call goals, and agenda. TRIGGE... |
+| `forecast-revenue` | Builds a revenue forecast from probability-weighted pipeline, historical stage conversion, and confidence i... |
+| `negotiate-plan` | Plans a negotiation with the BATNA framework: BATNA and walk-away point, ZOPA mapping, anchoring strategy,... |
+| `objection-handle` | Builds an objection-handling playbook for a specific sales objection: acknowledge, clarify, respond with ev... |
+| `pipeline-manage` | Analyses pipeline health with the Pipeline Velocity formula: velocity, conversion by stage, deal aging, bot... |
+| `pricing-negotiate` | Prepares a value-based pricing negotiation: anchor on value and ROI, respond to price objections, and prote... |
+| `proposal-write` | Writes an outcome-focused sales proposal (max 5-7 pages): executive summary, client challenge, solution wit... |
+| `prospecting` | Find, qualify, and score prospect lists across four motions — B2B SaaS, general B2B, local SMB, and early-s... |
+| `revops` | Design the systems that connect marketing, sales, and customer success into one revenue engine — lead lifec... |
+| `sales-hub` | Sales & Negotiation department. Pipeline management, proposals, discovery calls, deal qualification, negoti... |
+| `sales-enablement` | Create sales collateral reps actually use — pitch decks, one-pagers, objection-handling docs, ROI calculato... |
+| `spin-sell` | Prepares SPIN Selling questions (Neil Rackham): Situation, Problem, Implication, and Need-Payoff banks cust... |
 
 ## The squad
 

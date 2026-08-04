@@ -12,23 +12,23 @@ Each department has a **lead** (Tier 1) who orchestrates **specialists**
 
 | Department | Prefix | Lead | Agents | Skills | What it does |
 |---|---|---:|---:|---:|---|
-| [Development](dev.md) | `/dev` | Paulo | 15 | 64 | Full-stack features, APIs, architecture, security, CI/CD |
-| [Brand & Design](brand.md) | `/brand` | Valentina | 10 | 13 | Brand identity, UX/UI, design systems, naming |
-| [Marketing](marketing.md) | `/mkt` | Luna | 7 | 32 | SEO, paid ads, email, growth loops |
-| [Strategy](strategy.md) | `/strat` | Tomas | 4 | 11 | Market analysis, competitive intelligence, business models |
-| [E-Commerce](ecom.md) | `/ecom` | Ricardo | 4 | 14 | Store optimization, CRO, pricing, RFM |
-| [Knowledge](kb.md) | `/kb` | Clara | 4 | 17 | Research, Zettelkasten, persona building, ingestion |
-| [Project Management](pm.md) | `/pm` | Carolina | 4 | 14 | Scrum, Shape Up, discovery, roadmaps |
-| [Content](content.md) | `/content` | Rafael | 8 | 19 | Viral hooks, scripts, repurposing, calendars |
-| [Sales](sales.md) | `/sales` | Miguel | 4 | 13 | Pipeline, SPIN selling, negotiation |
-| [SaaS](saas.md) | `/saas` | Tiago | 5 | 18 | Idea validation, metrics, PLG, scaffolding |
-| [Organization](org.md) | `/org` | Sofia | 5 | 12 | Org design, team topologies, matrix structure |
-| [Landing Pages](landing.md) | `/landing` | Ines | 4 | 18 | Sales copy, funnels, offers, page generation |
-| [Finance](finance.md) | `/fin` | Helena | 3 | 8 | DCF valuation, unit economics, budgets |
-| [Operations](ops.md) | `/ops` | Daniel | 3 | 23 | Automation, SOPs, compliance (GDPR, ISO, SOC 2) |
-| [Communities](community.md) | `/community` | Beatriz | 3 | 15 | Groups, membership, gamification, engagement |
-| [Leadership](leadership.md) | `/lead` | Rodrigo | 3 | 10 | Team health, OKRs, culture, hiring |
-| [Quality Gate](quality.md) | (auto) | Marta | 3 | 0 | Mandatory review on every workflow. Veto power. |
+| [Development](dev.md) | `/dev` | Paulo | 15 | 65 | Full-stack features, APIs, architecture, security, CI/CD |
+| [Brand & Design](brand.md) | `/brand` | Valentina | 10 | 14 | Brand identity, UX/UI, design systems, naming |
+| [Marketing](marketing.md) | `/mkt` | Luna | 7 | 33 | SEO, paid ads, email, growth loops |
+| [Strategy](strategy.md) | `/strat` | Tomas | 4 | 12 | Market analysis, competitive intelligence, business models |
+| [E-Commerce](ecom.md) | `/ecom` | Ricardo | 4 | 15 | Store optimization, CRO, pricing, RFM |
+| [Knowledge](kb.md) | `/kb` | Clara | 4 | 18 | Research, Zettelkasten, persona building, ingestion |
+| [Project Management](pm.md) | `/pm` | Carolina | 4 | 15 | Scrum, Shape Up, discovery, roadmaps |
+| [Content](content.md) | `/content` | Rafael | 8 | 20 | Viral hooks, scripts, repurposing, calendars |
+| [Sales](sales.md) | `/sales` | Miguel | 4 | 14 | Pipeline, SPIN selling, negotiation |
+| [SaaS](saas.md) | `/saas` | Tiago | 5 | 19 | Idea validation, metrics, PLG, scaffolding |
+| [Organization](org.md) | `/org` | Sofia | 5 | 13 | Org design, team topologies, matrix structure |
+| [Landing Pages](landing.md) | `/landing` | Ines | 4 | 19 | Sales copy, funnels, offers, page generation |
+| [Finance](finance.md) | `/fin` | Helena | 3 | 9 | DCF valuation, unit economics, budgets |
+| [Operations](ops.md) | `/ops` | Daniel | 3 | 24 | Automation, SOPs, compliance (GDPR, ISO, SOC 2) |
+| [Communities](community.md) | `/community` | Beatriz | 3 | 16 | Groups, membership, gamification, engagement |
+| [Leadership](leadership.md) | `/lead` | Rodrigo | 3 | 11 | Team health, OKRs, culture, hiring |
+| [Quality Gate](quality.md) | (auto) | Marta | 3 | 1 | Mandatory review on every workflow. Veto power. |
 
 > 89 agent files across 17 departments. 88 are unique — `cro-specialist.yaml`
 > is shared by E-Commerce and Landing in the matrix structure. Agent counts
