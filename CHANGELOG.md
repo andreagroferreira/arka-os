@@ -5,6 +5,63 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.0] - 2026-08-04
+
+### Added
+
+- **The gh-grep MCP is now wired into the research doctrine** (#451). The
+  server (`https://mcp.grep.app`) had been installed as a `base` MCP for
+  some time, yet all-time telemetry gave it 7 calls out of 3474 — 0.2%,
+  against playwright's 1421 and claude-in-chrome's 1327. Nothing in the
+  system told an agent to reach for it, the same installed-but-mute
+  failure the Graphify campaign found in the Obsidian KB block. The
+  KB-first doctrine in `arka/SKILL.md` now separates the two code
+  externals it had lumped together — Context7 answers the documented
+  contract, gh-grep answers the shipped practice — and states that it is
+  literal grep, to be queried with code tokens rather than sentences.
+  `departments/dev/SKILL.md` gains a "Real-world grounding" section
+  mirroring the existing codebase-memory one, plus the `/dev research`
+  command row without which the routing keywords reached nothing (the
+  command registry moves 298 → 299). Ten dev skills carry a concrete
+  step; in `code-review`, `clean-code-review` and `adversarial-review`
+  the use is deliberately bounded to verifying disputed third-party API
+  claims before raising a blocker. Promotion into
+  `core/workflow/research_gate.py` is deliberately deferred and
+  telemetry-gated: baseline 7 calls, target ≥20/week within 30 days.
+
+### Fixed
+
+- **The evidence gate no longer skips a pinned `--test-command` it cannot
+  run** (#451). `shlex.split` left `~` literal, so a command pinned as
+  `~/.arkaos/bin/arka-py …` raised `FileNotFoundError` and `_run` reported
+  `ran=False` — which an aggregator reads as "not applicable". The report
+  then said `tests: ran=false` beside `overall: pass`, and a reviewer
+  trusting that line would approve a PR on a suite that never executed.
+  `_expand_argv` now expands `~` where it means a path, and an
+  unresolvable pinned command fails loudly instead of skipping.
+  Auto-detected checks keep skipping, since a missing ruff is a genuine
+  "not applicable" while a mistyped pin is not. A command that resolves to
+  something exec refuses — a directory, a non-executable file — is now
+  reported rather than raised, so the gate can no longer be crashed into
+  producing no report at all.
+- **The skills catalog generator stopped emitting fragments that read as
+  typos** (#451). Descriptions were cut at `text[:177]`, slicing mid-word,
+  so every PR touching a skill description inherited a red codespell
+  aggregate. It now cuts on a word boundary and guards the degenerate case
+  where the cut would leave a bare ellipsis.
+
+### Documented
+
+- **ADR: camofox-browser is not absorbed** (#451,
+  `docs/adr/2026-08-04-camofox-not-absorbed.md`). The capability is
+  duplicated — playwright and claude-in-chrome are 79% of all MCP traffic
+  and nothing is blocked on them — and the package files anonymised crash
+  reports as GitHub Issues by default, which is the wrong side of
+  fail-closed where client names are confidential and `core/egress/` is
+  deny-by-default. Its core function also violates the terms of service of
+  most sites it would target. The ADR names the reopening condition so the
+  question is not re-litigated from the star count.
+
 ## [5.2.0] - 2026-08-04
 
 ### Fixed
