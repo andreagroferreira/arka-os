@@ -323,6 +323,12 @@ def _check_lint(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
+    if changed is not None and not changed:
+        # A KNOWN-empty diff must not inherit the project-wide baseline:
+        # a zero-write deliverable was gated on master's pre-existing
+        # ruff debt (QG 2026-08-04). None still means "scope unknown"
+        # and keeps the project-wide run.
+        return _skip("lint", "no changed files (empty diff)")
     if changed:
         scoped = _lint_scoped(project_dir, changed, timeout)
         if scoped is not None:
@@ -371,6 +377,11 @@ def _check_typecheck(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
+    if changed is not None and not changed:
+        # Same zero-diff contract as lint: mypy/tsc run project-wide and
+        # never read the diff, so a known-empty diff would inherit
+        # master's type debt the moment tooling is configured.
+        return _skip("typecheck", "no changed files (empty diff)")
     if _mypy_configured(project_dir) and shutil.which("mypy"):
         return _run("typecheck", ["mypy", "."], project_dir, timeout)
     if (project_dir / "tsconfig.json").is_file():
@@ -1024,8 +1035,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _csv(value: str | None) -> list[str] | None:
-    if not value:
+    if value is None:
         return None
+    # `--changed-files ""` is a KNOWN-empty diff and maps to [] so the
+    # zero-diff skip fires; an omitted flag stays None (scope unknown).
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
