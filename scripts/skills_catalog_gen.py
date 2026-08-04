@@ -84,7 +84,11 @@ def _clean_description(raw: str | None, fallback: str) -> str:
         # Cut on a word boundary: a mid-word slice emits fragments that read
         # as typos to spellcheckers ("CLEAN" -> "CLEA", "with" -> "wit").
         boundary = head.rfind(" ")
-        text = (head[:boundary] if boundary > 0 else head).rstrip(" ,;:—-") + "..."
+        cut = (head[:boundary] if boundary > 0 else head).rstrip(" ,;:—-")
+        # `or head` guards the degenerate case where the whole cut is
+        # separators: emitting a bare "..." would lose a description
+        # master rendered in full.
+        text = (cut or head) + "..."
     return text or fallback
 
 

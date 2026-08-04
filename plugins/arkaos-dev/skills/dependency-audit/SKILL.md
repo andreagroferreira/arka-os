@@ -68,7 +68,7 @@ Run these per ecosystem:
 | Deprecated | Critical | Find replacement, schedule migration |
 
 Registry download counts measure installs, not health: CI runs, mirrors,
-proxies and bots inflate them, while a vendored dependency is fetched once
+proxies, and bots inflate them, while a vendored dependency is fetched once
 and committed, after which it stops counting altogether even though the
 project still depends on it. For a dependency you suspect is abandoned or
 about to be, check real usage with `mcp__gh-grep__searchGitHub`: grep its

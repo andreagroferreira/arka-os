@@ -5,6 +5,7 @@ subprocesses are either trivially fast real commands (python3 -c) or
 monkeypatched. Never touches ~/.arkaos or this repo's own suite.
 """
 
+import getpass
 import json
 import os
 import subprocess
@@ -361,10 +362,36 @@ def test_expand_argv_leaves_non_path_tilde_tokens_alone():
 
 
 def test_expand_argv_expands_tilde_user_in_argv0():
-    """argv[0] is always a program path, so the `~user` form expands there."""
-    argv = evidence_checks._expand_argv(["~/bin/py", "-c", "pass"])
-    assert argv[0] == os.path.expanduser("~/bin/py")
+    """argv[0] is always a program path, so the `~user` form expands there.
+
+    Must use a real `~user` token: an earlier version asserted this
+    contract while passing `~/bin/py`, so dropping ~user support left the
+    whole file green.
+    """
+    user = getpass.getuser()
+    argv = evidence_checks._expand_argv([f"~{user}/bin/py", "-c", "pass"])
+    assert argv[0] == os.path.expanduser(f"~{user}/bin/py")
+    assert not argv[0].startswith("~"), "the ~user form must resolve"
     assert argv[1:] == ["-c", "pass"]
+
+
+def test_pinned_command_resolving_to_a_directory_fails_cleanly(tmp_path):
+    """An unrunnable path must FAIL the check, never crash the gate.
+
+    `_expand_argv` turns `~/bin` into a real directory path, and exec on a
+    directory raises PermissionError — which is not FileNotFoundError. An
+    uncaught raise here produces no EvidenceReport at all, which is worse
+    than the silent skip this whole change set exists to remove.
+    """
+    a_directory = tmp_path / "notabinary"
+    a_directory.mkdir()
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command=str(a_directory),
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is False
+    assert report.overall == "fail"
 
 
 def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):

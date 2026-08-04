@@ -97,7 +97,7 @@ attempt that phrases the question in prose will look like the tool failing
 when it is the query that failed.
 
 Pair it with Context7, which answers the complementary question: Context7
-gives the documented contract, gh-grep gives the practice N teams actually
+gives the documented contract; gh-grep gives the practice N teams actually
 shipped. Where they disagree, the docs win and the divergence itself is
 worth reporting. Treat results as a prior about practice — they carry no
 authority over our own code, which you still read directly.

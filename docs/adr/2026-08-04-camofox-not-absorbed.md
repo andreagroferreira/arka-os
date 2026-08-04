@@ -41,8 +41,8 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
    against `lib/reporter.js`), camofox-browser automatically files
    anonymised crash and hang reports **as GitHub Issues**; opting out
    requires `CAMOFOX_CRASH_REPORT_ENABLED=false`. Private domains are
-   HMAC-hashed and paths stripped, but the operator serves
-   confidential clients under a standing directive that client names never
+   HMAC-hashed and paths stripped, but the operator serves confidential
+   clients under a standing directive that client names never
    leave the machine — the v2.18.0 npm release leaked client data once
    already, which is why `~/.arkaos/redaction-clients.json` and the
    deny-by-default `core/egress/` policy exist. A default-on channel that
@@ -52,8 +52,8 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
 
 3. **Its core function violates the terms of service of most sites it would
    be pointed at.** Defeating bot detection is not incidental to
-   camofox-browser;
-   it is the product. Competitive research on public pages is legitimate,
+   camofox-browser; it is the product. Competitive research on public pages
+   is legitimate,
    and ArkaOS does it today with ordinary browsers that identify themselves
    honestly. Building fingerprint evasion into the platform's default
    capability set changes what the system is, for a class of access nobody
@@ -70,17 +70,17 @@ camofox-browser is not absorbed — neither as a skill nor as an MCP entry in
   and `config/mcp-policy.yaml` are untouched by this decision.
 - Browser work continues on playwright, claude-in-chrome, and firecrawl.
 - **Reopening condition:** a specific, authorised collection target that the
-  existing layers demonstrably cannot reach, named with the failure on
-  record. Reopened that way, the entry takes `category: optional` in
-  `mcps/registry.json`, never `base`. That value is right for a mechanical
-  reason: no stack in `_STACK_TO_CATEGORIES`
-  (`core/sync/mcp_syncer.py`) maps to `optional`, so the server never
-  reaches a project's `.mcp.json` without an explicit user action.
-  It would also need listing under `deferred` for every stack in
+  existing layers demonstrably cannot reach, named with the failure on record.
+  Everything that follows describes what a reopening would have to do; none of
+  it exists today. The entry would take `category: optional` in
+  `mcps/registry.json`, never `base` — `optional` because no stack in
+  `_STACK_TO_CATEGORIES` (`core/sync/mcp_syncer.py`) maps to it, so the server
+  could not reach a project's `.mcp.json` without an explicit user action. It
+  would also need listing under `deferred` for every stack in
   `config/mcp-policy.yaml`, whose bucket vocabulary is unrelated to the
-  registry's categories. Neither file mentions camofox-browser today, and
-  this decision does not change that.
-  `CAMOFOX_CRASH_REPORT_ENABLED=false` would be
-  pinned in the server config, and the egress policy is consulted before
-  any client data reaches a page.
+  registry's categories. It would pin `CAMOFOX_CRASH_REPORT_ENABLED=false` in
+  the server config. And it would need an egress path that actually covers
+  browsing: today `core/egress/` is consulted only by `core/kb/nlm_client.py`,
+  so no browser layer passes through it and that gap would have to close
+  first.
 - This ADR exists so the question is not re-litigated from the star count.

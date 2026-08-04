@@ -196,6 +196,15 @@ def _run(
         )
     except FileNotFoundError:
         return _skip(check, f"tool not found: {cmd[0]}")
+    except OSError as exc:
+        # Anything else exec can refuse — a directory, a non-executable
+        # file, a broken symlink. The gate must report, never raise: an
+        # uncaught error here produces no EvidenceReport at all, which is
+        # worse than the silent skip this module works to avoid.
+        return CheckResult(
+            check=check, ran=True, passed=False, command=command_str,
+            exit_code=None, summary=f"cannot execute {cmd[0]}: {exc.strerror}",
+        )
     except subprocess.TimeoutExpired:
         # subprocess.run kills the child on expiry before raising.
         return CheckResult(
