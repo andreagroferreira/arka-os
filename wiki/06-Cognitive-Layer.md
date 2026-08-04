@@ -173,4 +173,15 @@ back*.
 
 ---
 
+## Learning from routing
+
+The Cognitive Layer also remembers how well the system routed. Quality
+Gate and judge verdicts are aggregated per department into
+`~/.arkaos/routing-scores.json` (F1-B1); Synapse L5.5 reads it back and
+injects a non-blocking `[arka:redo-risk]` warning when a department's
+approval rate is low (e.g. `frontend: 3/9 approved (90d, smoothed
+0.36)`), so the operator tightens the brief before the next gate cycle.
+See [Routing](05-Commands-Reference.md#routing-logic) and
+[docs/ROUTING.md](../docs/ROUTING.md).
+
 Related: [07 · Intelligence Loop](07-Intelligence-Loop.md), [09 · Knowledge Base](09-Knowledge-Base.md), [Home](Home.md)
