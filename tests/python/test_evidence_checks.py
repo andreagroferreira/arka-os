@@ -5,6 +5,7 @@ subprocesses are either trivially fast real commands (python3 -c) or
 monkeypatched. Never touches ~/.arkaos or this repo's own suite.
 """
 
+import getpass
 import json
 import os
 import subprocess
@@ -295,6 +296,101 @@ def test_tests_check_with_failing_override(tmp_path):
     assert result.ran is True
     assert result.passed is False
     assert result.exit_code == 2
+    assert report.overall == "fail"
+
+
+def test_pinned_test_command_that_cannot_run_fails_not_skips(tmp_path):
+    """An unresolvable --test-command is a FAILURE, never a silent skip.
+
+    The operator pinned that exact command; being unable to run it is
+    evidence the suite did not run, and `ran=False` reads to an
+    aggregator as "not applicable" — a fail-open in the gate itself.
+    """
+    report = run_evidence_checks(
+        tmp_path,
+        checks=["tests"],
+        test_command="/nonexistent/interpreter -m pytest",
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is False
+    assert "not found" in result.summary
+    assert report.overall == "fail"
+
+
+def test_pinned_test_command_expands_user_home(tmp_path, monkeypatch):
+    """`~` in a pinned command resolves; shlex.split does not expand it.
+
+    Reported by the Quality Gate 2026-08-04: `~/.arkaos/bin/arka-py`
+    reached subprocess verbatim, raised FileNotFoundError, and the check
+    silently skipped while reporting overall pass.
+
+    Hermetic: HOME is redirected into tmp_path and the runner is built
+    there. An earlier version derived the path from sys.executable and
+    skipped whenever the interpreter lived outside HOME — which is always
+    true under actions/setup-python, so the regression shipped green
+    through CI while pinning nothing.
+    """
+    fake_home = tmp_path / "home"
+    runner = fake_home / "bin" / "runner"
+    runner.parent.mkdir(parents=True)
+    runner.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    runner.chmod(0o755)
+    monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("USERPROFILE", str(fake_home))  # expanduser on Windows
+
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command="~/bin/runner",
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is True
+    assert result.command == str(runner), "the ~ must be expanded before exec"
+
+
+def test_expand_argv_leaves_non_path_tilde_tokens_alone():
+    """Only argv[0] and `~/`-form paths expand.
+
+    A bare `~word` later in the command is far more likely to be a filter
+    expression than a home directory — `pytest -k ~root` must not become
+    `pytest -k /var/root`.
+    """
+    argv = evidence_checks._expand_argv(["pytest", "-k", "~root", "~/x.py"])
+    assert argv[0] == "pytest"
+    assert argv[2] == "~root", "a bare ~word is not a path"
+    assert argv[3] == os.path.expanduser("~/x.py")
+
+
+def test_expand_argv_expands_tilde_user_in_argv0():
+    """argv[0] is always a program path, so the `~user` form expands there.
+
+    Must use a real `~user` token: an earlier version asserted this
+    contract while passing `~/bin/py`, so dropping ~user support left the
+    whole file green.
+    """
+    user = getpass.getuser()
+    argv = evidence_checks._expand_argv([f"~{user}/bin/py", "-c", "pass"])
+    assert argv[0] == os.path.expanduser(f"~{user}/bin/py")
+    assert not argv[0].startswith("~"), "the ~user form must resolve"
+    assert argv[1:] == ["-c", "pass"]
+
+
+def test_pinned_command_resolving_to_a_directory_fails_cleanly(tmp_path):
+    """An unrunnable path must FAIL the check, never crash the gate.
+
+    `_expand_argv` turns `~/bin` into a real directory path, and exec on a
+    directory raises PermissionError — which is not FileNotFoundError. An
+    uncaught raise here produces no EvidenceReport at all, which is worse
+    than the silent skip this whole change set exists to remove.
+    """
+    a_directory = tmp_path / "notabinary"
+    a_directory.mkdir()
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command=str(a_directory),
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is False
     assert report.overall == "fail"
 
 

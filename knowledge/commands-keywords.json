@@ -285,13 +285,21 @@
       "evaluate library",
       "compare frameworks",
       "investigate",
-      "look into"
+      "look into",
+      "real-world examples",
+      "exemplos reais",
+      "como implementam os outros",
+      "how do others implement",
+      "search github code",
+      "prior art"
     ],
     "examples": [
       "research payment gateways",
       "compare React vs Vue",
       "evaluate Stripe vs PayPal",
-      "look into GraphQL"
+      "look into GraphQL",
+      "como é que outros repos usam esta API",
+      "procura exemplos reais de uso do ScrollTrigger"
     ]
   },
   "dev-mcp-apply": {

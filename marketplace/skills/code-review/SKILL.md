@@ -20,6 +20,20 @@ description: >
 
 Code review against Clean Code and SOLID. Checks naming, SRP, DIP, test coverage, security.
 
+## Before you call it a BLOCKER
+
+When the finding rests on a claim about a third-party API — "this hook must
+not run in an effect", "that option is ignored here" — and you are not
+certain, verify it before writing it down. `mcp__gh-grep__searchGitHub` on
+the literal symbol shows how the API is used across public repos; Context7
+shows what its maintainer documents. A blocker that turns out to describe
+the reviewer's assumption rather than the library's behaviour costs the
+author a cycle and costs the review its authority.
+
+Run this check only when a claim about someone else's library is in
+dispute. Findings about our own code — naming, SRP, coupling, coverage —
+are settled by reading the code in front of you.
+
 ## Output
 
 Review report: BLOCKER/WARNING/NOTE with line references and fix suggestions

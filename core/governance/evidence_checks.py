@@ -27,6 +27,7 @@ import configparser
 import fnmatch
 import importlib.util
 import json
+import os
 import re
 import shlex
 import shutil
@@ -165,6 +166,24 @@ def _skip(check: str, reason: str) -> CheckResult:
     )
 
 
+def _expand_argv(argv: list[str]) -> list[str]:
+    """Expand `~` where it means a path; shlex.split leaves it literal.
+
+    argv[0] is always a program path, so both `~/` and `~user` expand
+    there. Later tokens expand only in the `~/` form: a bare `~word` is
+    far more likely to be a filter expression (`pytest -k ~root`) than a
+    home directory, and rewriting it would silently change what runs.
+    """
+    if not argv:
+        return argv
+    head = os.path.expanduser(argv[0]) if argv[0].startswith("~") else argv[0]
+    tail = [
+        os.path.expanduser(tok) if tok.startswith("~/") else tok
+        for tok in argv[1:]
+    ]
+    return [head, *tail]
+
+
 def _run(
     check: str, cmd: list[str], project_dir: Path, timeout: int,
 ) -> CheckResult:
@@ -177,6 +196,15 @@ def _run(
         )
     except FileNotFoundError:
         return _skip(check, f"tool not found: {cmd[0]}")
+    except OSError as exc:
+        # Anything else exec can refuse — a directory, a non-executable
+        # file, a broken symlink. The gate must report, never raise: an
+        # uncaught error here produces no EvidenceReport at all, which is
+        # worse than the silent skip this module works to avoid.
+        return CheckResult(
+            check=check, ran=True, passed=False, command=command_str,
+            exit_code=None, summary=f"cannot execute {cmd[0]}: {exc.strerror}",
+        )
     except subprocess.TimeoutExpired:
         # subprocess.run kills the child on expiry before raising.
         return CheckResult(
@@ -442,21 +470,38 @@ def _degrade_pytest_no_tests(result: CheckResult) -> CheckResult:
     return replace(result, passed=None, summary=prefix + result.summary)
 
 
+def _run_pinned_tests(
+    test_command: str, project_dir: Path, timeout: int,
+) -> CheckResult:
+    """Run the operator's pinned --test-command. Never skips."""
+    argv = _expand_argv(shlex.split(test_command))
+    result = _run("tests", argv, project_dir, timeout)
+    if not result.ran:
+        # A command the operator pinned explicitly is not optional.
+        # _run reports an unresolvable binary as ran=False, which an
+        # aggregator reads as "not applicable" — so a typo in the
+        # path would let a PR through on a suite that never ran.
+        return CheckResult(
+            check="tests", ran=True, passed=False,
+            command=" ".join(argv), exit_code=None,
+            summary=f"pinned --test-command could not run: {result.summary}",
+        )
+    # exit 5 is pytest's "no tests collected"; scan the first 3
+    # tokens so `python -m pytest` / `arka-py -m pytest` degrade too,
+    # while non-pytest runners (npm test) stay a real FAIL. Bounded to
+    # argv[:3] so a later test-path arg named *pytest* never matches
+    # (issue #354).
+    if any("pytest" in Path(tok).name for tok in argv[:3]):
+        return _degrade_pytest_no_tests(result)
+    return result
+
+
 def _check_tests(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
     if test_command:
-        argv = shlex.split(test_command)
-        result = _run("tests", argv, project_dir, timeout)
-        # exit 5 is pytest's "no tests collected"; scan the first 3
-        # tokens so `python -m pytest` / `arka-py -m pytest` degrade too,
-        # while non-pytest runners (npm test) stay a real FAIL. Bounded to
-        # argv[:3] so a later test-path arg named *pytest* never matches
-        # (issue #354).
-        if any("pytest" in Path(tok).name for tok in argv[:3]):
-            return _degrade_pytest_no_tests(result)
-        return result
+        return _run_pinned_tests(test_command, project_dir, timeout)
     if _has_python(project_dir, changed):
         local_pytest = _project_pytest(project_dir)
         if local_pytest:
