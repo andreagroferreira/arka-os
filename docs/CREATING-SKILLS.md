@@ -4,7 +4,7 @@ Reference for contributors authoring new ArkaOS skills.
 
 ## What Is a Skill
 
-A skill is a single, named capability that an agent executes when invoked. It lives in a `SKILL.md` file, optionally alongside reference documents. ArkaOS currently has 267 skills across 17 departments plus the `arka` orchestrator.
+A skill is a single, named capability that an agent executes when invoked. It lives in a `SKILL.md` file, optionally alongside reference documents. ArkaOS currently has 333 core skills across 17 departments plus the `arka` orchestrator (15 meta skills), and 259 more in plugin packs.
 
 Skills are discovered by the Claude Code skills system at load time. The file path determines the command name and routing; there is no separate registration step.
 

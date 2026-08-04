@@ -82,3 +82,6 @@ dashboard/playwright-report/
 # UI screenshot evidence (.arka/evidence/ui) — local only, and untracked,
 # so a `git add -A` would otherwise sweep the PNGs in.
 .arka/
+
+# Session working notes
+docs/.work/

@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/content` · **Lead:** Rafael (Tier 1) · **Agents:** 4 · **Skills:** 14
+> **Prefix:** `/content` · **Lead:** Rafael (Tier 1) · **Agents:** 8 · **Skills:** 19
 
 The Content & Viralization department is responsible for creating content that spreads. Rafael's squad works the full production chain — from hook design and script structure through to platform-native distribution and systematic repurposing. The output is not content for its own sake; it is content engineered to capture attention, hold it, and move it toward a business outcome.
 

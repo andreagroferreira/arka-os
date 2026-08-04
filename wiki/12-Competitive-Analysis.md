@@ -30,12 +30,12 @@ capability — not a thing you could theoretically prompt a generalist to attemp
 |---|:--:|:--:|:--:|:--:|:--:|
 | Code generation in an IDE | Yes | Yes | No | No | Via terminal/runtime |
 | Multi-department teams (marketing, finance, etc.) | No | No | No | No | **Yes (17)** |
-| Specialized agents with behavioral DNA | No | No | No | No | **Yes (82)** |
+| Specialized agents with behavioral DNA | No | No | No | No | **Yes (89)** |
 | Enterprise frameworks per domain | No | No | No | No | **Yes** |
 | Mandatory quality gate on output | No | No | No | No | **Yes** |
 | Institutional memory across projects | Partial | No | No | Partial | **Yes (dual-write)** |
 | Overnight self-improvement (Dreaming/Research) | No | No | No | No | **Yes** |
-| Runtime-agnostic (not locked to one model/IDE) | No | No | No | No | **Yes (4 runtimes)** |
+| Runtime-agnostic (not locked to one model/IDE) | No | No | No | No | **Yes (5 runtimes)** |
 | Open knowledge store (no lock-in) | No | No | No | No | **Yes (Obsidian)** |
 | Client ecosystem management | No | No | No | No | **Yes** |
 

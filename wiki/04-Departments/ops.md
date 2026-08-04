@@ -2,11 +2,11 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/ops` · **Lead:** Daniel (Tier 1) · **Agents:** 3 · **Skills:** 17
+> **Prefix:** `/ops` · **Lead:** Daniel (Tier 1) · **Agents:** 3 · **Skills:** 23
 
 The Operations department owns process efficiency, automation infrastructure, compliance readiness, and documentation standards. Daniel leads with Theory of Constraints and Lean Thinking as primary lenses — every engagement starts by finding the constraint, not optimizing everything uniformly. The squad can design n8n and Zapier workflows, run lean audits, produce SOPs, and take a product through GDPR, ISO 27001, or SOC 2 readiness.
 
-With 17 skills, Operations has the broadest command surface outside of Development. It covers daily workflow automation at one end and regulatory compliance audit preparation at the other. The automation-first principle is applied consistently: if a process is repeatable, it should be automated before being documented.
+With 23 skills, Operations carries one of the largest command surfaces in the system (after Development and Marketing). It covers daily workflow automation at one end and regulatory compliance audit preparation at the other. The automation-first principle is applied consistently: if a process is repeatable, it should be automated before being documented.
 
 ## The squad
 

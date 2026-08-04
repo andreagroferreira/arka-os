@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/pm` · **Lead:** Carolina (Tier 1) · **Agents:** 4 · **Skills:** 13
+> **Prefix:** `/pm` · **Lead:** Carolina (Tier 1) · **Agents:** 4 · **Skills:** 14
 
 The Project Management department covers the full spectrum from product discovery to sprint execution. Carolina leads with Continuous Discovery as the operating philosophy — weekly customer interviews, an Opportunity Solution Tree connecting outcomes to solutions, and dual-track agile separating discovery from delivery. The squad does not treat delivery as the primary goal; outcomes are.
 

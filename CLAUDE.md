@@ -208,7 +208,7 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 **QUALITY GATE:** Marta (CQO) orchestrates Eduardo (Copy) + Francisca (Tech). Absolute veto. Binary APPROVED/REJECTED. Runs on EVERY workflow.
 
-**MUST (28 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, sub-squad-hierarchy, forge-persistence, model-routing, subagent-discipline, agent-experience-persistence, persona-vs-artifact, plus the 16 demoted in Constitution 2.0 (obsidian-output, authority-boundaries, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, project-design-system-prerequisite, definition-of-done-per-domain, dispatch-must-be-announced)
+**MUST (29 rules):** conventional-commits, test-coverage >= 80%, pattern-matching, actionable-output, memory-persistence, workflow-standard, sub-squad-hierarchy, forge-persistence, model-routing, subagent-discipline, agent-experience-persistence, gate-judges, persona-vs-artifact, plus the 16 demoted in Constitution 2.0 (obsidian-output, authority-boundaries, context-first, solid-clean-code, spec-driven, human-writing, squad-routing, full-visibility, sequential-validation, arka-supremacy, context-verification, forge-governance, mandatory-skill-evaluation, project-design-system-prerequisite, definition-of-done-per-domain, dispatch-must-be-announced)
 
 **SHOULD (12 rules):** research-first, self-critique, kb-contribution, complexity-assessment, communication-standard, design-system-locked, dna-fidelity-warn, pattern-library-first, quality-over-speed, always-research, inter-agent-checkpoints, hybrid-learning
 

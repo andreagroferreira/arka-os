@@ -2,7 +2,7 @@
 
 ← [Wiki Home](Home.md) · Next: [Core Concepts →](02-Core-Concepts.md)
 
-ArkaOS is an operating system for AI agent teams. 82 agents across 17
+ArkaOS is an operating system for AI agent teams. 89 agents across 17
 departments handle everything from writing code to building brands to planning
 finances. You talk in plain language; ArkaOS routes to the right team.
 
@@ -16,7 +16,8 @@ marketers, and founders.
 - **Node.js 18+** (or Bun)
 - **Python 3.11+**
 - One AI runtime: [Claude Code](https://claude.ai/code), [Codex CLI](https://github.com/openai/codex),
-  [Gemini CLI](https://github.com/google-gemini/gemini-cli), or [Cursor](https://cursor.com)
+  [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com),
+  [OpenCode](https://opencode.ai), or Zed/Copilot
 
 ## Install in 3 steps
 
@@ -29,10 +30,10 @@ npx arkaos install
 ArkaOS auto-detects your runtime. To force one:
 
 ```bash
-npx arkaos install --runtime claude-code   # or codex | gemini | cursor
+npx arkaos install --runtime claude-code   # or codex | gemini | cursor | opencode
 ```
 
-The installer configures Python dependencies, the 5-hook system, all skills,
+The installer configures Python dependencies, the hook system, all skills,
 and the Cognitive Layer scheduler.
 
 ### Step 2 — Verify
@@ -50,8 +51,8 @@ Expected output:
 [PASS] Hooks configured for claude-code
 [PASS] Synapse engine responsive (~84ms cold)
 [PASS] Knowledge DB initialized
-[PASS] 82 agents loaded
-[PASS] 267 skills validated
+[PASS] 89 agents loaded
+[PASS] 333 skills validated
 All checks passed.
 ```
 
@@ -90,7 +91,7 @@ ArkaOS detects a development task. Synapse injects your project context
 
 ```
 [arka:routing] dev -> Paulo
-Paulo (Tech Lead) -> Andre (Senior Backend Dev)
+Paulo (Tech Lead) -> Andre (Backend Core Lead)
 
 Plan:
 1. Add StoreLoginRequest with email/password validation rules
@@ -188,12 +189,14 @@ Your configuration and knowledge base are preserved. See
 
 | Component | Count |
 |---|---|
-| Agents | 82 across 17 departments |
-| Skills | 267, backed by enterprise frameworks |
+| Agents | 89 across 17 departments (88 unique) |
+| Skills | 333 core + 259 plugin (see [Skill Packs](17-Skill-Packs.md)) |
+| Commands | 298 across 17 departments |
 | Synapse layers | 12 for context injection |
 | Dashboard pages | 8 |
-| Python CLI tools | 8 for quantitative analysis |
-| Tests | 4,500+ (pytest) |
+| Python CLI tools | 13 in `scripts/tools/` (8 quantitative analyzers) |
+| Tests | 4,956 (pytest) |
+| Runtimes | 6 (Claude, Codex, Gemini, Cursor, OpenCode, Zed/Copilot) |
 
 ## Next steps
 

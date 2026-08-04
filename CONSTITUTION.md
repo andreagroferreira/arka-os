@@ -115,7 +115,7 @@ Level re-tiering requires explicit operator approval and a recorded
 ## Compressed Context (Synapse L0)
 
 ```
-[Constitution] NON-NEGOTIABLE: branch-isolation, security-gate, mandatory-qa, evidence-flow, arkaos-not-yes-man, excellence-mandate | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST (28) incl.: squad-routing, spec-driven, conventional-commits, test-coverage, subagent-discipline, persona-vs-artifact
+[Constitution] NON-NEGOTIABLE: branch-isolation, security-gate, mandatory-qa, evidence-flow, arkaos-not-yes-man, excellence-mandate | QUALITY-GATE: marta-cqo, eduardo-copy, francisca-tech-ux | MUST (29) incl.: squad-routing, spec-driven, conventional-commits, test-coverage, subagent-discipline, persona-vs-artifact
 ```
 
 ---

@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/community` · **Lead:** Beatriz (Tier 1) · **Agents:** 3 · **Skills:** 14
+> **Prefix:** `/community` · **Lead:** Beatriz (Tier 1) · **Agents:** 3 · **Skills:** 15
 
 The Communities department designs, launches, and operates member communities across platforms — Discord, Telegram, Skool, Circle, and others. Beatriz approaches every community as a business model first: purpose, ideal member profile, value proposition, and monetization must be defined before any platform is chosen or content is produced. The squad covers the full lifecycle from niche selection and platform setup through onboarding, engagement mechanics, moderation, and retention.
 
