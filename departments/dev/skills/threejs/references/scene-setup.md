@@ -241,7 +241,9 @@ function PointerCamera() {
 ### useGLTF (standard)
 
 ```tsx
+import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
+import type { ComponentProps } from 'react'
 import type { GLTF } from 'three-stdlib'
 
 type ModelGLTF = GLTF & {
@@ -255,8 +257,11 @@ type ModelGLTF = GLTF & {
   }
 }
 
-function Model(props: JSX.IntrinsicElements['group']) {
-  const { nodes, materials } = useGLTF('/model.glb') as ModelGLTF
+// React 19 typings removed the global JSX namespace; use the element's
+// component props. The double cast is deliberate: GLTF's nodes/materials
+// are loosely typed upstream, so the assertion must go through unknown.
+function Model(props: ComponentProps<'group'>) {
+  const { nodes, materials } = useGLTF('/model.glb') as unknown as ModelGLTF
 
   return (
     <group {...props} dispose={null}>
@@ -343,16 +348,23 @@ function ResponsiveObject() {
 ### Adaptive performance
 
 ```tsx
+import { useState } from 'react'
+import { Canvas } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 
-<Canvas>
-  <PerformanceMonitor
-    onIncline={() => setDpr(2)}
-    onDecline={() => setDpr(1)}
-  >
-    <Scene />
-  </PerformanceMonitor>
-</Canvas>
+function App() {
+  const [dpr, setDpr] = useState(1.5)
+  return (
+    <Canvas dpr={dpr}>
+      <PerformanceMonitor
+        onIncline={() => setDpr(2)}
+        onDecline={() => setDpr(1)}
+      >
+        <Scene />
+      </PerformanceMonitor>
+    </Canvas>
+  )
+}
 ```
 
 ---

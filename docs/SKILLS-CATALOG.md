@@ -100,7 +100,7 @@
 | `stack-check` | dev/stack-check | Audit the current tech stack through a 12-Factor lens: framework and runtime versions, dependency health, security posture, performance, and upgrade paths — outputs a stack... |
 | `tdd-cycle` | dev/tdd-cycle | Test-Driven Development with Kent Beck's Red-Green-Refactor cycle: write the failing test first, minimum code to pass, refactor on green — enforces the testing pyramid... |
 | `tech-debt` | dev/tech-debt | Identify, classify, score, and prioritize technical debt (Ward Cunningham metaphor + cost-of-delay): six debt categories, weighted severity scoring, a prioritization matrix... |
-| `threejs` | dev/threejs | Real-time 3D in the browser with three.js and React Three Fiber: modern setup (import maps, WebGL vs WebGPU renderer choice, TSL), scene/camera/ renderer wiring, geometries... |
+| `threejs` | dev/threejs | Real-time 3D in the browser with three.js and React Three Fiber: modern setup (import maps, WebGL vs WebGPU renderer choice, TSL), the scene-camera-renderer wiring, geometries... |
 | `type-design-analyzer` | dev/type-design-analyzer | Scores whether a module's types make illegal states unrepresentable — across encapsulation, invariant expression, invariant usefulness, and type-system enforcement — and names... |
 | `typescript-review` | dev/typescript-review | TypeScript/Node review for the holes the compiler waves through — `any` and unsafe casts, unhandled promise rejections, missing input validation at the boundary, and injection... |
 | `vue-review` | dev/vue-review | Vue 3 / Nuxt review for the framework's own traps — lost reactivity, SSR hydration mismatches, missing keys, uncleaned watchers, and props mutated in place — with the fix each... |

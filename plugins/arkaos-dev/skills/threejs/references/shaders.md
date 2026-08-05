@@ -187,7 +187,10 @@ varying vec3 vViewDir;
 
 void main() {
   vec4 worldPos = modelMatrix * vec4(position, 1.0);
-  vNormal = normalize(normalMatrix * normal);
+  // World-space normal: vViewDir below is world-space, and a Fresnel dot
+  // must not mix spaces (normalMatrix is view-space). mat3(modelMatrix)
+  // is correct under uniform scale; use the inverse-transpose otherwise.
+  vNormal = normalize(mat3(modelMatrix) * normal);
   vViewDir = normalize(cameraPosition - worldPos.xyz);
   gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
@@ -283,6 +286,7 @@ void main() {
 
 ```glsl
 uniform float uTime;
+uniform sampler2D uMap;
 varying vec2 vUv;
 
 void main() {
@@ -310,6 +314,7 @@ vec2 toPolar(vec2 uv) {
 ```glsl
 uniform float uTime;
 uniform float uStrength;    // 0.01 - 0.05
+uniform sampler2D uMap;
 varying vec2 vUv;
 
 void main() {
@@ -386,7 +391,8 @@ const vertexShader = /* glsl */ `
   ${simplex2DNoise} // paste snoise function here
 
   void main() {
-    vNormal = normalize(normalMatrix * normal);
+    // world-space, matching vViewDir (see the Fresnel section)
+    vNormal = normalize(mat3(modelMatrix) * normal);
     float noise = snoise(vec2(
       position.x * 1.5 + uTime * 0.4,
       position.y * 1.5 + uTime * 0.3

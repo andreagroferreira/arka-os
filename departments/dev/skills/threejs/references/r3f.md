@@ -118,10 +118,10 @@ import { BlendFunction } from 'postprocessing'
 | `<Detailed distances={[0, 50, 100]}>` | LOD: swap hi/lo models by distance |
 | `dispose={null}` on `<primitive>` | Prevent auto-dispose when reusing shared geometry |
 | `useGLTF` + Draco | Compress .glb models (70-90% size reduction) |
-| `useTexture` + KTX2 | Compressed GPU textures (1/4 VRAM) |
+| `useKTX2` (drei) | Compressed GPU textures (1/4 VRAM) — `useTexture` is TextureLoader-only and cannot decode .ktx2 |
 | `frameloop="demand"` on Canvas | Only render when something changes (static scenes) |
 | `invalidate()` from useThree | Trigger a render in demand mode |
-| Offscreen canvas (`<Canvas eventSource={...}>`) | Run rendering off main thread |
+| `<Canvas eventSource={ref}>` | Delegate pointer events to an ancestor element (overlay UIs); rendering stays on the main thread |
 
 **Target metrics:** < 100 draw calls, < 1M triangles, 60fps on mid-range GPU.
 Use `stats-gl` or `r3f-perf` to monitor.
@@ -173,20 +173,28 @@ Three.js textures, geometries, and materials live on the GPU. Unmounting a React
 // BAD -- texture stays in VRAM after unmount
 const texture = useLoader(TextureLoader, '/big-texture.jpg')
 
-// GOOD -- R3F auto-disposes when using JSX primitives
-// For manual resources, dispose in cleanup:
+// GOOD -- R3F auto-disposes objects mounted as JSX primitives.
+// useLoader results are CACHED globally: disposing the texture directly
+// poisons the cache and the next consumer renders a disposed resource.
+// Evict from the cache instead, then dispose:
 useEffect(() => {
   return () => {
+    useLoader.clear(TextureLoader, '/big-texture.jpg')
     texture.dispose()
-    geometry.dispose()
-    material.dispose()
   }
-}, [])
+}, [texture])
+
+// Resources YOU constructed (not via useLoader) are yours to dispose:
+useEffect(() => () => { geometry.dispose(); material.dispose() }, [])
 ```
 
 ### 4. Never re-render the Canvas parent
 
-State changes in the parent force the entire Canvas to remount = flash, lost state, reloaded assets.
+Parent state changes re-render the Canvas subtree — the Canvas does not
+remount, but every child re-renders, props reconcile against the scene
+graph, and R3F work you meant to keep out of React's render path runs
+again. Keep fast-changing state out of the Canvas parent (zustand or
+refs), not because of a remount, but because of render churn.
 
 ```tsx
 // BAD
@@ -235,7 +243,7 @@ Loaders (useGLTF, useTexture, useLoader) throw promises. Without Suspense, you g
 
 | Need | Load |
 |---|---|
-| Scene boilerplate, lighting rigs, controls | `references/scene-setup.md` |
-| Custom shaders, GLSL patterns, uniforms | `references/shaders.md` |
+| Scene boilerplate, lighting rigs, controls | `scene-setup.md` (this directory) |
+| Custom shaders, GLSL patterns, uniforms | `shaders.md` (this directory) |
 | Animation principles, easing, timing | the brand guidelines' Motion System (§06), reached via `departments/brand/references/uiux-knowledge-and-tools.md` |
 | Scroll-scrubbed pre-rendered worlds (no live engine) | `departments/dev/skills/scroll-world/SKILL.md` |
