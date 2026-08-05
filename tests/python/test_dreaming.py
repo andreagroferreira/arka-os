@@ -19,6 +19,7 @@ from core.cognition.dreaming import (
     Insight,
     _build_critic_prompt,
     _build_insight_prompt,
+    _extract_topic_tokens,
     _parse_insight,
     _slugify,
     _split_for_clustering,
@@ -38,8 +39,13 @@ def fake_provider():
 def synthetic_vault(tmp_path):
     vault = tmp_path / "vault"
     vault.mkdir()
+    # One folder per project, mirroring a PARA vault. Clustering requires
+    # chunks to span at least _MIN_DISTINCT_ORIGINS folders, so a flat
+    # folder holding every note would produce no clusters at all.
     (vault / "Projects").mkdir()
-    clientalpha = vault / "Projects" / "Clientalpha.md"
+    (vault / "Projects" / "Clientalpha").mkdir()
+    (vault / "Projects" / "ArkaOS").mkdir()
+    clientalpha = vault / "Projects" / "Clientalpha" / "Clientalpha.md"
     clientalpha.write_text(
         "# Clientalpha\n\n"
         "Decided to migrate Clientalpha to Inertia v3 this week, the supplier sync "
@@ -56,7 +62,22 @@ def synthetic_vault(tmp_path):
         "all across three projects that share the pattern.\n",
         encoding="utf-8",
     )
-    arka = vault / "Projects" / "ArkaOS.md"
+    # Sibling note in a different folder that shares the Clientalpha /
+    # Pest / pagination vocabulary, so a genuine cross-folder cluster
+    # exists for the engine to find.
+    (vault / "Areas").mkdir()
+    (vault / "Areas" / "Testing").mkdir()
+    (vault / "Areas" / "Testing" / "Pagination.md").write_text(
+        "# Pagination testing\n\n"
+        "Pest browser tests keep failing on pagination over 1000 rows in the "
+        "Clientalpha batch_decisions screen; the shared helper "
+        "paginatesLargeDataset would close this across every project.\n\n"
+        "Clientalpha pricing screen pagination is the third Pest failure this "
+        "month, so the batch_decisions pattern looks structural rather than "
+        "flaky and deserves a shared paginatesLargeDataset helper.\n",
+        encoding="utf-8",
+    )
+    arka = vault / "Projects" / "ArkaOS" / "ArkaOS.md"
     arka.write_text(
         "# ArkaOS notes\n\n"
         "PathResolver wraps profile.json paths and exposes ${VAULT_PATH} as "
@@ -241,3 +262,89 @@ def test_dreaming_handles_provider_unavailable(synthetic_vault, tmp_path, fake_p
     )
     insights = engine.run()
     assert insights == []  # zero insights, no crash
+
+
+def _chunk(path: str, text: str, kind: str = "vault") -> Chunk:
+    return Chunk(source_path=path, text=text, kind=kind)
+
+
+def _engine(tmp_path, fake_provider) -> Dreaming:
+    return Dreaming(
+        vault_path=tmp_path / "vault",
+        output_dir=tmp_path / "dreams",
+        provider=fake_provider,
+    )
+
+
+def test_cluster_ranks_specific_topics_above_broad_anchors(tmp_path, fake_provider):
+    """A tight, distinctive group must outrank a large generic collision.
+
+    Ranking used to be by bucket size, which put the broadest anchor
+    first and starved the LLM budget of real clusters.
+    """
+    # Both groups clear every filter, so only the ranking separates them.
+    # The broad group is larger (8 chunks) but shares only two tokens.
+    broad = [
+        _chunk(f"Areas/Zone{i}/n{i}.md", f"Integration Middleware Unique{i:02d} note.")
+        for i in range(8)
+    ]
+    # The tight group is smaller (3 chunks) but shares five tokens.
+    tight = [
+        _chunk("Projects/Alpha/a.md", "Kafka Debezium Outbox Envelope Snapshot alpha."),
+        _chunk("Projects/Beta/b.md", "Kafka Debezium Outbox Envelope Snapshot bravo."),
+        _chunk("Areas/Data/c.md", "Kafka Debezium Outbox Envelope Snapshot charlie."),
+    ]
+    clusters = _engine(tmp_path, fake_provider)._cluster(broad + tight)
+
+    topics = [c.topic for c in clusters]
+    assert "Integration" in topics, "broad cluster should still be a candidate"
+    assert clusters[0].topic in {"Debezium", "Envelope", "Kafka", "Outbox", "Snapshot"}, (
+        f"specific cluster must rank first, got {topics[:3]}"
+    )
+
+
+def test_cluster_rejects_groups_confined_to_one_folder(tmp_path, fake_provider):
+    """Consecutive chapters of one book are not a cross-source insight."""
+    same_folder = [
+        _chunk("Resources/Books/ReleaseIt/06.md", "Stability Bulkhead Circuit Breaker."),
+        _chunk("Resources/Books/ReleaseIt/07.md", "Stability Bulkhead Circuit Breaker."),
+        _chunk("Resources/Books/ReleaseIt/08.md", "Stability Bulkhead Circuit Breaker."),
+    ]
+    assert _engine(tmp_path, fake_provider)._cluster(same_folder) == []
+
+
+def test_cluster_requires_more_than_one_shared_token(tmp_path, fake_provider):
+    """One token in common is a coincidence, not a topic."""
+    chunks = [
+        _chunk("Projects/A/a.md", "Postgres alpha unique-alpha-words here."),
+        _chunk("Projects/B/b.md", "Postgres bravo distinct-bravo-terms here."),
+        _chunk("Areas/C/c.md", "Postgres charlie separate-charlie-nouns here."),
+    ]
+    assert _engine(tmp_path, fake_provider)._cluster(chunks) == []
+
+
+def test_extract_topic_tokens_drops_template_and_query_scaffolding():
+    text = "Synopsis Sources Resources TABLE FROM WHERE SORT Kafka Debezium"
+    tokens = _extract_topic_tokens(text)
+    assert tokens == ["Debezium", "Kafka"]
+
+
+def test_extract_topic_tokens_is_order_stable_when_truncating():
+    """Truncation used to slice a set, so the kept subset varied per run."""
+    words = " ".join(f"Token{i:03d}" for i in range(60))
+    assert _extract_topic_tokens(words) == sorted(_extract_topic_tokens(words))
+    assert _extract_topic_tokens(words) == _extract_topic_tokens(words)
+
+
+def test_dreaming_never_ingests_its_own_output(tmp_path, fake_provider):
+    """Insights live inside the vault; re-reading them amplifies findings."""
+    vault = tmp_path / "vault"
+    dreams = vault / "Projects" / "ArkaOS" / "Dreams"
+    dreams.mkdir(parents=True)
+    (dreams / "2026-08-04-old-insight.md").write_text(
+        "Yesterday's observation about Kafka Debezium Outbox that must not "
+        "be fed back into today's corpus under any circumstances at all.\n",
+        encoding="utf-8",
+    )
+    engine = Dreaming(vault_path=vault, output_dir=dreams, provider=fake_provider)
+    assert engine._collect_vault_chunks() == []
