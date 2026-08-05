@@ -5,6 +5,27 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.6.0] - 2026-08-05
+
+### Added
+
+- **`dev/threejs`** (#459) — the campaign's only authored-not-ported
+  skill. The pack originally requested (`cloudai-x/threejs-skills`)
+  ships no LICENSE file and names no copyright holder, so the skill was
+  written instead: core authored from the three.js project's own LLM
+  guidance (`docs/llms.txt`, MIT) — modern import maps including the
+  `three/webgpu` and `three/tsl` entries, the WebGL-vs-WebGPU renderer
+  decision, a collect-first/dispose-once disposal doctrine proven
+  against three r185 (shared resources disposed once, scalar AND
+  array texture uniforms collected, engine-owned sprite geometry
+  excluded), and a performance budget. The React Three Fiber layer
+  derives from genjutsu's `threejs-r3f` (MIT). Zero bytes from the
+  unlicensed pack, recorded in THIRD-PARTY-NOTICES.
+  Quality Gate: 19 findings in the base round (8 in the authored core),
+  all closed with executable evidence — a node transcript on real
+  three, `tsc --strict` exit 0 on the TSX blocks, and a
+  declared-vs-sampled identifier check across all 13 GLSL blocks.
+
 ## [5.5.0] - 2026-08-05
 
 ### Added
