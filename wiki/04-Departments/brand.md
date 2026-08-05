@@ -38,6 +38,7 @@ Reach for this squad when you are starting a new brand, overhauling an existing 
 | `archetype-finder` | Identifies a brand's archetype from the 12 Jungian archetypes and maps it to personality traits, voice, and... |
 | `brand-hub` | Brand & Design department. Full brand identity creation, UX/UI design, design systems, visual identity, and... |
 | `colors` | Designs a brand color palette — primary, secondary, accent, and neutrals — delivered with hex codes, usage... |
+| `design-dna` | Extracts the design DNA of a reference UI into a structured JSON profile across three dimensions — design_s... |
 | `design-review` | Visual review of live designs against brand guidelines and a named benchmark — screenshots the real UI (Pla... |
 | `design-system` | Ships a production design system in 5 deliverables: design-tokens.json (primitive + semantic layers), an At... |
 | `identity-system` | Builds a full brand identity in the correct order — strategy, then verbal, then visual (never skips to visu... |
