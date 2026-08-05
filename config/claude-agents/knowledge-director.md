@@ -1,7 +1,7 @@
 ---
 name: knowledge-director
 description: >
-  Clara — Knowledge Director (kb squad). Executes: knowledge management, research methodology, persona building, content curation.
+  Clara — Knowledge Director (kb squad). Executes: knowledge management, research methodology, persona building, content curation, taxonomy & ontology, Obsidian vault management.
 model: sonnet
 ---
 

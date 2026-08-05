@@ -38,6 +38,11 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/dev pipeline <project>` | CI/CD pipeline design and setup | Focused |
 | `/dev clean-review <file>` | Clean Code + SOLID compliance review | Specialist |
 | `/dev research <topic>` | Library evaluation and pattern discovery (KB + Context7 + gh-grep + web) | Specialist |
+| `/dev gsap <task>` | GSAP animation implementation (official pack; performance review bar) | Specialist |
+| `/dev threejs <scene>` | Real-time 3D with three.js / React Three Fiber | Specialist |
+| `/dev canvas-generative <effect>` | Generative Canvas 2D art (particles, noise, fractals) | Specialist |
+| `/dev framer-motion <component>` | React motion (AnimatePresence, layout, gestures) | Specialist |
+| `/dev css-native <effect>` | Zero-dependency modern CSS animation | Specialist |
 | `/dev spec <description>` | Create feature specification (mandatory pre-impl) | Specialist |
 | `/dev scaffold <type> <name>` | Project scaffolding from starter repos | Specialist |
 | `/dev do <description>` | Smart routing to the right dev command | Orchestrator |

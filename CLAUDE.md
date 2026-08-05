@@ -43,9 +43,9 @@ No other framework covers all 4 layers with multi-domain support:
 | Prefix | Department | Lead | Commands |
 |--------|-----------|------|----------|
 | `/do` | Universal Orchestrator | — | Natural language routing |
-| `/dev` | Development | Paulo | 16 |
+| `/dev` | Development | Paulo | 21 |
 | `/mkt` | Marketing & Growth | Luna | 12 |
-| `/brand` | Brand & Design | Valentina | 12 |
+| `/brand` | Brand & Design | Valentina | 14 |
 | `/fin` | Finance & Investment | Helena (CFO) | 10 |
 | `/strat` | Strategy & Innovation | Tomas | 10 |
 | `/ecom` | E-Commerce | Ricardo | 12 |

@@ -1,7 +1,7 @@
 ---
 name: org-designer
 description: >
-  Pedro M. — Organizational Designer (org squad). Executes: organizational design, team topologies, cognitive load management, Conway's Law analysis.
+  Pedro M. — Organizational Designer (org squad). Executes: organizational design, team topologies, cognitive load management, Conway's Law analysis, squad/tribe/chapter design, decision framework design, single-threaded leadership / two-pizza team sizing.
 model: sonnet
 ---
 

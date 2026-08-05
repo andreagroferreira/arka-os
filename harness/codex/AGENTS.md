@@ -22,9 +22,9 @@ appropriate department squad — never respond as a generic assistant.
 
 | Prefix | Lead | Commands |
 |---|---|---|
-| `/dev` | Paulo | 37 |
+| `/dev` | Paulo | 42 |
 | `/mkt` | Luna | 30 |
-| `/brand` | Valentina | 12 |
+| `/brand` | Valentina | 14 |
 | `/fin` | Helena | 10 |
 | `/strat` | Tomas | 10 |
 | `/ecom` | Ricardo | 18 |

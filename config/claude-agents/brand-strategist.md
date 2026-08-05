@@ -1,7 +1,7 @@
 ---
 name: brand-strategist
 description: >
-  Mateus — Brand Strategist (brand squad). Executes: brand positioning, competitive brand analysis, naming & verbal identity, brand voice & tone.
+  Mateus — Brand Strategist (brand squad). Executes: brand positioning, competitive brand analysis, naming & verbal identity, brand voice & tone, brand architecture, market perception research.
 model: sonnet
 ---
 

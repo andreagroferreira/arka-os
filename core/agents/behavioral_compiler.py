@@ -91,7 +91,7 @@ def load_agent_yaml(path: Path) -> dict:
 def _frontmatter(slug: str, data: dict) -> str:
     role = data.get("role", slug)
     dept = data.get("department", "")
-    domains = ", ".join((data.get("expertise") or {}).get("domains", [])[:4])
+    domains = ", ".join((data.get("expertise") or {}).get("domains", [])[:8])
     desc = f"{data.get('name', slug)} — {role} ({dept} squad)."
     if domains:
         desc += f" Executes: {domains}."

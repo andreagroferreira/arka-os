@@ -91,10 +91,18 @@ load helpers/setup
   [ -f "$REPO_DIR/departments/brand/SKILL.md" ]
 }
 
-@test "Brand SKILL.md has 12 commands" {
-  local count
-  count=$(grep -c '| `/brand ' "$REPO_DIR/departments/brand/SKILL.md")
-  [ "$count" -eq 12 ]
+@test "Brand SKILL.md command table matches the generated registry" {
+  # Derived, not pinned: the hard-coded 12 broke on every added command
+  # (the PR-462 round; same class as the 333 skills literal). The
+  # registry is generated FROM this table, so equality locks both.
+  local table_count registry_count
+  table_count=$(grep -c '| `/brand ' "$REPO_DIR/departments/brand/SKILL.md")
+  registry_count=$(python3 -c "
+import json
+cmds = json.load(open('$REPO_DIR/knowledge/commands-registry.json'))['commands']
+print(sum(1 for c in cmds if c.get('department') == 'brand'))
+")
+  [ "$table_count" -eq "$registry_count" ]
 }
 
 @test "Brand SKILL.md has valid frontmatter" {
