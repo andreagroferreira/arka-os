@@ -43,7 +43,7 @@ actually loaded:
    comparative evidence for the primitive layer; never a pick-list.
 3. **Motion tokens involved?** Load `brand/motion-design` for the
    direction (what moves, durations, easing families) and `dev/gsap`
-   for the implementation (its `references/core.md` + `timeline.md`;
+   for the implementation (its `references/core.md` + `references/timeline.md`;
    `references/performance.md` as the review bar).
 4. **Aesthetic seed (optional, no visual history only)** — a curated
    TypeUI direction (`npx typeui.sh pull <slug>`, §10 of the squad

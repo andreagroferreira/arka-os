@@ -130,7 +130,7 @@ logo is forbidden). <!-- rule:motion-springs-physical-only -->
 | `stiffness: 400, damping: 40` | Very stiff, no bounce | Position corrections |
 
 For advanced sequences use libraries — GSAP first (`dev/gsap`:
-`references/core.md` + `timeline.md`, `references/performance.md` as the
+`references/core.md` + `references/timeline.md`, `references/performance.md` as the
 review bar), Web Animations
 API for programmatic control, Motion/Framer Motion on React.
 

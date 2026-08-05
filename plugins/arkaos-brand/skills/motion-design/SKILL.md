@@ -10,8 +10,9 @@ description: >
   "easing", "motion personality", "princípios Disney", "coreografia de
   animação", "motion system", "motion audit", "/brand motion-design".
   SKIP: writing the animation code once the direction exists ->
-  dev/css-native (pure CSS), dev/framer-motion (React) or
-  dev/canvas-generative (generative canvas); motion tokens inside a full
+  dev/gsap (timelines, scroll), dev/css-native (pure CSS),
+  dev/framer-motion (React) or dev/canvas-generative (generative
+  canvas); motion tokens inside a full
   design-system delivery -> brand/design-system (which loads this skill
   for its motion chapter); video production -> content/video-produce.
 metadata:

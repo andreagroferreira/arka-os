@@ -338,10 +338,14 @@ Material derived from this project:
 | Router | `departments/dev/skills/gsap/SKILL.md` | ArkaOS-authored: routing contract, module table, the two cross-module rules (cleanup, performance as review bar), Output |
 
 Not carried over: `examples/{vanilla,react,vue,nuxt}/` and
-`.github/instructions/*.instructions.md` (the same content in
-Copilot-specific format), `.claude-plugin/` and `.cursor-plugin/`
-packaging, `assets/` logos, and `skills/llms.txt` (an index the router
-replaces).
+`.github/instructions/*.instructions.md` plus
+`.github/copilot-instructions.md` (the same content in Copilot-specific
+format), the repo-level agent files (`AGENTS.md`, `CLAUDE.md`,
+`GEMINI.md`), `README.md`, `.gitignore`, `.claude-plugin/` and
+`.cursor-plugin/` packaging, `assets/` logos, and `skills/llms.txt` (an
+index the router replaces). The two "See `examples/...`" pointers in
+`frameworks.md` are annotated as upstream-repo references since the
+directories are not vendored.
 
 This absorption retires an unmanaged external dependency:
 `departments/brand/references/uiux-knowledge-and-tools.md` previously
