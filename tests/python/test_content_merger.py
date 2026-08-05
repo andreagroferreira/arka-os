@@ -186,3 +186,71 @@ def test_merge_preserves_empty_target() -> None:
     )
     assert result.status == "updated"
     assert "CORE" in result.new_text
+
+
+# ---------------------------------------------------------------------------
+# In-place edits inside the managed block (QG round 3)
+#
+# The stored stamp is a CLAIM about the content, not a measurement of it. The
+# first cut of `restamped` trusted the claim: an operator who edited inside
+# the block left the stamp untouched, so the merger judged the content
+# current and rewrote the block from canonical — deleting the edit in order
+# to correct a version number. On master the same case returned `unchanged`
+# and the edit survived, so this was a regression introduced by the fix.
+# ---------------------------------------------------------------------------
+
+
+def _block(body: str, *, version: str, stamped: str | None = None) -> str:
+    """A managed block whose stamp may deliberately disagree with its body."""
+    hash12 = compute_managed_hash(stamped if stamped is not None else body)
+    return (
+        f"<!-- arkaos:managed:start version={version} hash={hash12} -->\n"
+        f"{body}\n"
+        "<!-- arkaos:managed:end -->\n"
+    )
+
+
+def test_in_place_edit_is_never_overwritten_by_a_restamp() -> None:
+    canonical = "CORE DOCTRINE"
+    target = _block(
+        f"{canonical}\nMY OWN RULE", version="5.9.0", stamped=canonical
+    ) + "\n## Project notes\n"
+
+    result = merge_managed_content(target, canonical, "5.10.0")
+
+    assert result.status == "drifted"
+    assert result.new_text == target
+    assert "MY OWN RULE" in result.new_text
+    assert "edited in place" in (result.error or "")
+
+
+def test_in_place_edit_is_not_overwritten_at_the_same_version_either() -> None:
+    canonical = "CORE DOCTRINE"
+    target = _block(f"{canonical}\nMY OWN RULE", version="5.10.0", stamped=canonical)
+
+    result = merge_managed_content(target, canonical, "5.10.0")
+
+    assert result.status == "drifted"
+    assert "MY OWN RULE" in result.new_text
+
+
+def test_untouched_block_with_a_stale_stamp_still_restamps() -> None:
+    """The drift guard must not disable the restamp it protects."""
+    canonical = "CORE DOCTRINE"
+    target = _block(canonical, version="5.9.0")
+
+    result = merge_managed_content(target, canonical, "5.10.0")
+
+    assert result.status == "restamped"
+    assert "version=5.10.0" in result.new_text
+    assert canonical in result.new_text
+
+
+def test_real_canonical_change_still_updates_over_an_edited_block() -> None:
+    """Drift must not shield a block from a genuine doctrine change."""
+    target = _block("OLD DOCTRINE\nMY OWN RULE", version="5.9.0", stamped="OLD DOCTRINE")
+
+    result = merge_managed_content(target, "NEW DOCTRINE", "5.10.0")
+
+    assert result.status == "updated"
+    assert "NEW DOCTRINE" in result.new_text

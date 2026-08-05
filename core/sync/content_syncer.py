@@ -117,6 +117,11 @@ def _sync_claude_md(
         sidecar = target_file.with_suffix(".md.arkaos-new")
         sidecar.write_text(managed_content, encoding="utf-8")
         return
+    if result.status == "drifted":
+        # The operator edited inside the managed block. Overwriting to fix a
+        # version number would delete their work; report and move on.
+        out.errored.append(f"CLAUDE.md: {result.error}")
+        return
     if result.status == "unchanged":
         out.unchanged.append("CLAUDE.md")
         return

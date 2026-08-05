@@ -667,14 +667,16 @@ def _covered_paths(coverage_xml: Path) -> set[str]:
 
 
 def _is_covered(rel: str, covered: set[str]) -> bool:
-    """True when `rel` matches a covered path by full suffix, not by stem."""
+    """True when a covered path IS `rel`, or ends with `/rel`.
+
+    One direction only. Accepting `target.endswith(path)` would let a bare
+    `engine.py` be vouched for by any covered path ending in `/engine.py`,
+    which is the stem collision this check exists to reject, one level up.
+    The forward direction is still needed because the artefact may carry a
+    `sources/source` prefix that the changed-file list does not.
+    """
     target = PurePosixPath(rel).as_posix()
-    if target in covered:
-        return True
-    return any(
-        path == target or path.endswith(f"/{target}") or target.endswith(f"/{path}")
-        for path in covered
-    )
+    return any(path == target or path.endswith(f"/{target}") for path in covered)
 
 
 def _check_coverage(

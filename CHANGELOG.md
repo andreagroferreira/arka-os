@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A managed block edited in place is no longer overwritten** — the stored
+  stamp is a claim, not a measurement, so the merger now hashes what is
+  actually between the markers before rewriting. An operator edit inside the
+  block yields `drifted`: nothing is written and the drift is reported. The
+  first cut of the `restamped` path below destroyed exactly that edit while
+  correcting a version number, which is the defect that kept the wider
+  branch out of this release.
 - **The version stamp no longer freezes** — `merge_managed_content` gained a
   `restamped` status. The stamp previously moved only when the content
   changed, so a project could show a version many releases old while
@@ -49,8 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   remove the `## <section_title>` section whenever markers were absent.
   Without markers there is no way to tell ArkaOS's own text from the
   project's, and `~/.claude/skills/` is not a git repository. The
-  instruction now forbids deleting an unmarked section outright and requires
-  a single well-formed marker pair before any removal.
+  instructions now forbid deleting an unmarked section outright and require
+  a single well-formed marker pair before any removal — in `workflows.md`
+  and in its sibling `sync-engine.md`, which named the heading block as a
+  fallback deletion target and is loaded by the same skill.
 - **Client identifiers removed from tracked ignore files** — `.gitignore`
   and `.npmignore` named two ecosystem slugs. Both files are tracked in a
   public repository. Replaced with a naming convention (`_private/`,

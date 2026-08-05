@@ -23,7 +23,7 @@ _END_RE = re.compile(r"<!--\s*arkaos:managed:end\s*-->")
 class MergeResult:
     """Outcome of a managed-region merge operation."""
 
-    status: Literal["updated", "restamped", "unchanged", "error"]
+    status: Literal["updated", "restamped", "drifted", "unchanged", "error"]
     new_text: str
     error: str | None = None
 
@@ -39,9 +39,9 @@ def merge_managed_content(
     """Merge managed_content into target_text inside the managed region.
 
     Returns "updated" when the managed content itself changes, "restamped"
-    when the content is already current but the version stamp is stale,
-    "unchanged" when both already match, or "error" when markers are
-    malformed.
+    when the verified-current content carries a stale stamp, "drifted" when
+    the block was edited in place (nothing is written), "unchanged" when
+    everything already matches, or "error" when markers are malformed.
     """
     starts = list(_START_RE.finditer(target_text))
     ends = list(_END_RE.finditer(target_text))
@@ -65,9 +65,23 @@ def merge_managed_content(
 
     if start_match.group("hash") != new_hash:
         return MergeResult(status="updated", new_text=rewritten)
+
+    # The stamp says the content matches canonical — but the stamp is a
+    # claim, not a measurement. Hash what is ACTUALLY between the markers
+    # before rewriting anything: an operator who edited inside the block
+    # leaves the stamp untouched, and a rewrite would delete their work to
+    # correct a version number.
+    body = target_text[start_match.end() : end_match.start()].strip()
+    if compute_managed_hash(body) != new_hash:
+        return MergeResult(
+            status="drifted",
+            new_text=target_text,
+            error="managed block was edited in place; left untouched",
+        )
+
     if start_match.group("version") == version:
         return MergeResult(status="unchanged", new_text=target_text)
-    # Content is already current; only the stamp lags. Rewriting it keeps
+    # Content verified current; only the stamp lags. Rewriting it keeps
     # `version=` an honest record of the last sync that verified this file,
     # instead of freezing at whichever release last changed the content.
     return MergeResult(status="restamped", new_text=rewritten)

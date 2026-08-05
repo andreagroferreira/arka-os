@@ -46,9 +46,12 @@ value that is proven lands, and the component that writes into an
 unversioned directory waits until its contract can be demonstrated rather
 than asserted.
 
-- **`restamped` status** in `content_merger` — content hash matches but the
-  stamp is stale, so rewrite the stamp. Reported separately from `updated`,
-  so a cosmetic restamp is never presented as a change.
+- **`restamped` and `drifted` in `content_merger`** — the stamp is a claim,
+  so the body between the markers is hashed before anything is rewritten. A
+  block the operator edited in place yields `drifted` and is left alone; a
+  verified-current block with a stale stamp is `restamped`. Reported
+  separately from `updated`, so a cosmetic restamp is never presented as a
+  change.
 - **Propose-only migration runner** — spec format, version gating, vendored
   tree skipping, both caps reported, per-spec error isolation, a
   nested-quantifier guard on operator-supplied regexes. No specs ship yet;
@@ -59,7 +62,8 @@ than asserted.
 - **Unorderable version baselines** — distinguished from "nothing is new".
 - **Update-skill instructions** — the subagent may no longer delete an
   unmarked section, and needs a single well-formed marker pair to remove
-  anything.
+  anything. Applied to both references of the bundle (`workflows.md` and
+  `sync-engine.md`), in the `departments/` tree and its `plugins/` mirror.
 - **Client identifiers** out of `.gitignore` / `.npmignore`.
 
 ## Deferred to a follow-up PR
@@ -94,6 +98,8 @@ removed.
 4. An unorderable baseline reads as a first sync, never as "nothing new",
    and one malformed `added_in` cannot poison an orderable baseline.
 5. No instruction anywhere permits deleting an unmarked section.
+   Verify: `grep -rn 'heading block\|otherwise remove' departments/ plugins/`
+   returns nothing.
 6. No tracked file names a client.
 7. Full suite green; `ruff` clean on every changed file; no function over
    30 lines that was not already over 30 on master.
