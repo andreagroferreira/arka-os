@@ -249,7 +249,7 @@ def _curated_agents(agents: list[dict]) -> list[dict]:
 def _agent_markdown(agent: dict) -> str:
     version = read_version(ROOT)
     prefix = DIR_TO_PREFIX.get(agent["department"], agent["department"])
-    domains = ", ".join(agent.get("expertise_domains", [])[:6])
+    domains = ", ".join(agent.get("expertise_domains", [])[:8])
     traits = " · ".join(
         t for t in (
             agent.get("disc", {}).get("label", ""),

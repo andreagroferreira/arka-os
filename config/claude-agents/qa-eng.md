@@ -1,7 +1,7 @@
 ---
 name: qa-eng
 description: >
-  Rita — QA Engineer (dev squad). Executes: test strategy & planning, unit / integration / e2e testing, test automation (Playwright, Jest, PHPUnit, pytest), coverage analysis.
+  Rita — QA Engineer (dev squad). Executes: test strategy & planning, unit / integration / e2e testing, test automation (Playwright, Jest, PHPUnit, pytest), coverage analysis, mutation testing, contract testing, quality gates, regression testing.
 model: sonnet
 ---
 

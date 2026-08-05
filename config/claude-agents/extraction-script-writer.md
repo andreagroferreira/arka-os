@@ -1,7 +1,7 @@
 ---
 name: extraction-script-writer
 description: >
-  Nia — Design Extraction Engineer (brand squad). Executes: phase-2 extraction executor for brand/design-dna (computed styles, palette, typography harvesting), CSS extraction (computed styles, custom properties), color palette reverse-engineering from screenshots / live DOM, typography token harvesting (font-family, size, weight, line-height scales).
+  Nia — Design Extraction Engineer (brand squad). Executes: CSS extraction (computed styles, custom properties), color palette reverse-engineering from screenshots / live DOM, typography token harvesting (font-family, size, weight, line-height scales), spacing and grid token inference, figma file parsing, chromium-headless capture pipelines, phase-2 extraction executor for brand/design-dna.
 model: sonnet
 ---
 

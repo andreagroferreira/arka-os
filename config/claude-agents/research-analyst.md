@@ -1,7 +1,7 @@
 ---
 name: research-analyst
 description: >
-  Francisco — Research Analyst (kb squad). Executes: research methodology, source evaluation (CRAAP test), competitive intelligence, AI-augmented research.
+  Francisco — Research Analyst (kb squad). Executes: research methodology, source evaluation (CRAAP test), competitive intelligence, AI-augmented research, literature review, data synthesis, trend analysis.
 model: sonnet
 ---
 

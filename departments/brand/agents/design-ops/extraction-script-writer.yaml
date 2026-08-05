@@ -48,13 +48,13 @@ authority:
 
 expertise:
   domains:
-    - phase-2 extraction executor for brand/design-dna (computed styles, palette, typography harvesting)
     - CSS extraction (computed styles, custom properties)
     - color palette reverse-engineering from screenshots / live DOM
     - typography token harvesting (font-family, size, weight, line-height scales)
     - spacing and grid token inference
     - figma file parsing
     - chromium-headless capture pipelines
+    - phase-2 extraction executor for brand/design-dna
   frameworks:
     - W3C Design Tokens spec
     - Style Dictionary

@@ -1,7 +1,7 @@
 ---
 name: affiliate-manager
 description: >
-  Sergio — Affiliate & Partnerships Manager (landing squad). Executes: affiliate program design, bridge page creation, commission structures, JV partnerships.
+  Sergio — Affiliate & Partnerships Manager (landing squad). Executes: affiliate program design, bridge page creation, commission structures, JV partnerships, review & comparison pages, affiliate recruitment, performance tracking.
 model: sonnet
 ---
 

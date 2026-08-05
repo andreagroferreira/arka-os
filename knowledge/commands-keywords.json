@@ -1642,7 +1642,7 @@
     "examples": [
       "anima esta secção no scroll",
       "pin this section while scrubbing",
-      "add a gsap timeline to the hero"
+      "add a GSAP timeline to the hero"
     ]
   },
   "dev-threejs": {
@@ -1660,7 +1660,7 @@
     "examples": [
       "cria uma cena 3D interativa",
       "add a shader background",
-      "build this in react three fiber"
+      "build this in React Three Fiber"
     ]
   },
   "dev-canvas-generative": {
@@ -1695,7 +1695,7 @@
   },
   "dev-css-native": {
     "keywords": [
-      "css animation sem biblioteca",
+      "animação CSS sem biblioteca",
       "scroll-driven css",
       "view transitions",
       "starting-style",
@@ -1704,7 +1704,7 @@
     ],
     "examples": [
       "anima isto só com CSS",
-      "scroll progress bar in pure css",
+      "scroll progress bar in pure CSS",
       "view transition between pages"
     ]
   },
@@ -1737,7 +1737,7 @@
     "examples": [
       "extrai o DNA deste screenshot",
       "replica o estilo deste site no nosso",
-      "gera a partir deste design dna"
+      "gera a partir deste design DNA"
     ]
   }
 }

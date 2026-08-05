@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-08-05T14:39:59Z",
+    "generated": "2026-08-05T16:18:43Z",
     "total_commands": 306,
     "generator": "core/registry/generator.py",
     "departments": {
@@ -691,7 +691,7 @@
       "examples": [
         "extrai o DNA deste screenshot",
         "replica o estilo deste site no nosso",
-        "gera a partir deste design dna"
+        "gera a partir deste design DNA"
       ],
       "source": "builtin",
       "tier": 2,
@@ -1844,7 +1844,7 @@
       "examples": [
         "anima esta secção no scroll",
         "pin this section while scrubbing",
-        "add a gsap timeline to the hero"
+        "add a GSAP timeline to the hero"
       ],
       "source": "builtin",
       "tier": 2,
@@ -1871,7 +1871,7 @@
       "examples": [
         "cria uma cena 3D interativa",
         "add a shader background",
-        "build this in react three fiber"
+        "build this in React Three Fiber"
       ],
       "source": "builtin",
       "tier": 2,
@@ -1933,7 +1933,7 @@
       "description": "Zero-dependency modern CSS animation",
       "lead_agent": "arka-dev",
       "keywords": [
-        "css animation sem biblioteca",
+        "animação CSS sem biblioteca",
         "scroll-driven css",
         "view transitions",
         "starting-style",
@@ -1942,7 +1942,7 @@
       ],
       "examples": [
         "anima isto só com CSS",
-        "scroll progress bar in pure css",
+        "scroll progress bar in pure CSS",
         "view transition between pages"
       ],
       "source": "builtin",

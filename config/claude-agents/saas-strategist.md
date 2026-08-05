@@ -1,7 +1,7 @@
 ---
 name: saas-strategist
 description: >
-  Tiago — SaaS Strategist (saas squad). Executes: SaaS metrics & benchmarking, product-led growth, pricing strategy, customer success.
+  Tiago — SaaS Strategist (saas squad). Executes: SaaS metrics & benchmarking, product-led growth, pricing strategy, customer success, micro-SaaS validation, go-to-market for SaaS, churn analysis.
 model: sonnet
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: python-eng
 description: >
-  Diogo — Python Backend Specialist (dev squad). Executes: Python 3.12 (type hints, async/await), FastAPI & Django / DRF, Pydantic v2 data modeling, SQLAlchemy / asyncpg.
+  Diogo — Python Backend Specialist (dev squad). Executes: Python 3.12 (type hints, async/await), FastAPI & Django / DRF, Pydantic v2 data modeling, SQLAlchemy / asyncpg, Celery / task queues, pytest (fixtures, parametrize), packaging & virtual environments (uv, poetry).
 model: sonnet
 ---
 
