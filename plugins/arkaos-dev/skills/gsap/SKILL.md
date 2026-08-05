@@ -35,12 +35,13 @@ near-verbatim. Load the one the task needs — never all eight:
 
 | The task involves | Read |
 |---|---|
-| Basic tweens, easing, stagger, defaults, `matchMedia` (responsive, reduced-motion), vanilla-JS setup | `references/core.md` |
+| Basic tweens, easing, stagger, defaults, `matchMedia` (responsive, reduced-motion) | `references/core.md` |
 | Sequencing multiple steps, labels, position parameter | `references/timeline.md` |
 | Scroll-linked animation, pin, scrub, snap, batching | `references/scrolltrigger.md` |
 | Flip, Draggable, SplitText, MorphSVG, DrawSVG, MotionPath and the rest of the plugin family | `references/plugins.md` |
+| Install, licensing and `registerPlugin` — Club plugins are free now; never generate an `.npmrc` auth token | `references/plugins.md` |
 | Helpers — `clamp`, `mapRange`, `interpolate`, `snap`, `random` | `references/utils.md` |
-| Vue, Nuxt or Svelte wiring — lifecycle-framework cleanup contracts | `references/frameworks.md` |
+| Vue, Nuxt or Svelte wiring — mount/unmount cleanup contracts | `references/frameworks.md` |
 | React — `useGSAP`, scoping, SSR/Next.js | `references/react.md` |
 | Review bar before shipping: what to measure, what always janks | `references/performance.md` |
 

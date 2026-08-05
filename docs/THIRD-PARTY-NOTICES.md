@@ -337,10 +337,10 @@ Material derived from this project:
 | Eight official modules | `departments/dev/skills/gsap/references/{core,timeline,scrolltrigger,plugins,utils,frameworks,react,performance}.md` | Upstream SKILL.md bodies near-verbatim, one file per module; each gains a two-line derivation header, and every sibling cross-reference is rewritten from `gsap-<name>` to `references/<name>.md` |
 | Router | `departments/dev/skills/gsap/SKILL.md` | ArkaOS-authored: routing contract, module table, the two cross-module rules (cleanup, performance as review bar), Output |
 
-Not carried over: `examples/{vanilla,react,vue,nuxt}/` and
-`.github/instructions/*.instructions.md` plus
+Not carried over: `examples/{vanilla,react,vue,nuxt}/`;
+`.github/instructions/*.instructions.md` and
 `.github/copilot-instructions.md` (the same content in Copilot-specific
-format), the repo-level agent files (`AGENTS.md`, `CLAUDE.md`,
+format); the repo-level agent files (`AGENTS.md`, `CLAUDE.md`,
 `GEMINI.md`), `README.md`, `.gitignore`, `.claude-plugin/` and
 `.cursor-plugin/` packaging, `assets/` logos, and `skills/llms.txt` (an
 index the router replaces). The two "See `examples/...`" pointers in
