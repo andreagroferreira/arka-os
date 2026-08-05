@@ -231,15 +231,17 @@ and substantial portions of the derived material.
   (identical copies beside each derived skill)
 - **Upstream version:** main HEAD `08a792f` (2026-07-31)
 
-Material derived from this project — three of its fifteen skills:
+Material derived from this project — four of its fifteen skills
+(three as their own slugs; the fourth inside `dev/threejs`):
 
 | Surface | Location | Notes |
 |---|---|---|
 | Canvas generative | `departments/dev/skills/canvas-generative/` | Body near-verbatim (DPR setup, particle pool, noise, flow fields, fractals, double buffer, Do Not); `references/algorithms.md` verbatim except the particle-system usage example, corrected for DPR-space spawning, undeclared `w`/`h`, and RAF-handle cleanup. ArkaOS: frontmatter routing, agent attribution, Output, the resize handler's CSS-box update, and the sub-skill handoff table rewritten to in-repo destinations |
 | Framer Motion | `departments/dev/skills/framer-motion/` | Body near-verbatim (AnimatePresence, layout, variants, gestures, motion values, Do Not); `references/api.md` verbatim. ArkaOS: frontmatter, attribution, Output |
 | CSS native | `departments/dev/skills/css-native/` | Body near-verbatim (scroll-driven timelines, View Transitions, @starting-style, anchor positioning, container queries); `references/modern-css.md` verbatim. ArkaOS: frontmatter, attribution, Output |
+| R3F layer (from `threejs-r3f`) | `departments/dev/skills/threejs/references/{r3f,scene-setup,shaders}.md` | Absorbed into the dedicated three.js skill — full trail in the "three.js documentation and genjutsu threejs-r3f" section below |
 
-Deliberately not carried over — the remaining twelve skills, with the
+Deliberately not carried over — the remaining eleven skills, with the
 reason each was rejected:
 
 - `ui-ux-pro-max` — already installed as its own plugin
@@ -251,8 +253,6 @@ reason each was rejected:
 - `motion-principles` — overlaps the official LottieFiles
   motion-design pack, which is deeper and is absorbed as
   `brand/motion-design` (its own section below).
-- `threejs-r3f` — deferred to a dedicated Three.js skill authored from
-  the MIT three.js documentation — since done: dev/threejs carries the R3F layer in its references.
 - `swiftui-graphics`, `swiftui-motion`, `compose-graphics`,
   `compose-motion`, `compose-multiplatform` — Apple/Android native
   platforms outside the ArkaOS stack (Laravel, Vue, Nuxt, React, Next,
