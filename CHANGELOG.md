@@ -5,6 +5,45 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.10.0] - 2026-08-05
+
+### Added
+
+- **Deterministic Phase 4 sync** — `/arka update` now aligns user-owned
+  skills in code instead of delegating to an AI subagent told only to
+  "inject the section if missing", which could never bring a stale section
+  forward. Each feature lives in a managed block stamped with `version=`
+  and `hash=` (`core/sync/feature_merger.py`) and is rewritten from the
+  canonical registry on every run; everything outside the markers belongs
+  to the project and is never touched.
+- **Scoped, fail-closed skill targeting** (`core/sync/skill_syncer.py`) —
+  only skills with no `SKILL.md` in the core repo are synced (10 of 333
+  installed). Core skills ship from npm and are replaced by
+  `npx arkaos update`. Without a readable core repo, nothing is synced.
+- **Adoption proposals** — a legacy (unmarked) section is adopted into a
+  managed block only when byte-identical to canonical. A diverged section
+  is left untouched and written to `SKILL.md.arkaos-adopt.md` with a diff,
+  so aligning never deletes project customisation.
+- **Propose-only migrations** (`core/sync/migration_runner.py`) — codemods
+  declared in `core/sync/migrations/*.yaml` repair patterns that predate a
+  feature. They run only for versions newer than the last sync, skip
+  vendored trees, cap scans and **report every cap**, and write a single
+  reviewable file to `~/.arkaos/migration-proposals/<version>.md`. Project
+  code is never modified.
+
+### Fixed
+
+- **Version stamp no longer lies** — `merge_managed_content` gained a
+  `restamped` status: 51 of 78 projects carried current content
+  (hash `d83f5e17524e`) under a `4.23.0` or `2.17.0` stamp, because the
+  stamp only moved when the content changed. Real content changes are
+  still reported as `updated`, never conflated with a restamp.
+- **`skills_synced` is no longer always 0** — the engine passed an empty
+  `skill_results` list, so Phase 4 never appeared in `sync-state.json`.
+- **The sync report communicates value** — names which feature moved in
+  which skill, surfaces diverged sections with their proposal path, and
+  separates restamps from real changes.
+
 ## [5.9.0] - 2026-08-05
 
 ### Added
