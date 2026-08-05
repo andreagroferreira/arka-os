@@ -122,10 +122,10 @@ derived:
     source: https://github.com/zanwei/design-dna
     license: MIT
   # Animation/design absorption campaign PR-3 — three skills cherry-picked
-  # from AThevon/genjutsu (MIT, 17 skills upstream). Bodies are upstream
+  # from AThevon/genjutsu (MIT, 15 skills upstream). Bodies are upstream
   # near-verbatim with ArkaOS frontmatter, agent attribution and Output;
   # canvas-generative's handoff table rewritten to in-repo destinations.
-  # The 13 skills NOT taken are recorded with reasons in
+  # The 12 skills NOT taken are recorded with reasons in
   # docs/THIRD-PARTY-NOTICES.md.
   departments/dev/skills/canvas-generative:
     origin: community

@@ -235,7 +235,7 @@ Material derived from this project — three of its fifteen skills:
 
 | Surface | Location | Notes |
 |---|---|---|
-| Canvas generative | `departments/dev/skills/canvas-generative/` | Body near-verbatim (DPR setup, particle pool, noise, flow fields, fractals, double buffer, Do Not); `references/algorithms.md` verbatim. ArkaOS: frontmatter routing, agent attribution, Output, and the sub-skill handoff table rewritten to in-repo destinations |
+| Canvas generative | `departments/dev/skills/canvas-generative/` | Body near-verbatim (DPR setup, particle pool, noise, flow fields, fractals, double buffer, Do Not); `references/algorithms.md` verbatim except the particle-system usage example, corrected for DPR-space spawning, undeclared `w`/`h`, and RAF-handle cleanup. ArkaOS: frontmatter routing, agent attribution, Output, the resize handler's CSS-box update, and the sub-skill handoff table rewritten to in-repo destinations |
 | Framer Motion | `departments/dev/skills/framer-motion/` | Body near-verbatim (AnimatePresence, layout, variants, gestures, motion values, Do Not); `references/api.md` verbatim. ArkaOS: frontmatter, attribution, Output |
 | CSS native | `departments/dev/skills/css-native/` | Body near-verbatim (scroll-driven timelines, View Transitions, @starting-style, anchor positioning, container queries); `references/modern-css.md` verbatim. ArkaOS: frontmatter, attribution, Output |
 
@@ -259,6 +259,7 @@ reason each was rejected:
 - `desktop-principles`, `mobile-principles` — platform UX doctrine for
   native apps; same no-consumer reason.
 - `design-audit` — covered by `brand/design-review` and `brand/ux-audit`.
+
 Also not carried over, outside the skill count: the repo's packaging
 artifacts (`packaging/genjutsu-router.md`, the Claude-AI bundling script)
 and the 786KB `assets/logo.png`.

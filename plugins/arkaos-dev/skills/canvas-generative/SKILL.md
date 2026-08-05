@@ -3,8 +3,8 @@ name: canvas-generative
 description: >
   Algorithmic and generative art with Canvas 2D: DPR-aware setup, particle
   systems with pooled allocation, noise fields, flow fields, fractals and
-  L-systems, double buffering — with reference implementations for each
-  algorithm.
+  L-systems, double buffering — with reference implementations for the
+  core algorithms.
   TRIGGER: "generative art", "arte generativa", "particles background",
   "fundo de partículas", "noise field", "flow field", "canvas animation",
   "fundo processual", "creative coding em canvas", "/dev canvas-generative".
@@ -55,7 +55,12 @@ function handleResize(canvas, ctx, draw) {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
     canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
+    // setupCanvas pinned the CSS box inline; inline styles beat
+    // stylesheet rules, so skip this pair and the canvas stretches
+    // and blurs after any viewport change.
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.scale(dpr, dpr); // setting width reset the transform; rescale
     draw(); // re-render after resize
   });
   ro.observe(canvas.parentElement);

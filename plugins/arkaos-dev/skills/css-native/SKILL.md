@@ -9,9 +9,12 @@ description: >
   TRIGGER: "scroll-driven CSS", "view transitions", "anima sem biblioteca",
   "CSS puro", "animation-range", "@starting-style", "entry animation sem
   JS", "/dev css-native".
-  SKIP: React-idiomatic springs, gestures and exit animations ->
-  dev/framer-motion; generative canvas art -> dev/canvas-generative;
-  turning a video into a scroll site -> dev/animated-website.
+  SKIP: React-idiomatic springs, gestures, and exit animations of a
+  component leaving the React tree (unmount) -> dev/framer-motion —
+  enter/exit that only toggles display or visibility on a persistent
+  element stays here (@starting-style + transition-behavior);
+  generative canvas art -> dev/canvas-generative; turning a video into
+  a scroll site -> dev/animated-website.
 metadata:
   origin: community
   source: https://github.com/AThevon/genjutsu

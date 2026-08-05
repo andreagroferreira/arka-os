@@ -202,6 +202,12 @@ useMotionValueEvent(x, "change", (latest) => {
 </motion.div>
 ```
 
+## Deep dive
+
+| Need | Reference |
+|---|---|
+| Full API reference — motion props (animation, gestures, drag, layout, lifecycle), AnimatePresence modes, transition configuration and ease presets, and the hooks (`useMotionValue`, `useTransform`, `useSpring`, `useScroll`) | `references/api.md` |
+
 ## Output
 
 The motion-wrapped React component(s) with stable keys, variants where

@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 65
+> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 68
 
 Development is the largest department in ArkaOS, covering the full spectrum of software engineering — from system architecture and backend APIs to frontend interfaces, data pipelines, AI engineering, security, and DevOps. Every request that involves writing, reviewing, testing, deploying, or designing code routes here.
 
@@ -12,7 +12,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 
 | Commands | Skills | Agents |
 | --- | --- | --- |
-| 36 | 65 | 15 |
+| 36 | 68 | 15 |
 
 **Commands** (36 via `/dev`):
 

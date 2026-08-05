@@ -329,16 +329,24 @@ class ParticleSystem {
 ```js
 const ps = new ParticleSystem(5000);
 
+// The ctx is scaled by dpr (see Canvas 2D Setup), so all drawing —
+// including spawn positions and the trail rect — works in CSS pixels,
+// not backing-buffer pixels. canvas.width/2 would land off-canvas at dpr=2.
+const dpr = window.devicePixelRatio || 1;
+const w = canvas.width / dpr;
+const h = canvas.height / dpr;
+
 // Continuous emitter
 function emit() {
   ps.spawn(
-    canvas.width / 2, canvas.height / 2,
+    w / 2, h / 2,
     (Math.random() - 0.5) * 4,
     (Math.random() - 0.5) * 4,
     80 + Math.random() * 40
   );
 }
 
+let rafId;
 function loop() {
   for (let i = 0; i < 5; i++) emit(); // 5 particles per frame
   ps.update(1/60, 0.1, 0.99);
@@ -347,8 +355,9 @@ function loop() {
   ctx.fillRect(0, 0, w, h);
   ps.render(ctx);
 
-  requestAnimationFrame(loop);
+  rafId = requestAnimationFrame(loop); // keep the handle: cancelAnimationFrame(rafId) on unmount
 }
+rafId = requestAnimationFrame(loop);
 ```
 
 ---
