@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.9.0] - 2026-08-05
+
+### Added
+
+- **Campaign wiring** (#462) — closes the animation/design absorption
+  campaign (v5.3.0–v5.8.0). The seven absorbed skills reach their
+  consumers: expertise.domains in six agent YAMLs with load-bearing
+  qualifiers, seven Commands-table rows (registry 299→306), pt-PT and
+  English routing keywords for the Synapse L5 hint, and the last
+  "will be ported" staleness reconciled in the notices (four of
+  genjutsu's fifteen skills derived, eleven rejected with reasons).
+
+### Fixed
+
+- **Prepending into truncated renders is a silent delete** (#462). The
+  Quality Gate proved a 100%-additive YAML diff evicted ten capabilities
+  from compiled agent definitions, because the behavioral compiler and
+  harness generator render only the head of expertise.domains — two live
+  routing breaks included. The ordering rule (identity head, campaign
+  tail), both caps raised to [:8], and a new lock
+  (tests/python/test_expertise_window.py) that parses the rendered
+  description line and pins both caps — proven by mutation on both
+  surfaces. Zero drops verified across all 89 agents.
+- The brand bats assertion no longer pins a command count; it equates
+  the table with the generated registry.
+
 ## [5.8.0] - 2026-08-05
 
 ### Added
