@@ -111,6 +111,16 @@ derived:
     origin: community
     source: https://github.com/tt-a1i/archify
     license: MIT
+  # Animation/design absorption campaign PR-2 — the 3-dimension DNA
+  # schema and generation guide derived from zanwei/design-dna (MIT).
+  # References are the upstream markdown verbatim; the SKILL.md is
+  # rewritten to the ArkaOS standard and delegates the measurable phase-2
+  # extraction to Nia (extraction-script-writer) rather than duplicating
+  # her scripts.
+  departments/brand/skills/design-dna:
+    origin: community
+    source: https://github.com/zanwei/design-dna
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).

@@ -4,7 +4,7 @@
 
 End-to-end scenarios organized by role. Each one shows the plain-language request, which department(s) engage, how the 4-gate evidence flow and Quality Gate apply, and what you receive at the end.
 
-Numbers, frameworks, and agent names are canonical. The system has 89 agent files (88 unique) across 17 departments, 333 core skills plus 259 plugin skills, 298 commands, and a mandatory Quality Gate (Marta + Eduardo + Francisca) on every workflow.
+Numbers, frameworks, and agent names are canonical. The system has 89 agent files (88 unique) across 17 departments, 334 core skills plus 260 plugin skills, 299 commands, and a mandatory Quality Gate (Marta + Eduardo + Francisca) on every workflow.
 
 ---
 

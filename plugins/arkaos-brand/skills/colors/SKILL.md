@@ -7,7 +7,9 @@ description: >
   "brand colors", "que cores combinam com esta marca", "/brand colors <mood>".
   SKIP: palette as part of a full token and component system ->
   brand/design-system (tokens, atomic catalog, WCAG gates for the whole UI);
-  complete brand identity from strategy up -> brand/identity-system.
+  palette extracted from a reference image or site rather than designed ->
+  brand/design-dna; complete brand identity from strategy up ->
+  brand/identity-system.
 metadata:
   origin: community
   source: https://github.com/nutlope/hallmark

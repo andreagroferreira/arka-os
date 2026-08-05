@@ -1109,6 +1109,21 @@
         "origin": "arkaos"
       }
     },
+    "design-dna": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/zanwei/design-dna",
+        "license": "MIT"
+      }
+    },
     "design-review": {
       "depts": [
         "brand"
