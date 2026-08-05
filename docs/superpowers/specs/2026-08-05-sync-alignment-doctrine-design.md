@@ -53,31 +53,43 @@ so a real content change is never confused with a cosmetic one.
   skills ship from npm and are replaced by `npx arkaos update`; rewriting
   them here would fight the installer. **Fail-closed**: no readable core
   repo → sync nothing, never "everything looks user-owned".
-- Legacy sections (no markers) are adopted **only when byte-identical** to
-  canonical. Divergence is written to a `.arkaos-adopt.md` proposal and the
+- Legacy sections (no markers) are adopted **only when identical once
+  surrounding whitespace is trimmed** to canonical, and adoption preserves
+  the project's own blank lines. Divergence is written to a `.arkaos-adopt.md` proposal and the
   installed file is left untouched.
 - Deprecation removes a marked block; a diverged legacy section becomes
   `pending_removal`, never a silent delete.
 
 ### PR-C — propose-only migrations
 
-`core/sync/migrations/*.yaml` → `MigrationSpec(name, added_in, description,
-detect, paths, replace, guidance)`. Runs only for versions newer than the
-last sync; a first sync runs none. Scans skip vendored trees, cap at 2000
-files/project and 20 hits/migration/project, and **log every cap** rather
-than truncating silently. Output is one reviewable file under
+`core/sync/migrations/*.yaml` (fallback
+`~/.arkaos/config/sync/migrations/*.yaml`) → `MigrationSpec(name, added_in,
+description, detect, paths, replace, guidance)`. **No specs ship in this
+release**, so the runner scans nothing until one exists. When they do: only
+versions newer than the last sync run; a first sync runs none; scans skip
+vendored trees, cap at 2000 files per project per migration and 20 hits per
+migration, and **both caps are reported** rather than truncating silently.
+Output is one reviewable file under
 `~/.arkaos/migration-proposals/<version>.md`. **Never writes to a project.**
+A malformed spec or a bad regex is recorded against that spec; it never
+aborts a sync that has already written to disk.
 
-### PR-D — a report that communicates value
+### PR-D — a report that names what changed
 
-Skills line, restamp counts, adoption-pending counts, migration hits.
+The skills line reports updates, restamps and unchanged counts separately;
+diverged sections and broken markers are called out with their proposal
+path; migration hits are shown as proposals, never as applied changes; and
+every scan cap is printed rather than silently truncating.
 
 ## Non-goals
 
 - Auto-applying migrations to project code.
 - Rewriting core (npm-shipped) skills.
-- Reconciling the 20 diverged legacy sections automatically — that is the
-  operator's judgement call, surfaced by proposals.
+- Reconciling the diverged legacy sections automatically — that is the
+  operator's judgement call, surfaced by proposals. Measured on the install
+  this was developed against: 13 sections across 6 skills (counted by
+  running `merge_feature` over every user-owned skill and tallying
+  `pending_adoption` / `pending_removal`).
 
 ## Acceptance criteria
 
@@ -86,5 +98,10 @@ Skills line, restamp counts, adoption-pending counts, migration hits.
 3. Diverged legacy section never overwritten; mutation-proven test.
 4. Discovery fail-closed without a core repo.
 5. Whole pipeline idempotent: second run reports zero `updated`.
-6. Migrations propose only; caps reported.
-7. Full suite green.
+6. Migrations propose only; **both** caps reported; a bad spec never aborts
+   the run.
+7. Malformed markers (orphan, duplicate, inverted) never splice — the file
+   is left byte-identical and reported; regression-tested.
+8. A stale or incomplete `coverage.xml` fails the coverage check instead of
+   vouching for unmeasured code.
+9. Full suite green, `ruff` clean on every file the PR touches.

@@ -3,7 +3,7 @@ name: update
 description: >
   ArkaOS project sync orchestrator: detects what changed in core since the last sync and
   updates ecosystem skills, MCP configs, settings, and project descriptors via the hybrid
-  Python engine plus AI subagent. TRIGGER: "/arka update", "sync projects", "atualiza os
+  deterministic Python engine. TRIGGER: "/arka update", "sync projects", "atualiza os
   projetos", "update ArkaOS projects", or when SessionStart shows "[arka:update-available]";
   run AFTER `npx arkaos@latest update`. SKIP: updating the core itself -> `npx
   arkaos@latest update` in the terminal (this skill only syncs projects); day-to-day
@@ -24,7 +24,7 @@ Hybrid sync engine: Python handles deterministic operations (MCPs, settings, des
 
 | Command | Description |
 |---------|-------------|
-| `/arka update` | Full sync — run engine, dispatch AI subagent for skills, write state, report |
+| `/arka update` | Full sync — run the engine (projects, content, agents, skills, migrations), write state, report |
 
 ## Orchestration (Summary)
 
@@ -48,7 +48,7 @@ Hybrid sync engine: Python handles deterministic operations (MCPs, settings, des
    same way via `~/.arkaos/bin/arka-py -m core.sync.engine ...` for callers that
    don't need the version-drift gate.
 
-2. **Phase 4 (intelligent, AI subagent):** After the engine completes, dispatch ONE subagent with the engine's JSON report + the feature registry (`core/sync/features/*.yaml`). The subagent injects/removes feature sections in each `~/.claude/skills/arka-{ecosystem}/SKILL.md` while preserving all custom content.
+2. **Phase 4 (deterministic, in the engine):** No subagent. `core/sync/skill_syncer.py` runs inside the same command and rewrites each ArkaOS-owned feature block in every user-owned skill under `~/.claude/skills/arka-*/`. Nothing outside the markers is touched, a customised section is reported rather than overwritten, and a file with broken markers is left alone. Do NOT dispatch an agent to edit these files — it would undo the guarantee the engine enforces.
 
 3. **Report:** Display the formatted summary returned by the engine,
    plus `installed_version_before` / `latest_version_seen` from the
@@ -56,11 +56,11 @@ Hybrid sync engine: Python handles deterministic operations (MCPs, settings, des
 
 ## Error Handling (Summary)
 
-- Python engine fails → report error, do not proceed to AI phase.
-- AI subagent fails → deterministic sync already completed, report partial success.
+- Python engine fails → report the error; no phase runs afterwards.
+- One skill fails → the remaining skills still sync; the failure is on the report.
 - Individual project errors never stop other projects from syncing.
 
 ## References
 
 - `references/sync-engine.md` — Python engine phases (manifest, discovery, MCP/settings/descriptor sync, state), feature registry format, key paths
-- `references/workflows.md` — 2-step update flow, Phase 4 AI subagent instructions, report format, full error-handling table
+- `references/workflows.md` — 2-step update flow, Phase 4 skill-sync rules, report format, full error-handling table

@@ -31,12 +31,16 @@ def _feature(deprecated_in: str | None = None) -> FeatureSpec:
     )
 
 
-def _core_repo(tmp_path: Path, slugs: tuple[str, ...] = ("dev", "release")) -> Path:
+_SENTINELS = ("flow", "release", "spec")
+
+
+def _core_repo(tmp_path: Path, slugs: tuple[str, ...] = ("dev", *_SENTINELS)) -> Path:
     root = tmp_path / "repo"
     for slug in slugs:
         target = root / "departments" / "x" / "skills" / slug
         target.mkdir(parents=True)
         (target / "SKILL.md").write_text("core skill\n", encoding="utf-8")
+    root.mkdir(parents=True, exist_ok=True)
     return root
 
 
@@ -72,6 +76,22 @@ def test_discovery_fails_closed_without_a_core_repo(tmp_path: Path) -> None:
 
     assert discover_user_owned_skills(skills, tmp_path / "missing") == []
     assert discover_user_owned_skills(skills, _core_repo(tmp_path, ())) == []
+
+
+def test_discovery_fails_closed_on_a_partial_core_repo(tmp_path: Path) -> None:
+    """The guard used to check only for ZERO slugs.
+
+    A sparse, shallow or mid-checkout repo behind .repo-path carries a few
+    SKILL.md files — enough to pass a truthiness check, and then every
+    installed skill is classified user-owned and rewritten.
+    """
+    skills = tmp_path / "skills"
+    for name in ("arka-dev", "arka-release", "arka-acme"):
+        _skill(skills, name, "x\n")
+
+    partial = _core_repo(tmp_path, ("dev",))
+
+    assert discover_user_owned_skills(skills, partial) == []
 
 
 # ---------------------------------------------------------------------------
@@ -168,3 +188,100 @@ def test_unreadable_skill_is_reported_not_raised(tmp_path: Path) -> None:
 
     assert result.status == "error"
     assert result.error
+
+
+# ---------------------------------------------------------------------------
+# QG remediation — proposal lifecycle and malformed markers
+# ---------------------------------------------------------------------------
+
+
+def test_malformed_markers_leave_the_file_alone_and_are_reported(tmp_path: Path) -> None:
+    skills = tmp_path / "skills"
+    original = (
+        "# arka-acme\n\n<!-- arka:feature:forge-integration:start -->\n\n"
+        "## Deploy runbook\n\nIRREPLACEABLE\n"
+    )
+    path = _skill(skills, "arka-acme", original)
+
+    result = sync_skill(path, [_feature()], VERSION)
+
+    assert result.status == "malformed"
+    assert result.features_malformed == ["forge-integration"]
+    assert path.read_text(encoding="utf-8") == original
+    body = Path(result.proposal_path or "").read_text(encoding="utf-8")
+    assert "markers broken" in body
+    assert "unbalanced" in body
+
+
+def test_resolved_proposal_is_deleted_on_the_next_sync(tmp_path: Path) -> None:
+    """A stale proposal is a permanent false to-do carrying a diff of project text."""
+    skills = tmp_path / "skills"
+    diverged = "# arka-acme\n\n" + BODY + "\n- extra project rule\n"
+    path = _skill(skills, "arka-acme", diverged)
+
+    first = sync_skill(path, [_feature()], VERSION)
+    proposal = Path(first.proposal_path or "")
+    assert proposal.exists()
+
+    path.write_text("# arka-acme\n\n" + BODY + "\n", encoding="utf-8")
+    second = sync_skill(path, [_feature()], VERSION)
+
+    assert second.status == "updated"
+    assert second.proposal_path is None
+    assert not proposal.exists()
+
+
+def test_proposal_never_claims_the_whole_file_was_untouched(tmp_path: Path) -> None:
+    """One feature pending while another is injected still rewrites the file."""
+    skills = tmp_path / "skills"
+    other = FeatureSpec(
+        name="quality-gate",
+        added_in="5.0.0",
+        mandatory=True,
+        section_title="Quality Gate",
+        detection_pattern="arka:feature:quality-gate",
+        content=(
+            "<!-- arka:feature:quality-gate:start -->\n"
+            "## Quality Gate\n\nMarta vetoes.\n"
+            "<!-- arka:feature:quality-gate:end -->\n"
+        ),
+        deprecated_in=None,
+    )
+    original = "# arka-acme\n\n" + BODY + "\n- extra project rule\n"
+    path = _skill(skills, "arka-acme", original)
+
+    result = sync_skill(path, [_feature(), other], VERSION)
+
+    assert result.status == "updated"
+    assert path.read_text(encoding="utf-8") != original
+    body = Path(result.proposal_path or "").read_text(encoding="utf-8")
+    assert "untouched" not in body
+    assert "may have been updated in this run" in body
+
+
+def test_retired_feature_never_tells_the_operator_to_align_it(tmp_path: Path) -> None:
+    """Complying with the old wording deleted the operator's own section."""
+    skills = tmp_path / "skills"
+    path = _skill(
+        skills, "arka-acme", "# arka-acme\n\n" + BODY + "\n- extra project rule\n"
+    )
+
+    result = sync_skill(path, [_feature(deprecated_in="5.10.0")], VERSION)
+
+    body = Path(result.proposal_path or "").read_text(encoding="utf-8")
+    assert "Do not align it with the canonical text" in body
+    assert "retired by ArkaOS" in body
+
+
+def test_proposal_diff_reads_installed_to_canonical(tmp_path: Path) -> None:
+    skills = tmp_path / "skills"
+    path = _skill(
+        skills, "arka-acme", "# arka-acme\n\n" + BODY + "\n- extra project rule\n"
+    )
+
+    result = sync_skill(path, [_feature()], VERSION)
+
+    body = Path(result.proposal_path or "").read_text(encoding="utf-8")
+    assert "--- your installed section" in body
+    assert "+++ arkaos canonical" in body
+    assert "-- extra project rule" in body

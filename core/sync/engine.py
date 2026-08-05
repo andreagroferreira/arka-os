@@ -13,25 +13,26 @@ from pathlib import Path
 
 from core.runtime.user_paths import (
     ecosystems_file as resolve_ecosystems_file,
+)
+from core.runtime.user_paths import (
     projects_dir as resolve_projects_dir,
 )
-from core.sync.manifest import build_manifest
-from core.sync.discovery import discover_all_projects
-from core.sync.mcp_optimizer import optimize_all_mcps
-from core.sync.mcp_syncer import sync_all_mcps
-from core.sync.settings_syncer import sync_all_settings
-from core.sync.descriptor_syncer import sync_all_descriptors
 from core.sync.agent_provisioner import sync_all_agents
 from core.sync.content_syncer import sync_all_content
+from core.sync.descriptor_syncer import sync_all_descriptors
+from core.sync.discovery import discover_all_projects
+from core.sync.manifest import build_manifest
+from core.sync.mcp_optimizer import optimize_all_mcps
+from core.sync.mcp_syncer import sync_all_mcps
 from core.sync.migration_runner import (
     load_migrations,
     pending_migrations,
     run_migrations,
 )
-from core.sync.skill_syncer import sync_all_skills
 from core.sync.reporter import build_report, format_report, write_sync_state
-from core.sync.schema import SyncReport
-
+from core.sync.schema import MigrationScanResult, SyncReport
+from core.sync.settings_syncer import sync_all_settings
+from core.sync.skill_syncer import sync_all_skills
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -68,23 +69,11 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
     content_results = sync_all_content(projects)
     agent_results = sync_all_agents(projects)
 
-    # Phase 4 — user-owned skills. Core-shipped skills are excluded: the
-    # installer replaces those wholesale on `npx arkaos update`.
-    core_root = _read_repo_path(arkaos_home)
-    skill_results = (
-        sync_all_skills(skills_dir, core_root, manifest.features, current_version)
-        if core_root is not None
-        else []
+    skill_results = _run_skill_phase(
+        arkaos_home, skills_dir, manifest.features, current_version
     )
-
-    # Phase 6 — propose-only migrations for the versions this upgrade crossed.
-    specs = pending_migrations(
-        load_migrations(_resolve_migrations_dir(arkaos_home)),
-        previous_version,
-        manifest.is_first_sync,
-    )
-    migrations = run_migrations(
-        projects, specs, arkaos_home / "migration-proposals", current_version
+    migrations = _run_migration_phase(
+        arkaos_home, projects, previous_version, current_version, manifest.is_first_sync
     )
 
     report = build_report(
@@ -135,6 +124,40 @@ def main() -> None:
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
+
+def _run_skill_phase(
+    arkaos_home: Path, skills_dir: Path, features: list, version: str
+) -> list:
+    """Phase 4 — user-owned skills only.
+
+    Core-shipped skills are excluded: the installer replaces those wholesale
+    on `npx arkaos update`. Without a core repo there is no way to tell the
+    two apart, so nothing is synced.
+    """
+    core_root = _read_repo_path(arkaos_home)
+    if core_root is None:
+        return []
+    return sync_all_skills(skills_dir, core_root, features, version)
+
+
+def _run_migration_phase(
+    arkaos_home: Path,
+    projects: list,
+    previous_version: str,
+    current_version: str,
+    is_first_sync: bool,
+) -> MigrationScanResult:
+    """Phase 6 — propose-only migrations for the versions this upgrade crossed."""
+    specs, load_errors = load_migrations(_resolve_migrations_dir(arkaos_home))
+    result = run_migrations(
+        projects,
+        pending_migrations(specs, previous_version, is_first_sync),
+        arkaos_home / "migration-proposals",
+        current_version,
+    )
+    result.errors = load_errors + result.errors
+    return result
 
 
 def _read_previous_version(arkaos_home: Path) -> str:

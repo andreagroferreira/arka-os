@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-08-05T16:18:43Z",
+    "generated": "2026-08-05T22:23:29Z",
     "total_commands": 306,
     "generator": "core/registry/generator.py",
     "departments": {
@@ -6668,7 +6668,7 @@
       "id": "arka-update",
       "command": "/arka update",
       "department": "ops",
-      "description": "Full sync — run engine, dispatch AI subagent for skills, write state, report",
+      "description": "Full sync — run the engine (projects, content, agents, skills, migrations), write state, report",
       "lead_agent": "arka-update",
       "keywords": [
         "automate",

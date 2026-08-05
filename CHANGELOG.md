@@ -17,32 +17,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   canonical registry on every run; everything outside the markers belongs
   to the project and is never touched.
 - **Scoped, fail-closed skill targeting** (`core/sync/skill_syncer.py`) —
-  only skills with no `SKILL.md` in the core repo are synced (10 of 333
-  installed). Core skills ship from npm and are replaced by
-  `npx arkaos update`. Without a readable core repo, nothing is synced.
+  only skills with no `SKILL.md` in the core repo are synced — on the
+  install this was measured against, 10 of 333. Core skills ship from npm
+  and are replaced by `npx arkaos update`. A core repo missing its sentinel
+  slugs is treated as untrustworthy and nothing is synced, rather than every
+  installed skill being classified as user-owned.
 - **Adoption proposals** — a legacy (unmarked) section is adopted into a
-  managed block only when byte-identical to canonical. A diverged section
-  is left untouched and written to `SKILL.md.arkaos-adopt.md` with a diff,
-  so aligning never deletes project customisation.
-- **Propose-only migrations** (`core/sync/migration_runner.py`) — codemods
-  declared in `core/sync/migrations/*.yaml` repair patterns that predate a
-  feature. They run only for versions newer than the last sync, skip
-  vendored trees, cap scans and **report every cap**, and write a single
-  reviewable file to `~/.arkaos/migration-proposals/<version>.md`. Project
-  code is never modified.
+  managed block only when it matches canonical once surrounding whitespace
+  is trimmed, and adoption preserves the project's own blank lines. A
+  diverged section is left untouched and written to
+  `SKILL.md.arkaos-adopt.md` with a diff, so aligning never deletes project
+  customisation. Markers that are unbalanced, duplicated or inverted leave
+  the file untouched entirely rather than guessing where a block ends.
+- **Propose-only migration runner** (`core/sync/migration_runner.py`) — the
+  engine and the spec format for codemods that repair patterns predating a
+  feature. **No migration specs ship in this release, so nothing is scanned
+  yet.** Once specs exist (in `core/sync/migrations/*.yaml`, or
+  `~/.arkaos/config/sync/migrations/*.yaml` when the repo directory is
+  absent) they run only for versions newer than the last sync, skip vendored
+  trees, report both scan caps, and write one reviewable file to
+  `~/.arkaos/migration-proposals/<version>.md`. Project code is never
+  modified; a bad spec is recorded and the sync continues.
 
 ### Fixed
 
 - **Version stamp no longer lies** — `merge_managed_content` gained a
-  `restamped` status: 51 of 78 projects carried current content
-  (hash `d83f5e17524e`) under a `4.23.0` or `2.17.0` stamp, because the
-  stamp only moved when the content changed. Real content changes are
-  still reported as `updated`, never conflated with a restamp.
+  `restamped` status. The stamp previously moved only when the content
+  changed, so a project could show a version many releases old while
+  carrying current content (measured on one install: 51 of 78 projects).
+  Real content changes are still reported as `updated`, never conflated
+  with a restamp.
+- **The coverage gate no longer passes on a stale artefact** — a
+  `coverage.xml` older than the newest changed source, or missing an entry
+  for a changed module, now fails the check instead of vouching for code it
+  never measured (`core/governance/evidence_checks.py`).
 - **`skills_synced` is no longer always 0** — the engine passed an empty
   `skill_results` list, so Phase 4 never appeared in `sync-state.json`.
-- **The sync report communicates value** — names which feature moved in
-  which skill, surfaces diverged sections with their proposal path, and
-  separates restamps from real changes.
+- **The sync report names what changed** — which feature moved in which
+  skill, which sections diverged and where their proposal is, broken
+  markers called out explicitly, and restamps kept separate from real
+  changes.
 
 ## [5.9.0] - 2026-08-05
 

@@ -4,12 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from core.sync.content_merger import (
-    MergeResult,
-    merge_managed_content,
     compute_managed_hash,
+    merge_managed_content,
 )
 
 

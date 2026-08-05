@@ -6,7 +6,7 @@ Builds the sync report, writes sync state to disk, and formats terminal output.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.sync.schema import (
@@ -72,7 +72,7 @@ def write_sync_state(state_file: Path, report: SyncReport) -> None:
     unique_paths = {r.path for r in report.mcp_results}
     state = {
         "version": report.current_version,
-        "last_sync": datetime.now(timezone.utc).isoformat(),
+        "last_sync": datetime.now(UTC).isoformat(),
         "projects_synced": len(unique_paths),
         "skills_synced": len(report.skill_results),
         "errors": report.errors,
@@ -105,7 +105,11 @@ def format_report(report: SyncReport) -> str:
     total_deferred = sum(len(r.mcps_deferred) for r in report.mcp_results)
     projects_with_deferred = sum(1 for r in report.mcp_results if r.mcps_deferred)
     if total_deferred > 0:
-        lines += ["", f"  Deferred MCPs: {total_deferred} across {projects_with_deferred} projects."]
+        lines += [
+            "",
+            f"  Deferred MCPs: {total_deferred} across "
+            f"{projects_with_deferred} projects.",
+        ]
 
     lines += [
         "",
@@ -182,7 +186,16 @@ def _format_skill_line(results: list[SkillSyncResult]) -> str:
     line = f"  {'Skills:':<14}{total} user-owned synced ({counts})"
     pending = sum(len(r.features_pending) for r in results)
     if pending:
-        line += f"\n  {'':<14}{pending} section(s) diverged — left untouched, proposals written"
+        line += (
+            f"\n  {'':<14}{pending} section(s) diverged — left untouched, "
+            "proposals written"
+        )
+    malformed = sum(len(r.features_malformed) for r in results)
+    if malformed:
+        line += (
+            f"\n  {'':<14}{malformed} feature(s) have broken markers — "
+            "file NOT touched, repair by hand"
+        )
     return line
 
 
@@ -235,7 +248,13 @@ def _add_skill_changes(results: list[SkillSyncResult], changes: list[str]) -> No
         for feature, skills in by_feature.items():
             changes.append(f"'{feature}' {label}: {', '.join(skills)}")
     for r in results:
-        if r.features_pending:
+        if r.features_malformed:
+            changes.append(
+                f"{r.skill_name}: BROKEN MARKERS on "
+                f"{', '.join(r.features_malformed)} — file left untouched, "
+                f"see {r.proposal_path}"
+            )
+        elif r.features_pending:
             changes.append(
                 f"{r.skill_name}: {', '.join(r.features_pending)} diverged "
                 f"— review {r.proposal_path}"

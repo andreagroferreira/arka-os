@@ -46,12 +46,14 @@ def build_manifest(
     )
 
 
-def is_version_newer(version: str, baseline: str) -> bool:
-    """Return True if version is strictly newer than baseline (semver int tuple).
+def compare_versions(version: str, baseline: str) -> bool | None:
+    """True if version > baseline, False if not, None if unorderable.
 
-    Returns False when either side is not parseable as a dotted integer
-    version (``unknown``, ``pending-sync``): an unorderable pair cannot be
-    "newer", and guessing would run migrations against the wrong baseline.
+    ``None`` is deliberately distinct from ``False``. A baseline of
+    ``unknown`` — which ``engine._read_current_version`` emits on a degraded
+    run and ``write_sync_state`` then persists — is not the same fact as "no
+    feature is newer", and collapsing the two makes a broken install report
+    "nothing changed" forever, with no error anywhere.
     """
     def parse(v: str) -> tuple[int, ...]:
         return tuple(int(part) for part in v.split("."))
@@ -59,11 +61,28 @@ def is_version_newer(version: str, baseline: str) -> bool:
     try:
         return parse(version) > parse(baseline)
     except ValueError:
-        return False
+        return None
+
+
+def is_version_newer(version: str, baseline: str) -> bool:
+    """True only when the pair is orderable and version is strictly newer.
+
+    The conservative reading, for callers where doing nothing is the safe
+    answer (migrations). Callers that must distinguish "unknown baseline"
+    from "nothing is new" call :func:`compare_versions` instead.
+    """
+    return compare_versions(version, baseline) is True
 
 
 # Backwards-compatible private alias (used by existing call sites and tests).
 _is_version_newer = is_version_newer
+
+
+def _baseline_is_unorderable(features: list[FeatureSpec], previous_version: str) -> bool:
+    """True when previous_version cannot be compared to any known version."""
+    return any(
+        compare_versions(f.added_in, previous_version) is None for f in features
+    )
 
 
 def _find_new_features(
@@ -71,14 +90,19 @@ def _find_new_features(
     previous_version: str,
     is_first: bool,
 ) -> list[str]:
-    """Return names of features that are new relative to previous_version."""
-    if is_first:
+    """Return names of features that are new relative to previous_version.
+
+    An unorderable baseline is treated as a first sync rather than as "nothing
+    is new": answering "nothing" would leave a degraded install permanently
+    convinced it is up to date.
+    """
+    if is_first or _baseline_is_unorderable(features, previous_version):
         return [f.name for f in features if f.deprecated_in is None]
 
     return [
         f.name
         for f in features
-        if _is_version_newer(f.added_in, previous_version)
+        if compare_versions(f.added_in, previous_version) is True
     ]
 
 
@@ -88,12 +112,12 @@ def _find_deprecated_features(
     is_first: bool,
 ) -> list[str]:
     """Return names of features deprecated after previous_version."""
-    if is_first:
+    if is_first or _baseline_is_unorderable(features, previous_version):
         return []
 
     return [
         f.name
         for f in features
         if f.deprecated_in is not None
-        and _is_version_newer(f.deprecated_in, previous_version)
+        and compare_versions(f.deprecated_in, previous_version) is True
     ]

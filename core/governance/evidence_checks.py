@@ -553,12 +553,64 @@ def _junit_result(junit: Path) -> CheckResult:
     )
 
 
+def _stale_coverage_reason(
+    coverage_xml: Path, project_dir: Path, changed: list[str] | None,
+) -> str | None:
+    """Reason the artefact cannot describe this diff, or None if it can.
+
+    A coverage.xml older than the newest changed source measured a different
+    codebase — a green number then vouches for code it never executed, which
+    is how 97% line coverage sat on top of a silent data-loss path.
+    """
+    try:
+        artefact_mtime = coverage_xml.stat().st_mtime
+    except OSError:
+        return "coverage.xml unreadable"
+
+    newest = 0.0
+    newest_name = ""
+    for rel in changed or []:
+        source = project_dir / rel
+        try:
+            mtime = source.stat().st_mtime
+        except OSError:
+            continue
+        if mtime > newest:
+            newest, newest_name = mtime, rel
+    if newest > artefact_mtime:
+        return (
+            f"coverage.xml predates changed source ({newest_name}) — "
+            "regenerate it; it cannot describe this diff"
+        )
+
+    body = coverage_xml.read_text(encoding="utf-8", errors="ignore")
+    missing = [
+        rel for rel in (changed or [])
+        if rel.endswith(".py")
+        and not rel.startswith("tests/")
+        and Path(rel).stem not in body
+    ]
+    if missing:
+        return (
+            f"coverage.xml has no entry for {len(missing)} changed module(s), "
+            f"first: {missing[0]}"
+        )
+    return None
+
+
 def _check_coverage(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
     coverage_xml = project_dir / "coverage.xml"
     if coverage_xml.is_file():
+        stale = _stale_coverage_reason(coverage_xml, project_dir, changed)
+        if stale is not None:
+            return CheckResult(
+                check="coverage", ran=True, passed=False,
+                command="parse:coverage.xml", exit_code=None,
+                summary=stale, details_path=str(coverage_xml),
+            )
         percent = coverage_percent_from_xml(coverage_xml)
         if percent is None:
             return CheckResult(

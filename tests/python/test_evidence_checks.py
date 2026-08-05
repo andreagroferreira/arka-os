@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
@@ -1555,3 +1556,74 @@ class TestZeroDiffSkips:
             "a check ran on zero diff: "
             f"{[r.check for r in report.results if r.ran]}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Stale coverage artefacts (QG blocker B3)
+#
+# A coverage.xml older than the changed source measured a different codebase.
+# The gate passed 86.3% on an artefact that contained none of the new modules —
+# a green number vouching for code it never executed.
+# ---------------------------------------------------------------------------
+
+
+class TestStaleCoverage:
+    def _artefact(self, project: Path, percent: str = "0.90") -> Path:
+        xml = project / "coverage.xml"
+        xml.write_text(
+            f'<?xml version="1.0"?><coverage line-rate="{percent}"></coverage>',
+            encoding="utf-8",
+        )
+        return xml
+
+    def test_artefact_older_than_changed_source_fails(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._artefact(tmp_path)
+        source = tmp_path / "mod.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        os.utime(tmp_path / "coverage.xml", (1_000_000, 1_000_000))
+
+        result = _check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.passed is False
+        assert "predates changed source" in result.summary
+
+    def test_artefact_missing_a_changed_module_fails(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        source = tmp_path / "brand_new.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        self._artefact(tmp_path)
+
+        result = _check_coverage(tmp_path, ["brand_new.py"], None, 60)
+
+        assert result.passed is False
+        assert "no entry for" in result.summary
+
+    def test_fresh_artefact_covering_the_change_passes(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        source = tmp_path / "mod.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        xml = tmp_path / "coverage.xml"
+        xml.write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            '<class filename="mod.py"/></coverage>',
+            encoding="utf-8",
+        )
+
+        result = _check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.passed is True
+
+    def test_changed_tests_do_not_need_a_coverage_entry(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_x.py").write_text("x = 1\n", encoding="utf-8")
+        self._artefact(tmp_path)
+
+        result = _check_coverage(tmp_path, ["tests/test_x.py"], None, 60)
+
+        assert result.passed is True

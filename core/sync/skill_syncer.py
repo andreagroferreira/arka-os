@@ -11,13 +11,15 @@ sync, project-authored content around it is untouched.
 ``~/.claude/skills/arka-*`` whose slug has no ``SKILL.md`` anywhere in the
 core repo. Core skills ship from npm and are already replaced wholesale by
 ``npx arkaos update``; rewriting them here would fight the installer.
-Ecosystem skills exist only on the
-operator's machine, which is exactly why they drift.
+Ecosystem skills exist only on the operator's machine, which is exactly why
+they drift.
 
 **Divergence is never overwritten.** A legacy section whose text differs
 from the canonical body is left alone and written to a ``.arkaos-adopt.md``
 proposal instead, for the operator to reconcile. Aligning by deletion would
-destroy the customisation that made the section worth keeping.
+destroy the customisation that made the section worth keeping. The same
+report carries features whose markers are broken, where the sync refused to
+touch the file at all.
 """
 
 from __future__ import annotations
@@ -45,18 +47,25 @@ def core_skill_slugs(core_root: Path) -> set[str]:
     }
 
 
+# Slugs every ArkaOS core checkout ships. Their absence means the repo behind
+# .repo-path is sparse, shallow or mid-checkout — not that the operator wrote
+# 300 skills by hand. A count-based guard cannot tell those apart: one stray
+# SKILL.md is enough to make every installed skill look user-owned.
+_SENTINEL_SLUGS = frozenset({"flow", "release", "spec"})
+
+
 def discover_user_owned_skills(skills_dir: Path, core_root: Path) -> list[Path]:
     """Return SKILL.md paths for installed skills the core repo does not ship.
 
-    Fail-closed: without a readable core repo there is no way to tell a core
-    skill from a user-owned one, and treating every installed skill as
-    user-owned would rewrite all 300+ of them. An unusable core root syncs
-    nothing.
+    Fail-closed: without a *trustworthy* core repo there is no way to tell a
+    core skill from a user-owned one, and misclassifying would rewrite all
+    300+ installed skills. The core root must carry the sentinel slugs before
+    anything is considered in scope.
     """
     if not skills_dir.is_dir() or not core_root.is_dir():
         return []
     core_slugs = core_skill_slugs(core_root)
-    if not core_slugs:
+    if not _SENTINEL_SLUGS.issubset(core_slugs):
         return []
     return [
         path
@@ -102,60 +111,128 @@ def _do_sync(
     if report.new_text != original:
         skill_file.write_text(report.new_text, encoding="utf-8")
 
-    pending = report.by_status("pending_adoption", "pending_removal")
-    proposal = _write_proposal(skill_file, report) if pending else None
+    reportable = report.by_status(
+        "pending_adoption", "pending_removal", "malformed_markers"
+    )
+    proposal = (
+        _write_proposal(skill_file, report)
+        if reportable
+        else _clear_proposal(skill_file)
+    )
+    malformed = report.by_status("malformed_markers")
 
     return SkillSyncResult(
         skill_name=skill_name,
-        status=_status_for(report, pending),
+        status=_status_for(report, malformed, reportable),
         features_added=report.by_status("injected"),
         features_removed=report.by_status("removed"),
         features_updated=report.by_status("updated"),
         features_restamped=report.by_status("restamped"),
         features_adopted=report.by_status("adopted"),
-        features_pending=pending,
+        features_pending=report.by_status("pending_adoption", "pending_removal"),
+        features_malformed=malformed,
         proposal_path=str(proposal) if proposal else None,
     )
 
 
-def _status_for(report: SkillMergeReport, pending: list[str]) -> str:
-    """Rank the outcome: real change > pending review > restamp > no-op."""
+def _status_for(
+    report: SkillMergeReport, malformed: list[str], reportable: list[str]
+) -> str:
+    """Rank the outcome. A broken file outranks everything: it needs a human."""
+    if malformed:
+        return "malformed"
     if report.by_status("injected", "updated", "adopted", "removed"):
         return "updated"
-    if pending:
+    if reportable:
         return "pending"
     if report.by_status("restamped"):
         return "restamped"
     return "unchanged"
 
 
+def _clear_proposal(skill_file: Path) -> None:
+    """Delete a proposal whose divergence has since been reconciled.
+
+    Without this, a resolved proposal stays on disk as a permanent false
+    to-do — and it embeds a diff of the project's own content, which has no
+    reason to outlive the divergence it described.
+    """
+    skill_file.with_name(skill_file.name + _PROPOSAL_SUFFIX).unlink(missing_ok=True)
+    return None
+
+
 def _write_proposal(skill_file: Path, report: SkillMergeReport) -> Path:
-    """Write a reviewable adoption proposal beside the skill file."""
+    """Write a reviewable report for everything the sync refused to touch."""
     lines = [
-        f"# Adoption proposal — {report.skill_name}",
+        f"# Sections this sync did not touch — {report.skill_name}",
         "",
-        "These sections have diverged from the ArkaOS canonical text. The sync",
-        "left the installed file untouched: reconcile them by hand, then delete",
-        "this file. Once a section matches the canonical body it is adopted into",
-        "a managed block automatically and stays aligned from then on.",
+        "The sections listed below are exactly as you left them. Other managed",
+        "blocks in the same file may have been updated in this run — this file",
+        "makes no claim about them.",
+        "",
+        "Each section says what to do with it. Delete this file once you have",
+        "worked through it; it is rewritten on the next sync if anything is",
+        "still outstanding, and removed once nothing is.",
         "",
     ]
     for result in report.results:
-        if result.status not in ("pending_adoption", "pending_removal"):
+        if result.status not in _REPORTED_STATUSES:
             continue
-        lines += _proposal_section(result.feature, result.status, result)
+        lines += _proposal_section(result)
     proposal = skill_file.with_name(skill_file.name + _PROPOSAL_SUFFIX)
     proposal.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return proposal
 
 
-def _proposal_section(name: str, status: str, result) -> list[str]:
-    verb = "deprecated upstream" if status == "pending_removal" else "diverged"
+_REPORTED_STATUSES = ("pending_adoption", "pending_removal", "malformed_markers")
+
+# Each class needs its own instruction. Telling the operator that matching the
+# canonical body brings a section under management is true for an adoption and
+# actively destructive for a removal, where the next sync would delete it.
+_PROPOSAL_GUIDANCE = {
+    "pending_adoption": (
+        "You customised this section, so ArkaOS did not overwrite it. Match it "
+        "to the canonical text and the next sync adopts it into a managed "
+        "block, keeping it aligned from then on. Leave it as it is and it "
+        "stays yours, and stays listed here."
+    ),
+    "pending_removal": (
+        "ArkaOS retired this feature. It was left in place because you "
+        "customised it. **Do not align it with the canonical text** — a "
+        "matching section is deleted by the next sync. Keep it as your own, "
+        "or delete it yourself when you no longer need it."
+    ),
+    "malformed_markers": (
+        "The ArkaOS markers around this feature are broken, so the sync "
+        "refused to touch the file at all rather than guess where the block "
+        "ends. Repair the `<!-- arka:feature:...:start -->` / `:end` pair by "
+        "hand — until then this feature is not being kept up to date."
+    ),
+}
+
+_PROPOSAL_HEADINGS = {
+    "pending_adoption": "you customised it",
+    "pending_removal": "retired by ArkaOS, kept because you customised it",
+    "malformed_markers": "markers broken — file not touched",
+}
+
+
+def _proposal_section(result) -> list[str]:
+    lines = [
+        f"## {result.feature} — {_PROPOSAL_HEADINGS[result.status]}",
+        "",
+        _PROPOSAL_GUIDANCE[result.status],
+        "",
+    ]
+    if result.status == "malformed_markers":
+        return [*lines, f"Fault: {result.error}", ""]
+    # Rendered installed-to-canonical so it reads as the edit being proposed:
+    # `-` is your line, `+` is what the canonical text has instead.
     diff = difflib.unified_diff(
-        result.canonical_body.splitlines(),
         result.legacy_body.splitlines(),
-        fromfile="arkaos-canonical",
-        tofile="installed",
+        result.canonical_body.splitlines(),
+        fromfile="your installed section",
+        tofile="arkaos canonical",
         lineterm="",
     )
-    return [f"## {name} — {verb}", "", "```diff", *diff, "```", ""]
+    return [*lines, "```diff", *diff, "```", ""]

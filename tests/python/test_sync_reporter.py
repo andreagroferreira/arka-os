@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from core.sync.reporter import build_report, format_report, write_sync_state
 from core.sync.schema import (
     DescriptorSyncResult,
@@ -15,29 +13,51 @@ from core.sync.schema import (
     MigrationScanResult,
     SettingsSyncResult,
     SkillSyncResult,
-    SyncReport,
 )
-
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
 
-def _mcp(path: str, status: str = "unchanged", added: list[str] | None = None, error: str | None = None) -> McpSyncResult:
+def _mcp(
+    path: str,
+    status: str = "unchanged",
+    added: list[str] | None = None,
+    error: str | None = None,
+) -> McpSyncResult:
     return McpSyncResult(path=path, status=status, mcps_added=added or [], error=error)
 
 
-def _settings(path: str, status: str = "unchanged", error: str | None = None) -> SettingsSyncResult:
+def _settings(
+    path: str, status: str = "unchanged", error: str | None = None
+) -> SettingsSyncResult:
     return SettingsSyncResult(path=path, status=status, error=error)
 
 
-def _descriptor(path: str, status: str = "unchanged", changes: list[str] | None = None, error: str | None = None) -> DescriptorSyncResult:
-    return DescriptorSyncResult(path=path, status=status, changes=changes or [], error=error)
+def _descriptor(
+    path: str,
+    status: str = "unchanged",
+    changes: list[str] | None = None,
+    error: str | None = None,
+) -> DescriptorSyncResult:
+    return DescriptorSyncResult(
+        path=path, status=status, changes=changes or [], error=error
+    )
 
 
-def _skill(name: str, status: str = "unchanged", features_added: list[str] | None = None, error: str | None = None) -> SkillSyncResult:
-    return SkillSyncResult(skill_name=name, status=status, features_added=features_added or [], error=error)
+def _skill(
+    name: str,
+    status: str = "unchanged",
+    features_added: list[str] | None = None,
+    error: str | None = None,
+) -> SkillSyncResult:
+    return SkillSyncResult(
+        skill_name=name,
+        status=status,
+        features_added=features_added or [],
+        error=error,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +83,14 @@ class TestBuildReport:
         descriptor_results = [_descriptor("/p/app1", "unchanged")]
         skill_results = [_skill("client_retail", "updated")]
 
-        report = build_report("v2.13.0", "v2.14.0", mcp_results, settings_results, descriptor_results, skill_results)
+        report = build_report(
+            "v2.13.0",
+            "v2.14.0",
+            mcp_results,
+            settings_results,
+            descriptor_results,
+            skill_results,
+        )
 
         assert len(report.mcp_results) == 2
         assert len(report.settings_results) == 1
@@ -77,7 +104,14 @@ class TestBuildReport:
         descriptor_results = [_descriptor("/p/app3", "error", error="yaml parse error")]
         skill_results = [_skill("client_commerce", "error", error="missing file")]
 
-        report = build_report("v2.13.0", "v2.14.0", mcp_results, settings_results, descriptor_results, skill_results)
+        report = build_report(
+            "v2.13.0",
+            "v2.14.0",
+            mcp_results,
+            settings_results,
+            descriptor_results,
+            skill_results,
+        )
 
         assert len(report.errors) == 4
         assert any("MCP" in e for e in report.errors)
@@ -219,7 +253,11 @@ class TestFormatReport:
 
     def test_format_shows_paused_projects(self) -> None:
         descriptor_results = [
-            _descriptor("/projects/lora-tester", "updated", changes=["status changed: active → paused"]),
+            _descriptor(
+                "/projects/lora-tester",
+                "updated",
+                changes=["status changed: active → paused"],
+            ),
         ]
         report = build_report("v2.13.0", "v2.14.0", [], [], descriptor_results, [])
         output = format_report(report)

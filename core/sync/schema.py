@@ -50,6 +50,7 @@ class MigrationScanResult(BaseModel):
     migrations_run: list[str] = Field(default_factory=list)
     hits: list[MigrationHit] = Field(default_factory=list)
     truncated: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
     proposal_path: str | None = None
 
 
@@ -121,6 +122,7 @@ class SkillSyncResult(BaseModel):
     features_restamped: list[str] = Field(default_factory=list)
     features_adopted: list[str] = Field(default_factory=list)
     features_pending: list[str] = Field(default_factory=list)
+    features_malformed: list[str] = Field(default_factory=list)
     proposal_path: str | None = None
     error: str | None = None
 

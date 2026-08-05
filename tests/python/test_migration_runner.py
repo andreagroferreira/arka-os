@@ -168,10 +168,104 @@ def test_load_migrations_from_yaml(tmp_path: Path) -> None:
         yaml.safe_dump(SPEC.model_dump()), encoding="utf-8"
     )
 
-    loaded = load_migrations(d)
+    loaded, errors = load_migrations(d)
 
     assert [s.name for s in loaded] == ["arka-py-shim"]
+    assert errors == []
 
 
 def test_load_migrations_missing_dir_is_empty(tmp_path: Path) -> None:
-    assert load_migrations(tmp_path / "nope") == []
+    assert load_migrations(tmp_path / "nope") == ([], [])
+
+
+# ---------------------------------------------------------------------------
+# Robustness — one bad spec must never abort a sync that already wrote to disk
+# ---------------------------------------------------------------------------
+
+
+def test_malformed_yaml_is_recorded_not_raised(tmp_path: Path) -> None:
+    d = tmp_path / "migrations"
+    d.mkdir()
+    (d / "broken.yaml").write_text("name: [unclosed\n", encoding="utf-8")
+    (d / "good.yaml").write_text(yaml.safe_dump(SPEC.model_dump()), encoding="utf-8")
+
+    specs, errors = load_migrations(d)
+
+    assert [s.name for s in specs] == ["arka-py-shim"]
+    assert any("broken.yaml" in e for e in errors)
+
+
+def test_incomplete_spec_is_recorded_not_raised(tmp_path: Path) -> None:
+    d = tmp_path / "migrations"
+    d.mkdir()
+    (d / "partial.yaml").write_text("name: only-a-name\n", encoding="utf-8")
+
+    specs, errors = load_migrations(d)
+
+    assert specs == []
+    assert any("invalid spec" in e for e in errors)
+
+
+def test_bad_detect_regex_is_recorded_not_raised(tmp_path: Path) -> None:
+    bad = SPEC.model_copy(update={"name": "bad", "detect": "foo("})
+
+    result = run_migrations([_project(tmp_path)], [bad], tmp_path / "p", "5.10.0")
+
+    assert result.hits == []
+    assert any("bad pattern" in e for e in result.errors)
+
+
+def test_bad_replace_backreference_is_recorded_not_raised(tmp_path: Path) -> None:
+    project = _project(tmp_path)
+    (Path(project.path) / "a.md").write_text("python -m core\n", encoding="utf-8")
+    bad = SPEC.model_copy(update={"name": "bad", "replace": r"\9"})
+
+    result = run_migrations([project], [bad], tmp_path / "p", "5.10.0")
+
+    assert result.hits == []
+    assert any("bad pattern" in e for e in result.errors)
+
+
+def test_file_cap_is_reported_not_silent(tmp_path: Path) -> None:
+    """The 2000-file cap used to `return` bare, so a partial scan read as complete."""
+    project = _project(tmp_path)
+    root = Path(project.path)
+    for i in range(2010):
+        (root / f"f{i:05d}.md").write_text("nothing here\n", encoding="utf-8")
+
+    _, truncated = scan_project(project, SPEC)
+
+    assert truncated is True
+
+
+def test_overlong_lines_are_skipped(tmp_path: Path) -> None:
+    """No regex timeout exists in Python; the only ceiling is subject length."""
+    project = _project(tmp_path)
+    (Path(project.path) / "min.md").write_text(
+        "x" * 5000 + " python -m core\n", encoding="utf-8"
+    )
+
+    hits, _ = scan_project(project, SPEC)
+
+    assert hits == []
+
+
+def test_each_file_is_read_once_for_all_specs(tmp_path: Path, monkeypatch) -> None:
+    """Re-globbing and re-reading per spec dominated the run on many projects."""
+    project = _project(tmp_path)
+    (Path(project.path) / "a.md").write_text("python -m core\n", encoding="utf-8")
+    specs = [SPEC.model_copy(update={"name": f"m{i}"}) for i in range(4)]
+
+    reads: list[str] = []
+    original = Path.read_text
+
+    def counting_read(self, *args, **kwargs):
+        if self.suffix == ".md":
+            reads.append(str(self))
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", counting_read)
+    result = run_migrations([project], specs, tmp_path / "p", "5.10.0")
+
+    assert len(result.hits) == 4
+    assert len(reads) == 1

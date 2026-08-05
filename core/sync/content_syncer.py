@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -51,14 +52,11 @@ def _do_sync(project: Project) -> ContentSyncResult:
     project_claude = Path(project.path) / ".claude"
     project_claude.mkdir(parents=True, exist_ok=True)
 
-    updated: list[str] = []
-    restamped: list[str] = []
-    unchanged: list[str] = []
-    errored: list[str] = []
+    buckets = _Artefacts()
+    updated, restamped = buckets.updated, buckets.restamped
+    unchanged, errored = buckets.unchanged, buckets.errored
 
-    _sync_claude_md(
-        core, project, project_claude, version, updated, restamped, unchanged, errored
-    )
+    _sync_claude_md(core, project, project_claude, version, buckets)
     _sync_rules(core, project_claude, updated, unchanged, errored)
     _sync_stack_rules(core, project, project_claude, updated, unchanged, errored)
     _sync_hooks(core, project_claude, updated, unchanged, errored)
@@ -82,15 +80,27 @@ def _do_sync(project: Project) -> ContentSyncResult:
     )
 
 
+@dataclass
+class _Artefacts:
+    """Per-project artefact outcomes, one list per status.
+
+    Passed as a single object rather than four parallel out-parameters —
+    adding a fifth status would otherwise mean editing every signature that
+    threads them through.
+    """
+
+    updated: list[str] = field(default_factory=list)
+    restamped: list[str] = field(default_factory=list)
+    unchanged: list[str] = field(default_factory=list)
+    errored: list[str] = field(default_factory=list)
+
+
 def _sync_claude_md(
     core: Path,
     project: Project,
     project_claude: Path,
     version: str,
-    updated: list[str],
-    restamped: list[str],
-    unchanged: list[str],
-    errored: list[str],
+    out: _Artefacts,
 ) -> None:
     # Stack conventions live in path-scoped rule files (_sync_stack_rules);
     # the managed block carries only the shared base.
@@ -102,15 +112,15 @@ def _sync_claude_md(
 
     result = merge_managed_content(target_text, managed_content, version)
     if result.status == "error":
-        errored.append(f"CLAUDE.md: {result.error}")
+        out.errored.append(f"CLAUDE.md: {result.error}")
         sidecar = target_file.with_suffix(".md.arkaos-new")
         sidecar.write_text(managed_content, encoding="utf-8")
         return
     if result.status == "unchanged":
-        unchanged.append("CLAUDE.md")
+        out.unchanged.append("CLAUDE.md")
         return
     target_file.write_text(result.new_text, encoding="utf-8")
-    bucket = restamped if result.status == "restamped" else updated
+    bucket = out.restamped if result.status == "restamped" else out.updated
     bucket.append("CLAUDE.md")
 
 

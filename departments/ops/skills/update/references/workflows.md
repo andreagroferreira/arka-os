@@ -32,26 +32,37 @@ AI-powered sync that updates ecosystem skills, project descriptors, MCP configs,
 - When the SessionStart hook shows `[arka:update-available]`
 - Manually, any time, to force a full sync
 
-## Hybrid Orchestration
+## Orchestration
 
-Phases 1–3 + 5 run via the Python engine (see `sync-engine.md`). Phase 4 runs as ONE AI subagent to handle intelligent ecosystem-skill text updates.
+Every phase runs inside the Python engine. There is no AI phase: an agent
+asked to edit these files cannot offer the guarantees the engine does, and
+the instruction it used to carry — "otherwise remove the `## <section_title>`
+section" — deleted customised sections outright.
 
-### Phase 4 — Intelligent Sync (AI Subagent)
+### Phase 4 — Skill sync (`core/sync/skill_syncer.py`)
 
-After the Python engine completes, dispatch ONE subagent.
+Scope is *user-owned* skills only: installed `arka-*` whose slug has no
+`SKILL.md` in the core repo. Core skills ship from npm and are replaced by
+`npx arkaos update`. Without a trustworthy core repo (sentinel slugs
+present) nothing is in scope, so a broken checkout syncs nothing rather
+than everything.
 
-**Subagent input:**
-- The JSON report from the engine (list of ecosystems that exist)
-- The feature registry files from `core/sync/features/*.yaml` (or `~/.arkaos/config/sync/features/*.yaml`)
+Per feature, per skill:
 
-**Subagent task — for each `~/.claude/skills/arka-{ecosystem}/SKILL.md`:**
-1. Read the SKILL.md.
-2. For each feature YAML where `deprecated_in` is null:
-   - Apply the `detection_pattern` regex to the SKILL.md text. It matches the `arka:feature:<name>` marker, the bare `## <section_title>` heading, or a unique historical keyword — a customized section without markers still counts as present and MUST NOT be duplicated.
-   - If NOT found: inject `content` (already marker-wrapped) after the last existing feature section, or after the "Commands" table if no feature sections exist (before "Orchestration Workflows").
-3. For each feature where `deprecated_in` is set:
-   - Remove the `<!-- arka:feature:<name>:start -->` … `:end -->` block when markers exist; otherwise remove the `## <section_title>` section.
-4. PRESERVE all custom content: commands, architecture, tech stack, business descriptions, ecosystem-specific workflow details.
+| Situation | What happens |
+| --- | --- |
+| Managed block present, content stale | rewritten from the registry |
+| Managed block present, content current, stamp stale | stamp rewritten (`restamped`) |
+| No block, unmarked section identical to canonical | adopted into a managed block |
+| No block, unmarked section customised | **left untouched**, reported in `SKILL.md.arkaos-adopt.md` |
+| No block, no section | block injected |
+| Feature deprecated, block present | block removed |
+| Feature deprecated, section customised | **left untouched**, reported |
+| Markers unbalanced, duplicated or inverted | **file not touched at all**, reported |
+
+Everything outside the markers belongs to the project and is never
+rewritten. Proposals are deleted automatically once the divergence they
+describe is gone.
 
 ### Report
 
@@ -73,11 +84,11 @@ Display the formatted report from the engine output:
 | Scenario | Action |
 |----------|--------|
 | Python engine fails | Report error; do NOT proceed to AI phase |
-| AI subagent fails | Deterministic sync already completed; report partial success |
+| One skill fails to sync | Recorded against that skill; every other skill still syncs |
 | Individual project error | Other projects continue; the failure is recorded in `sync-state.json` errors |
 | Project path not found | Skip project, warn, do not delete its descriptor |
 | No stack detectable | Use generic MCPs only (`arka-prompts`, `context7`, `clickup`, `obsidian`) |
-| Ecosystem skill has manual customizations | Update only structural sections; preserve all custom content |
+| Ecosystem skill has manual customizations | Managed blocks are rewritten; customised sections are reported, never overwritten |
 | First sync (no `sync-state.json` or version is `pending-sync` / `none`) | Full sync without diff, create `sync-state.json` |
 | Version downgrade (sync-state version > current VERSION) | Warn in report, sync anyway |
 | `.mcp.json` has MCPs not in registry | Preserve them (user-added, project-specific) |

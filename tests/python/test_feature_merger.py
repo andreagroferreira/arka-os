@@ -194,6 +194,99 @@ def test_injected_block_lands_after_the_last_existing_block() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Malformed markers — the data-loss contract
+#
+# _find_block used to pair a start marker with ANY later end marker. An orphan
+# start therefore paired with the NEXT block's end and the splice deleted every
+# byte in between — project-authored sections included — reported as a benign
+# "updated". _append_block manufactured that pairing on run 1, so two ordinary
+# syncs were enough. Target is ~/.claude/skills/, which is not a git repo.
+# ---------------------------------------------------------------------------
+
+
+def test_orphan_start_marker_never_splices() -> None:
+    text = (
+        "# Skill\n\n<!-- arka:feature:forge-integration:start -->\n\n"
+        "## Deploy runbook\n\nIRREPLACEABLE\n"
+    )
+
+    result = merge_feature(text, _feature(), VERSION)
+
+    assert result.status == "malformed_markers"
+    assert result.new_text == text
+    assert "IRREPLACEABLE" in result.new_text
+    assert "unbalanced" in (result.error or "")
+
+
+def test_orphan_start_survives_two_consecutive_syncs() -> None:
+    """The original escalation: run 1 appended a block, run 2 detonated it."""
+    text = (
+        "# Skill\n\n<!-- arka:feature:forge-integration:start -->\n\n"
+        "## Deploy runbook\n\nIRREPLACEABLE\n"
+    )
+
+    once = merge_feature(text, _feature(), VERSION).new_text
+    twice = merge_feature(once, _feature(), VERSION).new_text
+
+    assert twice == text
+    assert "IRREPLACEABLE" in twice
+
+
+def test_orphan_end_marker_never_splices() -> None:
+    text = "# Skill\n\n## Mine\n\nKEEP\n<!-- arka:feature:forge-integration:end -->\n"
+
+    result = merge_feature(text, _feature(), VERSION)
+
+    assert result.status == "malformed_markers"
+    assert result.new_text == text
+
+
+def test_duplicate_blocks_never_splice() -> None:
+    text = f"# Skill\n\n{_block()}\n\n## Mine\n\nKEEP\n\n{_block()}\n"
+
+    result = merge_feature(text, _feature(), VERSION)
+
+    assert result.status == "malformed_markers"
+    assert result.new_text == text
+    assert "KEEP" in result.new_text
+
+
+def test_inverted_markers_never_splice() -> None:
+    text = (
+        "# Skill\n\n<!-- arka:feature:forge-integration:end -->\n\nKEEP\n\n"
+        "<!-- arka:feature:forge-integration:start -->\n"
+    )
+
+    result = merge_feature(text, _feature(), VERSION)
+
+    assert result.status == "malformed_markers"
+    assert result.new_text == text
+    assert "end marker appears before start marker" in (result.error or "")
+
+
+def test_deprecation_also_refuses_malformed_markers() -> None:
+    """_remove_feature carried the identical splice."""
+    text = (
+        "# Skill\n\n<!-- arka:feature:forge-integration:start -->\n\n"
+        "## Mine\n\nIRREPLACEABLE\n"
+    )
+
+    result = merge_feature(text, _feature(deprecated_in="5.10.0"), VERSION)
+
+    assert result.status == "malformed_markers"
+    assert "IRREPLACEABLE" in result.new_text
+
+
+def test_malformed_markers_never_count_as_a_write() -> None:
+    text = "<!-- arka:feature:forge-integration:start -->\nMINE\n"
+
+    report = merge_skill(text, "arka-acme", [_feature()], VERSION)
+
+    assert not report.changed
+    assert report.new_text == text
+
+
+# ---------------------------------------------------------------------------
 # Deprecation
 # ---------------------------------------------------------------------------
 

@@ -11,11 +11,16 @@ Sections written before the stamped-marker format exist in the wild as
 *legacy* sections — a bare ``## <section_title>`` heading, sometimes with a
 project-specific suffix such as ``(NON-NEGOTIABLE)``. A legacy section is
 adopted into a managed block only when its text already matches the
-canonical body byte-for-byte. When it diverges, the project has customised
-it, and this module refuses to overwrite: the divergence is reported for
-review instead (the Terraform ``plan``-before-``apply`` contract). This is
-what stops an "always align" sync from silently deleting the operator's
-work.
+canonical body once surrounding whitespace is trimmed. When it diverges,
+the project has customised it, and this module refuses to overwrite: the
+divergence is reported for review instead (the Terraform
+``plan``-before-``apply`` contract). This is what stops an "always align"
+sync from silently deleting the operator's work.
+
+Markers are validated before any splice. A file whose markers are
+unbalanced, duplicated or inverted yields ``malformed_markers`` and is left
+exactly as it is — guessing at the pairing is what turns a repair into a
+deletion.
 """
 
 from __future__ import annotations
@@ -36,6 +41,7 @@ FeatureStatus = Literal[
     "removed",
     "pending_adoption",
     "pending_removal",
+    "malformed_markers",
 ]
 
 _WRITE_STATUSES: frozenset[str] = frozenset(
@@ -52,6 +58,7 @@ class FeatureMergeResult:
     new_text: str
     canonical_body: str = ""
     legacy_body: str = ""
+    error: str | None = None
 
     @property
     def wrote(self) -> bool:
@@ -94,12 +101,15 @@ def canonical_body(feature: FeatureSpec) -> str:
 def merge_feature(text: str, feature: FeatureSpec, version: str) -> FeatureMergeResult:
     """Merge one feature into ``text``, honouring project customisation."""
     body = canonical_body(feature)
-    if feature.deprecated_in is not None:
-        return _remove_feature(text, feature, body)
+    lookup = _find_block(text, feature.name)
+    if lookup.error is not None:
+        return _malformed(text, feature, body, lookup.error)
 
-    block = _find_block(text, feature.name)
-    if block is not None:
-        return _merge_existing_block(text, feature, body, version, block)
+    if feature.deprecated_in is not None:
+        return _remove_feature(text, feature, body, lookup)
+
+    if lookup.pair is not None:
+        return _merge_existing_block(text, feature, body, version, lookup.pair)
 
     legacy = _find_legacy_section(text, feature.section_title)
     if legacy is not None:
@@ -144,15 +154,52 @@ def _end_re(name: str) -> re.Pattern[str]:
     return re.compile(rf"<!--\s*arka:feature:{re.escape(name)}:end\s*-->")
 
 
-def _find_block(text: str, name: str) -> tuple[re.Match[str], re.Match[str]] | None:
-    """Locate a well-formed start/end marker pair for ``name``."""
-    start = _start_re(name).search(text)
-    if start is None:
-        return None
-    end = _end_re(name).search(text, start.end())
-    if end is None:
-        return None
-    return start, end
+@dataclass
+class _BlockLookup:
+    """Outcome of locating one feature's markers: a pair, nothing, or a fault."""
+
+    pair: tuple[re.Match[str], re.Match[str]] | None = None
+    error: str | None = None
+
+
+def _find_block(text: str, name: str) -> _BlockLookup:
+    """Locate a well-formed start/end marker pair, or refuse to guess.
+
+    Pairing a start marker with *any* later end marker is how a splice
+    deletes text it does not own: an orphan start (an interrupted write, a
+    hand-edit that dropped the end) would pair with the *next* block's end
+    and take every project-authored byte in between with it. The same
+    validation already guards ``.claude/CLAUDE.md`` in
+    :func:`core.sync.content_merger._validate_markers`; a fault here is
+    reported and never spliced.
+    """
+    starts = list(_start_re(name).finditer(text))
+    ends = list(_end_re(name).finditer(text))
+
+    if len(starts) != len(ends):
+        return _BlockLookup(
+            error=f"unbalanced markers: {len(starts)} start, {len(ends)} end"
+        )
+    if len(starts) > 1:
+        return _BlockLookup(error=f"{len(starts)} blocks for one feature")
+    if not starts:
+        return _BlockLookup()
+    if ends[0].start() < starts[0].end():
+        return _BlockLookup(error="end marker appears before start marker")
+    return _BlockLookup(pair=(starts[0], ends[0]))
+
+
+def _malformed(
+    text: str, feature: FeatureSpec, body: str, error: str
+) -> FeatureMergeResult:
+    """Refuse to touch a file whose markers cannot be trusted."""
+    return FeatureMergeResult(
+        feature=feature.name,
+        status="malformed_markers",
+        new_text=text,
+        canonical_body=body,
+        error=error,
+    )
 
 
 def _find_legacy_section(text: str, section_title: str) -> tuple[int, int] | None:
@@ -237,12 +284,11 @@ def _adopt_legacy(
 
 
 def _remove_feature(
-    text: str, feature: FeatureSpec, body: str
+    text: str, feature: FeatureSpec, body: str, lookup: _BlockLookup
 ) -> FeatureMergeResult:
     """Remove a deprecated feature; never guess at a customised section."""
-    block = _find_block(text, feature.name)
-    if block is not None:
-        start, end = block
+    if lookup.pair is not None:
+        start, end = lookup.pair
         return FeatureMergeResult(
             feature=feature.name,
             status="removed",
