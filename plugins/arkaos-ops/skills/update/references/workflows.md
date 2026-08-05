@@ -50,7 +50,9 @@ After the Python engine completes, dispatch ONE subagent.
    - Apply the `detection_pattern` regex to the SKILL.md text. It matches the `arka:feature:<name>` marker, the bare `## <section_title>` heading, or a unique historical keyword — a customized section without markers still counts as present and MUST NOT be duplicated.
    - If NOT found: inject `content` (already marker-wrapped) after the last existing feature section, or after the "Commands" table if no feature sections exist (before "Orchestration Workflows").
 3. For each feature where `deprecated_in` is set:
-   - Remove the `<!-- arka:feature:<name>:start -->` … `:end -->` block when markers exist; otherwise remove the `## <section_title>` section.
+   - Remove the `<!-- arka:feature:<name>:start -->` … `:end -->` block ONLY when a single, well-formed marker pair exists.
+   - **Never delete an unmarked `## <section_title>` section.** Without markers there is no way to tell ArkaOS's own text from the project's, and a section the operator customised looks identical to one they did not. Leave it in place and report it instead. `~/.claude/skills/` is not a git repository — a wrong deletion there is unrecoverable.
+   - If the markers are unbalanced, duplicated or inverted, do not edit the file at all; report the fault.
 4. PRESERVE all custom content: commands, architecture, tech stack, business descriptions, ecosystem-specific workflow details.
 
 ### Report

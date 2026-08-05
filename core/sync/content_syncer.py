@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -51,29 +52,48 @@ def _do_sync(project: Project) -> ContentSyncResult:
     project_claude = Path(project.path) / ".claude"
     project_claude.mkdir(parents=True, exist_ok=True)
 
-    updated: list[str] = []
-    unchanged: list[str] = []
-    errored: list[str] = []
+    out = _Artefacts()
+    _sync_claude_md(core, project, project_claude, version, out)
+    _sync_rules(core, project_claude, out.updated, out.unchanged, out.errored)
+    _sync_stack_rules(
+        core, project, project_claude, out.updated, out.unchanged, out.errored
+    )
+    _sync_hooks(core, project_claude, out.updated, out.unchanged, out.errored)
+    _sync_constitution(core, project_claude, out.updated, out.unchanged, out.errored)
 
-    _sync_claude_md(core, project, project_claude, version, updated, unchanged, errored)
-    _sync_rules(core, project_claude, updated, unchanged, errored)
-    _sync_stack_rules(core, project, project_claude, updated, unchanged, errored)
-    _sync_hooks(core, project_claude, updated, unchanged, errored)
-    _sync_constitution(core, project_claude, updated, unchanged, errored)
-
-    if errored:
-        status = "error"
-    elif updated:
-        status = "updated"
-    else:
-        status = "unchanged"
     return ContentSyncResult(
         path=project.path,
-        status=status,
-        artefacts_updated=updated,
-        artefacts_unchanged=unchanged,
-        artefacts_errored=errored,
+        status=out.status(),
+        artefacts_updated=out.updated,
+        artefacts_restamped=out.restamped,
+        artefacts_unchanged=out.unchanged,
+        artefacts_errored=out.errored,
     )
+
+
+@dataclass
+class _Artefacts:
+    """Per-project artefact outcomes, one list per status.
+
+    Passed as a single object rather than four parallel out-parameters —
+    adding a fifth status would otherwise mean editing every signature that
+    threads them through.
+    """
+
+    updated: list[str] = field(default_factory=list)
+    restamped: list[str] = field(default_factory=list)
+    unchanged: list[str] = field(default_factory=list)
+    errored: list[str] = field(default_factory=list)
+
+    def status(self) -> str:
+        """Worst outcome wins: error > real change > restamp > no-op."""
+        if self.errored:
+            return "error"
+        if self.updated:
+            return "updated"
+        if self.restamped:
+            return "restamped"
+        return "unchanged"
 
 
 def _sync_claude_md(
@@ -81,9 +101,7 @@ def _sync_claude_md(
     project: Project,
     project_claude: Path,
     version: str,
-    updated: list[str],
-    unchanged: list[str],
-    errored: list[str],
+    out: _Artefacts,
 ) -> None:
     # Stack conventions live in path-scoped rule files (_sync_stack_rules);
     # the managed block carries only the shared base.
@@ -95,15 +113,16 @@ def _sync_claude_md(
 
     result = merge_managed_content(target_text, managed_content, version)
     if result.status == "error":
-        errored.append(f"CLAUDE.md: {result.error}")
+        out.errored.append(f"CLAUDE.md: {result.error}")
         sidecar = target_file.with_suffix(".md.arkaos-new")
         sidecar.write_text(managed_content, encoding="utf-8")
         return
     if result.status == "unchanged":
-        unchanged.append("CLAUDE.md")
+        out.unchanged.append("CLAUDE.md")
         return
     target_file.write_text(result.new_text, encoding="utf-8")
-    updated.append("CLAUDE.md")
+    bucket = out.restamped if result.status == "restamped" else out.updated
+    bucket.append("CLAUDE.md")
 
 
 # Descriptor slug -> stack-rules basename (no .md). Slugs are case-folded first.

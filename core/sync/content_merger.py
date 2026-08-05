@@ -23,7 +23,7 @@ _END_RE = re.compile(r"<!--\s*arkaos:managed:end\s*-->")
 class MergeResult:
     """Outcome of a managed-region merge operation."""
 
-    status: Literal["updated", "unchanged", "error"]
+    status: Literal["updated", "restamped", "unchanged", "error"]
     new_text: str
     error: str | None = None
 
@@ -38,26 +38,17 @@ def merge_managed_content(
 ) -> MergeResult:
     """Merge managed_content into target_text inside the managed region.
 
-    Returns status "updated" when the file changes, "unchanged" when the
-    new hash matches the existing one, or "error" when markers are
-    unbalanced.
+    Returns "updated" when the managed content itself changes, "restamped"
+    when the content is already current but the version stamp is stale,
+    "unchanged" when both already match, or "error" when markers are
+    malformed.
     """
     starts = list(_START_RE.finditer(target_text))
     ends = list(_END_RE.finditer(target_text))
 
-    if len(starts) != len(ends):
-        return MergeResult(
-            status="error",
-            new_text=target_text,
-            error=f"unbalanced markers: {len(starts)} starts, {len(ends)} ends",
-        )
-
-    if len(starts) > 1:
-        return MergeResult(
-            status="error",
-            new_text=target_text,
-            error="multiple managed blocks are not supported",
-        )
+    malformed = _validate_markers(starts, ends, target_text)
+    if malformed is not None:
+        return malformed
 
     new_hash = compute_managed_hash(managed_content)
     new_block = _render_block(managed_content, version, new_hash)
@@ -65,25 +56,48 @@ def merge_managed_content(
     if not starts:
         return _prepend_block(target_text, new_block)
 
-    start_match = starts[0]
-    end_match = ends[0]
-    if end_match.start() < start_match.end():
+    start_match, end_match = starts[0], ends[0]
+    rewritten = (
+        target_text[: start_match.start()]
+        + new_block
+        + target_text[end_match.end() :]
+    )
+
+    if start_match.group("hash") != new_hash:
+        return MergeResult(status="updated", new_text=rewritten)
+    if start_match.group("version") == version:
+        return MergeResult(status="unchanged", new_text=target_text)
+    # Content is already current; only the stamp lags. Rewriting it keeps
+    # `version=` an honest record of the last sync that verified this file,
+    # instead of freezing at whichever release last changed the content.
+    return MergeResult(status="restamped", new_text=rewritten)
+
+
+def _validate_markers(
+    starts: list[re.Match[str]],
+    ends: list[re.Match[str]],
+    target_text: str,
+) -> MergeResult | None:
+    """Return an error MergeResult when the marker pair is malformed."""
+    if len(starts) != len(ends):
+        return MergeResult(
+            status="error",
+            new_text=target_text,
+            error=f"unbalanced markers: {len(starts)} starts, {len(ends)} ends",
+        )
+    if len(starts) > 1:
+        return MergeResult(
+            status="error",
+            new_text=target_text,
+            error="multiple managed blocks are not supported",
+        )
+    if starts and ends[0].start() < starts[0].end():
         return MergeResult(
             status="error",
             new_text=target_text,
             error="end marker appears before start marker",
         )
-
-    existing_hash = start_match.group("hash")
-    if existing_hash == new_hash:
-        return MergeResult(status="unchanged", new_text=target_text)
-
-    new_text = (
-        target_text[: start_match.start()]
-        + new_block
-        + target_text[end_match.end() :]
-    )
-    return MergeResult(status="updated", new_text=new_text)
+    return None
 
 
 def _render_block(content: str, version: str, content_hash: str) -> str:

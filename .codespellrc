@@ -64,6 +64,11 @@
 # anti-slop catalogue of arka-human-writing) — the same content class
 # that skips departments/, but living under arka/ ("conector" ->
 # "connector", "potencial" -> "potential").
+# CAVEAT for reviewers: the skip list below covers departments/, wiki/ and
+# plugins/ because they are largely pt-PT prose. A green run therefore says
+# NOTHING about English copy living in those trees. New copy there must be
+# checked explicitly with `codespell --skip="" <paths>`, which is not what
+# the default invocation does.
 [codespell]
 ignore-words-list = te,strat,unparseable,disjointness,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fase,fases,orgin,metdata,datas,rever,dominante,responde,sinal,vender,funcional,rende,oficial,mata,som,fulfilment,skelton,feld
 skip = *.lock,*.svg,*/node_modules,*/__pycache__,departments/*,*/departments/*,wiki/*,*/wiki/*,plugins/*,*/plugins/*,arka/skills/human-writing/references/pt-pt-anti-slop.md,*/arka/skills/human-writing/references/pt-pt-anti-slop.md

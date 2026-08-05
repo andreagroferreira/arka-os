@@ -13,19 +13,25 @@ from pathlib import Path
 
 from core.runtime.user_paths import (
     ecosystems_file as resolve_ecosystems_file,
+)
+from core.runtime.user_paths import (
     projects_dir as resolve_projects_dir,
 )
-from core.sync.manifest import build_manifest
-from core.sync.discovery import discover_all_projects
-from core.sync.mcp_optimizer import optimize_all_mcps
-from core.sync.mcp_syncer import sync_all_mcps
-from core.sync.settings_syncer import sync_all_settings
-from core.sync.descriptor_syncer import sync_all_descriptors
 from core.sync.agent_provisioner import sync_all_agents
 from core.sync.content_syncer import sync_all_content
+from core.sync.descriptor_syncer import sync_all_descriptors
+from core.sync.discovery import discover_all_projects
+from core.sync.manifest import build_manifest
+from core.sync.mcp_optimizer import optimize_all_mcps
+from core.sync.mcp_syncer import sync_all_mcps
+from core.sync.migration_runner import (
+    load_migrations,
+    pending_migrations,
+    run_migrations,
+)
 from core.sync.reporter import build_report, format_report, write_sync_state
-from core.sync.schema import SyncReport
-
+from core.sync.schema import MigrationScanResult, SyncReport
+from core.sync.settings_syncer import sync_all_settings
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -42,25 +48,16 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
 
     projects = _discover_projects(arkaos_home, skills_dir)
 
-    registry_path = skills_dir / "arka" / "mcps" / "registry.json"
-    mcp_results = sync_all_mcps(projects, registry_path, home_path)
-
-    policy_path = Path(__file__).resolve().parents[2] / "config" / "mcp-policy.yaml"
-    vault_path = Path.home() / ".arkaos" / "secrets.json"
-    cache_path = Path.home() / ".arkaos" / "mcp-decisions.cache.json"
-    if policy_path.exists():
-        mcp_results = optimize_all_mcps(
-            projects,
-            mcp_results,
-            policy_path,
-            vault_path if vault_path.exists() else None,
-            cache_path,
-        )
+    mcp_results = _run_mcp_phase(projects, skills_dir, home_path)
 
     settings_results = sync_all_settings(mcp_results)
     descriptor_results = sync_all_descriptors(projects)
     content_results = sync_all_content(projects)
     agent_results = sync_all_agents(projects)
+
+    migrations = _run_migration_phase(
+        arkaos_home, projects, previous_version, current_version, manifest.is_first_sync
+    )
 
     report = build_report(
         previous_version,
@@ -73,6 +70,7 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
         agent_results=agent_results,
         new_features=manifest.new_features,
         deprecated_features=manifest.deprecated_features,
+        migrations=migrations,
     )
 
     state_file = arkaos_home / "sync-state.json"
@@ -109,6 +107,43 @@ def main() -> None:
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
+
+def _run_mcp_phase(projects: list, skills_dir: Path, home_path: str) -> list:
+    """Sync .mcp.json for every project, then apply the policy optimizer."""
+    registry_path = skills_dir / "arka" / "mcps" / "registry.json"
+    results = sync_all_mcps(projects, registry_path, home_path)
+
+    policy_path = Path(__file__).resolve().parents[2] / "config" / "mcp-policy.yaml"
+    if not policy_path.exists():
+        return results
+    vault_path = Path.home() / ".arkaos" / "secrets.json"
+    return optimize_all_mcps(
+        projects,
+        results,
+        policy_path,
+        vault_path if vault_path.exists() else None,
+        Path.home() / ".arkaos" / "mcp-decisions.cache.json",
+    )
+
+
+def _run_migration_phase(
+    arkaos_home: Path,
+    projects: list,
+    previous_version: str,
+    current_version: str,
+    is_first_sync: bool,
+) -> MigrationScanResult:
+    """Phase 6 — propose-only migrations for the versions this upgrade crossed."""
+    specs, load_errors = load_migrations(_resolve_migrations_dir(arkaos_home))
+    result = run_migrations(
+        projects,
+        pending_migrations(specs, previous_version, is_first_sync),
+        arkaos_home / "migration-proposals",
+        current_version,
+    )
+    result.errors = load_errors + result.errors
+    return result
 
 
 def _read_previous_version(arkaos_home: Path) -> str:
@@ -159,6 +194,16 @@ def _resolve_features_dir(arkaos_home: Path) -> Path:
 
     fallback = arkaos_home / "config" / "sync" / "features"
     return fallback
+
+
+def _resolve_migrations_dir(arkaos_home: Path) -> Path:
+    """Resolve the migrations directory from repo or fallback config."""
+    repo_path = _read_repo_path(arkaos_home)
+    if repo_path is not None:
+        repo_migrations = repo_path / "core" / "sync" / "migrations"
+        if repo_migrations.exists():
+            return repo_migrations
+    return arkaos_home / "config" / "sync" / "migrations"
 
 
 def _parse_scan_dirs(projects_dir_str: str) -> list[Path]:

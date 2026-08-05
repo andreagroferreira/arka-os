@@ -15,6 +15,45 @@ class FeatureSpec(BaseModel):
     deprecated_in: str | None = None
 
 
+class MigrationSpec(BaseModel):
+    """A codemod that repairs a pattern predating some ArkaOS feature.
+
+    Migrations answer the half of "align my projects" that content sync
+    cannot: a project built before a feature existed may carry a shape the
+    feature has since replaced. They only ever *propose* a diff — code is
+    never rewritten under the operator (Terraform plan-before-apply).
+    """
+
+    name: str
+    added_in: str
+    description: str
+    detect: str
+    paths: list[str] = Field(default_factory=lambda: ["**/*.md"])
+    replace: str | None = None
+    guidance: str = ""
+
+
+class MigrationHit(BaseModel):
+    """One occurrence of a migration's pattern in one project file."""
+
+    migration: str
+    project: str
+    file: str
+    line: int
+    excerpt: str
+    proposed: str | None = None
+
+
+class MigrationScanResult(BaseModel):
+    """Aggregated migration scan for one sync run."""
+
+    migrations_run: list[str] = Field(default_factory=list)
+    hits: list[MigrationHit] = Field(default_factory=list)
+    truncated: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    proposal_path: str | None = None
+
+
 class ChangeManifest(BaseModel):
     """Describes what changed between two ArkaOS versions during a sync run."""
 
@@ -88,6 +127,7 @@ class ContentSyncResult(BaseModel):
     path: str
     status: str
     artefacts_updated: list[str] = Field(default_factory=list)
+    artefacts_restamped: list[str] = Field(default_factory=list)
     artefacts_unchanged: list[str] = Field(default_factory=list)
     artefacts_errored: list[str] = Field(default_factory=list)
     error: str | None = None
@@ -117,6 +157,7 @@ class SyncReport(BaseModel):
     skill_results: list[SkillSyncResult] = Field(default_factory=list)
     content_results: list[ContentSyncResult] = Field(default_factory=list)
     agent_results: list[AgentProvisionResult] = Field(default_factory=list)
+    migrations: MigrationScanResult | None = None
     errors: list[str] = Field(default_factory=list)
 
 

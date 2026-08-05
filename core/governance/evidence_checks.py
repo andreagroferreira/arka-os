@@ -35,7 +35,8 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass, field, replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from xml.etree import ElementTree
 
 from core.governance.qg_digest import evidence_digest
 from core.shared.test_evidence import coverage_percent_from_xml
@@ -553,30 +554,136 @@ def _junit_result(junit: Path) -> CheckResult:
     )
 
 
+def _coverage_from_xml(
+    coverage_xml: Path, project_dir: Path, changed: list[str] | None,
+) -> CheckResult:
+    """Coverage verdict from an artefact, refusing one that cannot describe the diff."""
+    stale = _stale_coverage_reason(coverage_xml, project_dir, changed)
+    if stale is not None:
+        return CheckResult(
+            check="coverage", ran=True, passed=False,
+            command="parse:coverage.xml", exit_code=None,
+            summary=stale, details_path=str(coverage_xml),
+        )
+    percent = coverage_percent_from_xml(coverage_xml)
+    if percent is None:
+        return CheckResult(
+            check="coverage", ran=True, passed=None,
+            command="parse:coverage.xml", exit_code=None,
+            summary="coverage.xml present but unparseable",
+            details_path=str(coverage_xml),
+        )
+    return CheckResult(
+        check="coverage", ran=True,
+        passed=percent >= COVERAGE_THRESHOLD,
+        command="parse:coverage.xml", exit_code=None,
+        summary=f"coverage {percent:.1f}% (threshold {COVERAGE_THRESHOLD:.0f}%)",
+        details_path=str(coverage_xml),
+    )
+
+
+def _stale_coverage_reason(
+    coverage_xml: Path, project_dir: Path, changed: list[str] | None,
+) -> str | None:
+    """Reason the artefact cannot describe this diff, or None if it can.
+
+    A coverage.xml older than the newest changed source measured a different
+    codebase, and a green number then vouches for code it never executed.
+    """
+    try:
+        artefact_mtime = coverage_xml.stat().st_mtime
+    except OSError:
+        return "coverage.xml unreadable"
+
+    newest_name = _newest_changed_after(project_dir, changed, artefact_mtime)
+    if newest_name is not None:
+        return (
+            f"coverage.xml predates changed source ({newest_name}) — "
+            "regenerate it; it cannot describe this diff"
+        )
+    return _missing_module_reason(coverage_xml, changed)
+
+
+def _missing_module_reason(
+    coverage_xml: Path, changed: list[str] | None,
+) -> str | None:
+    """Reason a changed module is absent from the artefact, or None."""
+    covered = _covered_paths(coverage_xml)
+    missing = [
+        rel for rel in (changed or [])
+        if rel.endswith(".py")
+        and not rel.startswith("tests/")
+        and not _is_covered(rel, covered)
+    ]
+    if not missing:
+        return None
+    return (
+        f"coverage.xml has no entry for {len(missing)} changed module(s), "
+        f"first: {missing[0]}"
+    )
+
+
+def _newest_changed_after(
+    project_dir: Path, changed: list[str] | None, cutoff: float,
+) -> str | None:
+    """Name of the newest changed file modified after cutoff, else None."""
+    newest = cutoff
+    newest_name: str | None = None
+    for rel in changed or []:
+        try:
+            mtime = (project_dir / rel).stat().st_mtime
+        except OSError:
+            continue
+        if mtime > newest:
+            newest, newest_name = mtime, rel
+    return newest_name
+
+
+def _covered_paths(coverage_xml: Path) -> set[str]:
+    """Every source path named in the artefact, as posix strings.
+
+    Parsed rather than substring-matched: a bare stem probe accepts
+    `core/synapse/engine.py` as evidence for a changed `core/sync/engine.py`,
+    which is the same class of defect this check exists to catch. `core/`
+    alone carries 14 colliding stems.
+    """
+    try:
+        root = ElementTree.parse(coverage_xml).getroot()
+    except (ElementTree.ParseError, OSError):
+        return set()
+    sources = [
+        (el.text or "").strip() for el in root.iterfind("sources/source")
+    ]
+    paths: set[str] = set()
+    for cls in root.iter("class"):
+        filename = cls.get("filename")
+        if not filename:
+            continue
+        paths.add(PurePosixPath(filename).as_posix())
+        for source in sources:
+            combined = f"{source.rstrip('/')}/{filename}"
+            paths.add(PurePosixPath(combined).as_posix())
+    return paths
+
+
+def _is_covered(rel: str, covered: set[str]) -> bool:
+    """True when `rel` matches a covered path by full suffix, not by stem."""
+    target = PurePosixPath(rel).as_posix()
+    if target in covered:
+        return True
+    return any(
+        path == target or path.endswith(f"/{target}") or target.endswith(f"/{path}")
+        for path in covered
+    )
+
+
 def _check_coverage(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
     coverage_xml = project_dir / "coverage.xml"
     if coverage_xml.is_file():
-        percent = coverage_percent_from_xml(coverage_xml)
-        if percent is None:
-            return CheckResult(
-                check="coverage", ran=True, passed=None,
-                command="parse:coverage.xml", exit_code=None,
-                summary="coverage.xml present but unparseable",
-                details_path=str(coverage_xml),
-            )
-        return CheckResult(
-            check="coverage", ran=True,
-            passed=percent >= COVERAGE_THRESHOLD,
-            command="parse:coverage.xml", exit_code=None,
-            summary=(
-                f"coverage {percent:.1f}% "
-                f"(threshold {COVERAGE_THRESHOLD:.0f}%)"
-            ),
-            details_path=str(coverage_xml),
-        )
+        return _coverage_from_xml(coverage_xml, project_dir, changed)
     junit = project_dir / "junit.xml"
     if junit.is_file():
         return _junit_result(junit)

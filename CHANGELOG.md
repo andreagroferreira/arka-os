@@ -5,6 +5,58 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.10.0] - 2026-08-06
+
+### Added
+
+- **Propose-only migration runner** (`core/sync/migration_runner.py`) — the
+  engine and spec format for codemods that repair patterns predating a
+  feature. **No migration specs ship in this release, so nothing is scanned
+  yet.** Once specs exist (`core/sync/migrations/*.yaml`, or
+  `~/.arkaos/config/sync/migrations/*.yaml` when the repo directory is
+  absent) they run only for versions newer than the last sync, skip vendored
+  trees, and write one reviewable file to
+  `~/.arkaos/migration-proposals/<version>.md`. Project code is never
+  modified. Every spec is treated as untrusted input: a malformed YAML, an
+  incomplete spec, a bad regex or a nested-quantifier pattern is recorded
+  against that spec and the run continues, rather than aborting a sync that
+  has already written to disk. Both scan caps — hits per migration, files
+  per project — are reported when they actually discard something.
+
+### Fixed
+
+- **The version stamp no longer freezes** — `merge_managed_content` gained a
+  `restamped` status. The stamp previously moved only when the content
+  changed, so a project could show a version many releases old while
+  carrying current content (measured on one install: 51 of 78 projects).
+  Real content changes are still reported as `updated`, never conflated
+  with a restamp.
+- **The coverage gate no longer passes on a stale artefact** — a
+  `coverage.xml` older than the newest changed source, or missing an entry
+  for a changed module, now fails the check instead of vouching for code it
+  never measured. Module presence is matched on the full path parsed from
+  the artefact, not on the filename stem: `core/` alone carries 14 colliding
+  stems, so a stem probe accepted `core/synapse/engine.py` as evidence for a
+  changed `core/sync/engine.py` (`core/governance/evidence_checks.py`).
+- **An unorderable sync baseline no longer reads as "nothing is new"** —
+  `compare_versions` returns `None` for a version pair that cannot be
+  ordered, and the manifest treats an unorderable baseline as a first sync.
+  Previously a degraded run persisted the literal `unknown` into
+  `sync-state.json` and every later run then reported no changes, with no
+  error anywhere (`core/sync/manifest.py`).
+- **The update skill can no longer be instructed to delete a customised
+  section** — Phase 4 dispatches a subagent, and its instructions said to
+  remove the `## <section_title>` section whenever markers were absent.
+  Without markers there is no way to tell ArkaOS's own text from the
+  project's, and `~/.claude/skills/` is not a git repository. The
+  instruction now forbids deleting an unmarked section outright and requires
+  a single well-formed marker pair before any removal.
+- **Client identifiers removed from tracked ignore files** — `.gitignore`
+  and `.npmignore` named two ecosystem slugs. Both files are tracked in a
+  public repository. Replaced with a naming convention (`_private/`,
+  `client-*`, `ecosystem-*`) so a private skill can be excluded without
+  recording whose it is.
+
 ## [5.9.0] - 2026-08-05
 
 ### Added
