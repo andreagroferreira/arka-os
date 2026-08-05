@@ -252,7 +252,7 @@ reason each was rejected:
   motion-design pack, which is deeper and is absorbed as
   `brand/motion-design` (its own section below).
 - `threejs-r3f` — deferred to a dedicated Three.js skill authored from
-  the MIT three.js documentation, where the R3F layer will be ported.
+  the MIT three.js documentation — since done: dev/threejs carries the R3F layer in its references.
 - `swiftui-graphics`, `swiftui-motion`, `compose-graphics`,
   `compose-motion`, `compose-multiplatform` — Apple/Android native
   platforms outside the ArkaOS stack (Laravel, Vue, Nuxt, React, Next,

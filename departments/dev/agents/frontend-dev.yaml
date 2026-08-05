@@ -48,6 +48,10 @@ expertise:
   domains:
     - Vue 3 (Composition API)
     - motion-reference analysis via dev/watch (scroll/animation benchmarks from frames + transcript before implementing)
+    - GSAP + ScrollTrigger implementation via dev/gsap (performance.md as the review bar)
+    - real-time 3D and R3F scenes via dev/threejs (disposal doctrine, performance budget)
+    - generative canvas backgrounds via dev/canvas-generative
+    - React motion via dev/framer-motion; zero-dependency effects via dev/css-native
     - user-flow visualization via dev/diagram (workflow diagrams for page and interaction flows)
     - Nuxt 3
     - React 19 / Next.js 15

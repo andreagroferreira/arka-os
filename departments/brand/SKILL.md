@@ -35,6 +35,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/brand ux-audit <url>` | UX heuristic audit (Nielsen 10) | Focused |
 | `/brand design-system` | Design system specification (Atomic Design) | Enterprise |
 | `/brand wireframe <page>` | UI wireframe and information architecture | Focused |
+| `/brand motion-design <brief>` | Motion direction (Disney principles, timing, choreography) | Focused |
+| `/brand design-dna <reference>` | Reverse-engineer a reference UI into a 3-dimension profile | Focused |
 
 ## Squad
 
