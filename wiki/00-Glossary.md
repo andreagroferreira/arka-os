@@ -31,7 +31,7 @@ not recognize, look it up here first.
 - **Constitution** — the governance rulebook (`config/constitution.yaml`)
   with three enforcement levels: **NON-NEGOTIABLE** (6 rules, verifiable by
   evidence), **MUST** (28 rules), **SHOULD** (12 rules).
-- **Core skills** — the 339 skills that ship in the repo: 324 department
+- **Core skills** — the 340 skills that ship in the repo: 325 department
   skills plus 15 `/arka` meta skills.
 - **Curated skills** — the subset of department skills (42) hand-selected by
   department leads as their default working set; the rest are packed into

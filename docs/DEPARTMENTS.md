@@ -1,6 +1,6 @@
 # ArkaOS Departments
 
-17 departments. 89 agent files (88 unique agents). 339 core skills plus 265 plugin skills. Every department has a lead, specialized agents, and framework-backed skills. The Quality Gate reviews everything before it reaches you.
+17 departments. 89 agent files (88 unique agents). 340 core skills plus 266 plugin skills. Every department has a lead, specialized agents, and framework-backed skills. The Quality Gate reviews everything before it reaches you.
 
 ## How Departments Work
 

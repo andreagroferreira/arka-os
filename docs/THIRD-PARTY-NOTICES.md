@@ -245,8 +245,9 @@ reason each was rejected:
 - `ui-ux-pro-max` — already installed as its own plugin
   (`~/.claude/plugins/`); duplicating it would create two routers
   competing for the same triggers.
-- `gsap` — a third-party condensation of the official GreenSock pack; the
-  primary source wins and is planned as its own absorption.
+- `gsap` — a third-party condensation of the official GreenSock pack;
+  the primary source wins and is absorbed as `dev/gsap` (its own
+  section below).
 - `motion-principles` — overlaps the official LottieFiles
   motion-design pack, which is deeper and is absorbed as
   `brand/motion-design` (its own section below).
@@ -317,6 +318,40 @@ Material derived from this project:
 
 Not carried over: the repository `README.md` (marketing copy the skill
 does not need).
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.
+
+## gsap-skills (GreenSock)
+
+- **Source:** https://github.com/greensock/gsap-skills
+- **License:** MIT — Copyright (c) 2026 GreenSock
+- **License text:** retained verbatim at
+  `departments/dev/skills/gsap/references/greensock-gsap-skills.LICENSE`
+- **Upstream version:** main HEAD `aed9cfd` (2026-04-21)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Eight official modules | `departments/dev/skills/gsap/references/{core,timeline,scrolltrigger,plugins,utils,frameworks,react,performance}.md` | Upstream SKILL.md bodies near-verbatim, one file per module; each gains a two-line derivation header, and every sibling cross-reference is rewritten from `gsap-<name>` to `references/<name>.md` |
+| Router | `departments/dev/skills/gsap/SKILL.md` | ArkaOS-authored: routing contract, module table, the two cross-module rules (cleanup, performance as review bar), Output |
+
+Not carried over: `examples/{vanilla,react,vue,nuxt}/`;
+`.github/instructions/*.instructions.md` and
+`.github/copilot-instructions.md` (the same content in Copilot-specific
+format); the repo-level agent files (`AGENTS.md`, `CLAUDE.md`,
+`GEMINI.md`), `README.md`, `.gitignore`, `.claude-plugin/` and
+`.cursor-plugin/` packaging, `assets/` logos, and `skills/llms.txt` (an
+index the router replaces). The two "See `examples/...`" pointers in
+`frameworks.md` are annotated as upstream-repo references since the
+directories are not vendored.
+
+This absorption retires an unmanaged external dependency:
+`departments/brand/references/uiux-knowledge-and-tools.md` previously
+instructed `npx skills add https://github.com/greensock/gsap-skills`;
+that instruction and every `gsap-<name>` load in the brand, content and
+dev docs now point at the in-repo skill.
 
 The MIT permission notice and copyright line above apply to all copies
 and substantial portions of the derived material.

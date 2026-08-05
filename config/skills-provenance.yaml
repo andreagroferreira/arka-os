@@ -156,6 +156,17 @@ derived:
     origin: community
     source: https://github.com/lottiefiles/motion-design-skill
     license: MIT
+  # Animation/design absorption campaign PR-6 — the official GreenSock
+  # pack (MIT): eight upstream SKILL.md modules become references/ under
+  # one router slug (dev/diagram progressive-disclosure pattern), with
+  # sibling cross-refs rewritten from gsap-<name> to references/<name>.md.
+  # This absorption RETIRES the external dependency: the npx-skills-add
+  # instruction and every gsap-<name> load in brand/content/dev docs now
+  # point at the in-repo skill.
+  departments/dev/skills/gsap:
+    origin: community
+    source: https://github.com/greensock/gsap-skills
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).

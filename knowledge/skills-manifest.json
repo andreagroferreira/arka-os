@@ -1609,6 +1609,21 @@
         "origin": "arkaos"
       }
     },
+    "gsap": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/greensock/gsap-skills",
+        "license": "MIT"
+      }
+    },
     "gtd-setup": {
       "depts": [
         "ops"
