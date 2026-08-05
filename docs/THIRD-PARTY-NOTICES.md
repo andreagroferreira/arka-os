@@ -248,8 +248,8 @@ reason each was rejected:
 - `gsap` — a third-party condensation of the official GreenSock pack; the
   primary source wins and is planned as its own absorption.
 - `motion-principles` — overlaps the official LottieFiles
-  motion-design pack, which is deeper and is planned as its own
-  absorption.
+  motion-design pack, which is deeper and is absorbed as
+  `brand/motion-design` (its own section below).
 - `threejs-r3f` — deferred to a dedicated Three.js skill authored from
   the MIT three.js documentation, where the R3F layer will be ported.
 - `swiftui-graphics`, `swiftui-motion`, `compose-graphics`,

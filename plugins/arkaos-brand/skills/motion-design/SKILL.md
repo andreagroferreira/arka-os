@@ -23,7 +23,22 @@ metadata:
 # Motion Design
 
 > **Agent:** Isabel (Visual Designer) with Sofia D. (UX) | **Framework:** LottieFiles motion doctrine (Disney principles, emotion mapping)
-> **Squad reference:** `departments/brand/references/uiux-knowledge-and-tools.md` (§3 tokens, §8 anti-default, §9 marker)
+> **Squad reference:** `departments/brand/references/uiux-knowledge-and-tools.md` (§3 tokens, **§4 Motion System**, §8 anti-default, §9 marker)
+
+## Precedence — the brand's Motion System outranks the imported doctrine
+
+For ArkaOS-brand surfaces, §4 of the squad reference wins wherever the
+LottieFiles body below disagrees. Concretely: its **Forbidden list**
+(rotation/spin, bounce/elastic on the logo, 3D/perspective, particles,
+morphing, color-cycling) vetoes the rotation spinners, particle bursts,
+bounce settles, elastic easings and depth cues this doctrine legitimately
+teaches for other brands. And durations map to the brand token scale —
+`motion-instant` 100ms · `motion-fast` 150ms (default) · `motion-normal`
+300ms · `motion-slow` 500ms · `motion-deliberate` 800ms — with the
+imported ms tables read as *relative* guidance inside that scale, not as
+absolute values. For client-brand work, the client's own motion system
+plays the same trumping role; the doctrine below is the default only
+where no system exists.
 
 ## When to Apply
 
