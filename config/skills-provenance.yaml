@@ -121,6 +121,24 @@ derived:
     origin: community
     source: https://github.com/zanwei/design-dna
     license: MIT
+  # Animation/design absorption campaign PR-3 — three skills cherry-picked
+  # from AThevon/genjutsu (MIT, 15 skills upstream). Bodies are upstream
+  # near-verbatim with ArkaOS frontmatter, agent attribution and Output;
+  # canvas-generative's handoff table rewritten to in-repo destinations.
+  # The 12 skills NOT taken are recorded with reasons in
+  # docs/THIRD-PARTY-NOTICES.md.
+  departments/dev/skills/canvas-generative:
+    origin: community
+    source: https://github.com/AThevon/genjutsu
+    license: MIT
+  departments/dev/skills/framer-motion:
+    origin: community
+    source: https://github.com/AThevon/genjutsu
+    license: MIT
+  departments/dev/skills/css-native:
+    origin: community
+    source: https://github.com/AThevon/genjutsu
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).

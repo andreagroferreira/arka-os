@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 65
+> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 68
 
 Development is the largest department in ArkaOS, covering the full spectrum of software engineering — from system architecture and backend APIs to frontend interfaces, data pipelines, AI engineering, security, and DevOps. Every request that involves writing, reviewing, testing, deploying, or designing code routes here.
 
@@ -12,7 +12,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 
 | Commands | Skills | Agents |
 | --- | --- | --- |
-| 36 | 65 | 15 |
+| 36 | 68 | 15 |
 
 **Commands** (36 via `/dev`):
 
@@ -32,7 +32,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 | `/dev mcp add <name> [--project <path>]` | Add a single MCP to a project |
 | ... | 24 more — full list in [docs/COMMANDS.md](../../docs/COMMANDS.md) |
 
-**Skills** (65 — 64 sub-skills plus the `/dev` hub):
+**Skills** (68 — 67 sub-skills plus the `/dev` hub):
 
 | Skill | What it does |
 | --- | --- |
@@ -46,12 +46,14 @@ The department is organized into three sub-squads that operate under Paulo's coo
 | `app-test` | Build, launch, and click through a native app (macOS or iOS Simulator) via Computer Use — exercises every c... |
 | `architecture-design` | Design system architecture with Clean Architecture, Hexagonal, or DDD patterns and produce an ADR (Architec... |
 | `build-fix` | Systematic build-failure diagnosis: read the FIRST error bottom-up, reproduce it in isolation, classify it... |
+| `canvas-generative` | Algorithmic and generative art with Canvas 2D: DPR-aware setup, particle systems with pooled allocation, no... |
 | `changelog` | Generate changelogs from git history using Conventional Commits: lints commit messages, detects the SemVer... |
 | `ci-cd-pipeline` | Design and generate CI/CD pipelines from the detected project stack — GitHub Actions or GitLab CI with lint... |
 | `clean-code-review` | Focused Clean Code (Uncle Bob) + SOLID sweep of a file or PR — naming, function size, nesting depth, dead c... |
 | `click-path-audit` | Simulates every interactive handler call-by-call to find bugs a normal read skips over — shared-state side... |
 | `code-review` | General code review of a file, diff, or PR against Clean Code, SOLID, test coverage, and baseline security... |
 | `codebase-onboard` | Analyze an existing codebase and generate onboarding documentation for new developers: stack detection, arc... |
+| `css-native` | Zero-dependency animation and visual techniques in modern CSS: scroll-driven animations (scroll and view pr... |
 | `db-design` | Database design with the DBA (Vasco): schema modeling, normalization, index strategy, RLS policies, and mig... |
 | `db-schema` | Design a feature's database schema: normalization to 3NF, relationship mapping, cross-cutting concerns (tim... |
 | `ddd-model` | Domain-Driven Design modeling with the Evans/Vernon playbook: bounded contexts, aggregates, domain events,... |
@@ -65,6 +67,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 | `env-secrets` | Audit environment files and source for leaked secrets (OWASP Secrets Management): .gitignore coverage, hard... |
 | `evaluator-build-loop` | Adversarial build loop for UI work: a generator implements against a weighted rubric while an independent,... |
 | `exploit-triage` | Reviews code for the vulnerabilities that are actually reachable and actually exploitable — SSRF, auth bypa... |
+| `framer-motion` | Framer Motion for React: AnimatePresence exit animations, layout animations with stable keys, variant propa... |
 | `incident` | Incident response with Google SRE incident management: severity classification (SEV1-4), incident commander... |
 | `laravel-review` | Laravel/PHP review against ArkaOS conventions — mass assignment, N+1 queries, Blade XSS, business logic lea... |
 | `mcp` | MCP (Model Context Protocol) management for projects: apply pre-configured MCP profiles (laravel, nuxt, eco... |

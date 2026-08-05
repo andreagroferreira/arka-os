@@ -523,6 +523,21 @@
         "origin": "arkaos"
       }
     },
+    "canvas-generative": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
+      }
+    },
     "cart-recovery": {
       "depts": [
         "ecom"
@@ -899,6 +914,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "css-native": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
       }
     },
     "cto-advisor": {
@@ -1432,6 +1462,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "framer-motion": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
       }
     },
     "free-tools": {
