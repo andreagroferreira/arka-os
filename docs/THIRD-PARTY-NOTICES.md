@@ -266,3 +266,31 @@ and the 786KB `assets/logo.png`.
 
 The MIT permission notice and copyright line above apply to all copies
 and substantial portions of the derived material.
+
+## three.js documentation (three.js authors) and genjutsu threejs-r3f
+
+- **Sources:** https://github.com/mrdoob/three.js (docs/llms.txt) and
+  https://github.com/AThevon/genjutsu (skills/_jutsu/threejs-r3f)
+- **Licenses:** both MIT — "Copyright © 2010-2026 three.js authors";
+  "Copyright (c) 2026 Adrien Thevon"
+- **License text:** genjutsu's retained verbatim at
+  `departments/dev/skills/threejs/references/genjutsu.LICENSE`; the
+  three.js licence applies to guidance consulted, not files copied
+- **Upstream versions:** three.js `dev` docs as of 2026-08-05; genjutsu
+  `08a792f` (2026-07-31)
+
+Material in `departments/dev/skills/threejs/`:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Skill core | `SKILL.md` | ArkaOS-authored. Facts and canonical patterns (import maps, WebGL vs WebGPU/TSL renderer choice) follow the three.js project's own LLM guidance in `docs/llms.txt` (MIT); the prose, structure, disposal doctrine and performance budget are original |
+| R3F layer | `references/r3f.md` | Derived from genjutsu's `threejs-r3f` SKILL.md: body near-verbatim minus frontmatter, with the two handoff rows that pointed at unabsorbed genjutsu siblings rewritten to in-repo destinations |
+| Scene setup | `references/scene-setup.md` | Verbatim from genjutsu |
+| Shaders | `references/shaders.md` | Verbatim from genjutsu |
+
+The `cloudai-x/threejs-skills` pack the operator originally pointed at
+carries **no licence** and was deliberately not used — not as source, not
+as structural reference. This section exists partly to record that.
+
+The MIT permission notices and copyright lines above apply to all copies
+and substantial portions of the derived material.

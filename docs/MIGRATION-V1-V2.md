@@ -115,7 +115,7 @@ If you forget to migrate, the v2 hooks detect v1 installations automatically. Yo
 
 ```
 [MIGRATION] ArkaOS v1 detected at ~/.claude/skills/arka-os.
-Run 'npx arkaos migrate' to upgrade to v2 (89 agents, 337 skills, dashboard).
+Run 'npx arkaos migrate' to upgrade to v2 (89 agents, 338 skills, dashboard).
 Your data will be preserved.
 ```
 
@@ -135,7 +135,7 @@ All 9 checks should pass:
 [PASS] Synapse engine responsive
 [PASS] Knowledge DB initialized
 [PASS] 89 agents loaded
-[PASS] 337 skills validated
+[PASS] 338 skills validated
 [PASS] 24 workflows registered
 All checks passed.
 ```

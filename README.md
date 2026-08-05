@@ -4,7 +4,7 @@
 
 **The Operating System for AI Agent Teams.**
 
-89 agents. 17 departments. 337 skills. Enterprise frameworks. Multi-runtime. One install.
+89 agents. 17 departments. 338 skills. Enterprise frameworks. Multi-runtime. One install.
 
 ```bash
 npx arkaos install
@@ -97,7 +97,7 @@ npx arkaos doctor    # Health check
 
 ### Skill packs, à la carte
 
-The default install ships a curated core so your context window stays lean. Everything else lives in the ArkaOS plugin marketplace: 16 department packs with 263 skills, generated straight from the same sources the core uses. Inside Claude Code:
+The default install ships a curated core so your context window stays lean. Everything else lives in the ArkaOS plugin marketplace: 16 department packs with 264 skills, generated straight from the same sources the core uses. Inside Claude Code:
 
 ```
 /plugin marketplace add andreagroferreira/arka-os
