@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-08-05T17:17:56.198734",
+    "generated": "2026-08-05T17:46:33.926189",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -241,8 +241,8 @@
         "color palette reverse-engineering from screenshots / live DOM",
         "typography token harvesting (font-family, size, weight, line-height scales)",
         "spacing and grid token inference",
-        "figma file parsing",
-        "chromium-headless capture pipelines",
+        "Figma file parsing",
+        "Chromium-headless capture pipelines",
         "phase-2 extraction executor for brand/design-dna"
       ],
       "frameworks": [
@@ -1548,7 +1548,7 @@
         "system design",
         "tech strategy",
         "cloud infrastructure",
-        "ai/ml systems"
+        "AI/ML systems"
       ],
       "frameworks": [
         "Clean Architecture",
@@ -4583,7 +4583,7 @@
         "territory planning"
       ],
       "frameworks": [
-        "Pipeline Velocity (# Opps x Win Rate x ACV / Cycle)",
+        "Pipeline Velocity (# Opportunities x Win Rate x ACV / Cycle)",
         "MEDDIC Qualification",
         "Revenue Forecasting Models",
         "Sales Funnel Analysis"
