@@ -46,12 +46,24 @@ def build_manifest(
     )
 
 
-def _is_version_newer(version: str, baseline: str) -> bool:
-    """Return True if version is strictly newer than baseline (semver int tuple)."""
+def is_version_newer(version: str, baseline: str) -> bool:
+    """Return True if version is strictly newer than baseline (semver int tuple).
+
+    Returns False when either side is not parseable as a dotted integer
+    version (``unknown``, ``pending-sync``): an unorderable pair cannot be
+    "newer", and guessing would run migrations against the wrong baseline.
+    """
     def parse(v: str) -> tuple[int, ...]:
         return tuple(int(part) for part in v.split("."))
 
-    return parse(version) > parse(baseline)
+    try:
+        return parse(version) > parse(baseline)
+    except ValueError:
+        return False
+
+
+# Backwards-compatible private alias (used by existing call sites and tests).
+_is_version_newer = is_version_newer
 
 
 def _find_new_features(

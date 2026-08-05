@@ -14,6 +14,7 @@ from core.sync.schema import (
     ContentSyncResult,
     DescriptorSyncResult,
     McpSyncResult,
+    MigrationScanResult,
     SettingsSyncResult,
     SkillSyncResult,
     SyncReport,
@@ -38,6 +39,7 @@ def build_report(
     deprecated_features: list[str] | None = None,
     content_results: list[ContentSyncResult] | None = None,
     agent_results: list[AgentProvisionResult] | None = None,
+    migrations: MigrationScanResult | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
     errors = _collect_errors(
@@ -59,6 +61,7 @@ def build_report(
         skill_results=skill_results,
         content_results=content_results or [],
         agent_results=agent_results or [],
+        migrations=migrations,
         errors=errors,
     )
 
@@ -96,6 +99,8 @@ def format_report(report: SyncReport) -> str:
     if key_changes:
         lines += ["", "  Key changes:"]
         lines += [f"  - {c}" for c in key_changes]
+
+    lines += _format_migration_lines(report.migrations)
 
     total_deferred = sum(len(r.mcps_deferred) for r in report.mcp_results)
     projects_with_deferred = sum(1 for r in report.mcp_results if r.mcps_deferred)
@@ -169,8 +174,16 @@ def _format_phase_line(label: str, results: list) -> str:
 def _format_skill_line(results: list[SkillSyncResult]) -> str:
     total = len(results)
     updated = _count_updated(results)
+    restamped = sum(1 for r in results if r.status == "restamped")
     unchanged = _count_unchanged(results)
-    return f"  {'Skills:':<14}{total} ecosystems synced ({updated} updated, {unchanged} unchanged)"
+    counts = f"{updated} updated, {unchanged} unchanged"
+    if restamped:
+        counts = f"{updated} updated, {restamped} restamped, {unchanged} unchanged"
+    line = f"  {'Skills:':<14}{total} user-owned synced ({counts})"
+    pending = sum(len(r.features_pending) for r in results)
+    if pending:
+        line += f"\n  {'':<14}{pending} section(s) diverged — left untouched, proposals written"
+    return line
 
 
 def _format_key_changes(report: SyncReport) -> list[str]:
@@ -207,16 +220,56 @@ def _add_descriptor_changes(results: list[DescriptorSyncResult], changes: list[s
 
 
 def _add_skill_changes(results: list[SkillSyncResult], changes: list[str]) -> None:
+    """Name what actually moved, per feature, so the value is visible."""
+    buckets = (
+        ("added to", "features_added"),
+        ("brought up to date in", "features_updated"),
+        ("adopted into a managed block in", "features_adopted"),
+        ("removed from", "features_removed"),
+    )
+    for label, attr in buckets:
+        by_feature: dict[str, list[str]] = {}
+        for r in results:
+            for feature in getattr(r, attr):
+                by_feature.setdefault(feature, []).append(r.skill_name)
+        for feature, skills in by_feature.items():
+            changes.append(f"'{feature}' {label}: {', '.join(skills)}")
     for r in results:
-        for feature in r.features_added:
-            changes.append(f"'{feature}' added to: {r.skill_name}")
+        if r.features_pending:
+            changes.append(
+                f"{r.skill_name}: {', '.join(r.features_pending)} diverged "
+                f"— review {r.proposal_path}"
+            )
+
+
+def _format_migration_lines(migrations: MigrationScanResult | None) -> list[str]:
+    """Render the migration section; silent only when nothing ran and nothing hit."""
+    if migrations is None or not migrations.migrations_run:
+        return []
+    ran = len(migrations.migrations_run)
+    if not migrations.hits:
+        return ["", f"  Migrations: {ran} checked, no legacy patterns found."]
+    projects = len({h.project for h in migrations.hits})
+    lines = [
+        "",
+        f"  Migrations: {ran} checked — {len(migrations.hits)} legacy pattern(s) "
+        f"in {projects} project(s). Nothing applied.",
+        f"  Review: {migrations.proposal_path}",
+    ]
+    if migrations.truncated:
+        lines.append(f"  Capped (more hits exist): {', '.join(migrations.truncated)}")
+    return lines
 
 
 def _format_content_line(results: list[ContentSyncResult]) -> str:
     total = len(results)
     updated = _count_updated(results)
+    restamped = sum(1 for r in results if r.status == "restamped")
     unchanged = _count_unchanged(results)
-    return f"  {'Content:':<14}{total} synced ({updated} updated, {unchanged} unchanged)"
+    counts = f"{updated} updated, {unchanged} unchanged"
+    if restamped:
+        counts = f"{updated} updated, {restamped} restamped, {unchanged} unchanged"
+    return f"  {'Content:':<14}{total} synced ({counts})"
 
 
 def _format_agents_line(results: list[AgentProvisionResult]) -> str:

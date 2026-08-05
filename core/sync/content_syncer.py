@@ -52,10 +52,13 @@ def _do_sync(project: Project) -> ContentSyncResult:
     project_claude.mkdir(parents=True, exist_ok=True)
 
     updated: list[str] = []
+    restamped: list[str] = []
     unchanged: list[str] = []
     errored: list[str] = []
 
-    _sync_claude_md(core, project, project_claude, version, updated, unchanged, errored)
+    _sync_claude_md(
+        core, project, project_claude, version, updated, restamped, unchanged, errored
+    )
     _sync_rules(core, project_claude, updated, unchanged, errored)
     _sync_stack_rules(core, project, project_claude, updated, unchanged, errored)
     _sync_hooks(core, project_claude, updated, unchanged, errored)
@@ -65,12 +68,15 @@ def _do_sync(project: Project) -> ContentSyncResult:
         status = "error"
     elif updated:
         status = "updated"
+    elif restamped:
+        status = "restamped"
     else:
         status = "unchanged"
     return ContentSyncResult(
         path=project.path,
         status=status,
         artefacts_updated=updated,
+        artefacts_restamped=restamped,
         artefacts_unchanged=unchanged,
         artefacts_errored=errored,
     )
@@ -82,6 +88,7 @@ def _sync_claude_md(
     project_claude: Path,
     version: str,
     updated: list[str],
+    restamped: list[str],
     unchanged: list[str],
     errored: list[str],
 ) -> None:
@@ -103,7 +110,8 @@ def _sync_claude_md(
         unchanged.append("CLAUDE.md")
         return
     target_file.write_text(result.new_text, encoding="utf-8")
-    updated.append("CLAUDE.md")
+    bucket = restamped if result.status == "restamped" else updated
+    bucket.append("CLAUDE.md")
 
 
 # Descriptor slug -> stack-rules basename (no .md). Slugs are case-folded first.

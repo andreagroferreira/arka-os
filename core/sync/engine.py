@@ -23,6 +23,12 @@ from core.sync.settings_syncer import sync_all_settings
 from core.sync.descriptor_syncer import sync_all_descriptors
 from core.sync.agent_provisioner import sync_all_agents
 from core.sync.content_syncer import sync_all_content
+from core.sync.migration_runner import (
+    load_migrations,
+    pending_migrations,
+    run_migrations,
+)
+from core.sync.skill_syncer import sync_all_skills
 from core.sync.reporter import build_report, format_report, write_sync_state
 from core.sync.schema import SyncReport
 
@@ -62,17 +68,37 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
     content_results = sync_all_content(projects)
     agent_results = sync_all_agents(projects)
 
+    # Phase 4 — user-owned skills. Core-shipped skills are excluded: the
+    # installer replaces those wholesale on `npx arkaos update`.
+    core_root = _read_repo_path(arkaos_home)
+    skill_results = (
+        sync_all_skills(skills_dir, core_root, manifest.features, current_version)
+        if core_root is not None
+        else []
+    )
+
+    # Phase 6 — propose-only migrations for the versions this upgrade crossed.
+    specs = pending_migrations(
+        load_migrations(_resolve_migrations_dir(arkaos_home)),
+        previous_version,
+        manifest.is_first_sync,
+    )
+    migrations = run_migrations(
+        projects, specs, arkaos_home / "migration-proposals", current_version
+    )
+
     report = build_report(
         previous_version,
         current_version,
         mcp_results,
         settings_results,
         descriptor_results,
-        [],
+        skill_results,
         content_results=content_results,
         agent_results=agent_results,
         new_features=manifest.new_features,
         deprecated_features=manifest.deprecated_features,
+        migrations=migrations,
     )
 
     state_file = arkaos_home / "sync-state.json"
@@ -159,6 +185,16 @@ def _resolve_features_dir(arkaos_home: Path) -> Path:
 
     fallback = arkaos_home / "config" / "sync" / "features"
     return fallback
+
+
+def _resolve_migrations_dir(arkaos_home: Path) -> Path:
+    """Resolve the migrations directory from repo or fallback config."""
+    repo_path = _read_repo_path(arkaos_home)
+    if repo_path is not None:
+        repo_migrations = repo_path / "core" / "sync" / "migrations"
+        if repo_migrations.exists():
+            return repo_migrations
+    return arkaos_home / "config" / "sync" / "migrations"
 
 
 def _parse_scan_dirs(projects_dir_str: str) -> list[Path]:
