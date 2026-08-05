@@ -344,7 +344,7 @@ function update() {
 |---|---|
 | Noise implementations, particle pool, flow field, L-system, attractors | `references/algorithms.md` |
 | Timing and easing for animated transitions | the brand guidelines' Motion System (§06), reached via the source-of-truth table in `departments/brand/references/uiux-knowledge-and-tools.md` |
-| 3D generative (shaders, GPU particles) | out of this skill's scope — Canvas 2D only; scope a WebGL approach with the frontend squad |
+| 3D generative (shaders, GPU particles) | `departments/dev/skills/threejs/SKILL.md` |
 
 ## Output
 

@@ -291,7 +291,7 @@ Material in `departments/dev/skills/threejs/`:
 The `cloudai-x/threejs-skills` pack the operator originally pointed at
 was deliberately not used — not as source, not as structural reference.
 It ships **no LICENSE file and names no copyright holder**; its README
-carries only a bare, unattributed "MIT License — Feel free to use,
+carries only a bare, unattributed "MIT License - Feel free to use,
 modify, and distribute" line, which grants nothing verifiable to rely
 on. This section exists partly to record that decision.
 

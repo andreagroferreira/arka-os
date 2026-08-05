@@ -37,13 +37,15 @@ is the classic silent breaker:
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@<version>/build/three.module.js",
     "three/webgpu": "https://cdn.jsdelivr.net/npm/three@<version>/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@<version>/build/three.tsl.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@<version>/examples/jsm/" } }
 </script>
 ```
 
 `WebGPURenderer` is not exported from `three` — it lives in the
 `three/webgpu` entry, and it is async: `await renderer.init()` before the
-first frame. Omit that entry and the import fails at runtime.
+first frame. The TSL node functions live in `three/tsl`, not in
+`three/webgpu`. Omit either entry and the import fails at runtime.
 
 In a bundled project, `npm i three` and import the same specifiers. Check
 the installed version before writing code — the API moves, and the
@@ -92,15 +94,19 @@ function disposeSubtree(root) {
   const geometries = new Set(), materials = new Set(), textures = new Set();
   root.traverse((obj) => {
     if (!obj.isMesh && !obj.isPoints && !obj.isLine && !obj.isSprite) return;
-    if (obj.geometry) geometries.add(obj.geometry);
+    // Sprites share one engine-owned quad geometry app-wide: never dispose it
+    if (obj.geometry && !obj.isSprite) geometries.add(obj.geometry);
     const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
     for (const m of mats) {
       if (!m) continue;
       materials.add(m);
       for (const v of Object.values(m)) if (v?.isTexture) textures.add(v);
-      // ShaderMaterial textures live in uniforms, not on the material
-      if (m.uniforms) for (const u of Object.values(m.uniforms))
-        if (u?.value?.isTexture) textures.add(u.value);
+      // ShaderMaterial textures live in uniforms, not on the material —
+      // and a uniform's value can be an ARRAY of textures (atlas shape)
+      if (m.uniforms) for (const u of Object.values(m.uniforms)) {
+        const vals = Array.isArray(u?.value) ? u.value : [u?.value];
+        for (const v of vals) if (v?.isTexture) textures.add(v);
+      }
     }
   });
   textures.forEach((t) => t.dispose());
@@ -109,7 +115,8 @@ function disposeSubtree(root) {
 }
 ```
 
-This disposes everything the subtree references. When a resource is shared
+This covers the shapes meshes ordinarily carry — geometries, material
+maps, scalar and array texture uniforms. When a resource is shared
 with meshes OUTSIDE the subtree — a texture atlas, a cached material —
 exclude it: ownership is yours to model, and dispose belongs to the owner.
 
@@ -123,7 +130,7 @@ until the tab dies. This is the number-one three.js production bug.
   via `BufferGeometryUtils.mergeGeometries`.
 - Reuse geometries and materials across meshes; clone only when a
   property must diverge.
-- Textures: compressed formats (KTX2/basis) for anything big, and never
+- Textures: compressed formats (KTX2/Basis) for anything big, and never
   larger than the screen area they cover; mipmaps come from the loader or
   `generateMipmaps`, with no power-of-two constraint in WebGL 2.
 - Lights are per-fragment cost: prefer one directional + ambient or an

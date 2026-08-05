@@ -194,12 +194,12 @@ Parent state changes re-render the Canvas subtree — the Canvas does not
 remount, but every child re-renders, props reconcile against the scene
 graph, and R3F work you meant to keep out of React's render path runs
 again. Keep fast-changing state out of the Canvas parent (zustand or
-refs), not because of a remount, but because of render churn.
+refs).
 
 ```tsx
 // BAD
 function App() {
-  const [uiState, setUiState] = useState(false) // re-renders remount Canvas
+  const [uiState, setUiState] = useState(false) // fast-changing state here re-renders the whole Canvas subtree
   return (
     <>
       <button onClick={() => setUiState(!uiState)}>Toggle</button>
