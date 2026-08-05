@@ -9,6 +9,7 @@ Mirror of the PR20 reorganizer pattern but focused on capability-capture.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -76,9 +77,37 @@ def evaluate(
     out_dir = output_dir or _DEFAULT_OUTPUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     iso_today = today or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    path = out_dir / f"{iso_today}-{slug}.md"
+    path = _collision_free_path(out_dir, iso_today, slug, markdown)
     path.write_text(markdown, encoding="utf-8")
     return SkillProposal(True, "proposed", slug, path, markdown)
+
+
+def _collision_free_path(
+    out_dir: Path, iso_today: str, slug: str, markdown: str
+) -> Path:
+    """Return a path for today's proposal that will not clobber another.
+
+    ``_suggest_slug`` draws from the seven skill-worthy hint patterns, so
+    a day's proposals collapse onto at most eight filenames. Every
+    proposal after the first with the same slug used to overwrite its
+    predecessor, silently: distinct captured capabilities were lost with
+    no error and no trace.
+
+    Disambiguates by content digest rather than a counter, so re-running
+    the hook over the same closing message stays idempotent (same content
+    -> same path -> one file) while genuinely different proposals get
+    their own.
+    """
+    path = out_dir / f"{iso_today}-{slug}.md"
+    if not path.exists():
+        return path
+    try:
+        if path.read_text(encoding="utf-8") == markdown:
+            return path
+    except OSError:
+        return path
+    digest = hashlib.sha256(markdown.encode("utf-8")).hexdigest()[:8]
+    return out_dir / f"{iso_today}-{slug}-{digest}.md"
 
 
 def _has_completion_signal(text: str) -> bool:

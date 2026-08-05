@@ -86,6 +86,59 @@ class TestProposalFile:
         assert "2026-05-25" in result.proposal_path.name
 
 
+class TestProposalCollisions:
+    """`_suggest_slug` has eight possible outputs, so same-day slug
+    collisions are the norm, not the edge case. Measured on a live
+    install: seven proposals collapsed onto three files."""
+
+    BASE = (
+        "[arka:gate:4] Shipped the {topic} as a reusable workflow with a "
+        "template and a checklist covering the whole procedure end to end."
+    )
+
+    def test_distinct_proposals_do_not_overwrite_each_other(
+        self, tmp_path: Path
+    ):
+        first = evaluate(
+            self.BASE.format(topic="release pipeline"),
+            output_dir=tmp_path, today="2026-05-25",
+        )
+        second = evaluate(
+            self.BASE.format(topic="incident runbook"),
+            output_dir=tmp_path, today="2026-05-25",
+        )
+
+        assert first.should_propose and second.should_propose
+        assert first.suggested_slug == second.suggested_slug
+        assert first.proposal_path != second.proposal_path
+        assert first.proposal_path.exists()
+        assert second.proposal_path.exists()
+        assert len(list(tmp_path.glob("*.md"))) == 2
+        # The first capture survives verbatim.
+        assert "release pipeline" in first.proposal_path.read_text(
+            encoding="utf-8"
+        )
+
+    def test_rerunning_the_same_closing_message_is_idempotent(
+        self, tmp_path: Path
+    ):
+        text = self.BASE.format(topic="release pipeline")
+        first = evaluate(text, output_dir=tmp_path, today="2026-05-25")
+        second = evaluate(text, output_dir=tmp_path, today="2026-05-25")
+
+        assert first.proposal_path == second.proposal_path
+        assert len(list(tmp_path.glob("*.md"))) == 1
+
+    def test_first_proposal_keeps_the_plain_name(self, tmp_path: Path):
+        result = evaluate(
+            self.BASE.format(topic="release pipeline"),
+            output_dir=tmp_path, today="2026-05-25",
+        )
+        assert result.proposal_path.name == (
+            f"2026-05-25-{result.suggested_slug}.md"
+        )
+
+
 class TestResultShape:
     def test_frozen(self, tmp_path: Path):
         result = evaluate("[arka:trivial]", output_dir=tmp_path)
