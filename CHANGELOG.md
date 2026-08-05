@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.8.0] - 2026-08-05
+
+### Added
+
+- **`dev/gsap`** (#461) — the official GreenSock skill pack (MIT,
+  upstream `aed9cfd`) as one router slug with the eight modules as
+  progressive-disclosure references, sibling cross-refs rewritten.
+  Byte-fidelity verified against real upstream by the Quality Gate:
+  84/84 deviating lines classified into four documented classes, zero
+  code lines touched, all 76 javascript blocks byte-identical. The
+  router surfaces the live licensing doctrine (Club plugins are free;
+  never generate an `.npmrc` auth token) and treats `performance.md` as
+  the mandatory review bar; direction stays with `brand/motion-design`.
+
+### Fixed
+
+- **The unmanaged external GSAP dependency is retired** (#461).
+  `uiux-knowledge-and-tools.md` had instructed
+  `npx skills add https://github.com/greensock/gsap-skills` since the
+  design reform; that instruction and every `gsap-<name>` load across
+  brand, content and dev docs now point at the in-repo skill.
+  Repo-wide grep for external references: zero.
+
 ## [5.7.0] - 2026-08-05
 
 ### Added
