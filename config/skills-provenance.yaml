@@ -148,6 +148,14 @@ derived:
     origin: community
     source: https://github.com/AThevon/genjutsu
     license: MIT
+  # Animation/design absorption campaign PR-5 — motion doctrine derived
+  # from lottiefiles/motion-design-skill (MIT): director/, patterns/ and
+  # reference/ trees verbatim under references/, SKILL.md body upstream
+  # near-verbatim with ArkaOS frontmatter, header and Output.
+  departments/brand/skills/motion-design:
+    origin: community
+    source: https://github.com/lottiefiles/motion-design-skill
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).
