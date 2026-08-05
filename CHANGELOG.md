@@ -5,6 +5,40 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.0] - 2026-08-05
+
+### Added
+
+- **`brand/design-dna`** (#455) — absorbs `zanwei/design-dna` (MIT,
+  upstream `9d9d795`). Reverse-engineers a reference UI — screenshot,
+  image, or live URL — into a portable, generation-ready JSON profile in
+  which `visual_effects` (WebGL, shaders, particles, scroll) is a
+  first-class dimension alongside measurable tokens and qualitative
+  style, so the effect budget survives the handoff to whoever builds it.
+  The skill opens with a self-contained safety gate that binds in every
+  phase and in plugin bundles shipped without their siblings: template
+  marketplaces and signature designer work are refused before any fetch,
+  the SSRF rules (schemes, private ranges, `169.254.169.254`, redirect
+  hops) are stated inline, remote content is treated as adversarial, and
+  a portable profile is only emitted with authorship attestation.
+  Extraction delegates to Nia (`extraction-script-writer`); token custody
+  hands to Iris (`design-ops-lead`); generated CSS carries both the
+  enforced `[arka:design]` marker and the `[arka:design-dna]` companion
+  stamp that `landing/page-architect` reads for structural
+  diversification. Reciprocal SKIPs land in `brand/design-system` and
+  `brand/colors` with disjoint predicates.
+
+### Fixed
+
+- **A repo-wide count lock replaces the tripwire that existed by
+  accident** (#455). `test_docs_consistency` now asserts that no prose
+  surface carries a skill count `docs_stats.py` disagrees with. The old
+  de-facto alarm was a hard-coded `333` inside the catalog test — correct
+  to derive, but deriving it removed the only repo-wide alarm, and nine
+  stale counts across seven files shipped green past eighteen existing
+  locks in the same PR. Historical records (CHANGELOG, ADRs, dated plans)
+  and generated artifacts are excluded by design.
+
 ## [5.3.0] - 2026-08-04
 
 ### Added
