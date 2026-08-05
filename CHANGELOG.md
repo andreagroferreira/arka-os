@@ -5,6 +5,25 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.0] - 2026-08-05
+
+### Added
+
+- **`brand/motion-design`** (#460) — the LottieFiles motion doctrine
+  (MIT, official, upstream `f9a8a04`) as the direction layer: emotional
+  intent, motion personality archetypes, Disney principles adapted for
+  UI, choreography and stagger rules, timing/easing tables and a quality
+  checklist, framework-agnostic by design. The 16 doctrine files land
+  byte-verbatim (34/34 blob SHAs verified against upstream); the skill
+  body is a contiguous byte-verbatim substring beneath an ArkaOS
+  Precedence section that reconciles the imported doctrine with the
+  brand's own Motion System — §4's Forbidden list applied with exact
+  scoping (bounce/elastic vetoed on the logo only), imported ms tables
+  read as relative guidance inside the brand token scale, client motion
+  systems trumping identically. Implementation hands to dev/css-native,
+  dev/framer-motion or dev/canvas-generative; brand/design-system's
+  motion chapter now loads this skill first.
+
 ## [5.6.0] - 2026-08-05
 
 ### Added
