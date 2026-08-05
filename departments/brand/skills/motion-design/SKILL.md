@@ -36,11 +36,15 @@ metadata:
 ## Precedence — the brand's Motion System outranks the imported doctrine
 
 For ArkaOS-brand surfaces, §4 of the squad reference wins wherever the
-LottieFiles body below disagrees. Concretely: its **Forbidden list**
-(rotation/spin, bounce/elastic on the logo, 3D/perspective, particles,
-morphing, color-cycling) vetoes the rotation spinners, particle bursts,
-bounce settles, elastic easings and depth cues this doctrine legitimately
-teaches for other brands. And durations map to the brand token scale —
+LottieFiles body below disagrees. Concretely, §4's **Forbidden list**
+reads: rotation/spin, bounce/elastic *on the logo*, 3D/perspective,
+particles, morphing, color-cycling. Applied to this doctrine: the
+rotation spinners, particle bursts, perspective transforms and the
+morphing taught in the linked pattern files are vetoed outright; bounce
+settles and elastic easings are vetoed **on the logo only** — elsewhere
+they remain available exactly as the body teaches them. Scale, shadow
+and parallax depth cues are NOT the forbidden `3D/perspective` and stay
+allowed. And durations map to the brand token scale —
 `motion-instant` 100ms · `motion-fast` 150ms (default) · `motion-normal`
 300ms · `motion-slow` 500ms · `motion-deliberate` 800ms — with the
 imported ms tables read as *relative* guidance inside that scale, not as
