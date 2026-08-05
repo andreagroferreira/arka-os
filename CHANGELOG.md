@@ -5,6 +5,35 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.0] - 2026-08-05
+
+### Added
+
+- **The genjutsu trio** (#456) — three skills cherry-picked from
+  `AThevon/genjutsu` (MIT, upstream `08a792f`; twelve of its fifteen
+  skills rejected with individual reasons in THIRD-PARTY-NOTICES).
+  `dev/canvas-generative`: DPR-aware Canvas 2D generative art — pooled
+  particle systems, noise and flow fields, fractals, L-systems, double
+  buffering, with 26KB of reference implementations. `dev/framer-motion`:
+  AnimatePresence, layout animations, variant orchestration, gestures,
+  motion values. `dev/css-native`: scroll-driven timelines, View
+  Transitions (SPA and MPA), `@starting-style`, anchor positioning,
+  container queries, with browser-support fallbacks. Bodies stay upstream
+  near-verbatim; ArkaOS adds the routing contract with scope-disjoint
+  SKIPs, agent attribution, Output sections and the KB-first prefix.
+  Two upstream bugs were caught by the Quality Gate and fixed rather
+  than imported: the particle-system usage example referenced undeclared
+  identifiers and spawned in backing-buffer pixels, and the resize
+  handler never updated the pinned CSS box.
+
+### Follow-ups filed
+
+- #457 — fenced JS/TS in skill markdown needs static scope analysis
+  (1,741 lines shipped in this PR with zero executable checking; the
+  originally proposed `node --check` provably passes the motivating bug).
+- #458 — the repo-wide count lock misses wiki header and summary-table
+  cells (the same stale-count class recurred in two consecutive PRs).
+
 ## [5.4.0] - 2026-08-05
 
 ### Added
