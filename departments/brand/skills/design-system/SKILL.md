@@ -41,8 +41,10 @@ actually loaded:
    `design-tokens.json`.
 2. **`Skill(ui-ux-pro-max)`** — 161 palettes + 57 font pairings as
    comparative evidence for the primitive layer; never a pick-list.
-3. **Motion tokens involved?** Load the GSAP skills (`gsap-core`,
-   `gsap-timeline`; `gsap-performance` as the review bar).
+3. **Motion tokens involved?** Load `brand/motion-design` for the
+   direction (what moves, durations, easing families) and the GSAP
+   skills (`gsap-core`, `gsap-timeline`; `gsap-performance` as the
+   review bar) for the implementation.
 4. **Aesthetic seed (optional, no visual history only)** — a curated
    TypeUI direction (`npx typeui.sh pull <slug>`, §10 of the squad
    reference) may seed primitives; it is never the final system.

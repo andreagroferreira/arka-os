@@ -2215,6 +2215,21 @@
         "origin": "arkaos"
       }
     },
+    "motion-design": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/lottiefiles/motion-design-skill",
+        "license": "MIT"
+      }
+    },
     "mvp-build": {
       "depts": [
         "saas"

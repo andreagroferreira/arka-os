@@ -297,3 +297,26 @@ on. This section exists partly to record that decision.
 
 The MIT permission notices and copyright lines above apply to all copies
 and substantial portions of the derived material.
+
+## motion-design-skill (LottieFiles)
+
+- **Source:** https://github.com/lottiefiles/motion-design-skill
+- **License:** MIT — Copyright (c) 2025 LottieFiles
+- **License text:** retained verbatim at
+  `departments/brand/skills/motion-design/references/motion-design-skill.LICENSE`
+- **Upstream version:** main HEAD `f9a8a04` (2026-05-18)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Skill body | `departments/brand/skills/motion-design/SKILL.md` | Upstream body near-verbatim (three pillars, 8-step checklist, decision tree, duration/easing quick tables); ArkaOS adds the frontmatter routing contract, agent attribution, squad-reference line, Output section, and rebases the internal links under `references/` |
+| Director doctrine | `references/director/` (8 files) | Verbatim — choreography, context adaptation, core philosophy, decision framework, Disney principles, emotion mapping, motion personality, narrative structure |
+| Patterns | `references/patterns/` (4 files) | Verbatim — ambient/continuous, entrance/exit, multi-element, state feedback |
+| Reference tables | `references/reference/` (4 files) | Verbatim — property selection, quality checklist, timing/easing tables, troubleshooting. The upstream `reference/` directory name is kept inside `references/` so the trees' internal `../reference/` links stay valid |
+
+Not carried over: the repository `README.md` (marketing copy the skill
+does not need).
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.

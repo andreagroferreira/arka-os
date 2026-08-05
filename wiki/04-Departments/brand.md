@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/brand` · **Lead:** Valentina (Tier 1) · **Agents:** 10 · **Skills:** 14
+> **Prefix:** `/brand` · **Lead:** Valentina (Tier 1) · **Agents:** 10 · **Skills:** 16
 
 Brand & Design is the squad that turns strategy into identity. It covers the full spectrum from brand positioning and naming through visual system production, UX research, component library standardization, and accessibility conformance. The guiding principle is that visual decisions must trace back to strategic ones: the squad never opens a design tool before completing the strategy, verbal identity, and architecture phases.
 
@@ -12,7 +12,7 @@ Reach for this squad when you are starting a new brand, overhauling an existing 
 
 | Commands | Skills | Agents |
 | --- | --- | --- |
-| 12 | 14 | 10 |
+| 12 | 16 | 10 |
 
 **Commands** (12 via `/brand`):
 
@@ -31,7 +31,7 @@ Reach for this squad when you are starting a new brand, overhauling an existing 
 | `/brand voice <context>` | Define brand voice and tone guide |
 | `/brand wireframe <page>` | UI wireframe and information architecture |
 
-**Skills** (15 — 14 sub-skills plus the `/brand` hub):
+**Skills** (16 — 15 sub-skills plus the `/brand` hub):
 
 | Skill | What it does |
 | --- | --- |
@@ -44,6 +44,7 @@ Reach for this squad when you are starting a new brand, overhauling an existing 
 | `identity-system` | Builds a full brand identity in the correct order — strategy, then verbal, then visual (never skips to visu... |
 | `logo-brief` | Generates logo concepts from a brief: mood references, AI-generated concept directions, variations, rationa... |
 | `mockup-generate` | Generates brand-applied mockups — product, packaging, social, and stationery — with AI image-generation pro... |
+| `motion-design` | Motion design direction — decides WHAT should move, how fast, and why, before any code: emotional intent, moti... |
 | `naming-evaluate` | Generates 30+ brand name candidates across six categories and evaluates them with Alexandra Watkins' SMILE... |
 | `positioning-statement` | Writes a brand positioning statement in the Ries/Trout format — FOR [target] WHO [need], [brand] IS A [cate... |
 | `primal-audit` | Audits an existing brand against Patrick Hanlon's 7 Primal Code elements using a 21-point evidence-cited ru... |

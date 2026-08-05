@@ -34,7 +34,7 @@ You should see:
 [PASS] Synapse engine responsive (74ms)
 [PASS] Knowledge DB initialized
 [PASS] 89 agents loaded
-[PASS] 338 skills validated
+[PASS] 339 skills validated
 [PASS] 24 workflows registered
 All checks passed.
 ```
@@ -169,7 +169,7 @@ Opens at **http://localhost:3333**. The dashboard has 8 pages:
 |------|-------------|
 | **Overview** | Agent count, skill count, active tasks, budget usage, system health |
 | **Agents** | Browse all 89 agent files (88 unique) with full behavioral DNA profiles (DISC, Enneagram, MBTI, Big Five) |
-| **Commands** | Search all 338 core skills across 17 departments with usage examples |
+| **Commands** | Search all 339 core skills across 17 departments with usage examples |
 | **Budget** | Token usage breakdown by department and tier, spending trends |
 | **Tasks** | Active and completed background tasks (knowledge ingestion, analysis jobs) |
 | **Knowledge** | Manage your indexed knowledge base, trigger new ingestions |
