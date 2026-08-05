@@ -5,7 +5,7 @@
 Every command available in ArkaOS, in one place: the terminal installer CLI,
 the in-session `/arka` system commands, the universal `/do` router, and all
 16 department prefixes with representative examples. In total: **299 commands**
-(276 department skills + 22 `/arka` system commands).
+(277 department commands + 22 `/arka` system commands).
 
 ---
 

@@ -191,7 +191,7 @@ Your configuration and knowledge base are preserved. See
 |---|---|
 | Agents | 89 across 17 departments (88 unique) |
 | Skills | 334 core + 260 plugin (see [Skill Packs](17-Skill-Packs.md)) |
-| Commands | 298 across 17 departments |
+| Commands | 299 across 17 departments |
 | Synapse layers | 12 for context injection |
 | Dashboard pages | 8 |
 | Python CLI tools | 13 in `scripts/tools/` (8 quantitative analyzers) |

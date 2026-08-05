@@ -121,7 +121,7 @@ def _dept_skills() -> dict[str, list[dict]]:
 
     Matches docs_stats.py semantics: the department hub
     (``departments/<dept>/SKILL.md``) IS counted as a skill, so the
-    grand total reconciles with the canonical 333 headline.
+    grand total reconciles with the headline docs_stats reports.
     """
     result: dict[str, list[dict]] = {}
     for dept_dir in (REPO_ROOT / "departments").iterdir():
@@ -146,8 +146,8 @@ def _dept_skills() -> dict[str, list[dict]]:
 
 
 def _arka_skills() -> list[dict]:
-    """The 15 /arka meta skills: the master orchestrator plus the 14
-    sub-skills under arka/skills/*/SKILL.md."""
+    """The /arka meta skills: the master orchestrator plus every
+    sub-skill under arka/skills/*/SKILL.md."""
     master = REPO_ROOT / "arka" / "SKILL.md"
     entries = []
     if master.is_file():

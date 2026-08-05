@@ -31,7 +31,7 @@ Reach for this squad when you are starting a new brand, overhauling an existing 
 | `/brand voice <context>` | Define brand voice and tone guide |
 | `/brand wireframe <page>` | UI wireframe and information architecture |
 
-**Skills** (14 — 13 sub-skills plus the `/brand` hub):
+**Skills** (15 — 14 sub-skills plus the `/brand` hub):
 
 | Skill | What it does |
 | --- | --- |

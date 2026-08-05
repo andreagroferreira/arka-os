@@ -13,7 +13,7 @@ Each department has a **lead** (Tier 1) who orchestrates **specialists**
 | Department | Prefix | Lead | Agents | Skills | What it does |
 |---|---|---:|---:|---:|---|
 | [Development](dev.md) | `/dev` | Paulo | 15 | 65 | Full-stack features, APIs, architecture, security, CI/CD |
-| [Brand & Design](brand.md) | `/brand` | Valentina | 10 | 14 | Brand identity, UX/UI, design systems, naming |
+| [Brand & Design](brand.md) | `/brand` | Valentina | 10 | 15 | Brand identity, UX/UI, design systems, naming |
 | [Marketing](marketing.md) | `/mkt` | Luna | 7 | 33 | SEO, paid ads, email, growth loops |
 | [Strategy](strategy.md) | `/strat` | Tomas | 4 | 12 | Market analysis, competitive intelligence, business models |
 | [E-Commerce](ecom.md) | `/ecom` | Ricardo | 4 | 15 | Store optimization, CRO, pricing, RFM |

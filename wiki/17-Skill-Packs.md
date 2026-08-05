@@ -3,12 +3,12 @@
 The curated core and the plugin marketplace. ArkaOS ships 334 core skills
 (319 department + 15 `/arka` meta skills), and you should not pay context rent
 for all of them in every session. Since v4.14 the distribution model has two
-halves: a curated core that installs by default, and 16 department packs (259
+halves: a curated core that installs by default, and 16 department packs (260
 plugin skills) you add when you need them.
 
 ## Why a curated core
 
-Every skill you install adds its name and description to what your AI runtime can load per session. Install 333 and you pay for 333, whether the session is about code review or cart recovery. Collections that dump everything into the context window perform worse for it.
+Every skill you install adds its name and description to what your AI runtime can load per session. Install 334 and you pay for 334, whether the session is about code review or cart recovery. Collections that dump everything into the context window perform worse for it.
 
 The curated core keeps the always-on surface small and enforces that in CI: the build fails if the default install grows past 80 skills or 40,000 description characters. The audit runs from the repository, so the promise is checkable:
 
