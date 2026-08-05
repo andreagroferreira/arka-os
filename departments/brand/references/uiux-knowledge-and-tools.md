@@ -204,7 +204,7 @@ line BEFORE the first file edit:
   Airbnb…). Pick it FIRST and state what its design lead would reject in
   your plan.
 - `skills=` — the design skills ACTUALLY loaded this session via the
-  Skill tool (e.g. `frontend-design,ui-ux-pro-max,gsap-core`). If a
+  Skill tool (e.g. `frontend-design,ui-ux-pro-max,arka-gsap`). If a
   plugin is not installed, be honest: `skills=degraded:<missing-name>`
   and fall back to §3 + §8 of this reference. Never claim a load that
   did not happen; never silently proceed as if it had.
@@ -241,10 +241,13 @@ axis free, seed a direction from the curated TypeUI catalog
 
 Catalog tokens are a SEED for the project's own token system, never the
 final design system. Motion is absent from the catalog — that is GSAP's
-job: load `gsap-core` + `gsap-timeline` for any animation work,
-`gsap-scrolltrigger`/`gsap-plugins` as the work demands, `gsap-react` on
-React, and treat `gsap-performance` as the review bar
-(`npx skills add https://github.com/greensock/gsap-skills` when absent).
+job: load `Skill(arka-gsap)` (the in-repo `dev/gsap`, absorbed from the
+official GreenSock pack) and read `references/core.md` +
+`references/timeline.md` for any animation work,
+`references/scrolltrigger.md`/`references/plugins.md` as the work
+demands, `references/react.md` on React, and treat
+`references/performance.md` as the review bar. Direction (what moves and
+why) comes from `brand/motion-design` first.
 
 Four in-repo theme specs (hallmark-derived, opt-in seeds like the TypeUI
 directions — never the final system) live at

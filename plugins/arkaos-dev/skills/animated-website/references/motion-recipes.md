@@ -129,8 +129,9 @@ logo is forbidden). <!-- rule:motion-springs-physical-only -->
 | `stiffness: 280, damping: 26` | Stiff, minimal bounce | Picker snap; haptic-like press |
 | `stiffness: 400, damping: 40` | Very stiff, no bounce | Position corrections |
 
-For advanced sequences use libraries — GSAP first (hub §10: `gsap-core` +
-`gsap-timeline`, `gsap-performance` as the review bar), Web Animations
+For advanced sequences use libraries — GSAP first (`dev/gsap`:
+`references/core.md` + `timeline.md`, `references/performance.md` as the
+review bar), Web Animations
 API for programmatic control, Motion/Framer Motion on React.
 
 ## When to ship motion by default

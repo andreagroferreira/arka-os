@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 69
+> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 70
 
 Development is the largest department in ArkaOS, covering the full spectrum of software engineering — from system architecture and backend APIs to frontend interfaces, data pipelines, AI engineering, security, and DevOps. Every request that involves writing, reviewing, testing, deploying, or designing code routes here.
 
@@ -12,7 +12,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 
 | Commands | Skills | Agents |
 | --- | --- | --- |
-| 36 | 69 | 15 |
+| 36 | 70 | 15 |
 
 **Commands** (36 via `/dev`):
 
@@ -32,7 +32,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 | `/dev mcp add <name> [--project <path>]` | Add a single MCP to a project |
 | ... | 24 more — full list in [docs/COMMANDS.md](../../docs/COMMANDS.md) |
 
-**Skills** (69 — 68 sub-skills plus the `/dev` hub):
+**Skills** (70 — 69 sub-skills plus the `/dev` hub):
 
 | Skill | What it does |
 | --- | --- |
@@ -68,6 +68,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 | `evaluator-build-loop` | Adversarial build loop for UI work: a generator implements against a weighted rubric while an independent,... |
 | `exploit-triage` | Reviews code for the vulnerabilities that are actually reachable and actually exploitable — SSRF, auth bypa... |
 | `framer-motion` | Framer Motion for React: AnimatePresence exit animations, layout animations with stable keys, variant propa... |
+| `gsap` | GSAP animation implementation from the official GreenSock skill pack: core tweens and easing, timelines, Scrol... |
 | `incident` | Incident response with Google SRE incident management: severity classification (SEV1-4), incident commander... |
 | `laravel-review` | Laravel/PHP review against ArkaOS conventions — mass assignment, N+1 queries, Blade XSS, business logic lea... |
 | `mcp` | MCP (Model Context Protocol) management for projects: apply pre-configured MCP profiles (laravel, nuxt, eco... |

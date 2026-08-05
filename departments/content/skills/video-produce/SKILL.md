@@ -80,8 +80,8 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
    explicitly re-stated downgrade to the Degraded/Manual tier.)
    Full tier: load the `/hyperframes` router skill, pick the
    workflow (`/talking-head-recut`, `/faceless-explainer`,
-   `/product-launch-video`…), compose in HTML+GSAP (load `gsap-core` +
-   `gsap-timeline` for motion graphics; `gsap-plugins` for kinetic
+   `/product-launch-video`…), compose in HTML+GSAP (load `dev/gsap` —
+   `references/core.md` + `timeline.md` for motion graphics; `plugins.md` for kinetic
    type/SplitText), add word-level captions (`/embedded-captions`),
    render MP4. Degraded tier: hand assets+script to Higgsfield
    `explainer_video`/`shorts_studio`. Manual tier: assemble the
