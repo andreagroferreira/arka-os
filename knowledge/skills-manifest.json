@@ -3653,6 +3653,21 @@
         "origin": "arkaos"
       }
     },
+    "threejs": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
+      }
+    },
     "thumbnail-package": {
       "depts": [
         "content"

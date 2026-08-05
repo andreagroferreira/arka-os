@@ -8,8 +8,8 @@ description: >
   TRIGGER: "generative art", "arte generativa", "particles background",
   "fundo de partículas", "noise field", "flow field", "canvas animation",
   "fundo processual", "creative coding em canvas", "/dev canvas-generative".
-  SKIP: real-time 3D or shader work -> no dedicated skill yet, use the
-  frontend workflows; a pre-rendered 3D world scrubbed by scroll ->
+  SKIP: real-time 3D or shader work -> dev/threejs; a pre-rendered 3D
+  world scrubbed by scroll ->
   dev/scroll-world; turning an existing video into a scroll site ->
   dev/animated-website; charts and data graphics -> the dataviz skill.
 metadata:
@@ -344,7 +344,7 @@ function update() {
 |---|---|
 | Noise implementations, particle pool, flow field, L-system, attractors | `references/algorithms.md` |
 | Timing and easing for animated transitions | the brand guidelines' Motion System (§06), reached via the source-of-truth table in `departments/brand/references/uiux-knowledge-and-tools.md` |
-| 3D generative (shaders, GPU particles) | out of this skill's scope — Canvas 2D only; scope a WebGL approach with the frontend squad |
+| 3D generative (shaders, GPU particles) | `departments/dev/skills/threejs/SKILL.md` |
 
 ## Output
 

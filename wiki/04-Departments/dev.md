@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 68
+> **Prefix:** `/dev` · **Lead:** Paulo (Tier 1) · **Agents:** 15 · **Skills:** 69
 
 Development is the largest department in ArkaOS, covering the full spectrum of software engineering — from system architecture and backend APIs to frontend interfaces, data pipelines, AI engineering, security, and DevOps. Every request that involves writing, reviewing, testing, deploying, or designing code routes here.
 
@@ -12,7 +12,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 
 | Commands | Skills | Agents |
 | --- | --- | --- |
-| 36 | 68 | 15 |
+| 36 | 69 | 15 |
 
 **Commands** (36 via `/dev`):
 
@@ -32,7 +32,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 | `/dev mcp add <name> [--project <path>]` | Add a single MCP to a project |
 | ... | 24 more — full list in [docs/COMMANDS.md](../../docs/COMMANDS.md) |
 
-**Skills** (68 — 67 sub-skills plus the `/dev` hub):
+**Skills** (69 — 68 sub-skills plus the `/dev` hub):
 
 | Skill | What it does |
 | --- | --- |
@@ -100,6 +100,7 @@ The department is organized into three sub-squads that operate under Paulo's coo
 | `stack-check` | Audit the current tech stack through a 12-Factor lens: framework and runtime versions, dependency health, s... |
 | `tdd-cycle` | Test-Driven Development with Kent Beck's Red-Green-Refactor cycle: write the failing test first, minimum co... |
 | `tech-debt` | Identify, classify, score, and prioritize technical debt (Ward Cunningham metaphor + cost-of-delay): six de... |
+| `threejs` | Real-time 3D in the browser with three.js and React Three Fiber: modern setup (import maps, WebGL vs WebGPU re... |
 | `type-design-analyzer` | Scores whether a module's types make illegal states unrepresentable — across encapsulation, invariant expre... |
 | `typescript-review` | TypeScript/Node review for the holes the compiler waves through — `any` and unsafe casts, unhandled promise... |
 | `vue-review` | Vue 3 / Nuxt review for the framework's own traps — lost reactivity, SSR hydration mismatches, missing keys... |
