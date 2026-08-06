@@ -1,6 +1,6 @@
 # Sync Alignment Doctrine — design spec
 
-- **Date:** 2026-08-05 (revised 2026-08-06 after two Quality Gate rejections)
+- **Date:** 2026-08-05 (last revised 2026-08-06, after six Quality Gate rounds; scope reduced to the proven core after round five)
 - **Branch:** `feat/sync-alignment-core`
 - **Constitution:** `spec-driven` (MUST), `evidence-flow` (NON-NEGOTIABLE), `mandatory-qa`, `excellence-mandate`
 
