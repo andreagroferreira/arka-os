@@ -5,7 +5,41 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.11.0] - 2026-08-06
+## [5.12.0] - 2026-08-06
+
+### Added
+- **knowledge:** retrieval evaluation harness — `score` and `latency` commands
+  measuring the production `KBContextLayer`, plus known-item probe generation
+  (#466)
+- **knowledge:** doctrine class + second-pass retrieval — reference/book
+  material reaches project-framed prompts; `research_gate` vault resolution
+  fixed (#431)
+- **knowledge:** lexical FTS5 signal fused into KB retrieval via RRF — the
+  English-only embedder could not reach the Portuguese fifth of the corpus
+  (#465)
+- **knowledge:** deep recall CLI — the on-demand slow lane at depth 50 with
+  vector+lexical agreement markers (#467)
+- `--force`/`--reindex` for `scripts/knowledge-index.py`; canonical vault
+  resolution (`core/knowledge/vault.py`, config-first, no guessed corpus)
+  (#476)
+
+### Fixed
+- **knowledge:** chunking counts real tokenizer tokens — 38% of a live corpus
+  was silently truncated at embed time; measured post-reindex: 15,499 →
+  22,929 chunks on the same vault (#433)
+- **kb:** the KB-first marker is evidence, not narration — the gate could
+  never fire while Synapse self-certified its own consultation; markers are
+  now written by PostToolUse on real Obsidian calls (#432)
+- **kb:** the KB-first gate never denies on an unresolved vault
+  (`kb-first-vault-unconfigured` telemetry reason) and every nudge branch
+  states exactly what it did (#476)
+- **knowledge:** the lexical sidecar was stale the instant it was built — WAL
+  checkpoint before `lexical.build`, self-healing rebuild when absent or
+  stale, fresh-process regression tests (#476)
+
+### Changed
+- one RRF implementation (`lexical.rrf`); `store_db_path` helper for every
+  consumer; doctrine block honors the grounding quarantine label (#476)
 
 ### Fixed
 - **governance:** skill proposals no longer overwrite each other within the same
