@@ -449,3 +449,39 @@ def test_unresolved_vault_message_names_both_settings(isolated_env, monkeypatch)
     assert "knowledge.vaultPath" in decision.stderr_msg
     assert "ARKAOS_VAULT" in decision.stderr_msg
     assert "não está configurado" not in decision.stderr_msg
+
+
+def test_unsearchable_query_does_not_claim_a_search_happened(isolated_env):
+    """Fourth nudge branch (QG N1).
+
+    _search_vault_titles returns [] at its first line when the query has
+    no tokens, without ever opening the vault — so the searched-the-titles
+    message would describe work that never happened. Reachable in normal
+    use: the hook's _query_hint reads query/prompt/url, while
+    mcp__context7__resolve-library-id carries libraryName.
+    """
+    _seed_vault(isolated_env["vault"], ["Filament"])
+
+    for unsearchable in ("", "   ", "de a o"):
+        decision = evaluate_research_gate(
+            "mcp__context7__resolve-library-id",
+            session_id=f"s-empty-{len(unsearchable)}",
+            query=unsearchable,
+        )
+        assert decision.allow is True
+        assert "procurei" not in decision.stderr_msg, (
+            f"claimed a search for an unsearchable query {unsearchable!r}"
+        )
+        assert "termos pesquisáveis" in decision.stderr_msg
+        assert decision.kb_hits_hint == []
+
+
+def test_a_searchable_query_still_reports_the_title_search(isolated_env):
+    """The fourth branch must not swallow the third."""
+    _seed_vault(isolated_env["vault"], ["Something Unrelated"])
+    decision = evaluate_research_gate(
+        "WebSearch", session_id="s-searchable", query="quixotic zephyrine"
+    )
+
+    assert "procurei nos títulos" in decision.stderr_msg
+    assert "termos pesquisáveis" not in decision.stderr_msg

@@ -530,15 +530,24 @@ def test_resolver_reports_its_source(tmp_path, monkeypatch):
 
 
 def test_all_three_consumers_resolve_db_path_through_one_helper():
-    """recall_cli was the third consumer and kept the private attribute
-    after the other two were converted."""
-    from core.knowledge import recall_cli
+    """Named for all three, so it checks all three.
 
-    src = (REPO_ROOT / "core" / "knowledge" / "recall_cli.py").read_text(
-        encoding="utf-8"
+    recall_cli kept the private attribute after the other two were
+    converted; the indexer then kept its own get_stats() call after
+    recall_cli was fixed. The helper's own getattr fallback is the only
+    private access that may remain.
+    """
+    knowledge = REPO_ROOT / "core" / "knowledge"
+    for name in ("recall_cli.py", "indexer.py"):
+        src = (knowledge / name).read_text(encoding="utf-8")
+        assert 'getattr(store, "_db_path"' not in src, f"{name} reaches privately"
+        assert 'get_stats()["db_path"]' not in src, f"{name} bypasses the helper"
+        assert "store_db_path" in src, f"{name} does not use the shared helper"
+
+    fusion = (knowledge / "lexical_fusion.py").read_text(encoding="utf-8")
+    assert fusion.count('getattr(store, "_db_path"') == 1, (
+        "the documented test-double fallback inside the helper, and nowhere else"
     )
-    assert 'getattr(store, "_db_path"' not in src
-    assert recall_cli._store_db_path.__doc__
 
 
 def test_shared_helper_prefers_the_public_surface():

@@ -145,8 +145,9 @@ def index_directory(
     lexical_rebuilt = False
     try:
         from core.knowledge import lexical
+        from core.knowledge.lexical_fusion import store_db_path
 
-        db_path = store.get_stats()["db_path"]
+        db_path = store_db_path(store)
         if indexed or lexical.is_stale(db_path):
             # Checkpoint BEFORE building, or the sidecar is stale the
             # instant it is written. The store runs journal_mode=WAL, so

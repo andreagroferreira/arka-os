@@ -242,43 +242,67 @@ def _search_vault_titles(query: str, vault: Path, top_n: int) -> list[str]:
     return [stem for _, _, stem in ranked[:top_n]]
 
 
+# The four nudge messages, side by side so each can be read against the
+# work its branch actually did. Every one of them has been wrong at least
+# once by claiming more than the gate checked.
+
+# No vault resolved. The gate knows nothing about what is written down;
+# saying "there may not be a note yet" asserted the opposite of the truth
+# to an operator holding thousands. Three conditions produce this (key
+# absent, key set but missing on disk, ARKAOS_VAULT missing on disk), so
+# it names both settings rather than blaming the key.
+_NUDGE_NO_VAULT = (
+    "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes`. "
+    "Não consegui resolver o teu vault: nem `knowledge.vaultPath` (em "
+    "`~/.arkaos/config.json`) nem `ARKAOS_VAULT` apontam para uma pasta "
+    "existente, por isso não sei o que já tens escrito."
+)
+
+# Nothing searchable arrived, so nothing was searched: _search_vault_titles
+# returns [] at its first line, before it ever opens the vault. Reachable
+# in normal use — the hook's _query_hint reads only query/prompt/url while
+# mcp__context7__resolve-library-id carries libraryName, so the gate is
+# handed "". A query of pure stopwords lands here too.
+_NUDGE_NO_TERMS = (
+    "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes`. "
+    "Não consegui extrair termos pesquisáveis deste pedido, por isso não "
+    "cheguei a procurar — corre tu a pesquisa com os termos que interessam."
+)
+
+_NUDGE_WITH_TITLES = (
+    "[arka:kb-nudge] O teu cérebro (Obsidian) tem notas possivelmente "
+    "relevantes:\n{bullets}\n\n"
+    "Consulta-as via `mcp__obsidian__search_notes` antes de ir a {tool}. "
+    "Se tiverem lacuna, segue externamente e documenta de volta."
+)
+
+# The vault WAS searched — but only its filenames. _search_vault_titles
+# tokenises note stems, never note bodies, and a content search is exactly
+# what the operator is being asked to run, so the claim stays on titles.
+_NUDGE_TITLES_EMPTY = (
+    "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes` "
+    "— procurei nos títulos das tuas notas e nenhum fala disto, por isso "
+    "documenta de volta depois da consulta externa."
+)
+
+
 def _build_nudge(query: str, tool_name: str, vault: Path | None) -> tuple[str, list[str]]:
-    """Three situations, three messages — the gate only claims what it checked."""
+    """Four situations, four messages — the gate only claims what it checked.
+
+    The branches stay separate on purpose: each names exactly the work
+    that ran. See the message constants above for why each claim is or is
+    not earned.
+    """
     if vault is None:
-        # No vault was opened, so the gate knows nothing about what is or is
-        # not already written down. Saying "there may not be a note yet" here
-        # would assert the opposite of the truth to an operator holding
-        # thousands of them. Name the setting instead.
-        return (
-            f"[arka:kb-nudge] Antes de ir a {tool_name}, corre "
-            f"`mcp__obsidian__search_notes`. Não consegui resolver o teu vault: "
-            f"nem `knowledge.vaultPath` (em `~/.arkaos/config.json`) nem "
-            f"`ARKAOS_VAULT` apontam para uma pasta existente, por isso não sei "
-            f"o que já tens escrito.",
-            [],
-        )
+        return _NUDGE_NO_VAULT.format(tool=tool_name), []
+    if not _tokenize(query):
+        return _NUDGE_NO_TERMS.format(tool=tool_name), []
 
     titles = _search_vault_titles(query, vault, _NUDGE_TOP_N)
     if titles:
         bullets = "\n".join(f"  - [[{t}]]" for t in titles)
-        return (
-            f"[arka:kb-nudge] O teu cérebro (Obsidian) tem notas possivelmente "
-            f"relevantes:\n{bullets}\n\n"
-            f"Consulta-as via `mcp__obsidian__search_notes` antes de ir a {tool_name}. "
-            f"Se tiverem lacuna, segue externamente e documenta de volta.",
-            titles,
-        )
-    # The vault WAS searched — but only its filenames. _search_vault_titles
-    # tokenises note stems, never note bodies, so "no note about this" is
-    # more than was checked; a content search is exactly what the operator
-    # is being asked to run.
-    return (
-        f"[arka:kb-nudge] Antes de ir a {tool_name}, corre "
-        f"`mcp__obsidian__search_notes` — procurei nos títulos das tuas notas "
-        f"e nenhum fala disto, por isso documenta de volta depois da consulta "
-        f"externa.",
-        [],
-    )
+        return _NUDGE_WITH_TITLES.format(tool=tool_name, bullets=bullets), titles
+    return _NUDGE_TITLES_EMPTY.format(tool=tool_name), []
 
 
 def _build_deny_message(titles: list[str], tool_name: str) -> str:
