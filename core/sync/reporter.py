@@ -6,7 +6,7 @@ Builds the sync report, writes sync state to disk, and formats terminal output.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.sync.schema import (
@@ -40,14 +40,7 @@ def build_report(
     agent_results: list[AgentProvisionResult] | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
-    errors = _collect_errors(
-        mcp_results,
-        settings_results,
-        descriptor_results,
-        skill_results,
-        content_results=content_results,
-        agent_results=agent_results,
-    )
+    phases = (mcp_results, settings_results, descriptor_results, skill_results)
     return SyncReport(
         previous_version=previous_version,
         current_version=current_version,
@@ -59,7 +52,9 @@ def build_report(
         skill_results=skill_results,
         content_results=content_results or [],
         agent_results=agent_results or [],
-        errors=errors,
+        errors=_collect_errors(
+            *phases, content_results=content_results, agent_results=agent_results
+        ),
     )
 
 
@@ -69,7 +64,7 @@ def write_sync_state(state_file: Path, report: SyncReport) -> None:
     unique_paths = {r.path for r in report.mcp_results}
     state = {
         "version": report.current_version,
-        "last_sync": datetime.now(timezone.utc).isoformat(),
+        "last_sync": datetime.now(UTC).isoformat(),
         "projects_synced": len(unique_paths),
         "skills_synced": len(report.skill_results),
         "errors": report.errors,
@@ -94,20 +89,20 @@ def format_report(report: SyncReport) -> str:
 
     key_changes = _format_key_changes(report)
     if key_changes:
-        lines += ["", "  Key changes:"]
-        lines += [f"  - {c}" for c in key_changes]
+        lines += ["", "  Key changes:", *[f"  - {c}" for c in key_changes]]
 
-    total_deferred = sum(len(r.mcps_deferred) for r in report.mcp_results)
-    projects_with_deferred = sum(1 for r in report.mcp_results if r.mcps_deferred)
-    if total_deferred > 0:
-        lines += ["", f"  Deferred MCPs: {total_deferred} across {projects_with_deferred} projects."]
-
-    lines += [
-        "",
-        f"  Errors: {len(report.errors)}",
-        _SEPARATOR,
-    ]
+    lines += _format_deferred_lines(report.mcp_results)
+    lines += ["", f"  Errors: {len(report.errors)}", _SEPARATOR]
     return "\n".join(lines)
+
+
+def _format_deferred_lines(results: list[McpSyncResult]) -> list[str]:
+    """Deferred MCPs, or nothing when none were deferred."""
+    total = sum(len(r.mcps_deferred) for r in results)
+    if total == 0:
+        return []
+    projects = sum(1 for r in results if r.mcps_deferred)
+    return ["", f"  Deferred MCPs: {total} across {projects} projects."]
 
 
 # ---------------------------------------------------------------------------
@@ -138,16 +133,25 @@ def _collect_errors(
     for r in skills:
         if r.error:
             errors.append(f"Skill({r.skill_name}): {r.error}")
+    errors += _content_and_agent_errors(content_results, agent_results)
+    return errors
+
+
+def _content_and_agent_errors(
+    content_results: list[ContentSyncResult] | None,
+    agent_results: list[AgentProvisionResult] | None,
+) -> list[str]:
+    errors: list[str] = []
     for r in content_results or []:
         if r.error:
             errors.append(f"Content({r.path}): {r.error}")
-        for artefact_error in r.artefacts_errored:
-            errors.append(f"Content({r.path}): {artefact_error}")
+        errors += [f"Content({r.path}): {e}" for e in r.artefacts_errored]
     for r in agent_results or []:
         if r.error:
             errors.append(f"Agents({r.path}): {r.error}")
-        for a in r.agents_errored:
-            errors.append(f"Agents({r.path}): missing core file for {a}")
+        errors += [
+            f"Agents({r.path}): missing core file for {a}" for a in r.agents_errored
+        ]
     return errors
 
 
@@ -169,8 +173,12 @@ def _format_phase_line(label: str, results: list) -> str:
 def _format_skill_line(results: list[SkillSyncResult]) -> str:
     total = len(results)
     updated = _count_updated(results)
+    restamped = sum(1 for r in results if r.status == "restamped")
     unchanged = _count_unchanged(results)
-    return f"  {'Skills:':<14}{total} ecosystems synced ({updated} updated, {unchanged} unchanged)"
+    counts = f"{updated} updated, {unchanged} unchanged"
+    if restamped:
+        counts = f"{updated} updated, {restamped} restamped, {unchanged} unchanged"
+    return f"  {'Skills:':<14}{total} ecosystems synced ({counts})"
 
 
 def _format_key_changes(report: SyncReport) -> list[str]:
@@ -215,8 +223,20 @@ def _add_skill_changes(results: list[SkillSyncResult], changes: list[str]) -> No
 def _format_content_line(results: list[ContentSyncResult]) -> str:
     total = len(results)
     updated = _count_updated(results)
+    restamped = sum(1 for r in results if r.status == "restamped")
     unchanged = _count_unchanged(results)
-    return f"  {'Content:':<14}{total} synced ({updated} updated, {unchanged} unchanged)"
+    drifted = sum(1 for r in results if r.status == "drifted")
+    errored = sum(1 for r in results if r.status == "error")
+    counts = f"{updated} updated, {unchanged} unchanged"
+    if restamped:
+        counts = f"{updated} updated, {restamped} restamped, {unchanged} unchanged"
+    if drifted:
+        # Drift is not failure: the merger deliberately preserved an edit the
+        # operator made inside a managed block. It gets its own word.
+        counts += f", {drifted} drifted"
+    if errored:
+        counts += f", {errored} errored"
+    return f"  {'Content:':<14}{total} synced ({counts})"
 
 
 def _format_agents_line(results: list[AgentProvisionResult]) -> str:

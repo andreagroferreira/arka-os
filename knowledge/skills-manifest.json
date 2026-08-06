@@ -1,7 +1,7 @@
 {
   "_meta": {
     "generator": "scripts/marketplace_gen.py",
-    "version": "5.8.0",
+    "version": "5.11.0",
     "marketplace": "arkaos"
   },
   "structural": {

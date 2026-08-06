@@ -108,7 +108,7 @@ class SpecManager:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         data = spec.model_dump(mode="json")
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
         return True
 
@@ -117,7 +117,7 @@ class SpecManager:
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"Spec file not found: {path}")
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         spec = Spec.model_validate(data)
         self._specs[spec.id] = spec

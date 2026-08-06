@@ -57,6 +57,7 @@ expertise:
     - figma → code pipelines
     - accessibility compliance (WCAG 2.2 AA/AAA)
     - cross-platform tokenisation (Style Dictionary, Tailwind)
+    - design-dna JSON custody and token handoff via brand/design-dna (phase-3 token file)
   frameworks:
     - Atomic Design (Frost)
     - Design Tokens Community Group

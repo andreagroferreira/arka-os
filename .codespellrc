@@ -39,6 +39,8 @@
 #     docs/strategy/2026-05-27-arkaos-runtime-swot-viability.md:357.
 #   som — SOM (Serviceable Obtainable Market) in the TAM/SAM/SOM market
 #     sizing examples (docs/GETTING-STARTED.md validation output).
+#   feld — Brad Feld (Venture Deals, Rule of 40), cited in finance/saas
+#     agent YAMLs; surname, unrewritable — the skelton precedent.
 #   skelton — Matthew Skelton, co-author of Team Topologies, cited in the
 #     org-design skill and six other files. The generated
 #     docs/SKILLS-CATALOG.md carries it too, and docs/ is not skipped.
@@ -62,6 +64,14 @@
 # anti-slop catalogue of arka-human-writing) — the same content class
 # that skips departments/, but living under arka/ ("conector" ->
 # "connector", "potencial" -> "potential").
+# CAVEAT for reviewers: the skip list below covers departments/, wiki/ and
+# plugins/ for the reasons given above — bilingual content and proper nouns
+# in departments/ and wiki/, generated-mirror status in plugins/ — none of
+# which is a statement about spelling quality. Those trees nonetheless hold
+# a large volume of English copy. A green run therefore says NOTHING about
+# English copy living in them. New copy there must be checked explicitly
+# with `codespell --skip="" <paths>`, which is not what the default
+# invocation does.
 [codespell]
-ignore-words-list = te,strat,unparseable,disjointness,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fase,fases,orgin,metdata,datas,rever,dominante,responde,sinal,vender,funcional,rende,oficial,mata,som,fulfilment,skelton
+ignore-words-list = te,strat,unparseable,disjointness,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fase,fases,orgin,metdata,datas,rever,dominante,responde,sinal,vender,funcional,rende,oficial,mata,som,fulfilment,skelton,feld
 skip = *.lock,*.svg,*/node_modules,*/__pycache__,departments/*,*/departments/*,wiki/*,*/wiki/*,plugins/*,*/plugins/*,arka/skills/human-writing/references/pt-pt-anti-slop.md,*/arka/skills/human-writing/references/pt-pt-anti-slop.md

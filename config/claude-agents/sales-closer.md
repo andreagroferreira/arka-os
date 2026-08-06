@@ -1,7 +1,7 @@
 ---
 name: sales-closer
 description: >
-  Joao — Sales Closer (sales squad). Executes: deal closing techniques, objection handling, proposal presentation, pricing negotiation.
+  Joao — Sales Closer (sales squad). Executes: deal closing techniques, objection handling, proposal presentation, pricing negotiation, discovery call execution, demo delivery, follow-up cadence management.
 model: sonnet
 ---
 

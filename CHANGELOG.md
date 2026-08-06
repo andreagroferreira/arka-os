@@ -5,6 +5,106 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.0] - 2026-08-06
+
+### Fixed
+- **governance:** skill proposals no longer overwrite each other within the same
+  day — digest ladder with a fail-closed terminal rung: a path is only returned
+  when it is free or provably holds this exact proposal; on a fully occupied
+  ladder the proposal is dropped (`no-safe-filename`), never written over
+  foreign bytes (#469)
+- **dashboard:** client-side navigation no longer blanks the content panel (the
+  `out-in` page transition over `UDashboardPanel`'s fragment root is removed)
+  and empty-path API fetches are guarded in the transport layer, keeping cache
+  keys reactive — compare pages render distinct records again (#430)
+- **hooks:** session-start hardening — the hook no longer spawns the dashboard
+  or reorganizer under pytest (`ARKA_HOOK_NO_SPAWN` + `PYTEST_CURRENT_TEST`),
+  and a `build_context` failure surfaces as an `[ARKA:CONTRACTS]` notice
+  instead of silently dropping every operating contract (#427)
+- UTF-8 pinned on 52 shipped text file IO call-sites, with an AST guardrail
+  test that keeps new bare `open()`/`read_text()` calls out (#395)
+
+### Changed
+- **tests:** Windows test hygiene — shell invocations resolve bash through
+  `tests/python/hook_shell.py`, `test_agent_move` leaves no stray YAML and
+  asserts the full `departments/<dept>/agents` destination (#428)
+- **ci:** non-blocking macOS + Windows parity baseline job (#392);
+  `actions/setup-python` bumped to v7 (#407)
+
+## [5.10.0] - 2026-08-06
+
+### Fixed
+
+- **A managed block edited in place is no longer overwritten** — the stored
+  stamp is a claim, not a measurement, so the merger now hashes what is
+  actually between the markers before rewriting. An operator edit inside the
+  block yields `drifted`: nothing is written, and the run reports it as
+  drift — its own word and its own count in the Content line, because
+  nothing failed. The first cut of the `restamped` path below destroyed
+  exactly that edit while correcting a version number, which is the defect
+  that kept the wider branch out of this release.
+- **The version stamp no longer freezes** — `merge_managed_content` gained a
+  `restamped` status. The stamp previously moved only when the content
+  changed, so a project could show a version many releases old while
+  carrying current content (measured on one install: 51 of 78 projects).
+  Real content changes are still reported as `updated`, never conflated
+  with a restamp.
+- **The coverage gate no longer passes on an artefact that cannot describe
+  the diff** — a `coverage.xml` older than the newest changed `.py` file
+  (doc edits never stale it), or missing an entry for a changed module, now
+  fails the check instead of vouching for code it never measured. Module
+  presence is matched on paths resolved through the artefact's own
+  `<source>` roots and required to exist on disk; a filename that resolves
+  under more than one source is ambiguous and vouches for nothing. A stem
+  probe previously accepted `core/synapse/engine.py` as evidence for a
+  changed `core/sync/engine.py` (`core/governance/evidence_checks.py`).
+- **An unorderable sync baseline no longer reads as "nothing is new"** —
+  `compare_versions` returns `None` for a version pair that cannot be
+  ordered, and the manifest treats an unorderable baseline as a first sync.
+  Previously a degraded run persisted the literal `unknown` into
+  `sync-state.json` and every later run then reported no changes, with no
+  error anywhere (`core/sync/manifest.py`).
+- **The update skill can no longer be instructed to delete a customized
+  section** — Phase 4 dispatches a subagent, and its instructions said to
+  remove the `## <section_title>` section whenever markers were absent.
+  Without markers there is no way to tell ArkaOS's own text from the
+  project's, and `~/.claude/skills/` is not a git repository. The
+  instructions now forbid deleting an unmarked section outright and require
+  a single well-formed marker pair before any removal — in `workflows.md`
+  and in its sibling `sync-engine.md`, which named the heading block as a
+  fallback deletion target and is loaded by the same skill.
+- **Client identifiers removed from tracked ignore files** — `.gitignore`
+  and `.npmignore` named two ecosystem slugs. Both files are tracked in a
+  public repository. Replaced with a naming convention (`_private/`,
+  `client-*`, `ecosystem-*`) so a private skill can be excluded without
+  recording whose it is.
+
+## [5.9.0] - 2026-08-05
+
+### Added
+
+- **Campaign wiring** (#462) — closes the animation/design absorption
+  campaign (v5.3.0–v5.8.0). The seven absorbed skills reach their
+  consumers: expertise.domains in six agent YAMLs with load-bearing
+  qualifiers, seven Commands-table rows (registry 299→306), pt-PT and
+  English routing keywords for the Synapse L5 hint, and the last
+  "will be ported" staleness reconciled in the notices (four of
+  genjutsu's fifteen skills derived, eleven rejected with reasons).
+
+### Fixed
+
+- **Prepending into truncated renders is a silent delete** (#462). The
+  Quality Gate proved a 100%-additive YAML diff evicted ten capabilities
+  from compiled agent definitions, because the behavioral compiler and
+  harness generator render only the head of expertise.domains — two live
+  routing breaks included. The ordering rule (identity head, campaign
+  tail), both caps raised to [:8], and a new lock
+  (tests/python/test_expertise_window.py) that parses the rendered
+  description line and pins both caps — proven by mutation on both
+  surfaces. Zero drops verified across all 89 agents.
+- The brand bats assertion no longer pins a command count; it equates
+  the table with the generated registry.
+
 ## [5.8.0] - 2026-08-05
 
 ### Added

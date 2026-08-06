@@ -1628,5 +1628,116 @@
       "produce a batch of shorts for the launch",
       "faz-me shorts desta masterclass"
     ]
+  },
+  "dev-gsap": {
+    "keywords": [
+      "gsap",
+      "scrolltrigger",
+      "scroll animation",
+      "animate on scroll",
+      "timeline animation",
+      "parallax",
+      "anima no scroll"
+    ],
+    "examples": [
+      "anima esta secção no scroll",
+      "pin this section while scrubbing",
+      "add a GSAP timeline to the hero"
+    ]
+  },
+  "dev-threejs": {
+    "keywords": [
+      "three.js",
+      "threejs",
+      "webgl",
+      "webgpu",
+      "3d scene",
+      "shader",
+      "react three fiber",
+      "r3f",
+      "cena 3d"
+    ],
+    "examples": [
+      "cria uma cena 3D interativa",
+      "add a shader background",
+      "build this in React Three Fiber"
+    ]
+  },
+  "dev-canvas-generative": {
+    "keywords": [
+      "generative art",
+      "arte generativa",
+      "particles background",
+      "noise field",
+      "flow field",
+      "canvas animation",
+      "fundo de partículas"
+    ],
+    "examples": [
+      "fundo de partículas no hero",
+      "generative noise background",
+      "flow field animation"
+    ]
+  },
+  "dev-framer-motion": {
+    "keywords": [
+      "framer motion",
+      "animatepresence",
+      "layout animation",
+      "motion react",
+      "exit animation react"
+    ],
+    "examples": [
+      "anima este componente React",
+      "add exit animations to the modal",
+      "layout animation on reorder"
+    ]
+  },
+  "dev-css-native": {
+    "keywords": [
+      "animação CSS sem biblioteca",
+      "scroll-driven css",
+      "view transitions",
+      "starting-style",
+      "css puro animação",
+      "no-dependency animation"
+    ],
+    "examples": [
+      "anima isto só com CSS",
+      "scroll progress bar in pure CSS",
+      "view transition between pages"
+    ]
+  },
+  "brand-motion-design": {
+    "keywords": [
+      "motion design",
+      "como deve animar",
+      "easing",
+      "motion personality",
+      "choreography",
+      "motion system",
+      "linguagem de movimento"
+    ],
+    "examples": [
+      "define a linguagem de movimento da marca",
+      "what easing family fits this brand",
+      "motion audit desta página"
+    ]
+  },
+  "brand-design-dna": {
+    "keywords": [
+      "design dna",
+      "replica este estilo",
+      "clone this aesthetic",
+      "extrai o dna",
+      "faz igual a este site",
+      "style guide json",
+      "copiar estilo"
+    ],
+    "examples": [
+      "extrai o DNA deste screenshot",
+      "replica o estilo deste site no nosso",
+      "gera a partir deste design DNA"
+    ]
   }
 }

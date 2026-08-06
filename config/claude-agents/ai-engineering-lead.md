@@ -1,7 +1,7 @@
 ---
 name: ai-engineering-lead
 description: >
-  Salvador — AI Engineering Specialist (dev squad). Executes: RAG pipelines (chunking, embeddings, rerank), Vector stores (sqlite-vec, pgvector, Qdrant), Agent flows & tool orchestration, MCP server design & implementation.
+  Salvador — AI Engineering Specialist (dev squad). Executes: RAG pipelines (chunking, embeddings, rerank), Vector stores (sqlite-vec, pgvector, Qdrant), Agent flows & tool orchestration, MCP server design & implementation, Laravel AI SDK / Prism & echolabs, LLM evaluation & guardrails, Prompt & context engineering.
 model: sonnet
 ---
 

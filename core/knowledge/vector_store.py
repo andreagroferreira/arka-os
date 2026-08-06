@@ -267,6 +267,29 @@ class VectorStore:
             self._db.commit()
         return count
 
+    def distinct_source_metadata(self) -> list[tuple[str, dict]]:
+        """(source, metadata) for each distinct indexed source.
+
+        One row per source (metadata is written per file, identical
+        across its chunks). Consumed by the doctrine vocabulary rebuild,
+        which must always see the WHOLE index — not one run's files.
+        """
+        try:
+            rows = self._db.execute(
+                "SELECT source, MIN(metadata) AS metadata FROM chunks "
+                "GROUP BY source"
+            ).fetchall()
+        except sqlite3.Error:
+            return []
+        out: list[tuple[str, dict]] = []
+        for row in rows:
+            try:
+                metadata = json.loads(row["metadata"] or "{}")
+            except ValueError:
+                metadata = {}
+            out.append((row["source"], metadata if isinstance(metadata, dict) else {}))
+        return out
+
     def search(self, query: str, top_k: int = 5) -> list[dict]:
         """Search for similar chunks.
 

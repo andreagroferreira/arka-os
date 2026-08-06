@@ -88,13 +88,13 @@ STACK_DISPLAY = {
 
 def _load_agents() -> list[dict]:
     data = json.loads(
-        (ROOT / "knowledge" / "agents-registry-v2.json").read_text())
+        (ROOT / "knowledge" / "agents-registry-v2.json").read_text(encoding="utf-8"))
     return data["agents"]
 
 
 def _load_command_counts() -> dict[str, int]:
     data = json.loads(
-        (ROOT / "knowledge" / "commands-registry.json").read_text())
+        (ROOT / "knowledge" / "commands-registry.json").read_text(encoding="utf-8"))
     return data["_meta"]["departments"]
 
 
@@ -114,7 +114,7 @@ def _split_frontmatter(text: str) -> tuple[list[str], str]:
 def _stack_rules() -> list[tuple[str, list[str], str]]:
     rules = []
     for path in sorted(STACK_RULES_DIR.glob("*.md")):
-        globs, body = _split_frontmatter(path.read_text())
+        globs, body = _split_frontmatter(path.read_text(encoding="utf-8"))
         rules.append((path.stem, globs, body))
     return rules
 
@@ -249,7 +249,7 @@ def _curated_agents(agents: list[dict]) -> list[dict]:
 def _agent_markdown(agent: dict) -> str:
     version = read_version(ROOT)
     prefix = DIR_TO_PREFIX.get(agent["department"], agent["department"])
-    domains = ", ".join(agent.get("expertise_domains", [])[:6])
+    domains = ", ".join(agent.get("expertise_domains", [])[:8])
     traits = " · ".join(
         t for t in (
             agent.get("disc", {}).get("label", ""),
@@ -402,7 +402,7 @@ def write_bundle(files: dict[str, str], harness_dir: Path) -> None:
     for rel, content in files.items():
         target = harness_dir / rel
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content)
+        target.write_text(content, encoding="utf-8")
 
 
 def main() -> int:

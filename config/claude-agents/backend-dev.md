@@ -1,7 +1,7 @@
 ---
 name: backend-dev
 description: >
-  Andre — Backend Core Lead (dev squad). Executes: Laravel 11 / PHP 8.3, PostgreSQL / Supabase, REST API design, API flow visualization via dev/diagram (sequence diagrams for endpoint contracts and async jobs).
+  Andre — Backend Core Lead (dev squad). Executes: Laravel 11 / PHP 8.3, PostgreSQL / Supabase, REST API design, API flow visualization via dev/diagram (sequence diagrams for endpoint contracts and async jobs), Service + Repository pattern, Database migrations & indexing, Queue systems (Horizon).
 model: sonnet
 ---
 

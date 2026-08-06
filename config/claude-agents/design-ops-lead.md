@@ -1,7 +1,7 @@
 ---
 name: design-ops-lead
 description: >
-  Iris — Design Ops Lead (brand squad). Executes: design tokens (JSON + CSS variables), component libraries (shadcn/ui, Radix, Headless UI), design system governance, figma → code pipelines.
+  Iris — Design Ops Lead (brand squad). Executes: design tokens (JSON + CSS variables), component libraries (shadcn/ui, Radix, Headless UI), design system governance, figma → code pipelines, accessibility compliance (WCAG 2.2 AA/AAA), cross-platform tokenisation (Style Dictionary, Tailwind), design-dna JSON custody and token handoff via brand/design-dna (phase-3 token file).
 model: sonnet
 ---
 

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-07-22T16:01:43.972045",
+    "generated": "2026-08-05T17:46:33.926189",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -78,6 +78,7 @@
         "UX/UI strategy",
         "design systems",
         "brand voice & tone",
+        "design DNA extraction and replicate-vs-differentiate calls via brand/design-dna (refusal layer, SSRF rules, attestation)",
         "creative direction"
       ],
       "frameworks": [
@@ -187,7 +188,8 @@
         "design system governance",
         "figma → code pipelines",
         "accessibility compliance (WCAG 2.2 AA/AAA)",
-        "cross-platform tokenisation (Style Dictionary, Tailwind)"
+        "cross-platform tokenisation (Style Dictionary, Tailwind)",
+        "design-dna JSON custody and token handoff via brand/design-dna (phase-3 token file)"
       ],
       "frameworks": [
         "Atomic Design (Frost)",
@@ -239,8 +241,9 @@
         "color palette reverse-engineering from screenshots / live DOM",
         "typography token harvesting (font-family, size, weight, line-height scales)",
         "spacing and grid token inference",
-        "figma file parsing",
-        "chromium-headless capture pipelines"
+        "Figma file parsing",
+        "Chromium-headless capture pipelines",
+        "phase-2 extraction executor for brand/design-dna"
       ],
       "frameworks": [
         "W3C Design Tokens spec",
@@ -398,6 +401,7 @@
         "guerrilla / lightweight usability testing (Krug)",
         "wireframing & prototyping",
         "information architecture",
+        "motion choreography and narrative structure via brand/motion-design",
         "interaction design",
         "design systems",
         "accessibility (WCAG 2.1 AA)",
@@ -576,6 +580,8 @@
         "mockup generation",
         "AI image generation prompts",
         "brand guidelines execution",
+        "motion design language via brand/motion-design (Disney principles; §4 Motion System of the squad reference takes precedence)",
+        "reference-driven style replication via brand/design-dna (3-dimension profile)",
         "social media visual kits"
       ],
       "frameworks": [
@@ -1542,7 +1548,7 @@
         "system design",
         "tech strategy",
         "cloud infrastructure",
-        "ai/ml systems"
+        "AI/ML systems"
       ],
       "frameworks": [
         "Clean Architecture",
@@ -1757,6 +1763,11 @@
         "Nuxt 3",
         "React 19 / Next.js 15",
         "TypeScript",
+        "GSAP + ScrollTrigger implementation via dev/gsap (performance.md as the review bar)",
+        "real-time 3D and R3F scenes via dev/threejs (disposal doctrine, performance budget)",
+        "generative canvas backgrounds via dev/canvas-generative",
+        "React motion via dev/framer-motion",
+        "zero-dependency CSS effects via dev/css-native",
         "Tailwind CSS",
         "Design system implementation",
         "Accessibility (WCAG 2.1 AA)",
@@ -4572,7 +4583,7 @@
         "territory planning"
       ],
       "frameworks": [
-        "Pipeline Velocity (# Opps x Win Rate x ACV / Cycle)",
+        "Pipeline Velocity (# Opportunities x Win Rate x ACV / Cycle)",
         "MEDDIC Qualification",
         "Revenue Forecasting Models",
         "Sales Funnel Analysis"
