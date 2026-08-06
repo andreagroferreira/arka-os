@@ -187,6 +187,86 @@ def test_second_violation_returns_deny(isolated_env):
     assert "[ARKA:KB-FIRST]" in decision.stderr_msg
 
 
+# ─── Unconfigured vault (no knowledge.vaultPath, no ARKAOS_VAULT) ──────
+#
+# The shared `isolated_env` fixture force-sets ARKAOS_VAULT to a real
+# directory, so every test above runs with a resolvable vault and the
+# whole suite was blind to the shipped default: hooks.kbFirst is true out
+# of the box, knowledge.vaultPath is not seeded, and on that machine the
+# gate denied the second external call of every turn while able to name
+# no note at all. These tests delete the env var the fixture sets.
+
+
+def test_unconfigured_vault_never_denies(isolated_env, monkeypatch):
+    """Deny requires a vault the gate actually searched.
+
+    Blocking on a vault that was never opened breaks WebSearch/Context7
+    for any install without knowledge.vaultPath — the out-of-the-box
+    configuration, not an edge case.
+    """
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    assert research_gate._resolve_vault_path() is None, "precondition: no vault"
+
+    first = evaluate_research_gate("WebSearch", session_id="s-nv", query="filament")
+    assert first.allow is True
+
+    # The call that the configured-vault path denies.
+    second = evaluate_research_gate("WebSearch", session_id="s-nv", query="filament")
+    assert second.allow is True, "denied on a vault the gate never opened"
+    assert second.reason == "kb-first-vault-unconfigured"
+
+    third = evaluate_research_gate("WebSearch", session_id="s-nv", query="filament")
+    assert third.allow is True
+
+
+def test_unconfigured_vault_reason_is_distinct_from_non_compliance(
+    isolated_env, monkeypatch
+):
+    """Telemetry must not read 'operator ignored the KB' when the truth is
+    'this install has no KB configured'."""
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    evaluate_research_gate("WebSearch", session_id="s-nv2", query="q")
+    decision = evaluate_research_gate("WebSearch", session_id="s-nv2", query="q")
+
+    assert decision.reason != "kb-first-required"
+    assert decision.reason == "kb-first-vault-unconfigured"
+
+
+def test_unconfigured_vault_still_nudges_and_names_the_setting(
+    isolated_env, monkeypatch
+):
+    """Only the deny is gated — the operator must still learn the KB is
+    not wired up, and be told which setting fixes it."""
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    decision = evaluate_research_gate("WebSearch", session_id="s-nv3", query="q")
+
+    assert decision.nudge is True
+    assert "knowledge.vaultPath" in decision.stderr_msg
+    # It must NOT claim there may be no note: it never looked.
+    assert "pode não haver nota" not in decision.stderr_msg
+
+
+def test_configured_vault_still_denies(isolated_env):
+    """The guard must not disarm the gate where it can do its job."""
+    _seed_vault(isolated_env["vault"], ["Filament"])
+    evaluate_research_gate("WebSearch", session_id="s-cv", query="filament")
+    decision = evaluate_research_gate("WebSearch", session_id="s-cv", query="filament")
+
+    assert decision.allow is False
+    assert decision.reason == "kb-first-required"
+
+
+def test_deny_message_says_blocked_and_offers_the_bypass(isolated_env):
+    """The operator is hard-blocked at this point and learns it from the
+    message, not from the tool failing."""
+    evaluate_research_gate("WebSearch", session_id="s-msg", query="filament")
+    decision = evaluate_research_gate("WebSearch", session_id="s-msg", query="filament")
+
+    assert decision.allow is False
+    assert "Bloqueado" in decision.stderr_msg
+    assert "ARKA_BYPASS_KB_FIRST" in decision.stderr_msg
+
+
 def test_violation_marker_invalidated_on_new_turn(isolated_env):
     evaluate_research_gate("WebSearch", session_id="s-1", query="filament")
     # New turn → UserPromptSubmit calls invalidate_violation
