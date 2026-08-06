@@ -14,19 +14,16 @@ v1 gate. These tests pin down:
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-
 from hook_shell import BASH
 
 from core.workflow import flow_enforcer, marker_cache
-from core.workflow.flow_enforcer import Decision, evaluate, mark_flow_required
-
+from core.workflow.flow_enforcer import evaluate, mark_flow_required
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
