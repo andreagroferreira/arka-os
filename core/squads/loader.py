@@ -12,7 +12,7 @@ def load_squad(path: str | Path) -> Squad:
     if not path.exists():
         raise FileNotFoundError(f"Squad file not found: {path}")
 
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if data is None:

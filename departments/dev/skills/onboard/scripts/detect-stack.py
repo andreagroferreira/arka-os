@@ -109,7 +109,7 @@ def detect_stack(project_path: str) -> dict:
     composer_path = p / "composer.json"
     if composer_path.exists():
         try:
-            composer = json.loads(composer_path.read_text())
+            composer = json.loads(composer_path.read_text(encoding="utf-8"))
             require = {**composer.get("require", {}), **composer.get("require-dev", {})}
 
             if "laravel/framework" in require:
@@ -162,7 +162,7 @@ def detect_stack(project_path: str) -> dict:
                     php_files = list(app_path.rglob("*.php"))[:5]
                     for pf in php_files:
                         try:
-                            content = pf.read_text(errors="ignore")[:200]
+                            content = pf.read_text(encoding="utf-8", errors="ignore")[:200]
                             if "declare(strict_types=1)" in content:
                                 result["conventions"]["strict_types"] = True
                                 break
@@ -176,7 +176,7 @@ def detect_stack(project_path: str) -> dict:
     package_path = p / "package.json"
     if package_path.exists():
         try:
-            pkg = json.loads(package_path.read_text())
+            pkg = json.loads(package_path.read_text(encoding="utf-8"))
             deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
 
             # Nuxt
@@ -261,7 +261,7 @@ def detect_stack(project_path: str) -> dict:
                     fp = p / f
                     if fp.exists():
                         try:
-                            content = fp.read_text(errors="ignore")[:2000]
+                            content = fp.read_text(encoding="utf-8", errors="ignore")[:2000]
                             if "fastapi" in content.lower() or "FastAPI" in content:
                                 result["framework"] = "FastAPI"
                                 result["stack"].append("FastAPI")
@@ -275,7 +275,7 @@ def detect_stack(project_path: str) -> dict:
     env_file = p / ".env.example" if (p / ".env.example").exists() else p / ".env"
     if env_file.exists():
         try:
-            env_content = env_file.read_text(errors="ignore")
+            env_content = env_file.read_text(encoding="utf-8", errors="ignore")
             if "DB_CONNECTION=pgsql" in env_content or "DATABASE_URL=postgres" in env_content:
                 result["database"].append("PostgreSQL")
             elif "DB_CONNECTION=mysql" in env_content:

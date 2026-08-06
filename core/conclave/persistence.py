@@ -22,7 +22,7 @@ def save_profile(board: ConclaveBoard, path: str | Path = "") -> None:
         "contrarian": [a.model_dump(mode="json") for a in board.contrarian],
     }
 
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
@@ -33,7 +33,7 @@ def load_profile(path: str | Path = "") -> Optional[ConclaveBoard]:
     if not path.exists():
         return None
 
-    content = path.read_text().strip()
+    content = path.read_text(encoding="utf-8").strip()
     if not content:
         return None
 

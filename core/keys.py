@@ -34,12 +34,12 @@ PROVIDERS = {
 def _load() -> dict[str, str]:
     if not KEYS_PATH.exists():
         return {}
-    return json.loads(KEYS_PATH.read_text())
+    return json.loads(KEYS_PATH.read_text(encoding="utf-8"))
 
 
 def _save(keys: dict[str, str]) -> None:
     KEYS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    KEYS_PATH.write_text(json.dumps(keys, indent=2))
+    KEYS_PATH.write_text(json.dumps(keys, indent=2), encoding="utf-8")
     os.chmod(KEYS_PATH, stat.S_IRUSR | stat.S_IWUSR)  # 600
 
 

@@ -314,7 +314,7 @@ def generate_manifest(output_dir, video_info, frame_count, scroll_height,
         manifest["mobile"] = _variant_summary(mobile_info)
 
     manifest_path = Path(output_dir) / "manifest.json"
-    with open(manifest_path, "w") as f:
+    with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
     print(f"\n  Manifest saved to: {manifest_path}", file=sys.stderr)
     return manifest

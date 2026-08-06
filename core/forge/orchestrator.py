@@ -474,7 +474,11 @@ class ForgeOrchestrator:
             repo = Path.cwd().name
 
         version_file = Path(__file__).parent.parent.parent / "VERSION"
-        version = version_file.read_text().strip() if version_file.exists() else "unknown"
+        version = (
+            version_file.read_text(encoding="utf-8").strip()
+            if version_file.exists()
+            else "unknown"
+        )
 
         self._forge_context = ForgeContext(
             repo=repo,

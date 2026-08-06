@@ -179,12 +179,12 @@ class KBSessionCache:
         if not self._cache_file.exists():
             return {}
         try:
-            return json.loads(self._cache_file.read_text())
+            return json.loads(self._cache_file.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             return {}
 
     def _save(self, data: dict[str, Any]) -> None:
-        self._cache_file.write_text(json.dumps(data, indent=2))
+        self._cache_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def extract_topics(self, query: str) -> set[str]:
         """Extract key topics from a query string.
