@@ -5,6 +5,32 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.0] - 2026-08-06
+
+### Fixed
+- **governance:** skill proposals no longer overwrite each other within the same
+  day — digest ladder with a fail-closed terminal rung: a path is only returned
+  when it is free or provably holds this exact proposal; on a fully occupied
+  ladder the proposal is dropped (`no-safe-filename`), never written over
+  foreign bytes (#469)
+- **dashboard:** client-side navigation no longer blanks the content panel (the
+  `out-in` page transition over `UDashboardPanel`'s fragment root is removed)
+  and empty-path API fetches are guarded in the transport layer, keeping cache
+  keys reactive — compare pages render distinct records again (#430)
+- **hooks:** session-start hardening — the hook no longer spawns the dashboard
+  or reorganizer under pytest (`ARKA_HOOK_NO_SPAWN` + `PYTEST_CURRENT_TEST`),
+  and a `build_context` failure surfaces as an `[ARKA:CONTRACTS]` notice
+  instead of silently dropping every operating contract (#427)
+- UTF-8 pinned on 52 shipped text file IO call-sites, with an AST guardrail
+  test that keeps new bare `open()`/`read_text()` calls out (#395)
+
+### Changed
+- **tests:** Windows test hygiene — shell invocations resolve bash through
+  `tests/python/hook_shell.py`, `test_agent_move` leaves no stray YAML and
+  asserts the full `departments/<dept>/agents` destination (#428)
+- **ci:** non-blocking macOS + Windows parity baseline job (#392);
+  `actions/setup-python` bumped to v7 (#407)
+
 ## [5.10.0] - 2026-08-06
 
 ### Fixed
