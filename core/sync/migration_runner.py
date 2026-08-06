@@ -25,6 +25,9 @@ bad migration must never abort a run that has already written to disk.
 from __future__ import annotations
 
 import re
+import signal
+import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,68 +65,18 @@ _MAX_FILES_PER_PROJECT = 2000
 _MAX_HITS_PER_MIGRATION = 20
 _MAX_EXCERPT = 200
 # Lines longer than this are minified assets or embedded data, not the source
-# a migration means. This bounds ordinary work; it is NOT a ReDoS mitigation —
-# a nested quantifier backtracks exponentially and blows up on a few dozen
-# characters. The actual guard is _REDOS_RE below, which refuses the pattern
-# shapes that can do it. Python's `re` has no timeout, so a pattern that gets
-# past both would still hang the run: keep specs reviewed.
+# a migration means. It bounds ordinary work and is NOT a ReDoS mitigation:
+# an ambiguous alternation blows up on about forty characters, a hundred
+# times below this ceiling.
 _MAX_LINE_LENGTH = 4000
 
-_QUANTIFIERS = "+*{"
-
-
-def has_nested_quantifier(pattern: str) -> bool:
-    """True when a quantified group itself contains a quantifier.
-
-    ``(a+)+``, ``(a*)*``, ``((a)+)+`` — the shape behind catastrophic
-    backtracking. Walks the parentheses so nesting is seen; a flat regex
-    misses ``((a)+)+``. Recognises the common shape, not every pathological
-    pattern — it is a guard, not a proof of safety.
-    """
-    stack: list[int] = []
-    i = 0
-    while i < len(pattern):
-        ch = pattern[i]
-        skip = _skip_literal(pattern, i)
-        if skip is not None:
-            i = skip
-            continue
-        if ch == "(":
-            stack.append(i)
-        elif ch == ")" and stack:
-            start = stack.pop()
-            following = pattern[i + 1 : i + 2]
-            if following in _QUANTIFIERS and _contains_quantifier(
-                pattern[start + 1 : i]
-            ):
-                return True
-        i += 1
-    return False
-
-
-def _skip_literal(text: str, i: int) -> int | None:
-    """Index past an escape or a character class at i, or None if neither."""
-    if text[i] == "\\":
-        return i + 2
-    if text[i] == "[":
-        close = text.find("]", i + 1)
-        return len(text) if close == -1 else close + 1
-    return None
-
-
-def _contains_quantifier(body: str) -> bool:
-    """True when body has a quantifier outside escapes and character classes."""
-    i = 0
-    while i < len(body):
-        skip = _skip_literal(body, i)
-        if skip is not None:
-            i = skip
-            continue
-        if body[i] in _QUANTIFIERS:
-            return True
-        i += 1
-    return False
-
+# Wall-clock budget for one spec against one project. `has_nested_quantifier`
+# refuses the obvious shapes, but it cannot recognise alternation ambiguity
+# — `(a|a)*` passes it and still backtracks exponentially — and Python's `re`
+# has no timeout of its own. A heuristic that admits its own gaps is not a
+# control; this deadline is. A spec that exceeds it is abandoned and
+# recorded, and the sync continues.
+_SPEC_TIME_BUDGET_SECONDS = 5.0
 
 @dataclass
 class _Compiled:
@@ -170,17 +123,16 @@ def compile_specs(specs: list[MigrationSpec]) -> tuple[list[_Compiled], list[str
 
     ``replace`` is exercised against a probe so a bad backreference fails
     here, once, rather than mid-scan on the operator's files.
+
+    Pattern *shape* is deliberately not judged. A shape heuristic refused
+    ordinary patterns like a counted group while missing the alternation
+    ambiguity — ``(a|a)*`` — that actually backtracks exponentially. The
+    wall-clock budget in :func:`run_migrations` covers both without
+    guessing, so the guessing was removed.
     """
     compiled: list[_Compiled] = []
     errors: list[str] = []
     for spec in specs:
-        if has_nested_quantifier(spec.detect):
-            errors.append(
-                f"{spec.name}: refused — nested quantifier can backtrack "
-                "exponentially; rewrite without a quantified group inside a "
-                "quantifier"
-            )
-            continue
         try:
             pattern = re.compile(spec.detect)
             if spec.replace is not None:
@@ -225,16 +177,19 @@ def run_migrations(
     compiled, compile_errors = compile_specs(specs)
     result.errors.extend(compile_errors)
     if not compiled:
+        # Every spec was refused. That is a result the operator must see, not
+        # an early return that leaves the run looking clean.
+        result.proposal_path = str(
+            _write_proposal(result, specs, proposals_dir, version)
+        )
         return result
 
     for project in projects:
-        hits, truncated, errors = _scan(project, compiled)
-        for name in (c.spec.name for c in compiled):
-            result.hits.extend(hits.get(name, []))
-        result.truncated.extend(f"{reason}@{project.name}" for reason in truncated)
-        result.errors.extend(f"{project.name}: {e}" for e in errors)
+        _scan_one_project(project, compiled, result)
 
-    if result.hits:
+    # Errors matter most in the run that found nothing: without this, a scan
+    # that could not run at all is indistinguishable from a clean one.
+    if result.hits or result.errors or result.truncated:
         result.proposal_path = str(
             _write_proposal(result, specs, proposals_dir, version)
         )
@@ -246,31 +201,138 @@ def run_migrations(
 # ---------------------------------------------------------------------------
 
 
-def _candidate_files(root: Path, patterns: list[str]) -> tuple[list[Path], bool]:
-    """Return (files, hit_file_cap) for one project, skipping vendored trees.
+def _scan_one_project(
+    project: Project, compiled: list[_Compiled], result: MigrationScanResult
+) -> None:
+    """Scan one project under a wall-clock budget, folding results in."""
+    budget = _SPEC_TIME_BUDGET_SECONDS * len(compiled)
+    try:
+        with _time_budget(budget):
+            hits, truncated, errors = _scan(project, compiled)
+    except ScanBudgetError:
+        result.errors.append(
+            f"{project.name}: scan abandoned after {budget:.0f}s — a pattern "
+            "is backtracking; review the spec's detect regex"
+        )
+        return
+    for c in compiled:
+        result.hits.extend(hits.get(c.spec.name, []))
+    result.truncated.extend(f"{reason}@{project.name}" for reason in truncated)
+    result.errors.extend(f"{project.name}: {e}" for e in errors)
 
-    The cap is returned, not swallowed: a scan that silently stopped at 2000
-    files reads as a complete result to whoever gets the proposal.
+
+def _candidate_files(
+    root: Path, patterns: list[str]
+) -> tuple[list[Path], bool, list[str]]:
+    """Return (files, hit_file_cap, errors) for one project.
+
+    Every candidate is resolved and asserted to be inside the project root.
+    A spec's ``paths`` is untrusted YAML, and a pattern like ``../**/*.md``
+    would otherwise read files outside the project and copy 200 characters
+    of each match into a written proposal.
+
+    Glob failures are recorded per pattern rather than raised: phase 6 runs
+    after content, agents and settings are already written, so an exception
+    here leaves a half-applied sync the next run cannot see.
     """
     if not root.is_dir():
-        return [], False
+        return [], False, []
+    resolved_root = root.resolve()
     files: list[Path] = []
     seen: set[Path] = set()
+    errors: list[str] = []
     for pattern in patterns:
-        try:
-            candidates = root.glob(pattern)
-        except (OSError, ValueError):
+        candidates, glob_error = _glob(root, pattern)
+        if glob_error is not None:
+            errors.append(glob_error)
             continue
-        for path in candidates:
-            if len(files) >= _MAX_FILES_PER_PROJECT:
-                return files, True
-            if path in seen or not path.is_file():
-                continue
-            if _SKIP_DIRS.intersection(path.relative_to(root).parts):
-                continue
-            seen.add(path)
-            files.append(path)
-    return files, False
+        capped = _take(candidates, resolved_root, files, seen, errors, pattern)
+        if capped:
+            return files, True, errors
+    return files, False, errors
+
+
+def _take(
+    candidates: list[Path],
+    resolved_root: Path,
+    files: list[Path],
+    seen: set[Path],
+    errors: list[str],
+    pattern: str,
+) -> bool:
+    """Append acceptable candidates to files. True when the file cap was hit."""
+    for path in candidates:
+        if len(files) >= _MAX_FILES_PER_PROJECT:
+            return True
+        if path in seen:
+            continue
+        verdict = _accepts(path, resolved_root)
+        if verdict == "escaped":
+            errors.append(f"path {pattern!r}: escaped the project root")
+            return False
+        if verdict == "skip":
+            continue
+        seen.add(path)
+        files.append(path)
+    return False
+
+
+def _accepts(path: Path, resolved_root: Path) -> str:
+    """"take", "skip" or "escaped" for one candidate."""
+    if not path.is_file():
+        return "skip"
+    inside = _contained(path, resolved_root)
+    if inside is None:
+        return "escaped"
+    return "skip" if _SKIP_DIRS.intersection(inside.parts) else "take"
+
+
+def _glob(root: Path, pattern: str) -> tuple[list[Path], str | None]:
+    """Expand one pattern, returning an error string instead of raising."""
+    try:
+        return list(root.glob(pattern)), None
+    except Exception as exc:  # any glob refusal, never fatal
+        return [], f"path {pattern!r}: {exc.__class__.__name__}"
+
+
+class ScanBudgetError(Exception):
+    """Raised when a scan overruns its wall-clock budget."""
+
+
+@contextmanager
+def _time_budget(seconds: float):
+    """Interrupt the block after `seconds`, where the platform allows it.
+
+    SIGALRM only arms on the main thread of a POSIX process. Elsewhere this
+    degrades to no deadline, which is stated rather than hidden — the
+    fallback is a real gap, not a covered case.
+    """
+    armed = (
+        hasattr(signal, "SIGALRM")
+        and threading.current_thread() is threading.main_thread()
+    )
+    if not armed:
+        yield False
+        return
+
+    def _fire(_signum, _frame):
+        raise ScanBudgetError
+
+    previous = signal.signal(signal.SIGALRM, _fire)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield True
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+def _contained(path: Path, resolved_root: Path) -> Path | None:
+    """Path relative to the root, or None when it resolves outside it."""
+    try:
+        return path.resolve().relative_to(resolved_root)
+    except (OSError, ValueError):
+        return None
 
 
 def _scan(
@@ -283,9 +345,11 @@ def _scan(
     dominate the run and buy nothing.
     """
     paths = list(dict.fromkeys(p for c in compiled for p in c.spec.paths))
-    files, hit_cap = _candidate_files(Path(project.path), paths)
+    files, hit_cap, path_errors = _candidate_files(Path(project.path), paths)
     hits: dict[str, list[MigrationHit]] = {c.spec.name: [] for c in compiled}
-    truncated, errors, unreadable = (["file-cap"] if hit_cap else []), [], []
+    truncated: list[str] = ["file-cap"] if hit_cap else []
+    errors: list[str] = list(path_errors)
+    unreadable: list[str] = []
     dropped: set[str] = set()
 
     for file in files:
@@ -299,10 +363,16 @@ def _scan(
     # Only a hit that was actually discarded means the list is incomplete.
     # Reporting on `len == cap` claims truncation for a scan that found
     # exactly the cap and lost nothing.
-    truncated += [f"{name}:hit-cap" for name in sorted(dropped)]
+    return hits, _finalise(truncated, dropped, unreadable, errors), errors
+
+
+def _finalise(
+    truncated: list[str], dropped: set[str], unreadable: list[str], errors: list[str]
+) -> list[str]:
+    """Fold the incompleteness signals into the truncation list."""
     if unreadable:
         errors.append(f"{len(unreadable)} file(s) unreadable, first: {unreadable[0]}")
-    return hits, truncated, errors
+    return truncated + [f"{name}:hit-cap" for name in sorted(dropped)]
 
 
 def _scan_text(

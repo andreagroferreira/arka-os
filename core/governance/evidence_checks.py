@@ -601,14 +601,14 @@ def _stale_coverage_reason(
             f"coverage.xml predates changed source ({newest_name}) — "
             "regenerate it; it cannot describe this diff"
         )
-    return _missing_module_reason(coverage_xml, changed)
+    return _missing_module_reason(coverage_xml, changed, project_dir)
 
 
 def _missing_module_reason(
-    coverage_xml: Path, changed: list[str] | None,
+    coverage_xml: Path, changed: list[str] | None, project_dir: Path,
 ) -> str | None:
     """Reason a changed module is absent from the artefact, or None."""
-    covered = _covered_paths(coverage_xml)
+    covered = _covered_paths(coverage_xml, project_dir)
     missing = [
         rel for rel in (changed or [])
         if rel.endswith(".py")
@@ -639,44 +639,60 @@ def _newest_changed_after(
     return newest_name
 
 
-def _covered_paths(coverage_xml: Path) -> set[str]:
-    """Every source path named in the artefact, as posix strings.
+def _covered_paths(coverage_xml: Path, project_dir: Path) -> set[str]:
+    """Covered files as paths relative to project_dir, exactly.
 
-    Parsed rather than substring-matched: a bare stem probe accepts
-    `core/synapse/engine.py` as evidence for a changed `core/sync/engine.py`,
-    which is the same class of defect this check exists to catch. `core/`
-    alone carries 14 colliding stems.
+    A ``class/@filename`` is relative to one of the ``sources/source``
+    roots, which are usually absolute and which the changed-file list never
+    carries. Each candidate is therefore rebuilt against every source and
+    re-expressed relative to the project, so comparison can be equality.
+
+    Suffix or stem matching is not good enough here: `core/` alone carries
+    14 colliding stems, this repo's own artefact yields five bare basenames,
+    and a suffix rule cannot tell `core/sync/engine.py` from
+    `vendor/core/sync/engine.py`. Equality can.
     """
     try:
         root = ElementTree.parse(coverage_xml).getroot()
     except (ElementTree.ParseError, OSError):
         return set()
-    sources = [
-        (el.text or "").strip() for el in root.iterfind("sources/source")
-    ]
-    paths: set[str] = set()
-    for cls in root.iter("class"):
-        filename = cls.get("filename")
-        if not filename:
+    sources = [(el.text or "").strip() for el in root.iterfind("sources/source")]
+    try:
+        base = project_dir.resolve()
+    except OSError:
+        base = project_dir
+    return {
+        candidate
+        for cls in root.iter("class")
+        if cls.get("filename")
+        for candidate in _source_candidates(cls.get("filename", ""), sources, base)
+    }
+
+
+def _source_candidates(
+    filename: str, sources: list[str], base: Path,
+) -> set[str]:
+    """Project-relative spellings of one covered file."""
+    found: set[str] = set()
+    raw = PurePosixPath(filename)
+    if not raw.is_absolute():
+        found.add(raw.as_posix())
+    for source in sources or []:
+        joined = Path(source) / filename
+        try:
+            resolved = joined.resolve()
+        except OSError:
             continue
-        paths.add(PurePosixPath(filename).as_posix())
-        for source in sources:
-            combined = f"{source.rstrip('/')}/{filename}"
-            paths.add(PurePosixPath(combined).as_posix())
-    return paths
+        try:
+            found.add(PurePosixPath(resolved.relative_to(base)).as_posix())
+        except ValueError:
+            continue
+    return found
 
 
 def _is_covered(rel: str, covered: set[str]) -> bool:
-    """True when a covered path IS `rel`, or ends with `/rel`.
-
-    One direction only. Accepting `target.endswith(path)` would let a bare
-    `engine.py` be vouched for by any covered path ending in `/engine.py`,
-    which is the stem collision this check exists to reject, one level up.
-    The forward direction is still needed because the artefact may carry a
-    `sources/source` prefix that the changed-file list does not.
-    """
-    target = PurePosixPath(rel).as_posix()
-    return any(path == target or path.endswith(f"/{target}") for path in covered)
+    """True only when the artefact names exactly this project-relative path."""
+    return PurePosixPath(rel).as_posix() in covered
 
 
 def _check_coverage(

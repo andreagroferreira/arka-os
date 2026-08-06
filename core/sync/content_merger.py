@@ -63,27 +63,46 @@ def merge_managed_content(
         + target_text[end_match.end() :]
     )
 
-    if start_match.group("hash") != new_hash:
-        return MergeResult(status="updated", new_text=rewritten)
+    body = target_text[start_match.end() : end_match.start()].strip()
+    return _decide(
+        stamped_hash=start_match.group("hash"),
+        stamped_version=start_match.group("version"),
+        body=body,
+        new_hash=new_hash,
+        version=version,
+        target_text=target_text,
+        rewritten=rewritten,
+    )
 
+
+def _decide(
+    *,
+    stamped_hash: str | None,
+    stamped_version: str | None,
+    body: str,
+    new_hash: str,
+    version: str,
+    target_text: str,
+    rewritten: str,
+) -> MergeResult:
+    """Choose the outcome for a well-formed block."""
+    if stamped_hash != new_hash:
+        return MergeResult(status="updated", new_text=rewritten)
     # The stamp says the content matches canonical — but the stamp is a
     # claim, not a measurement. Hash what is ACTUALLY between the markers
-    # before rewriting anything: an operator who edited inside the block
-    # leaves the stamp untouched, and a rewrite would delete their work to
-    # correct a version number.
-    body = target_text[start_match.end() : end_match.start()].strip()
+    # before rewriting: an operator who edited inside the block leaves the
+    # stamp untouched, and a rewrite would delete their work to correct a
+    # version number.
     if compute_managed_hash(body) != new_hash:
         return MergeResult(
             status="drifted",
             new_text=target_text,
             error="managed block was edited in place; left untouched",
         )
-
-    if start_match.group("version") == version:
+    if stamped_version == version:
         return MergeResult(status="unchanged", new_text=target_text)
     # Content verified current; only the stamp lags. Rewriting it keeps
-    # `version=` an honest record of the last sync that verified this file,
-    # instead of freezing at whichever release last changed the content.
+    # `version=` an honest record of the last sync that verified this file.
     return MergeResult(status="restamped", new_text=rewritten)
 
 

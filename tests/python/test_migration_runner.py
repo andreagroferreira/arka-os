@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
+import pytest
 import yaml
 
 from core.sync.migration_runner import (
+    _SPEC_TIME_BUDGET_SECONDS,
+    compile_specs,
     load_migrations,
     pending_migrations,
     run_migrations,
@@ -269,3 +273,119 @@ def test_each_file_is_read_once_for_all_specs(tmp_path: Path, monkeypatch) -> No
 
     assert len(result.hits) == 4
     assert len(reads) == 1
+
+
+# ---------------------------------------------------------------------------
+# Catastrophic patterns (QG round 3)
+#
+# A shape heuristic shipped here with no tests. It refused ordinary patterns
+# like `import (\w+)` — `"" in "+*{"` is True — while accepting `(a|a)*`,
+# which hangs for over eight seconds on forty characters. The heuristic is
+# gone; the wall-clock budget is the control, and it is tested in both
+# directions.
+# ---------------------------------------------------------------------------
+
+ORDINARY_PATTERNS = [
+    r"import (\w+)",
+    r"import (\w+)$",
+    r"const (\w+)",
+    r"(https?://\S+)",
+    r"v(\d+\.\d+\.\d+)",
+    r"from (\S+) import (\w+)",
+    r"(\d{4})+",
+    r"(v\d+\.\d+)*",
+    r"(x|y)*z",
+    r"(ab)+c",
+    r"\bpython -m core\b",
+    r"^## (.+)$",
+    r"\(\d+\)+",
+    r"([+*])+",
+    r"(a+)+b",
+]
+
+
+@pytest.mark.parametrize("pattern", ORDINARY_PATTERNS)
+def test_no_pattern_is_refused_on_shape_alone(pattern: str) -> None:
+    """Every valid regex compiles. Only real slowness is acted on."""
+    compiled, errors = compile_specs(
+        [SPEC.model_copy(update={"detect": pattern, "replace": None})]
+    )
+    assert errors == []
+    assert len(compiled) == 1
+
+
+# ---------------------------------------------------------------------------
+# Containment and crash-safety (QG round 3)
+# ---------------------------------------------------------------------------
+
+
+def test_paths_cannot_escape_the_project_root(tmp_path: Path) -> None:
+    """`../**` would read outside the project and copy it into a proposal."""
+    (tmp_path / "outside").mkdir()
+    (tmp_path / "outside" / "secret.md").write_text(
+        "TOKEN placeholder-value\n", encoding="utf-8"
+    )
+    project = _project(tmp_path, "project")
+    (Path(project.path) / "own.md").write_text("nothing\n", encoding="utf-8")
+    spec = SPEC.model_copy(update={"detect": "TOKEN", "paths": ["../**/*.md"]})
+
+    result = run_migrations([project], [spec], tmp_path / "out", "5.10.0")
+
+    assert result.hits == []
+    assert any("escaped the project root" in e for e in result.errors)
+
+
+def test_absolute_path_pattern_does_not_abort_the_run(tmp_path: Path) -> None:
+    """pathlib raises NotImplementedError, which is not an OSError."""
+    project = _project(tmp_path)
+    spec = SPEC.model_copy(update={"paths": ["/etc/**/*.md", "**/*.md"]})
+
+    result = run_migrations([project], [spec], tmp_path / "out", "5.10.0")
+
+    assert any("NotImplementedError" in e for e in result.errors)
+
+
+def test_odd_glob_never_costs_the_other_patterns(tmp_path: Path) -> None:
+    """A pattern that matches nothing must not silence the ones that do."""
+    project = _project(tmp_path)
+    (Path(project.path) / "a.md").write_text("python -m core\n", encoding="utf-8")
+    spec = SPEC.model_copy(update={"paths": ["**/[", "**/*.md"]})
+
+    result = run_migrations([project], [spec], tmp_path / "out", "5.10.0")
+
+    assert len(result.hits) == 1
+
+
+# ---------------------------------------------------------------------------
+# Errors must reach the operator (QG round 3: they were dropped at zero hits)
+# ---------------------------------------------------------------------------
+
+
+def test_a_run_that_could_not_scan_still_writes_a_record(tmp_path: Path) -> None:
+    """Errors matter most in the run that found nothing."""
+    project = _project(tmp_path)
+    bad = SPEC.model_copy(update={"name": "bad", "detect": "foo("})
+
+    result = run_migrations([project], [bad], tmp_path / "out", "5.10.0")
+
+    assert result.hits == []
+    assert result.proposal_path is not None
+    body = Path(result.proposal_path).read_text(encoding="utf-8")
+    assert "could not run" in body
+    assert "bad" in body
+
+
+def test_catastrophic_pattern_is_abandoned_not_hung(tmp_path: Path) -> None:
+    """An ambiguous alternation passes the shape guard and must still stop."""
+    project = _project(tmp_path)
+    (Path(project.path) / "x.md").write_text("a" * 40 + "b\n", encoding="utf-8")
+    evil = SPEC.model_copy(
+        update={"name": "evil", "detect": r"(a|a)*$", "replace": None}
+    )
+
+    started = time.monotonic()
+    result = run_migrations([project], [evil], tmp_path / "out", "5.10.0")
+    elapsed = time.monotonic() - started
+
+    assert elapsed < _SPEC_TIME_BUDGET_SECONDS * 3
+    assert any("abandoned" in e or "backtracking" in e for e in result.errors)

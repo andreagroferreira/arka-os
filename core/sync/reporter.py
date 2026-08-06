@@ -56,7 +56,10 @@ def build_report(
         agent_results=agent_results or [],
         migrations=migrations,
         errors=_collect_errors(
-            *phases, content_results=content_results, agent_results=agent_results
+            *phases,
+            content_results=content_results,
+            agent_results=agent_results,
+            migrations=migrations,
         ),
     )
 
@@ -121,8 +124,11 @@ def _collect_errors(
     skills: list[SkillSyncResult],
     content_results: list[ContentSyncResult] | None = None,
     agent_results: list[AgentProvisionResult] | None = None,
+    migrations: MigrationScanResult | None = None,
 ) -> list[str]:
-    errors: list[str] = []
+    errors: list[str] = [
+        f"Migration: {entry}" for entry in (migrations.errors if migrations else [])
+    ]
     for r in mcp:
         if r.error:
             errors.append(f"MCP({r.path}): {r.error}")
@@ -137,16 +143,25 @@ def _collect_errors(
     for r in skills:
         if r.error:
             errors.append(f"Skill({r.skill_name}): {r.error}")
+    errors += _content_and_agent_errors(content_results, agent_results)
+    return errors
+
+
+def _content_and_agent_errors(
+    content_results: list[ContentSyncResult] | None,
+    agent_results: list[AgentProvisionResult] | None,
+) -> list[str]:
+    errors: list[str] = []
     for r in content_results or []:
         if r.error:
             errors.append(f"Content({r.path}): {r.error}")
-        for artefact_error in r.artefacts_errored:
-            errors.append(f"Content({r.path}): {artefact_error}")
+        errors += [f"Content({r.path}): {e}" for e in r.artefacts_errored]
     for r in agent_results or []:
         if r.error:
             errors.append(f"Agents({r.path}): {r.error}")
-        for a in r.agents_errored:
-            errors.append(f"Agents({r.path}): missing core file for {a}")
+        errors += [
+            f"Agents({r.path}): missing core file for {a}" for a in r.agents_errored
+        ]
     return errors
 
 
@@ -221,6 +236,12 @@ def _format_migration_lines(migrations: MigrationScanResult | None) -> list[str]
         return []
     ran = len(migrations.migrations_run)
     if not migrations.hits:
+        if migrations.errors:
+            return [
+                "",
+                f"  Migrations: {ran} checked — {len(migrations.errors)} could "
+                "not run, no results. See Errors below.",
+            ]
         return ["", f"  Migrations: {ran} checked, no legacy patterns found."]
     projects = len({h.project for h in migrations.hits})
     lines = [

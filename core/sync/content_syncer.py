@@ -110,12 +110,17 @@ def _sync_claude_md(
     )
     target_file = project_claude / "CLAUDE.md"
     target_text = target_file.read_text(encoding="utf-8") if target_file.exists() else ""
-
     result = merge_managed_content(target_text, managed_content, version)
+    _record_claude_md(result, target_file, managed_content, out)
+
+
+def _record_claude_md(result, target_file, managed_content: str, out) -> None:
+    """Apply one merge outcome: write, skip, or record without writing."""
     if result.status == "error":
         out.errored.append(f"CLAUDE.md: {result.error}")
-        sidecar = target_file.with_suffix(".md.arkaos-new")
-        sidecar.write_text(managed_content, encoding="utf-8")
+        target_file.with_suffix(".md.arkaos-new").write_text(
+            managed_content, encoding="utf-8"
+        )
         return
     if result.status == "drifted":
         # The operator edited inside the managed block. Overwriting to fix a
