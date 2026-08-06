@@ -101,6 +101,59 @@ describe('useApi — empty-path guard', () => {
   })
 })
 
+describe('useApi — the transport wrapper stays transparent', () => {
+  it('delegates to a caller-supplied $fetch instead of replacing it', async () => {
+    // The wrapper owns the empty-path decision only; a caller that brings its
+    // own transport (an interceptor, a test double) must still be the one
+    // that performs the request.
+    const callerFetch = vi.fn(() => Promise.resolve({ tag: 'from-caller' }))
+    const path = ref('/api/agents/delegated')
+    const { Probe, probe } = singleProbe(path, { $fetch: callerFetch })
+
+    await mountSuspended(Probe)
+    await settle()
+
+    const one = probe.one as { data: Ref<Tagged | undefined> }
+    expect(callerFetch).toHaveBeenCalledTimes(1)
+    expect(callerFetch.mock.calls[0]![0]).toBe(`${API_BASE}/api/agents/delegated`)
+    expect(one.data.value).toEqual({ tag: 'from-caller' })
+    // The default transport must not have been used behind its back.
+    expect(transport).not.toHaveBeenCalled()
+  })
+
+  it('still guards the empty path for a caller-supplied $fetch', async () => {
+    const callerFetch = vi.fn(() => Promise.resolve({ tag: 'never' }))
+    const path = ref('')
+    const { Probe } = singleProbe(path, { $fetch: callerFetch })
+
+    await mountSuspended(Probe)
+    await settle()
+
+    expect(callerFetch).not.toHaveBeenCalled()
+  })
+
+  it('propagates transport rejections instead of swallowing them', async () => {
+    // A guard that returned a resolved value on failure would turn every 500
+    // into a silent empty page — the pages branch on `error`.
+    const boom = new Error('upstream exploded')
+    transport.mockImplementationOnce(() => Promise.reject(boom))
+    const path = ref('/api/agents/failing')
+    const { Probe, probe } = singleProbe(path)
+
+    await mountSuspended(Probe)
+    await settle()
+
+    const one = probe.one as {
+      error: Ref<{ message?: string } | null>
+      status: Ref<string>
+      data: Ref<Tagged | undefined>
+    }
+    expect(one.status.value).toBe('error')
+    expect(one.error.value?.message).toContain('upstream exploded')
+    expect(one.data.value).toBeUndefined()
+  })
+})
+
 describe('useApi — cache key stays reactive', () => {
   // The Quality Gate probe for PR430, kept verbatim in intent: two entries
   // that start merged on the empty key must separate once the URLs diverge.
