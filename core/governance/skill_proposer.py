@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _COMPLETION_PATTERNS: tuple[re.Pattern[str], ...] = (
@@ -76,7 +76,7 @@ def evaluate(
     markdown = _render_proposal(text, slug, today=today)
     out_dir = output_dir or _DEFAULT_OUTPUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
-    iso_today = today or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    iso_today = today or datetime.now(UTC).strftime("%Y-%m-%d")
     path = _collision_free_path(out_dir, iso_today, slug, markdown)
     path.write_text(markdown, encoding="utf-8")
     return SkillProposal(True, "proposed", slug, path, markdown)
@@ -87,27 +87,60 @@ def _collision_free_path(
 ) -> Path:
     """Return a path for today's proposal that will not clobber another.
 
-    ``_suggest_slug`` draws from the seven skill-worthy hint patterns, so
-    a day's proposals collapse onto at most eight filenames. Every
-    proposal after the first with the same slug used to overwrite its
-    predecessor, silently: distinct captured capabilities were lost with
-    no error and no trace.
+    ``_suggest_slug`` anchors on the first matching skill-worthy hint, so
+    same-day slug collisions are the norm: the six word hints plus the
+    fallback yield seven fixed names, and the numeric ``N-phase`` hint
+    mints a fresh one per number it matches (until ``_slugify``'s 60-char
+    cap truncates the extremes back together). Small in practice, then --
+    not the fixed handful this docstring once claimed. Every proposal
+    after the first with the same slug used to overwrite its predecessor,
+    silently: distinct captured capabilities were lost with no error and
+    no trace.
 
     Disambiguates by content digest rather than a counter, so re-running
     the hook over the same closing message stays idempotent (same content
     -> same path -> one file) while genuinely different proposals get
-    their own.
+    their own. Two invariants hold every branch honest:
+
+    * never return a path unless it is free or provably already holds
+      this exact proposal -- unreadable counts as somebody else's;
+    * check the digest names before the plain one, so a re-fire after the
+      operator deleted the plain twin lands back on the file it already
+      wrote instead of duplicating it.
     """
-    path = out_dir / f"{iso_today}-{slug}.md"
-    if not path.exists():
-        return path
+    digest = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+    plain = out_dir / f"{iso_today}-{slug}.md"
+    # 8 hex chars keep the filename readable; the full digest is the
+    # tie-breaker for the day those 32 bits meet a different proposal.
+    digest_paths = (
+        out_dir / f"{iso_today}-{slug}-{digest[:8]}.md",
+        out_dir / f"{iso_today}-{slug}-{digest}.md",
+    )
+    for candidate in digest_paths:
+        if _already_holds(candidate, markdown):
+            return candidate
+    if not plain.exists() or _already_holds(plain, markdown):
+        return plain
+    for candidate in digest_paths:
+        if not candidate.exists():
+            return candidate
+    return digest_paths[-1]
+
+
+def _already_holds(path: Path, markdown: str) -> bool:
+    """True only when ``path`` provably contains exactly ``markdown``.
+
+    Content we cannot read back is not "equal": a missing, unreadable, or
+    non-UTF-8 file is unknown content, and the caller must treat unknown
+    as another proposal rather than write over it. ``UnicodeDecodeError``
+    is a ``ValueError``, not an ``OSError`` -- both belong in the same
+    branch, or the exception escapes ``evaluate`` into the Stop hook's
+    blanket ``except Exception: pass`` and the proposal is lost silently.
+    """
     try:
-        if path.read_text(encoding="utf-8") == markdown:
-            return path
-    except OSError:
-        return path
-    digest = hashlib.sha256(markdown.encode("utf-8")).hexdigest()[:8]
-    return out_dir / f"{iso_today}-{slug}-{digest}.md"
+        return path.read_text(encoding="utf-8") == markdown
+    except (OSError, ValueError):
+        return False
 
 
 def _has_completion_signal(text: str) -> bool:
@@ -137,7 +170,7 @@ def _slugify(value: str) -> str:
 
 
 def _render_proposal(text: str, slug: str, *, today: str | None) -> str:
-    iso = today or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    iso = today or datetime.now(UTC).strftime("%Y-%m-%d")
     excerpt = text.strip()
     if len(excerpt) > 1000:
         excerpt = excerpt[:1000].rstrip() + "..."
