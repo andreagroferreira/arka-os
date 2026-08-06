@@ -463,8 +463,8 @@ def _contracts_unavailable_notice(exc: BaseException) -> str:
 
     build_context() produces [ARKA:EVIDENCE-FLOW], [ARKA:SKILL-CONTRACT],
     [ARKA:META-TAG], [ARKA:AUTHORITY] and [ARKA:MODEL-FABRIC], plus the
-    resume and root lines — the rules the session is supposed to run
-    under. Swallowing a failure here returns the exact
+    resume and root lines and, when present, the [SESSION-MEMORY] recap —
+    the rules the session is supposed to run under. Swallowing a failure here returns the exact
     state those blocks exist to prevent: a session with no idea the rules
     exist, behaving like a generic assistant, with nothing anywhere saying
     why. That is indistinguishable from the hook never having run, which
