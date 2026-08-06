@@ -779,6 +779,24 @@ def main(stdin_json: dict | None = None) -> int:
     except Exception:
         pass
 
+    # KB-first evidence: a GENUINE Obsidian consult is recorded here — the
+    # only writer of the "obsidian" marker kind. Synapse L2.5 records its
+    # automatic injection under kind="injected", which the research gate
+    # deliberately does not read: before this split, the injection layer
+    # satisfied the very gate it was supposed to feed (self-certification —
+    # the marker said "consulted" on every turn regardless of behavior).
+    if tool_name.startswith("mcp__obsidian__") and session_id:
+        try:
+            from core.synapse.kb_cache import record_obsidian_query
+            query_hint = (
+                get_str(stdin_json, "tool_input", "query")
+                or get_str(stdin_json, "tool_input", "path")
+                or tool_name
+            )
+            record_obsidian_query(session_id, query_hint, hit_count=1)
+        except Exception:
+            pass
+
     # Interaction Reform PR3 — the native plan-mode approve button IS
     # explicit plan approval: a successful ExitPlanMode marks the
     # session approved (stronger, less ambiguous than a text "sim").

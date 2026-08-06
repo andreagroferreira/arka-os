@@ -210,6 +210,11 @@ def _invalidate_turn_caches(session_id: str) -> None:
         invalidate_obsidian_query(session_id)
     except Exception:
         pass
+    try:
+        from core.synapse.kb_cache import invalidate_injected_context
+        invalidate_injected_context(session_id)
+    except Exception:
+        pass
 
 
 # ─── Section 4: Synapse bridge (in-process) ──────────────────────────────
