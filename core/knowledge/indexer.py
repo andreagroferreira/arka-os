@@ -129,10 +129,25 @@ def index_directory(
         if vocabulary:
             save_vocabulary(vocabulary)
 
+    # The lexical index is a sidecar built FROM the chunks table, so it is
+    # stale the moment anything is indexed. `lexical.search` ignores a
+    # stale index, which fails safe but also silently turns the lexical
+    # signal off — so rebuild it here instead of leaving it to be
+    # remembered. Fail-open: no FTS5 or a build error leaves the vector
+    # path exactly as it was.
+    lexical_rebuilt = False
+    if indexed:
+        try:
+            from core.knowledge import lexical
+            lexical_rebuilt = lexical.build(store._db_path)[0]
+        except Exception:
+            lexical_rebuilt = False
+
     return {
         "files_scanned": total,
         "files_indexed": indexed,
         "files_skipped": skipped,
         "chunks_created": chunks_created,
         "doctrine_notes": doctrine_count,
+        "lexical_rebuilt": lexical_rebuilt,
     }

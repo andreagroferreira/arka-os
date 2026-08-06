@@ -522,6 +522,21 @@ def _note_from_vector_hit(hit: dict) -> dict:
     )
 
 
+def _fuse_lexical(store, prompt, notes, max_notes, note_builder):
+    """Reorder the vector notes against the lexical ranking, or pass them
+    through untouched.
+
+    Guarded here rather than inside the fusion module so that a KB without
+    a lexical index, or a SQLite build without FTS5, costs one failed
+    import and changes nothing about what the layer returns.
+    """
+    try:
+        from core.knowledge.lexical_fusion import fuse
+        return fuse(store, prompt, notes, max_notes, note_builder)
+    except Exception:
+        return notes
+
+
 def _apply_grounding_policy(notes: list[dict], max_notes: int) -> list[dict]:
     """Quarantine inferred notes (Dreaming output) from grounded context.
 
@@ -638,6 +653,10 @@ class KBContextLayer(Layer):
                 if score < self._min_similarity:
                     continue
             notes.append(_note_from_vector_hit(h))
+        notes = _fuse_lexical(
+            self._store, prompt, notes, self._max_notes,
+            _note_from_vector_hit,
+        )
         notes = _apply_grounding_policy(notes, self._max_notes)
         if notes:
             return notes, degraded
