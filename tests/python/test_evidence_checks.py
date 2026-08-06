@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
@@ -1555,3 +1556,223 @@ class TestZeroDiffSkips:
             "a check ran on zero diff: "
             f"{[r.check for r in report.results if r.ran]}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Stale coverage artefacts (QG blocker B3)
+#
+# A coverage.xml older than the changed source measured a different codebase.
+# The gate passed 86.3% on an artefact that contained none of the new modules —
+# a green number vouching for code it never executed.
+# ---------------------------------------------------------------------------
+
+
+class TestStaleCoverage:
+    def _artefact(self, project: Path, percent: str = "0.90") -> Path:
+        xml = project / "coverage.xml"
+        xml.write_text(
+            f'<?xml version="1.0"?><coverage line-rate="{percent}"></coverage>',
+            encoding="utf-8",
+        )
+        return xml
+
+    def test_artefact_older_than_changed_source_fails(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._artefact(tmp_path)
+        source = tmp_path / "mod.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        os.utime(tmp_path / "coverage.xml", (1_000_000, 1_000_000))
+
+        result = _check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.passed is False
+        assert "predates changed source" in result.summary
+
+    def test_artefact_missing_a_changed_module_fails(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        source = tmp_path / "brand_new.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        self._artefact(tmp_path)
+
+        result = _check_coverage(tmp_path, ["brand_new.py"], None, 60)
+
+        assert result.passed is False
+        assert "no entry for" in result.summary
+
+    def test_fresh_artefact_covering_the_change_passes(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        source = tmp_path / "mod.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        xml = tmp_path / "coverage.xml"
+        xml.write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            '<class filename="mod.py"/></coverage>',
+            encoding="utf-8",
+        )
+
+        result = _check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.passed is True
+
+    def test_changed_tests_do_not_need_a_coverage_entry(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_x.py").write_text("x = 1\n", encoding="utf-8")
+        self._artefact(tmp_path)
+
+        result = _check_coverage(tmp_path, ["tests/test_x.py"], None, 60)
+
+        assert result.passed is True
+
+
+class TestCoveragePathMatching:
+    """Exact project-relative matching (QG round 3).
+
+    Stem probes and suffix rules both fail-open: `core/` carries 14 colliding
+    stems, this repo's own artefact yields five bare basenames, and a suffix
+    rule cannot separate `core/sync/engine.py` from `vendor/core/sync/engine.py`.
+    """
+
+    def _artefact(self, project: Path, filename: str, source: str = ".") -> None:
+        (project / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{source}</source></sources>"
+            f'<packages><package><classes><class filename="{filename}"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(project / "coverage.xml", (time.time() + 10,) * 2)
+
+    def _changed(self, project: Path, rel: str) -> None:
+        target = project / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("x = 1\n", encoding="utf-8")
+
+    def test_colliding_stem_is_rejected(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/synapse/engine.py")
+
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is False
+
+    def test_deeper_path_with_same_suffix_is_rejected(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "vendor/core/sync/engine.py")
+
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is False
+
+    def test_bare_basename_from_a_source_prefix_is_rejected(self, tmp_path: Path) -> None:
+        """The repo's own artefact emits bare basenames under <source>.../core."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "dashboard/server/keys.py")
+        (tmp_path / "core").mkdir(exist_ok=True)
+        self._artefact(tmp_path, "keys.py", source=str(tmp_path / "core"))
+
+        result = _check_coverage(tmp_path, ["dashboard/server/keys.py"], None, 60)
+
+        assert result.passed is False
+
+    def test_source_prefix_is_resolved_against_the_project(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/keys.py")
+        self._artefact(tmp_path, "keys.py", source=str(tmp_path / "core"))
+
+        assert _check_coverage(tmp_path, ["core/keys.py"], None, 60).passed is True
+
+    def test_foreign_source_never_vouches(self, tmp_path: Path) -> None:
+        """QG round 4: the raw relative filename was added unanchored, so an
+        artefact whose <source> points at ANOTHER checkout vouched for ours."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        foreign = tmp_path.parent / f"{tmp_path.name}-elsewhere"
+        foreign.mkdir(exist_ok=True)
+        self._artefact(tmp_path, "core/sync/engine.py", source=str(foreign))
+
+        result = _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60)
+
+        assert result.passed is False
+
+    def test_relative_source_anchors_to_the_project(self, tmp_path: Path) -> None:
+        """A relative <source> (coverage run from the project root) must
+        resolve against the project, not against whatever CWD happens to be."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/sync/engine.py", source=".")
+
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is True
+
+    def test_multi_source_cross_product_cannot_manufacture_paths(self, tmp_path: Path) -> None:
+        """QG round 5: with sources [core, scripts], a filename measured under
+        one source was also resolved under the other, vouching for a path the
+        artefact never measured."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        (tmp_path / "scripts").mkdir(exist_ok=True)
+        (tmp_path / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{tmp_path / 'core'}</source>"
+            f"<source>{tmp_path / 'scripts'}</source></sources>"
+            '<packages><package><classes><class filename="sync/engine.py"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(tmp_path / "coverage.xml", (time.time() + 10,) * 2)
+
+        # the file measured under core/ is genuinely covered...
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is True
+        # ...but scripts/sync/engine.py was never measured and must not pass
+        self._changed(tmp_path, "scripts/sync/engine.py")
+        os.utime(tmp_path / "coverage.xml", (time.time() + 20,) * 2)
+        result = _check_coverage(
+            tmp_path, ["core/sync/engine.py", "scripts/sync/engine.py"], None, 60
+        )
+
+        assert result.passed is False
+
+    def test_ambiguous_multi_source_resolution_fails_closed(self, tmp_path: Path) -> None:
+        """When one filename resolves to an existing file under TWO sources,
+        the artefact cannot say which was measured — vouch for neither."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/util.py")
+        self._changed(tmp_path, "scripts/util.py")
+        (tmp_path / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{tmp_path / 'core'}</source>"
+            f"<source>{tmp_path / 'scripts'}</source></sources>"
+            '<packages><package><classes><class filename="util.py"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(tmp_path / "coverage.xml", (time.time() + 10,) * 2)
+
+        assert _check_coverage(tmp_path, ["core/util.py"], None, 60).passed is False
+
+    def test_doc_only_edits_do_not_stale_the_artefact(self, tmp_path: Path) -> None:
+        """QG round 5: CHANGELOG.md counted as 'changed source', forcing a
+        coverage regeneration for edits no test could ever execute."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/sync/engine.py")
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# notes\n", encoding="utf-8")
+        os.utime(changelog, (time.time() + 100,) * 2)  # newer than the artefact
+
+        result = _check_coverage(
+            tmp_path, ["core/sync/engine.py", "CHANGELOG.md"], None, 60
+        )
+
+        assert result.passed is True

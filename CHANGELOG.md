@@ -5,6 +5,54 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.10.0] - 2026-08-06
+
+### Fixed
+
+- **A managed block edited in place is no longer overwritten** — the stored
+  stamp is a claim, not a measurement, so the merger now hashes what is
+  actually between the markers before rewriting. An operator edit inside the
+  block yields `drifted`: nothing is written, and the run reports it as
+  drift — its own word and its own count in the Content line, because
+  nothing failed. The first cut of the `restamped` path below destroyed
+  exactly that edit while correcting a version number, which is the defect
+  that kept the wider branch out of this release.
+- **The version stamp no longer freezes** — `merge_managed_content` gained a
+  `restamped` status. The stamp previously moved only when the content
+  changed, so a project could show a version many releases old while
+  carrying current content (measured on one install: 51 of 78 projects).
+  Real content changes are still reported as `updated`, never conflated
+  with a restamp.
+- **The coverage gate no longer passes on an artefact that cannot describe
+  the diff** — a `coverage.xml` older than the newest changed `.py` file
+  (doc edits never stale it), or missing an entry for a changed module, now
+  fails the check instead of vouching for code it never measured. Module
+  presence is matched on paths resolved through the artefact's own
+  `<source>` roots and required to exist on disk; a filename that resolves
+  under more than one source is ambiguous and vouches for nothing. A stem
+  probe previously accepted `core/synapse/engine.py` as evidence for a
+  changed `core/sync/engine.py` (`core/governance/evidence_checks.py`).
+- **An unorderable sync baseline no longer reads as "nothing is new"** —
+  `compare_versions` returns `None` for a version pair that cannot be
+  ordered, and the manifest treats an unorderable baseline as a first sync.
+  Previously a degraded run persisted the literal `unknown` into
+  `sync-state.json` and every later run then reported no changes, with no
+  error anywhere (`core/sync/manifest.py`).
+- **The update skill can no longer be instructed to delete a customized
+  section** — Phase 4 dispatches a subagent, and its instructions said to
+  remove the `## <section_title>` section whenever markers were absent.
+  Without markers there is no way to tell ArkaOS's own text from the
+  project's, and `~/.claude/skills/` is not a git repository. The
+  instructions now forbid deleting an unmarked section outright and require
+  a single well-formed marker pair before any removal — in `workflows.md`
+  and in its sibling `sync-engine.md`, which named the heading block as a
+  fallback deletion target and is loaded by the same skill.
+- **Client identifiers removed from tracked ignore files** — `.gitignore`
+  and `.npmignore` named two ecosystem slugs. Both files are tracked in a
+  public repository. Replaced with a naming convention (`_private/`,
+  `client-*`, `ecosystem-*`) so a private skill can be excluded without
+  recording whose it is.
+
 ## [5.9.0] - 2026-08-05
 
 ### Added

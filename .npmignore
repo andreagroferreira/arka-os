@@ -26,10 +26,10 @@ dashboard/.nuxt/
 !LICENSE
 !CONSTITUTION.md
 
-# Private / client-specific content — never ship to npm
-arka/skills/fovory/
-arka/skills/rothbard100/
-arka/skills/platform-arka/
+# Private / client-specific content — never ship to npm.
+# Same convention as .gitignore: _private/, client-*, ecosystem-*.
 arka/skills/_private/
 arka/skills/client-*/
+arka/skills/ecosystem-*/
+arka/skills/platform-arka/
 .arkaos-private/
