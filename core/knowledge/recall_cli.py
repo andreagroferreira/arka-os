@@ -31,18 +31,27 @@ import sys
 from pathlib import Path
 
 DEPTH = 50  # how deep each signal searches before fusing
-_RRF_K = 60  # Cormack et al. 2009
 
 
-def _rrf(rankings: list[list[str]], top_k: int) -> list[str]:
-    # Duplicated from core.knowledge.lexical.rrf so this module stays
-    # importable without it; consolidate on lexical.rrf once both ship.
-    scores: dict[str, float] = {}
-    for ranking in rankings:
-        for rank, item in enumerate(ranking, start=1):
-            scores[item] = scores.get(item, 0.0) + 1.0 / (_RRF_K + rank)
-    ordered = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    return [item for item, _ in ordered[:top_k]]
+def _fuse(rankings: list[list[str]], top_k: int) -> list[str]:
+    """Reciprocal Rank Fusion, delegated to its single implementation.
+
+    ``lexical.rrf`` owns the algorithm and its k constant; this module
+    must nonetheless stay importable on an install without the lexical
+    layer. That costs nothing, because on such an install
+    ``_lexical_ranking`` can only return ``[]`` and there is never a
+    second ranking to fuse — and RRF over one ranking is a monotone
+    transform of its rank, so it preserves that ranking's order exactly.
+    The fallback is therefore the degenerate case of the fusion, not a
+    second copy of it: with one signal, all that remains is the cut.
+    """
+    if not rankings:
+        return []
+    try:
+        from core.knowledge import lexical
+    except ImportError:
+        return rankings[0][:top_k]
+    return lexical.rrf(rankings, top_k=top_k)
 
 
 def _dedupe_to_notes(hits: list[dict]) -> list[str]:
@@ -64,7 +73,7 @@ def _lexical_ranking(db_path: str, query: str) -> list[str]:
     try:
         from core.knowledge import lexical
         return lexical.search(db_path, query, top_k=DEPTH)
-    except Exception:                                   # noqa: BLE001
+    except Exception:
         return []
 
 
@@ -81,7 +90,7 @@ def deep_recall(store, query: str, top_k: int = 15) -> list[dict]:
     rankings = [ranking for ranking in (vector, lexical_rank) if ranking]
     if not rankings:
         return []
-    fused = _rrf(rankings, top_k)
+    fused = _fuse(rankings, top_k)
 
     vector_set, lexical_set = set(vector), set(lexical_rank)
     results = []

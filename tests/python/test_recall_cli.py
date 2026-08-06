@@ -12,9 +12,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from core.knowledge.recall_cli import (  # noqa: E402
+from core.knowledge.recall_cli import (
     _dedupe_to_notes,
-    _rrf,
+    _fuse,
     deep_recall,
 )
 
@@ -37,7 +37,7 @@ def _hit(source):
 # ── fusion mechanics ─────────────────────────────────────────────────────
 
 def test_rrf_rewards_agreement():
-    fused = _rrf([["x", "shared"], ["y", "shared"]], top_k=3)
+    fused = _fuse([["x", "shared"], ["y", "shared"]], top_k=3)
     assert fused[0] == "shared"
 
 
