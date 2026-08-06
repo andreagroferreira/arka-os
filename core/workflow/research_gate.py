@@ -28,6 +28,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.knowledge.vault import resolve_vault_path
 from core.shared import safe_session_id as _safe_session_id_module
 from core.shared.temp_paths import arkaos_temp_dir
 from core.synapse import kb_cache
@@ -202,26 +203,12 @@ def invalidate_violation(session_id: str) -> None:
 def _resolve_vault_path() -> Path | None:
     """The operator's vault, or None. Config first, then env.
 
-    ``knowledge.vaultPath`` in ``~/.arkaos/config.json`` is the portable
-    source of truth (works identically on macOS/Windows/Linux);
-    ``ARKAOS_VAULT`` covers per-session overrides. The old hardcoded
-    ``~/Documents/Personal`` fallback was one developer's personal layout:
-    on every other machine it silently resolved to None, so nudges and
-    denials fired with no note suggestions — a fail-open no one saw.
+    The resolution itself lives in :mod:`core.knowledge.vault` so the
+    indexer and this gate cannot drift apart about where the vault is;
+    ``CONFIG_PATH`` is passed rather than imported so it stays the knob
+    this module (and its tests) control.
     """
-    try:
-        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-        configured = str(
-            (data.get("knowledge") or {}).get("vaultPath") or ""
-        ).strip()
-    except (OSError, json.JSONDecodeError, AttributeError):
-        configured = ""
-    if configured and Path(configured).exists():
-        return Path(configured)
-    env_vault = os.environ.get("ARKAOS_VAULT", "").strip()
-    if env_vault and Path(env_vault).exists():
-        return Path(env_vault)
-    return None
+    return resolve_vault_path(CONFIG_PATH)
 
 
 def _tokenize(text: str) -> set[str]:

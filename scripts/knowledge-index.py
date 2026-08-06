@@ -2,10 +2,14 @@
 """Knowledge Indexer — index markdown files into vector store.
 
 Usage:
-    python scripts/knowledge-index.py --vault ~/Documents/Personal
+    python scripts/knowledge-index.py --vault /path/to/vault
     python scripts/knowledge-index.py --dir departments/ --db /tmp/test.db
+    python scripts/knowledge-index.py --force
     python scripts/knowledge-index.py --stats
     python scripts/knowledge-index.py --search "security vulnerability"
+
+With no --vault/--dir the vault comes from configuration
+(``knowledge.vaultPath`` / ``ARKAOS_VAULT``), never from a guessed path.
 """
 
 import argparse
@@ -26,6 +30,25 @@ sys.path.insert(0, str(ARKAOS_ROOT))
 DEFAULT_DB = Path.home() / ".arkaos" / "knowledge.db"
 
 
+def clear_index(store, db_path: Path) -> None:
+    """Wipe the chunk index AND the lexical sidecar built from it.
+
+    The sidecar is a separate file, so clearing only the chunk table
+    leaves the wiped corpus sitting on disk in readable form.
+    ``lexical.search`` would reject it as stale rather than serve it, so
+    this is hygiene rather than a correctness fix — but "cleared" should
+    mean cleared. Fail-open: an install without the lexical module has no
+    sidecar to remove.
+    """
+    store.clear()
+    try:
+        from core.knowledge import lexical
+
+        lexical.index_path(db_path).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="ArkaOS Knowledge Indexer")
     parser.add_argument("--vault", type=str, help="Obsidian vault path to index")
@@ -34,6 +57,18 @@ def main() -> int:
     parser.add_argument("--search", type=str, help="Search query")
     parser.add_argument("--stats", action="store_true", help="Show DB statistics")
     parser.add_argument("--clear", action="store_true", help="Clear all indexed data")
+    parser.add_argument(
+        "--force",
+        "--reindex",
+        action="store_true",
+        dest="force",
+        help=(
+            "Wipe the index and rebuild it from scratch in one invocation "
+            "(--clear + reindex). Use after a chunker, embedder or doctrine "
+            "rule change, where incremental indexing would keep serving "
+            "chunks produced by the old rules."
+        ),
+    )
     parser.add_argument("--json", action="store_true", dest="json_output", help="JSON output")
     args = parser.parse_args()
 
@@ -44,7 +79,7 @@ def main() -> int:
     store = VectorStore(db_path)
 
     if args.clear:
-        store.clear()
+        clear_index(store, db_path)
         print("Knowledge base cleared." if not args.json_output else json.dumps({"cleared": True}))
         return 0
 
@@ -119,18 +154,19 @@ def main() -> int:
                     print(f"Vault from profile: {directory}", file=sys.stderr)
 
     if not directory:
-        # Try common vault locations
-        common_vaults = [
-            Path.home() / "Documents" / "Personal",
-            Path.home() / "Documents" / "Obsidian",
-            Path.home() / "Obsidian",
-            Path.home() / "vault",
-        ]
-        for vault_path in common_vaults:
-            if vault_path.exists() and (vault_path / ".obsidian").exists():
-                directory = str(vault_path)
-                print(f"Auto-detected vault: {directory}" if not args.json_output else "", file=sys.stderr)
-                break
+        # The canonical resolver: knowledge.vaultPath in ~/.arkaos/config.json,
+        # then ARKAOS_VAULT. Shared with core.workflow.research_gate so the
+        # gate and the indexer can never disagree about which corpus is the
+        # vault. It replaces a list of guessed locations headed by one
+        # developer's ~/Documents/Personal — a path that on any other machine
+        # either missed silently or, worse, matched something unrelated.
+        from core.knowledge.vault import resolve_vault_path
+
+        configured_vault = resolve_vault_path()
+        if configured_vault:
+            directory = str(configured_vault)
+            if not args.json_output:
+                print(f"Vault from config: {directory}", file=sys.stderr)
 
     if not directory:
         # Fall back to indexing ArkaOS departments (always available)
@@ -153,8 +189,22 @@ def main() -> int:
         if not args.json_output:
             print(f"\r  [{current}/{total}] {name[:50]}...", end="", flush=True)
 
+    if args.force:
+        # Two independent guarantees, deliberately both: the wipe makes this
+        # a --clear + rebuild in one invocation, and skip_indexed=False below
+        # means the rebuild does not depend on the wipe having emptied the
+        # hash table. Either alone would reindex today; keeping both means a
+        # future change to clear() cannot quietly turn --force into a no-op.
+        # index_directory then rebuilds both sidecars off the fresh chunks:
+        # the doctrine vocabulary and the lexical FTS5 index.
+        clear_index(store, db_path)
+        if not args.json_output:
+            print("Index cleared — rebuilding from scratch.", file=sys.stderr)
+
     print(f"Indexing: {directory}" if not args.json_output else "", file=sys.stderr)
-    result = index_directory(directory, store, on_progress=progress)
+    result = index_directory(
+        directory, store, on_progress=progress, skip_indexed=not args.force
+    )
 
     if not args.json_output:
         print()  # newline after progress
@@ -162,6 +212,10 @@ def main() -> int:
         print(f"Files indexed:  {result['files_indexed']}")
         print(f"Files skipped:  {result['files_skipped']}")
         print(f"Chunks created: {result['chunks_created']}")
+        # The two sidecars report themselves: a rebuild that silently failed
+        # to refresh them looks identical to one that worked without this.
+        print(f"Doctrine notes: {result.get('doctrine_notes', 0)}")
+        print(f"Lexical index:  {'rebuilt' if result.get('lexical_rebuilt') else 'not rebuilt'}")
     else:
         print(json.dumps(result, indent=2))
 
