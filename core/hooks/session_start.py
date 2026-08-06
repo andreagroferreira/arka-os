@@ -237,15 +237,18 @@ def _spawning_suppressed() -> bool:
 
     SessionStart spawns two long-lived side processes: the dashboard
     (`_ensure_dashboard`) and the reorganizer. Both take the *resolved repo
-    root* as their working tree, and `start-dashboard` kills whatever is
-    already on the port before binding it.
+    root* as their working tree, and `start-dashboard` kills the PIDs
+    recorded in `~/.arkaos/dashboard.pid` — one shared file for every
+    checkout on the machine — before registering its own. (`ensure` leaves
+    a healthy instance alone; `find_port` steps past occupied ports.)
 
     Run the hook from a test and that is a live-fire action on the machine
-    running the tests: the operator's dashboard is killed and replaced by
-    one served out of the test tree — a checkout that legitimately lacks
-    whatever local state the real install has. It looks like the dashboard
-    broke, not like a test ran. (Observed 2026-07-27: two separate pytest
-    invocations silently took over ports 3333/3334 and served a blank UI.)
+    running the tests: the operator's dashboard is killed through that
+    global PID file and replaced by one served out of the test tree — a
+    checkout that legitimately lacks whatever local state the real install
+    has. It looks like the dashboard broke, not like a test ran.
+    (Observed 2026-07-27: two separate pytest invocations silently took
+    over ports 3333/3334 and served a blank UI.)
 
     ARKA_HOOK_NO_SPAWN=1 is the explicit switch. PYTEST_CURRENT_TEST is
     honored as well, deliberately: a test author who forgets the switch
@@ -458,17 +461,18 @@ _CONTRACT_FAILURE_LOG = (
 def _contracts_unavailable_notice(exc: BaseException) -> str:
     """Say the contracts are missing instead of returning an empty string.
 
-    build_context() produces [ARKA:EVIDENCE-FLOW], [ARKA:META-TAG],
-    [ARKA:AUTHORITY] and [ARKA:MODEL-FABRIC] — the rules the session is
-    supposed to run under. Swallowing a failure here returns the exact
+    build_context() produces [ARKA:EVIDENCE-FLOW], [ARKA:SKILL-CONTRACT],
+    [ARKA:META-TAG], [ARKA:AUTHORITY] and [ARKA:MODEL-FABRIC], plus the
+    resume and root lines — the rules the session is supposed to run
+    under. Swallowing a failure here returns the exact
     state those blocks exist to prevent: a session with no idea the rules
     exist, behaving like a generic assistant, with nothing anywhere saying
     why. That is indistinguishable from the hook never having run, which
     is precisely how the Windows delivery gap survived unnoticed for
     months (PR #408).
 
-    Same principle the AUTHORITY brief already applies one function up:
-    one honest line beats a silent void. The greeting still never breaks
+    Same principle `_authority_brief` already applies: one honest line
+    beats a silent void. The greeting still never breaks
     and the hook still exits 0.
     """
     with contextlib.suppress(Exception):  # telemetry must never be the thing that breaks
@@ -482,8 +486,8 @@ def _contracts_unavailable_notice(exc: BaseException) -> str:
             }) + "\n")
     return (
         f"\n[ARKA:CONTRACTS] unavailable ({type(exc).__name__}) — the evidence "
-        f"flow, meta-tag, authority and model-routing contracts could not be "
-        f"built for this session. Treat their absence as a fault, not as "
+        f"flow, skill-routing, meta-tag, authority and model-routing contracts "
+        f"could not be built for this session. Treat their absence as a fault, not as "
         f"permission: keep routing and gating as if they were present, and "
         f"report the failure. Detail in "
         f"~/.arkaos/telemetry/session-start-failures.jsonl"
