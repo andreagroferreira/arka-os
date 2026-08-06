@@ -242,15 +242,24 @@ def _search_vault_titles(query: str, vault: Path, top_n: int) -> list[str]:
     return [stem for _, _, stem in ranked[:top_n]]
 
 
-# The four nudge messages, side by side so each can be read against the
-# work its branch actually did. Every one of them has been wrong at least
-# once by claiming more than the gate checked.
+# The nudge messages, side by side so each can be read against the work
+# its branch actually did.
+#
+# RULE: no comment in this block makes counted or universal claims about
+# the set of messages ("all four", "every one of them", "three conditions
+# produce this"). Each message is described only by the comment directly
+# above it. A summarising sentence with a quantifier is what kept going
+# false here — the quantifier was the part that was wrong.
 
-# No vault resolved. The gate knows nothing about what is written down;
-# saying "there may not be a note yet" asserted the opposite of the truth
-# to an operator holding thousands. Three conditions produce this (key
-# absent, key set but missing on disk, ARKAOS_VAULT missing on disk), so
-# it names both settings rather than blaming the key.
+# No vault resolved. Reached only when NEITHER source answers: the config
+# key is absent or points at a path that does not exist, AND ARKAOS_VAULT
+# is unset or points at a path that does not exist. The default install —
+# no key, no env var — is the common way in, and a missing key on its own
+# does not reach here, because a valid ARKAOS_VAULT still yields a vault.
+# That is why the message names both settings instead of blaming the key.
+# The gate knows nothing about what is written down, so it does not say
+# "there may not be a note yet" — that asserted the opposite of the truth
+# to an operator holding thousands.
 _NUDGE_NO_VAULT = (
     "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes`. "
     "Não consegui resolver o teu vault: nem `knowledge.vaultPath` (em "
@@ -266,9 +275,13 @@ _NUDGE_NO_VAULT = (
 _NUDGE_NO_TERMS = (
     "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes`. "
     "Não consegui extrair termos pesquisáveis deste pedido, por isso não "
-    "cheguei a procurar — corre tu a pesquisa com os termos que interessam."
+    "cheguei a procurar — faz tu a pesquisa com os termos que interessam."
 )
 
+# Titles found. These are exactly the stems _search_vault_titles returned,
+# so the message can name them. "possivelmente relevantes" is hedged on
+# purpose: the match was on filenames, never on note bodies, so relevance
+# is a guess the operator confirms by opening them.
 _NUDGE_WITH_TITLES = (
     "[arka:kb-nudge] O teu cérebro (Obsidian) tem notas possivelmente "
     "relevantes:\n{bullets}\n\n"
@@ -287,11 +300,11 @@ _NUDGE_TITLES_EMPTY = (
 
 
 def _build_nudge(query: str, tool_name: str, vault: Path | None) -> tuple[str, list[str]]:
-    """Four situations, four messages — the gate only claims what it checked.
+    """Pick the message for the situation the gate is actually in.
 
     The branches stay separate on purpose: each names exactly the work
-    that ran. See the message constants above for why each claim is or is
-    not earned.
+    that ran. See the comment directly above each message constant for
+    why that message's claim is earned.
     """
     if vault is None:
         return _NUDGE_NO_VAULT.format(tool=tool_name), []
