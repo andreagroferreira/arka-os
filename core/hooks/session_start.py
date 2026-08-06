@@ -24,6 +24,7 @@ module; with no usable venv it emits a static banner (fail-open).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -247,7 +248,40 @@ def _marker_safe(value: str) -> str:
     return _CONTROL_RE.sub("", value.splitlines()[0]) if value else value
 
 
+def _spawning_suppressed() -> bool:
+    """Whether this process may launch the operator's background daemons.
+
+    SessionStart spawns two long-lived side processes: the dashboard
+    (`_ensure_dashboard`) and the reorganizer. Both take the *resolved repo
+    root* as their working tree, and `start-dashboard` kills the PIDs
+    recorded in `~/.arkaos/dashboard.pid` — one shared file for every
+    checkout on the machine — before registering its own. (`ensure` leaves
+    a healthy instance alone; `find_port` steps past occupied ports.)
+
+    Run the hook from a test and that is a live-fire action on the machine
+    running the tests: the operator's dashboard is killed through that
+    global PID file and replaced by one served out of the test tree — a
+    checkout that legitimately lacks whatever local state the real install
+    has. It looks like the dashboard broke, not like a test ran.
+    (Observed 2026-07-27: two separate pytest invocations silently took
+    over ports 3333/3334 and served a blank UI.)
+
+    ARKA_HOOK_NO_SPAWN=1 is the explicit switch. PYTEST_CURRENT_TEST is
+    honored as well, deliberately: a test author who forgets the switch
+    should lose a background process they never wanted, not the dashboard
+    they were using. pytest exports it into the environment every child
+    process inherits, so the safety net costs nothing in production, where
+    the variable is simply absent.
+    """
+    return bool(
+        os.environ.get("ARKA_HOOK_NO_SPAWN") == "1"
+        or os.environ.get("PYTEST_CURRENT_TEST")
+    )
+
+
 def _spawn_detached(cmd: list[str], repo: str, log_path: Path | None = None) -> None:
+    if _spawning_suppressed():
+        return
     stdout = subprocess.DEVNULL
     handle = None
     try:
@@ -436,6 +470,47 @@ def build_recap(cwd: str, budget_ms: int = _BUDGET_MS) -> str:
         return ""
 
 
+_CONTRACT_FAILURE_LOG = (
+    Path.home() / ".arkaos" / "telemetry" / "session-start-failures.jsonl"
+)
+
+
+def _contracts_unavailable_notice(exc: BaseException) -> str:
+    """Say the contracts are missing instead of returning an empty string.
+
+    build_context() produces [ARKA:EVIDENCE-FLOW], [ARKA:SKILL-CONTRACT],
+    [ARKA:META-TAG], [ARKA:AUTHORITY] and [ARKA:MODEL-FABRIC], plus the
+    resume and root lines and, when present, the [SESSION-MEMORY] recap —
+    the rules the session is supposed to run under. Swallowing a failure here returns the exact
+    state those blocks exist to prevent: a session with no idea the rules
+    exist, behaving like a generic assistant, with nothing anywhere saying
+    why. That is indistinguishable from the hook never having run, which
+    is precisely how the Windows delivery gap survived unnoticed for
+    months (PR #408).
+
+    Same principle `_authority_brief` already applies: one honest line
+    beats a silent void. The greeting still never breaks
+    and the hook still exits 0.
+    """
+    with contextlib.suppress(Exception):  # telemetry must never be the thing that breaks
+        _CONTRACT_FAILURE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _CONTRACT_FAILURE_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({
+                "ts": datetime.now(UTC).isoformat(),
+                "event": "build_context_failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc)[:500],
+            }) + "\n")
+    return (
+        f"\n[ARKA:CONTRACTS] unavailable ({type(exc).__name__}) — the evidence "
+        f"flow, skill-routing, meta-tag, authority and model-routing contracts "
+        f"could not be built for this session. Treat their absence as a fault, not as "
+        f"permission: keep routing and gating as if they were present, and "
+        f"report the failure. Detail in "
+        f"~/.arkaos/telemetry/session-start-failures.jsonl"
+    )
+
+
 def main(stdin_json: dict | None = None) -> int:
     if stdin_json is None:
         stdin_json, _ = read_stdin_json()
@@ -450,8 +525,8 @@ def main(stdin_json: dict | None = None) -> int:
         visible = _FALLBACK_BANNER + "\n  Olá, founder\n"
     try:
         context = build_context(cwd)
-    except Exception:  # contracts are best-effort; greeting never breaks
-        context = ""
+    except Exception as exc:  # greeting never breaks — but never lie either
+        context = _contracts_unavailable_notice(exc)
     payload: dict = {"systemMessage": visible}
     if context:
         # Assign the sub-dict key explicitly — SessionStart's wrapper also
