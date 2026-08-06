@@ -148,6 +148,15 @@ def index_directory(
 
         db_path = store.get_stats()["db_path"]
         if indexed or lexical.is_stale(db_path):
+            # Checkpoint BEFORE building, or the sidecar is stale the
+            # instant it is written. The store runs journal_mode=WAL, so
+            # this run's chunks are still in the -wal file; SQLite folds
+            # them into the main db when the connection closes, which
+            # happens AFTER this build and pushes the main db's mtime past
+            # the sidecar's. is_stale compares exactly those two mtimes,
+            # so every content-writing run produced an index that reported
+            # "rebuilt" and then answered nothing.
+            store.checkpoint()
             lexical_rebuilt = lexical.build(db_path)[0]
     except Exception:
         lexical_rebuilt = False

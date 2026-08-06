@@ -13,7 +13,11 @@ from __future__ import annotations
 import json
 from pathlib import Path, PurePosixPath
 
+import pytest
+
 from core.knowledge import doctrine
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # ─── classification ladder ───────────────────────────────────────────────
 
@@ -391,3 +395,88 @@ class TestVaultResolution:
         monkeypatch.setattr(research_gate, "CONFIG_PATH", tmp_path / "none.json")
         monkeypatch.delenv("ARKAOS_VAULT", raising=False)
         assert research_gate._resolve_vault_path() is None
+
+
+# ─── grounding quarantine (QG C2) ────────────────────────────────────────
+#
+# dreaming.py promises that "Synapse L2.5 reads this marker and excludes
+# (or explicitly labels) these notes so they never masquerade as grounded
+# KB". The doctrine block is an L2.5 injection and used to do neither,
+# while presenting its notes as "livros/vídeos/frameworks ingeridos" — the
+# one claim a generated note can never satisfy.
+
+
+class _StubStore:
+    def __init__(self, hits):
+        self._hits = hits
+
+    def search(self, query, top_k=5):
+        return self._hits
+
+
+def _doctrine_hit(source, score=0.91, inferred=False):
+    metadata = {"knowledge_class": "doctrine"}
+    if inferred:
+        metadata["grounding"] = "inferred"
+    return {
+        "source": source, "score": score, "text": "conteudo " * 20,
+        "heading": "", "metadata": metadata,
+    }
+
+
+@pytest.fixture
+def vocab(tmp_path):
+    path = tmp_path / "vocab.json"
+    path.write_text(
+        json.dumps({"architecture": {"count": 5, "notes": ["n"]}}),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_inferred_note_is_labelled_not_presented_as_doctrine(tmp_path, vocab):
+    """A generated note may only reach the reader wearing the label."""
+    store = _StubStore([_doctrine_hit(str(tmp_path / "dream.md"), inferred=True)])
+    hits = doctrine.doctrine_notes(store, "arquitetura do sistema", set(), vocab)
+
+    assert hits, "quarantine must label, not silently empty the block"
+    assert hits[0]["inferred"] is True
+    block = doctrine.format_doctrine_block(hits)
+    assert "(inferida — não autoritativa)" in block
+
+
+def test_inferred_notes_are_dropped_when_grounded_doctrine_suffices(
+    tmp_path, vocab
+):
+    """Same rule as the sibling block: excluded outright once two grounded
+    notes matched, admitted only to fill a thin block."""
+    store = _StubStore([
+        _doctrine_hit(str(tmp_path / "book1.md"), score=0.95),
+        _doctrine_hit(str(tmp_path / "book2.md"), score=0.94),
+        _doctrine_hit(str(tmp_path / "dream.md"), score=0.93, inferred=True),
+    ])
+    hits = doctrine.doctrine_notes(store, "arquitetura do sistema", set(), vocab)
+
+    sources = [h["source"] for h in hits]
+    assert str(tmp_path / "dream.md") not in sources
+    assert len(hits) == 2
+
+
+def test_grounded_doctrine_carries_no_label(tmp_path, vocab):
+    store = _StubStore([_doctrine_hit(str(tmp_path / "book.md"))])
+    hits = doctrine.doctrine_notes(store, "arquitetura do sistema", set(), vocab)
+
+    assert hits[0]["inferred"] is False
+    assert "inferida" not in doctrine.format_doctrine_block(hits)
+
+
+def test_both_blocks_use_the_same_label_text():
+    """The operator sees both blocks in one prompt; a note must not be
+    authoritative in one wording and not the other."""
+    from core.synapse import layers_kb
+
+    source = (REPO_ROOT / "core" / "synapse" / "layers_kb.py").read_text(
+        encoding="utf-8"
+    )
+    assert "(inferida — não autoritativa)" in source
+    assert layers_kb is not None

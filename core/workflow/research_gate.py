@@ -251,9 +251,10 @@ def _build_nudge(query: str, tool_name: str, vault: Path | None) -> tuple[str, l
         # thousands of them. Name the setting instead.
         return (
             f"[arka:kb-nudge] Antes de ir a {tool_name}, corre "
-            f"`mcp__obsidian__search_notes`. Não consegui procurar no teu vault "
-            f"(`knowledge.vaultPath` não está configurado em "
-            f"`~/.arkaos/config.json`), por isso não sei o que já tens escrito.",
+            f"`mcp__obsidian__search_notes`. Não consegui resolver o teu vault: "
+            f"nem `knowledge.vaultPath` (em `~/.arkaos/config.json`) nem "
+            f"`ARKAOS_VAULT` apontam para uma pasta existente, por isso não sei "
+            f"o que já tens escrito.",
             [],
         )
 
@@ -267,20 +268,28 @@ def _build_nudge(query: str, tool_name: str, vault: Path | None) -> tuple[str, l
             f"Se tiverem lacuna, segue externamente e documenta de volta.",
             titles,
         )
-    # The vault WAS searched and came back empty, so this claim is earned.
+    # The vault WAS searched — but only its filenames. _search_vault_titles
+    # tokenises note stems, never note bodies, so "no note about this" is
+    # more than was checked; a content search is exactly what the operator
+    # is being asked to run.
     return (
         f"[arka:kb-nudge] Antes de ir a {tool_name}, corre "
-        f"`mcp__obsidian__search_notes` — procurei e não encontrei nota sobre "
-        f"isto, e nesse caso documenta de volta depois da consulta externa.",
+        f"`mcp__obsidian__search_notes` — procurei nos títulos das tuas notas "
+        f"e nenhum fala disto, por isso documenta de volta depois da consulta "
+        f"externa.",
         [],
     )
 
 
 def _build_deny_message(titles: list[str], tool_name: str) -> str:
     """The operator is hard-blocked here: say so, and give a way forward."""
+    # "second call to {tool}" would be a lie: the violation marker is keyed
+    # on session alone (_violation_path ignores the tool), so WebSearch
+    # followed by Context7 lands here on Context7's FIRST call. Say what
+    # the marker actually counts — external research calls this round.
     head = (
-        f"[ARKA:KB-FIRST] Bloqueado: segunda chamada a {tool_name} sem "
-        f"consultar o Obsidian nesta ronda."
+        f"[ARKA:KB-FIRST] Bloqueado: segunda chamada de pesquisa externa "
+        f"nesta ronda sem consultar o Obsidian (agora {tool_name})."
     )
     way_out = (
         "Corre `mcp__obsidian__search_notes`, ou define "

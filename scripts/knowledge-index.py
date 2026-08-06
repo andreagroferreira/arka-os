@@ -92,11 +92,14 @@ def resolve_index_directory() -> str:
     value and never be told. Now the documented key wins, and the legacy
     files still work but announce that they are deprecated.
     """
-    from core.knowledge.vault import resolve_vault_path
+    from core.knowledge.vault import resolve_vault_with_source
 
-    configured = resolve_vault_path()
+    configured, source = resolve_vault_with_source()
     if configured:
-        _note(f"Vault from ~/.arkaos/config.json: {configured}")
+        # The source is reported by the resolver, not assumed here: it
+        # answers from the config file OR from ARKAOS_VAULT, and naming
+        # the wrong one is the exact ambiguity these lines exist to end.
+        _note(f"Vault from {source}: {configured}")
         return str(configured)
 
     legacy = _legacy_obsidian_config()

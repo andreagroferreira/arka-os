@@ -17,7 +17,6 @@ from core.workflow.research_gate import (
     invalidate_violation,
 )
 
-
 # ─── Fixtures ──────────────────────────────────────────────────────────
 
 
@@ -407,3 +406,46 @@ def test_pre_tool_use_ps1_references_research_gate():
     text = script.read_text(encoding="utf-8")
     assert "research_gate" in text
     assert "evaluate_research_gate" in text
+
+
+# ─── messages must claim only what the code measures (QG C5, C6) ────────
+
+
+def test_deny_head_does_not_miscount_the_tool(isolated_env):
+    """The violation marker is keyed on session alone — _violation_path
+    ignores the tool — so WebSearch then Context7 reaches deny on
+    Context7's FIRST call. The copy must not call it the second."""
+    evaluate_research_gate("WebSearch", session_id="s-mix", query="filament")
+    decision = evaluate_research_gate(
+        "mcp__context7__query-docs", session_id="s-mix", query="filament"
+    )
+
+    assert decision.allow is False
+    assert "segunda chamada a mcp__context7__query-docs" not in decision.stderr_msg
+    assert "pesquisa externa" in decision.stderr_msg
+    assert "mcp__context7__query-docs" in decision.stderr_msg
+
+
+def test_searched_branch_says_it_only_read_titles(isolated_env):
+    """_search_vault_titles tokenises note stems, never bodies — and the
+    same sentence asks the operator to run a content search."""
+    _seed_vault(isolated_env["vault"], ["Something Unrelated"])
+    decision = evaluate_research_gate(
+        "WebSearch", session_id="s-titles", query="quixotic zephyrine"
+    )
+
+    assert decision.kb_hits_hint == []
+    assert "títulos" in decision.stderr_msg
+    assert "procurei e não encontrei nota sobre isto" not in decision.stderr_msg
+
+
+def test_unresolved_vault_message_names_both_settings(isolated_env, monkeypatch):
+    """resolve_vault_path returns None for three conditions, not one: a
+    correctly-set key on an unmounted volume must not be told the key is
+    missing."""
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    decision = evaluate_research_gate("WebSearch", session_id="s-none", query="q")
+
+    assert "knowledge.vaultPath" in decision.stderr_msg
+    assert "ARKAOS_VAULT" in decision.stderr_msg
+    assert "não está configurado" not in decision.stderr_msg

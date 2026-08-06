@@ -494,6 +494,22 @@ class VectorStore:
         self._db.execute("DELETE FROM chunks")
         self._db.commit()
 
+    def checkpoint(self) -> None:
+        """Fold the write-ahead log back into the main database file.
+
+        Under ``journal_mode=WAL`` writes land in the -wal file and the
+        main db is only rewritten at a checkpoint, which SQLite otherwise
+        performs when the last connection closes. Anything that compares
+        the main db's mtime against a file derived FROM it — the lexical
+        sidecar's staleness oracle — therefore sees the main db grow
+        newer after the derived file was built, and declares a freshly
+        built index stale.
+        """
+        try:
+            self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except sqlite3.Error:
+            pass
+
     def close(self) -> None:
         """Close database connection."""
         self._db.close()

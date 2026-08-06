@@ -24,8 +24,12 @@ def enabled() -> bool:
         "0", "false", "no", "off")
 
 
-def _db_path(store: Any) -> str:
+def store_db_path(store: Any) -> str:
     """The store's db path via its public surface.
+
+    Public because three modules in this package need it (the fusion
+    layer, the indexer and the deep-recall CLI); a private copy in each
+    is how one of them was left behind on the private attribute.
 
     ``get_stats()`` is the supported way to ask; the private ``_db_path``
     attribute stays only as the fallback for doubles that do not implement
@@ -81,7 +85,7 @@ def fuse(store, prompt: str, notes: list[dict], max_notes: int,
     except Exception:
         return notes
 
-    db_path = _db_path(store)
+    db_path = store_db_path(store)
     if not db_path or not Path(db_path).is_file():
         return notes
 

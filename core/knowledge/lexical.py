@@ -45,6 +45,12 @@ logger = logging.getLogger(__name__)
 # noise on an OR match. Dropping them moved held-out zero-hit from 9 to 8.
 # Kept as prose and split at import: sixty quoted strings would be no
 # clearer and much easier to typo.
+#
+# DELIBERATELY UNACCENTED — do not "fix" entao/ja/nao/esta/este. fold()
+# strips diacritics at BOTH index and query time, so every token this list
+# is compared against has already lost its accents. An accented entry here
+# would never match a folded token, silently disabling stopword filtering
+# and degrading retrieval with no error anywhere.
 _STOP_WORDS = """
 a o as os um uma uns umas de do da dos das em no na nos nas por para com sem
 que se e ou mas como qual quais quando onde porque entao ja nao sim ao aos

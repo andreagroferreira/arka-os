@@ -27,12 +27,19 @@ from pathlib import Path
 CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 
 
-def resolve_vault_path(config_path: str | os.PathLike[str] | None = None) -> Path | None:
-    """The configured vault, or ``None``. Config first, then env.
+CONFIG_SOURCE = "~/.arkaos/config.json"
+ENV_SOURCE = "ARKAOS_VAULT"
 
-    ``config_path`` is injectable so a caller that owns its own config
-    location — and the tests that pin this behaviour — need not patch
-    module state to exercise it.
+
+def resolve_vault_with_source(
+    config_path: str | os.PathLike[str] | None = None,
+) -> tuple[Path | None, str]:
+    """``(vault, source)`` — the path and the thing that supplied it.
+
+    The source travels WITH the path so a caller announcing which
+    configuration won cannot drift from the truth: this resolver answers
+    from two places, and a caller that assumes the first will misreport
+    the second. ``source`` is ``""`` when nothing answered.
     """
     cfg = Path(CONFIG_PATH if config_path is None else config_path)
     try:
@@ -41,9 +48,20 @@ def resolve_vault_path(config_path: str | os.PathLike[str] | None = None) -> Pat
     except (OSError, json.JSONDecodeError, AttributeError):
         configured = ""
     if configured and Path(configured).exists():
-        return Path(configured)
+        return Path(configured), CONFIG_SOURCE
 
     env_vault = os.environ.get("ARKAOS_VAULT", "").strip()
     if env_vault and Path(env_vault).exists():
-        return Path(env_vault)
-    return None
+        return Path(env_vault), ENV_SOURCE
+    return None, ""
+
+
+def resolve_vault_path(config_path: str | os.PathLike[str] | None = None) -> Path | None:
+    """The configured vault, or ``None``. Config first, then env.
+
+    ``config_path`` is injectable so a caller that owns its own config
+    location — and the tests that pin this behaviour — need not patch
+    module state to exercise it. Callers that report which source won
+    should use :func:`resolve_vault_with_source` instead.
+    """
+    return resolve_vault_with_source(config_path)[0]

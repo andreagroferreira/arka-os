@@ -29,6 +29,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 DEPTH = 50  # how deep each signal searches before fusing
 
@@ -64,6 +65,22 @@ def _dedupe_to_notes(hits: list[dict]) -> list[str]:
     return out
 
 
+def _store_db_path(store: Any) -> str:
+    """The store's db path, through the one shared helper.
+
+    Third consumer of the same lookup; the other two already resolve it
+    via ``get_stats()``. Returns "" when the lexical package is absent —
+    the only thing this path feeds is the lexical ranking, which cannot
+    run in that case either.
+    """
+    try:
+        from core.knowledge.lexical_fusion import store_db_path
+
+        return store_db_path(store)
+    except ImportError:
+        return ""
+
+
 def _lexical_ranking(db_path: str, query: str) -> list[str]:
     """The lexical signal, or [] wherever it cannot serve.
 
@@ -85,7 +102,7 @@ def deep_recall(store, query: str, top_k: int = 15) -> list[dict]:
     and showing that lets the reader calibrate their own trust.
     """
     vector = _dedupe_to_notes(store.search(query, top_k=DEPTH))
-    lexical_rank = _lexical_ranking(getattr(store, "_db_path", ""), query)
+    lexical_rank = _lexical_ranking(_store_db_path(store), query)
 
     rankings = [ranking for ranking in (vector, lexical_rank) if ranking]
     if not rankings:

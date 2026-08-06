@@ -293,6 +293,47 @@ def _is_doctrine_hit(hit: dict) -> bool:
     return isinstance(metadata, dict) and metadata.get("knowledge_class") == "doctrine"
 
 
+def _hit_inferred(hit: dict) -> bool:
+    """Whether a hit is Dreaming-class inferred output.
+
+    Reuses the primary retrieval path's check so both blocks injected
+    into the same prompt agree on what "inferred" means. Imported lazily:
+    ``layers_kb`` imports this module, so a module-level import would be
+    circular.
+
+    Fails CLOSED — an unusable check treats the note as inferred. It then
+    still reaches the reader under the quarantine rules below, carrying
+    the label, rather than being silently promoted to doctrine.
+    """
+    try:
+        from core.synapse.layers_kb import _hit_is_inferred
+
+        return bool(_hit_is_inferred(hit))
+    except Exception:
+        return True
+
+
+def _apply_grounding_policy(hits: list[dict]) -> list[dict]:
+    """Quarantine inferred notes, exactly as the sibling KB block does.
+
+    dreaming.py promises that "Synapse L2.5 reads this marker and
+    excludes (or explicitly labels) these notes so they never masquerade
+    as grounded KB". The doctrine block IS an L2.5 injection and used to
+    do neither, while presenting its notes as "livros/vídeos/frameworks
+    ingeridos" — the one claim a generated note can never satisfy.
+
+    Same rule as ``layers_kb._apply_grounding_policy``: inferred notes
+    are excluded outright when enough grounded doctrine matched, and
+    admitted only to fill a thin block — always labelled by the
+    formatter.
+    """
+    grounded = [h for h in hits if not h.get("inferred")]
+    if len(grounded) >= 2:
+        return grounded[:_MAX_DOCTRINE_NOTES]
+    inferred = [h for h in hits if h.get("inferred")]
+    return (grounded + inferred)[:_MAX_DOCTRINE_NOTES]
+
+
 def doctrine_notes(
     store: Any, prompt: str, exclude_sources: set[str],
     vocab_path: Path | None = None,
@@ -344,7 +385,8 @@ def doctrine_notes(
         ),
         reverse=True,
     )
-    return [e["hit"] for e in ranked[:_MAX_DOCTRINE_NOTES]]
+    tagged = [dict(e["hit"], inferred=_hit_inferred(e["hit"])) for e in ranked]
+    return _apply_grounding_policy(tagged)
 
 
 def format_doctrine_block(hits: list[dict]) -> str:
@@ -368,7 +410,10 @@ def format_doctrine_block(hits: list[dict]) -> str:
         # (_format_kb_block) renders "- [[title]] (path: ...)"; both now
         # share one line grammar.
         suffix = f" — {title}" if title != stem else ""
-        lines.append(f"- [[{stem}]]{suffix} (path: `{source}`)")
+        # Same label, same words as _format_kb_block: a note the operator
+        # sees in both blocks must not be authoritative in one of them.
+        grounding = " (inferida — não autoritativa)" if hit.get("inferred") else ""
+        lines.append(f"- [[{stem}]]{suffix}{grounding} (path: `{source}`)")
         if excerpt:
             lines.append(f"  Excerto: {excerpt}")
         lines.append("")

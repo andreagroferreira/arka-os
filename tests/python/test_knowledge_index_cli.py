@@ -244,7 +244,8 @@ def test_no_personal_path_is_guessed_in_the_script():
         "the ~/Documents/... guess list is back in the indexer"
     )
     assert "common_vaults" not in source
-    assert "from core.knowledge.vault import resolve_vault_path" in source
+    # Delegates to the shared resolver rather than resolving locally.
+    assert "from core.knowledge.vault import resolve_vault_with_source" in source
 
 
 def test_unconfigured_vault_resolves_to_nothing(tmp_path, monkeypatch):
@@ -463,3 +464,94 @@ def test_no_second_rrf_implementation_survives_in_recall_cli():
     )
     assert "1.0 / (" not in source, "RRF arithmetic is back in recall_cli"
     assert "lexical.rrf" in source
+
+
+# ─── the announced source must be the source that answered (QG C3) ──────
+
+
+def test_env_vault_is_announced_as_env_not_as_the_config_file(
+    tmp_path, monkeypatch, capsys
+):
+    """resolve_vault_path answers from TWO places. Announcing the config
+    file for an ARKAOS_VAULT win is the same 'which source won' ambiguity
+    these lines exist to end."""
+    from core.knowledge import vault as vault_module
+
+    cli = _load_cli()
+    env_vault = tmp_path / "from-env"
+    env_vault.mkdir()
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({}), encoding="utf-8")
+
+    monkeypatch.setattr(vault_module, "CONFIG_PATH", cfg)
+    monkeypatch.setenv("ARKAOS_VAULT", str(env_vault))
+
+    assert cli.resolve_index_directory() == str(env_vault)
+    err = capsys.readouterr().err
+    assert "ARKAOS_VAULT" in err
+    assert "config.json" not in err
+
+
+def test_config_vault_is_announced_as_the_config_file(
+    tmp_path, monkeypatch, capsys
+):
+    from core.knowledge import vault as vault_module
+
+    cli = _load_cli()
+    configured = tmp_path / "configured"
+    configured.mkdir()
+    cfg = tmp_path / "config.json"
+    cfg.write_text(
+        json.dumps({"knowledge": {"vaultPath": str(configured)}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(vault_module, "CONFIG_PATH", cfg)
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+
+    assert cli.resolve_index_directory() == str(configured)
+    err = capsys.readouterr().err
+    assert "~/.arkaos/config.json" in err
+    assert "ARKAOS_VAULT" not in err
+
+
+def test_resolver_reports_its_source(tmp_path, monkeypatch):
+    from core.knowledge.vault import resolve_vault_with_source
+
+    env_vault = tmp_path / "e"
+    env_vault.mkdir()
+    monkeypatch.setenv("ARKAOS_VAULT", str(env_vault))
+    path, source = resolve_vault_with_source(tmp_path / "absent.json")
+    assert (path, source) == (env_vault, "ARKAOS_VAULT")
+
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    assert resolve_vault_with_source(tmp_path / "absent.json") == (None, "")
+
+
+# ─── one shared db-path lookup (QG C4) ──────────────────────────────────
+
+
+def test_all_three_consumers_resolve_db_path_through_one_helper():
+    """recall_cli was the third consumer and kept the private attribute
+    after the other two were converted."""
+    from core.knowledge import recall_cli
+
+    src = (REPO_ROOT / "core" / "knowledge" / "recall_cli.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'getattr(store, "_db_path"' not in src
+    assert recall_cli._store_db_path.__doc__
+
+
+def test_shared_helper_prefers_the_public_surface():
+    from core.knowledge.lexical_fusion import store_db_path
+
+    class _Public:
+        def get_stats(self):
+            return {"db_path": "/from/get_stats.db"}
+
+        _db_path = "/from/private.db"
+
+    class _DoubleWithoutStats:
+        _db_path = "/from/private.db"
+
+    assert store_db_path(_Public()) == "/from/get_stats.db"
+    assert store_db_path(_DoubleWithoutStats()) == "/from/private.db"
