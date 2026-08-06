@@ -53,9 +53,12 @@ than asserted.
   separately from `updated`, so a cosmetic restamp is never presented as a
   change.
 - **Propose-only migration runner** — spec format, version gating, vendored
-  tree skipping, both caps reported, per-spec error isolation, a
-  nested-quantifier guard on operator-supplied regexes. No specs ship yet;
-  the runner scans nothing until one exists.
+  tree skipping, both caps reported with honest labels, per-spec error
+  isolation, and a wall-clock budget that abandons and records a scan whose
+  regex backtracks pathologically (pattern shape is deliberately not
+  judged — a shape heuristic refused ordinary patterns and missed the
+  dangerous ones). No specs ship yet; the runner scans nothing until one
+  exists.
 - **Coverage gate honesty** — an artefact older than the changed source, or
   missing a changed module, fails the check. Module presence is matched on
   the parsed path, never on the filename stem.
@@ -98,7 +101,8 @@ removed.
 4. An unorderable baseline reads as a first sync, never as "nothing new",
    and one malformed `added_in` cannot poison an orderable baseline.
 5. No instruction anywhere permits deleting an unmarked section.
-   Verify: `grep -rn 'heading block\|otherwise remove' departments/ plugins/`
+   Verify (`-E`, because BSD grep reads `\|` as a literal and would pass
+   vacuously): `grep -rnE 'heading block|otherwise remove' departments/ plugins/`
    returns nothing.
 6. No tracked file names a client.
 7. Full suite green; `ruff` clean on every changed file; no function over

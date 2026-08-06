@@ -389,3 +389,86 @@ def test_catastrophic_pattern_is_abandoned_not_hung(tmp_path: Path) -> None:
 
     assert elapsed < _SPEC_TIME_BUDGET_SECONDS * 3
     assert any("abandoned" in e or "backtracking" in e for e in result.errors)
+
+
+# ---------------------------------------------------------------------------
+# QG round 4 — class tests, written BEFORE the fixes.
+#
+# Four rounds produced the same pattern: each fix closed the reported
+# instance and left a sibling open. These tests cover the classes.
+# ---------------------------------------------------------------------------
+
+
+def test_budget_expiry_during_glob_abandons_the_scan(tmp_path: Path, monkeypatch) -> None:
+    """ScanBudgetError must never be swallowed by a generic handler.
+
+    _glob catches bare Exception; the deadline IS an Exception, and the
+    timer is one-shot — swallowed there, the rest of the scan runs with no
+    deadline and the error surfaces as a meaningless 'ScanBudgetError' path
+    note instead of 'scan abandoned'.
+    """
+    from core.sync import migration_runner as mr
+
+    project = _project(tmp_path)
+    (Path(project.path) / "a.md").write_text("python -m core\n", encoding="utf-8")
+
+    def exploding_glob(self, pattern):
+        raise mr.ScanBudgetError
+
+    monkeypatch.setattr(Path, "glob", exploding_glob)
+    result = run_migrations([project], [SPEC], tmp_path / "out", "5.10.0")
+
+    assert any("abandoned" in e for e in result.errors)
+    assert not any("ScanBudgetError" in e for e in result.errors)
+
+
+def test_escaped_candidate_does_not_cost_later_candidates(tmp_path: Path) -> None:
+    """_take used to return on the first escaped candidate, silently
+    abandoning every candidate after it with nothing in truncated."""
+    from core.sync.migration_runner import _take
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.md"
+    secret.write_text("python -m core\n", encoding="utf-8")
+    root = tmp_path / "project"
+    root.mkdir()
+    link = root / "a_link.md"
+    link.symlink_to(secret)
+    real = root / "z_real.md"
+    real.write_text("python -m core\n", encoding="utf-8")
+
+    files: list[Path] = []
+    errors: list[str] = []
+    capped = _take([link, real], root.resolve(), files, set(), errors, "**/*.md")
+
+    assert capped is False
+    assert real in files
+    assert any("escaped" in e for e in errors)
+
+
+def test_real_hits_survive_an_escaping_symlink(tmp_path: Path) -> None:
+    """End-to-end: one escaping symlink must not cost the real findings."""
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.md").write_text("python -m core\n", encoding="utf-8")
+    project = _project(tmp_path, "project")
+    (Path(project.path) / "link.md").symlink_to(outside / "secret.md")
+    (Path(project.path) / "real.md").write_text("python -m core\n", encoding="utf-8")
+
+    result = run_migrations([project], [SPEC], tmp_path / "out", "5.10.0")
+
+    assert [Path(h.file).name for h in result.hits] == ["real.md"]
+    assert any("escaped" in e for e in result.errors)
+
+
+def test_load_errors_reach_the_run_record(tmp_path: Path) -> None:
+    """Load-time failures used to be folded in AFTER the proposal decision,
+    so an all-specs-unreadable run left no record anywhere."""
+    result = run_migrations(
+        [], [], tmp_path / "out", "5.10.0",
+        pre_errors=["broken.yaml: unreadable (ScannerError)"],
+    )
+
+    assert result.errors == ["broken.yaml: unreadable (ScannerError)"]
+    assert result.proposal_path is not None

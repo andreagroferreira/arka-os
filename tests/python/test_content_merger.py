@@ -254,3 +254,14 @@ def test_real_canonical_change_still_updates_over_an_edited_block() -> None:
 
     assert result.status == "updated"
     assert "NEW DOCTRINE" in result.new_text
+
+
+def test_merger_round_trips_its_own_output_with_unstripped_content() -> None:
+    """QG round 4: _decide hashed the body stripped against the canonical
+    content unstripped, so the merger reported `drifted` on bytes it wrote."""
+    managed = "CORE DOCTRINE\n"  # caller forgot to strip
+
+    first = merge_managed_content("", managed, "5.10.0")
+    second = merge_managed_content(first.new_text, managed, "5.10.0")
+
+    assert second.status == "unchanged"

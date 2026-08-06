@@ -136,14 +136,13 @@ def _run_migration_phase(
 ) -> MigrationScanResult:
     """Phase 6 — propose-only migrations for the versions this upgrade crossed."""
     specs, load_errors = load_migrations(_resolve_migrations_dir(arkaos_home))
-    result = run_migrations(
+    return run_migrations(
         projects,
         pending_migrations(specs, previous_version, is_first_sync),
         arkaos_home / "migration-proposals",
         current_version,
+        pre_errors=load_errors,
     )
-    result.errors = load_errors + result.errors
-    return result
 
 
 def _read_previous_version(arkaos_home: Path) -> str:

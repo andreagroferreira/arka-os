@@ -43,6 +43,10 @@ def merge_managed_content(
     the block was edited in place (nothing is written), "unchanged" when
     everything already matches, or "error" when markers are malformed.
     """
+    # Normalise once so the hash, the rendered block and the drift check all
+    # see the same bytes: hashing the unstripped input against a stripped
+    # body made the merger report `drifted` on output it wrote itself.
+    managed_content = managed_content.strip()
     starts = list(_START_RE.finditer(target_text))
     ends = list(_END_RE.finditer(target_text))
 

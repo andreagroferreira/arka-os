@@ -18,10 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   trees, and write one reviewable file to
   `~/.arkaos/migration-proposals/<version>.md`. Project code is never
   modified. Every spec is treated as untrusted input: a malformed YAML, an
-  incomplete spec, a bad regex or a nested-quantifier pattern is recorded
-  against that spec and the run continues, rather than aborting a sync that
-  has already written to disk. Both scan caps — hits per migration, files
-  per project — are reported when they actually discard something.
+  incomplete spec or a bad regex is recorded against that spec and the run
+  continues, rather than aborting a sync that has already written to disk;
+  a scan whose pattern backtracks pathologically is abandoned under a
+  wall-clock budget and recorded. Both scan caps — hits per migration,
+  files per project — are reported when they actually discard something,
+  each under the claim it can make: a hit cap means more hits exist, a file
+  cap means files went unscanned and completeness is unknown.
 
 ### Fixed
 
@@ -51,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Previously a degraded run persisted the literal `unknown` into
   `sync-state.json` and every later run then reported no changes, with no
   error anywhere (`core/sync/manifest.py`).
-- **The update skill can no longer be instructed to delete a customised
+- **The update skill can no longer be instructed to delete a customized
   section** — Phase 4 dispatches a subagent, and its instructions said to
   remove the `## <section_title>` section whenever markers were absent.
   Without markers there is no way to tell ArkaOS's own text from the

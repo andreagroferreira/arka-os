@@ -342,6 +342,7 @@ class TestReportCommunicatesValue:
         assert "1 checked, no legacy patterns found." in output
 
     def test_truncation_is_never_silent(self) -> None:
+        """Both cap kinds surface, each under the claim it can actually make."""
         migrations = MigrationScanResult(
             migrations_run=["m"],
             hits=[
@@ -349,14 +350,15 @@ class TestReportCommunicatesValue:
                     migration="m", project="p", file="f", line=1, excerpt="x"
                 )
             ],
-            truncated=["m@acme"],
+            truncated=["m:hit-cap@acme", "file-cap@acme"],
             proposal_path="/p.md",
         )
         output = format_report(
             build_report("5.9.0", "5.10.0", [], [], [], [], migrations=migrations)
         )
 
-        assert "Capped (more hits exist): m@acme" in output
+        assert "More hits exist than listed: m:hit-cap@acme" in output
+        assert "unscanned" in output
 
     def test_no_migrations_configured_stays_silent(self) -> None:
         output = format_report(build_report("5.9.0", "5.10.0", [], [], [], []))
@@ -373,3 +375,77 @@ class TestReportCommunicatesValue:
         write_sync_state(state_file, build_report("5.9.0", "5.10.0", [], [], [], skills))
 
         assert json.loads(state_file.read_text())["skills_synced"] == 2
+
+
+class TestMigrationTerminalHonesty:
+    """QG round 4: the terminal line lied on three paths the proposal file
+    got right — truncation-only runs claimed a clean scan, 'See Errors
+    below.' pointed at a bare integer, and load-time failures were invisible."""
+
+    def _out(self, migrations: MigrationScanResult) -> str:
+        return format_report(
+            build_report("5.9.0", "5.10.0", [], [], [], [], migrations=migrations)
+        )
+
+    def test_truncation_only_run_never_claims_a_clean_scan(self) -> None:
+        out = self._out(
+            MigrationScanResult(
+                migrations_run=["m"],
+                truncated=["file-cap@p"],
+                proposal_path="/x/5.10.0.md",
+            )
+        )
+
+        assert "no legacy patterns found" not in out
+        assert "/x/5.10.0.md" in out
+
+    def test_migration_errors_are_printed_inline(self) -> None:
+        out = self._out(
+            MigrationScanResult(
+                migrations_run=["m"],
+                errors=["m: bad pattern (missing ), unterminated subpattern)"],
+            )
+        )
+
+        assert "bad pattern" in out
+        assert "See Errors below" not in out
+
+    def test_load_failures_are_visible_with_zero_specs(self) -> None:
+        out = self._out(
+            MigrationScanResult(
+                migrations_run=[],
+                errors=["broken.yaml: unreadable (ScannerError)"],
+            )
+        )
+
+        assert "broken.yaml" in out
+
+    def test_file_cap_is_never_sold_as_more_hits_exist(self) -> None:
+        hit = MigrationHit(migration="m", project="p", file="f", line=1, excerpt="x")
+        out = self._out(
+            MigrationScanResult(
+                migrations_run=["m"],
+                hits=[hit],
+                truncated=["file-cap@p", "m:hit-cap@p"],
+                proposal_path="/x.md",
+            )
+        )
+
+        assert "Capped (more hits exist): file-cap" not in out
+        assert "unscanned" in out
+
+    def test_drifted_projects_are_visible_in_the_content_line(self) -> None:
+        from core.sync.schema import ContentSyncResult
+
+        results = [
+            ContentSyncResult(
+                path="/p",
+                status="error",
+                artefacts_errored=["CLAUDE.md: managed block was edited in place"],
+            )
+        ]
+        out = format_report(
+            build_report("5.9.0", "5.10.0", [], [], [], [], content_results=results)
+        )
+
+        assert "1 errored" in out

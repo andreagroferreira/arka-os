@@ -231,27 +231,48 @@ def _add_skill_changes(results: list[SkillSyncResult], changes: list[str]) -> No
 
 
 def _format_migration_lines(migrations: MigrationScanResult | None) -> list[str]:
-    """Render the migration section; silent only when nothing ran and nothing hit."""
-    if migrations is None or not migrations.migrations_run:
+    """Render the migration section; silent only when nothing ran AND nothing failed."""
+    if migrations is None:
         return []
     ran = len(migrations.migrations_run)
-    if not migrations.hits:
-        if migrations.errors:
-            return [
-                "",
-                f"  Migrations: {ran} checked — {len(migrations.errors)} could "
-                "not run, no results. See Errors below.",
-            ]
-        return ["", f"  Migrations: {ran} checked, no legacy patterns found."]
-    projects = len({h.project for h in migrations.hits})
-    lines = [
-        "",
-        f"  Migrations: {ran} checked — {len(migrations.hits)} legacy pattern(s) "
-        f"in {projects} project(s). Nothing applied.",
-        f"  Review: {migrations.proposal_path}",
-    ]
-    if migrations.truncated:
-        lines.append(f"  Capped (more hits exist): {', '.join(migrations.truncated)}")
+    if not (ran or migrations.errors or migrations.truncated):
+        return []
+    lines = ["", _migration_headline(migrations, ran)]
+    if migrations.proposal_path:
+        lines.append(f"  Review: {migrations.proposal_path}")
+    return lines + _migration_caveats(migrations)
+
+
+def _migration_headline(m: MigrationScanResult, ran: int) -> str:
+    """One line that never claims more certainty than the scan earned."""
+    if m.hits:
+        projects = len({h.project for h in m.hits})
+        return (
+            f"  Migrations: {ran} checked — {len(m.hits)} legacy pattern(s) "
+            f"in {projects} project(s). Nothing applied."
+        )
+    if m.truncated:
+        return f"  Migrations: {ran} checked — scans stopped early, results incomplete."
+    if m.errors:
+        return f"  Migrations: {ran} checked — {len(m.errors)} problem(s), nothing scanned cleanly:"
+    return f"  Migrations: {ran} checked, no legacy patterns found."
+
+
+def _migration_caveats(m: MigrationScanResult) -> list[str]:
+    """Caps with honest labels, and error text inline — a pointer to a bare
+    integer taught the operator nothing."""
+    lines: list[str] = []
+    hit_caps = [e for e in m.truncated if ":hit-cap" in e]
+    file_caps = [e for e in m.truncated if e not in hit_caps]
+    if hit_caps:
+        lines.append(f"  More hits exist than listed: {', '.join(hit_caps)}")
+    if file_caps:
+        # A file-cap means files went UNSCANNED — whether more hits exist is
+        # precisely what the scan does not know.
+        lines.append(f"  Files went unscanned (completeness unknown): {', '.join(file_caps)}")
+    lines += [f"    - {e}" for e in m.errors[:5]]
+    if len(m.errors) > 5:
+        lines.append(f"    - (+{len(m.errors) - 5} more in the JSON report)")
     return lines
 
 
@@ -260,9 +281,14 @@ def _format_content_line(results: list[ContentSyncResult]) -> str:
     updated = _count_updated(results)
     restamped = sum(1 for r in results if r.status == "restamped")
     unchanged = _count_unchanged(results)
+    errored = sum(1 for r in results if r.status == "error")
     counts = f"{updated} updated, {unchanged} unchanged"
     if restamped:
         counts = f"{updated} updated, {restamped} restamped, {unchanged} unchanged"
+    if errored:
+        # A drifted managed block lands here; hiding it made the counts not
+        # sum to the total, with the reason buried in a bare error tally.
+        counts += f", {errored} errored"
     return f"  {'Content:':<14}{total} synced ({counts})"
 
 

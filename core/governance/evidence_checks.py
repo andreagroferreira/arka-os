@@ -672,20 +672,28 @@ def _covered_paths(coverage_xml: Path, project_dir: Path) -> set[str]:
 def _source_candidates(
     filename: str, sources: list[str], base: Path,
 ) -> set[str]:
-    """Project-relative spellings of one covered file."""
+    """Project-relative spellings of one covered file, anchored.
+
+    When the artefact declares ``<source>`` roots, every candidate must come
+    from resolving against one of them and landing inside the project — the
+    unanchored raw filename let a coverage.xml from a DIFFERENT checkout
+    vouch for this project's files. The raw relative spelling is a fallback
+    only for artefacts that declare no sources at all. A relative source is
+    resolved against the project, never against whatever CWD happens to be.
+    """
+    if not sources:
+        raw = PurePosixPath(filename)
+        return set() if raw.is_absolute() else {raw.as_posix()}
+
     found: set[str] = set()
-    raw = PurePosixPath(filename)
-    if not raw.is_absolute():
-        found.add(raw.as_posix())
-    for source in sources or []:
-        joined = Path(source) / filename
+    for source in sources:
+        src = Path(source)
+        if not src.is_absolute():
+            src = base / src
         try:
-            resolved = joined.resolve()
-        except OSError:
-            continue
-        try:
+            resolved = (src / filename).resolve()
             found.add(PurePosixPath(resolved.relative_to(base)).as_posix())
-        except ValueError:
+        except (OSError, ValueError):
             continue
     return found
 

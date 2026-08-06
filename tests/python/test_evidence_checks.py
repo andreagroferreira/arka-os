@@ -1687,3 +1687,27 @@ class TestCoveragePathMatching:
         self._artefact(tmp_path, "keys.py", source=str(tmp_path / "core"))
 
         assert _check_coverage(tmp_path, ["core/keys.py"], None, 60).passed is True
+
+    def test_foreign_source_never_vouches(self, tmp_path: Path) -> None:
+        """QG round 4: the raw relative filename was added unanchored, so an
+        artefact whose <source> points at ANOTHER checkout vouched for ours."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        foreign = tmp_path.parent / f"{tmp_path.name}-elsewhere"
+        foreign.mkdir(exist_ok=True)
+        self._artefact(tmp_path, "core/sync/engine.py", source=str(foreign))
+
+        result = _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60)
+
+        assert result.passed is False
+
+    def test_relative_source_anchors_to_the_project(self, tmp_path: Path) -> None:
+        """A relative <source> (coverage run from the project root) must
+        resolve against the project, not against whatever CWD happens to be."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/sync/engine.py", source=".")
+
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is True

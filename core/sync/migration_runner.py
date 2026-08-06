@@ -70,12 +70,10 @@ _MAX_EXCERPT = 200
 # times below this ceiling.
 _MAX_LINE_LENGTH = 4000
 
-# Wall-clock budget for one spec against one project. `has_nested_quantifier`
-# refuses the obvious shapes, but it cannot recognise alternation ambiguity
-# — `(a|a)*` passes it and still backtracks exponentially — and Python's `re`
-# has no timeout of its own. A heuristic that admits its own gaps is not a
-# control; this deadline is. A spec that exceeds it is abandoned and
-# recorded, and the sync continues.
+# Wall-clock budget for one spec against one project. Pattern shape is not
+# judged (see compile_specs) and Python's `re` has no timeout of its own,
+# so this deadline is the only control against catastrophic backtracking.
+# A scan that exceeds it is abandoned and recorded, and the sync continues.
 _SPEC_TIME_BUDGET_SECONDS = 5.0
 
 @dataclass
@@ -167,28 +165,30 @@ def scan_project(project: Project, spec: MigrationSpec) -> tuple[list[MigrationH
 
 
 def run_migrations(
-    projects: list[Project], specs: list[MigrationSpec], proposals_dir: Path, version: str
+    projects: list[Project],
+    specs: list[MigrationSpec],
+    proposals_dir: Path,
+    version: str,
+    pre_errors: list[str] | None = None,
 ) -> MigrationScanResult:
-    """Scan every project for every pending migration and write one proposal."""
+    """Scan every project for every pending migration and write one proposal.
+
+    ``pre_errors`` carries load-time failures from ``load_migrations``,
+    seeded before the proposal decision so an all-specs-unreadable run
+    still leaves a record. Errors matter most in the run that found
+    nothing: a scan that could not run must never look like a clean one.
+    """
     result = MigrationScanResult(migrations_run=[s.name for s in specs])
-    if not specs:
-        return result
+    result.errors.extend(pre_errors or [])
 
-    compiled, compile_errors = compile_specs(specs)
-    result.errors.extend(compile_errors)
-    if not compiled:
-        # Every spec was refused. That is a result the operator must see, not
-        # an early return that leaves the run looking clean.
-        result.proposal_path = str(
-            _write_proposal(result, specs, proposals_dir, version)
-        )
-        return result
+    if specs:
+        compiled, compile_errors = compile_specs(specs)
+        result.errors.extend(compile_errors)
+        for project in projects:
+            if not compiled:
+                break
+            _scan_one_project(project, compiled, result)
 
-    for project in projects:
-        _scan_one_project(project, compiled, result)
-
-    # Errors matter most in the run that found nothing: without this, a scan
-    # that could not run at all is indistinguishable from a clean one.
     if result.hits or result.errors or result.truncated:
         result.proposal_path = str(
             _write_proposal(result, specs, proposals_dir, version)
@@ -268,8 +268,12 @@ def _take(
             continue
         verdict = _accepts(path, resolved_root)
         if verdict == "escaped":
-            errors.append(f"path {pattern!r}: escaped the project root")
-            return False
+            # Exclude the candidate, keep the scan: returning here abandoned
+            # every candidate after the escaping one, silently.
+            message = f"path {pattern!r}: candidate escaped the project root — excluded"
+            if message not in errors:
+                errors.append(message)
+            continue
         if verdict == "skip":
             continue
         seen.add(path)
@@ -288,9 +292,16 @@ def _accepts(path: Path, resolved_root: Path) -> str:
 
 
 def _glob(root: Path, pattern: str) -> tuple[list[Path], str | None]:
-    """Expand one pattern, returning an error string instead of raising."""
+    """Expand one pattern, returning an error string instead of raising.
+
+    The scan deadline is the exception: ScanBudgetError is re-raised, because
+    the timer is one-shot — swallowed here, the rest of the scan would run
+    with no deadline at all and the abandonment message would never print.
+    """
     try:
         return list(root.glob(pattern)), None
+    except ScanBudgetError:
+        raise
     except Exception as exc:  # any glob refusal, never fatal
         return [], f"path {pattern!r}: {exc.__class__.__name__}"
 
