@@ -8,6 +8,7 @@ score, and the first degraded search per process emits a visible
 stderr warning explaining why semantic search is unavailable.
 """
 
+import contextlib
 import json
 import logging
 import re
@@ -505,10 +506,8 @@ class VectorStore:
         newer after the derived file was built, and declares a freshly
         built index stale.
         """
-        try:
+        with contextlib.suppress(sqlite3.Error):
             self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        except sqlite3.Error:
-            pass
 
     def close(self) -> None:
         """Close database connection."""
