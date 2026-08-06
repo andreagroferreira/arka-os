@@ -17,7 +17,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from hook_shell import BASH
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

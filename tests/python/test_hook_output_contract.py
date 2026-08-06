@@ -20,7 +20,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from hook_shell import BASH
 
 from core.hooks._shared import additional_context_payload, emit_additional_context

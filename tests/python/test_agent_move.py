@@ -82,7 +82,9 @@ def test_move_rewrites_department_field_and_relocates_file():
         # Compare path parts, not a rendered string: str(Path) uses "\" on
         # Windows, so a substring check on "departments/ops/agents/" is a
         # guaranteed failure there regardless of where the file landed.
-        assert dst.parts[-3:] == ("ops", "agents", dst.name)
+        # Keep "departments" in the comparison — dropping it would accept
+        # a move to any ops/agents/ subtree anywhere on disk.
+        assert dst.parts[-4:] == ("departments", "ops", "agents", dst.name)
         content = dst.read_text(encoding="utf-8")
         assert "department: ops" in content
         dst.unlink()

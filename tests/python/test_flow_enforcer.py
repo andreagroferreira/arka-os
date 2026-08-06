@@ -6,20 +6,18 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from hook_shell import BASH
 
 from core.workflow import flow_enforcer, marker_cache
 from core.workflow.flow_enforcer import (
     Decision,
-    evaluate,
-    mark_flow_required,
-    clear_flow_required,
     _extract_text,
     _load_last_assistant_messages,
     _scan_markers,
+    clear_flow_required,
+    evaluate,
+    mark_flow_required,
 )
-
 
 # ─── Fixtures ───────────────────────────────────────────────────────────
 
