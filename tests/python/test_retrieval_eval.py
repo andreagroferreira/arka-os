@@ -14,7 +14,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from core.knowledge.retrieval_eval import (  # noqa: E402
+from core.knowledge.retrieval_eval import (
     aggregate,
     evaluate,
     known_item_probes,
@@ -23,7 +23,6 @@ from core.knowledge.retrieval_eval import (  # noqa: E402
     relative_identity,
     score_query,
 )
-
 
 # ── per-query metrics ────────────────────────────────────────────────────
 

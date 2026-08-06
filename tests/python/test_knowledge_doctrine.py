@@ -15,7 +15,6 @@ from pathlib import Path, PurePosixPath
 
 from core.knowledge import doctrine
 
-
 # ─── classification ladder ───────────────────────────────────────────────
 
 
@@ -44,9 +43,12 @@ class TestResolveKnowledgeClass:
             assert doctrine.resolve_knowledge_class({"type": t}, path) == "operational"
 
     def test_para_fallback(self):
-        assert doctrine.resolve_knowledge_class({}, PurePosixPath("Resources/Books/x.md")) == "doctrine"
-        assert doctrine.resolve_knowledge_class({}, PurePosixPath("Archive/old.md")) == "archive"
-        assert doctrine.resolve_knowledge_class({}, PurePosixPath("Projects/p/x.md")) == "operational"
+        def klass(path: str) -> str:
+            return doctrine.resolve_knowledge_class({}, PurePosixPath(path))
+
+        assert klass("Resources/Books/x.md") == "doctrine"
+        assert klass("Archive/old.md") == "archive"
+        assert klass("Projects/p/x.md") == "operational"
 
     def test_never_raises_on_garbage_frontmatter(self):
         path = PurePosixPath("x.md")

@@ -17,8 +17,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from core.knowledge import lexical  # noqa: E402
-from core.knowledge.lexical_fusion import fuse  # noqa: E402
+from core.knowledge import lexical
+from core.knowledge.lexical_fusion import fuse
 
 requires_fts5 = pytest.mark.skipif(
     not lexical.fts5_available(),
