@@ -24,13 +24,8 @@ from core.sync.discovery import discover_all_projects
 from core.sync.manifest import build_manifest
 from core.sync.mcp_optimizer import optimize_all_mcps
 from core.sync.mcp_syncer import sync_all_mcps
-from core.sync.migration_runner import (
-    load_migrations,
-    pending_migrations,
-    run_migrations,
-)
 from core.sync.reporter import build_report, format_report, write_sync_state
-from core.sync.schema import MigrationScanResult, SyncReport
+from core.sync.schema import SyncReport
 from core.sync.settings_syncer import sync_all_settings
 
 # ---------------------------------------------------------------------------
@@ -55,10 +50,6 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
     content_results = sync_all_content(projects)
     agent_results = sync_all_agents(projects)
 
-    migrations = _run_migration_phase(
-        arkaos_home, projects, previous_version, current_version, manifest.is_first_sync
-    )
-
     report = build_report(
         previous_version,
         current_version,
@@ -70,7 +61,6 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
         agent_results=agent_results,
         new_features=manifest.new_features,
         deprecated_features=manifest.deprecated_features,
-        migrations=migrations,
     )
 
     state_file = arkaos_home / "sync-state.json"
@@ -127,24 +117,6 @@ def _run_mcp_phase(projects: list, skills_dir: Path, home_path: str) -> list:
     )
 
 
-def _run_migration_phase(
-    arkaos_home: Path,
-    projects: list,
-    previous_version: str,
-    current_version: str,
-    is_first_sync: bool,
-) -> MigrationScanResult:
-    """Phase 6 — propose-only migrations for the versions this upgrade crossed."""
-    specs, load_errors = load_migrations(_resolve_migrations_dir(arkaos_home))
-    return run_migrations(
-        projects,
-        pending_migrations(specs, previous_version, is_first_sync),
-        arkaos_home / "migration-proposals",
-        current_version,
-        pre_errors=load_errors,
-    )
-
-
 def _read_previous_version(arkaos_home: Path) -> str:
     """Read version field from sync-state.json, defaulting to pending-sync."""
     state_file = arkaos_home / "sync-state.json"
@@ -195,14 +167,6 @@ def _resolve_features_dir(arkaos_home: Path) -> Path:
     return fallback
 
 
-def _resolve_migrations_dir(arkaos_home: Path) -> Path:
-    """Resolve the migrations directory from repo or fallback config."""
-    repo_path = _read_repo_path(arkaos_home)
-    if repo_path is not None:
-        repo_migrations = repo_path / "core" / "sync" / "migrations"
-        if repo_migrations.exists():
-            return repo_migrations
-    return arkaos_home / "config" / "sync" / "migrations"
 
 
 def _parse_scan_dirs(projects_dir_str: str) -> list[Path]:

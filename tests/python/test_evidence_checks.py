@@ -1711,3 +1711,68 @@ class TestCoveragePathMatching:
         self._artefact(tmp_path, "core/sync/engine.py", source=".")
 
         assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is True
+
+    def test_multi_source_cross_product_cannot_manufacture_paths(self, tmp_path: Path) -> None:
+        """QG round 5: with sources [core, scripts], a filename measured under
+        one source was also resolved under the other, vouching for a path the
+        artefact never measured."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        (tmp_path / "scripts").mkdir(exist_ok=True)
+        (tmp_path / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{tmp_path / 'core'}</source>"
+            f"<source>{tmp_path / 'scripts'}</source></sources>"
+            '<packages><package><classes><class filename="sync/engine.py"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(tmp_path / "coverage.xml", (time.time() + 10,) * 2)
+
+        # the file measured under core/ is genuinely covered...
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is True
+        # ...but scripts/sync/engine.py was never measured and must not pass
+        self._changed(tmp_path, "scripts/sync/engine.py")
+        os.utime(tmp_path / "coverage.xml", (time.time() + 20,) * 2)
+        result = _check_coverage(
+            tmp_path, ["core/sync/engine.py", "scripts/sync/engine.py"], None, 60
+        )
+
+        assert result.passed is False
+
+    def test_ambiguous_multi_source_resolution_fails_closed(self, tmp_path: Path) -> None:
+        """When one filename resolves to an existing file under TWO sources,
+        the artefact cannot say which was measured — vouch for neither."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/util.py")
+        self._changed(tmp_path, "scripts/util.py")
+        (tmp_path / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{tmp_path / 'core'}</source>"
+            f"<source>{tmp_path / 'scripts'}</source></sources>"
+            '<packages><package><classes><class filename="util.py"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(tmp_path / "coverage.xml", (time.time() + 10,) * 2)
+
+        assert _check_coverage(tmp_path, ["core/util.py"], None, 60).passed is False
+
+    def test_doc_only_edits_do_not_stale_the_artefact(self, tmp_path: Path) -> None:
+        """QG round 5: CHANGELOG.md counted as 'changed source', forcing a
+        coverage regeneration for edits no test could ever execute."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/sync/engine.py")
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# notes\n", encoding="utf-8")
+        os.utime(changelog, (time.time() + 100,) * 2)  # newer than the artefact
+
+        result = _check_coverage(
+            tmp_path, ["core/sync/engine.py", "CHANGELOG.md"], None, 60
+        )
+
+        assert result.passed is True

@@ -626,10 +626,17 @@ def _missing_module_reason(
 def _newest_changed_after(
     project_dir: Path, changed: list[str] | None, cutoff: float,
 ) -> str | None:
-    """Name of the newest changed file modified after cutoff, else None."""
+    """Name of the newest changed .py file modified after cutoff, else None.
+
+    Only executable source can invalidate a coverage artefact — treating
+    CHANGELOG.md as "changed source" forced a full regeneration for edits no
+    test could ever execute (same filter the module-presence check applies).
+    """
     newest = cutoff
     newest_name: str | None = None
     for rel in changed or []:
+        if not rel.endswith(".py"):
+            continue
         try:
             mtime = (project_dir / rel).stat().st_mtime
         except OSError:
@@ -674,17 +681,18 @@ def _source_candidates(
 ) -> set[str]:
     """Project-relative spellings of one covered file, anchored.
 
-    When the artefact declares ``<source>`` roots, every candidate must come
-    from resolving against one of them and landing inside the project — the
-    unanchored raw filename let a coverage.xml from a DIFFERENT checkout
-    vouch for this project's files. The raw relative spelling is a fallback
-    only for artefacts that declare no sources at all. A relative source is
-    resolved against the project, never against whatever CWD happens to be.
+    With ``<source>`` roots declared, every candidate must resolve through
+    one of them into the project — the unanchored raw filename let another
+    checkout's artefact vouch for this project's files. The raw spelling is
+    a fallback only when no sources exist; a relative source resolves
+    against the project, never the CWD.
     """
     if not sources:
         raw = PurePosixPath(filename)
         return set() if raw.is_absolute() else {raw.as_posix()}
 
+    # Candidates must exist on disk; existence under more than one source
+    # is ambiguous — vouch for neither (fail closed).
     found: set[str] = set()
     for source in sources:
         src = Path(source)
@@ -692,10 +700,12 @@ def _source_candidates(
             src = base / src
         try:
             resolved = (src / filename).resolve()
+            if not resolved.is_file():
+                continue
             found.add(PurePosixPath(resolved.relative_to(base)).as_posix())
         except (OSError, ValueError):
             continue
-    return found
+    return found if len(found) == 1 else set()
 
 
 def _is_covered(rel: str, covered: set[str]) -> bool:
@@ -900,9 +910,10 @@ def _check_spellcheck(
 def _spellcheck_inspected_count(project_dir: Path, md_files: list[str]) -> int:
     """How many of ``md_files`` codespell actually reads after `skip`.
 
-    Asks codespell itself (``--count`` on a per-file basis is too slow; a
-    skipped file simply produces no output for any planted probe), so instead
-    we replay its own glob semantics from the config.
+    Replays the config's skip globs with fnmatch rather than asking codespell
+    itself — per-file ``--count`` probing is too slow, and a skipped file
+    simply produces no output, so codespell cannot be asked which files it
+    ignored.
     """
     patterns = _codespell_skip_globs(project_dir)
     if not patterns:

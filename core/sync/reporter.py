@@ -14,7 +14,6 @@ from core.sync.schema import (
     ContentSyncResult,
     DescriptorSyncResult,
     McpSyncResult,
-    MigrationScanResult,
     SettingsSyncResult,
     SkillSyncResult,
     SyncReport,
@@ -39,7 +38,6 @@ def build_report(
     deprecated_features: list[str] | None = None,
     content_results: list[ContentSyncResult] | None = None,
     agent_results: list[AgentProvisionResult] | None = None,
-    migrations: MigrationScanResult | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
     phases = (mcp_results, settings_results, descriptor_results, skill_results)
@@ -54,12 +52,8 @@ def build_report(
         skill_results=skill_results,
         content_results=content_results or [],
         agent_results=agent_results or [],
-        migrations=migrations,
         errors=_collect_errors(
-            *phases,
-            content_results=content_results,
-            agent_results=agent_results,
-            migrations=migrations,
+            *phases, content_results=content_results, agent_results=agent_results
         ),
     )
 
@@ -97,7 +91,6 @@ def format_report(report: SyncReport) -> str:
     if key_changes:
         lines += ["", "  Key changes:", *[f"  - {c}" for c in key_changes]]
 
-    lines += _format_migration_lines(report.migrations)
     lines += _format_deferred_lines(report.mcp_results)
     lines += ["", f"  Errors: {len(report.errors)}", _SEPARATOR]
     return "\n".join(lines)
@@ -124,11 +117,8 @@ def _collect_errors(
     skills: list[SkillSyncResult],
     content_results: list[ContentSyncResult] | None = None,
     agent_results: list[AgentProvisionResult] | None = None,
-    migrations: MigrationScanResult | None = None,
 ) -> list[str]:
-    errors: list[str] = [
-        f"Migration: {entry}" for entry in (migrations.errors if migrations else [])
-    ]
+    errors: list[str] = []
     for r in mcp:
         if r.error:
             errors.append(f"MCP({r.path}): {r.error}")
@@ -230,64 +220,21 @@ def _add_skill_changes(results: list[SkillSyncResult], changes: list[str]) -> No
             changes.append(f"'{feature}' added to: {r.skill_name}")
 
 
-def _format_migration_lines(migrations: MigrationScanResult | None) -> list[str]:
-    """Render the migration section; silent only when nothing ran AND nothing failed."""
-    if migrations is None:
-        return []
-    ran = len(migrations.migrations_run)
-    if not (ran or migrations.errors or migrations.truncated):
-        return []
-    lines = ["", _migration_headline(migrations, ran)]
-    if migrations.proposal_path:
-        lines.append(f"  Review: {migrations.proposal_path}")
-    return lines + _migration_caveats(migrations)
-
-
-def _migration_headline(m: MigrationScanResult, ran: int) -> str:
-    """One line that never claims more certainty than the scan earned."""
-    if m.hits:
-        projects = len({h.project for h in m.hits})
-        return (
-            f"  Migrations: {ran} checked — {len(m.hits)} legacy pattern(s) "
-            f"in {projects} project(s). Nothing applied."
-        )
-    if m.truncated:
-        return f"  Migrations: {ran} checked — scans stopped early, results incomplete."
-    if m.errors:
-        return f"  Migrations: {ran} checked — {len(m.errors)} problem(s), nothing scanned cleanly:"
-    return f"  Migrations: {ran} checked, no legacy patterns found."
-
-
-def _migration_caveats(m: MigrationScanResult) -> list[str]:
-    """Caps with honest labels, and error text inline — a pointer to a bare
-    integer taught the operator nothing."""
-    lines: list[str] = []
-    hit_caps = [e for e in m.truncated if ":hit-cap" in e]
-    file_caps = [e for e in m.truncated if e not in hit_caps]
-    if hit_caps:
-        lines.append(f"  More hits exist than listed: {', '.join(hit_caps)}")
-    if file_caps:
-        # A file-cap means files went UNSCANNED — whether more hits exist is
-        # precisely what the scan does not know.
-        lines.append(f"  Files went unscanned (completeness unknown): {', '.join(file_caps)}")
-    lines += [f"    - {e}" for e in m.errors[:5]]
-    if len(m.errors) > 5:
-        lines.append(f"    - (+{len(m.errors) - 5} more in the JSON report)")
-    return lines
-
-
 def _format_content_line(results: list[ContentSyncResult]) -> str:
     total = len(results)
     updated = _count_updated(results)
     restamped = sum(1 for r in results if r.status == "restamped")
     unchanged = _count_unchanged(results)
+    drifted = sum(1 for r in results if r.status == "drifted")
     errored = sum(1 for r in results if r.status == "error")
     counts = f"{updated} updated, {unchanged} unchanged"
     if restamped:
         counts = f"{updated} updated, {restamped} restamped, {unchanged} unchanged"
+    if drifted:
+        # Drift is not failure: the merger deliberately preserved an edit the
+        # operator made inside a managed block. It gets its own word.
+        counts += f", {drifted} drifted"
     if errored:
-        # A drifted managed block lands here; hiding it made the counts not
-        # sum to the total, with the reason buried in a bare error tally.
         counts += f", {errored} errored"
     return f"  {'Content:':<14}{total} synced ({counts})"
 

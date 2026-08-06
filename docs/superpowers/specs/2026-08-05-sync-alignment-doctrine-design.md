@@ -52,16 +52,12 @@ than asserted.
   verified-current block with a stale stamp is `restamped`. Reported
   separately from `updated`, so a cosmetic restamp is never presented as a
   change.
-- **Propose-only migration runner** — spec format, version gating, vendored
-  tree skipping, both caps reported with honest labels, per-spec error
-  isolation, and a wall-clock budget that abandons and records a scan whose
-  regex backtracks pathologically (pattern shape is deliberately not
-  judged — a shape heuristic refused ordinary patterns and missed the
-  dangerous ones). No specs ship yet; the runner scans nothing until one
-  exists.
-- **Coverage gate honesty** — an artefact older than the changed source, or
-  missing a changed module, fails the check. Module presence is matched on
-  the parsed path, never on the filename stem.
+- **Coverage gate honesty** — an artefact older than the newest changed
+  `.py` file, or missing a changed module, fails the check. Module presence
+  is matched on paths resolved through the artefact's own `<source>` roots
+  and required to exist on disk; a filename that resolves under more than
+  one source is ambiguous and vouches for nothing. Doc-only edits never
+  stale the artefact.
 - **Unorderable version baselines** — distinguished from "nothing is new".
 - **Update-skill instructions** — the subagent may no longer delete an
   unmarked section, and needs a single well-formed marker pair to remove
@@ -70,6 +66,14 @@ than asserted.
 - **Client identifiers** out of `.gitignore` / `.npmignore`.
 
 ## Deferred to a follow-up PR
+
+**The migration runner** (`migration_runner.py`). Five Quality Gate rounds
+concentrated their findings in this component and its reporting surface —
+a feature that ships dormant (no migration specs exist), which made it the
+wrong hostage for the proven core. It returns in its own PR once its state
+space (crash contract on every syscall, deadline on every entry point,
+terminal honesty about scope, source-anchored proposals) is enumerated and
+tested first.
 
 Deterministic Phase 4 (`feature_merger.py`, `skill_syncer.py`). It does not
 ship until, at minimum:
@@ -95,15 +99,16 @@ removed.
 ## Acceptance criteria
 
 1. `restamped` distinguished from `updated`; mutation-proven.
-2. Migrations propose only; both caps reported only when something was
-   actually discarded; a bad spec never aborts a run.
-3. A stale or path-mismatched `coverage.xml` fails the coverage check.
-4. An unorderable baseline reads as a first sync, never as "nothing new",
+2. A stale or path-mismatched `coverage.xml` fails the coverage check; a
+   multi-source artefact never vouches for a path it did not measure.
+3. An unorderable baseline reads as a first sync, never as "nothing new",
    and one malformed `added_in` cannot poison an orderable baseline.
-5. No instruction anywhere permits deleting an unmarked section.
-   Verify (`-E`, because BSD grep reads `\|` as a literal and would pass
-   vacuously): `grep -rnE 'heading block|otherwise remove' departments/ plugins/`
-   returns nothing.
-6. No tracked file names a client.
+4. No instruction anywhere permits deleting an unmarked section.
+   Verify: `grep -rnE 'heading block|otherwise remove' departments/ plugins/`
+   returns nothing (`-E` for portability; prove the command against a
+   planted canary before trusting an empty result).
+5. No tracked file names a client.
+6. Drift inside a managed block is reported as `drifted`, never as an
+   error, and is visible in the Content line.
 7. Full suite green; `ruff` clean on every changed file; no function over
    30 lines that was not already over 30 on master.

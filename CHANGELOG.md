@@ -7,46 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [5.10.0] - 2026-08-06
 
-### Added
-
-- **Propose-only migration runner** (`core/sync/migration_runner.py`) — the
-  engine and spec format for codemods that repair patterns predating a
-  feature. **No migration specs ship in this release, so nothing is scanned
-  yet.** Once specs exist (`core/sync/migrations/*.yaml`, or
-  `~/.arkaos/config/sync/migrations/*.yaml` when the repo directory is
-  absent) they run only for versions newer than the last sync, skip vendored
-  trees, and write one reviewable file to
-  `~/.arkaos/migration-proposals/<version>.md`. Project code is never
-  modified. Every spec is treated as untrusted input: a malformed YAML, an
-  incomplete spec or a bad regex is recorded against that spec and the run
-  continues, rather than aborting a sync that has already written to disk;
-  a scan whose pattern backtracks pathologically is abandoned under a
-  wall-clock budget and recorded. Both scan caps — hits per migration,
-  files per project — are reported when they actually discard something,
-  each under the claim it can make: a hit cap means more hits exist, a file
-  cap means files went unscanned and completeness is unknown.
-
 ### Fixed
 
 - **A managed block edited in place is no longer overwritten** — the stored
   stamp is a claim, not a measurement, so the merger now hashes what is
   actually between the markers before rewriting. An operator edit inside the
-  block yields `drifted`: nothing is written and the drift is reported. The
-  first cut of the `restamped` path below destroyed exactly that edit while
-  correcting a version number, which is the defect that kept the wider
-  branch out of this release.
+  block yields `drifted`: nothing is written, and the run reports it as
+  drift — its own word and its own count in the Content line, because
+  nothing failed. The first cut of the `restamped` path below destroyed
+  exactly that edit while correcting a version number, which is the defect
+  that kept the wider branch out of this release.
 - **The version stamp no longer freezes** — `merge_managed_content` gained a
   `restamped` status. The stamp previously moved only when the content
   changed, so a project could show a version many releases old while
   carrying current content (measured on one install: 51 of 78 projects).
   Real content changes are still reported as `updated`, never conflated
   with a restamp.
-- **The coverage gate no longer passes on a stale artefact** — a
-  `coverage.xml` older than the newest changed source, or missing an entry
-  for a changed module, now fails the check instead of vouching for code it
-  never measured. Module presence is matched on the full path parsed from
-  the artefact, not on the filename stem: `core/` alone carries 14 colliding
-  stems, so a stem probe accepted `core/synapse/engine.py` as evidence for a
+- **The coverage gate no longer passes on an artefact that cannot describe
+  the diff** — a `coverage.xml` older than the newest changed `.py` file
+  (doc edits never stale it), or missing an entry for a changed module, now
+  fails the check instead of vouching for code it never measured. Module
+  presence is matched on paths resolved through the artefact's own
+  `<source>` roots and required to exist on disk; a filename that resolves
+  under more than one source is ambiguous and vouches for nothing. A stem
+  probe previously accepted `core/synapse/engine.py` as evidence for a
   changed `core/sync/engine.py` (`core/governance/evidence_checks.py`).
 - **An unorderable sync baseline no longer reads as "nothing is new"** —
   `compare_versions` returns `None` for a version pair that cannot be

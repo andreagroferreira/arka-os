@@ -34,7 +34,7 @@ AI-powered sync that updates ecosystem skills, project descriptors, MCP configs,
 
 ## Hybrid Orchestration
 
-Phases 1–3 + 5 run via the Python engine (see `sync-engine.md`). Phase 4 runs as ONE AI subagent to handle intelligent ecosystem-skill text updates.
+The Python engine (see `sync-engine.md`) runs every deterministic phase: manifest, discovery, MCP sync, settings sync, descriptors, content sync (CLAUDE.md managed block, rules, hooks, constitution excerpt), agent provisioning, and state. Phase 4 runs as ONE AI subagent to handle intelligent ecosystem-skill text updates.
 
 ### Phase 4 — Intelligent Sync (AI Subagent)
 

@@ -66,6 +66,7 @@ def _do_sync(project: Project) -> ContentSyncResult:
         status=out.status(),
         artefacts_updated=out.updated,
         artefacts_restamped=out.restamped,
+        artefacts_drifted=out.drifted,
         artefacts_unchanged=out.unchanged,
         artefacts_errored=out.errored,
     )
@@ -82,13 +83,20 @@ class _Artefacts:
 
     updated: list[str] = field(default_factory=list)
     restamped: list[str] = field(default_factory=list)
+    drifted: list[str] = field(default_factory=list)
     unchanged: list[str] = field(default_factory=list)
     errored: list[str] = field(default_factory=list)
 
     def status(self) -> str:
-        """Worst outcome wins: error > real change > restamp > no-op."""
+        """Worst outcome wins: error > drift > real change > restamp > no-op.
+
+        Drift outranks a change because it needs the operator's judgement;
+        it is NOT an error — the merger deliberately preserved their edit.
+        """
         if self.errored:
             return "error"
+        if self.drifted:
+            return "drifted"
         if self.updated:
             return "updated"
         if self.restamped:
@@ -124,8 +132,9 @@ def _record_claude_md(result, target_file, managed_content: str, out) -> None:
         return
     if result.status == "drifted":
         # The operator edited inside the managed block. Overwriting to fix a
-        # version number would delete their work; report and move on.
-        out.errored.append(f"CLAUDE.md: {result.error}")
+        # version number would delete their work; record it as drift — not as
+        # an error, because nothing failed.
+        out.drifted.append("CLAUDE.md")
         return
     if result.status == "unchanged":
         out.unchanged.append("CLAUDE.md")

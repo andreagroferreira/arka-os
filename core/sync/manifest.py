@@ -68,8 +68,8 @@ def is_version_newer(version: str, baseline: str) -> bool:
     """True only when the pair is orderable and version is strictly newer.
 
     The conservative reading, for callers where doing nothing is the safe
-    answer (migrations). Callers that must distinguish "unknown baseline"
-    from "nothing is new" call :func:`compare_versions` instead.
+    answer. Callers that must distinguish "unknown baseline" from "nothing
+    is new" call :func:`compare_versions` instead.
     """
     return compare_versions(version, baseline) is True
 

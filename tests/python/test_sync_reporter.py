@@ -9,8 +9,6 @@ from core.sync.reporter import build_report, format_report, write_sync_state
 from core.sync.schema import (
     DescriptorSyncResult,
     McpSyncResult,
-    MigrationHit,
-    MigrationScanResult,
     SettingsSyncResult,
     SkillSyncResult,
 )
@@ -311,59 +309,9 @@ class TestReportCommunicatesValue:
 
 
 
-    def test_migration_hits_are_reported_as_proposals_not_changes(self) -> None:
-        migrations = MigrationScanResult(
-            migrations_run=["arka-py-shim"],
-            hits=[
-                MigrationHit(
-                    migration="arka-py-shim",
-                    project="acme",
-                    file="/x/README.md",
-                    line=3,
-                    excerpt="python -m core",
-                )
-            ],
-            proposal_path="/home/.arkaos/migration-proposals/5.10.0.md",
-        )
-        output = format_report(
-            build_report("5.9.0", "5.10.0", [], [], [], [], migrations=migrations)
-        )
 
-        assert "1 legacy pattern(s) in 1 project(s)" in output
-        assert "Nothing applied." in output
-        assert "/home/.arkaos/migration-proposals/5.10.0.md" in output
 
-    def test_clean_migration_run_says_so(self) -> None:
-        migrations = MigrationScanResult(migrations_run=["arka-py-shim"])
-        output = format_report(
-            build_report("5.9.0", "5.10.0", [], [], [], [], migrations=migrations)
-        )
 
-        assert "1 checked, no legacy patterns found." in output
-
-    def test_truncation_is_never_silent(self) -> None:
-        """Both cap kinds surface, each under the claim it can actually make."""
-        migrations = MigrationScanResult(
-            migrations_run=["m"],
-            hits=[
-                MigrationHit(
-                    migration="m", project="p", file="f", line=1, excerpt="x"
-                )
-            ],
-            truncated=["m:hit-cap@acme", "file-cap@acme"],
-            proposal_path="/p.md",
-        )
-        output = format_report(
-            build_report("5.9.0", "5.10.0", [], [], [], [], migrations=migrations)
-        )
-
-        assert "More hits exist than listed: m:hit-cap@acme" in output
-        assert "unscanned" in output
-
-    def test_no_migrations_configured_stays_silent(self) -> None:
-        output = format_report(build_report("5.9.0", "5.10.0", [], [], [], []))
-
-        assert "Migrations:" not in output
 
     def test_state_counts_user_owned_skills(self, tmp_path: Path) -> None:
         """`skills_synced: 0` was the observability hole flagged pre-PR."""
@@ -377,75 +325,27 @@ class TestReportCommunicatesValue:
         assert json.loads(state_file.read_text())["skills_synced"] == 2
 
 
-class TestMigrationTerminalHonesty:
-    """QG round 4: the terminal line lied on three paths the proposal file
-    got right — truncation-only runs claimed a clean scan, 'See Errors
-    below.' pointed at a bare integer, and load-time failures were invisible."""
 
-    def _out(self, migrations: MigrationScanResult) -> str:
-        return format_report(
-            build_report("5.9.0", "5.10.0", [], [], [], [], migrations=migrations)
-        )
 
-    def test_truncation_only_run_never_claims_a_clean_scan(self) -> None:
-        out = self._out(
-            MigrationScanResult(
-                migrations_run=["m"],
-                truncated=["file-cap@p"],
-                proposal_path="/x/5.10.0.md",
-            )
-        )
-
-        assert "no legacy patterns found" not in out
-        assert "/x/5.10.0.md" in out
-
-    def test_migration_errors_are_printed_inline(self) -> None:
-        out = self._out(
-            MigrationScanResult(
-                migrations_run=["m"],
-                errors=["m: bad pattern (missing ), unterminated subpattern)"],
-            )
-        )
-
-        assert "bad pattern" in out
-        assert "See Errors below" not in out
-
-    def test_load_failures_are_visible_with_zero_specs(self) -> None:
-        out = self._out(
-            MigrationScanResult(
-                migrations_run=[],
-                errors=["broken.yaml: unreadable (ScannerError)"],
-            )
-        )
-
-        assert "broken.yaml" in out
-
-    def test_file_cap_is_never_sold_as_more_hits_exist(self) -> None:
-        hit = MigrationHit(migration="m", project="p", file="f", line=1, excerpt="x")
-        out = self._out(
-            MigrationScanResult(
-                migrations_run=["m"],
-                hits=[hit],
-                truncated=["file-cap@p", "m:hit-cap@p"],
-                proposal_path="/x.md",
-            )
-        )
-
-        assert "Capped (more hits exist): file-cap" not in out
-        assert "unscanned" in out
-
+class TestDriftedVisibility:
     def test_drifted_projects_are_visible_in_the_content_line(self) -> None:
+        """Drift is not failure — the merger preserved the operator's edit.
+
+        Printing it as 'errored' told the operator something broke; nothing
+        did. It gets its own word, and the counts sum to the total.
+        """
         from core.sync.schema import ContentSyncResult
 
         results = [
             ContentSyncResult(
                 path="/p",
-                status="error",
-                artefacts_errored=["CLAUDE.md: managed block was edited in place"],
+                status="drifted",
+                artefacts_drifted=["CLAUDE.md"],
             )
         ]
-        out = format_report(
+        output = format_report(
             build_report("5.9.0", "5.10.0", [], [], [], [], content_results=results)
         )
 
-        assert "1 errored" in out
+        assert "1 drifted" in output
+        assert "errored" not in output
