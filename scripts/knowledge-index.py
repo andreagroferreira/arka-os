@@ -8,8 +8,11 @@ Usage:
     python scripts/knowledge-index.py --stats
     python scripts/knowledge-index.py --search "security vulnerability"
 
-With no --vault/--dir the vault comes from configuration
-(``knowledge.vaultPath`` / ``ARKAOS_VAULT``), never from a guessed path.
+With no --vault/--dir the vault is resolved in order: ``knowledge.vaultPath``
+/ ``ARKAOS_VAULT`` (canonical), then the deprecated ``knowledge/
+obsidian-config.json``, then the deprecated ``~/.arkaos/profile.json``. Each
+source announces itself on stderr. If none answers, the run exits 2 rather
+than indexing some other corpus.
 """
 
 import argparse
@@ -28,6 +31,87 @@ ARKAOS_ROOT = Path(os.environ.get("ARKAOS_ROOT", Path(__file__).resolve().parent
 sys.path.insert(0, str(ARKAOS_ROOT))
 
 DEFAULT_DB = Path.home() / ".arkaos" / "knowledge.db"
+
+
+def _note(message: str) -> None:
+    """Diagnostics go to stderr unconditionally.
+
+    Never gated on --json: stdout is the JSON channel, stderr is not, so
+    suppressing these under --json only ever hid which corpus was chosen
+    from the operator most likely to be automating against it.
+    """
+    print(message, file=sys.stderr)
+
+
+_DEPRECATION = (
+    "  DEPRECATED source — set `knowledge.vaultPath` in "
+    "~/.arkaos/config.json; this file will stop being consulted."
+)
+
+
+def _legacy_obsidian_config() -> str:
+    """``knowledge/obsidian-config.json``. May hold a ``${VAULT_PATH}``
+    template, resolved through the canonical path resolver."""
+    config_path = ARKAOS_ROOT / "knowledge" / "obsidian-config.json"
+    if not config_path.exists():
+        return ""
+    try:
+        vault = json.loads(config_path.read_text(encoding="utf-8")).get("vault_path", "")
+    except (json.JSONDecodeError, OSError):
+        return ""
+    if vault and "${" in vault:
+        try:
+            from core.runtime.path_resolver import resolve
+
+            vault = resolve(vault)
+        except Exception:
+            vault = ""
+    return vault if vault and Path(vault).exists() else ""
+
+
+def _legacy_profile_vault() -> str:
+    """``~/.arkaos/profile.json::vaultPath``, written by `npx arkaos install`."""
+    profile_path = Path.home() / ".arkaos" / "profile.json"
+    if not profile_path.exists():
+        return ""
+    try:
+        vault = json.loads(profile_path.read_text(encoding="utf-8")).get("vaultPath", "")
+    except (json.JSONDecodeError, OSError):
+        return ""
+    return vault if vault and Path(vault).exists() else ""
+
+
+def resolve_index_directory() -> str:
+    """The vault to index, or '' — canonical configuration first.
+
+    The order changed and the change is the point. ``knowledge.vaultPath``,
+    resolved by :mod:`core.knowledge.vault` (the same resolver
+    ``research_gate`` uses, so the gate and the indexer cannot disagree),
+    used to be consulted THIRD — behind two legacy files. An operator who
+    set the documented key could still be indexed from a stale legacy
+    value and never be told. Now the documented key wins, and the legacy
+    files still work but announce that they are deprecated.
+    """
+    from core.knowledge.vault import resolve_vault_path
+
+    configured = resolve_vault_path()
+    if configured:
+        _note(f"Vault from ~/.arkaos/config.json: {configured}")
+        return str(configured)
+
+    legacy = _legacy_obsidian_config()
+    if legacy:
+        _note(f"Vault from knowledge/obsidian-config.json: {legacy}")
+        _note(_DEPRECATION)
+        return legacy
+
+    legacy = _legacy_profile_vault()
+    if legacy:
+        _note(f"Vault from ~/.arkaos/profile.json: {legacy}")
+        _note(_DEPRECATION)
+        return legacy
+
+    return ""
 
 
 def clear_index(store, db_path: Path) -> None:
@@ -116,67 +200,20 @@ def main() -> int:
         return 0
 
     # Index mode
-    directory = args.vault or args.dir
-    if not directory:
-        # Auto-detect vault from config. vault_path may be a template like
-        # "${VAULT_PATH}" — resolve it through the canonical path resolver
-        # (ARKAOS_VAULT_PATH env / profile.json vaultPath) before testing.
-        config_path = ARKAOS_ROOT / "knowledge" / "obsidian-config.json"
-        if config_path.exists():
-            config = json.loads(config_path.read_text(encoding="utf-8"))
-            vault = config.get("vault_path", "")
-            if vault and "${" in vault:
-                try:
-                    from core.runtime.path_resolver import resolve
-
-                    vault = resolve(vault)
-                except Exception:
-                    vault = ""
-            if vault and Path(vault).exists():
-                directory = vault
-                if not args.json_output:
-                    print(f"Vault from config: {directory}", file=sys.stderr)
+    directory = args.vault or args.dir or resolve_index_directory()
 
     if not directory:
-        # profile.json vaultPath — set by `npx arkaos install` and the
-        # authoritative answer to "where is the user's vault".
-        profile_path = Path.home() / ".arkaos" / "profile.json"
-        if profile_path.exists():
-            try:
-                vault = json.loads(
-                    profile_path.read_text(encoding="utf-8")
-                ).get("vaultPath", "")
-            except (json.JSONDecodeError, OSError):
-                vault = ""
-            if vault and Path(vault).exists():
-                directory = vault
-                if not args.json_output:
-                    print(f"Vault from profile: {directory}", file=sys.stderr)
-
-    if not directory:
-        # The canonical resolver: knowledge.vaultPath in ~/.arkaos/config.json,
-        # then ARKAOS_VAULT. Shared with core.workflow.research_gate so the
-        # gate and the indexer can never disagree about which corpus is the
-        # vault. It replaces a list of guessed locations headed by one
-        # developer's ~/Documents/Personal — a path that on any other machine
-        # either missed silently or, worse, matched something unrelated.
-        from core.knowledge.vault import resolve_vault_path
-
-        configured_vault = resolve_vault_path()
-        if configured_vault:
-            directory = str(configured_vault)
-            if not args.json_output:
-                print(f"Vault from config: {directory}", file=sys.stderr)
-
-    if not directory:
-        # Fall back to indexing ArkaOS departments (always available)
-        departments_dir = ARKAOS_ROOT / "departments"
-        if departments_dir.exists():
-            directory = str(departments_dir)
-            print(f"No vault found. Indexing ArkaOS skills: {directory}" if not args.json_output else "", file=sys.stderr)
-
-    if not directory:
-        print("No directory specified. Use --vault <path> or --dir <path>.", file=sys.stderr)
+        # No guessed corpus. Indexing ArkaOS's own departments/ tree as if
+        # it were the operator's knowledge base and exiting 0 is exactly
+        # the silent substitution core/knowledge/vault.py exists to end:
+        # the run looks successful and the KB answers from the wrong body
+        # of text. Say what is missing and fail.
+        print(
+            "No vault configured. Set `knowledge.vaultPath` in "
+            "~/.arkaos/config.json (or export ARKAOS_VAULT), or pass "
+            "--vault <path> / --dir <path>.",
+            file=sys.stderr,
+        )
         return 2
 
     if not Path(directory).exists():

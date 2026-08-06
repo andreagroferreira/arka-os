@@ -268,6 +268,96 @@ def test_a_personal_looking_folder_is_never_adopted(tmp_path, monkeypatch):
     assert vault_module.resolve_vault_path(tmp_path / "absent.json") is None
 
 
+def test_canonical_resolver_outranks_both_legacy_files(tmp_path, monkeypatch):
+    """The documented key must win.
+
+    It used to be consulted third, so an operator who set
+    knowledge.vaultPath could still be indexed from a stale legacy file
+    and never be told which one won.
+    """
+    from core.knowledge import vault as vault_module
+
+    cli = _load_cli()
+    canonical = tmp_path / "canonical"
+    canonical.mkdir()
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+
+    cfg = tmp_path / "config.json"
+    cfg.write_text(
+        json.dumps({"knowledge": {"vaultPath": str(canonical)}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(vault_module, "CONFIG_PATH", cfg)
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    monkeypatch.setattr(cli, "_legacy_obsidian_config", lambda: str(legacy))
+    monkeypatch.setattr(cli, "_legacy_profile_vault", lambda: str(legacy))
+
+    assert cli.resolve_index_directory() == str(canonical)
+
+
+def test_legacy_source_is_used_but_announced_as_deprecated(
+    tmp_path, monkeypatch, capsys
+):
+    from core.knowledge import vault as vault_module
+
+    cli = _load_cli()
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+
+    monkeypatch.setattr(vault_module, "CONFIG_PATH", tmp_path / "absent.json")
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    monkeypatch.setattr(cli, "_legacy_obsidian_config", lambda: str(legacy))
+
+    assert cli.resolve_index_directory() == str(legacy)
+    err = capsys.readouterr().err
+    assert "obsidian-config.json" in err
+    assert "DEPRECATED" in err
+
+
+def test_resolution_notes_reach_stderr_even_in_json_mode(tmp_path, monkeypatch, capsys):
+    """stdout is the JSON channel; stderr is not. Gating diagnostics on
+    --json only hid the chosen corpus from whoever was automating."""
+    cli = _load_cli()
+    cli._note("chosen: /some/vault")
+    captured = capsys.readouterr()
+    assert "chosen: /some/vault" in captured.err
+    assert captured.out == ""
+
+
+def test_no_configured_vault_fails_instead_of_indexing_arkaos_itself(
+    tmp_path, monkeypatch, capsys
+):
+    """The departments/ fallback indexed ArkaOS's own docs as the user's
+    knowledge base and exited 0 — a successful-looking run answering from
+    the wrong corpus."""
+    cli = _load_cli()
+    monkeypatch.setattr(cli, "resolve_index_directory", lambda: "")
+
+    import core.knowledge.indexer as indexer_module
+
+    called: list[str] = []
+    monkeypatch.setattr(
+        indexer_module, "index_directory",
+        lambda directory, store, **kw: called.append(str(directory)),
+    )
+    monkeypatch.setattr(
+        sys, "argv",
+        ["knowledge-index.py", "--db", str(tmp_path / "k.db")],
+    )
+
+    assert cli.main() == 2, "must not exit 0 with no vault configured"
+    assert called == [], "nothing may be indexed when no vault resolved"
+    err = capsys.readouterr().err
+    assert "knowledge.vaultPath" in err
+    assert "departments" not in err
+
+
+def test_departments_fallback_is_gone_from_the_source():
+    source = SCRIPT.read_text(encoding="utf-8")
+    assert "Indexing ArkaOS skills" not in source
+    assert 'ARKAOS_ROOT / "departments"' not in source
+
+
 def test_config_wins_over_env(tmp_path, monkeypatch):
     from core.knowledge.vault import resolve_vault_path
 

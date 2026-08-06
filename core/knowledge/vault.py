@@ -1,4 +1,4 @@
-"""Where the operator's Obsidian vault lives — one answer, in one place.
+"""Where the operator's Obsidian vault lives, resolved from configuration.
 
 ``knowledge.vaultPath`` in ``~/.arkaos/config.json`` is the portable
 source of truth (identical on macOS/Windows/Linux) and ``ARKAOS_VAULT``
@@ -8,8 +8,14 @@ There is deliberately NO guessed fallback. The hardcoded
 ``~/Documents/Personal`` this replaces was one developer's personal
 layout: on every other machine it resolved to nothing, and the failure
 was invisible because the caller simply carried on with a different
-corpus. ``None`` is the honest answer to "not configured", and it lets
-each caller say so out loud instead of quietly indexing the wrong tree.
+corpus. ``None`` is the honest answer to "not configured". Callers are
+expected to say so rather than substitute another corpus — see
+``scripts/knowledge-index.py``, which names the source it chose on stderr
+and exits non-zero when nothing answers.
+
+This resolver is not the only path a caller may consult: the indexer
+still honours two deprecated legacy files AFTER this one, and announces
+them as deprecated when they win.
 """
 
 from __future__ import annotations
