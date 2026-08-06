@@ -42,7 +42,14 @@ _DEFAULT_OUTPUT_DIR: Path = Path.home() / ".arkaos" / "skill-proposals"
 
 @dataclass(frozen=True)
 class SkillProposal:
-    """Outcome of a skill-evaluation pass."""
+    """Outcome of a skill-evaluation pass.
+
+    ``proposal_path`` is set only when a file was actually written. It is
+    ``None`` both when no proposal was warranted and when one was
+    rendered but had nowhere safe to go (reason ``no-safe-filename``) —
+    in that second case ``proposal_markdown`` still carries the capture,
+    so a caller can route it somewhere else.
+    """
     should_propose: bool
     reason: str
     suggested_slug: str | None
@@ -78,35 +85,43 @@ def evaluate(
     out_dir.mkdir(parents=True, exist_ok=True)
     iso_today = today or datetime.now(UTC).strftime("%Y-%m-%d")
     path = _collision_free_path(out_dir, iso_today, slug, markdown)
+    if path is None:
+        return SkillProposal(False, "no-safe-filename", slug, None, markdown)
     path.write_text(markdown, encoding="utf-8")
     return SkillProposal(True, "proposed", slug, path, markdown)
 
 
 def _collision_free_path(
     out_dir: Path, iso_today: str, slug: str, markdown: str
-) -> Path:
-    """Return a path for today's proposal that will not clobber another.
+) -> Path | None:
+    """Return a path for today's proposal, or ``None`` if none is safe.
 
     ``_suggest_slug`` anchors on the first matching skill-worthy hint, so
     same-day slug collisions are the norm: the six word hints plus the
     fallback yield seven fixed names, and the numeric ``N-phase`` hint
     mints a fresh one per number it matches (until ``_slugify``'s 60-char
-    cap truncates the extremes back together). Small in practice, then --
-    not the fixed handful this docstring once claimed. Every proposal
-    after the first with the same slug used to overwrite its predecessor,
-    silently: distinct captured capabilities were lost with no error and
-    no trace.
+    cap truncates the extremes back together). The space is small in
+    practice, but it is not the fixed handful this docstring once
+    claimed. Every proposal after the first with the same slug used to
+    overwrite its predecessor, silently: distinct captured capabilities
+    were lost with no error and no trace.
 
     Disambiguates by content digest rather than a counter, so re-running
     the hook over the same closing message stays idempotent (same content
     -> same path -> one file) while genuinely different proposals get
-    their own. Two invariants hold every branch honest:
+    their own. One invariant holds every branch honest: never return a
+    path unless it is free or provably holds this exact proposal.
 
-    * never return a path unless it is free or provably already holds
-      this exact proposal -- unreadable counts as somebody else's;
-    * check the digest names before the plain one, so a re-fire after the
-      operator deleted the plain twin lands back on the file it already
-      wrote instead of duplicating it.
+    A name built from our digest proves nothing about the bytes inside
+    the file — any file can carry any name, no hash collision required.
+    So when the plain name and both digest names are all occupied by
+    content we cannot account for, this returns ``None`` and the caller
+    writes nothing: losing one capture is honest, overwriting somebody
+    else's is not.
+
+    The digest names are checked before the plain one, so a re-fire after
+    the operator deleted the plain twin lands back on the file it already
+    wrote instead of duplicating it.
     """
     digest = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
     plain = out_dir / f"{iso_today}-{slug}.md"
@@ -124,7 +139,7 @@ def _collision_free_path(
     for candidate in digest_paths:
         if not candidate.exists():
             return candidate
-    return digest_paths[-1]
+    return None
 
 
 def _already_holds(path: Path, markdown: str) -> bool:
@@ -133,7 +148,7 @@ def _already_holds(path: Path, markdown: str) -> bool:
     Content we cannot read back is not "equal": a missing, unreadable, or
     non-UTF-8 file is unknown content, and the caller must treat unknown
     as another proposal rather than write over it. ``UnicodeDecodeError``
-    is a ``ValueError``, not an ``OSError`` -- both belong in the same
+    is a ``ValueError``, not an ``OSError`` — both belong in the same
     branch, or the exception escapes ``evaluate`` into the Stop hook's
     blanket ``except Exception: pass`` and the proposal is lost silently.
     """

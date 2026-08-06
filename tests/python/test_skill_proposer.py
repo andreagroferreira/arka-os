@@ -24,13 +24,29 @@ def _revoke_read_or_skip(path: Path) -> None:
         pytest.skip("read permission not enforced (running as root?)")
 
 
-#: Two topics rendered from this template share a slug (`capability-
-#: workflow`, the first hint that matches) but differ in content — the
+#: Two topics rendered from this template differ in content but share
+#: the slug `capability-workflow` (the first hint that matches) — the
 #: exact shape that used to overwrite silently.
 BASE = (
     "[arka:gate:4] Shipped the {topic} as a reusable workflow with a "
     "template and a checklist covering the whole procedure end to end."
 )
+
+#: Readable, valid UTF-8, and none of our business. The ladder must
+#: route around it without a single chmod in sight.
+FOREIGN = "somebody else's proposal, do not touch\n"
+
+
+def _rungs(text: str, scratch: Path, today: str = "2026-05-25") -> list[str]:
+    """The three filenames `text` can legally land on, in ladder order.
+
+    Rendered by the module itself rather than rebuilt by hand, so the
+    test cannot drift from the naming scheme it is pinning.
+    """
+    probe = evaluate(text, output_dir=scratch, today=today)
+    digest = hashlib.sha256(probe.proposal_markdown.encode("utf-8")).hexdigest()
+    stem = f"{today}-{probe.suggested_slug}"
+    return [f"{stem}.md", f"{stem}-{digest[:8]}.md", f"{stem}-{digest}.md"]
 
 
 class TestBypass:
@@ -231,12 +247,11 @@ class TestUnreadableExistingProposal:
             short.proposal_path.chmod(0o644)
         assert short.proposal_path.read_bytes() == original
 
-    def test_full_digest_is_the_last_resort_when_every_name_is_opaque(
-        self, tmp_path: Path
-    ):
-        """Terminal rung of the ladder. Reaching it needs both digest
-        names to be unprovable, and a full SHA-256 match means the bytes
-        are ours anyway — so the full digest name is where it stops."""
+    def test_ladder_of_opaque_names_refuses_to_write(self, tmp_path: Path):
+        """Terminal rung: both digest names unreadable, the plain one
+        holding a different proposal. No name is left that can be proved
+        free or ours, so nothing is written — the capture is dropped
+        rather than laid over bytes we cannot account for."""
         plain = evaluate(
             BASE.format(topic="release pipeline"),
             output_dir=tmp_path, today="2026-05-25",
@@ -250,19 +265,92 @@ class TestUnreadableExistingProposal:
             _revoke_read_or_skip(escalated.proposal_path)
             opaque.append(escalated.proposal_path)
 
-            last = evaluate(text, output_dir=tmp_path, today="2026-05-25")
+            refused = evaluate(text, output_dir=tmp_path, today="2026-05-25")
 
-            assert last.proposal_path == escalated.proposal_path
+            assert refused.should_propose is False
+            assert refused.reason == "no-safe-filename"
+            assert refused.proposal_path is None
+            # The rendered capture still comes back, so a caller that
+            # wants it has something to work with.
+            assert refused.proposal_markdown is not None
             assert len(list(tmp_path.glob("*.md"))) == 3
-            assert plain.proposal_path.read_text(encoding="utf-8") == (
-                plain.proposal_markdown
-            )
         finally:
             for path in opaque:
                 path.chmod(0o644)
+        assert plain.proposal_path.read_text(encoding="utf-8") == (
+            plain.proposal_markdown
+        )
         assert escalated.proposal_path.read_text(encoding="utf-8") == (
             escalated.proposal_markdown
         )
+
+
+class TestForeignContentOnTheLadder:
+    """Each rung occupied by readable, valid UTF-8 bytes that are simply
+    not ours — no chmod, no corruption, nothing exotic. A filename built
+    from our digest says nothing about the bytes inside it (any file can
+    carry any name), so every occupied rung must divert and a full ladder
+    must refuse."""
+
+    TEXT = BASE.format(topic="incident runbook")
+
+    def _ladder(self, tmp_path: Path) -> tuple[Path, list[Path]]:
+        out = tmp_path / "out"
+        out.mkdir()
+        names = _rungs(self.TEXT, tmp_path / "probe")
+        return out, [out / name for name in names]
+
+    def test_foreign_plain_diverts_to_the_short_digest(self, tmp_path: Path):
+        out, (plain, short, _full) = self._ladder(tmp_path)
+        plain.write_text(FOREIGN, encoding="utf-8")
+
+        result = evaluate(self.TEXT, output_dir=out, today="2026-05-25")
+
+        assert result.proposal_path == short
+        assert plain.read_text(encoding="utf-8") == FOREIGN
+        assert len(list(out.glob("*.md"))) == 2
+
+    def test_foreign_short_digest_diverts_to_the_full_digest(
+        self, tmp_path: Path
+    ):
+        out, (plain, short, full) = self._ladder(tmp_path)
+        plain.write_text(FOREIGN, encoding="utf-8")
+        short.write_text(FOREIGN, encoding="utf-8")
+
+        result = evaluate(self.TEXT, output_dir=out, today="2026-05-25")
+
+        assert result.proposal_path == full
+        assert plain.read_text(encoding="utf-8") == FOREIGN
+        assert short.read_text(encoding="utf-8") == FOREIGN
+        assert len(list(out.glob("*.md"))) == 3
+
+    def test_foreign_full_digest_leaves_a_free_plain_name_alone(
+        self, tmp_path: Path
+    ):
+        out, (plain, _short, full) = self._ladder(tmp_path)
+        full.write_text(FOREIGN, encoding="utf-8")
+
+        result = evaluate(self.TEXT, output_dir=out, today="2026-05-25")
+
+        assert result.proposal_path == plain
+        assert full.read_text(encoding="utf-8") == FOREIGN
+        assert len(list(out.glob("*.md"))) == 2
+
+    def test_full_ladder_of_foreign_content_writes_nothing(
+        self, tmp_path: Path
+    ):
+        out, rungs = self._ladder(tmp_path)
+        for rung in rungs:
+            rung.write_text(FOREIGN, encoding="utf-8")
+
+        result = evaluate(self.TEXT, output_dir=out, today="2026-05-25")
+
+        assert result.should_propose is False
+        assert result.reason == "no-safe-filename"
+        assert result.proposal_path is None
+        assert result.proposal_markdown is not None
+        assert [r.read_text(encoding="utf-8") for r in rungs] == [FOREIGN] * 3
+        assert len(list(out.glob("*.md"))) == 3
 
 
 class TestNonUtf8ExistingProposal:
