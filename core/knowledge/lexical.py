@@ -30,23 +30,35 @@ lexical signal and keeps the layer working exactly as it did before.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 import sqlite3
 import unicodedata
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 # Portuguese and English function words. FTS5's unicode61 tokenizer has no
 # stopword list, and BM25 alone does not neutralise them in short queries:
 # 'como', 'para' and 'the' appear in nearly every chunk and only add rank
 # noise on an OR match. Dropping them moved held-out zero-hit from 9 to 8.
-_STOP = frozenset("""
+# Kept as prose and split at import: sixty quoted strings would be no
+# clearer and much easier to typo.
+#
+# DELIBERATELY UNACCENTED — do not "fix" entao/ja/nao/esta/este. fold()
+# strips diacritics at BOTH index and query time, so every token this list
+# is compared against has already lost its accents. An accented entry here
+# would never match a folded token, silently disabling stopword filtering
+# and degrading retrieval with no error anywhere.
+_STOP_WORDS = """
 a o as os um uma uns umas de do da dos das em no na nos nas por para com sem
 que se e ou mas como qual quais quando onde porque entao ja nao sim ao aos
 pelo pela ser esta este estas estes isso isto nosso nossa muito mais
 the an of to in on for with without and or but that which when where how
 is are was were be been being this these those it its as at by from we our
-""".split())
+"""
+_STOP = frozenset(_STOP_WORDS.split())
 
 _MIN_TERM_LEN = 3
 _ROW_LIMIT = 120
@@ -103,10 +115,10 @@ def build(db_path: str | os.PathLike[str]) -> tuple[bool, str]:
     """(built, message). Never raises: a corpus without a lexical index
     retrieves exactly as it did before this module existed."""
     if not fts5_available():
-        return False, "FTS5 nao disponivel nesta build do SQLite"
+        return False, "FTS5 não disponível nesta compilação do SQLite"
     src_path = Path(db_path)
     if not src_path.is_file():
-        return False, f"knowledge db inexistente: {src_path}"
+        return False, f"base de dados de conhecimento inexistente: {src_path}"
 
     target = index_path(src_path)
     tmp = target.with_suffix(".tmp")
@@ -128,13 +140,13 @@ def build(db_path: str | os.PathLike[str]) -> tuple[bool, str]:
         # leaves the previous index serving instead of a truncated one.
         os.replace(tmp, target)
         return True, f"{len(rows)} chunks indexados em {target.name}"
-    except Exception as exc:                            # noqa: BLE001
+    except Exception as exc:
         try:
             if tmp.exists():
                 tmp.unlink()
         except OSError:
             pass
-        return False, f"{type(exc).__name__}: {exc}"
+        return False, f"falha a construir o índice: {type(exc).__name__}: {exc}"
 
 
 def is_stale(db_path: str | os.PathLike[str]) -> bool:
@@ -161,7 +173,17 @@ def search(db_path: str | os.PathLike[str], query: str,
     module has no opinion about how a chunk maps to a note.
     """
     idx = index_path(db_path)
-    if not idx.is_file() or is_stale(db_path):
+    if not idx.is_file():
+        logger.debug("lexical index absent (%s) — vector-only retrieval", idx)
+        return []
+    if is_stale(db_path):
+        # Refusing a stale index is correct, but doing it silently means a
+        # corpus quietly loses half its retrieval signal and nothing says
+        # so. Run the indexer to rebuild.
+        logger.warning(
+            "lexical index %s is stale (knowledge db is newer) — lexical "
+            "signal disabled until reindex", idx,
+        )
         return []
     query_terms = terms(query)
     if not query_terms:
@@ -176,7 +198,7 @@ def search(db_path: str | os.PathLike[str], query: str,
             "select source, bm25(fts) as k from fts where fts match ? "
             "order by k limit ?", (match, _ROW_LIMIT)).fetchall()
         con.close()
-    except Exception:                                   # noqa: BLE001
+    except Exception:
         return []
     out: list[str] = []
     for source, _ in rows:

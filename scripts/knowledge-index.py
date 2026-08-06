@@ -2,10 +2,17 @@
 """Knowledge Indexer — index markdown files into vector store.
 
 Usage:
-    python scripts/knowledge-index.py --vault ~/Documents/Personal
+    python scripts/knowledge-index.py --vault /path/to/vault
     python scripts/knowledge-index.py --dir departments/ --db /tmp/test.db
+    python scripts/knowledge-index.py --force
     python scripts/knowledge-index.py --stats
     python scripts/knowledge-index.py --search "security vulnerability"
+
+With no --vault/--dir the vault is resolved in order: ``knowledge.vaultPath``
+/ ``ARKAOS_VAULT`` (canonical), then the deprecated ``knowledge/
+obsidian-config.json``, then the deprecated ``~/.arkaos/profile.json``. Each
+source announces itself on stderr. If none answers, the run exits 2 rather
+than indexing some other corpus.
 """
 
 import argparse
@@ -26,6 +33,109 @@ sys.path.insert(0, str(ARKAOS_ROOT))
 DEFAULT_DB = Path.home() / ".arkaos" / "knowledge.db"
 
 
+def _note(message: str) -> None:
+    """Diagnostics go to stderr unconditionally.
+
+    Never gated on --json: stdout is the JSON channel, stderr is not, so
+    suppressing these under --json only ever hid which corpus was chosen
+    from the operator most likely to be automating against it.
+    """
+    print(message, file=sys.stderr)
+
+
+_DEPRECATION = (
+    "  DEPRECATED source — set `knowledge.vaultPath` in "
+    "~/.arkaos/config.json; this file will stop being consulted."
+)
+
+
+def _legacy_obsidian_config() -> str:
+    """``knowledge/obsidian-config.json``. May hold a ``${VAULT_PATH}``
+    template, resolved through the canonical path resolver."""
+    config_path = ARKAOS_ROOT / "knowledge" / "obsidian-config.json"
+    if not config_path.exists():
+        return ""
+    try:
+        vault = json.loads(config_path.read_text(encoding="utf-8")).get("vault_path", "")
+    except (json.JSONDecodeError, OSError):
+        return ""
+    if vault and "${" in vault:
+        try:
+            from core.runtime.path_resolver import resolve
+
+            vault = resolve(vault)
+        except Exception:
+            vault = ""
+    return vault if vault and Path(vault).exists() else ""
+
+
+def _legacy_profile_vault() -> str:
+    """``~/.arkaos/profile.json::vaultPath``, written by `npx arkaos install`."""
+    profile_path = Path.home() / ".arkaos" / "profile.json"
+    if not profile_path.exists():
+        return ""
+    try:
+        vault = json.loads(profile_path.read_text(encoding="utf-8")).get("vaultPath", "")
+    except (json.JSONDecodeError, OSError):
+        return ""
+    return vault if vault and Path(vault).exists() else ""
+
+
+def resolve_index_directory() -> str:
+    """The vault to index, or '' — canonical configuration first.
+
+    The order changed and the change is the point. ``knowledge.vaultPath``,
+    resolved by :mod:`core.knowledge.vault` (the same resolver
+    ``research_gate`` uses, so the gate and the indexer cannot disagree),
+    used to be consulted THIRD — behind two legacy files. An operator who
+    set the documented key could still be indexed from a stale legacy
+    value and never be told. Now the documented key wins, and the legacy
+    files still work but announce that they are deprecated.
+    """
+    from core.knowledge.vault import resolve_vault_with_source
+
+    configured, source = resolve_vault_with_source()
+    if configured:
+        # The source is reported by the resolver, not assumed here: it
+        # answers from the config file OR from ARKAOS_VAULT, and naming
+        # the wrong one is the exact ambiguity these lines exist to end.
+        _note(f"Vault from {source}: {configured}")
+        return str(configured)
+
+    legacy = _legacy_obsidian_config()
+    if legacy:
+        _note(f"Vault from knowledge/obsidian-config.json: {legacy}")
+        _note(_DEPRECATION)
+        return legacy
+
+    legacy = _legacy_profile_vault()
+    if legacy:
+        _note(f"Vault from ~/.arkaos/profile.json: {legacy}")
+        _note(_DEPRECATION)
+        return legacy
+
+    return ""
+
+
+def clear_index(store, db_path: Path) -> None:
+    """Wipe the chunk index AND the lexical sidecar built from it.
+
+    The sidecar is a separate file, so clearing only the chunk table
+    leaves the wiped corpus sitting on disk in readable form.
+    ``lexical.search`` would reject it as stale rather than serve it, so
+    this is hygiene rather than a correctness fix — but "cleared" should
+    mean cleared. Fail-open: an install without the lexical module has no
+    sidecar to remove.
+    """
+    store.clear()
+    try:
+        from core.knowledge import lexical
+
+        lexical.index_path(db_path).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="ArkaOS Knowledge Indexer")
     parser.add_argument("--vault", type=str, help="Obsidian vault path to index")
@@ -34,6 +144,18 @@ def main() -> int:
     parser.add_argument("--search", type=str, help="Search query")
     parser.add_argument("--stats", action="store_true", help="Show DB statistics")
     parser.add_argument("--clear", action="store_true", help="Clear all indexed data")
+    parser.add_argument(
+        "--force",
+        "--reindex",
+        action="store_true",
+        dest="force",
+        help=(
+            "Wipe the index and rebuild it from scratch in one invocation "
+            "(--clear + reindex). Use after a chunker, embedder or doctrine "
+            "rule change, where incremental indexing would keep serving "
+            "chunks produced by the old rules."
+        ),
+    )
     parser.add_argument("--json", action="store_true", dest="json_output", help="JSON output")
     args = parser.parse_args()
 
@@ -44,7 +166,7 @@ def main() -> int:
     store = VectorStore(db_path)
 
     if args.clear:
-        store.clear()
+        clear_index(store, db_path)
         print("Knowledge base cleared." if not args.json_output else json.dumps({"cleared": True}))
         return 0
 
@@ -56,7 +178,8 @@ def main() -> int:
             print(f"Chunks:     {stats['total_chunks']}")
             print(f"Files:      {stats['total_files']}")
             print(f"Retrieval:  {stats.get('retrieval_mode', 'unknown')}")
-            print(f"Vec:        {'enabled' if stats.get('vec_available') else 'disabled (keyword fallback)'}")
+            vec = "enabled" if stats.get("vec_available") else "disabled (keyword fallback)"
+            print(f"Vec:        {vec}")
             print(f"DB:         {stats['db_path']}")
         return 0
 
@@ -81,66 +204,20 @@ def main() -> int:
         return 0
 
     # Index mode
-    directory = args.vault or args.dir
-    if not directory:
-        # Auto-detect vault from config. vault_path may be a template like
-        # "${VAULT_PATH}" — resolve it through the canonical path resolver
-        # (ARKAOS_VAULT_PATH env / profile.json vaultPath) before testing.
-        config_path = ARKAOS_ROOT / "knowledge" / "obsidian-config.json"
-        if config_path.exists():
-            config = json.loads(config_path.read_text(encoding="utf-8"))
-            vault = config.get("vault_path", "")
-            if vault and "${" in vault:
-                try:
-                    from core.runtime.path_resolver import resolve
-
-                    vault = resolve(vault)
-                except Exception:
-                    vault = ""
-            if vault and Path(vault).exists():
-                directory = vault
-                if not args.json_output:
-                    print(f"Vault from config: {directory}", file=sys.stderr)
+    directory = args.vault or args.dir or resolve_index_directory()
 
     if not directory:
-        # profile.json vaultPath — set by `npx arkaos install` and the
-        # authoritative answer to "where is the user's vault".
-        profile_path = Path.home() / ".arkaos" / "profile.json"
-        if profile_path.exists():
-            try:
-                vault = json.loads(
-                    profile_path.read_text(encoding="utf-8")
-                ).get("vaultPath", "")
-            except (json.JSONDecodeError, OSError):
-                vault = ""
-            if vault and Path(vault).exists():
-                directory = vault
-                if not args.json_output:
-                    print(f"Vault from profile: {directory}", file=sys.stderr)
-
-    if not directory:
-        # Try common vault locations
-        common_vaults = [
-            Path.home() / "Documents" / "Personal",
-            Path.home() / "Documents" / "Obsidian",
-            Path.home() / "Obsidian",
-            Path.home() / "vault",
-        ]
-        for vault_path in common_vaults:
-            if vault_path.exists() and (vault_path / ".obsidian").exists():
-                directory = str(vault_path)
-                print(f"Auto-detected vault: {directory}" if not args.json_output else "", file=sys.stderr)
-                break
-
-    if not directory:
-        # Fall back to indexing ArkaOS departments (always available)
-        departments_dir = ARKAOS_ROOT / "departments"
-        if departments_dir.exists():
-            directory = str(departments_dir)
-            print(f"No vault found. Indexing ArkaOS skills: {directory}" if not args.json_output else "", file=sys.stderr)
-
-    if not directory:
-        print("No directory specified. Use --vault <path> or --dir <path>.", file=sys.stderr)
+        # No guessed corpus. Indexing ArkaOS's own departments/ tree as if
+        # it were the operator's knowledge base and exiting 0 is exactly
+        # the silent substitution core/knowledge/vault.py exists to end:
+        # the run looks successful and the KB answers from the wrong body
+        # of text. Say what is missing and fail.
+        print(
+            "No vault configured. Set `knowledge.vaultPath` in "
+            "~/.arkaos/config.json (or export ARKAOS_VAULT), or pass "
+            "--vault <path> / --dir <path>.",
+            file=sys.stderr,
+        )
         return 2
 
     if not Path(directory).exists():
@@ -153,8 +230,22 @@ def main() -> int:
         if not args.json_output:
             print(f"\r  [{current}/{total}] {name[:50]}...", end="", flush=True)
 
+    if args.force:
+        # Two independent guarantees, deliberately both: the wipe makes this
+        # a --clear + rebuild in one invocation, and skip_indexed=False below
+        # means the rebuild does not depend on the wipe having emptied the
+        # hash table. Either alone would reindex today; keeping both means a
+        # future change to clear() cannot quietly turn --force into a no-op.
+        # index_directory then rebuilds both sidecars off the fresh chunks:
+        # the doctrine vocabulary and the lexical FTS5 index.
+        clear_index(store, db_path)
+        if not args.json_output:
+            print("Index cleared — rebuilding from scratch.", file=sys.stderr)
+
     print(f"Indexing: {directory}" if not args.json_output else "", file=sys.stderr)
-    result = index_directory(directory, store, on_progress=progress)
+    result = index_directory(
+        directory, store, on_progress=progress, skip_indexed=not args.force
+    )
 
     if not args.json_output:
         print()  # newline after progress
@@ -162,6 +253,10 @@ def main() -> int:
         print(f"Files indexed:  {result['files_indexed']}")
         print(f"Files skipped:  {result['files_skipped']}")
         print(f"Chunks created: {result['chunks_created']}")
+        # The two sidecars report themselves: a rebuild that silently failed
+        # to refresh them looks identical to one that worked without this.
+        print(f"Doctrine notes: {result.get('doctrine_notes', 0)}")
+        print(f"Lexical index:  {'rebuilt' if result.get('lexical_rebuilt') else 'not rebuilt'}")
     else:
         print(json.dumps(result, indent=2))
 

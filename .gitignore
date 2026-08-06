@@ -21,6 +21,7 @@ build/
 .pytest_cache/
 .coverage
 coverage.xml
+junit.xml
 htmlcov/
 venv/
 .venv/

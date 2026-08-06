@@ -203,7 +203,9 @@ def test_l25_feature_flag_off_skips_injection(monkeypatch, fixture_vault_path, s
 def test_l25_feature_flag_false_in_config(monkeypatch, tmp_path, fixture_vault_path):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir()
-    (cfg_dir / "config.json").write_text(json.dumps({"synapse": {"l25KbContext": False}}), encoding="utf-8")
+    (cfg_dir / "config.json").write_text(
+        json.dumps({"synapse": {"l25KbContext": False}}), encoding="utf-8"
+    )
     monkeypatch.setattr(
         "core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json"
     )
@@ -487,7 +489,9 @@ def test_graphify_url_validation_rejects_public_hosts(monkeypatch, tmp_path):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir(exist_ok=True)
     (cfg_dir / "config.json").write_text(json.dumps({}), encoding="utf-8")
-    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "sk-secret"}), encoding="utf-8")
+    (cfg_dir / "keys.json").write_text(
+        json.dumps({"GRAPHIFY_TOKEN": "sk-secret"}), encoding="utf-8"
+    )
     monkeypatch.setattr("core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json")
     monkeypatch.setattr("core.synapse.layers_kb._KEYS_PATH", cfg_dir / "keys.json")
 

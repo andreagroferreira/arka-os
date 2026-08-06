@@ -17,7 +17,6 @@ from core.workflow.research_gate import (
     invalidate_violation,
 )
 
-
 # ─── Fixtures ──────────────────────────────────────────────────────────
 
 
@@ -38,7 +37,12 @@ def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setattr(
         research_gate, "TELEMETRY_PATH", home / "telemetry" / "kb_first.jsonl"
     )
+    # Both, not just the module constant: _violation_dir() reads
+    # ARKA_KB_VIOLATION_DIR FIRST and only falls back to VIOLATION_DIR, so
+    # patching the constant alone left the isolation defeatable by ambient
+    # env — the tests then wrote markers into the real directory.
     monkeypatch.setattr(research_gate, "VIOLATION_DIR", violation_dir)
+    monkeypatch.setenv("ARKA_KB_VIOLATION_DIR", str(violation_dir))
     monkeypatch.setenv("ARKA_KB_QUERY_DIR", str(kb_query_dir))
     monkeypatch.setenv("ARKAOS_VAULT", str(vault))
     monkeypatch.delenv("ARKA_BYPASS_KB_FIRST", raising=False)
@@ -187,6 +191,86 @@ def test_second_violation_returns_deny(isolated_env):
     assert "[ARKA:KB-FIRST]" in decision.stderr_msg
 
 
+# ─── Unconfigured vault (no knowledge.vaultPath, no ARKAOS_VAULT) ──────
+#
+# The shared `isolated_env` fixture force-sets ARKAOS_VAULT to a real
+# directory, so every test above runs with a resolvable vault and the
+# whole suite was blind to the shipped default: hooks.kbFirst is true out
+# of the box, knowledge.vaultPath is not seeded, and on that machine the
+# gate denied the second external call of every turn while able to name
+# no note at all. These tests delete the env var the fixture sets.
+
+
+def test_unconfigured_vault_never_denies(isolated_env, monkeypatch):
+    """Deny requires a vault the gate actually searched.
+
+    Blocking on a vault that was never opened breaks WebSearch/Context7
+    for any install without knowledge.vaultPath — the out-of-the-box
+    configuration, not an edge case.
+    """
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    assert research_gate._resolve_vault_path() is None, "precondition: no vault"
+
+    first = evaluate_research_gate("WebSearch", session_id="s-nv", query="filament")
+    assert first.allow is True
+
+    # The call that the configured-vault path denies.
+    second = evaluate_research_gate("WebSearch", session_id="s-nv", query="filament")
+    assert second.allow is True, "denied on a vault the gate never opened"
+    assert second.reason == "kb-first-vault-unconfigured"
+
+    third = evaluate_research_gate("WebSearch", session_id="s-nv", query="filament")
+    assert third.allow is True
+
+
+def test_unconfigured_vault_reason_is_distinct_from_non_compliance(
+    isolated_env, monkeypatch
+):
+    """Telemetry must not read 'operator ignored the KB' when the truth is
+    'this install has no KB configured'."""
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    evaluate_research_gate("WebSearch", session_id="s-nv2", query="q")
+    decision = evaluate_research_gate("WebSearch", session_id="s-nv2", query="q")
+
+    assert decision.reason != "kb-first-required"
+    assert decision.reason == "kb-first-vault-unconfigured"
+
+
+def test_unconfigured_vault_still_nudges_and_names_the_setting(
+    isolated_env, monkeypatch
+):
+    """Only the deny is gated — the operator must still learn the KB is
+    not wired up, and be told which setting fixes it."""
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    decision = evaluate_research_gate("WebSearch", session_id="s-nv3", query="q")
+
+    assert decision.nudge is True
+    assert "knowledge.vaultPath" in decision.stderr_msg
+    # It must NOT claim there may be no note: it never looked.
+    assert "pode não haver nota" not in decision.stderr_msg
+
+
+def test_configured_vault_still_denies(isolated_env):
+    """The guard must not disarm the gate where it can do its job."""
+    _seed_vault(isolated_env["vault"], ["Filament"])
+    evaluate_research_gate("WebSearch", session_id="s-cv", query="filament")
+    decision = evaluate_research_gate("WebSearch", session_id="s-cv", query="filament")
+
+    assert decision.allow is False
+    assert decision.reason == "kb-first-required"
+
+
+def test_deny_message_says_blocked_and_offers_the_bypass(isolated_env):
+    """The operator is hard-blocked at this point and learns it from the
+    message, not from the tool failing."""
+    evaluate_research_gate("WebSearch", session_id="s-msg", query="filament")
+    decision = evaluate_research_gate("WebSearch", session_id="s-msg", query="filament")
+
+    assert decision.allow is False
+    assert "Bloqueado" in decision.stderr_msg
+    assert "ARKA_BYPASS_KB_FIRST" in decision.stderr_msg
+
+
 def test_violation_marker_invalidated_on_new_turn(isolated_env):
     evaluate_research_gate("WebSearch", session_id="s-1", query="filament")
     # New turn → UserPromptSubmit calls invalidate_violation
@@ -327,3 +411,82 @@ def test_pre_tool_use_ps1_references_research_gate():
     text = script.read_text(encoding="utf-8")
     assert "research_gate" in text
     assert "evaluate_research_gate" in text
+
+
+# ─── messages must claim only what the code measures (QG C5, C6) ────────
+
+
+def test_deny_head_does_not_miscount_the_tool(isolated_env):
+    """The violation marker is keyed on session alone — _violation_path
+    ignores the tool — so WebSearch then Context7 reaches deny on
+    Context7's FIRST call. The copy must not call it the second."""
+    evaluate_research_gate("WebSearch", session_id="s-mix", query="filament")
+    decision = evaluate_research_gate(
+        "mcp__context7__query-docs", session_id="s-mix", query="filament"
+    )
+
+    assert decision.allow is False
+    assert "segunda chamada a mcp__context7__query-docs" not in decision.stderr_msg
+    assert "pesquisa externa" in decision.stderr_msg
+    assert "mcp__context7__query-docs" in decision.stderr_msg
+
+
+def test_searched_branch_says_it_only_read_titles(isolated_env):
+    """_search_vault_titles tokenises note stems, never bodies — and the
+    same sentence asks the operator to run a content search."""
+    _seed_vault(isolated_env["vault"], ["Something Unrelated"])
+    decision = evaluate_research_gate(
+        "WebSearch", session_id="s-titles", query="quixotic zephyrine"
+    )
+
+    assert decision.kb_hits_hint == []
+    assert "títulos" in decision.stderr_msg
+    assert "procurei e não encontrei nota sobre isto" not in decision.stderr_msg
+
+
+def test_unresolved_vault_message_names_both_settings(isolated_env, monkeypatch):
+    """resolve_vault_path returns None for three conditions, not one: a
+    correctly-set key on an unmounted volume must not be told the key is
+    missing."""
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    decision = evaluate_research_gate("WebSearch", session_id="s-none", query="q")
+
+    assert "knowledge.vaultPath" in decision.stderr_msg
+    assert "ARKAOS_VAULT" in decision.stderr_msg
+    assert "não está configurado" not in decision.stderr_msg
+
+
+def test_unsearchable_query_does_not_claim_a_search_happened(isolated_env):
+    """Fourth nudge branch (QG N1).
+
+    _search_vault_titles returns [] at its first line when the query has
+    no tokens, without ever opening the vault — so the searched-the-titles
+    message would describe work that never happened. Reachable in normal
+    use: the hook's _query_hint reads query/prompt/url, while
+    mcp__context7__resolve-library-id carries libraryName.
+    """
+    _seed_vault(isolated_env["vault"], ["Filament"])
+
+    for unsearchable in ("", "   ", "de a o"):
+        decision = evaluate_research_gate(
+            "mcp__context7__resolve-library-id",
+            session_id=f"s-empty-{len(unsearchable)}",
+            query=unsearchable,
+        )
+        assert decision.allow is True
+        assert "procurei" not in decision.stderr_msg, (
+            f"claimed a search for an unsearchable query {unsearchable!r}"
+        )
+        assert "termos pesquisáveis" in decision.stderr_msg
+        assert decision.kb_hits_hint == []
+
+
+def test_a_searchable_query_still_reports_the_title_search(isolated_env):
+    """The fourth branch must not swallow the third."""
+    _seed_vault(isolated_env["vault"], ["Something Unrelated"])
+    decision = evaluate_research_gate(
+        "WebSearch", session_id="s-searchable", query="quixotic zephyrine"
+    )
+
+    assert "procurei nos títulos" in decision.stderr_msg
+    assert "termos pesquisáveis" not in decision.stderr_msg

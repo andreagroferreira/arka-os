@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import sqlite3
 from pathlib import Path
+from typing import Any
 
 
 def enabled() -> bool:
@@ -23,7 +24,23 @@ def enabled() -> bool:
         "0", "false", "no", "off")
 
 
-def _db_path(store) -> str:
+def store_db_path(store: Any) -> str:
+    """The store's db path via its public surface.
+
+    Public because three modules in this package need it (the fusion
+    layer, the indexer and the deep-recall CLI); a private copy in each
+    is how one of them was left behind on the private attribute.
+
+    ``get_stats()`` is the supported way to ask; the private ``_db_path``
+    attribute stays only as the fallback for doubles that do not implement
+    it.
+    """
+    try:
+        path = (store.get_stats() or {}).get("db_path", "")
+        if path:
+            return str(path)
+    except Exception:
+        pass
     return str(getattr(store, "_db_path", "") or "")
 
 
@@ -36,7 +53,7 @@ def _chunk_for(db_path: str, source: str) -> tuple[str, dict]:
             "select text, metadata from chunks where source = ? limit 1",
             (source,)).fetchone()
         con.close()
-    except Exception:                                   # noqa: BLE001
+    except Exception:
         return "", {}
     if not row:
         return "", {}
@@ -46,7 +63,7 @@ def _chunk_for(db_path: str, source: str) -> tuple[str, dict]:
             import json
             parsed = json.loads(row[1])
             metadata = parsed if isinstance(parsed, dict) else {}
-        except Exception:                               # noqa: BLE001
+        except Exception:
             metadata = {}
     return row[0] or "", metadata
 
@@ -65,16 +82,16 @@ def fuse(store, prompt: str, notes: list[dict], max_notes: int,
         return notes
     try:
         from core.knowledge import lexical
-    except Exception:                                   # noqa: BLE001
+    except Exception:
         return notes
 
-    db_path = _db_path(store)
+    db_path = store_db_path(store)
     if not db_path or not Path(db_path).is_file():
         return notes
 
     try:
         lexical_sources = lexical.search(db_path, prompt, top_k=max_notes * 4)
-    except Exception:                                   # noqa: BLE001
+    except Exception:
         return notes
     if not lexical_sources:
         return notes
@@ -90,7 +107,7 @@ def fuse(store, prompt: str, notes: list[dict], max_notes: int,
     try:
         fused = lexical.rrf([vector_ranking, lexical_sources],
                             top_k=max_notes * 2)
-    except Exception:                                   # noqa: BLE001
+    except Exception:
         return notes
 
     out: list[dict] = []
@@ -104,7 +121,7 @@ def fuse(store, prompt: str, notes: list[dict], max_notes: int,
                    "score": 0.0, "heading": Path(source).stem}
             try:
                 note = note_builder(hit)
-            except Exception:                           # noqa: BLE001
+            except Exception:
                 continue
         out.append(note)
     # Never return fewer notes than the vector path alone would have: the

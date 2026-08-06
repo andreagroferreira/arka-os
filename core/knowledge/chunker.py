@@ -16,8 +16,8 @@ retrieval is keyword-only anyway.
 """
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional
 
 # Lazy singleton token counter. IMPORTANT: this loads its OWN
 # TextEmbedding instance rather than sharing the embedder's — calling
@@ -25,11 +25,11 @@ from typing import Callable, Optional
 # breaks its ``embed()`` (the ONNX session receives irregular sequences).
 # Measured trap, not a guess. Chunking only happens at index time, so the
 # extra model load never touches the per-prompt Synapse budget.
-_TOKEN_COUNTER: Optional[Callable[[str], int]] = None
+_TOKEN_COUNTER: Callable[[str], int] | None = None
 _TOKEN_COUNTER_FAILED = False
 
 
-def _token_counter() -> Optional[Callable[[str], int]]:
+def _token_counter() -> Callable[[str], int] | None:
     """A real token counter from the active embed model, or None."""
     global _TOKEN_COUNTER, _TOKEN_COUNTER_FAILED
     if _TOKEN_COUNTER is not None or _TOKEN_COUNTER_FAILED:
@@ -137,7 +137,10 @@ def chunk_markdown(
                     ))
                     # Overlap: keep last few words
                     words = current_text.split()
-                    current_text = " ".join(words[-overlap_tokens:]) + " " if len(words) > overlap_tokens else ""
+                    current_text = (
+                        " ".join(words[-overlap_tokens:]) + " "
+                        if len(words) > overlap_tokens else ""
+                    )
                     current_tokens = _count_tokens(current_text)
                 current_text += sentence + " "
                 current_tokens += sent_tokens
@@ -153,7 +156,10 @@ def chunk_markdown(
             ))
             # Overlap
             words = current_text.split()
-            current_text = " ".join(words[-overlap_tokens:]) + " " if len(words) > overlap_tokens else ""
+            current_text = (
+                " ".join(words[-overlap_tokens:]) + " "
+                if len(words) > overlap_tokens else ""
+            )
             current_tokens = _count_tokens(current_text)
 
         current_text += block + "\n\n"

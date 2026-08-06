@@ -52,13 +52,12 @@ import os
 import statistics
 import subprocess
 import sys
-import time
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
 
 __all__ = [
-    "score_query", "aggregate", "evaluate", "latency_probe",
-    "known_item_probes", "load_gold_set", "relative_identity",
+    "aggregate", "evaluate", "known_item_probes", "latency_probe",
+    "load_gold_set", "relative_identity", "score_query",
 ]
 
 Retriever = Callable[[str], Sequence[str]]
@@ -220,8 +219,8 @@ def latency_probe(setup: str, call: str, queries: Sequence[str],
     proc = subprocess.run(
         [sys.executable, "-c", _PROBE, root, setup, call, json.dumps(list(queries))],
         capture_output=True, text=True, timeout=timeout)
-    line = next((l for l in proc.stdout.splitlines()
-                 if l.startswith("ARKA_LAT ")), "")
+    line = next((row for row in proc.stdout.splitlines()
+                 if row.startswith("ARKA_LAT ")), "")
     if not line:
         return {"error": "probe produced no result", "stderr": proc.stderr[-2000:]}
     payload = json.loads(line[len("ARKA_LAT "):])
@@ -235,7 +234,7 @@ def latency_probe(setup: str, call: str, queries: Sequence[str],
         "cold_ms": round(cold),
         "p50_ms": round(statistics.median(ordered)),
         "p95_ms": round(ordered[min(len(ordered) - 1,
-                                    int(round(0.95 * (len(ordered) - 1))))]),
+                                    round(0.95 * (len(ordered) - 1)))]),
         "max_ms": round(ordered[-1]),
     }
 

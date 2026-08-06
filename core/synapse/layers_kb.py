@@ -12,6 +12,7 @@ import os
 import re
 import time
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -522,7 +523,22 @@ def _note_from_vector_hit(hit: dict) -> dict:
     )
 
 
-def _fuse_lexical(store, prompt, notes, max_notes, note_builder):
+def _doctrine_note_count(block: str) -> int:
+    """How many notes a rendered doctrine block carries.
+
+    The block is built by ``format_doctrine_block``, which gives each note
+    exactly one ``- [[stem]]`` line; the surrounding prose has none.
+    """
+    return sum(1 for line in block.splitlines() if line.startswith("- [["))
+
+
+def _fuse_lexical(
+    store: Any,
+    prompt: str,
+    notes: list[dict],
+    max_notes: int,
+    note_builder: Callable[[dict], dict],
+) -> list[dict]:
     """Reorder the vector notes against the lexical ranking, or pass them
     through untouched.
 
@@ -562,8 +578,12 @@ class KBContextLayer(Layer):
          up to ``max_notes``.
       4. Format as ``[arka:kb-context]`` block with title, path, 2-line
          excerpt, and top 3 wikilinks per note.
-      5. Call ``record_obsidian_query`` so research_gate (Task #6) can
-         verify KB-first was respected this turn.
+      5. Call ``record_injected_context`` — the ``injected`` marker kind,
+         which is telemetry only. This layer must NEVER write the
+         ``obsidian`` kind: that one is evidence of a genuine consult,
+         written solely by the PostToolUse hook on real
+         ``mcp__obsidian__*`` calls. An injection layer that writes it
+         certifies itself, and research_gate can then never fire.
 
     Feature flag: ``synapse.l25KbContext`` in ``~/.arkaos/config.json``
     (default ``true``). ``ARKA_BYPASS_L25=1`` env disables for debugging.
@@ -620,8 +640,9 @@ class KBContextLayer(Layer):
 
         This used to call ``record_obsidian_query`` — the same marker the
         research gate reads to decide "KB-first was respected". Since this
-        method runs unconditionally on every prompt, the gate was satisfied
-        by the injection mechanism itself and could never fire (observed
+        method runs on every prompt the layer computes at all — regardless
+        of whether anything was found — the gate was satisfied by the
+        injection mechanism itself and could never fire (observed
         live: a marker whose recorded query was the user's one-word reply
         "sim", hit_count 5, allowing WebSearch as "kb-consulted"). The
         injection is telemetry, not evidence; genuine consults are recorded
@@ -725,7 +746,6 @@ class KBContextLayer(Layer):
             notes, degraded = self._retrieve(ctx.user_input[:2000])
         except Exception:
             return self._empty(start)
-        self._record(ctx, len(notes))
         # Graphify graph-context is opt-in (default OFF) — a cheap no-op when
         # the flag is off, and always fail-open so it never blocks Obsidian.
         graph_block = self._safe_graph_block(ctx.user_input[:2000])
@@ -735,12 +755,20 @@ class KBContextLayer(Layer):
         # so a derived conceptual query runs against the doctrine class.
         # Fail-open — an empty vocabulary or store error yields no block.
         doctrine = self._safe_doctrine_block(ctx.user_input[:2000], notes)
+        # Recorded AFTER the doctrine pass: doctrine surfaces notes the
+        # primary retrieval missed, and counting before it ran under-reported
+        # every turn where reference material was the only thing injected.
+        # Still recorded when the count is 0 — the marker means "L2.5 ran",
+        # which is what makes the zero-hit rate measurable.
+        self._record(ctx, len(notes) + _doctrine_note_count(doctrine))
         if not notes and not graph_block and not doctrine:
             return self._empty(start)
         block, tag = self._render(notes, degraded, graph_block)
         if doctrine:
             block = f"{block}\n{doctrine}" if block else doctrine
-            tag = f"{tag[:-1]} +doctrine]" if tag else "[kb-context:0 +doctrine]"
+            # _render always returns a truthy tag (it renders a count even
+            # for zero notes), so there is no empty-tag case to handle.
+            tag = f"{tag[:-1]} +doctrine]"
         return LayerResult(
             layer_id=self.id,
             tag=tag,

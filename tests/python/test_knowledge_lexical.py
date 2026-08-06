@@ -8,8 +8,10 @@ module existed.
 """
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -17,8 +19,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from core.knowledge import lexical  # noqa: E402
-from core.knowledge.lexical_fusion import fuse  # noqa: E402
+from core.knowledge import lexical
+from core.knowledge.lexical_fusion import fuse
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 requires_fts5 = pytest.mark.skipif(
     not lexical.fts5_available(),
@@ -189,3 +193,101 @@ def test_rrf_rewards_agreement_across_signals():
         "a note both retrievers rank mid should beat one that only a "
         "single retriever ranks first"
     )
+
+
+# ─── WAL staleness: the sidecar must survive the process that built it ───
+#
+# The gap 8468 tests did not cover: every assertion about the lexical index
+# ran inside the SAME process that wrote it, where the knowledge db's WAL
+# has not yet been folded back into the main file. The staleness oracle
+# compares that file's mtime against the sidecar's, so the damage only
+# appears after the writing connection closes — in the next process, which
+# is where every real reader lives.
+
+
+def _seed_vault(tmp_path):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    for i in range(6):
+        (vault / f"n{i}.md").write_text(
+            f"# Note {i}\n\n" + f"zephyrine quixotic aardvark {i} " * 30,
+            encoding="utf-8",
+        )
+    return vault
+
+
+def _index(vault, db):
+    """Run the real indexer in a SEPARATE process, then let it exit."""
+    return subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "knowledge-index.py"),
+         "--dir", str(vault), "--db", str(db), "--json"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT), timeout=300,
+    )
+
+
+def _probe(db, query):
+    """Ask a FRESH process what the sidecar looks like from outside."""
+    proc = subprocess.run(
+        [sys.executable, "-c",
+         "import json,sys;from core.knowledge import lexical;"
+         "db,q=sys.argv[1],sys.argv[2];"
+         "print(json.dumps({'stale':lexical.is_stale(db),"
+         "'hits':len(lexical.search(db,q,top_k=8))}))",
+         str(db), query],
+        capture_output=True, text=True, cwd=str(REPO_ROOT), timeout=300,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout.strip().splitlines()[-1])
+
+
+@requires_fts5
+def test_sidecar_is_usable_from_a_fresh_process_after_indexing(tmp_path):
+    vault = _seed_vault(tmp_path)
+    db = tmp_path / "k.db"
+
+    run = _index(vault, db)
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout)["lexical_rebuilt"] is True
+
+    seen = _probe(db, "zephyrine quixotic")
+    assert seen["stale"] is False, (
+        "sidecar reported rebuilt but a fresh process sees it as stale — "
+        "the WAL checkpoint before lexical.build is missing"
+    )
+    assert seen["hits"] > 0, "a non-stale sidecar returned no hits"
+
+
+@requires_fts5
+def test_adding_content_does_not_re_break_the_sidecar(tmp_path):
+    """The first fix converged only after a second, no-op run; every
+    content change re-broke it. One run must be enough, every time."""
+    vault = _seed_vault(tmp_path)
+    db = tmp_path / "k.db"
+    _index(vault, db)
+
+    (vault / "extra.md").write_text(
+        "# Extra\n\n" + "zephyrine quixotic newnote " * 30, encoding="utf-8"
+    )
+    run = _index(vault, db)
+    assert json.loads(run.stdout)["files_indexed"] == 1
+
+    seen = _probe(db, "zephyrine quixotic")
+    assert seen["stale"] is False
+    assert seen["hits"] > 0
+
+
+def test_stopwords_stay_unaccented_or_they_stop_matching():
+    """fold() strips diacritics at index AND query time, so an accented
+    stopword could never match a folded token. A well-meant "finish the
+    job" edit would silently disable stopword filtering; this fails first.
+    """
+    accented = [w for w in lexical._STOP_WORDS.split() if lexical.fold(w) != w]
+    assert accented == [], (
+        f"accented stopwords can never match folded tokens: {accented}"
+    )
+    # The words most likely to attract a well-meant accent.
+    for word in ("nao", "entao", "ja", "esta", "este"):
+        assert word in lexical._STOP, f"{word} vanished from the stopword set"
+    assert "DELIBERATELY UNACCENTED" in (
+        (REPO_ROOT / "core" / "knowledge" / "lexical.py").read_text(encoding="utf-8")
+    ), "the protective comment is what stops the edit being made at all"
