@@ -135,13 +135,22 @@ def index_directory(
     # signal off — so rebuild it here instead of leaving it to be
     # remembered. Fail-open: no FTS5 or a build error leaves the vector
     # path exactly as it was.
+    #
+    # Gating this on `indexed` was the bug: `indexed` counts only THIS
+    # run's files, so the steady state — an incremental run that finds
+    # nothing new — never rebuilt anything, and a sidecar that was missing
+    # or stale stayed that way forever while the comment above claimed it
+    # self-healed. Rebuild whenever the sidecar cannot serve, whether or
+    # not this run indexed a file.
     lexical_rebuilt = False
-    if indexed:
-        try:
-            from core.knowledge import lexical
-            lexical_rebuilt = lexical.build(store._db_path)[0]
-        except Exception:
-            lexical_rebuilt = False
+    try:
+        from core.knowledge import lexical
+
+        db_path = store.get_stats()["db_path"]
+        if indexed or lexical.is_stale(db_path):
+            lexical_rebuilt = lexical.build(db_path)[0]
+    except Exception:
+        lexical_rebuilt = False
 
     return {
         "files_scanned": total,

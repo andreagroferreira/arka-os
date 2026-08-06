@@ -358,9 +358,17 @@ def format_doctrine_block(hits: list[dict]) -> str:
     ]
     for hit in hits:
         source = hit.get("source", "") or ""
-        title = hit.get("heading") or Path(source).stem or "nota"
+        stem = Path(source).stem
+        title = hit.get("heading") or stem or "nota"
         excerpt = " ".join((hit.get("text") or "").split())[:220]
-        lines.append(f"- [[{Path(source).stem}]] — {title} (path: `{source}`)")
+        # The heading only earns a second mention when it says something the
+        # wikilink does not. Without this, a chunk with no heading falls back
+        # to the stem and the line prints the note name twice:
+        # "- [[Zettelkasten]] — Zettelkasten (path: ...)". The sibling block
+        # (_format_kb_block) renders "- [[title]] (path: ...)"; both now
+        # share one line grammar.
+        suffix = f" — {title}" if title != stem else ""
+        lines.append(f"- [[{stem}]]{suffix} (path: `{source}`)")
         if excerpt:
             lines.append(f"  Excerto: {excerpt}")
         lines.append("")
