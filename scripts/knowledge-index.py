@@ -178,7 +178,8 @@ def main() -> int:
             print(f"Chunks:     {stats['total_chunks']}")
             print(f"Files:      {stats['total_files']}")
             print(f"Retrieval:  {stats.get('retrieval_mode', 'unknown')}")
-            print(f"Vec:        {'enabled' if stats.get('vec_available') else 'disabled (keyword fallback)'}")
+            vec = "enabled" if stats.get("vec_available") else "disabled (keyword fallback)"
+            print(f"Vec:        {vec}")
             print(f"DB:         {stats['db_path']}")
         return 0
 

@@ -37,7 +37,12 @@ def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setattr(
         research_gate, "TELEMETRY_PATH", home / "telemetry" / "kb_first.jsonl"
     )
+    # Both, not just the module constant: _violation_dir() reads
+    # ARKA_KB_VIOLATION_DIR FIRST and only falls back to VIOLATION_DIR, so
+    # patching the constant alone left the isolation defeatable by ambient
+    # env — the tests then wrote markers into the real directory.
     monkeypatch.setattr(research_gate, "VIOLATION_DIR", violation_dir)
+    monkeypatch.setenv("ARKA_KB_VIOLATION_DIR", str(violation_dir))
     monkeypatch.setenv("ARKA_KB_QUERY_DIR", str(kb_query_dir))
     monkeypatch.setenv("ARKAOS_VAULT", str(vault))
     monkeypatch.delenv("ARKA_BYPASS_KB_FIRST", raising=False)

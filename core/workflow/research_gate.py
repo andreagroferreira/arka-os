@@ -20,12 +20,13 @@ injection. See core/synapse/kb_cache.py for the obsidian-query marker.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.knowledge.vault import resolve_vault_path
@@ -98,10 +99,8 @@ def _locked_append(path: Path):
         yield fh
     finally:
         if _HAS_FLOCK:
-            try:
+            with contextlib.suppress(OSError):
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                pass
         fh.close()
 
 
@@ -135,7 +134,7 @@ def _bypass_env_active() -> bool:
 
 def _audit_bypass(session_id: str, tool: str) -> None:
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
         "tool": tool,
         "reason": os.environ.get("ARKA_BYPASS_KB_FIRST_REASON", ""),
@@ -147,7 +146,7 @@ def _audit_bypass(session_id: str, tool: str) -> None:
 def record_telemetry(session_id: str, tool: str, decision: Decision) -> None:
     """Append a structured record to the KB-first telemetry log."""
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
         "tool": tool,
         **asdict(decision),
@@ -173,7 +172,7 @@ def _mark_violation(session_id: str, tool: str) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    entry = json.dumps({"tool": tool, "ts": datetime.now(timezone.utc).isoformat()})
+    entry = json.dumps({"tool": tool, "ts": datetime.now(UTC).isoformat()})
     # Race contract: two concurrent tool calls on the same session may
     # both observe "no prior violation" and both emit the first-violation
     # nudge. This is intentional — a nudge is cheap and both calls were
@@ -181,10 +180,8 @@ def _mark_violation(session_id: str, tool: str) -> None:
     # after the first marker is on disk, which is what a plain
     # ``write_text`` (non-exclusive, last-writer-wins) gives us. Tested
     # by ``test_concurrent_violation_markers_race_safe``.
-    try:
+    with contextlib.suppress(OSError):
         path.write_text(entry, encoding="utf-8")
-    except OSError:
-        pass
 
 
 def invalidate_violation(session_id: str) -> None:

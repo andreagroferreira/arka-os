@@ -4,8 +4,8 @@ Supports incremental indexing (skips already-indexed files by hash).
 """
 
 import hashlib
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 from core.knowledge.chunker import chunk_markdown
 from core.knowledge.doctrine import (
@@ -27,7 +27,7 @@ def index_directory(
     directory: str | Path,
     store: VectorStore,
     pattern: str = "**/*.md",
-    on_progress: Optional[Callable[[int, int, str], None]] = None,
+    on_progress: Callable[[int, int, str], None] | None = None,
     max_tokens: int = 512,
     skip_indexed: bool = True,
     write_vocabulary: bool = True,
@@ -55,7 +55,10 @@ def index_directory(
 
     files = sorted(root.glob(pattern))
     # Skip hidden dirs (.obsidian, .git)
-    files = [f for f in files if not any(part.startswith(".") for part in f.relative_to(root).parts)]
+    files = [
+        f for f in files
+        if not any(part.startswith(".") for part in f.relative_to(root).parts)
+    ]
 
     total = len(files)
     indexed = 0

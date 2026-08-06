@@ -14,9 +14,8 @@ import logging
 import re
 import sqlite3
 import sys
-import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from core.knowledge.embedder import embed, embed_batch, embedding_dims
 
@@ -51,7 +50,7 @@ def _load_vec(db: sqlite3.Connection) -> bool:
         _VEC_UNAVAILABLE_REASON = f"sqlite3 refused extension loading: {exc}"
         return False
     try:
-        import sqlite_vec  # noqa: PLC0415
+        import sqlite_vec
     except ImportError:
         _VEC_UNAVAILABLE_REASON = (
             "sqlite-vec package missing. Install with: "
@@ -62,7 +61,7 @@ def _load_vec(db: sqlite3.Connection) -> bool:
         sqlite_vec.load(db)
         _VEC_UNAVAILABLE_REASON = ""
         return True
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _VEC_UNAVAILABLE_REASON = f"sqlite_vec.load failed: {exc}"
         return False
 
@@ -72,7 +71,7 @@ def vec_unavailable_reason() -> str:
     return _VEC_UNAVAILABLE_REASON
 
 
-def _parse_vec_dims(create_sql: str | None) -> Optional[int]:
+def _parse_vec_dims(create_sql: str | None) -> int | None:
     """Extract the float[N] dimension from a vec0 CREATE statement."""
     if not create_sql:
         return None
@@ -91,10 +90,8 @@ def _warn_degraded_once(reason: str) -> None:
         "results are keyword matches, NOT similarity-ranked. "
         "Fix: pip install fastembed sqlite-vec (or: npx arkaos doctor)."
     )
-    try:
+    with contextlib.suppress(OSError):
         sys.stderr.write(msg + "\n")
-    except OSError:
-        pass
     logger.warning(msg)
 
 
@@ -122,21 +119,17 @@ class VectorStore:
 
     def _open(self) -> None:
         if self._db is not None:
-            try:
+            with contextlib.suppress(sqlite3.Error):
                 self._db.close()
-            except sqlite3.Error:
-                pass
         # check_same_thread=False — see class docstring.
         self._db = sqlite3.connect(self._db_path, check_same_thread=False)
         self._db.row_factory = sqlite3.Row
         # WAL gives concurrent readers + a single writer at the engine
         # level. The instance write-lock serialises our application-level
         # writes per VectorStore instance.
-        try:
+        # in-memory DBs don't support WAL — harmless.
+        with contextlib.suppress(sqlite3.OperationalError):
             self._db.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.OperationalError:
-            # in-memory DBs don't support WAL — harmless.
-            pass
         self._vec_available = _load_vec(self._db)
         self._init_schema()
 
@@ -175,13 +168,14 @@ class VectorStore:
                     self._vec_dims = stored
                 else:
                     self._db.execute(
-                        f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(embedding float[{self._vec_dims}])"
+                        "CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks "
+                        f"USING vec0(embedding float[{self._vec_dims}])"
                     )
             except Exception:
                 self._vec_available = False
         self._db.commit()
 
-    def _stored_vec_dims(self) -> Optional[int]:
+    def _stored_vec_dims(self) -> int | None:
         """Dimension of an existing vec_chunks table, if any."""
         try:
             row = self._db.execute(
@@ -246,7 +240,8 @@ class VectorStore:
                     emb_blob = _vec_to_blob(embeddings[i])
 
                 cursor = self._db.execute(
-                    "INSERT INTO chunks (text, heading, source, file_hash, metadata, embedding) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO chunks (text, heading, source, file_hash, "
+                    "metadata, embedding) VALUES (?, ?, ?, ?, ?, ?)",
                     (text, heading, source, file_hash, meta_json, emb_blob),
                 )
 
@@ -318,7 +313,7 @@ class VectorStore:
         # Fallback: keyword search — labeled, never presented as semantic.
         return self._keyword_search(query, top_k, reason=self._degradation_reason(query_emb))
 
-    def _degradation_reason(self, query_emb: Optional[list[float]]) -> str:
+    def _degradation_reason(self, query_emb: list[float] | None) -> str:
         if query_emb is None:
             return "fastembed missing or embedding failed"
         return vec_unavailable_reason() or "sqlite-vec unavailable"
@@ -367,8 +362,9 @@ class VectorStore:
         params = [f"%{w}%" for w in words]
 
         rows = self._db.execute(
-            f"SELECT text, heading, source, metadata FROM chunks WHERE {conditions} LIMIT ?",
-            params + [top_k],
+            "SELECT text, heading, source, metadata FROM chunks "
+            f"WHERE {conditions} LIMIT ?",
+            [*params, top_k],
         ).fetchall()
 
         return [
@@ -401,7 +397,9 @@ class VectorStore:
         """Remove all chunks from a source file."""
         with self._write_lock:
             if self._vec_available:
-                rows = self._db.execute("SELECT id FROM chunks WHERE source = ?", (source,)).fetchall()
+                rows = self._db.execute(
+                    "SELECT id FROM chunks WHERE source = ?", (source,)
+                ).fetchall()
                 for r in rows:
                     self._db.execute("DELETE FROM vec_chunks WHERE rowid = ?", (r["id"],))
             deleted = self._db.execute("DELETE FROM chunks WHERE source = ?", (source,)).rowcount
@@ -413,7 +411,9 @@ class VectorStore:
         from core.knowledge.embedder import is_available as _embedder_available
 
         total = self._db.execute("SELECT COUNT(*) as cnt FROM chunks").fetchone()["cnt"]
-        sources = self._db.execute("SELECT COUNT(DISTINCT source) as cnt FROM chunks").fetchone()["cnt"]
+        sources = self._db.execute(
+            "SELECT COUNT(DISTINCT source) as cnt FROM chunks"
+        ).fetchone()["cnt"]
         semantic = self._vec_available and _embedder_available()
         return {
             "total_chunks": total,

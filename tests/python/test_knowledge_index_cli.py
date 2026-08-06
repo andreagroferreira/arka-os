@@ -564,3 +564,161 @@ def test_shared_helper_prefers_the_public_surface():
 
     assert store_db_path(_Public()) == "/from/get_stats.db"
     assert store_db_path(_DoubleWithoutStats()) == "/from/private.db"
+
+
+# ─── CLI surface measured in-process (QG B2) ────────────────────────────
+#
+# These run main() in this process rather than through subprocess.run, so
+# coverage can see them. The two subprocess smokes that remain live in
+# test_knowledge_lexical.py, where a fresh process IS the property under
+# test (the WAL checkpoint) and where the exit-code contract is asserted.
+
+
+def _cli_run(cli, monkeypatch, capsys, *argv):
+    monkeypatch.setattr(sys, "argv", ["knowledge-index.py", *argv])
+    code = cli.main()
+    return code, capsys.readouterr()
+
+
+def test_stats_reports_the_index(tmp_path, monkeypatch, capsys):
+    vault = _make_vault(tmp_path)
+    db = tmp_path / "k.db"
+    cli = _load_cli()
+    _runner(cli, vault, db, monkeypatch, capsys)()
+
+    code, out = _cli_run(cli, monkeypatch, capsys, "--db", str(db), "--stats")
+    assert code == 0
+    assert "Chunks:" in out.out
+    assert "Vec:" in out.out
+
+    code, out = _cli_run(
+        cli, monkeypatch, capsys, "--db", str(db), "--stats", "--json"
+    )
+    assert code == 0
+    assert json.loads(out.out)["total_chunks"] > 0
+
+
+def test_search_prints_results_and_json(tmp_path, monkeypatch, capsys):
+    vault = _make_vault(tmp_path)
+    db = tmp_path / "k.db"
+    cli = _load_cli()
+    _runner(cli, vault, db, monkeypatch, capsys)()
+
+    code, out = _cli_run(
+        cli, monkeypatch, capsys, "--db", str(db), "--search", "alpha beta"
+    )
+    assert code == 0
+    assert "Score:" in out.out or "keyword-degraded" in out.out
+
+    code, out = _cli_run(
+        cli, monkeypatch, capsys, "--db", str(db), "--search", "alpha", "--json"
+    )
+    assert code == 0
+    assert isinstance(json.loads(out.out), list)
+
+
+def test_search_with_no_results_says_so(tmp_path, monkeypatch, capsys):
+    db = tmp_path / "empty.db"
+    cli = _load_cli()
+    code, out = _cli_run(
+        cli, monkeypatch, capsys, "--db", str(db), "--search", "zzz nothing"
+    )
+    assert code == 0
+    assert "No results found." in out.out
+
+
+def test_missing_directory_exits_2(tmp_path, monkeypatch, capsys):
+    cli = _load_cli()
+    code, out = _cli_run(
+        cli, monkeypatch, capsys,
+        "--dir", str(tmp_path / "absent"), "--db", str(tmp_path / "k.db"),
+    )
+    assert code == 2
+    assert "Directory not found" in out.err
+
+
+def test_human_output_reports_both_sidecars(tmp_path, monkeypatch, capsys):
+    """Non-JSON mode is the operator's view and must name what the run did
+    to the doctrine vocabulary and the lexical index."""
+    vault = _make_vault(tmp_path)
+    cli = _load_cli()
+    code, out = _cli_run(
+        cli, monkeypatch, capsys,
+        "--dir", str(vault), "--db", str(tmp_path / "k.db"),
+    )
+    assert code == 0
+    assert "Files indexed:" in out.out
+    assert "Doctrine notes:" in out.out
+    assert "Lexical index:" in out.out
+
+
+def test_legacy_obsidian_config_reads_and_resolves(tmp_path, monkeypatch):
+    cli = _load_cli()
+    vault = tmp_path / "legacy-vault"
+    vault.mkdir()
+    root = tmp_path / "root"
+    (root / "knowledge").mkdir(parents=True)
+    (root / "knowledge" / "obsidian-config.json").write_text(
+        json.dumps({"vault_path": str(vault)}), encoding="utf-8"
+    )
+    monkeypatch.setattr(cli, "ARKAOS_ROOT", root)
+    assert cli._legacy_obsidian_config() == str(vault)
+
+    (root / "knowledge" / "obsidian-config.json").write_text(
+        "{ not json", encoding="utf-8"
+    )
+    assert cli._legacy_obsidian_config() == ""
+
+
+def test_legacy_obsidian_config_absent_or_missing_path(tmp_path, monkeypatch):
+    cli = _load_cli()
+    monkeypatch.setattr(cli, "ARKAOS_ROOT", tmp_path / "nowhere")
+    assert cli._legacy_obsidian_config() == ""
+
+    root = tmp_path / "root2"
+    (root / "knowledge").mkdir(parents=True)
+    (root / "knowledge" / "obsidian-config.json").write_text(
+        json.dumps({"vault_path": str(tmp_path / "gone")}), encoding="utf-8"
+    )
+    monkeypatch.setattr(cli, "ARKAOS_ROOT", root)
+    assert cli._legacy_obsidian_config() == ""
+
+
+def test_legacy_profile_vault_reads_and_falls_back(tmp_path, monkeypatch):
+    cli = _load_cli()
+    home = tmp_path / "home"
+    (home / ".arkaos").mkdir(parents=True)
+    vault = tmp_path / "profile-vault"
+    vault.mkdir()
+    (home / ".arkaos" / "profile.json").write_text(
+        json.dumps({"vaultPath": str(vault)}), encoding="utf-8"
+    )
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    assert cli._legacy_profile_vault() == str(vault)
+
+    (home / ".arkaos" / "profile.json").write_text("{ not json", encoding="utf-8")
+    assert cli._legacy_profile_vault() == ""
+
+
+def test_profile_is_the_last_source_and_is_deprecated(
+    tmp_path, monkeypatch, capsys
+):
+    from core.knowledge import vault as vault_module
+
+    cli = _load_cli()
+    home = tmp_path / "home"
+    (home / ".arkaos").mkdir(parents=True)
+    vault = tmp_path / "profile-vault"
+    vault.mkdir()
+    (home / ".arkaos" / "profile.json").write_text(
+        json.dumps({"vaultPath": str(vault)}), encoding="utf-8"
+    )
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    monkeypatch.setattr(vault_module, "CONFIG_PATH", tmp_path / "absent.json")
+    monkeypatch.delenv("ARKAOS_VAULT", raising=False)
+    monkeypatch.setattr(cli, "_legacy_obsidian_config", lambda: "")
+
+    assert cli.resolve_index_directory() == str(vault)
+    err = capsys.readouterr().err
+    assert "profile.json" in err
+    assert "DEPRECATED" in err
