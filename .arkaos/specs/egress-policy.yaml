@@ -1,0 +1,81 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: egress-policy
+  project: arka-os
+  status: approved
+  date_created: "2026-07-31"
+  date_approved: "2026-07-31"
+  approved_by: operator
+  canonical: "Obsidian: Projects/ArkaOS/Specs/SPEC-egress-policy.md"
+  overview: >
+    PR-D1 — feat(egress): core/egress/ deny-by-default policy. Opens
+    workstream D of the 2026-07 repair campaign (notebooklm-py as a
+    heavy-research primitive). Everything uploaded to NotebookLM leaves
+    for a Google account, and the operator serves confidential clients
+    — so the egress guard ships FIRST, independent of everything, and
+    fails CLOSED (operator decision 2026-07-26). Ships policy.py
+    (evaluate/enforce with ordered checks: redact fail-closed, residual
+    client identifiers, secret labels, operator home paths),
+    redact.py (thin fail-closed wrapper over
+    core.evals.sanitizer.sanitize_text + residual verification by
+    substring match over leak_scanner.load_redaction_patterns, looser
+    than the sanitizer by design — one identifier source of
+    truth), allowlist.py (expiring exceptions, never for client
+    identifiers), audit.py (hashed JSONL trail, 0600/0700, no raw
+    payloads ever), and the ADR. No network code, no notebooklm client
+    (that is D2's chokepoint).
+  acceptance_criteria:
+    - deny-by-default is structural — with no redaction config on disk
+      (~/.arkaos/redaction-clients.json absent or empty) every evaluate
+      returns denied with finding redaction-config-missing, and
+      enforce raises EgressDeniedError; nothing ever passes through
+      unredacted (the campaign plan's shorthand "EgressDenied" gains
+      the Error suffix — declared deviation, ruff N818)
+    - a payload containing a configured client identifier leaves only
+      REDACTED ([CLIENT-N] placeholders, sanitize_text semantics);
+      the residual layer is DELIBERATELY looser than the sanitizer
+      (substring, no word boundary — QG r1 B2), so compound tokens
+      the sanitizer cannot redact ("<client>2026") are DENIED, never
+      leaked; residual findings are never allowlistable
+    - a payload with a secret (secret_labels vocabulary) is denied
+      unless a live allowlist entry permits that exact finding
+    - a payload containing an absolute path under the operator home is
+      denied unless allowlisted (project trees live under home)
+    - allowlist entries expire — an entry past its expires timestamp
+      permits nothing; malformed entries permit nothing; kinds
+      client-identifier and redaction-config-missing are NEVER
+      allowlistable by construction
+    - every decision (allow and deny) is appended to the hashed audit
+      trail (~/.arkaos/egress/audit.jsonl, dir 0700 file 0600) with
+      payload/redacted sha256 and finding tokens keyed by a
+      per-install random salt (HMAC-SHA256, 16-hex; salt at
+      ~/.arkaos/egress/.audit-salt, 0600 — the token vocabulary is
+      low-entropy, so an unsalted digest would confirm a guess; QG r2
+      F-M1) — the audit file never contains a raw payload, a client
+      name, a secret value or a raw path
+    - audit failure is itself fail-closed — an ALLOW that cannot be
+      audited flips to denied with finding audit-unavailable
+    - evaluate never raises, STRUCTURALLY (QG r1 B1) — a redaction
+      crash denies as redaction-failed, any other internal failure
+      denies as guard-failure at the boundary, and both kinds are
+      absent from ALLOWLISTABLE_KINDS; hostile input (binary, huge,
+      empty, U+017F case-folding traps, non-list configs, latin-1
+      files, naive timestamps, non-str destinations) is a decision,
+      not a traceback
+    - test fixtures use SYNTHETIC client names only (QG r1 B3) — the
+      release preflight leak gate scans the repo and blocks on real
+      names; the test file pins itself against the operator's live
+      redaction list
+    - ADR docs/adr/2026-07-31-egress-policy.md records the decision,
+      the check order, and the operator's 2026-07-26 fail-closed
+      directive
+    - suite green, ruff clean
+  non_goals:
+    - no notebooklm client, no network calls, no subprocess (D2
+      chokepoint nlm_client.py)
+    - no skill, no CLI wiring, no agent access (D3/D4)
+    - no dashboard surface (D5)
+    - redaction-clients.json population is the operator runbook step,
+      not code

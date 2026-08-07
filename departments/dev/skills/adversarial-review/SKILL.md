@@ -85,6 +85,11 @@ allowed-tools: [Read, Bash, Grep, Glob, Agent]
 - [ ] Assume every variable could be null/undefined
 - [ ] Assume every external call will fail
 - [ ] Ask: "If I deleted this change, what would break?"
+- [ ] For an abuse vector that depends on how a third-party library
+      behaves, confirm the behaviour with `mcp__gh-grep__searchGitHub`
+      (real call-sites) plus Context7 (documented contract) before
+      raising it as CRITICAL — a hostile persona that invents the
+      library's behaviour is refuting itself, not the code
 
 ## Verdicts
 

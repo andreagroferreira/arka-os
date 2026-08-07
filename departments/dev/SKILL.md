@@ -1,7 +1,7 @@
 ---
 name: arka-dev
 description: >
-  Full-stack development department. Enterprise-grade 9-agent team with structured
+  Full-stack development department. Enterprise-grade 15-agent team with structured
   multi-phase workflows. Implements features, APIs, reviews code, manages architecture,
   security audits, CI/CD, database design, and AI-assisted development.
   Frameworks: Clean Architecture, DDD, TDD, DORA Metrics, OWASP Top 10.
@@ -37,6 +37,12 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/dev performance <target>` | Performance audit (CWV, API latency, DB) | Focused |
 | `/dev pipeline <project>` | CI/CD pipeline design and setup | Focused |
 | `/dev clean-review <file>` | Clean Code + SOLID compliance review | Specialist |
+| `/dev research <topic>` | Library evaluation and pattern discovery (KB + Context7 + gh-grep + web) | Specialist |
+| `/dev gsap <task>` | GSAP animation implementation (official pack; performance review bar) | Specialist |
+| `/dev threejs <scene>` | Real-time 3D with three.js / React Three Fiber | Specialist |
+| `/dev canvas-generative <effect>` | Generative Canvas 2D art (particles, noise, fractals) | Specialist |
+| `/dev framer-motion <component>` | React motion (AnimatePresence, layout, gestures) | Specialist |
+| `/dev css-native <effect>` | Zero-dependency modern CSS animation | Specialist |
 | `/dev spec <description>` | Create feature specification (mandatory pre-impl) | Specialist |
 | `/dev scaffold <type> <name>` | Project scaffolding from starter repos | Specialist |
 | `/dev do <description>` | Smart routing to the right dev command | Orchestrator |
@@ -80,6 +86,30 @@ Diagnose step: `get_architecture` for the structural map,
 `trace_path` for impact analysis before a refactor. The graph is a
 PRIOR, not ground truth: verify with Read before editing. When the MCP
 is absent the phases run as before (Grep/Read exploration).
+
+## Real-world grounding (gh-grep MCP)
+
+`codebase-memory` answers "how does OUR code do this". When the question
+is "how does anyone do this", call `mcp__gh-grep__searchGitHub` — literal
+grep with regex over public repositories — in Phase 1 RESEARCH and in
+Diagnose, whenever an external API, library idiom, or error signature is
+unfamiliar or disputed.
+
+Query it with **code tokens**: `useSyncExternalStore`, `from
+sqlalchemy.orm import`, `Cannot read properties of undefined`. Filter by
+language and path. A natural-language sentence returns noise, so a first
+attempt that phrases the question in prose will look like the tool failing
+when it is the query that failed.
+
+Pair it with Context7, which answers the complementary question: Context7
+gives the documented contract; gh-grep gives the practice N teams actually
+shipped. Where they disagree, the docs win and the divergence itself is
+worth reporting. Treat results as a prior about practice — they carry no
+authority over our own code, which you still read directly.
+
+Skip it for private code (it indexes public repositories only — use
+`codebase-memory` or the KB), for documentation lookups (Context7), and for
+anything that is not code (WebSearch, Firecrawl).
 
 ## Focused Workflow (4 Phases)
 

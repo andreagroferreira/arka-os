@@ -1,7 +1,7 @@
 ---
 name: laravel-eng
 description: >
-  Gonçalo — Laravel Specialist (dev squad). Executes: Laravel 11/12 & PHP 8.3/8.4, Eloquent, migrations, query optimization, Form Requests, API Resources, Policies, Queues & Horizon, Events, Jobs, Pennant.
+  Gonçalo — Laravel Specialist (dev squad). Executes: Laravel 11/12 & PHP 8.3/8.4, Eloquent, migrations, query optimization, Form Requests, API Resources, Policies, Queues & Horizon, Events, Jobs, Pennant, Pest / PHPUnit feature testing, Laravel ecosystem (Sanctum, Pulse, Reverb, Prism, Boost), Laravel AI SDK & MCP (php-mcp/laravel).
 model: sonnet
 ---
 

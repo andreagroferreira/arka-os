@@ -1,18 +1,18 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-07-21T18:43:13Z",
-    "total_commands": 297,
+    "generated": "2026-08-05T23:24:53Z",
+    "total_commands": 306,
     "generator": "core/registry/generator.py",
     "departments": {
       "arka": 22,
-      "brand": 12,
+      "brand": 14,
       "community": 15,
       "content": 20,
-      "dev": 36,
+      "dev": 42,
       "ecom": 18,
       "fin": 10,
-      "kb": 22,
+      "kb": 23,
       "landing": 17,
       "leadership": 10,
       "mkt": 30,
@@ -643,6 +643,56 @@
         "positioning"
       ],
       "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "brand-motion-design",
+      "command": "/brand motion-design <brief>",
+      "department": "brand",
+      "description": "Motion direction (Disney principles, timing, choreography)",
+      "lead_agent": "arka-brand",
+      "keywords": [
+        "motion design",
+        "como deve animar",
+        "easing",
+        "motion personality",
+        "choreography",
+        "motion system",
+        "linguagem de movimento"
+      ],
+      "examples": [
+        "define a linguagem de movimento da marca",
+        "what easing family fits this brand",
+        "motion audit desta página"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "brand-design-dna",
+      "command": "/brand design-dna <reference>",
+      "department": "brand",
+      "description": "Reverse-engineer a reference UI into a 3-dimension profile",
+      "lead_agent": "arka-brand",
+      "keywords": [
+        "design dna",
+        "replica este estilo",
+        "clone this aesthetic",
+        "extrai o dna",
+        "faz igual a este site",
+        "style guide json",
+        "copiar estilo"
+      ],
+      "examples": [
+        "extrai o DNA deste screenshot",
+        "replica o estilo deste site no nosso",
+        "gera a partir deste design DNA"
+      ],
       "source": "builtin",
       "tier": 2,
       "requires_branch": false,
@@ -1745,6 +1795,162 @@
       "modifies_code": false
     },
     {
+      "id": "dev-research",
+      "command": "/dev research <topic>",
+      "department": "dev",
+      "description": "Library evaluation and pattern discovery (KB + Context7 + gh-grep + web)",
+      "lead_agent": "arka-dev",
+      "keywords": [
+        "research",
+        "evaluate library",
+        "compare frameworks",
+        "investigate",
+        "look into",
+        "real-world examples",
+        "exemplos reais",
+        "como implementam os outros",
+        "how do others implement",
+        "search github code",
+        "prior art"
+      ],
+      "examples": [
+        "research payment gateways",
+        "compare React vs Vue",
+        "evaluate Stripe vs PayPal",
+        "look into GraphQL",
+        "como é que outros repos usam esta API",
+        "procura exemplos reais de uso do ScrollTrigger"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "dev-gsap",
+      "command": "/dev gsap <task>",
+      "department": "dev",
+      "description": "GSAP animation implementation (official pack; performance review bar)",
+      "lead_agent": "arka-dev",
+      "keywords": [
+        "gsap",
+        "scrolltrigger",
+        "scroll animation",
+        "animate on scroll",
+        "timeline animation",
+        "parallax",
+        "anima no scroll"
+      ],
+      "examples": [
+        "anima esta secção no scroll",
+        "pin this section while scrubbing",
+        "add a GSAP timeline to the hero"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "dev-threejs",
+      "command": "/dev threejs <scene>",
+      "department": "dev",
+      "description": "Real-time 3D with three.js / React Three Fiber",
+      "lead_agent": "arka-dev",
+      "keywords": [
+        "three.js",
+        "threejs",
+        "webgl",
+        "webgpu",
+        "3d scene",
+        "shader",
+        "react three fiber",
+        "r3f",
+        "cena 3d"
+      ],
+      "examples": [
+        "cria uma cena 3D interativa",
+        "add a shader background",
+        "build this in React Three Fiber"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "dev-canvas-generative",
+      "command": "/dev canvas-generative <effect>",
+      "department": "dev",
+      "description": "Generative Canvas 2D art (particles, noise, fractals)",
+      "lead_agent": "arka-dev",
+      "keywords": [
+        "generative art",
+        "arte generativa",
+        "particles background",
+        "noise field",
+        "flow field",
+        "canvas animation",
+        "fundo de partículas"
+      ],
+      "examples": [
+        "fundo de partículas no hero",
+        "generative noise background",
+        "flow field animation"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "dev-framer-motion",
+      "command": "/dev framer-motion <component>",
+      "department": "dev",
+      "description": "React motion (AnimatePresence, layout, gestures)",
+      "lead_agent": "arka-dev",
+      "keywords": [
+        "framer motion",
+        "animatepresence",
+        "layout animation",
+        "motion react",
+        "exit animation react"
+      ],
+      "examples": [
+        "anima este componente React",
+        "add exit animations to the modal",
+        "layout animation on reorder"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "dev-css-native",
+      "command": "/dev css-native <effect>",
+      "department": "dev",
+      "description": "Zero-dependency modern CSS animation",
+      "lead_agent": "arka-dev",
+      "keywords": [
+        "animação CSS sem biblioteca",
+        "scroll-driven css",
+        "view transitions",
+        "starting-style",
+        "css puro animação",
+        "no-dependency animation"
+      ],
+      "examples": [
+        "anima isto só com CSS",
+        "scroll progress bar in pure CSS",
+        "view transition between pages"
+      ],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
       "id": "dev-spec",
       "command": "/dev spec <description>",
       "department": "dev",
@@ -2355,6 +2561,28 @@
       "command": "/kb ai-research <topic>",
       "department": "kb",
       "description": "AI-augmented research (Elicit, Perplexity, Claude)",
+      "lead_agent": "arka-kb",
+      "keywords": [
+        "learn",
+        "persona",
+        "knowledge",
+        "youtube",
+        "transcribe",
+        "research",
+        "zettelkasten",
+        "note"
+      ],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "kb-research-deep",
+      "command": "/kb research-deep <question>",
+      "department": "kb",
+      "description": "Ladder over the operator's own corpus: Obsidian → NotebookLM (egress-guarded) → web, with vault write-back",
       "lead_agent": "arka-kb",
       "keywords": [
         "learn",

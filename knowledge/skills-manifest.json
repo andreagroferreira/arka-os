@@ -1,7 +1,7 @@
 {
   "_meta": {
     "generator": "scripts/marketplace_gen.py",
-    "version": "4.41.0",
+    "version": "5.12.0",
     "marketplace": "arkaos"
   },
   "structural": {
@@ -523,6 +523,21 @@
         "origin": "arkaos"
       }
     },
+    "canvas-generative": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
+      }
+    },
     "cart-recovery": {
       "depts": [
         "ecom"
@@ -901,6 +916,21 @@
         "origin": "arkaos"
       }
     },
+    "css-native": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
+      }
+    },
     "cto-advisor": {
       "depts": [
         "strategy"
@@ -1107,6 +1137,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "design-dna": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/zanwei/design-dna",
+        "license": "MIT"
       }
     },
     "design-review": {
@@ -1419,6 +1464,21 @@
         "origin": "arkaos"
       }
     },
+    "framer-motion": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
+      }
+    },
     "free-tools": {
       "depts": [
         "marketing"
@@ -1547,6 +1607,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "gsap": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/greensock/gsap-skills",
+        "license": "MIT"
       }
     },
     "gtd-setup": {
@@ -2153,6 +2228,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "motion-design": {
+      "depts": [
+        "brand"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-brand@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/lottiefiles/motion-design-skill",
+        "license": "MIT"
       }
     },
     "mvp-build": {
@@ -2936,6 +3026,19 @@
         "origin": "arkaos"
       }
     },
+    "research-deep": {
+      "depts": [
+        "kb"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-kb@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "research-plan": {
       "depts": [
         "kb"
@@ -3578,6 +3681,21 @@
       "collision": false,
       "provenance": {
         "origin": "arkaos"
+      }
+    },
+    "threejs": {
+      "depts": [
+        "dev"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-dev@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "community",
+        "source": "https://github.com/AThevon/genjutsu",
+        "license": "MIT"
       }
     },
     "thumbnail-package": {

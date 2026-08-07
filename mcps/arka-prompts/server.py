@@ -39,7 +39,7 @@ def _find_skills_dir() -> Path:
     # Dev mode: .repo-path points to the repo checkout
     repo_path_file = Path.home() / ".claude" / "skills" / "arka" / ".repo-path"
     if repo_path_file.exists():
-        repo_path = Path(repo_path_file.read_text().strip())
+        repo_path = Path(repo_path_file.read_text(encoding="utf-8").strip())
         if repo_path.is_dir():
             return repo_path  # Return repo root for dev mode resolution
 

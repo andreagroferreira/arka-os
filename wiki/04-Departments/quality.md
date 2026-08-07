@@ -8,6 +8,18 @@ The Quality Gate is not a department you invoke — it is a mandatory review lay
 
 This three-agent structure reflects a deliberate separation of concerns: language quality and technical quality require different expertise, and the same work must pass both lenses independently before it is considered done. The gate is the last line of defence against regressions, off-brand copy, accessibility failures, and SOLID violations shipping to production.
 
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 0 | 1 | 3 |
+
+**Skills** (1 — 0 sub-skills plus the `/quality` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `quality-hub` | Quality Gate department. Cross-department quality supervision with absolute veto power. Reviews ALL output... |
+
 ## The squad
 
 | Agent | Role | Tier |

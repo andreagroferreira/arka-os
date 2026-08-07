@@ -5,37 +5,57 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from core.sync.reporter import build_report, format_report, write_sync_state
 from core.sync.schema import (
     DescriptorSyncResult,
     McpSyncResult,
     SettingsSyncResult,
     SkillSyncResult,
-    SyncReport,
 )
-
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
 
-def _mcp(path: str, status: str = "unchanged", added: list[str] | None = None, error: str | None = None) -> McpSyncResult:
+def _mcp(
+    path: str,
+    status: str = "unchanged",
+    added: list[str] | None = None,
+    error: str | None = None,
+) -> McpSyncResult:
     return McpSyncResult(path=path, status=status, mcps_added=added or [], error=error)
 
 
-def _settings(path: str, status: str = "unchanged", error: str | None = None) -> SettingsSyncResult:
+def _settings(
+    path: str, status: str = "unchanged", error: str | None = None
+) -> SettingsSyncResult:
     return SettingsSyncResult(path=path, status=status, error=error)
 
 
-def _descriptor(path: str, status: str = "unchanged", changes: list[str] | None = None, error: str | None = None) -> DescriptorSyncResult:
-    return DescriptorSyncResult(path=path, status=status, changes=changes or [], error=error)
+def _descriptor(
+    path: str,
+    status: str = "unchanged",
+    changes: list[str] | None = None,
+    error: str | None = None,
+) -> DescriptorSyncResult:
+    return DescriptorSyncResult(
+        path=path, status=status, changes=changes or [], error=error
+    )
 
 
-def _skill(name: str, status: str = "unchanged", features_added: list[str] | None = None, error: str | None = None) -> SkillSyncResult:
-    return SkillSyncResult(skill_name=name, status=status, features_added=features_added or [], error=error)
+def _skill(
+    name: str,
+    status: str = "unchanged",
+    features_added: list[str] | None = None,
+    error: str | None = None,
+) -> SkillSyncResult:
+    return SkillSyncResult(
+        skill_name=name,
+        status=status,
+        features_added=features_added or [],
+        error=error,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +81,14 @@ class TestBuildReport:
         descriptor_results = [_descriptor("/p/app1", "unchanged")]
         skill_results = [_skill("client_retail", "updated")]
 
-        report = build_report("v2.13.0", "v2.14.0", mcp_results, settings_results, descriptor_results, skill_results)
+        report = build_report(
+            "v2.13.0",
+            "v2.14.0",
+            mcp_results,
+            settings_results,
+            descriptor_results,
+            skill_results,
+        )
 
         assert len(report.mcp_results) == 2
         assert len(report.settings_results) == 1
@@ -75,7 +102,14 @@ class TestBuildReport:
         descriptor_results = [_descriptor("/p/app3", "error", error="yaml parse error")]
         skill_results = [_skill("client_commerce", "error", error="missing file")]
 
-        report = build_report("v2.13.0", "v2.14.0", mcp_results, settings_results, descriptor_results, skill_results)
+        report = build_report(
+            "v2.13.0",
+            "v2.14.0",
+            mcp_results,
+            settings_results,
+            descriptor_results,
+            skill_results,
+        )
 
         assert len(report.errors) == 4
         assert any("MCP" in e for e in report.errors)
@@ -217,7 +251,11 @@ class TestFormatReport:
 
     def test_format_shows_paused_projects(self) -> None:
         descriptor_results = [
-            _descriptor("/projects/lora-tester", "updated", changes=["status changed: active → paused"]),
+            _descriptor(
+                "/projects/lora-tester",
+                "updated",
+                changes=["status changed: active → paused"],
+            ),
         ]
         report = build_report("v2.13.0", "v2.14.0", [], [], descriptor_results, [])
         output = format_report(report)
@@ -257,3 +295,57 @@ class TestFormatReport:
 
         assert "ecosystems synced" in output
         assert "2 ecosystems synced (1 updated, 1 unchanged)" in output
+
+
+# ---------------------------------------------------------------------------
+# TestReportCommunicatesValue (PR-D)
+#
+# "78 unchanged" told the operator nothing. These lock the report to naming
+# what actually moved, and to never hiding a cap or a refused rewrite.
+# ---------------------------------------------------------------------------
+
+
+class TestReportCommunicatesValue:
+
+
+
+
+
+
+
+    def test_state_counts_user_owned_skills(self, tmp_path: Path) -> None:
+        """`skills_synced: 0` was the observability hole flagged pre-PR."""
+        skills = [
+            SkillSyncResult(skill_name="arka-acme", status="updated"),
+            SkillSyncResult(skill_name="arka-globex", status="unchanged"),
+        ]
+        state_file = tmp_path / "sync-state.json"
+        write_sync_state(state_file, build_report("5.9.0", "5.10.0", [], [], [], skills))
+
+        assert json.loads(state_file.read_text())["skills_synced"] == 2
+
+
+
+
+class TestDriftedVisibility:
+    def test_drifted_projects_are_visible_in_the_content_line(self) -> None:
+        """Drift is not failure — the merger preserved the operator's edit.
+
+        Printing it as 'errored' told the operator something broke; nothing
+        did. It gets its own word, and the counts sum to the total.
+        """
+        from core.sync.schema import ContentSyncResult
+
+        results = [
+            ContentSyncResult(
+                path="/p",
+                status="drifted",
+                artefacts_drifted=["CLAUDE.md"],
+            )
+        ]
+        output = format_report(
+            build_report("5.9.0", "5.10.0", [], [], [], [], content_results=results)
+        )
+
+        assert "1 drifted" in output
+        assert "errored" not in output

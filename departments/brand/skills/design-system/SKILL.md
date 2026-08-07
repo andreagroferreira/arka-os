@@ -6,9 +6,11 @@ description: >
   pages), WCAG 2.2 AA conformance report, Storybook CSF3 story stubs, and an
   integration guide. TRIGGER: "design system", "cria o design system", "design
   tokens", "component library", "biblioteca de componentes", "/brand
-  design-system". SKIP: only a color palette -> brand/colors; implementing the
-  components in application code -> dev frontend workflows (this skill
-  specifies the system, it does not build the app); reviewing an existing UI
+  design-system". SKIP: only a color palette -> brand/colors; reproducing the
+  look of an existing reference (screenshot, image, URL) -> brand/design-dna
+  (it reverse-engineers a system; this one specifies a new one); implementing
+  the components in application code -> dev frontend workflows (this skill
+  specifies the system; it does not build the app); reviewing an existing UI
   against brand guidelines -> brand/design-review.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 metadata:
@@ -39,8 +41,10 @@ actually loaded:
    `design-tokens.json`.
 2. **`Skill(ui-ux-pro-max)`** — 161 palettes + 57 font pairings as
    comparative evidence for the primitive layer; never a pick-list.
-3. **Motion tokens involved?** Load the GSAP skills (`gsap-core`,
-   `gsap-timeline`; `gsap-performance` as the review bar).
+3. **Motion tokens involved?** Load `brand/motion-design` for the
+   direction (what moves, durations, easing families) and `dev/gsap`
+   for the implementation (its `references/core.md` + `references/timeline.md`;
+   `references/performance.md` as the review bar).
 4. **Aesthetic seed (optional, no visual history only)** — a curated
    TypeUI direction (`npx typeui.sh pull <slug>`, §10 of the squad
    reference) may seed primitives; it is never the final system.
@@ -71,6 +75,13 @@ A production design system in 5 deliverables:
 5. **Integration guide** — how to wire the system into a Vue/React/Vanilla project
 
 ## Study mode (design DNA extraction)
+
+> **Entry point:** a request that leads with a reference now routes to
+> `brand/design-dna`, which runs this same protocol with the same
+> guardrails and adds the qualitative and visual-effects dimensions. This
+> section stays because the study still runs *inside* a design-system
+> engagement whenever a reference turns up mid-brief — the protocol below
+> is the one both skills execute.
 
 When the operator brings a **reference** — a screenshot or a live URL —
 instead of a brief, run the study protocol in

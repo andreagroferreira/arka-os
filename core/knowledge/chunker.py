@@ -2,10 +2,60 @@
 
 Splits on paragraph boundaries, respects heading structure,
 and maintains overlap for context continuity.
+
+Token accounting is REAL, not estimated, whenever the embedding stack is
+present: the previous implementation counted whitespace words and called
+them tokens (``len(block.split())``), but the measured token/word factor
+on a live vault is 1.87 median and 2.63 at p90 — so with the default
+``max_tokens=512``, 69.5% of produced chunks exceeded the 512-token hard
+limit of every fastembed-served model and 38.2% of the corpus was
+silently truncated at embed time. No error, no log, no metric. When
+fastembed is unavailable the word estimate remains as the fallback —
+harmless there, because without fastembed nothing gets embedded and
+retrieval is keyword-only anyway.
 """
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
+
+# Lazy singleton token counter. IMPORTANT: this loads its OWN
+# TextEmbedding instance rather than sharing the embedder's — calling
+# ``no_truncation()`` on the tokenizer of the instance that also embeds
+# breaks its ``embed()`` (the ONNX session receives irregular sequences).
+# Measured trap, not a guess. Chunking only happens at index time, so the
+# extra model load never touches the per-prompt Synapse budget.
+_TOKEN_COUNTER: Callable[[str], int] | None = None
+_TOKEN_COUNTER_FAILED = False
+
+
+def _token_counter() -> Callable[[str], int] | None:
+    """A real token counter from the active embed model, or None."""
+    global _TOKEN_COUNTER, _TOKEN_COUNTER_FAILED
+    if _TOKEN_COUNTER is not None or _TOKEN_COUNTER_FAILED:
+        return _TOKEN_COUNTER
+    try:
+        from fastembed import TextEmbedding
+
+        from core.knowledge.embedder import get_model_name
+
+        tokenizer = TextEmbedding(get_model_name()).model.tokenizer
+        tokenizer.no_truncation()
+        tokenizer.no_padding()
+        _TOKEN_COUNTER = lambda text: len(tokenizer.encode(text).ids)  # noqa: E731
+    except Exception:
+        _TOKEN_COUNTER_FAILED = True
+    return _TOKEN_COUNTER
+
+
+def _count_tokens(text: str) -> int:
+    counter = _token_counter()
+    if counter is not None:
+        try:
+            return counter(text)
+        except Exception:
+            pass
+    return len(text.split())
 
 
 @dataclass
@@ -18,7 +68,7 @@ class Chunk:
 
     @property
     def token_estimate(self) -> int:
-        return len(self.text.split())
+        return _count_tokens(self.text)
 
 
 def chunk_markdown(
@@ -60,7 +110,7 @@ def chunk_markdown(
         if heading_match:
             current_heading = heading_match.group(2)
 
-        block_tokens = len(block.split())
+        block_tokens = _count_tokens(block)
 
         # If single block exceeds max, split it
         if block_tokens > max_tokens:
@@ -77,7 +127,7 @@ def chunk_markdown(
             # Split large block by sentences
             sentences = re.split(r'(?<=[.!?])\s+', block)
             for sentence in sentences:
-                sent_tokens = len(sentence.split())
+                sent_tokens = _count_tokens(sentence)
                 if current_tokens + sent_tokens > max_tokens and current_text:
                     chunks.append(Chunk(
                         text=current_text.strip(),
@@ -87,8 +137,11 @@ def chunk_markdown(
                     ))
                     # Overlap: keep last few words
                     words = current_text.split()
-                    current_text = " ".join(words[-overlap_tokens:]) + " " if len(words) > overlap_tokens else ""
-                    current_tokens = len(current_text.split())
+                    current_text = (
+                        " ".join(words[-overlap_tokens:]) + " "
+                        if len(words) > overlap_tokens else ""
+                    )
+                    current_tokens = _count_tokens(current_text)
                 current_text += sentence + " "
                 current_tokens += sent_tokens
             continue
@@ -103,8 +156,11 @@ def chunk_markdown(
             ))
             # Overlap
             words = current_text.split()
-            current_text = " ".join(words[-overlap_tokens:]) + " " if len(words) > overlap_tokens else ""
-            current_tokens = len(current_text.split())
+            current_text = (
+                " ".join(words[-overlap_tokens:]) + " "
+                if len(words) > overlap_tokens else ""
+            )
+            current_tokens = _count_tokens(current_text)
 
         current_text += block + "\n\n"
         current_tokens += block_tokens
@@ -118,7 +174,51 @@ def chunk_markdown(
             source=source,
         ))
 
-    return chunks
+    return _enforce_token_invariant(chunks, max_tokens)
+
+
+def _enforce_token_invariant(chunks: list[Chunk], max_tokens: int) -> list[Chunk]:
+    """No chunk above ``max_tokens`` REAL tokens leaves the chunker.
+
+    Two ways a chunk can still be oversized after accumulation: a single
+    sentence that alone exceeds the budget (tables, JSON blobs, URLs —
+    the sentence splitter cannot cut those), and joins whose merged text
+    tokenizes to more than the sum of its parts. Both used to pass
+    through silently and get truncated by the embedding model. Oversized
+    chunks are split by character windows proportional to the overshoot
+    — blunt, but bounded and loud in the data rather than lossy.
+
+    With no real tokenizer available this is a no-op in practice (word
+    counts are what the accumulator already enforced), which is fine:
+    without fastembed nothing embeds, so nothing truncates.
+    """
+    final: list[Chunk] = []
+    for chunk in chunks:
+        # Pieces are RE-VERIFIED and re-split until they fit: a single
+        # character-window pass left slightly-over pieces on token-dense
+        # text (measured on a live corpus: 17 chunks at 513-522 tokens,
+        # all diff/code-heavy notes). Windows shrink on every round, so
+        # this terminates.
+        pending: list[str] = [chunk.text]
+        while pending:
+            text = pending.pop(0)
+            n = _count_tokens(text)
+            if n <= max_tokens:
+                final.append(Chunk(
+                    text=text, heading=chunk.heading,
+                    index=0, source=chunk.source,
+                ))
+                continue
+            parts = max(2, (n // max_tokens) + 1)
+            step = max(1, len(text) // parts)
+            pieces = [
+                text[i:i + step].strip()
+                for i in range(0, len(text), step)
+            ]
+            pending = [p for p in pieces if p] + pending
+    for i, chunk in enumerate(final):
+        chunk.index = i
+    return final
 
 
 # Minimum contiguous token run treated as a real overlap. The chunker seeds

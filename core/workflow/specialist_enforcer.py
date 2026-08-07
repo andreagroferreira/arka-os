@@ -39,8 +39,9 @@ flow-gate. Same Decision JSON contract as core.workflow.flow_enforcer.
 import contextlib
 import json
 import re
+import time
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
@@ -49,6 +50,7 @@ import yaml
 
 from core.shared import safe_session_id as _safe_session_id_module
 from core.workflow import specialist_authorization, transcript_scope
+from core.workflow.flow_enforcer import shadow_deny_on
 
 try:
     import fcntl  # POSIX only
@@ -138,6 +140,11 @@ class Decision:
     persona_source: str = ""
     is_sidechain: bool = False
     msgs_since_marker: int | None = None
+    # PR-A5a shadow-deny — see flow_enforcer.Decision: what enforcement
+    # WOULD have decided while hooks.specialistEnforcement stays off.
+    would_block: bool = False
+    shadow_reason: str = ""
+    shadow_ms: float = 0.0
 
     def to_stderr_message(self) -> str:
         """The message a blocked session reads.
@@ -432,10 +439,38 @@ def _check_tool_gated(ctx: _Ctx) -> Decision | None:
     return None
 
 
-def _check_feature_flag(ctx: _Ctx) -> Decision | None:
-    if not _feature_flag_on():
-        return Decision(allow=True, reason="feature-flag-off")
-    return None
+def _decide_populated(ctx: _Ctx) -> Decision:
+    """The enforcement pipeline behind the feature flag: populate the
+    context, run the late checks, resolve ownership."""
+    _populate_context(ctx)
+    for late_check in (_check_no_persona, _check_c_suite, _check_lead_allowed_file):
+        decision = late_check(ctx)
+        if decision is not None:
+            return decision
+    return _resolve_ownership_outcome(ctx)
+
+
+def _shadow_decision(ctx: _Ctx) -> Decision:
+    """Run the pipeline in shadow (PR-A5a): allow regardless, record what
+    enforcement would have decided, carrying the resolved persona and
+    ownership context into telemetry. Silent by construction — allow=True
+    means to_stderr_message() returns "". bypass_used/bypass_reason are
+    reset: a bypass of an inactive gate is not a bypass and must not
+    inflate the specialist-telemetry counter — shadow_reason still says
+    "bypass-with-reason", so no information is lost (QG r1, Francisca B1).
+    """
+    start = time.perf_counter()
+    inner = _decide_populated(ctx)
+    return replace(
+        inner,
+        allow=True,
+        reason="feature-flag-off",
+        bypass_used=False,
+        bypass_reason=None,
+        would_block=not inner.allow,
+        shadow_reason=inner.reason,
+        shadow_ms=round((time.perf_counter() - start) * 1000, 3),
+    )
 
 
 def _msgs_since_marker(messages: list[str]) -> int | None:
@@ -626,16 +661,14 @@ def evaluate(
         session_id=session_id, cwd=cwd, tool_input=tool_input or {},
         preloaded_messages=messages, is_sidechain=is_sidechain,
     )
-    for early_check in (_check_tool_gated, _check_feature_flag):
-        decision = early_check(ctx)
-        if decision is not None:
-            return decision
-    _populate_context(ctx)
-    for late_check in (_check_no_persona, _check_c_suite, _check_lead_allowed_file):
-        decision = late_check(ctx)
-        if decision is not None:
-            return decision
-    return _resolve_ownership_outcome(ctx)
+    decision = _check_tool_gated(ctx)
+    if decision is not None:
+        return decision
+    if _feature_flag_on():
+        return _decide_populated(ctx)
+    if not shadow_deny_on():
+        return Decision(allow=True, reason="feature-flag-off")
+    return _shadow_decision(ctx)
 
 
 def record_telemetry(

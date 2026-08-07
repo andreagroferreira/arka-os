@@ -251,40 +251,11 @@
   to { transform: translate3d(-2.5%, -1.5%, 0); }
 }
 
-/* Route transitions: one rhythm, upward continuity (enter rises, exit
-   recedes). Wired via app.pageTransition in nuxt.config. */
-.arka-page-enter-active {
-  transition:
-    opacity var(--arka-motion-base) var(--arka-ease-out),
-    transform var(--arka-motion-base) var(--arka-ease-out);
-}
-.arka-page-leave-active {
-  transition:
-    opacity var(--arka-motion-fast) var(--arka-ease-in),
-    transform var(--arka-motion-fast) var(--arka-ease-in);
-}
-.arka-page-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.arka-page-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .arka-live-dot,
   .arka-pulse-line,
   .arka-stream-in,
   .arka-starfield {
     animation: none;
-  }
-  .arka-page-enter-active,
-  .arka-page-leave-active {
-    transition: none;
-  }
-  .arka-page-enter-from,
-  .arka-page-leave-to {
-    transform: none;
   }
 }

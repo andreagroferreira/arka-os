@@ -2,11 +2,49 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/strat` · **Lead:** Tomas (Tier 1) · **Agents:** 4 · **Skills:** 11
+> **Prefix:** `/strat` · **Lead:** Tomas (Tier 1) · **Agents:** 4 · **Skills:** 12
 
 The Strategy department handles competitive analysis, business model design, market positioning, scenario planning, and decision quality. Tomas operates as a provocation layer — every strategy engagement surfaces explicit trade-offs (what we choose to do and what we explicitly choose not to do) before any execution begins.
 
 The squad covers the full strategic stack: market sizing and competitive intelligence (Lucas), business model and revenue architecture (Marta S.), and decision framing with cognitive debiasing (Guilherme). For cross-cutting strategic questions that affect capital allocation or organizational direction, Tomas escalates to Marco (CTO) and the C-Suite tier.
+
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 10 | 12 | 4 |
+
+**Commands** (10 via `/strat`):
+
+| Command | What it does |
+| --- | --- |
+| `/strat analyze <topic>` | Comprehensive strategic analysis (multi-framework) |
+| `/strat blue-ocean <market>` | Blue Ocean strategy canvas + ERRC grid |
+| `/strat bmc <business>` | Business Model Canvas |
+| `/strat five-forces <industry>` | Porter's Five Forces analysis |
+| `/strat growth <business>` | Growth strategy (Ansoff, adjacencies) |
+| `/strat moat <company>` | 7 Powers moat analysis (Helmer) |
+| `/strat position <product>` | Competitive positioning map |
+| `/strat scenario <context>` | Scenario planning (3-5 scenarios) |
+| `/strat swot <business>` | SWOT analysis |
+| `/strat tam <market>` | TAM/SAM/SOM market sizing |
+
+**Skills** (12 — 11 sub-skills plus the `/strategy` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `blue-ocean` | Blue Ocean Strategy analysis (Kim & Mauborgne): Strategy Canvas mapping your offering vs competitors, ERRC... |
+| `bmc` | Business Model Canvas (Osterwalder): maps a business across the 9 blocks with a value proposition deep dive... |
+| `board-advisor` | Board meeting preparation and structured multi-perspective executive deliberation: 6-phase protocol (contex... |
+| `cto-advisor` | CTO-level advisory on technology strategy: build-vs-buy decision matrix, DORA metrics assessment, ADR gover... |
+| `extract-data` | Navigates a web page via browser integration and extracts structured data (tables, lists, prices, product l... |
+| `five-forces` | Porter's Five Forces industry analysis: rates rivalry, threat of new entrants, supplier power, buyer power,... |
+| `growth-strategy` | Strategic growth-vector selection (Ansoff Matrix + Zook adjacencies + Greiner phases): decides WHERE to gro... |
+| `moat-analysis` | Competitive moat analysis using Hamilton Helmer's 7 Powers: identifies which power applies to a company, sc... |
+| `position` | Competitive positioning (Ries/Trout + April Dunford): maps competitive alternatives, unique capabilities, v... |
+| `premortem` | Decision-quality ritual for irreversible bets, owned by the Governance squad: premortem before (assume fail... |
+| `scenario-plan` | Scenario planning with PESTLE: builds 3-5 plausible futures (base, optimistic, pessimistic, black swan) and... |
+| `strategy-hub` | Strategy & Innovation department. Competitive analysis, positioning, business model design, market sizing,... |
 
 ## The squad
 

@@ -35,8 +35,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
@@ -44,6 +45,7 @@ from core.workflow import design_authorization
 from core.workflow.flow_enforcer import (
     TRIVIAL_RE,
     _load_last_assistant_messages,
+    shadow_deny_on,
 )
 from core.workflow.specialist_enforcer import _locked_append
 
@@ -93,6 +95,11 @@ class Decision:
     marker_found: str | None = None
     marker_kind: str = "none"   # structured | legacy | trivial | none
     ui_scope: str = "suffix"    # suffix | heuristic
+    # PR-A5a shadow-deny — see flow_enforcer.Decision: what hard mode
+    # WOULD have decided, recorded while warn/off modes keep allowing.
+    would_block: bool = False
+    shadow_reason: str = ""
+    shadow_ms: float = 0.0
 
     def to_stderr_message(self) -> str:
         if self.reason == "legacy-marker":
@@ -237,6 +244,51 @@ def _marker_decision(
                     ui_scope=ui_scope)
 
 
+def _shadow_off_decision(
+    session_id: str,
+    file_path: str,
+    ui_scope: str,
+    transcript_path: str,
+    messages: list[str] | None,
+) -> Decision:
+    """Off mode with shadow-deny on (PR-A5a): evaluate the marker chain
+    anyway and record what hard mode would have decided — silently
+    (reason "flag-off" produces no stderr message)."""
+    if os.environ.get("ARKA_BYPASS_DESIGN") == "1":
+        return Decision(allow=True, reason="flag-off", mode="off",
+                        target_file=file_path, ui_scope=ui_scope,
+                        shadow_reason="env-bypass")
+    start = time.perf_counter()
+    if messages is None:
+        messages = _load_last_assistant_messages(
+            transcript_path, ASSISTANT_WINDOW
+        )
+    marker, kind = _classify_marker(messages)
+    inner = _marker_decision(session_id, marker, kind, "hard", file_path, ui_scope)
+    return Decision(
+        allow=True, reason="flag-off", mode="off", target_file=file_path,
+        marker_found=inner.marker_found, marker_kind=inner.marker_kind,
+        ui_scope=ui_scope, would_block=not inner.allow,
+        shadow_reason=inner.reason,
+        shadow_ms=round((time.perf_counter() - start) * 1000, 3),
+    )
+
+
+def _annotate_warn_shadow(decision: Decision) -> Decision:
+    """Warn mode already evaluates the full chain — annotate what hard
+    mode would have denied (suffix scope, no structured/trivial/persisted
+    marker). Zero added transcript reads; gated on the same kill-switch."""
+    if (
+        decision.allow
+        and decision.ui_scope == "suffix"
+        and decision.reason in ("legacy-marker", "no-design-marker")
+        and shadow_deny_on()
+    ):
+        decision.would_block = True
+        decision.shadow_reason = decision.reason
+    return decision
+
+
 def evaluate(
     tool_name: str,
     transcript_path: str,
@@ -252,8 +304,12 @@ def evaluate(
         return Decision(allow=True, reason="not-ui-scope", target_file=file_path)
     mode = _mode()
     if mode == "off":
-        return Decision(allow=True, reason="flag-off", mode=mode,
-                        target_file=file_path, ui_scope=ui_scope)
+        if not shadow_deny_on():
+            return Decision(allow=True, reason="flag-off", mode=mode,
+                            target_file=file_path, ui_scope=ui_scope)
+        return _shadow_off_decision(
+            session_id, file_path, ui_scope, transcript_path, messages
+        )
     if os.environ.get("ARKA_BYPASS_DESIGN") == "1":
         return Decision(allow=True, reason="env-bypass", mode=mode,
                         target_file=file_path, ui_scope=ui_scope)
@@ -262,7 +318,10 @@ def evaluate(
             transcript_path, ASSISTANT_WINDOW
         )
     marker, kind = _classify_marker(messages)
-    return _marker_decision(session_id, marker, kind, mode, file_path, ui_scope)
+    decision = _marker_decision(session_id, marker, kind, mode, file_path, ui_scope)
+    if mode == "warn":
+        decision = _annotate_warn_shadow(decision)
+    return decision
 
 
 def record_telemetry(session_id: str, tool: str, decision: Decision) -> None:
@@ -275,7 +334,7 @@ def record_telemetry(session_id: str, tool: str, decision: Decision) -> None:
     if safe is None:
         return
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": safe,
         "tool": tool,
         **asdict(decision),

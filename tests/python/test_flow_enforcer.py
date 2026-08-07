@@ -3,21 +3,20 @@
 import json
 import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
+from hook_shell import BASH
 
 from core.workflow import flow_enforcer, marker_cache
 from core.workflow.flow_enforcer import (
     Decision,
-    evaluate,
-    mark_flow_required,
-    clear_flow_required,
     _extract_text,
     _load_last_assistant_messages,
     _scan_markers,
+    clear_flow_required,
+    evaluate,
+    mark_flow_required,
 )
-
 
 # ─── Fixtures ───────────────────────────────────────────────────────────
 
@@ -35,7 +34,9 @@ def tmp_config(tmp_path, monkeypatch):
     monkeypatch.setattr(flow_enforcer, "FLOW_REQUIRED_DIR", tmp_flow_required)
     monkeypatch.setattr(marker_cache, "MARKER_CACHE_DIR", tmp_marker_cache)
     monkeypatch.setenv("ARKA_FLOW_AUTH_DIR", str(tmp_path / "flow-auth"))
-    return home
+    flow_enforcer.shadow_deny_on.cache_clear()
+    yield home
+    flow_enforcer.shadow_deny_on.cache_clear()
 
 
 def _write_config(home: Path, hard_enforcement: bool) -> None:
@@ -44,6 +45,7 @@ def _write_config(home: Path, hard_enforcement: bool) -> None:
         json.dumps({"hooks": {"hardEnforcement": hard_enforcement}}),
         encoding="utf-8",
     )
+    flow_enforcer.shadow_deny_on.cache_clear()
 
 
 def _write_transcript(path: Path, assistant_messages: list[str]) -> Path:
@@ -76,10 +78,13 @@ def test_bash_is_never_gated(tmp_config):
 
 
 def test_feature_flag_off_allows_all(tmp_config, tmp_path):
-    # No config.json written → flag is off by default
+    # No config.json written → flag is off by default; shadow-deny
+    # (PR-A5a) defaults ON and records the would-be outcome silently.
     d = evaluate("Write", "/nonexistent", "session-1", "/tmp")
     assert d.allow is True
     assert d.reason == "feature-flag-off"
+    assert d.would_block is False
+    assert d.shadow_reason == "classifier-did-not-match"
 
 
 def test_feature_flag_explicit_false_allows_all(tmp_config):
@@ -87,6 +92,8 @@ def test_feature_flag_explicit_false_allows_all(tmp_config):
     d = evaluate("Write", "/nonexistent", "session-1", "/tmp")
     assert d.allow is True
     assert d.reason == "feature-flag-off"
+    assert d.would_block is False
+    assert d.shadow_reason == "classifier-did-not-match"
 
 
 def test_classifier_no_match_allows(tmp_config):
@@ -436,7 +443,7 @@ def test_bash_classifier_rejects_unsafe_session_ids(tmp_path, monkeypatch):
 
     for hostile in ["../PWNED", "foo/bar", "foo\\bar", "with space", "x" * 200, ""]:
         subprocess.run(
-            ["bash", str(lib), "mark", hostile],
+            [BASH, str(lib), "mark", hostile],
             env={**os.environ, "ARKA_WF_REQUIRED_DIR": str(fake_dir)},
             check=False,
             capture_output=True,
@@ -447,7 +454,7 @@ def test_bash_classifier_rejects_unsafe_session_ids(tmp_path, monkeypatch):
 
     # Sanity: a safe id *is* accepted
     subprocess.run(
-        ["bash", str(lib), "mark", "safe-id-1"],
+        [BASH, str(lib), "mark", "safe-id-1"],
         env={**os.environ, "ARKA_WF_REQUIRED_DIR": str(fake_dir)},
         check=True,
         capture_output=True,

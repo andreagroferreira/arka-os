@@ -205,7 +205,7 @@ enforcement_levels:
     description: "Best practices. Encouraged but not enforced."
     rules:
       - id: research-first
-        rule: "Research before building. Check Context7, existing solutions, and prior art."
+        rule: "Research before building. Check Context7 for the documented contract, gh-grep for how public code really implements it, the KB for what we already decided, and existing solutions and prior art wherever they live — papers, standards, and closed-source products included."
 
       - id: self-critique
         rule: "Every implementation should include a self-critique phase"
@@ -243,12 +243,12 @@ enforcement_levels:
         enforcement: "Critic-pass-per-phase mandatory; sycophancy detector rejects 'tens razão' / 'OK doing what you say' responses without pushback; reviewer dispatch is sub-fragmented with checkpoints rather than monolithic execution."
 
       - id: always-research
-        rule: "Every substantive task consults the Client KB FIRST (Obsidian vault + memory files + project descriptors), then relevant Personas, then Context MCPs (Context7, Perplexity, Exa, Firecrawl, XMCP) for gaps. No exceptions, including mechanical edits — the KB lookup is cheap and the cost of missing context is paid by the user."
+        rule: "Every substantive task consults the Client KB FIRST (Obsidian vault + memory files + project descriptors), then relevant Personas, then Context MCPs (Context7 for documented contracts, gh-grep for how public repos really implement it, Perplexity, Exa, Firecrawl, XMCP) for gaps. No exceptions, including mechanical edits — the KB lookup is cheap and the cost of missing context is paid by the user."
         enforcement: "[arka:meta] transparency line lists kb=N research=X persona=Y on every substantive response; absence is treated as work-not-done. Hierarchy: Client KB > Personas > Context MCPs."
 
       - id: inter-agent-checkpoints
         rule: "Long-running multi-agent dispatches (estimated >30s) are fragmented into sub-dispatches of 2-3min each. Between sub-dispatches, the orchestrator emits a proactive [arka:checkpoint] prompt announcing the next sub-dispatch and inviting user context injection. The user can inject (continue with addition) or stay silent (proceed)."
-        enforcement: "Orchestrator wraps multi-step work in checkpointed dispatches; reviewer conflicts escalated to user when strategic (taste/business knowledge), resolved silently when purely technical; QG deliberations are visible, not just verdict."
+        enforcement: "Orchestrator wraps multi-step work in checkpointed dispatches; reviewer conflicts escalated to user when strategic (taste/business knowledge), resolved on the record when purely technical (evidence cited in the verdict notes — never silently; the earlier self-contradiction was resolved 2026-07-30 in favour of visibility); QG deliberations are visible, not just verdict."
 
       - id: hybrid-learning
         rule: "ArkaOS learns from user corrections via hybrid mechanism: implicit auto-detection with confidence scoring for typical corrections (default), explicit Marta-led confirmation for high-leverage rules (top-level rule candidates) or rules that contradict existing memory. Marta is the owner of the learning loop. Memory rules carry a confidence field that climbs as the rule is applied without correction."
@@ -492,3 +492,6 @@ amendments:
     - version: "4.12.0"
       date: "2026-07-09"
       changes: "Interaction Reform PR2 (operator-approved plan, 2026-07-09): added gate-judges MUST rule — plan-judge at Gate 2 and output-judge at Gate 4 for MEDIUM/HIGH work, structured JudgeVerdict (core.governance.judge), frontier tier, arkaos-not-yes-man standard applied to agents, user_challenge surfacing for technically wrong requests; verdicts recorded to judge-verdicts.jsonl."
+    - version: "4.43.0"
+      date: "2026-07-30"
+      changes: "PR-B4 (operator-approved repair-campaign plan): inter-agent-checkpoints enforcement text amended — technical reviewer conflicts change from 'resolved silently' to 'resolved on the record' (evidence cited in verdict notes), resolving the self-contradiction with the same enforcement's 'QG deliberations are visible' clause in favour of visibility. Rule text, level and scope unchanged."

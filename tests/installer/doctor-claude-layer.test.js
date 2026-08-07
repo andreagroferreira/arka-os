@@ -5,11 +5,14 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   checks,
+  checkSkipReason,
   hooksWired,
   statuslineConfigured,
   gotchasHealthy,
   mcpRegistryHealthy,
   deployedSkillCount,
+  qgAgentsRepaired,
+  qgLedgerPopulated,
 } from "../../installer/doctor.js";
 import { IS_WINDOWS } from "../../installer/platform.js";
 
@@ -34,9 +37,10 @@ const CLAUDE_LAYER_CHECKS = [
 // 26 pre-#358 POSIX checks + 10 migrated Claude-layer + 1 autoupdate
 // (Foundation PR-1) + 4 install-profile checks (Foundation PR-4:
 // install-profile, litellm-proxy, whisper, ollama-execution-model) +
-// 1 menubar (Foundation PR-5) + 1 root-consistency (repair PR-A2);
+// 1 menubar (Foundation PR-5) + 1 root-consistency (repair PR-A2) +
+// 2 Quality Gate checks (repair PR-B5: qg-agents, qg-ledger);
 // Windows appends 4.
-const EXPECTED_TOTAL = 43 + (IS_WINDOWS ? 4 : 0);
+const EXPECTED_TOTAL = 45 + (IS_WINDOWS ? 4 : 0);
 
 const byName = Object.fromEntries(checks.map((c) => [c.name, c]));
 
@@ -227,5 +231,165 @@ test("root-consistency: split root warns, same-root spellings pass", () => {
   } finally {
     if (saved === undefined) delete process.env.ARKAOS_ROOT;
     else process.env.ARKAOS_ROOT = saved;
+  }
+});
+
+// ─── Quality Gate checks (repair PR-B5) ─────────────────────────────────
+
+test("qg-agents: shape, project scoping, and repair matrix", () => {
+  const entry = byName["qg-agents"];
+  assert.ok(entry, "missing doctor check: qg-agents");
+  assert.equal(entry.severity, "fail", "an unrepaired project is a broken relay");
+  // QG r2 (both reviewers independently): the check fails on TWO
+  // scopes and each needs its own command — init reaches only the
+  // project (deployProjectAgents); the user-scope retirement runs in
+  // deploySkills, reached from update. A fix naming init alone is a
+  // dead-end loop.
+  assert.ok(entry.fix().includes("npx arkaos update"),
+    "fix must name the command that clears the user scope");
+  assert.ok(entry.fix().includes("npx arkaos init"),
+    "fix must name the command that deploys the project reviewers");
+  assert.match(entry.description, /user scope/,
+    "description must say the check spans user scope");
+
+  const dir = mkdtempSync(join(tmpdir(), "arkaos-qg-agents-"));
+  try {
+    const agentsDir = join(dir, ".claude", "agents");
+    // Injected empty user scope: the default points at the REAL
+    // ~/.claude/agents, which may legitimately carry v1 personas on a
+    // not-yet-updated machine — a unit test must not depend on it.
+    const userDir = join(dir, "user-agents");
+    mkdirSync(userDir, { recursive: true });
+
+    assert.equal(
+      qgAgentsRepaired(agentsDir, userDir), false,
+      "no agents dir at all => not repaired"
+    );
+
+    mkdirSync(agentsDir, { recursive: true });
+    assert.equal(
+      qgAgentsRepaired(agentsDir, userDir), false,
+      "reviewers absent => fail"
+    );
+
+    for (const r of ["marta-cqo", "eduardo-copy", "francisca-tech"]) {
+      writeFileSync(join(agentsDir, `${r}.md`), "contract with QGVerdict\n");
+    }
+    assert.equal(
+      qgAgentsRepaired(agentsDir, userDir), true,
+      "three contracted reviewers => repaired"
+    );
+
+    writeFileSync(join(agentsDir, "cqo.md"), "v1 persona\n");
+    assert.equal(
+      qgAgentsRepaired(agentsDir, userDir), false,
+      "a dispatchable v1 persona => not repaired"
+    );
+    rmSync(join(agentsDir, "cqo.md"));
+
+    writeFileSync(join(agentsDir, "francisca-tech.md"), "no contract here\n");
+    assert.equal(
+      qgAgentsRepaired(agentsDir, userDir), false,
+      "a reviewer without the QGVerdict contract => not repaired"
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("qg-agents: user-scope v1 QG personas fail the check by frontmatter name", () => {
+  // QG r1 B2: the installer used to deploy the v1 trio to
+  // ~/.claude/agents/arka-<name>.md — the arka- prefix defeats
+  // basename matching, so detection reads the frontmatter name.
+  const dir = mkdtempSync(join(tmpdir(), "arkaos-qg-userscope-"));
+  try {
+    const agentsDir = join(dir, ".claude", "agents");
+    const userDir = join(dir, "user-agents");
+    mkdirSync(agentsDir, { recursive: true });
+    mkdirSync(userDir, { recursive: true });
+    for (const r of ["marta-cqo", "eduardo-copy", "francisca-tech"]) {
+      writeFileSync(join(agentsDir, `${r}.md`), "contract with QGVerdict\n");
+    }
+
+    writeFileSync(
+      join(userDir, "arka-cqo.md"),
+      "---\nname: cqo\ndescription: v1 persona\n---\nbody\n"
+    );
+    assert.equal(
+      qgAgentsRepaired(agentsDir, userDir), false,
+      "a user-scope v1 QG persona keeps the relay broken"
+    );
+
+    rmSync(join(userDir, "arka-cqo.md"));
+    writeFileSync(
+      join(userDir, "arka-paulo.md"),
+      "---\nname: paulo-tech-lead\n---\nbody\n"
+    );
+    assert.equal(
+      qgAgentsRepaired(agentsDir, userDir), true,
+      "non-QG user agents never trip the check"
+    );
+
+    rmSync(dir, { recursive: true, force: true });
+    assert.equal(
+      qgAgentsRepaired(agentsDir, join(dir, "missing")), false,
+      "missing project dir still fails regardless of user scope"
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("checkSkipReason: a throwing skipIf never hides its check", () => {
+  // QG r1 M2: the catch arm was untested — a broken predicate must
+  // run the check normally, not skip it (and not crash the doctor).
+  const entry = {
+    name: "fake",
+    skipIf: () => {
+      throw new Error("broken predicate");
+    },
+  };
+  assert.equal(checkSkipReason(entry, "essential"), null);
+});
+
+test("qg-agents: skipIf makes it an informational skip outside a project", () => {
+  const entry = byName["qg-agents"];
+  const savedCwd = process.cwd();
+  const dir = mkdtempSync(join(tmpdir(), "arkaos-qg-skip-"));
+  try {
+    process.chdir(dir);
+    const reason = checkSkipReason(entry, "essential");
+    assert.ok(reason, "outside a project the check must skip, not fail");
+    assert.match(reason, /run inside a project/);
+
+    mkdirSync(join(dir, ".claude", "agents"), { recursive: true });
+    assert.equal(
+      checkSkipReason(entry, "essential"), null,
+      "inside a project the check applies"
+    );
+  } finally {
+    process.chdir(savedCwd);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("qg-ledger: warn severity, empty/missing root fails, populated passes", () => {
+  const entry = byName["qg-ledger"];
+  assert.ok(entry, "missing doctor check: qg-ledger");
+  assert.equal(
+    entry.severity, "warn",
+    "a fresh install legitimately starts empty — warn, never fail"
+  );
+
+  const dir = mkdtempSync(join(tmpdir(), "arkaos-qg-ledger-"));
+  try {
+    const root = join(dir, "quality-gate");
+    assert.equal(qgLedgerPopulated(root), false, "missing root => channel never exercised");
+    mkdirSync(root, { recursive: true });
+    assert.equal(qgLedgerPopulated(root), false, "empty root => channel never exercised");
+    mkdirSync(join(root, "sess-1"), { recursive: true });
+    assert.equal(qgLedgerPopulated(root), true, "a captured session => channel alive");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

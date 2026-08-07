@@ -605,6 +605,16 @@
         "hooks",
         "hardEnforcement"
       ]
+    },
+    "shadowDeny": {
+      "coercion": "python-truthy",
+      "on_corrupt": true,
+      "on_missing_file": true,
+      "on_missing_key": true,
+      "path": [
+        "hooks",
+        "shadowDeny"
+      ]
     }
   },
   "home_paths": {
@@ -675,7 +685,10 @@
       "marker_found": null,
       "phase_observed": null,
       "reason": "tool-not-gated",
-      "warning": ""
+      "shadow_ms": 0.0,
+      "shadow_reason": "",
+      "warning": "",
+      "would_block": false
     },
     "kb_first_prefix_keys": [
       "ts",

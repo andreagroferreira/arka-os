@@ -67,6 +67,14 @@ Run these per ecosystem:
 | Major (1.2.3 -> 2.0.0) | High | Read migration guide, plan sprint work |
 | Deprecated | Critical | Find replacement, schedule migration |
 
+Registry download counts measure installs, not health: CI runs, mirrors,
+proxies, and bots inflate them, while a vendored dependency is fetched once
+and committed, after which it stops counting altogether even though the
+project still depends on it. For a dependency you suspect is abandoned or
+about to be, check real usage with `mcp__gh-grep__searchGitHub`: grep its
+import path and read whether recent code still calls it, or only wraps it in
+a shim on the way out.
+
 ## Supply Chain Checks
 
 - [ ] Lock files committed and up to date

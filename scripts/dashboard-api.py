@@ -88,7 +88,7 @@ def _load_agents() -> list[dict]:
     if _agents_cache is None:
         path = ARKAOS_ROOT / "knowledge" / "agents-registry-v2.json"
         if path.exists():
-            data = json.loads(path.read_text())
+            data = json.loads(path.read_text(encoding="utf-8"))
             _agents_cache = data.get("agents", [])
         else:
             _agents_cache = []
@@ -100,7 +100,7 @@ def _load_commands() -> list[dict]:
     if _commands_cache is None:
         path = ARKAOS_ROOT / "knowledge" / "commands-registry.json"
         if path.exists():
-            data = json.loads(path.read_text())
+            data = json.loads(path.read_text(encoding="utf-8"))
             _commands_cache = data.get("commands", [])
         else:
             _commands_cache = []
@@ -739,7 +739,7 @@ def agent_detail(agent_id: str):
     if yaml_file.exists():
         try:
             import yaml
-            raw = yaml.safe_load(yaml_file.read_text())
+            raw = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
             dna = raw.get("behavioral_dna", {})
             disc = dna.get("disc", {})
             ennea = dna.get("enneagram", {})
@@ -4486,7 +4486,7 @@ def metrics():
     if not metrics_file.exists():
         return {"entries": [], "avg_ms": 0}
     entries = []
-    for line in metrics_file.read_text().strip().split("\n"):
+    for line in metrics_file.read_text(encoding="utf-8").strip().split("\n"):
         try:
             entries.append(json.loads(line))
         except Exception:

@@ -45,9 +45,15 @@ reinstall the world) before reading what the tool actually said.
    | Code | type error, syntax error, failed macro/codegen |
    | Toolchain | wrong runtime version, missing system binary |
    | Cache | passes clean, fails incrementally (or the reverse) |
-4. **Fix the root, not the symptom.** A cast that silences a type error
+4. **When the signature is unfamiliar, search it.** Paste the literal
+   error string into `mcp__gh-grep__searchGitHub` (strip the paths and
+   line numbers, keep the message). Repos that hit the same signature
+   often carry the fix in the surrounding config or lockfile, and the
+   search shows which fixes were adopted rather than merely proposed —
+   frequently faster than reading the issue tracker.
+5. **Fix the root, not the symptom.** A cast that silences a type error
    the compiler was right about is a deferred production bug.
-5. **Prove it.** Two consecutive clean builds — one incremental, one
+6. **Prove it.** Two consecutive clean builds — one incremental, one
    from clean — with exit codes on record. One green build after a
    cache clear proves nothing about the fix.
 

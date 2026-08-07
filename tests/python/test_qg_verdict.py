@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from core.governance.qg_verdict import (
     QG_VERDICT_JSON_SCHEMA,
     QGBlocker,
+    QGDigestCarry,
     QGEvidenceSummary,
     QGVerdict,
 )
@@ -110,3 +111,46 @@ def test_round_trip_serialization():
     )
     reloaded = QGVerdict.model_validate_json(verdict.model_dump_json())
     assert reloaded == verdict
+
+
+def test_digest_carry_requires_sha256_hex():
+    with pytest.raises(ValidationError, match="64 hex"):
+        QGDigestCarry(
+            reviewer="francisca-tech",
+            evidence_digest="not-a-digest",
+            reason="message-only amend; tree byte-identical to reviewed head",
+        )
+
+
+def test_digest_carries_default_empty_keeps_corpus_valid():
+    """Pre-B4 verdicts carry no digest_carries and must stay valid."""
+    verdict = QGVerdict(
+        verdict="APPROVED",
+        evidence_report=_summary("pass"),
+        reviewer="cqo-marta",
+        model_used="opus",
+    )
+    assert verdict.digest_carries == []
+
+
+def test_digest_carries_round_trip():
+    verdict = QGVerdict(
+        verdict="APPROVED",
+        evidence_report=_summary("pass"),
+        reviewer="cqo-marta",
+        model_used="opus",
+        evidence_digest="b" * 64,
+        digest_carries=[
+            QGDigestCarry(
+                reviewer="francisca-tech",
+                evidence_digest="a" * 64,
+                reason=(
+                    "message-only amend after her round: tree "
+                    "byte-identical to the reviewed head"
+                ),
+            )
+        ],
+    )
+    reloaded = QGVerdict.model_validate_json(verdict.model_dump_json())
+    assert reloaded == verdict
+    assert reloaded.digest_carries[0].evidence_digest == "a" * 64

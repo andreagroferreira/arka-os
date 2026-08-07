@@ -61,7 +61,7 @@ class ScheduleConfig:
     @classmethod
     def load(cls, config_path: str) -> "list[ScheduleConfig]":
         """Load schedules from YAML, returning only enabled entries."""
-        with open(config_path) as fh:
+        with open(config_path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
 
         schedules = []
@@ -106,7 +106,7 @@ class ArkaScheduler:
         """Acquire an exclusive file lock. Returns False if already locked."""
         Path(self._lock_path).parent.mkdir(parents=True, exist_ok=True)
         try:
-            fd = open(self._lock_path, "w")  # noqa: WPS515
+            fd = open(self._lock_path, "w", encoding="utf-8")  # noqa: WPS515
             if sys.platform == "win32":
                 import msvcrt  # type: ignore[import]
 

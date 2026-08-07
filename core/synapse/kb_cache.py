@@ -6,16 +6,21 @@ within the same project context.
 
 Architecture:
     - Path: /tmp/arkaos-kb-{project_hash}/{session_id}.json
-    - Max entries per session: 50
-    - TTL: 30 minutes
+    - Max entries per session: 150 (constructor default)
+    - TTL: 90 minutes (5400s, constructor default)
     - Project-scoped via cwd hash (isolates knowledge by project)
     - Auto-inject when Jaccard topic overlap >= 0.3
 
-Turn-scoped marker (record_obsidian_query / read_obsidian_query):
+Turn-scoped markers (kind=obsidian evidence / kind=injected telemetry):
     - Path: /tmp/arkaos-kb-query/{session_id}.json
-    - Written by Synapse L2.5 whenever an Obsidian search ran in the turn.
+    - kind=obsidian is written ONLY by the PostToolUse hook on genuine
+      ``mcp__obsidian__*`` calls; kind=injected is written by Synapse L2.5
+      for its automatic injection and is deliberately ignored by the
+      research gate.
     - Read by research_gate to know whether KB-first was respected
-      before external research tools run.
+      before external research tools run. The split exists because a
+      single kind written by the injection layer let the gate certify
+      itself on every prompt, so it could never fire.
     - Invalidated by UserPromptSubmit hook at each new turn (same pattern
       as core.workflow.marker_cache).
 """
@@ -179,12 +184,12 @@ class KBSessionCache:
         if not self._cache_file.exists():
             return {}
         try:
-            return json.loads(self._cache_file.read_text())
+            return json.loads(self._cache_file.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             return {}
 
     def _save(self, data: dict[str, Any]) -> None:
-        self._cache_file.write_text(json.dumps(data, indent=2))
+        self._cache_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def extract_topics(self, query: str) -> set[str]:
         """Extract key topics from a query string.
@@ -473,9 +478,35 @@ def invalidate_graphify_query(session_id: str) -> None:
     _invalidate_query(session_id, kind="graphify")
 
 
-def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> None:
-    """Record that an Obsidian search ran in this turn.
+def record_injected_context(session_id: str, query: str, hit_count: int = 0) -> None:
+    """Record that Synapse L2.5 ran its retrieval this turn.
 
+    ``hit_count`` may be 0: the marker records that the layer ran, not
+    that anything was injected.
+
+    Telemetry, NOT evidence: the research gate deliberately ignores this
+    kind. When L2.5 wrote the "obsidian" kind instead, the gate was
+    satisfied by the injection mechanism itself on every prompt and could
+    never fire — the self-certification failure this split removes.
+    """
+    _record_query(session_id, query, hit_count, kind="injected")
+
+
+def read_injected_context(session_id: str) -> dict | None:
+    """Return the turn-scoped injection record, or None if absent."""
+    return _read_query(session_id, kind="injected")
+
+
+def invalidate_injected_context(session_id: str) -> None:
+    """Clear the per-turn injection marker. Idempotent."""
+    _invalidate_query(session_id, kind="injected")
+
+
+def record_obsidian_query(session_id: str, query: str, hit_count: int = 0) -> None:
+    """Record that a GENUINE Obsidian consult ran in this turn.
+
+    Written by the PostToolUse hook on real ``mcp__obsidian__*`` calls —
+    never by the injection layer (see :func:`record_injected_context`).
     Consumed by `core.workflow.research_gate` (Task #6) to decide whether
     KB-first was respected before external research runs.
 

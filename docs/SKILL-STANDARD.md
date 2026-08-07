@@ -6,7 +6,7 @@ How to create, validate, and contribute skills to ArkaOS. This guide walks throu
 
 A skill is a single capability that an agent can execute. Each skill is a directory containing a `SKILL.md` file and optional reference documents. Skills are framework-backed, meaning they use validated enterprise methodologies (not just generic advice).
 
-ArkaOS has 267 skills across 17 departments. You can create new ones for any department.
+ArkaOS has 340 core skills (325 department + 15 `/arka` meta) across 17 departments, plus 266 plugin skills. You can create new ones for any department.
 
 ## Directory Structure
 
@@ -268,7 +268,7 @@ python scripts/skill_validator.py departments/ --summary
 Output:
 
 ```
-Validated 267 skills across 17 departments
+Validated 340 core skills across 17 departments
 
 EXCELLENT: 198 (81%)
 GOOD: 38 (16%)

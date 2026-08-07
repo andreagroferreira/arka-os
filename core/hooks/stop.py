@@ -371,6 +371,60 @@ def _flow_checks(
         clear_flow_required(session_id)
 
 
+def _qg_aggregate_verdict(session_id: str) -> bool | None:
+    """Verdict from the session's guard-accepted ``AGGREGATE.json``.
+
+    True/False when a readable aggregate for THIS session exists — the
+    aggregate only lands on disk through aggregate_guard (PR-B3), so it
+    is authoritative in both directions. None when absent, foreign or
+    unreadable: only then may the caller fall back to the telemetry log.
+    """
+    try:
+        from core.governance.reviewer_ledger import (
+            AGGREGATE_NAME,
+            _safe_id,
+            ledger_root,
+        )
+
+        if not _safe_id(session_id):
+            return None
+        rec = json.loads(
+            (ledger_root() / session_id / AGGREGATE_NAME).read_text(
+                encoding="utf-8"
+            )
+        )
+    except Exception:
+        return None
+    if not isinstance(rec, dict) or rec.get("session_id") != session_id:
+        return None
+    verdict = (rec.get("aggregate") or {}).get("verdict", "")
+    return str(verdict).upper() == "APPROVED"
+
+
+def _qg_telemetry_approved(session_id: str) -> bool:
+    """Legacy fallback: newest ``qg.jsonl`` record for this session.
+
+    Pre-B3 sessions have no aggregate, so its absence proves nothing;
+    the unguarded telemetry log then keeps its historical role.
+    """
+    qg_log = Path.home() / ".arkaos" / "telemetry" / "qg.jsonl"
+    if not qg_log.exists():
+        return False
+    try:
+        for line in reversed(qg_log.read_text(encoding="utf-8").splitlines()):
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except Exception:
+                continue
+            if rec.get("session_id") == session_id:
+                return rec.get("verdict", "").upper() == "APPROVED"
+    except Exception:
+        pass
+    return False
+
+
 def _auto_doc_enqueue(
     session_id: str, transcript_path: str, raw: str | None
 ) -> None:
@@ -389,27 +443,19 @@ def _auto_doc_enqueue(
     except Exception:
         last = ""
 
-    qg_approved = bool(re.search(r"\[arka:qg:approved\]", last, re.IGNORECASE))
-    if not qg_approved:
-        qg_log = Path.home() / ".arkaos" / "telemetry" / "qg.jsonl"
-        if qg_log.exists():
-            try:
-                for line in reversed(
-                    qg_log.read_text(encoding="utf-8").splitlines()
-                ):
-                    if not line.strip():
-                        continue
-                    try:
-                        rec = json.loads(line)
-                    except Exception:
-                        continue
-                    if rec.get("session_id") == session_id:
-                        qg_approved = (
-                            rec.get("verdict", "").upper() == "APPROVED"
-                        )
-                        break
-            except Exception:
-                pass
+    # The guard-accepted aggregate is authoritative either way (PR-B5,
+    # G7) — over the telemetry log AND over the assistant's own
+    # [arka:qg:approved] marker: narration must not outrank the record
+    # it narrates (the same laundering shape G7 closes one layer down).
+    # Marker and telemetry keep their historical roles only when no
+    # aggregate exists for the session.
+    from_aggregate = _qg_aggregate_verdict(session_id)
+    if from_aggregate is not None:
+        qg_approved = from_aggregate
+    else:
+        qg_approved = bool(
+            re.search(r"\[arka:qg:approved\]", last, re.IGNORECASE)
+        ) or _qg_telemetry_approved(session_id)
     if not qg_approved:
         return
 

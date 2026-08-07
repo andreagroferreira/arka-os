@@ -1,6 +1,6 @@
 # Getting Started with ArkaOS
 
-ArkaOS is an operating system for AI agent teams. 82 agents across 17 departments handle everything from writing code to building brands to planning finances. You talk in plain language, ArkaOS routes to the right team.
+ArkaOS is an operating system for AI agent teams. 89 agent files (88 unique agents) across 17 departments handle everything from writing code to building brands to planning finances. You talk in plain language, ArkaOS routes to the right team.
 
 This guide gets you running in 5 minutes with real examples for developers, marketers, and founders.
 
@@ -33,8 +33,8 @@ You should see:
 [PASS] Hooks configured for claude-code
 [PASS] Synapse engine responsive (74ms)
 [PASS] Knowledge DB initialized
-[PASS] 82 agents loaded
-[PASS] 267 skills validated
+[PASS] 89 agents loaded
+[PASS] 340 skills validated
 [PASS] 24 workflows registered
 All checks passed.
 ```
@@ -168,8 +168,8 @@ Opens at **http://localhost:3333**. The dashboard has 8 pages:
 | Page | What You See |
 |------|-------------|
 | **Overview** | Agent count, skill count, active tasks, budget usage, system health |
-| **Agents** | Browse all 82 agents with full behavioral DNA profiles (DISC, Enneagram, MBTI, Big Five) |
-| **Commands** | Search all 267 skills across 17 departments with usage examples |
+| **Agents** | Browse all 89 agent files (88 unique) with full behavioral DNA profiles (DISC, Enneagram, MBTI, Big Five) |
+| **Commands** | Search all 340 core skills across 17 departments with usage examples |
 | **Budget** | Token usage breakdown by department and tier, spending trends |
 | **Tasks** | Active and completed background tasks (knowledge ingestion, analysis jobs) |
 | **Knowledge** | Manage your indexed knowledge base, trigger new ingestions |
@@ -332,7 +332,7 @@ See [MIGRATION-V1-V2.md](MIGRATION-V1-V2.md) for the full migration guide.
 | Synapse layers | 12 for context injection |
 | Dashboard pages | 8 for monitoring and management |
 | Python CLI tools | 8 for quantitative analysis |
-| Tests | 4,500+ (pytest) |
+| Tests | 4,956 (pytest) |
 
 ## Next Steps
 

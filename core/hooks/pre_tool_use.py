@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import contextlib
 import sys
+import time
 from pathlib import Path
 
 from core.hooks._shared import (
@@ -55,7 +56,8 @@ def _query_hint(tool_input: dict) -> str:
 
 
 class _MessagesOnce:
-    """Parse the transcript at most once, lazily, across both gates.
+    """Parse the transcript at most once, lazily, across the gates
+    (specialist, frontend and flow all consume the same instance).
 
     ``peek()`` never triggers a read — gates that have their own cheaper
     early-outs (feature flag off, marker-cache hit) pass ``peek()`` so the
@@ -67,6 +69,7 @@ class _MessagesOnce:
         self._path = transcript_path
         self._messages: list[str] | None = None
         self._sidechain: bool | None = None
+        self._load_ms: float = 0.0
 
     def peek(self) -> list[str] | None:
         return self._messages
@@ -75,8 +78,19 @@ class _MessagesOnce:
         """Scope of the most recent assistant record; None before load()."""
         return self._sidechain
 
+    def consume_load_ms(self) -> float:
+        """The parse cost in ms, claimable ONCE (PR-A5a shadow timing).
+
+        The parse a shadow evaluation forces happens here, outside every
+        gate's own timer — the first shadow caller claims it into its
+        Decision.shadow_ms; subsequent callers get 0.0 so the cost is
+        never double-attributed."""
+        elapsed, self._load_ms = self._load_ms, 0.0
+        return elapsed
+
     def load(self) -> list[str] | None:
         if self._messages is None:
+            start = time.perf_counter()
             try:
                 # Scope-aware since P0.2: the window counts MAIN-scope
                 # messages only, so interleaved subagent records cannot
@@ -88,6 +102,10 @@ class _MessagesOnce:
                 self._sidechain = split.active_sidechain
             except Exception:
                 return None
+            finally:
+                self._load_ms = round(
+                    (time.perf_counter() - start) * 1000, 3
+                )
         return self._messages
 
 
@@ -121,6 +139,17 @@ def _kb_gate(root: str, tool_name: str, session_id: str, query: str) -> int | No
     return None
 
 
+def _claim_parse_cost(decision, messages: _MessagesOnce) -> None:
+    """Attribute the parse a shadow evaluation forced (QG r1, Francisca
+    B2): the load ran outside the gate's timer, so the first shadow
+    decision claims it — consume_load_ms() returns 0.0 when another
+    gate already did, or when enforcement (not shadow) paid for it."""
+    if decision.shadow_reason:
+        decision.shadow_ms = round(
+            decision.shadow_ms + messages.consume_load_ms(), 3
+        )
+
+
 def _specialist_gate(
     root: str,
     tool_name: str,
@@ -137,6 +166,7 @@ def _specialist_gate(
     if not module_path.is_file():
         return None
     try:
+        from core.workflow.flow_enforcer import shadow_deny_on
         from core.workflow.specialist_enforcer import (
             _feature_flag_on,
             evaluate,
@@ -145,9 +175,11 @@ def _specialist_gate(
     except Exception:
         return None  # specialist-import-failed → allow
     # Load (and share) the transcript only when the gate will actually
-    # scan it — flag-off sessions keep the zero-read fast path.
+    # scan it — flag-off sessions with the shadow kill-switch thrown
+    # keep the zero-read fast path; shadow sessions share ONE parse
+    # across the specialist, frontend and flow gates (PR-A5a).
     shared = messages.peek()
-    if shared is None and _feature_flag_on():
+    if shared is None and (_feature_flag_on() or shadow_deny_on()):
         shared = messages.load()
     decision = evaluate(
         tool_name=tool_name,
@@ -158,6 +190,7 @@ def _specialist_gate(
         messages=shared,
         is_sidechain=messages.sidechain_active(),
     )
+    _claim_parse_cost(decision, messages)
     with contextlib.suppress(Exception):
         record_telemetry(
             session_id=session_id,

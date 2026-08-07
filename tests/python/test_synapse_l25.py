@@ -162,23 +162,30 @@ def test_l25_fallback_to_jaccard_when_embedder_fails(fixture_vault_path):
     assert "[[Synapse Layers]]" in block or "[[KB Architecture]]" in block
 
 
-def test_l25_records_obsidian_query_on_call(session_ctx, fixture_vault_path):
+def test_l25_records_injected_kind_not_obsidian(session_ctx, fixture_vault_path):
+    # The injection is telemetry, not evidence: it must land under
+    # kind="injected" and must NOT satisfy the research gate's
+    # "obsidian consulted this turn" check. When L2.5 wrote the obsidian
+    # kind, the gate was self-certified on every prompt and never fired.
     layer = KBContextLayer(
         vector_store=None, vault_path=fixture_vault_path, min_similarity=0.05
     )
     result = layer.compute(session_ctx)
     assert result.content  # something injected
-    record = kb_cache.read_obsidian_query(session_ctx.extra["session_id"])
-    assert record is not None
-    assert record["last_hit_count"] >= 1
-    assert record["queries"][-1]["query"] == session_ctx.user_input
+    session_id = session_ctx.extra["session_id"]
+    injected = kb_cache.read_injected_context(session_id)
+    assert injected is not None
+    assert injected["last_hit_count"] >= 1
+    assert injected["queries"][-1]["query"] == session_ctx.user_input
+    assert kb_cache.read_obsidian_query(session_id) is None
+    assert kb_cache.obsidian_queried_this_turn(session_id) is False
 
 
-def test_l25_records_query_even_when_zero_hits(session_ctx):
+def test_l25_records_injection_even_when_zero_hits(session_ctx):
     layer = KBContextLayer(vector_store=_FakeStore([]), vault_path=None)
     result = layer.compute(session_ctx)
     assert result.content == ""
-    record = kb_cache.read_obsidian_query(session_ctx.extra["session_id"])
+    record = kb_cache.read_injected_context(session_ctx.extra["session_id"])
     assert record is not None
     assert record["last_hit_count"] == 0
 
@@ -196,7 +203,9 @@ def test_l25_feature_flag_off_skips_injection(monkeypatch, fixture_vault_path, s
 def test_l25_feature_flag_false_in_config(monkeypatch, tmp_path, fixture_vault_path):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir()
-    (cfg_dir / "config.json").write_text(json.dumps({"synapse": {"l25KbContext": False}}), encoding="utf-8")
+    (cfg_dir / "config.json").write_text(
+        json.dumps({"synapse": {"l25KbContext": False}}), encoding="utf-8"
+    )
     monkeypatch.setattr(
         "core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json"
     )
@@ -480,7 +489,9 @@ def test_graphify_url_validation_rejects_public_hosts(monkeypatch, tmp_path):
     cfg_dir = tmp_path / ".arkaos"
     cfg_dir.mkdir(exist_ok=True)
     (cfg_dir / "config.json").write_text(json.dumps({}), encoding="utf-8")
-    (cfg_dir / "keys.json").write_text(json.dumps({"GRAPHIFY_TOKEN": "sk-secret"}), encoding="utf-8")
+    (cfg_dir / "keys.json").write_text(
+        json.dumps({"GRAPHIFY_TOKEN": "sk-secret"}), encoding="utf-8"
+    )
     monkeypatch.setattr("core.synapse.layers_kb._KB_CONFIG_PATH", cfg_dir / "config.json")
     monkeypatch.setattr("core.synapse.layers_kb._KEYS_PATH", cfg_dir / "keys.json")
 

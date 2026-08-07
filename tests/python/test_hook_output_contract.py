@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import pytest
+from hook_shell import BASH
 
 from core.hooks._shared import additional_context_payload, emit_additional_context
 
@@ -517,7 +518,7 @@ class TestShellFallbackParity:
             "ARKA_HOOK_FORCE_FALLBACK": "1",
         })
         result = subprocess.run(
-            ["bash", str(HOOKS_SH_DIR / "user-prompt-submit.sh")],
+            [BASH, str(HOOKS_SH_DIR / "user-prompt-submit.sh")],
             input=json.dumps({"userInput": "hello"}),
             capture_output=True,
             text=True,

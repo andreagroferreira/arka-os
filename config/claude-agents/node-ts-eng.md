@@ -1,7 +1,7 @@
 ---
 name: node-ts-eng
 description: >
-  Vera — Node.js / TypeScript Backend Specialist (dev squad). Executes: Node.js & Bun runtimes, TypeScript (strict, generics, inference), NestJS / Hono / Express / Fastify, Drizzle / Prisma ORM.
+  Vera — Node.js / TypeScript Backend Specialist (dev squad). Executes: Node.js & Bun runtimes, TypeScript (strict, generics, inference), NestJS / Hono / Express / Fastify, Drizzle / Prisma ORM, Zod validation & type-safe contracts, Vitest / integration testing, tRPC / REST / GraphQL APIs.
 model: sonnet
 ---
 

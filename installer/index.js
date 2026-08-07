@@ -13,6 +13,7 @@ import { deployCoreSnapshot } from "./core-snapshot.js";
 import { getUi } from "./ui.js";
 import { buildProfileRecord } from "./profile.js";
 import { readProductStats, productStatsLines } from "./product-stats.js";
+import { installUserClaudeMd, describeSyncResult } from "./claude-md.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -217,14 +218,15 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
       ok("arka-py interpreter shim installed");
     }
   }
-  const claudeMdSrc = join(ARKAOS_ROOT, "config", "user-claude.md");
-  const userClaudeMd = join(homedir(), ".claude", "CLAUDE.md");
-  if (existsSync(claudeMdSrc) && !existsSync(userClaudeMd)) {
-    copyFileSync(claudeMdSrc, userClaudeMd);
-    ok("~/.claude/CLAUDE.md created (ArkaOS user instructions)");
-  } else if (existsSync(userClaudeMd)) {
-    ok("~/.claude/CLAUDE.md already exists (preserved)");
-  }
+  // Fresh install writes the template inside managed markers (PR-C5) so
+  // later updates can manage the file via its markers, no hash path
+  // needed; an existing file keeps the historical preserve semantics.
+  const claudeMdResult = installUserClaudeMd({
+    home: homedir(),
+    templatePath: join(ARKAOS_ROOT, "config", "user-claude.md"),
+  });
+  const claudeMdReport = describeSyncResult(claudeMdResult);
+  (claudeMdReport.level === "warn" ? warn : ok)(claudeMdReport.message);
 
   // ═══ Step 10: Deploy Cognitive Scheduler ═══
   step(10, 14, "Deploying cognitive scheduler...");
@@ -814,6 +816,23 @@ function installHooks(installDir) {
       // try/catch kept it safe already. Leaving the call in place.
       try { chmodSync(destPath, 0o755); } catch {}
       ok(`Hook: ${filename}`);
+    }
+  }
+
+  // PR-B5 (N3): agent-provision.sh is a PreToolUse(Task) gate, not a
+  // lifecycle hook, and it is POSIX-only (no .ps1 port exists, and the
+  // adapter only registers it off-Windows). It lives OUTSIDE hookNames
+  // on purpose: that list's consistency tests require a .sh/.ps1 pair
+  // for every universal hook. Before this block the script was neither
+  // copied nor registered — settings-template.json declared it, but the
+  // template is not the executed path.
+  if (hookExt === ".sh") {
+    const provisionSrc = join(srcHooksDir, "agent-provision.sh");
+    if (existsSync(provisionSrc)) {
+      const provisionDest = join(hooksDir, "agent-provision.sh");
+      writeFileSync(provisionDest, readFileSync(provisionSrc, "utf-8"));
+      try { chmodSync(provisionDest, 0o755); } catch {}
+      ok("Hook: agent-provision.sh");
     }
   }
 

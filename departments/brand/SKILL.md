@@ -2,7 +2,7 @@
 name: arka-brand
 description: >
   Brand & Design department. Full brand identity creation, UX/UI design, design systems,
-  visual identity, and brand strategy. 4-agent team applying Primal Branding, StoryBrand,
+  visual identity, and brand strategy. 10-agent team applying Primal Branding, StoryBrand,
   12 Archetypes, Nielsen Heuristics, Atomic Design, and Dieter Rams principles.
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 ---
@@ -35,6 +35,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | `/brand ux-audit <url>` | UX heuristic audit (Nielsen 10) | Focused |
 | `/brand design-system` | Design system specification (Atomic Design) | Enterprise |
 | `/brand wireframe <page>` | UI wireframe and information architecture | Focused |
+| `/brand motion-design <brief>` | Motion direction (Disney principles, timing, choreography) | Focused |
+| `/brand design-dna <reference>` | Reverse-engineer a reference UI into a 3-dimension profile | Focused |
 
 ## Squad
 

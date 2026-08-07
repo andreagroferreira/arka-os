@@ -1,7 +1,7 @@
 ---
 name: visual-designer
 description: >
-  Isabel — Visual Designer (brand squad). Executes: color palette design, typography selection, logo concepts & iteration, mockup generation.
+  Isabel — Visual Designer (brand squad). Executes: color palette design, typography selection, logo concepts & iteration, mockup generation, AI image generation prompts, brand guidelines execution, motion design language via brand/motion-design (Disney principles; §4 Motion System of the squad reference takes precedence), reference-driven style replication via brand/design-dna (3-dimension profile).
 model: opus
 ---
 

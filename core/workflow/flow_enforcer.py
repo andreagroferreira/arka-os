@@ -16,12 +16,15 @@ Design contract:
 - Gated tool list is closed: anything outside it is always allowed.
 """
 
+import contextlib
 import json
 import os
 import re
+import time
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path
 
 from core.shared import safe_session_id as _safe_session_id_module
@@ -51,10 +54,8 @@ def _locked_append(path: Path):
         yield fh
     finally:
         if _HAS_FLOCK:
-            try:
+            with contextlib.suppress(OSError):
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                pass
         fh.close()
 
 # PR11 v2.33.0 — Discovery vs Effect tool taxonomy (Conclave Phase 5).
@@ -107,7 +108,7 @@ _BASH_DISCOVERY_FIRST: frozenset[str] = frozenset({
     "shopt", "trap", "wait", "eval", "exec",
     # Test runners (read state but don't mutate canonical files)
     "pytest", "jest", "vitest", "phpunit", "pest", "rspec", "mocha",
-    "go", "cargo",
+    "cargo",
 })
 
 # Bash classifier — patterns that indicate mutation (anywhere in command).
@@ -182,10 +183,8 @@ def bash_is_effect(command: str) -> bool:
         first = first_tokens[0] if first_tokens else ""
     if not first:
         return False
-    if first in _BASH_DISCOVERY_FIRST:
-        return False
-    # Unknown command — default to requiring routing.
-    return True
+    # Unknown commands default to requiring routing.
+    return first not in _BASH_DISCOVERY_FIRST
 
 ROUTING_RE = re.compile(r"\[arka:routing\]\s*[\w-]+\s*->\s*\w+", re.IGNORECASE)
 TRIVIAL_RE = re.compile(r"\[arka:trivial\]\s*\S+", re.IGNORECASE)
@@ -227,6 +226,17 @@ class Decision:
     # Interaction Reform PR3 — plan-approval telemetry (WARN phase):
     # "approved" | "missing" | "no-plan" | "unknown" | "" (not gated).
     approval_state: str = ""
+    # PR-A5a shadow-deny: with hardEnforcement off, the gate still runs
+    # and records what it WOULD have decided. `would_block` is True when
+    # enforcement would have denied; `shadow_reason` carries the inner
+    # decision's reason (shadow ran iff it is non-empty); `shadow_ms`
+    # (float, sub-ms preserved) measures the added evaluation cost for
+    # the pre-side p90 kill-switch criterion — the post-side cost is
+    # attributed separately in hook-metrics.json (see wiki/16). All
+    # three stay at their defaults on enforced paths.
+    would_block: bool = False
+    shadow_reason: str = ""
+    shadow_ms: float = 0.0
 
     def to_stderr_message(self) -> str:
         if self.allow:
@@ -257,13 +267,37 @@ def _feature_flag_on() -> bool:
     return bool(data.get("hooks", {}).get("hardEnforcement", False))
 
 
+@lru_cache(maxsize=1)
+def shadow_deny_on() -> bool:
+    """``hooks.shadowDeny`` — the shadow-telemetry kill-switch (PR-A5a).
+
+    DEFAULT ON: a missing config file, corrupt or undecodable JSON, or a
+    missing key all mean ON (the telemetry that gates the A5b flip
+    collects by default); only an explicit falsy value turns it off.
+    Mirrored by engine.cjs ``shadowDenyOn`` via the gate manifest — keep
+    the two in lockstep. Cached per process (each hook invocation is a
+    fresh interpreter, so the cache scope is one tool call; tests call
+    ``shadow_deny_on.cache_clear()`` after rewriting the config).
+    """
+    if not CONFIG_PATH.exists():
+        return True
+    try:
+        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return True
+    hooks = data.get("hooks") if isinstance(data, dict) else None
+    if not isinstance(hooks, dict) or "shadowDeny" not in hooks:
+        return True
+    return bool(hooks["shadowDeny"])
+
+
 def _bypass_env_active() -> bool:
     return os.environ.get("ARKA_BYPASS_FLOW", "").strip() == "1"
 
 
 def _audit_bypass(session_id: str, tool: str, cwd: str) -> None:
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
         "tool": tool,
         "cwd": cwd,
@@ -278,7 +312,7 @@ def record_telemetry(
 ) -> None:
     """Append a structured record to the enforcement telemetry log."""
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
         "tool": tool,
         "cwd": cwd,
@@ -407,7 +441,7 @@ def _annotate_plan_approval(decision: Decision, session_id: str) -> Decision:
             )
         else:
             decision.approval_state = "no-plan"
-    except Exception:  # noqa: BLE001 — annotation must never break a hook
+    except Exception:
         decision.approval_state = "unknown"
     return decision
 
@@ -462,11 +496,61 @@ def _evaluate_flow(
     if not is_gated:
         return Decision(allow=True, reason="tool-not-gated")
 
-    if not _feature_flag_on():
+    if _feature_flag_on():
+        return _decide_gated(
+            tool_name, transcript_path, session_id, cwd, messages
+        )
+    if not shadow_deny_on():
         return Decision(allow=True, reason="feature-flag-off")
+    return _shadow_decision(
+        tool_name, transcript_path, session_id, cwd, messages
+    )
 
+
+def _shadow_decision(
+    tool_name: str,
+    transcript_path: str,
+    session_id: str,
+    cwd: str,
+    messages: list[str] | None,
+) -> Decision:
+    """Run the gated chain in shadow (PR-A5a): allow regardless, record
+    what enforcement would have decided. Silent by construction — the
+    inner decision's warning/stderr never propagates."""
+    start = time.perf_counter()
+    inner = _decide_gated(
+        tool_name, transcript_path, session_id, cwd, messages, shadow=True
+    )
+    return Decision(
+        allow=True,
+        reason="feature-flag-off",
+        marker_found=inner.marker_found,
+        phase_observed=inner.phase_observed,
+        would_block=not inner.allow,
+        shadow_reason=inner.reason,
+        shadow_ms=round((time.perf_counter() - start) * 1000, 3),
+    )
+
+
+def _decide_gated(
+    tool_name: str,
+    transcript_path: str,
+    session_id: str,
+    cwd: str,
+    messages: list[str] | None,
+    shadow: bool = False,
+) -> Decision:
+    """The enforcement chain behind the feature flag.
+
+    ``shadow=True`` runs the identical chain for the telemetry-only
+    caller; the sole suppressed side effect is the bypass audit — an env
+    bypass of an inactive gate is not a bypass and must not pollute the
+    accountability log. State writes (confirm/grace) run in both modes
+    so the shadow would_block rate is the rate a flip would produce.
+    """
     if _bypass_env_active():
-        _audit_bypass(session_id, tool_name, cwd)
+        if not shadow:
+            _audit_bypass(session_id, tool_name, cwd)
         return Decision(allow=True, reason="env-bypass", bypass_used=True)
 
     if not _flow_required_for_session(session_id):
@@ -485,6 +569,11 @@ def _evaluate_flow(
         messages = _load_last_assistant_messages(
             transcript_path, ASSISTANT_WINDOW
         )
+    return _decide_from_markers(session_id, messages)
+
+
+def _decide_from_markers(session_id: str, messages: list[str]) -> Decision:
+    """Marker scan + persistent-auth fallback + grace ladder."""
     marker_found, phase_observed = _scan_markers(messages)
 
     if marker_found is not None:
@@ -511,12 +600,15 @@ def _evaluate_flow(
         return Decision(
             allow=True, reason="turn-grace", phase_observed=phase_observed
         )
+    return _decide_grace(session_id, phase_observed)
 
-    # First effect-tool of a turn with no confirmed auth. A hard deny here
-    # is a false positive (the assistant may have routed in this very
-    # message — invisible to us). Grace it with a warning; escalate to a
-    # real block only after GRACE_CAP consecutive graced turns without any
-    # confirmation (a normally-routing session confirms by turn 2).
+
+def _decide_grace(session_id: str, phase_observed: str | None) -> Decision:
+    """First effect-tool of a turn with no confirmed auth. A hard deny
+    here is a false positive (the assistant may have routed in this very
+    message — invisible to us). Grace it with a warning; escalate to a
+    real block only after GRACE_CAP consecutive graced turns without any
+    confirmation (a normally-routing session confirms by turn 2)."""
     grace = flow_authorization.register_grace(session_id)
     if grace.escalate:
         return Decision(
@@ -545,7 +637,7 @@ def mark_flow_required(session_id: str) -> None:
         return
     FLOW_REQUIRED_DIR.mkdir(parents=True, exist_ok=True)
     marker = FLOW_REQUIRED_DIR / safe
-    marker.write_text(datetime.now(timezone.utc).isoformat(), encoding="utf-8")
+    marker.write_text(datetime.now(UTC).isoformat(), encoding="utf-8")
 
 
 def clear_flow_required(session_id: str) -> None:

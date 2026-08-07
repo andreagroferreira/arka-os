@@ -242,7 +242,7 @@ def build_marketplace(emitted: dict[str, list[str]]) -> dict:
 def skill_provenance(dept: str, slug: str) -> SkillProvenance:
     """Provenance from the skill's own frontmatter, path-tagged on error.
 
-    A bare pydantic traceback across 260 skills is a needle hunt on the
+    A bare pydantic traceback across the full skill tree is a needle hunt on the
     release-critical path (step 1b) — name the file that broke.
     """
     skill_md = DEPARTMENTS_DIR / dept / "skills" / slug / "SKILL.md"

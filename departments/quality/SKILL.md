@@ -44,11 +44,19 @@ Any Department Workflow:
        - overall == "insufficient-evidence" → APPROVED only with an
          explicit justification in the verdict notes; otherwise REJECTED.
     4. If ANY reviewer rejects → work loops back with the blockers list
+    4.5. Marta's gate-closing report reproduces each reviewer verdict
+         VERBATIM under `### <Reviewer> — verbatim`, with the ledger
+         artifact path (~/.arkaos/quality-gate/<session>/) beside it.
+         Summarising a reviewer in the aggregator's words is relay,
+         not report — a relay inside a gate is a point of distortion.
     5. If ALL approve → Marta issues final APPROVED verdict
     6. Record the label (evals ADR 2026-07-09): pipe Marta's final
        QGVerdict JSON to
-       `arka-py -m core.evals.record_cli --department <dept>
-        [--deliverable <title>] [--eval-task-id <id>] [--session-id <id>]`
+       `arka-py -m core.evals.record_cli --kind qg --session-id <session>
+        --department <dept> [--deliverable <title>] [--eval-task-id <id>]`
+       (the aggregate path REQUIRES --session-id: the
+       anti-self-approval guard reads that session's reviewer ledger
+       and refuses an aggregate it cannot support)
        — every verdict feeds the eval/distillation corpus
        (~/.arkaos/telemetry/qg-verdicts.jsonl). Applies to EVERY review,
        not only eval runs; --eval-task-id only when the review judged a
@@ -68,25 +76,35 @@ Any Department Workflow:
 
 ## Reviewer Dispatch Contract
 
-Reviewers are dispatched via the Agent tool with STRUCTURED OUTPUT. The output
-schema is `QG_VERDICT_JSON_SCHEMA` from `core.governance.qg_verdict` (the JSON
-Schema of the `QGVerdict` pydantic model):
+Reviewers are dispatched via the Agent tool. The `QGVerdict` schema
+(`QG_VERDICT_JSON_SCHEMA` from `core.governance.qg_verdict`) travels INSIDE
+the prompt — the Agent tool has no structured-output parameter, so the
+contract IS the dispatch prompt naming the exact fields (PR-B4 dispatch
+shape; a dispatch that invents its own field names fail-softs the artifact):
 
     from core.governance.qg_verdict import QG_VERDICT_JSON_SCHEMA
 
     Agent(
-        subagent_type="francisca-tech",       # .claude/agents/francisca-tech.md
-        model="sonnet",                        # opus ONLY for Tier 0/security scope
-        prompt="<evidence report JSON> + <diff summary> — interpret and return QGVerdict",
-        output_schema=QG_VERDICT_JSON_SCHEMA,  # structured-output param
+        subagent_type="francisca-tech",  # .claude/agents/francisca-tech.md
+        model="opus",                    # quality_gate.model_policy: best available
+        prompt="<evidence report JSON incl. report_digest> + <diff summary> — "
+               "interpret and return, in a ```arka-qgverdict fence, a QGVerdict "
+               "with fields: verdict, evidence_report, blockers "
+               "[{check, detail, file, verdict}], reviewer, model_used, "
+               "evidence_digest (= the report_digest), notes",
     )
 
-Each reviewer MUST return a `QGVerdict` JSON object: `verdict`
-(APPROVED|REJECTED), `evidence_report` (embedded summary), `blockers`
-(`[{check, detail, file}]`), `reviewer`, `model_used`, `notes`. The pydantic
-model rejects APPROVED-with-failing-evidence at validation time, and
-`core.governance.review_workflow` raises `ValueError` on any attempt to record
-an approval over `evidence_overall == "fail"`.
+Each reviewer MUST return a `QGVerdict` JSON object in a ```arka-qgverdict
+fence: `verdict` (APPROVED|REJECTED), `evidence_report` (embedded summary),
+`blockers` (`[{check, detail, file, verdict}]` — `check` names the evidence
+check; the aggregate guard's coverage matching keys on it), `reviewer`,
+`model_used`, `evidence_digest` (mandatory since PR-B4 — an artifact without
+it cannot support an APPROVED aggregate), `notes`. The Pydantic model rejects
+APPROVED-with-failing-evidence at validation time, and the anti-self-approval
+guard (PR-B3, hardened PR-B4) refuses an APPROVED aggregate the session's
+reviewer ledger cannot support — dispatch-shape issues are demoted to
+warnings on a REJECTED one; fabrication vectors (quorum, a vanishing
+CONFIRMED blocker) refuse regardless of verdict.
 
 ## Squad
 
@@ -130,9 +148,11 @@ There is no "APPROVED WITH CAVEATS". It's binary. Fix issues first.
 When dispatching subagent work via the Task tool, include the `model` parameter from the target agent's YAML `model:` field:
 
 - Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | haiku`
-- Quality Gate reviewers (Eduardo/Francisca) run on `sonnet` by DEFAULT.
-  `opus` is used ONLY when the diff is Tier 0 scope (constitution, security,
-  release pipeline, installer auth) or the deliverable is security-flagged.
+- Quality Gate agents (Marta aggregating, Eduardo + Francisca reviewing)
+  run on the BEST model available — single source: constitution
+  `quality_gate.model_policy` (Excellence Reform 2026-07-05, frontier
+  tier; per-role overrides in `~/.arkaos/models.yaml`, Model Fabric).
+  Economy tiers never review.
 - Marta keeps her veto regardless of the model tier the review ran on —
   the verdict derives from evidence, not from model size.
 - Default to `sonnet` if the agent YAML has no `model` field

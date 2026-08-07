@@ -52,6 +52,11 @@ expertise:
     - Nuxt 3
     - React 19 / Next.js 15
     - TypeScript
+    - GSAP + ScrollTrigger implementation via dev/gsap (performance.md as the review bar)
+    - real-time 3D and R3F scenes via dev/threejs (disposal doctrine, performance budget)
+    - generative canvas backgrounds via dev/canvas-generative
+    - React motion via dev/framer-motion
+    - zero-dependency CSS effects via dev/css-native
     - Tailwind CSS
     - Design system implementation
     - Accessibility (WCAG 2.1 AA)

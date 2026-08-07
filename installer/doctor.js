@@ -14,6 +14,7 @@ import {
   resolveServicesForProfile,
 } from "./services.js";
 import { menubarHealthy } from "./menubar.js";
+import { LEGACY_PERSONAS } from "./adapters/claude-code.js";
 
 const INSTALL_DIR = join(homedir(), ".arkaos");
 
@@ -36,9 +37,21 @@ export function currentInstallProfile(
 
 /** Null when the check applies; otherwise the human-readable skip reason. */
 export function checkSkipReason(check, activeProfile) {
-  if (!check.minProfile) return null;
-  if (profileIncludes(activeProfile, check.minProfile)) return null;
-  return `not in ${activeProfile} profile`;
+  if (check.minProfile && !profileIncludes(activeProfile, check.minProfile)) {
+    return `not in ${activeProfile} profile`;
+  }
+  // PR-B5: per-check applicability — a project-scoped check run outside
+  // a project is an informational skip (same rendering as the profile
+  // gate), never a misleading fail. A predicate that throws must not
+  // hide its check, so the error path runs the check normally.
+  if (typeof check.skipIf === "function") {
+    try {
+      return check.skipIf() || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 // Resolve a single command via the platform-native locator. Returns true
@@ -204,6 +217,77 @@ export function watchMediaTooling() {
   }
   if (!commandExists("yt-dlp")) missing.push("yt-dlp");
   return missing;
+}
+
+// PR-B5 (N5): a project is "repaired" when the three Quality Gate
+// reviewers are deployed WITH the QGVerdict contract and no v1 persona
+// remains dispatchable — at project scope OR at user scope, where the
+// installer used to write them as arka-<name>.md (QG r1 B2: the arka-
+// prefix defeats basename matching, so user-level detection reads the
+// frontmatter name instead). Injectable for tests; the check uses the
+// cwd and the real user agents dir.
+export function qgAgentsRepaired(
+  agentsDir = join(process.cwd(), ".claude", "agents"),
+  userAgentsDir = join(homedir(), ".claude", "agents")
+) {
+  for (const reviewer of ["marta-cqo", "eduardo-copy", "francisca-tech"]) {
+    try {
+      const text = readFileSync(join(agentsDir, `${reviewer}.md`), "utf-8");
+      if (!text.includes("QGVerdict")) return false;
+    } catch {
+      return false;
+    }
+  }
+  try {
+    for (const file of readdirSync(agentsDir)) {
+      if (!file.endsWith(".md")) continue;
+      if (LEGACY_PERSONAS.has(file.slice(0, -3))) return false;
+    }
+  } catch {
+    return false;
+  }
+  try {
+    for (const file of readdirSync(userAgentsDir)) {
+      if (!file.endsWith(".md")) continue;
+      if (isLegacyQgPersonaFile(join(userAgentsDir, file))) return false;
+    }
+  } catch {
+    // No user-level agents dir — nothing legacy can be dispatched there.
+  }
+  return true;
+}
+
+// The v1 QG trio at user scope: dispatchability follows the frontmatter
+// `name:`, not the filename. Detection only — retirement of user-level
+// files belongs to the deployer that wrote them (skill-deploy.js).
+export function isLegacyQgPersonaFile(path) {
+  try {
+    // First 500 chars only: enough for installer-written files, whose
+    // frontmatter opens the file deterministically (skill-deploy copies
+    // departments/*/agents/*.md verbatim). A hand-crafted file with the
+    // name buried deeper is out of detection scope on purpose — this
+    // check hunts the installer's own deploys, not user files.
+    const head = readFileSync(path, "utf-8").slice(0, 500);
+    const match = head.match(/^name:\s*([A-Za-z0-9-]+)\s*$/m);
+    return (
+      !!match &&
+      ["cqo", "copy-director", "tech-ux-director"].includes(match[1])
+    );
+  } catch {
+    return false;
+  }
+}
+
+// PR-B5: the hook-boundary channel has captured at least one session's
+// verdicts on this machine. Injectable for tests.
+export function qgLedgerPopulated(
+  root = join(INSTALL_DIR, "quality-gate")
+) {
+  try {
+    return readdirSync(root).length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export const checks = [
@@ -411,6 +495,40 @@ export const checks = [
     },
     fix: () =>
       "Remove the ARKAOS_ROOT export from your shell rc (~/.zshrc) — the hooks resolve the root themselves",
+  },
+  {
+    name: "qg-agents",
+    description: "Quality Gate reviewers deployed (QGVerdict contract, project + user scope)",
+    severity: "fail",
+    // PR-B5 (N5): a project whose .claude/agents/ lacks the three
+    // reviewers with the QGVerdict contract — or still carries
+    // dispatchable v1 personas — runs every Quality Gate through a
+    // contract-less agent: the dead-relay shape the campaign repaired.
+    // Project-scoped: skipped outside a project directory.
+    skipIf: () =>
+      existsSync(join(process.cwd(), ".claude", "agents"))
+        ? null
+        : "no .claude/agents here — run inside a project",
+    check: () => qgAgentsRepaired(),
+    // The two arms need two different commands: init reaches only the
+    // project scope (installer/init.js -> deployProjectAgents), while
+    // the user-scope retirement runs in deploySkills, reached from
+    // install and update — a fix string naming init alone sends the
+    // user in a dead-end loop (QG r2, both reviewers independently).
+    fix: () =>
+      "Run: npx arkaos update  (retires v1 QG personas from ~/.claude/agents/), then npx arkaos init in the project (deploys the QGVerdict reviewers into .claude/agents/)",
+  },
+  {
+    name: "qg-ledger",
+    description: "Quality Gate reviewer ledger has captured verdicts",
+    severity: "warn",
+    // PR-B5: an empty ledger root means the hook-boundary channel has
+    // never captured a verdict on this machine — the relay may still be
+    // dead in practice even with every contract deployed. Warn, not
+    // fail: a fresh install legitimately starts empty.
+    check: () => qgLedgerPopulated(),
+    fix: () =>
+      "Run a Quality Gate review — reviewer verdicts are hook-captured to ~/.arkaos/quality-gate/<session>/",
   },
   {
     name: "profile",

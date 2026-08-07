@@ -20,7 +20,7 @@ The single source of truth is the adapter capabilities matrix:
 
 | Runtime | Status | agent dispatch | headless | file ops | hooks |
 |---|---|---|---|---|---|
-| **Claude Code** | First-class | ✅ Agent tool | ✅ `claude -p` | ✅ | ✅ 5 lifecycle points |
+| **Claude Code** | First-class | ✅ Agent tool | ✅ `claude -p` | ✅ | ✅ 10 lifecycle events |
 | **Gemini CLI** | Headless | ❌ | ✅ `gemini -p --output-format json` | ✅ interactive | ❌ |
 | **Codex CLI** | Headless (new, v4.1) | ❌ | ✅ `codex exec --json` | ✅ sandboxed | ❌ |
 | **Cursor** | Single-agent / experimental | ❌ | ❌ | ✅ IDE agent mode | ❌ |
@@ -45,9 +45,12 @@ How ArkaOS maps to the current Claude Code orchestration surface:
 - **Agent Teams + SendMessage:** leads may message a running specialist
   via SendMessage (course-correct without a fresh dispatch) where the
   runtime exposes it.
-- **Structured outputs for subagent verdicts:** Quality Gate verdicts
-  are structured outputs (APPROVED/REJECTED schema, PR-4 v4.1) — no
-  regex-parsing of prose verdicts.
+- **Structured verdicts for subagents:** Quality Gate verdicts are
+  QGVerdict JSON (APPROVED/REJECTED schema, PR-4 v4.1) emitted in an
+  `arka-qgverdict` fence and captured verbatim at the hook boundary
+  (PR-B1/B4). The schema travels in the dispatch prompt — the Agent
+  tool has no structured-output parameter, so the fence contract is
+  what makes the verdict machine-readable.
 - **Workflow / ultracode:** ArkaOS workflow YAMLs play the same role as
   harness-native workflows — phases, gates, and parallelization declared
   declaratively, executed by the runtime that is available.
@@ -69,6 +72,8 @@ ArkaOS installs these lifecycle hooks into `~/.claude/settings.json`:
 | `UserPromptSubmit` | Before every prompt | Runs all 12 Synapse layers in-process (`core/hooks/user_prompt_submit.py` → `scripts/synapse-bridge.py::run_bridge`) and injects the resulting context string; adds `[ARKA:WORKFLOW-REQUIRED]` on creation/implementation verbs; runs the 4-check token hygiene pass |
 | `PostToolUse` | After every tool call | Tracks error patterns to `gotchas.json`; records tool usage for budget accounting |
 | `PostToolUseFailure` | After a failed tool call | Same entrypoint as `PostToolUse`; the runtime fires this event (with the output in `error`) when a tool throws, so failed-command turns feed the gotchas pipeline |
+| `SubagentStop` | When a subagent finishes | Captures a QG reviewer's final output verbatim to the reviewer ledger (`core/governance/reviewer_ledger.py`) and queues the verdict notice that the next `Stop` delivers to the orchestrator |
+| `SessionEnd` | On session close | Writes the final session digest; stamps the session's reviewer ledger (`.ended`) so records that predate the stamp cannot back a new APPROVED aggregate (session binding) |
 | `PreCompact` | Before context compaction | Saves a session digest to Obsidian; preserves agent memory and task state |
 | `CwdChanged` | On directory change | Reloads project context (`CLAUDE.md`, `.arkaos.json`, stack detection) |
 

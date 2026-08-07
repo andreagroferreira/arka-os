@@ -90,3 +90,69 @@ def test_version_is_aligned_across_manifests():
     assert version  # non-empty
     assert (_ROOT / "package.json").read_text(encoding="utf-8").count(f'"{version}"') >= 1
     assert version in (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+
+def test_no_doc_carries_a_superseded_skill_count():
+    """No prose surface may assert a skill count docs_stats disagrees with.
+
+    The repo-wide replacement for a tripwire that used to exist by
+    accident: a literal `333` pinned inside
+    tests/python/test_skills_catalog_gen.py failed on any added skill and
+    so caught stale prose everywhere. Deriving that assertion (correct in
+    itself) removed the alarm, and the same PR shipped nine stale counts
+    across seven files while all eighteen docs locks stayed green — one
+    wiki page held both 333 and 334 at once.
+
+    Scope: hand-written Markdown and the scripts that generate prose.
+    Excluded by design, because each states what was true when written and
+    must keep its figures: CHANGELOG.md, docs/adr/, and the dated
+    implementation plans and specs under docs/superpowers/. Also excluded:
+    docs/.work/ (untracked scratch that declares itself unpublishable) and
+    docs/SKILLS-CATALOG.md, which is generated and drift-gated against its
+    own source. harness/, plugins/ and marketplace/ are outside the roots
+    walked here for the same generated-artifact reason.
+    """
+    import re
+
+    current = {
+        _STATS["skills"]["core"],
+        _STATS["skills"]["departments"],
+        _STATS["skills"]["plugins"],
+    }
+    # prompt_lint.py is excluded because its data IS a list of retired
+    # counts: it exists to ban them, so finding them there is the tool
+    # working, not prose drifting.
+    skip_names = {"SKILLS-CATALOG.md", "CHANGELOG.md", "prompt_lint.py"}
+    skip_dirs = {"adr", ".work", "plans", "specs"}
+    files = [_ROOT / "README.md", _ROOT / "CLAUDE.md", _ROOT / "CONTRIBUTING.md",
+             _ROOT / "arka" / "SKILL.md"]
+    for root in (_ROOT / "wiki", _ROOT / "docs", _ROOT / "scripts"):
+        if not root.is_dir():
+            continue
+        for path in [*root.rglob("*.md"), *root.rglob("*.py")]:
+            if path.name in skip_names or skip_dirs & set(path.parts):
+                continue
+            files.append(path)
+
+    # `(?<![~\d])` lets an explicit approximation ("~200 skills") through:
+    # it claims a magnitude, not a count, and does not go stale.
+    pattern = re.compile(
+        r"(?<![~\d])\b(\d{3})\s+"
+        r"(?:core\s+|department\s+|plugin\s+|non-curated\s+)?skills?\b"
+    )
+    offenders = []
+    for path in files:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for match in pattern.finditer(text):
+            value = int(match.group(1))
+            # Only judge numbers in the plausible band; unrelated
+            # three-digit figures (ports, years, token counts) are not
+            # skill counts even when a noun follows.
+            if 150 <= value <= 999 and value not in current:
+                line = text[: match.start()].count("\n") + 1
+                offenders.append(f"{path.relative_to(_ROOT)}:{line} says {match.group(0)!r}")
+    assert not offenders, (
+        "these surfaces assert a skill count docs_stats does not report "
+        f"({sorted(current)}); regenerate or correct them:\n  "
+        + "\n  ".join(offenders)
+    )

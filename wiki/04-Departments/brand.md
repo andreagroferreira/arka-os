@@ -2,11 +2,55 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/brand` · **Lead:** Valentina (Tier 1) · **Agents:** 10 · **Skills:** 13
+> **Prefix:** `/brand` · **Lead:** Valentina (Tier 1) · **Agents:** 10 · **Skills:** 16
 
 Brand & Design is the squad that turns strategy into identity. It covers the full spectrum from brand positioning and naming through visual system production, UX research, component library standardization, and accessibility conformance. The guiding principle is that visual decisions must trace back to strategic ones: the squad never opens a design tool before completing the strategy, verbal identity, and architecture phases.
 
 Reach for this squad when you are starting a new brand, overhauling an existing one, building or extending a design system, running a UX audit, or need any artefact — logo, color palette, voice guide, wireframe, mockup — that will represent the product to the world.
+
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 12 | 16 | 10 |
+
+**Commands** (12 via `/brand`):
+
+| Command | What it does |
+| --- | --- |
+| `/brand audit` | Brand audit against Primal Code completeness |
+| `/brand colors <mood>` | Color palette design with theory |
+| `/brand design-system` | Design system specification (Atomic Design) |
+| `/brand guidelines` | Compile brand guidelines document |
+| `/brand identity <name>` | Full brand identity (strategy to visual system) |
+| `/brand logo <brief>` | Logo concept generation with AI |
+| `/brand mockup <type>` | Generate mockups with AI image generation |
+| `/brand naming <project>` | Brand naming with SMILE/SCRATCH evaluation |
+| `/brand positioning <name>` | Positioning statement (Ries/Trout template) |
+| `/brand ux-audit <url>` | UX heuristic audit (Nielsen 10) |
+| `/brand voice <context>` | Define brand voice and tone guide |
+| `/brand wireframe <page>` | UI wireframe and information architecture |
+
+**Skills** (16 — 15 sub-skills plus the `/brand` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `archetype-finder` | Identifies a brand's archetype from the 12 Jungian archetypes and maps it to personality traits, voice, and... |
+| `brand-hub` | Brand & Design department. Full brand identity creation, UX/UI design, design systems, visual identity, and... |
+| `colors` | Designs a brand color palette — primary, secondary, accent, and neutrals — delivered with hex codes, usage... |
+| `design-dna` | Extracts the design DNA of a reference UI into a structured JSON profile across three dimensions — design_s... |
+| `design-review` | Visual review of live designs against brand guidelines and a named benchmark — screenshots the real UI (Pla... |
+| `design-system` | Ships a production design system in 5 deliverables: design-tokens.json (primitive + semantic layers), an At... |
+| `identity-system` | Builds a full brand identity in the correct order — strategy, then verbal, then visual (never skips to visu... |
+| `logo-brief` | Generates logo concepts from a brief: mood references, AI-generated concept directions, variations, rationa... |
+| `mockup-generate` | Generates brand-applied mockups — product, packaging, social, and stationery — with AI image-generation pro... |
+| `motion-design` | Motion design direction — decides WHAT should move, how fast, and why, before any code: emotional intent, moti... |
+| `naming-evaluate` | Generates 30+ brand name candidates across six categories and evaluates them with Alexandra Watkins' SMILE... |
+| `positioning-statement` | Writes a brand positioning statement in the Ries/Trout format — FOR [target] WHO [need], [brand] IS A [cate... |
+| `primal-audit` | Audits an existing brand against Patrick Hanlon's 7 Primal Code elements using a 21-point evidence-cited ru... |
+| `ux-audit` | UX heuristic audit of a live interface against Nielsen's 10 heuristics and Laws of UX — navigates real user... |
+| `voice-guide` | Creates a brand voice and tone guide — personality, vocabulary, do's and don'ts, tone matrix, and channel-s... |
+| `wireframe` | Designs wireframes — layout, navigation, content hierarchy, and interaction notes — using Garrett's 5 Plane... |
 
 ## The squad
 

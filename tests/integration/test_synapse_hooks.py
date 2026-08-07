@@ -78,7 +78,7 @@ class TestSynapseBridge:
 
     def test_bridge_command_hints(self):
         output = self._run_bridge({"user_input": "validate my saas idea"})
-        assert "[hint:" in output["context_string"]
+        assert "[arka:skill-hint]" in output["context_string"]
 
     def test_bridge_performance(self):
         """Bridge completes within budget, including Python startup.

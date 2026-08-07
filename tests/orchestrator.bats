@@ -85,8 +85,10 @@ print(f'Registry generated: {reg[\\\"_meta\\\"][\\\"total_commands\\\"]} command
   run bash -c "echo '$INPUT' | bash '$REPO_DIR/config/hooks/user-prompt-submit.sh'"
   [ "$status" -eq 0 ]
 
-  # Output should contain a hint for /mkt social
-  [[ "$output" == *"hint:"* ]] || [[ "$output" == *"dept:marketing"* ]] || [[ "$output" == *"mkt"* ]]
+  # Output must carry the imperative skill-hint marker itself — the old
+  # disjunction let this test pass through the weakest arm ("mkt") for a
+  # reason unrelated to the marker it guards (QG A4, Francisca M1).
+  [[ "$output" == *"[arka:skill-hint]"* ]]
 }
 
 @test "hook L5 produces no command hints for explicit slash commands" {
@@ -99,6 +101,9 @@ print(f'Registry generated: {reg[\\\"_meta\\\"][\\\"total_commands\\\"]} command
   [ "$status" -eq 0 ]
 
   # Output should NOT contain hint tags for explicit commands
+  # (PR-A4: the hint marker is now [arka:skill-hint]; the legacy [hint:
+  # form is asserted absent too so a partial revert cannot slip through)
+  [[ "$output" != *"[arka:skill-hint]"* ]]
   [[ "$output" != *"[hint:"* ]]
 }
 

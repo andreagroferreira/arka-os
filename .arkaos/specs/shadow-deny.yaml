@@ -1,0 +1,103 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: shadow-deny
+  project: arka-os
+  status: approved
+  date_created: "2026-08-03"
+  date_approved: "2026-08-03"
+  approved_by: operator
+  canonical: "~/.claude/plans/o-que-temos-a-swirling-cascade.md (PR 1)"
+  overview: >
+    PR-A5a — feat(telemetry): shadow-deny. With the enforcement flags
+    off, the three PreToolUse gates (flow_enforcer, frontend_gate,
+    specialist_enforcer) evaluate ANYWAY and record what enforcement
+    WOULD have decided — would_block + shadow_reason + shadow_ms in the
+    existing telemetry files — while always allowing and staying
+    completely silent. This telemetry feeds the A5b promotion criteria
+    (would_block < 5%, zero >2-consecutive would-block sequences in a
+    session, over >= 7 days and >= 300 gated calls). Kill-switch
+    hooks.shadowDeny (default ON; explicit falsy value = off) covers
+    the p90 > +50ms regression criterion: the pre-side cost is measured
+    from shadow_ms (float ms, including the transcript parse the shadow
+    forces) and the post-side cost from hook-metrics.json — benign post
+    runs log a labelled entry, and the delegation="benign" +
+    shadow=true + enforcement=false subset is exactly the shadow-forced
+    flow-auth rescan population.
+  design_decisions:
+    - >-
+      shadow default ON (missing config file, corrupt JSON, or missing
+      hooks.shadowDeny key all mean ON; python-truthy coercion of an
+      explicit value) — the PR exists to collect data by default
+    - >-
+      shadow evaluation RUNS the real state machine (flow_authorization
+      confirm/grace, specialist/design persist-on-observe) so the
+      measured decisions are the decisions a flip would produce;
+      state writes are behaviour-neutral while decisions stay allow
+    - >-
+      the only suppressed write side effects in shadow are the bypass
+      audit (_audit_bypass) and the specialist bypass counter
+      (bypass_used/bypass_reason reset in the shadow wrapper) — a
+      bypass of an inactive gate is not a bypass and must not pollute
+      the accountability logs; shadow_reason still records it
+    - >-
+      shadow decisions never emit stderr (warning suppressed) — zero
+      operator-visible output change
+    - >-
+      outer telemetry reason stays "feature-flag-off"/"flag-off"; on
+      those flag-off records, shadow ran iff shadow_reason != ""
+      (schema-unambiguous; warn-mode allow records may carry an empty
+      shadow_reason, so the iff is scoped to flag-off records)
+    - >-
+      frontend warn mode is annotation-only (already evaluates):
+      would_block = what hard mode would deny (suffix scope, no
+      structured/trivial/persisted marker), shadow_ms = 0
+    - >-
+      engine.cjs decidePost delegates the flow-auth rescan when shadow
+      is on (parity with hardEnforcement) — without it the post-side
+      confirm never runs and the shadow grace ladder overstates
+      would_block; missing manifest flag entry = ON (delegate,
+      degrade-to-latency direction); schema_version stays 2 (old
+      engine + new manifest degrades to stale shadow state, never a
+      wrong deny)
+  acceptance_criteria:
+    - >-
+      flag off + shadow on -> allow=True, reason unchanged, telemetry
+      carries would_block/shadow_reason mirroring the exact enforcement
+      outcome (marker present -> would_block false; grace exhausted ->
+      would_block true; classifier no-match -> would_block false)
+    - >-
+      shadow path never denies, never prints to stderr, never writes
+      the bypass audit, and never counts a specialist bypass
+      (bypass_used/bypass_reason reset before telemetry)
+    - >-
+      hooks.shadowDeny=false restores the pre-A5a early return (no
+      transcript read, no shadow fields beyond defaults)
+    - >-
+      enforcement-on paths byte-identical in behaviour (would_block
+      stays False on real denies)
+    - >-
+      frontend warn mode records would_block without added transcript
+      reads; off mode evaluates only when shadow is on
+    - >-
+      specialist flag-off shadow carries persona/ownership context in
+      telemetry; sidechain dispatch behaviour unchanged
+    - >-
+      gate-manifest regenerated; parity test green; engine.cjs
+      decidePost delegates flow-auth rescan under shadow; JS suite
+      covers shadowDenyOn coercion corpus
+    - >-
+      shadow_ms (float ms, sub-ms preserved) recorded on every shadow
+      evaluation and includes the transcript parse the shadow forced
+      (claimed once via _MessagesOnce.consume_load_ms); 0 on
+      annotation-only paths; the field is clock-derived, pinned by a
+      monkeypatched perf_counter test
+    - >-
+      post-side shadow-forced delegations are attributable AND recorded:
+      benign post runs log a hook-metrics entry carrying the
+      enforcement/shadow flag labels plus delegation="benign" (pinned
+      by test_post_benign_run_logs_shadow_delegation and
+      test_post_metrics_carry_shadow_attribution); stateful and error
+      delegations carry their own delegation kinds so the shadow-forced
+      subset is exactly filterable

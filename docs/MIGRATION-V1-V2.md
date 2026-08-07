@@ -20,7 +20,7 @@ If you used ArkaOS v1 (the bash-only version installed via `git clone`), this gu
 | **Quality Gate** | Optional | Mandatory on every workflow (non-negotiable) |
 | **Agent profiles** | Basic role descriptions | 4-framework behavioral DNA (DISC, Enneagram, MBTI, Big Five) |
 | **Token tracking** | None | Budget system with per-department limits |
-| **Testing** | Minimal | 4,500+ tests (pytest) |
+| **Testing** | Minimal | 4,956 tests (pytest) |
 
 ### New Departments in v2
 
@@ -115,7 +115,7 @@ If you forget to migrate, the v2 hooks detect v1 installations automatically. Yo
 
 ```
 [MIGRATION] ArkaOS v1 detected at ~/.claude/skills/arka-os.
-Run 'npx arkaos migrate' to upgrade to v2 (82 agents, 267 skills, dashboard).
+Run 'npx arkaos migrate' to upgrade to v2 (89 agents, 340 skills, dashboard).
 Your data will be preserved.
 ```
 
@@ -134,8 +134,8 @@ All 9 checks should pass:
 [PASS] Hooks configured for claude-code
 [PASS] Synapse engine responsive
 [PASS] Knowledge DB initialized
-[PASS] 82 agents loaded
-[PASS] 267 skills validated
+[PASS] 89 agents loaded
+[PASS] 340 skills validated
 [PASS] 24 workflows registered
 All checks passed.
 ```

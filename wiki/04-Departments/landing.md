@@ -2,11 +2,59 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/landing` · **Lead:** Ines (Tier 1) · **Agents:** 4 · **Skills:** 15
+> **Prefix:** `/landing` · **Lead:** Ines (Tier 1) · **Agents:** 4 · **Skills:** 19
 
 The Landing Pages & Funnels department owns conversion — from the moment a prospect clicks to the moment they buy. Ines and her squad design offers, write the copy, build the page architecture, run the tests, and wire the affiliate layer. Every deliverable is grounded in the conversion canon: Hormozi's offer economics, Schwartz's awareness-matching, and Brunson's ascension ladder.
 
 The squad treats a landing page as a complete argument, not a design exercise. Copy structure comes before layout. Offer clarity comes before headline polish.
+
+## Command surface
+
+| Commands | Skills | Agents |
+| --- | --- | --- |
+| 17 | 19 | 4 |
+
+**Commands** (17 via `/landing`):
+
+| Command | What it does |
+| --- | --- |
+| `/landing affiliate <product>` | Affiliate bridge page and program design |
+| `/landing awareness <traffic>` | Diagnose audience awareness level |
+| `/landing copy <type>` | Sales copy using awareness-matched framework |
+| `/landing email <sequence>` | Email sequence (cart, nurture, launch) |
+| `/landing funnel <type>` | Funnel architecture (squeeze, webinar, VSL, SLO) |
+| `/landing headline <product>` | Headline writing (10+ variants for testing) |
+| `/landing launch <product>` | Product launch using PLF sequence |
+| `/landing lead-magnet <topic>` | Lead magnet design and email capture |
+| `/landing metrics` | Funnel metrics tracking and analysis |
+| `/landing offer <product>` | Grand Slam Offer creation (Hormozi value equation) |
+| `/landing optimize <page>` | CRO optimization with ResearchXL |
+| `/landing page <product>` | Landing page structure and wireframe |
+| ... | 5 more — full list in [docs/COMMANDS.md](../../docs/COMMANDS.md) |
+
+**Skills** (19 — 18 sub-skills plus the `/landing` hub):
+
+| Skill | What it does |
+| --- | --- |
+| `ab-test` | A/B test plan for landing page elements: hypothesis, control and variants, sample size, test duration, and... |
+| `affiliate-bridge` | Affiliate bridge page spec that pre-sells a third-party offer: review or comparison angle, page copy, trust... |
+| `awareness-diagnose` | Diagnose where the audience sits on Schwartz's 5 awareness levels (unaware, problem, solution, product, mos... |
+| `copy-framework` | Select and apply the right copywriting framework for a landing page by awareness level — 8 frameworks (AIDA... |
+| `email-sequence` | Standalone email sequence design — cart abandonment, nurture, launch, post-purchase — with subject lines, b... |
+| `funnel-design` | Sales funnel architecture on Brunson's Value Ladder: selects the funnel type (squeeze, tripwire, SLO, webin... |
+| `funnel-metrics` | Funnel metrics report: stage-by-stage conversion rates, drop-off diagnosis, attribution, and a prioritised... |
+| `headline-write` | Write 10+ headline variants matched to the audience's awareness level (Ogilvy rules + Schwartz), with per-v... |
+| `landing-hub` | Landing Pages & Sales Funnels department. Direct response copywriting, funnel architecture, offer creation,... |
+| `landing-gen` | Generate a complete, production-ready landing page as TSX + Tailwind components — hero, features, pricing,... |
+| `launch-sequence` | Product launch plan using Jeff Walker's Product Launch Formula: pre-launch content PLC 1-3, open cart, clos... |
+| `lead-magnet` | Plan, create, or optimize a lead magnet for email capture and lead generation — gated content, content upgr... |
+| `offer-create` | Design, construct, or improve the offer itself — the thing you sell — with Hormozi's Value Equation and Gra... |
+| `optimize-page` | Landing page CRO with ResearchXL: heuristic analysis, heatmap review, and a prioritized test backlog for an... |
+| `page-architect` | Landing page structural wireframe: above-the-fold anatomy, section order, copy blocks, CTA placement, and 1... |
+| `persuasion-apply` | Persuasion audit of a page or funnel against Cialdini's 6 principles — reciprocity, scarcity, authority, co... |
+| `popup-design` | Create or optimize popups, modals, overlays, slide-ins, or banners for conversion — exit intent, lead-captu... |
+| `signup-optimize` | Optimize signup, registration, account-creation, or trial-activation flows that are not performing — signup... |
+| `webinar-funnel` | Full webinar funnel (Brunson Perfect Webinar + false-belief patterns): registration page, 5-email reminder... |
 
 ## The squad
 

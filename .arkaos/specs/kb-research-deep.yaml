@@ -1,0 +1,100 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: kb-research-deep
+  project: arka-os
+  status: approved
+  date_created: "2026-08-03"
+  date_approved: "2026-08-03"
+  approved_by: operator
+  canonical: "~/.claude/plans/o-que-temos-a-swirling-cascade.md (PR 2, D3)"
+  overview: >
+    PR-D3 — feat(kb): skill kb/research-deep. The heavy-research ladder
+    the campaign's workstream D exists to enable: Obsidian FIRST
+    (mandatory, cite or declare the gap), then NotebookLM — reached
+    EXCLUSIVELY through the core.kb.nlm_client chokepoint shipped in
+    D2, never the notebooklm binary directly — then open web for
+    whatever gap remains, and a synthesis note written back to the
+    Obsidian vault carrying provenance frontmatter (egress_decision,
+    degraded). Degradation is a contract, not an error: an unusable
+    NotebookLM result puts its [arka:source-skipped] marker on record
+    and the ladder continues — a broken upstream can never block the
+    research.
+  design_decisions:
+    - >-
+      NotebookLM access is chokepoint-only; the skill instructs the
+      one-liner through ~/.arkaos/bin/arka-py calling
+      core.kb.nlm_client.send/check — the D1 egress guard (redaction,
+      deny-by-default, audit) therefore screens every payload; the
+      skill never invokes the notebooklm CLI, never vendors
+      notebooklm-py, never auto-installs it (campaign decision
+      2026-07-26, D2 spec)
+    - >-
+      the ladder result taxonomy follows NotebookLMResult: ok=False
+      always means fall back; denied vs degraded is recorded in the
+      write-back frontmatter as egress_decision, whose four values are
+      ok, denied, degraded and not-attempted (the last when rung 2
+      never ran, which corresponds to no field), plus the boolean
+      degraded field the plan names
+    - >-
+      write-back note frontmatter carries provenance — egress_decision,
+      egress_reason, degraded, payload_sha256 (set on denial too for any
+      text payload, since the guard digests what it refused) and the
+      ladder rungs actually used — so the operator can grep the vault by
+      egress_decision for what reached NotebookLM and what never left
+    - >-
+      out of the curated set: no entry in config/skills-curated.yaml
+      (no kb skill is curated today); the skill ships via the kb
+      department marketplace plugin
+    - >-
+      provenance metadata says content is first-party, written as
+      origin arkaos — the only first-party value
+      core/skills/provenance.py accepts; notebooklm-py is a RUNTIME
+      dependency, not vendored — THIRD-PARTY-NOTICES.md records the
+      dependency and its MIT license (verified on PyPI 2026-08-03,
+      notebooklm-py 0.8.0, github.com/teng-lin/notebooklm-py)
+    - >-
+      agent wiring (Clara, Lucas and the Forge explorers only) and the
+      arka research-deep CLI are OUT of scope — that is D4
+  acceptance_criteria:
+    - >-
+      departments/kb/skills/research-deep/SKILL.md exists with the
+      byte-identical arka:kb-first-prefix block (locked by the existing
+      marketplace prefix tests)
+    - >-
+      the skill's NotebookLM rung uses core.kb.nlm_client exclusively
+      and quotes the send and check contract truthfully — ok, denied
+      and degraded semantics, the marker line, ALLOWED_ACTIONS —
+      pinned executably by tests/python/test_kb_research_deep.py
+      against the real module, never by prose alone
+    - >-
+      the documented commands never interpolate research text into a
+      shell string: quoted heredoc plus a scratch file, so backticks,
+      command substitution, quotes and $HOME in a question cannot
+      execute or manufacture a false confidentiality denial (QG D3 r1,
+      Francisca B1 — reproduced live)
+    - >-
+      degradation never blocks — the skill text makes the fall-through
+      explicit and puts the marker on record
+    - >-
+      the write-back template carries egress_decision and degraded in
+      frontmatter, exactly the two field names the campaign plan names
+    - >-
+      the /kb research-deep row is in the kb hub, taking it from 12 to
+      13 commands, and every hand-maintained count that tracks it moves
+      with it (CLAUDE.md department table and file tree)
+    - >-
+      docs_stats counts regenerated, never hand-typed; marketplace
+      regenerated (skills-manifest and kb plugin) with the new slug OUT
+      of curated
+    - >-
+      THIRD-PARTY-NOTICES.md documents the notebooklm-py MIT runtime
+      dependency without vendoring claims
+    - >-
+      this spec parses under yaml.safe_load and carries the column-0
+      status mirror the spec-driven gate matches (QG D3 r2, Francisca
+      B1); tests/python/test_specs_wellformed.py locks both for every
+      file in .arkaos/specs/
+    - >-
+      full python and npm suites green at the head

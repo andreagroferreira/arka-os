@@ -198,3 +198,160 @@ Material derived from this project:
 
 The MIT permission notice and copyright line above apply to all copies
 and substantial portions of the derived material.
+
+## design-dna (the design-dna authors / zanwei)
+
+- **Source:** https://github.com/zanwei/design-dna
+- **License:** MIT — Copyright (c) 2026 the design-dna authors
+- **License text:** retained verbatim at
+  `departments/brand/skills/design-dna/references/design-dna.LICENSE`
+- **Upstream version:** main HEAD `9d9d795` (2026-04-13)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| DNA schema | `departments/brand/skills/design-dna/references/schema.md` | Verbatim — the 3-dimension field list (`design_system` tokens, `design_style` qualitative, `visual_effects` WebGL/shader/scroll) |
+| Generation guide | `departments/brand/skills/design-dna/references/generation-guide.md` | Verbatim — priority order, per-dimension mapping to code, effect implementation patterns by performance tier |
+| Skill procedure | `departments/brand/skills/design-dna/SKILL.md` | Rewritten to the ArkaOS standard, not verbatim: the 3-phase workflow and dimension semantics are upstream's, while the routing contract (TRIGGER/SKIP), the KB-first prefix, the delegation of the measurable phase-2 extraction to Nia (`extraction-script-writer`), and the effect-tier table keyed to performance cost are ArkaOS |
+
+Not carried over: the five translated READMEs
+(`README.{es,ja,ko,zh-CN,zh-TW}.md`) and
+`docs/example-style-transfer.png`, none of which the skill needs.
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.
+
+## genjutsu (Adrien Thevon / AThevon)
+
+- **Source:** https://github.com/AThevon/genjutsu
+- **License:** MIT — Copyright (c) 2026 Adrien Thevon
+- **License text:** retained verbatim at
+  `departments/dev/skills/canvas-generative/references/genjutsu.LICENSE`
+  (identical copies beside each derived skill)
+- **Upstream version:** main HEAD `08a792f` (2026-07-31)
+
+Material derived from this project — four of its fifteen skills
+(three as their own slugs; the fourth inside `dev/threejs`):
+
+| Surface | Location | Notes |
+|---|---|---|
+| Canvas generative | `departments/dev/skills/canvas-generative/` | Body near-verbatim (DPR setup, particle pool, noise, flow fields, fractals, double buffer, Do Not); `references/algorithms.md` verbatim except the particle-system usage example, corrected for DPR-space spawning, undeclared `w`/`h`, and RAF-handle cleanup. ArkaOS: frontmatter routing, agent attribution, Output, the resize handler's CSS-box update, and the sub-skill handoff table rewritten to in-repo destinations |
+| Framer Motion | `departments/dev/skills/framer-motion/` | Body near-verbatim (AnimatePresence, layout, variants, gestures, motion values, Do Not); `references/api.md` verbatim. ArkaOS: frontmatter, attribution, Output |
+| CSS native | `departments/dev/skills/css-native/` | Body near-verbatim (scroll-driven timelines, View Transitions, @starting-style, anchor positioning, container queries); `references/modern-css.md` verbatim. ArkaOS: frontmatter, attribution, Output |
+| R3F layer (from `threejs-r3f`) | `departments/dev/skills/threejs/references/{r3f,scene-setup,shaders}.md` | Absorbed into the dedicated three.js skill — full trail in the "three.js documentation (three.js authors) and genjutsu threejs-r3f" section below |
+
+Deliberately not carried over — the remaining eleven skills, with the
+reason each was rejected:
+
+- `ui-ux-pro-max` — already installed as its own plugin
+  (`~/.claude/plugins/`); duplicating it would create two routers
+  competing for the same triggers.
+- `gsap` — a third-party condensation of the official GreenSock pack;
+  the primary source wins and is absorbed as `dev/gsap` (its own
+  section below).
+- `motion-principles` — overlaps the official LottieFiles
+  motion-design pack, which is deeper and is absorbed as
+  `brand/motion-design` (its own section below).
+- `swiftui-graphics`, `swiftui-motion`, `compose-graphics`,
+  `compose-motion`, `compose-multiplatform` — Apple/Android native
+  platforms outside the ArkaOS stack (Laravel, Vue, Nuxt, React, Next,
+  Python); no consumer.
+- `desktop-principles`, `mobile-principles` — platform UX doctrine for
+  native apps; same no-consumer reason.
+- `design-audit` — covered by `brand/design-review` and `brand/ux-audit`.
+
+Also not carried over, outside the skill count: the repo's packaging
+artifacts (`packaging/genjutsu-router.md`, the Claude-AI bundling script)
+and the 786KB `assets/logo.png`.
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.
+
+## three.js documentation (three.js authors) and genjutsu threejs-r3f
+
+- **Sources:** https://github.com/mrdoob/three.js (docs/llms.txt) and
+  https://github.com/AThevon/genjutsu (skills/_jutsu/threejs-r3f)
+- **Licenses:** both MIT — "Copyright © 2010-2026 three.js authors";
+  "Copyright (c) 2026 Adrien Thevon"
+- **License text:** genjutsu's retained verbatim at
+  `departments/dev/skills/threejs/references/genjutsu.LICENSE`; the
+  three.js licence applies to guidance consulted, not files copied
+- **Upstream versions:** three.js `dev` docs as of 2026-08-05; genjutsu
+  `08a792f` (2026-07-31)
+
+Material in `departments/dev/skills/threejs/`:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Skill core | `SKILL.md` | ArkaOS-authored. Facts and canonical patterns (import maps, WebGL vs WebGPU/TSL renderer choice) follow the three.js project's own LLM guidance in `docs/llms.txt` (MIT); the prose, structure, disposal doctrine and performance budget are original |
+| R3F layer | `references/r3f.md` | Derived from genjutsu's `threejs-r3f` SKILL.md: body near-verbatim minus frontmatter, with the two handoff rows that pointed at unabsorbed genjutsu siblings rewritten to in-repo destinations |
+| Scene setup | `references/scene-setup.md` | Verbatim from genjutsu |
+| Shaders | `references/shaders.md` | Verbatim from genjutsu |
+
+The `cloudai-x/threejs-skills` pack the operator originally pointed at
+was deliberately not used — not as source, not as structural reference.
+It ships **no LICENSE file and names no copyright holder**; its README
+carries only a bare, unattributed "MIT License - Feel free to use,
+modify, and distribute" line, which grants nothing verifiable to rely
+on. This section exists partly to record that decision.
+
+The MIT permission notices and copyright lines above apply to all copies
+and substantial portions of the derived material.
+
+## motion-design-skill (LottieFiles)
+
+- **Source:** https://github.com/lottiefiles/motion-design-skill
+- **License:** MIT — Copyright (c) 2025 LottieFiles
+- **License text:** retained verbatim at
+  `departments/brand/skills/motion-design/references/motion-design-skill.LICENSE`
+- **Upstream version:** main HEAD `f9a8a04` (2026-05-18)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Skill body | `departments/brand/skills/motion-design/SKILL.md` | Upstream body near-verbatim (three pillars, 8-step checklist, decision tree, duration/easing quick tables); ArkaOS adds the frontmatter routing contract, agent attribution, squad-reference line, Output section, and rebases the internal links under `references/` |
+| Director doctrine | `references/director/` (8 files) | Verbatim — choreography, context adaptation, core philosophy, decision framework, Disney principles, emotion mapping, motion personality, narrative structure |
+| Patterns | `references/patterns/` (4 files) | Verbatim — ambient/continuous, entrance/exit, multi-element, state feedback |
+| Reference tables | `references/reference/` (4 files) | Verbatim — property selection, quality checklist, timing/easing tables, troubleshooting. The upstream `reference/` directory name is kept inside `references/` so the trees' internal `../reference/` links stay valid |
+
+Not carried over: the repository `README.md` (marketing copy the skill
+does not need).
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.
+
+## gsap-skills (GreenSock)
+
+- **Source:** https://github.com/greensock/gsap-skills
+- **License:** MIT — Copyright (c) 2026 GreenSock
+- **License text:** retained verbatim at
+  `departments/dev/skills/gsap/references/greensock-gsap-skills.LICENSE`
+- **Upstream version:** main HEAD `aed9cfd` (2026-04-21)
+
+Material derived from this project:
+
+| Surface | Location | Notes |
+|---|---|---|
+| Eight official modules | `departments/dev/skills/gsap/references/{core,timeline,scrolltrigger,plugins,utils,frameworks,react,performance}.md` | Upstream SKILL.md bodies near-verbatim, one file per module; each gains a two-line derivation header, and every sibling cross-reference is rewritten from `gsap-<name>` to `references/<name>.md` |
+| Router | `departments/dev/skills/gsap/SKILL.md` | ArkaOS-authored: routing contract, module table, the two cross-module rules (cleanup, performance as review bar), Output |
+
+Not carried over: `examples/{vanilla,react,vue,nuxt}/`;
+`.github/instructions/*.instructions.md` and
+`.github/copilot-instructions.md` (the same content in Copilot-specific
+format); the repo-level agent files (`AGENTS.md`, `CLAUDE.md`,
+`GEMINI.md`), `README.md`, `.gitignore`, `.claude-plugin/` and
+`.cursor-plugin/` packaging, `assets/` logos, and `skills/llms.txt` (an
+index the router replaces). The two "See `examples/...`" pointers in
+`frameworks.md` are annotated as upstream-repo references since the
+directories are not vendored.
+
+This absorption retires an unmanaged external dependency:
+`departments/brand/references/uiux-knowledge-and-tools.md` previously
+instructed `npx skills add https://github.com/greensock/gsap-skills`;
+that instruction and every `gsap-<name>` load in the brand, content and
+dev docs now point at the in-repo skill.
+
+The MIT permission notice and copyright line above apply to all copies
+and substantial portions of the derived material.

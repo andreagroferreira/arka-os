@@ -1,0 +1,169 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: notebooklm-chokepoint
+  project: arka-os
+  status: approved
+  date_created: "2026-08-02"
+  date_approved: "2026-08-02"
+  approved_by: operator
+  canonical: "Obsidian: Projects/ArkaOS/Specs/SPEC-notebooklm-chokepoint.md"
+  overview: >
+    PR-D2 — feat(kb): notebooklm chokepoint over the D1 egress guard.
+    Second slice of workstream D. D1 shipped the policy with ZERO call
+    sites; this slice gives it the only one it will ever need for
+    NotebookLM: a single client module through which every payload
+    passes `core.egress.policy.evaluate` before a subprocess is even
+    built. The tool itself is NOT vendored (operator installs
+    `notebooklm-py` with uv per the campaign decision — the upstream
+    API is a moving target); this module shells out to the installed
+    CLI, or reports its absence, and never auto-installs.
+
+    `evaluate`, not `enforce`: the module needs the DECISION, because
+    the telemetry line carries both digests and the finding kinds;
+    `enforce` raises EgressDeniedError and hands back only the cleared
+    text. `evaluate` is documented never to raise, and the call is
+    wrapped anyway — a guard that fails is a denial, never a send.
+
+    Degradation is a CONTRACT, not a fallback: any failure — tool
+    absent, timeout, nonzero exit, rejected action or option, an
+    unusable or refused home — returns a NotebookLMResult carrying
+    `[arka:source-skipped] notebooklm (<reason>)`, so the caller
+    degrades to arka-research with the gap declared. An import-graph
+    test forbids `core.kb` outright from `core/governance`,
+    `core/workflow` and `core/release`, so the critical path can never
+    grow a dependency on a tool Google can break.
+  acceptance_criteria:
+    - "every outbound payload passes egress.policy.evaluate BEFORE the
+      subprocess is constructed — a denied payload never reaches
+      argv, an env var, a temp file or the CLI; proven by a spy that
+      fails the test if the builder ran AND by an mkstemp spy that
+      fails if anything touched disk first"
+    - "what leaves is the REDACTED text the decision carried, never
+      the caller's original — asserted on the payload FILE the
+      subprocess would read (the payload is never in argv; see the
+      no-shell criterion below)"
+    - "a denial becomes a result, never an exception: callers get
+      denied=True plus the finding kinds, and the raw finding TOKENS
+      never appear in the returned message (they name client
+      identifiers, secret labels and home paths)"
+    - "no shell: subprocess is invoked with an argv LIST and
+      shell=False; the payload is passed via a temp file under
+      NOTEBOOKLM_HOME, never interpolated into a command string"
+    - "no argv pass-through: callers pass typed options (notebook,
+      output_format) validated against a closed pattern and a closed
+      set, and THIS module renders argv — an UNVALIDATED
+      caller-supplied string has no route to argv, positional or
+      otherwise"
+    - "NOTEBOOKLM_HOME defaults to ~/.arkaos/notebooklm, is created
+      0700, and the payload temp file is 0600 and removed in a
+      finally — including on timeout and on nonzero exit.
+
+      Every resource a call READS or WRITES under the home — the
+      payload directory, the telemetry trail, D1's egress audit trail
+      and its salt, AND the redaction-clients list the guard redacts
+      with — is screened at every position along its path, the node
+      included, on every door the home arrives through. The read
+      matters as much as the writes: an attacker owning the
+      identifier list owns the guard's whole notion of a client name.
+      The set is DISCOVERED, not listed: `pkgutil.iter_modules` over
+      the core.egress PACKAGE, then every `default_*_path` each module
+      exports. Both axes matter and each was learned the hard way — a
+      hand-written helper list missed `default_allowlist_path`, and
+      capturing that file turns a denial into an allow (QG D2 r12,
+      Francisca B1); a hand-written MODULE list then missed `redact`,
+      leaving the sentence above true only because that module happens
+      to export none today (r13, Francisca B2). A helper anywhere in
+      the package is screened on the day it lands.
+
+      Two pins, because neither alone closes the set: a walk over
+      what BOTH public entry points create, failing on anything the
+      set does not cover; and a derivation test asserting every D1
+      helper is a member, since a walk cannot observe a READ.
+
+      RESIDUAL, declared: the walk sees only what is written, under
+      the passed home, on a path send() or check() takes. A resource
+      written outside the scoped home would not declare itself.
+
+      RESIDUAL, declared rather than implied: this is a PRE-OPEN
+      ownership screen, not an atomic one. An attacker who wins the
+      window between the screen and the open can still swap a
+      component. Closing it needs an openat(O_NOFOLLOW|O_DIRECTORY)
+      walk from a pinned root fd, and it has to land in D1 — core/
+      egress/audit.py opens the salt and the trail itself without
+      O_NOFOLLOW, so a walk added here alone would harden this
+      module's opens while advertising a closure D1 does not have
+      (QG D2 r11, Francisca M3). Filed as a D1 follow-up."
+    - "absence is reported, never installed: check() returns the
+      resolved binary or a reason; no code path runs uv, pip or npm"
+    - "every failure mode — tool absent, timeout, nonzero exit,
+      rejected action or option, a payload home that is unwritable,
+      relative, symlinked AT THE LEAF or reached through a symlinked
+      ANCESTOR planted by another user, unwritable payload, guard
+      failure, and any unexpected client error — returns a degraded
+      result with a
+      [arka:source-skipped] marker naming the reason; the module
+      never raises at its public boundary — send() and check() answer
+      a hostile argument by name rather than raising. Output is
+      NOT parsed: stdout is passed through raw, so there is no
+      unparseable-output mode to handle"
+    - "telemetry: one JSONL line per call whose trail write succeeds,
+      in ~/.arkaos/telemetry/notebooklm-usage.jsonl (0600 in a 0700
+      dir), carrying ts, action, ok, denied, degraded, reason,
+      finding_kinds and BOTH digests — payload_sha256 is the ORIGINAL,
+      so an operator grepping the text they wrote can answer 'did this
+      ever leave?', and redacted_sha256 is what actually left. Never
+      the payload, never a finding token, never a path inside a
+      reason. The trail is best-effort: a failed write never fails the
+      call, and leaves no line"
+    - "import-graph test: core/governance, core/workflow and
+      core/release contain no import of core.kb at all — the whole
+      package, not just nlm_client, and the transitive closure rather
+      than one hop — so a broken upstream can never block a gate or a
+      release"
+    - suite green, ruff clean
+  follow_ups:
+    - "D1 (core/egress/audit.py): openat(O_NOFOLLOW|O_DIRECTORY) walk
+      from a pinned root fd at audit.py:71 (salt create), :79-83 (salt
+      READ via read_bytes, which follows a link), and :117-119 (trail
+      open with O_WRONLY|O_CREAT|O_APPEND and no O_NOFOLLOW, which
+      follows and then chmods the target). D2's pre-open screen is the
+      only defence at those nodes today and is racy by construction
+      (QG D2 r11, Francisca M3)."
+    - "harness (core/governance/evidence_checks.py): _check_typecheck
+      gates on shutil.which('mypy') while the venv install has no PATH
+      binary — the anti-pattern _tool_cmd was written to fix — and
+      then reports 'no typecheck configuration detected' although
+      pyproject.toml sets [tool.mypy] strict. Needs _tool_cmd plus a
+      scoped invocation and a skip reason that distinguishes 'not
+      configured' from 'configured but unavailable' (QG D2, Francisca
+      r5 M5 / r7)."
+    - "harness: the coverage check parses whatever coverage.xml is in
+      the project root with no freshness test against HEAD — a stale
+      artifact reads as a pass on a MUST rule (QG D2 r3, Francisca
+      M4)."
+    - "D2 hardening, all MINOR and none reachable on the shipped tree
+      (QG D2 r14, Francisca M1-M4, approved with these open): helper
+      discovery is one level deep, so `pkgutil.walk_packages` would
+      also reach a subpackage; a class-bound `default_*_path` is not
+      discovered; a helper whose signature is not `helper(home)`
+      raises TypeError inside `_resources_under`, before any
+      resource reaches the screen's catch, and
+      `check()` calls the screen outside a try, so `check()` would
+      raise where `send()` degrades; and a core.egress module that
+      raises on import makes core.kb.nlm_client unimportable. Deepest
+      residual: the convention itself is `default_*_path`, so a D1
+      resource only READ and named off-convention is missed by both
+      pins — the write-side walk still catches anything newly
+      written."
+  non_goals:
+    - no vendoring of notebooklm-py, no auto-install, no MCP server
+      registration (the campaign decision keeps MCP opt-in at
+      category optional, in zero profiles)
+    - no kb/research-deep skill and no Obsidian write-back (D3), no
+      `arka research-deep` CLI or agent wiring (D4), no dashboard
+      surface (D5)
+    - no network code of our own — the installed CLI owns the
+      transport; this module owns the guard, the process boundary and
+      the degradation contract

@@ -82,7 +82,7 @@ The Forge for multi-agent planning before execution.
 - Phase 0.5: Forge analysis (after spec creation, before squad planning)
 - Complexity assessment: automatic via Synapse L8 (ForgeContextLayer)
 - Manual invocation: `/forge` command
-- Handoff: Forge outputs structured plan -> squad executes phases
+- Handoff: Forge outputs structured plan → squad executes phases
 <!-- arka:feature:forge-integration:end -->
 
 <!-- arka:feature:quality-gate:start -->
@@ -115,7 +115,7 @@ Three workflow tiers based on task complexity:
 | Tier | Phases | When |
 |------|--------|------|
 | Enterprise | 7-10 phases | Complex features, multi-file changes |
-| Focused | 3-5 phases | Medium tasks, single-domain changes |
+| Focused | 3-4 phases | Medium tasks, single-domain changes |
 | Specialist | 1-2 phases | Simple tasks, quick fixes |
 
 Tier selection is automatic based on complexity assessment.

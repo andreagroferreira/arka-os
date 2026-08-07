@@ -136,3 +136,20 @@ def test_session_end_runs_ledger_retention(tmp_path, monkeypatch):
 
     session_end.main({"session_id": "live", "transcript_path": "", "cwd": "/tmp"})
     assert not aged.exists(), "SessionEnd must run ledger retention"
+
+
+def test_session_end_stamps_own_ledger_dir(tmp_path, monkeypatch):
+    """PR-B4 session binding: main() must stamp THIS session's ledger,
+    or a past session stays a reusable quorum token forever."""
+    from core.governance import reviewer_ledger
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    mine = reviewer_ledger.ledger_root() / "sess-live1"
+    mine.mkdir(parents=True)
+    (mine / "francisca-tech-1-deadbeef.json").write_text("{}", encoding="utf-8")
+
+    session_end.main(
+        {"session_id": "sess-live1", "transcript_path": "", "cwd": "/tmp"}
+    )
+    assert (mine / reviewer_ledger.ENDED_NAME).is_file()

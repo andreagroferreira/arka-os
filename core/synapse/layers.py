@@ -386,8 +386,89 @@ class BranchLayer(Layer):
 # --- L5: Command Hints ---
 
 
+# PR-A4: department slug -> deployed hub-skill directory. Both slug
+# vocabularies reach this layer — the registry department field (which
+# says "leadership") and the command-prefix slugs (which say "lead") —
+# and both must resolve. Registry values need no key: identity already
+# yields the right hub (leadership -> arka-leadership). The keys exist
+# for the four prefix slugs whose hub directory differs (mkt, fin,
+# strat, lead — the same alias set
+# tests/python/test_skill_routing_integrity.py pins) plus the two
+# orchestrator entries ("arka" and "do" both belong to the main
+# orchestrator skill; /do is the universal router in arka/SKILL.md).
+# An unknown department falls back to the identity form — a
+# wrong-but-plausible hint beats a crashed layer.
+_DEPT_HUB_EXCEPTIONS = {
+    "mkt": "arka-marketing",
+    "fin": "arka-finance",
+    "strat": "arka-strategy",
+    "lead": "arka-leadership",
+    "arka": "arka",
+    "do": "arka",
+}
+
+
+def _hub_skill(department: str) -> str:
+    return _DEPT_HUB_EXCEPTIONS.get(department, f"arka-{department}")
+
+
+def _hint_department(cmd: dict) -> str:
+    """Department for the hint's hub skill.
+
+    Falls back to the command prefix ("/dev feature" -> "dev",
+    "/arka-do" -> "arka") for registry entries that predate the
+    department field — an approximate hub beats no hint.
+    """
+    dept = str(cmd.get("department", ""))
+    if dept:
+        return dept
+    prefix = str(cmd.get("command", "")).lstrip("/").split(" ")[0]
+    return prefix.split("-")[0]
+
+
+def _score_commands(
+    commands: list[dict], text: str
+) -> list[tuple[int, str, str]]:
+    """Keyword-score the registry commands against the prompt text,
+    best score first; zero-score commands never qualify."""
+    scored = []
+    for cmd in commands:
+        keywords = cmd.get("keywords", [])
+        score = sum(1 for kw in keywords if kw.lower() in text)
+        if score > 0:
+            scored.append((
+                score,
+                cmd.get("command", ""),
+                _hint_department(cmd),
+            ))
+    scored.sort(reverse=True)
+    return scored
+
+
+def _hint_tag(top: list[tuple[int, str, str]]) -> str:
+    """Render the imperative hint tag for the top-scored commands.
+
+    EACH hint pairs the command with ITS OWN department's hub — the
+    top-2 can legitimately span two departments ("standup color
+    palette" matches /brand colors AND /pm story on the live registry),
+    and a hint whose hub belongs to the other command is a dead
+    instruction (QG A4, Francisca B1).
+    """
+    return " ".join(
+        f"[arka:skill-hint] Skill({_hub_skill(dept)}) -> {command}"
+        for _, command, dept in top
+    )
+
+
 class CommandHintsLayer(Layer):
-    """L5: Matching commands from the registry for non-explicit requests."""
+    """L5: Matching commands from the registry for non-explicit requests.
+
+    PR-A4: hints are IMPERATIVE — `[arka:skill-hint] Skill(arka-dev) ->
+    /dev feature <description>` names the exact tool call that fulfils
+    the route. The old `[hint:/cmd]` form was declarative and routinely
+    ignored: the model announced the squad in prose and the skill's
+    content never entered context.
+    """
 
     def __init__(self, commands: list[dict] | None = None) -> None:
         self._commands = commands or []
@@ -429,18 +510,10 @@ class CommandHintsLayer(Layer):
                 cached=False,
             )
 
-        # Score commands by keyword match
-        scored = []
-        for cmd in self._commands:
-            keywords = cmd.get("keywords", [])
-            score = sum(1 for kw in keywords if kw.lower() in text)
-            if score > 0:
-                scored.append((score, cmd.get("command", "")))
+        top = _score_commands(self._commands, text)[:2]
+        hints = [command for _, command, _ in top]
 
-        scored.sort(reverse=True)
-        hints = [cmd for _, cmd in scored[:2]]
-
-        tags = " ".join(f"[hint:{h}]" for h in hints)
+        tags = _hint_tag(top)
         ms = int((time.time() - start) * 1000)
         return LayerResult(
             layer_id=self.id,

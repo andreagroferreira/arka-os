@@ -126,7 +126,7 @@ def generate_registry(departments_dir: str | Path, output_path: str | Path) -> d
         registry["_meta"]["errors"] = errors
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(registry, f, indent=2, ensure_ascii=False)
 
     return registry

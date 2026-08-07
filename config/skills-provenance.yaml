@@ -111,6 +111,62 @@ derived:
     origin: community
     source: https://github.com/tt-a1i/archify
     license: MIT
+  # Animation/design absorption campaign PR-2 — the 3-dimension DNA
+  # schema and generation guide derived from zanwei/design-dna (MIT).
+  # References are the upstream markdown verbatim; the SKILL.md is
+  # rewritten to the ArkaOS standard and delegates the measurable phase-2
+  # extraction to Nia (extraction-script-writer) rather than duplicating
+  # her scripts.
+  departments/brand/skills/design-dna:
+    origin: community
+    source: https://github.com/zanwei/design-dna
+    license: MIT
+  # Animation/design absorption campaign PR-3 — three skills cherry-picked
+  # from AThevon/genjutsu (MIT, 15 skills upstream). Bodies are upstream
+  # near-verbatim with ArkaOS frontmatter, agent attribution and Output;
+  # canvas-generative's handoff table rewritten to in-repo destinations.
+  # The 12 skills NOT taken are recorded with reasons in
+  # docs/THIRD-PARTY-NOTICES.md.
+  departments/dev/skills/canvas-generative:
+    origin: community
+    source: https://github.com/AThevon/genjutsu
+    license: MIT
+  departments/dev/skills/framer-motion:
+    origin: community
+    source: https://github.com/AThevon/genjutsu
+    license: MIT
+  departments/dev/skills/css-native:
+    origin: community
+    source: https://github.com/AThevon/genjutsu
+    license: MIT
+  # Animation/design absorption campaign PR-4 — dev/threejs. Dual-source:
+  # the SKILL.md core is ArkaOS-authored from the three.js project's own
+  # LLM guidance (docs/llms.txt, MIT — recorded in THIRD-PARTY-NOTICES);
+  # references/r3f.md, scene-setup.md and shaders.md derive from
+  # AThevon/genjutsu's threejs-r3f skill (MIT, primary source here).
+  departments/dev/skills/threejs:
+    origin: community
+    source: https://github.com/AThevon/genjutsu
+    license: MIT
+  # Animation/design absorption campaign PR-5 — motion doctrine derived
+  # from lottiefiles/motion-design-skill (MIT): director/, patterns/ and
+  # reference/ trees verbatim under references/, SKILL.md body upstream
+  # near-verbatim with ArkaOS frontmatter, header and Output.
+  departments/brand/skills/motion-design:
+    origin: community
+    source: https://github.com/lottiefiles/motion-design-skill
+    license: MIT
+  # Animation/design absorption campaign PR-6 — the official GreenSock
+  # pack (MIT): eight upstream SKILL.md modules become references/ under
+  # one router slug (dev/diagram progressive-disclosure pattern), with
+  # sibling cross-refs rewritten from gsap-<name> to references/<name>.md.
+  # This absorption RETIRES the external dependency: the npx-skills-add
+  # instruction and every gsap-<name> load in brand/content/dev docs now
+  # point at the in-repo skill.
+  departments/dev/skills/gsap:
+    origin: community
+    source: https://github.com/greensock/gsap-skills
+    license: MIT
   # Marketing skills integration campaign — derived from
   # coreyhaines31/marketingskills (MIT). Frontmatter metadata must match
   # each entry field-for-field (test_registry_matches_frontmatter_field_for_field).

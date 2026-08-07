@@ -35,6 +35,12 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, Agent, WebFetch]
 - Ask user: What system/feature needs architecture?
 - Clarify: Scale requirements, team size, tech constraints
 - Identify: Domain boundaries, data flows, external integrations
+- Where the design leans on a specific framework or infrastructure
+  primitive, check the precedent with `mcp__gh-grep__searchGitHub`: grep
+  the structural tokens (a config key, a base class, a directory
+  convention) and read how real systems wired it. Feed what you find into
+  Step 4's Alternatives Considered — a pattern that public repos abandoned
+  is an alternative you can rule out with evidence instead of taste.
 
 ### Step 3: Architecture Design
 Apply the appropriate pattern:

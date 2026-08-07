@@ -175,12 +175,15 @@ class TestMemoryAction:
     def test_handoff_once_per_session(self, seeded):
         payload = {"prompt": "", "session_id": "oc-sess-2", "cwd": "/repo/myproj"}
         first = oh._action_memory(payload)
-        handoffs = [l for l in first["context"] if l.startswith("[arka:handoff]")]
+        handoffs = [
+            line for line in first["context"]
+            if line.startswith("[arka:handoff]")
+        ]
         assert len(handoffs) == 1
         assert "claude" in handoffs[0]
         second = oh._action_memory(payload)
         assert not any(
-            l.startswith("[arka:handoff]") for l in second["context"]
+            line.startswith("[arka:handoff]") for line in second["context"]
         )
 
     def test_no_handoff_when_latest_is_same_runtime(self, seeded):
@@ -202,7 +205,7 @@ class TestMemoryAction:
             {"prompt": "", "session_id": "oc-sess-3", "cwd": "/repo/myproj"}
         )
         assert not any(
-            l.startswith("[arka:handoff]") for l in out["context"]
+            line.startswith("[arka:handoff]") for line in out["context"]
         )
 
     def test_memory_failure_returns_empty_context(self, monkeypatch):
@@ -251,7 +254,7 @@ class TestRoutingBlock:
             {"prompt": "faz review deste código", "session_id": "rt-5",
              "cwd": "/repo/p"}
         )
-        assert any("[hint:" in line for line in out["routing"])
+        assert any("[arka:skill-hint]" in line for line in out["routing"])
 
     def test_workflow_directive_on_creation_verb(self):
         out = oh._action_prompt(
@@ -301,3 +304,43 @@ class TestMain:
     def test_corrupt_stdin_never_raises(self, capsys, monkeypatch):
         monkeypatch.setattr("sys.stdin", type("S", (), {"read": lambda s: "not json"})())
         assert oh.main() == 0
+
+
+class TestFailOpenExceptPaths:
+    """PR-A4 diff-scope pins: the bridge's fail-open arms are contract
+    ("the module NEVER raises"), so each one gets a hit, not a hope."""
+
+    def test_routing_hint_layer_crash_never_breaks_routing(self, monkeypatch):
+        from core.synapse import layers as sl
+
+        monkeypatch.setattr(
+            sl.CommandHintsLayer, "compute",
+            lambda self, ctx: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
+        out = oh._routing_lines("build a feature", "sess-fo-1", "/repo/p")
+        assert any("[ARKA:ROUTE]" in line for line in out)
+
+    def test_compact_state_crash_still_returns_gate_context(self, monkeypatch):
+        from core.workflow import state
+
+        monkeypatch.setattr(
+            state, "get_state",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
+        out = oh._action_compact({"session_id": "sess-fo-2"})
+        assert out["context"], "the static gate contract must survive"
+
+    def test_handler_crash_becomes_error_result(self, capsys, monkeypatch):
+        # The dispatch table binds handlers at import time — patch the
+        # table entry, not the module attribute.
+        monkeypatch.setitem(
+            oh._ACTIONS, "prompt",
+            lambda payload: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
+        monkeypatch.setattr(
+            "sys.stdin",
+            type("S", (), {"read": lambda s: '{"action": "prompt"}'})(),
+        )
+        assert oh.main() == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["error"].startswith("RuntimeError")

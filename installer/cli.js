@@ -75,7 +75,8 @@ Usage:
   npx arkaos models set <role> <provider>/<model>  Re-route a role
   npx arkaos mcp start        Start the arka-tools MCP server (stdio; --write enables writes)
   npx arkaos update --skills <curated|full>  Choose the deployed skill set (default: curated on fresh installs)
-  npx arkaos shield           Scan the harness config for vulnerabilities (--json)
+  npx arkaos shield           Scan the harness config for vulnerabilities (--json, --fix)
+  npx arkaos harness <verb>   Assert/report harness ownership (status|assert|restore|harden|flags)
   npx arkaos doctor           Run health checks
   npx arkaos uninstall        Remove ArkaOS
 
@@ -103,6 +104,13 @@ Examples:
   npx arkaos doctor                     Verify installation health
   npx arkaos shield                     Scan the harness config (exit 2 = critical)
   npx arkaos shield --json              Machine-readable, for CI
+  npx arkaos shield --fix               Plan the mechanical fixes; writes nothing (--apply to write)
+  npx arkaos shield --fix --apply       Apply them, after a timestamped backup
+  npx arkaos harness status             Drift report + ownership manifest (--json)
+  npx arkaos harness assert             Apply the spec under the policies (seed stays adopted)
+  npx arkaos harness restore            Assert + re-seed operator-adopted seed surfaces
+  npx arkaos harness harden             Assert + scanner grade (exit 2 below B)
+  npx arkaos harness flags [--set k=v]  Read or set enforcement flags explicitly
 `);
   process.exit(0);
 }
@@ -248,10 +256,35 @@ async function main() {
       break;
     }
 
+    case "harness": {
+      // Ownership manager (PR-C2). Same contract as shield: the
+      // child's exit code IS the interface (harden exits 2 below
+      // grade B), so it is propagated verbatim.
+      const { spawnSync: spawnHarness } = await import("node:child_process");
+      const repoRootHarness = join(__dirname, "..");
+      const pyHarness = getArkaosPython();
+      if (!pyHarness) { console.error("No Python found. Run: npx arkaos install"); process.exit(1); }
+      const harnessArgs = process.argv.slice(3);
+      const harnessRun = spawnHarness(
+        pyHarness,
+        ["-m", "core.harness.cli", ...harnessArgs],
+        {
+          stdio: "inherit",
+          cwd: process.cwd(),
+          env: { ...process.env, ARKAOS_ROOT: repoRootHarness, PYTHONPATH: repoRootHarness },
+        }
+      );
+      process.exit(harnessRun.status === null ? 1 : harnessRun.status);
+    }
+
     case "shield": {
       // The harness config as attack surface. Exit code is the contract
-      // CI gates on (0 = A/B, 1 = C/D, 2 = F or any CRITICAL), so the
-      // child's code is propagated verbatim rather than collapsed to 1.
+      // CI gates on (0 = A/B, 1 = C/D, 2 = F, any CRITICAL, or a root
+      // we could not read — any root the operator named, every root
+      // when none was readable, or any root that raised while being
+      // scanned; only a MISSING default root is noted instead of
+      // failing), so the child's code is propagated verbatim rather
+      // than collapsed to 1.
       const { spawnSync } = await import("node:child_process");
       const repoRootShield = join(__dirname, "..");
       const pyShield = getArkaosPython();

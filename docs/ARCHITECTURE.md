@@ -81,7 +81,7 @@ echo '{"user_input":"fix the authentication bug in the login controller"}' | pyt
 
 ```json
 {
-  "context_string": "[Constitution: branch-isolation, solid-clean-code, spec-driven...] [dept:dev] [agent:backend-dev-andre disc:C+D] [project:my-app stack:laravel 11.x] [branch:feat/auth-fix] [hint:/dev debug] [qg:active] [time:afternoon] [forge:plan-0012] [session:resume]",
+  "context_string": "[Constitution: branch-isolation, solid-clean-code, spec-driven...] [dept:dev] [agent:backend-dev-andre disc:C+D] [project:my-app stack:laravel 11.x] [branch:feat/auth-fix] [arka:skill-hint] Skill(arka-dev) -> /dev debug <issue> [qg:active] [time:afternoon] [forge:plan-0012] [session:resume]",
   "layers": {
     "L0_constitution":       {"ms": 2,  "cached": true},
     "L1_department":         {"ms": 8,  "cached": false, "detected": "dev"},
@@ -422,9 +422,9 @@ npx arkaos dashboard
 │   ├── runtime/                    # Multi-runtime adapters
 │   └── specs/                      # Living specifications
 ├── departments/                    # 17 departments
-│   ├── dev/                        # 10 agents, 41 skills, 3 workflows
-│   ├── marketing/                  # 4 agents, 14 skills
-│   ├── brand/                      # 4 agents, 12 skills
+│   ├── dev/                        # 15 agents, 64 skills, 3 workflows
+│   ├── marketing/                  # 7 agents, 32 skills
+│   ├── brand/                      # 10 agents, 13 skills
 │   └── ...                         # (14 more departments)
 ├── hooks/                          # Bash hooks for runtimes
 ├── scripts/                        # Synapse bridge + CLI tools

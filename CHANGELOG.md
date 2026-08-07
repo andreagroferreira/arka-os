@@ -5,6 +5,765 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.12.0] - 2026-08-06
+
+### Added
+- **knowledge:** retrieval evaluation harness — `score` and `latency` commands
+  measuring the production `KBContextLayer`, plus known-item probe generation
+  (#466)
+- **knowledge:** doctrine class + second-pass retrieval — reference/book
+  material reaches project-framed prompts; `research_gate` vault resolution
+  fixed (#431)
+- **knowledge:** lexical FTS5 signal fused into KB retrieval via RRF — the
+  English-only embedder could not reach the Portuguese fifth of the corpus
+  (#465)
+- **knowledge:** deep recall CLI — the on-demand slow lane at depth 50 with
+  vector+lexical agreement markers (#467)
+- `--force`/`--reindex` for `scripts/knowledge-index.py`; canonical vault
+  resolution (`core/knowledge/vault.py`, config-first, no guessed corpus)
+  (#476)
+
+### Fixed
+- **knowledge:** chunking counts real tokenizer tokens — 38% of a live corpus
+  was silently truncated at embed time; measured post-reindex: 15,499 →
+  22,929 chunks on the same vault (#433)
+- **kb:** the KB-first marker is evidence, not narration — the gate could
+  never fire while Synapse self-certified its own consultation; markers are
+  now written by PostToolUse on real Obsidian calls (#432)
+- **kb:** the KB-first gate never denies on an unresolved vault
+  (`kb-first-vault-unconfigured` telemetry reason) and every nudge branch
+  states exactly what it did (#476)
+- **knowledge:** the lexical sidecar was stale the instant it was built — WAL
+  checkpoint before `lexical.build`, self-healing rebuild when absent or
+  stale, fresh-process regression tests (#476)
+
+### Changed
+- one RRF implementation (`lexical.rrf`); `store_db_path` helper for every
+  consumer; doctrine block honors the grounding quarantine label (#476)
+
+### Fixed
+- **governance:** skill proposals no longer overwrite each other within the same
+  day — digest ladder with a fail-closed terminal rung: a path is only returned
+  when it is free or provably holds this exact proposal; on a fully occupied
+  ladder the proposal is dropped (`no-safe-filename`), never written over
+  foreign bytes (#469)
+- **dashboard:** client-side navigation no longer blanks the content panel (the
+  `out-in` page transition over `UDashboardPanel`'s fragment root is removed)
+  and empty-path API fetches are guarded in the transport layer, keeping cache
+  keys reactive — compare pages render distinct records again (#430)
+- **hooks:** session-start hardening — the hook no longer spawns the dashboard
+  or reorganizer under pytest (`ARKA_HOOK_NO_SPAWN` + `PYTEST_CURRENT_TEST`),
+  and a `build_context` failure surfaces as an `[ARKA:CONTRACTS]` notice
+  instead of silently dropping every operating contract (#427)
+- UTF-8 pinned on 52 shipped text file IO call-sites, with an AST guardrail
+  test that keeps new bare `open()`/`read_text()` calls out (#395)
+
+### Changed
+- **tests:** Windows test hygiene — shell invocations resolve bash through
+  `tests/python/hook_shell.py`, `test_agent_move` leaves no stray YAML and
+  asserts the full `departments/<dept>/agents` destination (#428)
+- **ci:** non-blocking macOS + Windows parity baseline job (#392);
+  `actions/setup-python` bumped to v7 (#407)
+
+## [5.10.0] - 2026-08-06
+
+### Fixed
+
+- **A managed block edited in place is no longer overwritten** — the stored
+  stamp is a claim, not a measurement, so the merger now hashes what is
+  actually between the markers before rewriting. An operator edit inside the
+  block yields `drifted`: nothing is written, and the run reports it as
+  drift — its own word and its own count in the Content line, because
+  nothing failed. The first cut of the `restamped` path below destroyed
+  exactly that edit while correcting a version number, which is the defect
+  that kept the wider branch out of this release.
+- **The version stamp no longer freezes** — `merge_managed_content` gained a
+  `restamped` status. The stamp previously moved only when the content
+  changed, so a project could show a version many releases old while
+  carrying current content (measured on one install: 51 of 78 projects).
+  Real content changes are still reported as `updated`, never conflated
+  with a restamp.
+- **The coverage gate no longer passes on an artefact that cannot describe
+  the diff** — a `coverage.xml` older than the newest changed `.py` file
+  (doc edits never stale it), or missing an entry for a changed module, now
+  fails the check instead of vouching for code it never measured. Module
+  presence is matched on paths resolved through the artefact's own
+  `<source>` roots and required to exist on disk; a filename that resolves
+  under more than one source is ambiguous and vouches for nothing. A stem
+  probe previously accepted `core/synapse/engine.py` as evidence for a
+  changed `core/sync/engine.py` (`core/governance/evidence_checks.py`).
+- **An unorderable sync baseline no longer reads as "nothing is new"** —
+  `compare_versions` returns `None` for a version pair that cannot be
+  ordered, and the manifest treats an unorderable baseline as a first sync.
+  Previously a degraded run persisted the literal `unknown` into
+  `sync-state.json` and every later run then reported no changes, with no
+  error anywhere (`core/sync/manifest.py`).
+- **The update skill can no longer be instructed to delete a customized
+  section** — Phase 4 dispatches a subagent, and its instructions said to
+  remove the `## <section_title>` section whenever markers were absent.
+  Without markers there is no way to tell ArkaOS's own text from the
+  project's, and `~/.claude/skills/` is not a git repository. The
+  instructions now forbid deleting an unmarked section outright and require
+  a single well-formed marker pair before any removal — in `workflows.md`
+  and in its sibling `sync-engine.md`, which named the heading block as a
+  fallback deletion target and is loaded by the same skill.
+- **Client identifiers removed from tracked ignore files** — `.gitignore`
+  and `.npmignore` named two ecosystem slugs. Both files are tracked in a
+  public repository. Replaced with a naming convention (`_private/`,
+  `client-*`, `ecosystem-*`) so a private skill can be excluded without
+  recording whose it is.
+
+## [5.9.0] - 2026-08-05
+
+### Added
+
+- **Campaign wiring** (#462) — closes the animation/design absorption
+  campaign (v5.3.0–v5.8.0). The seven absorbed skills reach their
+  consumers: expertise.domains in six agent YAMLs with load-bearing
+  qualifiers, seven Commands-table rows (registry 299→306), pt-PT and
+  English routing keywords for the Synapse L5 hint, and the last
+  "will be ported" staleness reconciled in the notices (four of
+  genjutsu's fifteen skills derived, eleven rejected with reasons).
+
+### Fixed
+
+- **Prepending into truncated renders is a silent delete** (#462). The
+  Quality Gate proved a 100%-additive YAML diff evicted ten capabilities
+  from compiled agent definitions, because the behavioral compiler and
+  harness generator render only the head of expertise.domains — two live
+  routing breaks included. The ordering rule (identity head, campaign
+  tail), both caps raised to [:8], and a new lock
+  (tests/python/test_expertise_window.py) that parses the rendered
+  description line and pins both caps — proven by mutation on both
+  surfaces. Zero drops verified across all 89 agents.
+- The brand bats assertion no longer pins a command count; it equates
+  the table with the generated registry.
+
+## [5.8.0] - 2026-08-05
+
+### Added
+
+- **`dev/gsap`** (#461) — the official GreenSock skill pack (MIT,
+  upstream `aed9cfd`) as one router slug with the eight modules as
+  progressive-disclosure references, sibling cross-refs rewritten.
+  Byte-fidelity verified against real upstream by the Quality Gate:
+  84/84 deviating lines classified into four documented classes, zero
+  code lines touched, all 76 javascript blocks byte-identical. The
+  router surfaces the live licensing doctrine (Club plugins are free;
+  never generate an `.npmrc` auth token) and treats `performance.md` as
+  the mandatory review bar; direction stays with `brand/motion-design`.
+
+### Fixed
+
+- **The unmanaged external GSAP dependency is retired** (#461).
+  `uiux-knowledge-and-tools.md` had instructed
+  `npx skills add https://github.com/greensock/gsap-skills` since the
+  design reform; that instruction and every `gsap-<name>` load across
+  brand, content and dev docs now point at the in-repo skill.
+  Repo-wide grep for external references: zero.
+
+## [5.7.0] - 2026-08-05
+
+### Added
+
+- **`brand/motion-design`** (#460) — the LottieFiles motion doctrine
+  (MIT, official, upstream `f9a8a04`) as the direction layer: emotional
+  intent, motion personality archetypes, Disney principles adapted for
+  UI, choreography and stagger rules, timing/easing tables and a quality
+  checklist, framework-agnostic by design. The 16 doctrine files land
+  byte-verbatim (34/34 blob SHAs verified against upstream); the skill
+  body is a contiguous byte-verbatim substring beneath an ArkaOS
+  Precedence section that reconciles the imported doctrine with the
+  brand's own Motion System — §4's Forbidden list applied with exact
+  scoping (bounce/elastic vetoed on the logo only), imported ms tables
+  read as relative guidance inside the brand token scale, client motion
+  systems trumping identically. Implementation hands to dev/css-native,
+  dev/framer-motion or dev/canvas-generative; brand/design-system's
+  motion chapter now loads this skill first.
+
+## [5.6.0] - 2026-08-05
+
+### Added
+
+- **`dev/threejs`** (#459) — the campaign's only authored-not-ported
+  skill. The pack originally requested (`cloudai-x/threejs-skills`)
+  ships no LICENSE file and names no copyright holder, so the skill was
+  written instead: core authored from the three.js project's own LLM
+  guidance (`docs/llms.txt`, MIT) — modern import maps including the
+  `three/webgpu` and `three/tsl` entries, the WebGL-vs-WebGPU renderer
+  decision, a collect-first/dispose-once disposal doctrine proven
+  against three r185 (shared resources disposed once, scalar AND
+  array texture uniforms collected, engine-owned sprite geometry
+  excluded), and a performance budget. The React Three Fiber layer
+  derives from genjutsu's `threejs-r3f` (MIT). Zero bytes from the
+  unlicensed pack, recorded in THIRD-PARTY-NOTICES.
+  Quality Gate: 19 findings in the base round (8 in the authored core),
+  all closed with executable evidence — a node transcript on real
+  three, `tsc --strict` exit 0 on the TSX blocks, and a
+  declared-vs-sampled identifier check across all 13 GLSL blocks.
+
+## [5.5.0] - 2026-08-05
+
+### Added
+
+- **The genjutsu trio** (#456) — three skills cherry-picked from
+  `AThevon/genjutsu` (MIT, upstream `08a792f`; twelve of its fifteen
+  skills rejected with individual reasons in THIRD-PARTY-NOTICES).
+  `dev/canvas-generative`: DPR-aware Canvas 2D generative art — pooled
+  particle systems, noise and flow fields, fractals, L-systems, double
+  buffering, with 26KB of reference implementations. `dev/framer-motion`:
+  AnimatePresence, layout animations, variant orchestration, gestures,
+  motion values. `dev/css-native`: scroll-driven timelines, View
+  Transitions (SPA and MPA), `@starting-style`, anchor positioning,
+  container queries, with browser-support fallbacks. Bodies stay upstream
+  near-verbatim; ArkaOS adds the routing contract with scope-disjoint
+  SKIPs, agent attribution, Output sections and the KB-first prefix.
+  Two upstream bugs were caught by the Quality Gate and fixed rather
+  than imported: the particle-system usage example referenced undeclared
+  identifiers and spawned in backing-buffer pixels, and the resize
+  handler never updated the pinned CSS box.
+
+### Follow-ups filed
+
+- #457 — fenced JS/TS in skill markdown needs static scope analysis
+  (1,741 lines shipped in this PR with zero executable checking; the
+  originally proposed `node --check` provably passes the motivating bug).
+- #458 — the repo-wide count lock misses wiki header and summary-table
+  cells (the same stale-count class recurred in two consecutive PRs).
+
+## [5.4.0] - 2026-08-05
+
+### Added
+
+- **`brand/design-dna`** (#455) — absorbs `zanwei/design-dna` (MIT,
+  upstream `9d9d795`). Reverse-engineers a reference UI — screenshot,
+  image, or live URL — into a portable, generation-ready JSON profile in
+  which `visual_effects` (WebGL, shaders, particles, scroll) is a
+  first-class dimension alongside measurable tokens and qualitative
+  style, so the effect budget survives the handoff to whoever builds it.
+  The skill opens with a self-contained safety gate that binds in every
+  phase and in plugin bundles shipped without their siblings: template
+  marketplaces and signature designer work are refused before any fetch,
+  the SSRF rules (schemes, private ranges, `169.254.169.254`, redirect
+  hops) are stated inline, remote content is treated as adversarial, and
+  a portable profile is only emitted with authorship attestation.
+  Extraction delegates to Nia (`extraction-script-writer`); token custody
+  hands to Iris (`design-ops-lead`); generated CSS carries both the
+  enforced `[arka:design]` marker and the `[arka:design-dna]` companion
+  stamp that `landing/page-architect` reads for structural
+  diversification. Reciprocal SKIPs land in `brand/design-system` and
+  `brand/colors` with disjoint predicates.
+
+### Fixed
+
+- **A repo-wide count lock replaces the tripwire that existed by
+  accident** (#455). `test_docs_consistency` now asserts that no prose
+  surface carries a skill count `docs_stats.py` disagrees with. The old
+  de-facto alarm was a hard-coded `333` inside the catalog test — correct
+  to derive, but deriving it removed the only repo-wide alarm, and nine
+  stale counts across seven files shipped green past eighteen existing
+  locks in the same PR. Historical records (CHANGELOG, ADRs, dated plans)
+  and generated artifacts are excluded by design.
+
+## [5.3.0] - 2026-08-04
+
+### Added
+
+- **The gh-grep MCP is now wired into the research doctrine** (#451). The
+  server (`https://mcp.grep.app`) had been installed as a `base` MCP for
+  some time, yet all-time telemetry gave it 7 calls out of 3474 — 0.2%,
+  against playwright's 1421 and claude-in-chrome's 1327. Nothing in the
+  system told an agent to reach for it, the same installed-but-mute
+  failure the Graphify campaign found in the Obsidian KB block. The
+  KB-first doctrine in `arka/SKILL.md` now separates the two code
+  externals it had lumped together — Context7 answers the documented
+  contract, gh-grep answers the shipped practice — and states that it is
+  literal grep, to be queried with code tokens rather than sentences.
+  `departments/dev/SKILL.md` gains a "Real-world grounding" section
+  mirroring the existing codebase-memory one, plus the `/dev research`
+  command row without which the routing keywords reached nothing (the
+  command registry moves 298 → 299). Ten dev skills carry a concrete
+  step; in `code-review`, `clean-code-review` and `adversarial-review`
+  the use is deliberately bounded to verifying disputed third-party API
+  claims before raising a blocker. Promotion into
+  `core/workflow/research_gate.py` is deliberately deferred and
+  telemetry-gated: baseline 7 calls, target ≥20/week within 30 days.
+
+### Fixed
+
+- **The evidence gate no longer skips a pinned `--test-command` it cannot
+  run** (#451). `shlex.split` left `~` literal, so a command pinned as
+  `~/.arkaos/bin/arka-py …` raised `FileNotFoundError` and `_run` reported
+  `ran=False` — which an aggregator reads as "not applicable". The report
+  then said `tests: ran=false` beside `overall: pass`, and a reviewer
+  trusting that line would approve a PR on a suite that never executed.
+  `_expand_argv` now expands `~` where it means a path, and an
+  unresolvable pinned command fails loudly instead of skipping.
+  Auto-detected checks keep skipping, since a missing ruff is a genuine
+  "not applicable" while a mistyped pin is not. A command that resolves to
+  something exec refuses — a directory, a non-executable file — is now
+  reported rather than raised, so the gate can no longer be crashed into
+  producing no report at all.
+- **The skills catalog generator stopped emitting fragments that read as
+  typos** (#451). Descriptions were cut at `text[:177]`, slicing mid-word,
+  so every PR touching a skill description inherited a red codespell
+  aggregate. It now cuts on a word boundary and guards the degenerate case
+  where the cut would leave a bare ellipsis.
+
+### Documented
+
+- **ADR: camofox-browser is not absorbed** (#451,
+  `docs/adr/2026-08-04-camofox-not-absorbed.md`). The capability is
+  duplicated — playwright and claude-in-chrome are 79% of all MCP traffic
+  and nothing is blocked on them — and the package files anonymised crash
+  reports as GitHub Issues by default, which is the wrong side of
+  fail-closed where client names are confidential and `core/egress/` is
+  deny-by-default. Its core function also violates the terms of service of
+  most sites it would target. The ADR names the reopening condition so the
+  question is not re-litigated from the star count.
+
+## [5.2.0] - 2026-08-04
+
+### Fixed
+
+- **Evidence engine: a known-empty diff no longer inherits master's
+  project-wide lint/type debt** (#449). With `changed == []` the guard
+  `if changed:` skipped both the scoped run and the honest skip and fell
+  through to project-wide ruff, so a zero-write deliverable was gated on
+  1602 pre-existing errors as `overall=fail` (this carried three Quality
+  Gate rejections before the root cause was isolated). Lint and typecheck
+  now skip explicitly with "no changed files (empty diff)"; `None` still
+  means scope-unknown and keeps the project-wide run; the CLI maps
+  `--changed-files ""` to the known-empty contract.
+- **Sync feature registry: Focused tier corrected to 3-4 phases** (#450),
+  aligning `workflow-tiers.yaml` with `core/workflow/schema.py` — the
+  wrong 3-5 figure was being injected into every skill carrying the
+  managed block.
+- **Detection keyword alternatives anchored** (#450): bare `arka-spec` /
+  `arka-forge` tokens matched inside longer slugs (e.g. `arka-spec-miner`),
+  scoring a feature as present in loaders that merely mention such a
+  skill. Both alternatives now carry `(?![\w-])`, locked by
+  manifest-driven and pattern-derived collision tests, plus a new lock
+  asserting every in-repo `arka:feature` marker region is byte-identical
+  to the registry content.
+
+### Docs
+
+- Generated skills/workflows catalogs with drift locks, per-department
+  command surface tables, integrations reference, routing and
+  token-economy references, plain-language guide (wiki 19-20),
+  contributing playbook, and stale-count reconciliation across docs and
+  wiki (89 agents, 333 skills, 29 MUST).
+
+## [5.1.1] - 2026-08-04
+
+### Fixed
+
+- **`~/.claude/CLAUDE.md` keeps its file mode across updates** (#448, CWE-732).
+  The managed-block writer used to carry the temp file's default mode through
+  the rename, so an operator's 0600 file came back 0644 (world-readable in the
+  usual 0755 `~/.claude`) on every autoupdater run. A rewrite now chmods the
+  temp to the existing file's mode before the rename, and a freshly created
+  file respects the operator's umask instead of any hard-coded mode.
+- **A broken symlink at `~/.claude/CLAUDE.md` is refused, never replaced**
+  (#448). `existsSync` follows links, so a dangling symlink read as "no file"
+  and the create path silently replaced the link itself with a regular file.
+  Both entry points (update and fresh install) now detect it via lstat and
+  refuse with a reason: "it is a symlink whose target does not exist — fix or
+  remove the link first".
+- The adopt-wrap message now reads "your content preserved below the managed
+  block", aligned with the adopt-prepend wording (#448).
+- Flaky `test_kill_terminates_child` made deterministic — the kill assertion
+  now polls `os.waitpid` under a bounded deadline instead of racing an
+  `is_alive()` short-circuit against an unreaped zombie (#448).
+
+## [5.1.0] - 2026-08-04
+
+### Fixed
+
+- **`npx arkaos update` no longer destroys operator edits to `~/.claude/CLAUDE.md`** (PR-C5, #447).
+  The update path used to copy the packaged template straight over the live
+  file; on 2026-08-03 the launchd autoupdater's unattended run did exactly
+  that and deleted operator content. Shipped instructions now live inside an
+  explicitly marked region (`<!-- arka:user-instructions:start/end -->`) and
+  the update path only ever rewrites that block:
+  - an unmarked file is adopted, never replaced: a file matching a known
+    template hash — or starting with the shipped template, the common
+    pre-5.1 shape — is wrapped with any operator remainder preserved below
+    the block; anything else is preserved whole below a prepended block
+  - operator-deleted markers are respected with a notice, never re-seeded
+    (adoption state in `~/.arkaos/claude-md-state.json`)
+  - malformed marker states and non-UTF-8 files are refusals with a reason,
+    never a silent overwrite
+  - a timestamped backup (`CLAUDE.md.arkaos-backup-<stamp>`) precedes every
+    mutation and its path is printed; writes are atomic and land through
+    resolved symlinks
+  - fresh installs write the template already wrapped; the existing
+    "already exists (preserved)" behaviour is unchanged
+
+## [5.0.0] - 2026-08-03
+
+### Added
+
+- **`npx arkaos shield --fix` (PR-C3).** The scanner named a fix for
+  every finding; nothing applied them. `--fix` now plans the mechanical
+  ones and `--fix --apply` writes them, after taking a timestamped
+  backup of each file and printing every backup path. Dry run is the
+  default; `--apply` without `--fix` is an error, not a silent
+  read-only scan. Fixable: allow rules granting a dangerous COMMAND
+  (removed) and a missing deny list (seeded with the ArkaOS hard-deny
+  defaults). Everything else — unscoped rules that need a pattern only
+  the operator can choose, secrets, MCP manifests, instruction files —
+  is REPORTED with a reason and never guessed at, because a remediator
+  that skips silently turns an unfixed vulnerability into a
+  clean-looking run. Every settings file the scanner reads is covered,
+  symlinked configs are written through to their target, and a run that
+  writes one file and fails another names which reached disk. Exit codes
+  follow the scanner's contract, computed from the post-fix re-scan.
+
+  Measured on a copy of a real grade-F profile: 53 findings to 3, 48
+  dangerous rules removed, 62 hard-deny rules seeded, every survivor
+  named. The grade stays F by design — `--fix` cannot choose the
+  operator's pattern for an unscoped rule, and says so.
+
+### Changed
+
+- **BREAKING for anything that gates on `shield`'s exit code: a root it
+  could not read now exits 2 instead of grading clean.** Two old
+  behaviours collapse into it. A root that was silently DROPPED and
+  graded clean — a path you named that does not exist, or a settings
+  FILE passed where its directory was expected — came back `Grade A
+  (100/100) — nothing to report.` with exit 0 (shipped in 4.16.0,
+  re-verified by executing the 4.49.0 CLI). A root that RAISED while
+  being scanned — a directory that cannot be listed, a root-owned
+  config, a container uid mismatch, and the DEFAULT roots are included
+  here — came back as an unhandled `PermissionError` traceback (also
+  re-verified against 4.49.0). Both now print the path on stderr and
+  exit 2, on the read-only path and the `--fix` path alike, while the
+  roots that WERE readable still report normally. Only a MISSING
+  default root is exempt: a fresh machine with no `~/.claude` is noted,
+  not failed, so CI containers do not break on it. A container whose
+  `~/.claude` EXISTS but is unreadable by the running uid DOES now exit
+  2 — if that is your pipeline, name the roots you want scanned or fix
+  the permissions before you upgrade. `--json` stdout stays parseable
+  because every notice goes to stderr. If a pipeline gated on the old
+  exit 0, it was gating on a config that was never read.
+
+- **`shield` no longer depends on a `pathlib` predicate to report an
+  unreadable config, so the refusal holds on every supported Python.**
+  Python 3.14 reimplemented `Path.is_file()` and `Path.is_dir()` to
+  delegate to `os.path`, which swallows every `OSError` and answers
+  False. The scanner probed candidates with `is_file()` and the CLI
+  probed roots with `is_dir()`, so on 3.14 an unreadable config read as
+  "not there": `0 config files scanned`, `Grade A (100/100) — nothing
+  to report.`, exit 0 — on 3.13 the same directory refused and exited
+  2. That hit precisely the machines with no ArkaOS venv, where the
+  launcher falls back to an ambient `python3`: fresh installs and CI
+  containers. The file probe and the root probe now stat explicitly and
+  treat only `ENOENT`/`ENOTDIR` as "absent"; every other errno
+  propagates as the refusal it is. Verified side by side on 3.13.13 and
+  3.14.2, for a named root and for the default pair. **If you ran
+  `shield` under 3.14 before 5.0.0, any run that printed `0 config
+  files scanned` with Grade A graded nothing — re-run it on 5.0.0
+  before you trust that result.**
+
+- **A hook target `shield` could not read no longer erases the rest of
+  that config's findings.** The hook check probed with `path.exists()`,
+  which raises on Python 3.13. The raise reached the per-file backstop,
+  which replaces everything found in that settings file with a single
+  LOW `scanner-error`. Measured: one `settings.json` carrying a CRITICAL
+  dangerous-allow, plus a hook pointing into a directory the account
+  could not list, graded **A (98/100) and exited 0** on 3.13 — and that
+  is the JSON `npx arkaos doctor` reads for its security line. One
+  unreadable hook target laundered the whole file. The check now stats
+  once and names three outcomes: absent, unreadable
+  (`hook-script-unreadable`, HIGH — unaudited, never clean), or
+  readable, whose permission bits come from that same stat instead of a
+  second one that answered "safe" when it could not look. **How to tell
+  whether you were hit: any `shield` run whose output carried a
+  `scanner-error` line threw away everything else it had found in that
+  settings file, so the grade printed beside it describes nothing of
+  that file. `doctor` never showed you this — it prints CRITICALs and
+  the grade, not LOW findings. Re-scan on 5.0.0.**
+
+## [4.49.0] - 2026-08-03
+
+### Added
+
+- **Shadow-deny telemetry across the three PreToolUse gates (PR-A5a).** With
+  the enforcement flags off, `flow_enforcer`, `frontend_gate` and
+  `specialist_enforcer` evaluate anyway and record what they WOULD have
+  decided — `would_block`, `shadow_reason` and `shadow_ms` in their existing
+  telemetry files — while always allowing and never printing. This is the
+  data that gates the future hard-enforcement flip (would_block < 5%, zero
+  sequences of more than 2 consecutive would-blocks in a session, over >= 7
+  days and >= 300 gated calls). Kill switch `hooks.shadowDeny`, on unless
+  explicitly disabled; the pre-side cost is measured from `shadow_ms` and the
+  post-side from the `delegation`/`shadow`/`enforcement` labels now written
+  to `hook-metrics.json` on benign turns too.
+- **`kb/research-deep` skill (PR-D3).** The heavy-research ladder: Obsidian
+  vault first (mandatory), then the operator's NotebookLM notebook through
+  the `core.kb.nlm_client` chokepoint, then the open web for the residual
+  gap, then a synthesis note written back to the vault with provenance
+  frontmatter (`egress_decision`, `egress_reason`, `degraded`,
+  `payload_sha256`). Degradation is a contract: an unusable or refused
+  result puts its `[arka:source-skipped]` marker on record and the ladder
+  continues. Ships via the `arkaos-kb` marketplace plugin, outside the
+  curated set. `/kb` goes from 12 to 13 commands; core skills 332 to 333.
+- **Two new drift locks.** `test_kb_research_deep.py` pins every fact the
+  skill quotes about the chokepoint to the real module — allowed actions and
+  formats, result fields as whole tokens inside code regions, the marker
+  prefix, the install hint, and the no-shell-interpolation shape of both the
+  research text and the scratch path. `test_specs_wellformed.py` pins that
+  every `.arkaos/specs/*.yaml` parses under `yaml.safe_load` and carries the
+  column-0 `status:` mirror the spec-driven gate matches.
+
+### Fixed
+
+- **Three of the eight specs were invisible to the spec-driven gate.**
+  `shadow-deny.yaml` did not parse at all (colon-space plain scalars in
+  block-sequence entries) and it, `qg-sweep-agent-provision.yaml` and
+  `skill-invocation-contract.yaml` carried no column-0 `status:` mirror, so
+  `rules_registry` reported them inactive — the gate could not see the specs
+  of the features it gates. Surfaced by the new lock on its first day.
+- **`engine.cjs` `decidePost`** now delegates the flow-auth confirm rescan
+  when shadow-deny is on; without it the post-side confirm never runs and
+  the shadow grace ladder overstates `would_block`. A missing manifest flag
+  entry reads as on — delegation degrades to latency, never to a skipped
+  deny.
+- Inherited ruff findings in `flow_enforcer` and `frontend_gate` cleared
+  (SIM105, SIM103, B033, UP017 ×4, RUF100); the bash classifier set is
+  unchanged, proven by the byte-identical manifest regeneration.
+
+## [4.48.0] - 2026-08-03
+
+### Added
+- **NotebookLM chokepoint (PR-D2 — repair workstream D):** new
+  `core/kb/nlm_client.py`, the D1 egress guard's first call site, and
+  the only one NotebookLM needs. Every payload passes
+  `policy.evaluate` BEFORE a subprocess is constructed, so a denied
+  payload never reaches argv, an env var, a temp file or the CLI;
+  what leaves is the redacted text the decision carried. No argv
+  pass-through: callers pass typed options (`notebook`,
+  `output_format`) matched against a closed pattern and a closed set,
+  and the module renders argv itself. Degradation is a contract —
+  tool absent, timeout, nonzero exit, rejected argument, unusable
+  home and guard failure all return a `NotebookLMResult` carrying
+  `[arka:source-skipped]`, and `send()` and `check()` never raise.
+  The payload rides in a temp file — 0600, removed in a finally —
+  inside a 0700 `NOTEBOOKLM_HOME` opened `O_NOFOLLOW`; telemetry is
+  0600 in a 0700 directory and carries digests and finding KINDS,
+  never the payload, a token or a path. An import-graph test keeps
+  `core.kb` out of `core/governance`, `core/workflow` and
+  `core/release`, so a broken upstream can stall research but never a
+  gate or a release. Every path a call reads or writes under the home
+  — payload, telemetry trail, D1's audit trail and salt, and the
+  identifier list the guard redacts against — is screened at every
+  position, on every door, for a symlink the operator does not own; a
+  test walks what a real call creates and fails on anything the
+  screened set does not cover.
+
+### Changed
+- **`core.egress.policy.payload_digest` is public (PR-D2 — repair
+  workstream D):** D2 is the guard's first caller outside the package,
+  and reaching for the private name would have made a rename a silent
+  break downstream.
+
+
+### Fixed
+- **Egress guard: `home` now scopes the redaction config (PR-D2 —
+  repair workstream D):** `policy.evaluate`'s `home` scoped the
+  home-path check, the allowlist and the audit trail but not the
+  client-identifier list, so a caller passing `home=` judged paths
+  against one machine while redacting against another — and the
+  residual-identifier layer, the substring pass that catches compounds
+  like `<client>2026`, which word-boundary redaction leaves intact,
+  read the real machine's list. Both passes are scoped now. No shipped
+  code path reached it: D1 landed in 4.46.0 with zero call sites, so
+  only a hand-written caller of `policy.evaluate(home=...)` could have
+  been affected.
+
+
+## [4.47.0] - 2026-08-02
+
+### Added
+- **Harness ownership manager (PR-C2, #441 — repair workstream C):**
+  `npx arkaos harness status|assert|restore|harden|flags`. The manager
+  asserts ArkaOS ownership of the Claude Code harness under the
+  policies that apply to the claude-code surfaces — own-subset for
+  hooks and `autoMode.hard_deny`, seed for `statusLine` and
+  `worktree`. `assert` ensures the ArkaOS entries while preserving
+  operator entries verbatim and never reverting an adopted seed
+  surface; `restore` is the explicitly named override that re-seeds;
+  `harden` adds a `harness_scanner` grade and exits 2 below B;
+  `flags` sets one named enforcement flag whose VALUE is validated
+  against that flag's own vocabulary. Every mutation appends surface,
+  action and either the surface digest or a type name to
+  `~/.arkaos/audit/harness-mutations.jsonl` — settings values and env
+  values never appear. The ownership manifest records `last_asserted`
+  and a per-surface `content_sha256`.
+- **Stale-root detection (M6 from the #439 register):** a hook command
+  whose basename matches but whose directory is not an accepted
+  ArkaOS hooks dir reads as DIVERGED, the split-root failure mode
+  basename matching hid. Commands are normalised before matching —
+  quotes, interpreter prefix, and a cut at the first shell operator
+  that fires only where a shell would see one, so an install path
+  containing `&` or `;` stays a path.
+
+### Changed
+- **Refusal is the default on anything unexpected:** a settings file
+  that cannot be read is never overwritten (CLI exit 1), an operator
+  value of the wrong type is left untouched with a `refused` action,
+  and an entry whose every divergence is unrepairable is reported as
+  `unrepaired` rather than `repaired`.
+- Writes target the INSTALLED tree (`~/.arkaos/config/hooks`) rather
+  than the resolved root, which is routinely an npx cache that
+  `npm cache clean` purges.
+## [4.46.0] - 2026-08-01
+
+### Added
+- **Harness ownership foundation (PR-C1, #439 — repair workstream C):**
+  new read-only `core/harness/` package the `ClaudeConfigManager` (C2)
+  builds on — `paths` (call-time resolution, no import-time capture),
+  `json_store` (tolerant loads that never raise on hostile input, atomic
+  same-dir tmp + rename writer preserving permission bits,
+  first-occurrence-wins `merge_unique`), `manifest` (Pydantic schema for
+  `~/.arkaos/ownership.json` with the own / own-subset / seed / operator
+  policy vocabulary), `spec` (desired-state registry keyed by runtime:
+  the 31 hard-deny rules + 11 hook registrations ported from the
+  installer sources, parity PINNED by tests that parse the JS), and
+  `drift` (spec-vs-disk scan under the never-raises contract; operator
+  additions are never drift, adopted seed surfaces never fail the
+  report). Nothing mutates the operator's machine.
+- **Deny-by-default egress policy (PR-D1, #440 — repair workstream D):**
+  new `core/egress/` package, the confidentiality guard every notebooklm
+  upload passes (wired by D2, above).
+  `policy.evaluate` never raises, structurally: redaction fail-closed
+  over the shared client-identifier list, a SUBSTRING residual layer
+  deliberately looser than the sanitizer (compound tokens are denied,
+  never leaked), secret and operator-home-path findings, expiring
+  allowlist (client identifiers are never allowlistable), and a hashed
+  JSONL audit trail whose finding tokens are keyed with a per-install
+  HMAC salt — an ALLOW that cannot be audited flips to denied. ADR:
+  `docs/adr/2026-07-31-egress-policy.md`.
+- **Sanctioned security-grep suppression** in the evidence engine:
+  `arka:sec-ok(<pattern-id>): <reason>` — exact pattern id + non-empty
+  reason required; every suppression is carried in structured
+  `suppressions`/`suppressed_count` fields immune to summary truncation,
+  and findings carry `file:line` in BOTH scan modes.
+
+### Fixed
+- security-grep added-lines mode now reports line numbers (parsed from
+  the `-U0` hunk headers) instead of bare file paths.
+
+## [4.45.0] - 2026-07-31
+
+### Added
+- **Explicit Skill invocation contract (PR-A4, #438 — repair workstream A):**
+  routing IS tool invocation. The SessionStart context gains
+  `[ARKA:SKILL-CONTRACT]` — a department route is fulfilled by calling the
+  department's hub skill BEFORE substantive work; announcing the squad in
+  prose without invoking the skill is not routing. Hub names are never
+  derived by concatenation (the `arka-<dept>` template produced
+  `Skill(arka-lead)`, a hub no deploy path creates).
+- **Imperative Synapse L5 hints:** `[hint:/cmd]` becomes
+  `[arka:skill-hint] Skill(arka-dev) -> /dev feature <description>` — the
+  exact call to make. Department -> hub map with six load-bearing keys
+  (mkt/fin/strat/lead aliases + the two orchestrator entries), parity-pinned
+  to the repo's alias table; each hint pairs the hub with its OWN command
+  (the top-2 legitimately spans departments on the live registry).
+- Output style and CLAUDE.md rewritten invocation-first; the announce-only
+  bullet that taught routing-theatre is gone.
+
+### Changed
+- Zero enforcement change: no gate reads the new marker yet (A5a shadow-deny
+  and the A5b flip stay telemetry-gated per the campaign plan).
+
+## [4.44.0] - 2026-07-30
+
+### Added
+- **QG sweep reads the guard-accepted aggregate (PR-B5, #436 — closes repair
+  workstream B):** the Stop hook's auto-doc sweep decides "QG approved" from
+  the session's `AGGREGATE.json` first — authoritative both ways and over both
+  fallbacks (the unguarded telemetry log AND the assistant's own
+  `[arka:qg:approved]` marker); marker and telemetry keep their historical
+  roles only when no aggregate exists.
+- **Agent provisioning reaches real projects:** `agent-provision.sh` is now
+  copied by both npm deploy paths (install + update) and registered by the
+  adapter as `PreToolUse` with `matcher: "Task"` (POSIX-only, conditional on
+  the script existing). The gate NEVER blocks: unknown subagent types (runtime
+  built-ins, plugin agents) pass through with a provision hint naming actions
+  that exist; the unknown-name message states exactly what was searched.
+- **v1 persona retirement:** `deployProjectAgents` retires the 14 known v1
+  personas into `.claude/agents/.arkaos-legacy/` (double guard: on the list
+  AND absent from the shipped source set; rename, never delete, logged with
+  destination). `skill-deploy` stops seeding the v1 QG trio at user scope and
+  retires its own earlier `~/.claude/agents/arka-{cqo,copy-director,tech-ux-director}.md`
+  deploys.
+- **Doctor:** `qg-agents` (fail — reviewers missing the QGVerdict contract or
+  v1 personas dispatchable at project or user scope; informational skip
+  outside a project; the fix names both `npx arkaos update` and
+  `npx arkaos init`) and `qg-ledger` (warn — channel never captured a
+  verdict). Check-count lock 43 -> 45.
+
+### Changed
+- Session-binding refusal hardened (register M4): the `.ended` stamp only
+  outlaws counted records that predate its mtime; ties stay fail-closed.
+- `review_workflow` and `quality_api.record_verdict` carry deprecation
+  docstrings pointing at the guarded `core.evals.record_cli` path.
+- wiki/08 runtime matrix: 10 lifecycle events, SubagentStop + SessionEnd rows
+  restored.
+
+## [4.43.0] - 2026-07-30
+
+### Added
+- **Quality Gate dispatch-shape enforcement (PR-B4, #435):** the anti-self-approval
+  guard now requires `evidence_digest` on the aggregate AND on every counted
+  reviewer artifact — a digest-less artifact cannot support an APPROVED
+  aggregate. CONFIRMED blockers filed without a `check` key draw a warning.
+- **Session binding:** the SessionEnd hook stamps the session's reviewer-ledger
+  directory (`.ended`, owned by retention); an APPROVED aggregate citing a
+  stamped session is refused — a past session's ledger is no longer a reusable
+  quorum token. Limits stated honestly in the guard's trust-boundary docstring.
+- **Per-reviewer digest carry:** new `QGDigestCarry` schema + `digest_carries`
+  field — an aggregate may carry an earlier review over a report change only by
+  naming the digest that reviewer actually reviewed, with a substantive reason
+  (>= 40 chars); wrong digest or bare reason refuses.
+- `test_agent_contract_parity.py`: pins the QG agent contract markers
+  (arka-qgverdict fence, evidence_digest, verbatim heading, pinned tools) in
+  `config/claude-agents/` and in deployed copies when present.
+
+### Changed
+- **Verdict-aware refusal:** dispatch-shape issues refuse only an APPROVED
+  aggregate and are demoted to warnings on a REJECTED one, so a rejection label
+  survives the case where the CQO catches a bad delta; fabrication vectors
+  (quorum, APPROVED-over-rejecting, vanishing CONFIRMED blockers) stay
+  verdict-blind.
+- **QG agent contracts:** marta-cqo gains the mandatory arka-qgverdict fence,
+  verbatim reproduction (`### <Reviewer> — verbatim`), a Conflict Handling
+  section (no silent resolution) and the full dispatch field enumeration; both
+  reviewer contracts pin the fence, check-key contract and evidence_digest.
+- Quality SKILL: phantom `output_schema` Agent param removed (the Agent tool has
+  no structured-output parameter — the schema travels in the dispatch prompt);
+  step 4.5 verbatim reporting; reviewers run on the best available model per
+  `quality_gate.model_policy` (sonnet-default claim removed).
+- Constitution: `inter-agent-checkpoints` enforcement self-contradiction
+  resolved in favour of visibility (amendments.history entry 4.43.0).
+- CORE-ENGINE.md rows for `quality_api`/`review_workflow` now state actual
+  consumers and the PR-B5 dead-import hazard; checkpoint SKILL drops its stale
+  13-phase reference; wiki/08 states the fence mechanism.
+
+## [4.42.0] - 2026-07-30
+
+The anti-self-approval guard: an aggregate verdict the reviewer
+ledger cannot support is now unrecordable.
+
+### Added
+- **Quality Gate aggregate guard** (#434): `core/governance/aggregate_guard.py` makes the 2026-07-20 incident shape — an aggregate verdict recorded with zero reviewer artifacts behind it — unrecordable. `record_cli --kind qg` requires `--session-id` and only records with a quorum of >= 2 hook-captured reviewer verdicts from distinct people (identity aliases collapse; the aggregator never counts). Two-level supersession lets multi-round sessions close honestly (within a reviewer spelling: seq, then verdict severity, then the record clock; across spellings: a total order where a clockless rejecting record is unsupersedable). `evidence_digest` is compared against the artifacts on disk — the guard's first consumption of the v4.41.0 integrity digests — a CONFIRMED reviewer blocker never disappears silently, and an APPROVED aggregate never stands over a rejecting reviewer. Accepted aggregates land in `AGGREGATE.json` (atomic, verified, owned by the ledger's retention sweep). `--kind reviewer` refuses aggregator identities; labels carry `kind`/`round`/`head` on the envelope. During its own 7-round gate the guard refused its own CQO's label twice — correctly, on a real digest mismatch.
+
+### Fixed
+- **Reviewer ledger fence extraction is balanced-JSON aware** (#434): a verdict whose notes string mentioned code fences lost its structured columns in production; candidate closes are now tried until one parses. `_safe_id` uses fullmatch (a trailing newline passed the `$` anchor). The ledger now owns `AGGREGATE.json` so the 90-day retention sweep keeps working for sessions that pass the gate. `redo_counter` resolves its state path at call time.
+
 ## [4.41.0] - 2026-07-29
 
 Integrity digests for the Quality Gate chain: the material that lets
@@ -3394,7 +4153,7 @@ communication tone. Red removed, green added.
 
 ### Added (Persona archetypes catalog page — PR94b)
 
-New `/personas/archetypes` route with a browseable card grid of the
+New `/personas/archetypes` route with a browsable card grid of the
 8 starter archetypes from PR93b. Each card shows MBTI / DISC /
 Enneagram badges + description + "Create from this" button that
 deep-links to `/personas/new?archetype=<id>`. The wizard auto-detects

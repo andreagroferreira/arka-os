@@ -1,0 +1,28 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: skill-invocation-contract
+  project: arka-os
+  status: approved
+  date_created: "2026-07-30"
+  date_approved: "2026-07-30"
+  approved_by: operator
+  canonical: "Obsidian: Projects/ArkaOS/Specs/SPEC-skill-invocation-contract.md"
+  overview: >
+    PR-A4 — explicit Skill invocation contract across 4 prompt surfaces:
+    session_start _SKILL_ROUTING_CONTRACT (routing IS tool invocation;
+    announcing in prose without invoking is not routing), Synapse L5
+    imperative hint ([arka:skill-hint] Skill(arka-dev) -> /dev feature)
+    with dept->hub map (mkt->marketing, fin->finance, strat->strategy,
+    lead->leadership, arka->arka, do->arka; identity fallback
+    arka-<dept> for every other department), output-style invocation-first
+    rewrite, CLAUDE.md Squad Routing tool form. Zero enforcement (A5a/b
+    own that, telemetry-gated). Consumers of the old [hint: format
+    updated (test_synapse x6, opencode, integration, orchestrator.bats).
+  acceptance_criteria:
+    - systemMessage carries ARKA:SKILL-CONTRACT with Skill( and "is not routing"
+    - L5 emits imperative skill-hint, no legacy hint tag
+    - mapping exceptions resolve (mkt/fin/strat/lead/arka/do), unknown dept falls back, never raises
+    - structural test proves all 17 registry departments resolve to existing hubs
+    - full suites green, zero [hint: consumers left in diff scope
