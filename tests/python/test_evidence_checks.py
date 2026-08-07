@@ -2238,3 +2238,206 @@ class TestEslintRootResolution:
             f"{result.summary}"
         )
         assert "Parsing error" not in result.summary
+
+
+# ─── typecheck scoped to the diff (orchestrator decision, batch 6d) ─────
+
+
+class TestTypecheckScopedToDiff:
+    """Project-wide mypy attributes master's debt to whoever ships next.
+
+    Measured on this repo: 1246 errors in 192 files. As a gating verdict
+    that REJECTS every deliverable regardless of its own quality — and a
+    permanently red gate is one reviewers learn to ignore. Same principle
+    `_lint_scoped` already applies to lint.
+
+    These run REAL mypy over tiny tmp projects: the whole point is what
+    the tool actually reports, which a stub cannot establish.
+    """
+
+    @staticmethod
+    def _project(root: Path) -> None:
+        (root / "pyproject.toml").write_text(
+            "[tool.mypy]\nstrict = true\n", encoding="utf-8",
+        )
+
+    @staticmethod
+    def _mypy_or_skip() -> list[str]:
+        cmd = evidence_checks._tool_cmd("mypy")
+        if cmd is None:
+            pytest.skip("mypy not installed")
+        return cmd
+
+    def test_clean_diff_passes(self, tmp_path):
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "clean.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["clean.py"], None, 120,
+        )
+
+        assert result.ran is True
+        assert result.passed is True, result.summary
+        assert "scoped: 1 file(s)" in result.command
+        assert "advisory, NOT gating" in result.summary
+
+    def test_a_new_type_error_in_the_diff_fails_and_is_cited(self, tmp_path):
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "broken.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return 'nope'\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["broken.py"], None, 120,
+        )
+
+        assert result.ran is True
+        assert result.passed is False
+        assert "broken.py" in result.summary
+        assert "return-value" in result.summary, (
+            "the reviewer must see WHICH error, not just a red light"
+        )
+
+    def test_debt_outside_the_diff_does_not_fail_the_diff(self, tmp_path):
+        """The whole reason for scoping — and the advisory keeps it visible."""
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "legacy.py").write_text(
+            "def old(a: int) -> int:\n    return 'master debt'\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "clean.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["clean.py"], None, 120,
+        )
+
+        assert result.passed is True, (
+            f"legacy.py is master's debt, not this diff's: {result.summary}"
+        )
+        assert "legacy.py" not in result.summary.split("advisory")[0], (
+            "an untouched file must not appear in the GATING half"
+        )
+        assert "advisory, NOT gating" in result.summary
+        assert "Found 1 error" in result.summary, (
+            "the accumulated count must stay visible or nobody ever cleans it"
+        )
+
+    def test_non_python_diff_still_falls_back_to_project_wide(
+        self, tmp_path, monkeypatch
+    ):
+        self._project(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured.setdefault("cmds", []).append(list(cmd))
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        evidence_checks._check_typecheck(tmp_path, ["README.md"], None, 30)
+
+        assert captured["cmds"] == [["mypy", "."]], (
+            "no Python in the diff — the project-wide path is unchanged"
+        )
+
+    def test_advisory_never_flips_the_gating_verdict(self, tmp_path, monkeypatch):
+        """A failing project-wide run must not fail a clean diff."""
+        self._project(tmp_path)
+        (tmp_path / "clean.py").write_text("x: int = 1\n", encoding="utf-8")
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+
+        def fake_run(check, cmd, project_dir, timeout):
+            scoped = "--follow-imports=silent" in cmd
+            return CheckResult(
+                check=check, ran=True, passed=scoped,
+                command=" ".join(cmd), exit_code=0 if scoped else 1,
+                summary=(
+                    "Success: no issues found in 1 source file" if scoped
+                    else "Found 1246 errors in 192 files (checked 339 source files)"
+                ),
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["clean.py"], None, 30,
+        )
+
+        assert result.passed is True
+        assert "Found 1246 errors in 192 files" in result.summary
+        assert "NOT gating" in result.summary
+
+    def test_declared_scope_bounds_the_scoped_run_too(self, tmp_path):
+        """`files` is overridden by explicit paths — on BOTH invocations.
+
+        Measured before this guard: a diff touching tests/ produced
+        `Found 351 errors in 4 files` under `files = ["core", "scripts"]`,
+        a tree the project never asked mypy to cover.
+        """
+        self._mypy_or_skip()
+        (tmp_path / "pyproject.toml").write_text(
+            '[tool.mypy]\nstrict = true\nfiles = ["core"]\n', encoding="utf-8",
+        )
+        (tmp_path / "core").mkdir()
+        (tmp_path / "core" / "clean.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_thing.py").write_text(
+            "def test_thing():\n    assert True\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["core/clean.py", "tests/test_thing.py"], None, 120,
+        )
+
+        assert result.passed is True, result.summary
+        assert "scoped: 1 file(s)" in result.command
+        assert "test_thing.py" not in result.summary.split("advisory")[0]
+        assert "outside the project's declared mypy scope" in result.summary
+
+    def test_diff_entirely_outside_the_declared_scope_does_not_gate(
+        self, tmp_path
+    ):
+        """Never fall back to the project-wide run — that gates on all debt."""
+        self._mypy_or_skip()
+        (tmp_path / "pyproject.toml").write_text(
+            '[tool.mypy]\nstrict = true\nfiles = ["core"]\n', encoding="utf-8",
+        )
+        (tmp_path / "core").mkdir()
+        (tmp_path / "core" / "legacy.py").write_text(
+            "def old(a: int) -> int:\n    return 'debt'\n", encoding="utf-8",
+        )
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_thing.py").write_text(
+            "def test_thing():\n    assert True\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["tests/test_thing.py"], None, 120,
+        )
+
+        assert result.ran is False
+        assert result.passed is not False, (
+            "master's debt must not reject a diff mypy was never asked to cover"
+        )
+        assert "outside the project's declared mypy scope" in result.summary

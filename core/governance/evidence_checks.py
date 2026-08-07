@@ -266,46 +266,81 @@ def _mypy_configured(project_dir: Path) -> bool:
     return False
 
 
-def _mypy_scope_configured(project_dir: Path) -> bool:
-    """True when the project's mypy config declares its own ``files`` scope.
+def _mypy_declared_scope(project_dir: Path) -> list[str] | None:
+    """The project's declared mypy ``files`` roots, or None if undeclared.
 
     mypy IGNORES the config's ``files`` the moment any path is passed on
     the command line, so a gate that unconditionally appends ``.``
     overrides the very scope the project declared. That is how ``mypy .``
     came to ABORT on this repo before checking a single line — two
     top-level ``server`` modules under mcps/, plus bare script names
-    colliding between plugins/ and scripts/ (issue #452). When the
-    project has declared a scope, run bare and let the config win.
+    colliding between plugins/ and scripts/ (issue #452).
+
+    The same override bites the SCOPED run, which also passes explicit
+    paths: without this list the gate strict-typechecks files the project
+    deliberately excludes (measured: a diff touching tests/ produced 351
+    errors in a tree `files = ["core", "scripts"]` never covers).
     """
-    if _ini_declares_files(project_dir / "mypy.ini"):
-        return True
-    if _ini_declares_files(project_dir / "setup.cfg"):
-        return True
-    return _pyproject_declares_files(project_dir / "pyproject.toml")
+    for name, reader in (
+        ("mypy.ini", _ini_declared_files),
+        ("setup.cfg", _ini_declared_files),
+        ("pyproject.toml", _pyproject_declared_files),
+    ):
+        declared = reader(project_dir / name)
+        if declared:
+            return declared
+    return None
 
 
-def _ini_declares_files(path: Path) -> bool:
-    """`files = ...` under an ini-style ``[mypy]`` section."""
+def _mypy_scope_configured(project_dir: Path) -> bool:
+    """True when the project declares its own mypy file scope."""
+    return _mypy_declared_scope(project_dir) is not None
+
+
+def _ini_declared_files(path: Path) -> list[str]:
+    """`files = a, b` under an ini-style ``[mypy]`` section."""
     if not path.is_file():
-        return False
+        return []
     parser = configparser.ConfigParser()
     try:
         parser.read(path, encoding="utf-8")
-        return bool(parser.get("mypy", "files", fallback="").strip())
+        raw = parser.get("mypy", "files", fallback="")
     except (OSError, configparser.Error):
-        return False
+        return []
+    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
-def _pyproject_declares_files(path: Path) -> bool:
+def _pyproject_declared_files(path: Path) -> list[str]:
     """`files = [...]` under ``[tool.mypy]`` in pyproject.toml."""
     if not path.is_file():
-        return False
+        return []
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError, UnicodeDecodeError):
-        return False
+        return []
     mypy_cfg = data.get("tool", {}).get("mypy", {})
-    return bool(isinstance(mypy_cfg, dict) and mypy_cfg.get("files"))
+    if not isinstance(mypy_cfg, dict):
+        return []
+    declared = mypy_cfg.get("files")
+    if isinstance(declared, str):
+        declared = [declared]
+    if not isinstance(declared, list):
+        return []
+    return [str(item).strip() for item in declared if str(item).strip()]
+
+
+def _within_declared_scope(rel: str, declared: list[str] | None) -> bool:
+    """True when a project-relative path sits under a declared mypy root."""
+    if declared is None:
+        return True
+    candidate = PurePosixPath(rel)
+    for root in declared:
+        prefix = PurePosixPath(root.rstrip("/") or ".")
+        if prefix == PurePosixPath("."):
+            return True
+        if candidate == prefix or prefix in candidate.parents:
+            return True
+    return False
 
 
 # ─── Individual checks ──────────────────────────────────────────────────
@@ -583,6 +618,92 @@ def _mypy_verdict(result: CheckResult) -> CheckResult:
     return replace(result, passed=False, summary=f"{prefix}\n{text}")
 
 
+_MYPY_FOUND_RE = re.compile(r"Found \d+ errors? in \d+ files?[^\n]*")
+
+
+def _mypy_project_argv(project_dir: Path, mypy: list[str]) -> list[str]:
+    """Project-wide invocation, honouring a config-declared ``files`` scope."""
+    return list(mypy) if _mypy_scope_configured(project_dir) else [*mypy, "."]
+
+
+def _project_wide_advisory(
+    project_dir: Path, mypy: list[str], timeout: int,
+) -> str:
+    """Master's accumulated count, carried as an explicitly NON-GATING note.
+
+    Scoping the verdict to the diff must not make the accumulated debt
+    invisible: a number nobody sees is a number nobody ever cleans. It
+    rides at the END of the summary because ``_tail`` keeps the tail.
+    """
+    result = _run(
+        "typecheck", _mypy_project_argv(project_dir, mypy), project_dir, timeout,
+    )
+    prefix = "typecheck (project-wide, advisory, NOT gating): "
+    if not result.ran:
+        return ""
+    if result.exit_code == 0:
+        return prefix + "clean"
+    if result.passed is None:
+        return prefix + "did not finish (timeout)"
+    found = _MYPY_FOUND_RE.search(result.summary or "")
+    if found is None:
+        return prefix + f"could not be summarised (exit {result.exit_code})"
+    return f"{prefix}{found.group(0)} — master's debt, not this diff's"
+
+
+def _typecheck_scoped(
+    project_dir: Path, mypy: list[str], changed: list[str] | None, timeout: int,
+) -> CheckResult | None:
+    """Typecheck the DIFF, not the accumulated tree.
+
+    The same principle ``_lint_scoped`` already applies: pre-existing
+    project-wide debt is master's debt, not this change's. Measured on this
+    repo, project-wide mypy reports 1246 errors in 192 files — a verdict
+    that would REJECT every deliverable regardless of its own quality, and
+    a permanently red gate is one reviewers learn to ignore.
+
+    ``--follow-imports=silent`` keeps the full import graph for inference
+    (so types resolve correctly) while reporting only on the named files.
+    Returns None when the diff carries no Python, so the caller falls back
+    to the project-wide run unchanged.
+    """
+    files = _scoped_files(project_dir, changed, _LINTABLE_PY)
+    if not files:
+        return None
+    declared = _mypy_declared_scope(project_dir)
+    in_scope = [f for f in files if _within_declared_scope(f, declared)]
+    advisory = _project_wide_advisory(project_dir, mypy, timeout)
+    excluded = len(files) - len(in_scope)
+    if not in_scope:
+        # Every changed .py sits outside the project's declared scope.
+        # Falling through to the project-wide run would gate this diff on
+        # master's whole accumulated debt, which is the opposite of the
+        # point; the advisory still carries that number.
+        return _skip(
+            "typecheck",
+            f"{excluded} changed .py file(s) all outside the project's "
+            f"declared mypy scope ({', '.join(declared or [])})"
+            + (f"\n{advisory}" if advisory else ""),
+        )
+    result = _mypy_verdict(
+        _run(
+            "typecheck", [*mypy, "--follow-imports=silent", *in_scope],
+            project_dir, timeout,
+        )
+    )
+    notes = [advisory] if advisory else []
+    if excluded:
+        notes.append(
+            f"{excluded} changed .py file(s) skipped — outside the "
+            f"project's declared mypy scope ({', '.join(declared or [])})"
+        )
+    if notes:
+        result = replace(
+            result, summary="\n".join([result.summary, *notes]).strip(),
+        )
+    return _labelled(result, f"typecheck(scoped: {len(in_scope)} file(s))")
+
+
 def _check_typecheck(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
@@ -607,8 +728,15 @@ def _check_typecheck(
                 "(pip install mypy) or drop the mypy config; the gate has "
                 "NO type signal for this run",
             )
-        argv = list(mypy) if _mypy_scope_configured(project_dir) else [*mypy, "."]
-        return _mypy_verdict(_run("typecheck", argv, project_dir, timeout))
+        scoped = _typecheck_scoped(project_dir, mypy, changed, timeout)
+        if scoped is not None:
+            return scoped
+        return _mypy_verdict(
+            _run(
+                "typecheck", _mypy_project_argv(project_dir, mypy),
+                project_dir, timeout,
+            )
+        )
     if (project_dir / "tsconfig.json").is_file():
         local_tsc = project_dir / "node_modules" / ".bin" / "tsc"
         if local_tsc.is_file():
