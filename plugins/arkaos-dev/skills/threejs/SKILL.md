@@ -23,8 +23,8 @@ metadata:
 
 > **Agent:** Diana (Frontend Dev) | **Framework:** three.js (MIT) + React Three Fiber
 > Core authored from the three.js project's own LLM guidance
-> (`docs/llms.txt`, MIT); the R3F layer derives from genjutsu (MIT) — see
-> `references/`.
+> (`docs/llms.txt` in the three.js repo — not vendored here, MIT); the R3F
+> layer derives from genjutsu (MIT) — see `references/`.
 
 ## Setup — the modern shape
 

@@ -126,8 +126,3 @@ Surface these issues WITHOUT being asked:
 
 ### Next Review: <date>
 ```
-
-## References
-
-- [iso31000-guide.md](references/iso31000-guide.md) — ISO 31000 principles, framework, process, risk criteria, treatment selection
-- [coso-erm-framework.md](references/coso-erm-framework.md) — COSO ERM components, principles, risk appetite, strategy integration

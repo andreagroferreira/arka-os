@@ -118,8 +118,3 @@ Surface these issues WITHOUT being asked:
 ### Recommended Timeline
 Gap Assessment -> Remediation -> Type I -> Observation -> Type II
 ```
-
-## References
-
-- [trust-service-criteria.md](references/trust-service-criteria.md) — All 5 TSC categories with sub-criteria, control objectives, and evidence examples
-- [evidence-collection-guide.md](references/evidence-collection-guide.md) — Evidence types per control, automation approaches, documentation requirements

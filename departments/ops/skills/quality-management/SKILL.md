@@ -123,8 +123,3 @@ Surface these issues WITHOUT being asked:
 
 ### Next Management Review: <date>
 ```
-
-## References
-
-- [iso9001-implementation.md](references/iso9001-implementation.md) — ISO 9001:2015 clause-by-clause guidance, process approach, documentation requirements
-- [capa-methodology.md](references/capa-methodology.md) — Root cause analysis techniques, corrective action planning, effectiveness verification

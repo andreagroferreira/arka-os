@@ -109,8 +109,3 @@ Surface these issues WITHOUT being asked:
 
 ### Next Review: <date>
 ```
-
-## References
-
-- [gdpr-compliance-guide.md](references/gdpr-compliance-guide.md) — Legal bases, special category data, accountability requirements, breach notification procedures
-- [dpia-methodology.md](references/dpia-methodology.md) — DPIA threshold assessment, risk methodology, mitigation categories, consultation process
