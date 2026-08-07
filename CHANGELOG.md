@@ -5,7 +5,30 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.13.0] - 2026-08-07
+## [5.14.0] - 2026-08-07
+
+### Fixed
+- **governance:** the evidence gate attributes honestly — provenance guard
+  (the run fails loud when the imported engine is not the working tree's),
+  typecheck runs via a resolvable tool with a viable invocation, scoped to
+  the diff and attributed to added lines, with pre-existing debt visible in
+  two non-gating lines; eslint resolves per nearest-ancestor root; skill
+  evaluation leaves a trace on both POSIX and Windows (#480)
+- **docs:** the skills catalog generator no longer stacks periods or eats
+  spaces before dot-tokens (120 rows repaired); per-department wiki counts
+  locked against the canonical counter — 68 count-sites (#478)
+- **tests:** e2e workflow asserts match reality — registry prefix
+  vocabulary, exact 5-runtime set (#477)
+
+### Added
+- **tests:** link integrity for skill docs — 18 dead pointers fixed, 12
+  dead compliance-guide promises removed (#479)
+- **tests:** vendor integrity lock — 161 files sha256-pinned across 15
+  absorbed trees, anti-laundering guard, frozen attribution-gap set,
+  Apache §4(d) test-enforced (#483)
+- **tests:** static scope analysis for fenced JS/TS in skill markdown —
+  cumulative per-document scope, 248 real findings baselined
+  shrinking-only, honest toolchain skip (#485)
 
 ### Fixed
 - **hooks (Windows):** the per-prompt chain is alive — thin `.ps1` wrappers
