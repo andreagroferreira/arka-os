@@ -14,7 +14,6 @@ from core.cognition.scheduler.platform import (
     detect_platform,
 )
 
-
 # ---------------------------------------------------------------------------
 # TestPlatformDetection
 # ---------------------------------------------------------------------------
@@ -37,19 +36,17 @@ class TestPlatformDetection:
 
     def test_detect_unsupported_platform_raises(self) -> None:
         """detect_platform raises RuntimeError for unknown platforms."""
-        with patch.object(sys, "platform", "freebsd12"):
-            with pytest.raises(RuntimeError, match="Unsupported platform"):
-                detect_platform()
+        with (
+            patch.object(sys, "platform", "freebsd12"),
+            pytest.raises(RuntimeError, match="Unsupported platform"),
+        ):
+            detect_platform()
 
     def test_detect_uses_default_daemon_script(self) -> None:
         """The detected adapter's daemon_script defaults to ~/.arkaos/bin/scheduler-daemon.py."""
         adapter = detect_platform()
         expected = str(Path.home() / ".arkaos" / "bin" / "scheduler-daemon.py")
-        if isinstance(adapter, MacOSAdapter):
-            assert adapter._daemon_script == expected
-        elif isinstance(adapter, LinuxAdapter):
-            assert adapter._daemon_script == expected
-        elif isinstance(adapter, WindowsAdapter):
+        if isinstance(adapter, (MacOSAdapter, LinuxAdapter, WindowsAdapter)):
             assert adapter._daemon_script == expected
 
 
@@ -211,9 +208,8 @@ class TestWindowsAdapter:
         with patch(
             "core.cognition.scheduler.platform._python_executable",
             return_value=venv_python,
-        ):
-            with patch.object(Path, "is_file", return_value=True):
-                cmd = adapter._build_schtasks_command()
+        ), patch.object(Path, "is_file", return_value=True):
+            cmd = adapter._build_schtasks_command()
 
         tr_value = cmd[cmd.index("/TR") + 1]
         assert "pythonw.exe" in tr_value
@@ -229,9 +225,8 @@ class TestWindowsAdapter:
         with patch(
             "core.cognition.scheduler.platform._python_executable",
             return_value=venv_python,
-        ):
-            with patch.object(Path, "is_file", return_value=False):
-                cmd = adapter._build_schtasks_command()
+        ), patch.object(Path, "is_file", return_value=False):
+            cmd = adapter._build_schtasks_command()
 
         tr_value = cmd[cmd.index("/TR") + 1]
         assert "python.exe" in tr_value
@@ -247,9 +242,8 @@ class TestWindowsAdapter:
         with patch(
             "core.cognition.scheduler.platform._python_executable",
             return_value=interpreter,
-        ):
-            with patch.object(Path, "is_file", return_value=True):
-                cmd = spaced._build_schtasks_command()
+        ), patch.object(Path, "is_file", return_value=True):
+            cmd = spaced._build_schtasks_command()
 
         tr_value = cmd[cmd.index("/TR") + 1]
         assert tr_value.startswith('"')
