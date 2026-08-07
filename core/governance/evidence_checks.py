@@ -38,6 +38,7 @@ from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from xml.etree import ElementTree
 
+import core
 from core.governance.qg_digest import evidence_digest
 from core.shared.test_evidence import coverage_percent_from_xml
 
@@ -111,6 +112,10 @@ _SECURITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 # CheckResult (immune to summary truncation), and the string summary
 # ends with a `(+N more suppressed)` marker when the listing is capped.
 _SEC_OK_RE = re.compile(r"arka:sec-ok\(([a-z0-9-]+)\):\s*(\S.+)")
+
+
+class ProvenanceError(RuntimeError):
+    """The engine that would produce the report is not the code under review."""
 
 
 @dataclass
@@ -1183,6 +1188,44 @@ def _derive_overall(results: list[CheckResult]) -> str:
     return "insufficient-evidence"
 
 
+def _assert_provenance(project_dir: Path) -> None:
+    """Refuse to gate an ArkaOS checkout with a DIFFERENT copy of the engine.
+
+    The ArkaOS venv carries an editable ``.pth`` that points at the npx
+    install cache, so ``import core`` resolves by CWD: run the gate from
+    anywhere but the repo and it loads the PUBLISHED copy while reporting
+    on the working tree (issue #453 — reproduced: v5.11.0 from
+    ``~/.npm/_npx/.../arkaos/core`` against a v5.13.0 checkout). A verdict
+    derived from code the reviewer never saw is a provenance break on a
+    NON-NEGOTIABLE gate, not a warning — so it kills the whole run rather
+    than emitting a report that looks exactly like a trustworthy one.
+
+    Fires ONLY when ``project_dir`` is itself an engine checkout. Gating a
+    CLIENT project legitimately runs ArkaOS's core from somewhere else,
+    and refusing that would break every cross-project QG.
+    """
+    try:
+        target = Path(project_dir).resolve()
+        engine = Path(core.__file__).resolve().parent
+    except (OSError, TypeError, ValueError):
+        return
+    if not (target / "core" / "governance" / "evidence_checks.py").is_file():
+        return  # foreign project — the engine is expected to live elsewhere
+    try:
+        expected = (target / "core").resolve()
+    except OSError:
+        return
+    if engine == expected:
+        return
+    raise ProvenanceError(
+        "evidence gate provenance mismatch — the report would describe "
+        f"code that was never loaded.\n  project under review: {target}\n"
+        f"  engine actually imported: {engine}\n"
+        f"Re-run from {target} (or with PYTHONPATH={target}) so the gate "
+        "and the diff are the same code."
+    )
+
+
 def run_evidence_checks(
     project_dir: Path,
     changed_files: list[str] | None = None,
@@ -1190,7 +1233,12 @@ def run_evidence_checks(
     test_command: str | None = None,
     timeout: int = TIMEOUT_SECONDS,
 ) -> EvidenceReport:
-    """Run the selected checks and derive the overall evidence status."""
+    """Run the selected checks and derive the overall evidence status.
+
+    Raises ``ProvenanceError`` before running anything when the imported
+    engine is not the checkout being gated (see ``_assert_provenance``).
+    """
+    _assert_provenance(project_dir)
     project_dir = Path(project_dir)
     selected = list(checks) if checks else list(ALL_CHECKS)
     results: list[CheckResult] = []
@@ -1233,12 +1281,19 @@ def _csv(value: str | None) -> list[str] | None:
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    report = run_evidence_checks(
-        project_dir=args.project_dir,
-        changed_files=_csv(args.changed_files),
-        checks=_csv(args.checks),
-        test_command=args.test_command,
-    )
+    try:
+        report = run_evidence_checks(
+            project_dir=args.project_dir,
+            changed_files=_csv(args.changed_files),
+            checks=_csv(args.checks),
+            test_command=args.test_command,
+        )
+    except ProvenanceError as exc:
+        # Loud and unmissable, on stderr, with NO report on stdout: a
+        # caller that pipes --json must get nothing to interpret rather
+        # than a plausible-looking verdict from the wrong engine.
+        print(f"[PROVENANCE-FAIL] {exc}", file=sys.stderr)
+        return 3
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:

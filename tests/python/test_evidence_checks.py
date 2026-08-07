@@ -5,6 +5,7 @@ subprocesses are either trivially fast real commands (python3 -c) or
 monkeypatched. Never touches ~/.arkaos or this repo's own suite.
 """
 
+import contextlib
 import getpass
 import json
 import os
@@ -12,6 +13,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+import pytest
 
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
@@ -1776,3 +1779,110 @@ class TestCoveragePathMatching:
         )
 
         assert result.passed is True
+
+
+# ─── provenance guard (issue #453) ──────────────────────────────────────
+
+
+@contextlib.contextmanager
+def _patched_engine(core_init: Path):
+    """Pretend `import core` resolved to `core_init` for the duration.
+
+    The real failure swaps the whole package via a `.pth`; swapping
+    `core.__file__` reproduces exactly what the guard reads, without
+    mutating sys.path inside the test process.
+    """
+    import core as _core
+
+    original = _core.__file__
+    _core.__file__ = str(core_init)
+    try:
+        yield
+    finally:
+        _core.__file__ = original
+
+
+class TestProvenanceGuard:
+    """The gate must never validate one checkout with another's engine.
+
+    Reproduced on the operator's machine: the ArkaOS venv carries an
+    editable ``.pth`` pointing at the npx install cache, so a bare
+    ``python -m core.governance.evidence_checks`` launched from a cwd
+    outside the repo imports the PUBLISHED copy (v5.11.0) and reports on
+    the working tree (v5.13.0) — a report that looks exactly like a
+    trustworthy one.
+    """
+
+    @staticmethod
+    def _engine_checkout(root: Path) -> None:
+        """Minimal marker that makes `root` look like an ArkaOS checkout."""
+        (root / "core" / "governance").mkdir(parents=True, exist_ok=True)
+        (root / "core" / "governance" / "evidence_checks.py").write_text(
+            "# marker\n", encoding="utf-8"
+        )
+
+    def test_foreign_project_is_never_blocked(self, tmp_path):
+        """Gating a CLIENT project legitimately runs the engine from elsewhere."""
+        report = run_evidence_checks(
+            tmp_path, changed_files=[], checks=["lint"],
+        )
+        assert report.overall == "insufficient-evidence"
+
+    def test_engine_checkout_gated_by_a_foreign_engine_raises(self, tmp_path):
+        """The reproduced case: cwd outside the repo, engine from the npx cache."""
+        self._engine_checkout(tmp_path)
+        fake_engine = tmp_path.parent / f"{tmp_path.name}-npx-cache" / "core"
+        fake_engine.mkdir(parents=True, exist_ok=True)
+        (fake_engine / "__init__.py").write_text("", encoding="utf-8")
+
+        with (
+            pytest.raises(evidence_checks.ProvenanceError) as excinfo,
+            _patched_engine(fake_engine / "__init__.py"),
+        ):
+            run_evidence_checks(tmp_path, changed_files=[], checks=["lint"])
+
+        message = str(excinfo.value)
+        assert "provenance mismatch" in message
+        assert str(fake_engine) in message, "the wrong engine must be named"
+        assert str(tmp_path.resolve()) in message
+
+    def test_matching_engine_and_checkout_runs(self, tmp_path):
+        """Same tree on both sides — the guard must stay out of the way."""
+        self._engine_checkout(tmp_path)
+        with _patched_engine(tmp_path / "core" / "__init__.py"):
+            report = run_evidence_checks(
+                tmp_path, changed_files=[], checks=["lint"],
+            )
+        assert report.overall == "insufficient-evidence"
+
+    def test_guard_runs_before_any_check(self, tmp_path, monkeypatch):
+        """It fails the WHOLE run, not one check — nothing may execute."""
+        self._engine_checkout(tmp_path)
+        fake_engine = tmp_path.parent / f"{tmp_path.name}-other" / "core"
+        fake_engine.mkdir(parents=True, exist_ok=True)
+        (fake_engine / "__init__.py").write_text("", encoding="utf-8")
+
+        def explode(*_args, **_kwargs):
+            raise AssertionError("a check ran despite a provenance mismatch")
+
+        monkeypatch.setattr(evidence_checks, "_run", explode)
+        with (
+            pytest.raises(evidence_checks.ProvenanceError),
+            _patched_engine(fake_engine / "__init__.py"),
+        ):
+            run_evidence_checks(tmp_path, checks=list(ALL_CHECKS))
+
+    def test_cli_exits_3_with_no_report_on_stdout(self, tmp_path, capsys):
+        """--json must emit NOTHING interpretable when provenance fails."""
+        self._engine_checkout(tmp_path)
+        fake_engine = tmp_path.parent / f"{tmp_path.name}-cli" / "core"
+        fake_engine.mkdir(parents=True, exist_ok=True)
+        (fake_engine / "__init__.py").write_text("", encoding="utf-8")
+
+        with _patched_engine(fake_engine / "__init__.py"):
+            code = main([str(tmp_path), "--json"])
+
+        captured = capsys.readouterr()
+        assert code == 3
+        assert captured.out.strip() == "", "no report may reach stdout"
+        assert "[PROVENANCE-FAIL]" in captured.err
