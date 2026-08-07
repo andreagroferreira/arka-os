@@ -20,10 +20,14 @@ These tests pin three things:
    machinery justified rather than decorative.
 
 TOOLCHAIN HONESTY: these tests shell out to node. When node or the eslint
-dev-dependency is missing the tests skip -- but `test_toolchain_present_in_ci`
-turns that skip into a hard failure whenever `CI` is set, so the gate can never
-report green in CI while having silently checked nothing. That is the fail-open
-class of issue #452, and it is closed here by construction.
+dev-dependency is missing the tests skip -- but
+`test_toolchain_present_where_required` turns that skip into a hard failure
+wherever `ARKA_FENCED_GATE_REQUIRED=1` is set: the python-tests CI job,
+which provisions the toolchain. The report-only cross-platform-tests legs
+have no Node and their skips stay skips, carrying `_SKIP_REASON` into the
+summary -- deliberately not keyed on bare `CI` (see that function's own
+docstring). That is the fail-open class of issue #452, closed where the
+toolchain is guaranteed and honestly reported where it is not.
 """
 
 from __future__ import annotations
