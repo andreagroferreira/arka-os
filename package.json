@@ -9,6 +9,7 @@
   "scripts": {
     "test": "node --test \"tests/installer/**/*.test.js\"",
     "lint": "eslint installer/",
+    "lint:fenced": "node scripts/lint_fenced_code.mjs",
     "prepublishOnly": "node scripts/check-version.js && npm test"
   },
   "keywords": [
@@ -83,6 +84,7 @@
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^8.66.0",
     "eslint": "^8.57.1"
   }
 }

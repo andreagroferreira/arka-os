@@ -1,0 +1,308 @@
+{
+  "_comment": [
+    "Baseline for scripts/lint_fenced_code.mjs (issue #457).",
+    "",
+    "assumedContext -- identifiers the surrounding PROSE establishes rather than any",
+    "fence. Deliberately tiny, and every entry is derived from a measured pattern in",
+    "this corpus, not from a generic browser-globals wish list. Note what is NOT here:",
+    "gsap, THREE, ScrollTrigger, Flip, Draggable and the rest of the library surface",
+    "were resolved structurally by the skill-directory import rule (90 gsap findings",
+    "went to zero), so hard-coding them would be both redundant and stale.",
+    "",
+    "trackedFindings -- the pre-existing corpus, baselined per file by identifier name",
+    "so the gate is green on master and ratchets: a NEW undeclared identifier in any",
+    "of these files still fails. These are real findings, not false positives; the",
+    "decision to fix them belongs to the orchestrator because several live in files",
+    "pinned by the vendorization lock. Keyed by name rather than line so ordinary",
+    "line drift does not churn the baseline.",
+    "",
+    "unparseableBlocks -- fences that do not parse, so they were never scope-analyzed.",
+    "Recorded rather than swallowed: an unanalyzed block is an open hole, and hiding",
+    "it would be the silent fail-open of issue #452. Keyed by block index within the",
+    "file (document order), which is stable under edits inside a block.",
+    "",
+    "Regenerate with: node scripts/lint_fenced_code.mjs --update-allowlist"
+  ],
+  "assumedContext": {
+    "canvas": "The HTMLCanvasElement the skill prose tells the reader to obtain before the snippet ('grab your canvas'). 10 uses across canvas-generative and animated-website.",
+    "ctx": "The 2D rendering context derived from that canvas, established in prose alongside it. 11 uses, same two skills.",
+    "dataLayer": "Real browser global installed by the Google Tag Manager container snippet; the marketing docs correctly assume the container is already on the page. 16 uses.",
+    "gtag": "Real browser global installed by the GA4 / gtag.js loader snippet. 11 uses.",
+    "fbq": "Real browser global installed by the Meta Pixel base code. 4 uses.",
+    "ttq": "Real browser global installed by the TikTok Pixel base code. 5 uses."
+  },
+  "trackedFindings": {
+    "departments/dev/skills/animated-website/references/motion-recipes.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "api",
+        "btn",
+        "item",
+        "render",
+        "retry",
+        "toast",
+        "value"
+      ]
+    },
+    "departments/dev/skills/animated-website/SKILL.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "FRAME_COUNT",
+        "LERP_FACTOR",
+        "currentFrame",
+        "drawFrame",
+        "remapProgress",
+        "section",
+        "targetFrame"
+      ]
+    },
+    "departments/dev/skills/canvas-generative/references/algorithms.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "x",
+        "y"
+      ]
+    },
+    "departments/dev/skills/canvas-generative/SKILL.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "a",
+        "cellSize",
+        "drawParticles",
+        "force",
+        "h",
+        "height",
+        "noise2D",
+        "processPixels",
+        "render",
+        "update",
+        "w",
+        "width"
+      ]
+    },
+    "departments/dev/skills/css-native/SKILL.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "updateContent"
+      ]
+    },
+    "departments/dev/skills/framer-motion/references/api.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "el",
+        "element",
+        "motion",
+        "motionValue",
+        "scrollRef",
+        "useAnimate",
+        "useInView",
+        "useMotionValue",
+        "useMotionValueEvent",
+        "useReducedMotion",
+        "useRef",
+        "useScroll",
+        "useSpring",
+        "useTransform",
+        "y"
+      ]
+    },
+    "departments/dev/skills/framer-motion/SKILL.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "AnimatePresence",
+        "handleSwipe",
+        "isVisible",
+        "items",
+        "motion",
+        "useMotionValue",
+        "useRef",
+        "useScroll",
+        "useSpring",
+        "useTransform"
+      ]
+    },
+    "departments/dev/skills/gsap/references/core.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "CustomEase",
+        "mm",
+        "svgEl"
+      ]
+    },
+    "departments/dev/skills/gsap/references/plugins.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "CustomEase",
+        "DrawSVGPlugin",
+        "GSDevTools",
+        "InertiaPlugin",
+        "MorphSVGPlugin",
+        "MotionPathHelper",
+        "MotionPathHelperPlugin",
+        "MotionPathPlugin",
+        "Observer",
+        "PIXI",
+        "Physics2DPlugin",
+        "PhysicsPropsPlugin",
+        "PixiPlugin",
+        "ScrambleTextPlugin",
+        "SplitText",
+        "obj",
+        "scrollContainer",
+        "texture",
+        "tl"
+      ]
+    },
+    "departments/dev/skills/gsap/references/react.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "container",
+        "endX",
+        "useEffect",
+        "useRef"
+      ]
+    },
+    "departments/dev/skills/gsap/references/scrolltrigger.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "Max",
+        "scrollbar"
+      ]
+    },
+    "departments/dev/skills/gsap/references/utils.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "container",
+        "containerRef",
+        "nodeList"
+      ]
+    },
+    "departments/dev/skills/scroll-world/SKILL.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "mountScrollWorld"
+      ]
+    },
+    "departments/dev/skills/security-audit/references/owasp-2025-deep.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "db",
+        "hashPassword",
+        "req"
+      ]
+    },
+    "departments/dev/skills/threejs/references/r3f.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "Scene",
+        "SceneCanvas",
+        "TextureLoader",
+        "UI",
+        "geometry",
+        "material",
+        "meshRef",
+        "setRotation",
+        "useEffect",
+        "useLoader"
+      ]
+    },
+    "departments/dev/skills/threejs/references/scene-setup.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "Model",
+        "Scene"
+      ]
+    },
+    "departments/dev/skills/threejs/references/shaders.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "simplex2DNoise"
+      ]
+    },
+    "departments/dev/skills/threejs/SKILL.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "h",
+        "tick",
+        "w"
+      ]
+    },
+    "departments/marketing/skills/ad-creative/references/generative-tools.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "AbsoluteFill",
+        "Img",
+        "React"
+      ]
+    },
+    "departments/marketing/skills/paid-campaign/references/conversion-tracking.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "YOUR_CONVERSION_ID"
+      ]
+    },
+    "departments/marketing/skills/schema-markup/references/schema-examples.md": {
+      "note": "real findings, tracked",
+      "identifiers": [
+        "Head"
+      ]
+    }
+  },
+  "unparseableBlocks": {
+    "departments/dev/skills/framer-motion/references/api.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        1
+      ]
+    },
+    "departments/dev/skills/framer-motion/SKILL.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        1,
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "departments/dev/skills/gsap/references/frameworks.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        1,
+        4
+      ]
+    },
+    "departments/dev/skills/gsap/references/scrolltrigger.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        7,
+        8
+      ]
+    },
+    "departments/dev/skills/scroll-world/references/pipeline.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        0
+      ]
+    },
+    "departments/dev/skills/threejs/references/r3f.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        7
+      ]
+    },
+    "departments/dev/skills/threejs/references/scene-setup.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        5,
+        6
+      ]
+    },
+    "departments/marketing/skills/analytics-report/references/gtm-implementation.md": {
+      "note": "real findings, tracked",
+      "blocks": [
+        6
+      ]
+    }
+  }
+}

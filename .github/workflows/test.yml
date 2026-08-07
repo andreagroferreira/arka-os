@@ -21,6 +21,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Set up Node.js
+        # tests/python/test_fenced_code_scope.py shells out to node for the
+        # fenced-code scope gate. Without the toolchain those tests would SKIP,
+        # and a skip that reads as a pass is the fail-open class of issue #452 —
+        # so ARKA_FENCED_GATE_REQUIRED below turns any skip here into an error.
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install Node dev dependencies
+        run: npm ci --no-audit --no-fund
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -38,6 +50,12 @@ jobs:
           pip install httpx2 || pip install httpx
 
       - name: Run Python tests
+        env:
+          # This job provisions node + npm ci, so the fenced-code scope tests
+          # MUST execute here. cross-platform-tests deliberately does not set
+          # it: that job has no Node toolchain, and its skips stay honest skips
+          # rather than a manufactured red on a report-only leg.
+          ARKA_FENCED_GATE_REQUIRED: "1"
         # Coverage gate (constitution MUST rule: test-coverage >= 80%) runs
         # on one matrix leg only — a single source of truth avoids tripling
         # the flake surface on platform-dependent branches. Measured 80.44%
@@ -189,6 +207,27 @@ jobs:
 
       - name: Lint installer
         run: npm run lint
+
+      # Quoted: an unquoted ` #` opens a YAML comment and would silently
+      # truncate this step's name to "...(issue".
+      - name: "Fenced JS/TS scope analysis (issue #457)"
+        # Thousands of lines of executable JS/TS live in departments/**/*.md
+        # and had NO executable checking -- lint only ever saw .py. `node
+        # --check` cannot close it: an undeclared identifier is a runtime
+        # ReferenceError, so it exits 0 on the exact bug that motivated this
+        # gate (pinned by test_node_check_passes_the_motivating_bug). This runs
+        # real scope analysis instead. Measured ~0.3s over 188 blocks, so it
+        # rides the existing node-check job on BOTH legs rather than paying for
+        # a job of its own -- npm ci above already installed what it needs, and
+        # running it on 18 proves the toolchain works at the engines floor.
+        run: npm run lint:fenced
+
+      - name: Publish scope-analysis summary
+        # One leg writes the summary; both legs gate. `always()` so the counts
+        # are published even when the step above failed -- a red gate is
+        # exactly when the reviewer needs the finding list.
+        if: always() && matrix.node-version == 22
+        run: node scripts/lint_fenced_code.mjs --summary "$GITHUB_STEP_SUMMARY" || true
 
       - name: Run installer tests
         # The node --test glob form ("tests/installer/**/*.test.js") is
