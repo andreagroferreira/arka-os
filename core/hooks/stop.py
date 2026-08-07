@@ -32,6 +32,7 @@ import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from core.hooks._shared import (
     emit_additional_context,
@@ -43,6 +44,9 @@ from core.hooks._shared import (
     safe_session_id,
 )
 from core.shared.temp_paths import arkaos_temp_dir, wf_required_dir
+
+if TYPE_CHECKING:  # hooks pay for every import; this one is annotation-only
+    from core.governance.skill_proposer import SkillProposal
 
 _DISPATCH_RE = re.compile(
     r"\[arka:dispatch\][ \t]*[A-Za-z0-9_-]+[ \t]*->[ \t]*([A-Za-z0-9_-]+)",
@@ -117,6 +121,39 @@ def _write_tmp_state(subdir: str, safe_sid: str, payload: dict) -> None:
         )
     finally:
         os.umask(prev_umask)
+
+
+def record_skill_proposal(
+    proposal: SkillProposal, safe_sid: str | None,
+) -> None:
+    """Persist a skill evaluation verdict, like every neighbouring detector.
+
+    Both callers used to discard ``evaluate()``'s return value, so the ONLY
+    trace a skill evaluation left was the proposal file itself. Since #469
+    that file is not always written: ``no-safe-filename`` renders the
+    capture and then finds nowhere safe to put it — and with the result
+    dropped, that capture vanished with no record anywhere.
+
+    Shared by the POSIX path (``_flow_checks``) and the Windows port
+    (``stop_governance._run_skill_proposer``) deliberately: a per-platform
+    copy of this is exactly how the Windows detectors went 583 tasks
+    without running (#468).
+    """
+    if not safe_sid:
+        return
+    state: dict[str, object] = {
+        "should_propose": proposal.should_propose,
+        "reason": proposal.reason,
+        "suggested_slug": proposal.suggested_slug,
+        "proposal_path": (
+            str(proposal.proposal_path) if proposal.proposal_path else None
+        ),
+    }
+    if proposal.proposal_path is None and proposal.proposal_markdown:
+        # Rendered but never landed — this state file is the only
+        # surviving copy, so it carries the capture itself.
+        state["proposal_markdown"] = proposal.proposal_markdown
+    _write_tmp_state("arkaos-skill-proposal", safe_sid, state)
 
 
 def _flow_checks(
@@ -217,7 +254,7 @@ def _flow_checks(
 
     try:
         from core.governance.skill_proposer import evaluate as _eval_skill
-        _eval_skill(last)
+        record_skill_proposal(_eval_skill(last), safe_sid)
     except Exception:
         pass
 

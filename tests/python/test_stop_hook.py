@@ -393,3 +393,126 @@ class TestMainInProcess:
             "QG-approved + external research must enqueue the auto-doc job"
         )
         capsys.readouterr()
+
+
+class TestSkillProposalStatePersisted:
+    """`_eval_skill(last)` discarded its return value.
+
+    Every neighbouring detector in `_flow_checks` (cite, meta, closing,
+    phantom) persists its verdict to tmp state; this one persisted
+    nothing. Since #469 the proposal FILE is not always written either —
+    `no-safe-filename` renders the capture and then finds nowhere safe to
+    put it — so that outcome left no trace anywhere at all.
+    """
+
+    _CLOSING = (
+        "[arka:gate:4] Shipped the four-phase release workflow: the "
+        "checklist template and the rollback procedure are now a "
+        "reusable skill with its own playbook and evidence gates."
+    )
+
+    def _transcript(self, tmp_path: Path) -> Path:
+        path = tmp_path / "skill-transcript.jsonl"
+        path.write_text(
+            json.dumps({"role": "user", "content": "ship the release flow"})
+            + "\n"
+            + json.dumps({"role": "assistant", "content": self._CLOSING})
+            + "\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def _env(self, monkeypatch, tmp_path):
+        from core.hooks import stop as stop_hook
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        monkeypatch.setattr(
+            stop_hook, "arkaos_temp_dir", lambda name: tmp_path / name
+        )
+        return stop_hook
+
+    def _state(self, tmp_path: Path, session_id: str) -> dict:
+        path = tmp_path / "arkaos-skill-proposal" / f"{session_id}.json"
+        assert path.is_file(), (
+            "a skill evaluation must leave a trace, like every neighbour"
+        )
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def test_a_written_proposal_records_its_path(self, monkeypatch, tmp_path):
+        stop_hook = self._env(monkeypatch, tmp_path)
+        transcript = self._transcript(tmp_path)
+
+        stop_hook._flow_checks(
+            "sess-skill-1", str(transcript), str(tmp_path), "standard", None,
+        )
+
+        state = self._state(tmp_path, "sess-skill-1")
+        assert state["should_propose"] is True
+        assert state["reason"] == "proposed"
+        assert state["suggested_slug"]
+        assert state["proposal_path"], "the written file must be locatable"
+        assert Path(state["proposal_path"]).is_file()
+        assert "proposal_markdown" not in state, (
+            "the file is the copy of record when one was written"
+        )
+
+    def test_no_safe_filename_keeps_the_rendered_capture(
+        self, monkeypatch, tmp_path
+    ):
+        """The #469 outcome: rendered, nowhere to land, previously lost."""
+        from core.governance import skill_proposer
+
+        stop_hook = self._env(monkeypatch, tmp_path)
+        transcript = self._transcript(tmp_path)
+        monkeypatch.setattr(
+            skill_proposer, "_collision_free_path", lambda *a, **k: None,
+        )
+
+        stop_hook._flow_checks(
+            "sess-skill-2", str(transcript), str(tmp_path), "standard", None,
+        )
+
+        state = self._state(tmp_path, "sess-skill-2")
+        assert state["should_propose"] is False
+        assert state["reason"] == "no-safe-filename"
+        assert state["proposal_path"] is None
+        assert state["proposal_markdown"], (
+            "with no file on disk, this state is the ONLY surviving copy"
+        )
+
+    def test_a_declined_evaluation_is_recorded_too(self, monkeypatch, tmp_path):
+        """Silence is not evidence — a decline must be readable after the fact."""
+        stop_hook = self._env(monkeypatch, tmp_path)
+        transcript = tmp_path / "trivial.jsonl"
+        transcript.write_text(
+            json.dumps({"role": "assistant", "content": "[arka:gate:4] done"})
+            + "\n",
+            encoding="utf-8",
+        )
+
+        stop_hook._flow_checks(
+            "sess-skill-3", str(transcript), str(tmp_path), "standard", None,
+        )
+
+        state = self._state(tmp_path, "sess-skill-3")
+        assert state["should_propose"] is False
+        assert state["reason"] == "trivial-length"
+
+    def test_the_windows_port_records_the_same_verdict(
+        self, monkeypatch, tmp_path
+    ):
+        """POSIX-only honesty is how the Windows detectors went 583 tasks dark.
+
+        `stop_governance` is the Windows path for the same detector (#468);
+        it must leave the same trace, through the same helper.
+        """
+        self._env(monkeypatch, tmp_path)
+        from core.hooks import stop_governance
+
+        completed = stop_governance.run(self._CLOSING, None, "sess-skill-win")
+
+        assert "core.governance.skill_proposer" in completed
+        state = self._state(tmp_path, "sess-skill-win")
+        assert state["reason"] == "proposed"
+        assert state["proposal_path"]

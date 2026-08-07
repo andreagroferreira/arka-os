@@ -38,7 +38,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 # Imported, never mirrored -- see the module docstring.
-from core.hooks.stop import _write_tmp_state
+from core.hooks.stop import _write_tmp_state, record_skill_proposal
 
 Detector = Callable[[str, str | None, str | None], None]
 
@@ -48,10 +48,14 @@ def _run_skill_proposer(last: str, raw: str | None, safe_sid: str | None) -> Non
 
     The regression this whole port exists for: it ran on POSIX every turn
     and had never run on Windows once.
+
+    The verdict is persisted through the SAME helper the POSIX path uses,
+    so a Windows session leaves the same trace — including the
+    ``no-safe-filename`` capture that has no file to leave behind.
     """
     from core.governance.skill_proposer import evaluate
 
-    evaluate(last)
+    record_skill_proposal(evaluate(last), safe_sid)
 
 
 def _run_sycophancy(last: str, raw: str | None, safe_sid: str | None) -> None:
