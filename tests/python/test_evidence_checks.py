@@ -2332,9 +2332,15 @@ class TestTypecheckScopedToDiff:
             "the accumulated count must stay visible or nobody ever cleans it"
         )
 
-    def test_non_python_diff_still_falls_back_to_project_wide(
+    def test_non_python_diff_never_reaches_the_project_wide_run(
         self, tmp_path, monkeypatch
     ):
+        """Issue #491: this used to assert `[["mypy", "."]]` — the defect.
+
+        A markdown-only changeset was charged the project-wide run (1246
+        errors in 192 untouched files), `overall` went fail, and the
+        evidence floor REJECTED every docs-only deliverable.
+        """
         self._project(tmp_path)
         monkeypatch.setattr(
             evidence_checks.shutil, "which",
@@ -2350,11 +2356,15 @@ class TestTypecheckScopedToDiff:
             )
 
         monkeypatch.setattr(evidence_checks, "_run", fake_run)
-        evidence_checks._check_typecheck(tmp_path, ["README.md"], None, 30)
-
-        assert captured["cmds"] == [["mypy", "."]], (
-            "no Python in the diff — the project-wide path is unchanged"
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["README.md"], None, 30,
         )
+
+        assert captured.get("cmds", []) == [], (
+            "no Python in the diff — mypy must not run at all"
+        )
+        assert result.ran is False
+        assert result.passed is None
 
     def test_advisory_never_flips_the_gating_verdict(self, tmp_path, monkeypatch):
         """A failing project-wide run must not fail a clean diff."""
@@ -2623,3 +2633,311 @@ class TestTypecheckLineAttribution:
 
         assert result.passed is False
         assert "ABORTED" in result.summary
+
+
+# ─── relevance guards: a check with nothing to look at (issue #491) ─────
+
+
+class TestTypecheckRelevanceGuard:
+    """A changeset with no typecheckable source must SKIP, never fall through.
+
+    Reproduced by the Quality Gate on the v5.14.0 project-sync campaign
+    (artifacts: ~/.arkaos/quality-gate/cb3907d8-.../francisca-tech-2):
+    7 changed files, all `.md`, `_scoped_files` therefore empty,
+    `_typecheck_scoped` returns None, and the caller ran project-wide
+    mypy — 1246 errors in 192 untouched files, `overall: fail`, and the
+    evidence floor forced REJECTED on every artifact of the campaign.
+
+    The asymmetry these tests pin: "the diff has no Python" skips, while
+    "the diff has Python that did not resolve" still falls back.
+    """
+
+    @staticmethod
+    def _mypy_project(root: Path) -> None:
+        (root / "pyproject.toml").write_text(
+            "[tool.mypy]\nstrict = true\n", encoding="utf-8",
+        )
+
+    @staticmethod
+    def _capture(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+        """Record every command the check would execute, and run none."""
+        seen: list[list[str]] = []
+
+        def fake_run(
+            check: str, cmd: list[str], project_dir: Path, timeout: int,
+        ) -> CheckResult:
+            seen.append([str(c) for c in cmd])
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        monkeypatch.setattr(
+            evidence_checks, "_run_capturing",
+            lambda check, cmd, project_dir, timeout: (
+                fake_run(check, cmd, project_dir, timeout), "",
+            ),
+        )
+        return seen
+
+    @staticmethod
+    def _mypy_on_path(monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+
+    def test_markdown_only_diff_skips_and_names_the_typechecker(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        self._mypy_project(tmp_path)
+        self._mypy_on_path(monkeypatch)
+        seen = self._capture(monkeypatch)
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["docs/guide.md", "CHANGELOG.md"], None, 30,
+        )
+
+        assert seen == [], "mypy must not run for a diff it cannot describe"
+        assert result.ran is False
+        assert result.passed is None
+        assert "no typecheckable sources" in result.summary
+        assert "mypy" in result.summary, (
+            "a skip that does not name the tool reads as 'clean'"
+        )
+
+    def test_unresolved_python_paths_still_fall_back_project_wide(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The preserved asymmetry — `.py` in the diff, nothing on disk.
+
+        Deleted files, a rename, a foreign checkout: scoping cannot build
+        a list, so the project-wide run is the only remaining signal and
+        the documented fallback stays exactly as it was.
+        """
+        self._mypy_project(tmp_path)
+        self._mypy_on_path(monkeypatch)
+        seen = self._capture(monkeypatch)
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["core/deleted_module.py"], None, 30,
+        )
+
+        assert seen == [["mypy", "."]], (
+            "a diff that DOES carry Python keeps the project-wide fallback"
+        )
+        assert result.ran is True
+
+    def test_stub_only_diff_is_still_typechecked(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """`.pyi` is mypy's own file type — skipping it would be a false green."""
+        self._mypy_project(tmp_path)
+        self._mypy_on_path(monkeypatch)
+        seen = self._capture(monkeypatch)
+
+        evidence_checks._check_typecheck(tmp_path, ["core/api.pyi"], None, 30)
+
+        assert seen == [["mypy", "."]]
+
+    def test_typescript_only_diff_reaches_tsc_not_mypy(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A hybrid repo must typecheck the diff's language, not the other one."""
+        self._mypy_project(tmp_path)
+        (tmp_path / "tsconfig.json").write_text("{}", encoding="utf-8")
+        tsc = tmp_path / "node_modules" / ".bin" / "tsc"
+        tsc.parent.mkdir(parents=True)
+        tsc.write_text("#!/bin/sh\n", encoding="utf-8")
+        self._mypy_on_path(monkeypatch)
+        seen = self._capture(monkeypatch)
+
+        evidence_checks._check_typecheck(
+            tmp_path, ["dashboard/app.ts"], None, 30,
+        )
+
+        assert seen == [[str(tsc), "--noEmit"]], (
+            "before #491 the mypy branch swallowed every TS-only diff"
+        )
+
+    def test_docs_diff_with_both_typecheckers_names_both(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        self._mypy_project(tmp_path)
+        (tmp_path / "tsconfig.json").write_text("{}", encoding="utf-8")
+        self._mypy_on_path(monkeypatch)
+        seen = self._capture(monkeypatch)
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["README.md"], None, 30,
+        )
+
+        assert seen == []
+        assert "mypy + tsc" in result.summary
+
+    def test_no_typechecker_configured_keeps_its_own_reason(
+        self, tmp_path: Path,
+    ) -> None:
+        """The two skips are different facts and must not share a sentence."""
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["README.md"], None, 30,
+        )
+
+        assert result.ran is False
+        assert result.summary == "no typecheck configuration detected"
+
+    def test_docs_only_report_is_never_a_fail(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The issue, end to end: the campaign's blocking condition.
+
+        With typecheck and coverage both reporting on a markdown-only
+        changeset, `overall` must not be `fail` — that verdict is what
+        forced REJECTED on artifacts the checks never examined.
+        """
+        self._mypy_project(tmp_path)
+        self._mypy_on_path(monkeypatch)
+        _write_coverage_xml(tmp_path, 0.833)
+
+        def boom(
+            check: str, cmd: list[str], project_dir: Path, timeout: int,
+        ) -> CheckResult:  # pragma: no cover
+            raise AssertionError(f"nothing may execute on a docs diff: {cmd}")
+
+        monkeypatch.setattr(evidence_checks, "_run", boom)
+        report = run_evidence_checks(
+            tmp_path,
+            changed_files=["docs/a.md", "docs/b.md"],
+            checks=["typecheck", "coverage"],
+        )
+
+        assert report.overall != "fail"
+        assert all(not r.ran for r in report.results), (
+            "a check concluded about files it never read: "
+            f"{[r.check for r in report.results if r.ran]}"
+        )
+
+
+class TestCoverageRelevanceGuard:
+    """A coverage artefact may only speak about a diff it could measure.
+
+    Same QG run as the typecheck guard: `coverage.xml` with an mtime six
+    hours older than the deliverable reported PASS 83.3%, and the
+    reviewer had to append "carries no evidential weight" in prose. An
+    engine whose numbers need a human footnote is emitting the wrong
+    number — the artefact measures a Python codebase a markdown-only
+    changeset does not touch.
+    """
+
+    @staticmethod
+    def _artefact(project: Path, rate: float = 0.92, age: float = -21_600.0) -> None:
+        """Coverage artefact aged relative to now (default: 6h stale)."""
+        _write_coverage_xml(project, rate)
+        stamp = time.time() + age
+        os.utime(project / "coverage.xml", (stamp, stamp))
+
+    @staticmethod
+    def _source(project: Path, rel: str) -> None:
+        target = project / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("x = 1\n", encoding="utf-8")
+
+    def test_docs_only_changeset_gets_no_coverage_verdict(
+        self, tmp_path: Path,
+    ) -> None:
+        self._artefact(tmp_path)
+
+        result = evidence_checks._check_coverage(
+            tmp_path, ["docs/guide.md", "README.md"], None, 60,
+        )
+
+        assert result.ran is False, "a stale artefact must not vouch for markdown"
+        assert result.passed is None
+        assert "no executable source" in result.summary
+
+    def test_empty_changeset_gets_no_coverage_verdict(
+        self, tmp_path: Path,
+    ) -> None:
+        self._artefact(tmp_path)
+
+        result = evidence_checks._check_coverage(tmp_path, [], None, 60)
+
+        assert result.ran is False
+        assert result.passed is None
+
+    def test_junit_fallback_is_guarded_too(self, tmp_path: Path) -> None:
+        """Test results describe executions, and markdown executes nothing."""
+        (tmp_path / "junit.xml").write_text(
+            '<testsuite name="pytest" errors="0" failures="0" tests="10"/>',
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_coverage(
+            tmp_path, ["docs/guide.md"], None, 60,
+        )
+
+        assert result.ran is False
+
+    def test_stale_artefact_with_python_in_the_diff_still_fails(
+        self, tmp_path: Path,
+    ) -> None:
+        """The guard must not swallow the honest FAIL it sits in front of."""
+        self._artefact(tmp_path)
+        self._source(tmp_path, "mod.py")  # written now, artefact is 6h old
+
+        result = evidence_checks._check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.ran is True, "an executable diff still gets a verdict"
+        assert result.passed is False
+        assert "predates changed source" in result.summary
+
+    def test_fresh_artefact_with_python_in_the_diff_still_passes(
+        self, tmp_path: Path,
+    ) -> None:
+        self._source(tmp_path, "mod.py")
+        (tmp_path / "coverage.xml").write_text(
+            '<?xml version="1.0"?><coverage line-rate="0.92">'
+            '<class filename="mod.py"/></coverage>',
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_coverage(tmp_path, ["mod.py"], None, 60)
+
+        assert result.ran is True
+        assert result.passed is True
+        assert "92.0%" in result.summary
+
+    def test_scope_unknown_still_parses_the_artefact(
+        self, tmp_path: Path,
+    ) -> None:
+        """None is 'the caller does not know the diff' — never a skip."""
+        self._artefact(tmp_path)
+
+        result = evidence_checks._check_coverage(tmp_path, None, None, 60)
+
+        assert result.ran is True
+        assert result.passed is True
+
+    def test_a_javascript_diff_still_gets_a_verdict(self, tmp_path: Path) -> None:
+        """The guard asks 'could a test execute this', not 'is it Python'.
+
+        A cobertura artefact can come from nyc or phpunit just as well as
+        from pytest, so narrowing the guard to `.py` would silence
+        coverage for every non-Python project.
+
+        KNOWN RESIDUAL, not endorsed by this test: the freshness and
+        module-presence checks downstream still reason about `.py` only,
+        so a pytest artefact can still carry a percentage past a
+        TS-only diff. Closing that needs the artefact's own `<source>`
+        roots matched against the diff's language — a separate change,
+        deliberately out of #491's scope.
+        """
+        self._artefact(tmp_path)
+        self._source(tmp_path, "src/app.ts")
+
+        result = evidence_checks._check_coverage(
+            tmp_path, ["src/app.ts"], None, 60,
+        )
+
+        assert result.ran is True

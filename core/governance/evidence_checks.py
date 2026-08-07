@@ -363,6 +363,41 @@ _LINTABLE_PY = frozenset({".py"})
 _LINTABLE_JS = frozenset({".js", ".jsx", ".ts", ".tsx", ".vue", ".mjs", ".cjs"})
 _LINTABLE_PHP = frozenset({".php"})
 
+# What a configured typechecker could POSSIBLY report on. This answers
+# "is the diff relevant to the check at all", NOT "which files does the
+# scoped run name on the command line" (that stays `_LINTABLE_PY`).
+# Deliberately supersets of the lintable sets — mypy also reads stubs,
+# tsc also reads .mts/.cts: membership here only ever decides whether
+# the check is SKIPPED, so a missing extension costs the gate its type
+# signal while a spurious one costs at most one unnecessary run.
+_TYPECHECKABLE_PY: frozenset[str] = _LINTABLE_PY | {".pyi"}
+_TYPECHECKABLE_TS: frozenset[str] = _LINTABLE_JS | {".mts", ".cts", ".svelte"}
+
+# Files a test suite can execute, hence the only ones a coverage or
+# junit artefact can describe.
+_EXECUTABLE_SOURCE: frozenset[str] = (
+    _TYPECHECKABLE_PY | _TYPECHECKABLE_TS | _LINTABLE_PHP
+)
+
+
+def _diff_touches(changed: list[str] | None, exts: frozenset[str]) -> bool:
+    """True when the changed list names at least one file with one of ``exts``.
+
+    Reads the RAW list, never ``_scoped_files``' resolved one. An empty
+    resolved list conflates two different facts: "the diff carries none
+    of these files" and "it carries them but they did not resolve under
+    project_dir" (deleted paths, a foreign checkout, a different cwd).
+    Only the first may skip a check; the second must keep whatever
+    fallback the caller has — the same distinction ``_check_lint``
+    already draws for its own blind spot.
+
+    ``None`` means the caller does not know the diff, and no check is
+    ever skipped on a guess, so it answers True.
+    """
+    if changed is None:
+        return True
+    return bool({s.lower() for s in _suffixes(changed)} & exts)
+
 
 def _scoped_files(
     project_dir: Path, changed: list[str] | None, exts: frozenset[str],
@@ -784,8 +819,13 @@ def _typecheck_scoped(
 
     ``--follow-imports=silent`` keeps the full import graph for inference
     (so types resolve correctly) while reporting only on the named files.
-    Returns None when the diff carries no Python, so the caller falls back
-    to the project-wide run unchanged.
+
+    Returns None when scoping could not BUILD a file list — the diff's
+    Python paths did not resolve under project_dir (deleted, renamed, a
+    foreign checkout) — and the caller then falls back to the
+    project-wide run, which is the only remaining signal. A diff with no
+    Python in it at all never reaches here: ``_check_typecheck`` skips
+    that case outright (issue #491).
     """
     files = _scoped_files(project_dir, changed, _LINTABLE_PY)
     if not files:
@@ -835,6 +875,70 @@ def _typecheck_scoped(
     return _labelled(result, f"typecheck(scoped: {len(in_scope)} file(s))")
 
 
+def _typecheck_mypy(
+    project_dir: Path, changed: list[str] | None, timeout: int,
+) -> CheckResult:
+    """Scoped mypy over the diff; project-wide only as a documented fallback.
+
+    Reaching here means the diff DID carry Python (or its scope is
+    unknown), so a None from ``_typecheck_scoped`` can only mean scoping
+    failed to build the file list, and the project-wide run is the only
+    remaining signal. The asymmetry with the zero-Python case — which
+    skips instead — is deliberate: one is "we could not look here", the
+    other is "there was never anything to look at".
+    """
+    # `shutil.which` alone read a venv-installed mypy as "no typecheck
+    # configuration detected" — the generic skip, on a project that had
+    # explicitly opted in. `_tool_cmd` is the same resolver ruff/pytest/
+    # codespell already use, and its docstring names this exact class of
+    # bug: a FALSE GREEN on a NON-NEGOTIABLE gate (issue #452).
+    mypy = _tool_cmd("mypy")
+    if mypy is None:
+        return _skip(
+            "typecheck",
+            "mypy configured but not installed — install it "
+            "(pip install mypy) or drop the mypy config; the gate has "
+            "NO type signal for this run",
+        )
+    scoped = _typecheck_scoped(project_dir, mypy, changed, timeout)
+    if scoped is not None:
+        return scoped
+    return _mypy_verdict(
+        _run(
+            "typecheck", _mypy_project_argv(project_dir, mypy),
+            project_dir, timeout,
+        )
+    )
+
+
+def _typecheck_tsc(project_dir: Path, timeout: int) -> CheckResult:
+    """tsc over the project — it cannot be scoped to a file list.
+
+    Naming files on the tsc command line DISCARDS the tsconfig ``include``
+    that defines the compilation (the same override that bites mypy's
+    ``files``), so the honest choice is the whole project or nothing.
+    """
+    local_tsc = project_dir / "node_modules" / ".bin" / "tsc"
+    if local_tsc.is_file():
+        return _run(
+            "typecheck", [str(local_tsc), "--noEmit"], project_dir, timeout,
+        )
+    if shutil.which("tsc"):
+        return _run("typecheck", ["tsc", "--noEmit"], project_dir, timeout)
+    return _skip("typecheck", "tsconfig.json present but tsc not installed")
+
+
+def _no_relevant_typechecker(mypy_on: bool, tsc_on: bool) -> str:
+    """Skip reason that NAMES the tools, so 'no signal' never reads as 'clean'."""
+    tools = " + ".join(
+        name for name, on in (("mypy", mypy_on), ("tsc", tsc_on)) if on
+    )
+    return (
+        "changed files contain no typecheckable sources for the "
+        f"configured typechecker(s) ({tools})"
+    )
+
+
 def _check_typecheck(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
@@ -844,39 +948,24 @@ def _check_typecheck(
         # never read the diff, so a known-empty diff would inherit
         # master's type debt the moment tooling is configured.
         return _skip("typecheck", "no changed files (empty diff)")
-    if _mypy_configured(project_dir):
-        # `shutil.which` alone read a venv-installed mypy as "no typecheck
-        # configuration detected" — the generic skip, on a project that
-        # had explicitly opted in. `_tool_cmd` is the same resolver
-        # ruff/pytest/codespell already use, and its docstring names this
-        # exact class of bug: a FALSE GREEN on a NON-NEGOTIABLE gate
-        # (issue #452).
-        mypy = _tool_cmd("mypy")
-        if mypy is None:
-            return _skip(
-                "typecheck",
-                "mypy configured but not installed — install it "
-                "(pip install mypy) or drop the mypy config; the gate has "
-                "NO type signal for this run",
-            )
-        scoped = _typecheck_scoped(project_dir, mypy, changed, timeout)
-        if scoped is not None:
-            return scoped
-        return _mypy_verdict(
-            _run(
-                "typecheck", _mypy_project_argv(project_dir, mypy),
-                project_dir, timeout,
-            )
-        )
-    if (project_dir / "tsconfig.json").is_file():
-        local_tsc = project_dir / "node_modules" / ".bin" / "tsc"
-        if local_tsc.is_file():
-            return _run(
-                "typecheck", [str(local_tsc), "--noEmit"], project_dir, timeout,
-            )
-        if shutil.which("tsc"):
-            return _run("typecheck", ["tsc", "--noEmit"], project_dir, timeout)
-        return _skip("typecheck", "tsconfig.json present but tsc not installed")
+    mypy_on = _mypy_configured(project_dir)
+    tsc_on = (project_dir / "tsconfig.json").is_file()
+    # Relevance is decided per typechecker, BEFORE any tool runs. A diff
+    # with no Python used to reach the project-wide mypy fallback: 1246
+    # errors across 192 untouched files charged to a markdown-only
+    # changeset, `overall: fail`, and the evidence floor then REJECTED
+    # every docs-only deliverable in the campaign (issue #491). Lint has
+    # skipped this case since QG 2026-07-12; typecheck did not, because
+    # `_typecheck_scoped` returns None for BOTH "no Python in the diff"
+    # and "the Python paths did not resolve" — only the first may skip.
+    # Per-typechecker, not one global guard, so a TS-only diff in a
+    # hybrid repo reaches tsc instead of being charged mypy's debt.
+    if mypy_on and _diff_touches(changed, _TYPECHECKABLE_PY):
+        return _typecheck_mypy(project_dir, changed, timeout)
+    if tsc_on and _diff_touches(changed, _TYPECHECKABLE_TS):
+        return _typecheck_tsc(project_dir, timeout)
+    if mypy_on or tsc_on:
+        return _skip("typecheck", _no_relevant_typechecker(mypy_on, tsc_on))
     return _skip("typecheck", "no typecheck configuration detected")
 
 
@@ -1172,6 +1261,21 @@ def _check_coverage(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
+    if not _diff_touches(changed, _EXECUTABLE_SOURCE):
+        # No test can execute a markdown file, so NO artefact — fresh or
+        # six hours stale — describes this changeset. The engine reported
+        # PASS 83.3% on a docs-only diff and the reviewer had to write
+        # "carries no evidential weight" in prose beside it (issue #491,
+        # QG cycle 2); a number that needs a human footnote to be read
+        # correctly must not be emitted as evidence at all. Not a FAIL:
+        # nothing is wrong with the change, there is nothing to measure.
+        # The staleness FAIL below still owns the case where the diff DOES
+        # carry executable source and the artefact predates it.
+        return _skip(
+            "coverage",
+            "changed files contain no executable source — a coverage "
+            "artefact cannot describe this diff",
+        )
     coverage_xml = project_dir / "coverage.xml"
     if coverage_xml.is_file():
         return _coverage_from_xml(coverage_xml, project_dir, changed)
