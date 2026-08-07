@@ -18,8 +18,10 @@
 # called the workflow classifier, so the wf-required marker was never
 # created on Windows: the per-prompt half of the evidence flow (and the
 # whole compliance chain behind the Stop hook) was dead on this platform.
-# Same failure mode as session-start.ps1 (twin drift). One producer, two
-# thin wrappers.
+# Same failure mode as session-start.ps1 (twin drift), and the same fix:
+# delegate, and let the twin-parity test in tests/python/
+# test_hook_output_contract.py fail the build if this file ever stops
+# running `-m core.hooks.user_prompt_submit`.
 #
 # Minimum PowerShell: 5.1. This file stays pure ASCII; every non-ASCII byte
 # in the output comes from Python's UTF-8 stdout.

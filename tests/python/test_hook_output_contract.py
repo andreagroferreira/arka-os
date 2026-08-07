@@ -18,6 +18,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -383,11 +384,20 @@ class TestTwinWrapperParity:
     to the model. A source diff of the two files would not have caught it:
     they are different languages and were never meant to match line for
     line. What must match is the *producer they delegate to*.
+
+    Both directions test the same predicate — ``_delegates_to`` — and it
+    matches the INVOCATION, never the bare module name. A substring search
+    cannot tell delegation from discussion: a wrapper that merely mentions
+    ``core.hooks.stop`` in a comment satisfies the positive assertion while
+    delegating nothing, and, in the other direction, documenting the module
+    a file does NOT delegate to breaks the inverted guard for no reason.
+    Both failures were live: the second landed as a cross-PR test break the
+    moment a comment in stop.ps1 named the module its own guard forbids.
     """
 
     # Twins whose .sh delegates the whole event to one python module. Both
     # sides must name that module — that is the parity contract.
-    DELEGATING_TWINS = {
+    DELEGATING_TWINS: ClassVar[dict[str, str]] = {
         "session-start": "core.hooks.session_start",
         "session-end": "core.hooks.session_end",
         "subagent-stop": "core.hooks.subagent_stop",
@@ -401,11 +411,32 @@ class TestTwinWrapperParity:
     # would block unrelated work — but leaving them undocumented is how the
     # session-start drift survived. Moving one of these into
     # DELEGATING_TWINS is the definition of done for porting it.
-    KNOWN_DRIFTED_TWINS = {
+    KNOWN_DRIFTED_TWINS: ClassVar[dict[str, str]] = {
         "pre-tool-use": "core.hooks.pre_tool_use",
         "post-tool-use": "core.hooks.post_tool_use",
         "stop": "core.hooks.stop",
     }
+
+    @staticmethod
+    def _delegates_to(text: str, module: str) -> bool:
+        """True when `text` actually runs `python -m <module>`.
+
+        Two filters, because either alone is escapable. Comment lines go
+        first — ``#`` opens a comment in PowerShell, in bash and in the
+        Python here-strings these wrappers embed, so one rule covers all
+        three. Then the survivors must carry the module behind ``-m``,
+        which is the only shape that runs it. Prose about a module never
+        matches; a real invocation always does, whatever else the file
+        says about it.
+
+        Deliberately parses no PowerShell. An AST-based strip would need
+        pwsh installed, and a guard that skips wherever pwsh is absent is
+        not a guard on the machines that run CI.
+        """
+        code = "\n".join(
+            line for line in text.splitlines() if not line.lstrip().startswith("#")
+        )
+        return re.search(rf"-m\s+{re.escape(module)}(?![\w.])", code) is not None
 
     @pytest.mark.parametrize("stem,module", sorted(DELEGATING_TWINS.items()))
     def test_twins_delegate_to_the_same_producer(self, stem, module):
@@ -417,12 +448,12 @@ class TestTwinWrapperParity:
         sh_text = sh_path.read_text(encoding="utf-8", errors="replace")
         ps1_text = ps1_path.read_text(encoding="utf-8", errors="replace")
 
-        assert module in sh_text, (
-            f"{sh_path.name} no longer delegates to {module} — update this "
+        assert self._delegates_to(sh_text, module), (
+            f"{sh_path.name} no longer runs `-m {module}` — update this "
             "test deliberately, or the twin contract is meaningless"
         )
-        assert module in ps1_text, (
-            f"{ps1_path.name} does not delegate to {module} while its .sh "
+        assert self._delegates_to(ps1_text, module), (
+            f"{ps1_path.name} does not run `-m {module}` while its .sh "
             f"twin does. This is the session-start failure mode: the "
             f"PowerShell side reimplements part of the payload, drifts as "
             f"the producer evolves, and silently ships less context to the "
@@ -439,11 +470,31 @@ class TestTwinWrapperParity:
         if not ps1_path.is_file():
             pytest.skip(f"{stem}.ps1 not shipped")
         ps1_text = ps1_path.read_text(encoding="utf-8", errors="replace")
-        assert module not in ps1_text, (
-            f"{ps1_path.name} now delegates to {module} — move '{stem}' from "
+        assert not self._delegates_to(ps1_text, module), (
+            f"{ps1_path.name} now runs `-m {module}` — move '{stem}' from "
             "KNOWN_DRIFTED_TWINS to DELEGATING_TWINS so the parity contract "
             "starts guarding it"
         )
+
+    def test_delegation_predicate_reads_invocations_not_prose(self):
+        """The predicate itself, pinned in both directions.
+
+        Without this, `_delegates_to` is only ever exercised on files that
+        happen to agree with it, and the substring guard it replaced looked
+        equally healthy right up to the release where a comment broke it.
+        """
+        module = "core.hooks.stop"
+        # Prose is not delegation — in any of the three comment dialects.
+        assert not self._delegates_to("# core.hooks.stop, which runs a lot", module)
+        assert not self._delegates_to("  # python -m core.hooks.stop (the twin)", module)
+        assert not self._delegates_to('"""Mirror of core.hooks.stop._write."""', module)
+        assert not self._delegates_to("import core.hooks.stop", module)
+        # A longer module name must not satisfy a shorter one.
+        assert not self._delegates_to("python -m core.hooks.stop_governance", module)
+        # Delegation is delegation, in either language, however spelled.
+        assert self._delegates_to('"$ARKA_PY" -m core.hooks.stop', module)
+        assert self._delegates_to("& $env:ARKA_PY -m core.hooks.stop", module)
+        assert self._delegates_to("exec python3  -m core.hooks.stop\n", module)
 
     def test_session_start_ps1_does_not_rebuild_the_banner(self):
         # Narrow regression pin for the bug this class was written for: the

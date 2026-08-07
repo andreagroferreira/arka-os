@@ -160,7 +160,10 @@ def test_sourcing_resolver_survives_errexit():
     result = subprocess.run(
         [_BASH, "-c", script],
         capture_output=True, text=True,
-        env={"HOME": "/nonexistent-arka-resolver-test", "PATH": os.environ.get("PATH", "/usr/bin:/bin")},
+        env={
+            "HOME": "/nonexistent-arka-resolver-test",
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        },
     )
     assert result.returncode == 0, f"source aborted under set -e: {result.stderr}"
     assert "REACHED:" in result.stdout
@@ -304,7 +307,7 @@ def test_windows_flow_hooks_use_shared_resolver():
 
 
 def test_ps1_interpreter_probes_skip_store_aliases():
-    """No PowerShell hook may select an interpreter out of WindowsApps.
+    r"""No PowerShell hook may select an interpreter out of WindowsApps.
 
     %LOCALAPPDATA%\Microsoft\WindowsApps holds zero-length App Execution
     Aliases. On a default Windows install `python3.exe` there is the Python
@@ -385,3 +388,183 @@ def test_shell_resolver_skips_store_aliases_and_knows_windows_venv():
                 "select Python 2 where python3 is meant"
             )
     assert not offenders, "\n".join(offenders)
+
+
+# ── The last resort: the branch the alias filter did not cover ────────────
+#
+# Both twins filtered the Store alias out of the PROBE and then handed it
+# straight back from the fallback -- .sh returned the bare name "python",
+# .ps1 returned the literal string "python". The two tests above read the
+# candidate LISTS only, so that path was invisible to them and the defect
+# the PR exists to prevent shipped inside the fix. These execute it.
+#
+# Why the fallback must return NOTHING rather than a name: every caller
+# gates on the value's existence -- `command -v "$ARKA_PY"` in bash,
+# `-and $env:ARKA_PY` in PowerShell -- and an alias stub PASSES both. The
+# file is real; it is the Python install manager, not an interpreter. Only
+# an empty value degrades the hook instead of downloading a CPython into
+# whatever directory the hook happened to run in.
+
+_PS_LIB = _ROOT / "config" / "hooks" / "_lib" / "arka_python.ps1"
+_PWSH = shutil.which("pwsh") or shutil.which("powershell")
+
+
+def _winsim(tmp_path: Path, alias_names: tuple[str, ...], real_names: tuple[str, ...]):
+    """Build a fake PATH: an alias dir, and optionally a real-binary dir.
+
+    Every stub appends its own name to a log when run, so a test can prove
+    not merely that the resolver declined an alias but that nothing ever
+    executed one -- executing it is the entire harm.
+    """
+    log = tmp_path / "executed.log"
+    alias_dir = tmp_path / "Local" / "Microsoft" / "WindowsApps"
+    real_dir = tmp_path / "bin"
+    for directory, names in ((alias_dir, alias_names), (real_dir, real_names)):
+        directory.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            stub = directory / name
+            stub.write_text(
+                f'#!/bin/sh\nprintf "%s\\n" "{name}" >> "{log}"\nexit 0\n',
+                encoding="utf-8",
+            )
+            stub.chmod(0o755)
+    return f"{alias_dir}:{real_dir}", log
+
+
+@pytest.mark.skipif(not Path(_BASH).exists(), reason="bash unavailable")
+@pytest.mark.parametrize(
+    "alias_names,real_names,expected",
+    [
+        # Stock Windows box, no real Python: BOTH names are aliases, so the
+        # only safe answer is no answer.
+        (("python", "python3"), (), ""),
+        # Windows box that HAS an interpreter: python3 is the alias, python
+        # is the real thing -- that is why `python` is the fallback name.
+        (("python3",), ("python",), "python"),
+        # POSIX: no alias anywhere. The documented `python3` contract is
+        # unchanged, which is the whole point of not widening this branch.
+        ((), ("python3",), "python3"),
+    ],
+    ids=["both-aliases", "python-is-real", "posix-unchanged"],
+)
+def test_shell_last_resort_never_hands_back_a_store_alias(
+    tmp_path, alias_names, real_names, expected
+):
+    path, log = _winsim(tmp_path, alias_names, real_names)
+    # Source under the ambient PATH (the probe at the bottom of the lib
+    # needs a working interpreter), THEN clear the log and switch to the
+    # simulated PATH, so what the log records is this function alone.
+    script = (
+        f'. "{_RESOLVER_LIB}" || true\n'
+        f': > "{log}"\n'
+        f'PATH="{path}"\n'
+        f"arka_python_last_resort\n"
+    )
+    result = subprocess.run(
+        [_BASH, "-c", script], capture_output=True, text=True,
+        env={"HOME": str(tmp_path / "home"), "PATH": os.environ.get("PATH", "/usr/bin:/bin")},
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == expected, (
+        f"last resort returned {result.stdout.strip()!r}, expected {expected!r} "
+        f"(aliases={alias_names}, real={real_names})"
+    )
+    assert log.read_text(encoding="utf-8") == "", (
+        "the last resort executed a candidate; running a Store alias is the "
+        f"side effect this whole guard exists to prevent (ran: {log.read_text()!r})"
+    )
+
+
+def test_resolver_fallbacks_are_not_unconditional_names():
+    """Static pin for the exact shape of the defect, in both twins.
+
+    Runs everywhere, including where pwsh is absent -- the executed tests
+    below skip there, and a guard that only holds on a developer laptop is
+    not a guard.
+    """
+    ps_body = _PS_LIB.read_text(encoding="utf-8")
+    assert not re.search(r"return\s+\"python3?\"\s*$", ps_body, re.MULTILINE), (
+        "arka_python.ps1 returns a bare interpreter NAME with no alias "
+        "check; on a stock Windows box that name IS the Store alias, and "
+        "every caller's `-and $env:ARKA_PY` guard treats it as usable"
+    )
+    assert "Get-ArkaPythonLastResort" in ps_body
+    sh_body = _RESOLVER_LIB.read_text(encoding="utf-8")
+    assert "arka_python_last_resort" in sh_body
+
+    # The fix must not simply move the trap: these two consumers turned an
+    # empty ARKA_PY straight back into a runnable bare name.
+    shim = (_ROOT / "bin" / "arka-py.ps1").read_text(encoding="utf-8")
+    assert not re.search(r'ARKA_PY\s*=\s*"python3?"', shim), (
+        "bin/arka-py.ps1 reassigns a bare interpreter name when ARKA_PY is "
+        "empty, which is precisely the value the resolver uses to say "
+        "'every candidate is an alias'"
+    )
+    reader = (_ROOT / "core" / "workflow" / "state_reader.sh").read_text(encoding="utf-8")
+    assert "${ARKA_PY:=" not in reader, (
+        "state_reader.sh uses := , which overwrites a deliberately EMPTY "
+        "ARKA_PY with python3 -- the alias itself on a stock Windows box. "
+        "Use ${ARKA_PY=python3} so only an UNSET variable is defaulted."
+    )
+
+
+@pytest.mark.skipif(_PWSH is None, reason="PowerShell unavailable")
+def test_ps_store_alias_predicate_executes_correctly():
+    """Test-StoreAlias, actually run, against literal Windows paths.
+
+    No filesystem needed: the predicate takes a path string, so the one
+    piece of Windows behaviour that matters here is testable anywhere a
+    PowerShell exists.
+    """
+    script = (
+        f'. "{_PS_LIB}"\n'
+        r"foreach ($p in @('C:\Users\d\AppData\Local\Microsoft\WindowsApps\python3.exe',"
+        r" 'C:\Python313\python.exe', '')) {"
+        " if (Test-StoreAlias $p) { 'ALIAS' } else { 'NOT' } }\n"
+    )
+    out = subprocess.run(
+        [_PWSH, "-NoProfile", "-Command", script],
+        capture_output=True, text=True,
+    )
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.split() == ["ALIAS", "NOT", "NOT"], out.stdout
+
+
+@pytest.mark.skipif(_PWSH is None, reason="PowerShell unavailable")
+@pytest.mark.parametrize(
+    "name,stub_alias,expect_empty",
+    [
+        # The defect's own branch: the predicate says "alias", so the
+        # function must yield '' and not a runnable name. Get-Command
+        # cannot produce a WindowsApps path on POSIX, so the predicate --
+        # verified against a literal alias path in the test above -- is
+        # stubbed. What is under test is the WIRING: that the last resort
+        # consults it at all, and that a positive answer wins.
+        ("sh", True, True),
+        # Real interpreter, real predicate: hand it back.
+        ("sh", False, False),
+        # Nothing resolves at all: nothing to hand back.
+        ("no-such-binary-zzz", False, True),
+    ],
+    ids=["alias-yields-empty", "real-is-returned", "absent-yields-empty"],
+)
+def test_ps_last_resort_never_hands_back_a_store_alias(name, stub_alias, expect_empty):
+    override = (
+        "function Test-StoreAlias { param([string]$Path) return $true }\n"
+        if stub_alias else ""
+    )
+    script = (
+        f'. "{_PS_LIB}"\n{override}'
+        f"$r = Get-ArkaPythonLastResort -Name '{name}'\n"
+        'if (-not $r) { "EMPTY" } else { "VALUE[$r]" }\n'
+    )
+    out = subprocess.run(
+        [_PWSH, "-NoProfile", "-Command", script],
+        capture_output=True, text=True,
+    )
+    assert out.returncode == 0, out.stderr
+    got = out.stdout.strip()
+    if expect_empty:
+        assert got == "EMPTY", f"expected no value, got {got!r}"
+    else:
+        assert got.startswith("VALUE[") and name in got, got

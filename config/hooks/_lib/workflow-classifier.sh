@@ -3,7 +3,13 @@
 # ArkaOS v2 — Shared Workflow Classifier
 #
 # Decides whether a user prompt triggers the 4-gate evidence flow.
-# Used by: user-prompt-submit.sh, pre-tool-use.sh, stop.sh.
+#
+# CLI AND TEST SURFACE ONLY — no hook sources this file. The runtime path
+# is core/hooks/user_prompt_submit.py, which user-prompt-submit.sh execs;
+# these functions survive as the documented CLI (see the dispatcher at the
+# bottom) and as the bash half of the parity contract. That is precisely
+# why the two implementations must be diffed by hand: nothing at runtime
+# will ever notice them disagreeing.
 #
 # Contract:
 #   arka_wf_classify "<prompt text>"  → echoes "true" or "false", exits 0.
@@ -11,9 +17,11 @@
 #   arka_wf_is_required "<session_id>"  → exits 0 if required, 1 otherwise.
 #   arka_wf_clear_required "<session_id>"  → removes marker file.
 #
-# Markers live under /tmp/arkaos-wf-required/<session_id>.
-# Python path for mark/clear: delegates to flow_enforcer.py when available,
-# otherwise falls back to touching the marker file directly.
+# Markers live under $ARKA_WF_REQUIRED_DIR/<session_id>, defaulting to
+# /tmp/arkaos-wf-required (see below). The override is the seam that keeps
+# writer and reader on the same directory — core/shared/temp_paths.py
+# ::wf_required_dir is the Python side of it. mark/clear here write the
+# marker file directly; they do NOT call flow_enforcer.py.
 # ============================================================================
 
 ARKA_WF_REQUIRED_DIR="${ARKA_WF_REQUIRED_DIR:-/tmp/arkaos-wf-required}"
@@ -65,11 +73,22 @@ arka_wf_classify() {
 
   # Question guard: interrogative lead + trailing "?" = information
   # question, never creation intent (X5 false positive).
-  local trimmed
+  #
+  # The lead is taken from the FIRST NON-BLANK LINE, never from the whole
+  # text. The Python twin uses re.match on text.strip(), which can only
+  # match at offset 0; grep anchors ^ PER LINE, so feeding it everything
+  # made any later line able to trigger the guard. The two then disagreed
+  # on every multi-line prompt ending in a question — "implementa X\no que
+  # e que isto faz?" is a directive followed by a question, and a directive
+  # still requires the flow. awk reproduces .strip() closely enough for an
+  # anchor that already tolerates leading whitespace: skip blank lines,
+  # print the first line with content, stop.
+  local trimmed lead
   trimmed=$(printf '%s' "$text" | sed 's/[[:space:]]*$//')
   case "$trimmed" in
     *\?)
-      if echo "$text" | grep -qiE "$ARKA_WF_QUESTION_LEAD"; then
+      lead=$(printf '%s' "$text" | awk 'NF { print; exit }')
+      if printf '%s' "$lead" | grep -qiE "$ARKA_WF_QUESTION_LEAD"; then
         echo "false"
         return 0
       fi

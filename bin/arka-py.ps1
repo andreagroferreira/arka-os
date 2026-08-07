@@ -25,7 +25,22 @@ $libs = @(
 foreach ($lib in $libs) {
     if (Test-Path -LiteralPath $lib) { . $lib; break }
 }
-if (-not $env:ARKA_PY) { $env:ARKA_PY = "python" }
+# Empty/unset means one of two things: the shared resolver was not found at
+# all, or it WAS found and deliberately handed back nothing because every
+# candidate is a Microsoft Store App Execution Alias. A blind `= "python"`
+# here cannot tell those apart, and on a stock Windows box it picks the
+# alias — running the Python install manager, which downloads a full CPython
+# into the caller's cwd. Probe once more, alias-aware, then fail loudly.
+if (-not $env:ARKA_PY) {
+    $fallback = Get-Command python -ErrorAction SilentlyContinue
+    if ($fallback -and $fallback.Source -notmatch '\\Microsoft\\WindowsApps\\') {
+        $env:ARKA_PY = $fallback.Source
+    } else {
+        [Console]::Error.WriteLine(
+            "arka-py: no usable Python interpreter (only Store aliases on PATH) - run npx arkaos doctor")
+        exit 1
+    }
+}
 
 # ─── Make `-m core.*` resolvable regardless of cwd ────────────────────────
 $root = $env:ARKAOS_ROOT

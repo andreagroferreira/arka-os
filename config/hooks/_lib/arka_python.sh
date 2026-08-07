@@ -10,7 +10,9 @@
 # Contract of arka_resolve_python():
 #   Echoes the interpreter path and returns 0 when a provisioned ArkaOS
 #   interpreter is found; echoes a best-effort fallback and returns 1 when
-#   only a bare `python3` remains (caller degrades gracefully).
+#   only a bare `python3` remains (caller degrades gracefully). Echoes
+#   NOTHING and returns 1 when every remaining candidate is a Microsoft
+#   Store App Execution Alias — see arka_python_last_resort().
 #
 # Resolution order:
 #   1. $ARKAOS_PYTHON (explicit operator override), if executable.
@@ -18,7 +20,39 @@
 #      python3. `[ -x ]` follows symlinks, so a Homebrew-rotated broken
 #      symlink is skipped automatically.
 #   3. Any python3 on PATH / known locations that can `import yaml`.
-#   4. Bare `python3` as a last resort (return 1).
+#   4. Bare `python3` as a last resort (return 1), or nothing at all when
+#      that name — and `python` behind it — is only a Store alias.
+
+# Last-resort name selection, extracted from arka_resolve_python() so the
+# branch is reachable from a test: in place it sits behind a PATH probe
+# that matches on every POSIX box with a yaml-capable python3, so it can
+# only be exercised on the machine it was written for.
+#
+# Contract: echoes the name to hand back, or NOTHING when every remaining
+# candidate is a Store alias. Empty is the point, not an oversight. The
+# callers gate on `command -v "$ARKA_PY"` and an alias stub PASSES that
+# gate — the file is real, it is just the Python install manager rather
+# than an interpreter — so the only value that degrades a hook instead of
+# downloading a CPython into the user's project is no value at all.
+arka_python_last_resort() {
+  local py3 py
+  py3="$(command -v python3 2>/dev/null)"
+  case "$py3" in
+    *[Ww]indows[Aa]pps*) ;;
+    # Absent or real: the documented `python3` contract, unchanged. POSIX
+    # never reaches the alias branch below.
+    *) printf '%s\n' "python3"; return 0 ;;
+  esac
+
+  # `python3` is the alias. On a Windows box that HAS a real interpreter,
+  # `python` is the name it answers to; on a stock box with none, that is
+  # an alias too and we must hand back nothing.
+  py="$(command -v python 2>/dev/null)"
+  case "$py" in
+    "" | *[Ww]indows[Aa]pps*) return 0 ;;
+  esac
+  printf '%s\n' "python"
+}
 
 arka_resolve_python() {
   local cand
@@ -67,16 +101,7 @@ arka_resolve_python() {
     fi
   done
 
-  # Last resort. The documented contract is `python3` + rc 1, kept as-is,
-  # except where that name is the Store alias: handing an alias back to a
-  # caller that will `exec` it is the very trap this function now avoids.
-  case "$(command -v python3 2>/dev/null)" in
-    *[Ww]indows[Aa]pps*)
-      printf '%s\n' "python"
-      return 1
-      ;;
-  esac
-  printf '%s\n' "python3"
+  arka_python_last_resort
   return 1
 }
 

@@ -5,8 +5,10 @@
 # (core.hooks.session_start) builds the whole payload: the visible banner in
 # "systemMessage" AND the operating contracts in
 # hookSpecificOutput.additionalContext. This file only resolves the
-# interpreter and delegates; with no usable interpreter it emits a static
-# banner and exits 0 (fail-open, dependency-free).
+# interpreter and delegates; whenever it cannot reach that producer — no
+# repo root, no module file, no interpreter, or the module itself exiting
+# non-zero — it emits a static banner and exits 0 (fail-open,
+# dependency-free).
 #
 # WHY A WRAPPER AND NOT A PORT
 # The previous version reimplemented the banner natively in PowerShell. It
@@ -16,7 +18,10 @@
 # (EVIDENCE-FLOW, META-TAG, AUTHORITY, MODEL-FABRIC) were computed by nobody
 # and never reached the model, while the Linux side got them every session.
 # Reimplementing the blocks here would duplicate the producer and recreate
-# the same drift one release later. One producer, two thin wrappers.
+# the same drift one release later, so this file delegates instead. The
+# twin-parity test in tests/python/test_hook_output_contract.py is what
+# holds that open: it asserts both wrappers run `-m core.hooks
+# .session_start`, and fails if either stops.
 #
 # Minimum PowerShell: 5.1 (shipped with every Windows 10+). No pwsh 7 prereq.
 # This file stays pure ASCII; every non-ASCII byte in the output comes from
@@ -73,8 +78,19 @@ if ($repo -and $moduleFile -and (Test-Path -LiteralPath $moduleFile) -and $env:A
 # --- Degraded fallback: static banner, valid JSON, exit 0 ------------------
 # Same contract as the .sh fallback. Built from [char] codes so this source
 # file needs no particular encoding to produce correct output.
+#
+# The message names the SYMPTOM, not a cause. Four conditions reach this
+# line (see the guard above) and only one of them is a missing interpreter;
+# the fourth — the module running and exiting non-zero — asserts the
+# opposite. The .sh twin execs, so its fallback is unreachable once an
+# interpreter is launched and the narrower wording survived there; this
+# port falls through on $LASTEXITCODE, which is what made it false. Sending
+# a Windows operator with a healthy Python to debug their Python, when the
+# real fault is a stale ~/.arkaos/.repo-path, costs more than the wording
+# saves. `npx arkaos doctor` diagnoses all four.
 $tri = [char]0x25B2
 $oAcute = [char]0x00F3
-$banner = "`n  $tri  A R K A   O S`n     The Operating System for AI Agent Teams`n`n  Ol$oAcute, founder`n  degraded: no usable interpreter - run npx arkaos doctor"
+$emDash = [char]0x2014
+$banner = "`n  $tri  A R K A   O S`n     The Operating System for AI Agent Teams`n`n  Ol$oAcute, founder`n  degraded: ArkaOS core not reachable $emDash run npx arkaos doctor"
 [pscustomobject]@{ systemMessage = $banner } | ConvertTo-Json -Compress
 exit 0

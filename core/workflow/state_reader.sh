@@ -10,7 +10,13 @@
 for _l in "$(dirname "${BASH_SOURCE[0]:-$0}")/../../config/hooks/_lib/arka_python.sh" "$HOME/.arkaos/config/hooks/_lib/arka_python.sh"; do
   if [ -f "$_l" ]; then . "$_l"; break; fi
 done
-: "${ARKA_PY:=python3}"
+# `=` and NOT `:=` on purpose: the resolver exports an EMPTY ARKA_PY when
+# every candidate is a Microsoft Store App Execution Alias, and `:=` would
+# overwrite that with `python3` — the alias itself on such a box. The
+# `command -v` guard in the forge branch below passes for an alias (the
+# stub is a real file), so the interpolation there would then RUN it.
+# Only substitute when the variable is genuinely unset (lib never sourced).
+: "${ARKA_PY=python3}"
 
 STATE_FILE="$HOME/.arkaos/workflow-state.json"
 
