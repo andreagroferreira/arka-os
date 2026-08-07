@@ -4,28 +4,25 @@ Tests the full pipeline: agent loading → squad assembly → workflow execution
 synapse context injection → quality gate → registry generation.
 """
 
-import pytest
 from pathlib import Path
 
-from core.agents.loader import load_agent, load_all_agents
+from core.agents.loader import load_all_agents
 from core.agents.validator import validate_agent_consistency
-from core.squads.loader import load_squad, load_all_squads
-from core.squads.registry import SquadRegistry
-from core.workflow.loader import load_workflow
-from core.workflow.schema import GateType, PhaseStatus
-from core.synapse.engine import create_default_engine
-from core.synapse.layers import PromptContext
-from core.governance.constitution import load_constitution
-from core.specs.manager import SpecManager
-from core.specs.schema import SpecStatus
 from core.conclave.matcher import match_advisors
 from core.conclave.schema import UserProfile
-from core.conclave.advisor_db import get_all_advisors
-from core.tasks.manager import TaskManager
-from core.tasks.schema import TaskType, TaskStatus
-from core.runtime.registry import get_adapter, list_runtimes
+from core.governance.constitution import load_constitution
 from core.registry.generator import generate_commands_registry
-
+from core.runtime.registry import list_runtimes
+from core.specs.manager import SpecManager
+from core.specs.schema import SpecStatus
+from core.squads.loader import load_all_squads
+from core.squads.registry import SquadRegistry
+from core.synapse.engine import create_default_engine
+from core.synapse.layers import PromptContext
+from core.tasks.manager import TaskManager
+from core.tasks.schema import TaskStatus, TaskType
+from core.workflow.loader import load_workflow
+from core.workflow.schema import GateType, PhaseStatus
 
 BASE_DIR = Path(__file__).parent.parent.parent
 
@@ -116,7 +113,7 @@ class TestSynapseIntegration:
         assert "[dept:dev]" in result.context_string
         assert "[branch:v2]" in result.context_string
         # Full constitution content is in the layer, not the tag
-        l0 = next(l for l in result.layers if l.layer_id == "L0")
+        l0 = next(layer for layer in result.layers if layer.layer_id == "L0")
         assert "NON-NEGOTIABLE" in l0.content
 
     def test_synapse_detects_all_16_departments(self):
@@ -133,8 +130,10 @@ class TestSynapseIntegration:
         }
         for expected_dept, input_text in test_cases.items():
             result = engine.inject(PromptContext(user_input=input_text))
-            assert f"[dept:{expected_dept}]" in result.context_string, \
-                f"Failed for '{input_text}': expected dept:{expected_dept}, got {result.context_string}"
+            assert f"[dept:{expected_dept}]" in result.context_string, (
+                f"Failed for '{input_text}': expected dept:{expected_dept}, "
+                f"got {result.context_string}"
+            )
 
 
 class TestSpecLifecycle:
@@ -237,30 +236,43 @@ class TestRegistryGeneration:
         out = tmp_path / "cmds.json"
         reg = generate_commands_registry(BASE_DIR, out)
         depts = set(reg["_meta"]["departments"].keys())
-        expected = {"dev", "marketing", "brand", "finance", "strategy", "ecom",
+        # The registry keys departments by command PREFIX (fin, mkt, strat),
+        # not by directory name (finance, marketing, strategy).
+        expected = {"dev", "mkt", "brand", "fin", "strat", "ecom",
                     "kb", "ops", "pm", "saas", "landing", "content", "community",
                     "sales", "leadership", "org", "arka"}
         missing = expected - depts
         assert not missing, f"Missing: {missing}"
         assert reg["_meta"]["total_commands"] >= 200
 
-    def test_all_4_runtimes_available(self):
+    def test_core_runtimes_available(self):
+        # The adapter set is a module-level dict with no mutation anywhere
+        # (core/runtime/registry.py) — fully deterministic from the repo,
+        # machine-independent. Exact equality detects both a dropped
+        # adapter and an accidentally added one.
         runtimes = list_runtimes()
-        assert len(runtimes) == 4
         ids = {r["id"] for r in runtimes}
-        assert ids == {"claude-code", "codex", "gemini", "cursor"}
+        assert ids == {"claude-code", "codex", "gemini", "cursor", "opencode"}
 
 
 # Helper
 def _make_dna(dp, ds, et, ew, o, c, e, a, n, mbti):
     from core.agents.schema import (
-        BehavioralDNA, DISCProfile, DISCType,
-        EnneagramProfile, EnneagramType,
-        BigFiveProfile, MBTIProfile, MBTIType,
+        BehavioralDNA,
+        BigFiveProfile,
+        DISCProfile,
+        DISCType,
+        EnneagramProfile,
+        EnneagramType,
+        MBTIProfile,
+        MBTIType,
     )
     return BehavioralDNA(
         disc=DISCProfile(primary=DISCType(dp), secondary=DISCType(ds)),
         enneagram=EnneagramProfile(type=EnneagramType(et), wing=ew),
-        big_five=BigFiveProfile(openness=o, conscientiousness=c, extraversion=e, agreeableness=a, neuroticism=n),
+        big_five=BigFiveProfile(
+            openness=o, conscientiousness=c, extraversion=e,
+            agreeableness=a, neuroticism=n,
+        ),
         mbti=MBTIProfile(type=MBTIType(mbti)),
     )
