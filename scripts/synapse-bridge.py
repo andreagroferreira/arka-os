@@ -99,7 +99,7 @@ def load_agents_registry(root: Path) -> dict:
     if not path.exists():
         return {}
     try:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         agents = {}
         for agent in data.get("agents", []):
             agent_id = agent.get("id", "")
@@ -116,7 +116,7 @@ def load_commands_registry(root: Path) -> list:
     if not path.exists():
         return []
     try:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         return data.get("commands", [])
     except Exception:
         return []

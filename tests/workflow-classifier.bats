@@ -112,6 +112,62 @@ source "$ARKAOS_REPO_DIR/config/hooks/_lib/workflow-classifier.sh"
   [ "$(arka_wf_classify 'what is X?')" = "false" ]
 }
 
+@test "X5: question with action verb is false" {
+  [ "$(arka_wf_classify 'o que e que este projeto faz?')" = "false" ]
+}
+
+@test "X5: 'como fazes o deploy?' is false" {
+  [ "$(arka_wf_classify 'como fazes o deploy?')" = "false" ]
+}
+
+@test "X5: 'how do I implement auth here?' is false" {
+  [ "$(arka_wf_classify 'how do I implement auth here?')" = "false" ]
+}
+
+@test "X5: polite request keeps matching" {
+  [ "$(arka_wf_classify 'podes implementar a exportacao?')" = "true" ]
+}
+
+@test "X5: interrogative lead without ? stays a directive" {
+  [ "$(arka_wf_classify 'como combinado, implementa a feature')" = "true" ]
+}
+
+# ─── Multi-line: the lead is the FIRST line, as in the Python twin ─────
+#
+# grep anchors ^ per line, so passing the whole prompt let ANY line supply
+# the interrogative lead — while re.match in core/hooks/user_prompt_submit
+# .py can only match at offset 0. The two classifiers disagreed on every
+# multi-line prompt that happens to end in a question. These four pin the
+# agreed semantics; the bats suite had single-line cases only, which is
+# exactly why the divergence was invisible.
+
+@test "multiline: directive first, question last, stays a directive" {
+  run arka_wf_classify 'implementa a feature de exportacao
+o que e que isto faz?'
+  [ "$output" = "true" ]
+}
+
+@test "multiline: question lead on line 1 is still a question" {
+  run arka_wf_classify 'o que e que este projeto faz
+e como e que implementa o deploy?'
+  [ "$output" = "false" ]
+}
+
+@test "multiline: leading blank lines do not hide the lead" {
+  run arka_wf_classify '
+
+o que e que este projeto faz?'
+  [ "$output" = "false" ]
+}
+
+@test "multiline: directive under a blank first line stays a directive" {
+  run arka_wf_classify '
+
+implementa isto
+porque e que falha?'
+  [ "$output" = "true" ]
+}
+
 @test "negative: 'how does Y work?' is false" {
   [ "$(arka_wf_classify 'how does Y work?')" = "false" ]
 }

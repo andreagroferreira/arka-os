@@ -20,14 +20,16 @@ injection. See core/synapse/kb_cache.py for the obsidian-query marker.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
+from core.knowledge.vault import resolve_vault_path
 from core.shared import safe_session_id as _safe_session_id_module
 from core.shared.temp_paths import arkaos_temp_dir
 from core.synapse import kb_cache
@@ -97,10 +99,8 @@ def _locked_append(path: Path):
         yield fh
     finally:
         if _HAS_FLOCK:
-            try:
+            with contextlib.suppress(OSError):
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                pass
         fh.close()
 
 
@@ -134,7 +134,7 @@ def _bypass_env_active() -> bool:
 
 def _audit_bypass(session_id: str, tool: str) -> None:
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
         "tool": tool,
         "reason": os.environ.get("ARKA_BYPASS_KB_FIRST_REASON", ""),
@@ -146,7 +146,7 @@ def _audit_bypass(session_id: str, tool: str) -> None:
 def record_telemetry(session_id: str, tool: str, decision: Decision) -> None:
     """Append a structured record to the KB-first telemetry log."""
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "session_id": session_id,
         "tool": tool,
         **asdict(decision),
@@ -172,7 +172,7 @@ def _mark_violation(session_id: str, tool: str) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    entry = json.dumps({"tool": tool, "ts": datetime.now(timezone.utc).isoformat()})
+    entry = json.dumps({"tool": tool, "ts": datetime.now(UTC).isoformat()})
     # Race contract: two concurrent tool calls on the same session may
     # both observe "no prior violation" and both emit the first-violation
     # nudge. This is intentional — a nudge is cheap and both calls were
@@ -180,10 +180,8 @@ def _mark_violation(session_id: str, tool: str) -> None:
     # after the first marker is on disk, which is what a plain
     # ``write_text`` (non-exclusive, last-writer-wins) gives us. Tested
     # by ``test_concurrent_violation_markers_race_safe``.
-    try:
+    with contextlib.suppress(OSError):
         path.write_text(entry, encoding="utf-8")
-    except OSError:
-        pass
 
 
 def invalidate_violation(session_id: str) -> None:
@@ -200,13 +198,14 @@ def invalidate_violation(session_id: str) -> None:
 
 
 def _resolve_vault_path() -> Path | None:
-    env_vault = os.environ.get("ARKAOS_VAULT", "").strip()
-    if env_vault and Path(env_vault).exists():
-        return Path(env_vault)
-    config = Path.home() / "Documents" / "Personal"
-    if config.exists():
-        return config
-    return None
+    """The operator's vault, or None. Config first, then env.
+
+    The resolution itself lives in :mod:`core.knowledge.vault` so the
+    indexer and this gate cannot drift apart about where the vault is;
+    ``CONFIG_PATH`` is passed rather than imported so it stays the knob
+    this module (and its tests) control.
+    """
+    return resolve_vault_path(CONFIG_PATH)
 
 
 def _tokenize(text: str) -> set[str]:
@@ -240,36 +239,100 @@ def _search_vault_titles(query: str, vault: Path, top_n: int) -> list[str]:
     return [stem for _, _, stem in ranked[:top_n]]
 
 
+# The nudge messages, side by side so each can be read against the work
+# its branch actually did.
+#
+# RULE: no comment in this block makes counted or universal claims about
+# the set of messages ("all four", "every one of them", "three conditions
+# produce this"). Each message is described only by the comment directly
+# above it. A summarising sentence with a quantifier is what kept going
+# false here — the quantifier was the part that was wrong.
+
+# No vault resolved. Reached only when NEITHER source answers: the config
+# key is absent or points at a path that does not exist, AND ARKAOS_VAULT
+# is unset or points at a path that does not exist. The default install —
+# no key, no env var — is the common way in, and a missing key on its own
+# does not reach here, because a valid ARKAOS_VAULT still yields a vault.
+# That is why the message names both settings instead of blaming the key.
+# The gate knows nothing about what is written down, so it does not say
+# "there may not be a note yet" — that asserted the opposite of the truth
+# to an operator holding thousands.
+_NUDGE_NO_VAULT = (
+    "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes`. "
+    "Não consegui resolver o teu vault: nem `knowledge.vaultPath` (em "
+    "`~/.arkaos/config.json`) nem `ARKAOS_VAULT` apontam para uma pasta "
+    "existente, por isso não sei o que já tens escrito."
+)
+
+# Nothing searchable arrived, so nothing was searched: _search_vault_titles
+# returns [] at its first line, before it ever opens the vault. Reachable
+# in normal use — the hook's _query_hint reads only query/prompt/url while
+# mcp__context7__resolve-library-id carries libraryName, so the gate is
+# handed "". A query of pure stopwords lands here too.
+_NUDGE_NO_TERMS = (
+    "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes`. "
+    "Não consegui extrair termos pesquisáveis deste pedido, por isso não "
+    "cheguei a procurar — faz tu a pesquisa com os termos que interessam."
+)
+
+# Titles found. These are exactly the stems _search_vault_titles returned,
+# so the message can name them. "possivelmente relevantes" is hedged on
+# purpose: the match was on filenames, never on note bodies, so relevance
+# is a guess the operator confirms by opening them.
+_NUDGE_WITH_TITLES = (
+    "[arka:kb-nudge] O teu cérebro (Obsidian) tem notas possivelmente "
+    "relevantes:\n{bullets}\n\n"
+    "Consulta-as via `mcp__obsidian__search_notes` antes de ir a {tool}. "
+    "Se tiverem lacuna, segue externamente e documenta de volta."
+)
+
+# The vault WAS searched — but only its filenames. _search_vault_titles
+# tokenises note stems, never note bodies, and a content search is exactly
+# what the operator is being asked to run, so the claim stays on titles.
+_NUDGE_TITLES_EMPTY = (
+    "[arka:kb-nudge] Antes de ir a {tool}, corre `mcp__obsidian__search_notes` "
+    "— procurei nos títulos das tuas notas e nenhum fala disto, por isso "
+    "documenta de volta depois da consulta externa."
+)
+
+
 def _build_nudge(query: str, tool_name: str, vault: Path | None) -> tuple[str, list[str]]:
-    titles = _search_vault_titles(query, vault, _NUDGE_TOP_N) if vault else []
+    """Pick the message for the situation the gate is actually in.
+
+    The branches stay separate on purpose: each names exactly the work
+    that ran. See the comment directly above each message constant for
+    why that message's claim is earned.
+    """
+    if vault is None:
+        return _NUDGE_NO_VAULT.format(tool=tool_name), []
+    if not _tokenize(query):
+        return _NUDGE_NO_TERMS.format(tool=tool_name), []
+
+    titles = _search_vault_titles(query, vault, _NUDGE_TOP_N)
     if titles:
         bullets = "\n".join(f"  - [[{t}]]" for t in titles)
-        body = (
-            f"[arka:kb-nudge] O teu cérebro (Obsidian) tem possíveis notas relevantes:\n"
-            f"{bullets}\n\n"
-            f"Consulta-as via `mcp__obsidian__search_notes` antes de ir a {tool_name}. "
-            f"Se tiverem lacuna, segue externamente e documenta de volta."
-        )
-    else:
-        body = (
-            f"[arka:kb-nudge] Antes de ir a {tool_name}, corre primeiro "
-            f"`mcp__obsidian__search_notes` — pode não haver nota ainda, e nesse "
-            f"caso documenta de volta depois da consulta externa."
-        )
-    return body, titles
+        return _NUDGE_WITH_TITLES.format(tool=tool_name, bullets=bullets), titles
+    return _NUDGE_TITLES_EMPTY.format(tool=tool_name), []
 
 
 def _build_deny_message(titles: list[str], tool_name: str) -> str:
+    """The operator is hard-blocked here: say so, and give a way forward."""
+    # "second call to {tool}" would be a lie: the violation marker is keyed
+    # on session alone (_violation_path ignores the tool), so WebSearch
+    # followed by Context7 lands here on Context7's FIRST call. Say what
+    # the marker actually counts — external research calls this round.
+    head = (
+        f"[ARKA:KB-FIRST] Bloqueado: segunda chamada de pesquisa externa "
+        f"nesta ronda sem consultar o Obsidian (agora {tool_name})."
+    )
+    way_out = (
+        "Corre `mcp__obsidian__search_notes`, ou define "
+        "`ARKA_BYPASS_KB_FIRST=1` se a consulta externa for mesmo o passo certo."
+    )
     if titles:
         bullets = ", ".join(f"[[{t}]]" for t in titles)
-        return (
-            f"[ARKA:KB-FIRST] O teu cérebro tem {bullets}. "
-            f"Consulta primeiro via `mcp__obsidian__search_notes` antes de {tool_name}."
-        )
-    return (
-        f"[ARKA:KB-FIRST] Consulta primeiro `mcp__obsidian__search_notes` "
-        f"antes de chamar {tool_name}. Se não houver nota, documenta depois."
-    )
+        return f"{head} O teu cérebro tem {bullets}. {way_out}"
+    return f"{head} {way_out}"
 
 
 def _early_allow(tool_name: str, session_id: str) -> Decision | None:
@@ -299,6 +362,24 @@ def evaluate_research_gate(
     nudge_msg, titles = _build_nudge(query, tool_name, vault)
 
     if _has_prior_violation(session_id):
+        if vault is None:
+            # Never deny on a vault we could not resolve. With
+            # hooks.kbFirst defaulting true, any install without
+            # knowledge.vaultPath would otherwise have the second external
+            # call of every turn blocked by a gate that can name no note it
+            # claims was skipped, pointing at an Obsidian tool that install
+            # does not have. Only the DENY is gated: the nudge still fires,
+            # so the operator still learns the KB is not wired up.
+            # A reason of its own, so an audit can tell "ignored the KB"
+            # from "has no KB configured" — conflating them would make the
+            # telemetry read as operator non-compliance.
+            return Decision(
+                allow=True,
+                reason="kb-first-vault-unconfigured",
+                nudge=True,
+                kb_hits_hint=[],
+                stderr_msg=nudge_msg,
+            )
         return Decision(
             allow=False,
             reason="kb-first-required",

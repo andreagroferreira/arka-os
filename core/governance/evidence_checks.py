@@ -35,7 +35,8 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass, field, replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from xml.etree import ElementTree
 
 from core.governance.qg_digest import evidence_digest
 from core.shared.test_evidence import coverage_percent_from_xml
@@ -553,30 +554,172 @@ def _junit_result(junit: Path) -> CheckResult:
     )
 
 
+def _coverage_from_xml(
+    coverage_xml: Path, project_dir: Path, changed: list[str] | None,
+) -> CheckResult:
+    """Coverage verdict from an artefact, refusing one that cannot describe the diff."""
+    stale = _stale_coverage_reason(coverage_xml, project_dir, changed)
+    if stale is not None:
+        return CheckResult(
+            check="coverage", ran=True, passed=False,
+            command="parse:coverage.xml", exit_code=None,
+            summary=stale, details_path=str(coverage_xml),
+        )
+    percent = coverage_percent_from_xml(coverage_xml)
+    if percent is None:
+        return CheckResult(
+            check="coverage", ran=True, passed=None,
+            command="parse:coverage.xml", exit_code=None,
+            summary="coverage.xml present but unparseable",
+            details_path=str(coverage_xml),
+        )
+    return CheckResult(
+        check="coverage", ran=True,
+        passed=percent >= COVERAGE_THRESHOLD,
+        command="parse:coverage.xml", exit_code=None,
+        summary=f"coverage {percent:.1f}% (threshold {COVERAGE_THRESHOLD:.0f}%)",
+        details_path=str(coverage_xml),
+    )
+
+
+def _stale_coverage_reason(
+    coverage_xml: Path, project_dir: Path, changed: list[str] | None,
+) -> str | None:
+    """Reason the artefact cannot describe this diff, or None if it can.
+
+    A coverage.xml older than the newest changed source measured a different
+    codebase, and a green number then vouches for code it never executed.
+    """
+    try:
+        artefact_mtime = coverage_xml.stat().st_mtime
+    except OSError:
+        return "coverage.xml unreadable"
+
+    newest_name = _newest_changed_after(project_dir, changed, artefact_mtime)
+    if newest_name is not None:
+        return (
+            f"coverage.xml predates changed source ({newest_name}) — "
+            "regenerate it; it cannot describe this diff"
+        )
+    return _missing_module_reason(coverage_xml, changed, project_dir)
+
+
+def _missing_module_reason(
+    coverage_xml: Path, changed: list[str] | None, project_dir: Path,
+) -> str | None:
+    """Reason a changed module is absent from the artefact, or None."""
+    covered = _covered_paths(coverage_xml, project_dir)
+    missing = [
+        rel for rel in (changed or [])
+        if rel.endswith(".py")
+        and not rel.startswith("tests/")
+        and not _is_covered(rel, covered)
+    ]
+    if not missing:
+        return None
+    return (
+        f"coverage.xml has no entry for {len(missing)} changed module(s), "
+        f"first: {missing[0]}"
+    )
+
+
+def _newest_changed_after(
+    project_dir: Path, changed: list[str] | None, cutoff: float,
+) -> str | None:
+    """Name of the newest changed .py file modified after cutoff, else None.
+
+    Only executable source can invalidate a coverage artefact — treating
+    CHANGELOG.md as "changed source" forced a full regeneration for edits no
+    test could ever execute (same filter the module-presence check applies).
+    """
+    newest = cutoff
+    newest_name: str | None = None
+    for rel in changed or []:
+        if not rel.endswith(".py"):
+            continue
+        try:
+            mtime = (project_dir / rel).stat().st_mtime
+        except OSError:
+            continue
+        if mtime > newest:
+            newest, newest_name = mtime, rel
+    return newest_name
+
+
+def _covered_paths(coverage_xml: Path, project_dir: Path) -> set[str]:
+    """Covered files as paths relative to project_dir, exactly.
+
+    A ``class/@filename`` is relative to one of the ``sources/source``
+    roots, which are usually absolute and which the changed-file list never
+    carries. Each candidate is therefore rebuilt against every source and
+    re-expressed relative to the project, so comparison can be equality.
+
+    Suffix or stem matching is not good enough here: `core/` alone carries
+    14 colliding stems, this repo's own artefact yields five bare basenames,
+    and a suffix rule cannot tell `core/sync/engine.py` from
+    `vendor/core/sync/engine.py`. Equality can.
+    """
+    try:
+        root = ElementTree.parse(coverage_xml).getroot()
+    except (ElementTree.ParseError, OSError):
+        return set()
+    sources = [(el.text or "").strip() for el in root.iterfind("sources/source")]
+    try:
+        base = project_dir.resolve()
+    except OSError:
+        base = project_dir
+    return {
+        candidate
+        for cls in root.iter("class")
+        if cls.get("filename")
+        for candidate in _source_candidates(cls.get("filename", ""), sources, base)
+    }
+
+
+def _source_candidates(
+    filename: str, sources: list[str], base: Path,
+) -> set[str]:
+    """Project-relative spellings of one covered file, anchored.
+
+    With ``<source>`` roots declared, every candidate must resolve through
+    one of them into the project — the unanchored raw filename let another
+    checkout's artefact vouch for this project's files. The raw spelling is
+    a fallback only when no sources exist; a relative source resolves
+    against the project, never the CWD.
+    """
+    if not sources:
+        raw = PurePosixPath(filename)
+        return set() if raw.is_absolute() else {raw.as_posix()}
+
+    # Candidates must exist on disk; existence under more than one source
+    # is ambiguous — vouch for neither (fail closed).
+    found: set[str] = set()
+    for source in sources:
+        src = Path(source)
+        if not src.is_absolute():
+            src = base / src
+        try:
+            resolved = (src / filename).resolve()
+            if not resolved.is_file():
+                continue
+            found.add(PurePosixPath(resolved.relative_to(base)).as_posix())
+        except (OSError, ValueError):
+            continue
+    return found if len(found) == 1 else set()
+
+
+def _is_covered(rel: str, covered: set[str]) -> bool:
+    """True only when the artefact names exactly this project-relative path."""
+    return PurePosixPath(rel).as_posix() in covered
+
+
 def _check_coverage(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
     coverage_xml = project_dir / "coverage.xml"
     if coverage_xml.is_file():
-        percent = coverage_percent_from_xml(coverage_xml)
-        if percent is None:
-            return CheckResult(
-                check="coverage", ran=True, passed=None,
-                command="parse:coverage.xml", exit_code=None,
-                summary="coverage.xml present but unparseable",
-                details_path=str(coverage_xml),
-            )
-        return CheckResult(
-            check="coverage", ran=True,
-            passed=percent >= COVERAGE_THRESHOLD,
-            command="parse:coverage.xml", exit_code=None,
-            summary=(
-                f"coverage {percent:.1f}% "
-                f"(threshold {COVERAGE_THRESHOLD:.0f}%)"
-            ),
-            details_path=str(coverage_xml),
-        )
+        return _coverage_from_xml(coverage_xml, project_dir, changed)
     junit = project_dir / "junit.xml"
     if junit.is_file():
         return _junit_result(junit)
@@ -767,9 +910,10 @@ def _check_spellcheck(
 def _spellcheck_inspected_count(project_dir: Path, md_files: list[str]) -> int:
     """How many of ``md_files`` codespell actually reads after `skip`.
 
-    Asks codespell itself (``--count`` on a per-file basis is too slow; a
-    skipped file simply produces no output for any planted probe), so instead
-    we replay its own glob semantics from the config.
+    Replays the config's skip globs with fnmatch rather than asking codespell
+    itself — per-file ``--count`` probing is too slow, and a skipped file
+    simply produces no output, so codespell cannot be asked which files it
+    ignored.
     """
     patterns = _codespell_skip_globs(project_dir)
     if not patterns:

@@ -25,8 +25,12 @@ def core_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (core / "config" / "standards" / "stack-rules" / "node.md").write_text(
         '---\npaths:\n  - "**/*.js"\n---\n\n## Node Rules\n', encoding="utf-8"
     )
-    (core / "config" / "standards" / "communication.md").write_text("# Communication\n", encoding="utf-8")
-    (core / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n", encoding="utf-8")
+    (core / "config" / "standards" / "communication.md").write_text(
+        "# Communication\n", encoding="utf-8"
+    )
+    (core / "config" / "hooks" / "session-start.sh").write_text(
+        "#!/bin/bash\necho start\n", encoding="utf-8"
+    )
     (core / "config" / "constitution.yaml").write_text(
         "rules:\n  - name: squad-routing\n    level: NON-NEGOTIABLE\n", encoding="utf-8"
     )
@@ -197,3 +201,37 @@ def test_sync_writes_constitution_applicable(core_repo: Path, project: Project) 
     cfile = Path(project.path) / ".claude" / "constitution-applicable.md"
     assert cfile.exists()
     assert "squad-routing" in cfile.read_text(encoding="utf-8")
+
+
+def test_drift_is_reported_as_drift_not_as_an_error(tmp_path, monkeypatch):
+    """QG round 5 (Eduardo): a drifted block printed '1 errored' — but nothing
+    failed; the merger deliberately preserved the operator's edit."""
+    from core.sync.content_merger import compute_managed_hash
+    from core.sync.content_syncer import sync_project_content
+    from core.sync.schema import Project
+
+    monkeypatch.setenv("ARKAOS_CORE_ROOT", str(tmp_path / "core_root"))
+    core = tmp_path / "core_root"
+    (core / "config").mkdir(parents=True)
+    (core / "VERSION").write_text("5.10.0\n", encoding="utf-8")
+    canon = "CORE DOCTRINE"
+    (core / "config" / "user-claude.md").write_text(canon, encoding="utf-8")
+    (core / "config" / "standards").mkdir()
+    (core / "config" / "hooks").mkdir()
+    (core / "config" / "constitution.yaml").write_text("rules: []\n", encoding="utf-8")
+
+    project = tmp_path / "proj"
+    (project / ".claude").mkdir(parents=True)
+    stamped = compute_managed_hash(canon)
+    (project / ".claude" / "CLAUDE.md").write_text(
+        f"<!-- arkaos:managed:start version=5.9.0 hash={stamped} -->\n"
+        f"{canon}\nMY OWN RULE\n"
+        "<!-- arkaos:managed:end -->\n",
+        encoding="utf-8",
+    )
+
+    result = sync_project_content(Project(path=str(project), name="proj"))
+
+    assert result.status == "drifted"
+    assert result.artefacts_drifted == ["CLAUDE.md"]
+    assert result.artefacts_errored == []

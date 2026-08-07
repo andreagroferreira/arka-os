@@ -61,7 +61,7 @@ class ScheduleConfig:
     @classmethod
     def load(cls, config_path: str) -> "list[ScheduleConfig]":
         """Load schedules from YAML, returning only enabled entries."""
-        with open(config_path) as fh:
+        with open(config_path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
 
         schedules = []
@@ -106,7 +106,7 @@ class ArkaScheduler:
         """Acquire an exclusive file lock. Returns False if already locked."""
         Path(self._lock_path).parent.mkdir(parents=True, exist_ok=True)
         try:
-            fd = open(self._lock_path, "w")  # noqa: WPS515
+            fd = open(self._lock_path, "w", encoding="utf-8")  # noqa: WPS515
             if sys.platform == "win32":
                 import msvcrt  # type: ignore[import]
 
@@ -295,8 +295,16 @@ class ArkaScheduler:
             lf.write(f"\n--- attempt {attempt} at {datetime.now().isoformat()} ---\n")
             lf.write(f"cmd: {cmd[0]}\n")
             try:
+                # The daemon runs under pythonw.exe and owns no console, so
+                # a console-subsystem child (schedules on the `prompt_file`
+                # path spawn the claude CLI directly) gets a fresh console
+                # window of its own. It shows no output -- stdout is
+                # redirected to the log -- so the operator closes it, which
+                # kills the run with 0xC000013A. CREATE_NO_WINDOW is absent
+                # on POSIX, where 0 means "no extra flags".
                 result = subprocess.run(
                     cmd, stdout=lf, stderr=lf, timeout=timeout, env=env,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                 )
                 if result.returncode == 0:
                     return True

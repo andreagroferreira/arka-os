@@ -18,8 +18,10 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
+from hook_shell import BASH
 
 from core.hooks._shared import additional_context_payload, emit_additional_context
 
@@ -112,10 +114,9 @@ ENTRYPOINTS = [
 # only (CwdChanged accepts no additionalContext).
 PS1_EXPECTED_MARKERS = {
     "user-prompt-submit.ps1": [
-        # v1-migration early-exit emitter
-        "hookEventName = 'UserPromptSubmit'; additionalContext = $msg",
-        # main emitter
-        "hookEventName = 'UserPromptSubmit'; additionalContext = $additionalContext",
+        # Degraded/forced fallback is the only PowerShell-side emitter —
+        # the real payload comes from core.hooks.user_prompt_submit.
+        '"hookEventName": "UserPromptSubmit"',
     ],
     "cwd-changed.ps1": [
         "systemMessage = $context",
@@ -373,6 +374,141 @@ class TestSourceGuards:
                 )
 
 
+class TestTwinWrapperParity:
+    """Guards against twin drift between the .sh and .ps1 wrappers.
+
+    A wrapper pair drifts silently: both run, both exit 0, both emit valid
+    JSON — and one of them quietly stops carrying half the payload. That is
+    exactly how session-start.ps1 spent releases emitting only the banner
+    while session-start.sh delegated to Python and shipped the four
+    operating contracts (EVIDENCE-FLOW, META-TAG, AUTHORITY, MODEL-FABRIC)
+    to the model. A source diff of the two files would not have caught it:
+    they are different languages and were never meant to match line for
+    line. What must match is the *producer they delegate to*.
+
+    Both directions test the same predicate — ``_delegates_to`` — and it
+    matches the INVOCATION, never the bare module name. A substring search
+    cannot tell delegation from discussion: a wrapper that merely mentions
+    ``core.hooks.stop`` in a comment satisfies the positive assertion while
+    delegating nothing, and, in the other direction, documenting the module
+    a file does NOT delegate to breaks the inverted guard for no reason.
+    Both failures were live: the second landed as a cross-PR test break the
+    moment a comment in stop.ps1 named the module its own guard forbids.
+    """
+
+    # Twins whose .sh delegates the whole event to one python module. Both
+    # sides must name that module — that is the parity contract.
+    DELEGATING_TWINS: ClassVar[dict[str, str]] = {
+        "session-start": "core.hooks.session_start",
+        "session-end": "core.hooks.session_end",
+        "subagent-stop": "core.hooks.subagent_stop",
+        "user-prompt-submit": "core.hooks.user_prompt_submit",
+    }
+
+    # Known drift, recorded rather than hidden. These .ps1 files do call
+    # Python, but through inline scripts against specific functions instead
+    # of delegating the event to the module its .sh twin uses. They are a
+    # different architecture, not a missing one, so failing CI on them today
+    # would block unrelated work — but leaving them undocumented is how the
+    # session-start drift survived. Moving one of these into
+    # DELEGATING_TWINS is the definition of done for porting it.
+    KNOWN_DRIFTED_TWINS: ClassVar[dict[str, str]] = {
+        "pre-tool-use": "core.hooks.pre_tool_use",
+        "post-tool-use": "core.hooks.post_tool_use",
+        "stop": "core.hooks.stop",
+    }
+
+    @staticmethod
+    def _delegates_to(text: str, module: str) -> bool:
+        """True when `text` actually runs `python -m <module>`.
+
+        Two filters, because either alone is escapable. Comment lines go
+        first — ``#`` opens a comment in PowerShell, in bash and in the
+        Python here-strings these wrappers embed, so one rule covers all
+        three. Then the survivors must carry the module behind ``-m``,
+        which is the only shape that runs it. Prose about a module never
+        matches; a real invocation always does, whatever else the file
+        says about it.
+
+        Deliberately parses no PowerShell. An AST-based strip would need
+        pwsh installed, and a guard that skips wherever pwsh is absent is
+        not a guard on the machines that run CI.
+        """
+        code = "\n".join(
+            line for line in text.splitlines() if not line.lstrip().startswith("#")
+        )
+        return re.search(rf"-m\s+{re.escape(module)}(?![\w.])", code) is not None
+
+    @pytest.mark.parametrize("stem,module", sorted(DELEGATING_TWINS.items()))
+    def test_twins_delegate_to_the_same_producer(self, stem, module):
+        sh_path = HOOKS_SH_DIR / f"{stem}.sh"
+        ps1_path = HOOKS_SH_DIR / f"{stem}.ps1"
+        if not ps1_path.is_file():
+            pytest.skip(f"{stem}.ps1 not shipped")
+
+        sh_text = sh_path.read_text(encoding="utf-8", errors="replace")
+        ps1_text = ps1_path.read_text(encoding="utf-8", errors="replace")
+
+        assert self._delegates_to(sh_text, module), (
+            f"{sh_path.name} no longer runs `-m {module}` — update this "
+            "test deliberately, or the twin contract is meaningless"
+        )
+        assert self._delegates_to(ps1_text, module), (
+            f"{ps1_path.name} does not run `-m {module}` while its .sh "
+            f"twin does. This is the session-start failure mode: the "
+            f"PowerShell side reimplements part of the payload, drifts as "
+            f"the producer evolves, and silently ships less context to the "
+            f"model on Windows. Delegate to {module} instead of porting the "
+            "payload."
+        )
+
+    @pytest.mark.parametrize("stem,module", sorted(KNOWN_DRIFTED_TWINS.items()))
+    def test_known_drift_is_still_drifted(self, stem, module):
+        # Inverted guard: when someone ports one of these, this test fails
+        # and points at the bookkeeping. Prevents the allowlist from
+        # outliving the debt it records.
+        ps1_path = HOOKS_SH_DIR / f"{stem}.ps1"
+        if not ps1_path.is_file():
+            pytest.skip(f"{stem}.ps1 not shipped")
+        ps1_text = ps1_path.read_text(encoding="utf-8", errors="replace")
+        assert not self._delegates_to(ps1_text, module), (
+            f"{ps1_path.name} now runs `-m {module}` — move '{stem}' from "
+            "KNOWN_DRIFTED_TWINS to DELEGATING_TWINS so the parity contract "
+            "starts guarding it"
+        )
+
+    def test_delegation_predicate_reads_invocations_not_prose(self):
+        """The predicate itself, pinned in both directions.
+
+        Without this, `_delegates_to` is only ever exercised on files that
+        happen to agree with it, and the substring guard it replaced looked
+        equally healthy right up to the release where a comment broke it.
+        """
+        module = "core.hooks.stop"
+        # Prose is not delegation — in any of the three comment dialects.
+        assert not self._delegates_to("# core.hooks.stop, which runs a lot", module)
+        assert not self._delegates_to("  # python -m core.hooks.stop (the twin)", module)
+        assert not self._delegates_to('"""Mirror of core.hooks.stop._write."""', module)
+        assert not self._delegates_to("import core.hooks.stop", module)
+        # A longer module name must not satisfy a shorter one.
+        assert not self._delegates_to("python -m core.hooks.stop_governance", module)
+        # Delegation is delegation, in either language, however spelled.
+        assert self._delegates_to('"$ARKA_PY" -m core.hooks.stop', module)
+        assert self._delegates_to("& $env:ARKA_PY -m core.hooks.stop", module)
+        assert self._delegates_to("exec python3  -m core.hooks.stop\n", module)
+
+    def test_session_start_ps1_does_not_rebuild_the_banner(self):
+        # Narrow regression pin for the bug this class was written for: the
+        # old .ps1 read profile.json and laid out the box itself. A wrapper
+        # that reads the profile is a wrapper that has started reimplementing
+        # the producer again.
+        text = (HOOKS_SH_DIR / "session-start.ps1").read_text(encoding="utf-8")
+        assert "profile.json" not in text, (
+            "session-start.ps1 reads profile.json again — the banner is "
+            "built by core.hooks.session_start, not by the wrapper"
+        )
+
+
 class TestShellFallbackParity:
     def test_user_prompt_submit_fallback_shape(self, contract_home):
         env = dict(os.environ)
@@ -382,7 +518,7 @@ class TestShellFallbackParity:
             "ARKA_HOOK_FORCE_FALLBACK": "1",
         })
         result = subprocess.run(
-            ["bash", str(HOOKS_SH_DIR / "user-prompt-submit.sh")],
+            [BASH, str(HOOKS_SH_DIR / "user-prompt-submit.sh")],
             input=json.dumps({"userInput": "hello"}),
             capture_output=True,
             text=True,

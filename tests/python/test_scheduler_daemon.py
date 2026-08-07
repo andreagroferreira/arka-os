@@ -332,6 +332,33 @@ class TestArkaScheduler:
         log = (tmp_path / "logs" / "test_cmd").glob("*.log")
         assert any(log)
 
+    def test_execute_spawns_child_without_a_console(
+        self, scheduler: ArkaScheduler, tmp_path: Path,
+    ) -> None:
+        """The child must never be handed a console window of its own.
+
+        The daemon runs under pythonw.exe and owns no console, so a
+        console-subsystem child (the claude CLI, on the prompt_file path)
+        would otherwise get a fresh window. It shows nothing -- stdout goes
+        to the task log -- so the operator closes it and kills the run with
+        0xC000013A.
+        """
+        prompt_file = tmp_path / "prompt.md"
+        prompt_file.write_text("test prompt", encoding="utf-8")
+        schedule = ScheduleConfig(
+            command="test_cmd", prompt_file=str(prompt_file), run_time=time(2, 0),
+        )
+
+        fake_result = MagicMock(returncode=0)
+        with (
+            patch.object(scheduler, "_resolve_claude_binary", return_value="/bin/echo"),
+            patch("subprocess.run", return_value=fake_result) as run_mock,
+        ):
+            assert scheduler.execute(schedule) is True
+
+        expected = 0x08000000 if sys.platform == "win32" else 0
+        assert run_mock.call_args.kwargs["creationflags"] == expected
+
     def test_execute_retries_on_failure(self, scheduler: ArkaScheduler, tmp_path: Path) -> None:
         """execute retries up to max_retries on non-zero exit codes."""
         prompt_file = tmp_path / "prompt.md"

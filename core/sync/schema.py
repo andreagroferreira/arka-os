@@ -88,6 +88,8 @@ class ContentSyncResult(BaseModel):
     path: str
     status: str
     artefacts_updated: list[str] = Field(default_factory=list)
+    artefacts_restamped: list[str] = Field(default_factory=list)
+    artefacts_drifted: list[str] = Field(default_factory=list)
     artefacts_unchanged: list[str] = Field(default_factory=list)
     artefacts_errored: list[str] = Field(default_factory=list)
     error: str | None = None

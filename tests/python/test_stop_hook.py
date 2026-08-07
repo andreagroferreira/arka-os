@@ -17,6 +17,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from hook_shell import BASH
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STOP_SH = REPO_ROOT / "config" / "hooks" / "stop.sh"
@@ -56,7 +57,15 @@ def _run_stop_sh(
     home = tmp_path / "home"
     home.mkdir(parents=True, exist_ok=True)
 
-    wf_dir = Path("/tmp/arkaos-wf-required")
+    # Scoped through ARKA_WF_REQUIRED_DIR (set in `env` below) — the
+    # override core.shared.temp_paths.wf_required_dir reads, which stop.sh
+    # inherits via `-m core.hooks.stop`. The literal /tmp/arkaos-wf-required
+    # this replaced is the directory LIVE sessions coordinate through: the
+    # test planted a marker in it and then unlinked one, i.e. a unit test
+    # reading and deleting production state. Nothing in the chain needs the
+    # shared path, and exercising the override here is also the end-to-end
+    # proof that writer and reader now resolve the same directory.
+    wf_dir = tmp_path / "arkaos-wf-required"
     wf_dir.mkdir(parents=True, exist_ok=True)
     marker = wf_dir / session_id
     if wf_required:
@@ -72,6 +81,7 @@ def _run_stop_sh(
     }
     env = os.environ.copy()
     env["ARKAOS_ROOT"] = str(REPO_ROOT)
+    env["ARKA_WF_REQUIRED_DIR"] = str(wf_dir)
     env["ARKA_AUTO_DOC_QUEUE"] = str(queue)
     env["HOME"] = str(home)
     env["PYTHONPATH"] = str(REPO_ROOT)
@@ -80,7 +90,7 @@ def _run_stop_sh(
     env["ARKA_STOP_LINT"] = "0"
 
     subprocess.run(
-        ["bash", str(STOP_SH)],
+        [BASH, str(STOP_SH)],
         input=json.dumps(payload).encode("utf-8"),
         env=env,
         timeout=15,
@@ -319,6 +329,10 @@ class TestMainInProcess:
         monkeypatch.setenv("ARKA_STOP_LINT", "0")
         monkeypatch.setenv("ARKA_SESSION_MEMORY", "0")
         monkeypatch.setenv("ARKA_AUTO_DOC_QUEUE", str(tmp_path / "queue"))
+        # stop.py:624 resolves the marker dir through wf_required_dir(),
+        # which honors this env var before arkaos_temp_dir — without it
+        # the test reads the live /tmp marker dir (QG batch B2).
+        monkeypatch.setenv("ARKA_WF_REQUIRED_DIR", str(tmp_path / "arkaos-wf-required"))
         # No detached workers from a unit test — same rule as the
         # enqueue tests above.
         monkeypatch.setattr(

@@ -33,6 +33,25 @@ def _python_executable() -> str:
     return shutil.which("python3") or sys.executable
 
 
+def _windows_pythonw_executable() -> str:
+    """Resolve the console-less interpreter for the Windows logon task.
+
+    The scheduler is a long-lived ONLOGON daemon. Launching it through
+    python.exe forces Windows to allocate a console, so the operator gets a
+    terminal window on every boot that stays open for the life of the daemon
+    and kills it when closed. pythonw.exe is the same interpreter without
+    that console.
+
+    Called only from WindowsAdapter; launchd and systemd keep using
+    _python_executable() unchanged. Falls back to the console interpreter
+    when pythonw.exe is missing (embeddable distributions), so the daemon
+    still installs -- with a console -- rather than not installing at all.
+    """
+    console = _python_executable()
+    windowless = Path(console).with_name("pythonw.exe")
+    return str(windowless) if windowless.is_file() else console
+
+
 def _daemon_path_value() -> str:
     """Return a PATH string with known Claude CLI locations for daemon contexts."""
     home = str(Path.home())
@@ -246,7 +265,12 @@ class WindowsAdapter(PlatformAdapter):
         self._daemon_script = daemon_script
 
     def _build_schtasks_command(self) -> list[str]:
-        python = _python_executable()
+        # pythonw.exe, not python.exe: a logon daemon must not own a console.
+        python = _windows_pythonw_executable()
+        # Both paths are quoted -- schtasks splits an unquoted /TR on the
+        # first space, which breaks any profile with a space in its name
+        # (C:\Users\John Doe\...).
+        task_run = f'"{python}" "{self._daemon_script}"'
         return [
             "schtasks",
             "/Create",
@@ -256,7 +280,7 @@ class WindowsAdapter(PlatformAdapter):
             "/SC",
             "ONLOGON",
             "/TR",
-            f"{python} {self._daemon_script}",
+            task_run,
         ]
 
     def install_service(self) -> bool:

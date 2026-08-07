@@ -51,7 +51,7 @@ from core.hooks._shared import (
     resolve_arkaos_root,
     safe_session_id,
 )
-from core.shared.temp_paths import arkaos_temp_dir
+from core.shared.temp_paths import arkaos_temp_dir, wf_required_dir
 
 _CACHE_DIR = arkaos_temp_dir("arkaos-context-cache")
 _CACHE_TTL = 300  # Constitution cache: 5 minutes
@@ -96,6 +96,19 @@ _WF_VERB_PATTERN = (
 )
 _WF_VERB_RE = re.compile(rf"\b{_WF_VERB_PATTERN}\b", re.IGNORECASE)
 
+# Keep in sync with ARKA_WF_QUESTION_LEAD in _lib/workflow-classifier.sh.
+# Interrogative-led prompts that end in "?" are information questions, not
+# creation intent, even when they contain an action verb ("o que e que este
+# projeto faz?"). Polite requests ("podes implementar X?") keep matching:
+# their lead word is not interrogative.
+_WF_QUESTION_LEAD_PATTERN = (
+    r"(o\s+que|porqu[eê]|por\s+que|para\s+que|qual|quais|quando|onde|quem|como"
+    r"|what|why|which|who|whose|when|where|how|does)"
+)
+_WF_QUESTION_LEAD_RE = re.compile(
+    rf"^\s*{_WF_QUESTION_LEAD_PATTERN}\b", re.IGNORECASE
+)
+
 _STOPWORDS = frozenset([
     "the", "a", "an", "and", "or", "but", "if", "then", "of", "for", "to", "in", "on",
     "at", "by", "with", "from", "is", "are", "was", "were", "be", "been", "being", "do",
@@ -135,13 +148,26 @@ def _names_concrete_target(text: str) -> bool:
 
 
 def _v1_migration_notice() -> str | None:
+    home = Path.home()
+    # A valid v2 install manifest is the canonical signal that v2 is
+    # already functional — never nag past it. This guard existed only in
+    # the old native user-prompt-submit.ps1; hoisting it into the shared
+    # producer makes it hold on every platform.
+    if (home / ".arkaos" / "install-manifest.json").is_file():
+        return None
+    if (home / ".arkaos" / "migrated-from-v1").is_file():
+        return None
     v1_paths = (
-        Path.home() / ".claude" / "skills" / "arka-os",
-        Path.home() / ".claude" / "skills" / "arkaos",
+        home / ".claude" / "skills" / "arka-os",
+        home / ".claude" / "skills" / "arkaos",
     )
-    marker = Path.home() / ".arkaos" / "migrated-from-v1"
     for v1_path in v1_paths:
-        if v1_path.is_dir() and not marker.is_file():
+        # Require a real v1 install, not just a directory: an orphan
+        # folder holding a single bookkeeping file re-armed this notice
+        # on every prompt forever, and the early-return in main() then
+        # killed the whole per-prompt chain (Cross-Machine Lab, U1 —
+        # reproduced identically on Linux and Windows).
+        if (v1_path / "SKILL.md").is_file() or (v1_path / "skill.json").is_file():
             return (
                 f"[MIGRATION] ArkaOS v1 detected at {v1_path}. Run: npx "
                 f"arkaos migrate — This will backup v1, preserve your data, "
@@ -208,6 +234,11 @@ def _invalidate_turn_caches(session_id: str) -> None:
     try:
         from core.synapse.kb_cache import invalidate_obsidian_query
         invalidate_obsidian_query(session_id)
+    except Exception:
+        pass
+    try:
+        from core.synapse.kb_cache import invalidate_injected_context
+        invalidate_injected_context(session_id)
     except Exception:
         pass
 
@@ -462,15 +493,16 @@ def _token_hygiene(prompt: str, transcript_path: str) -> str:
 def _wf_classify(text: str) -> bool:
     if not text or text[0] in ("/", "!"):
         return False
+    stripped = text.strip()
+    if stripped.endswith("?") and _WF_QUESTION_LEAD_RE.match(stripped):
+        return False
     return bool(_WF_VERB_RE.search(text))
 
 
 def _wf_mark_required(session_id: str) -> None:
     if safe_session_id(session_id) is None:
         return
-    marker_dir = Path(
-        os.environ.get("ARKA_WF_REQUIRED_DIR", str(arkaos_temp_dir("arkaos-wf-required")))
-    )
+    marker_dir = wf_required_dir()
     try:
         marker_dir.mkdir(parents=True, exist_ok=True)
         (marker_dir / session_id).write_text(
