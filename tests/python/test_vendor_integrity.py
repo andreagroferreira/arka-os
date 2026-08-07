@@ -1061,6 +1061,22 @@ def test_notice_reference_points_at_the_pinned_path() -> None:
 def test_known_notices_gaps_do_not_grow() -> None:
     """The attribution debt is enforced as a shrinking list, not a footnote."""
     notices = _expanded_notices()
+    # The gap set is FROZEN to the six provenance-traced #378 files. Adding
+    # an entry here would switch _attributable() off for that file — the
+    # exact laundering vector this table must never become (QG batch B1).
+    # Entries may only ever be REMOVED, when the NOTICES gain their row.
+    frozen = {
+        "departments/landing/skills/page-architect/references/mermaid-templates.md",
+        "departments/landing/skills/page-architect/references/navigation-patterns.md",
+        "departments/landing/skills/page-architect/references/site-type-templates.md",
+        "arka/skills/human-writing/references/checklist.md",
+        "arka/skills/human-writing/references/content-refresh.md",
+        "arka/skills/human-writing/references/plain-english-alternatives.md",
+    }
+    assert set(NOTICES_GAP) <= frozen, (
+        f"NOTICES_GAP grew: {sorted(set(NOTICES_GAP) - frozen)} — new vendored "
+        "files get a NOTICES row, never a gap entry."
+    )
     assert set(NOTICES_GAP) <= set(VENDORED), (
         f"NOTICES_GAP entries that are not pinned: "
         f"{sorted(set(NOTICES_GAP) - set(VENDORED))}"
@@ -1097,11 +1113,14 @@ def test_license_texts_are_declared_identical_and_attributed() -> None:
 
 
 def test_apache_notice_is_mandatory_while_its_tree_exists() -> None:
-    """Apache-2.0 §4(d): the NOTICE travels with the derivative work.
+    """Apache-2.0 §4(d): the NOTICE's attribution notices travel with the work.
 
-    Redistributing impeccable-derived material without its NOTICE file
-    breaches the licence. This is not a tidiness rule — the file may only
-    disappear when the whole derived tree does.
+    Section 4(d) is satisfiable three ways (a NOTICE file, the docs
+    shipped with the work, or a generated display); ArkaOS satisfies it
+    by carrying the file itself, and this test holds that choice in
+    place — the file may only disappear when the whole derived tree
+    does, or when the notices provably move to one of the other two
+    sanctioned carriers.
     """
     for name, license_text in sorted(LICENSE_TEXTS.items()):
         for tree in license_text.mandatory_in:

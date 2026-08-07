@@ -106,7 +106,7 @@ the derived material.
 - **License:** MIT — Copyright (c) 2026 Hallmark contributors
 - **License text:** retained verbatim at
   `departments/brand/skills/design-review/references/hallmark.LICENSE`
-  (identical copies beside each derived skill)
+  (identical copies beside each derived reference tree)
 - **Upstream version:** v1.1.0 (main HEAD `aeb42fb`, 2026-06-04)
 
 Material derived from this project:
