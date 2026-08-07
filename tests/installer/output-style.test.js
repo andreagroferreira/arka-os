@@ -15,11 +15,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { installOutputStyles, seedOutputStyleDefault } =
-  await import(join(ROOT, "installer", "output-style.js"));
+  await import(pathToFileURL(join(ROOT, "installer", "output-style.js")));
 
 const SOURCE_DIR = join(ROOT, "config", "output-styles");
 

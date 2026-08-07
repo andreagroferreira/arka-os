@@ -13,13 +13,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 // Import the function under test. Implementation will export it from
 // installer/config-seed.js (TDD red — module does not exist yet).
-const { seedArkaosConfig } = await import(join(ROOT, "installer", "config-seed.js"));
+const { seedArkaosConfig } = await import(pathToFileURL(join(ROOT, "installer", "config-seed.js")));
 
 function makeTmpHome() {
   const dir = mkdtempSync(join(tmpdir(), "arkaos-seed-test-"));

@@ -19,14 +19,14 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   MARKER_START, MARKER_END, KNOWN_TEMPLATE_HASHES, sha256,
   renderManagedBlock, analyzeMarkers, planUpdate, tempPathFor,
   syncUserClaudeMd, installUserClaudeMd, describeSyncResult,
-} = await import(join(ROOT, "installer", "claude-md.js"));
+} = await import(pathToFileURL(join(ROOT, "installer", "claude-md.js")));
 
 const TEMPLATE_PATH = join(ROOT, "config", "user-claude.md");
 const TEMPLATE = readFileSync(TEMPLATE_PATH, "utf-8");
@@ -96,6 +96,49 @@ test("incident reproduction: operator remainder survives byte-for-byte, shipped 
   } finally {
     cleanup();
   }
+});
+
+test("a CRLF copy of the template is wrapped, not duplicated (Windows)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    // Reproduces the live Windows outcome: the packaged template ships
+    // LF, the operator's CLAUDE.md is CRLF (git autocrlf, most Windows
+    // editors). A byte-exact startsWith misses the prefix, adoption
+    // falls through to adopt-prepend, and the operator ends up with the
+    // whole instruction set twice in every session's context.
+    const remainder = `\n${GRAPHIFY_BLOCK}\n`;
+    writeUserClaudeMd(dir, `${TEMPLATE}${remainder}`.replace(/\n/g, "\r\n"));
+
+    const result = sync(dir);
+
+    assert.equal(result.action, "adopt-wrap");
+    const after = readUserClaudeMd(dir);
+    const firstHeading = TEMPLATE.split("\n")[0];
+    assert.equal(after.split(firstHeading).length - 1, 1, "shipped text must appear exactly once");
+    // The operator's remainder keeps its own CRLF bytes — the scan
+    // walks the original, it does not rewrite line endings.
+    assert.ok(after.endsWith(remainder.replace(/\n/g, "\r\n")), "remainder must survive byte-for-byte");
+    assert.equal(result.preservedRemainder, true);
+  } finally {
+    cleanup();
+  }
+});
+
+test("a CRLF copy of an OLD shipped revision is wrapped whole (Windows)", () => {
+  // Isolates the known-hash branch: an old revision is not a prefix of
+  // the current template, so the prefix scan cannot rescue this one.
+  // Byte-hashing a CRLF checkout of a revision we shipped misses it and
+  // the file gets prepended to — the operator keeps a stale copy of our
+  // own instructions below the managed block, forever.
+  const oldTemplate = "# ArkaOS — User Instructions\n\nOlder shipped wording.\n";
+  const plan = planUpdate({
+    existing: oldTemplate.replace(/\n/g, "\r\n"),
+    template: TEMPLATE,
+    wasManaged: false,
+    knownHashes: [sha256(oldTemplate)],
+  });
+  assert.equal(plan.action, "adopt-wrap");
+  assert.equal(plan.content, renderManagedBlock(TEMPLATE));
 });
 
 test("operator-only file (no template prefix) takes adopt-prepend and is preserved below the block", () => {

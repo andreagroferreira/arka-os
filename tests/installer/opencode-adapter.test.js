@@ -12,14 +12,14 @@ import {
 } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const { getRuntimeConfig } = await import(join(ROOT, "installer", "detect-runtime.js"));
-const adapterModule = await import(join(ROOT, "installer", "adapters", "opencode.js"));
+const { getRuntimeConfig } = await import(pathToFileURL(join(ROOT, "installer", "detect-runtime.js")));
+const adapterModule = await import(pathToFileURL(join(ROOT, "installer", "adapters", "opencode.js")));
 const { mergeOpencodeConfig } = adapterModule;
 const adapter = adapterModule.default;
-const { listBundleFiles } = await import(join(ROOT, "installer", "harness-bundle.js"));
+const { listBundleFiles } = await import(pathToFileURL(join(ROOT, "installer", "harness-bundle.js")));
 
 // ── Part 1: runtime registration ───────────────────────────────────────
 

@@ -10,13 +10,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   DEFAULT_WORKTREE_BASEREF,
   seedWorktreeBaseRef,
-} = await import(join(ROOT, "installer", "worktree-baseref.js"));
+} = await import(pathToFileURL(join(ROOT, "installer", "worktree-baseref.js")));
 
 
 function makeTmpHome({ settings } = {}) {
