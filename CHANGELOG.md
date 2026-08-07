@@ -5,7 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.12.0] - 2026-08-06
+## [5.13.0] - 2026-08-07
+
+### Fixed
+- **hooks (Windows):** the per-prompt chain is alive — thin `.ps1` wrappers
+  delegate to the Python producers instead of drifting native ports; the Stop
+  marker gate resolves through `wf_required_dir()` instead of a hardcoded
+  `/tmp` path that exists on no Windows machine (#426)
+- **hooks (Windows):** the Stop hook runs the full governance sweep — the
+  inline here-string became `core/hooks/stop_governance.py`, importing the
+  canonical `_write_tmpstate` (identity-asserted, umask hardening kept);
+  measured before: 583 completed tasks, zero skill proposals (#468)
+- **hooks (cross-platform):** `ARKA_WF_REQUIRED_DIR` honored by readers, not
+  just the writer; the Store-alias filter covers the last-resort path and its
+  two consumers; the bash workflow classifier mirrors the Python
+  interrogative guard (14-case parity harness) (#426)
+- **scheduler (Windows):** no console windows anywhere in the chain — daemon,
+  children, claude spawns (`CREATE_NO_WINDOW`, `pythonw` resolver; literal
+  no-op on POSIX) (#429)
+
+### Notes
+- PowerShell surfaces are parsed (pwsh 7.6.4 AST, 0 errors) and the resolver
+  branches executed on macOS; real-Windows validation is tracked in #247
+  before any support announcement.
 
 ### Added
 - **knowledge:** retrieval evaluation harness — `score` and `latency` commands
