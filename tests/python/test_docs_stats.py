@@ -80,6 +80,39 @@ def test_count_skills(fake_repo):
     assert skills["core"] == 3
 
 
+def test_count_agents_by_department(fake_repo):
+    counts = docs_stats.count_agents_by_department(fake_repo)
+    # dev: a, b, backend-core/c (nested sub-squad); mkt: a (cross-listed)
+    assert counts == {"dev": 3, "mkt": 1}
+    # The breakdown must reconcile with the headline it decomposes.
+    assert sum(counts.values()) == docs_stats.count_agents(fake_repo)["files"]
+
+
+def test_count_skills_by_department_excludes_vendor(fake_repo):
+    vendor = fake_repo / "departments/dev/skills/feat/vendor/upstream"
+    vendor.mkdir(parents=True)
+    (vendor / "SKILL.md").write_text("# upstream", encoding="utf-8")
+    counts = docs_stats.count_skills_by_department(fake_repo)
+    assert counts == {"dev": 1, "mkt": 1}  # the vendor payload is not a skill
+    assert sum(counts.values()) == docs_stats.count_skills(fake_repo)["departments"]
+
+
+def test_by_department_counts_zero_for_an_empty_department(fake_repo):
+    """A department directory with no agents/ or skills/ is 0, not missing."""
+    (fake_repo / "departments/quality").mkdir()
+    assert docs_stats.count_agents_by_department(fake_repo)["quality"] == 0
+    assert docs_stats.count_skills_by_department(fake_repo)["quality"] == 0
+
+
+def test_gather_nests_the_by_department_breakdowns(fake_repo):
+    stats = docs_stats.gather(fake_repo)
+    assert stats["agents"]["by_department"] == {"dev": 3, "mkt": 1}
+    assert stats["skills"]["by_department"] == {"dev": 1, "mkt": 1}
+    # Additive only: the pre-existing keys keep their meaning.
+    assert stats["agents"]["files"] == 4
+    assert stats["skills"]["core"] == 3
+
+
 def test_count_adrs(fake_repo):
     assert docs_stats.count_adrs(fake_repo) == 2
 
