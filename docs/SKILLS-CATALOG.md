@@ -40,22 +40,22 @@
 | `adversarial-review` | dev/adversarial-review | Adversarial code review with 3 hostile personas (Saboteur, New Hire, Security Auditor) that hunts edge cases, race conditions, and abuse vectors and issues a... |
 | `agent-design` | dev/agent-design | Design multi-agent system architectures — supervisor/swarm/pipeline patterns, agent role definitions, tool schemas, communication patterns, guardrails, and memory design... |
 | `agent-workflow` | dev/agent-workflow | Design production-grade multi-agent workflows — pattern selection (sequential, parallel, router, orchestrator, evaluator), handoff contracts, validation gates, failure... |
-| `ai-assisted-dev` | dev/ai-assisted-dev | AI-assisted development practice: prompt engineering for code generation, structured review of AI output, and TDD with AI in the loop.. |
+| `ai-assisted-dev` | dev/ai-assisted-dev | AI-assisted development practice: prompt engineering for code generation, structured review of AI output, and TDD with AI in the loop. |
 | `ai-security` | dev/ai-security | AI/ML-specific security assessment with OWASP ML Top 10, NIST AI RMF, and MITRE ATLAS technique mapping: prompt injection, jailbreaks, model poisoning, data leakage, agent tool... |
 | `animated-website` | dev/animated-website | Convert an MP4 video into a luxury scroll-animated single-file website: extracts frames to optimized WebP (desktop + mobile), then builds a scroll-driven canvas engine with... |
 | `api-design` | dev/api-design | Design REST or GraphQL APIs with resource modeling, versioning, pagination, error contracts, and documentation — OpenAPI 3 spec for REST, SDL for GraphQL, Laravel conventions... |
 | `app-test` | dev/app-test | Build, launch, and click through a native app (macOS or iOS Simulator) via Computer Use — exercises every control systematically, screenshots each screen, reports crashes and... |
-| `architecture-design` | dev/architecture-design | Design system architecture with Clean Architecture, Hexagonal, or DDD patterns and produce an ADR (Architecture Decision Record) saved to Obsidian, approved by Marco (CTO).. |
+| `architecture-design` | dev/architecture-design | Design system architecture with Clean Architecture, Hexagonal, or DDD patterns and produce an ADR (Architecture Decision Record) saved to Obsidian, approved by Marco (CTO). |
 | `build-fix` | dev/build-fix | Systematic build-failure diagnosis: read the FIRST error bottom-up, reproduce it in isolation, classify it (dependency, config, code, toolchain, cache), fix the root cause, and... |
 | `canvas-generative` | dev/canvas-generative | Algorithmic and generative art with Canvas 2D: DPR-aware setup, particle systems with pooled allocation, noise fields, flow fields, fractals and L-systems, double buffering... |
 | `changelog` | dev/changelog | Generate changelogs from git history using Conventional Commits: lints commit messages, detects the SemVer bump (MAJOR/MINOR/PATCH), groups entries, and renders Keep a... |
 | `ci-cd-pipeline` | dev/ci-cd-pipeline | Design and generate CI/CD pipelines from the detected project stack — GitHub Actions or GitLab CI with lint/test/build/deploy stages, dependency caching, matrix builds, and... |
 | `clean-code-review` | dev/clean-code-review | Focused Clean Code (Uncle Bob) + SOLID sweep of a file or PR — naming, function size, nesting depth, dead code, god classes, dependency direction — reported as... |
 | `click-path-audit` | dev/click-path-audit | Simulates every interactive handler call-by-call to find bugs a normal read skips over — shared-state side effects, handlers that silently undo each other, and async races... |
-| `code-review` | dev/code-review | General code review of a file, diff, or PR against Clean Code, SOLID, test coverage, and baseline security — the default pre-merge review pass in dev workflows.. |
+| `code-review` | dev/code-review | General code review of a file, diff, or PR against Clean Code, SOLID, test coverage, and baseline security — the default pre-merge review pass in dev workflows. |
 | `codebase-onboard` | dev/codebase-onboard | Analyze an existing codebase and generate onboarding documentation for new developers: stack detection, architecture map, patterns, setup instructions, and key files, tuned to... |
 | `css-native` | dev/css-native | Zero-dependency animation and visual techniques in modern CSS: scroll-driven animations (scroll and view progress timelines, animation-range), the View Transitions API for SPA... |
-| `db-design` | dev/db-design | Database design with the DBA (Vasco): schema modeling, normalization, index strategy, RLS policies, and migration planning — outputs ERD, migration scripts, and policy... |
+| `db-design` | dev/db-design | Database design with the DBA (Vasco): schema modeling, normalization, index strategy, RLS policies, and migration planning — outputs ERD, migration scripts, and policy definitions. |
 | `db-schema` | dev/db-schema | Design a feature's database schema: normalization to 3NF, relationship mapping, cross-cutting concerns (timestamps, soft deletes, multi-tenancy, audit trail, optimistic... |
 | `ddd-model` | dev/ddd-model | Domain-Driven Design modeling with the Evans/Vernon playbook: bounded contexts, aggregates, domain events, context mapping, and ubiquitous language — outputs a DDD model with... |
 | `demo-gif` | dev/demo-gif | Record a GIF demo of a browser user flow: navigates to a URL, executes the described interactions (click, type, scroll) with visual pauses, and saves the recording as a GIF for... |
@@ -63,8 +63,8 @@
 | `deploy` | dev/deploy | Deploy to an environment with blue-green/canary strategy: pre-deploy checks, deployment execution, and post-deploy verification — outputs a deployment report with status... |
 | `devops-pipeline` | dev/devops-pipeline | CI/CD pipeline design following the Three Ways (Gene Kim) and GitOps: build, test, deploy stages with blue-green/canary strategies — outputs pipeline config, deployment... |
 | `diagram` | dev/diagram | Turn a spec, plan, or system description into an interactive diagram the user opens in a browser — one self-contained HTML file, five typed modes (architecture, workflow... |
-| `docs` | dev/docs | Generate or update project documentation — README, API docs, and architecture docs — saved to the project and Obsidian.. |
-| `env-secrets` | dev/env-secrets | Audit environment files and source for leaked secrets (OWASP Secrets Management):.gitignore coverage, hardcoded keys,.env/.env.example drift, git history scans (GitLeaks... |
+| `docs` | dev/docs | Generate or update project documentation — README, API docs, and architecture docs — saved to the project and Obsidian. |
+| `env-secrets` | dev/env-secrets | Audit environment files and source for leaked secrets (OWASP Secrets Management): .gitignore coverage, hardcoded keys, .env/.env.example drift, git history scans (GitLeaks... |
 | `evaluator-build-loop` | dev/evaluator-build-loop | Adversarial build loop for UI work: a generator implements against a weighted rubric while an independent, ruthless evaluator tests the LIVE app in a real browser — not the... |
 | `exploit-triage` | dev/exploit-triage | Reviews code for the vulnerabilities that are actually reachable and actually exploitable — SSRF, auth bypass, injection, insecure deserialisation, IDOR — biased toward a... |
 | `framer-motion` | dev/framer-motion | Framer Motion for React: AnimatePresence exit animations, layout animations with stable keys, variant propagation and orchestration, gestures, and motion values that update... |
@@ -85,7 +85,7 @@
 | `rag-architect` | dev/rag-architect | Design RAG pipelines end-to-end: chunking strategies, embedding model selection, vector database comparison (Pinecone, Qdrant, pgvector...), hybrid retrieval with reranking... |
 | `react-review` | dev/react-review | React / Next.js review for the framework's own traps — stale closures in hooks, dependency arrays that lie, derived state stored instead of computed, keys that force remounts... |
 | `red-team` | dev/red-team | Offensive security engagement planning with MITRE ATT&CK and the Cyber Kill Chain: technique scoring, attack path analysis, OPSEC assessment, and crown jewel targeting... |
-| `refactor-plan` | dev/refactor-plan | Plan a refactoring with Martin Fowler's catalog: identify code smells, select refactoring patterns, assess risk, and ensure a test safety net before touching code.. |
+| `refactor-plan` | dev/refactor-plan | Plan a refactoring with Martin Fowler's catalog: identify code smells, select refactoring patterns, assess risk, and ensure a test safety net before touching code. |
 | `release` | dev/release | Release planning and execution with SemVer and DORA practice: version bump detection from conventional commits, readiness checklists (CI, coverage, audits, approvals)... |
 | `research` | dev/research | Dev-scoped technical research (Lucas, Analyst): library evaluation, framework/package selection, code pattern comparison, and engineering best-practice discovery grounded in... |
 | `runbook` | dev/runbook | Generate operational runbooks from service analysis (Google SRE): service overview, health checks, step-by-step deployment with verification, rollback procedures, incident... |
@@ -112,58 +112,58 @@
 | Skill | Name | Description |
 | --- | --- | --- |
 | `marketing-hub` | marketing (hub) | Marketing & Growth department. Full-stack growth team covering SEO, paid acquisition, content marketing, email, social, and analytics. Framework-backed: AARRR, Growth Loops... |
-| `ab-test` | mkt/ab-test | A/B test plan: hypothesis, variants, sample size, duration, and success criteria, prioritized with ICE scoring and statistical significance.. |
+| `ab-test` | mkt/ab-test | A/B test plan: hypothesis, variants, sample size, duration, and success criteria, prioritized with ICE scoring and statistical significance. |
 | `ad-creative` | mkt/ad-creative | Generate, iterate, or scale ad creative — headlines, descriptions, primary text, or full ad variations — for any paid advertising platform. Produz ad copy à escala e itera com... |
 | `ai-seo` | mkt/ai-seo | Optimize content to be cited and surfaced by AI search engines and LLMs (Google AI Overviews, ChatGPT, Perplexity, Claude, Gemini, Copilot) — answer/generative engine... |
-| `analytics-report` | mkt/analytics-report | Marketing analytics report: AARRR pirate-metrics funnel, channel performance breakdown, and CAC trends for a given period.. |
+| `analytics-report` | mkt/analytics-report | Marketing analytics report: AARRR pirate-metrics funnel, channel performance breakdown, and CAC trends for a given period. |
 | `aso` | mkt/aso | Audit and optimize an App Store or Google Play listing — fetch live listing data, score metadata/visuals/ratings across 6 weighted dimensions, apply brand-maturity tiers, and... |
-| `audience-segment` | mkt/audience-segment | Audience segmentation into demographic, psychographic, behavioural, and value segments, with targeting recommendations per channel.. |
-| `calendar-plan` | mkt/calendar-plan | Weekly marketing content calendar: themes, formats, platforms, and publishing schedule with assigned topics and deadlines.. |
+| `audience-segment` | mkt/audience-segment | Audience segmentation into demographic, psychographic, behavioural, and value segments, with targeting recommendations per channel. |
+| `calendar-plan` | mkt/calendar-plan | Weekly marketing content calendar: themes, formats, platforms, and publishing schedule with assigned topics and deadlines. |
 | `co-marketing` | mkt/co-marketing | Find co-marketing partners and plan high-impact joint campaigns — audience-overlap analysis, partner scoring, campaign types (content, webinars, integrations, community)... |
 | `cold-email` | mkt/cold-email | Writes and iterates B2B cold email: single first-touch emails, 5-6 email sequences with cadence, and performance-driven revisions, using AIDA, peer-level voice calibration, and... |
-| `competitor-analysis` | mkt/competitor-analysis | Marketing competitor analysis across SEO, paid, social, content, email, and positioning gaps, delivered as a report with opportunities and a battlecard.. |
+| `competitor-analysis` | mkt/competitor-analysis | Marketing competitor analysis across SEO, paid, social, content, email, and positioning gaps, delivered as a report with opportunities and a battlecard. |
 | `competitor-profile` | mkt/competitor-profile | Research and profile competitors from their URLs into structured, comparable dossiers — scrape positioning, features, pricing, and social proof, layer in SEO and review data... |
-| `content-audit` | mkt/content-audit | Audit of the existing content inventory: performance, gaps, refresh opportunities, and pruning candidates, with action items per piece.. |
+| `content-audit` | mkt/content-audit | Audit of the existing content inventory: performance, gaps, refresh opportunities, and pruning candidates, with action items per piece. |
 | `content-strategy` | mkt/content-strategy | Plan a content strategy — content pillars, topic clusters, an editorial calendar, and what to actually write to drive traffic, authority, and leads by being searchable... |
 | `council` | mkt/council | Simulated board of 12 legendary marketers (Godin, Ogilvy, Schwartz, Hopkins, Halbert, Brunson, Hormozi, Dunford, Sutherland, Sharp, Handley, Vaynerchuk) — each gives their take... |
 | `customer-research` | mkt/customer-research | Conduct, analyze, and synthesize customer research — extract signal from transcripts, surveys, tickets, and reviews, or mine online watering holes (Reddit, G2, forums) for... |
 | `directory-submit` | mkt/directory-submit | Plan the directory layer of a product launch or an ongoing backlink campaign — submit to startup / SaaS / AI / agent / MCP / no-code / review directories for dofollow... |
 | `email-sequence` | mkt/email-sequence | Email sequence design for owned audiences: welcome, nurture, launch, cart abandonment, and win-back flows with subject lines, body copy, timing, and segmentation (Schwartz 5... |
 | `free-tools` | mkt/free-tools | Plan, evaluate, and scope a free tool as a marketing asset — calculators, generators, graders, and interactive tools that generate leads, earn links, and build brand awareness... |
-| `growth-loop` | mkt/growth-loop | Mechanistic design of ONE self-reinforcing growth loop (viral, paid, content, product, community) that compounds: spec + math + instrumentation + 30-day experiment plan.... |
-| `marketing-automation` | mkt/marketing-automation | Marketing automation design: trigger-based workflows for lead nurturing and lead scoring, delivered as a flow diagram with triggers, actions, and conditions.. |
-| `marketing-ideas` | mkt/marketing-ideas | Library of 139 proven SaaS marketing ideas by category, stage, and budget — the starting point when someone is stuck or wants inspiration on how to grow.. |
+| `growth-loop` | mkt/growth-loop | Mechanistic design of ONE self-reinforcing growth loop (viral, paid, content, product, community) that compounds: spec + math + instrumentation + 30-day experiment plan... |
+| `marketing-automation` | mkt/marketing-automation | Marketing automation design: trigger-based workflows for lead nurturing and lead scoring, delivered as a flow diagram with triggers, actions, and conditions. |
+| `marketing-ideas` | mkt/marketing-ideas | Library of 139 proven SaaS marketing ideas by category, stage, and budget — the starting point when someone is stuck or wants inspiration on how to grow. |
 | `marketing-loops` | mkt/marketing-loops | Set up a recurring, self-running marketing workflow — a repeatable loop an AI agent runs on a cadence (weekly, daily, on a trigger) rather than a one-off task. Escolhe, adapta... |
 | `marketing-plan` | mkt/marketing-plan | fCMO-level 12-month marketing plan: an exhaustive 13-section plan structured by AARRR, customized to the client's budget/team/stage, mapped to funding milestones... |
 | `marketing-psychology` | mkt/marketing-psychology | Apply psychological principles, mental models, and behavioral science to marketing — why people buy, how to influence behavior ethically, and how to make better marketing... |
-| `paid-campaign` | mkt/paid-campaign | Paid campaign setup: platform selection, targeting, budget allocation, creative brief, and ROAS targets, prioritized with ICE scoring.. |
-| `product-marketing` | mkt/product-marketing | Create and maintain the product marketing context document — the shared positioning, ICP, and messaging file that every other marketing skill reads first.. |
+| `paid-campaign` | mkt/paid-campaign | Paid campaign setup: platform selection, targeting, budget allocation, creative brief, and ROAS targets, prioritized with ICE scoring. |
+| `product-marketing` | mkt/product-marketing | Create and maintain the product marketing context document — the shared positioning, ICP, and messaging file that every other marketing skill reads first. |
 | `programmatic-seo` | mkt/programmatic-seo | Builds SEO-optimized pages at scale from templates plus data, using 12 playbooks (templates, comparisons, locations, personas, integrations, glossary, directories, more) with... |
 | `public-relations` | mkt/public-relations | Earned media for software products — getting covered by journalists, podcasts, and newsletters through newsjacking, proactive pitching, inbound press requests (HARO, Qwoted... |
 | `schema-markup` | mkt/schema-markup | Add, fix, or optimize schema.org structured data (JSON-LD) so pages earn rich results in Google — FAQ, Product, Article, Review, Breadcrumb, Organization, HowTo. Implementação... |
-| `seo-audit` | mkt/seo-audit | Full SEO audit: technical SEO (Core Web Vitals, sitemap, canonicals), on-page, pillar-cluster content gaps, E-E-A-T signals, and link profile.. |
+| `seo-audit` | mkt/seo-audit | Full SEO audit: technical SEO (Core Web Vitals, sitemap, canonicals), on-page, pillar-cluster content gaps, E-E-A-T signals, and link profile. |
 | `sms-campaign` | mkt/sms-campaign | Plan, build, and optimize SMS or MMS marketing that drives revenue or activation while staying compliant with TCPA and carrier rules — welcome flows, abandoned-cart texts... |
-| `social-strategy` | mkt/social-strategy | Social media strategy: platform selection, content themes, posting cadence, and engagement plan (STEPPS + platform-native content).. |
+| `social-strategy` | mkt/social-strategy | Social media strategy: platform selection, content themes, posting cadence, and engagement plan (STEPPS + platform-native content). |
 
 ### Brand & Design (`brand`)
 
 | Skill | Name | Description |
 | --- | --- | --- |
 | `brand-hub` | brand (hub) | Brand & Design department. Full brand identity creation, UX/UI design, design systems, visual identity, and brand strategy. 10-agent team applying Primal Branding, StoryBrand... |
-| `archetype-finder` | brand/archetype-finder | Identifies a brand's archetype from the 12 Jungian archetypes and maps it to personality traits, voice, and visual direction with real-world examples.. |
-| `colors` | brand/colors | Designs a brand color palette — primary, secondary, accent, and neutrals — delivered with hex codes, usage guidelines, and WCAG contrast checks.. |
+| `archetype-finder` | brand/archetype-finder | Identifies a brand's archetype from the 12 Jungian archetypes and maps it to personality traits, voice, and visual direction with real-world examples. |
+| `colors` | brand/colors | Designs a brand color palette — primary, secondary, accent, and neutrals — delivered with hex codes, usage guidelines, and WCAG contrast checks. |
 | `design-dna` | brand/design-dna | Extracts the design DNA of a reference UI into a structured JSON profile across three dimensions — design_system (measurable tokens), design_style (qualitative feel)... |
 | `design-review` | brand/design-review | Visual review of live designs against brand guidelines and a named benchmark — screenshots the real UI (Playwright MCP first, claude-in-chrome second, Computer Use for native... |
 | `design-system` | brand/design-system | Ships a production design system in 5 deliverables: design-tokens.json (primitive + semantic layers), an Atomic Design component catalog (atoms to pages), WCAG 2.2 AA... |
 | `identity-system` | brand/identity-system | Builds a full brand identity in the correct order — strategy, then verbal, then visual (never skips to visuals) — via the Wheeler process and Primal Branding, verifying live... |
-| `logo-brief` | brand/logo | Generates logo concepts from a brief: mood references, AI-generated concept directions, variations, rationale, and usage guidelines.. |
-| `mockup-generate` | brand/mockup | Generates brand-applied mockups — product, packaging, social, and stationery — with AI image-generation prompts and brand application guidelines.. |
+| `logo-brief` | brand/logo | Generates logo concepts from a brief: mood references, AI-generated concept directions, variations, rationale, and usage guidelines. |
+| `mockup-generate` | brand/mockup | Generates brand-applied mockups — product, packaging, social, and stationery — with AI image-generation prompts and brand application guidelines. |
 | `motion-design` | brand/motion-design | Motion design direction — decides WHAT should move, how fast, and why, before any code: emotional intent, motion personality archetypes, Disney principles adapted for UI... |
 | `naming-evaluate` | brand/naming-evaluate | Generates 30+ brand name candidates across six categories and evaluates them with Alexandra Watkins' SMILE & SCRATCH framework, plus domain and social handle checks, down to a... |
-| `positioning-statement` | brand/positioning-statement | Writes a brand positioning statement in the Ries/Trout format — FOR [target] WHO [need], [brand] IS A [category] THAT [benefit] — with competitive context and validation criteria.. |
-| `primal-audit` | brand/primal-audit | Audits an existing brand against Patrick Hanlon's 7 Primal Code elements using a 21-point evidence-cited rubric, a competitor benchmark, and a ranked remediation plan.. |
+| `positioning-statement` | brand/positioning-statement | Writes a brand positioning statement in the Ries/Trout format — FOR [target] WHO [need], [brand] IS A [category] THAT [benefit] — with competitive context and validation criteria. |
+| `primal-audit` | brand/primal-audit | Audits an existing brand against Patrick Hanlon's 7 Primal Code elements using a 21-point evidence-cited rubric, a competitor benchmark, and a ranked remediation plan. |
 | `ux-audit` | brand/ux-audit | UX heuristic audit of a live interface against Nielsen's 10 heuristics and Laws of UX — navigates real user flows in the browser, checks accessibility and responsive... |
-| `voice-guide` | brand/voice-guide | Creates a brand voice and tone guide — personality, vocabulary, do's and don'ts, tone matrix, and channel-specific examples — using StoryBrand and the Primal sacred lexicon.. |
+| `voice-guide` | brand/voice-guide | Creates a brand voice and tone guide — personality, vocabulary, do's and don'ts, tone matrix, and channel-specific examples — using StoryBrand and the Primal sacred lexicon. |
 | `wireframe` | brand/wireframe | Designs wireframes — layout, navigation, content hierarchy, and interaction notes — using Garrett's 5 Planes and information architecture, delivered as an annotated spec with... |
 
 ### Finance (`finance`)
@@ -176,9 +176,9 @@
 | `ciso-advisor` | finance/ciso-advisor | CFO-side security economics: security budget justification via ALE risk quantification (SLE x ARO), compliance roadmap sequencing (SOC 2 -> ISO 27001 -> GDPR), vendor risk... |
 | `financial-model` | fin/financial-model | Builds 3-statement financial models — P&L, Balance Sheet, Cash Flow — with base/optimistic/pessimistic scenarios, following Damodaran methodology; outputs model tables... |
 | `pitch-deck` | fin/pitch-deck | Investor pitch deck financials with Rui (Investment Strategist): market size, traction, unit economics, funding ask, projections and cap-table impact, following the 10-slide... |
-| `scenario-analysis` | fin/scenario-analysis | Financial scenario analysis: base, optimistic and pessimistic cases with key-variable sensitivity and probability weighting (Monte Carlo + Scenario Analysis, Leonor).. |
+| `scenario-analysis` | fin/scenario-analysis | Financial scenario analysis: base, optimistic and pessimistic cases with key-variable sensitivity and probability weighting (Monte Carlo + Scenario Analysis, Leonor). |
 | `unit-economics` | fin/unit-economics | Unit economics analysis: CAC, LTV, LTV:CAC, payback, Rule of 40, NRR, burn multiple and magic number, benchmarked against KeyBanc/Meritech private-SaaS quartiles, with a... |
-| `valuation-model` | fin/valuation-model | Company valuation: DCF with WACC (Damodaran), comparable company analysis and precedent transactions, producing a valuation range with multiples and sensitivity analysis.. |
+| `valuation-model` | fin/valuation-model | Company valuation: DCF with WACC (Damodaran), comparable company analysis and precedent transactions, producing a valuation range with multiples and sensitivity analysis. |
 
 ### Strategy (`strategy`)
 
@@ -186,13 +186,13 @@
 | --- | --- | --- |
 | `strategy-hub` | strategy (hub) | Strategy & Innovation department. Competitive analysis, positioning, business model design, market sizing, scenario planning. Frameworks: Porter's Five Forces, Playing to Win... |
 | `blue-ocean` | strat/blue-ocean | Blue Ocean Strategy analysis (Kim & Mauborgne): Strategy Canvas mapping your offering vs competitors, ERRC Grid (Eliminate/Reduce/Raise/Create), Six Paths exploration, and a... |
-| `bmc` | strat/bmc | Business Model Canvas (Osterwalder): maps a business across the 9 blocks with a value proposition deep dive, delivering a completed BMC with VPC overlay and revenue model... |
+| `bmc` | strat/bmc | Business Model Canvas (Osterwalder): maps a business across the 9 blocks with a value proposition deep dive, delivering a completed BMC with VPC overlay and revenue model analysis. |
 | `board-advisor` | strategy/board-advisor | Board meeting preparation and structured multi-perspective executive deliberation: 6-phase protocol (context, independent contributions, critic, synthesis, founder review... |
 | `cto-advisor` | strategy/cto-advisor | CTO-level advisory on technology strategy: build-vs-buy decision matrix, DORA metrics assessment, ADR governance and validation, engineering team scaling ratios, and tech debt... |
 | `extract-data` | strat/extract-data | Navigates a web page via browser integration and extracts structured data (tables, lists, prices, product listings) into CSV, markdown, or JSON, handling JS-rendered content... |
 | `five-forces` | strat/five-forces | Porter's Five Forces industry analysis: rates rivalry, threat of new entrants, supplier power, buyer power, and substitutes to produce an industry attractiveness verdict with... |
 | `growth-strategy` | strat/growth-strategy | Strategic growth-vector selection (Ansoff Matrix + Zook adjacencies + Greiner phases): decides WHERE to grow next with risk-adjusted feasibility and a 12-month roadmap with... |
-| `moat-analysis` | strat/moat-analysis | Competitive moat analysis using Hamilton Helmer's 7 Powers: identifies which power applies to a company, scores how durable it is, and recommends concrete strengthening actions.. |
+| `moat-analysis` | strat/moat-analysis | Competitive moat analysis using Hamilton Helmer's 7 Powers: identifies which power applies to a company, scores how durable it is, and recommends concrete strengthening actions. |
 | `position` | strat/position | Competitive positioning (Ries/Trout + April Dunford): maps competitive alternatives, unique capabilities, value, target segment, and market category into a positioning... |
 | `premortem` | strat/premortem | Decision-quality ritual for irreversible bets, owned by the Governance squad: premortem before (assume failure, cluster causes, rank likelihood x impact, add mitigations or... |
 | `scenario-plan` | strat/scenario-plan | Scenario planning with PESTLE: builds 3-5 plausible futures (base, optimistic, pessimistic, black swan) and a strategy plus action plan for each, so the business is prepared... |
@@ -204,7 +204,7 @@
 | `ecom-hub` | ecom (hub) | E-Commerce department. Store optimization, CRO, RFM segmentation, pricing, marketplace operations, fulfillment. Frameworks: ResearchXL, RFM, MACH, Baymard. |
 | `analytics` | ecom/analytics | E-commerce metrics analysis — AOV, conversion rate, CLV, ROAS, and cart abandonment — delivered as a dashboard with funnel visualization and benchmark comparison, plus browser... |
 | `browse-competitor` | ecom/browse-competitor | Navigates a competitor's e-commerce site with browser integration and extracts structured intelligence — product categories, price ranges, promotions, layout patterns, payment... |
-| `cart-recovery` | ecom/cart-recovery | Designs a cart abandonment recovery email sequence — 3 emails at 1h, 24h, and 72h with urgency escalation — delivering subject lines, body copy, timing, and incentive strategy.. |
+| `cart-recovery` | ecom/cart-recovery | Designs a cart abandonment recovery email sequence — 3 emails at 1h, 24h, and 72h with urgency escalation — delivering subject lines, body copy, timing, and incentive strategy. |
 | `cro-optimize` | ecom/cro-optimize | Conversion Rate Optimization using CXL's ResearchXL framework — 6 research phases (heuristic, technical, analytics, heatmaps, surveys, user testing) before any test, PIE/ICE... |
 | `customer-journey` | ecom/customer-journey | Maps the e-commerce customer journey across discovery, consideration, purchase, delivery, and loyalty stages, producing a journey map with touchpoints, pain points, and... |
 | `ecommerce` | arka-ecommerce | E-commerce department orchestrator (Ricardo's squad, 7-phase workflow with mandatory Quality Gate) routing every store task: full audits, product listings, pricing analysis... |
@@ -222,22 +222,22 @@
 | Skill | Name | Description |
 | --- | --- | --- |
 | `kb-hub` | kb (hub) | Knowledge Management & Research department. Zettelkasten, BASB, research methodology, persona building, Obsidian vault curation. Enabling team that feeds all other departments. |
-| `ai-research` | kb/ai-research | AI-augmented research: uses Perplexity, Elicit, and Claude for source gathering and synthesis, delivering a research report with CRAAP-rated sources and synthesized findings.. |
-| `competitive-intel` | kb/competitive-intel | Competitive intelligence on a named competitor — product, pricing, positioning, marketing, team, funding — delivered as a competitive profile in Obsidian with a battlecard.. |
+| `ai-research` | kb/ai-research | AI-augmented research: uses Perplexity, Elicit, and Claude for source gathering and synthesis, delivering a research report with CRAAP-rated sources and synthesized findings. |
+| `competitive-intel` | kb/competitive-intel | Competitive intelligence on a named competitor — product, pricing, positioning, marketing, team, funding — delivered as a competitive profile in Obsidian with a battlecard. |
 | `doc-extraction` | kb/doc-extraction | Turns documents — PDFs, scans, images, office exports — into verified structured data: chooses text-layer vs OCR per page, extracts tables and fields to CSV/JSON/markdown, and... |
 | `doc-redaction` | kb/doc-redaction | Removes sensitive content from documents before they are shared, published, or ingested — client identifiers, personal data, secrets, internal references — and proves the... |
 | `knowledge` | arka-knowledge | Knowledge Base department entry point powered by Obsidian: queues YouTube downloads, transcribes with Whisper, runs 5 parallel analysis agents to build expert personas, and... |
 | `knowledge-ops` | kb/knowledge-ops | Writes a note to the Obsidian vault the evidence-first way and verifies it landed — a note is not "saved" until it is read back, placed in the right department path, linked... |
-| `knowledge-review` | kb/knowledge-review | Knowledge freshness review of the Obsidian vault: identifies stale notes, updates progressive summaries, and fixes broken links, producing a review report with actions taken.. |
+| `knowledge-review` | kb/knowledge-review | Knowledge freshness review of the Obsidian vault: identifies stale notes, updates progressive summaries, and fixes broken links, producing a review report with actions taken. |
 | `learn-content` | kb/learn-content | Ingests a content source (YouTube video, article, PDF): downloads, transcribes, and analyzes it with 5 parallel agents, storing frameworks, insights, and cross-references in... |
-| `moc-create` | kb/moc-create | Creates or updates a Map of Content (LYT, Nick Milo) when a topic cluster reaches 10+ notes, producing an Obsidian MOC page with linked notes organized by subtopic.. |
+| `moc-create` | kb/moc-create | Creates or updates a Map of Content (LYT, Nick Milo) when a topic cluster reaches 10+ notes, producing an Obsidian MOC page with linked notes organized by subtopic. |
 | `persona-build` | kb/persona-build | Builds or refines a callable persona from KB content: source inventory, cited belief inventory, voice signature, expertise map, decision patterns, and 4-framework behavioral... |
 | `research-deep` | kb/research-deep | Heavy-research ladder over the operator's own knowledge: Obsidian vault first (cite or declare the gap), then the operator's NotebookLM notebook through the egress-guarded... |
 | `research-plan` | kb/research-plan | Plans and executes structured research: defines the question, gathers academic/industry/expert sources, evaluates them with the CRAAP test, synthesizes findings, and documents... |
-| `search-kb` | kb/search-kb | Searches the Obsidian knowledge base: keyword, semantic, and cross-reference search across the vault, returning relevance-ranked results with related notes.. |
-| `source-evaluate` | kb/source-evaluate | Evaluates a single source's reliability with the CRAAP test — Currency, Relevance, Authority, Accuracy, Purpose — producing a scored evaluation with a reliability rating.. |
-| `taxonomy-manage` | kb/taxonomy-manage | Manages the knowledge base taxonomy: tags, categories, naming conventions, and hierarchy, delivering an updated taxonomy document with tag guidelines and category structure.. |
-| `write-as-persona` | kb/write-as-persona | Writes content in a learned persona's voice, applying their frameworks, style, and KB knowledge, with framework references in the output.. |
+| `search-kb` | kb/search-kb | Searches the Obsidian knowledge base: keyword, semantic, and cross-reference search across the vault, returning relevance-ranked results with related notes. |
+| `source-evaluate` | kb/source-evaluate | Evaluates a single source's reliability with the CRAAP test — Currency, Relevance, Authority, Accuracy, Purpose — producing a scored evaluation with a reliability rating. |
+| `taxonomy-manage` | kb/taxonomy-manage | Manages the knowledge base taxonomy: tags, categories, naming conventions, and hierarchy, delivering an updated taxonomy document with tag guidelines and category structure. |
+| `write-as-persona` | kb/write-as-persona | Writes content in a learned persona's voice, applying their frameworks, style, and KB knowledge, with framework references in the output. |
 | `zettelkasten-process` | kb/zettelkasten-process | Processes content through the Zettelkasten workflow (Luhmann/Ahrens): fleeting -> literature -> permanent notes, enforcing atomic one-idea notes, own-words rephrasing, and 2+... |
 
 ### Operations (`ops`)
@@ -247,27 +247,27 @@
 | `ops-hub` | ops (hub) | Operations & Automation department. Process optimization, workflow automation, SOPs, bottleneck analysis, integrations. Frameworks: Lean/TPS, Theory of Constraints, GTD... |
 | `bottleneck-find` | ops/bottleneck-find | Identifies the system constraint with Goldratt's Theory of Constraints and applies the 5 Focusing Steps (identify, exploit, subordinate, elevate, repeat) into a resolution plan... |
 | `dashboard-build` | ops/dashboard-build | Designs an operational dashboard with Lean Analytics and OMTM: metric selection, targets, data sources, alert thresholds, and layout, with in-browser verification of widgets... |
-| `gdpr-compliance` | ops/gdpr-compliance | GDPR compliance assessment with data mapping, DPIA generation, breach response planning (72-hour notification), and data subject rights workflows.. |
+| `gdpr-compliance` | ops/gdpr-compliance | GDPR compliance assessment with data mapping, DPIA generation, breach response planning (72-hour notification), and data subject rights workflows. |
 | `github-ops` | ops/github-ops | Drives git and GitHub operations under the branch-isolation and evidence rules — isolated branch, staging by explicit path, a PR whose CI is proven CLEAN before any merge, and... |
-| `gtd-setup` | ops/gtd-setup | Sets up a personal productivity system combining GTD (capture, clarify, organize, reflect, engage) with PARA organization, delivered with a weekly review checklist.. |
+| `gtd-setup` | ops/gtd-setup | Sets up a personal productivity system combining GTD (capture, clarify, organize, reflect, engage) with PARA organization, delivered with a weekly review checklist. |
 | `harness-tune` | ops/harness-tune | Telemetry-driven tuning of the ArkaOS harness itself: reads the recorded usage (MCP call telemetry, LLM cost lines, skill-budget report, curated-mode leftovers) and proposes... |
 | `hookify` | ops/hookify | Compiles a repeated correction into a deterministic hook: identify the behavior that keeps being corrected by hand, express it as a machine-checkable predicate, and install it... |
-| `integration-design` | ops/integration-design | Designs system-to-system integrations via API, webhook, or iPaaS platform, producing a spec with data flow diagram, error handling, and monitoring.. |
-| `iso27001` | ops/iso27001 | ISO 27001 ISMS implementation: scope, Annex A control mapping, Statement of Applicability, risk treatment planning, and Stage 1/2 certification audit preparation.. |
-| `lean-audit` | ops/lean-audit-skill | Runs a Lean audit: maps the value stream, identifies the 7 wastes, and calculates waste-elimination ROI into an improvement roadmap.. |
-| `metrics-dashboard` | ops/metrics-dashboard | Defines the operational metrics system — throughput, lead time, error rate, SLAs — producing a spec with the OMTM, targets, and alerting rules.. |
-| `n8n-flow` | ops/n8n-flow | Designs n8n workflows — AI/LangChain nodes, webhooks, branching, error handling — and validates deployed flows via event-driven monitoring of execution logs.. |
+| `integration-design` | ops/integration-design | Designs system-to-system integrations via API, webhook, or iPaaS platform, producing a spec with data flow diagram, error handling, and monitoring. |
+| `iso27001` | ops/iso27001 | ISO 27001 ISMS implementation: scope, Annex A control mapping, Statement of Applicability, risk treatment planning, and Stage 1/2 certification audit preparation. |
+| `lean-audit` | ops/lean-audit-skill | Runs a Lean audit: maps the value stream, identifies the 7 wastes, and calculates waste-elimination ROI into an improvement roadmap. |
+| `metrics-dashboard` | ops/metrics-dashboard | Defines the operational metrics system — throughput, lead time, error rate, SLAs — producing a spec with the OMTM, targets, and alerting rules. |
+| `n8n-flow` | ops/n8n-flow | Designs n8n workflows — AI/LangChain nodes, webhooks, branching, error handling — and validates deployed flows via event-driven monitoring of execution logs. |
 | `operations` | arka-operations | Operations department orchestrator (Sofia COO squad): ClickUp tasks, Gmail email drafting, Google Calendar and meeting prep, invoices, operational reports, client onboarding... |
-| `quality-management` | ops/quality-management | Designs and assesses a quality management system per ISO 9001:2015 — QMS phases (PDCA), quality KPIs, internal audit program, CAPA process, and management review.. |
-| `risk-management` | ops/risk-management | Enterprise risk identification, assessment (5x5 matrix), treatment, and monitoring using ISO 31000 and COSO ERM, producing a risk register with owners and residual scores.. |
+| `quality-management` | ops/quality-management | Designs and assesses a quality management system per ISO 9001:2015 — QMS phases (PDCA), quality KPIs, internal audit program, CAPA process, and management review. |
+| `risk-management` | ops/risk-management | Enterprise risk identification, assessment (5x5 matrix), treatment, and monitoring using ISO 31000 and COSO ERM, producing a risk register with owners and residual scores. |
 | `session-retro` | ops/session-retro | Post-session friction analysis over the actual transcript: finds the corrections the operator made more than once, the tool loops, the redone work, and the vague asks that cost... |
-| `soc2-compliance` | ops/soc2-compliance | SOC 2 Type I/II readiness assessment: Trust Services Criteria mapping, control matrix generation, evidence collection planning, and audit preparation with readiness scoring.. |
-| `sop-create` | ops/sop-create | Creates a Standard Operating Procedure: numbered steps, RACI roles, tools, exceptions, and review cycle, following the SOP Lifecycle and Lean.. |
+| `soc2-compliance` | ops/soc2-compliance | SOC 2 Type I/II readiness assessment: Trust Services Criteria mapping, control matrix generation, evidence collection planning, and audit preparation with readiness scoring. |
+| `sop-create` | ops/sop-create | Creates a Standard Operating Procedure: numbered steps, RACI roles, tools, exceptions, and review cycle, following the SOP Lifecycle and Lean. |
 | `terminal-ops` | ops/terminal-ops | Runs shell operations the evidence-first way — every command's exit code and real output are captured and checked before anything is reported as done, and a non-zero exit stops... |
 | `update` | arka-update | ArkaOS project sync orchestrator: detects what changed in core since the last sync and updates ecosystem skills, MCP configs, settings, and project descriptors via the hybrid... |
 | `workflow-automate` | ops/workflow-automate | Designs workflow automations end to end: selects the right platform (n8n, Zapier, or Make), applies the matching design pattern, and specifies mandatory error handling... |
 | `workspace-audit` | ops/workspace-audit | Sweeps every repository in the workspace for the entropy that accumulates between projects: dirty working trees, unpushed commits, orphaned branches, forgotten stashes, repos... |
-| `zapier-flow` | ops/zapier-flow | Designs Zapier workflows: trigger selection, multi-step actions, filters, and error notifications, delivered as a Zap spec.. |
+| `zapier-flow` | ops/zapier-flow | Designs Zapier workflows: trigger selection, multi-step actions, filters, and error notifications, delivered as a Zap spec. |
 
 ### Project Management (`pm`)
 
@@ -275,39 +275,39 @@
 | --- | --- | --- |
 | `pm-hub` | pm (hub) | Project & Product Management department. Product discovery, sprint management, roadmapping, estimation, stakeholders. Frameworks: Scrum, Kanban, Shape Up, Continuous Discovery... |
 | `agile-po` | pm/agile-po | Full agile product ownership: INVEST user stories with Given-When-Then acceptance criteria, epic breakdown into sprint-sized stories, sprint capacity planning, and value/effort... |
-| `backlog-groom` | pm/backlog-groom | Backlog grooming with RICE prioritization: scores and ranks items, refines stories to INVEST-ready state, and delivers a prioritized backlog with ready items.. |
+| `backlog-groom` | pm/backlog-groom | Backlog grooming with RICE prioritization: scores and ranks items, refines stories to INVEST-ready state, and delivers a prioritized backlog with ready items. |
 | `discovery-plan` | pm/discovery-plan | Product discovery with Teresa Torres' Opportunity Solution Tree: maps a desired outcome to opportunities, solutions, assumptions, and experiments, on a dual-track weekly... |
 | `epic-coordination` | pm/epic-coordination | Turns an epic into a coordinated set of GitHub issues with an explicit dependency graph, then drives it: sweep for unblocked work, dispatch in dependency order, keep issue... |
 | `estimate-forecast` | pm/estimate-forecast | Estimation and delivery forecasting: story points, throughput analysis, and Monte Carlo simulation producing confidence intervals (50th/85th/95th percentile) for "when will it... |
 | `impact-map` | pm/impact-map | Impact mapping (Gojko Adzic): connects a business goal through actors and behaviour changes to concrete deliverables — WHY -> WHO -> HOW -> WHAT — so every deliverable traces... |
-| `kanban-setup` | pm/kanban-setup | Kanban system design (Anderson method): board columns, WIP limits, explicit policies, and flow metrics with a measurement plan.. |
+| `kanban-setup` | pm/kanban-setup | Kanban system design (Anderson method): board columns, WIP limits, explicit policies, and flow metrics with a measurement plan. |
 | `risk-register` | pm/risk-register | Project risk register: identifies risks, scores them on a probability x impact matrix, and assigns mitigation strategies and owners, using pre-mortem (Gary Klein) to surface... |
 | `roadmap-build` | pm/roadmap-build | Outcome-driven product roadmap: North Star metric, measurable outcome tree, Now/Next/Later three-horizon map, bets with appetite and kill criteria, capacity allocation, and... |
-| `shape-pitch` | pm/shape-pitch | Shape Up pitch (Ryan Singer) for the betting table: problem, appetite as a time budget, fat-marker solution sketch, rabbit holes, and explicit no-gos, with hill-chart tracking.. |
-| `sprint-plan` | pm/sprint-plan | Scrum sprint planning (Scrum Guide 2020): selects backlog items, defines the sprint goal, checks team capacity, and locks the commitment with a definition of done.. |
-| `stakeholder-map` | pm/stakeholder-map | Stakeholder mapping: power/interest grid, communication plan with cadence per quadrant, and a RACI matrix assigning responsibility per stakeholder.. |
+| `shape-pitch` | pm/shape-pitch | Shape Up pitch (Ryan Singer) for the betting table: problem, appetite as a time budget, fat-marker solution sketch, rabbit holes, and explicit no-gos, with hill-chart tracking. |
+| `sprint-plan` | pm/sprint-plan | Scrum sprint planning (Scrum Guide 2020): selects backlog items, defines the sprint goal, checks team capacity, and locks the commitment with a definition of done. |
+| `stakeholder-map` | pm/stakeholder-map | Stakeholder mapping: power/interest grid, communication plan with cadence per quadrant, and a RACI matrix assigning responsibility per stakeholder. |
 | `standup-run` | pm/standup-run | Runs a structured daily standup — what was done, what's next, blockers — focused on flow and unblocking rather than status theatre; outputs a summary with blockers flagged and... |
-| `story-write` | pm/story-write | Writes user stories with Jeff Patton story mapping and INVEST criteria: acceptance criteria, edge cases, test scenarios, and splitting oversized stories.. |
+| `story-write` | pm/story-write | Writes user stories with Jeff Patton story mapping and INVEST criteria: acceptance criteria, edge cases, test scenarios, and splitting oversized stories. |
 
 ### SaaS (`saas`)
 
 | Skill | Name | Description |
 | --- | --- | --- |
 | `saas-hub` | saas (hub) | SaaS & Micro-SaaS department. Covers the full lifecycle: idea validation, MVP scoping, pricing, PLG, metrics, growth, customer success, and scaling. From solo founder ($50K... |
-| `benchmark-compare` | saas/benchmark-compare | Compares your SaaS metrics against industry quartiles (KeyBanc + Meritech benchmarks) and delivers a traffic-light report with improvement priorities.. |
-| `churn-analysis` | saas/churn-analysis | Diagnoses churn with cohort breakdowns, retention curves, and root-cause churn reasons, ending in a prevention plan.. |
+| `benchmark-compare` | saas/benchmark-compare | Compares your SaaS metrics against industry quartiles (KeyBanc + Meritech benchmarks) and delivers a traffic-light report with improvement priorities. |
+| `churn-analysis` | saas/churn-analysis | Diagnoses churn with cohort breakdowns, retention curves, and root-cause churn reasons, ending in a prevention plan. |
 | `customer-success` | saas/customer-success | Builds a customer success playbook across the lifecycle — onboard, adopt, expand, renew, advocate — with health score model, touchpoint cadence, and expansion plays (Lincoln... |
-| `growth-plan` | saas/growth-plan | SaaS product growth execution roadmap by stage — seed (PMF), A (repeatable), B (scale), C (dominate) — with metrics, channels, team.. |
+| `growth-plan` | saas/growth-plan | SaaS product growth execution roadmap by stage — seed (PMF), A (repeatable), B (scale), C (dominate) — with metrics, channels, team. |
 | `gtm-strategy` | saas/gtm-strategy | Cross-departmental go-to-market strategy: ICP profile, Onlyness positioning, GTM motion selection (PLG/SLG/community/partner), channel mix, and 90-day execution plan... |
-| `launch-execute` | saas/launch-execute | Executes a SaaS launch end-to-end — pre-launch, launch day, post-launch — with a PLG or SLG motion, delivering a launch checklist with timeline, channels, and success criteria.. |
+| `launch-execute` | saas/launch-execute | Executes a SaaS launch end-to-end — pre-launch, launch day, post-launch — with a PLG or SLG motion, delivering a launch checklist with timeline, channels, and success criteria. |
 | `leaky-bucket` | saas/leaky-bucket | Leaky-Bucket gate — pass/fail audit of churn, NRR, and activation BEFORE approving acquisition spend, with LTV compounding math; every 1% of churn compounds against LTV... |
-| `metrics-dashboard` | saas/metrics-dashboard | Sets up SaaS metrics tracking (Janz SaaS Metrics Stack): KPI definitions, data sources, dashboard layout, targets, and alert thresholds.. |
-| `micro-saas-stack` | saas/micro-saas-stack | Micro-SaaS portfolio strategy (Walling stacking): plan multiple small products for diversified revenue, with portfolio map, synergies, and revenue targets.. |
-| `mvp-build` | saas/mvp-build | Defines MVP scope: core feature set, activation metric, time-to-value target, and acceptance criteria for a SaaS first version.. |
-| `niche-evaluate` | saas/niche-evaluate | Market/niche sizing and selection scorecard (Walling): audience reachability, willingness to pay, competition, growth trend -> go/no-go per niche.. |
-| `onboarding-optimize` | saas/onboarding-optimize | Optimizes SaaS onboarding (Wes Bush PLG Activation): time-to-value, activation metric, drop-off analysis, and an experiment backlog with activation targets.. |
+| `metrics-dashboard` | saas/metrics-dashboard | Sets up SaaS metrics tracking (Janz SaaS Metrics Stack): KPI definitions, data sources, dashboard layout, targets, and alert thresholds. |
+| `micro-saas-stack` | saas/micro-saas-stack | Micro-SaaS portfolio strategy (Walling stacking): plan multiple small products for diversified revenue, with portfolio map, synergies, and revenue targets. |
+| `mvp-build` | saas/mvp-build | Defines MVP scope: core feature set, activation metric, time-to-value target, and acceptance criteria for a SaaS first version. |
+| `niche-evaluate` | saas/niche-evaluate | Market/niche sizing and selection scorecard (Walling): audience reachability, willingness to pay, competition, growth trend -> go/no-go per niche. |
+| `onboarding-optimize` | saas/onboarding-optimize | Optimizes SaaS onboarding (Wes Bush PLG Activation): time-to-value, activation metric, drop-off analysis, and an experiment backlog with activation targets. |
 | `paywall-design` | saas/paywall-design | Create or optimize in-app paywalls, upgrade screens, upsell modals, or feature gates — freemium conversion, trial-to-paid, tier upgrade, usage-limit screens, trial-expiration... |
-| `plg-setup` | saas/plg-setup | Product-Led Growth setup (Wes Bush PLG Flywheel): freemium vs trial vs reverse-trial model selection, flywheel design, activation metrics, PQL definition, and onboarding flow.. |
+| `plg-setup` | saas/plg-setup | Product-Led Growth setup (Wes Bush PLG Flywheel): freemium vs trial vs reverse-trial model selection, flywheel design, activation metrics, PQL definition, and onboarding flow. |
 | `pricing-strategy` | saas/pricing-strategy | SaaS pricing strategy via value-based pricing (Patrick Campbell): value metric selection, Van Westendorp willingness-to-pay, competitive positioning, 3-tier structure, and... |
 | `saas-scaffold` | saas/saas-scaffold | Scaffolds a production-ready SaaS project (Next.js App Router) with auth (NextAuth/Clerk/Supabase), database (Drizzle), Stripe billing, API routes, and dashboard — generates... |
 | `validate-idea` | saas/validate-idea | 30-day validation of ONE concrete SaaS idea (Rob Walling Micro-SaaS playbook): problem/demand validation, customer interviews (Mom Test), competitor analysis, unit economics... |
@@ -318,20 +318,20 @@
 | Skill | Name | Description |
 | --- | --- | --- |
 | `landing-hub` | landing (hub) | Landing Pages & Sales Funnels department. Direct response copywriting, funnel architecture, offer creation, launch sequences, CRO, and affiliate marketing. Frameworks: Hormozi... |
-| `ab-test` | landing/ab-test | A/B test plan for landing page elements: hypothesis, control and variants, sample size, test duration, and statistical significance criteria with expected lift.. |
+| `ab-test` | landing/ab-test | A/B test plan for landing page elements: hypothesis, control and variants, sample size, test duration, and statistical significance criteria with expected lift. |
 | `affiliate-bridge` | landing/affiliate-bridge | Affiliate bridge page spec that pre-sells a third-party offer: review or comparison angle, page copy, trust elements, and affiliate tracking setup before sending traffic to the... |
 | `awareness-diagnose` | landing/awareness-diagnose | Diagnose where the audience sits on Schwartz's 5 awareness levels (unaware, problem, solution, product, most aware) plus traffic temperature, and recommend the matching copy... |
 | `copy-framework` | landing/copy-framework | Select and apply the right copywriting framework for a landing page by awareness level — 8 frameworks (AIDA, PAS, PASTOR, PPPP, BAB, StoryBrand, Star-Story-Solution, 4 U's)... |
-| `email-sequence` | landing/email-sequence | Standalone email sequence design — cart abandonment, nurture, launch, post-purchase — with subject lines, body copy, timing, and segmentation (PLF + Schwartz).. |
+| `email-sequence` | landing/email-sequence | Standalone email sequence design — cart abandonment, nurture, launch, post-purchase — with subject lines, body copy, timing, and segmentation (PLF + Schwartz). |
 | `funnel-design` | landing/funnel-design | Sales funnel architecture on Brunson's Value Ladder: selects the funnel type (squeeze, tripwire, SLO, webinar, application) by product, audience awareness and price point, then... |
-| `funnel-metrics` | landing/funnel-metrics | Funnel metrics report: stage-by-stage conversion rates, drop-off diagnosis, attribution, and a prioritised optimization plan.. |
-| `headline-write` | landing/headline-write | Write 10+ headline variants matched to the audience's awareness level (Ogilvy rules + Schwartz), with per-variant rationale and an A/B test plan.. |
+| `funnel-metrics` | landing/funnel-metrics | Funnel metrics report: stage-by-stage conversion rates, drop-off diagnosis, attribution, and a prioritised optimization plan. |
+| `headline-write` | landing/headline-write | Write 10+ headline variants matched to the audience's awareness level (Ogilvy rules + Schwartz), with per-variant rationale and an A/B test plan. |
 | `landing-gen` | landing/landing-gen | Generate a complete, production-ready landing page as TSX + Tailwind components — hero, features, pricing, FAQ, testimonials, CTA, footer — with copy framework (PAS/AIDA/BAB)... |
-| `launch-sequence` | landing/launch-sequence | Product launch plan using Jeff Walker's Product Launch Formula: pre-launch content PLC 1-3, open cart, closing sequence, with email sequences and cart timeline.. |
+| `launch-sequence` | landing/launch-sequence | Product launch plan using Jeff Walker's Product Launch Formula: pre-launch content PLC 1-3, open cart, closing sequence, with email sequences and cart timeline. |
 | `lead-magnet` | landing/lead-magnet | Plan, create, or optimize a lead magnet for email capture and lead generation — gated content, content upgrades, downloadables, ebooks, cheat sheets, checklists, template... |
 | `offer-create` | landing/offer-create | Design, construct, or improve the offer itself — the thing you sell — with Hormozi's Value Equation and Grand Slam formula: dream outcome, problem list, solution bundle, bonus... |
-| `optimize-page` | landing/optimize-page | Landing page CRO with ResearchXL: heuristic analysis, heatmap review, and a prioritized test backlog for an existing page.. |
-| `page-architect` | landing/page-architect | Landing page structural wireframe: above-the-fold anatomy, section order, copy blocks, CTA placement, and 1:1 attention ratio — blueprint, not code or final copy.. |
+| `optimize-page` | landing/optimize-page | Landing page CRO with ResearchXL: heuristic analysis, heatmap review, and a prioritized test backlog for an existing page. |
+| `page-architect` | landing/page-architect | Landing page structural wireframe: above-the-fold anatomy, section order, copy blocks, CTA placement, and 1:1 attention ratio — blueprint, not code or final copy. |
 | `persuasion-apply` | landing/persuasion-apply | Persuasion audit of a page or funnel against Cialdini's 6 principles — reciprocity, scarcity, authority, consistency, liking, consensus — with element-by-element assessment and... |
 | `popup-design` | landing/popup-design | Create or optimize popups, modals, overlays, slide-ins, or banners for conversion — exit intent, lead-capture popups, email popups, announcement banners, sticky bars... |
 | `signup-optimize` | landing/signup-optimize | Optimize signup, registration, account-creation, or trial-activation flows that are not performing — signup friction, form optimization, free-trial signup, signup abandonment... |
@@ -342,20 +342,20 @@
 | Skill | Name | Description |
 | --- | --- | --- |
 | `content-hub` | content (hub) | Content Creation & Viralization department. Viral content design, hooks, scripts, content operating systems, platform optimization, repurposing (1 to 30+), and AI-augmented... |
-| `ai-workflow` | content/ai-workflow | AI-augmented content workflow: ideation, drafting, editing, and formatting with AI assistance plus human review checkpoints.. |
-| `analytics` | content/analytics | Content performance analytics: views, engagement, saves, shares, CTR, and revenue attribution, delivered as a report with top/bottom performers and optimization actions.. |
-| `calendar` | content/calendar | Content calendar planning: weekly themes, pillar assignments, and derivative scheduling mapped from pillar to platform-native pieces.. |
-| `content-system` | content/content-system | Sets up a full Content Operating System: pillar content strategy (GaryVee model), weekly batching workflow, 1-to-30+ repurposing pipeline, calendar template, and metrics tracking.. |
+| `ai-workflow` | content/ai-workflow | AI-augmented content workflow: ideation, drafting, editing, and formatting with AI assistance plus human review checkpoints. |
+| `analytics` | content/analytics | Content performance analytics: views, engagement, saves, shares, CTR, and revenue attribution, delivered as a report with top/bottom performers and optimization actions. |
+| `calendar` | content/calendar | Content calendar planning: weekly themes, pillar assignments, and derivative scheduling mapped from pillar to platform-native pieces. |
+| `content-system` | content/content-system | Sets up a full Content Operating System: pillar content strategy (GaryVee model), weekly batching workflow, 1-to-30+ repurposing pipeline, calendar template, and metrics tracking. |
 | `hook-write` | content/hook-write | Writes hooks for the first 3 seconds of any content: generates 10+ variants across 7 hook types (controversy, curiosity gap, pain point, result, counter-intuitive, story... |
 | `image-create` | content/image-create | Create, edit, and optimize marketing images — blog heroes, social graphics, product mockups, banners, brand assets, and OG images — picking the right AI model or design tool... |
-| `monetization-plan` | content/monetization-plan | Creator monetization plan: a 5-level ladder from ads and affiliates up to high-ticket offers, with revenue projections per level.. |
-| `newsletter-write` | content/newsletter-write | Newsletter writing: subject line variants, intro hook, body sections, CTA, and growth tactics, delivered as a ready-to-send draft with growth recommendations.. |
-| `platform-optimize` | content/platform-optimize | Platform-specific content optimization: algorithm signals, best-performing formats, and posting times for a given platform, delivered as a platform guide.. |
-| `repurpose-plan` | content/repurpose-plan | Repurposes one pillar piece into 30+ platform-native derivatives (clips, posts, threads, carousels, newsletter sections) with a scheduling map.. |
+| `monetization-plan` | content/monetization-plan | Creator monetization plan: a 5-level ladder from ads and affiliates up to high-ticket offers, with revenue projections per level. |
+| `newsletter-write` | content/newsletter-write | Newsletter writing: subject line variants, intro hook, body sections, CTA, and growth tactics, delivered as a ready-to-send draft with growth recommendations. |
+| `platform-optimize` | content/platform-optimize | Platform-specific content optimization: algorithm signals, best-performing formats, and posting times for a given platform, delivered as a platform guide. |
+| `repurpose-plan` | content/repurpose-plan | Repurposes one pillar piece into 30+ platform-native derivatives (clips, posts, threads, carousels, newsletter sections) with a scheduling map. |
 | `research-compile` | content/research-compile | Two-stage sourced research for content production — Madalena researches with every claim cited (Agent-Reach, firecrawl/WebSearch fallback, [UNVERIFIED] fail-closed), Dinis... |
-| `script-structure` | content/script-structure | Long-form script writing for YouTube, podcast, or webinar: full script with timestamps, hooks, transitions, retention techniques, and CTA placement (Hook-Bridge-Body-CTA).. |
-| `short-form` | content/short-form | Short-form content creation: 5 Reels/TikTok/Shorts scripts with hooks, platform-native formatting, and a posting schedule, optimized for each platform's algorithm.. |
-| `thumbnail-package` | content/thumbnail-package | Thumbnail and title packaging (MrBeast method): 5+ title/thumbnail variants for A/B testing with curiosity-gap scoring.. |
+| `script-structure` | content/script-structure | Long-form script writing for YouTube, podcast, or webinar: full script with timestamps, hooks, transitions, retention techniques, and CTA placement (Hook-Bridge-Body-CTA). |
+| `short-form` | content/short-form | Short-form content creation: 5 Reels/TikTok/Shorts scripts with hooks, platform-native formatting, and a posting schedule, optimized for each platform's algorithm. |
+| `thumbnail-package` | content/thumbnail-package | Thumbnail and title packaging (MrBeast method): 5+ title/thumbnail variants for A/B testing with curiosity-gap scoring. |
 | `trend-hunt` | content/trend-hunt | Demand-first trend and niche analysis — pulls live signal from X/Reddit/YouTube/RSS via Agent-Reach (firecrawl/WebSearch fallback), scores trends with STEPPS, rates niche... |
 | `video-produce` | content/video-produce | End-to-end video production — brief to rendered MP4: research → Hollywood script → storyboard → Higgsfield asset generation → Hyperframes edit/render → virality QA, with... |
 | `video-setup` | content/video-setup | One-time environment bootstrap for video production — preflights and (with per-step user confirmation) installs the Hyperframes skills, Agent-Reach CLI, and Higgsfield key... |
@@ -367,35 +367,35 @@
 | Skill | Name | Description |
 | --- | --- | --- |
 | `community-hub` | community (hub) | Communities & Groups department. Create and manage paid communities by niche: betting/trading, AI/tech, fitness, crypto, real estate. Platform management (Telegram, Discord... |
-| `ai-community` | community/ai-community | AI/tech community setup on Discord: channel architecture, roles, bots, and content strategy, delivered as an AI community blueprint with growth plan.. |
-| `betting-setup` | community/betting-setup | Betting/trading community setup on Telegram: VIP group structure, signal delivery, bot config, and tier pricing, delivered as a launch-ready blueprint.. |
+| `ai-community` | community/ai-community | AI/tech community setup on Discord: channel architecture, roles, bots, and content strategy, delivered as an AI community blueprint with growth plan. |
+| `betting-setup` | community/betting-setup | Betting/trading community setup on Telegram: VIP group structure, signal delivery, bot config, and tier pricing, delivered as a launch-ready blueprint. |
 | `business-model` | community/business-model | Designs a community business model with the Community BMC + SPACES framework: purpose, ideal member, value proposition, engagement model, monetization streams, retention... |
-| `community-marketing` | community/community-marketing | Design, launch, and grow an online community that creates value for members while driving retention, activation, word-of-mouth, and community-led growth.. |
-| `content-calendar` | community/content-calendar | Community content calendar: daily discussion prompts, weekly events, and monthly themes, delivered with engagement triggers and an event schedule.. |
-| `events-plan` | community/events-plan | Plans a community event — AMA, workshop, challenge, co-working session, or launch party — with format, agenda, promotion, and follow-up sequence.. |
+| `community-marketing` | community/community-marketing | Design, launch, and grow an online community that creates value for members while driving retention, activation, word-of-mouth, and community-led growth. |
+| `content-calendar` | community/content-calendar | Community content calendar: daily discussion prompts, weekly events, and monthly themes, delivered with engagement triggers and an event schedule. |
+| `events-plan` | community/events-plan | Plans a community event — AMA, workshop, challenge, co-working session, or launch party — with format, agenda, promotion, and follow-up sequence. |
 | `gamification-design` | community/gamification-design | Designs community gamification with the Octalysis framework (Yu-kai Chou): points, levels, badges, leaderboards, and challenges, delivered as a mechanics and rewards spec with... |
-| `growth-plan` | community/growth-plan | Community/audience growth plan (1000 True Fans + CLG): member acquisition channels, referral program, content flywheel.. |
-| `metrics-track` | community/metrics-track | Tracks community health metrics — DAU/MAU, engagement rate, churn, NPS, revenue per member — delivered as a traffic-light health dashboard.. |
-| `moderation` | community/moderation | Builds a community moderation system: rules, escalation paths, automated filters, and ban policies, delivered as a moderation playbook with consequences and escalation matrix.. |
-| `monetize-plan` | community/monetize-plan | Community monetization plan across the 7-stream stack — membership, courses, coaching, events, affiliate, sponsorships, digital products — with revenue projections per stream.. |
-| `niche-setup` | community/niche-setup | Full niche community setup end-to-end — business model, platform choice, content plan, and monetization — delivered as a complete launch-ready blueprint.. |
-| `onboarding-flow` | community/onboarding-flow | Designs member onboarding with the Member Lifecycle (Millington): welcome DM, first-7-days journey, activation triggers, automated messages, and milestones with activation... |
+| `growth-plan` | community/growth-plan | Community/audience growth plan (1000 True Fans + CLG): member acquisition channels, referral program, content flywheel. |
+| `metrics-track` | community/metrics-track | Tracks community health metrics — DAU/MAU, engagement rate, churn, NPS, revenue per member — delivered as a traffic-light health dashboard. |
+| `moderation` | community/moderation | Builds a community moderation system: rules, escalation paths, automated filters, and ban policies, delivered as a moderation playbook with consequences and escalation matrix. |
+| `monetize-plan` | community/monetize-plan | Community monetization plan across the 7-stream stack — membership, courses, coaching, events, affiliate, sponsorships, digital products — with revenue projections per stream. |
+| `niche-setup` | community/niche-setup | Full niche community setup end-to-end — business model, platform choice, content plan, and monetization — delivered as a complete launch-ready blueprint. |
+| `onboarding-flow` | community/onboarding-flow | Designs member onboarding with the Member Lifecycle (Millington): welcome DM, first-7-days journey, activation triggers, automated messages, and milestones with activation metrics. |
 | `platform-select` | community/platform-select | Selects the right community platform for a niche — Telegram, Discord, Skool, Circle, Mighty, Whop — via a selection matrix, delivered as a recommendation with comparison table... |
-| `retention-system` | community/retention-system | Designs a member retention system: 6-stage lifecycle triggers, 7 retention habits, churn-signal responses (7/14/30-day win-backs), and gamification elements.. |
+| `retention-system` | community/retention-system | Designs a member retention system: 6-stage lifecycle triggers, 7 retention habits, churn-signal responses (7/14/30-day win-backs), and gamification elements. |
 
 ### Sales (`sales`)
 
 | Skill | Name | Description |
 | --- | --- | --- |
 | `sales-hub` | sales (hub) | Sales & Negotiation department. Pipeline management, proposals, discovery calls, deal qualification, negotiation. Frameworks: SPIN Selling, Challenger Sale, MEDDIC. |
-| `challenger-sell` | sales/challenger-sell | Prepares a Challenger Sale approach (Dixon/Adamson): commercial insight to teach, message tailoring per stakeholder, and take-control moves that reframe the customer's thinking.. |
-| `deal-qualify` | sales/deal-qualify | Qualifies a deal with MEDDIC/BANT — Metrics, Economic Buyer, Decision Criteria, Decision Process, Champion — into a scorecard with a go/no-go recommendation.. |
-| `discovery-call` | sales/discovery-call | Prepares a discovery call end to end: prospect research, SPIN question bank, call goals, and agenda.. |
-| `forecast-revenue` | sales/forecast-revenue | Builds a revenue forecast from probability-weighted pipeline, historical stage conversion, and confidence intervals, with forecast-accuracy metrics.. |
-| `negotiate-plan` | sales/negotiate-plan | Plans a negotiation with the BATNA framework: BATNA and walk-away point, ZOPA mapping, anchoring strategy, and a concession ladder.. |
-| `objection-handle` | sales/objection-handle | Builds an objection-handling playbook for a specific sales objection: acknowledge, clarify, respond with evidence, confirm, plus follow-up moves.. |
-| `pipeline-manage` | sales/pipeline-manage | Analyses pipeline health with the Pipeline Velocity formula: velocity, conversion by stage, deal aging, bottlenecks, and forecast accuracy.. |
-| `pricing-negotiate` | sales/pricing-negotiate | Prepares a value-based pricing negotiation: anchor on value and ROI, respond to price objections, and protect margins with a concession playbook.. |
+| `challenger-sell` | sales/challenger-sell | Prepares a Challenger Sale approach (Dixon/Adamson): commercial insight to teach, message tailoring per stakeholder, and take-control moves that reframe the customer's thinking. |
+| `deal-qualify` | sales/deal-qualify | Qualifies a deal with MEDDIC/BANT — Metrics, Economic Buyer, Decision Criteria, Decision Process, Champion — into a scorecard with a go/no-go recommendation. |
+| `discovery-call` | sales/discovery-call | Prepares a discovery call end to end: prospect research, SPIN question bank, call goals, and agenda. |
+| `forecast-revenue` | sales/forecast-revenue | Builds a revenue forecast from probability-weighted pipeline, historical stage conversion, and confidence intervals, with forecast-accuracy metrics. |
+| `negotiate-plan` | sales/negotiate-plan | Plans a negotiation with the BATNA framework: BATNA and walk-away point, ZOPA mapping, anchoring strategy, and a concession ladder. |
+| `objection-handle` | sales/objection-handle | Builds an objection-handling playbook for a specific sales objection: acknowledge, clarify, respond with evidence, confirm, plus follow-up moves. |
+| `pipeline-manage` | sales/pipeline-manage | Analyses pipeline health with the Pipeline Velocity formula: velocity, conversion by stage, deal aging, bottlenecks, and forecast accuracy. |
+| `pricing-negotiate` | sales/pricing-negotiate | Prepares a value-based pricing negotiation: anchor on value and ROI, respond to price objections, and protect margins with a concession playbook. |
 | `proposal-write` | sales/proposal-write | Writes an outcome-focused sales proposal (max 5-7 pages): executive summary, client challenge, solution with scope and timeline, proof and case studies, investment with ROI... |
 | `prospecting` | sales/prospecting | Find, qualify, and score prospect lists across four motions — B2B SaaS, general B2B, local SMB, and early-stage demand-signal discovery — turning an ICP into a verified... |
 | `revops` | sales/revops | Design the systems that connect marketing, sales, and customer success into one revenue engine — lead lifecycle stages, scoring, routing, pipeline hygiene, deal desk, and... |
@@ -407,34 +407,34 @@
 | Skill | Name | Description |
 | --- | --- | --- |
 | `leadership-hub` | leadership (hub) | Leadership & People department. Team health, hiring, feedback culture, performance management, coaching. Frameworks: Five Dysfunctions, Radical Candor, OKRs, Netflix Culture. |
-| `change-manage` | lead/change-manage | Change management plan for an organisational initiative: stakeholder analysis, communication cadence, resistance handling, timeline and risk mitigations.. |
-| `conflict-resolve` | lead/conflict-resolve | Conflict resolution between people: reads both parties' DISC profiles and produces a resolution path with a communication strategy for each side.. |
-| `culture-audit` | lead/culture-audit | Culture audit: assesses values lived vs stated, team health and feedback loops, producing a report with health scores, gaps and improvement actions.. |
-| `delegation-matrix` | lead/delegation-matrix | Delegation analysis: decides what to delegate, to whom, and with which authority level, producing a delegation matrix with check-in cadence per task.. |
-| `disc-assess` | lead/disc-assess | DISC behavioural assessment of a person or team: identifies the style and produces a profile with communication recommendations and conflict-resolution tips.. |
-| `feedback-give` | lead/feedback-give | Structured feedback with Radical Candor (care personally + challenge directly): specific, immediate, behavioural — situation, behaviour, impact and follow-up actions.. |
-| `hiring-plan` | lead/hiring-plan | Hiring plan with the Who Method (Geoff Smart): role scorecard, sourcing strategy, structured interview guide, evaluation rubric and sell plan.. |
-| `okr-define` | lead/okr-define | Defines OKRs with John Doerr's framework, cascading company -> team: qualitative Objectives, quantitative Key Results, scoring criteria and check-in schedule.. |
-| `performance-review` | lead/performance-review | Performance review preparation: gathers evidence, structures feedback points and builds a development plan for the review conversation.. |
-| `team-health` | lead/team-health | Team health assessment with Lencioni's Five Dysfunctions: diagnoses trust, conflict, commitment, accountability and results focus into a scorecard with fix-order actions.. |
+| `change-manage` | lead/change-manage | Change management plan for an organisational initiative: stakeholder analysis, communication cadence, resistance handling, timeline and risk mitigations. |
+| `conflict-resolve` | lead/conflict-resolve | Conflict resolution between people: reads both parties' DISC profiles and produces a resolution path with a communication strategy for each side. |
+| `culture-audit` | lead/culture-audit | Culture audit: assesses values lived vs stated, team health and feedback loops, producing a report with health scores, gaps and improvement actions. |
+| `delegation-matrix` | lead/delegation-matrix | Delegation analysis: decides what to delegate, to whom, and with which authority level, producing a delegation matrix with check-in cadence per task. |
+| `disc-assess` | lead/disc-assess | DISC behavioural assessment of a person or team: identifies the style and produces a profile with communication recommendations and conflict-resolution tips. |
+| `feedback-give` | lead/feedback-give | Structured feedback with Radical Candor (care personally + challenge directly): specific, immediate, behavioural — situation, behaviour, impact and follow-up actions. |
+| `hiring-plan` | lead/hiring-plan | Hiring plan with the Who Method (Geoff Smart): role scorecard, sourcing strategy, structured interview guide, evaluation rubric and sell plan. |
+| `okr-define` | lead/okr-define | Defines OKRs with John Doerr's framework, cascading company -> team: qualitative Objectives, quantitative Key Results, scoring criteria and check-in schedule. |
+| `performance-review` | lead/performance-review | Performance review preparation: gathers evidence, structures feedback points and builds a development plan for the review conversation. |
+| `team-health` | lead/team-health | Team health assessment with Lencioni's Five Dysfunctions: diagnoses trust, conflict, commitment, accountability and results focus into a scorecard with fix-order actions. |
 
 ### Organization (`org`)
 
 | Skill | Name | Description |
 | --- | --- | --- |
 | `org-hub` | org (hub) | Organization & Teams department. Org design, team topologies, scaling operations, hiring plans, onboarding, compensation. Frameworks: Team Topologies, Spotify Model. |
-| `compensation-plan` | org/compensation-plan | Builds a compensation plan for a role: salary bands, equity/ESOP structure, benefits, and benchmarking methodology, delivered as a total-reward package.. |
+| `compensation-plan` | org/compensation-plan | Builds a compensation plan for a role: salary bands, equity/ESOP structure, benefits, and benchmarking methodology, delivered as a total-reward package. |
 | `culture-define` | org/culture-define | Ships a production culture document: inversion-tested values, observable behaviour maps, load-bearing ritual catalogue, decision principles, and operationalisation into hiring... |
-| `decision-framework` | org/decision-framework | Builds a decision framework with RACI and a Decision Authority Matrix: who decides, who is consulted, who is informed, authority levels, and the escalation path.. |
-| `hiring-plan` | org/hiring-plan | Builds a hiring plan with the Who Method (Geoff Smart): job scorecard, sourcing channels, structured interview process, evaluation rubric, and sell strategy.. |
-| `meeting-optimize` | org/meeting-optimize | Audits the meeting portfolio: eliminates unnecessary meetings, restructures the ones that stay, and moves what it can to async, delivering keep/kill/restructure recommendations.. |
+| `decision-framework` | org/decision-framework | Builds a decision framework with RACI and a Decision Authority Matrix: who decides, who is consulted, who is informed, authority levels, and the escalation path. |
+| `hiring-plan` | org/hiring-plan | Builds a hiring plan with the Who Method (Geoff Smart): job scorecard, sourcing channels, structured interview process, evaluation rubric, and sell strategy. |
+| `meeting-optimize` | org/meeting-optimize | Audits the meeting portfolio: eliminates unnecessary meetings, restructures the ones that stay, and moves what it can to async, delivering keep/kill/restructure recommendations. |
 | `okr-cadence` | org/okr-cadence | Runs the OKR operating cadence (Doerr CFRs): quarterly set-score-reflect cycle, weekly check-ins, public 0.0-1.0 scoring with 70% as success, never tied to compensation, every... |
-| `onboarding-design` | org/onboarding-design | Designs an employee onboarding program per role: first day, first week, first month, and 90-day milestones with buddies and success metrics.. |
-| `org-design` | org/org-design | Designs the organization with Team Topologies (Skelton/Pais): team map, topology types, interaction modes, cognitive-load balance, Conway's Law alignment, and an evolution path.. |
+| `onboarding-design` | org/onboarding-design | Designs an employee onboarding program per role: first day, first week, first month, and 90-day milestones with buddies and success metrics. |
+| `org-design` | org/org-design | Designs the organization with Team Topologies (Skelton/Pais): team map, topology types, interaction modes, cognitive-load balance, Conway's Law alignment, and an evolution path. |
 | `principles-audit` | org/principles-audit | Annual org-health audit against the 10 Principles of Effective Organizations: score 1-5 per principle with evidence, flag the make-or-break three (Empowerment, Reward... |
-| `remote-setup` | org/remote-setup | Builds a remote-work playbook: async communication norms, tool stack, rituals, policies, culture preservation, and success metrics.. |
-| `sop-process` | org/sop-process | Creates a Standard Operating Procedure: numbered step-by-step procedure with roles, tools, exceptions, ownership, and a review schedule (SOP Lifecycle).. |
-| `team-assess` | org/team-assess | Assesses a single team with Team Topologies: topology type, cognitive load, skill gaps, and interaction patterns, delivering a topology recommendation and improvement actions.. |
+| `remote-setup` | org/remote-setup | Builds a remote-work playbook: async communication norms, tool stack, rituals, policies, culture preservation, and success metrics. |
+| `sop-process` | org/sop-process | Creates a Standard Operating Procedure: numbered step-by-step procedure with roles, tools, exceptions, ownership, and a review schedule (SOP Lifecycle). |
+| `team-assess` | org/team-assess | Assesses a single team with Team Topologies: topology type, cognitive load, skill gaps, and interaction patterns, delivering a topology recommendation and improvement actions. |
 
 ## `/arka` meta skills
 

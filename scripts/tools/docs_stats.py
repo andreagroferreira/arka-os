@@ -50,6 +50,41 @@ def count_agents(root: Path) -> dict:
     return {"files": len(files), "unique_slugs": len({f.name for f in files})}
 
 
+def count_agents_by_department(root: Path) -> dict[str, int]:
+    """Agent YAML files per department directory.
+
+    Sums to ``count_agents()["files"]`` -- files, not unique slugs, so a
+    matrix-shared agent (cro-specialist.yaml) counts once in each of the
+    departments that list it, which is what the per-department wiki pages
+    advertise.
+    """
+    dep = root / "departments"
+    if not dep.is_dir():
+        return {}
+    counts = {}
+    for d in sorted(dep.iterdir()):
+        if not d.is_dir():
+            continue
+        agents = d / "agents"
+        counts[d.name] = sum(1 for _ in agents.rglob("*.yaml")) if agents.is_dir() else 0
+    return counts
+
+
+def count_skills_by_department(root: Path) -> dict[str, int]:
+    """SKILL.md files per department directory -- hub plus sub-skills.
+
+    Sums to ``count_skills()["departments"]``; vendor/ payloads are
+    excluded on the same rule.
+    """
+    dep = root / "departments"
+    if not dep.is_dir():
+        return {}
+    return {
+        d.name: sum(1 for f in d.rglob("SKILL.md") if "vendor" not in f.parts)
+        for d in sorted(dep.iterdir()) if d.is_dir()
+    }
+
+
 def count_departments(root: Path) -> int:
     """Count department directories under departments/."""
     dep = root / "departments"
@@ -111,11 +146,16 @@ def gather(root: Path, with_pytest: bool = False) -> dict:
     tests = {"functions": count_test_functions(root)}
     if with_pytest:
         tests["collected"] = collect_pytest_cases(root)
+    # Additive nesting: the per-department breakdown rides inside the
+    # existing "agents"/"skills" dicts so the top-level shape is unchanged
+    # for anyone already reading --json.
+    agents = {**count_agents(root), "by_department": count_agents_by_department(root)}
+    skills = {**count_skills(root), "by_department": count_skills_by_department(root)}
     return {
         "version": read_version(root),
-        "agents": count_agents(root),
+        "agents": agents,
         "departments": count_departments(root),
-        "skills": count_skills(root),
+        "skills": skills,
         "adrs": count_adrs(root),
         "tests": tests,
         "root": str(root),
