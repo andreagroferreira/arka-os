@@ -808,7 +808,10 @@ def test_lint_scopes_to_changed_js_files_via_local_eslint(tmp_path, monkeypatch)
     result = _result(report, "lint")
     assert result.passed is True
     assert calls["cmd"] == [str(eslint), "app.vue"]
-    assert "lint(scoped: 1 file(s))" in result.command
+    # The label now names the eslint root count too — a single-root project
+    # still reports exactly one root (TestEslintRootResolution covers the
+    # monorepo case this label exists for).
+    assert "lint(scoped: 1 file(s) across 1 eslint root(s))" in result.command
 
 
 def test_lint_changed_outside_project_dir_falls_back_project_wide(
@@ -2058,3 +2061,180 @@ class TestTypecheckHonesty:
         repo = Path(evidence_checks.__file__).resolve().parents[2]
         assert evidence_checks._mypy_configured(repo) is True
         assert evidence_checks._mypy_scope_configured(repo) is True
+
+
+# ─── eslint root resolution (QG Fase 1 scope addition) ──────────────────
+
+
+class TestEslintRootResolution:
+    """The gate resolved eslint only at project_dir.
+
+    Every changed JS/TS file in the diff was therefore linted by the ROOT
+    eslint. On this repo that is a permanent false FAIL for the dashboard
+    tree (root config has no TypeScript parser) — and a false GREEN the
+    day the root config gains a parser, because a config that parses a
+    file while carrying none of its rules evaluates nothing.
+    """
+
+    @staticmethod
+    def _fake_eslint(directory: Path) -> Path:
+        binary = directory / "node_modules" / ".bin" / "eslint"
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        binary.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        binary.chmod(0o755)
+        return binary
+
+    @staticmethod
+    def _source(project: Path, rel: str) -> None:
+        path = project / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("export const x = 1\n", encoding="utf-8")
+
+    def test_nested_package_wins_over_the_root(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path)
+        self._fake_eslint(tmp_path / "dashboard")
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        runs: list[tuple[Path, list[str]]] = []
+
+        def fake_run(check, cmd, project_dir, timeout):
+            runs.append((Path(project_dir), [str(c) for c in cmd]))
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts"], None, 30,
+        )
+
+        assert len(runs) == 1
+        cwd, cmd = runs[0]
+        assert cwd == (tmp_path / "dashboard").resolve(), (
+            "eslint must run from the package that owns the file"
+        )
+        assert cmd[0] == str(tmp_path / "dashboard" / "node_modules" / ".bin" / "eslint")
+        assert cmd[1:] == ["app/useApi.ts"], "paths re-expressed against that cwd"
+        assert result.passed is True
+
+    def test_one_run_per_root_not_one_run_for_all(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path)
+        self._fake_eslint(tmp_path / "dashboard")
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        self._source(tmp_path, "installer/cli.js")
+        runs: list[Path] = []
+
+        def fake_run(check, cmd, project_dir, timeout):
+            runs.append(Path(project_dir))
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts", "installer/cli.js"], None, 30,
+        )
+
+        assert sorted(runs) == sorted(
+            [tmp_path.resolve(), (tmp_path / "dashboard").resolve()]
+        )
+        assert "2 eslint root(s)" in result.command
+
+    def test_a_failing_root_fails_the_whole_check(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path)
+        self._fake_eslint(tmp_path / "dashboard")
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        self._source(tmp_path, "installer/cli.js")
+
+        def fake_run(check, cmd, project_dir, timeout):
+            failing = Path(project_dir).name == "dashboard"
+            return CheckResult(
+                check=check, ran=True, passed=not failing,
+                command=" ".join(cmd), exit_code=1 if failing else 0,
+                summary="no-unused-vars" if failing else "ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts", "installer/cli.js"], None, 30,
+        )
+
+        assert result.passed is False
+        assert "[dashboard]" in result.summary
+        assert result.exit_code == 1
+
+    def test_files_with_no_eslint_above_them_are_named(
+        self, tmp_path, monkeypatch
+    ):
+        """A silently unlinted file is the blind gate this fix closes."""
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path / "dashboard")  # root has NO eslint
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        self._source(tmp_path, "installer/cli.js")
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            ),
+        )
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts", "installer/cli.js"], None, 30,
+        )
+
+        assert "NOT LINTED" in result.summary
+        assert "installer/cli.js" in result.summary
+        assert "1 file(s) across 1 eslint root(s)" in result.command
+
+    def test_no_eslint_anywhere_falls_through_to_project_wide(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._source(tmp_path, "app/main.ts")
+        (tmp_path / "package.json").write_text(
+            '{"scripts": {"lint": "eslint ."}}', encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            ),
+        )
+        result = evidence_checks._check_lint(
+            tmp_path, ["app/main.ts"], None, 30,
+        )
+
+        assert "project-wide" in result.command
+
+    def test_real_dashboard_file_passes_its_own_eslint(self):
+        """Integration: the exact file the QG reproduced the false FAIL on.
+
+        Root eslint  -> `Parsing error: Unexpected token` (no TS parser)
+        Dashboard eslint -> exit 0
+        """
+        repo = Path(evidence_checks.__file__).resolve().parents[2]
+        target = "dashboard/app/composables/useApi.ts"
+        for required in (
+            repo / "node_modules" / ".bin" / "eslint",
+            repo / "dashboard" / "node_modules" / ".bin" / "eslint",
+            repo / target,
+        ):
+            if not required.exists():
+                pytest.skip(f"node_modules not installed: {required}")
+
+        assert evidence_checks._eslint_root(repo, target) == (
+            repo / "dashboard"
+        ).resolve()
+        result = evidence_checks._check_lint(repo, [target], None, 120)
+
+        assert result.ran is True
+        assert result.passed is True, (
+            f"the owning package's eslint must accept its own file: "
+            f"{result.summary}"
+        )
+        assert "Parsing error" not in result.summary

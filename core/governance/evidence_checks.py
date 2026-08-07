@@ -364,6 +364,113 @@ def _ruff_cmd() -> list[str] | None:
     return _tool_cmd("ruff")
 
 
+def _eslint_root(project_dir: Path, rel: str) -> Path | None:
+    """Nearest ancestor of ``rel``, up to project_dir, with a local eslint.
+
+    A monorepo keeps its parser and plugins in the sub-package that owns
+    the files, so resolving eslint only at ``project_dir`` lints the whole
+    diff with the WRONG config. Reproduced on this repo: the root eslint
+    over ``dashboard/app/composables/useApi.ts`` reports
+    ``Parsing error: Unexpected token`` (no TypeScript parser) while
+    ``dashboard``'s own eslint exits 0 over the same file (QG Fase 1).
+
+    That is a permanent false FAIL today and a false GREEN tomorrow: a
+    parser that cannot parse a file evaluates ZERO rules over it, so the
+    day the root config gains one, a whole tree passes on nothing.
+    """
+    try:
+        root = project_dir.resolve()
+        current = (root / rel).resolve().parent
+    except OSError:
+        return None
+    while True:
+        if (current / "node_modules" / ".bin" / "eslint").is_file():
+            return current
+        if current == root or current.parent == current:
+            return None
+        current = current.parent
+
+
+def _merge_scoped_lint(
+    results: list[tuple[str, CheckResult]], total: int, orphans: list[str],
+) -> CheckResult:
+    """Fold per-root eslint runs into one honest CheckResult.
+
+    FAILS if any root failed; stays non-conclusive when a root could not
+    conclude and none failed. Files with no eslint anywhere above them are
+    NAMED, last, so the note survives ``_tail`` truncation — a silently
+    unlinted file is the same blind gate this fix exists to close.
+    """
+    if any(r.passed is False for _, r in results):
+        passed: bool | None = False
+    elif any(r.passed is None for _, r in results):
+        passed = None
+    else:
+        passed = True
+    exit_code = next(
+        (r.exit_code for _, r in results if r.exit_code not in (None, 0)), 0,
+    )
+    sections = [
+        f"[{label}] {r.summary or 'no output'}" for label, r in results
+    ]
+    if orphans:
+        sections.append(
+            f"NOT LINTED — no eslint above {len(orphans)} changed file(s): "
+            + ", ".join(orphans[:5])
+        )
+    command = " && ".join(f"(cd {label} && {r.command})" for label, r in results)
+    return CheckResult(
+        check="lint", ran=any(r.ran for _, r in results), passed=passed,
+        command=(
+            f"lint(scoped: {total - len(orphans)} file(s) across "
+            f"{len(results)} eslint root(s)) {command}"
+        ),
+        exit_code=exit_code, summary=_tail("\n".join(sections)),
+    )
+
+
+def _lint_eslint_grouped(
+    project_dir: Path, changed: list[str], timeout: int,
+) -> CheckResult | None:
+    """One eslint run per OWNING package root, never one run for all.
+
+    Returns None when no changed JS/TS file has an eslint above it, so
+    the caller falls through to the project-wide path unchanged.
+    """
+    files = _scoped_files(project_dir, changed, _LINTABLE_JS)
+    if not files:
+        return None
+    root = project_dir.resolve()
+    groups: dict[Path, list[str]] = {}
+    orphans: list[str] = []
+    for rel in files:
+        owner = _eslint_root(project_dir, rel)
+        if owner is None:
+            orphans.append(rel)
+        else:
+            groups.setdefault(owner, []).append(rel)
+    if not groups:
+        return None
+    results: list[tuple[str, CheckResult]] = []
+    for owner in sorted(groups):
+        eslint = owner / "node_modules" / ".bin" / "eslint"
+        # Paths are re-expressed against the owning root because that is
+        # the cwd eslint runs in — its config resolution, ignore files and
+        # plugin lookup all key off it.
+        local = [
+            PurePosixPath((root / rel).resolve().relative_to(owner)).as_posix()
+            for rel in groups[owner]
+        ]
+        label = (
+            "." if owner == root
+            else PurePosixPath(owner.relative_to(root)).as_posix()
+        )
+        results.append(
+            (label, _run("lint", [str(eslint), *local], owner, timeout))
+        )
+    return _merge_scoped_lint(results, len(files), orphans)
+
+
 def _lint_scoped(
     project_dir: Path, changed: list[str], timeout: int,
 ) -> CheckResult | None:
@@ -379,12 +486,9 @@ def _lint_scoped(
         if files:
             result = _run("lint", [*ruff, "check", *files], project_dir, timeout)
             return _labelled(result, f"lint(scoped: {len(files)} file(s))")
-    eslint = project_dir / "node_modules" / ".bin" / "eslint"
-    if eslint.is_file():
-        files = _scoped_files(project_dir, changed, _LINTABLE_JS)
-        if files:
-            result = _run("lint", [str(eslint), *files], project_dir, timeout)
-            return _labelled(result, f"lint(scoped: {len(files)} file(s))")
+    grouped = _lint_eslint_grouped(project_dir, changed, timeout)
+    if grouped is not None:
+        return grouped
     pint = project_dir / "vendor" / "bin" / "pint"
     if pint.is_file():
         files = _scoped_files(project_dir, changed, _LINTABLE_PHP)
