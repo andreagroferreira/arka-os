@@ -124,8 +124,3 @@ Surface these issues WITHOUT being asked:
 | Priority | Finding | Action | Owner | Target |
 |----------|---------|--------|-------|--------|
 ```
-
-## References
-
-- [iso27001-audit-methodology.md](references/iso27001-audit-methodology.md) — Audit program structure, risk-based scheduling, certification support procedures
-- [security-control-testing.md](references/security-control-testing.md) — Technical verification procedures for ISO 27002 controls, evidence requirements

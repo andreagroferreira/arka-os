@@ -118,7 +118,7 @@ Lead with the most actionable evidence, in this order:
 6. **Seven-day manual outreach plan** — a low-volume validation sequence (e.g., contact the top 3 with one source-based question; share a mockup only after they confirm the pain; target three conversations and one design-partner commitment).
 7. **Limits** — what evidence is missing and what must be confirmed through real conversations.
 
-For a shareable standalone HTML version of this report, the JSON→HTML generator pattern in ad-creative's [creative-review-page.md](../../ad-creative/references/creative-review-page.md) is the model (escape every value; keep it self-contained).
+For a shareable standalone HTML version of this report, the JSON→HTML generator pattern in ad-creative's `departments/marketing/skills/ad-creative/references/creative-review-page.md` is the model (escape every value; keep it self-contained).
 
 ## The honesty rules (non-negotiable)
 

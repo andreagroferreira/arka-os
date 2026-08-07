@@ -111,8 +111,3 @@ Surface these issues WITHOUT being asked:
 
 ### Next Review: <date>
 ```
-
-## References
-
-- [iso27001-controls.md](references/iso27001-controls.md) — Full Annex A control list with implementation guidance and evidence requirements
-- [risk-assessment-guide.md](references/risk-assessment-guide.md) — Risk methodology, asset classification, threat modeling, risk calculation methods

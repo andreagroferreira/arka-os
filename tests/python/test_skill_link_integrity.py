@@ -47,8 +47,7 @@ _FILE_EXT = re.compile(
 # wording is the one PR #461 established when the GSAP pack was absorbed
 # without vendoring its `examples/` tree.
 _UPSTREAM_ANNOTATION = re.compile(
-    r"\b(?:in|from) the (?:\w[\w.-]* )?(?:upstream|three\.js|source) (?:project|repo)",
-    re.IGNORECASE,
+    r"\b(?:in|from) the [\w.@/-]+ repo(?:sitory)?\b", re.IGNORECASE
 )
 
 # Vendored upstream skill trees are verbatim third-party copies. Their

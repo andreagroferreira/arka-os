@@ -2,7 +2,7 @@
 
 A shareable, self-contained web page that presents generated ad concepts for a client or stakeholder to **review and pick** — the visual upgrade to `INDEX.md`. Where the markdown outputs are built for the operator, the review page is built for the person approving the spend: it shows each concept as an in-feed platform mockup, breaks carousels into a labeled frame-by-frame storyboard, lets them toggle copy variations, and discloses what's grounded in real assets.
 
-The template ships at [assets/creative-review-template.html](../assets/creative-review-template.html). It's one file — inline CSS and JS, no build, no dependencies, no network. Open it locally, host it on any static host (Vercel/Netlify/GitHub Pages), or hand off the `.html` file directly.
+No template file ships with this skill — this document is the build spec, and you write the page. Build it as **one file**: inline CSS and JS, no build step, no dependencies, no network calls. That constraint is what makes it openable locally, hostable on any static host (Vercel/Netlify/GitHub Pages), or handed off as a bare `.html`.
 
 ## When to produce one
 
@@ -14,7 +14,7 @@ Don't produce one for a single headline tweak or a quick internal gut-check — 
 
 ## How it's built
 
-The template renders entirely from a JSON block near the top of the file — `<script type="application/json" id="review-data">`. Populate it from your generated concepts and everything else renders — tabs, previews, storyboard, copy panel. You do not edit the render code below the data block. The annotated model below is shown with `//` comments for readability; **the file itself is strict JSON** — no comments, no trailing commas (see "Populating the data safely").
+Separate data from render code. Put every concept in a single JSON block near the top of the file — `<script type="application/json" id="review-data">` — and have the render code below it read only from there: tabs, previews, storyboard, and copy panel all derive from the data. Once the page is built, iterating on a batch means editing that block and nothing else. The annotated model below is shown with `//` comments for readability; **the block itself is strict JSON** — no comments, no trailing commas (see "Populating the data safely").
 
 ### Data model
 
@@ -90,8 +90,8 @@ The `DATA` lives in a `<script type="application/json" id="review-data">` block 
 
 ## Producing and delivering it
 
-1. Copy `assets/creative-review-template.html` into the batch's output folder as `review.html` (e.g. `outputs/YYYY-MM-DD/review.html`).
-2. Replace the `DATA` object with the real project — concepts, frames, copy, grounding. Populate `image` paths for any frames you've rendered (keep them relative to the html file so the folder stays portable).
+1. Build `review.html` in the batch's output folder (e.g. `outputs/YYYY-MM-DD/review.html`) to the spec above — one self-contained file, data block on top, render code below.
+2. Fill the `DATA` block with the real project — concepts, frames, copy, grounding. Populate `image` paths for any frames you've rendered (keep them relative to the html file so the folder stays portable).
 3. Verify it renders: open it in a browser, click through every concept tab, both platform and handle toggles, and each frame in the storyboard.
 4. Deliver: hand off the folder (html + `images/`), or host it. For a client link, `vercel deploy` or any static host works — it's a single page with local assets.
 
@@ -102,5 +102,5 @@ Keep the review page next to the markdown outputs, not instead of them: `INDEX.m
 - **Too many concepts** — 2–4 tabs is a decision; 10 is a menu nobody finishes. Curate before you present.
 - **Unlabeled or content-labeled frames** — label by narrative job (`The proof`), not by what's pictured (`Table screenshot`).
 - **Missing or dishonest grounding** — every concept discloses what's real; illustrative proof is labeled illustrative.
-- **Editing the render code** — everything is data-driven; if something won't show, it's a `DATA` field, not the JS.
+- **Render code that reads anything but `DATA`** — hardcoding a concept into the markup means the next batch is a rewrite instead of a data edit.
 - **Absolute image paths** — keep image paths relative so the output folder can be zipped, moved, or hosted intact.
