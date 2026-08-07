@@ -18,8 +18,9 @@ from pathlib import Path
 
 import pytest
 
+from core.shared.temp_paths import arkaos_temp_dir
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-WF_REQUIRED_DIR = Path("/tmp/arkaos-wf-required")
 
 
 def _run_module(
@@ -58,6 +59,12 @@ def hook_home(tmp_path):
     (vault / "Laravel Service Pattern.md").write_text("# note\n", encoding="utf-8")
     return {
         "HOME": str(home),
+        # Path.home() consults USERPROFILE on Windows and HOME on POSIX, and
+        # _run_module inherits os.environ — so setting HOME alone left the
+        # real profile in play and every hook read the developer's own
+        # ~/.arkaos/config.json instead of the fixture's. Same pairing as
+        # tests/python/watch/conftest.py and tests/python/diagram/conftest.py.
+        "USERPROFILE": str(home),
         "ARKA_KB_VIOLATION_DIR": str(tmp_path / "kb-violation"),
         "ARKA_KB_QUERY_DIR": str(tmp_path / "kb-query"),
         "ARKAOS_VAULT": str(vault),
@@ -140,8 +147,9 @@ class TestPreToolUse:
             encoding="utf-8",
         )
         session_id = "pre-flow-deny-pr6"
-        WF_REQUIRED_DIR.mkdir(parents=True, exist_ok=True)
-        marker = WF_REQUIRED_DIR / session_id
+        wf_dir = Path(hook_home["ARKA_WF_REQUIRED_DIR"])
+        wf_dir.mkdir(parents=True, exist_ok=True)
+        marker = wf_dir / session_id
         marker.write_text("1", encoding="utf-8")
         transcript = tmp_path / "t.jsonl"
         transcript.write_text(json.dumps(
@@ -181,8 +189,9 @@ class TestPreToolUse:
             encoding="utf-8",
         )
         session_id = "pre-flow-allow-pr6"
-        WF_REQUIRED_DIR.mkdir(parents=True, exist_ok=True)
-        marker = WF_REQUIRED_DIR / session_id
+        wf_dir = Path(hook_home["ARKA_WF_REQUIRED_DIR"])
+        wf_dir.mkdir(parents=True, exist_ok=True)
+        marker = wf_dir / session_id
         marker.write_text("1", encoding="utf-8")
         transcript = tmp_path / "t.jsonl"
         transcript.write_text(json.dumps(
@@ -512,8 +521,9 @@ class TestStop:
         transcript = tmp_path / "transcript.jsonl"
         _make_transcript(transcript, with_external=with_external)
         queue = tmp_path / "queue"
-        WF_REQUIRED_DIR.mkdir(parents=True, exist_ok=True)
-        marker = WF_REQUIRED_DIR / session_id
+        wf_dir = Path(hook_home["ARKA_WF_REQUIRED_DIR"])
+        wf_dir.mkdir(parents=True, exist_ok=True)
+        marker = wf_dir / session_id
         if wf_required:
             marker.write_text("1", encoding="utf-8")
         else:
@@ -673,7 +683,7 @@ class TestUserPromptSubmit:
 
     def test_surfaces_kb_cite_nudge_on_high_effort(self, hook_home):
         sid = "ups-nudge-high-pr6"
-        cite_dir = Path("/tmp/arkaos-cite")
+        cite_dir = arkaos_temp_dir("arkaos-cite")
         cite_dir.mkdir(parents=True, exist_ok=True)
         (cite_dir / f"{sid}.json").write_text(json.dumps({
             "passed": False, "reason": "missing",
@@ -688,7 +698,7 @@ class TestUserPromptSubmit:
 
     def test_suppresses_nudge_on_low_effort(self, hook_home):
         sid = "ups-nudge-low-pr6"
-        cite_dir = Path("/tmp/arkaos-cite")
+        cite_dir = arkaos_temp_dir("arkaos-cite")
         cite_dir.mkdir(parents=True, exist_ok=True)
         nudge_file = cite_dir / f"{sid}.json"
         nudge_file.write_text(json.dumps({
@@ -875,6 +885,73 @@ class TestHelpers:
         assert _wf_classify("/dev implement") is False
         assert _wf_classify("!ls") is False
         assert _wf_classify("") is False
+
+    def test_wf_classify_question_guard(self):
+        # X5 (Cross-Machine Lab): interrogative-led prompts ending in "?"
+        # are information questions even when they contain an action verb.
+        from core.hooks.user_prompt_submit import _wf_classify
+        assert _wf_classify("o que e que este projeto faz?") is False
+        assert _wf_classify("como fazes o deploy?") is False
+        assert _wf_classify("how do I implement auth here?") is False
+        assert _wf_classify("qual abordagem devo implementar?") is False
+        # Polite requests keep matching — the lead word is not interrogative.
+        assert _wf_classify("podes implementar a exportacao?") is True
+        assert _wf_classify("can you add user auth?") is True
+        # Interrogative lead without "?" stays a directive.
+        assert _wf_classify("como combinado, implementa a feature") is True
+
+    def test_wf_classify_p17_lot_decisions_preserved(self):
+        # The P17 prompt lot (ubuntu-log U-007) measured 10/10 identical
+        # decisions across platforms. This pins those decisions, with L04
+        # flipped to False — the X5 false positive this guard fixes.
+        from core.hooks.user_prompt_submit import _wf_classify
+        lot = {
+            "implementa uma nova feature de exportacao CSV": True,   # L01
+            "le os logs": False,                                     # L02
+            "corrige o bug do encoding no stop hook": True,          # L03
+            "o que e que este projeto faz?": False,                  # L04 (X5)
+            "melhora isto": True,                                    # L05
+            "add user authentication to the API": True,              # L06
+            "/arka status": False,                                   # L07
+            "cria um script que faz backup da telemetria": True,     # L08
+            "porque e que o roteamento parece pior no Windows?": False,  # L09
+            "refactor the hook wrappers to share one resolver": True,    # L10
+        }
+        for prompt, expected in lot.items():
+            assert _wf_classify(prompt) is expected, prompt
+
+    def test_v1_migration_notice_ignores_orphan_dir(self, tmp_path, monkeypatch):
+        # Cross-Machine Lab U1: a leftover v1 dir holding one bookkeeping
+        # file re-armed the notice forever, and the early-return in main()
+        # killed the whole per-prompt chain on both platforms.
+        from core.hooks.user_prompt_submit import _v1_migration_notice
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        v1 = tmp_path / ".claude" / "skills" / "arkaos"
+        v1.mkdir(parents=True)
+        (v1 / ".arkaos-root").write_text("x", encoding="utf-8")
+        assert _v1_migration_notice() is None
+
+    def test_v1_migration_notice_fires_on_real_v1(self, tmp_path, monkeypatch):
+        from core.hooks.user_prompt_submit import _v1_migration_notice
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        v1 = tmp_path / ".claude" / "skills" / "arkaos"
+        v1.mkdir(parents=True)
+        (v1 / "SKILL.md").write_text("# v1\n", encoding="utf-8")
+        notice = _v1_migration_notice()
+        assert notice is not None and "[MIGRATION]" in notice
+
+    def test_v1_migration_notice_trusts_v2_manifest(self, tmp_path, monkeypatch):
+        # install-manifest.json is the canonical v2 signal; a functional
+        # v2 install is never nagged even when a real v1 dir remains.
+        from core.hooks.user_prompt_submit import _v1_migration_notice
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        v1 = tmp_path / ".claude" / "skills" / "arkaos"
+        v1.mkdir(parents=True)
+        (v1 / "SKILL.md").write_text("# v1\n", encoding="utf-8")
+        arkaos = tmp_path / ".arkaos"
+        arkaos.mkdir()
+        (arkaos / "install-manifest.json").write_text("{}", encoding="utf-8")
+        assert _v1_migration_notice() is None
 
     def test_query_hint_priority_and_clip(self):
         from core.hooks.pre_tool_use import _query_hint

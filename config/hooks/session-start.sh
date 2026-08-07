@@ -5,8 +5,9 @@
 # ONE python process (core.hooks.session_start) builds the entire
 # systemMessage — the 13 inline python spawns of the previous version
 # live there now (baseline 251ms p50 before consolidation). This file
-# only resolves the interpreter and execs; with no usable interpreter
-# it emits a static banner and exits 0 (fail-open, stdlib-free).
+# only resolves the interpreter and execs; whenever it cannot reach that
+# producer — no repo root, no module file, no interpreter — it emits a
+# static banner and exits 0 (fail-open, stdlib-free).
 # ============================================================================
 
 # _HOOK_CWD captured BEFORE any cd — inside a compound command $PWD
@@ -55,7 +56,10 @@ if [ -n "$REPO" ] && [ -f "$REPO/core/hooks/session_start.py" ] \
 fi
 
 # ─── Degraded fallback: static banner, valid JSON, exit 0 ──────────────
+# Names the symptom, not a cause: three conditions reach here and only one
+# of them is a missing interpreter. Kept byte-identical in wording to the
+# .ps1 twin so an operator on either platform reads the same diagnosis.
 cat <<'EOF'
-{"systemMessage": "\n  ▲  A R K A   O S\n     The Operating System for AI Agent Teams\n\n  Olá, founder\n  degraded: no usable interpreter — run npx arkaos doctor"}
+{"systemMessage": "\n  ▲  A R K A   O S\n     The Operating System for AI Agent Teams\n\n  Olá, founder\n  degraded: ArkaOS core not reachable — run npx arkaos doctor"}
 EOF
 exit 0

@@ -10,7 +10,9 @@
 # Contract of arka_resolve_python():
 #   Echoes the interpreter path and returns 0 when a provisioned ArkaOS
 #   interpreter is found; echoes a best-effort fallback and returns 1 when
-#   only a bare `python3` remains (caller degrades gracefully).
+#   only a bare `python3` remains (caller degrades gracefully). Echoes
+#   NOTHING and returns 1 when every remaining candidate is a Microsoft
+#   Store App Execution Alias — see arka_python_last_resort().
 #
 # Resolution order:
 #   1. $ARKAOS_PYTHON (explicit operator override), if executable.
@@ -18,7 +20,39 @@
 #      python3. `[ -x ]` follows symlinks, so a Homebrew-rotated broken
 #      symlink is skipped automatically.
 #   3. Any python3 on PATH / known locations that can `import yaml`.
-#   4. Bare `python3` as a last resort (return 1).
+#   4. Bare `python3` as a last resort (return 1), or nothing at all when
+#      that name — and `python` behind it — is only a Store alias.
+
+# Last-resort name selection, extracted from arka_resolve_python() so the
+# branch is reachable from a test: in place it sits behind a PATH probe
+# that matches on every POSIX box with a yaml-capable python3, so it can
+# only be exercised on the machine it was written for.
+#
+# Contract: echoes the name to hand back, or NOTHING when every remaining
+# candidate is a Store alias. Empty is the point, not an oversight. The
+# callers gate on `command -v "$ARKA_PY"` and an alias stub PASSES that
+# gate — the file is real, it is just the Python install manager rather
+# than an interpreter — so the only value that degrades a hook instead of
+# downloading a CPython into the user's project is no value at all.
+arka_python_last_resort() {
+  local py3 py
+  py3="$(command -v python3 2>/dev/null)"
+  case "$py3" in
+    *[Ww]indows[Aa]pps*) ;;
+    # Absent or real: the documented `python3` contract, unchanged. POSIX
+    # never reaches the alias branch below.
+    *) printf '%s\n' "python3"; return 0 ;;
+  esac
+
+  # `python3` is the alias. On a Windows box that HAS a real interpreter,
+  # `python` is the name it answers to; on a stock box with none, that is
+  # an alias too and we must hand back nothing.
+  py="$(command -v python 2>/dev/null)"
+  case "$py" in
+    "" | *[Ww]indows[Aa]pps*) return 0 ;;
+  esac
+  printf '%s\n' "python"
+}
 
 arka_resolve_python() {
   local cand
@@ -28,25 +62,46 @@ arka_resolve_python() {
     return 0
   fi
 
+  # Scripts/python.exe is the Windows venv layout. Without it, a Git-Bash
+  # hook on Windows never matches the venv and always falls through to the
+  # PATH probe below -- which is where the Store alias lives.
   for cand in \
       "$HOME/.arkaos/venv/bin/python" \
       "$HOME/.arkaos/venv/bin/python3" \
+      "$HOME/.arkaos/venv/Scripts/python.exe" \
       "$HOME/.arkaos/.venv/bin/python" \
-      "$HOME/.arkaos/.venv/bin/python3"; do
+      "$HOME/.arkaos/.venv/bin/python3" \
+      "$HOME/.arkaos/.venv/Scripts/python.exe"; do
     if [ -x "$cand" ]; then
       printf '%s\n' "$cand"
       return 0
     fi
   done
 
-  for cand in python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
-    if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import yaml" >/dev/null 2>&1; then
+  # Never probe a Microsoft Store App Execution Alias: under Git Bash on
+  # Windows `command -v python3` resolves to .../Microsoft/WindowsApps/
+  # python3, which is the Python install manager, not an interpreter. The
+  # `import yaml` check RUNS each candidate, and running that one installs
+  # a CPython into the current working directory -- the user's project, for
+  # a hook. It could not have succeeded anyway: an alias stub carries no
+  # site packages. On POSIX nothing ever matches that path: pure no-op.
+  #
+  # `python` is LAST on purpose. On Windows it is the only real interpreter
+  # left once the alias is filtered out; on POSIX one of the entries before
+  # it always matches first, so an old box where `python` is Python 2 keeps
+  # resolving exactly as it does today.
+  for cand in python3 /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3 python; do
+    case "$(command -v "$cand" 2>/dev/null)" in
+      "") continue ;;
+      *[Ww]indows[Aa]pps*) continue ;;
+    esac
+    if "$cand" -c "import yaml" >/dev/null 2>&1; then
       printf '%s\n' "$cand"
       return 0
     fi
   done
 
-  printf '%s\n' "python3"
+  arka_python_last_resort
   return 1
 }
 

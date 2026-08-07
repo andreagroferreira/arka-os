@@ -3,7 +3,13 @@
 # ArkaOS v2 — Shared Workflow Classifier
 #
 # Decides whether a user prompt triggers the 4-gate evidence flow.
-# Used by: user-prompt-submit.sh, pre-tool-use.sh, stop.sh.
+#
+# CLI AND TEST SURFACE ONLY — no hook sources this file. The runtime path
+# is core/hooks/user_prompt_submit.py, which user-prompt-submit.sh execs;
+# these functions survive as the documented CLI (see the dispatcher at the
+# bottom) and as the bash half of the parity contract. That is precisely
+# why the two implementations must be diffed by hand: nothing at runtime
+# will ever notice them disagreeing.
 #
 # Contract:
 #   arka_wf_classify "<prompt text>"  → echoes "true" or "false", exits 0.
@@ -11,9 +17,11 @@
 #   arka_wf_is_required "<session_id>"  → exits 0 if required, 1 otherwise.
 #   arka_wf_clear_required "<session_id>"  → removes marker file.
 #
-# Markers live under /tmp/arkaos-wf-required/<session_id>.
-# Python path for mark/clear: delegates to flow_enforcer.py when available,
-# otherwise falls back to touching the marker file directly.
+# Markers live under $ARKA_WF_REQUIRED_DIR/<session_id>, defaulting to
+# /tmp/arkaos-wf-required (see below). The override is the seam that keeps
+# writer and reader on the same directory — core/shared/temp_paths.py
+# ::wf_required_dir is the Python side of it. mark/clear here write the
+# marker file directly; they do NOT call flow_enforcer.py.
 # ============================================================================
 
 ARKA_WF_REQUIRED_DIR="${ARKA_WF_REQUIRED_DIR:-/tmp/arkaos-wf-required}"
@@ -40,6 +48,13 @@ arka_wf_safe_session_id() {
 # missed prompts were short continuations ("continua", "força") or
 # ship-tier verbs ("ship", "publish", "merge", "release", "deploy")
 # that prolong existing flow-required activity.
+# Keep in sync with _WF_QUESTION_LEAD_PATTERN in core/hooks/
+# user_prompt_submit.py. Interrogative-led prompts ending in "?" are
+# information questions, not creation intent, even when they contain an
+# action verb ("o que e que este projeto faz?"). Polite requests ("podes
+# implementar X?") keep matching: their lead word is not interrogative.
+ARKA_WF_QUESTION_LEAD='^[[:space:]]*(o[[:space:]]+que|porqu[eê]|por[[:space:]]+que|para[[:space:]]+que|qual|quais|quando|onde|quem|como|what|why|which|who|whose|when|where|how|does)\b'
+
 ARKA_WF_VERB_PATTERN='(criar?|crie[ms]?|cria[mr]?|adicionar?|adiciona[mr]?|implementar?|implementa[mr]?|desenvolver?|desenvolve[mr]?|construir?|constru[ií]a?[mr]?|fazer?|faz[ae]?[mr]?|refactor(izar?)?|corrigir?|corrige[mr]?|consertar?|conserta[mr]?|continuar?|continua[mr]?|forçar?|força[mr]?|colocar?|coloca[mr]?|p[oô]r|melhorar?|melhora[mr]?|terminar?|termina[mr]?|acabar?|acaba[mr]?|publicar?|publica[mr]?|lançar?|lança[mr]?|create[sd]?|creating|build(s|ing)?|add(s|ed|ing)?|implement(s|ed|ing)?|develop(s|ed|ing)?|fix(es|ed|ing)?|refactor(s|ed|ing)?|make[sd]?|making|continue[sd]?|continuing|ship(s|ped|ping)?|merge[sd]?|merging|publish(es|ed|ing)?|release[sd]?|releasing|deploy(s|ed|ing)?|finish(es|ed|ing)?|improve[sd]?|improving)'
 
 # Classify: returns "true" if the prompt looks like a creation/
@@ -55,6 +70,30 @@ arka_wf_classify() {
     echo "false"
     return 0
   fi
+
+  # Question guard: interrogative lead + trailing "?" = information
+  # question, never creation intent (X5 false positive).
+  #
+  # The lead is taken from the FIRST NON-BLANK LINE, never from the whole
+  # text. The Python twin uses re.match on text.strip(), which can only
+  # match at offset 0; grep anchors ^ PER LINE, so feeding it everything
+  # made any later line able to trigger the guard. The two then disagreed
+  # on every multi-line prompt ending in a question — "implementa X\no que
+  # e que isto faz?" is a directive followed by a question, and a directive
+  # still requires the flow. awk reproduces .strip() closely enough for an
+  # anchor that already tolerates leading whitespace: skip blank lines,
+  # print the first line with content, stop.
+  local trimmed lead
+  trimmed=$(printf '%s' "$text" | sed 's/[[:space:]]*$//')
+  case "$trimmed" in
+    *\?)
+      lead=$(printf '%s' "$text" | awk 'NF { print; exit }')
+      if printf '%s' "$lead" | grep -qiE "$ARKA_WF_QUESTION_LEAD"; then
+        echo "false"
+        return 0
+      fi
+      ;;
+  esac
 
   if echo "$text" | grep -qiE "\b${ARKA_WF_VERB_PATTERN}\b"; then
     echo "true"

@@ -203,9 +203,16 @@ if ($shouldProcessGotchas -and $null -ne $payload) {
                 if (Test-Path -LiteralPath $venvPy) {
                     $pythonForMarker = $venvPy
                 } else {
-                    foreach ($cmd in 'python3','python','py') {
+                    # Never accept %LOCALAPPDATA%\Microsoft\WindowsApps: the
+                    # python3.exe there is the Store install-manager alias,
+                    # and running it downloads a full CPython into the cwd —
+                    # which for a hook is the user's own project directory.
+                    # Same reason "python" is tried before "python3" here.
+                    foreach ($cmd in 'python','py','python3') {
                         $resolved = Get-Command $cmd -ErrorAction SilentlyContinue
-                        if ($resolved) { $pythonForMarker = $resolved.Source; break }
+                        if ($resolved -and $resolved.Source -notmatch '\\Microsoft\\WindowsApps\\') {
+                            $pythonForMarker = $resolved.Source; break
+                        }
                     }
                 }
                 if ($pythonForMarker) {

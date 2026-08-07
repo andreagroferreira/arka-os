@@ -24,7 +24,23 @@ $cwd = [string]$inp.cwd
 
 if ($stopHookActive -eq "true") { exit 0 }
 
-$wfMarker = Join-Path "/tmp/arkaos-wf-required" $sessionId
+# Marker dir must match the Python writer: core.hooks.user_prompt_submit
+# ::_wf_mark_required resolves it through core.shared.temp_paths
+# ::wf_required_dir — which is arkaos_temp_dir('arkaos-wf-required'),
+# i.e. %TEMP%\arkaos-wf-required on Windows, EXCEPT that it honors
+# ARKA_WF_REQUIRED_DIR first. Read arkaos_temp_dir directly here and the
+# override splits writer from reader: the writer moves, this gate finds no
+# marker and allows everything, silently. That is the fail-open
+# wf_required_dir exists to close, so mirror wf_required_dir, not
+# arkaos_temp_dir.
+# The previous hardcoded "/tmp/arkaos-wf-required" resolves to a path that
+# exists on no stock Windows machine, so this gate exited 0 on every real
+# session and the whole compliance chain below never ran.
+$wfDir = $env:ARKA_WF_REQUIRED_DIR
+if ([string]::IsNullOrWhiteSpace($wfDir)) {
+    $wfDir = Join-Path ([System.IO.Path]::GetTempPath()) 'arkaos-wf-required'
+}
+$wfMarker = Join-Path $wfDir $sessionId
 if ([string]::IsNullOrWhiteSpace($sessionId) -or -not (Test-Path $wfMarker)) {
     exit 0
 }
