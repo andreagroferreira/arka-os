@@ -114,9 +114,11 @@ strict = true
 # ships two top-level `server.py` modules, and plugins/ + scripts/ collide
 # on bare script names. An aborted run reported as "no typecheck
 # configuration detected" was a FALSE GREEN on a NON-NEGOTIABLE gate.
-# `files` names the first-party source this repo governs; the mcps/ and
-# plugins/ trees run under their own environments and are typechecked
-# there, not here. `strict` is untouched.
+# `files` names the first-party source this repo governs. The mcps/ tree
+# runs under its own uv environment (mcps/arka-tools/pyproject.toml) and
+# plugins/ is a generated mirror of departments/; neither is typechecked
+# anywhere today — that is an open gap (tracked), not a delegation.
+# `strict` is untouched.
 files = ["core", "scripts"]
 # Without this, `scripts/bench/harness.py` maps to BOTH `bench.harness`
 # (nearest dir without __init__.py) and `scripts.bench.harness`, which is

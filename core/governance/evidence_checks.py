@@ -652,7 +652,10 @@ def _project_wide_advisory(
     result = _run(
         "typecheck", _mypy_project_argv(project_dir, mypy), project_dir, timeout,
     )
-    prefix = "typecheck (project-wide, advisory, NOT gating): "
+    prefix = (
+        "typecheck (project-wide over the working tree, including this "
+        "diff; advisory, NOT gating): "
+    )
     if not result.ran:
         return ""
     if result.exit_code == 0:
@@ -718,8 +721,10 @@ def _attribute_mypy_errors(
     signature and the error surfaces at an untouched caller. That
     mis-attribution (both ways) is the same one the security sweep has
     always accepted; resolving cause across lines would need dataflow the
-    gate has no business doing. It errs toward the diff, and the
-    pre-existing count below keeps the remainder visible either way.
+    gate has no business doing. Only the three fail-closed paths (no
+    merge-base, undiffable path, untracked file) bias deliberately toward
+    the diff; elsewhere the direction is unknowable, and the
+    not-on-added-lines count below keeps the remainder visible either way.
 
     Returns None when no merge-base exists — attribution is then
     impossible and the caller must gate on everything.
@@ -760,8 +765,8 @@ def _attributed_verdict(
         summary = "no type errors on lines this diff added"
     if inherited:
         summary += (
-            f"\n{len(inherited)} pre-existing strict error(s) in touched "
-            "files — master's debt, not this diff's; NOT gating"
+            f"\n{len(inherited)} strict error(s) on lines this diff did "
+            "not add — NOT gating; line position, not provenance"
         )
     return replace(result, passed=not gating, summary=summary)
 

@@ -2507,8 +2507,8 @@ class TestTypecheckLineAttribution:
             f"a clean addition must not inherit master's debt: {result.summary}"
         )
         assert "no type errors on lines this diff added" in result.summary
-        assert "pre-existing strict error(s) in touched files" in result.summary
-        assert "master's debt" in result.summary
+        assert "strict error(s) on lines this diff did not add" in result.summary
+        assert "line position, not provenance" in result.summary
 
     def test_a_new_error_on_an_added_line_gates_and_is_cited(self, tmp_path):
         self._mypy_or_skip()
@@ -2549,7 +2549,10 @@ class TestTypecheckLineAttribution:
         gating, inherited = attributed
         assert gating == []
         assert inherited, "master's errors must still be enumerated"
-        assert f"{len(inherited)} pre-existing" in result.summary
+        assert (
+            f"{len(inherited)} strict error(s) on lines this diff did not add"
+            in result.summary
+        )
 
     def test_no_merge_base_gates_on_everything(self, tmp_path, monkeypatch):
         """Fail CLOSED: unattributable is never treated as unattributed."""
