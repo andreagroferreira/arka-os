@@ -237,18 +237,22 @@ class TestRegistryGeneration:
         out = tmp_path / "cmds.json"
         reg = generate_commands_registry(BASE_DIR, out)
         depts = set(reg["_meta"]["departments"].keys())
-        expected = {"dev", "marketing", "brand", "finance", "strategy", "ecom",
+        # The registry keys departments by command PREFIX (fin, mkt, strat),
+        # not by directory name (finance, marketing, strategy).
+        expected = {"dev", "mkt", "brand", "fin", "strat", "ecom",
                     "kb", "ops", "pm", "saas", "landing", "content", "community",
                     "sales", "leadership", "org", "arka"}
         missing = expected - depts
         assert not missing, f"Missing: {missing}"
         assert reg["_meta"]["total_commands"] >= 200
 
-    def test_all_4_runtimes_available(self):
+    def test_core_runtimes_available(self):
+        # Exact-count equality fails on any machine with an extra runtime
+        # adapter installed (opencode shipped as the 5th) — assert the four
+        # core runtimes are present, not that nothing else is.
         runtimes = list_runtimes()
-        assert len(runtimes) == 4
         ids = {r["id"] for r in runtimes}
-        assert ids == {"claude-code", "codex", "gemini", "cursor"}
+        assert {"claude-code", "codex", "gemini", "cursor"} <= ids
 
 
 # Helper

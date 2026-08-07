@@ -91,6 +91,11 @@ line-length = 100
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
+# tests/integration stays out deliberately: its modules exercise the real
+# machine (installed runtimes, live registry generation) and are run
+# on demand, not per-commit. Issue #437 fixed their asserts so an
+# on-demand run is green; promoting them to testpaths needs hermetic
+# rewrites first.
 testpaths = ["tests/python"]
 asyncio_mode = "auto"
 
