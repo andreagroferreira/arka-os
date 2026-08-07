@@ -106,6 +106,7 @@ the derived material.
 - **License:** MIT — Copyright (c) 2026 Hallmark contributors
 - **License text:** retained verbatim at
   `departments/brand/skills/design-review/references/hallmark.LICENSE`
+  (identical copies beside each derived skill)
 - **Upstream version:** v1.1.0 (main HEAD `aeb42fb`, 2026-06-04)
 
 Material derived from this project:
@@ -144,6 +145,7 @@ substantial portions of the derived material.
 - **License:** Apache License 2.0 — Copyright Paul Bakaus
 - **License text:** retained verbatim at
   `departments/brand/skills/design-review/references/impeccable.LICENSE`
+  (identical copies beside each derived skill)
 - **NOTICE:** carried verbatim at
   `departments/brand/skills/design-review/references/impeccable.NOTICE`
   (Apache License §4(d))
