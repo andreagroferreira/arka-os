@@ -76,20 +76,33 @@ def _clean_description(raw: str | None, fallback: str) -> str:
     """First sentence(s) of the description, single line, truncated."""
     if not raw:
         return fallback
-    text = raw.replace("TRIGGER:", ". TRIGGER:").split("TRIGGER:")[0]
-    text = re.sub(r"\s+", " ", text).strip()
-    text = re.sub(r"\s+\.", ".", text)
+    head, trigger, _ = raw.partition("TRIGGER:")
+    text = re.sub(r"\s+", " ", head).strip()
+    # Collapse " ." to "." only where the dot ENDS a sentence. Unanchored,
+    # this pattern also matched the dot that OPENS a token, welding
+    # "Management): .gitignore" into "Management):.gitignore" — the space
+    # was eaten in front of every dot-prefixed name (.env, .gitignore).
+    text = re.sub(r"\s+\.(?=\s|$)", ".", text)
+    # Dropping the TRIGGER: clause leaves the head unterminated, so close
+    # the sentence — but only when the author has not closed it already.
+    # Injecting the separator unconditionally stacked a second full stop
+    # onto 120 descriptions that already ended in one ("... the vault..").
+    if trigger and text and text[-1] not in ".!?":
+        text += "."
     if len(text) > 180:
-        head = text[:177]
+        # Named `window`, not `head`: `head` above is the pre-TRIGGER text.
+        window = text[:177]
         # Cut on a word boundary: a mid-word slice leaves a truncated word
         # that spellcheckers report as a misspelling of the whole one, so
         # every catalog regeneration used to redden the codespell gate.
-        boundary = head.rfind(" ")
-        cut = (head[:boundary] if boundary > 0 else head).rstrip(" ,;:—-")
-        # `or head` guards the degenerate case where the whole cut is
+        boundary = window.rfind(" ")
+        # `.` is in the strip set so a cut landing on a sentence end does
+        # not stack onto the ellipsis ("...experiment plan....").
+        cut = (window[:boundary] if boundary > 0 else window).rstrip(" ,;:—-.")
+        # `or window` guards the degenerate case where the whole cut is
         # separators: emitting a bare "..." would lose a description
         # master rendered in full.
-        text = (cut or head) + "..."
+        text = (cut or window) + "..."
     return text or fallback
 
 
