@@ -2729,17 +2729,29 @@ class TestTypecheckRelevanceGuard:
         )
         assert result.ran is True
 
-    def test_stub_only_diff_is_still_typechecked(
+    def test_stub_only_diff_is_typechecked_by_name_not_project_wide(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """`.pyi` is mypy's own file type — skipping it would be a false green."""
+        """`.pyi` is mypy's own file type, and the two sets must agree.
+
+        QG cycle 3 M1: the relevance guard admitted `.pyi` while
+        `_typecheck_scoped` scoped on `_LINTABLE_PY`, so a stub-only diff
+        passed the guard and then fell into the project-wide run it had
+        just been cleared of — the defect moved, it did not close.
+        """
         self._mypy_project(tmp_path)
+        (tmp_path / "core").mkdir()
+        (tmp_path / "core" / "api.pyi").write_text(
+            "def add(a: int, b: int) -> int: ...\n", encoding="utf-8",
+        )
         self._mypy_on_path(monkeypatch)
         seen = self._capture(monkeypatch)
 
         evidence_checks._check_typecheck(tmp_path, ["core/api.pyi"], None, 30)
 
-        assert seen == [["mypy", "."]]
+        assert ["mypy", "--follow-imports=silent", "core/api.pyi"] in seen, (
+            f"the stub must be typechecked BY NAME, not project-wide: {seen}"
+        )
 
     def test_typescript_only_diff_reaches_tsc_not_mypy(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
@@ -2779,13 +2791,100 @@ class TestTypecheckRelevanceGuard:
     def test_no_typechecker_configured_keeps_its_own_reason(
         self, tmp_path: Path,
     ) -> None:
-        """The two skips are different facts and must not share a sentence."""
+        """The two skips are different facts and must not share a sentence.
+
+        Asserted by discrimination, not by string equality: pinning the
+        exact prose makes every rewording a red test without protecting
+        anything (QG cycle 3, M4).
+        """
         result = evidence_checks._check_typecheck(
             tmp_path, ["README.md"], None, 30,
         )
 
         assert result.ran is False
-        assert result.summary == "no typecheck configuration detected"
+        assert "no typecheck configuration" in result.summary
+        assert "typecheckable" not in result.summary, (
+            "'no tool configured' must never read as 'nothing to check'"
+        )
+
+    def test_package_json_only_diff_still_runs_tsc(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """QG cycle 3 A2: relevance by extension alone went blind to manifests.
+
+        A @types bump in a lockfile-only PR is precisely the diff where
+        the project-wide run is the ONLY defence — no source changed, so
+        nothing scoped could ever see it.
+        """
+        (tmp_path / "tsconfig.json").write_text("{}", encoding="utf-8")
+        tsc = tmp_path / "node_modules" / ".bin" / "tsc"
+        tsc.parent.mkdir(parents=True)
+        tsc.write_text("#!/bin/sh\n", encoding="utf-8")
+        seen = self._capture(monkeypatch)
+
+        evidence_checks._check_typecheck(tmp_path, ["package.json"], None, 30)
+
+        assert seen == [[str(tsc), "--noEmit"]]
+
+    @pytest.mark.parametrize(
+        "manifest",
+        [
+            "package-lock.json", "bun.lock", "bun.lockb", "yarn.lock",
+            "pnpm-lock.yaml", "tsconfig.json", "tsconfig.app.json",
+            "packages/ui/package.json",
+        ],
+    )
+    def test_every_ts_manifest_triggers_tsc(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, manifest: str,
+    ) -> None:
+        (tmp_path / "tsconfig.json").write_text("{}", encoding="utf-8")
+        tsc = tmp_path / "node_modules" / ".bin" / "tsc"
+        tsc.parent.mkdir(parents=True)
+        tsc.write_text("#!/bin/sh\n", encoding="utf-8")
+        seen = self._capture(monkeypatch)
+
+        evidence_checks._check_typecheck(tmp_path, [manifest], None, 30)
+
+        assert seen == [[str(tsc), "--noEmit"]], f"{manifest} did not trigger tsc"
+
+    @pytest.mark.parametrize(
+        "manifest",
+        [
+            "pyproject.toml", "mypy.ini", ".mypy.ini", "setup.cfg",
+            "requirements.txt", "requirements-dev.txt",
+        ],
+    )
+    def test_every_python_manifest_triggers_mypy(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, manifest: str,
+    ) -> None:
+        self._mypy_project(tmp_path)
+        self._mypy_on_path(monkeypatch)
+        seen = self._capture(monkeypatch)
+
+        evidence_checks._check_typecheck(tmp_path, [manifest], None, 30)
+
+        assert seen == [["mypy", "."]], f"{manifest} did not trigger mypy"
+
+    def test_generic_json_is_not_a_manifest_trigger(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A fixture is not a manifest.
+
+        Treating every .json as a trigger would re-run the project-wide
+        typechecker — and re-inherit its whole debt — on ordinary data
+        edits, which is the failure #491 exists to stop.
+        """
+        self._mypy_project(tmp_path)
+        (tmp_path / "tsconfig.json").write_text("{}", encoding="utf-8")
+        self._mypy_on_path(monkeypatch)
+        seen = self._capture(monkeypatch)
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["src/data.json"], None, 30,
+        )
+
+        assert seen == []
+        assert result.ran is False
 
     def test_docs_only_report_is_never_a_fail(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
@@ -2854,17 +2953,70 @@ class TestCoverageRelevanceGuard:
 
         assert result.ran is False, "a stale artefact must not vouch for markdown"
         assert result.passed is None
-        assert "no executable source" in result.summary
+        assert "cannot describe this diff" in result.summary
+        assert "empty diff" not in result.summary, (
+            "an inert diff is not an empty one — the two skips must not "
+            "share a sentence"
+        )
 
     def test_empty_changeset_gets_no_coverage_verdict(
         self, tmp_path: Path,
     ) -> None:
+        """Its own fact, its own sentence (QG cycle 3, M2).
+
+        "no executable source" was factually wrong for a diff that has no
+        files at all, and it collided with the inert-diff skip.
+        """
         self._artefact(tmp_path)
 
         result = evidence_checks._check_coverage(tmp_path, [], None, 60)
 
         assert result.ran is False
         assert result.passed is None
+        assert "empty diff" in result.summary
+        assert "documentation" not in result.summary
+
+    @pytest.mark.parametrize(
+        "changed_file",
+        ["main.go", "app.rb", "Main.java", "deploy.sh", "lib.rs", "Makefile"],
+    )
+    def test_a_language_this_module_cannot_name_fails_closed(
+        self, tmp_path: Path, changed_file: str,
+    ) -> None:
+        """QG cycle 3 A1 — the fail-open my first fix introduced.
+
+        The allowlist decided BEFORE the artefact was read, so every
+        language it had not enumerated was silenced: a 42% coverage.xml
+        on a `main.go` diff reported no verdict at all, and composed with
+        a passing lint and tests it turned `overall` into `pass` on a
+        project 38 points under the constitutional threshold. Only a
+        closed set of formats nothing executes may silence this check;
+        everything else — known or not — runs.
+        """
+        self._artefact(tmp_path, rate=0.42)
+        self._source(tmp_path, changed_file)
+
+        result = evidence_checks._check_coverage(
+            tmp_path, [changed_file], None, 60,
+        )
+
+        assert result.ran is True, f"{changed_file} silenced the coverage gate"
+        assert result.passed is False
+        assert "42.0%" in result.summary
+
+    def test_one_non_inert_file_among_docs_keeps_the_check_running(
+        self, tmp_path: Path,
+    ) -> None:
+        """Inertness is a property of the WHOLE diff, not of a majority."""
+        self._artefact(tmp_path, rate=0.42)
+        self._source(tmp_path, "main.go")
+
+        result = evidence_checks._check_coverage(
+            tmp_path, ["README.md", "docs/logo.svg", "main.go"], None, 60,
+        )
+
+        assert result.ran is True
+        assert result.passed is False
 
     def test_junit_fallback_is_guarded_too(self, tmp_path: Path) -> None:
         """Test results describe executions, and markdown executes nothing."""
@@ -2926,7 +3078,7 @@ class TestCoverageRelevanceGuard:
         from pytest, so narrowing the guard to `.py` would silence
         coverage for every non-Python project.
 
-        KNOWN RESIDUAL, not endorsed by this test: the freshness and
+        KNOWN RESIDUAL, not endorsed by this test (unchanged): the freshness and
         module-presence checks downstream still reason about `.py` only,
         so a pytest artefact can still carry a percentage past a
         TS-only diff. Closing that needs the artefact's own `<source>`
@@ -2941,3 +3093,187 @@ class TestCoverageRelevanceGuard:
         )
 
         assert result.ran is True
+
+
+# ─── spellcheck scoped to added lines (issue #498) ──────────────────────
+
+
+class TestSpellcheckScopedToAddedLines:
+    """codespell gated whole changed files; only added lines may gate.
+
+    Third check in this module to need the same contract, and the last
+    one that was still firing the evidence floor on text nobody in the
+    diff wrote: a docs deliverable whose own generated output was clean
+    was REJECTED over 5 hits, every one outside the edited regions and
+    present verbatim in the pre-5.10.0 baseline (issue #498, QG cycle 3).
+
+    Real git repo + real codespell, both confined to tmp_path: the claim
+    under test is what git and codespell JOINTLY report, which a stub
+    cannot establish. Same idiom as TestTypecheckLineAttribution.
+    """
+
+    # Verified against codespell 2.4.2: `recieve` is in its dictionary and
+    # prints as `path:line: recieve ==> receive`.
+    _HIT_LINE = "please recieve this note\n"
+    _CLEAN = "an ordinary line of prose\n"
+
+    @staticmethod
+    def _git(args: list[str], cwd: Path) -> None:
+        subprocess.run(
+            ["git", *args], cwd=cwd, check=True, capture_output=True, text=True,
+        )
+
+    def _repo(self, root: Path, baseline: str) -> None:
+        """A repo whose master carries ``baseline`` as pre-existing text."""
+        self._git(["init", "-q", "-b", "master"], root)
+        self._git(["config", "user.email", "t@t.t"], root)
+        self._git(["config", "user.name", "t"], root)
+        (root / "doc.md").write_text(baseline, encoding="utf-8")
+        self._git(["add", "doc.md"], root)
+        self._git(["commit", "-qm", "baseline"], root)
+
+    @staticmethod
+    def _codespell_or_skip() -> None:
+        if evidence_checks._tool_cmd("codespell", module="codespell_lib") is None:
+            pytest.skip("codespell not installed")
+
+    def test_pre_existing_hit_in_a_touched_file_does_not_gate(
+        self, tmp_path: Path,
+    ) -> None:
+        """(a) The reported defect: master's text rejecting someone's diff."""
+        self._codespell_or_skip()
+        self._repo(tmp_path, self._CLEAN + self._HIT_LINE)
+        (tmp_path / "doc.md").write_text(
+            self._CLEAN + self._HIT_LINE + "a newly added clean line\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, ["doc.md"], None, 60,
+        )
+
+        assert result.ran is True
+        assert result.passed is True, (
+            f"a pre-existing misspelling gated an unrelated diff: {result.summary}"
+        )
+        assert "no misspellings on lines this diff added" in result.summary
+        assert "NOT gating" in result.summary, (
+            "the inherited hit must stay VISIBLE, never silently dropped"
+        )
+
+    def test_hit_on_an_added_line_still_gates(self, tmp_path: Path) -> None:
+        """(b) Scoping must not become an amnesty."""
+        self._codespell_or_skip()
+        self._repo(tmp_path, self._CLEAN)
+        (tmp_path / "doc.md").write_text(
+            self._CLEAN + self._HIT_LINE, encoding="utf-8",
+        )
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, ["doc.md"], None, 60,
+        )
+
+        assert result.ran is True
+        assert result.passed is False
+        assert "recieve" in result.summary, (
+            "the reviewer must see WHICH word, not just a red light"
+        )
+        assert "1 gating misspelling(s)" in result.summary
+        assert "UNATTRIBUTED" not in result.summary, (
+            "git DID describe this file — the verdict must not hedge"
+        )
+
+    def test_a_brand_new_file_counts_entirely_as_added(
+        self, tmp_path: Path,
+    ) -> None:
+        """(c) git cannot diff an untracked path — it fails CLOSED."""
+        self._codespell_or_skip()
+        self._repo(tmp_path, self._CLEAN)
+        (tmp_path / "new.md").write_text(
+            self._CLEAN + self._HIT_LINE, encoding="utf-8",
+        )
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, ["new.md"], None, 60,
+        )
+
+        assert result.passed is False
+        assert "recieve" in result.summary
+        assert "UNATTRIBUTED" in result.summary, (
+            "gating by fail-closed policy is not the same claim as gating "
+            "on a line git saw added — the summary must not conflate them"
+        )
+
+    def test_a_file_outside_the_repo_gates_but_says_it_could_not_attribute(
+        self, tmp_path: Path,
+    ) -> None:
+        """The campaign's real shape: a diff living outside project_dir.
+
+        Reproduced against this repo: the 7 changed .md sat under
+        ~/.claude/skills while the gate ran on arka-os, so `git ls-files`
+        cannot describe any of them and every hit gates. That is the
+        correct fail-closed call and the same one security-grep makes —
+        but the reviewer must be able to tell it apart from a hit this
+        diff genuinely introduced, or the message launders a policy
+        decision into a finding.
+        """
+        self._codespell_or_skip()
+        self._repo(tmp_path, self._CLEAN)
+        outside = tmp_path.parent / f"{tmp_path.name}-elsewhere"
+        outside.mkdir(exist_ok=True)
+        foreign = outside / "foreign.md"
+        foreign.write_text(self._HIT_LINE, encoding="utf-8")
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, [str(foreign)], None, 60,
+        )
+
+        assert result.passed is False, "fail-closed on an undescribable file"
+        assert "UNATTRIBUTED" in result.summary
+        assert "outside this repository" in result.summary
+
+    def test_clean_docs_diff_passes_with_its_scope_line(
+        self, tmp_path: Path,
+    ) -> None:
+        """(d) The campaign's case: nothing to report, and it says so."""
+        self._codespell_or_skip()
+        self._repo(tmp_path, self._CLEAN)
+        (tmp_path / "doc.md").write_text(
+            self._CLEAN + "another perfectly ordinary line\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, ["doc.md"], None, 60,
+        )
+
+        assert result.ran is True
+        assert result.passed is True
+        assert "1 of 1 changed .md inspected" in result.summary
+
+    def test_outside_a_repo_every_hit_gates(self, tmp_path: Path) -> None:
+        """No merge-base means no attribution, and a gate never guesses."""
+        self._codespell_or_skip()
+        (tmp_path / "doc.md").write_text(
+            self._CLEAN + self._HIT_LINE, encoding="utf-8",
+        )
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, ["doc.md"], None, 60,
+        )
+
+        assert result.passed is False
+        assert "ALL of them gate" in result.summary
+
+    def test_attribution_engine_is_shared_with_typecheck(self) -> None:
+        """One engine, two regexes — the fail-closed rule cannot drift.
+
+        `_attribute_mypy_errors` is kept as a named wrapper because the
+        typecheck abort test monkeypatches it by name.
+        """
+        import inspect
+
+        source = inspect.getsource(evidence_checks._attribute_mypy_errors)
+
+        assert "_attribute_hits(" in source, (
+            "the mypy path must delegate to the shared attribution engine"
+        )
