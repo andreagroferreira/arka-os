@@ -2377,6 +2377,12 @@ class TestTypecheckScopedToDiff:
             )
 
         monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        monkeypatch.setattr(
+            evidence_checks, "_run_capturing",
+            lambda check, cmd, project_dir, timeout: (
+                fake_run(check, cmd, project_dir, timeout), "",
+            ),
+        )
         result = evidence_checks._check_typecheck(
             tmp_path, ["clean.py"], None, 30,
         )
@@ -2441,3 +2447,176 @@ class TestTypecheckScopedToDiff:
             "master's debt must not reject a diff mypy was never asked to cover"
         )
         assert "outside the project's declared mypy scope" in result.summary
+
+
+# ─── typecheck attributed to ADDED lines (orchestrator decision, batch 6d) ──
+
+
+class TestTypecheckLineAttribution:
+    """File granularity still charged this diff for master's debt.
+
+    Proof by absurdity, on this very branch: measured type-debt delta of
+    ZERO, yet `core/hooks/stop.py`'s 15 pre-existing strict errors made
+    the gate REJECT it. Only errors on lines the diff ADDED may gate —
+    the same contract `_check_security_grep` has always applied, using the
+    same `_diff_base` + `_added_lines` machinery.
+
+    These build a REAL git repo and run REAL mypy: attribution is a claim
+    about what git and mypy jointly report, which a stub cannot establish.
+    """
+
+    @staticmethod
+    def _git(args: list[str], cwd: Path) -> None:
+        subprocess.run(
+            ["git", *args], cwd=cwd, check=True,
+            capture_output=True, text=True,
+        )
+
+    def _repo(self, root: Path, baseline: str) -> None:
+        """A repo whose master carries `baseline` as pre-existing debt."""
+        self._git(["init", "-q", "-b", "master"], root)
+        self._git(["config", "user.email", "t@t.t"], root)
+        self._git(["config", "user.name", "t"], root)
+        (root / "pyproject.toml").write_text(
+            "[tool.mypy]\nstrict = true\n", encoding="utf-8",
+        )
+        (root / "mod.py").write_text(baseline, encoding="utf-8")
+        self._git(["add", "pyproject.toml", "mod.py"], root)
+        self._git(["commit", "-qm", "baseline"], root)
+
+    @staticmethod
+    def _mypy_or_skip() -> None:
+        if evidence_checks._tool_cmd("mypy") is None:
+            pytest.skip("mypy not installed")
+
+    # master already fails strict: no annotations at all.
+    _DEBT = "def old(a):\n    return a + 1\n"
+
+    def test_pre_existing_debt_in_a_touched_file_does_not_gate(self, tmp_path):
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        (tmp_path / "mod.py").write_text(
+            self._DEBT + "\n\ndef added(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+
+        assert result.ran is True
+        assert result.passed is True, (
+            f"a clean addition must not inherit master's debt: {result.summary}"
+        )
+        assert "no type errors on lines this diff added" in result.summary
+        assert "pre-existing strict error(s) in touched files" in result.summary
+        assert "master's debt" in result.summary
+
+    def test_a_new_error_on_an_added_line_gates_and_is_cited(self, tmp_path):
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        (tmp_path / "mod.py").write_text(
+            self._DEBT + "\n\ndef added(a: int) -> int:\n    return 'nope'\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+
+        assert result.passed is False
+        assert "type error(s) on lines this diff added" in result.summary
+        assert "return-value" in result.summary, (
+            "the reviewer must see WHICH error the diff introduced"
+        )
+        assert "mod.py:" in result.summary
+
+    def test_pre_existing_errors_are_counted_never_hidden(self, tmp_path):
+        """Non-gating is not the same as invisible."""
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        (tmp_path / "mod.py").write_text(
+            self._DEBT + "\n\nadded: int = 1\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+        attributed = evidence_checks._attribute_mypy_errors(
+            tmp_path,
+            subprocess.run(
+                [*evidence_checks._tool_cmd("mypy"), "--follow-imports=silent",
+                 "mod.py"],
+                cwd=tmp_path, capture_output=True, text=True,
+            ).stdout,
+        )
+
+        assert attributed is not None
+        gating, inherited = attributed
+        assert gating == []
+        assert inherited, "master's errors must still be enumerated"
+        assert f"{len(inherited)} pre-existing" in result.summary
+
+    def test_no_merge_base_gates_on_everything(self, tmp_path, monkeypatch):
+        """Fail CLOSED: unattributable is never treated as unattributed."""
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        monkeypatch.setattr(evidence_checks, "_diff_base", lambda _p: None)
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+
+        assert result.passed is False
+        assert "no merge-base" in result.summary
+        assert "ALL of them gate" in result.summary
+
+    def test_an_untrackable_file_fails_closed(self, tmp_path):
+        """git cannot diff a brand-new path against the base — it gates."""
+        self._mypy_or_skip()
+        self._repo(tmp_path, "x: int = 1\n")
+        (tmp_path / "brand_new.py").write_text(
+            "def added(a: int) -> int:\n    return 'nope'\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["brand_new.py"], None, 120,
+        )
+
+        assert result.passed is False
+        assert "brand_new.py" in result.summary
+
+    def test_an_abort_is_never_downgraded_by_attribution(
+        self, tmp_path, monkeypatch
+    ):
+        """An unfinished checker has no empty gating list to be proud of."""
+        (tmp_path / "pyproject.toml").write_text(
+            "[tool.mypy]\nstrict = true\n", encoding="utf-8",
+        )
+        (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        aborted = (
+            'mcps/a/server.py: error: Duplicate module named "server"\n'
+            "Found 1 error in 1 file (errors prevented further checking)"
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run_capturing",
+            lambda check, cmd, project_dir, timeout: (
+                CheckResult(
+                    check=check, ran=True, passed=False, command=" ".join(cmd),
+                    exit_code=1, summary=aborted,
+                ),
+                aborted,
+            ),
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            ),
+        )
+
+        def explode(*_a, **_k):
+            raise AssertionError("an aborted run must never be attributed")
+
+        monkeypatch.setattr(evidence_checks, "_attribute_mypy_errors", explode)
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 30)
+
+        assert result.passed is False
+        assert "ABORTED" in result.summary

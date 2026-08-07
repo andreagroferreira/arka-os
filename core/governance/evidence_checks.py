@@ -195,6 +195,20 @@ def _run(
     check: str, cmd: list[str], project_dir: Path, timeout: int,
 ) -> CheckResult:
     """Run one read-only project command; capture exit code + tail."""
+    return _run_capturing(check, cmd, project_dir, timeout)[0]
+
+
+def _run_capturing(
+    check: str, cmd: list[str], project_dir: Path, timeout: int,
+) -> tuple[CheckResult, str]:
+    """``_run`` plus the UNTRUNCATED output.
+
+    A caller that must ATTRIBUTE individual findings cannot work from the
+    800-char tail: every finding truncated away would read as absent, and
+    "absent" is exactly what a gate must never infer from its own
+    formatting. The tail stays the reported summary; the full text is for
+    analysis only.
+    """
     command_str = " ".join(cmd)
     try:
         proc = subprocess.run(
@@ -202,7 +216,7 @@ def _run(
             timeout=timeout,
         )
     except FileNotFoundError:
-        return _skip(check, f"tool not found: {cmd[0]}")
+        return _skip(check, f"tool not found: {cmd[0]}"), ""
     except OSError as exc:
         # Anything else exec can refuse — a directory, a non-executable
         # file, a broken symlink. The gate must report, never raise: an
@@ -211,18 +225,18 @@ def _run(
         return CheckResult(
             check=check, ran=True, passed=False, command=command_str,
             exit_code=None, summary=f"cannot execute {cmd[0]}: {exc.strerror}",
-        )
+        ), ""
     except subprocess.TimeoutExpired:
         # subprocess.run kills the child on expiry before raising.
         return CheckResult(
             check=check, ran=True, passed=None, command=command_str,
             exit_code=None, summary="timeout",
-        )
-    output = _tail(proc.stdout.strip() or proc.stderr.strip())
+        ), ""
+    full = proc.stdout.strip() or proc.stderr.strip()
     return CheckResult(
         check=check, ran=True, passed=proc.returncode == 0,
-        command=command_str, exit_code=proc.returncode, summary=output,
-    )
+        command=command_str, exit_code=proc.returncode, summary=_tail(full),
+    ), full
 
 
 # ─── Applicability detection ────────────────────────────────────────────
@@ -651,6 +665,107 @@ def _project_wide_advisory(
     return f"{prefix}{found.group(0)} — master's debt, not this diff's"
 
 
+_MYPY_ERROR_RE = re.compile(
+    r"^(?P<path>[^\s:][^:]*):(?P<line>\d+):(?:\d+:)?\s*error:\s*(?P<msg>.*)$"
+)
+
+
+def _git_tracks(project_dir: Path, name: str) -> bool:
+    """True when git has ``name`` in the index."""
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", name],
+            cwd=project_dir, capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
+def _added_line_numbers(
+    project_dir: Path, base: str, name: str,
+) -> set[int] | None:
+    """Line numbers this diff ADDED to ``name``; None when git cannot say.
+
+    An UNTRACKED file is entirely new, so every line in it is added — but
+    ``git diff`` reports nothing at all for such a path (exit 0, empty
+    output). Reading that silence as "no added lines" would file every
+    error in a brand-new module under master's debt, and a whole new
+    type-broken file would gate GREEN. Caught by
+    ``test_an_untrackable_file_fails_closed``.
+    """
+    if not _git_tracks(project_dir, name):
+        return None
+    added = _added_lines(project_dir, base, name)
+    if added is None:
+        return None
+    return {lineno for lineno, _ in added}
+
+
+def _attribute_mypy_errors(
+    project_dir: Path, output: str,
+) -> tuple[list[str], list[str]] | None:
+    """Split mypy errors into (on ADDED lines, pre-existing in touched files).
+
+    Same machinery and same contract as ``_check_security_grep``: only
+    lines ADDED relative to the default-branch merge-base belong to this
+    change; a finding elsewhere in a touched file is master's debt. File
+    granularity was not enough — it rejected a branch whose measured type
+    debt delta was exactly zero.
+
+    KNOWN IMPRECISION, accepted deliberately: mypy reports the line of the
+    ERROR, which is not always the added line that CAUSED it — change a
+    signature and the error surfaces at an untouched caller. That
+    mis-attribution (both ways) is the same one the security sweep has
+    always accepted; resolving cause across lines would need dataflow the
+    gate has no business doing. It errs toward the diff, and the
+    pre-existing count below keeps the remainder visible either way.
+
+    Returns None when no merge-base exists — attribution is then
+    impossible and the caller must gate on everything.
+    """
+    base = _diff_base(project_dir)
+    if base is None:
+        return None
+    added_by_file: dict[str, set[int] | None] = {}
+    gating: list[str] = []
+    inherited: list[str] = []
+    for raw in output.splitlines():
+        match = _MYPY_ERROR_RE.match(raw.strip())
+        if match is None:
+            continue
+        path, lineno = match.group("path"), int(match.group("line"))
+        if path not in added_by_file:
+            added_by_file[path] = _added_line_numbers(project_dir, base, path)
+        added = added_by_file[path]
+        # git could not describe this file (brand-new path, rename, sparse
+        # checkout) — fail CLOSED: an unattributable error gates.
+        if added is None or lineno in added:
+            gating.append(raw.strip())
+        else:
+            inherited.append(raw.strip())
+    return gating, inherited
+
+
+def _attributed_verdict(
+    result: CheckResult, gating: list[str], inherited: list[str],
+) -> CheckResult:
+    """Rebuild the verdict from errors this diff actually introduced."""
+    if gating:
+        shown = "\n".join(gating[:_MAX_GREP_HITS])
+        if len(gating) > _MAX_GREP_HITS:
+            shown += f"\n(+{len(gating) - _MAX_GREP_HITS} more on added lines)"
+        summary = f"{len(gating)} type error(s) on lines this diff added:\n{shown}"
+    else:
+        summary = "no type errors on lines this diff added"
+    if inherited:
+        summary += (
+            f"\n{len(inherited)} pre-existing strict error(s) in touched "
+            "files — master's debt, not this diff's; NOT gating"
+        )
+    return replace(result, passed=not gating, summary=summary)
+
+
 def _typecheck_scoped(
     project_dir: Path, mypy: list[str], changed: list[str] | None, timeout: int,
 ) -> CheckResult | None:
@@ -685,13 +800,24 @@ def _typecheck_scoped(
             f"declared mypy scope ({', '.join(declared or [])})"
             + (f"\n{advisory}" if advisory else ""),
         )
-    result = _mypy_verdict(
-        _run(
-            "typecheck", [*mypy, "--follow-imports=silent", *in_scope],
-            project_dir, timeout,
-        )
+    raw_result, full_output = _run_capturing(
+        "typecheck", [*mypy, "--follow-imports=silent", *in_scope],
+        project_dir, timeout,
     )
+    result = _mypy_verdict(raw_result)
     notes = [advisory] if advisory else []
+    # Attribute only a run that COMPLETED with type errors. An abort (or a
+    # timeout, or a usage error) means the checker never finished, and an
+    # empty gating list would then be an artefact of not looking.
+    if result.exit_code == 1 and _MYPY_ABORT_MARKER not in full_output:
+        attribution = _attribute_mypy_errors(project_dir, full_output)
+        if attribution is None:
+            notes.append(
+                "no merge-base with the default branch — errors could not "
+                "be attributed to added lines; ALL of them gate"
+            )
+        else:
+            result = _attributed_verdict(result, *attribution)
     if excluded:
         notes.append(
             f"{excluded} changed .py file(s) skipped — outside the "
