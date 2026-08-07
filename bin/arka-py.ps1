@@ -37,7 +37,7 @@ if (-not $env:ARKA_PY) {
         $env:ARKA_PY = $fallback.Source
     } else {
         [Console]::Error.WriteLine(
-            "arka-py: no usable Python interpreter (only Store aliases on PATH) - run npx arkaos doctor")
+            "arka-py: no usable Python interpreter on PATH (none found, or only Store aliases) - run npx arkaos doctor")
         exit 1
     }
 }

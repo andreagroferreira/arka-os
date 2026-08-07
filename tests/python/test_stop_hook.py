@@ -329,6 +329,10 @@ class TestMainInProcess:
         monkeypatch.setenv("ARKA_STOP_LINT", "0")
         monkeypatch.setenv("ARKA_SESSION_MEMORY", "0")
         monkeypatch.setenv("ARKA_AUTO_DOC_QUEUE", str(tmp_path / "queue"))
+        # stop.py:624 resolves the marker dir through wf_required_dir(),
+        # which honors this env var before arkaos_temp_dir — without it
+        # the test reads the live /tmp marker dir (QG batch B2).
+        monkeypatch.setenv("ARKA_WF_REQUIRED_DIR", str(tmp_path / "arkaos-wf-required"))
         # No detached workers from a unit test — same rule as the
         # enqueue tests above.
         monkeypatch.setattr(
