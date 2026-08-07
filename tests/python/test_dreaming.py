@@ -23,6 +23,7 @@ from core.cognition.dreaming import (
     _parse_insight,
     _slugify,
     _split_for_clustering,
+    _strip_non_topic_text,
 )
 from core.runtime.llm_provider import LLMResponse, LLMUnavailable
 
@@ -348,3 +349,82 @@ def test_dreaming_never_ingests_its_own_output(tmp_path, fake_provider):
     )
     engine = Dreaming(vault_path=vault, output_dir=dreams, provider=fake_provider)
     assert engine._collect_vault_chunks() == []
+
+
+# --- _strip_non_topic_text: document-level noise removal ------------------
+
+
+def test_strip_removes_yaml_frontmatter():
+    """`aliases:` and `tags:` describe filing, not subject matter."""
+    text = "---\naliases: [Router, EIP]\ntags: [patterns]\n---\n\nA router sends a message."
+    out = _strip_non_topic_text(text)
+    assert "aliases" not in out
+    assert "A router sends a message." in out
+
+
+def test_strip_removes_cross_reference_section_and_its_body():
+    """The heading and the lines it governs both go, up to the next heading."""
+    text = (
+        "## Topic\n\nA router inspects the payload.\n\n"
+        "## Related\n\n- [[Message Broker]]\n- [[Content Filter]]\n\n"
+        "## Consequences\n\nThroughput drops.\n"
+    )
+    out = _strip_non_topic_text(text)
+    assert "Message Broker" not in out
+    assert "Content Filter" not in out
+    # The section AFTER the cross-reference block must survive.
+    assert "Throughput drops." in out
+    assert "A router inspects the payload." in out
+
+
+def test_strip_handles_portuguese_and_alternate_headings():
+    for heading in ("## Connections", "## Relacionadas", "## Sources", "## See also"):
+        text = "Real content here.\n\n" + heading + "\n\n- [[Some Note]]\n"
+        out = _strip_non_topic_text(text)
+        assert "Some Note" not in out, heading
+        assert "Real content here." in out, heading
+
+
+def test_strip_removes_bare_wikilink_lines():
+    """Catches a cross-reference block whose heading fell in another chunk."""
+    text = (
+        "The content based router pattern applies whenever consumers differ.\n\n"
+        "[[Router]], [[Splitter]], [[Aggregator]]\n"
+    )
+    out = _strip_non_topic_text(text)
+    assert "Splitter" not in out
+    assert "content based router pattern applies" in out
+
+
+def test_strip_removes_attribution_lines():
+    text = (
+        "Big ball of mud is the commonest architecture.\n\n"
+        "— Brian Foote and Joseph Yoder\n"
+    )
+    out = _strip_non_topic_text(text)
+    assert "Brian Foote" not in out
+    assert "Big ball of mud" in out
+
+
+def test_strip_keeps_blockquote_bodies():
+    """Deliberate trade-off: the Synopsis lives in a blockquote and is the
+    densest real content in a book note. Stripping quotes to catch the
+    attribution lines would cost far more signal than it removes."""
+    text = "> **Synopsis:** Layered architecture separates concerns.\n"
+    out = _strip_non_topic_text(text)
+    assert "Layered architecture separates concerns." in out
+
+
+def test_split_for_clustering_drops_cross_reference_chunks():
+    """Wiring check: the strip must run before chunking, not per chunk."""
+    text = (
+        "Routers dispatch each message to the right consumer by inspecting\n"
+        "its content, which keeps the producer unaware of the topology.\n\n"
+        "## Related\n\n"
+        "- [[Message Broker]] and [[Content Based Router]] and [[Recipient List]]\n"
+        "- [[Dynamic Router]] and [[Routing Slip]] and [[Process Manager]]\n"
+        "- [[Splitter]] and [[Aggregator]] and [[Resequencer]] and [[Scatter Gather]]\n"
+    )
+    joined = " ".join(_split_for_clustering(text))
+    assert "Message Broker" not in joined
+    assert "Routers dispatch each message" in joined

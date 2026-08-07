@@ -271,7 +271,7 @@ class Dreaming:
 
 
 def _split_for_clustering(text: str) -> list[str]:
-    pieces = re.split(r"\n\s*\n", text)
+    pieces = re.split(r"\n\s*\n", _strip_non_topic_text(text))
     out: list[str] = []
     for p in pieces:
         p = p.strip()
@@ -464,3 +464,57 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main(sys.argv[1:]))
+
+
+# Sections whose whole point is to name other notes. Every capitalised
+# token in them is a pointer, not a subject, and they co-occur across
+# notes that merely sit near each other in the vault graph.
+#
+# This MUST run on the whole document, before chunking. Chunks are split
+# on blank lines, so the `## Related` heading always lands in a different
+# chunk than the bullets under it — which is why "strip the Related
+# section" was proposed three times as a per-chunk filter and would have
+# changed nothing. The heading is never in the chunk it governs.
+_LINK_SECTION_RE = re.compile(
+    r"^#{1,6}[ \t]*(related|connections?|conex(?:ões|oes)|relacionad[ao]s|"
+    r"sources?|see also|refer(?:ences?|ências)?|liga(?:ções|coes)|"
+    r"ver também)\b[^\n]*\n.*?(?=^#{1,6}[ \t]|\Z)",
+    re.IGNORECASE | re.MULTILINE | re.DOTALL,
+)
+# YAML frontmatter. `aliases:`, `tags:` and `chapter_title:` are dense
+# with capitalised words that describe the note's filing, not its topic.
+_FRONTMATTER_RE = re.compile(r"\A---\r?\n.*?\r?\n---\r?\n", re.DOTALL)
+# A line that is nothing but wikilinks and separators. Catches a
+# `## Related` block whose heading fell outside the chunk boundary.
+_LINK_ONLY_LINE_RE = re.compile(
+    r"^[\s>*\-]*(?:\[\[[^\]]+\]\][\s·,;|/&+]*)+$", re.MULTILINE
+)
+# Citation attribution: `— Brian Foote and Joseph Yoder`. The names are
+# provenance, and clustering on them groups every note quoting the same
+# author regardless of what the quote says.
+_ATTRIBUTION_RE = re.compile(r"^[\s>]*[—–]{1,2}\s*[A-Z][^\n]*$", re.MULTILINE)
+
+
+def _strip_non_topic_text(text: str) -> str:
+    """Remove the parts of a note that name things instead of discussing them.
+
+    Frontmatter, cross-reference sections, bare wikilink lines and
+    citation attributions all carry capitalised tokens with no topical
+    meaning. Left in, they are the dominant source of false clusters —
+    the anchor reviews between 2026-07-31 and 2026-08-05 (Data, Marlon,
+    Architecture, HTTP, Convergem, Brian) each traced back to one.
+
+    Call this on the whole document, before ``_split_for_clustering``.
+    Filtering per chunk cannot work: the section heading and the lines
+    it governs are always in different chunks.
+
+    Blockquote bodies are deliberately kept. This vault's note template
+    puts the `> **Synopsis:**` in a blockquote, which is the densest
+    real content in a book note; stripping quotes to catch attribution
+    lines would cost far more signal than it removes.
+    """
+    text = _FRONTMATTER_RE.sub("", text)
+    text = _LINK_SECTION_RE.sub("", text)
+    text = _LINK_ONLY_LINE_RE.sub("", text)
+    text = _ATTRIBUTION_RE.sub("", text)
+    return text
