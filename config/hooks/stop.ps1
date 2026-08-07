@@ -194,131 +194,43 @@ try {
 }
 
 # ─── Governance parity (skill capture + warn-only detectors) ───────────
-# config/hooks/stop.sh delegates the whole event to `python -m
-# core.hooks.stop`, which runs seventeen core modules. This port
-# reimplements the event inline and reached only two of them, so four
+# config/hooks/stop.sh delegates the whole event to `python -m` the Stop
+# entrypoint, which runs the full detector chain (the authoritative list
+# is that module's own imports — no count is stated here because several
+# are conditional, so no fixed number is true of a given event). This
+# port reimplements the event and reached only two of them, so four
 # detectors that exist, are tested and are wired on POSIX never ran on
 # Windows at all — most visibly skill_proposer, whose constitution rule
 # (mandatory-skill-evaluation) mandates a capability sweep after every
 # completed task.
+#
+# The sweep is a real module, not an inline script: core/hooks/
+# stop_governance.py. Delegating rather than mirroring is what keeps the
+# owner-only umask on the state files it writes — the previous inline
+# copy of _write_tmp_state had already lost it — and it is what lets the
+# parity test IMPORT AND RUN the sweep instead of grepping module names
+# out of this file, which a comment could satisfy.
 #
 # Scope is deliberately the NON-ENFORCEMENT subset: these four write
 # proposals and diagnostic state only. The gating checks
 # (closing_marker_check, meta_tag_check, kb_cite_check, dna_fidelity)
 # are left out of this change — they feed enforcement surfaces and
 # deserve their own baseline on Windows before being switched on.
-$governanceScript = @'
-import os
-import sys
-from pathlib import Path
-
-sys.path.insert(0, os.environ.get("ARKAOS_ROOT", ""))
-try:
-    from core.workflow.flow_enforcer import _load_last_assistant_messages
-except Exception:
-    sys.exit(0)
-
-transcript_path = os.environ.get("TRANSCRIPT_PATH_VAL", "")
-session_id = os.environ.get("SESSION_ID_VAL", "")
-if not transcript_path:
-    sys.exit(0)
-
-try:
-    msgs = _load_last_assistant_messages(transcript_path, n=1)
-    last = msgs[-1] if msgs else ""
-except Exception:
-    last = ""
-
-raw = None
-try:
-    raw = Path(transcript_path).read_text(encoding="utf-8", errors="replace")
-except Exception:
-    raw = None
-
-
-def _write_tmp_state(prefix, sid, payload):
-    """Mirror of core.hooks.stop._write_tmp_state (best-effort)."""
-    if not sid:
-        return
-    try:
-        import json
-
-        from core.shared.temp_paths import arkaos_temp_dir
-
-        target = arkaos_temp_dir(prefix)
-        target.mkdir(parents=True, exist_ok=True)
-        (target / f"{sid}.json").write_text(
-            json.dumps(payload), encoding="utf-8"
-        )
-    except Exception:
-        pass
-
-
-safe_sid = None
-try:
-    from core.shared.safe_session_id import safe_session_id
-
-    safe_sid = safe_session_id(session_id)
-except Exception:
-    safe_sid = None
-
-# 1. Capability capture — the constitution rule this port was missing.
-try:
-    from core.governance.skill_proposer import evaluate as _eval_skill
-
-    _eval_skill(last)
-except Exception:
-    pass
-
-# 2. Sycophancy (warn-only telemetry).
-try:
-    from core.governance.sycophancy_detector import detect_sycophancy
-
-    sv = detect_sycophancy(last)
-    if sv.is_sycophantic and safe_sid:
-        _write_tmp_state("arkaos-sycophancy", safe_sid, {
-            "is_sycophantic": sv.is_sycophantic,
-            "signals": sv.signals,
-            "confidence": sv.confidence,
-        })
-except Exception:
-    pass
-
-# 3. Phantom actions — narrated effects with no tool call in the turn.
-try:
-    from core.governance.phantom_action_check import check_phantom_actions
-
-    pr = check_phantom_actions(last, raw)
-    if safe_sid:
-        _write_tmp_state("arkaos-phantom", safe_sid, {
-            "passed": pr.passed,
-            "reason": pr.reason,
-            "claims": pr.claims,
-            "suggestion": pr.suggestion,
-        })
-except Exception:
-    pass
-
-# 4. Tool loops.
-try:
-    from core.governance.tool_loop_check import check_tool_loops
-
-    lv = check_tool_loops(raw)
-    if lv.detected and safe_sid:
-        _write_tmp_state("arkaos-tool-loop", safe_sid, {
-            "tool": lv.tool,
-            "repeats": lv.repeats,
-            "pattern": lv.pattern,
-            "total_tool_uses": lv.total_tool_uses,
-        })
-except Exception:
-    pass
-'@
-
-try {
-    $governanceScript | & $pythonExe - | Out-Null
-} catch {
-    # Swallow — governance observation must never affect the Stop hook.
+$governanceModule = Join-Path $env:ARKAOS_ROOT "core/hooks/stop_governance.py"
+if (Test-Path -LiteralPath $governanceModule) {
+    # PREPEND, never clobber: an operator's own PYTHONPATH must survive
+    # the hook (the .sh twin prepends for the same reason).
+    $sep = [IO.Path]::PathSeparator
+    $env:PYTHONPATH = if ($env:PYTHONPATH) {
+        "$($env:ARKAOS_ROOT)$sep$($env:PYTHONPATH)"
+    } else {
+        $env:ARKAOS_ROOT
+    }
+    try {
+        & $pythonExe -m core.hooks.stop_governance | Out-Null
+    } catch {
+        # Swallow — governance observation must never affect the Stop hook.
+    }
 }
 
 # Belt-and-braces marker cleanup (safe even if the Python block crashed).
