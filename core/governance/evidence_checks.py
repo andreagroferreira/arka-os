@@ -34,10 +34,12 @@ import shutil
 import subprocess
 import sys
 import time
+import tomllib
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from xml.etree import ElementTree
 
+import core
 from core.governance.qg_digest import evidence_digest
 from core.shared.test_evidence import coverage_percent_from_xml
 
@@ -111,6 +113,10 @@ _SECURITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 # CheckResult (immune to summary truncation), and the string summary
 # ends with a `(+N more suppressed)` marker when the listing is capped.
 _SEC_OK_RE = re.compile(r"arka:sec-ok\(([a-z0-9-]+)\):\s*(\S.+)")
+
+
+class ProvenanceError(RuntimeError):
+    """The engine that would produce the report is not the code under review."""
 
 
 @dataclass
@@ -189,6 +195,20 @@ def _run(
     check: str, cmd: list[str], project_dir: Path, timeout: int,
 ) -> CheckResult:
     """Run one read-only project command; capture exit code + tail."""
+    return _run_capturing(check, cmd, project_dir, timeout)[0]
+
+
+def _run_capturing(
+    check: str, cmd: list[str], project_dir: Path, timeout: int,
+) -> tuple[CheckResult, str]:
+    """``_run`` plus the UNTRUNCATED output.
+
+    A caller that must ATTRIBUTE individual findings cannot work from the
+    800-char tail: every finding truncated away would read as absent, and
+    "absent" is exactly what a gate must never infer from its own
+    formatting. The tail stays the reported summary; the full text is for
+    analysis only.
+    """
     command_str = " ".join(cmd)
     try:
         proc = subprocess.run(
@@ -196,7 +216,7 @@ def _run(
             timeout=timeout,
         )
     except FileNotFoundError:
-        return _skip(check, f"tool not found: {cmd[0]}")
+        return _skip(check, f"tool not found: {cmd[0]}"), ""
     except OSError as exc:
         # Anything else exec can refuse — a directory, a non-executable
         # file, a broken symlink. The gate must report, never raise: an
@@ -205,18 +225,18 @@ def _run(
         return CheckResult(
             check=check, ran=True, passed=False, command=command_str,
             exit_code=None, summary=f"cannot execute {cmd[0]}: {exc.strerror}",
-        )
+        ), ""
     except subprocess.TimeoutExpired:
         # subprocess.run kills the child on expiry before raising.
         return CheckResult(
             check=check, ran=True, passed=None, command=command_str,
             exit_code=None, summary="timeout",
-        )
-    output = _tail(proc.stdout.strip() or proc.stderr.strip())
+        ), ""
+    full = proc.stdout.strip() or proc.stderr.strip()
     return CheckResult(
         check=check, ran=True, passed=proc.returncode == 0,
-        command=command_str, exit_code=proc.returncode, summary=output,
-    )
+        command=command_str, exit_code=proc.returncode, summary=_tail(full),
+    ), full
 
 
 # ─── Applicability detection ────────────────────────────────────────────
@@ -256,6 +276,83 @@ def _mypy_configured(project_dir: Path) -> bool:
         except OSError:
             text = ""
         if "[tool.mypy]" in text or "[mypy]" in text:
+            return True
+    return False
+
+
+def _mypy_declared_scope(project_dir: Path) -> list[str] | None:
+    """The project's declared mypy ``files`` roots, or None if undeclared.
+
+    mypy IGNORES the config's ``files`` the moment any path is passed on
+    the command line, so a gate that unconditionally appends ``.``
+    overrides the very scope the project declared. That is how ``mypy .``
+    came to ABORT on this repo before checking a single line — two
+    top-level ``server`` modules under mcps/, plus bare script names
+    colliding between plugins/ and scripts/ (issue #452).
+
+    The same override bites the SCOPED run, which also passes explicit
+    paths: without this list the gate strict-typechecks files the project
+    deliberately excludes (measured: a diff touching tests/ produced 351
+    errors in a tree `files = ["core", "scripts"]` never covers).
+    """
+    for name, reader in (
+        ("mypy.ini", _ini_declared_files),
+        ("setup.cfg", _ini_declared_files),
+        ("pyproject.toml", _pyproject_declared_files),
+    ):
+        declared = reader(project_dir / name)
+        if declared:
+            return declared
+    return None
+
+
+def _mypy_scope_configured(project_dir: Path) -> bool:
+    """True when the project declares its own mypy file scope."""
+    return _mypy_declared_scope(project_dir) is not None
+
+
+def _ini_declared_files(path: Path) -> list[str]:
+    """`files = a, b` under an ini-style ``[mypy]`` section."""
+    if not path.is_file():
+        return []
+    parser = configparser.ConfigParser()
+    try:
+        parser.read(path, encoding="utf-8")
+        raw = parser.get("mypy", "files", fallback="")
+    except (OSError, configparser.Error):
+        return []
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _pyproject_declared_files(path: Path) -> list[str]:
+    """`files = [...]` under ``[tool.mypy]`` in pyproject.toml."""
+    if not path.is_file():
+        return []
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError, UnicodeDecodeError):
+        return []
+    mypy_cfg = data.get("tool", {}).get("mypy", {})
+    if not isinstance(mypy_cfg, dict):
+        return []
+    declared = mypy_cfg.get("files")
+    if isinstance(declared, str):
+        declared = [declared]
+    if not isinstance(declared, list):
+        return []
+    return [str(item).strip() for item in declared if str(item).strip()]
+
+
+def _within_declared_scope(rel: str, declared: list[str] | None) -> bool:
+    """True when a project-relative path sits under a declared mypy root."""
+    if declared is None:
+        return True
+    candidate = PurePosixPath(rel)
+    for root in declared:
+        prefix = PurePosixPath(root.rstrip("/") or ".")
+        if prefix == PurePosixPath("."):
+            return True
+        if candidate == prefix or prefix in candidate.parents:
             return True
     return False
 
@@ -316,6 +413,113 @@ def _ruff_cmd() -> list[str] | None:
     return _tool_cmd("ruff")
 
 
+def _eslint_root(project_dir: Path, rel: str) -> Path | None:
+    """Nearest ancestor of ``rel``, up to project_dir, with a local eslint.
+
+    A monorepo keeps its parser and plugins in the sub-package that owns
+    the files, so resolving eslint only at ``project_dir`` lints the whole
+    diff with the WRONG config. Reproduced on this repo: the root eslint
+    over ``dashboard/app/composables/useApi.ts`` reports
+    ``Parsing error: Unexpected token`` (no TypeScript parser) while
+    ``dashboard``'s own eslint exits 0 over the same file (QG Fase 1).
+
+    That is a permanent false FAIL today and a false GREEN tomorrow: a
+    parser that cannot parse a file evaluates ZERO rules over it, so the
+    day the root config gains one, a whole tree passes on nothing.
+    """
+    try:
+        root = project_dir.resolve()
+        current = (root / rel).resolve().parent
+    except OSError:
+        return None
+    while True:
+        if (current / "node_modules" / ".bin" / "eslint").is_file():
+            return current
+        if current == root or current.parent == current:
+            return None
+        current = current.parent
+
+
+def _merge_scoped_lint(
+    results: list[tuple[str, CheckResult]], total: int, orphans: list[str],
+) -> CheckResult:
+    """Fold per-root eslint runs into one honest CheckResult.
+
+    FAILS if any root failed; stays non-conclusive when a root could not
+    conclude and none failed. Files with no eslint anywhere above them are
+    NAMED, last, so the note survives ``_tail`` truncation — a silently
+    unlinted file is the same blind gate this fix exists to close.
+    """
+    if any(r.passed is False for _, r in results):
+        passed: bool | None = False
+    elif any(r.passed is None for _, r in results):
+        passed = None
+    else:
+        passed = True
+    exit_code = next(
+        (r.exit_code for _, r in results if r.exit_code not in (None, 0)), 0,
+    )
+    sections = [
+        f"[{label}] {r.summary or 'no output'}" for label, r in results
+    ]
+    if orphans:
+        sections.append(
+            f"NOT LINTED — no eslint above {len(orphans)} changed file(s): "
+            + ", ".join(orphans[:5])
+        )
+    command = " && ".join(f"(cd {label} && {r.command})" for label, r in results)
+    return CheckResult(
+        check="lint", ran=any(r.ran for _, r in results), passed=passed,
+        command=(
+            f"lint(scoped: {total - len(orphans)} file(s) across "
+            f"{len(results)} eslint root(s)) {command}"
+        ),
+        exit_code=exit_code, summary=_tail("\n".join(sections)),
+    )
+
+
+def _lint_eslint_grouped(
+    project_dir: Path, changed: list[str], timeout: int,
+) -> CheckResult | None:
+    """One eslint run per OWNING package root, never one run for all.
+
+    Returns None when no changed JS/TS file has an eslint above it, so
+    the caller falls through to the project-wide path unchanged.
+    """
+    files = _scoped_files(project_dir, changed, _LINTABLE_JS)
+    if not files:
+        return None
+    root = project_dir.resolve()
+    groups: dict[Path, list[str]] = {}
+    orphans: list[str] = []
+    for rel in files:
+        owner = _eslint_root(project_dir, rel)
+        if owner is None:
+            orphans.append(rel)
+        else:
+            groups.setdefault(owner, []).append(rel)
+    if not groups:
+        return None
+    results: list[tuple[str, CheckResult]] = []
+    for owner in sorted(groups):
+        eslint = owner / "node_modules" / ".bin" / "eslint"
+        # Paths are re-expressed against the owning root because that is
+        # the cwd eslint runs in — its config resolution, ignore files and
+        # plugin lookup all key off it.
+        local = [
+            PurePosixPath((root / rel).resolve().relative_to(owner)).as_posix()
+            for rel in groups[owner]
+        ]
+        label = (
+            "." if owner == root
+            else PurePosixPath(owner.relative_to(root)).as_posix()
+        )
+        results.append(
+            (label, _run("lint", [str(eslint), *local], owner, timeout))
+        )
+    return _merge_scoped_lint(results, len(files), orphans)
+
+
 def _lint_scoped(
     project_dir: Path, changed: list[str], timeout: int,
 ) -> CheckResult | None:
@@ -331,12 +535,9 @@ def _lint_scoped(
         if files:
             result = _run("lint", [*ruff, "check", *files], project_dir, timeout)
             return _labelled(result, f"lint(scoped: {len(files)} file(s))")
-    eslint = project_dir / "node_modules" / ".bin" / "eslint"
-    if eslint.is_file():
-        files = _scoped_files(project_dir, changed, _LINTABLE_JS)
-        if files:
-            result = _run("lint", [str(eslint), *files], project_dir, timeout)
-            return _labelled(result, f"lint(scoped: {len(files)} file(s))")
+    grouped = _lint_eslint_grouped(project_dir, changed, timeout)
+    if grouped is not None:
+        return grouped
     pint = project_dir / "vendor" / "bin" / "pint"
     if pint.is_file():
         files = _scoped_files(project_dir, changed, _LINTABLE_PHP)
@@ -402,6 +603,238 @@ def _check_lint(
     return _skip("lint", "no lint tooling detected (ruff/eslint/pint)")
 
 
+_MYPY_ABORT_MARKER = "errors prevented further checking"
+
+
+def _mypy_verdict(result: CheckResult) -> CheckResult:
+    """Never let a mypy ABORT read as an ordinary type-error failure.
+
+    A blocking error (duplicate module names, an unparseable followed
+    stub, a bad invocation) makes mypy stop after checking only PART of
+    the tree, yet the exit code is indistinguishable from a completed run
+    that found errors. Reporting that as a plain FAIL hides the real
+    problem — the checker never finished — and a reviewer reading
+    "N errors" reasonably assumes N is the whole truth. Stays
+    ``ran=True, passed=False``; only the reason is made honest.
+    """
+    if result.exit_code in (None, 0):
+        return result
+    text = result.summary or ""
+    if _MYPY_ABORT_MARKER not in text:
+        return result
+    blocking = [ln.strip() for ln in text.splitlines() if ": error:" in ln]
+    prefix = (
+        "mypy ABORTED before checking every file — the count below is a "
+        "LOWER BOUND, not a complete typecheck"
+    )
+    if blocking:
+        prefix += f"; blocking: {blocking[-1]}"
+    return replace(result, passed=False, summary=f"{prefix}\n{text}")
+
+
+_MYPY_FOUND_RE = re.compile(r"Found \d+ errors? in \d+ files?[^\n]*")
+
+
+def _mypy_project_argv(project_dir: Path, mypy: list[str]) -> list[str]:
+    """Project-wide invocation, honouring a config-declared ``files`` scope."""
+    return list(mypy) if _mypy_scope_configured(project_dir) else [*mypy, "."]
+
+
+def _project_wide_advisory(
+    project_dir: Path, mypy: list[str], timeout: int,
+) -> str:
+    """Master's accumulated count, carried as an explicitly NON-GATING note.
+
+    Scoping the verdict to the diff must not make the accumulated debt
+    invisible: a number nobody sees is a number nobody ever cleans. It
+    rides at the END of the summary because ``_tail`` keeps the tail.
+    """
+    result = _run(
+        "typecheck", _mypy_project_argv(project_dir, mypy), project_dir, timeout,
+    )
+    prefix = (
+        "typecheck (project-wide over the working tree, including this "
+        "diff; advisory, NOT gating): "
+    )
+    if not result.ran:
+        return ""
+    if result.exit_code == 0:
+        return prefix + "clean"
+    if result.passed is None:
+        return prefix + "did not finish (timeout)"
+    found = _MYPY_FOUND_RE.search(result.summary or "")
+    if found is None:
+        return prefix + f"could not be summarised (exit {result.exit_code})"
+    return f"{prefix}{found.group(0)} — master's debt, not this diff's"
+
+
+_MYPY_ERROR_RE = re.compile(
+    r"^(?P<path>[^\s:][^:]*):(?P<line>\d+):(?:\d+:)?\s*error:\s*(?P<msg>.*)$"
+)
+
+
+def _git_tracks(project_dir: Path, name: str) -> bool:
+    """True when git has ``name`` in the index."""
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", name],
+            cwd=project_dir, capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
+def _added_line_numbers(
+    project_dir: Path, base: str, name: str,
+) -> set[int] | None:
+    """Line numbers this diff ADDED to ``name``; None when git cannot say.
+
+    An UNTRACKED file is entirely new, so every line in it is added — but
+    ``git diff`` reports nothing at all for such a path (exit 0, empty
+    output). Reading that silence as "no added lines" would file every
+    error in a brand-new module under master's debt, and a whole new
+    type-broken file would gate GREEN. Caught by
+    ``test_an_untrackable_file_fails_closed``.
+    """
+    if not _git_tracks(project_dir, name):
+        return None
+    added = _added_lines(project_dir, base, name)
+    if added is None:
+        return None
+    return {lineno for lineno, _ in added}
+
+
+def _attribute_mypy_errors(
+    project_dir: Path, output: str,
+) -> tuple[list[str], list[str]] | None:
+    """Split mypy errors into (on ADDED lines, pre-existing in touched files).
+
+    Same machinery and same contract as ``_check_security_grep``: only
+    lines ADDED relative to the default-branch merge-base belong to this
+    change; a finding elsewhere in a touched file is master's debt. File
+    granularity was not enough — it rejected a branch whose measured type
+    debt delta was exactly zero.
+
+    KNOWN IMPRECISION, accepted deliberately: mypy reports the line of the
+    ERROR, which is not always the added line that CAUSED it — change a
+    signature and the error surfaces at an untouched caller. That
+    mis-attribution (both ways) is the same one the security sweep has
+    always accepted; resolving cause across lines would need dataflow the
+    gate has no business doing. Only the three fail-closed paths (no
+    merge-base, undiffable path, untracked file) bias deliberately toward
+    the diff; elsewhere the direction is unknowable, and the
+    not-on-added-lines count below keeps the remainder visible either way.
+
+    Returns None when no merge-base exists — attribution is then
+    impossible and the caller must gate on everything.
+    """
+    base = _diff_base(project_dir)
+    if base is None:
+        return None
+    added_by_file: dict[str, set[int] | None] = {}
+    gating: list[str] = []
+    inherited: list[str] = []
+    for raw in output.splitlines():
+        match = _MYPY_ERROR_RE.match(raw.strip())
+        if match is None:
+            continue
+        path, lineno = match.group("path"), int(match.group("line"))
+        if path not in added_by_file:
+            added_by_file[path] = _added_line_numbers(project_dir, base, path)
+        added = added_by_file[path]
+        # git could not describe this file (brand-new path, rename, sparse
+        # checkout) — fail CLOSED: an unattributable error gates.
+        if added is None or lineno in added:
+            gating.append(raw.strip())
+        else:
+            inherited.append(raw.strip())
+    return gating, inherited
+
+
+def _attributed_verdict(
+    result: CheckResult, gating: list[str], inherited: list[str],
+) -> CheckResult:
+    """Rebuild the verdict from errors this diff actually introduced."""
+    if gating:
+        shown = "\n".join(gating[:_MAX_GREP_HITS])
+        if len(gating) > _MAX_GREP_HITS:
+            shown += f"\n(+{len(gating) - _MAX_GREP_HITS} more on added lines)"
+        summary = f"{len(gating)} type error(s) on lines this diff added:\n{shown}"
+    else:
+        summary = "no type errors on lines this diff added"
+    if inherited:
+        summary += (
+            f"\n{len(inherited)} strict error(s) on lines this diff did "
+            "not add — NOT gating; line position, not provenance"
+        )
+    return replace(result, passed=not gating, summary=summary)
+
+
+def _typecheck_scoped(
+    project_dir: Path, mypy: list[str], changed: list[str] | None, timeout: int,
+) -> CheckResult | None:
+    """Typecheck the DIFF, not the accumulated tree.
+
+    The same principle ``_lint_scoped`` already applies: pre-existing
+    project-wide debt is master's debt, not this change's. Measured on this
+    repo, project-wide mypy reports 1246 errors in 192 files — a verdict
+    that would REJECT every deliverable regardless of its own quality, and
+    a permanently red gate is one reviewers learn to ignore.
+
+    ``--follow-imports=silent`` keeps the full import graph for inference
+    (so types resolve correctly) while reporting only on the named files.
+    Returns None when the diff carries no Python, so the caller falls back
+    to the project-wide run unchanged.
+    """
+    files = _scoped_files(project_dir, changed, _LINTABLE_PY)
+    if not files:
+        return None
+    declared = _mypy_declared_scope(project_dir)
+    in_scope = [f for f in files if _within_declared_scope(f, declared)]
+    advisory = _project_wide_advisory(project_dir, mypy, timeout)
+    excluded = len(files) - len(in_scope)
+    if not in_scope:
+        # Every changed .py sits outside the project's declared scope.
+        # Falling through to the project-wide run would gate this diff on
+        # master's whole accumulated debt, which is the opposite of the
+        # point; the advisory still carries that number.
+        return _skip(
+            "typecheck",
+            f"{excluded} changed .py file(s) all outside the project's "
+            f"declared mypy scope ({', '.join(declared or [])})"
+            + (f"\n{advisory}" if advisory else ""),
+        )
+    raw_result, full_output = _run_capturing(
+        "typecheck", [*mypy, "--follow-imports=silent", *in_scope],
+        project_dir, timeout,
+    )
+    result = _mypy_verdict(raw_result)
+    notes = [advisory] if advisory else []
+    # Attribute only a run that COMPLETED with type errors. An abort (or a
+    # timeout, or a usage error) means the checker never finished, and an
+    # empty gating list would then be an artefact of not looking.
+    if result.exit_code == 1 and _MYPY_ABORT_MARKER not in full_output:
+        attribution = _attribute_mypy_errors(project_dir, full_output)
+        if attribution is None:
+            notes.append(
+                "no merge-base with the default branch — errors could not "
+                "be attributed to added lines; ALL of them gate"
+            )
+        else:
+            result = _attributed_verdict(result, *attribution)
+    if excluded:
+        notes.append(
+            f"{excluded} changed .py file(s) skipped — outside the "
+            f"project's declared mypy scope ({', '.join(declared or [])})"
+        )
+    if notes:
+        result = replace(
+            result, summary="\n".join([result.summary, *notes]).strip(),
+        )
+    return _labelled(result, f"typecheck(scoped: {len(in_scope)} file(s))")
+
+
 def _check_typecheck(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
@@ -411,8 +844,30 @@ def _check_typecheck(
         # never read the diff, so a known-empty diff would inherit
         # master's type debt the moment tooling is configured.
         return _skip("typecheck", "no changed files (empty diff)")
-    if _mypy_configured(project_dir) and shutil.which("mypy"):
-        return _run("typecheck", ["mypy", "."], project_dir, timeout)
+    if _mypy_configured(project_dir):
+        # `shutil.which` alone read a venv-installed mypy as "no typecheck
+        # configuration detected" — the generic skip, on a project that
+        # had explicitly opted in. `_tool_cmd` is the same resolver
+        # ruff/pytest/codespell already use, and its docstring names this
+        # exact class of bug: a FALSE GREEN on a NON-NEGOTIABLE gate
+        # (issue #452).
+        mypy = _tool_cmd("mypy")
+        if mypy is None:
+            return _skip(
+                "typecheck",
+                "mypy configured but not installed — install it "
+                "(pip install mypy) or drop the mypy config; the gate has "
+                "NO type signal for this run",
+            )
+        scoped = _typecheck_scoped(project_dir, mypy, changed, timeout)
+        if scoped is not None:
+            return scoped
+        return _mypy_verdict(
+            _run(
+                "typecheck", _mypy_project_argv(project_dir, mypy),
+                project_dir, timeout,
+            )
+        )
     if (project_dir / "tsconfig.json").is_file():
         local_tsc = project_dir / "node_modules" / ".bin" / "tsc"
         if local_tsc.is_file():
@@ -1183,6 +1638,44 @@ def _derive_overall(results: list[CheckResult]) -> str:
     return "insufficient-evidence"
 
 
+def _assert_provenance(project_dir: Path) -> None:
+    """Refuse to gate an ArkaOS checkout with a DIFFERENT copy of the engine.
+
+    The ArkaOS venv carries an editable ``.pth`` that points at the npx
+    install cache, so ``import core`` resolves by CWD: run the gate from
+    anywhere but the repo and it loads the PUBLISHED copy while reporting
+    on the working tree (issue #453 — reproduced: v5.11.0 from
+    ``~/.npm/_npx/.../arkaos/core`` against a v5.13.0 checkout). A verdict
+    derived from code the reviewer never saw is a provenance break on a
+    NON-NEGOTIABLE gate, not a warning — so it kills the whole run rather
+    than emitting a report that looks exactly like a trustworthy one.
+
+    Fires ONLY when ``project_dir`` is itself an engine checkout. Gating a
+    CLIENT project legitimately runs ArkaOS's core from somewhere else,
+    and refusing that would break every cross-project QG.
+    """
+    try:
+        target = Path(project_dir).resolve()
+        engine = Path(core.__file__).resolve().parent
+    except (OSError, TypeError, ValueError):
+        return
+    if not (target / "core" / "governance" / "evidence_checks.py").is_file():
+        return  # foreign project — the engine is expected to live elsewhere
+    try:
+        expected = (target / "core").resolve()
+    except OSError:
+        return
+    if engine == expected:
+        return
+    raise ProvenanceError(
+        "evidence gate provenance mismatch — the report would describe "
+        f"code that was never loaded.\n  project under review: {target}\n"
+        f"  engine actually imported: {engine}\n"
+        f"Re-run from {target} (or with PYTHONPATH={target}) so the gate "
+        "and the diff are the same code."
+    )
+
+
 def run_evidence_checks(
     project_dir: Path,
     changed_files: list[str] | None = None,
@@ -1190,7 +1683,12 @@ def run_evidence_checks(
     test_command: str | None = None,
     timeout: int = TIMEOUT_SECONDS,
 ) -> EvidenceReport:
-    """Run the selected checks and derive the overall evidence status."""
+    """Run the selected checks and derive the overall evidence status.
+
+    Raises ``ProvenanceError`` before running anything when the imported
+    engine is not the checkout being gated (see ``_assert_provenance``).
+    """
+    _assert_provenance(project_dir)
     project_dir = Path(project_dir)
     selected = list(checks) if checks else list(ALL_CHECKS)
     results: list[CheckResult] = []
@@ -1233,12 +1731,19 @@ def _csv(value: str | None) -> list[str] | None:
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    report = run_evidence_checks(
-        project_dir=args.project_dir,
-        changed_files=_csv(args.changed_files),
-        checks=_csv(args.checks),
-        test_command=args.test_command,
-    )
+    try:
+        report = run_evidence_checks(
+            project_dir=args.project_dir,
+            changed_files=_csv(args.changed_files),
+            checks=_csv(args.checks),
+            test_command=args.test_command,
+        )
+    except ProvenanceError as exc:
+        # Loud and unmissable, on stderr, with NO report on stdout: a
+        # caller that pipes --json must get nothing to interpret rather
+        # than a plausible-looking verdict from the wrong engine.
+        print(f"[PROVENANCE-FAIL] {exc}", file=sys.stderr)
+        return 3
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:

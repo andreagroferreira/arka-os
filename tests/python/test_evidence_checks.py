@@ -5,6 +5,7 @@ subprocesses are either trivially fast real commands (python3 -c) or
 monkeypatched. Never touches ~/.arkaos or this repo's own suite.
 """
 
+import contextlib
 import getpass
 import json
 import os
@@ -12,6 +13,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+import pytest
 
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
@@ -805,7 +808,10 @@ def test_lint_scopes_to_changed_js_files_via_local_eslint(tmp_path, monkeypatch)
     result = _result(report, "lint")
     assert result.passed is True
     assert calls["cmd"] == [str(eslint), "app.vue"]
-    assert "lint(scoped: 1 file(s))" in result.command
+    # The label now names the eslint root count too — a single-root project
+    # still reports exactly one root (TestEslintRootResolution covers the
+    # monorepo case this label exists for).
+    assert "lint(scoped: 1 file(s) across 1 eslint root(s))" in result.command
 
 
 def test_lint_changed_outside_project_dir_falls_back_project_wide(
@@ -1776,3 +1782,844 @@ class TestCoveragePathMatching:
         )
 
         assert result.passed is True
+
+
+# ─── provenance guard (issue #453) ──────────────────────────────────────
+
+
+@contextlib.contextmanager
+def _patched_engine(core_init: Path):
+    """Pretend `import core` resolved to `core_init` for the duration.
+
+    The real failure swaps the whole package via a `.pth`; swapping
+    `core.__file__` reproduces exactly what the guard reads, without
+    mutating sys.path inside the test process.
+    """
+    import core as _core
+
+    original = _core.__file__
+    _core.__file__ = str(core_init)
+    try:
+        yield
+    finally:
+        _core.__file__ = original
+
+
+class TestProvenanceGuard:
+    """The gate must never validate one checkout with another's engine.
+
+    Reproduced on the operator's machine: the ArkaOS venv carries an
+    editable ``.pth`` pointing at the npx install cache, so a bare
+    ``python -m core.governance.evidence_checks`` launched from a cwd
+    outside the repo imports the PUBLISHED copy (v5.11.0) and reports on
+    the working tree (v5.13.0) — a report that looks exactly like a
+    trustworthy one.
+    """
+
+    @staticmethod
+    def _engine_checkout(root: Path) -> None:
+        """Minimal marker that makes `root` look like an ArkaOS checkout."""
+        (root / "core" / "governance").mkdir(parents=True, exist_ok=True)
+        (root / "core" / "governance" / "evidence_checks.py").write_text(
+            "# marker\n", encoding="utf-8"
+        )
+
+    def test_foreign_project_is_never_blocked(self, tmp_path):
+        """Gating a CLIENT project legitimately runs the engine from elsewhere."""
+        report = run_evidence_checks(
+            tmp_path, changed_files=[], checks=["lint"],
+        )
+        assert report.overall == "insufficient-evidence"
+
+    def test_engine_checkout_gated_by_a_foreign_engine_raises(self, tmp_path):
+        """The reproduced case: cwd outside the repo, engine from the npx cache."""
+        self._engine_checkout(tmp_path)
+        fake_engine = tmp_path.parent / f"{tmp_path.name}-npx-cache" / "core"
+        fake_engine.mkdir(parents=True, exist_ok=True)
+        (fake_engine / "__init__.py").write_text("", encoding="utf-8")
+
+        with (
+            pytest.raises(evidence_checks.ProvenanceError) as excinfo,
+            _patched_engine(fake_engine / "__init__.py"),
+        ):
+            run_evidence_checks(tmp_path, changed_files=[], checks=["lint"])
+
+        message = str(excinfo.value)
+        assert "provenance mismatch" in message
+        assert str(fake_engine) in message, "the wrong engine must be named"
+        assert str(tmp_path.resolve()) in message
+
+    def test_matching_engine_and_checkout_runs(self, tmp_path):
+        """Same tree on both sides — the guard must stay out of the way."""
+        self._engine_checkout(tmp_path)
+        with _patched_engine(tmp_path / "core" / "__init__.py"):
+            report = run_evidence_checks(
+                tmp_path, changed_files=[], checks=["lint"],
+            )
+        assert report.overall == "insufficient-evidence"
+
+    def test_guard_runs_before_any_check(self, tmp_path, monkeypatch):
+        """It fails the WHOLE run, not one check — nothing may execute."""
+        self._engine_checkout(tmp_path)
+        fake_engine = tmp_path.parent / f"{tmp_path.name}-other" / "core"
+        fake_engine.mkdir(parents=True, exist_ok=True)
+        (fake_engine / "__init__.py").write_text("", encoding="utf-8")
+
+        def explode(*_args, **_kwargs):
+            raise AssertionError("a check ran despite a provenance mismatch")
+
+        monkeypatch.setattr(evidence_checks, "_run", explode)
+        with (
+            pytest.raises(evidence_checks.ProvenanceError),
+            _patched_engine(fake_engine / "__init__.py"),
+        ):
+            run_evidence_checks(tmp_path, checks=list(ALL_CHECKS))
+
+    def test_cli_exits_3_with_no_report_on_stdout(self, tmp_path, capsys):
+        """--json must emit NOTHING interpretable when provenance fails."""
+        self._engine_checkout(tmp_path)
+        fake_engine = tmp_path.parent / f"{tmp_path.name}-cli" / "core"
+        fake_engine.mkdir(parents=True, exist_ok=True)
+        (fake_engine / "__init__.py").write_text("", encoding="utf-8")
+
+        with _patched_engine(fake_engine / "__init__.py"):
+            code = main([str(tmp_path), "--json"])
+
+        captured = capsys.readouterr()
+        assert code == 3
+        assert captured.out.strip() == "", "no report may reach stdout"
+        assert "[PROVENANCE-FAIL]" in captured.err
+
+
+# ─── typecheck honesty (issue #452) ─────────────────────────────────────
+
+
+class TestTypecheckHonesty:
+    """`shutil.which("mypy")` read a venv-installed mypy as "not configured".
+
+    Reproduced on the operator's machine: `shutil.which("mypy")` is None
+    while `importlib.util.find_spec("mypy")` is True, so a repo with an
+    explicit `[tool.mypy]` section reported the GENERIC skip "no typecheck
+    configuration detected" — a false green on a NON-NEGOTIABLE gate.
+    """
+
+    @staticmethod
+    def _configured(project: Path, *, files: bool = False) -> None:
+        body = "[tool.mypy]\nstrict = true\n"
+        if files:
+            body += 'files = ["core"]\n'
+        (project / "pyproject.toml").write_text(body, encoding="utf-8")
+
+    @staticmethod
+    def _no_path_binary(monkeypatch) -> None:
+        monkeypatch.setattr(evidence_checks.shutil, "which", lambda _n: None)
+
+    def test_venv_installed_mypy_runs_instead_of_skipping(
+        self, tmp_path, monkeypatch
+    ):
+        """The reproduced case: no PATH binary, importable module."""
+        self._configured(tmp_path)
+        self._no_path_binary(monkeypatch)
+        monkeypatch.setattr(
+            evidence_checks.importlib.util, "find_spec",
+            lambda name: object() if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured["cmd"] = list(cmd)
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="Success: no issues found",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.ran is True, "a configured typechecker must not skip"
+        assert result.passed is True
+        assert captured["cmd"][:3] == [sys.executable, "-m", "mypy"]
+        assert "no typecheck configuration detected" not in result.summary
+
+    def test_configured_but_absent_names_the_real_reason(
+        self, tmp_path, monkeypatch
+    ):
+        self._configured(tmp_path)
+        self._no_path_binary(monkeypatch)
+        monkeypatch.setattr(
+            evidence_checks.importlib.util, "find_spec", lambda _name: None,
+        )
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.ran is False
+        assert "mypy configured but not installed" in result.summary
+        assert "no typecheck configuration detected" not in result.summary, (
+            "the generic skip lies about a project that opted in"
+        )
+
+    def test_declared_file_scope_is_not_overridden_by_a_dot(
+        self, tmp_path, monkeypatch
+    ):
+        """Passing `.` makes mypy IGNORE the config's own `files` scope."""
+        self._configured(tmp_path, files=True)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured["cmd"] = list(cmd)
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert captured["cmd"] == ["mypy"], (
+            "a declared `files` scope must survive the gate's invocation"
+        )
+
+    def test_undeclared_scope_still_runs_project_wide(
+        self, tmp_path, monkeypatch
+    ):
+        self._configured(tmp_path, files=False)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured["cmd"] = list(cmd)
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert captured["cmd"] == ["mypy", "."]
+
+    def test_abort_is_reported_as_an_abort_not_a_plain_failure(
+        self, tmp_path, monkeypatch
+    ):
+        """The real abort this repo produced, verbatim."""
+        self._configured(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        output = (
+            'mcps/arka-tools/server.py: error: Duplicate module named '
+            '"server" (also at "./mcps/arka-prompts/server.py")\n'
+            "Found 1 error in 1 file (errors prevented further checking)"
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=False, command=" ".join(cmd),
+                exit_code=2, summary=output,
+            ),
+        )
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.ran is True, "an abort is evidence, never a skip"
+        assert result.passed is False
+        assert "ABORTED" in result.summary
+        assert "LOWER BOUND" in result.summary
+        assert "Duplicate module" in result.summary, (
+            "the blocking error must survive into the reviewer's view"
+        )
+
+    def test_completed_run_with_errors_is_not_mislabelled_as_an_abort(
+        self, tmp_path, monkeypatch
+    ):
+        self._configured(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=False, command=" ".join(cmd),
+                exit_code=1,
+                summary="Found 1246 errors in 192 files (checked 339 source files)",
+            ),
+        )
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.passed is False
+        assert "ABORTED" not in result.summary
+
+    def test_this_repo_declares_a_scope_mypy_can_actually_run(self):
+        """The config change is load-bearing: `mypy .` aborts, `mypy` does not."""
+        repo = Path(evidence_checks.__file__).resolve().parents[2]
+        assert evidence_checks._mypy_configured(repo) is True
+        assert evidence_checks._mypy_scope_configured(repo) is True
+
+
+# ─── eslint root resolution (QG Fase 1 scope addition) ──────────────────
+
+
+class TestEslintRootResolution:
+    """The gate resolved eslint only at project_dir.
+
+    Every changed JS/TS file in the diff was therefore linted by the ROOT
+    eslint. On this repo that is a permanent false FAIL for the dashboard
+    tree (root config has no TypeScript parser) — and a false GREEN the
+    day the root config gains a parser, because a config that parses a
+    file while carrying none of its rules evaluates nothing.
+    """
+
+    @staticmethod
+    def _fake_eslint(directory: Path) -> Path:
+        binary = directory / "node_modules" / ".bin" / "eslint"
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        binary.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        binary.chmod(0o755)
+        return binary
+
+    @staticmethod
+    def _source(project: Path, rel: str) -> None:
+        path = project / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("export const x = 1\n", encoding="utf-8")
+
+    def test_nested_package_wins_over_the_root(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path)
+        self._fake_eslint(tmp_path / "dashboard")
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        runs: list[tuple[Path, list[str]]] = []
+
+        def fake_run(check, cmd, project_dir, timeout):
+            runs.append((Path(project_dir), [str(c) for c in cmd]))
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts"], None, 30,
+        )
+
+        assert len(runs) == 1
+        cwd, cmd = runs[0]
+        assert cwd == (tmp_path / "dashboard").resolve(), (
+            "eslint must run from the package that owns the file"
+        )
+        assert cmd[0] == str(tmp_path / "dashboard" / "node_modules" / ".bin" / "eslint")
+        assert cmd[1:] == ["app/useApi.ts"], "paths re-expressed against that cwd"
+        assert result.passed is True
+
+    def test_one_run_per_root_not_one_run_for_all(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path)
+        self._fake_eslint(tmp_path / "dashboard")
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        self._source(tmp_path, "installer/cli.js")
+        runs: list[Path] = []
+
+        def fake_run(check, cmd, project_dir, timeout):
+            runs.append(Path(project_dir))
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts", "installer/cli.js"], None, 30,
+        )
+
+        assert sorted(runs) == sorted(
+            [tmp_path.resolve(), (tmp_path / "dashboard").resolve()]
+        )
+        assert "2 eslint root(s)" in result.command
+
+    def test_a_failing_root_fails_the_whole_check(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path)
+        self._fake_eslint(tmp_path / "dashboard")
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        self._source(tmp_path, "installer/cli.js")
+
+        def fake_run(check, cmd, project_dir, timeout):
+            failing = Path(project_dir).name == "dashboard"
+            return CheckResult(
+                check=check, ran=True, passed=not failing,
+                command=" ".join(cmd), exit_code=1 if failing else 0,
+                summary="no-unused-vars" if failing else "ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts", "installer/cli.js"], None, 30,
+        )
+
+        assert result.passed is False
+        assert "[dashboard]" in result.summary
+        assert result.exit_code == 1
+
+    def test_files_with_no_eslint_above_them_are_named(
+        self, tmp_path, monkeypatch
+    ):
+        """A silently unlinted file is the blind gate this fix closes."""
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._fake_eslint(tmp_path / "dashboard")  # root has NO eslint
+        self._source(tmp_path, "dashboard/app/useApi.ts")
+        self._source(tmp_path, "installer/cli.js")
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            ),
+        )
+        result = evidence_checks._check_lint(
+            tmp_path, ["dashboard/app/useApi.ts", "installer/cli.js"], None, 30,
+        )
+
+        assert "NOT LINTED" in result.summary
+        assert "installer/cli.js" in result.summary
+        assert "1 file(s) across 1 eslint root(s)" in result.command
+
+    def test_no_eslint_anywhere_falls_through_to_project_wide(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setattr(evidence_checks, "_ruff_cmd", lambda: None)
+        self._source(tmp_path, "app/main.ts")
+        (tmp_path / "package.json").write_text(
+            '{"scripts": {"lint": "eslint ."}}', encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            ),
+        )
+        result = evidence_checks._check_lint(
+            tmp_path, ["app/main.ts"], None, 30,
+        )
+
+        assert "project-wide" in result.command
+
+    def test_real_dashboard_file_passes_its_own_eslint(self):
+        """Integration: the exact file the QG reproduced the false FAIL on.
+
+        Root eslint  -> `Parsing error: Unexpected token` (no TS parser)
+        Dashboard eslint -> exit 0
+        """
+        repo = Path(evidence_checks.__file__).resolve().parents[2]
+        target = "dashboard/app/composables/useApi.ts"
+        for required in (
+            repo / "node_modules" / ".bin" / "eslint",
+            repo / "dashboard" / "node_modules" / ".bin" / "eslint",
+            repo / target,
+        ):
+            if not required.exists():
+                pytest.skip(f"node_modules not installed: {required}")
+
+        assert evidence_checks._eslint_root(repo, target) == (
+            repo / "dashboard"
+        ).resolve()
+        result = evidence_checks._check_lint(repo, [target], None, 120)
+
+        assert result.ran is True
+        assert result.passed is True, (
+            f"the owning package's eslint must accept its own file: "
+            f"{result.summary}"
+        )
+        assert "Parsing error" not in result.summary
+
+
+# ─── typecheck scoped to the diff (orchestrator decision, batch 6d) ─────
+
+
+class TestTypecheckScopedToDiff:
+    """Project-wide mypy attributes master's debt to whoever ships next.
+
+    Measured on this repo: 1246 errors in 192 files. As a gating verdict
+    that REJECTS every deliverable regardless of its own quality — and a
+    permanently red gate is one reviewers learn to ignore. Same principle
+    `_lint_scoped` already applies to lint.
+
+    These run REAL mypy over tiny tmp projects: the whole point is what
+    the tool actually reports, which a stub cannot establish.
+    """
+
+    @staticmethod
+    def _project(root: Path) -> None:
+        (root / "pyproject.toml").write_text(
+            "[tool.mypy]\nstrict = true\n", encoding="utf-8",
+        )
+
+    @staticmethod
+    def _mypy_or_skip() -> list[str]:
+        cmd = evidence_checks._tool_cmd("mypy")
+        if cmd is None:
+            pytest.skip("mypy not installed")
+        return cmd
+
+    def test_clean_diff_passes(self, tmp_path):
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "clean.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["clean.py"], None, 120,
+        )
+
+        assert result.ran is True
+        assert result.passed is True, result.summary
+        assert "scoped: 1 file(s)" in result.command
+        assert "advisory, NOT gating" in result.summary
+
+    def test_a_new_type_error_in_the_diff_fails_and_is_cited(self, tmp_path):
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "broken.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return 'nope'\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["broken.py"], None, 120,
+        )
+
+        assert result.ran is True
+        assert result.passed is False
+        assert "broken.py" in result.summary
+        assert "return-value" in result.summary, (
+            "the reviewer must see WHICH error, not just a red light"
+        )
+
+    def test_debt_outside_the_diff_does_not_fail_the_diff(self, tmp_path):
+        """The whole reason for scoping — and the advisory keeps it visible."""
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "legacy.py").write_text(
+            "def old(a: int) -> int:\n    return 'master debt'\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "clean.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["clean.py"], None, 120,
+        )
+
+        assert result.passed is True, (
+            f"legacy.py is master's debt, not this diff's: {result.summary}"
+        )
+        assert "legacy.py" not in result.summary.split("advisory")[0], (
+            "an untouched file must not appear in the GATING half"
+        )
+        assert "advisory, NOT gating" in result.summary
+        assert "Found 1 error" in result.summary, (
+            "the accumulated count must stay visible or nobody ever cleans it"
+        )
+
+    def test_non_python_diff_still_falls_back_to_project_wide(
+        self, tmp_path, monkeypatch
+    ):
+        self._project(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured.setdefault("cmds", []).append(list(cmd))
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        evidence_checks._check_typecheck(tmp_path, ["README.md"], None, 30)
+
+        assert captured["cmds"] == [["mypy", "."]], (
+            "no Python in the diff — the project-wide path is unchanged"
+        )
+
+    def test_advisory_never_flips_the_gating_verdict(self, tmp_path, monkeypatch):
+        """A failing project-wide run must not fail a clean diff."""
+        self._project(tmp_path)
+        (tmp_path / "clean.py").write_text("x: int = 1\n", encoding="utf-8")
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+
+        def fake_run(check, cmd, project_dir, timeout):
+            scoped = "--follow-imports=silent" in cmd
+            return CheckResult(
+                check=check, ran=True, passed=scoped,
+                command=" ".join(cmd), exit_code=0 if scoped else 1,
+                summary=(
+                    "Success: no issues found in 1 source file" if scoped
+                    else "Found 1246 errors in 192 files (checked 339 source files)"
+                ),
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        monkeypatch.setattr(
+            evidence_checks, "_run_capturing",
+            lambda check, cmd, project_dir, timeout: (
+                fake_run(check, cmd, project_dir, timeout), "",
+            ),
+        )
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["clean.py"], None, 30,
+        )
+
+        assert result.passed is True
+        assert "Found 1246 errors in 192 files" in result.summary
+        assert "NOT gating" in result.summary
+
+    def test_declared_scope_bounds_the_scoped_run_too(self, tmp_path):
+        """`files` is overridden by explicit paths — on BOTH invocations.
+
+        Measured before this guard: a diff touching tests/ produced
+        `Found 351 errors in 4 files` under `files = ["core", "scripts"]`,
+        a tree the project never asked mypy to cover.
+        """
+        self._mypy_or_skip()
+        (tmp_path / "pyproject.toml").write_text(
+            '[tool.mypy]\nstrict = true\nfiles = ["core"]\n', encoding="utf-8",
+        )
+        (tmp_path / "core").mkdir()
+        (tmp_path / "core" / "clean.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_thing.py").write_text(
+            "def test_thing():\n    assert True\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["core/clean.py", "tests/test_thing.py"], None, 120,
+        )
+
+        assert result.passed is True, result.summary
+        assert "scoped: 1 file(s)" in result.command
+        assert "test_thing.py" not in result.summary.split("advisory")[0]
+        assert "outside the project's declared mypy scope" in result.summary
+
+    def test_diff_entirely_outside_the_declared_scope_does_not_gate(
+        self, tmp_path
+    ):
+        """Never fall back to the project-wide run — that gates on all debt."""
+        self._mypy_or_skip()
+        (tmp_path / "pyproject.toml").write_text(
+            '[tool.mypy]\nstrict = true\nfiles = ["core"]\n', encoding="utf-8",
+        )
+        (tmp_path / "core").mkdir()
+        (tmp_path / "core" / "legacy.py").write_text(
+            "def old(a: int) -> int:\n    return 'debt'\n", encoding="utf-8",
+        )
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_thing.py").write_text(
+            "def test_thing():\n    assert True\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["tests/test_thing.py"], None, 120,
+        )
+
+        assert result.ran is False
+        assert result.passed is not False, (
+            "master's debt must not reject a diff mypy was never asked to cover"
+        )
+        assert "outside the project's declared mypy scope" in result.summary
+
+
+# ─── typecheck attributed to ADDED lines (orchestrator decision, batch 6d) ──
+
+
+class TestTypecheckLineAttribution:
+    """File granularity still charged this diff for master's debt.
+
+    Proof by absurdity, on this very branch: measured type-debt delta of
+    ZERO, yet `core/hooks/stop.py`'s 15 pre-existing strict errors made
+    the gate REJECT it. Only errors on lines the diff ADDED may gate —
+    the same contract `_check_security_grep` has always applied, using the
+    same `_diff_base` + `_added_lines` machinery.
+
+    These build a REAL git repo and run REAL mypy: attribution is a claim
+    about what git and mypy jointly report, which a stub cannot establish.
+    """
+
+    @staticmethod
+    def _git(args: list[str], cwd: Path) -> None:
+        subprocess.run(
+            ["git", *args], cwd=cwd, check=True,
+            capture_output=True, text=True,
+        )
+
+    def _repo(self, root: Path, baseline: str) -> None:
+        """A repo whose master carries `baseline` as pre-existing debt."""
+        self._git(["init", "-q", "-b", "master"], root)
+        self._git(["config", "user.email", "t@t.t"], root)
+        self._git(["config", "user.name", "t"], root)
+        (root / "pyproject.toml").write_text(
+            "[tool.mypy]\nstrict = true\n", encoding="utf-8",
+        )
+        (root / "mod.py").write_text(baseline, encoding="utf-8")
+        self._git(["add", "pyproject.toml", "mod.py"], root)
+        self._git(["commit", "-qm", "baseline"], root)
+
+    @staticmethod
+    def _mypy_or_skip() -> None:
+        if evidence_checks._tool_cmd("mypy") is None:
+            pytest.skip("mypy not installed")
+
+    # master already fails strict: no annotations at all.
+    _DEBT = "def old(a):\n    return a + 1\n"
+
+    def test_pre_existing_debt_in_a_touched_file_does_not_gate(self, tmp_path):
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        (tmp_path / "mod.py").write_text(
+            self._DEBT + "\n\ndef added(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+
+        assert result.ran is True
+        assert result.passed is True, (
+            f"a clean addition must not inherit master's debt: {result.summary}"
+        )
+        assert "no type errors on lines this diff added" in result.summary
+        assert "strict error(s) on lines this diff did not add" in result.summary
+        assert "line position, not provenance" in result.summary
+
+    def test_a_new_error_on_an_added_line_gates_and_is_cited(self, tmp_path):
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        (tmp_path / "mod.py").write_text(
+            self._DEBT + "\n\ndef added(a: int) -> int:\n    return 'nope'\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+
+        assert result.passed is False
+        assert "type error(s) on lines this diff added" in result.summary
+        assert "return-value" in result.summary, (
+            "the reviewer must see WHICH error the diff introduced"
+        )
+        assert "mod.py:" in result.summary
+
+    def test_pre_existing_errors_are_counted_never_hidden(self, tmp_path):
+        """Non-gating is not the same as invisible."""
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        (tmp_path / "mod.py").write_text(
+            self._DEBT + "\n\nadded: int = 1\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+        attributed = evidence_checks._attribute_mypy_errors(
+            tmp_path,
+            subprocess.run(
+                [*evidence_checks._tool_cmd("mypy"), "--follow-imports=silent",
+                 "mod.py"],
+                cwd=tmp_path, capture_output=True, text=True,
+            ).stdout,
+        )
+
+        assert attributed is not None
+        gating, inherited = attributed
+        assert gating == []
+        assert inherited, "master's errors must still be enumerated"
+        assert (
+            f"{len(inherited)} strict error(s) on lines this diff did not add"
+            in result.summary
+        )
+
+    def test_no_merge_base_gates_on_everything(self, tmp_path, monkeypatch):
+        """Fail CLOSED: unattributable is never treated as unattributed."""
+        self._mypy_or_skip()
+        self._repo(tmp_path, self._DEBT)
+        monkeypatch.setattr(evidence_checks, "_diff_base", lambda _p: None)
+
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 120)
+
+        assert result.passed is False
+        assert "no merge-base" in result.summary
+        assert "ALL of them gate" in result.summary
+
+    def test_an_untrackable_file_fails_closed(self, tmp_path):
+        """git cannot diff a brand-new path against the base — it gates."""
+        self._mypy_or_skip()
+        self._repo(tmp_path, "x: int = 1\n")
+        (tmp_path / "brand_new.py").write_text(
+            "def added(a: int) -> int:\n    return 'nope'\n", encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["brand_new.py"], None, 120,
+        )
+
+        assert result.passed is False
+        assert "brand_new.py" in result.summary
+
+    def test_an_abort_is_never_downgraded_by_attribution(
+        self, tmp_path, monkeypatch
+    ):
+        """An unfinished checker has no empty gating list to be proud of."""
+        (tmp_path / "pyproject.toml").write_text(
+            "[tool.mypy]\nstrict = true\n", encoding="utf-8",
+        )
+        (tmp_path / "mod.py").write_text("x = 1\n", encoding="utf-8")
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        aborted = (
+            'mcps/a/server.py: error: Duplicate module named "server"\n'
+            "Found 1 error in 1 file (errors prevented further checking)"
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run_capturing",
+            lambda check, cmd, project_dir, timeout: (
+                CheckResult(
+                    check=check, ran=True, passed=False, command=" ".join(cmd),
+                    exit_code=1, summary=aborted,
+                ),
+                aborted,
+            ),
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            ),
+        )
+
+        def explode(*_a, **_k):
+            raise AssertionError("an aborted run must never be attributed")
+
+        monkeypatch.setattr(evidence_checks, "_attribute_mypy_errors", explode)
+        result = evidence_checks._check_typecheck(tmp_path, ["mod.py"], None, 30)
+
+        assert result.passed is False
+        assert "ABORTED" in result.summary

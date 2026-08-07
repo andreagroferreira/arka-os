@@ -69,6 +69,10 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.4",
     "mypy>=1.10",
+    # Real stubs, not an `ignore_missing_imports` silencer: pyyaml is a
+    # hard runtime dependency and 33 of the typecheck's errors were
+    # nothing but its missing stubs. `strict` stays intact.
+    "types-PyYAML>=6.0",
 ]
 
 [project.urls]
@@ -100,5 +104,30 @@ testpaths = ["tests/python"]
 asyncio_mode = "auto"
 
 [tool.mypy]
-python_version = "3.11"
+# 3.12, not the 3.11 requires-python floor: numpy 2.x ships stubs written
+# with PEP 695 `type` statements, which mypy cannot PARSE at 3.11 — and a
+# syntax error inside a followed third-party stub is a BLOCKING abort that
+# stops the entire run before checking anything. No per-module override
+# can suppress it (parse errors precede error filtering). The 3.11 floor
+# is enforced where it actually holds: the CI test matrix EXECUTES the
+# suite on 3.11/3.12/3.13 (.github/workflows/test.yml). mypy was never
+# wired into CI, so the pin guaranteed nothing while breaking everything.
+python_version = "3.12"
 strict = true
+# Scope, declared here so the evidence gate can honour it (issue #452).
+# `mypy .` over the whole tree ABORTS before checking anything: mcps/
+# ships two top-level `server.py` modules, and plugins/ + scripts/ collide
+# on bare script names. An aborted run reported as "no typecheck
+# configuration detected" was a FALSE GREEN on a NON-NEGOTIABLE gate.
+# `files` names the first-party source this repo governs. The mcps/ tree
+# runs under its own uv environment (mcps/arka-tools/pyproject.toml) and
+# plugins/ is a generated mirror of departments/; neither is typechecked
+# anywhere today — that is an open gap (tracked), not a delegation.
+# `strict` is untouched.
+files = ["core", "scripts"]
+# Without this, `scripts/bench/harness.py` maps to BOTH `bench.harness`
+# (nearest dir without __init__.py) and `scripts.bench.harness`, which is
+# itself a blocking abort. Anchoring package bases at the repo root gives
+# every file exactly one module name.
+explicit_package_bases = true
+exclude = ["^mcps/", "^plugins/"]
