@@ -1,0 +1,104 @@
+>> Writing logs to C:\Users\marlo\projects\personal\arkaos-fork\python_install_20260727110932_29888.log
+>> Python installation manager 26.3
+Copyright (c) Python Software Foundation. All Rights Reserved.
+
+>  Python install manager was successfully updated to 26.3.
+
+Additional shebang configuration is now available. Please see
+https://docs.python.org/using/windows#shebang-lines for more information.
+
+BEGIN install_command.execute: []
+>  ********************************************************************************
+Reading installs from C:\Users\marlo\projects\personal\arkaos-fork\Python
+Found 0 installs
+Calculating default install
+Filtering installs by tag = 3
+tag '3' matched 0 installs
+default_platform '-64' matched 0 installs
+Reusing unfiltered list
+Searching https://www.python.org/ftp/python/index-windows.json
+>> Searching for Python matching 3
+Selecting package with tag=3 and platform=-64
+Fetching: https://www.python.org/ftp/python/index-windows.json
+winhttp_urlopen: https://www.python.org/ftp/python/index-windows.json
+winhttp_urlopen: https://www.python.org/ftp/python/index-windows.json.cat
+>  The signature for https://www.python.org/ftp/python/index-windows.json was successfully verified.
+Finding ['3-64'] to install
+>  Installing Python 3.14.6.
+>> Tag: PythonCore\3.14-64
+Starting download package https://www.python.org/ftp/python/3.14.6/python-3.14.6-amd64.zip to C:\Users\marlo\projects\personal\arkaos-fork\Python\_cache\pythoncore-3.14-64-3.14.6.zip
+Starting hash validation of C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\bundled\pythoncore-3.14-64-3.14.6.zip
+Calculating hashes: sha256
+sha256 digest: 75afa83f93b284d19040e24bc440ab741c09582c0d5310504d607a4e08c3dbaf (matched)
+>> Using bundled file at C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\bundled\pythoncore-3.14-64-3.14.6.zip
+Starting hash validation of C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\bundled\pythoncore-3.14-64-3.14.6.zip
+Calculating hashes: sha256
+sha256 digest: 75afa83f93b284d19040e24bc440ab741c09582c0d5310504d607a4e08c3dbaf (matched)
+>> Extracting C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\bundled\pythoncore-3.14-64-3.14.6.zip to C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64
+Starting extract of C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\bundled\pythoncore-3.14-64-3.14.6.zip to C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64
+Updating from __install__.json in C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64
+Write __install__.json to C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64
+>> Install complete
+Updating global shortcuts
+Reading installs from C:\Users\marlo\projects\personal\arkaos-fork\Python
+Found 1 install
+Calculating default install
+Filtering installs by tag = 3
+tag '3' matched 1 install
+- 1 core install(s) by prefix
+default_platform '-64' matched 1 install
+Default install will be pythoncore-3.14-64
+Calculating aliases for pythoncore-3.14-64
+Found 1 entry_points.txt files in 1 dist-info in pythoncore-3.14-64\Lib\site-packages
+Creating aliases
+Create python3.14.exe for pythoncore-3.14-64\python.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcher-64.exe, chosen by platform tag
+Searching C:\Users\marlo\projects\personal\arkaos-fork\Python\bin for suitable launcher to link
+No existing launcher available
+Created python3.14.exe as copy of launcher-64.exe
+Create python3.14-64.exe for pythoncore-3.14-64\python.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcher-64.exe, chosen by platform tag
+Created python3.14-64.exe as hard link to python3.14.exe
+Create python3.exe for pythoncore-3.14-64\python.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcher-64.exe, chosen by platform tag
+Created python3.exe as hard link to python3.14.exe
+Create python3-64.exe for pythoncore-3.14-64\python.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcher-64.exe, chosen by platform tag
+Created python3-64.exe as hard link to python3.14.exe
+Create pythonw3.14.exe for pythoncore-3.14-64\pythonw.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcherw-64.exe, chosen by platform tag
+Searching C:\Users\marlo\projects\personal\arkaos-fork\Python\bin for suitable launcher to link
+No existing launcher available
+Created pythonw3.14.exe as copy of launcherw-64.exe
+Create pythonw3.14-64.exe for pythoncore-3.14-64\pythonw.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcherw-64.exe, chosen by platform tag
+Created pythonw3.14-64.exe as hard link to pythonw3.14.exe
+Create pythonw3.exe for pythoncore-3.14-64\pythonw.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcherw-64.exe, chosen by platform tag
+Created pythonw3.exe as hard link to pythonw3.14.exe
+Create pythonw3-64.exe for pythoncore-3.14-64\pythonw.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcherw-64.exe, chosen by platform tag
+Created pythonw3-64.exe as hard link to pythonw3.14.exe
+Create python for pythoncore-3.14-64\python.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcher-64.exe, chosen by platform tag
+Created python.exe as hard link to python3.14.exe
+Create pythonw for pythoncore-3.14-64\pythonw.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcherw-64.exe, chosen by platform tag
+Created pythonw.exe as hard link to pythonw3.14.exe
+Create pip for pythoncore-3.14-64\python.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcher-64.exe, chosen by platform tag
+Created pip.exe as hard link to python3.14.exe
+Create pip3 for pythoncore-3.14-64\python.exe using C:\Program Files\WindowsApps\PythonSoftwareFoundation.PythonManager_26.3.240.0_x64__qbz5n2kfra8p0\templates\launcher-64.exe, chosen by platform tag
+Created pip3.exe as hard link to python3.14.exe
+Cleaning up aliases
+Retaining 12 aliases
+Creating/updating HKEY_CURRENT_USER\Software\Python\PythonCore\3.14
+Creating shortcut Python 3.14.lnk to C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64\python.exe
+Creating shortcut Python 3.14 Online Documentation.lnk to https://docs.python.org/3.14/
+Creating shortcut IDLE (Python 3.14).lnk to C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64\pythonw.exe
+Creating shortcut PyDoc (Python 3.14).lnk to C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64\python.exe
+Creating shortcut Python 3.14 Manuals.lnk to C:\Users\marlo\projects\personal\arkaos-fork\Python\pythoncore-3.14-64\Doc\html\index.html
+Creating ARP entry for pymanager-pythoncore-3.14-64
+Searching ~\AppData\Local\Microsoft\WindowsApps for pymanager.exe for ARP entries
+Cleaning up registry entries
+Skipping HKEY_CURRENT_USER\Software\Python\PythonCore\3.13
+Skipping HKEY_CURRENT_USER\Software\Python\PythonCore\3.14
+Cleaning up Start menu shortcuts
+Except: Python 3.14\Python 3.14 Manuals
+Except: Python 3.14
+Except: Python 3.14\PyDoc (Python 3.14)
+Except: Python 3.14\Python 3.14
+Except: Python 3.14\Python 3.14 Online Documentation
+Except: Python 3.14\IDLE (Python 3.14)
+>  To see all available commands, run 'py help'
+>  ********************************************************************************
+END install_command.execute

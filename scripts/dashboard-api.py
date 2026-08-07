@@ -2994,6 +2994,12 @@ def terminal_sessions_create(body: dict):
     except SessionCapacityError as exc:
         from fastapi import HTTPException
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        # Windows: no Unix PTY available. Return a clean 501 (which goes
+        # through the CORS middleware) instead of an unhandled 500 that
+        # the browser reports as an opaque "Failed to fetch".
+        from fastapi import HTTPException
+        raise HTTPException(status_code=501, detail=str(exc)) from exc
     return {
         "session_id": s.session_id,
         "shell": s.shell,

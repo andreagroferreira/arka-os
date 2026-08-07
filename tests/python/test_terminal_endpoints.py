@@ -101,6 +101,25 @@ def test_cap_returns_429(api):
     assert "max sessions" in r.json()["detail"].lower()
 
 
+def test_no_pty_returns_501(api, monkeypatch):
+    """A platform without a Unix PTY must answer 501, not an opaque 500.
+
+    ``SessionManager.create`` raises RuntimeError when no PTY backend is
+    available. Unhandled, FastAPI turns that into a 500 raised *before*
+    the CORS middleware adds its headers, so the browser reports only
+    "Failed to fetch" and the real cause never reaches the operator.
+    """
+    from core.terminal import session as _sess
+
+    def _no_pty(*_args, **_kwargs):
+        raise RuntimeError("PTY unavailable on this platform")
+
+    monkeypatch.setattr(_sess.default_manager(), "create", _no_pty)
+    r = TestClient(api.app).post("/api/terminal/sessions", json={"shell": "/bin/sh"})
+    assert r.status_code == 501
+    assert "pty" in r.json()["detail"].lower()
+
+
 def test_origin_helper_rejects_external(api):
     assert api._terminal_origin_ok("") is False
     assert api._terminal_origin_ok("http://evil.com") is False

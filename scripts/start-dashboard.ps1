@@ -41,6 +41,12 @@ if (Test-Path -LiteralPath $pidFile) {
         foreach ($line in $existingPids) {
             $pidValue = 0
             if ([int]::TryParse($line.Trim(), [ref]$pidValue) -and $pidValue -gt 0) {
+                # venv python.exe is a launcher; kill its children first
+                # or the real interpreter survives holding the port.
+                try {
+                    Get-CimInstance Win32_Process -Filter "ParentProcessId=$pidValue" -ErrorAction SilentlyContinue |
+                        ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch { } }
+                } catch { }
                 try { Stop-Process -Id $pidValue -Force -ErrorAction SilentlyContinue } catch { }
             }
         }
@@ -303,6 +309,14 @@ if (Test-Path -LiteralPath $nuxtServer) {
 $pidLines = @()
 if ($apiProc) { $pidLines += [string]$apiProc.Id }
 if ($uiProc)  { $pidLines += [string]$uiProc.Id }
+# Record child PIDs too (venv launcher -> real interpreter) so stop
+# and restart reap the whole tree.
+foreach ($parentPid in @($pidLines)) {
+    try {
+        Get-CimInstance Win32_Process -Filter "ParentProcessId=$parentPid" -ErrorAction SilentlyContinue |
+            ForEach-Object { $pidLines += [string]$_.ProcessId }
+    } catch { }
+}
 [System.IO.File]::WriteAllText($pidFile, ($pidLines -join [Environment]::NewLine), [System.Text.ASCIIEncoding]::new())
 
 $portLines = @("API_PORT=$apiPort")
