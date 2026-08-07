@@ -209,6 +209,46 @@ try {
     # Swallow — enqueue is fire-and-forget.
 }
 
+# ─── Governance parity (skill capture + warn-only detectors) ───────────
+# config/hooks/stop.sh delegates the whole event to `python -m` the Stop
+# entrypoint, which runs the full detector chain (the authoritative list
+# is that module's own imports — no count is stated here because several
+# are conditional, so no fixed number is true of a given event). This
+# port reimplements the event and reached only two of them, so four
+# detectors that exist, are tested and are wired on POSIX never ran on
+# Windows at all — most visibly skill_proposer, whose constitution rule
+# (mandatory-skill-evaluation) mandates a capability sweep after every
+# completed task.
+#
+# The sweep is a real module, not an inline script: core/hooks/
+# stop_governance.py. Delegating rather than mirroring is what keeps the
+# owner-only umask on the state files it writes — the previous inline
+# copy of _write_tmp_state had already lost it — and it is what lets the
+# parity test IMPORT AND RUN the sweep instead of grepping module names
+# out of this file, which a comment could satisfy.
+#
+# Scope is deliberately the NON-ENFORCEMENT subset: these four write
+# proposals and diagnostic state only. The gating checks
+# (closing_marker_check, meta_tag_check, kb_cite_check, dna_fidelity)
+# are left out of this change — they feed enforcement surfaces and
+# deserve their own baseline on Windows before being switched on.
+$governanceModule = Join-Path $env:ARKAOS_ROOT "core/hooks/stop_governance.py"
+if (Test-Path -LiteralPath $governanceModule) {
+    # PREPEND, never clobber: an operator's own PYTHONPATH must survive
+    # the hook (the .sh twin prepends for the same reason).
+    $sep = [IO.Path]::PathSeparator
+    $env:PYTHONPATH = if ($env:PYTHONPATH) {
+        "$($env:ARKAOS_ROOT)$sep$($env:PYTHONPATH)"
+    } else {
+        $env:ARKAOS_ROOT
+    }
+    try {
+        & $pythonExe -m core.hooks.stop_governance | Out-Null
+    } catch {
+        # Swallow — governance observation must never affect the Stop hook.
+    }
+}
+
 # Belt-and-braces marker cleanup (safe even if the Python block crashed).
 if ($sessionId -match '^[A-Za-z0-9._-]{1,128}$') {
     Remove-Item -LiteralPath $wfMarker -ErrorAction SilentlyContinue
