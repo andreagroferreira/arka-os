@@ -4,13 +4,17 @@
 pattern is ``\\d{3}`` followed by the noun, so two things stayed invisible
 to it across the whole of ``wiki/04-Departments/``:
 
-* every per-department count is **two digits** (``70``, ``15``, ``9``), and
-* half of them are written **noun-then-number** (``**Skills:** 70``,
-  ``| 36 | 70 | 15 |``), the reverse of the order it matches.
+* every per-department count is **fewer than three digits** (``70``,
+  ``15``, ``9``),
+* half of them are written **noun-then-number** (``**Skills:** 70``), the
+  reverse of the order it matches, and
+* the rest are **bare table cells** with the noun in a separate header
+  row (``| 36 | 70 | 15 |``).
 
-That is 17 pages x 4 places = 68 numbers with no lock at all. This test
-derives each department's counts from ``docs_stats.py`` and checks all
-four places on every page, plus the index row in README.md.
+That is 17 departments x 4 count-sites = 68 sites, carrying over 100
+individual numbers with no lock at all. This test derives each
+department's counts from ``docs_stats.py`` and checks three places on
+every page plus the index row in README.md.
 """
 from __future__ import annotations
 
