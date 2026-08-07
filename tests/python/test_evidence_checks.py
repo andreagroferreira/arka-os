@@ -1886,3 +1886,175 @@ class TestProvenanceGuard:
         assert code == 3
         assert captured.out.strip() == "", "no report may reach stdout"
         assert "[PROVENANCE-FAIL]" in captured.err
+
+
+# ─── typecheck honesty (issue #452) ─────────────────────────────────────
+
+
+class TestTypecheckHonesty:
+    """`shutil.which("mypy")` read a venv-installed mypy as "not configured".
+
+    Reproduced on the operator's machine: `shutil.which("mypy")` is None
+    while `importlib.util.find_spec("mypy")` is True, so a repo with an
+    explicit `[tool.mypy]` section reported the GENERIC skip "no typecheck
+    configuration detected" — a false green on a NON-NEGOTIABLE gate.
+    """
+
+    @staticmethod
+    def _configured(project: Path, *, files: bool = False) -> None:
+        body = "[tool.mypy]\nstrict = true\n"
+        if files:
+            body += 'files = ["core"]\n'
+        (project / "pyproject.toml").write_text(body, encoding="utf-8")
+
+    @staticmethod
+    def _no_path_binary(monkeypatch) -> None:
+        monkeypatch.setattr(evidence_checks.shutil, "which", lambda _n: None)
+
+    def test_venv_installed_mypy_runs_instead_of_skipping(
+        self, tmp_path, monkeypatch
+    ):
+        """The reproduced case: no PATH binary, importable module."""
+        self._configured(tmp_path)
+        self._no_path_binary(monkeypatch)
+        monkeypatch.setattr(
+            evidence_checks.importlib.util, "find_spec",
+            lambda name: object() if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured["cmd"] = list(cmd)
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="Success: no issues found",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.ran is True, "a configured typechecker must not skip"
+        assert result.passed is True
+        assert captured["cmd"][:3] == [sys.executable, "-m", "mypy"]
+        assert "no typecheck configuration detected" not in result.summary
+
+    def test_configured_but_absent_names_the_real_reason(
+        self, tmp_path, monkeypatch
+    ):
+        self._configured(tmp_path)
+        self._no_path_binary(monkeypatch)
+        monkeypatch.setattr(
+            evidence_checks.importlib.util, "find_spec", lambda _name: None,
+        )
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.ran is False
+        assert "mypy configured but not installed" in result.summary
+        assert "no typecheck configuration detected" not in result.summary, (
+            "the generic skip lies about a project that opted in"
+        )
+
+    def test_declared_file_scope_is_not_overridden_by_a_dot(
+        self, tmp_path, monkeypatch
+    ):
+        """Passing `.` makes mypy IGNORE the config's own `files` scope."""
+        self._configured(tmp_path, files=True)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured["cmd"] = list(cmd)
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert captured["cmd"] == ["mypy"], (
+            "a declared `files` scope must survive the gate's invocation"
+        )
+
+    def test_undeclared_scope_still_runs_project_wide(
+        self, tmp_path, monkeypatch
+    ):
+        self._configured(tmp_path, files=False)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured["cmd"] = list(cmd)
+            return CheckResult(
+                check=check, ran=True, passed=True, command=" ".join(cmd),
+                exit_code=0, summary="ok",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert captured["cmd"] == ["mypy", "."]
+
+    def test_abort_is_reported_as_an_abort_not_a_plain_failure(
+        self, tmp_path, monkeypatch
+    ):
+        """The real abort this repo produced, verbatim."""
+        self._configured(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        output = (
+            'mcps/arka-tools/server.py: error: Duplicate module named '
+            '"server" (also at "./mcps/arka-prompts/server.py")\n'
+            "Found 1 error in 1 file (errors prevented further checking)"
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=False, command=" ".join(cmd),
+                exit_code=2, summary=output,
+            ),
+        )
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.ran is True, "an abort is evidence, never a skip"
+        assert result.passed is False
+        assert "ABORTED" in result.summary
+        assert "LOWER BOUND" in result.summary
+        assert "Duplicate module" in result.summary, (
+            "the blocking error must survive into the reviewer's view"
+        )
+
+    def test_completed_run_with_errors_is_not_mislabelled_as_an_abort(
+        self, tmp_path, monkeypatch
+    ):
+        self._configured(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=False, command=" ".join(cmd),
+                exit_code=1,
+                summary="Found 1246 errors in 192 files (checked 339 source files)",
+            ),
+        )
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.passed is False
+        assert "ABORTED" not in result.summary
+
+    def test_this_repo_declares_a_scope_mypy_can_actually_run(self):
+        """The config change is load-bearing: `mypy .` aborts, `mypy` does not."""
+        repo = Path(evidence_checks.__file__).resolve().parents[2]
+        assert evidence_checks._mypy_configured(repo) is True
+        assert evidence_checks._mypy_scope_configured(repo) is True

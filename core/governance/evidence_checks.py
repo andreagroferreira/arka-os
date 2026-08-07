@@ -34,6 +34,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tomllib
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from xml.etree import ElementTree
@@ -265,6 +266,48 @@ def _mypy_configured(project_dir: Path) -> bool:
     return False
 
 
+def _mypy_scope_configured(project_dir: Path) -> bool:
+    """True when the project's mypy config declares its own ``files`` scope.
+
+    mypy IGNORES the config's ``files`` the moment any path is passed on
+    the command line, so a gate that unconditionally appends ``.``
+    overrides the very scope the project declared. That is how ``mypy .``
+    came to ABORT on this repo before checking a single line — two
+    top-level ``server`` modules under mcps/, plus bare script names
+    colliding between plugins/ and scripts/ (issue #452). When the
+    project has declared a scope, run bare and let the config win.
+    """
+    if _ini_declares_files(project_dir / "mypy.ini"):
+        return True
+    if _ini_declares_files(project_dir / "setup.cfg"):
+        return True
+    return _pyproject_declares_files(project_dir / "pyproject.toml")
+
+
+def _ini_declares_files(path: Path) -> bool:
+    """`files = ...` under an ini-style ``[mypy]`` section."""
+    if not path.is_file():
+        return False
+    parser = configparser.ConfigParser()
+    try:
+        parser.read(path, encoding="utf-8")
+        return bool(parser.get("mypy", "files", fallback="").strip())
+    except (OSError, configparser.Error):
+        return False
+
+
+def _pyproject_declares_files(path: Path) -> bool:
+    """`files = [...]` under ``[tool.mypy]`` in pyproject.toml."""
+    if not path.is_file():
+        return False
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError, UnicodeDecodeError):
+        return False
+    mypy_cfg = data.get("tool", {}).get("mypy", {})
+    return bool(isinstance(mypy_cfg, dict) and mypy_cfg.get("files"))
+
+
 # ─── Individual checks ──────────────────────────────────────────────────
 
 _LINTABLE_PY = frozenset({".py"})
@@ -407,6 +450,35 @@ def _check_lint(
     return _skip("lint", "no lint tooling detected (ruff/eslint/pint)")
 
 
+_MYPY_ABORT_MARKER = "errors prevented further checking"
+
+
+def _mypy_verdict(result: CheckResult) -> CheckResult:
+    """Never let a mypy ABORT read as an ordinary type-error failure.
+
+    A blocking error (duplicate module names, an unparseable followed
+    stub, a bad invocation) makes mypy stop after checking only PART of
+    the tree, yet the exit code is indistinguishable from a completed run
+    that found errors. Reporting that as a plain FAIL hides the real
+    problem — the checker never finished — and a reviewer reading
+    "N errors" reasonably assumes N is the whole truth. Stays
+    ``ran=True, passed=False``; only the reason is made honest.
+    """
+    if result.exit_code in (None, 0):
+        return result
+    text = result.summary or ""
+    if _MYPY_ABORT_MARKER not in text:
+        return result
+    blocking = [ln.strip() for ln in text.splitlines() if ": error:" in ln]
+    prefix = (
+        "mypy ABORTED before checking every file — the count below is a "
+        "LOWER BOUND, not a complete typecheck"
+    )
+    if blocking:
+        prefix += f"; blocking: {blocking[-1]}"
+    return replace(result, passed=False, summary=f"{prefix}\n{text}")
+
+
 def _check_typecheck(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
@@ -416,8 +488,23 @@ def _check_typecheck(
         # never read the diff, so a known-empty diff would inherit
         # master's type debt the moment tooling is configured.
         return _skip("typecheck", "no changed files (empty diff)")
-    if _mypy_configured(project_dir) and shutil.which("mypy"):
-        return _run("typecheck", ["mypy", "."], project_dir, timeout)
+    if _mypy_configured(project_dir):
+        # `shutil.which` alone read a venv-installed mypy as "no typecheck
+        # configuration detected" — the generic skip, on a project that
+        # had explicitly opted in. `_tool_cmd` is the same resolver
+        # ruff/pytest/codespell already use, and its docstring names this
+        # exact class of bug: a FALSE GREEN on a NON-NEGOTIABLE gate
+        # (issue #452).
+        mypy = _tool_cmd("mypy")
+        if mypy is None:
+            return _skip(
+                "typecheck",
+                "mypy configured but not installed — install it "
+                "(pip install mypy) or drop the mypy config; the gate has "
+                "NO type signal for this run",
+            )
+        argv = list(mypy) if _mypy_scope_configured(project_dir) else [*mypy, "."]
+        return _mypy_verdict(_run("typecheck", argv, project_dir, timeout))
     if (project_dir / "tsconfig.json").is_file():
         local_tsc = project_dir / "node_modules" / ".bin" / "tsc"
         if local_tsc.is_file():
