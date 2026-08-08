@@ -130,11 +130,19 @@ class CheckResult:
     exit_code: int | None
     summary: str
     details_path: str | None = None
-    # security-grep only: the FULL suppression record, structured so it
-    # bypasses summary truncation entirely. Empty for other checks and
-    # for pre-existing corpus records.
+    # The FULL record of findings that were seen and deliberately NOT
+    # gated, each carrying its reason — structured so it bypasses summary
+    # truncation entirely. security-grep files `arka:sec-ok` annotations
+    # here; spellcheck files pt-PT hits demoted by language policy.
     suppressions: list[str] = field(default_factory=list)
     suppressed_count: int = 0
+    # The FULL record of findings that DO gate, path-qualified, for the
+    # same reason: a summary is capped and truncated, and a reviewer
+    # cannot certify a finding the formatting removed (issue #493).
+    # Empty for checks that do not enumerate findings, and for
+    # pre-existing corpus records.
+    findings: list[str] = field(default_factory=list)
+    findings_count: int = 0
 
 
 @dataclass
@@ -1573,46 +1581,285 @@ _CODESPELL_HIT_RE = re.compile(
     r"^(?P<path>[^\s:][^:]*):(?P<line>\d+):\s*(?P<msg>.*)$"
 )
 
+# ─── pt-PT surface detection (issue #493) ───────────────────────────────
+#
+# codespell ships an ENGLISH dictionary and no notion of language. Run
+# over Portuguese prose it reports ordinary words as typos — the
+# v5.14.0 campaign lost a whole Quality Gate round to nine of them,
+# every one false, and the check still exited 65 and tripped the
+# evidence floor. The four the reviewers adjudicated are the fixture of
+# TestSpellcheckLanguagePolicy, which reproduces the 9-of-9 exactly.
+#
+# The wrong fix is the repo-wide lexicon: `.codespellrc` already carries
+# a dozen Portuguese words added one campaign at a time, and every entry
+# blinds the check for ENGLISH surfaces too — the campaign's own
+# `atual`->actual, added globally, would hide a genuine  # codespell:ignore atual
+# English typo of "actual" forever. So the language is decided per
+# FILE, and only that file's own hits are demoted.
 
-def _spellcheck_verdict(
-    result: CheckResult, gating: list[str], inherited: list[str],
-    unattributable: list[str],
-) -> CheckResult:
-    """Rebuild the verdict from misspellings this diff actually added.
+# High-frequency Portuguese function words with no English homograph.
+# Deliberately EXCLUDED, each measured as a false positive against this
+# repo's English corpus: "com" (every `.com` URL — it alone scored an
+# English README at 0.129), "ate" (English past tense of eat), and the
+# short forms "nos", "sob", "ser", "tem", "mas". Unaccented spellings
+# sit beside the accented ones on purpose: this repo's Portuguese is
+# written both ways, sometimes in the same file.
+_PT_FUNCTION_WORDS = frozenset({
+    "que", "nao", "não", "uma", "para", "sao", "são", "dos", "das",
+    "como", "quando", "este", "esta", "está", "isso", "isto", "pelo",
+    "pela", "pelos", "pelas", "seu", "sua", "mais", "ja", "já", "foi",
+    "entao", "então", "tambem", "também", "porque", "ele", "ela",
+    "eles", "elas", "voce", "você", "muito", "cada", "pode",  # codespell:ignore eles
+    "fazer", "sobre", "entre", "ainda", "sempre", "nunca", "depois",
+    "onde", "quem", "qual", "todos", "todas", "outro", "outra",
+    "mesmo", "assim", "apenas", "atraves", "através", "deve", "sera",
+    "será", "qualquer", "nem", "desde", "durante", "enquanto",
+    "embora", "portanto", "alem", "além", "nesta", "neste", "nessa",
+    "nesse", "essa", "esse", "aquele", "aquela", "numa", "num", "aos",
+    "nas", "ao", "lhe", "nossa", "nosso",
+})
+
+_WORD_RE = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]+")
+# Calibrated over all 3262 .md files of this repo (2026-08-08): the six
+# genuinely pt-PT documents score 0.055 to 0.094, the highest
+# non-Portuguese document scores 0.031 (a SPANISH README) and every
+# English file scores below 0.01. 0.05 sits inside that gap, 1.6x clear
+# of the nearest non-Portuguese neighbour and 5x clear of English.
+_PT_MIN_RATIO = 0.05
+# One repeated token can carry a ratio on its own; three DISTINCT
+# function words cannot be an artefact of a URL or a code sample.
+_PT_MIN_DISTINCT = 3
+# Below a paragraph there is no sample to measure. Shorter Portuguese
+# files declare `language:` in front matter instead.
+_PT_MIN_TOKENS = 40
+# BCP-47 language tag as a path segment or filename suffix — `docs/pt/`,
+# `guia.pt.md`, `pt-pt-anti-slop.md`. The word boundary keeps `/opt/`
+# and `dept/` out.
+_PT_PATH_RE = re.compile(r"(?:^|[/_.-])pt(?:[-_]pt)?(?:[/_.-]|$)", re.IGNORECASE)
+
+
+def _declared_language(text: str) -> str | None:
+    """`language:` from a leading YAML front-matter block, lowercased.
+
+    An author's declaration outranks any measurement, in BOTH
+    directions: it is the deterministic escape hatch for a Portuguese
+    file too short to measure, and `language: en` pulls a file back
+    under the English dictionary whatever its prose looks like — so the
+    hatch cannot launder an English surface out of the gate.
+    """
+    if not text.startswith("---"):
+        return None
+    _, _, rest = text.partition("\n")
+    body, sep, _ = rest.partition("\n---")
+    if not sep:
+        return None
+    for line in body.splitlines():
+        key, _, value = line.partition(":")
+        if key.strip().lower() in ("language", "lang", "idioma"):
+            return value.strip().strip("\"'").lower() or None
+    return None
+
+
+def _reads_as_portuguese(text: str) -> bool:
+    """Density of Portuguese FUNCTION words over the whole file.
+
+    Diacritic density is the obvious instrument and the wrong one, and
+    the measurement says so from both sides: this repo's
+    departments/brand/references/brand-creation-guide.md is Portuguese
+    prose with a diacritic ratio of 0.000, while any English page
+    quoting José, São Paulo or a café carries plenty. Function words are
+    what a language cannot fake — an English document does not
+    accumulate `que`, `quando` and `porque` by accident.
+    """
+    words = [w.lower() for w in _WORD_RE.findall(text)]
+    if len(words) < _PT_MIN_TOKENS:
+        return False
+    hits = [w for w in words if w in _PT_FUNCTION_WORDS]
+    return (
+        len(set(hits)) >= _PT_MIN_DISTINCT
+        and len(hits) / len(words) >= _PT_MIN_RATIO
+    )
+
+
+def _is_pt_pt_surface(project_dir: Path, name: str) -> bool:
+    """True when ``name`` is Portuguese prose an English dictionary cannot judge.
+
+    Three layers, most authoritative first: the path's language tag, the
+    author's front-matter declaration, then the measured function-word
+    density. Everything else — including any file that cannot be read —
+    is English, because being wrong in that direction only costs a false
+    alarm a human dismisses, while being wrong the other way hides a
+    real typo behind a policy nobody re-examines.
+
+    KNOWN GAP, deliberate: this classifies a FILE, so an English typo
+    embedded in Portuguese prose does not gate. Per-LINE classification
+    was rejected on measurement — a line short enough to carry one hit
+    rarely carries enough function words to classify at all. The
+    compensating control is that a demoted hit is never silent: it lands
+    in ``CheckResult.suppressions``, where Eduardo adjudicates it.
+
+    SECOND KNOWN GAP, out of scope for #493: the pt-PT defect codespell
+    can never catch either way is the pre-AO90 spelling (`acção` for
+    `ação`). That needs a Portuguese-aware check, not an English
+    dictionary with an exemption; tracked on issue #493's closing note.
+    """
+    if _PT_PATH_RE.search(name):
+        return True
+    path = _resolve_changed_file(project_dir, name)
+    if path is None:
+        return False
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    declared = _declared_language(text)
+    if declared is not None:
+        return declared.startswith("pt")
+    return _reads_as_portuguese(text)
+
+
+def _hit_lines(output: str) -> list[str]:
+    """Every codespell finding in ``output``, one stripped raw line each."""
+    return [
+        stripped for stripped in (line.strip() for line in output.splitlines())
+        if _CODESPELL_HIT_RE.match(stripped)
+    ]
+
+
+def _split_by_language(
+    project_dir: Path, output: str,
+) -> tuple[str, list[str], list[str]]:
+    """Split codespell output into English hits and pt-PT demotions.
+
+    Returns ``(english_output, demoted_hits, pt_paths)``. Demoting the
+    HITS rather than dropping the files from the codespell argv is what
+    keeps the record certifiable: the words are still reported, so a
+    reviewer can see exactly which Portuguese hits were waived and spot
+    an English one hiding among them.
+
+    Runs BEFORE attribution deliberately — "does this dictionary
+    describe this file at all" precedes "whose line is it". The
+    campaign's hits were all unattributable (the changed .md lived
+    outside the repo), so a policy applied afterwards arrives too late.
+    """
+    english: list[str] = []
+    demoted: list[str] = []
+    pt_files: list[str] = []
+    verdict: dict[str, bool] = {}
+    for raw in output.splitlines():
+        match = _CODESPELL_HIT_RE.match(raw.strip())
+        if match is None:
+            english.append(raw)
+            continue
+        path = match.group("path")
+        if path not in verdict:
+            verdict[path] = _is_pt_pt_surface(project_dir, path)
+            if verdict[path]:
+                pt_files.append(path)
+        (demoted if verdict[path] else english).append(raw.strip())
+    return "\n".join(english), demoted, pt_files
+
+
+@dataclass(frozen=True)
+class _SpellHits:
+    """Every codespell hit of one run, bucketed by what may gate on it.
+
+    Five correlated lists that are always built and read together; a
+    parameter object keeps the verdict a function of ONE value rather
+    than of six positional arguments nobody can order correctly twice.
+    """
+
+    gating: list[str]
+    inherited: list[str]
+    unattributable: list[str]
+    demoted: list[str]
+    pt_files: list[str]
+    attributed: bool = True
+
+
+def _spellcheck_gating_note(hits: _SpellHits) -> str:
+    """The headline verdict, capped but pointing at the complete record."""
+    if not hits.gating:
+        return "no misspellings on lines this diff added"
+    shown = "\n".join(hits.gating[:_MAX_GREP_HITS])
+    if len(hits.gating) > _MAX_GREP_HITS:
+        shown += (
+            f"\n(+{len(hits.gating) - _MAX_GREP_HITS} more; the complete "
+            "path-qualified list is in CheckResult.findings)"
+        )
+    return f"{len(hits.gating)} gating misspelling(s):\n{shown}"
+
+
+def _spellcheck_policy_notes(hits: _SpellHits) -> str:
+    """Every non-gating outcome, each named for what it actually is.
+
+    Four different things stop a hit from gating and only one of them is
+    "this diff did not write it". Collapsing them into one line would
+    launder policy decisions into findings, so each keeps its own
+    sentence.
+    """
+    notes: list[str] = []
+    if not hits.attributed:
+        notes.append(
+            "no merge-base with the default branch — hits could not be "
+            "attributed to added lines; ALL of them gate"
+        )
+    if hits.unattributable:
+        listed = ", ".join(sorted(hits.unattributable)[:3])
+        notes.append(
+            f"git could not describe {len(hits.unattributable)} of the changed "
+            f"file(s) ({listed}) — untracked, renamed, or outside this "
+            "repository. Their hits gate as UNATTRIBUTED, not as proven "
+            "additions."
+        )
+    if hits.demoted:
+        listed = ", ".join(sorted(set(hits.pt_files))[:3])
+        notes.append(
+            f"{len(hits.pt_files)} pt-PT file(s) skipped by language policy "
+            f"({listed}) — {len(hits.demoted)} hit(s) NOT gating: codespell's "
+            "English dictionary does not describe Portuguese prose. Complete "
+            "record in CheckResult.suppressions."
+        )
+    if hits.inherited:
+        notes.append(
+            f"{len(hits.inherited)} misspelling(s) on lines this diff did not "
+            "add — NOT gating; pre-existing text in a touched file"
+        )
+    return "\n".join(notes)
+
+
+def _spellcheck_verdict(result: CheckResult, hits: _SpellHits) -> CheckResult:
+    """Rebuild the verdict from the misspellings that may actually gate.
 
     Two different reasons put a hit in ``gating`` — git placed it on an
     added line, or git could not describe the file at all — and only the
     first is a statement about this diff. Reporting both as "on lines
     this diff added" would make the gate assert a provenance nothing
     verified, so the fail-closed share is named separately.
+
+    Both structured records are filled here rather than left to the
+    summary string: the string is capped and truncated at both ends
+    downstream (``_tail`` cuts the head, ``stop_lint`` cuts the tail),
+    and a reviewer cannot certify a finding the formatting removed.
     """
-    if gating:
-        shown = "\n".join(gating[:_MAX_GREP_HITS])
-        if len(gating) > _MAX_GREP_HITS:
-            shown += f"\n(+{len(gating) - _MAX_GREP_HITS} more)"
-        summary = f"{len(gating)} gating misspelling(s):\n{shown}"
-    else:
-        summary = "no misspellings on lines this diff added"
-    if unattributable:
-        listed = ", ".join(sorted(unattributable)[:3])
-        summary += (
-            f"\ngit could not describe {len(unattributable)} of the changed "
-            f"file(s) ({listed}) — untracked, renamed, or outside this "
-            "repository. Their hits gate as UNATTRIBUTED, not as proven "
-            "additions."
-        )
-    if inherited:
-        summary += (
-            f"\n{len(inherited)} misspelling(s) on lines this diff did not "
-            "add — NOT gating; pre-existing text in a touched file"
-        )
-    return replace(result, passed=not gating, summary=summary)
+    summary = "\n".join(
+        part for part in
+        (_spellcheck_gating_note(hits), _spellcheck_policy_notes(hits))
+        if part
+    )
+    return replace(
+        result, passed=not hits.gating, summary=summary,
+        findings=list(hits.gating), findings_count=len(hits.gating),
+        suppressions=[f"pt-PT language policy: {h}" for h in hits.demoted],
+        suppressed_count=len(hits.demoted),
+    )
 
 
 def _spellcheck_attributed(
     project_dir: Path, result: CheckResult, output: str,
 ) -> CheckResult:
-    """Scope a codespell run to the lines this diff ADDED.
+    """Scope a codespell run to the lines this diff ADDED, in a language
+    the dictionary can actually judge.
 
     The third check in this module to need the same contract, and the
     reason it is a shared engine rather than a third implementation: a
@@ -1622,23 +1869,28 @@ def _spellcheck_attributed(
     hits, all outside the edited regions and all present verbatim in the
     pre-5.10.0 baseline (issue #498).
 
-    Only a run that CONCLUDED with findings is attributed. A clean run,
-    a timeout, or output whose shape the hit pattern does not describe
+    Only a run that CONCLUDED with findings is attributed, and only
+    findings this parser recognised are re-adjudicated. A clean run, a
+    timeout, or output whose shape the hit pattern does not describe
     keeps codespell's own verdict — an empty gating list must never be
     an artefact of our failure to parse.
     """
     if result.exit_code in (None, 0):
         return result
-    attribution = _attribute_hits(project_dir, output, _CODESPELL_HIT_RE)
+    english, demoted, pt_files = _split_by_language(project_dir, output)
+    english_hits = _hit_lines(english)
+    if not english_hits and not demoted:
+        return result
+    attribution = _attribute_hits(project_dir, english, _CODESPELL_HIT_RE)
     if attribution is None:
-        return replace(result, summary=(
-            f"{result.summary}\nno merge-base with the default branch — "
-            "hits could not be attributed to added lines; ALL of them gate"
+        return _spellcheck_verdict(result, _SpellHits(
+            gating=english_hits, inherited=[], unattributable=[],
+            demoted=demoted, pt_files=pt_files, attributed=False,
         ))
     gating, inherited, unattributable = attribution
-    if not gating and not inherited:
-        return result
-    return _spellcheck_verdict(result, gating, inherited, unattributable)
+    return _spellcheck_verdict(result, _SpellHits(
+        gating, inherited, unattributable, demoted, pt_files,
+    ))
 
 
 def _check_spellcheck(
