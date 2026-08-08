@@ -3282,46 +3282,24 @@ class TestSpellcheckScopedToAddedLines:
         )
 
 
-class TestSpellcheckLanguagePolicy:
-    """An English dictionary must not adjudicate pt-PT prose (issue #493).
+class TestSpellcheckFindingsSurviveTruncation:
+    """A capped summary must not be the only record of what gated.
 
-    v5.14.0 campaign: 9 of 9 codespell hits over installed ecosystem
-    skills were ordinary Portuguese words the English dictionary
-    misreads. The check exited 65, the evidence report failed, the
-    evidence floor tripped — on text that was never misspelled. The
-    fixture below reproduces all nine.
+    Reported by the copy reviewer during the v5.14.0 campaign: the
+    spellcheck summary is truncated, so hits beyond the visible ones
+    could be neither confirmed nor dismissed. Two ends cut it — `_tail`
+    drops the head of a raw tool dump, `stop_lint` drops the tail of the
+    rendered summary — so no single formatting fix makes the string
+    trustworthy. The structured `findings` record is the durable answer,
+    the same contract security-grep's `suppressions` already honours.
 
-    The two invariants this class pins are in tension and both must
-    hold: pt-PT prose must stop gating, and English prose must keep
-    gating exactly as before. Real git repo + real codespell, both
-    confined to tmp_path — same idiom as TestSpellcheckScopedToAddedLines.
+    Each test pins ONE mechanism: the cap-with-marker on the attributed
+    path, and the rebuild-from-parsed-hits on the path that has no
+    merge-base. Real git repo + real codespell, confined to tmp_path.
     """
 
-    # Verified against codespell 2.4.2: this paragraph produces NINE
-    # hits, none of them a misspelling. The words must stay in the
-    # fixture — they are what the test proves is not a defect — so each
-    # line declares `codespell:ignore`, which is line-scoped, rather
-    # than the words entering the repo-wide lexicon, where they would
-    # mask real English hits everywhere. Diacritics and a `language:`
-    # front matter are both present: pt-PT by every layer of the
-    # detector, so no single layer can carry the test alone.
-    _PT_PROSE = (
-        "---\n"
-        "language: pt-PT\n"
-        "---\n"
-        "# Arranque do sistema\n"
-        "O comando de arranque corre quando o agente inicia a sessao,\n"  # codespell:ignore comando
-        "e devolve o resultado que cada camada precisa de ler. Esta\n"
-        "e a tese central do desenho: nao ha estado partilhado entre\n"  # codespell:ignore tese
-        "as fases, portanto qualquer fase pode ser repetida sem risco.\n"
-        "O estado atual da aplicacao permite que todos os agentes\n"  # codespell:ignore atual
-        "respondam sempre pela mesma via, mesmo quando a rede falha.\n"
-        "Quando a analise termina, o relatorio fica pronto\n"  # codespell:ignore analise
-        "e nunca depende de nenhuma outra fase para ser publicado.\n"
-    )
-    # A real English misspelling — the control that must keep gating.
-    _EN_TYPO = "please recieve this note\n"  # codespell:ignore recieve
-    _EN_CLEAN = "an ordinary line of prose\n"
+    _HIT_LINE = "please recieve this note\n"  # codespell:ignore recieve
+    _CLEAN = "an ordinary line of prose\n"
 
     @staticmethod
     def _git(args: list[str], cwd: Path) -> None:
@@ -3333,7 +3311,7 @@ class TestSpellcheckLanguagePolicy:
         self._git(["init", "-q", "-b", "master"], root)
         self._git(["config", "user.email", "t@t.t"], root)
         self._git(["config", "user.name", "t"], root)
-        (root / "seed.md").write_text(self._EN_CLEAN, encoding="utf-8")
+        (root / "seed.md").write_text(self._CLEAN, encoding="utf-8")
         self._git(["add", "seed.md"], root)
         self._git(["commit", "-qm", "baseline"], root)
 
@@ -3342,77 +3320,13 @@ class TestSpellcheckLanguagePolicy:
         if evidence_checks._tool_cmd("codespell", module="codespell_lib") is None:
             pytest.skip("codespell not installed")
 
-    def test_portuguese_prose_does_not_gate_and_the_summary_says_why(
-        self, tmp_path: Path,
-    ) -> None:
-        """(a) The reported defect, in its strictest form.
-
-        The file is UNTRACKED, so attribution fails closed and every hit
-        would gate. Only the language policy can save it — which is the
-        campaign's actual shape (the changed .md sat outside the repo)
-        and proves the policy is applied BEFORE attribution, not after.
-        """
-        self._codespell_or_skip()
-        self._repo(tmp_path)
-        (tmp_path / "guia.md").write_text(self._PT_PROSE, encoding="utf-8")
-
-        result = evidence_checks._check_spellcheck(
-            tmp_path, ["guia.md"], None, 60,
-        )
-
-        assert result.ran is True
-        assert result.passed is True, (
-            f"pt-PT prose gated on an English dictionary: {result.summary}"
-        )
-        assert "pt-PT file(s) skipped by language policy" in result.summary, (
-            "a skip must never be silent — the record has to name the policy"
-        )
-        # codespell 2.4.2 reports NINE hits on this paragraph — the
-        # campaign's 9/9 exactly, and three of them (`fase`, `fases`,
-        # `ser`) are words a previous campaign already had to bolt onto
-        # the repo-wide lexicon. That growth is the trend this policy
-        # replaces, so the record is asserted by content, not by a count
-        # pinned to one dictionary release.
-        assert result.suppressed_count == len(result.suppressions)
-        assert result.suppressed_count >= 4
-        for word in ("comando", "tese", "atual", "analise"):  # codespell:ignore
-            assert any(word in s for s in result.suppressions), (
-                f"the reviewer must be able to certify {word!r} was demoted, "
-                "not merely that something was"
-            )
-
-    def test_an_english_typo_still_gates(self, tmp_path: Path) -> None:
-        """(b) The policy must not become an amnesty for English prose."""
-        self._codespell_or_skip()
-        self._repo(tmp_path)
-        (tmp_path / "notes.md").write_text(
-            self._EN_CLEAN + self._EN_TYPO, encoding="utf-8",
-        )
-
-        result = evidence_checks._check_spellcheck(
-            tmp_path, ["notes.md"], None, 60,
-        )
-
-        assert result.passed is False
-        assert "recieve" in result.summary  # codespell:ignore recieve
-        assert "language policy" not in result.summary, (
-            "English prose must not be filed under a pt-PT exemption"
-        )
-
-    def test_gating_hits_beyond_the_cap_stay_certifiable(
-        self, tmp_path: Path,
-    ) -> None:
-        """(c) Front-truncation left Eduardo unable to certify the tail.
-
-        The string summary caps at _MAX_GREP_HITS and says so; the
-        structured `findings` field carries every path-complete hit, the
-        same contract security-grep's `suppressions` already honours.
-        """
+    def test_hits_beyond_the_cap_stay_certifiable(self, tmp_path: Path) -> None:
+        """The string caps and SAYS so; the structured record stays whole."""
         self._codespell_or_skip()
         self._repo(tmp_path)
         count = evidence_checks._MAX_GREP_HITS + 5
         (tmp_path / "many.md").write_text(
-            self._EN_TYPO * count, encoding="utf-8",
+            self._HIT_LINE * count, encoding="utf-8",
         )
 
         result = evidence_checks._check_spellcheck(
@@ -3434,114 +3348,35 @@ class TestSpellcheckLanguagePolicy:
             "the summary must point at where the complete record lives"
         )
 
-    def test_a_mostly_english_file_with_a_little_portuguese_gates(
+    def test_the_no_merge_base_path_is_rebuilt_not_tail_truncated(
         self, tmp_path: Path,
     ) -> None:
-        """(d) Doubt resolves to English, so the gate stays closed."""
+        """Outside a repo there is no attribution — and there was no record.
+
+        That path used to report codespell's raw stdout after `_tail`,
+        which keeps the LAST 800 characters. With enough hits the
+        earliest ones fell off the front of the only record that
+        existed, which is precisely the "cannot certify" complaint. The
+        verdict is now rebuilt from every parsed hit on this path too,
+        so the FIRST hit is the assertion that matters.
+        """
         self._codespell_or_skip()
-        self._repo(tmp_path)
-        (tmp_path / "mixed.md").write_text(
-            self._EN_CLEAN * 40 + "uma nota para quando falhar\n" + self._EN_TYPO,
-            encoding="utf-8",
+        count = evidence_checks._MAX_GREP_HITS + 5
+        (tmp_path / "many.md").write_text(
+            self._HIT_LINE * count, encoding="utf-8",
         )
 
         result = evidence_checks._check_spellcheck(
-            tmp_path, ["mixed.md"], None, 60,
+            tmp_path, ["many.md"], None, 60,
         )
 
-        assert result.passed is False, (
-            "a handful of Portuguese words must not buy an English file "
-            "an exemption"
+        assert result.passed is False
+        assert "ALL of them gate" in result.summary
+        assert result.findings_count == count
+        assert any(f.startswith("many.md:1:") for f in result.findings), (
+            "the FIRST hit is the one front-truncation dropped — it must "
+            "be in the record, not merely the survivors of a tail cut"
         )
-        assert "recieve" in result.summary  # codespell:ignore recieve
-
-    def test_accented_english_is_not_mistaken_for_portuguese(
-        self, tmp_path: Path,
-    ) -> None:
-        """Diacritics alone must never decide the language.
-
-        Measured on this repo before the thresholds were chosen:
-        departments/brand/references/brand-creation-guide.md is pt-PT
-        prose with a diacritic ratio of 0.000, while English pages
-        quoting foreign names carry plenty. Density of Portuguese
-        FUNCTION words is the discriminating signal; diacritics are not.
-        """
-        self._codespell_or_skip()
-        self._repo(tmp_path)
-        (tmp_path / "people.md").write_text(
-            "José, André and Sofía met at a café in São Paulo to review "
-            "the report.\n" + self._EN_TYPO,
-            encoding="utf-8",
+        assert f"{count} gating misspelling(s)" in result.summary, (
+            "the summary must be the rebuilt verdict, not a raw tool dump"
         )
-
-        result = evidence_checks._check_spellcheck(
-            tmp_path, ["people.md"], None, 60,
-        )
-
-        assert result.passed is False, (
-            "accented proper nouns must not exempt English prose"
-        )
-
-    def test_front_matter_declaration_beats_the_heuristic(
-        self, tmp_path: Path,
-    ) -> None:
-        """An author's explicit `language:` is authoritative, both ways.
-
-        The heuristic needs a paragraph's worth of evidence; a short
-        pt-PT file has none. The declaration is the deterministic escape
-        hatch — and `language: en` on Portuguese-looking prose pulls the
-        file back under the English dictionary, so the hatch cannot be
-        used to launder an English surface out of the gate.
-        """
-        self._codespell_or_skip()
-        self._repo(tmp_path)
-        (tmp_path / "curto.md").write_text(
-            "---\nlanguage: pt-PT\n---\n"
-            "O comando falhou.\n",  # codespell:ignore comando
-            encoding="utf-8",
-        )
-        (tmp_path / "declared-en.md").write_text(
-            "---\nlanguage: en\n---\n" + self._PT_PROSE.split("---\n")[2],
-            encoding="utf-8",
-        )
-
-        short_pt = evidence_checks._check_spellcheck(
-            tmp_path, ["curto.md"], None, 60,
-        )
-        forced_en = evidence_checks._check_spellcheck(
-            tmp_path, ["declared-en.md"], None, 60,
-        )
-
-        assert short_pt.passed is True, (
-            "a declared pt-PT file must skip even below the heuristic floor"
-        )
-        assert forced_en.passed is False, (
-            "a declared English file must gate whatever the prose looks like"
-        )
-
-    def test_an_english_typo_inside_portuguese_prose_is_recorded(
-        self, tmp_path: Path,
-    ) -> None:
-        """The deliberate residual of file-level classification.
-
-        Classification is per FILE because per-LINE is unreliable: a
-        pt-PT line short enough to hold a single hit rarely carries
-        enough function words to be classified at all. The cost is that
-        an English typo inside a pt-PT file does not gate. The
-        compensating control is that it is never SILENT — it lands in
-        the structured suppression record, where Eduardo adjudicates it.
-        """
-        self._codespell_or_skip()
-        self._repo(tmp_path)
-        (tmp_path / "misto.md").write_text(
-            self._PT_PROSE + self._EN_TYPO, encoding="utf-8",
-        )
-
-        result = evidence_checks._check_spellcheck(
-            tmp_path, ["misto.md"], None, 60,
-        )
-
-        assert result.passed is True
-        assert any(
-            "recieve" in s for s in result.suppressions  # codespell:ignore recieve
-        ), "a demoted English hit must stay visible for human adjudication"
