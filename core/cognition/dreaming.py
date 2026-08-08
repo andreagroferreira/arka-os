@@ -20,9 +20,10 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from core.runtime.llm_provider import LLMResponse, LLMUnavailable, get_llm_provider
 from core.runtime.path_resolver import ProfileMissingError, load_profile
@@ -36,6 +37,18 @@ _DEFAULT_MAX_INSIGHTS = 5
 _MIN_CHUNK_CHARS = 80
 _MAX_CHUNK_CHARS = 1200
 _CRITIC_PASS_TOKEN = "VALUABLE"
+# A cluster wider than this is an anchor collision, not a topic: the
+# broadest token in a real vault ("Integration") hits hundreds of chunks
+# that share nothing else.
+_MAX_CLUSTER_CHUNKS = 8
+# One shared token is a coincidence. Requiring a second one is what
+# separates "these notes discuss the same thing" from "these notes both
+# happen to contain a capitalised word".
+_MIN_SHARED_TOKENS = 2
+# Chunks confined to a single folder are one book or one document read
+# end to end. Dreaming exists to connect across sources, not summarise.
+_MIN_DISTINCT_ORIGINS = 2
+_MAX_TOKENS_PER_CHUNK = 16
 
 
 @dataclass
@@ -144,12 +157,28 @@ class Dreaming:
         chunks.extend(self._collect_digest_chunks())
         return chunks
 
+    def _is_own_output(self, path: Path) -> bool:
+        """True when ``path`` is a previously written insight.
+
+        The output directory lives inside the vault, so without this
+        guard every insight re-enters the next run's corpus. Yesterday's
+        observation then clusters with itself and gets re-derived, which
+        is how a single unfixed finding can dominate days of output.
+        """
+        try:
+            path.relative_to(self._output_dir)
+        except ValueError:
+            return False
+        return True
+
     def _collect_vault_chunks(self) -> list[Chunk]:
         if not self._vault.is_dir():
             return []
         cutoff = datetime.now(timezone.utc).timestamp() - self._lookback_days * 86400
         out: list[Chunk] = []
         for md in self._vault.rglob("*.md"):
+            if self._is_own_output(md):
+                continue
             try:
                 if md.stat().st_mtime < cutoff:
                     continue
@@ -178,27 +207,41 @@ class Dreaming:
         return out
 
     def _cluster(self, chunks: list[Chunk]) -> list[Cluster]:
-        """Lightweight clustering by shared CamelCase / path tokens.
+        """Group chunks by shared topic tokens, ranked by specificity.
+
+        Ranking by bucket size (the original behaviour) selected the most
+        generic anchors first, because the broadest token always owns the
+        biggest bucket. Only the top ``_DEFAULT_MAX_CLUSTERS`` reach the
+        LLM, so size-ranking guaranteed that only anchor collisions were
+        ever drafted. Specificity ranking inverts that: clusters sharing
+        the most, rarest tokens go first.
 
         Embedding-based clustering is the obvious upgrade but requires
         fastembed to be installed and warmed. The token-overlap baseline
         ships value today and the embedding path is a follow-up.
         """
-        buckets: dict[str, list[Chunk]] = {}
-        for chunk in chunks:
-            for token in _extract_topic_tokens(chunk.text):
-                buckets.setdefault(token, []).append(chunk)
-        clusters: list[Cluster] = []
+        token_sets = [set(_extract_topic_tokens(c.text)) for c in chunks]
+        doc_freq: Counter[str] = Counter(t for ts in token_sets for t in ts)
+
+        buckets: dict[str, list[tuple[Chunk, set[str]]]] = {}
+        for chunk, tokens in zip(chunks, token_sets, strict=True):
+            for token in tokens:
+                buckets.setdefault(token, []).append((chunk, tokens))
+
+        scored: list[tuple[int, float, str, list[Chunk]]] = []
         seen_keys: set[str] = set()
-        for topic, items in sorted(buckets.items(), key=lambda kv: -len(kv[1])):
-            if len(items) < _DEFAULT_MIN_CLUSTER_SIZE:
+        for topic, items in sorted(buckets.items()):
+            candidate = _score_bucket(topic, items, doc_freq)
+            if candidate is None:
                 continue
-            key = "|".join(sorted({c.source_path for c in items}))
+            key = "|".join(sorted({c.source_path for c, _ in items}))
             if key in seen_keys:
                 continue
             seen_keys.add(key)
-            clusters.append(Cluster(topic=topic, chunks=items))
-        return clusters
+            scored.append(candidate)
+
+        scored.sort(key=lambda s: (-s[0], s[1], s[2]))
+        return [Cluster(topic=topic, chunks=cs) for _, _, topic, cs in scored]
 
     def _draft_insight(self, cluster: Cluster) -> Insight | None:
         prompt = _build_insight_prompt(cluster)
@@ -228,7 +271,7 @@ class Dreaming:
 
 
 def _split_for_clustering(text: str) -> list[str]:
-    pieces = re.split(r"\n\s*\n", text)
+    pieces = re.split(r"\n\s*\n", _strip_non_topic_text(text))
     out: list[str] = []
     for p in pieces:
         p = p.strip()
@@ -238,14 +281,64 @@ def _split_for_clustering(text: str) -> list[str]:
     return out
 
 
+def _origin_group(chunk: Chunk) -> str:
+    """Coarse origin of a chunk, used to reject single-source clusters.
+
+    Vault chunks group by folder, so consecutive chapters of one book
+    collapse into a single origin. Session digests group by file, since
+    each digest is already a distinct session.
+    """
+    if chunk.kind != "vault":
+        return chunk.source_path
+    return PurePosixPath(chunk.source_path.replace("\\", "/")).parent.as_posix()
+
+
+def _score_bucket(
+    topic: str,
+    items: list[tuple[Chunk, set[str]]],
+    doc_freq: Counter[str],
+) -> tuple[int, float, str, list[Chunk]] | None:
+    """Score one candidate cluster, or reject it.
+
+    Returns ``(shared_token_count, mean_document_frequency, topic,
+    chunks)``. Callers sort by descending shared count then ascending
+    frequency, so tight groups around rare tokens rank first.
+    """
+    if not _DEFAULT_MIN_CLUSTER_SIZE <= len(items) <= _MAX_CLUSTER_CHUNKS:
+        return None
+    shared = set.intersection(*[tokens for _, tokens in items])
+    if len(shared) < _MIN_SHARED_TOKENS:
+        return None
+    chunks = [c for c, _ in items]
+    if len({_origin_group(c) for c in chunks}) < _MIN_DISTINCT_ORIGINS:
+        return None
+    mean_freq = sum(doc_freq[t] for t in shared) / len(shared)
+    return len(shared), mean_freq, topic, chunks
+
+
 def _extract_topic_tokens(text: str) -> list[str]:
     tokens = re.findall(r"\b([A-Z][a-zA-Z0-9_-]{3,})\b", text)
-    return list({t for t in tokens if t not in _STOP_TOPIC_TOKENS})[:8]
+    # sorted(), not list(set()): set iteration order for strings varies
+    # with PYTHONHASHSEED, so the truncation below used to keep a
+    # different subset on every run and clustering was irreproducible.
+    kept = sorted({t for t in tokens if t not in _STOP_TOPIC_TOKENS})
+    return kept[:_MAX_TOKENS_PER_CHUNK]
 
 
 _STOP_TOPIC_TOKENS = frozenset({
     "The", "This", "That", "When", "Where", "Then", "Note", "TODO", "FIXME",
     "README", "ArkaOS", "Claude", "Read", "Write", "Edit", "Run",
+    # Note-template section headers. These co-occur across notes that
+    # share nothing but the template, which is the single largest source
+    # of false clusters in a real vault.
+    "Synopsis", "Sources", "Resources", "Summary", "Context", "Status",
+    "Tags", "Links", "Overview", "Details", "What", "Why", "How",
+    # Dataview / SQL keywords embedded in vault queries.
+    "TABLE", "FROM", "WHERE", "SORT", "LIMIT", "GROUP", "FLATTEN",
+    # Capitalised connectives that survive the sentence-start regex.
+    "They", "Each", "Every", "There", "These", "Those", "With", "Only",
+    "Also", "Both", "Some", "Such", "Which", "While", "After", "Before",
+    "Between", "Because", "Would", "Could", "Should",
 })
 
 
@@ -371,3 +464,57 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main(sys.argv[1:]))
+
+
+# Sections whose whole point is to name other notes. Every capitalised
+# token in them is a pointer, not a subject, and they co-occur across
+# notes that merely sit near each other in the vault graph.
+#
+# This MUST run on the whole document, before chunking. Chunks are split
+# on blank lines, so the `## Related` heading always lands in a different
+# chunk than the bullets under it — which is why "strip the Related
+# section" was proposed three times as a per-chunk filter and would have
+# changed nothing. The heading is never in the chunk it governs.
+_LINK_SECTION_RE = re.compile(
+    r"^#{1,6}[ \t]*(related|connections?|conex(?:ões|oes)|relacionad[ao]s|"
+    r"sources?|see also|refer(?:ences?|ências)?|liga(?:ções|coes)|"
+    r"ver também)\b[^\n]*\n.*?(?=^#{1,6}[ \t]|\Z)",
+    re.IGNORECASE | re.MULTILINE | re.DOTALL,
+)
+# YAML frontmatter. `aliases:`, `tags:` and `chapter_title:` are dense
+# with capitalised words that describe the note's filing, not its topic.
+_FRONTMATTER_RE = re.compile(r"\A---\r?\n.*?\r?\n---\r?\n", re.DOTALL)
+# A line that is nothing but wikilinks and separators. Catches a
+# `## Related` block whose heading fell outside the chunk boundary.
+_LINK_ONLY_LINE_RE = re.compile(
+    r"^[\s>*\-]*(?:\[\[[^\]]+\]\][\s·,;|/&+]*)+$", re.MULTILINE
+)
+# Citation attribution: `— Brian Foote and Joseph Yoder`. The names are
+# provenance, and clustering on them groups every note quoting the same
+# author regardless of what the quote says.
+_ATTRIBUTION_RE = re.compile(r"^[\s>]*[—–]{1,2}\s*[A-Z][^\n]*$", re.MULTILINE)
+
+
+def _strip_non_topic_text(text: str) -> str:
+    """Remove the parts of a note that name things instead of discussing them.
+
+    Frontmatter, cross-reference sections, bare wikilink lines and
+    citation attributions all carry capitalised tokens with no topical
+    meaning. Left in, they are the dominant source of false clusters —
+    the anchor reviews between 2026-07-31 and 2026-08-05 (Data, Marlon,
+    Architecture, HTTP, Convergem, Brian) each traced back to one.
+
+    Call this on the whole document, before ``_split_for_clustering``.
+    Filtering per chunk cannot work: the section heading and the lines
+    it governs are always in different chunks.
+
+    Blockquote bodies are deliberately kept. This vault's note template
+    puts the `> **Synopsis:**` in a blockquote, which is the densest
+    real content in a book note; stripping quotes to catch attribution
+    lines would cost far more signal than it removes.
+    """
+    text = _FRONTMATTER_RE.sub("", text)
+    text = _LINK_SECTION_RE.sub("", text)
+    text = _LINK_ONLY_LINE_RE.sub("", text)
+    text = _ATTRIBUTION_RE.sub("", text)
+    return text
