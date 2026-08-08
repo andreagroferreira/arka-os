@@ -363,6 +363,106 @@ _LINTABLE_PY = frozenset({".py"})
 _LINTABLE_JS = frozenset({".js", ".jsx", ".ts", ".tsx", ".vue", ".mjs", ".cjs"})
 _LINTABLE_PHP = frozenset({".php"})
 
+# What a configured typechecker could POSSIBLY report on. This answers
+# "is the diff relevant to the check at all", NOT "which files does the
+# scoped run name on the command line" (that stays `_LINTABLE_PY`).
+# Deliberately supersets of the lintable sets — mypy also reads stubs,
+# tsc also reads .mts/.cts: membership here only ever decides whether
+# the check is SKIPPED, so a missing extension costs the gate its type
+# signal while a spurious one costs at most one unnecessary run.
+_TYPECHECKABLE_PY: frozenset[str] = _LINTABLE_PY | {".pyi"}
+_TYPECHECKABLE_TS: frozenset[str] = _LINTABLE_JS | {".mts", ".cts", ".svelte"}
+
+# Config and manifest files that CHANGE what a typechecker concludes
+# without being source themselves. A @types bump in a lockfile-only PR
+# is precisely the diff where the project-wide run is the only defence,
+# and relevance-by-extension alone silenced it (QG cycle 3, A2).
+# Matched against the BASENAME, case-sensitively: these names are
+# canonical and lowercase, and a platform-dependent match would make the
+# gate behave differently on macOS than on CI.
+_MYPY_TRIGGERS: frozenset[str] = frozenset({
+    "pyproject.toml", "mypy.ini", ".mypy.ini", "setup.cfg",
+    "requirements*.txt", "constraints*.txt",
+})
+_TSC_TRIGGERS: frozenset[str] = frozenset({
+    "tsconfig*.json", "package.json", "package-lock.json",
+    "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml",
+})
+
+# Extensions NO test suite can execute and NO typechecker reads — the
+# only ones whose presence alone may silence a check. A DENYLIST by
+# construction, and the correction of a real fail-open: the allowlist
+# this replaced silenced coverage for every language it had not
+# enumerated, so a 42% artefact on a `main.go` diff reported no verdict
+# at all instead of FAIL (QG cycle 3, A1). An unrecognised extension
+# keeps the check RUNNING — being wrong that way costs one run, being
+# wrong the other way manufactures green on a NON-NEGOTIABLE gate.
+# Deliberately NOT here: .json/.yaml/.toml/.csv (fixtures and config a
+# suite genuinely executes or reads) and every extensionless path
+# (Makefile, Dockerfile), which all fail closed.
+_INERT_EXTS: frozenset[str] = frozenset({
+    ".md", ".markdown", ".rst", ".txt", ".adoc",
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".pdf",
+    ".lock",
+})
+
+
+def _diff_is_wholly_inert(changed: list[str] | None) -> bool:
+    """True only when EVERY changed file is documentation or an asset.
+
+    The question a coverage artefact must answer is "could the suite
+    have executed anything in this diff", and the only defensible
+    answer from a filename is "no" for a closed set of formats nothing
+    executes. One unrecognised extension in the list — `.go`, `.rb`,
+    `.java`, `.sh`, or a name with no suffix at all — makes the whole
+    diff non-inert and the check runs.
+
+    ``None`` (scope unknown) and ``[]`` are never inert: the first is a
+    guess the gate must not make, the second has its own skip upstream
+    with its own wording.
+    """
+    if not changed:
+        return False
+    return all(Path(raw).suffix.lower() in _INERT_EXTS for raw in changed)
+
+
+def _diff_triggers(changed: list[str] | None, patterns: frozenset[str]) -> bool:
+    """True when a changed file's basename matches a config/manifest pattern.
+
+    ``fnmatchcase`` (not ``fnmatch``) because ``fnmatch`` normalises case
+    per-platform, which would make the gate's verdict depend on the
+    filesystem it runs on. A generic ``src/data.json`` is deliberately
+    NOT a trigger — it is a fixture, not a manifest, and treating every
+    .json as one would re-run the project-wide typechecker on ordinary
+    data edits.
+    """
+    if not changed:
+        return False
+    return any(
+        fnmatch.fnmatchcase(PurePosixPath(raw).name, pattern)
+        for raw in changed
+        for pattern in patterns
+    )
+
+
+def _diff_touches(changed: list[str] | None, exts: frozenset[str]) -> bool:
+    """True when the changed list names at least one file with one of ``exts``.
+
+    Reads the RAW list, never ``_scoped_files``' resolved one. An empty
+    resolved list conflates two different facts: "the diff carries none
+    of these files" and "it carries them but they did not resolve under
+    project_dir" (deleted paths, a foreign checkout, a different cwd).
+    Only the first may skip a check; the second must keep whatever
+    fallback the caller has — the same distinction ``_check_lint``
+    already draws for its own blind spot.
+
+    ``None`` means the caller does not know the diff, and no check is
+    ever skipped on a guess, so it answers True.
+    """
+    if changed is None:
+        return True
+    return bool({s.lower() for s in _suffixes(changed)} & exts)
+
 
 def _scoped_files(
     project_dir: Path, changed: list[str] | None, exts: frozenset[str],
@@ -705,6 +805,56 @@ def _added_line_numbers(
     return {lineno for lineno, _ in added}
 
 
+def _attribute_hits(
+    project_dir: Path, output: str, pattern: re.Pattern[str],
+) -> tuple[list[str], list[str], list[str]] | None:
+    """Split ``file:line:``-shaped tool output by provenance.
+
+    Returns ``(gating, inherited, unattributable_paths)``. The third
+    element exists so a caller can say WHY a finding gates: an
+    unattributable one gates by fail-closed policy, not because git
+    placed it on an added line, and a summary that claims the latter is
+    asserting something no tool verified.
+
+    THE attribution engine of this module, shared by every check whose
+    findings arrive as another tool's stdout (mypy, codespell). The
+    line-scanning checks (``security-grep``) reach the same contract from
+    the other side, by scanning only the added lines to begin with.
+    Keeping one implementation is what stops the fail-closed rule below
+    from drifting between copies.
+
+    ``pattern`` must expose ``path`` and ``line`` groups.
+
+    Returns None when no merge-base exists — attribution is then
+    impossible and the caller must gate on everything.
+    """
+    base = _diff_base(project_dir)
+    if base is None:
+        return None
+    added_by_file: dict[str, set[int] | None] = {}
+    gating: list[str] = []
+    inherited: list[str] = []
+    unattributable: list[str] = []
+    for raw in output.splitlines():
+        match = pattern.match(raw.strip())
+        if match is None:
+            continue
+        path, lineno = match.group("path"), int(match.group("line"))
+        if path not in added_by_file:
+            added_by_file[path] = _added_line_numbers(project_dir, base, path)
+            if added_by_file[path] is None:
+                unattributable.append(path)
+        added = added_by_file[path]
+        # git could not describe this file (brand-new path, a rename, a
+        # sparse checkout, a path outside this repo entirely) — fail
+        # CLOSED: an unattributable finding gates.
+        if added is None or lineno in added:
+            gating.append(raw.strip())
+        else:
+            inherited.append(raw.strip())
+    return gating, inherited, unattributable
+
+
 def _attribute_mypy_errors(
     project_dir: Path, output: str,
 ) -> tuple[list[str], list[str]] | None:
@@ -729,27 +879,11 @@ def _attribute_mypy_errors(
     Returns None when no merge-base exists — attribution is then
     impossible and the caller must gate on everything.
     """
-    base = _diff_base(project_dir)
-    if base is None:
-        return None
-    added_by_file: dict[str, set[int] | None] = {}
-    gating: list[str] = []
-    inherited: list[str] = []
-    for raw in output.splitlines():
-        match = _MYPY_ERROR_RE.match(raw.strip())
-        if match is None:
-            continue
-        path, lineno = match.group("path"), int(match.group("line"))
-        if path not in added_by_file:
-            added_by_file[path] = _added_line_numbers(project_dir, base, path)
-        added = added_by_file[path]
-        # git could not describe this file (brand-new path, rename, sparse
-        # checkout) — fail CLOSED: an unattributable error gates.
-        if added is None or lineno in added:
-            gating.append(raw.strip())
-        else:
-            inherited.append(raw.strip())
-    return gating, inherited
+    attribution = _attribute_hits(project_dir, output, _MYPY_ERROR_RE)
+    # The (gating, inherited) contract this function has always published
+    # is preserved verbatim; the engine's third element is for callers
+    # that report WHY a finding gates.
+    return None if attribution is None else attribution[:2]
 
 
 def _attributed_verdict(
@@ -784,10 +918,20 @@ def _typecheck_scoped(
 
     ``--follow-imports=silent`` keeps the full import graph for inference
     (so types resolve correctly) while reporting only on the named files.
-    Returns None when the diff carries no Python, so the caller falls back
-    to the project-wide run unchanged.
+
+    Returns None when scoping could not BUILD a file list — the diff's
+    Python paths did not resolve under project_dir (deleted, renamed, a
+    foreign checkout) — and the caller then falls back to the
+    project-wide run, which is the only remaining signal. A diff with no
+    Python in it at all never reaches here: ``_check_typecheck`` skips
+    that case outright (issue #491).
     """
-    files = _scoped_files(project_dir, changed, _LINTABLE_PY)
+    # _TYPECHECKABLE_PY, not _LINTABLE_PY: a stub is mypy's own file
+    # type, and scoping that excluded .pyi let a stub-only diff fall
+    # through to the project-wide run it had just been cleared of
+    # (QG cycle 3, M1). The relevance guard and the scoped run must
+    # answer with the SAME set or the gap reopens between them.
+    files = _scoped_files(project_dir, changed, _TYPECHECKABLE_PY)
     if not files:
         return None
     declared = _mypy_declared_scope(project_dir)
@@ -801,7 +945,7 @@ def _typecheck_scoped(
         # point; the advisory still carries that number.
         return _skip(
             "typecheck",
-            f"{excluded} changed .py file(s) all outside the project's "
+            f"{excluded} changed Python file(s) all outside the project's "
             f"declared mypy scope ({', '.join(declared or [])})"
             + (f"\n{advisory}" if advisory else ""),
         )
@@ -825,7 +969,7 @@ def _typecheck_scoped(
             result = _attributed_verdict(result, *attribution)
     if excluded:
         notes.append(
-            f"{excluded} changed .py file(s) skipped — outside the "
+            f"{excluded} changed Python file(s) skipped — outside the "
             f"project's declared mypy scope ({', '.join(declared or [])})"
         )
     if notes:
@@ -833,6 +977,83 @@ def _typecheck_scoped(
             result, summary="\n".join([result.summary, *notes]).strip(),
         )
     return _labelled(result, f"typecheck(scoped: {len(in_scope)} file(s))")
+
+
+def _typecheck_mypy(
+    project_dir: Path, changed: list[str] | None, timeout: int,
+) -> CheckResult:
+    """Scoped mypy over the diff; project-wide only as a documented fallback.
+
+    Reaching here means the diff DID carry Python (or its scope is
+    unknown), so a None from ``_typecheck_scoped`` can only mean scoping
+    failed to build the file list, and the project-wide run is the only
+    remaining signal. The asymmetry with the zero-Python case — which
+    skips instead — is deliberate: one is "we could not look here", the
+    other is "there was never anything to look at".
+    """
+    # `shutil.which` alone read a venv-installed mypy as "no typecheck
+    # configuration detected" — the generic skip, on a project that had
+    # explicitly opted in. `_tool_cmd` is the same resolver ruff/pytest/
+    # codespell already use, and its docstring names this exact class of
+    # bug: a FALSE GREEN on a NON-NEGOTIABLE gate (issue #452).
+    mypy = _tool_cmd("mypy")
+    if mypy is None:
+        return _skip(
+            "typecheck",
+            "mypy configured but not installed — install it "
+            "(pip install mypy) or drop the mypy config; the gate has "
+            "NO type signal for this run",
+        )
+    scoped = _typecheck_scoped(project_dir, mypy, changed, timeout)
+    if scoped is not None:
+        return scoped
+    return _mypy_verdict(
+        _run(
+            "typecheck", _mypy_project_argv(project_dir, mypy),
+            project_dir, timeout,
+        )
+    )
+
+
+def _typecheck_tsc(project_dir: Path, timeout: int) -> CheckResult:
+    """tsc over the project — it cannot be scoped to a file list.
+
+    Naming files on the tsc command line DISCARDS the tsconfig ``include``
+    that defines the compilation (the same override that bites mypy's
+    ``files``), so the honest choice is the whole project or nothing.
+    """
+    local_tsc = project_dir / "node_modules" / ".bin" / "tsc"
+    if local_tsc.is_file():
+        return _run(
+            "typecheck", [str(local_tsc), "--noEmit"], project_dir, timeout,
+        )
+    if shutil.which("tsc"):
+        return _run("typecheck", ["tsc", "--noEmit"], project_dir, timeout)
+    return _skip("typecheck", "tsconfig.json present but tsc not installed")
+
+
+def _typecheck_relevant(
+    changed: list[str] | None, exts: frozenset[str], triggers: frozenset[str],
+) -> bool:
+    """True when this diff could change what the typechecker concludes.
+
+    Two independent ways in: the diff carries source the tool reads, OR
+    it touches the config/manifest that defines the tool's world. The
+    second was missing and cost the gate its only defence on
+    lockfile-only PRs (QG cycle 3, A2).
+    """
+    return _diff_touches(changed, exts) or _diff_triggers(changed, triggers)
+
+
+def _no_relevant_typechecker(mypy_on: bool, tsc_on: bool) -> str:
+    """Skip reason that NAMES the tools, so 'no signal' never reads as 'clean'."""
+    tools = " + ".join(
+        name for name, on in (("mypy", mypy_on), ("tsc", tsc_on)) if on
+    )
+    return (
+        "changed files contain no typecheckable sources for the "
+        f"configured typechecker(s) ({tools})"
+    )
 
 
 def _check_typecheck(
@@ -844,39 +1065,28 @@ def _check_typecheck(
         # never read the diff, so a known-empty diff would inherit
         # master's type debt the moment tooling is configured.
         return _skip("typecheck", "no changed files (empty diff)")
-    if _mypy_configured(project_dir):
-        # `shutil.which` alone read a venv-installed mypy as "no typecheck
-        # configuration detected" — the generic skip, on a project that
-        # had explicitly opted in. `_tool_cmd` is the same resolver
-        # ruff/pytest/codespell already use, and its docstring names this
-        # exact class of bug: a FALSE GREEN on a NON-NEGOTIABLE gate
-        # (issue #452).
-        mypy = _tool_cmd("mypy")
-        if mypy is None:
-            return _skip(
-                "typecheck",
-                "mypy configured but not installed — install it "
-                "(pip install mypy) or drop the mypy config; the gate has "
-                "NO type signal for this run",
-            )
-        scoped = _typecheck_scoped(project_dir, mypy, changed, timeout)
-        if scoped is not None:
-            return scoped
-        return _mypy_verdict(
-            _run(
-                "typecheck", _mypy_project_argv(project_dir, mypy),
-                project_dir, timeout,
-            )
-        )
-    if (project_dir / "tsconfig.json").is_file():
-        local_tsc = project_dir / "node_modules" / ".bin" / "tsc"
-        if local_tsc.is_file():
-            return _run(
-                "typecheck", [str(local_tsc), "--noEmit"], project_dir, timeout,
-            )
-        if shutil.which("tsc"):
-            return _run("typecheck", ["tsc", "--noEmit"], project_dir, timeout)
-        return _skip("typecheck", "tsconfig.json present but tsc not installed")
+    mypy_on = _mypy_configured(project_dir)
+    tsc_on = (project_dir / "tsconfig.json").is_file()
+    # Relevance is decided per typechecker, BEFORE any tool runs. A diff
+    # with no Python used to reach the project-wide mypy fallback: 1246
+    # errors across 192 untouched files charged to a markdown-only
+    # changeset, `overall: fail`, and the evidence floor then REJECTED
+    # every docs-only deliverable in the campaign (issue #491). Lint has
+    # skipped this case since QG 2026-07-12; typecheck did not, because
+    # `_typecheck_scoped` returns None for BOTH "no Python in the diff"
+    # and "the Python paths did not resolve" — only the first may skip.
+    # Per-typechecker, not one global guard, so a TS-only diff in a
+    # hybrid repo reaches tsc instead of being charged mypy's debt.
+    if mypy_on and _typecheck_relevant(
+        changed, _TYPECHECKABLE_PY, _MYPY_TRIGGERS
+    ):
+        return _typecheck_mypy(project_dir, changed, timeout)
+    if tsc_on and _typecheck_relevant(
+        changed, _TYPECHECKABLE_TS, _TSC_TRIGGERS
+    ):
+        return _typecheck_tsc(project_dir, timeout)
+    if mypy_on or tsc_on:
+        return _skip("typecheck", _no_relevant_typechecker(mypy_on, tsc_on))
     return _skip("typecheck", "no typecheck configuration detected")
 
 
@@ -1172,6 +1382,28 @@ def _check_coverage(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
 ) -> CheckResult:
+    if changed is not None and not changed:
+        # Its own fact and its own sentence: there are no changed files
+        # at all, which is not the same as changed files nothing can
+        # execute. The shared wording was factually wrong here
+        # (QG cycle 3, M2) and matches lint/typecheck's zero-diff skip.
+        return _skip("coverage", "no changed files (empty diff)")
+    if _diff_is_wholly_inert(changed):
+        # No test can execute a markdown file, so NO artefact — fresh or
+        # six hours stale — describes this changeset. The engine reported
+        # PASS 83.3% on a docs-only diff and the reviewer had to write
+        # "carries no evidential weight" in prose beside it (issue #491,
+        # QG cycle 2); a number that needs a human footnote to be read
+        # correctly must not be emitted as evidence at all. Not a FAIL:
+        # nothing is wrong with the change, there is nothing to measure.
+        # Everything else — including languages this module cannot name —
+        # falls through to the artefact, where the staleness and
+        # module-presence checks give an honest PASS or FAIL.
+        return _skip(
+            "coverage",
+            "every changed file is documentation or an asset — a coverage "
+            "artefact cannot describe this diff",
+        )
     coverage_xml = project_dir / "coverage.xml"
     if coverage_xml.is_file():
         return _coverage_from_xml(coverage_xml, project_dir, changed)
@@ -1336,6 +1568,79 @@ def _grep_summary(hits: list[str], suppressed: list[str]) -> str:
     return summary
 
 
+# codespell prints `path:line: wrong ==> right`, one finding per line.
+_CODESPELL_HIT_RE = re.compile(
+    r"^(?P<path>[^\s:][^:]*):(?P<line>\d+):\s*(?P<msg>.*)$"
+)
+
+
+def _spellcheck_verdict(
+    result: CheckResult, gating: list[str], inherited: list[str],
+    unattributable: list[str],
+) -> CheckResult:
+    """Rebuild the verdict from misspellings this diff actually added.
+
+    Two different reasons put a hit in ``gating`` — git placed it on an
+    added line, or git could not describe the file at all — and only the
+    first is a statement about this diff. Reporting both as "on lines
+    this diff added" would make the gate assert a provenance nothing
+    verified, so the fail-closed share is named separately.
+    """
+    if gating:
+        shown = "\n".join(gating[:_MAX_GREP_HITS])
+        if len(gating) > _MAX_GREP_HITS:
+            shown += f"\n(+{len(gating) - _MAX_GREP_HITS} more)"
+        summary = f"{len(gating)} gating misspelling(s):\n{shown}"
+    else:
+        summary = "no misspellings on lines this diff added"
+    if unattributable:
+        listed = ", ".join(sorted(unattributable)[:3])
+        summary += (
+            f"\ngit could not describe {len(unattributable)} of the changed "
+            f"file(s) ({listed}) — untracked, renamed, or outside this "
+            "repository. Their hits gate as UNATTRIBUTED, not as proven "
+            "additions."
+        )
+    if inherited:
+        summary += (
+            f"\n{len(inherited)} misspelling(s) on lines this diff did not "
+            "add — NOT gating; pre-existing text in a touched file"
+        )
+    return replace(result, passed=not gating, summary=summary)
+
+
+def _spellcheck_attributed(
+    project_dir: Path, result: CheckResult, output: str,
+) -> CheckResult:
+    """Scope a codespell run to the lines this diff ADDED.
+
+    The third check in this module to need the same contract, and the
+    reason it is a shared engine rather than a third implementation: a
+    hit on an untouched line of a touched file is master's text, not
+    this change's. Measured cost of the whole-file scan: a docs
+    deliverable whose own generated output was clean was gated by 5
+    hits, all outside the edited regions and all present verbatim in the
+    pre-5.10.0 baseline (issue #498).
+
+    Only a run that CONCLUDED with findings is attributed. A clean run,
+    a timeout, or output whose shape the hit pattern does not describe
+    keeps codespell's own verdict — an empty gating list must never be
+    an artefact of our failure to parse.
+    """
+    if result.exit_code in (None, 0):
+        return result
+    attribution = _attribute_hits(project_dir, output, _CODESPELL_HIT_RE)
+    if attribution is None:
+        return replace(result, summary=(
+            f"{result.summary}\nno merge-base with the default branch — "
+            "hits could not be attributed to added lines; ALL of them gate"
+        ))
+    gating, inherited, unattributable = attribution
+    if not gating and not inherited:
+        return result
+    return _spellcheck_verdict(result, gating, inherited, unattributable)
+
+
 def _check_spellcheck(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
@@ -1349,7 +1654,13 @@ def _check_spellcheck(
     md_files = [f for f in changed or [] if f.endswith(".md")]
     if not md_files:
         return _skip("spellcheck", "no changed .md files")
-    result = _run("spellcheck", [*cmd, *md_files], project_dir, timeout)
+    # UNTRUNCATED output, for the same reason the typecheck path takes it:
+    # a hit truncated away by `_tail` would read as absent, and "absent" is
+    # what a gate must never infer from its own formatting.
+    raw_result, full_output = _run_capturing(
+        "spellcheck", [*cmd, *md_files], project_dir, timeout,
+    )
+    result = _spellcheck_attributed(project_dir, raw_result, full_output)
     # codespell honours .codespellrc `skip` even for explicitly listed files,
     # so a PASS here can cover far fewer files than were handed in. Reporting
     # the raw count as coverage is how a narrowed scope reads as a full green
