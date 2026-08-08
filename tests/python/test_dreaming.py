@@ -6,26 +6,38 @@ needing Ollama or Claude Code running in CI.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+import json
+import logging
+import os
+import subprocess
+import sys
+from collections import Counter
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from core.cognition.dreaming import (
+    _MAX_CLUSTER_CHUNKS,
+    _MAX_TOKENS_PER_CHUNK,
+    _MIN_DISTINCT_ORIGINS,
     Chunk,
     Cluster,
     Dreaming,
     Insight,
     _build_critic_prompt,
     _build_insight_prompt,
+    _distinctive,
     _extract_topic_tokens,
+    _origin_group,
     _parse_insight,
     _slugify,
     _split_for_clustering,
     _strip_non_topic_text,
 )
 from core.runtime.llm_provider import LLMResponse, LLMUnavailable
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture
@@ -96,7 +108,10 @@ def synthetic_vault(tmp_path):
 
 
 def test_split_for_clustering_filters_short_pieces():
-    text = "short\n\nthis is a longer paragraph that definitely exceeds the minimum chunk size threshold we use for clustering today in the engine" * 1
+    text = (
+        "short\n\nthis is a longer paragraph that definitely exceeds the "
+        "minimum chunk size threshold we use for clustering today in the engine"
+    )
     pieces = _split_for_clustering(text)
     assert len(pieces) == 1
     assert "longer paragraph" in pieces[0]
@@ -126,7 +141,11 @@ def test_parse_insight_returns_none_for_pass():
 
 def test_parse_insight_extracts_title_body_confidence():
     resp = LLMResponse(
-        text="TITLE: Pest pagination recurring bug\nBODY: Three notes show pagination Pest tests fail. Add a shared helper.\nCONFIDENCE: high",
+        text=(
+            "TITLE: Pest pagination recurring bug\n"
+            "BODY: Three notes show pagination Pest tests fail. "
+            "Add a shared helper.\nCONFIDENCE: high"
+        ),
         tokens_in=20, tokens_out=20, cached_tokens=0, model="x",
     )
     cluster = Cluster(topic="Pest", chunks=[Chunk("Projects/Clientalpha.md", "...", "vault")])
@@ -140,7 +159,10 @@ def test_parse_insight_extracts_title_body_confidence():
 
 
 def test_parse_insight_defaults_confidence_when_missing():
-    resp = LLMResponse(text="TITLE: Something\nBODY: Body here", tokens_in=1, tokens_out=1, cached_tokens=0, model="x")
+    resp = LLMResponse(
+        text="TITLE: Something\nBODY: Body here",
+        tokens_in=1, tokens_out=1, cached_tokens=0, model="x",
+    )
     cluster = Cluster(topic="X", chunks=[])
     insight = _parse_insight(resp, cluster)
     assert insight is not None
@@ -148,7 +170,10 @@ def test_parse_insight_defaults_confidence_when_missing():
 
 
 def test_parse_insight_clamps_invalid_confidence():
-    resp = LLMResponse(text="TITLE: X\nBODY: y\nCONFIDENCE: nuclear", tokens_in=1, tokens_out=1, cached_tokens=0, model="x")
+    resp = LLMResponse(
+        text="TITLE: X\nBODY: y\nCONFIDENCE: nuclear",
+        tokens_in=1, tokens_out=1, cached_tokens=0, model="x",
+    )
     cluster = Cluster(topic="X", chunks=[])
     insight = _parse_insight(resp, cluster)
     assert insight.confidence == "medium"
@@ -189,7 +214,12 @@ def test_dreaming_end_to_end_with_scripted_provider(synthetic_vault, tmp_path, f
     fake_provider.complete.side_effect = [
         # First cluster — produce insight
         LLMResponse(
-            text="TITLE: Pest pagination recurring\nBODY: Three Clientalpha notes mention pagination Pest tests failing. Consider a shared helper.\nCONFIDENCE: high",
+            text=(
+                "TITLE: Pest pagination recurring\n"
+                "BODY: Three Clientalpha notes mention pagination Pest "
+                "tests failing. Consider a shared helper.\n"
+                "CONFIDENCE: high"
+            ),
             tokens_in=20, tokens_out=20, cached_tokens=0, model="test",
         ),
         # Critic — accept
@@ -239,7 +269,10 @@ def test_dreaming_critic_rejects_filter_noise(synthetic_vault, tmp_path, fake_pr
     fake_provider.complete.side_effect = [
         # Insight draft passes parsing
         LLMResponse(
-            text="TITLE: Noisy claim\nBODY: Generic statement about general patterns.\nCONFIDENCE: low",
+            text=(
+                "TITLE: Noisy claim\nBODY: Generic statement about "
+                "general patterns.\nCONFIDENCE: low"
+            ),
             tokens_in=5, tokens_out=5, cached_tokens=0, model="t",
         ),
         # Critic rejects
@@ -304,14 +337,164 @@ def test_cluster_ranks_specific_topics_above_broad_anchors(tmp_path, fake_provid
     )
 
 
-def test_cluster_rejects_groups_confined_to_one_folder(tmp_path, fake_provider):
-    """Consecutive chapters of one book are not a cross-source insight."""
+def test_cluster_drops_one_folder_groups_when_a_cross_folder_one_exists(
+    tmp_path, fake_provider
+):
+    """Consecutive chapters of one book are not a cross-source insight.
+
+    They are only tolerated when nothing else clusters at all (see the
+    flat-vault fallback below), so this pins the preference: while a
+    genuine cross-folder group is on the table, the single-folder group
+    must not reach the LLM.
+    """
     same_folder = [
         _chunk("Resources/Books/ReleaseIt/06.md", "Stability Bulkhead Circuit Breaker."),
         _chunk("Resources/Books/ReleaseIt/07.md", "Stability Bulkhead Circuit Breaker."),
         _chunk("Resources/Books/ReleaseIt/08.md", "Stability Bulkhead Circuit Breaker."),
     ]
-    assert _engine(tmp_path, fake_provider)._cluster(same_folder) == []
+    cross_folder = [
+        _chunk("Projects/Alpha/a.md", "Kafka Debezium Outbox Envelope alpha."),
+        _chunk("Projects/Beta/b.md", "Kafka Debezium Outbox Envelope bravo."),
+        _chunk("Areas/Data/c.md", "Kafka Debezium Outbox Envelope charlie."),
+    ]
+    clusters = _engine(tmp_path, fake_provider)._cluster(same_folder + cross_folder)
+
+    assert clusters, "the cross-folder group must survive"
+    for cluster in clusters:
+        origins = {_origin_group(c) for c in cluster.chunks}
+        assert len(origins) >= _MIN_DISTINCT_ORIGINS, cluster.topic
+    sources = {c.source_path for cluster in clusters for c in cluster.chunks}
+    assert not any(s.startswith("Resources/Books/") for s in sources)
+
+
+def test_flat_vault_clusters_instead_of_reporting_a_quiet_night(
+    tmp_path, fake_provider, caplog
+):
+    """Every note in the vault root shares one origin.
+
+    Rejecting on origin alone made the commonest vault layout — no PARA
+    tree, everything at the top level — report "quiet night" forever.
+    Silence that looks like nothing happened is worse than a weaker
+    signal, so the fallback accepts single-origin clusters and says so.
+    """
+    chunks = [
+        _chunk("a.md", "Kafka Debezium Outbox Envelope Snapshot alpha note."),
+        _chunk("b.md", "Kafka Debezium Outbox Envelope Snapshot bravo note."),
+        _chunk("c.md", "Kafka Debezium Outbox Envelope Snapshot charlie note."),
+    ]
+    with caplog.at_level(logging.INFO, logger="core.cognition.dreaming"):
+        clusters = _engine(tmp_path, fake_provider)._cluster(chunks)
+
+    assert clusters != [], "a flat vault is not an empty vault"
+    assert {c.source_path for c in clusters[0].chunks} == {"a.md", "b.md", "c.md"}
+    assert "[single-origin-fallback]" in caplog.text
+    assert "quiet night" not in caplog.text
+
+
+def test_cluster_truncates_an_oversized_bucket_instead_of_dropping_it(
+    tmp_path, fake_provider
+):
+    """One chunk past the ceiling used to delete the whole cluster.
+
+    Nine notes on one topic is a better cluster than eight, not a worse
+    one; the ceiling caps how much reaches the prompt, and capping is
+    truncation, not rejection.
+    """
+    chunks = [
+        _chunk(
+            f"Projects/P{i}/n.md",
+            f"Kafka Debezium Outbox Envelope Snapshot note Unique{i:02d}.",
+        )
+        for i in range(9)
+    ]
+    clusters = _engine(tmp_path, fake_provider)._cluster(chunks)
+
+    assert clusters, "nine chunks around one topic must not vanish"
+    assert clusters[0].topic in {
+        "Debezium", "Envelope", "Kafka", "Outbox", "Snapshot",
+    }
+    assert len(clusters[0].chunks) == _MAX_CLUSTER_CHUNKS
+
+
+def test_truncation_keeps_the_cross_origin_spread(tmp_path, fake_provider):
+    """Truncation must not hand the origin filter a single-folder cluster.
+
+    The ten chapters share four tokens the two cross-folder notes lack,
+    so they own the top ten overlap scores outright. A pure
+    highest-overlap cut fills all eight slots with them, and the very
+    next check rejects the cluster truncation was meant to save.
+    """
+    chapters = [
+        _chunk(
+            f"Areas/Books/ReleaseIt/{i:02d}.md",
+            "Bulkhead Circuit Breaker Timeout Steady Stability "
+            "Chapter Excerpt Marginalia Annotated.",
+        )
+        for i in range(10)
+    ]
+    cross = [
+        _chunk("Projects/Alpha/a.md",
+               "Bulkhead Circuit Breaker Timeout Steady Stability alpha."),
+        _chunk("Zones/Ops/b.md",
+               "Bulkhead Circuit Breaker Timeout Steady Stability bravo."),
+    ]
+    clusters = _engine(tmp_path, fake_provider)._cluster(chapters + cross)
+
+    assert clusters
+    origins = {_origin_group(c) for c in clusters[0].chunks}
+    assert len(origins) >= _MIN_DISTINCT_ORIGINS, (
+        f"truncation collapsed the cluster into {origins}"
+    )
+
+
+def test_dedup_keeps_the_most_specific_anchor_for_the_same_notes(
+    tmp_path, fake_provider
+):
+    """Two anchors selecting the same notes are one cluster seen twice.
+
+    Deduplicating before ranking let the alphabet pick the survivor, so
+    the broad `Alpha` anchor claimed the notes and the four-token
+    `Zookeeper` group — the specific one the ranking exists to promote —
+    was discarded as a duplicate.
+    """
+    chunks = [
+        _chunk("Projects/A/a.md", "Alpha Common ledger reconciliation, alpha stream."),
+        _chunk("Projects/B/b.md", "Alpha Common ledger reconciliation, bravo stream."),
+        _chunk("Areas/C/c.md", "Alpha Common ledger reconciliation, charlie stream."),
+        _chunk("Projects/A/a.md", "Zookeeper Chroot Znode Quorum Common alpha ensemble."),
+        _chunk("Projects/B/b.md", "Zookeeper Chroot Znode Quorum Common bravo ensemble."),
+        _chunk("Areas/C/c.md", "Zookeeper Chroot Znode Quorum Common charlie ensemble."),
+    ]
+    clusters = _engine(tmp_path, fake_provider)._cluster(chunks)
+
+    topics = [c.topic for c in clusters]
+    assert topics, "the group must survive dedup"
+    assert topics[0] in {"Chroot", "Quorum", "Znode", "Zookeeper"}, topics
+    assert "Alpha" not in topics, "the broad anchor must lose, not win by sort order"
+
+
+def test_distinctive_keeps_the_rarest_tokens_not_the_alphabetical_head():
+    """The per-chunk cap used to slice an alphabetically sorted set.
+
+    A note's distinctive vocabulary then survived or died by its initial
+    letter: `Zookeeper` was always dropped, `Common00` always kept, and
+    the rare tokens the specificity ranking runs on never reached a
+    bucket at all.
+    """
+    doc_freq: Counter[str] = Counter({f"Common{i:02d}": 50 for i in range(20)})
+    doc_freq.update({"Zookeeper": 2, "Znode": 2})
+    tokens = set(doc_freq)
+
+    kept = _distinctive(tokens, doc_freq)
+
+    assert len(kept) == _MAX_TOKENS_PER_CHUNK
+    assert {"Zookeeper", "Znode"} <= kept
+    assert kept == _distinctive(set(doc_freq), doc_freq), "must not vary per run"
+
+
+def test_distinctive_leaves_small_token_sets_untouched():
+    doc_freq: Counter[str] = Counter({"Kafka": 3, "Debezium": 2})
+    assert _distinctive({"Kafka", "Debezium"}, doc_freq) == {"Kafka", "Debezium"}
 
 
 def test_cluster_requires_more_than_one_shared_token(tmp_path, fake_provider):
@@ -330,11 +513,15 @@ def test_extract_topic_tokens_drops_template_and_query_scaffolding():
     assert tokens == ["Debezium", "Kafka"]
 
 
-def test_extract_topic_tokens_is_order_stable_when_truncating():
-    """Truncation used to slice a set, so the kept subset varied per run."""
+def test_extract_topic_tokens_is_sorted_and_stable():
+    """Set iteration order for strings varies with PYTHONHASHSEED, so any
+    downstream step that keeps a subset would keep a different one per
+    run. The subset step itself now lives in `_distinctive`, which needs
+    corpus frequencies this function cannot see."""
     words = " ".join(f"Token{i:03d}" for i in range(60))
     assert _extract_topic_tokens(words) == sorted(_extract_topic_tokens(words))
     assert _extract_topic_tokens(words) == _extract_topic_tokens(words)
+    assert len(_extract_topic_tokens(words)) == 60, "the cap moved to _distinctive"
 
 
 def test_dreaming_never_ingests_its_own_output(tmp_path, fake_provider):
@@ -415,6 +602,48 @@ def test_strip_keeps_blockquote_bodies():
     assert "Layered architecture separates concerns." in out
 
 
+def test_strip_keeps_a_heading_that_only_starts_with_a_link_word():
+    """`## Sources of latency` is analysis, not a cross-reference block.
+
+    Unanchored, the heading pattern matched it and deleted everything
+    down to the next heading — the failure mode here is silent data
+    loss, so the heading must match to end of line.
+    """
+    text = (
+        "## Sources of latency\n\n"
+        "Queue depth drives the tail, not the median service time.\n\n"
+        "## Related\n\n- [[Message Broker]]\n"
+    )
+    out = _strip_non_topic_text(text)
+    assert "Queue depth drives the tail" in out
+    assert "Message Broker" not in out
+
+
+def test_strip_still_removes_a_related_notes_heading():
+    """`## Related Notes` is unambiguously a cross-reference block."""
+    text = "Real content about routers.\n\n## Related Notes\n\n- [[Splitter]]\n"
+    out = _strip_non_topic_text(text)
+    assert "Splitter" not in out
+    assert "Real content about routers." in out
+
+
+def test_strip_keeps_the_body_after_a_leading_horizontal_rule():
+    """A note opening on `---` has no frontmatter.
+
+    The old pattern matched the rule as an opening fence and ran to the
+    next rule, deleting the note's first section as if it were metadata.
+    """
+    text = (
+        "---\n\n"
+        "The outbox pattern keeps the write and the event atomic.\n\n"
+        "---\n\n"
+        "Idempotent consumers make the replay safe.\n"
+    )
+    out = _strip_non_topic_text(text)
+    assert "outbox pattern keeps the write" in out
+    assert "Idempotent consumers make the replay safe." in out
+
+
 def test_split_for_clustering_drops_cross_reference_chunks():
     """Wiring check: the strip must run before chunking, not per chunk."""
     text = (
@@ -428,3 +657,88 @@ def test_split_for_clustering_drops_cross_reference_chunks():
     joined = " ".join(_split_for_clustering(text))
     assert "Message Broker" not in joined
     assert "Routers dispatch each message" in joined
+
+
+# --- CLI entry point ------------------------------------------------------
+
+
+def _run_dreaming_cli(home: Path, *args: str) -> subprocess.CompletedProcess:
+    """Run the module the way the scheduler does: `python -m`.
+
+    Same shape as tests/python/test_core_hooks_entrypoints.py::_run_module.
+    HOME and USERPROFILE are set together because Path.home() consults
+    USERPROFILE on Windows and HOME on POSIX, and the child inherits
+    os.environ — setting one alone leaves the developer's real profile
+    in play.
+    """
+    env = dict(os.environ)
+    env.update({
+        "PYTHONPATH": str(REPO_ROOT),
+        "ARKAOS_ROOT": str(REPO_ROOT),
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+    })
+    # An exported vault override would beat the fixture's profile.json.
+    env.pop("ARKAOS_VAULT_PATH", None)
+    env.pop("ARKAOS_VAULT", None)
+    return subprocess.run(
+        [sys.executable, "-m", "core.cognition.dreaming", *args],
+        capture_output=True, text=True, timeout=120, env=env, check=False,
+    )
+
+
+@pytest.fixture
+def cli_home(tmp_path):
+    """A synthetic HOME the CLI can start from, with no real LLM behind it."""
+    home = tmp_path / "home"
+    (home / ".arkaos").mkdir(parents=True)
+    vault = home / "vault"
+    (vault / "Notes").mkdir(parents=True)
+    (home / ".arkaos" / "profile.json").write_text(json.dumps({
+        "version": "3",
+        "vaultPath": str(vault),
+        "reposRoot": str(home / "repos"),
+    }), encoding="utf-8")
+    # Pin the stub provider: this test proves the entry point loads and
+    # runs, not that a model answers. Without the pin the fallback chain
+    # could shell out to whatever runtime the developer has installed.
+    (home / ".arkaos" / "config.json").write_text(
+        json.dumps({"llm": {"provider": "stub"}}), encoding="utf-8",
+    )
+    (vault / "Notes" / "kafka.md").write_text(
+        "---\naliases: [CDC]\ntags: [streaming]\n---\n\n"
+        "# Kafka\n\n"
+        "The Debezium outbox envelope replays change events for every "
+        "downstream consumer without ever needing a full backfill.\n\n"
+        "## Related\n\n- [[Message Broker]]\n",
+        encoding="utf-8",
+    )
+    return home
+
+
+def test_dreaming_cli_runs_as_a_module(cli_home):
+    """`python -m core.cognition.dreaming run` must reach the end.
+
+    This is how the nightly scheduler starts Dreaming
+    (config/cognition/schedules.yaml: python_module + module_args).
+    Names defined below the `__main__` guard do not exist yet when
+    main() runs, so the CLI died on NameError inside the first chunking
+    call while every in-process test stayed green — importing the module
+    executes the whole file and never fires the guard.
+    """
+    result = _run_dreaming_cli(cli_home, "run", "--dry-run")
+
+    assert result.returncode == 0, result.stderr
+    assert "NameError" not in result.stderr, result.stderr
+    assert "Dreaming produced" in result.stdout, result.stdout
+
+
+def test_dreaming_cli_reports_a_missing_profile_without_a_traceback(tmp_path):
+    """The other CLI exit path, so a regression there is not silent."""
+    home = tmp_path / "bare-home"
+    home.mkdir()
+    result = _run_dreaming_cli(home, "run")
+
+    assert result.returncode == 2, result.stderr
+    assert "Cannot start Dreaming" in result.stdout
+    assert "Traceback" not in result.stderr
