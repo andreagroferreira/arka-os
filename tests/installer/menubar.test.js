@@ -15,13 +15,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   MENUBAR_LABEL, deployMenubarScript, ensureDefaultEnabled, menubarHealthy,
   menubarScriptPath, optoutPath, unitFor, xmlEscape,
-} = await import(join(ROOT, "installer", "menubar.js"));
+} = await import(pathToFileURL(join(ROOT, "installer", "menubar.js")));
 const { optoutPath: autoupdateOptoutPath } = await import(
   join(ROOT, "installer", "autoupdate.js")
 );

@@ -14,14 +14,14 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   resolveGraphifyHttpConfig,
   registerGraphifyHttpMcp,
   configureGraphifyHttp,
-} = await import(join(ROOT, "installer", "graphify.js"));
+} = await import(pathToFileURL(join(ROOT, "installer", "graphify.js")));
 
 
 // ─── Mock CLI helper ────────────────────────────────────────────────────

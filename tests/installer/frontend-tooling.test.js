@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
@@ -22,7 +22,7 @@ const {
   installMotionKit,
   installImpeccableDetector,
   setupFrontendTooling,
-} = await import(join(ROOT, "installer", "frontend-tooling.js"));
+} = await import(pathToFileURL(join(ROOT, "installer", "frontend-tooling.js")));
 
 
 // ─── Mock CLI helpers ───────────────────────────────────────────────────

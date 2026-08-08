@@ -17,11 +17,11 @@ import {
 } from "node:fs";
 import { tmpdir, platform } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const adapter = (
-  await import(join(ROOT, "installer", "adapters", "claude-code.js"))
+  await import(pathToFileURL(join(ROOT, "installer", "adapters", "claude-code.js")))
 ).default;
 
 const IS_WINDOWS = platform() === "win32";

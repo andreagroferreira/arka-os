@@ -46,6 +46,37 @@ export function renderManagedBlock(template) {
   return `${MARKER_START}\n${body}${MARKER_END}\n`;
 }
 
+export function normalizeEol(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
+// Index in `existing` just past a leading copy of `template`, or -1.
+//
+// The naive `existing.startsWith(template)` is line-ending sensitive,
+// and the packaged template ships with LF while an operator's live
+// CLAUDE.md on Windows is routinely CRLF (git autocrlf, most editors).
+// The prefix test then fails on a file that IS our template, adoption
+// falls through to adopt-prepend, and the whole instruction set is
+// duplicated — exactly the outcome the prefix branch exists to prevent.
+//
+// The scan walks the original bytes rather than comparing normalized
+// copies, because the returned index slices `existing`: normalizing
+// first would shift every offset after the first CRLF and cut the
+// operator's remainder in the wrong place.
+export function templatePrefixEnd(existing, template) {
+  if (existing.startsWith(template)) return template.length;
+  const wanted = normalizeEol(template);
+  let i = 0;
+  for (let j = 0; j < wanted.length; j += 1, i += 1) {
+    if (wanted[j] === "\n" && existing[i] === "\r" && existing[i + 1] === "\n") {
+      i += 1;
+      continue;
+    }
+    if (existing[i] !== wanted[j]) return -1;
+  }
+  return i;
+}
+
 // Marker states: "none" (no marker at all), "ok" (exactly one
 // well-ordered pair), "malformed" (anything else, with a reason).
 // Malformed is always a refusal upstream — a wrong guess about which
@@ -90,7 +121,13 @@ export function planUpdate({ existing, template, wasManaged, knownHashes = KNOWN
   if (markers.state === "malformed") return { action: "refuse", reason: markers.reason };
   if (markers.state === "ok") return planBlockReplace(existing, template, markers);
   if (wasManaged) return { action: "markers-removed" };
-  if (knownHashes.includes(sha256(existing))) {
+  // Hashed after EOL normalization for the same reason the prefix scan
+  // tolerates CRLF: a Windows checkout of a shipped revision is byte-
+  // different but content-identical, and must still be wrapped.
+  if (
+    knownHashes.includes(sha256(existing))
+    || knownHashes.includes(sha256(normalizeEol(existing)))
+  ) {
     return { action: "adopt-wrap", content: renderManagedBlock(template) };
   }
   // "Shipped template + operator additions" is the MODAL pre-C5 shape —
@@ -99,11 +136,12 @@ export function planUpdate({ existing, template, wasManaged, knownHashes = KNOWN
   // instruction set (QG C5 r1, Francisca B2 — reproduced on the
   // operator's live file), so the template prefix is absorbed into the
   // block and only the operator's remainder is preserved below it.
-  if (existing.startsWith(template)) {
+  const prefixEnd = templatePrefixEnd(existing, template);
+  if (prefixEnd !== -1) {
     return {
       action: "adopt-wrap",
-      content: renderManagedBlock(template) + existing.slice(template.length),
-      preservedRemainder: existing.length > template.length,
+      content: renderManagedBlock(template) + existing.slice(prefixEnd),
+      preservedRemainder: existing.length > prefixEnd,
     };
   }
   return { action: "adopt-prepend", content: `${renderManagedBlock(template)}\n${existing}` };
