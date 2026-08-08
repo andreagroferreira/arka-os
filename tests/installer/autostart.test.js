@@ -6,11 +6,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { unitFor, AUTOSTART_LABEL } = await import(
-  join(ROOT, "installer", "autostart.js")
+  pathToFileURL(join(ROOT, "installer", "autostart.js"))
 );
 
 const ctx = { repoRoot: "/opt/arkaos", home: "/Users/x" };

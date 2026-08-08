@@ -13,11 +13,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { deployProjectAgents, LEGACY_PERSONAS } = await import(
-  join(ROOT, "installer", "adapters", "claude-code.js")
+  pathToFileURL(join(ROOT, "installer", "adapters", "claude-code.js"))
 );
 
 // Spot-check list — full-catalog count is asserted dynamically below.

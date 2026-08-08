@@ -23,7 +23,7 @@ const {
   menubarScriptPath, optoutPath, unitFor, xmlEscape,
 } = await import(pathToFileURL(join(ROOT, "installer", "menubar.js")));
 const { optoutPath: autoupdateOptoutPath } = await import(
-  join(ROOT, "installer", "autoupdate.js")
+  pathToFileURL(join(ROOT, "installer", "autoupdate.js"))
 );
 const MENUBAR_PY = join(ROOT, "bin", "arka-menubar.py");
 
