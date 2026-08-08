@@ -26,6 +26,14 @@
 _ARKA_LIB="$(dirname "${BASH_SOURCE[0]:-$0}")/_lib/arka_python.sh"
 if [ -f "$_ARKA_LIB" ]; then . "$_ARKA_LIB"; else ARKA_PY="python3"; fi
 
+# A split deploy (wrapper present, _lib absent) must still run the hook —
+# telemetry is an observer, never a dependency. These no-op stubs are
+# defined only when the real ones did not arrive.
+command -v arka_hook_degraded >/dev/null 2>&1 || arka_hook_degraded() { :; }
+command -v arka_run_hook >/dev/null 2>&1 || arka_run_hook() {
+  shift; "$ARKA_PY" -m "$1"
+}
+
 # ─── Resolve ARKAOS_ROOT (validated — see arka_resolve_root in _lib) ────
 # .repo-path can point at a purged npx cache; the shared resolver falls
 # through to the ~/.arkaos/lib snapshot instead of exporting a dead root.
@@ -44,7 +52,10 @@ fi
 export ARKAOS_ROOT
 
 # ─── Degrade gracefully (fail open, same as before) ─────────────────────
+# Still fail-open, but no longer silent: with no interpreter every gate in
+# this hook allows, and that must be distinguishable from a gate that ran.
 if ! command -v "$ARKA_PY" >/dev/null 2>&1; then
+  arka_hook_degraded "pre-tool-use" "no-interpreter" "ARKA_PY=$ARKA_PY"
   exit 0
 fi
 # Self-root fallback: the wrapper ships next to its python entrypoint, so
@@ -56,6 +67,7 @@ if [ ! -f "$ARKAOS_ROOT/core/hooks/pre_tool_use.py" ]; then
     ARKAOS_ROOT="$_SELF_ROOT"
     export ARKAOS_ROOT
   else
+    arka_hook_degraded "pre-tool-use" "entrypoint-missing" "root=$ARKAOS_ROOT"
     exit 0
   fi
 fi
@@ -63,5 +75,5 @@ fi
 # ─── Single python process; stdin/stdout/stderr/exit-code pass through ──
 # Interpreter resolution handled by the shared resolver (ARKA_PY): prefers
 # the ArkaOS venv (has pyyaml/pydantic), falls back to a yaml-capable python3.
-PYTHONPATH="$ARKAOS_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  exec "$ARKA_PY" -m core.hooks.pre_tool_use
+export PYTHONPATH="$ARKAOS_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+arka_run_hook "pre-tool-use" core.hooks.pre_tool_use

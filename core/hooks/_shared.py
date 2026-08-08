@@ -148,3 +148,53 @@ def additional_context_payload(event_name: str, context: str) -> dict:
 def emit_additional_context(event_name: str, context: str) -> None:
     """Print the additionalContext payload to stdout (single construction site)."""
     print(json.dumps(additional_context_payload(event_name, context)))
+
+
+def record_degraded(hook: str, reason: str, detail: str = "") -> None:
+    """Record that a gate allowed because it could not run, not because it decided.
+
+    Several handlers in the hook entrypoints convert a failure into "allow" —
+    the right posture for governance code, since a broken import must never
+    block the user's work. What was missing is the record. A gate that allows
+    silently is indistinguishable from a gate that ran and found nothing, and
+    that ambiguity is expensive in both directions: it hid an ArkaOS venv that
+    could not ``import pydantic`` for months (every gate on that machine open,
+    no signal anywhere), and it previously manufactured a phantom bug that
+    cost five messages to disprove (Cross-Machine Lab, X3).
+
+    Deliberately NOT on stderr. Claude Code surfaces hook stderr to the user
+    as an error, so diagnosing here would turn a silent degradation into
+    visible noise on every event. The record goes to a file; only a reader
+    who wants it pays for it.
+
+    Never raises: telemetry must not become the thing that breaks a hook.
+    This lives in Python rather than in the shell/PowerShell wrappers on
+    purpose — one implementation serves every platform, so the twins cannot
+    drift the way session-start.ps1 did.
+    """
+    try:
+        import time
+
+        if not detail:
+            # Called from inside an `except` block in every current caller,
+            # so the live exception IS the detail. Capturing it here keeps
+            # each call site to a single line and stops the handlers from
+            # having to grow an `as exc` binding they otherwise never use.
+            current = sys.exc_info()[1]
+            if current is not None:
+                detail = f"{type(current).__name__}: {current}"
+
+        line = json.dumps({
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "hook": hook,
+            "reason": reason,
+            "detail": detail[:400],
+        }, ensure_ascii=False)
+        directory = Path.home() / ".arkaos" / "telemetry"
+        directory.mkdir(parents=True, exist_ok=True)
+        with (directory / "hook-degraded.jsonl").open(
+            "a", encoding="utf-8"
+        ) as handle:
+            handle.write(line + "\n")
+    except Exception:
+        pass

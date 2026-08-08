@@ -154,3 +154,63 @@ arka_resolve_root() {
   fi
   printf '%s\n' "${ARKA_OS:-$HOME/.claude/skills/arkaos}"
 }
+
+# ─── Degraded-run telemetry ────────────────────────────────────────────
+# A hook that fails open and says nothing is indistinguishable from a hook
+# that ran and allowed. That ambiguity is not hypothetical: an ArkaOS venv
+# that could not `import pydantic` made every gate on one machine allow
+# silently for months, and the same silence previously kept two real bugs
+# invisible while manufacturing a third that never existed (Cross-Machine
+# Lab, X3).
+#
+# Two hard rules, both deliberate:
+#
+#   1. NEVER write to stderr. Claude Code surfaces hook stderr to the user
+#      as an error, so a diagnostic there converts a silent degradation
+#      into visible noise on every event — trading one bad failure mode
+#      for a worse one. The record goes to a file; only a reader who wants
+#      it pays for it.
+#   2. NEVER change the exit code. Fail-open is the correct posture for a
+#      governance hook: a broken interpreter must not block the user's
+#      work. This makes the degradation legible, not fatal.
+#
+# One JSON line per event, appended. Failure to write is swallowed —
+# telemetry must never be the thing that breaks a hook.
+arka_hook_degraded() {
+  local hook="${1:-unknown}" reason="${2:-unknown}" detail="${3:-}"
+  local dir="$HOME/.arkaos/telemetry"
+  local stamp
+  stamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null)" || stamp=""
+  # Keep detail on one line and out of the JSON grammar's way.
+  detail="$(printf '%s' "$detail" | tr -d '\r' | tr '\n' ' ' | cut -c1-400)"
+  detail="${detail//\\/\\\\}"
+  detail="${detail//\"/\\\"}"
+  {
+    mkdir -p "$dir" 2>/dev/null &&
+      printf '{"ts":"%s","hook":"%s","reason":"%s","detail":"%s"}\n' \
+        "$stamp" "$hook" "$reason" "$detail" >> "$dir/hook-degraded.jsonl"
+  } 2>/dev/null || true
+  return 0
+}
+
+# Run a hook entrypoint under the resolved interpreter, recording the
+# degraded cases instead of exec'ing into silence.
+#
+# `exec` was the reason nothing could observe these failures: it replaces
+# the shell, so a traceback on the way up had no surviving witness. The
+# cost of dropping it is one shell process alive for the hook's lifetime.
+#
+# Exit codes pass through UNCHANGED. Note which ones are NOT failures:
+#   0  allow
+#   2  the documented deny/block code — a gate doing its job, never logged
+# Anything else means the entrypoint did not get to decide, which is
+# exactly the case worth a record.
+arka_run_hook() {
+  local hook="$1" module="$2" status
+  "$ARKA_PY" -m "$module"
+  status=$?
+  if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
+    arka_hook_degraded "$hook" "entrypoint-failed" "exit=$status module=$module py=$ARKA_PY"
+  fi
+  return "$status"
+}
