@@ -73,5 +73,5 @@
 # with `codespell --skip="" <paths>`, which is not what the default
 # invocation does.
 [codespell]
-ignore-words-list = te,strat,unparseable,disjointness,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fase,fases,orgin,metdata,datas,rever,dominante,responde,sinal,vender,funcional,rende,oficial,mata,som,fulfilment,skelton,feld,comando,atual,invokable
+ignore-words-list = te,strat,unparseable,disjointness,ines,infp,skool,coo,vai,ser,erro,cliente,relevante,sive,fo,implementor,componentes,comandos,classe,meu,fase,fases,orgin,metdata,datas,rever,dominante,responde,sinal,vender,funcional,rende,oficial,mata,som,fulfilment,skelton,feld
 skip = *.lock,*.svg,*/node_modules,*/__pycache__,departments/*,*/departments/*,wiki/*,*/wiki/*,plugins/*,*/plugins/*,arka/skills/human-writing/references/pt-pt-anti-slop.md,*/arka/skills/human-writing/references/pt-pt-anti-slop.md

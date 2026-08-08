@@ -3112,9 +3112,12 @@ class TestSpellcheckScopedToAddedLines:
     cannot establish. Same idiom as TestTypecheckLineAttribution.
     """
 
-    # Verified against codespell 2.4.2: `recieve` is in its dictionary and
-    # prints as `path:line: recieve ==> receive`.
-    _HIT_LINE = "please recieve this note\n"
+    # Verified against codespell 2.4.2: the fixture word is in its
+    # dictionary and prints as `path:line: <word> ==> <correction>`.
+    # The literal must stay misspelled (the check has to catch it), so
+    # the lines carrying it declare `codespell:ignore` instead of the
+    # word entering the repo-wide lexicon, where it would mask real hits.
+    _HIT_LINE = "please recieve this note\n"  # codespell:ignore recieve
     _CLEAN = "an ordinary line of prose\n"
 
     @staticmethod
@@ -3175,7 +3178,7 @@ class TestSpellcheckScopedToAddedLines:
 
         assert result.ran is True
         assert result.passed is False
-        assert "recieve" in result.summary, (
+        assert "recieve" in result.summary, (  # codespell:ignore recieve
             "the reviewer must see WHICH word, not just a red light"
         )
         assert "1 gating misspelling(s)" in result.summary
@@ -3198,7 +3201,7 @@ class TestSpellcheckScopedToAddedLines:
         )
 
         assert result.passed is False
-        assert "recieve" in result.summary
+        assert "recieve" in result.summary  # codespell:ignore recieve
         assert "UNATTRIBUTED" in result.summary, (
             "gating by fail-closed policy is not the same claim as gating "
             "on a line git saw added — the summary must not conflate them"
