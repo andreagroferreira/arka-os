@@ -83,7 +83,7 @@ def test_wiki_page_header_carries_canonical_counts(dept: str):
             if int(m.group(1)) != expected:
                 errors.append(_fail(path, line, int(m.group(1)), expected, what.lower()))
     assert not errors, "\n  ".join(["header count drift:", *errors])
-    # quality.md has no **Skills:** in its header (it is not invokable),
+    # quality.md has no **Skills:** in its header (it is not invocable),
     # so only the agents field is required everywhere.
     assert "Agents" in seen, f"{path.relative_to(_ROOT)} has no '**Agents:** N' header"
 
