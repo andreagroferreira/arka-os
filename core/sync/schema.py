@@ -119,6 +119,12 @@ class SyncReport(BaseModel):
     skill_results: list[SkillSyncResult] = Field(default_factory=list)
     content_results: list[ContentSyncResult] = Field(default_factory=list)
     agent_results: list[AgentProvisionResult] = Field(default_factory=list)
+    # Non-canonical `arka:feature` markers found in the installed skills
+    # tree, already rendered. Kept as its own field (and not only folded into
+    # `errors`) so the JSON the /arka update skill consumes can act on them:
+    # the eight stamped markers of issue #492 were invisible precisely
+    # because no channel ever named them.
+    marker_violations: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
 
 

@@ -22,6 +22,7 @@ from core.sync.content_syncer import sync_all_content
 from core.sync.descriptor_syncer import sync_all_descriptors
 from core.sync.discovery import discover_all_projects
 from core.sync.manifest import build_manifest
+from core.sync.marker_audit import audit_installed_skills
 from core.sync.mcp_optimizer import optimize_all_mcps
 from core.sync.mcp_syncer import sync_all_mcps
 from core.sync.reporter import build_report, format_report, write_sync_state
@@ -61,6 +62,7 @@ def run_sync(arkaos_home: Path, skills_dir: Path, home_path: str) -> SyncReport:
         agent_results=agent_results,
         new_features=manifest.new_features,
         deprecated_features=manifest.deprecated_features,
+        marker_violations=audit_installed_skills(skills_dir),
     )
 
     state_file = arkaos_home / "sync-state.json"
