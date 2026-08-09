@@ -14,11 +14,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { scaffoldArkaosUserData } = await import(
-  join(ROOT, "installer", "user-data-scaffold.js")
+  pathToFileURL(join(ROOT, "installer", "user-data-scaffold.js"))
 );
 
 function makeTmpHome() {

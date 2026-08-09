@@ -10,13 +10,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   DEFAULT_HARD_DENY_RULES,
   seedAutoModeHardDeny,
-} = await import(join(ROOT, "installer", "hard-deny.js"));
+} = await import(pathToFileURL(join(ROOT, "installer", "hard-deny.js")));
 
 
 function makeTmpHome({ settings, userExtensions } = {}) {

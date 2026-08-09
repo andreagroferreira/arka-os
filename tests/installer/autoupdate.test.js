@@ -14,11 +14,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { unitFor, optoutPath, stableRoot, AUTOUPDATE_LABEL } = await import(
-  join(ROOT, "installer", "autoupdate.js")
+  pathToFileURL(join(ROOT, "installer", "autoupdate.js"))
 );
 const SCRIPT = join(ROOT, "scripts", "auto-update.sh");
 
