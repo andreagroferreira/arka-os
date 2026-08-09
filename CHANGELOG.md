@@ -5,6 +5,47 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.16.0] - 2026-08-09
+
+Gate Economy — the operator-approved campaign that keeps the Quality
+Gate's rigor and removes its redundancy. Baseline that motivated it:
+68% of QG rounds ended REJECTED (median 4.5 rounds/session, max 106),
+spellcheck was the #1 rejection cause, the 8927-test suite ran 2-3
+times per cycle, and reviewer dispatches averaged ~51k uncached tokens.
+Shipped as 12 stacked PRs (#523-#534), gated by its own new machinery
+across 4 QG rounds (R1: 4 gating -> R4: APPROVED).
+
+### Added
+- **governance:** severity-weighted QG findings — blockers/majors
+  reopen a round, minors fix forward in-turn (#524); an actionable
+  redo cap with an ESCALATE marker and a hard operator stop (#525);
+  a mechanical carry advisor so redo rounds re-dispatch only touched
+  domains (#526); a mechanical QG tier — small single-domain diffs run
+  one reviewer, and [arka:trivial] is finally countable (#529)
+- **governance:** diff-mapped test scoping with a fail-closed
+  full-suite fallback and a --final-gate ship posture (constitution
+  mandatory-qa amended per recorded operator decision) (#527); a
+  tree-keyed tests receipt — one suite run per identical tree (#528)
+- **runtime:** the CostGovernor sees — claude-opus-5 priced, every
+  assistant turn captured (38x under-report fixed), Task-tool
+  subagents attributed, token-denominated caps (#531)
+- **telemetry:** size-capped rotation for the enforcer JSONL logs
+  (#533)
+
+### Fixed
+- **workflow:** the 217 false spec-driven violations — the rule is
+  judged by the real spec artifact on disk, state is per-project under
+  <root>/.arka/ (self-gitignoring), violations cap at 100, one write
+  per Stop (#532); every state reader follows the writer, one UI
+  predicate, contracts match the schema (QG rounds 1-4 hardening)
+- **hooks:** one KB injection per turn and one-line contract tags
+  (~340 duplicated tokens/turn removed) (#533)
+- **quality:** reviewer context is pre-packed with a hard tool budget
+  (#530); scoped evidence runs and digest-carry are the dispatch norm
+  (#523)
+- **release:** v5.15.0's missing guide/harness regen and changelog
+  entry, with contributor credits corrected (#534)
+
 ## [5.15.0] - 2026-08-09
 
 Consolidation release — the 2026-08-08/09 convergence session: 13 merges,
