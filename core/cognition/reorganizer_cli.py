@@ -8,20 +8,50 @@ sanitizes client identifiers, and writes a proposal markdown report.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
 
-from core.cognition.reorganizer import build_proposal
+from core.cognition.reorganizer import KbDirMissingError, build_proposal
+from core.knowledge import vault as knowledge_vault
 
-# Default KB location — the Obsidian vault subfolder where Dreaming v2
-# writes pattern/anti-pattern/lesson artifacts. Overridable via env var
-# or --kb-dir for tests and unusual installs.
-_DEFAULT_KB_DIR = (
-    Path.home()
-    / "Documents" / "Personal" / "Projects"
-    / "WizardingCode Internal" / "ArkaOS" / "Knowledge Base"
+# Portable default subfolder under the configured vault. The previous
+# default hardcoded the author's personal vault layout, which exists on
+# no other machine — and a missing dir scanned as an empty one, so every
+# fresh install reported zero artifacts with exit 0 (issue #521).
+_KB_SUBPATH = Path("Projects") / "ArkaOS" / "Knowledge Base"
+
+_HOW_TO_SET = (
+    "Set it with --kb-dir, the ARKAOS_KB_DIR env var, or knowledge.kbDir "
+    "in ~/.arkaos/config.json (absolute, or relative to the vault)."
 )
+
+
+def _configured_kb_dir(config_path: Path | None = None) -> Path | None:
+    """``knowledge.kbDir`` from config — absolute, or vault-relative."""
+    cfg = Path(config_path or knowledge_vault.CONFIG_PATH)
+    try:
+        data = json.loads(cfg.read_text(encoding="utf-8"))
+        raw = str((data.get("knowledge") or {}).get("kbDir") or "").strip()
+    except (OSError, json.JSONDecodeError, AttributeError):
+        raw = ""
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    if path.is_absolute():
+        return path
+    vault_path = knowledge_vault.resolve_vault_path(config_path)
+    return (vault_path / path) if vault_path else None
+
+
+def _default_kb_dir(config_path: Path | None = None) -> Path | None:
+    """Config ``knowledge.kbDir`` first, else vault + portable subpath."""
+    configured = _configured_kb_dir(config_path)
+    if configured is not None:
+        return configured
+    vault_path = knowledge_vault.resolve_vault_path(config_path)
+    return (vault_path / _KB_SUBPATH) if vault_path else None
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -48,13 +78,30 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str]) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv[1:])
-    kb_dir = args.kb_dir or Path(os.environ.get("ARKAOS_KB_DIR", _DEFAULT_KB_DIR))
+    env_dir = os.environ.get("ARKAOS_KB_DIR", "").strip()
+    kb_dir = args.kb_dir or (Path(env_dir) if env_dir else _default_kb_dir())
+    if kb_dir is None:
+        print(
+            "reorganizer: no KB directory is configured and no vault is set, "
+            "so there is nothing to scan. " + _HOW_TO_SET,
+            file=sys.stderr,
+        )
+        return 2
 
-    report = build_proposal(
-        kb_dir,
-        since_days=args.since_days,
-        dry_run=args.dry_run,
-    )
+    try:
+        report = build_proposal(
+            kb_dir,
+            since_days=args.since_days,
+            dry_run=args.dry_run,
+        )
+    except KbDirMissingError:
+        print(
+            f"reorganizer: KB directory does not exist: {kb_dir}\n"
+            "A missing KB is not an empty KB — refusing to report zero "
+            "artifacts for a path that was never scanned. " + _HOW_TO_SET,
+            file=sys.stderr,
+        )
+        return 2
 
     if args.dry_run:
         print(report.report_markdown)

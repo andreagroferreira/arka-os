@@ -14,17 +14,17 @@ fixture-style strings; do not repeat).
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
+from core.cognition import reorganizer_cli
 from core.cognition.reorganizer import (
-    KbArtifact,
+    KbDirMissingError,
     ProposalReport,
     build_proposal,
 )
-
 
 # ─── Synthetic client fixture (replaces real names in production list) ──
 
@@ -55,11 +55,11 @@ def synthetic_clients(monkeypatch):
 
 
 def _today_iso() -> str:
-    return datetime.now(timezone.utc).date().isoformat()
+    return datetime.now(UTC).date().isoformat()
 
 
 def _days_ago_iso(days: int) -> str:
-    return (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
+    return (datetime.now(UTC).date() - timedelta(days=days)).isoformat()
 
 
 def _write_pattern(
@@ -109,10 +109,14 @@ class TestDiscovery:
         assert result.artifact_count == 0
         assert result.by_category == {}
 
-    def test_nonexistent_kb_dir_returns_empty(self, tmp_path: Path):
+    def test_nonexistent_kb_dir_raises_not_empty(self, tmp_path: Path):
+        """A missing KB is not an empty KB (issue #521): scanning a path
+        that does not exist used to report zero artifacts with exit 0,
+        byte-identical to a genuinely quiet window."""
         nowhere = tmp_path / "does-not-exist"
-        result = build_proposal(nowhere, since_days=7, dry_run=True)
-        assert result.artifact_count == 0
+        with pytest.raises(KbDirMissingError) as excinfo:
+            build_proposal(nowhere, since_days=7, dry_run=True)
+        assert "does-not-exist" in str(excinfo.value)
 
     def test_three_patterns_counted_correctly(self, tmp_path: Path):
         _write_pattern(tmp_path, "alpha", category="pattern")
@@ -325,3 +329,82 @@ class TestMdEscape:
         assert "`" not in out         # backticks stripped
         assert "\n" not in out and "\r" not in out  # newlines flattened
         assert "c" in out and "d" in out and "e" in out
+
+
+class TestCliKbDirResolution:
+    """Issue #521: the default KB path hardcoded the author's machine and
+    a missing KB reported as an empty one with exit 0 — unobservable."""
+
+    def _config(self, tmp_path: Path, body: dict) -> Path:
+        import json
+        cfg = tmp_path / "config.json"
+        cfg.write_text(json.dumps(body), encoding="utf-8")
+        return cfg
+
+    def test_missing_kb_dir_exits_2_and_names_the_path(
+        self, tmp_path: Path, capsys, monkeypatch,
+    ):
+        monkeypatch.delenv("ARKAOS_KB_DIR", raising=False)
+        nowhere = tmp_path / "not-here"
+        code = reorganizer_cli.main(["prog", "--kb-dir", str(nowhere)])
+        err = capsys.readouterr().err
+        assert code == 2
+        assert "not-here" in err
+        assert "missing KB is not an empty KB" in err
+
+    def test_empty_existing_kb_dir_still_exits_0(
+        self, tmp_path: Path, capsys, monkeypatch,
+    ):
+        """Empty stays legal — only MISSING became an error."""
+        monkeypatch.delenv("ARKAOS_KB_DIR", raising=False)
+        code = reorganizer_cli.main(
+            ["prog", "--kb-dir", str(tmp_path), "--dry-run"]
+        )
+        assert code == 0
+
+    def test_nothing_configured_exits_2_with_setup_pointer(
+        self, tmp_path: Path, capsys, monkeypatch,
+    ):
+        monkeypatch.delenv("ARKAOS_KB_DIR", raising=False)
+        monkeypatch.setattr(
+            reorganizer_cli, "_default_kb_dir", lambda config_path=None: None,
+        )
+        code = reorganizer_cli.main(["prog"])
+        err = capsys.readouterr().err
+        assert code == 2
+        assert "knowledge.kbDir" in err
+
+    def test_config_kb_dir_absolute_wins_over_vault_default(
+        self, tmp_path: Path,
+    ):
+        kb = tmp_path / "my-kb"
+        kb.mkdir()
+        cfg = self._config(tmp_path, {"knowledge": {"kbDir": str(kb)}})
+        assert reorganizer_cli._default_kb_dir(cfg) == kb
+
+    def test_config_kb_dir_relative_joins_the_vault(self, tmp_path: Path):
+        vault = tmp_path / "vault"
+        (vault / "KB").mkdir(parents=True)
+        cfg = self._config(
+            tmp_path,
+            {"knowledge": {"vaultPath": str(vault), "kbDir": "KB"}},
+        )
+        assert reorganizer_cli._default_kb_dir(cfg) == vault / "KB"
+
+    def test_no_kb_dir_falls_back_to_vault_subpath(self, tmp_path: Path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        cfg = self._config(tmp_path, {"knowledge": {"vaultPath": str(vault)}})
+        assert (
+            reorganizer_cli._default_kb_dir(cfg)
+            == vault / reorganizer_cli._KB_SUBPATH
+        )
+
+    def test_flag_beats_env(self, tmp_path: Path, capsys, monkeypatch):
+        flagged = tmp_path / "flagged"
+        flagged.mkdir()
+        monkeypatch.setenv("ARKAOS_KB_DIR", str(tmp_path / "enved"))
+        code = reorganizer_cli.main(
+            ["prog", "--kb-dir", str(flagged), "--dry-run"]
+        )
+        assert code == 0, "the flag's EXISTING dir must win over the env's missing one"
