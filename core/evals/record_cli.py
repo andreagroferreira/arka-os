@@ -124,7 +124,15 @@ def _drive_redo(verdict: QGVerdict, session_id: str) -> str:
     from core.governance import redo_counter
 
     if verdict.verdict == "REJECTED":
-        return redo_counter.record_rejected(session_id).to_message()
+        state = redo_counter.record_rejected(session_id)
+        message = state.to_message()
+        if state.escalate:
+            # Gate Economy: the cap is actionable, not decorative — the
+            # escalation lands on stderr (and as an ESCALATE marker in
+            # the session ledger), never only inside a JSON field the
+            # orchestrator may not read.
+            print(message, file=sys.stderr)
+        return message
     redo_counter.reset(session_id)
     return ""
 
@@ -220,6 +228,17 @@ def _ledger_match(verdict: QGVerdict, session_id: str) -> str:
 
 
 def _record_label(verdict: QGVerdict, args: argparse.Namespace) -> None:
+    round_label = args.round_label
+    if not round_label and args.session_id:
+        # Gate Economy: the round signal was dead (112 None / 95 '' of
+        # 234 records) because no caller passed it. Derive it from the
+        # redo counter: N rejections so far → this verdict belongs to
+        # round N+1.
+        from core.governance import redo_counter
+
+        round_label = str(
+            redo_counter.current(args.session_id).count + 1
+        )
     record_verdict_label(
         verdict,
         deliverable=args.deliverable,
@@ -227,7 +246,7 @@ def _record_label(verdict: QGVerdict, args: argparse.Namespace) -> None:
         eval_task_id=args.eval_task_id,
         session_id=args.session_id,
         kind=args.kind,
-        round_label=args.round_label,
+        round_label=round_label,
         head=args.head,
     )
 

@@ -65,7 +65,11 @@ Any Department Workflow:
        changed since their artifact; carry the rest via digest_carries
        (QGDigestCarry — reviewer, exact digest, >= 40-char reason,
        validated against the session ledger). Carry is the norm for an
-       untouched domain, not the exception.
+       untouched domain, not the exception. HARD STOP at the redo cap:
+       when ~/.arkaos/quality-gate/<session>/ESCALATE exists (dropped
+       by the record CLI at REDO_CAP = 2), no further reviewer is
+       dispatched and no new round opens — the full verdict history
+       goes to the operator for a decision (excellence-mandate).
     4.5. Marta's gate-closing report reproduces each reviewer verdict
          VERBATIM under `### <Reviewer> — verbatim`, with the ledger
          artifact path (~/.arkaos/quality-gate/<session>/) beside it.

@@ -12,16 +12,37 @@ from __future__ import annotations
 
 import contextlib
 import json
+import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 REDO_CAP = 2
+
+# Session ids come from the caller; the marker writes into a path segment,
+# so anything outside this alphabet skips the marker (the JSON counter,
+# where the id is only a key, still records it).
+_SAFE_SESSION_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
 def _state_path() -> Path:
     """Resolved at call time so tests can repoint HOME — the import-time
     constant it replaces froze the REAL home before monkeypatching."""
     return Path.home() / ".arkaos" / "quality-gate" / "redo-counters.json"
+
+
+def escalation_marker(session_id: str) -> Path | None:
+    """Path of the on-disk escalation flag for a session (Gate Economy).
+
+    The flag is what makes the cap ACTIONABLE instead of a returned
+    string: the orchestrator (and any future dispatch gate) can test for
+    it before opening another QG round. None for unsafe session ids.
+    """
+    if not _SAFE_SESSION_RE.fullmatch(session_id or ""):
+        return None
+    return (
+        Path.home() / ".arkaos" / "quality-gate" / session_id / "ESCALATE"
+    )
 
 
 @dataclass(frozen=True)
@@ -53,7 +74,13 @@ def _load(path: Path) -> dict:
 
 
 def record_rejected(session_id: str, path: Path | None = None) -> RedoState:
-    """Increment the REJECTED counter; escalate above the cap."""
+    """Increment the REJECTED counter; escalate above the cap.
+
+    Crossing the cap also drops the on-disk ESCALATE marker for the
+    session — the actionable half of the escalation (Gate Economy):
+    a marker the next dispatch decision can test, not just a string
+    the caller may ignore.
+    """
     state_path = path or _state_path()
     data = _load(state_path)
     count = int(data.get(session_id, 0) or 0) + 1
@@ -63,12 +90,33 @@ def record_rejected(session_id: str, path: Path | None = None) -> RedoState:
         state_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     except OSError:
         pass  # counter must never block the gate itself
-    return RedoState(session_id=session_id, count=count,
-                     escalate=count > REDO_CAP)
+    state = RedoState(session_id=session_id, count=count,
+                      escalate=count > REDO_CAP)
+    if state.escalate:
+        _write_marker(session_id, state)
+    return state
+
+
+def _write_marker(session_id: str, state: RedoState) -> None:
+    marker = escalation_marker(session_id)
+    if marker is None:
+        return
+    with contextlib.suppress(OSError):
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(
+            json.dumps({
+                "session_id": session_id,
+                "count": state.count,
+                "cap": REDO_CAP,
+                "ts": datetime.now(UTC).isoformat(),
+                "message": state.to_message(),
+            }, indent=2),
+            encoding="utf-8",
+        )
 
 
 def reset(session_id: str, path: Path | None = None) -> None:
-    """Clear the counter — called on APPROVED."""
+    """Clear the counter and the escalation marker — called on APPROVED."""
     state_path = path or _state_path()
     data = _load(state_path)
     if session_id in data:
@@ -77,6 +125,10 @@ def reset(session_id: str, path: Path | None = None) -> None:
             state_path.write_text(
                 json.dumps(data, indent=2), encoding="utf-8"
             )
+    marker = escalation_marker(session_id)
+    if marker is not None:
+        with contextlib.suppress(OSError):
+            marker.unlink(missing_ok=True)
 
 
 def current(session_id: str, path: Path | None = None) -> RedoState:

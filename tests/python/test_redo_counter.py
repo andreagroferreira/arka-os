@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from core.governance.redo_counter import (
     REDO_CAP,
     current,
+    escalation_marker,
     record_rejected,
     reset,
 )
@@ -50,3 +53,44 @@ class TestRedoCounter:
         state.write_text("{corrupt", encoding="utf-8")
         result = record_rejected("sess-1", path=state)
         assert result.count == 1
+
+
+class TestEscalationMarker:
+    """Gate Economy: the cap drops an on-disk ESCALATE marker — the
+    actionable half of the escalation, testable before any dispatch."""
+
+    @pytest.fixture
+    def home(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HOME", str(tmp_path))
+        return tmp_path
+
+    def _marker(self, home, session):
+        return home / ".arkaos" / "quality-gate" / session / "ESCALATE"
+
+    def test_marker_dropped_when_cap_crossed(self, home, state):
+        for _ in range(REDO_CAP):
+            record_rejected("sess-esc", path=state)
+        assert not self._marker(home, "sess-esc").exists()
+        third = record_rejected("sess-esc", path=state)
+        assert third.escalate is True
+        marker = self._marker(home, "sess-esc")
+        assert marker.exists()
+        payload = json.loads(marker.read_text(encoding="utf-8"))
+        assert payload["count"] == REDO_CAP + 1
+        assert "[arka:qg:escalate]" in payload["message"]
+
+    def test_reset_clears_marker(self, home, state):
+        for _ in range(REDO_CAP + 1):
+            record_rejected("sess-esc2", path=state)
+        assert self._marker(home, "sess-esc2").exists()
+        reset("sess-esc2", path=state)
+        assert not self._marker(home, "sess-esc2").exists()
+        assert current("sess-esc2", path=state).count == 0
+
+    def test_hostile_session_id_writes_no_marker(self, home, state):
+        third = None
+        for _ in range(REDO_CAP + 1):
+            third = record_rejected("../evil", path=state)
+        assert third is not None and third.escalate is True
+        assert escalation_marker("../evil") is None
+        assert not (home / ".arkaos" / "quality-gate" / ".." ).exists()

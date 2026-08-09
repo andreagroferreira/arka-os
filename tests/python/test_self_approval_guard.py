@@ -1737,3 +1737,65 @@ class TestMinorFixForward:
         result = check_aggregate(_aggregate(blockers=[]), "sess-minor-4")
         assert not result.ok
         assert any("never disappears silently" in r for r in result.reasons)
+
+
+class TestRoundTelemetry:
+    """Gate Economy PR-2: every label carries its round — auto-derived
+    from the redo counter when --round is omitted, normalized on write,
+    and the cap escalates on stderr plus an ESCALATE marker."""
+
+    def _reject_quorum(self, session_id):
+        for seq, rev in ((1, "francisca-tech"), (2, "eduardo-copy")):
+            _write_ledger_record(
+                session_id, rev, seq=seq,
+                verdict=_reviewer_verdict(rev, verdict="REJECTED"),
+            )
+
+    def _record_rejected_aggregate(self, tmp_path, session_id, n=1):
+        f = tmp_path / f"agg-{session_id}-{n}.json"
+        f.write_text(
+            json.dumps(_aggregate(verdict="REJECTED")), encoding="utf-8"
+        )
+        return record_main(
+            ["--file", str(f), "--kind", "qg", "--session-id", session_id]
+        )
+
+    def test_round_auto_derived_and_incrementing(self, guard_home):
+        sid = "sess-round-auto"
+        self._reject_quorum(sid)
+        assert self._record_rejected_aggregate(guard_home, sid, 1) == 0
+        assert self._record_rejected_aggregate(guard_home, sid, 2) == 0
+        rounds = [
+            row["round"] for row in load_verdict_labels()
+            if row.get("session_id") == sid
+        ]
+        assert rounds == ["1", "2"]
+
+    def test_explicit_round_is_normalized(self, guard_home):
+        sid = "sess-round-norm"
+        self._reject_quorum(sid)
+        f = guard_home / "agg-norm.json"
+        f.write_text(
+            json.dumps(_aggregate(verdict="REJECTED")), encoding="utf-8"
+        )
+        assert record_main(
+            ["--file", str(f), "--kind", "qg", "--session-id", sid,
+             "--round", "aggregate-r26"]
+        ) == 0
+        rounds = [
+            row["round"] for row in load_verdict_labels()
+            if row.get("session_id") == sid
+        ]
+        assert rounds == ["26"]
+
+    def test_cap_escalates_on_stderr_with_marker(self, guard_home, capsys):
+        sid = "sess-round-cap"
+        self._reject_quorum(sid)
+        for n in range(1, redo_counter.REDO_CAP + 2):
+            assert self._record_rejected_aggregate(guard_home, sid, n) == 0
+        err = capsys.readouterr().err
+        assert "[arka:qg:escalate]" in err
+        marker = (
+            guard_home / ".arkaos" / "quality-gate" / sid / "ESCALATE"
+        )
+        assert marker.exists()

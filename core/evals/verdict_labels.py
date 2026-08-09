@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -41,6 +42,14 @@ def _labels_path() -> Path:
 def _judge_labels_path() -> Path:
     override = os.environ.get("ARKA_JUDGE_LABELS_PATH", "").strip()
     return Path(override) if override else DEFAULT_JUDGE_LABELS_PATH
+
+
+def _normalize_round(value: str) -> str:
+    """Round labels arrived ad-hoc ('3', 'r5', 'redo-1', 'aggregate-r26')
+    and unparseable values killed the round signal (Gate Economy). Keep
+    the first integer; anything without one records as ''."""
+    match = re.search(r"(\d+)", str(value or ""))
+    return match.group(1) if match else ""
 
 
 def record_verdict_label(
@@ -69,7 +78,7 @@ def record_verdict_label(
             "eval_task_id": str(eval_task_id or ""),
             "session_id": str(session_id or ""),
             "kind": str(kind or ""),
-            "round": str(round_label or ""),
+            "round": _normalize_round(round_label),
             "head": str(head or ""),
             **verdict.model_dump(),
         }

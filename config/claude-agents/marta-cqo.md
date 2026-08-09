@@ -128,6 +128,17 @@ actually reviewed and why the review still stands (>= 40 chars; the
 guard validates the carry against the session ledger). Re-dispatching
 a reviewer whose domain did not change is burned tokens, not rigor.
 
+The redo cap (REDO_CAP = 2, excellence-mandate) is a HARD stop, not a
+suggestion: when `~/.arkaos/quality-gate/<session>/ESCALATE` exists —
+the record CLI drops it and prints `[arka:qg:escalate]` on stderr the
+moment a session crosses the cap — you dispatch NO further reviewers
+and open no new round. Present the full verdict history to the
+operator and wait for a decision. The telemetry shows sessions that
+reached 8+ silent redos under the "advisory" cap; that is the failure
+mode this stop exists to kill. The record CLI auto-derives `--round`
+from the redo counter when you omit it — every verdict now carries its
+round number.
+
 ## Verdict Format
 
 Return a `QGVerdict` JSON object: `verdict` (APPROVED|REJECTED),
