@@ -19,6 +19,11 @@ Section order is preserved exactly:
     9. Cognition capture enqueue (detached background process)
    10. Hook metrics append + additionalContext output
 
+Sections 6-8 judge ``tool_input.file_path`` and are scoped to the project
+root through the single ``_governed_file_path`` predicate (#507): a path
+outside the payload's ``cwd`` — the session scratchpad, another checkout —
+is not a deliverable this project's rules can speak to.
+
 Sections 6-8 need core.workflow / yaml. When the in-process import fails
 (PyYAML-less ambient python3) and the ArkaOS venv exists, they are
 delegated ONCE to ``<venv>/bin/python3 -m core.hooks.post_tool_use
@@ -41,6 +46,7 @@ from core.hooks._shared import (
     emit_additional_context,
     ensure_root_on_path,
     get_str,
+    is_within_project,
     read_stdin_json,
     repo_path,
     resolve_arkaos_root,
@@ -472,6 +478,35 @@ def _phase_status(state: dict, phase: str) -> str:
     )
 
 
+def _governed_file_path(input_data: dict[str, object]) -> str:
+    """The edited path, or "" when it lies outside the project root.
+
+    THE single scope predicate for every PostToolUse gate that judges a
+    file. Sections 6 (spec-driven, sequential-validation), 7 (enforcement
+    engine) and 8 (forge scope-creep) each read the same
+    ``tool_input.file_path``, and before #507 each asserted authority over
+    it wherever it lived — the session scratchpad included. One predicate
+    at the read site fixes all three; a per-gate guard would have to be
+    remembered by the fourth gate, and would not be.
+
+    "" is not a sentinel the callers have to learn: it is already every
+    gate's no-op input (``_CODE_FILE_RE`` misses it, ``_check_spec_driven``
+    fails its ``endswith`` test, ``_forge_violation`` returns early), so
+    scoping subtracts checks without adding a branch to any of them.
+
+    The project root is the payload's ``cwd`` — the runtime's own
+    statement of which project this turn belongs to. Never the process
+    cwd: the venv delegate is a subprocess whose cwd is inherited, not
+    declared, and governance must not hinge on that difference.
+    """
+    file_path = get_str(input_data, "tool_input", "file_path")
+    if not file_path:
+        return ""
+    if is_within_project(file_path, get_str(input_data, "cwd")):
+        return file_path
+    return ""
+
+
 def _detect_rule_violations(input_data: dict) -> tuple[str, list[tuple]]:
     """Rules 1-3 (stdlib detection). Returns (violation_msg, to_persist)."""
     state = _workflow_state()
@@ -499,7 +534,7 @@ def _detect_rule_violations(input_data: dict) -> tuple[str, list[tuple]]:
             )
 
     if tool_name in ("Write", "Edit"):
-        file_path = get_str(input_data, "tool_input", "file_path")
+        file_path = _governed_file_path(input_data)
         if _CODE_FILE_RE.search(file_path):
             if _phase_status(state, "spec") != "completed":
                 persist.append((
@@ -565,7 +600,7 @@ def _enforcer_messages(input_data, enforce_tool, add_violation, msg: str) -> str
         result = enforce_tool(
             tool_name=tool_name,
             command=get_str(input_data, "tool_input", "command"),
-            file_path=get_str(input_data, "tool_input", "file_path"),
+            file_path=_governed_file_path(input_data),
             user_input="",
             **extra,
         )
@@ -598,7 +633,7 @@ def _forge_violation(input_data: dict, yaml_mod) -> str:
     forge_file = Path.home() / ".arkaos" / "plans" / f"{forge_id}.yaml"
     if not forge_file.is_file():
         return ""
-    edited = get_str(input_data, "tool_input", "file_path")
+    edited = _governed_file_path(input_data)
     if not edited:
         return ""
     try:

@@ -1324,5 +1324,243 @@ class TestDecisionsAreNeverRecordedAsDegradation:
         assert _degraded_lines(Path(hook_home["HOME"])) == []
 
 
+class TestIsWithinProject:
+    """The scope predicate itself (#507)."""
+
+    def test_file_inside_the_root_is_governed(self, tmp_path):
+        from core.hooks._shared import is_within_project
+        root = tmp_path / "project"
+        (root / "core").mkdir(parents=True)
+        assert is_within_project(str(root / "core" / "svc.py"), str(root))
+
+    def test_the_root_itself_is_governed(self, tmp_path):
+        from core.hooks._shared import is_within_project
+        assert is_within_project(str(tmp_path), str(tmp_path))
+
+    def test_sibling_with_the_root_as_a_string_prefix_is_not_governed(
+        self, tmp_path
+    ):
+        """`/x/repo-backup` must not read as inside `/x/repo`."""
+        from core.hooks._shared import is_within_project
+        root = tmp_path / "repo"
+        sibling = tmp_path / "repo-backup"
+        root.mkdir()
+        sibling.mkdir()
+        assert not is_within_project(str(sibling / "svc.py"), str(root))
+
+    def test_relative_paths_resolve_against_the_root(self, tmp_path):
+        from core.hooks._shared import is_within_project
+        assert is_within_project("core/svc.py", str(tmp_path))
+        assert not is_within_project("../outside/svc.py", str(tmp_path))
+
+    def test_symlinked_root_compares_equal(self, tmp_path):
+        """/tmp -> /private/tmp (macOS) must not make every path foreign."""
+        from core.hooks._shared import is_within_project
+        real = tmp_path / "real"
+        (real / "core").mkdir(parents=True)
+        link = tmp_path / "link"
+        link.symlink_to(real)
+        assert is_within_project(str(link / "core" / "svc.py"), str(real))
+        assert is_within_project(str(real / "core" / "svc.py"), str(link))
+
+    def test_missing_evidence_fails_closed(self, tmp_path):
+        """No root (or no path) leaves the gate exactly as wide as today."""
+        from core.hooks._shared import is_within_project
+        assert is_within_project("/anywhere/svc.py", "")
+        assert is_within_project("", str(tmp_path))
+
+    def test_unresolvable_path_falls_back_instead_of_raising(self, tmp_path):
+        """A hook that raises eats the whole PostToolUse payload, so
+        _realpath swallows OSError/ValueError and returns the path
+        untouched. A NUL byte is the reachable trigger.
+
+        The predicate then degrades to a lexical prefix test, which keeps
+        the fail-closed posture: an unresolvable path INSIDE the root
+        stays governed, one outside stays out.
+        """
+        from core.hooks._shared import _realpath, is_within_project
+        poisoned_inside = f"{tmp_path}/pro\x00ject/svc.py"
+        assert _realpath(poisoned_inside) == poisoned_inside
+        assert is_within_project(poisoned_inside, str(tmp_path)) is True
+        assert is_within_project(
+            f"{tmp_path}-elsewhere/pro\x00ject/svc.py", str(tmp_path)
+        ) is False
+
+
+class TestPostToolUseGateScope:
+    """#507 — the PostToolUse gates judge deliverables, not the scratchpad.
+
+    The reported symptom: spec-driven fired on
+    ``/private/tmp/claude-*/**/scratchpad/calib*.py``, a throwaway
+    measurement script no spec can or should cover. Each test pairs the
+    out-of-root case with the in-root case, so a scope guard that simply
+    switched the gate off would fail here.
+    """
+
+    def _project_and_scratchpad(self, tmp_path):
+        root = tmp_path / "project"
+        (root / "core").mkdir(parents=True)
+        scratch = tmp_path / "claude-501" / "sess-1" / "scratchpad"
+        scratch.mkdir(parents=True)
+        return root, scratch
+
+    def _with_state(self, monkeypatch, tmp_path, phases: dict):
+        home = tmp_path / "shome"
+        (home / ".arkaos").mkdir(parents=True)
+        (home / ".arkaos" / "workflow-state.json").write_text(
+            json.dumps({"phases": phases}), encoding="utf-8",
+        )
+        monkeypatch.setenv("HOME", str(home))
+
+    def _write_payload(self, root, file_path: Path) -> dict:
+        return {
+            "tool_name": "Write",
+            "cwd": str(root),
+            "tool_input": {"file_path": str(file_path)},
+            "tool_response": {"filePath": str(file_path)},
+        }
+
+    # ─── Section 6: spec-driven / sequential-validation ────────────────
+
+    def test_scratchpad_edit_raises_no_violation(self, monkeypatch, tmp_path):
+        self._with_state(
+            monkeypatch, tmp_path, {"spec": {"status": "pending"}},
+        )
+        from core.hooks.post_tool_use import _detect_rule_violations
+        root, scratch = self._project_and_scratchpad(tmp_path)
+        msg, persist = _detect_rule_violations(
+            self._write_payload(root, scratch / "calib.py")
+        )
+        assert msg == "", "scratchpad script is not a governed deliverable"
+        assert persist == []
+
+    def test_in_root_edit_still_flags_spec_driven(self, monkeypatch, tmp_path):
+        self._with_state(
+            monkeypatch, tmp_path, {"spec": {"status": "pending"}},
+        )
+        from core.hooks.post_tool_use import _detect_rule_violations
+        root, _ = self._project_and_scratchpad(tmp_path)
+        msg, persist = _detect_rule_violations(
+            self._write_payload(root, root / "core" / "svc.py")
+        )
+        assert "spec-driven" in msg
+        assert persist and persist[0][0] == "spec-driven"
+
+    def test_scratchpad_edit_raises_no_sequential_validation(
+        self, monkeypatch, tmp_path
+    ):
+        self._with_state(monkeypatch, tmp_path, {
+            "spec": {"status": "completed"},
+            "implementation": {"status": "pending"},
+        })
+        from core.hooks.post_tool_use import _detect_rule_violations
+        root, scratch = self._project_and_scratchpad(tmp_path)
+        msg, persist = _detect_rule_violations(
+            self._write_payload(root, scratch / "calib.py")
+        )
+        assert msg == ""
+        assert persist == []
+
+    def test_in_root_edit_still_flags_sequential_validation(
+        self, monkeypatch, tmp_path
+    ):
+        self._with_state(monkeypatch, tmp_path, {
+            "spec": {"status": "completed"},
+            "implementation": {"status": "pending"},
+        })
+        from core.hooks.post_tool_use import _detect_rule_violations
+        root, _ = self._project_and_scratchpad(tmp_path)
+        msg, persist = _detect_rule_violations(
+            self._write_payload(root, root / "core" / "svc.py")
+        )
+        assert "sequential-validation" in msg
+        assert persist and persist[0][0] == "sequential-validation"
+
+    # ─── Section 7: enforcement engine (rules_registry spec-driven) ────
+
+    def _enforcer_msg(self, payload) -> str:
+        from core.hooks.post_tool_use import _enforcer_messages
+        from core.workflow.enforcer import enforce_tool
+        return _enforcer_messages(
+            payload, enforce_tool, lambda *a, **k: None, "",
+        )
+
+    def test_enforcer_ignores_scratchpad_edit(self, monkeypatch, tmp_path):
+        root, scratch = self._project_and_scratchpad(tmp_path)
+        # No .arkaos/specs anywhere: the rule would fire on any path it
+        # considers in scope.
+        monkeypatch.chdir(root)
+        assert self._enforcer_msg(
+            self._write_payload(root, scratch / "calib.py")
+        ) == ""
+
+    def test_enforcer_still_flags_in_root_edit(self, monkeypatch, tmp_path):
+        root, _ = self._project_and_scratchpad(tmp_path)
+        monkeypatch.chdir(root)
+        assert "spec-driven" in self._enforcer_msg(
+            self._write_payload(root, root / "core" / "svc.py")
+        )
+
+    # ─── Section 8: forge scope-creep ──────────────────────────────────
+
+    def _with_forge_plan(self, monkeypatch, tmp_path, deliverables):
+        import yaml as yaml_mod
+        home = tmp_path / "fghome"
+        plans = home / ".arkaos" / "plans"
+        plans.mkdir(parents=True)
+        (plans / "active.yaml").write_text("forge-1", encoding="utf-8")
+        (plans / "forge-1.yaml").write_text(yaml_mod.safe_dump({
+            "status": "executing",
+            "plan_phases": [{"deliverables": deliverables}],
+        }), encoding="utf-8")
+        monkeypatch.setenv("HOME", str(home))
+        return yaml_mod
+
+    def test_forge_ignores_scratchpad_edit(self, monkeypatch, tmp_path):
+        yaml_mod = self._with_forge_plan(
+            monkeypatch, tmp_path, ["core/allowed.py"],
+        )
+        from core.hooks.post_tool_use import _forge_violation
+        root, scratch = self._project_and_scratchpad(tmp_path)
+        assert _forge_violation(
+            self._write_payload(root, scratch / "calib.py"), yaml_mod,
+        ) == ""
+
+    def test_forge_still_flags_in_root_edit_outside_deliverables(
+        self, monkeypatch, tmp_path
+    ):
+        yaml_mod = self._with_forge_plan(
+            monkeypatch, tmp_path, ["core/allowed.py"],
+        )
+        from core.hooks.post_tool_use import _forge_violation
+        root, _ = self._project_and_scratchpad(tmp_path)
+        assert _forge_violation(
+            self._write_payload(root, root / "core" / "svc.py"), yaml_mod,
+        ), "an in-root edit outside the plan is still scope creep"
+
+
+def test_every_posttooluse_file_gate_reads_the_scoped_predicate():
+    """Lock the single-point fix (#507).
+
+    Three gates judge ``tool_input.file_path``; the defect was that each
+    read it raw. A fourth gate added later must go through
+    ``_governed_file_path`` too, so the raw read is allowed exactly once —
+    inside that helper.
+    """
+    source = (
+        REPO_ROOT / "core" / "hooks" / "post_tool_use.py"
+    ).read_text(encoding="utf-8")
+    raw_reads = re.findall(
+        r'get_str\(\s*input_data,\s*"tool_input",\s*"file_path"\s*\)', source
+    )
+    assert len(raw_reads) == 1, (
+        "unscoped tool_input.file_path read outside _governed_file_path — "
+        f"found {len(raw_reads)}"
+    )
+    assert source.count("_governed_file_path(input_data)") == 3, (
+        "each of the three file-judging gates must call the scope predicate"
+    )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

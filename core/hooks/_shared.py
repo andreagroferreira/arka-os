@@ -51,6 +51,50 @@ def get_str(data: dict, *keys: str) -> str:
     return str(cur)
 
 
+def _realpath(path: str) -> str:
+    """os.path.realpath that never raises (long/odd paths, dead symlinks)."""
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return path
+
+
+def is_within_project(file_path: str, project_root: str) -> bool:
+    """True when ``file_path`` is a deliverable of ``project_root``.
+
+    The scope predicate for governance gates that judge a FILE. A gate
+    asserting authority over a path outside the project it was invoked
+    for is judging a surface it was never designed for: the session
+    scratchpad (``/private/tmp/claude-*/**/scratchpad/*.py``), another
+    checkout, a system config. Issue #507 — spec-driven fired twice on
+    throwaway measurement scripts, and no spec can or should cover them.
+
+    Root-scoping subsumes the narrower "ignore the harness scratchpad"
+    rule the issue offered as an alternative: the scratchpad is one of
+    infinitely many out-of-tree paths, and enumerating harness internals
+    would rot the moment the runtime renames a directory.
+
+    Fail-CLOSED on missing evidence, deliberately: with no root to
+    compare against (empty ``project_root``) or no path to judge, the
+    gate keeps the reach it has today. A scope guard must narrow
+    authority on proof, never widen a blind spot — the same posture as
+    the fail-closed relevance guards in #498.
+
+    Both sides are realpath-resolved so ``/tmp`` vs ``/private/tmp``
+    (macOS) and any other symlinked root compare equal. Relative paths
+    resolve against the root, which is what the runtime means by them.
+    """
+    if not file_path or not project_root:
+        return True
+    root = _realpath(project_root)
+    if not os.path.isabs(file_path):
+        file_path = os.path.join(root, file_path)
+    target = _realpath(file_path)
+    if target == root:
+        return True
+    return target.startswith(root.rstrip(os.sep) + os.sep)
+
+
 def _has_core_package(root: str) -> bool:
     # core/sync/__init__.py distinguishes the full package from the
     # cognitive scheduler's minimal core/ copy (cognition + workflow only).
