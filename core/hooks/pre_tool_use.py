@@ -36,6 +36,7 @@ from core.hooks._shared import (
     ensure_root_on_path,
     get_str,
     read_stdin_json,
+    record_degraded,
     resolve_arkaos_root,
 )
 
@@ -126,6 +127,7 @@ def _kb_gate(root: str, tool_name: str, session_id: str, query: str) -> int | No
             record_telemetry,
         )
     except Exception:
+        record_degraded("pre-tool-use", "kb-gate-import-failed")
         return None  # kb-gate-import-failed → allow (old heredoc contract)
     decision = evaluate_research_gate(
         tool_name=tool_name, session_id=session_id, query=query
@@ -173,6 +175,7 @@ def _specialist_gate(
             record_telemetry,
         )
     except Exception:
+        record_degraded("pre-tool-use", "specialist-import-failed")
         return None  # specialist-import-failed → allow
     # Load (and share) the transcript only when the gate will actually
     # scan it — flag-off sessions with the shadow kill-switch thrown
@@ -227,6 +230,7 @@ def _frontend_gate(
             record_telemetry,
         )
     except Exception:
+        record_degraded("pre-tool-use", "frontend-gate-import-failed")
         return None  # frontend-gate-import-failed → allow
     # Zero-read fast path: only UI files ever need the transcript. The
     # heuristic check is tool_input-only (regex, no I/O), so it keeps the
@@ -289,6 +293,7 @@ def _config_gate(
             mode,
         )
     except Exception:
+        record_degraded("pre-tool-use", "config-guard-import-failed")
         return None  # config-guard-import-failed → allow (chain contract)
     # Zero-read fast path: only a protected-config edit can ever be
     # denied, and only then is the transcript read for an override.
@@ -338,6 +343,7 @@ def _flow_gate(
     try:
         from core.workflow.flow_enforcer import evaluate, record_telemetry
     except Exception:
+        record_degraded("pre-tool-use", "enforcer-import-failed")
         return 0  # enforcer-import-failed → allow
     decision = evaluate(
         tool_name=tool_name,
@@ -419,4 +425,11 @@ if __name__ == "__main__":
     except Exception:
         # Fail open — the bash version piped every heredoc through
         # `2>/dev/null` and exited 0 on internal errors.
+        #
+        # Every gate in this file funnels here, so an unhandled failure
+        # anywhere upstream leaves the process indistinguishable from a
+        # clean allow: exit 0, no stdout, no stderr. That is precisely how
+        # a machine whose interpreter could not import the gate modules ran
+        # for months with every gate open and nothing to show for it.
+        record_degraded("pre-tool-use", "unhandled-fail-open")
         raise SystemExit(0) from None

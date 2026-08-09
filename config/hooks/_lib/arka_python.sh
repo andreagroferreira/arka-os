@@ -154,3 +154,107 @@ arka_resolve_root() {
   fi
   printf '%s\n' "${ARKA_OS:-$HOME/.claude/skills/arkaos}"
 }
+
+# ─── Degraded-run telemetry ────────────────────────────────────────────
+# A hook that fails open and says nothing is indistinguishable from a hook
+# that ran and allowed. That ambiguity is not hypothetical: an ArkaOS venv
+# that could not `import pydantic` made every gate on one machine allow
+# silently for months, and the same silence previously kept two real bugs
+# invisible while manufacturing a third that never existed (Cross-Machine
+# Lab, X3).
+#
+# Two hard rules, both deliberate:
+#
+#   1. NEVER write to stderr. Claude Code surfaces hook stderr to the user
+#      as an error, so a diagnostic there converts a silent degradation
+#      into visible noise on every event — trading one bad failure mode
+#      for a worse one. The record goes to a file; only a reader who wants
+#      it pays for it.
+#   2. NEVER change the exit code. Fail-open is the correct posture for a
+#      governance hook: a broken interpreter must not block the user's
+#      work. This makes the degradation legible, not fatal.
+#
+# One JSON line per event, appended. Failure to write is swallowed —
+# telemetry must never be the thing that breaks a hook.
+#
+# Growth cap: mirrors DEGRADED_LOG_MAX_BYTES in core/hooks/_shared.py. This
+# writer needs it MORE than the Python one, not less — the cases it records
+# (no interpreter, missing entrypoint) fire on every single tool call, so an
+# uncapped log on a broken machine is the runaway, not a corner case.
+ARKA_DEGRADED_MAX_BYTES=5242880
+
+arka_hook_degraded() {
+  local hook="${1:-unknown}" reason="${2:-unknown}" detail="${3:-}"
+  local dir="$HOME/.arkaos/telemetry"
+  local file="$dir/hook-degraded.jsonl"
+  local stamp bytes
+  stamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null)" || stamp=""
+  # Keep detail on one line and out of the JSON grammar's way. Every C0
+  # control character (and DEL) becomes a space: a raw tab, \r or \001
+  # reaching the printf below emits a byte JSON forbids inside a string, so
+  # one degraded event carrying a Python traceback used to poison the whole
+  # line for every reader. Translated rather than deleted so words do not
+  # fuse — "expected\tgot" must stay two tokens. LC_ALL=C keeps the range
+  # byte-wise; tr pads set2 by repeating its last character (POSIX).
+  detail="$(printf '%s' "$detail" | LC_ALL=C tr '\000-\037\177' ' ' \
+    | cut -c1-400)"
+  detail="${detail//\\/\\\\}"
+  detail="${detail//\"/\\\"}"
+  if [ -f "$file" ]; then
+    bytes="$(wc -c < "$file" 2>/dev/null | tr -d ' ')"
+    case "$bytes" in
+      '' | *[!0-9]*) ;;
+      *)
+        if [ "$bytes" -ge "$ARKA_DEGRADED_MAX_BYTES" ]; then
+          mv -f "$file" "$file.1" 2>/dev/null || true
+        fi
+        ;;
+    esac
+  fi
+  {
+    mkdir -p "$dir" 2>/dev/null &&
+      printf '{"ts":"%s","hook":"%s","reason":"%s","detail":"%s"}\n' \
+        "$stamp" "$hook" "$reason" "$detail" >> "$file"
+  } 2>/dev/null || true
+  return 0
+}
+
+# Run a hook entrypoint under the resolved interpreter, recording the
+# degraded cases instead of exec'ing into silence.
+#
+# ─── Deliberate divergence: this path does NOT `exec` ───────────────────
+# Every other .sh wrapper (post-tool-use, session-start, session-end,
+# subagent-stop, user-prompt-submit) still ends in `exec "$ARKA_PY" -m …`.
+# This one cannot, and the reason is structural rather than stylistic:
+# `exec` REPLACES the shell with Python, so there is no surviving process
+# to read the exit status afterwards. Recording "the entrypoint failed"
+# requires observing the status the entrypoint exited with, which requires
+# outliving it. Restoring `exec` here would silently delete the
+# entrypoint-failed record — the single most valuable one, since it is the
+# only witness to a broken interpreter that resolves but cannot run.
+#
+# Two measured costs, accepted knowingly:
+#   1. One extra live process (this shell) for the hook's lifetime.
+#   2. On a hard kill of the wrapper (Claude Code's 10s timeout), the
+#      Python child is reparented to PID 1 instead of dying with the
+#      shell — an orphan for the remainder of its own run. Not fixable by
+#      trapping: bash defers trap handling until the foreground command
+#      returns, and backgrounding the child would redirect its stdin from
+#      /dev/null in a non-interactive shell, which breaks the hook's stdin
+#      contract outright. The orphan is short-lived and harmless; a hook
+#      that cannot report its own failure is neither.
+#
+# Exit codes pass through UNCHANGED. Note which ones are NOT failures:
+#   0  allow
+#   2  the documented deny/block code — a gate doing its job, never logged
+# Anything else means the entrypoint did not get to decide, which is
+# exactly the case worth a record.
+arka_run_hook() {
+  local hook="$1" module="$2" status
+  "$ARKA_PY" -m "$module"
+  status=$?
+  if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
+    arka_hook_degraded "$hook" "entrypoint-failed" "exit=$status module=$module py=$ARKA_PY"
+  fi
+  return "$status"
+}
