@@ -468,8 +468,9 @@ def _workflow_state() -> dict | None:
     # QG rounds 2-3: the isinstance guard mirrors _workflow_tag in
     # core/hooks/user_prompt_submit.py — without it, a corrupt
     # non-dict state file produced a spurious branch-isolation
-    # violation and an AttributeError on the Edit path. The except
-    # names everything importing or reading can raise.
+    # violation on the Bash path and an AttributeError on the Edit
+    # path. The except names what importing and reading are
+    # expected to raise.
     try:
         from core.workflow.state import get_state
 

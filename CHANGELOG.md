@@ -31,8 +31,7 @@ issue tracker 21 → 0, contributor queue fully integrated.
 - **installer:** CRLF CLAUDE.md adoption + `pathToFileURL` sweep
   (#511, carried forward from @marlonoliveira182's original)
 - **dashboard:** the no-PTY path returns its 501 with CORS headers
-  (#513, carried forward from @marlonoliveira182's original with
-  credit)
+  (#513, carried forward from @marlonoliveira182's original)
 - **release:** preflight catches a personal name in a dreaming
   docstring example before publish (scrubbed in 34a19fa2)
 

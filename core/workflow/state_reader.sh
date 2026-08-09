@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ============================================================================
 # ArkaOS — Workflow State Reader (for hooks)
-# Reads <git toplevel>/.arka/workflow-state.json and outputs requested fields.
+# Reads <git toplevel or cwd>/.arka/workflow-state.json and outputs
+# requested fields.
 # Dependencies: jq (required)
 # ============================================================================
 
