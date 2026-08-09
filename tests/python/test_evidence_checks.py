@@ -2511,6 +2511,128 @@ class TestTypecheckScopedToDiff:
         assert result.ran is False
         assert result.passed is None
 
+    def test_manifest_only_diff_is_not_charged_master_type_debt(
+        self, tmp_path
+    ):
+        """Issue #515: the trigger path reopened the #491 hole.
+
+        `pyproject.toml` is in `_MYPY_TRIGGERS`, so a manifest-only
+        changeset PASSES the relevance guard — correctly, a lockfile bump
+        CAN break types. It then produces an empty scoped list, and the
+        caller charged it the PROJECT-WIDE run: master's entire debt on
+        files it never touched, `overall: fail`, and every manifest-only
+        PR auto-rejected — #515's own one-line pin included.
+
+        Base-invariant: it does not matter what the debt is, only that
+        untouched files are gating a diff that contains none of them.
+        """
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "legacy.py").write_text(
+            "def old(a: int) -> int:\n    return 'master debt'\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["pyproject.toml"], None, 120,
+        )
+
+        assert result.passed is not False, (
+            "a manifest-only changeset must not be charged master's type "
+            f"debt: {result.summary}"
+        )
+
+    def test_manifest_only_diff_still_runs_mypy_and_keeps_the_number(
+        self, tmp_path
+    ):
+        """The other half, which a plain skip would have destroyed.
+
+        QG cycle 3 (A2) added the manifest triggers precisely so a
+        lockfile-only PR could not escape the typechecker — see
+        `test_every_python_manifest_triggers_mypy`. So the fix separates
+        "does the tool run" (yes, always) from "what may the verdict gate
+        on" (nothing, with no added Python line to attribute to). A
+        manifest bump that explodes types stays VISIBLE.
+        """
+        self._mypy_or_skip()
+        self._project(tmp_path)
+        (tmp_path / "legacy.py").write_text(
+            "def old(a: int) -> int:\n    return 'master debt'\n",
+            encoding="utf-8",
+        )
+
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["pyproject.toml"], None, 120,
+        )
+
+        assert result.ran is True, "mypy must still run on a manifest change"
+        assert "return-value" in result.summary, (
+            "the error count must stay visible or a dependency bump that "
+            f"breaks types becomes invisible: {result.summary}"
+        )
+        assert "NOT gating" in result.summary, (
+            "the summary must say why a visible error is not failing the gate"
+        )
+
+    def test_unresolvable_python_paths_still_gate_project_wide(
+        self, tmp_path, monkeypatch
+    ):
+        """The other empty-list cause must keep a GATING fallback.
+
+        `_scoped_files` returns [] for two different facts. Only "the diff
+        carries no Python" may be de-gated; "it carries Python that did
+        not resolve" (deleted, renamed, a foreign checkout) still has the
+        project-wide run as its only remaining signal, and softening it
+        would be a false green on a NON-NEGOTIABLE gate.
+        """
+        self._project(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        captured: dict = {}
+
+        def fake_run(check, cmd, project_dir, timeout):
+            captured.setdefault("cmds", []).append(list(cmd))
+            return CheckResult(
+                check=check, ran=True, passed=False, command=" ".join(cmd),
+                exit_code=1, summary="Found 3 errors",
+            )
+
+        monkeypatch.setattr(evidence_checks, "_run", fake_run)
+        # A .py that does not exist under project_dir: relevance passes on
+        # the extension, scoping resolves nothing.
+        result = evidence_checks._check_typecheck(
+            tmp_path, ["deleted_module.py"], None, 30,
+        )
+
+        assert captured.get("cmds", []), (
+            "unresolved Python paths must keep the project-wide fallback"
+        )
+        assert result.passed is False, (
+            "a failing fallback on an unresolved Python diff must still gate"
+        )
+
+    def test_unknown_diff_still_gates_project_wide(self, tmp_path, monkeypatch):
+        """`changed is None` means the caller does not know the diff, and
+        no verdict is ever softened on a guess."""
+        self._project(tmp_path)
+        monkeypatch.setattr(
+            evidence_checks.shutil, "which",
+            lambda name: "/usr/bin/mypy" if name == "mypy" else None,
+        )
+        monkeypatch.setattr(
+            evidence_checks, "_run",
+            lambda check, cmd, project_dir, timeout: CheckResult(
+                check=check, ran=True, passed=False, command=" ".join(cmd),
+                exit_code=1, summary="Found 3 errors",
+            ),
+        )
+
+        result = evidence_checks._check_typecheck(tmp_path, None, None, 30)
+
+        assert result.passed is False
+
     def test_advisory_never_flips_the_gating_verdict(self, tmp_path, monkeypatch):
         """A failing project-wide run must not fail a clean diff."""
         self._project(tmp_path)

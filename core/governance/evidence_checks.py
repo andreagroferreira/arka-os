@@ -926,12 +926,12 @@ def _typecheck_scoped(
     ``--follow-imports=silent`` keeps the full import graph for inference
     (so types resolve correctly) while reporting only on the named files.
 
-    Returns None when scoping could not BUILD a file list — the diff's
+    Returns None when no scoped run was possible — either the diff's
     Python paths did not resolve under project_dir (deleted, renamed, a
-    foreign checkout) — and the caller then falls back to the
-    project-wide run, which is the only remaining signal. A diff with no
-    Python in it at all never reaches here: ``_check_typecheck`` skips
-    that case outright (issue #491).
+    foreign checkout), or the diff carries no Python at all because it
+    reached the check through the manifest half of the relevance guard.
+    ``_typecheck_mypy`` tells those two apart and decides what the
+    project-wide fallback is allowed to GATE on (issue #515).
     """
     # _TYPECHECKABLE_PY, not _LINTABLE_PY: a stub is mypy's own file
     # type, and scoping that excluded .pyi let a stub-only diff fall
@@ -986,17 +986,55 @@ def _typecheck_scoped(
     return _labelled(result, f"typecheck(scoped: {len(in_scope)} file(s))")
 
 
+def _manifest_only_verdict(result: CheckResult) -> CheckResult:
+    """Re-label a project-wide run that no changed line can be charged to.
+
+    The run happened and its number is kept in the summary — a manifest
+    bump that breaks types must not become invisible. It simply does not
+    GATE, because the changeset contains no added Python line for any of
+    those errors to sit on (issue #515).
+    """
+    if result.passed is not False:
+        return result
+    return replace(
+        result,
+        passed=True,
+        summary=(
+            f"{result.summary}\n"
+            "manifest/config-only changeset: no .py added, so no error "
+            "above can be attributed to a line this diff wrote — "
+            "advisory, NOT gating (issue #515). Line position, not "
+            "provenance, exactly as for a scoped run."
+        ),
+    )
+
+
 def _typecheck_mypy(
     project_dir: Path, changed: list[str] | None, timeout: int,
 ) -> CheckResult:
     """Scoped mypy over the diff; project-wide only as a documented fallback.
 
-    Reaching here means the diff DID carry Python (or its scope is
-    unknown), so a None from ``_typecheck_scoped`` can only mean scoping
-    failed to build the file list, and the project-wide run is the only
-    remaining signal. The asymmetry with the zero-Python case — which
-    skips instead — is deliberate: one is "we could not look here", the
-    other is "there was never anything to look at".
+    Reaching here means the diff carried Python, OR a manifest that can
+    change what mypy concludes, OR its scope is unknown.
+
+    Issue #515 — the manifest case had no answer of its own. A changeset
+    of nothing but ``pyproject.toml`` passes the relevance guard by the
+    trigger half (correctly: a lockfile bump CAN break types, and skipping
+    it outright was the gate's missing defence, QG cycle 3 A2), then
+    produces an empty scoped list, and the fallback charged it master's
+    entire accumulated debt — 1246 errors across files it never touched,
+    ``overall: fail``, and every manifest-only PR auto-rejected, #515's
+    own one-line pin included. That reopened #491 through a different
+    door.
+
+    Both invariants hold by separating "does the tool run" from "what may
+    the verdict gate on". The project-wide run still happens, so the
+    number stays visible and a manifest bump that explodes types is not
+    invisible; but with no Python in the changeset there is no added line
+    for any error to be attributed to, so nothing gates. That is the same
+    line-position rule ``_attributed_verdict`` already applies to every
+    scoped run — "line position, not provenance" — reaching its degenerate
+    case, not a new exemption.
     """
     # `shutil.which` alone read a venv-installed mypy as "no typecheck
     # configuration detected" — the generic skip, on a project that had
@@ -1014,12 +1052,17 @@ def _typecheck_mypy(
     scoped = _typecheck_scoped(project_dir, mypy, changed, timeout)
     if scoped is not None:
         return scoped
-    return _mypy_verdict(
+    result = _mypy_verdict(
         _run(
             "typecheck", _mypy_project_argv(project_dir, mypy),
             project_dir, timeout,
         )
     )
+    # `_diff_touches(None, ...)` answers True, so an unknown diff keeps the
+    # gating fallback — no verdict is softened on a guess.
+    if _diff_touches(changed, _TYPECHECKABLE_PY):
+        return result
+    return _manifest_only_verdict(result)
 
 
 def _typecheck_tsc(project_dir: Path, timeout: int) -> CheckResult:

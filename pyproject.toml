@@ -102,6 +102,11 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "RUF"]
 # rewrites first.
 testpaths = ["tests/python"]
 asyncio_mode = "auto"
+# Front-inserted ahead of any site-packages .pth entry, so `pytest` from a
+# checkout always imports core.* from THAT checkout. Without it, a stale
+# editable install (issue #504: a .pth pointing at a frozen npx cache)
+# makes the console script test the wrong code while exiting 0.
+pythonpath = ["."]
 
 [tool.mypy]
 # 3.12, not the 3.11 requires-python floor: numpy 2.x ships stubs written
