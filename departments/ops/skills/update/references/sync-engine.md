@@ -75,7 +75,7 @@ Returns JSON report for downstream consumption.
 ## Feature Registry
 
 YAML files under `core/sync/features/*.yaml` (or `~/.arkaos/config/sync/features/*.yaml`). Each feature has:
-- `detection_pattern` — regex searched in ecosystem SKILL.md to decide if the feature is already present. Matches any of: the `arka:feature:<name>` marker, the bare `## <section_title>` heading (legacy/customized sections), or — only where a token is unique enough to never appear in unrelated prose (e.g. `arka-forge`) — a historical keyword
+- `detection_pattern` — regex searched in ecosystem SKILL.md to decide if the feature is already present. Matches any of: the `arka:feature:<name>` marker, the bare `## <section_title>` heading (legacy/customized sections), or — only where a token is unique enough to never appear in unrelated prose (e.g. `arka-forge`) — a historical keyword. Only `workflow-tiers` carries a fourth alternative today: a host-language heading built on the anchor token that LEADS it (`## Tiers\b`, matching `## Tiers de Projeto`). It keys on the anchor token, not on a translation, so a translated heading that drops the token is still missed
 - `content` — the section to inject if missing, wrapped in `<!-- arka:feature:<name>:start -->` / `<!-- arka:feature:<name>:end -->` markers so future runs detect it and deprecation can remove it precisely
 - `deprecated_in` — if set, the section is removed ONLY when a single, well-formed marker pair exists. An unmarked `## <section_title>` section is never deleted; it is reported and left in place.
 
