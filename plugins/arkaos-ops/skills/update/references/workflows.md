@@ -48,7 +48,8 @@ After the Python engine completes, dispatch ONE subagent.
 1. Read the SKILL.md.
 2. For each feature YAML where `deprecated_in` is null:
    - Apply the `detection_pattern` regex to the SKILL.md text. It matches the `arka:feature:<name>` marker, the bare `## <section_title>` heading, or a unique historical keyword — a customized section without markers still counts as present and MUST NOT be duplicated.
-   - If NOT found: inject `content` (already marker-wrapped) after the last existing feature section, or after the "Commands" table if no feature sections exist (before "Orchestration Workflows").
+   - If NOT found: inject through `core.sync.feature_injector.inject_feature`, never by hand, at the offset after the last existing feature section — or after the "Commands" table if no feature sections exist (before "Orchestration Workflows").
+   - The injector REFUSES any offset sitting inside an unterminated `<!--` and returns an `InjectionRefusal` instead of new text. Record it in the report's `injection_refusals` and leave the file exactly as it was; the host keeps missing that section until someone closes the comment. Issue #509: a hand-picked offset once landed four marker blocks between a `<!--` on line 20 and its `-->` on line 74, so the first marker's own `-->` closed the WRONG comment and the outer comment's tail rendered as garbage above the commands table.
 3. For each feature where `deprecated_in` is set:
    - Remove the `<!-- arka:feature:<name>:start -->` … `:end -->` block ONLY when a single, well-formed marker pair exists.
    - **Never delete an unmarked `## <section_title>` section.** Without markers there is no way to tell ArkaOS's own text from the project's, and a section the operator customized looks identical to one they did not. Leave it in place and report it instead. `~/.claude/skills/` is not a git repository — a wrong deletion there is unrecoverable.

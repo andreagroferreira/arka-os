@@ -13,6 +13,7 @@ from core.sync.schema import (
     AgentProvisionResult,
     ContentSyncResult,
     DescriptorSyncResult,
+    InjectionRefusal,
     MarkerViolation,
     McpSyncResult,
     SettingsSyncResult,
@@ -40,6 +41,7 @@ def build_report(
     content_results: list[ContentSyncResult] | None = None,
     agent_results: list[AgentProvisionResult] | None = None,
     marker_violations: list[MarkerViolation] | None = None,
+    injection_refusals: list[InjectionRefusal] | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
     phases = (mcp_results, settings_results, descriptor_results, skill_results)
@@ -55,7 +57,14 @@ def build_report(
         content_results=content_results or [],
         agent_results=agent_results or [],
         marker_violations=marker_violations or [],
-        errors=_all_errors(phases, content_results, agent_results, marker_violations),
+        injection_refusals=injection_refusals or [],
+        errors=_all_errors(
+            phases,
+            content_results,
+            agent_results,
+            marker_violations,
+            injection_refusals,
+        ),
     )
 
 
@@ -69,15 +78,22 @@ def _all_errors(
     content_results: list[ContentSyncResult] | None,
     agent_results: list[AgentProvisionResult] | None,
     violations: list[MarkerViolation] | None,
+    refusals: list[InjectionRefusal] | None = None,
 ) -> list[str]:
-    """Phase errors plus marker violations, in one actionable list.
+    """Phase errors, marker violations and refusals, in one actionable list.
 
     Marker violations count as errors: printing "Errors: 0" over a stamped
     marker is how at least 13 of them survived four releases (issue #492).
+    A refused injection counts for the same reason — a mandatory section is
+    missing from that host until someone closes the comment (issue #509).
     """
-    return _collect_errors(
-        *phases, content_results=content_results, agent_results=agent_results
-    ) + [v.describe() for v in violations or []]
+    return (
+        _collect_errors(
+            *phases, content_results=content_results, agent_results=agent_results
+        )
+        + [v.describe() for v in violations or []]
+        + [r.describe() for r in refusals or []]
+    )
 
 
 def write_sync_state(state_file: Path, report: SyncReport) -> None:
@@ -115,8 +131,25 @@ def format_report(report: SyncReport) -> str:
 
     lines += _format_deferred_lines(report.mcp_results)
     lines += _format_marker_lines(report.marker_violations)
+    lines += _format_refusal_lines(report.injection_refusals)
     lines += ["", f"  Errors: {len(report.errors)}", _SEPARATOR]
     return "\n".join(lines)
+
+
+def _format_refusal_lines(refusals: list[InjectionRefusal]) -> list[str]:
+    """Injections Phase 4 declined, or nothing when it injected everywhere.
+
+    Printed one by one, like the marker violations: each refusal names a
+    host that is still MISSING a mandatory section, and a bare count would
+    not tell the operator which file to go and fix.
+    """
+    if not refusals:
+        return []
+    return [
+        "",
+        f"  Injections refused: {len(refusals)} (unusable insertion point):",
+        *[f"  - {r.describe()}" for r in refusals],
+    ]
 
 
 def _format_marker_lines(violations: list[MarkerViolation]) -> list[str]:
