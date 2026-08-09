@@ -102,7 +102,7 @@ def scan_text(text: str, path: Path) -> list[MarkerViolation]:
     describe the contract with a ``<name>`` placeholder inside backticks,
     and a lock that cries wolf on its own documentation gets muted.
     """
-    scannable = _blank_code(text)
+    scannable = blank_code(text)
     violations: list[MarkerViolation] = []
     for match in _COMMENT_RE.finditer(scannable):
         if _TOKEN not in match.group("body"):
@@ -202,7 +202,7 @@ def audit_installed_skills(root: Path | None = None) -> list[MarkerViolation]:
     return scan_tree(root if root is not None else DEFAULT_SKILLS_ROOT)
 
 
-def _blank_code(text: str) -> str:
+def blank_code(text: str) -> str:
     """Blank fenced blocks and code spans, preserving every byte offset.
 
     Same-length whitespace rather than deletion, so reported line numbers
@@ -211,6 +211,10 @@ def _blank_code(text: str) -> str:
     every file of the installed tree. An UNCLOSED fence blanks nothing —
     a marker below it still reports, because the alternative silently
     swallows the rest of the document.
+
+    Public because ``feature_injector`` reads documents through it too: the
+    injector's refusal and this module's verdict must be computed over the
+    same bytes, or the guard would decline a point the audit calls clean.
     """
     lines = text.splitlines(keepends=True)
     blanked: list[str | None] = [None] * len(lines)

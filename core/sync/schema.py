@@ -60,6 +60,41 @@ class MarkerViolation(BaseModel):
         return f"Markers: {self.path}:{self.line}: {self.reason}{tail}"
 
 
+class InjectionRefusal(BaseModel):
+    """One feature injection the injector declined to perform.
+
+    Structured and named for the same reason as `MarkerViolation`: the
+    state it refuses to create — marker blocks sealed inside somebody
+    else's unterminated HTML comment — is precisely what the audit
+    classifies as "swallowed" once the file is already corrupt (issue
+    #509). A refusal recorded here is the same finding, one step earlier,
+    while the document is still intact.
+
+    `line` points at the unterminated `<!--`, not at the insertion point:
+    that opening is what the operator has to close.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    path: Path
+    feature: str
+    line: int
+    reason: str
+
+    @field_validator("feature", "reason")
+    @classmethod
+    def _sanitize(cls, value: str) -> str:
+        """Neutralize untrusted text at the only door into the model."""
+        return _neutralize(value)
+
+    def describe(self) -> str:
+        """Phase-prefixed, linter-style `path:line: reason` terminal line."""
+        return (
+            f"Injection: {self.path}:{self.line}: refused to inject "
+            f"{self.feature!r} — {self.reason}"
+        )
+
+
 class FeatureSpec(BaseModel):
     """A versioned feature that the sync engine can add, update, or deprecate."""
 
@@ -181,6 +216,11 @@ class SyncReport(BaseModel):
     # /arka update skill consumes can branch on `kind`: the stamped markers
     # of issue #492 were invisible precisely because no channel named them.
     marker_violations: list[MarkerViolation] = Field(default_factory=list)
+    # Injections Phase 4 refused rather than perform. Filled by the Phase-4
+    # consumer, like `skill_results`: choosing WHERE a section goes needs
+    # judgement about the host's custom content, so the deterministic engine
+    # owns the guard (core/sync/feature_injector.py) and not the placement.
+    injection_refusals: list[InjectionRefusal] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
 
 
