@@ -462,14 +462,15 @@ def _store_gotcha(
 
 
 def _workflow_state() -> dict | None:
-    state_file = Path.home() / ".arkaos" / "workflow-state.json"
-    if not state_file.is_file():
-        return None
+    # QG round 1, B1: the reader MUST resolve the state the way the
+    # writer does — a hardcoded legacy path left this detector reading
+    # a file the tracker deletes, silencing branch-isolation entirely.
     try:
-        state = json.loads(state_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        from core.workflow.state import get_state
+
+        return get_state()
+    except Exception:
         return None
-    return state if isinstance(state, dict) else None
 
 
 def _phase_status(state: dict, phase: str) -> str:

@@ -22,6 +22,10 @@ from core.workflow.gate_checkpoint import (
 @pytest.fixture(autouse=True)
 def _isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
+    # In-project state (QG round 1): anchor the resolver in tmp so the
+    # suite never writes into the real checkout.
+    monkeypatch.chdir(tmp_path)
+    _state_module._ROOT_CACHE.clear()
     yield
 
 

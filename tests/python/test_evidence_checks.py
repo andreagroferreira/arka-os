@@ -3865,7 +3865,7 @@ class TestFinalGate:
             tmp_path, ["core/thing.py"], None, 60
         )
         assert "tests/python/test_thing.py" in seen["argv"]
-        assert "diff-scoped" in result.summary or result.passed is True
+        assert "diff-scoped" in result.command
 
 
 class TestAdvisoryCache:
@@ -4102,30 +4102,47 @@ class TestTestsReceipt:
 
 
 class TestAutoChecks:
-    def test_no_changed_list_keeps_full_set(self):
-        from core.governance.evidence_checks import ALL_CHECKS, _auto_checks
+    def test_no_changed_list_skips_nothing(self):
+        from core.governance.evidence_checks import _auto_skips
 
-        assert _auto_checks(None) == list(ALL_CHECKS)
+        assert _auto_skips(None) == {}
+        assert _auto_skips([]) == {}
 
-    def test_pure_python_diff_drops_ui_and_prose_checks(self):
-        from core.governance.evidence_checks import _auto_checks
+    def test_pure_python_diff_skips_ui_and_prose_checks(self):
+        from core.governance.evidence_checks import _auto_skips
 
-        selected = _auto_checks(["core/x.py", "tests/python/test_x.py"])
-        assert "spellcheck" not in selected
-        assert "design-slop" not in selected
-        assert "ui-screenshot" not in selected
-        assert "tests" in selected and "lint" in selected
+        skips = _auto_skips(["core/x.py", "tests/python/test_x.py"])
+        assert set(skips) == {"ui-screenshot", "design-slop", "spellcheck"}
 
     def test_prose_diff_keeps_spellcheck(self):
-        from core.governance.evidence_checks import _auto_checks
+        from core.governance.evidence_checks import _auto_skips
 
-        selected = _auto_checks(["docs/a.md"])
-        assert "spellcheck" in selected
-        assert "design-slop" not in selected
+        skips = _auto_skips(["docs/a.md"])
+        assert "spellcheck" not in skips
+        assert "design-slop" in skips
 
-    def test_ui_diff_keeps_design_checks(self):
-        from core.governance.evidence_checks import _auto_checks
+    def test_svelte_diff_keeps_design_checks(self):
+        """QG round 1 (B2): the UI predicate is frontend_gate's own
+        UI_SUFFIXES — a .svelte diff must keep the design checks."""
+        from core.governance.evidence_checks import _auto_skips
 
-        selected = _auto_checks(["app/Hero.vue"])
-        assert "design-slop" in selected
-        assert "ui-screenshot" in selected
+        skips = _auto_skips(["app/Hero.svelte"])
+        assert "design-slop" not in skips
+        assert "ui-screenshot" not in skips
+
+    def test_astro_and_sass_also_keep_design_checks(self):
+        from core.governance.evidence_checks import _auto_skips
+
+        for name in ("site/page.astro", "styles/main.sass"):
+            assert "design-slop" not in _auto_skips([name])
+
+    def test_skipped_checks_stay_in_the_report(self, tmp_path):
+        """QG round 1 (B2): a dropped check leaves a skip row — the
+        report self-describes instead of silently shrinking."""
+        report = run_evidence_checks(
+            tmp_path, changed_files=["core/x.py"], checks=None,
+        )
+        by_check = {r.check: r for r in report.results}
+        assert "ui-screenshot" in by_check
+        assert by_check["ui-screenshot"].ran is False
+        assert "auto-subset" in by_check["ui-screenshot"].summary

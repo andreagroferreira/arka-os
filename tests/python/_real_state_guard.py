@@ -38,6 +38,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #: index. The fingerprint total is therefore larger than the tracked count
 #: and the two must not be conflated.
 _GUARDED_GLOBS: tuple[tuple[Path, str], ...] = (
+    # QG round 1 (B1): the tracker writes in-project now — a test that
+    # runs with the checkout as cwd and no chdir would write HERE.
+    (REPO_ROOT / ".arka", "workflow-state.json"),
     (REPO_ROOT / "config" / "claude-agents", "*.md"),
     (REPO_ROOT / "departments", "*/workflows/*.yaml"),
     (Path.home() / ".arkaos" / "projects", "**/*.md"),

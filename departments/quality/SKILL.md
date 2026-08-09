@@ -33,11 +33,12 @@ Any Department Workflow:
     1. Run the evidence engine over the project/diff — SCOPED
        (Gate Economy): derive the changed set from the merge base and
        pass --changed-files ALWAYS (activates scoped lint/typecheck,
-       inert-diff skips, manifest-only verdict). Intermediate rounds
-       pin --test-command to the tests covering the changed modules
-       (tests/python/test_<module>.py naming; uncertain mapping →
-       omit it, fallback is the FULL suite, never empty). The final
-       pre-merge gate NEVER pins --test-command: full suite, exit 0.
+       inert-diff skips, manifest-only verdict, and the ENGINE's
+       fail-closed test mapping — any uncertainty runs the FULL
+       suite). Pin --test-command ONLY when the engine cannot see the
+       relevant tests, and record why: a hand-picked subset carries
+       no coverage guarantee. The final pre-merge gate NEVER pins
+       --test-command: full suite, exit 0.
        Drop design-slop,ui-screenshot via --checks when no UI file
        changed, and spellcheck when no .md/copy changed:
          ARKA_CALL_CATEGORY=subagent:quality \
@@ -66,9 +67,11 @@ Any Department Workflow:
        - overall == "pass"  → APPROVED only if reviewers find no
          GATING (blocker/major) finding the checks cannot see (logic,
          copy, UX). Minor findings fix forward in the same turn: apply
-         the correction, verify it with a scoped re-run, record it in
-         the aggregate notes, and approve. A REJECTED backed only by
-         minors is rejected by the schema itself.
+         the correction, verify it with a scoped re-run, keep the
+         finding in the aggregate's blockers array with severity
+         "minor" (the guard admits it as a recorded warning), record
+         the correction in the verdict notes, and approve. A REJECTED
+         backed only by minors is rejected by the schema itself.
        - overall == "insufficient-evidence" → APPROVED only with an
          explicit justification in the verdict notes; otherwise REJECTED.
     4. If ANY reviewer rejects → work loops back with the blockers list.
@@ -82,7 +85,8 @@ Any Department Workflow:
        the gating findings to re-judge. Carry is the norm for an
        untouched domain, not the exception. HARD STOP at the redo cap:
        when ~/.arkaos/quality-gate/<session>/ESCALATE exists (dropped
-       by the record CLI at REDO_CAP = 2), no further reviewer is
+       by the record CLI when a session EXCEEDS REDO_CAP = 2 — the
+       third REJECTED), no further reviewer is
        dispatched and no new round opens — the full verdict history
        goes to the operator for a decision (excellence-mandate).
     4.5. Marta's gate-closing report reproduces each reviewer verdict

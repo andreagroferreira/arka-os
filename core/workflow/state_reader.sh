@@ -18,7 +18,10 @@ done
 # Only substitute when the variable is genuinely unset (lib never sourced).
 : "${ARKA_PY=python3}"
 
-STATE_FILE="$HOME/.arkaos/workflow-state.json"
+# Per-project state (Gate Economy PR-9, QG round 1): mirrors
+# core/workflow/state.py's resolver — git toplevel, cwd fallback.
+STATE_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+STATE_FILE="$STATE_ROOT/.arka/workflow-state.json"
 
 if [ ! -f "$STATE_FILE" ]; then
   case "${1:-}" in

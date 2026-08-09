@@ -25,8 +25,15 @@ issue tracker 21 → 0, contributor queue fully integrated.
   host-language headings (#516)
 - **hooks:** degraded-gate telemetry with tests and bounded growth
   (#514, mechanism by @marlonoliveira182)
-- **release:** preflight caught and scrubbed a personal name from a
-  dreaming docstring example before publish
+- **tests:** codespell typo no longer blocks every PR against master
+  (#499, authored by @marlonoliveira182)
+- **installer:** CRLF CLAUDE.md adoption + `pathToFileURL` sweep (#511)
+  and the dashboard no-PTY path answers 501 through CORS (#513) — both
+  carried forward from @marlonoliveira182's originals with credit, as
+  were the dreaming CLI fixes (#512, diagnosis and original
+  implementation by @marlonoliveira182)
+- **release:** preflight catches a personal name in a dreaming
+  docstring example before publish (scrubbed in 34a19fa2)
 
 ## [5.14.0] - 2026-08-07
 

@@ -167,6 +167,7 @@ class TestProjectScoping:
 
         monkeypatch.setattr(st, "_state_path", _real_state_path)
         monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
+        st._ROOT_CACHE.clear()
         return st
 
     def test_state_path_is_per_project(self, tmp_path, monkeypatch):
@@ -180,8 +181,29 @@ class TestProjectScoping:
         monkeypatch.chdir(proj_b)
         path_b = st._state_path()
         assert path_a != path_b
-        assert path_a.parent == path_b.parent
-        assert path_a.parent.name == "workflow-state"
+        assert path_a == proj_a / ".arka" / "workflow-state.json"
+        assert path_b == proj_b / ".arka" / "workflow-state.json"
+
+    def test_subdirectory_resolves_to_git_toplevel(
+        self, tmp_path, monkeypatch
+    ):
+        """QG round 1 (B1 secondary): a cd into a subdirectory must NOT
+        fragment gate state — the git toplevel anchors the path."""
+        import subprocess
+
+        st = self._real(monkeypatch, tmp_path)
+        repo = tmp_path / "repo"
+        (repo / "core").mkdir(parents=True)
+        subprocess.run(
+            ["git", "init", "-q", "-b", "master"], cwd=repo, check=True,
+            capture_output=True,
+        )
+        monkeypatch.chdir(repo)
+        root_path = st._state_path()
+        st._ROOT_CACHE.clear()
+        monkeypatch.chdir(repo / "core")
+        sub_path = st._state_path()
+        assert root_path == sub_path == repo / ".arka" / "workflow-state.json"
 
     def test_same_cwd_is_stable(self, tmp_path, monkeypatch):
         st = self._real(monkeypatch, tmp_path)
@@ -193,17 +215,15 @@ class TestProjectScoping:
     def test_legacy_global_file_is_dropped_on_read(
         self, tmp_path, monkeypatch
     ):
-        import core.workflow.state as st
-
-        monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
+        st = self._real(monkeypatch, tmp_path)
+        proj = tmp_path / "proj"
+        proj.mkdir()
+        monkeypatch.chdir(proj)
         legacy = tmp_path / ".arkaos" / "workflow-state.json"
         legacy.parent.mkdir(parents=True)
         legacy.write_text(
             json.dumps({"violations": [{"rule": "spec-driven"}] * 217}),
             encoding="utf-8",
-        )
-        monkeypatch.setattr(
-            st, "_LEGACY_STATE_PATH", legacy
         )
         assert st._read() is None
         assert not legacy.exists()
@@ -277,30 +297,6 @@ class TestUpdatePhasesBatch:
 class TestSpecDrivenGovernance:
     """The evidence-flow phase set has no "spec" phase; the old check
     appended a FALSE violation on every code edit (217 measured)."""
-
-    def _state(self, phases):
-        return {
-            "workflow": "evidence-flow",
-            "phases": {p: {"status": s} for p, s in phases.items()},
-            "violations": [],
-        }
-
-    def _run(self, tmp_path, monkeypatch, state, specs_active=False):
-        from core.hooks import post_tool_use as ptu
-
-        project = tmp_path / "proj"
-        spec_dir = project / ".arkaos" / "specs"
-        spec_dir.mkdir(parents=True)
-        if specs_active:
-            (spec_dir / "feature.yaml").write_text(
-                "status: approved\n", encoding="utf-8"
-            )
-        monkeypatch.chdir(project)
-        captured = []
-        monkeypatch.setattr(
-            ptu, "_persist_violations", lambda entries: captured.extend(entries)
-        ) if hasattr(ptu, "_persist_violations") else None
-        return ptu, project, captured
 
     def test_evidence_flow_with_approved_spec_is_clean(
         self, tmp_path, monkeypatch
@@ -427,3 +423,68 @@ class TestDetectRuleViolationsBranch:
         # department workflow's own gate still owns its semantics
         assert "spec-driven" in msg
         assert persist[0][0] == "spec-driven"
+
+
+class TestGovernanceThroughRealReader:
+    """QG round 1 (B1, prescribed test): _detect_rule_violations runs
+    against state written through core.workflow.state — NO monkeypatch
+    of the production reader. This is the test that would have caught
+    the writer/reader split."""
+
+    def _arm(self, tmp_path, monkeypatch, phases):
+        import core.workflow.state as st
+
+        monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
+        st._ROOT_CACHE.clear()
+        project = tmp_path / "proj"
+        (project / "core").mkdir(parents=True)
+        monkeypatch.chdir(project)
+        st.init_workflow("evidence-flow", str(project), phases)
+        return project
+
+    def test_branch_isolation_fires_through_real_state(
+        self, tmp_path, monkeypatch
+    ):
+        from core.hooks import post_tool_use as ptu
+
+        project = self._arm(tmp_path, monkeypatch, ["gate-1-context"])
+        msg, persist = ptu._detect_rule_violations({
+            "tool_name": "Bash",
+            "cwd": str(project),
+            "tool_input": {"command": "git commit -m 'to master'"},
+            "tool_response": "[master abc1234] to master",
+        })
+        assert "branch-isolation" in msg
+        assert persist and persist[0][0] == "branch-isolation"
+
+    def test_spec_driven_fires_through_real_state(
+        self, tmp_path, monkeypatch
+    ):
+        from core.hooks import post_tool_use as ptu
+
+        project = self._arm(tmp_path, monkeypatch, ["gate-1-context"])
+        msg, _persist = ptu._detect_rule_violations({
+            "tool_name": "Edit",
+            "cwd": str(project),
+            "tool_input": {"file_path": str(project / "core" / "x.py")},
+        })
+        assert "spec-driven" in msg
+
+    def test_spec_on_disk_clears_through_real_state(
+        self, tmp_path, monkeypatch
+    ):
+        from core.hooks import post_tool_use as ptu
+
+        project = self._arm(tmp_path, monkeypatch, ["gate-1-context"])
+        spec_dir = project / ".arkaos" / "specs"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "feature.yaml").write_text(
+            "status: approved\n", encoding="utf-8"
+        )
+        msg, persist = ptu._detect_rule_violations({
+            "tool_name": "Edit",
+            "cwd": str(project),
+            "tool_input": {"file_path": str(project / "core" / "x.py")},
+        })
+        assert msg == ""
+        assert persist == []

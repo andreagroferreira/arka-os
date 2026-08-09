@@ -291,12 +291,13 @@ def _run_bridge(root: str, user_input: str, session_id: str, cwd: str = "") -> s
 
 
 def _workflow_tag() -> str:
-    state_file = Path.home() / ".arkaos" / "workflow-state.json"
-    if not state_file.is_file():
-        return ""
+    # QG round 1, B1: resolve the state the way the writer does — the
+    # hardcoded legacy path silenced this tag when the tracker moved.
     try:
-        state = json.loads(state_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        from core.workflow.state import get_state
+
+        state = get_state()
+    except Exception:
         return ""
     if not isinstance(state, dict):
         return ""

@@ -36,9 +36,14 @@ def rotate_if_oversized(path: Path, max_bytes: int | None = None) -> bool:
     """Rotate ``path`` to ``<name>.1`` when it exceeds the cap.
 
     Returns True when a rotation happened. Never raises — telemetry
-    plumbing must not break a hook. Concurrent rotations are benign:
-    ``os.replace`` is atomic and the losing writer simply appends to
-    the fresh file.
+    plumbing must not break a hook. Concurrent ROTATORS are serialized
+    on a dedicated ``<name>.rotlock`` flock and the size is re-checked
+    under the lock, so a losing rotator sees the fresh (small) file and
+    stands down instead of replacing again and destroying the one kept
+    generation (QG round 1 minor — the earlier docstring overclaimed
+    "benign"). A concurrent APPENDER holding a handle to the renamed
+    inode keeps writing into ``<name>.1`` — data lands in the kept
+    generation, never lost.
     """
     cap = _max_bytes() if max_bytes is None else max_bytes
     if cap <= 0:
@@ -48,7 +53,32 @@ def rotate_if_oversized(path: Path, max_bytes: int | None = None) -> bool:
             return False
     except OSError:
         return False
-    with contextlib.suppress(OSError):
-        os.replace(path, path.with_name(path.name + ".1"))
-        return True
-    return False
+    try:
+        with open(
+            path.with_name(path.name + ".rotlock"), "a", encoding="utf-8"
+        ) as lock_fh:
+            _flock(lock_fh)
+            try:
+                # Re-check under the lock: a winner may just have rotated.
+                if not path.is_file() or path.stat().st_size <= cap:
+                    return False
+                os.replace(path, path.with_name(path.name + ".1"))
+                return True
+            finally:
+                _funlock(lock_fh)
+    except OSError:
+        return False
+
+
+def _flock(fh: object) -> None:
+    with contextlib.suppress(ImportError, OSError):
+        import fcntl
+
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)  # type: ignore[attr-defined]
+
+
+def _funlock(fh: object) -> None:
+    with contextlib.suppress(ImportError, OSError):
+        import fcntl
+
+        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]

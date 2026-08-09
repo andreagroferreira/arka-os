@@ -1292,7 +1292,6 @@ def _run_pinned_tests(
 
 
 _PROSE_SUFFIXES = frozenset({".md", ".mdx", ".txt"})
-_UI_SUFFIXES = frozenset({".vue", ".tsx", ".jsx", ".css", ".scss", ".html"})
 
 # ─── Tests receipt (Gate Economy PR-5) ──────────────────────────────────
 # The suite used to run 2-4 times per cycle over a byte-identical tree: once
@@ -2409,26 +2408,34 @@ _CHECK_DISPATCH = {
 # ─── Public API ─────────────────────────────────────────────────────────
 
 
-def _auto_checks(changed: list[str] | None) -> list[str]:
-    """Default check set, subset by what the diff can even touch.
+def _auto_skips(changed: list[str] | None) -> dict[str, str]:
+    """Checks the diff cannot touch, each with its skip reason.
 
-    Gate Economy PR-5: with an honest changed list, a diff with no UI
-    files cannot fail design-slop/ui-screenshot and one with no prose
-    cannot fail spellcheck — dropping them saves their subprocess
-    starts. No changed list (None) keeps the full set.
+    Gate Economy PR-5, corrected in QG round 1 (B2): the UI predicate
+    is the frontend gate's own ``UI_SUFFIXES`` — a locally duplicated
+    set had silently diverged (.svelte/.astro/.sass/.less/.htm) and
+    suppressed the design checks on genuine UI diffs. Import failure
+    fails closed: nothing is skipped. Skipped checks stay IN the
+    report as skip rows, so "never selected" is always distinguishable
+    from "ran and found nothing".
     """
     if not changed:
-        return list(ALL_CHECKS)
+        return {}
+    try:
+        from core.workflow.frontend_gate import UI_SUFFIXES
+    except ImportError:
+        return {}
     suffixes = {PurePosixPath(c.strip()).suffix.lower() for c in changed}
-    selected = list(ALL_CHECKS)
-    if not (suffixes & _UI_SUFFIXES):
-        selected = [
-            c for c in selected
-            if c not in ("ui-screenshot", "design-slop")
-        ]
+    skips: dict[str, str] = {}
+    if not (suffixes & UI_SUFFIXES):
+        reason = "auto-subset: diff touches no UI file (frontend_gate.UI_SUFFIXES)"
+        skips["ui-screenshot"] = reason
+        skips["design-slop"] = reason
     if not (suffixes & _PROSE_SUFFIXES):
-        selected = [c for c in selected if c != "spellcheck"]
-    return selected
+        skips["spellcheck"] = (
+            "auto-subset: diff touches no prose file (.md/.mdx/.txt)"
+        )
+    return skips
 
 
 def _derive_overall(results: list[CheckResult]) -> str:
@@ -2511,12 +2518,18 @@ def run_evidence_checks(
     """
     _assert_provenance(project_dir)
     project_dir = Path(project_dir)
-    selected = list(checks) if checks else _auto_checks(changed_files)
+    selected = list(checks) if checks else list(ALL_CHECKS)
+    auto_skips = {} if checks else _auto_skips(changed_files)
     results: list[CheckResult] = []
     for name in selected:
         check_fn = _CHECK_DISPATCH.get(name)
         if check_fn is None:
             results.append(_skip(name, f"unknown check: {name}"))
+            continue
+        if name in auto_skips:
+            # QG round 1 (B2): a dropped check leaves a skip row — the
+            # report must self-describe, never silently shrink.
+            results.append(_skip(name, auto_skips[name]))
             continue
         if name == "tests":
             result = _check_tests(

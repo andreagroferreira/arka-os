@@ -402,12 +402,21 @@ class TestDetectRuleViolations:
     """
 
     def _with_state(self, monkeypatch, tmp_path, phases: dict):
+        # QG round 1 (B1): arm the state where the TRACKER puts it —
+        # the per-project .arka/workflow-state.json — so these tests
+        # exercise the production reader, not a legacy path.
         home = tmp_path / "vhome"
         (home / ".arkaos").mkdir(parents=True)
-        (home / ".arkaos" / "workflow-state.json").write_text(
+        monkeypatch.setenv("HOME", str(home))
+        project = tmp_path / "proj"
+        (project / ".arka").mkdir(parents=True)
+        (project / ".arka" / "workflow-state.json").write_text(
             json.dumps({"phases": phases}), encoding="utf-8",
         )
-        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.chdir(project)
+        from core.workflow import state as _st
+
+        _st._ROOT_CACHE.clear()
 
     def test_commit_on_master_flags_branch_isolation(
         self, monkeypatch, tmp_path
@@ -1405,12 +1414,20 @@ class TestPostToolUseGateScope:
         return root, scratch
 
     def _with_state(self, monkeypatch, tmp_path, phases: dict):
+        # QG round 1 (B1): the state lives at the project root the
+        # payload's cwd declares — written where the tracker writes it.
         home = tmp_path / "shome"
         (home / ".arkaos").mkdir(parents=True)
-        (home / ".arkaos" / "workflow-state.json").write_text(
+        monkeypatch.setenv("HOME", str(home))
+        root = tmp_path / "project"
+        (root / ".arka").mkdir(parents=True, exist_ok=True)
+        (root / ".arka" / "workflow-state.json").write_text(
             json.dumps({"phases": phases}), encoding="utf-8",
         )
-        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.chdir(root)
+        from core.workflow import state as _st
+
+        _st._ROOT_CACHE.clear()
 
     def _write_payload(self, root, file_path: Path) -> dict:
         return {

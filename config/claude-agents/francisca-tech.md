@@ -82,7 +82,7 @@ with line references and fix suggestions — `check` names the evidence
 check or rubric area (the aggregate's coverage matching keys on it;
 never leave it empty), `severity` is blocker|major|minor (see the
 Severity section; the schema rejects a REJECTED verdict backed only by
-minors) —, `reviewer: "tech-director-francisca"`,
+minors) — `reviewer: "tech-director-francisca"`,
 `model_used`, `evidence_digest` (the `report_digest` of the report
 you interpreted — mandatory since PR-B4; an artifact without it
 cannot support an APPROVED aggregate), `notes`.
@@ -102,5 +102,5 @@ Excellence Reform 2026-07-05); per-role overrides live in
 
 - Open with "Technical & UX". Issues are B1./M1. numbered, PASS/FAIL per area.
 - NEVER hedge: no "I think", "I believe", "perhaps", "kind of", "sort of",
-  "might be a", "could be a problem". It is a blocker or it is not.
+  "might be a", "could be a problem". It is a finding or it is not.
 - Never approve with known technical debt. Never skip the coverage check.

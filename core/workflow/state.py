@@ -5,10 +5,9 @@ Read by hooks and skills to detect and surface governance violations.
 """
 
 import contextlib
-import hashlib
 import json
 import os
-import re
+import subprocess
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,33 +21,56 @@ _VALID_STATUSES = ("pending", "in_progress", "completed", "skipped")
 # JSON-parsed on every UserPromptSubmit. Newest entries win.
 MAX_VIOLATIONS = 100
 
-# The pre-PR-9 GLOBAL state file: one file for every project on the
-# machine, so violations from one repo leaked into every session's
-# banner and the file could never legitimately clear.
-_LEGACY_STATE_PATH = Path.home() / ".arkaos" / "workflow-state.json"
-
-_SLUG_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
+# Per-process cache: the git toplevel never changes for a given cwd, and
+# hooks call _state_path() several times per run. Keyed by cwd so tests
+# that chdir stay correct.
+_ROOT_CACHE: dict[str, Path] = {}
 
 
-def _project_slug() -> str:
-    """Stable per-project key derived from the working directory."""
-    cwd = Path.cwd()
-    digest = hashlib.sha256(str(cwd).encode("utf-8")).hexdigest()[:8]
-    name = _SLUG_SAFE_RE.sub("-", cwd.name)[:48] or "project"
-    return f"{name}-{digest}"
+def _project_root() -> Path:
+    """The project root: git toplevel, cwd fallback (QG round 1, B1).
+
+    Keying on the RAW cwd fragmented gate state across subdirectories —
+    a ``cd core/`` produced a different state file. The git toplevel is
+    stable for the whole checkout; outside a repo, cwd is the best
+    available statement of the project.
+    """
+    key = str(Path.cwd())
+    cached = _ROOT_CACHE.get(key)
+    if cached is not None:
+        return cached
+    root = Path.cwd()
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            root = Path(proc.stdout.strip())
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    _ROOT_CACHE[key] = root
+    return root
 
 
 def _state_path() -> Path:
-    """Per-project state file (Gate Economy PR-9).
+    """In-project state file (Gate Economy PR-9; shape from QG round 1).
 
-    Scoped by cwd so one project's workflow phases and violations never
-    leak into another's banner — the legacy global file accumulated
-    cross-project violations forever.
+    ``<project_root>/.arka/workflow-state.json`` — per-project by
+    construction, and computable by the shell readers (statusline,
+    state_reader) with one ``git rev-parse`` instead of replicating any
+    slug logic, which is exactly the constant-drift class the same QG
+    round flagged elsewhere. ``.arka/`` is already the project-local
+    evidence/cache home and is gitignored.
     """
-    return (
-        Path.home() / ".arkaos" / "workflow-state"
-        / f"{_project_slug()}.json"
-    )
+    return _project_root() / ".arka" / "workflow-state.json"
+
+
+def _legacy_state_path() -> Path:
+    """Call-time resolution so tests can repoint HOME (QG round 1 minor:
+    an import-time ``Path.home()`` constant guarding a destructive
+    unlink is the pattern ``redo_counter`` already rejected)."""
+    return Path.home() / ".arkaos" / "workflow-state.json"
 
 
 def _drop_legacy_state() -> None:
@@ -59,8 +81,9 @@ def _drop_legacy_state() -> None:
     old phase check appended on every code edit.
     """
     with contextlib.suppress(OSError):
-        if _LEGACY_STATE_PATH.is_file():
-            _LEGACY_STATE_PATH.unlink()
+        legacy = _legacy_state_path()
+        if legacy.is_file():
+            legacy.unlink()
 
 
 def _now_iso() -> str:

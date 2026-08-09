@@ -9,13 +9,15 @@ Reads ~/.arkaos/workflow-state.json and displays:
 
 import json
 import sys
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
 def _state_path() -> Path:
-    return Path.home() / ".arkaos" / "workflow-state.json"
+    # QG round 1, B1: one resolver — the tracker's own.
+    from core.workflow.state import _state_path as tracker_state_path
+
+    return tracker_state_path()
 
 
 def read_state() -> dict | None:
@@ -47,7 +49,7 @@ def get_elapsed(started_at: str) -> float:
     """Calculate elapsed seconds since ISO timestamp."""
     try:
         start = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (now - start).total_seconds()
     except (ValueError, OSError):
         return 0.0
@@ -99,7 +101,7 @@ class WorkflowDashboard:
         elapsed = get_elapsed(started_at)
 
         output.append("─" * 50)
-        output.append(f"  ARKAOS WORKFLOW DASHBOARD")
+        output.append("  ARKAOS WORKFLOW DASHBOARD")
         output.append("─" * 50)
         output.append(f"  Workflow: {workflow_name}")
         output.append(f"  Project:  {project}")

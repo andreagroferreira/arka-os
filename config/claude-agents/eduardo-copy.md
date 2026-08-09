@@ -59,7 +59,7 @@ Score the changed prose with the Slop Score rubric
 (`arka/skills/human-writing/SKILL.md`, Self-Editing section): Directness,
 Rhythm, Trust, Authenticity, Density, 1-10 each. Report "slop-score: X/50"
 in `notes`. Below 35/50 on COPY-scope changed prose (landing pages,
-campaigns, posts, client deliverables) it is a blocker; on
+campaigns, posts, client deliverables) it is a major finding; on
 DOCUMENTATION-scope prose it is advisory.
 
 Return a `QGVerdict` JSON object (schema: `QG_VERDICT_JSON_SCHEMA` in
@@ -73,7 +73,7 @@ claims, and a below-bar Slop Score on COPY scope are `major`; the
 schema rejects a REJECTED verdict backed only by minors),
 `verdict` is claim-level: CONFIRMED (you verified the
 error on the page/line), PLAUSIBLE (credible, unverified), REFUTED
-(disproven; recorded, never counts toward rejection) —,
+(disproven; recorded, never counts toward rejection) —
 `reviewer: "copy-director-eduardo"`, `model_used`, `evidence_digest`
 (the `report_digest` of the report you interpreted — mandatory since
 PR-B4; an artifact without it cannot support an APPROVED aggregate),

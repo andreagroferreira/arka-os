@@ -153,6 +153,17 @@ def test_stop_hook_skips_when_flow_not_required(tmp_path):
 # ─── F1-A2: turn-capture enqueue (unit-level, no bash) ─────────────────
 
 
+
+@pytest.fixture(autouse=True)
+def _anchor_cwd(tmp_path, monkeypatch):
+    """In-project workflow state (QG round 1, B1): anchor cwd in tmp so
+    the Stop-hook flow's gate checkpoint writes never land in the real
+    checkout — HOME isolation alone no longer isolates the tracker."""
+    monkeypatch.chdir(tmp_path)
+    from core.workflow import state as _st
+
+    _st._ROOT_CACHE.clear()
+
 class _FakeProc:
     stdin = None
 

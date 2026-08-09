@@ -118,11 +118,14 @@ fi
 COST_FMT=$(printf '$%.2f' "${COST:-0}")
 
 # ─── Workflow gate + budget (F2-5, statusline v3) ─────────────────────────
-# Read ~/.arkaos/workflow-state.json directly (plain JSON, one jq call) —
-# no Python spawn on this hot path (the statusline re-renders continuously).
+# Read the per-project .arka/workflow-state.json directly (plain JSON,
+# one jq call) — no Python spawn on this hot path (the statusline
+# re-renders continuously). The path mirrors core/workflow/state.py's
+# resolver: git toplevel, cwd fallback (Gate Economy PR-9, QG round 1).
 # Shows the active workflow, current gate as G<n>/<total>, and violations.
 WF_SEGMENT=""
-WF_STATE="$HOME/.arkaos/workflow-state.json"
+WF_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+WF_STATE="$WF_ROOT/.arka/workflow-state.json"
 if [ -f "$WF_STATE" ]; then
   WF_LINE=$(jq -r '
     (.phases // {}) as $p

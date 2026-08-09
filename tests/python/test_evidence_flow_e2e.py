@@ -36,6 +36,8 @@ TURNS: list[str] = [
 @pytest.fixture(autouse=True)
 def _isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    _state_module._ROOT_CACHE.clear()
     yield
 
 

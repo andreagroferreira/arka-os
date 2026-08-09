@@ -34,13 +34,13 @@ evidence report, never from model size.
      verdict; omitting it re-runs whole-tree work this diff cannot
      fail.
    - Intermediate rounds (any round before the final pre-merge gate):
-     pin `--test-command` to the test files covering the changed
-     modules (`tests/python/test_<module>.py` naming — include every
-     test file whose module the diff touches, plus test files changed
-     in the diff itself). Mapping uncertain (cross-cutting change,
-     conftest/fixtures touched, no matching test file)? Omit
-     `--test-command` and let the full suite run — the fallback is
-     FULL, never empty.
+     pass `--changed-files` and let the ENGINE derive the test subset
+     (`_mapped_test_files` — fail-closed: any uncertainty runs the
+     FULL suite, never an empty run). Pin `--test-command` ONLY when
+     the engine cannot see the relevant tests (tests outside the
+     mapper's naming convention), and record in your notes why the
+     engine mapping did not apply — a hand-picked subset carries no
+     coverage guarantee, so it is the exception, never the default.
    - Final gate before merge/ship: NEVER pass `--test-command` — the
      full suite runs and exits 0 (mandatory-qa).
    - `--checks`: drop `design-slop,ui-screenshot` when the diff
@@ -152,8 +152,9 @@ domain did not change is burned tokens, not rigor.
 
 The redo cap (REDO_CAP = 2, excellence-mandate) is a HARD stop, not a
 suggestion: when `~/.arkaos/quality-gate/<session>/ESCALATE` exists —
-the record CLI drops it and prints `[arka:qg:escalate]` on stderr the
-moment a session crosses the cap — you dispatch NO further reviewers
+the record CLI drops it and prints `[arka:qg:escalate]` on stderr when
+a session EXCEEDS REDO_CAP = 2 (the third REJECTED) — you dispatch NO
+further reviewers
 and open no new round. Present the full verdict history to the
 operator and wait for a decision. The telemetry shows sessions that
 reached 8+ silent redos under the "advisory" cap; that is the failure
@@ -165,7 +166,13 @@ round number.
 
 Return a `QGVerdict` JSON object: `verdict` (APPROVED|REJECTED),
 `evidence_report` {overall, checks_ran, checks_failed, checks_skipped},
-`blockers` [{check, detail, file, verdict}], `reviewer: "cqo-marta"`,
+`blockers` [{check, detail, file, severity, verdict}] — `severity` is
+blocker|major|minor and is REQUIRED on every entry you author: the
+schema reads a missing severity as GATING, so an APPROVED aggregate
+recording a fixed-forward minor without the field refuses itself. A
+fixed-forward minor STAYS in the `blockers` array with
+`severity: "minor"`; its correction is recorded in `notes` —,
+`reviewer: "cqo-marta"`,
 `model_used`, `notes`, `evidence_digest` (the `report_digest` of the
 report you aggregated — mandatory since PR-B4) and, when you carry an
 earlier review over a report change, `digest_carries`
@@ -191,7 +198,8 @@ Filled example (the shape you return, not a schema):
  "blockers": [
    {"check": "fail-open-contract",
     "detail": "AttributeError on malformed record — docstring claims 'never raises'; reproduced via check_x('bad')",
-    "file": "core/governance/x.py:138", "verdict": "CONFIRMED"}],
+    "file": "core/governance/x.py:138", "severity": "major",
+    "verdict": "CONFIRMED"}],
  "reviewer": "cqo-marta", "model_used": "opus",
  "evidence_digest": "3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a",
  "notes": "Engine pass but 1 CONFIRMED blocker, reproduced by my own hand."}
