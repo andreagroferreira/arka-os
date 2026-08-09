@@ -27,7 +27,7 @@ import shutil
 import signal
 import struct
 import time
-from typing import Any, Optional
+from typing import Any
 
 try:  # POSIX-only: the Windows backend lives in session_windows.py
     import fcntl
@@ -37,6 +37,8 @@ try:  # POSIX-only: the Windows backend lives in session_windows.py
 except ModuleNotFoundError:
     fcntl = pty = termios = None  # type: ignore[assignment]
     _PTY_SUPPORTED = False
+
+import contextlib
 
 from core.terminal import audit
 
@@ -143,7 +145,7 @@ class TerminalSession:
         self.cwd = cwd
         self.created_at = time.time()
         self.last_activity = time.monotonic()
-        self.exit_code: Optional[int] = None
+        self.exit_code: int | None = None
         self.title: str = ""
         self.scrollback_max = max(0, int(scrollback_bytes))
         self._scrollback = bytearray()
@@ -156,10 +158,8 @@ class TerminalSession:
 
     @staticmethod
     def _child_exec(shell: str, cwd: str) -> None:
-        try:
+        with contextlib.suppress(OSError):
             os.chdir(cwd)
-        except OSError:
-            pass
         env = os.environ.copy()
         env["TERM"] = env.get("TERM", "xterm-256color")
         env["COLORTERM"] = env.get("COLORTERM", "truecolor")
@@ -214,14 +214,12 @@ class TerminalSession:
             return
         cols = max(1, int(cols))
         rows = max(1, int(rows))
-        try:
+        with contextlib.suppress(OSError):
             fcntl.ioctl(
                 self.master_fd,
                 termios.TIOCSWINSZ,
                 struct.pack("HHHH", rows, cols, 0, 0),
             )
-        except OSError:
-            pass
 
     def is_alive(self) -> bool:
         if self._closed:
@@ -242,27 +240,21 @@ class TerminalSession:
     def kill(self, sig: int = signal.SIGTERM) -> None:
         if self._closed:
             return
-        try:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
             os.kill(self.pid, sig)
-        except (ProcessLookupError, PermissionError):
-            pass
         for _ in range(10):
             if not self.is_alive():
                 break
             time.sleep(0.05)
         if self.is_alive():
-            try:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.kill(self.pid, signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
         self._close_fd()
 
     def _close_fd(self) -> None:
         if self.master_fd >= 0:
-            try:
+            with contextlib.suppress(OSError):
                 os.close(self.master_fd)
-            except OSError:
-                pass
             self.master_fd = -1
         self._scrollback.clear()
         self._closed = True
@@ -289,8 +281,8 @@ class TerminalSessionManager:
 
     def __init__(
         self,
-        max_sessions: Optional[int] = None,
-        idle_timeout_s: Optional[int] = None,
+        max_sessions: int | None = None,
+        idle_timeout_s: int | None = None,
     ) -> None:
         max_default = self.DEFAULT_MAX if max_sessions is None else max_sessions
         idle_default = self.DEFAULT_IDLE_S if idle_timeout_s is None else idle_timeout_s
@@ -307,8 +299,8 @@ class TerminalSessionManager:
 
     def create(
         self,
-        shell: Optional[str] = None,
-        cwd: Optional[str] = None,
+        shell: str | None = None,
+        cwd: str | None = None,
         cols: int = 120,
         rows: int = 32,
     ) -> TerminalSession:
@@ -358,7 +350,7 @@ class TerminalSessionManager:
         audit.log_start(sid, chosen_shell, chosen_cwd)
         return session
 
-    def get(self, session_id: str) -> Optional[TerminalSession]:
+    def get(self, session_id: str) -> TerminalSession | None:
         return self._sessions.get(session_id)
 
     def list_all(self) -> list[dict]:
@@ -400,7 +392,7 @@ class TerminalSessionManager:
             self.close(sid, reason="shutdown")
 
 
-_default_manager: Optional[TerminalSessionManager] = None
+_default_manager: TerminalSessionManager | None = None
 
 
 def default_manager() -> TerminalSessionManager:

@@ -16,7 +16,6 @@ import pytest
 pytest.importorskip("fastapi")  # optional dashboard dependency
 from fastapi.testclient import TestClient
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
