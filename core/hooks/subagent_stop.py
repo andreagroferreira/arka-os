@@ -302,7 +302,10 @@ def main(stdin_json: dict | None = None) -> int:
 
 
 def _capture_usage(
-    stdin_json: dict, session_id: str, agent_id: str, transcript_path: str
+    stdin_json: dict[str, object],
+    session_id: str,
+    agent_id: str,
+    transcript_path: str,
 ) -> None:
     """Attribute the subagent's OWN transcript usage (Gate Economy PR-8).
 

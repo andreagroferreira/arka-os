@@ -1,9 +1,10 @@
 """Tests for the Constitution governance system."""
 
-import pytest
 from pathlib import Path
 
-from core.governance.constitution import Constitution, load_constitution, Rule
+import pytest
+
+from core.governance.constitution import Constitution, load_constitution
 
 
 class TestConstitutionLoader:
@@ -207,7 +208,8 @@ class TestConclavePhase5Sections:
         wcag = next(i for i in items if i["id"] == "wcag-pass")
         assert wcag["hard"] is False
         assert "landing" in wcag.get("conditional", "").lower()
-        assert "internal" in wcag.get("conditional", "").lower() or "dashboard" in wcag.get("conditional", "").lower()
+        conditional = wcag.get("conditional", "").lower()
+        assert "internal" in conditional or "dashboard" in conditional
 
     def test_definition_of_done_backend_anti_vanity_rule(self, raw):
         items = raw["definition_of_done"]["backend"]["items"]
@@ -248,7 +250,10 @@ class TestConclavePhase5Sections:
     def test_tone_guide_anti_patterns_forbidden(self, raw):
         anti = raw["tone_guide"]["anti_patterns_forbidden"]
         # Must include the bedtime / time-of-day rule
-        assert any("bedtime" in a.lower() or "dorme bem" in a.lower() or "ate amanha" in a.lower() for a in anti)
+        assert any(
+            "bedtime" in a.lower() or "dorme bem" in a.lower()
+            or "ate amanha" in a.lower() for a in anti
+        )
         # Must include the "tens razao when flawed" rule
         assert any("tens razao" in a.lower() or "structurally flawed" in a.lower() for a in anti)
 

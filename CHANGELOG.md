@@ -5,6 +5,29 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.15.0] - 2026-08-09
+
+Consolidation release — the 2026-08-08/09 convergence session: 13 merges,
+issue tracker 21 → 0, contributor queue fully integrated.
+
+### Fixed
+- **governance:** security-grep fails closed on untracked and undiffable
+  files (#503); spellcheck findings record complete and path-qualified
+  (#505); manifest-only changesets no longer inherit master's mypy debt
+  (#520); PostToolUse gates ignore paths outside the project root (#518);
+  pytest imports pinned to the checkout (#504)
+- **cognition:** Dreaming CLI survives `python -m` (#512); the reorganizer
+  resolves its KB from config and a missing KB fails loudly (#522,
+  reported by @marlonoliveira182)
+- **sync:** stamped feature markers are named violations with the
+  installed tree audited on every sync (#508); real feature injector
+  primitive with named refusals (#517); tier registry detects
+  host-language headings (#516)
+- **hooks:** degraded-gate telemetry with tests and bounded growth
+  (#514, mechanism by @marlonoliveira182)
+- **release:** preflight caught and scrubbed a personal name from a
+  dreaming docstring example before publish
+
 ## [5.14.0] - 2026-08-07
 
 ### Fixed

@@ -278,7 +278,10 @@ def _matches(a: frozenset[str], b: frozenset[str]) -> bool:
 
 
 def _covered(
-    key: frozenset[str], aggregate: dict, approved: bool, severity: str = ""
+    key: frozenset[str],
+    aggregate: dict[str, object],
+    approved: bool,
+    severity: str = "",
 ) -> str:
     """Status of one CONFIRMED reviewer blocker against the aggregate.
 

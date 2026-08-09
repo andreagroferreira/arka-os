@@ -13,6 +13,7 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Any
 
 _VALID_STATUSES = ("pending", "in_progress", "completed", "skipped")
 
@@ -66,15 +67,16 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _read() -> dict | None:
+def _read() -> dict[str, Any] | None:
     _drop_legacy_state()
     path = _state_path()
     if not path.exists():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    return data
 
 
-def _write(state: dict) -> dict:
+def _write(state: dict[str, Any]) -> dict[str, Any]:
     """Atomic write: write to temp file then rename."""
     path = _state_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -95,7 +97,7 @@ def _write(state: dict) -> dict:
     return state
 
 
-def init_workflow(workflow: str, project: str, phases: list[str]) -> dict:
+def init_workflow(workflow: str, project: str, phases: list[str]) -> dict[str, Any]:
     """Create a new workflow state file. Overwrites any existing state."""
     state = {
         "session_id": str(uuid.uuid4()),
@@ -109,7 +111,7 @@ def init_workflow(workflow: str, project: str, phases: list[str]) -> dict:
     return _write(state)
 
 
-def get_state() -> dict | None:
+def get_state() -> dict[str, Any] | None:
     """Read current workflow state. Returns None if no active workflow."""
     return _read()
 
@@ -121,7 +123,7 @@ def clear_workflow() -> None:
         path.unlink()
 
 
-def _require_state() -> dict:
+def _require_state() -> dict[str, Any]:
     """Read state or raise if no active workflow."""
     state = _read()
     if state is None:
@@ -129,7 +131,7 @@ def _require_state() -> dict:
     return state
 
 
-def update_phase(phase: str, status: str, artifact: str | None = None) -> dict:
+def update_phase(phase: str, status: str, artifact: str | None = None) -> dict[str, Any]:
     """Update a phase status. Validates phase exists and status is valid."""
     if status not in _VALID_STATUSES:
         raise ValueError(f"Invalid status: {status}. Must be one of {_VALID_STATUSES}")
@@ -144,7 +146,7 @@ def update_phase(phase: str, status: str, artifact: str | None = None) -> dict:
     return _write(state)
 
 
-def set_branch(branch: str) -> dict:
+def set_branch(branch: str) -> dict[str, Any]:
     """Record the git branch for the current workflow."""
     state = _require_state()
     state["branch"] = branch
@@ -157,10 +159,10 @@ def add_violation(
     tool: str | None = None,
     file: str | None = None,
     severity: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Append a violation to the violations list."""
     state = _require_state()
-    violation: dict = {"rule": rule, "detail": detail, "at": _now_iso()}
+    violation: dict[str, Any] = {"rule": rule, "detail": detail, "at": _now_iso()}
     if tool:
         violation["tool"] = tool
     if file:
@@ -175,7 +177,7 @@ def add_violation(
 
 def update_phases(
     statuses: dict[str, str], artifacts: dict[str, str] | None = None
-) -> dict:
+) -> dict[str, Any]:
     """Update several phases in ONE atomic write (Gate Economy PR-9).
 
     The gate checkpoint previously called ``update_phase`` once per
@@ -210,4 +212,4 @@ def is_phase_completed(phase: str) -> bool:
     phase_data = state["phases"].get(phase)
     if phase_data is None:
         return False
-    return phase_data["status"] == "completed"
+    return bool(phase_data["status"] == "completed")
