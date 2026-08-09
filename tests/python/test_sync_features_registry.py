@@ -23,6 +23,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from core.sync.marker_audit import scan_tree
 from core.sync.schema import FeatureSpec
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -168,15 +169,22 @@ def test_keyword_alternatives_do_not_match_longer_tokens(path: Path):
 _REPO_MARKER_DIRS = ("arka", "departments")
 
 
-def test_repo_marker_regions_match_registry_content():
-    """Every in-repo file carrying real `arka:feature` markers must hold
-    each marker-delimited region byte-identical to the registry `content`
-    — the hole that let a stale figure live undetected inside a marked
-    block (QG 2026-08-04, PR #450 blocker 3)."""
-    specs = {s.name: s for s in map(_load, _FEATURE_FILES)}
+def _audit_marker_regions(
+    roots: list[Path], specs: dict[str, FeatureSpec]
+) -> tuple[int, list[str]]:
+    """Audit every marker in `roots`: shape first, then region identity.
+
+    Returns ``(regions_checked, problems)``. Shape comes first on purpose.
+    The old version searched for the literal bare marker and `continue`d on
+    a miss, so a STAMPED marker (`:start version=5.10.0 hash=…`) was read as
+    "no marker in this file" — at least 13 of them, plus whatever drifted
+    inside them, sailed through four releases (issue #492). A marker that no literal
+    consumer matches is now a NAMED failure, never a skip.
+    """
+    problems = [v.describe() for root in roots for v in scan_tree(root)]
     checked = 0
-    for base in _REPO_MARKER_DIRS:
-        for md in (_ROOT / base).rglob("*.md"):
+    for root in roots:
+        for md in sorted(root.rglob("*.md")):
             text = md.read_text(encoding="utf-8")
             for name, spec in specs.items():
                 region = re.search(
@@ -188,8 +196,75 @@ def test_repo_marker_regions_match_registry_content():
                 if region is None:
                     continue
                 checked += 1
-                assert region.group(0).strip() == spec.content.strip(), (
-                    f"{md.relative_to(_ROOT)}: marker region for "
-                    f"{name!r} drifts from the registry content"
-                )
+                if region.group(0).strip() != spec.content.strip():
+                    problems.append(
+                        f"{md}: marker region for {name!r} drifts from the "
+                        "registry content"
+                    )
+    return checked, problems
+
+
+def test_repo_marker_regions_match_registry_content():
+    """Every in-repo file carrying real `arka:feature` markers must hold
+    each marker-delimited region byte-identical to the registry `content`
+    — the hole that let a stale figure live undetected inside a marked
+    block (QG 2026-08-04, PR #450 blocker 3) — and carry the marker in its
+    bare form, the only shape every consumer matches (issue #492)."""
+    specs = {s.name: s for s in map(_load, _FEATURE_FILES)}
+    roots = [_ROOT / base for base in _REPO_MARKER_DIRS]
+    checked, problems = _audit_marker_regions(roots, specs)
+    assert not problems, "\n".join(problems)
     assert checked, "no in-repo marker regions found — glob or dirs wrong"
+
+
+def _spec_of(name: str) -> FeatureSpec:
+    return next(s for s in map(_load, _FEATURE_FILES) if s.name == name)
+
+
+def test_stamped_marker_in_a_scanned_tree_is_a_named_violation(tmp_path: Path):
+    """RED-locked defect (a) of issue #492, hermetically: a stamped marker
+    wrapping DRIFTED content used to be skipped in silence, so the drift
+    lock passed. It must now fail, naming path, line and the stamp."""
+    spec = _spec_of("quality-gate")
+    body = spec.content.strip().splitlines()[1:-1]
+    stamped = "\n".join(
+        [
+            "<!-- arka:feature:quality-gate:start version=5.10.0 hash=deadbeef1234 -->",
+            *body,
+            "STALE FIGURE THAT THE OLD LOCK NEVER SAW",
+            "<!-- arka:feature:quality-gate:end version=5.10.0 hash=deadbeef1234 -->",
+        ]
+    )
+    (tmp_path / "SKILL.md").write_text(f"# Ecosystem\n\n{stamped}\n", encoding="utf-8")
+
+    checked, problems = _audit_marker_regions([tmp_path], {"quality-gate": spec})
+
+    assert checked == 0, "a stamped marker is not a canonical region"
+    assert len(problems) == 2, f"start and end must both be named: {problems}"
+    assert all("SKILL.md" in p for p in problems)
+    assert any("version=5.10.0" in p and ":3:" in p for p in problems)
+
+
+def test_malformed_marker_in_a_scanned_tree_is_a_named_violation(tmp_path: Path):
+    """The mirror case: a marker mangled by hand (no spaces) is equally
+    invisible to every literal consumer, so it fails the same way."""
+    spec = _spec_of("quality-gate")
+    (tmp_path / "SKILL.md").write_text(
+        "<!--arka:feature:quality-gate:start-->\n", encoding="utf-8"
+    )
+
+    _, problems = _audit_marker_regions([tmp_path], {"quality-gate": spec})
+
+    assert len(problems) == 1
+    assert "arka:feature:quality-gate:start" in problems[0]
+
+
+def test_bare_marker_region_matching_the_registry_is_clean(tmp_path: Path):
+    """Control: the canonical shape with canonical content raises nothing —
+    the lock must fail on drift, not on everything."""
+    spec = _spec_of("quality-gate")
+    (tmp_path / "SKILL.md").write_text(spec.content.strip() + "\n", encoding="utf-8")
+
+    checked, problems = _audit_marker_regions([tmp_path], {"quality-gate": spec})
+
+    assert (checked, problems) == (1, [])

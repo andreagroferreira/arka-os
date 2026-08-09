@@ -13,6 +13,7 @@ from core.sync.schema import (
     AgentProvisionResult,
     ContentSyncResult,
     DescriptorSyncResult,
+    MarkerViolation,
     McpSyncResult,
     SettingsSyncResult,
     SkillSyncResult,
@@ -38,6 +39,7 @@ def build_report(
     deprecated_features: list[str] | None = None,
     content_results: list[ContentSyncResult] | None = None,
     agent_results: list[AgentProvisionResult] | None = None,
+    marker_violations: list[MarkerViolation] | None = None,
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
     phases = (mcp_results, settings_results, descriptor_results, skill_results)
@@ -52,10 +54,30 @@ def build_report(
         skill_results=skill_results,
         content_results=content_results or [],
         agent_results=agent_results or [],
-        errors=_collect_errors(
-            *phases, content_results=content_results, agent_results=agent_results
-        ),
+        marker_violations=marker_violations or [],
+        errors=_all_errors(phases, content_results, agent_results, marker_violations),
     )
+
+
+def _all_errors(
+    phases: tuple[
+        list[McpSyncResult],
+        list[SettingsSyncResult],
+        list[DescriptorSyncResult],
+        list[SkillSyncResult],
+    ],
+    content_results: list[ContentSyncResult] | None,
+    agent_results: list[AgentProvisionResult] | None,
+    violations: list[MarkerViolation] | None,
+) -> list[str]:
+    """Phase errors plus marker violations, in one actionable list.
+
+    Marker violations count as errors: printing "Errors: 0" over a stamped
+    marker is how at least 13 of them survived four releases (issue #492).
+    """
+    return _collect_errors(
+        *phases, content_results=content_results, agent_results=agent_results
+    ) + [v.describe() for v in violations or []]
 
 
 def write_sync_state(state_file: Path, report: SyncReport) -> None:
@@ -92,8 +114,25 @@ def format_report(report: SyncReport) -> str:
         lines += ["", "  Key changes:", *[f"  - {c}" for c in key_changes]]
 
     lines += _format_deferred_lines(report.mcp_results)
+    lines += _format_marker_lines(report.marker_violations)
     lines += ["", f"  Errors: {len(report.errors)}", _SEPARATOR]
     return "\n".join(lines)
+
+
+def _format_marker_lines(violations: list[MarkerViolation]) -> list[str]:
+    """Non-canonical feature markers, or nothing when the tree is clean.
+
+    Prose rendered FROM the structured records — they are the stored form;
+    this is only the terminal view of them. Each one is printed: a bare
+    count would have been as invisible as the silence it replaces.
+    """
+    if not violations:
+        return []
+    return [
+        "",
+        f"  Feature markers: {len(violations)} non-canonical (stamped/malformed):",
+        *[f"  - {v.describe()}" for v in violations],
+    ]
 
 
 def _format_deferred_lines(results: list[McpSyncResult]) -> list[str]:
