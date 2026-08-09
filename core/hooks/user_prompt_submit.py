@@ -11,16 +11,18 @@ Section order preserved exactly:
     3. Flow marker + obsidian-query cache invalidation (invalidate_marker)
     4. Synapse bridge → 12-layer context string
     5. Workflow-state + Forge tags appended to the bridge context
-    6. KB auto-inject (session cache overlap)
+    6. (removed — Gate Economy PR-10: KB overlap injection now happens
+       ONCE, in Synapse L3.5; the session-cache duplicate is gone)
     7. Bash-parity fallback context (L0 constitution, branch, workflow,
        forge) when the bridge degrades
     8. Token hygiene suggestions (4 checks, ported from token-hygiene.sh)
-    9. Persistent routing reminder + workflow classifier directive
+    9. Routing reminder + workflow classifier directive (one-line tags;
+       the full contracts ride once per session at SessionStart)
    10. Cognitive context injection + one-shot nudges (kb-cite, meta-tag,
        closing-marker) gated by effort level
    11. additionalContext JSON output + hook metrics
 
-Sections 6, 8, 10 and the refine hint are budgeted — past the
+Sections 8, 10 and the refine hint are budgeted — past the
 ``ARKA_UPS_BUDGET_MS`` deadline they are skipped and named in
 ``[arka:degraded]``; 1-5, 9 and 11 always run, and 7 runs unbudgeted
 only when the bridge degrades.
@@ -64,20 +66,25 @@ _L0_FALLBACK = (
     "test-coverage, subagent-discipline, persona-vs-artifact"
 )
 
-_ROUTE_REMINDER = """
-[ARKA:ROUTE]
-EVERY response MUST route through a department squad.
-NO generic assistant replies. Announce the squad before responding.
-When [knowledge:N chunks] is present, cite at least one source.
-If [knowledge:N chunks] is absent on a non-trivial ArkaOS topic, query Obsidian first."""
+# Gate Economy PR-10: the FULL routing and evidence-flow contracts ride
+# once per session in the SessionStart injection (_SKILL_ROUTING_CONTRACT,
+# _EVIDENCE_CONTRACT) and stay in the conversation context. Repeating
+# ~190 tokens of byte-identical text on EVERY turn was pure duplication;
+# the per-turn line keeps only the tag (which tests and enforcers key
+# on) plus a one-line pointer.
+_ROUTE_REMINDER = (
+    "\n[ARKA:ROUTE] Squad routing obligatory (full contract at "
+    "SessionStart) — announce the squad; cite KB when "
+    "[knowledge:N chunks] is present, else query Obsidian on "
+    "non-trivial ArkaOS topics."
+)
 
-_WORKFLOW_DIRECTIVE = """
-[ARKA:WORKFLOW-REQUIRED] CREATION/IMPLEMENTATION detected — the 4-gate evidence
-flow applies (constitution rule evidence-flow; source arka/skills/flow/SKILL.md).
-G1 CONTEXT ([arka:routing] + grounding) -> G2 PLAN (explicit approval) ->
-G3 EXECUTE (real test run + exit 0 on record) -> G4 REVIEW (executable checks).
-Emit [arka:gate:N] at each gate start. No writes before G2 approval.
-Trivial bypass: [arka:trivial] <reason> for a single-file edit under 10 lines."""
+_WORKFLOW_DIRECTIVE = (
+    "\n[ARKA:WORKFLOW-REQUIRED] CREATION/IMPLEMENTATION detected — "
+    "4-gate evidence flow applies (full contract at SessionStart; "
+    "source arka/skills/flow/SKILL.md). Emit [arka:gate:N]; no writes "
+    "before G2 approval; trivial bypass: [arka:trivial] <reason>."
+)
 
 # Keep in sync with ARKA_WF_VERB_PATTERN in _lib/workflow-classifier.sh.
 _WF_VERB_PATTERN = (
@@ -331,39 +338,6 @@ def _forge_tag() -> str:
     return f"[forge:{forge_id}] [forge-status:{status}]"
 
 
-# ─── Section 6: KB auto-inject (session cache) ───────────────────────────
-
-
-def _kb_auto_inject(root: str, user_input: str) -> str:
-    import hashlib
-
-    kb_session_id = (
-        os.environ.get("ARKAOS_SESSION_ID")
-        or os.environ.get("CLAUDE_SESSION_ID")
-        or f"bridge-{os.getpid()}"
-    )
-    project_hash = hashlib.md5(
-        root.encode(), usedforsecurity=False
-    ).hexdigest()[:12]
-    cache_dir = arkaos_temp_dir(f"arkaos-kb-{project_hash}")
-    if not cache_dir.is_dir():
-        return ""
-    try:
-        from core.synapse.kb_cache import KBSessionCache
-        cache = KBSessionCache(session_id=kb_session_id, project_path=root)
-        results = cache.get_overlap(user_input, threshold=0.3)
-    except Exception:
-        return ""
-    if not results:
-        return ""
-    snippets = []
-    for r in results[:3]:
-        src = r.get("source", "").split("/")[-1] if r.get("source") else ""
-        txt = str(r.get("text", ""))[:200].replace("\n", " ")
-        snippets.append(f"{src}: {txt}" if src else txt)
-    return " | ".join(snippets)
-
-
 # ─── Section 7: bash-parity fallback context ─────────────────────────────
 
 
@@ -614,7 +588,7 @@ class _Budget:
     loses all hook-injected context (8 hook_cancelled on record at the
     former 10s ceiling, raised to 20s here). Degrading is strictly
     better: once the deadline passes, the budgeted optional stages
-    (kb-inject, token-hygiene, refine-score, cognitive-hits, nudges)
+    (token-hygiene, refine-score, cognitive-hits, nudges)
     are skipped, the assembled context ships, and the turn carries
     [arka:degraded] so the cut is visible. The Synapse bridge is never skipped — it is the core the
     other stages decorate — and the tag/plan-approval work around it
@@ -700,12 +674,10 @@ def _bridge_context(
     forge_tag = _forge_tag()
     if forge_tag:
         python_result = f"{python_result} {forge_tag}"
-    if "[knowledge:" in python_result:
-        kb_content = budget.run(
-            "kb-inject", lambda: _kb_auto_inject(root, user_input)
-        )
-        if kb_content:
-            python_result = f"{kb_content} {python_result}"
+    # Gate Economy PR-10: the KB overlap snippets are already injected
+    # by Synapse L3.5 (same KBSessionCache.get_overlap, same threshold,
+    # same turn) — the former _kb_auto_inject prepended the identical
+    # ~150 tokens a second time. One injection point remains: L3.5.
     return python_result
 
 

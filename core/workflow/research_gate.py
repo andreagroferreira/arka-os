@@ -31,6 +31,7 @@ from pathlib import Path
 
 from core.knowledge.vault import resolve_vault_path
 from core.shared import safe_session_id as _safe_session_id_module
+from core.shared.telemetry_rotate import rotate_if_oversized
 from core.shared.temp_paths import arkaos_temp_dir
 from core.synapse import kb_cache
 
@@ -91,6 +92,7 @@ class Decision:
 
 @contextmanager
 def _locked_append(path: Path):
+    rotate_if_oversized(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fh = path.open("a", encoding="utf-8")
     try:

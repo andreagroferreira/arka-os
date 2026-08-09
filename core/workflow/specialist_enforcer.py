@@ -49,6 +49,7 @@ from pathlib import Path
 import yaml
 
 from core.shared import safe_session_id as _safe_session_id_module
+from core.shared.telemetry_rotate import rotate_if_oversized
 from core.workflow import specialist_authorization, transcript_scope
 from core.workflow.flow_enforcer import shadow_deny_on
 
@@ -62,6 +63,7 @@ except ImportError:
 @contextmanager
 def _locked_append(path: Path):
     """Append to `path` under an exclusive advisory lock (POSIX flock)."""
+    rotate_if_oversized(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fh = path.open("a", encoding="utf-8")
     try:
