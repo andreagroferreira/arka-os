@@ -42,8 +42,8 @@ def rotate_if_oversized(path: Path, max_bytes: int | None = None) -> bool:
     (small) file and stands down instead of replacing again and
     destroying the one kept generation. Where ``fcntl`` is unavailable
     (Windows) the flock helpers no-op, rotation is best-effort, and a
-    rare concurrent double-rotation can still drop the kept generation
-    — bounded to telemetry logs. A concurrent APPENDER holding a
+    rare concurrent double-rotation can still drop the kept generation;
+    the loss is confined to telemetry logs. A concurrent APPENDER holding a
     handle to the renamed inode keeps writing into ``<name>.1`` — data
     lands in the kept generation, never lost.
     """

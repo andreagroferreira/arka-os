@@ -465,14 +465,16 @@ def _workflow_state() -> dict | None:
     # QG round 1, B1: the reader MUST resolve the state the way the
     # writer does — a hardcoded legacy path left this detector reading
     # a file the tracker deletes, silencing branch-isolation entirely.
-    # QG round 2: keep the isinstance guard the sibling reader kept —
-    # a corrupt non-dict state fabricated violations and crashed the
-    # Edit path — and catch only what reading can raise.
+    # QG rounds 2-3: the isinstance guard mirrors _workflow_tag in
+    # core/hooks/user_prompt_submit.py — without it, a corrupt
+    # non-dict state file produced a spurious branch-isolation
+    # violation and an AttributeError on the Edit path. The except
+    # names everything importing or reading can raise.
     try:
         from core.workflow.state import get_state
 
         state = get_state()
-    except (OSError, ValueError, RuntimeError):
+    except (ImportError, OSError, ValueError, RuntimeError):
         return None
     return state if isinstance(state, dict) else None
 

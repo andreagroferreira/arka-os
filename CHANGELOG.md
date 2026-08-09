@@ -16,7 +16,8 @@ issue tracker 21 → 0, contributor queue fully integrated.
   (#505); manifest-only changesets no longer inherit master's mypy debt
   (#520); PostToolUse gates ignore paths outside the project root (#518);
   pytest imports pinned to the checkout (#504)
-- **cognition:** Dreaming CLI survives `python -m` (#512); the reorganizer
+- **cognition:** Dreaming CLI survives `python -m` (#512, diagnosis and
+  original implementation by @marlonoliveira182); the reorganizer
   resolves its KB from config and a missing KB fails loudly (#522,
   reported by @marlonoliveira182)
 - **sync:** stamped feature markers are named violations with the
@@ -28,8 +29,7 @@ issue tracker 21 → 0, contributor queue fully integrated.
 - **tests:** codespell typo no longer blocks every PR against master
   (#499, authored by @marlonoliveira182)
 - **installer:** CRLF CLAUDE.md adoption + `pathToFileURL` sweep
-  (#511, carried forward from @marlonoliveira182's original with
-  credit — as were the cognition fixes above)
+  (#511, carried forward from @marlonoliveira182's original)
 - **dashboard:** the no-PTY path returns its 501 with CORS headers
   (#513, carried forward from @marlonoliveira182's original with
   credit)

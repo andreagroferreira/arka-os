@@ -516,6 +516,11 @@ class TestRound2Fixes:
         import core.workflow.state as st
         from core.hooks import post_tool_use as ptu
 
+        # QG round 3: restore the REAL resolver — the module autouse
+        # fixture patches _state_path away, and without this line the
+        # corrupt file below is never read and the test proves nothing
+        # (the mutation that deletes the guard must FAIL this test).
+        monkeypatch.setattr(st, "_state_path", _real_state_path)
         monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
         st.reset_root_cache()
         project = tmp_path / "proj"

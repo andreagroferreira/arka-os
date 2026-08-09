@@ -15,7 +15,7 @@ enforcement_levels:
         enforcement: "Security phase mandatory in all code-modifying workflows"
 
       - id: mandatory-qa
-        rule: "QA is evidence-gated at every round and EXHAUSTIVE at the final pre-merge gate: intermediate QG rounds run the subset the evidence engine maps from the diff (--changed-files; the mapping falls back to the FULL suite on any uncertainty — never an empty run; a hand-pinned command is the recorded exception the enforcement defines), and the FULL suite runs and exits 0 at the final pre-merge gate before any merge/ship. No shortcut gets past the final pre-merge gate."
+        rule: "QA is evidence-gated at every round and EXHAUSTIVE at the final pre-merge gate: intermediate QG rounds run the subset the evidence engine maps from the diff (--changed-files; the mapping falls back to the FULL suite on any uncertainty — never an empty run; a hand-pinned --test-command, recorded with its reason, is the only exception), and the FULL suite runs and exits 0 at the final pre-merge gate before any merge/ship. No shortcut gets past the final pre-merge gate."
         enforcement: "Evidence engine maps tests by diff (core.governance.evidence_checks._mapped_test_files, fail-closed fallback to full); a hand-pinned --test-command is the exception, used only when the engine cannot see the relevant tests and recorded with its reason; the final pre-merge gate runs run_evidence_checks --final-gate (full suite, exit 0) with coverage report"
 
       - id: evidence-flow
