@@ -19,6 +19,7 @@ import pytest
 from core.governance.review_workflow import ReviewWorkflowEngine, Verdict
 from core.memory.rehydrator import rehydrate_session
 from core.memory.session_store import SessionMeta, SessionStore
+from core.workflow import state as _state_module
 from core.workflow.gate_checkpoint import checkpoint
 
 SESSION = "sess-e2e-flow"
@@ -50,8 +51,10 @@ def _write_transcript(path: Path, assistant_texts: list[str]) -> Path:
 
 
 def _global_state(tmp_path: Path) -> dict:
+    # Gate Economy PR-9: the state file is per-project under
+    # ~/.arkaos/workflow-state/ — resolve it the way the tracker does.
     return json.loads(
-        (tmp_path / ".arkaos" / "workflow-state.json").read_text(encoding="utf-8")
+        _state_module._state_path().read_text(encoding="utf-8")
     )
 
 
