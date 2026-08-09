@@ -45,6 +45,31 @@ class SessionCapacityError(RuntimeError):
     """Raised when ``create()`` is called past the configured cap."""
 
 
+NO_PTY_MESSAGE = (
+    "no PTY backend available on this platform "
+    "(pywinpty missing or ConPTY unavailable)"
+)
+
+
+class PtyUnavailableError(RuntimeError):
+    """Raised when no PTY backend can be constructed on this platform.
+
+    Subclasses ``RuntimeError`` so pre-existing broad handlers keep
+    behaving, but the dashboard API catches it *by name* to answer
+    ``501 Not Implemented``. That matters: an unhandled exception is
+    turned into a 500 by Starlette's ServerErrorMiddleware, which sits
+    outside the CORS middleware, so the browser receives no
+    ``Access-Control-Allow-Origin`` and can only report an opaque
+    "Failed to fetch" with the real cause never reaching the operator.
+
+    The message is deliberately operator-facing — it never carries the
+    underlying exception's text, only its class name as a triage hint
+    (``ModuleNotFoundError`` → install pywinpty; ``WinptyError`` →
+    ConPTY refused; ``FileNotFoundError`` → the shell path is wrong).
+    The original exception stays chained for the server-side traceback.
+    """
+
+
 def _default_shell() -> str:
     if os.name == "nt":
         # Windows PowerShell renders reliably under ConPTY; bare cmd.exe can
@@ -296,15 +321,30 @@ class TerminalSessionManager:
         chosen_shell = shell or _default_shell()
         chosen_cwd = cwd or _default_cwd()
         if not _PTY_SUPPORTED:
-            from core.terminal.session_windows import WindowsTerminalSession
-            session = WindowsTerminalSession(
-                session_id=sid,
-                shell=chosen_shell,
-                cwd=chosen_cwd,
-                cols=cols,
-                rows=rows,
-                scrollback_bytes=self.scrollback_bytes,
-            )
+            # No Unix PTY here, so the ConPTY backend is the only option
+            # and every way it can fail means the same thing to the
+            # operator: there is no usable terminal on this machine.
+            # pywinpty absent raises ModuleNotFoundError, ConPTY refusing
+            # raises winpty.WinptyError (not an OSError, so it cannot be
+            # named in a narrow tuple without importing the dependency we
+            # just failed to import), a bad shell path raises
+            # FileNotFoundError. Normalise the lot into
+            # PtyUnavailableError so the API answers 501 through the CORS
+            # middleware; the real cause stays chained for the traceback.
+            try:
+                from core.terminal.session_windows import WindowsTerminalSession
+                session = WindowsTerminalSession(
+                    session_id=sid,
+                    shell=chosen_shell,
+                    cwd=chosen_cwd,
+                    cols=cols,
+                    rows=rows,
+                    scrollback_bytes=self.scrollback_bytes,
+                )
+            except Exception as exc:
+                raise PtyUnavailableError(
+                    f"{NO_PTY_MESSAGE} [{type(exc).__name__}]"
+                ) from exc
         else:
             session = TerminalSession(
                 session_id=sid,

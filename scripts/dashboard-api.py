@@ -2982,7 +2982,11 @@ def terminal_sessions_list():
 @app.post("/api/terminal/sessions")
 def terminal_sessions_create(body: dict):
     from core.terminal import token as _token_mod
-    from core.terminal.session import SessionCapacityError, default_manager
+    from core.terminal.session import (
+        PtyUnavailableError,
+        SessionCapacityError,
+        default_manager,
+    )
     body = body if isinstance(body, dict) else {}
     cwd = body.get("cwd")
     shell = body.get("shell")
@@ -2994,10 +2998,15 @@ def terminal_sessions_create(body: dict):
     except SessionCapacityError as exc:
         from fastapi import HTTPException
         raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except RuntimeError as exc:
-        # Windows: no Unix PTY available. Return a clean 501 (which goes
-        # through the CORS middleware) instead of an unhandled 500 that
-        # the browser reports as an opaque "Failed to fetch".
+    except PtyUnavailableError as exc:
+        # Windows without a working ConPTY backend. Answer a clean 501,
+        # which is raised *inside* the app and therefore passes through
+        # the CORS middleware. An unhandled error becomes a 500 in
+        # ServerErrorMiddleware, which sits outside CORS, so the browser
+        # sees no Access-Control-Allow-Origin and reports nothing but an
+        # opaque "Failed to fetch". Caught by name, not as a bare
+        # RuntimeError: that would also swallow unrelated genuine bugs
+        # and mislabel them "not implemented".
         from fastapi import HTTPException
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     return {
