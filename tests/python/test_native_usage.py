@@ -7,8 +7,11 @@ import json
 import pytest
 
 from core.runtime.llm_cost_telemetry import read_entries
-from core.runtime.native_usage import extract_last_usage, record_native_usage
-
+from core.runtime.native_usage import (
+    extract_last_usage,
+    record_native_usage,
+    record_subagent_usage,
+)
 
 # ─── Fixtures ─────────────────────────────────────────────────────────
 
@@ -210,3 +213,118 @@ class TestRecordNativeUsage:
             transcript, "sess-1", "/dev/null/impossible"
         )
         assert result is False
+
+
+# ─── Full-turn capture + subagent capture (Gate Economy PR-8) ─────────
+
+
+class TestFullTurnCapture:
+    """The last-record-only capture under-reported 38x; every assistant
+    record now counts, high-water deduped, grouped per model."""
+
+    def test_first_capture_sums_every_record(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(
+            tmp_path,
+            [
+                _assistant_record("u1"),
+                _assistant_record("u2"),
+                _assistant_record("u3"),
+            ],
+        )
+        assert record_native_usage(transcript, "sess-full-1", cursor_dir)
+        entries = read_entries()
+        assert len(entries) == 1  # one model → one grouped row
+        row = entries[0]
+        assert row["tokens_in"] == (10 + 5 + 3) * 3
+        assert row["tokens_out"] == 7 * 3
+        assert row["cached_tokens"] == 5 * 3
+
+    def test_appended_records_capture_only_the_delta(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        records = [_assistant_record("u1"), _assistant_record("u2")]
+        transcript = _write_transcript(tmp_path, records)
+        assert record_native_usage(transcript, "sess-full-2", cursor_dir)
+        records.append(_assistant_record("u3"))
+        transcript = _write_transcript(tmp_path, records)
+        assert record_native_usage(transcript, "sess-full-2", cursor_dir)
+        entries = read_entries()
+        assert len(entries) == 2
+        assert entries[1]["tokens_in"] == 10 + 5 + 3  # only u3
+
+    def test_multiple_models_get_one_row_each(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(
+            tmp_path,
+            [
+                _assistant_record("u1", model="claude-opus-5"),
+                _assistant_record("u2", model="claude-haiku-4-5"),
+            ],
+        )
+        assert record_native_usage(transcript, "sess-full-3", cursor_dir)
+        models = {e["model"] for e in read_entries()}
+        assert models == {"claude-opus-5", "claude-haiku-4-5"}
+
+    def test_lost_cursor_falls_back_to_last_record_only(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(
+            tmp_path, [_assistant_record("u1")], name="a.jsonl"
+        )
+        assert record_native_usage(transcript, "sess-full-4", cursor_dir)
+        # transcript rewritten: cursor uuid no longer present
+        transcript = _write_transcript(
+            tmp_path,
+            [_assistant_record("x1"), _assistant_record("x2")],
+            name="a.jsonl",
+        )
+        assert record_native_usage(transcript, "sess-full-4", cursor_dir)
+        entries = read_entries()
+        assert len(entries) == 2
+        assert entries[1]["tokens_in"] == 10 + 5 + 3  # x2 only, not x1+x2
+
+
+class TestSubagentCapture:
+    def test_records_sum_with_agent_category(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(
+            tmp_path,
+            [_assistant_record("s1"), _assistant_record("s2")],
+            name="agent.jsonl",
+        )
+        assert record_subagent_usage(
+            transcript, "sess-sub-1", "francisca-tech", cursor_dir
+        )
+        entries = read_entries()
+        assert len(entries) == 1
+        row = entries[0]
+        assert row["provider"] == "native-subagent"
+        assert row["category"] == "subagent:francisca-tech"
+        assert row["tokens_in"] == (10 + 5 + 3) * 2
+
+    def test_second_fire_is_deduped(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(
+            tmp_path, [_assistant_record("s1")], name="agent.jsonl"
+        )
+        assert record_subagent_usage(
+            transcript, "sess-sub-2", "eduardo-copy", cursor_dir
+        )
+        assert not record_subagent_usage(
+            transcript, "sess-sub-2", "eduardo-copy", cursor_dir
+        )
+        assert len(read_entries()) == 1
+
+    def test_empty_transcript_records_nothing(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(tmp_path, ["not json"], name="e.jsonl")
+        assert not record_subagent_usage(
+            transcript, "sess-sub-3", "x", cursor_dir
+        )
+        assert read_entries() == []

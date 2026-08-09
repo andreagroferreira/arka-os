@@ -45,3 +45,23 @@ class TestEstimateCostUsd:
         for model, row in PRICING.items():
             for key, value in row.items():
                 assert value > 0, f"{model}.{key} should be positive"
+
+
+class TestOpus5Pricing:
+    """Gate Economy PR-8: claude-opus-5 carried 28% of weekly input
+    tokens at $0.00 attributed because the row was missing."""
+
+    def test_opus5_rows_present_with_published_rates(self):
+        for model in ("claude-opus-5", "claude-opus-5[1m]"):
+            row = PRICING[model]
+            assert row["input"] == 5.00
+            assert row["output"] == 25.00
+            assert row["cache_read"] == 0.50
+            assert row["cache_write"] == 6.25
+
+    def test_opus5_estimate_is_not_none(self):
+        cost = estimate_cost_usd("claude-opus-5", 1_000_000, 100_000, 0)
+        assert cost == 5.00 + 2.50
+
+    def test_fable_1m_alias_present(self):
+        assert PRICING["claude-fable-5[1m]"]["input"] == 10.00

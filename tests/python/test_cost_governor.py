@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from core.runtime import cost_governor
 from core.runtime.cost_governor import GovernorDecision, check, main
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -21,12 +20,16 @@ def _write_config(tmp_path, budget: dict | None):
     return path
 
 
+def _now_iso() -> str:
+    return datetime.now(UTC).isoformat()
+
+
 def _write_telemetry(tmp_path, rows: list[dict]):
     path = tmp_path / "llm-cost.jsonl"
     lines = []
     for row in rows:
         entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "session_id": "s1",
             "provider": "native",
             "model": "m",
@@ -135,7 +138,7 @@ class TestCheck:
 
     def test_daily_cap_ignores_yesterday(self, tmp_path):
         yesterday = (
-            datetime.now(timezone.utc) - timedelta(days=2)
+            datetime.now(UTC) - timedelta(days=2)
         ).isoformat()
         config = _write_config(tmp_path, {"dailyCapUsd": 5.0})
         telemetry = _write_telemetry(
@@ -209,3 +212,64 @@ class TestGovernorDecision:
             "[arka:warn] budget cap exceeded ($12.35 of $10.00) "
             "— daily-cap-exceeded"
         )
+
+
+class TestTokenCaps:
+    """Gate Economy PR-8: token caps count EVERY row, priced or not —
+    a Max account has a token ceiling, and unpriced models were the
+    governor's blind spot."""
+
+    def _unpriced_rows(self, n, session="sess-tok"):
+        return [
+            {
+                "ts": _now_iso(),
+                "session_id": session,
+                "model": "",
+                "tokens_in": 60_000,
+                "tokens_out": 2_000,
+                "estimated_cost_usd": None,
+            }
+            for _ in range(n)
+        ]
+
+    def test_session_token_cap_exceeded_warns(self, tmp_path):
+        config = _write_config(
+            tmp_path, {"sessionTokenCap": 100_000}
+        )
+        telemetry = _write_telemetry(tmp_path, self._unpriced_rows(2))
+        decision = check(
+            "sess-tok", config_path=config, telemetry_path=telemetry
+        )
+        assert decision.allow is True
+        assert decision.reason == "session-token-cap-exceeded"
+        assert decision.spent_tokens == 124_000
+        assert "token budget cap exceeded" in decision.to_warning()
+
+    def test_session_token_cap_hard_deny_blocks(self, tmp_path):
+        config = _write_config(
+            tmp_path, {"sessionTokenCap": 100_000, "hardDeny": True}
+        )
+        telemetry = _write_telemetry(tmp_path, self._unpriced_rows(2))
+        decision = check(
+            "sess-tok", config_path=config, telemetry_path=telemetry
+        )
+        assert decision.allow is False
+
+    def test_under_token_cap_allows(self, tmp_path):
+        config = _write_config(tmp_path, {"sessionTokenCap": 1_000_000})
+        telemetry = _write_telemetry(tmp_path, self._unpriced_rows(2))
+        decision = check(
+            "sess-tok", config_path=config, telemetry_path=telemetry
+        )
+        assert decision.allow is True
+        assert decision.reason == "under-cap"
+
+    def test_daily_token_cap_counts_all_sessions(self, tmp_path):
+        config = _write_config(tmp_path, {"dailyTokenCap": 100_000})
+        rows = self._unpriced_rows(1, "s-a") + self._unpriced_rows(1, "s-b")
+        telemetry = _write_telemetry(tmp_path, rows)
+        decision = check(
+            "s-a", config_path=config, telemetry_path=telemetry
+        )
+        assert decision.reason == "daily-token-cap-exceeded"
+        assert decision.spent_tokens == 124_000

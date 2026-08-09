@@ -296,8 +296,30 @@ def main(stdin_json: dict | None = None) -> int:
     ledger = _ledger_capture(source, session_id, agent_id, text)
     qa = _run_qa(text, raw)
     _record(session_id, agent_id, qa)
+    _capture_usage(stdin_json, session_id, agent_id, transcript_path)
     _queue_for_orchestrator(session_id, ledger, _nudge(agent_id, qa))
     return 0
+
+
+def _capture_usage(
+    stdin_json: dict, session_id: str, agent_id: str, transcript_path: str
+) -> None:
+    """Attribute the subagent's OWN transcript usage (Gate Economy PR-8).
+
+    Task-tool sidechains were invisible to cost telemetry. Only the
+    agent transcript counts here — the parent transcript's turns are
+    already captured by the Stop hook, so capturing them again would
+    double-count.
+    """
+    agent_transcript = get_str(stdin_json, "agent_transcript_path")
+    if not agent_transcript or _same_file(agent_transcript, transcript_path):
+        return
+    try:
+        from core.runtime.native_usage import record_subagent_usage
+
+        record_subagent_usage(agent_transcript, session_id, agent_id)
+    except Exception:  # telemetry is best-effort — the hook never breaks
+        pass
 
 
 def _queue_for_orchestrator(

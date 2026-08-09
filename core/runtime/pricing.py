@@ -15,7 +15,6 @@ logged with a null cost — never a guessed number.
 
 from __future__ import annotations
 
-
 # USD per 1M tokens. Only the `cache_read` and `cache_write` keys apply
 # to providers that expose prompt caching (currently Anthropic; rates
 # are the 0.1x / 1.25x input multipliers for 5-minute cache writes).
@@ -26,6 +25,31 @@ PRICING: dict[str, dict[str, float]] = {
         "output": 50.00,
         "cache_read": 1.00,
         "cache_write": 12.50,
+    },
+    # [1m] context-window alias seen in native transcripts — Fable 5's
+    # 1M window is the default at the same published rate.
+    "claude-fable-5[1m]": {
+        "input": 10.00,
+        "output": 50.00,
+        "cache_read": 1.00,
+        "cache_write": 12.50,
+    },
+    # Snapshot 2026-08-09 (Gate Economy PR-8): drop-in at Opus 4.8's
+    # rates per the official model catalog — 1M context is the default
+    # with NO long-context premium, so the [1m] alias prices the same.
+    # This row was missing while claude-opus-5 carried 28% of weekly
+    # input tokens, pricing them at $0.00 and blinding the CostGovernor.
+    "claude-opus-5": {
+        "input": 5.00,
+        "output": 25.00,
+        "cache_read": 0.50,
+        "cache_write": 6.25,
+    },
+    "claude-opus-5[1m]": {
+        "input": 5.00,
+        "output": 25.00,
+        "cache_read": 0.50,
+        "cache_write": 6.25,
     },
     "claude-opus-4-8": {
         "input": 5.00,
