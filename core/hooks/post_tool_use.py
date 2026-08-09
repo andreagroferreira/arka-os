@@ -478,6 +478,23 @@ def _phase_status(state: dict, phase: str) -> str:
     )
 
 
+def _spec_driven_on_disk(tool_name: str, file_path: str) -> tuple[bool, str]:
+    """spec-driven judged by the artifact, not a phantom phase (PR-9).
+
+    Delegates to the registry check that reads real spec YAMLs under
+    ``<cwd>/.arkaos/specs/``. Fails open — this runs on a hot hook and
+    a broken check must never manufacture a violation.
+    """
+    try:
+        from core.workflow.rules_registry import _check_spec_driven
+
+        return _check_spec_driven(
+            {"tool_name": tool_name, "file_path": file_path}
+        )
+    except Exception:
+        return False, ""
+
+
 def _governed_file_path(input_data: dict[str, object]) -> str:
     """The edited path, or "" when it lies outside the project root.
 
@@ -536,18 +553,37 @@ def _detect_rule_violations(input_data: dict) -> tuple[str, list[tuple]]:
     if tool_name in ("Write", "Edit"):
         file_path = _governed_file_path(input_data)
         if _CODE_FILE_RE.search(file_path):
-            if _phase_status(state, "spec") != "completed":
-                persist.append((
-                    "spec-driven", "Code edited without completed spec",
-                    tool_name, file_path,
-                ))
-                violation_msg = (
-                    f"VIOLATION [spec-driven]: Code edited without completed "
-                    f"spec ({file_path}). Complete the spec phase first."
-                )
-            if not violation_msg and _phase_status(
-                state, "implementation"
-            ) == "pending":
+            phases = state.get("phases") or {}
+            if "spec" in phases:
+                if _phase_status(state, "spec") != "completed":
+                    persist.append((
+                        "spec-driven", "Code edited without completed spec",
+                        tool_name, file_path,
+                    ))
+                    violation_msg = (
+                        f"VIOLATION [spec-driven]: Code edited without "
+                        f"completed spec ({file_path}). Complete the spec "
+                        f"phase first."
+                    )
+            else:
+                # Gate Economy PR-9: the evidence-flow phase set has no
+                # "spec" phase, so judging by phase status appended a
+                # FALSE violation on every code edit, forever (217
+                # measured, 100% this rule). Judge by the real artifact
+                # instead: an approved spec YAML on disk.
+                violated, msg = _spec_driven_on_disk(tool_name, file_path)
+                if violated:
+                    persist.append((
+                        "spec-driven",
+                        "Code edited without an approved spec on disk",
+                        tool_name, file_path,
+                    ))
+                    violation_msg = msg
+            if (
+                not violation_msg
+                and "implementation" in phases
+                and _phase_status(state, "implementation") == "pending"
+            ):
                 persist.append((
                     "sequential-validation",
                     "Code written before implementation phase started",

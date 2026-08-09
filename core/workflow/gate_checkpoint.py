@@ -77,11 +77,10 @@ def _persist_global_state(latest: int, project: str, evidence: str | None) -> No
     current = state.get_state()
     if current is None or current.get("workflow") != "evidence-flow":
         state.init_workflow("evidence-flow", project, list(GATES))
-    for gate, status in _phase_statuses(latest).items():
-        artifact = None
-        if gate == GATES[2] and evidence:
-            artifact = evidence
-        state.update_phase(gate, status, artifact=artifact)
+    # One atomic write for all four gates (Gate Economy PR-9) — this
+    # used to rewrite the full state file four times per Stop hook.
+    artifacts = {GATES[2]: evidence} if evidence else None
+    state.update_phases(_phase_statuses(latest), artifacts=artifacts)
 
 
 def _persist_session_snapshot(
@@ -130,7 +129,7 @@ def checkpoint(
             "current_phase": GATES[latest - 1],
             "evidence": evidence,
         }
-    except Exception:  # noqa: BLE001 — a Stop hook must never break the turn
+    except Exception:
         return None
 
 

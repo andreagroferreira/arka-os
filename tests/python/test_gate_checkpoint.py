@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from core.workflow import gate_checkpoint
+from core.workflow import state as _state_module
 from core.workflow.gate_checkpoint import (
     GATES,
     checkpoint,
@@ -77,7 +77,7 @@ class TestCheckpoint:
     def test_no_gates_is_noop(self, tmp_path):
         transcript = _write_transcript(tmp_path / "t.jsonl", ["just prose"])
         assert checkpoint(str(transcript), "sess-1") is None
-        assert not (tmp_path / ".arkaos" / "workflow-state.json").exists()
+        assert not _state_module._state_path().exists()
 
     def test_persists_global_state(self, tmp_path):
         transcript = _write_transcript(
@@ -91,7 +91,7 @@ class TestCheckpoint:
             "evidence": None,
         }
         state = json.loads(
-            (tmp_path / ".arkaos" / "workflow-state.json").read_text(encoding="utf-8")
+            _state_module._state_path().read_text(encoding="utf-8")
         )
         assert state["workflow"] == "evidence-flow"
         assert state["phases"]["gate-1-context"]["status"] == "completed"
@@ -119,7 +119,7 @@ class TestCheckpoint:
         )
         checkpoint(str(transcript), "sess-1")
         state = json.loads(
-            (tmp_path / ".arkaos" / "workflow-state.json").read_text(encoding="utf-8")
+            _state_module._state_path().read_text(encoding="utf-8")
         )
         assert (
             state["phases"]["gate-3-execute"]["artifact"]
