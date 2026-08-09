@@ -15,8 +15,8 @@ enforcement_levels:
         enforcement: "Security phase mandatory in all code-modifying workflows"
 
       - id: mandatory-qa
-        rule: "QA runs ALL tests every time. No shortcuts, no partial suites."
-        enforcement: "QA phase executes full test suite with coverage report"
+        rule: "QA is evidence-gated at every round and EXHAUSTIVE at the ship gate: intermediate QG rounds run the diff-mapped test subset (fallback: FULL suite whenever the mapping cannot prove coverage — never an empty run), and the FULL suite runs green at the final gate before any merge/ship. No shortcuts past the final gate."
+        enforcement: "Evidence engine maps tests by diff (core.governance.evidence_checks, fail-closed fallback to full); the final pre-merge gate runs run_evidence_checks --final-gate (full suite, exit 0) with coverage report"
 
       - id: evidence-flow
         rule: "Every non-trivial request executes the 4-gate evidence flow defined in arka/skills/flow/SKILL.md. Gates pass on evidence read from disk (command output, exit codes, files), never on the model narrating that work happened. No task type, no context, no runtime setting can opt out. The only bypass is [arka:trivial] for single-file edits under 10 lines. Replaced the 13-phase mandatory-flow in v4.1.0 (operator decision 2026-07-04; ADR docs/adr/2026-07-04-evidence-flow.md)."
@@ -495,3 +495,6 @@ amendments:
     - version: "4.43.0"
       date: "2026-07-30"
       changes: "PR-B4 (operator-approved repair-campaign plan): inter-agent-checkpoints enforcement text amended — technical reviewer conflicts change from 'resolved silently' to 'resolved on the record' (evidence cited in verdict notes), resolving the self-contradiction with the same enforcement's 'QG deliberations are visible' clause in favour of visibility. Rule text, level and scope unchanged."
+    - version: "5.16.0"
+      date: "2026-08-09"
+      changes: "Gate Economy (operator-approved 2026-08-09, 4 decisions on record): mandatory-qa rule and enforcement text amended — intermediate QG rounds run the diff-mapped test subset with a fail-closed FULL-suite fallback; the FULL suite remains mandatory at the final pre-merge gate (--final-gate). Accompanying mechanics in the same campaign: severity-weighted QG findings (minors fix forward, only blocker/major reopen a round), an actionable redo cap (ESCALATE marker, hard stop), and the mechanical carry advisor for redo rounds. Level unchanged (NON-NEGOTIABLE); the ship gate's scope unchanged."

@@ -3716,3 +3716,244 @@ class TestSeverityOverall:
         report = run_evidence_checks(tmp_path, checks=["spellcheck"])
         by_check = {r.check: r for r in report.results}
         assert by_check["spellcheck"].severity == "minor"
+
+
+# ─── Diff-mapped test scoping (Gate Economy PR-4) ───────────────────────
+
+
+class TestMappedTestFiles:
+    """Every uncertainty falls back to the FULL suite (None) —
+    mandatory-qa as amended: fallback is full, never empty."""
+
+    def _project(self, tmp_path, files):
+        for name in files:
+            target = tmp_path / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("# x\n", encoding="utf-8")
+        return tmp_path
+
+    def test_module_maps_to_its_test_file(self, tmp_path):
+        project = self._project(
+            tmp_path,
+            ["core/thing.py", "tests/python/test_thing.py"],
+        )
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(project, ["core/thing.py"]) == [
+            "tests/python/test_thing.py"
+        ]
+
+    def test_changed_test_file_maps_to_itself(self, tmp_path):
+        project = self._project(tmp_path, ["tests/python/test_a.py"])
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(
+            project, ["tests/python/test_a.py"]
+        ) == ["tests/python/test_a.py"]
+
+    def test_prose_changes_are_ignored(self, tmp_path):
+        project = self._project(
+            tmp_path, ["core/thing.py", "tests/python/test_thing.py"]
+        )
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(
+            project, ["core/thing.py", "docs/guide.md"]
+        ) == ["tests/python/test_thing.py"]
+
+    def test_conftest_change_falls_back_to_full(self, tmp_path):
+        project = self._project(
+            tmp_path, ["tests/python/conftest.py", "core/thing.py",
+                       "tests/python/test_thing.py"]
+        )
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(
+            project, ["core/thing.py", "tests/python/conftest.py"]
+        ) is None
+
+    def test_non_python_change_falls_back_to_full(self, tmp_path):
+        project = self._project(
+            tmp_path, ["core/thing.py", "tests/python/test_thing.py"]
+        )
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(
+            project, ["core/thing.py", "config/settings.yaml"]
+        ) is None
+
+    def test_module_without_test_file_falls_back_to_full(self, tmp_path):
+        project = self._project(tmp_path, ["core/orphan.py"])
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(project, ["core/orphan.py"]) is None
+
+    def test_test_helper_change_falls_back_to_full(self, tmp_path):
+        project = self._project(
+            tmp_path, ["tests/python/helpers.py"]
+        )
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(
+            project, ["tests/python/helpers.py"]
+        ) is None
+
+    def test_empty_changed_list_falls_back_to_full(self, tmp_path):
+        from core.governance.evidence_checks import _mapped_test_files
+
+        assert _mapped_test_files(tmp_path, None) is None
+        assert _mapped_test_files(tmp_path, []) is None
+
+
+class TestFinalGate:
+    def test_final_gate_ignores_pinned_test_command(self, tmp_path, monkeypatch):
+        """--final-gate is the ship posture: the FULL suite runs even
+        when a --test-command is pinned (mandatory-qa as amended)."""
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "m.py").write_text("x = 1\n", encoding="utf-8")
+        calls = {"pinned": 0}
+
+        def fake_pinned(cmd, project_dir, timeout):
+            calls["pinned"] += 1
+            return ec.CheckResult(
+                check="tests", ran=True, passed=True, command=cmd,
+                exit_code=0, summary="pinned",
+            )
+
+        def fake_run(check, argv, project_dir, timeout):
+            return ec.CheckResult(
+                check=check, ran=True, passed=True,
+                command=" ".join(str(a) for a in argv), exit_code=0,
+                summary="full",
+            )
+
+        monkeypatch.setattr(ec, "_run_pinned_tests", fake_pinned)
+        monkeypatch.setattr(ec, "_run", fake_run)
+        monkeypatch.setattr(ec, "_project_pytest", lambda p: ["pytest"])
+        result = ec._check_tests(
+            tmp_path, None, "pytest tests/x.py -q", 60, force_full=True
+        )
+        assert calls["pinned"] == 0
+        assert result.passed is True
+
+    def test_scoped_args_reach_the_runner(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "core").mkdir()
+        (tmp_path / "core" / "thing.py").write_text("x=1\n", "utf-8")
+        tdir = tmp_path / "tests" / "python"
+        tdir.mkdir(parents=True)
+        (tdir / "test_thing.py").write_text("def test_ok(): pass\n", "utf-8")
+        seen = {}
+
+        def fake_run(check, argv, project_dir, timeout):
+            seen["argv"] = [str(a) for a in argv]
+            return ec.CheckResult(
+                check=check, ran=True, passed=True,
+                command=" ".join(seen["argv"]), exit_code=0, summary="",
+            )
+
+        monkeypatch.setattr(ec, "_run", fake_run)
+        monkeypatch.setattr(ec, "_project_pytest", lambda p: ["pytest"])
+        result = ec._check_tests(
+            tmp_path, ["core/thing.py"], None, 60
+        )
+        assert "tests/python/test_thing.py" in seen["argv"]
+        assert "diff-scoped" in result.summary or result.passed is True
+
+
+class TestAdvisoryCache:
+    def test_round_trip_and_head_mismatch(self, tmp_path):
+        from core.governance import evidence_checks as ec
+
+        ec._store_advisory(tmp_path, "abc123", "typecheck: clean")
+        assert ec._cached_advisory(tmp_path, "abc123") == (
+            "typecheck: clean [cached]"
+        )
+        assert ec._cached_advisory(tmp_path, "def456") is None
+        assert ec._cached_advisory(tmp_path, None) is None
+
+    def test_corrupt_cache_is_ignored(self, tmp_path):
+        from core.governance import evidence_checks as ec
+
+        cache = ec._advisory_cache_path(tmp_path)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text("{not json", encoding="utf-8")
+        assert ec._cached_advisory(tmp_path, "abc") is None
+
+
+class TestDeriveChangedFiles:
+    def _git(self, cwd, *args):
+        subprocess.run(
+            ["git", *args], cwd=cwd, check=True, capture_output=True,
+            env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"},
+        )
+
+    def test_derives_committed_and_untracked(self, tmp_path):
+        from core.governance.evidence_checks import _derive_changed_files
+
+        self._git(tmp_path, "init", "-q", "-b", "master")
+        (tmp_path / "a.py").write_text("x=1\n", "utf-8")
+        self._git(tmp_path, "add", "a.py")
+        self._git(tmp_path, "commit", "-qm", "base")
+        self._git(tmp_path, "checkout", "-qb", "feature")
+        (tmp_path / "a.py").write_text("x=2\n", "utf-8")
+        self._git(tmp_path, "add", "a.py")
+        self._git(tmp_path, "commit", "-qm", "change")
+        (tmp_path / "new.py").write_text("y=1\n", "utf-8")
+        derived = _derive_changed_files(tmp_path)
+        assert derived == ["a.py", "new.py"]
+
+    def test_no_repo_returns_none(self, tmp_path):
+        from core.governance.evidence_checks import _derive_changed_files
+
+        assert _derive_changed_files(tmp_path) is None
+
+
+class TestCliAutoDerive:
+    def test_cli_derives_changed_files_when_omitted(self, tmp_path, monkeypatch):
+        """The CLI layer owns the auto-derive (Gate Economy PR-4) — the
+        library API stays explicit for hermetic callers."""
+        from core.governance import evidence_checks as ec
+
+        seen = {}
+
+        def fake_run_checks(project_dir, changed_files, checks,
+                            test_command, final_gate):
+            seen["changed"] = changed_files
+            seen["final_gate"] = final_gate
+            return ec.EvidenceReport(
+                project_dir=str(project_dir), overall="pass", results=[],
+            )
+
+        monkeypatch.setattr(ec, "run_evidence_checks", fake_run_checks)
+        monkeypatch.setattr(
+            ec, "_derive_changed_files", lambda p: ["core/x.py"]
+        )
+        assert ec.main([str(tmp_path), "--json"]) == 0
+        assert seen["changed"] == ["core/x.py"]
+        assert seen["final_gate"] is False
+
+    def test_cli_explicit_changed_files_win(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        seen = {}
+
+        def fake_run_checks(project_dir, changed_files, checks,
+                            test_command, final_gate):
+            seen["changed"] = changed_files
+            return ec.EvidenceReport(
+                project_dir=str(project_dir), overall="pass", results=[],
+            )
+
+        monkeypatch.setattr(ec, "run_evidence_checks", fake_run_checks)
+        monkeypatch.setattr(
+            ec, "_derive_changed_files",
+            lambda p: (_ for _ in ()).throw(AssertionError("must not run")),
+        )
+        assert ec.main(
+            [str(tmp_path), "--changed-files", "a.py,b.py", "--json"]
+        ) == 0
+        assert seen["changed"] == ["a.py", "b.py"]

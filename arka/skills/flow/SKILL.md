@@ -98,7 +98,12 @@ resumes at the right gate.
   Announce every dispatch: `[arka:dispatch] <caller> -> <specialist>`.
 - **Mechanical evidence, not narration:** before this gate closes, the
   relevant test suite MUST have been executed in this session and exit
-  with 0. Report the real command and its result, e.g.:
+  with 0. "Relevant" is mechanical, not judgment (mandatory-qa as
+  amended, Gate Economy 2026-08-09): intermediate rounds run the
+  diff-mapped subset the evidence engine selects (fallback: FULL suite
+  whenever the mapping cannot prove coverage); the final pre-merge
+  gate always runs the FULL suite (`--final-gate`). Report the real
+  command and its result, e.g.:
 
   ```
   [arka:gate:3] evidence: pytest tests/python -q -> exit 0 (4521 passed)
@@ -181,6 +186,8 @@ no six-reviewer role-play. One marker per gate transition.
 - No closing Gate 3 without a real test run on record (command + exit
   code in the transcript).
 - No pushing to master without Gate 4 evidence on every changed item.
+- No merge/release without a FULL-suite `--final-gate` run (exit 0) on
+  record — diff-mapped subsets close rounds, never the ship gate.
 - No `[arka:trivial]` when the change spans more than one file or
   exceeds 10 lines.
 - No skipping Gate 2 approval. The user is the gate, not a hint.

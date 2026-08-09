@@ -769,6 +769,50 @@ def _mypy_project_argv(project_dir: Path, mypy: list[str]) -> list[str]:
     return list(mypy) if _mypy_scope_configured(project_dir) else [*mypy, "."]
 
 
+def _advisory_cache_path(project_dir: Path) -> Path:
+    return project_dir / ".arka" / "cache" / "mypy-advisory.json"
+
+
+def _head_sha(project_dir: Path) -> str | None:
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=project_dir, capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return proc.stdout.strip() if proc.returncode == 0 else None
+
+
+def _cached_advisory(project_dir: Path, head: str | None) -> str | None:
+    if not head:
+        return None
+    try:
+        payload = json.loads(
+            _advisory_cache_path(project_dir).read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError):
+        return None
+    if payload.get("head") != head or not isinstance(
+        payload.get("note"), str
+    ):
+        return None
+    return payload["note"] + " [cached]"
+
+
+def _store_advisory(project_dir: Path, head: str | None, note: str) -> None:
+    if not head:
+        return
+    try:
+        cache = _advisory_cache_path(project_dir)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(
+            json.dumps({"head": head, "note": note}), encoding="utf-8"
+        )
+    except OSError:
+        pass  # the cache is an optimization, never a gate
+
+
 def _project_wide_advisory(
     project_dir: Path, mypy: list[str], timeout: int,
 ) -> str:
@@ -777,7 +821,15 @@ def _project_wide_advisory(
     Scoping the verdict to the diff must not make the accumulated debt
     invisible: a number nobody sees is a number nobody ever cleans. It
     rides at the END of the summary because ``_tail`` keeps the tail.
+    Gate Economy PR-4: the full-tree run is cached per HEAD — a redo
+    round on the same commit reuses the debt number instead of paying
+    a whole-tree mypy pass again (the note is advisory by contract, so
+    staleness across uncommitted edits costs nothing gating).
     """
+    head = _head_sha(project_dir)
+    cached = _cached_advisory(project_dir, head)
+    if cached is not None:
+        return cached
     result = _run(
         "typecheck", _mypy_project_argv(project_dir, mypy), project_dir, timeout,
     )
@@ -787,14 +839,19 @@ def _project_wide_advisory(
     )
     if not result.ran:
         return ""
+    if result.passed is None and result.exit_code != 0:
+        return prefix + "did not finish (timeout)"  # never cached — retry
     if result.exit_code == 0:
-        return prefix + "clean"
-    if result.passed is None:
-        return prefix + "did not finish (timeout)"
-    found = _MYPY_FOUND_RE.search(result.summary or "")
-    if found is None:
-        return prefix + f"could not be summarised (exit {result.exit_code})"
-    return f"{prefix}{found.group(0)} — master's debt, not this diff's"
+        note = prefix + "clean"
+    else:
+        found = _MYPY_FOUND_RE.search(result.summary or "")
+        note = (
+            prefix + f"could not be summarised (exit {result.exit_code})"
+            if found is None
+            else f"{prefix}{found.group(0)} — master's debt, not this diff's"
+        )
+    _store_advisory(project_dir, head, note)
+    return note
 
 
 _MYPY_ERROR_RE = re.compile(
@@ -1234,27 +1291,91 @@ def _run_pinned_tests(
     return result
 
 
+_PROSE_SUFFIXES = frozenset({".md", ".mdx", ".txt"})
+
+
+def _mapped_test_files(
+    project_dir: Path, changed: list[str] | None,
+) -> list[str] | None:
+    """The diff-mapped pytest subset, or None for the FULL suite.
+
+    Gate Economy PR-4 (mandatory-qa as amended): intermediate rounds
+    may run the subset the diff maps to — but only when the mapping can
+    PROVE coverage. Every uncertainty returns None and the caller runs
+    the full suite: conftest/fixture changes, a changed module with no
+    matching ``test_<stem>.py``, any changed non-prose non-Python file,
+    or no changed list at all. Fallback is FULL, never empty.
+    """
+    if not changed:
+        return None
+    mapped: set[str] = set()
+    for name in changed:
+        clean = name.strip()
+        if not clean:
+            continue
+        path = PurePosixPath(clean)
+        if path.suffix in _PROSE_SUFFIXES:
+            continue  # prose cannot break pytest
+        if path.suffix != ".py":
+            return None  # config/scripts/assets — unmappable
+        if path.name == "conftest.py":
+            return None
+        in_tests = "tests" in path.parts
+        if in_tests and not path.name.startswith("test_"):
+            return None  # shared fixture/helper — blast radius unknown
+        if path.name.startswith("test_"):
+            if (project_dir / clean).is_file():
+                mapped.add(clean)
+                continue
+            return None  # deleted/renamed test file
+        tests_dir = project_dir / "tests"
+        if not tests_dir.is_dir():
+            return None
+        hits = sorted(
+            str(p.relative_to(project_dir))
+            for p in tests_dir.rglob(f"test_{path.stem}.py")
+        )
+        if not hits:
+            return None  # module with no matching test file
+        mapped.update(hits)
+    return sorted(mapped) or None
+
+
 def _check_tests(
     project_dir: Path, changed: list[str] | None,
     test_command: str | None, timeout: int,
+    *, force_full: bool = False,
 ) -> CheckResult:
-    if test_command:
+    if test_command and not force_full:
         return _run_pinned_tests(test_command, project_dir, timeout)
     if _has_python(project_dir, changed):
+        scoped = (
+            None if force_full else _mapped_test_files(project_dir, changed)
+        )
+        scope_args = scoped or []
+        label = "tests(project-venv, diff-scoped)" if scoped else (
+            "tests(project-venv)"
+        )
         local_pytest = _project_pytest(project_dir)
         if local_pytest:
             return _labelled(
                 _degrade_pytest_no_tests(
-                    _run("tests", [*local_pytest, "-q"], project_dir, timeout),
+                    _run(
+                        "tests", [*local_pytest, *scope_args, "-q"],
+                        project_dir, timeout,
+                    ),
                 ),
-                "tests(project-venv)",
+                label,
             )
         pytest_cmd = _tool_cmd("pytest")
         if pytest_cmd and _foreign_pytest_can_collect(
             pytest_cmd, project_dir, timeout
         ):
             return _degrade_pytest_no_tests(
-                _run("tests", [*pytest_cmd, "-q"], project_dir, timeout),
+                _run(
+                    "tests", [*pytest_cmd, *scope_args, "-q"],
+                    project_dir, timeout,
+                ),
             )
         if pytest_cmd:
             return _skip(
@@ -1539,6 +1660,38 @@ def _diff_base(project_dir: Path) -> str | None:
         if proc.returncode == 0 and proc.stdout.strip():
             return proc.stdout.strip()
     return None
+
+
+def _derive_changed_files(project_dir: Path) -> list[str] | None:
+    """Changed files vs the merge base plus untracked, or None.
+
+    The scoping contract asked every caller to pass ``--changed-files``
+    and in practice they did not — so the engine derives it itself
+    (Gate Economy PR-4). None whenever git cannot answer; the checks
+    then keep their whole-tree fallbacks.
+    """
+    base = _diff_base(project_dir)
+    if base is None:
+        return None
+    try:
+        diff = subprocess.run(
+            ["git", "diff", "--name-only", base],
+            cwd=project_dir, capture_output=True, text=True, timeout=30,
+        )
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=project_dir, capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if diff.returncode != 0:
+        return None
+    names = [ln.strip() for ln in diff.stdout.splitlines() if ln.strip()]
+    if untracked.returncode == 0:
+        names += [
+            ln.strip() for ln in untracked.stdout.splitlines() if ln.strip()
+        ]
+    return sorted(set(names)) or None
 
 
 _HUNK_HEADER_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
@@ -2175,8 +2328,15 @@ def run_evidence_checks(
     checks: list[str] | None = None,
     test_command: str | None = None,
     timeout: int = TIMEOUT_SECONDS,
+    final_gate: bool = False,
 ) -> EvidenceReport:
     """Run the selected checks and derive the overall evidence status.
+
+    ``final_gate=True`` is the pre-merge posture: the tests check
+    ignores both the diff mapping and any pinned ``--test-command`` and
+    runs the FULL suite (mandatory-qa as amended, 2026-08-09). The CLI
+    auto-derives ``--changed-files`` from the merge base when omitted
+    (Gate Economy PR-4); the library keeps the parameter explicit.
 
     Raises ``ProvenanceError`` before running anything when the imported
     engine is not the checkout being gated (see ``_assert_provenance``).
@@ -2190,7 +2350,15 @@ def run_evidence_checks(
         if check_fn is None:
             results.append(_skip(name, f"unknown check: {name}"))
             continue
-        result = check_fn(project_dir, changed_files, test_command, timeout)
+        if name == "tests":
+            result = _check_tests(
+                project_dir, changed_files, test_command, timeout,
+                force_full=final_gate,
+            )
+        else:
+            result = check_fn(
+                project_dir, changed_files, test_command, timeout
+            )
         result.severity = CHECK_SEVERITY.get(name, "major")
         results.append(result)
     return EvidenceReport(
@@ -2212,6 +2380,13 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checks", help="comma-separated subset of checks")
     parser.add_argument("--test-command", help="override for the tests check")
     parser.add_argument("--changed-files", help="comma-separated changed files")
+    parser.add_argument(
+        "--final-gate", action="store_true",
+        help=(
+            "pre-merge posture: the FULL test suite runs, ignoring the "
+            "diff mapping and any --test-command (mandatory-qa)"
+        ),
+    )
     parser.add_argument("--json", action="store_true", help="emit JSON report")
     return parser
 
@@ -2227,11 +2402,19 @@ def _csv(value: str | None) -> list[str] | None:
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     try:
+        changed = _csv(args.changed_files)
+        if changed is None:
+            # Gate Economy PR-4: the scoping contract asked every caller
+            # to pass --changed-files and in practice they did not — the
+            # CLI derives it from the merge base itself. Explicit always
+            # wins; outside a usable repo the whole-tree fallbacks hold.
+            changed = _derive_changed_files(args.project_dir)
         report = run_evidence_checks(
             project_dir=args.project_dir,
-            changed_files=_csv(args.changed_files),
+            changed_files=changed,
             checks=_csv(args.checks),
             test_command=args.test_command,
+            final_gate=args.final_gate,
         )
     except ProvenanceError as exc:
         # Loud and unmissable, on stderr, with NO report on stdout: a
