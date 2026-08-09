@@ -23,8 +23,34 @@ evidence report, never from model size.
 
 ## Review Rubric (evidence interpretation, not role-play)
 
-1. Run the engine first — no verdict without a report:
-   `~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> [--changed-files ...] [--test-command '...'] --json`
+1. Run the engine first — no verdict without a report — and run it
+   SCOPED (Gate Economy: the flags are optional in the CLI, not in
+   this rubric):
+   - Derive the changed set yourself before the run —
+     `git diff --name-only "$(git merge-base HEAD master)"` (or the
+     project's default branch) — and pass it as
+     `--changed-files f1,f2,...` ALWAYS. That is what activates scoped
+     lint/typecheck, the inert-diff skips, and the manifest-only
+     verdict; omitting it re-runs whole-tree work this diff cannot
+     fail.
+   - Intermediate rounds (any round before the final pre-merge gate):
+     pin `--test-command` to the test files covering the changed
+     modules (`tests/python/test_<module>.py` naming — include every
+     test file whose module the diff touches, plus test files changed
+     in the diff itself). Mapping uncertain (cross-cutting change,
+     conftest/fixtures touched, no matching test file)? Omit
+     `--test-command` and let the full suite run — the fallback is
+     FULL, never empty.
+   - Final gate before merge/ship: NEVER pass `--test-command` — the
+     full suite runs and exits 0 (mandatory-qa).
+   - `--checks`: drop `design-slop,ui-screenshot` when the diff
+     touches no UI file, and `spellcheck` when it touches no
+     .md/copy. The scoped checks self-skip anyway; the explicit
+     subset just avoids the subprocess starts.
+   - Prefix engine/record CLI runs with
+     `ARKA_CALL_CATEGORY=subagent:quality` so any LLM call the engine
+     makes is attributed to the gate in cost telemetry.
+   `~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> --changed-files ... [--test-command '...'] [--checks ...] --json`
 2. Dispatch Eduardo (spellcheck + changed copy) and Francisca
    (lint/typecheck/tests/coverage/security-grep) with the report and,
    in the prompt, the QGVerdict field names (`QG_VERDICT_JSON_SCHEMA`
@@ -71,6 +97,22 @@ evidence report, never from model size.
    skip.
    Every review feeds `~/.arkaos/telemetry/qg-verdicts.jsonl`, redo
    verdicts included (a REJECTED→APPROVED pair is two labels).
+
+## Redo Rounds (carry before re-dispatch — Gate Economy)
+
+On a redo round, re-dispatch ONLY the reviewers whose domain changed
+since their last artifact:
+- Eduardo carries when the delta since his `evidence_digest` touches
+  no .md/copy/prose file and the spellcheck section is unchanged.
+- Francisca carries when the delta touches none of the paths she
+  flagged and the sections she interprets (lint/typecheck/tests/
+  coverage/security-grep) are unchanged in outcome.
+
+A carried reviewer enters the aggregate via `digest_carries`
+[{reviewer, evidence_digest, reason}] — name the digest THAT reviewer
+actually reviewed and why the review still stands (>= 40 chars; the
+guard validates the carry against the session ledger). Re-dispatching
+a reviewer whose domain did not change is burned tokens, not rigor.
 
 ## Verdict Format
 

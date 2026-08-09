@@ -30,9 +30,19 @@ Any Department Workflow:
        the work back before the personas run (max 2); PASS findings
        become reviewer input. Record it:
        arka-py -m core.evals.record_cli --kind judge
-    1. Run the evidence engine over the project/diff:
+    1. Run the evidence engine over the project/diff — SCOPED
+       (Gate Economy): derive the changed set from the merge base and
+       pass --changed-files ALWAYS (activates scoped lint/typecheck,
+       inert-diff skips, manifest-only verdict). Intermediate rounds
+       pin --test-command to the tests covering the changed modules
+       (tests/python/test_<module>.py naming; uncertain mapping →
+       omit it, fallback is the FULL suite, never empty). The final
+       pre-merge gate NEVER pins --test-command: full suite, exit 0.
+       Drop design-slop,ui-screenshot via --checks when no UI file
+       changed, and spellcheck when no .md/copy changed:
+         ARKA_CALL_CATEGORY=subagent:quality \
          ~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> \
-           [--changed-files f1,f2] [--test-command '...'] --json
+           --changed-files f1,f2 [--test-command '...'] [--checks ...] --json
     2. Marta dispatches Eduardo + Francisca to INTERPRET the report:
        - Eduardo: spellcheck section + prose review of changed copy
        - Francisca: lint / typecheck / tests / coverage / security-grep
@@ -43,7 +53,12 @@ Any Department Workflow:
          the checks cannot see (logic, copy, UX).
        - overall == "insufficient-evidence" → APPROVED only with an
          explicit justification in the verdict notes; otherwise REJECTED.
-    4. If ANY reviewer rejects → work loops back with the blockers list
+    4. If ANY reviewer rejects → work loops back with the blockers list.
+       On the redo round, re-dispatch ONLY reviewers whose domain
+       changed since their artifact; carry the rest via digest_carries
+       (QGDigestCarry — reviewer, exact digest, >= 40-char reason,
+       validated against the session ledger). Carry is the norm for an
+       untouched domain, not the exception.
     4.5. Marta's gate-closing report reproduces each reviewer verdict
          VERBATIM under `### <Reviewer> — verbatim`, with the ledger
          artifact path (~/.arkaos/quality-gate/<session>/) beside it.
