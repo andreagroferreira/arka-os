@@ -2,23 +2,43 @@
 
 from __future__ import annotations
 
+import re
+import shutil
 from pathlib import Path
 
 import pytest
 
-import re
-
 from core.agents.behavioral_compiler import (
     _HAND_WRITTEN,
     build_escalation_index,
+    catalog_targets,
     check,
     compile_agent,
     load_agent_yaml,
-    catalog_targets,
     write,
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture
+def mirrored_root(tmp_path: Path) -> Path:
+    """A tmp mirror of exactly what the compiler reads and writes.
+
+    ``write()`` regenerates every catalog file; pointed at ``_ROOT`` it
+    mutates the real working tree (#497). Only the agent YAMLs and the
+    generated directory are in play, so the mirror is exact rather than a
+    copy of the whole 9 MB departments/ tree.
+    """
+    for yaml_path in _ROOT.glob("departments/*/agents/**/*.yaml"):
+        dest = tmp_path / yaml_path.relative_to(_ROOT)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(yaml_path, dest)
+    out_dir = tmp_path / "config" / "claude-agents"
+    out_dir.mkdir(parents=True)
+    for generated in (_ROOT / "config" / "claude-agents").glob("*.md"):
+        shutil.copy2(generated, out_dir / generated.name)
+    return tmp_path
 
 _SAMPLE = {
     "id": "demo-eng-zara",
@@ -159,12 +179,17 @@ class TestCatalogLock:
         # The YAML is the single source: any drift fails CI.
         assert check(_ROOT) == []
 
-    def test_write_is_idempotent_on_clean_tree(self):
+    def test_write_is_idempotent_on_clean_tree(self, mirrored_root):
+        # Against _ROOT this rewrote all ~86 committed config/claude-agents
+        # files on every `pytest tests/python/` — byte-identical, so
+        # `git status` stayed clean while the inode churn masked real
+        # changes (#497). The mirror proves the same property hermetically.
         before = {
             out: out.read_text(encoding="utf-8")
-            for _, out in catalog_targets(_ROOT)
+            for _, out in catalog_targets(mirrored_root)
         }
-        write(_ROOT)
+        assert before, "mirror must carry the committed catalog output"
+        write(mirrored_root)
         for out, text in before.items():
             assert out.read_text(encoding="utf-8") == text
 

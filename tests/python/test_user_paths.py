@@ -25,6 +25,9 @@ def redirect_home(tmp_path, monkeypatch):
     monkeypatch.setattr(
         user_paths, "_LEGACY_SKILLS_ROOT", tmp_path / ".claude" / "skills" / "arka"
     )
+    # Every test below asserts the NON-overridden chain; an override left
+    # in the ambient environment would silently win over all of it.
+    monkeypatch.delenv(user_paths.PROJECTS_DIR_ENV, raising=False)
     user_paths.reset_warnings()
     yield tmp_path
 
@@ -92,6 +95,75 @@ def test_new_path_wins_over_legacy_when_both_exist(redirect_home):
     legacy = redirect_home / ".claude" / "skills" / "arka" / "projects"
     legacy.mkdir(parents=True)
     assert user_paths.projects_dir() == new
+
+
+class TestProjectsDirEnvOverride:
+    """ARKA_PROJECTS_DIR — the isolation lever from #497 (ex-#510).
+
+    The override exists so a caller can guarantee it is NOT touching the
+    operator's real descriptors, so every property here is load-bearing:
+    it wins over both candidates, it applies to writes as well as reads,
+    and it never falls back — a fallback on a missing directory would put
+    the writes straight back into the real home.
+    """
+
+    def test_override_wins_over_the_canonical_path(
+        self, redirect_home, monkeypatch
+    ):
+        (redirect_home / ".arkaos" / "projects").mkdir(parents=True)
+        override = redirect_home / "elsewhere"
+        override.mkdir()
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, str(override))
+        assert user_paths.projects_dir() == override
+
+    def test_override_wins_over_the_legacy_path(
+        self, redirect_home, monkeypatch
+    ):
+        (redirect_home / ".claude" / "skills" / "arka" / "projects").mkdir(
+            parents=True
+        )
+        override = redirect_home / "elsewhere"
+        override.mkdir()
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, str(override))
+        assert user_paths.projects_dir() == override
+
+    def test_override_never_falls_back_when_missing(
+        self, redirect_home, monkeypatch
+    ):
+        """A non-existent override still wins — falling back to the real
+        home is exactly the accident the override prevents."""
+        (redirect_home / ".arkaos" / "projects").mkdir(parents=True)
+        override = redirect_home / "does-not-exist"
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, str(override))
+        assert user_paths.projects_dir() == override
+
+    def test_override_redirects_writes_too(self, redirect_home, monkeypatch):
+        override = redirect_home / "write-here"
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, str(override))
+        target = user_paths.projects_dir_for_write()
+        assert target == override
+        assert target.is_dir(), "the write target is created like the default"
+        assert not (redirect_home / ".arkaos" / "projects").exists()
+
+    def test_blank_override_is_ignored(self, redirect_home, monkeypatch):
+        new = redirect_home / ".arkaos" / "projects"
+        new.mkdir(parents=True)
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, "   ")
+        assert user_paths.projects_dir() == new
+
+    def test_override_expands_user(self, redirect_home, monkeypatch):
+        monkeypatch.setenv("HOME", str(redirect_home))
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, "~/tilde-projects")
+        assert user_paths.projects_dir() == redirect_home / "tilde-projects"
+
+    def test_override_is_read_at_call_time(self, redirect_home, monkeypatch):
+        """Never cached: a per-test override must take effect immediately."""
+        first = redirect_home / "one"
+        second = redirect_home / "two"
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, str(first))
+        assert user_paths.projects_dir() == first
+        monkeypatch.setenv(user_paths.PROJECTS_DIR_ENV, str(second))
+        assert user_paths.projects_dir() == second
 
 
 def test_legacy_helpers_return_deprecated_locations(redirect_home):

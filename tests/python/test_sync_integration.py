@@ -12,8 +12,39 @@ from unittest.mock import patch
 
 import pytest
 
+from core.runtime.user_paths import PROJECTS_DIR_ENV
 from core.sync.engine import run_sync
 from core.sync.reporter import format_report
+
+# The layout every builder below creates under tmp_path.
+_TMP_DESCRIPTORS = Path(".claude") / "skills" / "arka" / "projects"
+_TMP_ECOSYSTEMS = Path(".claude") / "skills" / "arka" / "knowledge" / "ecosystems.json"
+
+
+@pytest.fixture(autouse=True)
+def isolated_user_data(tmp_path: Path, monkeypatch) -> None:
+    """Keep run_sync off the operator's real ~/.arkaos (#497, ex-#510).
+
+    Unstubbed, ``_discover_projects`` resolved the REAL
+    ``~/.arkaos/projects`` and the REAL ecosystems registry and returned
+    the operator's 20 registered project directories — which run_sync
+    then hands to five writers (MCP, settings, descriptors, content,
+    agents). Nothing changed on disk only because the patched commit-age
+    made every writer a no-op; that is luck, not isolation, and it is not
+    parallel-safe either.
+
+    The descriptor read moves via the ARKA_PROJECTS_DIR override; the
+    ecosystems registry is read-only on this path, so patching the
+    engine's resolver is enough and needs no new production surface.
+    Neither target is created here — the builders own that, and
+    pre-creating would collide with their ``mkdir(parents=True)``.
+    """
+    monkeypatch.setenv(PROJECTS_DIR_ENV, str(tmp_path / _TMP_DESCRIPTORS))
+    monkeypatch.setattr(
+        "core.sync.engine.resolve_ecosystems_file",
+        lambda: tmp_path / _TMP_ECOSYSTEMS,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Environment builder
@@ -169,8 +200,12 @@ def _build_content_core_repo(root: Path) -> None:
     (root / "config" / "standards" / "stack-rules" / "python.md").write_text(
         '---\npaths:\n  - "**/*.py"\n---\n\n## Python Rules\n', encoding="utf-8"
     )
-    (root / "config" / "standards" / "communication.md").write_text("# Communication\n", encoding="utf-8")
-    (root / "config" / "hooks" / "session-start.sh").write_text("#!/bin/bash\necho start\n", encoding="utf-8")
+    (root / "config" / "standards" / "communication.md").write_text(
+        "# Communication\n", encoding="utf-8"
+    )
+    (root / "config" / "hooks" / "session-start.sh").write_text(
+        "#!/bin/bash\necho start\n", encoding="utf-8"
+    )
     (root / "config" / "constitution.yaml").write_text(
         "rules:\n  - name: squad-routing\n    level: NON-NEGOTIABLE\n", encoding="utf-8"
     )
@@ -190,11 +225,15 @@ def _build_content_sync_environment(tmp_path: Path) -> dict:
     _make_feature_yaml(features_dir)
 
     (arkaos_home / ".repo-path").write_text(str(repo), encoding="utf-8")
-    (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}), encoding="utf-8")
+    (arkaos_home / "sync-state.json").write_text(
+        json.dumps({"version": "pending-sync"}), encoding="utf-8"
+    )
 
     herd_dir = tmp_path / "herd"
     herd_dir.mkdir()
-    (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}), encoding="utf-8")
+    (arkaos_home / "profile.json").write_text(
+        json.dumps({"projectsDir": str(herd_dir)}), encoding="utf-8"
+    )
 
     skills_dir = tmp_path / ".claude" / "skills"
     skills_dir.mkdir(parents=True)
@@ -214,7 +253,9 @@ def _build_content_sync_environment(tmp_path: Path) -> dict:
     py_app.mkdir()
     (py_app / ".mcp.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
     (projects_dir / "py-app.md").write_text(
-        f"---\nname: py-app\npath: {py_app}\nstatus: active\nstack: [python]\n---\n\nPython app.\n", encoding="utf-8"
+        f"---\nname: py-app\npath: {py_app}\nstatus: active\n"
+        f"stack: [python]\n---\n\nPython app.\n",
+        encoding="utf-8",
     )
 
     core_repo = tmp_path / "core-repo"
@@ -228,6 +269,38 @@ def _build_content_sync_environment(tmp_path: Path) -> dict:
         "py_app": py_app,
         "core_repo": core_repo,
     }
+
+
+class TestUserDataIsolation:
+    """Lock the isolation the autouse fixture buys (#497, ex-#510)."""
+
+    def test_discovery_never_escapes_tmp_path(self, tmp_path: Path) -> None:
+        from core.sync.engine import _discover_projects
+
+        env = _build_environment(tmp_path)
+        projects = _discover_projects(env["arkaos_home"], env["skills_dir"])
+
+        assert projects, "the tmp environment must discover its own projects"
+        escaped = [
+            p.path for p in projects
+            if not Path(p.path).is_relative_to(tmp_path)
+        ]
+        assert not escaped, (
+            "discovery reached real user data — run_sync would hand these "
+            f"directories to five writers: {escaped}"
+        )
+
+    def test_the_test_descriptor_is_actually_read(self, tmp_path: Path) -> None:
+        """Isolation must not be achieved by discovering nothing: the
+        descriptor the fixture writes has to be the one that loads."""
+        from core.sync.engine import _discover_projects
+
+        env = _build_environment(tmp_path)
+        names = {
+            p.name
+            for p in _discover_projects(env["arkaos_home"], env["skills_dir"])
+        }
+        assert "crm-app" in names
 
 
 class TestFullSyncIntegration:
@@ -434,11 +507,15 @@ class TestFullSyncIntegration:
         features_dir = repo / "core" / "sync" / "features"
         _make_feature_yaml(features_dir)
         (arkaos_home / ".repo-path").write_text(str(repo), encoding="utf-8")
-        (arkaos_home / "sync-state.json").write_text(json.dumps({"version": "pending-sync"}), encoding="utf-8")
+        (arkaos_home / "sync-state.json").write_text(
+            json.dumps({"version": "pending-sync"}), encoding="utf-8"
+        )
 
         herd_dir = tmp_path / "herd"
         herd_dir.mkdir()
-        (arkaos_home / "profile.json").write_text(json.dumps({"projectsDir": str(herd_dir)}), encoding="utf-8")
+        (arkaos_home / "profile.json").write_text(
+            json.dumps({"projectsDir": str(herd_dir)}), encoding="utf-8"
+        )
 
         skills_dir = tmp_path / ".claude" / "skills"
         skills_dir.mkdir(parents=True)
@@ -470,7 +547,9 @@ class TestFullSyncIntegration:
         projects_dir.mkdir(parents=True)
         knowledge_dir = skills_dir / "arka" / "knowledge"
         knowledge_dir.mkdir(parents=True)
-        (knowledge_dir / "ecosystems.json").write_text(json.dumps({"ecosystems": {}}), encoding="utf-8")
+        (knowledge_dir / "ecosystems.json").write_text(
+            json.dumps({"ecosystems": {}}), encoding="utf-8"
+        )
 
         laravel_app = herd_dir / "laravel-app"
         laravel_app.mkdir()
