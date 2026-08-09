@@ -47,7 +47,14 @@ Any Department Workflow:
        to a conclusive run this session ("[reused]" in the summary) and
        auto-drops checks the diff cannot touch; the final pre-merge
        gate (--final-gate) never reuses and never subsets tests.
-    2. Marta dispatches Eduardo + Francisca to INTERPRET the report:
+    2. Marta dispatches reviewers per the MECHANICAL tier — computed
+       from the diff, never self-declared (Gate Economy):
+         arka-py -m core.governance.qg_tier <project_dir>
+       FULL → Eduardo + Francisca in parallel, as below. LIGHT (small
+       single-domain diff outside the sensitive surface) → ONE
+       reviewer chosen by content (Francisca for code, Eduardo for
+       prose). Aggregation, veto and the evidence floor are identical
+       in both tiers; releases are always FULL:
        - Eduardo: spellcheck section + prose review of changed copy
        - Francisca: lint / typecheck / tests / coverage / security-grep
     3. Verdict rules (binary, evidence-floored, severity-weighted —

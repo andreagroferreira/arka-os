@@ -51,7 +51,13 @@ evidence report, never from model size.
      `ARKA_CALL_CATEGORY=subagent:quality` so any LLM call the engine
      makes is attributed to the gate in cost telemetry.
    `~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> --changed-files ... [--test-command '...'] [--checks ...] --json`
-2. Dispatch Eduardo (spellcheck + changed copy) and Francisca
+2. Compute the tier first — mechanical, never self-declared:
+   `~/.arkaos/bin/arka-py -m core.governance.qg_tier <project_dir>`.
+   LIGHT dispatches ONE reviewer (its `reviewer` field — Francisca for
+   code, Eduardo for prose); FULL dispatches both. Quote the tier's
+   `reasons` in your notes. Releases and the sensitive surface always
+   compute FULL. Then dispatch Eduardo (spellcheck + changed copy)
+   and/or Francisca
    (lint/typecheck/tests/coverage/security-grep) with the report and,
    in the prompt, the QGVerdict field names (`QG_VERDICT_JSON_SCHEMA`
    in `core.governance.qg_verdict` is that contract — the Agent tool

@@ -143,8 +143,11 @@ class TestConstitutionQualityGate:
         # v4.2.0 Excellence Reform: redo-loop cap step added (8 steps).
         # v4.13.0 Excellence Reform PR-D3: Francisca views the
         # ui-screenshot artifact for UI deliverables (9 steps).
-        assert len(qg["process"]) == 9
+        # 5.16.0 Gate Economy PR-6: mechanical tier step added after the
+        # evidence engine (10 steps).
+        assert len(qg["process"]) == 10
         assert "evidence" in qg["process"][0].lower()
+        assert "qg_tier" in qg["process"][1]
         assert "APPROVED" in qg["process"][-1]
         process_text = " ".join(qg["process"])
         assert "ui-screenshot" in process_text

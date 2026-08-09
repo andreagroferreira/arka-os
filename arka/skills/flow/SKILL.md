@@ -193,7 +193,9 @@ no six-reviewer role-play. One marker per gate transition.
 - No merge/release without a FULL-suite `--final-gate` run (exit 0) on
   record — diff-mapped subsets close rounds, never the ship gate.
 - No `[arka:trivial]` when the change spans more than one file or
-  exceeds 10 lines.
+  exceeds 10 lines — and the claim is now countable: run
+  `arka-py -m core.governance.qg_tier . --trivial`; a `false` answer
+  voids the bypass (Gate Economy PR-6).
 - No skipping Gate 2 approval. The user is the gate, not a hint.
 
 ## Related skills

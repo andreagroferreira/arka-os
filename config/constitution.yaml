@@ -65,8 +65,9 @@ enforcement_levels:
           veto_power: true
     process:
       - "Evidence engine runs first: ~/.arkaos/bin/arka-py -m core.governance.evidence_checks — the verdict derives from its report"
+      - "Tier is computed MECHANICALLY from the diff, never self-declared (core.governance.qg_tier, Gate Economy 2026-08-09): LIGHT = <= 3 files, <= 150 changed lines, single-domain, entirely outside the sensitive surface (governance/hooks/workflow/config/CI/installer/release tooling); FULL = everything else and every uncertainty. Releases and the sensitive surface are always FULL."
       - "Marta receives all output from execution phase plus the evidence report"
-      - "Marta dispatches Eduardo (text) and Francisca (technical) in parallel, each in an INDEPENDENT subagent context (clean context, no stake in the work being approved)"
+      - "FULL tier: Marta dispatches Eduardo (text) and Francisca (technical) in parallel, each in an INDEPENDENT subagent context (clean context, no stake in the work being approved). LIGHT tier: ONE reviewer chosen by the diff's content (Francisca for code, Eduardo for prose) reviews in the same independent context; Marta's aggregation, her veto and the evidence floor are identical in both tiers"
       - "Each reviewer returns a structured QGVerdict (APPROVED or REJECTED) with specific issues; the verdict MUST name the benchmark used (reference_companies.application) and enumerate the concrete rejections a top-tier lead would raise; evidence overall=fail forces REJECTED"
       - "For UI deliverables, Francisca Reads the screenshot artifact(s) the ui-screenshot evidence check points at (details_path under .arka/evidence/ui/), views them, and judges against the benchmark named in the [arka:design] marker; her QGVerdict MUST cite the screenshot path and that benchmark"
       - "If ANY reviewer rejects: work loops back to execution with issue list"
