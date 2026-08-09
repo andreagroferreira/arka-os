@@ -9,11 +9,11 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from core.sync.marker_audit import MarkerViolation
 from core.sync.schema import (
     AgentProvisionResult,
     ContentSyncResult,
     DescriptorSyncResult,
+    MarkerViolation,
     McpSyncResult,
     SettingsSyncResult,
     SkillSyncResult,
@@ -43,7 +43,6 @@ def build_report(
 ) -> SyncReport:
     """Aggregate all sync results into a SyncReport."""
     phases = (mcp_results, settings_results, descriptor_results, skill_results)
-    violations = [v.describe() for v in marker_violations or []]
     return SyncReport(
         previous_version=previous_version,
         current_version=current_version,
@@ -55,28 +54,30 @@ def build_report(
         skill_results=skill_results,
         content_results=content_results or [],
         agent_results=agent_results or [],
-        marker_violations=violations,
-        errors=_all_errors(phases, content_results, agent_results, violations),
+        marker_violations=marker_violations or [],
+        errors=_all_errors(phases, content_results, agent_results, marker_violations),
     )
 
 
 def _all_errors(
-    phases: tuple[list, list, list, list],
+    phases: tuple[
+        list[McpSyncResult],
+        list[SettingsSyncResult],
+        list[DescriptorSyncResult],
+        list[SkillSyncResult],
+    ],
     content_results: list[ContentSyncResult] | None,
     agent_results: list[AgentProvisionResult] | None,
-    violations: list[str],
+    violations: list[MarkerViolation] | None,
 ) -> list[str]:
     """Phase errors plus marker violations, in one actionable list.
 
     Marker violations count as errors: printing "Errors: 0" over a stamped
-    marker is how eight of them survived two releases (issue #492).
+    marker is how at least 13 of them survived four releases (issue #492).
     """
-    return (
-        _collect_errors(
-            *phases, content_results=content_results, agent_results=agent_results
-        )
-        + violations
-    )
+    return _collect_errors(
+        *phases, content_results=content_results, agent_results=agent_results
+    ) + [v.describe() for v in violations or []]
 
 
 def write_sync_state(state_file: Path, report: SyncReport) -> None:
@@ -118,18 +119,19 @@ def format_report(report: SyncReport) -> str:
     return "\n".join(lines)
 
 
-def _format_marker_lines(violations: list[str]) -> list[str]:
+def _format_marker_lines(violations: list[MarkerViolation]) -> list[str]:
     """Non-canonical feature markers, or nothing when the tree is clean.
 
-    Each one is printed in full. A bare count would have been just as
-    invisible as the silence it replaces.
+    Prose rendered FROM the structured records — they are the stored form;
+    this is only the terminal view of them. Each one is printed: a bare
+    count would have been as invisible as the silence it replaces.
     """
     if not violations:
         return []
     return [
         "",
         f"  Feature markers: {len(violations)} non-canonical (stamped/malformed):",
-        *[f"  - {v}" for v in violations],
+        *[f"  - {v.describe()}" for v in violations],
     ]
 
 

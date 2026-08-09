@@ -177,8 +177,8 @@ def _audit_marker_regions(
     Returns ``(regions_checked, problems)``. Shape comes first on purpose.
     The old version searched for the literal bare marker and `continue`d on
     a miss, so a STAMPED marker (`:start version=5.10.0 hash=…`) was read as
-    "no marker in this file" — eight of them, plus whatever drifted inside
-    them, sailed through two releases (issue #492). A marker that no literal
+    "no marker in this file" — at least 13 of them, plus whatever drifted
+    inside them, sailed through four releases (issue #492). A marker that no literal
     consumer matches is now a NAMED failure, never a skip.
     """
     problems = [v.describe() for root in roots for v in scan_tree(root)]

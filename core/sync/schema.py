@@ -1,6 +1,63 @@
 """Sync Engine schema — Pydantic models for the ArkaOS /arka update pipeline."""
 
-from pydantic import BaseModel, Field
+import re
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+ViolationKind = Literal["stamped", "malformed", "unreadable"]
+
+# Text lifted out of scanned files is untrusted: it reaches the operator's
+# terminal through format_report and sync-state.json through write_sync_state.
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_MAX_QUOTED_TEXT = 200
+
+
+def _neutralize(value: str) -> str:
+    """Escape C0/DEL control characters, then cap the result.
+
+    Escaping first, capping second, so the cap bounds what is actually
+    emitted: one ESC expands to four characters, and a 2 MB marker would
+    otherwise be held three times over (report, errors, state file).
+    """
+    escaped = _CONTROL_RE.sub(lambda m: f"\\x{ord(m.group()):02x}", value)
+    if len(escaped) <= _MAX_QUOTED_TEXT:
+        return escaped
+    return f"{escaped[:_MAX_QUOTED_TEXT]}…(+{len(escaped) - _MAX_QUOTED_TEXT})"
+
+
+class MarkerViolation(BaseModel):
+    """One `arka:feature` marker that no literal consumer would ever match.
+
+    Structured rather than a prose string: the /arka update Phase-4 JSON
+    consumer needs `kind` to choose between restamp, repair and warn, and
+    recovering it by substring-matching a sentence is not an interface.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    path: Path
+    line: int
+    kind: ViolationKind
+    marker: str
+    reason: str
+
+    @field_validator("marker", "reason")
+    @classmethod
+    def _sanitize(cls, value: str) -> str:
+        """Neutralize untrusted text at the only door into the model.
+
+        A validator, not a formatting step: a marker carrying `\\x1b[2J`
+        would otherwise clear the operator's screen (CWE-117), and no caller
+        — including one rehydrating this model from JSON — can bypass it.
+        """
+        return _neutralize(value)
+
+    def describe(self) -> str:
+        """Phase-prefixed, linter-style `path:line: reason` terminal line."""
+        tail = f" — {self.marker}" if self.marker else ""
+        return f"Markers: {self.path}:{self.line}: {self.reason}{tail}"
 
 
 class FeatureSpec(BaseModel):
@@ -120,11 +177,10 @@ class SyncReport(BaseModel):
     content_results: list[ContentSyncResult] = Field(default_factory=list)
     agent_results: list[AgentProvisionResult] = Field(default_factory=list)
     # Non-canonical `arka:feature` markers found in the installed skills
-    # tree, already rendered. Kept as its own field (and not only folded into
-    # `errors`) so the JSON the /arka update skill consumes can act on them:
-    # the eight stamped markers of issue #492 were invisible precisely
-    # because no channel ever named them.
-    marker_violations: list[str] = Field(default_factory=list)
+    # tree. Structured, and not only folded into `errors`, so the JSON the
+    # /arka update skill consumes can branch on `kind`: the stamped markers
+    # of issue #492 were invisible precisely because no channel named them.
+    marker_violations: list[MarkerViolation] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
 
 
