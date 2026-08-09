@@ -274,6 +274,151 @@ def test_security_grep_skips_without_changed_files(tmp_path):
     assert report.overall == "insufficient-evidence"
 
 
+class TestSecurityGrepUntrackedFiles:
+    """A brand-new file's secrets must gate — issue #481.
+
+    `git diff -U0 <base> -- <untracked path>` answers with exit 0 and
+    EMPTY output. `_added_lines` reported that silence as `[]`, not
+    None, so `_grep_lines` scanned ZERO lines and a new module carrying
+    a hardcoded credential passed `[PASS] security-grep`. A live bypass
+    of a NON-NEGOTIABLE gate: the one file shape most likely to carry a
+    fresh secret was the one shape the sweep never read.
+
+    Real git repos inside tmp_path — the claim under test is what git
+    and the sweep JOINTLY report, which a stub cannot establish. Same
+    fail-closed contract `_added_line_numbers` already publishes for the
+    typecheck/spellcheck path (PR #496), reached from the other side.
+    """
+
+    # The canonical AWS documentation example key, not a live credential.
+    # The literal must stay intact for the sweep to match it, so the
+    # SOURCE line below carries an arka:sec-ok annotation for this repo's
+    # own gate while the file written to tmp_path receives the payload
+    # alone — annotating the fixture content would suppress the very hit
+    # these tests exist to prove.
+    _SECRET = 'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\n'  # arka:sec-ok(aws-access-key): fixture literal
+    _CLEAN = "def handler():\n    return 1\n"
+
+    @staticmethod
+    def _repo(root: Path) -> None:
+        """A repo whose master carries one clean committed file."""
+        _git(root, "init", "-q", "-b", "master")
+        (root / "base.py").write_text("x = 1\n", encoding="utf-8")
+        _git(root, "add", "base.py")
+        _git(root, "commit", "-qm", "baseline")
+
+    @staticmethod
+    def _commit(root: Path, name: str, text: str) -> Path:
+        path = root / name
+        path.write_text(text, encoding="utf-8")
+        _git(root, "add", name)
+        _git(root, "commit", "-qm", f"add {name}")
+        return path
+
+    def test_untracked_file_with_a_secret_gates(self, tmp_path: Path) -> None:
+        """(a) The reported defect — GREEN before the fix.
+
+        The secret sits on line 3 so the assertion also proves the
+        fallback read the WHOLE file, not merely its first line.
+        """
+        self._repo(tmp_path)
+        (tmp_path / "brand_new.py").write_text(
+            self._CLEAN + self._SECRET, encoding="utf-8",
+        )
+
+        result = evidence_checks._check_security_grep(
+            tmp_path, ["brand_new.py"], None, 60,
+        )
+
+        assert result.ran is True
+        assert result.passed is False, (
+            "an untracked file was scanned for ZERO lines — a hardcoded "
+            f"credential passed a NON-NEGOTIABLE gate: {result.summary}"
+        )
+        assert "aws-access-key" in result.summary
+        assert "brand_new.py:3" in result.summary
+
+    def test_untracked_file_without_a_secret_passes(self, tmp_path: Path) -> None:
+        """(b) Fail-closed is not fail-always — a clean new file is clean."""
+        self._repo(tmp_path)
+        (tmp_path / "brand_new.py").write_text(self._CLEAN, encoding="utf-8")
+
+        result = evidence_checks._check_security_grep(
+            tmp_path, ["brand_new.py"], None, 60,
+        )
+
+        assert result.ran is True
+        assert result.passed is True, result.summary
+
+    def test_pre_existing_pattern_in_a_tracked_file_stays_inherited(
+        self, tmp_path: Path,
+    ) -> None:
+        """(c) Widening the untracked path must not widen the tracked one.
+
+        A pattern already on the base branch is master's debt. Re-gating
+        it is precisely the regression the added-lines scope was built to
+        end (QG blocker, PR1 Interaction Reform), so it is pinned here
+        against a fix that over-corrects into a whole-file sweep.
+        """
+        self._repo(tmp_path)
+        legacy = self._commit(tmp_path, "legacy.py", self._SECRET)
+        legacy.write_text(self._SECRET + "print('harmless')\n", encoding="utf-8")
+
+        result = evidence_checks._check_security_grep(
+            tmp_path, ["legacy.py"], None, 60,
+        )
+
+        assert result.passed is True, (
+            f"a pattern present on the base gated an unrelated diff: {result.summary}"
+        )
+
+    def test_added_line_in_a_tracked_file_gates_without_hedging(
+        self, tmp_path: Path,
+    ) -> None:
+        """(d) Scoping is not amnesty, and a proven addition says so."""
+        self._repo(tmp_path)
+        svc = self._commit(tmp_path, "svc.py", self._CLEAN)
+        svc.write_text(self._CLEAN + self._SECRET, encoding="utf-8")
+
+        result = evidence_checks._check_security_grep(
+            tmp_path, ["svc.py"], None, 60,
+        )
+
+        assert result.passed is False
+        assert "aws-access-key" in result.summary
+        assert "UNATTRIBUTED" not in result.summary, (
+            "git DID describe this file — the gate must report a proven "
+            "addition, not a fail-closed policy call"
+        )
+
+    def test_the_record_names_the_files_it_could_not_attribute(
+        self, tmp_path: Path,
+    ) -> None:
+        """(e) A fail-closed whole-file scan inside added-lines mode is a
+        different claim from a hit git saw added, and the record must say
+        which one it is — the vocabulary `_spellcheck_verdict` already
+        publishes for the same decision. One undescribable file must also
+        not downgrade the mode the whole sweep declares.
+        """
+        self._repo(tmp_path)
+        tracked = self._commit(tmp_path, "svc.py", self._CLEAN)
+        tracked.write_text(self._CLEAN + "print('harmless')\n", encoding="utf-8")
+        (tmp_path / "brand_new.py").write_text(self._SECRET, encoding="utf-8")
+
+        result = evidence_checks._check_security_grep(
+            tmp_path, ["svc.py", "brand_new.py"], None, 60,
+        )
+
+        assert result.passed is False
+        assert "added-lines" in result.command, (
+            "one undescribable file must not silently downgrade the mode "
+            "declared for every other file in the sweep"
+        )
+        assert "UNATTRIBUTED" in result.summary
+        assert "git could not describe 1 of the changed file(s)" in result.summary
+        assert "brand_new.py" in result.summary
+
+
 # ─── tests check (test_command override, real trivial subprocesses) ─────
 
 

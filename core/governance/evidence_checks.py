@@ -1510,19 +1510,39 @@ def _check_security_grep(
     a pre-existing pattern elsewhere in a touched file is master's
     debt, not this change's (QG blocker, PR1 Interaction Reform:
     whole-file scans failed changed files on benign pre-existing
-    lines). Falls back to the whole-file scan when git cannot provide
-    a diff (outside a repo, new file, missing base).
+    lines).
+
+    Three paths fall back to the whole-file scan, because a sweep that
+    cannot prove what a diff added must never conclude it added
+    nothing: no merge-base (global fallback), a path git refuses to
+    diff, and an UNTRACKED file. The last was a live bypass — ``git
+    diff`` answers a brand-new path with exit 0 and EMPTY output, and
+    reading that silence as "no added lines" scanned ZERO lines, so a
+    new module with a hardcoded secret passed GREEN through a
+    NON-NEGOTIABLE gate (issue #481). ``git ls-files`` answers what the
+    diff cannot: an empty diff does not tell "brand new" from "unchanged", and
+    treating unchanged files as new would resurrect the very
+    regression the added-lines scope exists to prevent. Same
+    fail-closed contract as ``_added_line_numbers``.
     """
     if not changed:
         return _skip("security-grep", "no changed files provided")
     base = _diff_base(project_dir)
-    hits, suppressed = [], []
+    hits, suppressed, unattributed = [], [], []
     mode = "added-lines" if base else "whole-file"
     for name in changed:
         path = _resolve_changed_file(project_dir, name)
         if path is None:
             continue
-        added = _added_lines(project_dir, base, name) if base else None
+        # _git_tracks costs a subprocess, so it is asked only on the
+        # branch that could otherwise scope the scan down to nothing.
+        added = (
+            _added_lines(project_dir, base, name)
+            if base and _git_tracks(project_dir, name)
+            else None
+        )
+        if base and added is None:
+            unattributed.append(name)
         found, quiet = (
             _grep_file(path) if added is None else _grep_lines(path, added)
         )
@@ -1531,7 +1551,8 @@ def _check_security_grep(
     return CheckResult(
         check="security-grep", ran=True, passed=not hits,
         command=f"security-grep ({mode}) over {len(changed)} changed file(s)",
-        exit_code=None, summary=_tail(_grep_summary(hits, suppressed)),
+        exit_code=None,
+        summary=_tail(_grep_summary(hits, suppressed, unattributed)),
         suppressions=list(suppressed), suppressed_count=len(suppressed),
     )
 
@@ -1543,13 +1564,23 @@ def _resolve_changed_file(project_dir: Path, name: str) -> Path | None:
     return path if path.is_file() else None
 
 
-def _grep_summary(hits: list[str], suppressed: list[str]) -> str:
+def _grep_summary(
+    hits: list[str], suppressed: list[str],
+    unattributed: list[str] | None = None,
+) -> str:
     """String form of the sweep outcome, capped but never quietly.
 
     Both listings cap at ``_MAX_GREP_HITS`` with an explicit ``+N
     more`` marker. The suppression record rides at the END of the
     string because ``_tail`` keeps the tail — and the authoritative
     record is the structured ``suppressions`` field, not this string.
+
+    ``unattributed`` names the files that fell back to a whole-file
+    scan INSIDE added-lines mode. Gating by that fallback is a policy
+    decision, not a hit git saw this diff add, and a summary that
+    conflates the two makes the gate assert a provenance nothing
+    verified — the same distinction ``_spellcheck_verdict`` draws,
+    and deliberately in its words.
     """
     summary = (
         "no security patterns matched"
@@ -1558,6 +1589,14 @@ def _grep_summary(hits: list[str], suppressed: list[str]) -> str:
     )
     if len(hits) > _MAX_GREP_HITS:
         summary += f" (+{len(hits) - _MAX_GREP_HITS} more hits)"
+    if unattributed:
+        listed = ", ".join(sorted(unattributed)[:3])
+        summary += (
+            f"; git could not describe {len(unattributed)} of the changed "
+            f"file(s) ({listed}) — untracked, renamed, or outside this "
+            "repository. Scanned whole-file; their hits gate as "
+            "UNATTRIBUTED, not as proven additions."
+        )
     if suppressed:
         summary += (
             f"; suppressed with arka:sec-ok justification: "
