@@ -43,6 +43,10 @@ Any Department Workflow:
          ARKA_CALL_CATEGORY=subagent:quality \
          ~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> \
            --changed-files f1,f2 [--test-command '...'] [--checks ...] --json
+       The engine reuses a tests receipt when the tree is byte-identical
+       to a conclusive run this session ("[reused]" in the summary) and
+       auto-drops checks the diff cannot touch; the final pre-merge
+       gate (--final-gate) never reuses and never subsets tests.
     2. Marta dispatches Eduardo + Francisca to INTERPRET the report:
        - Eduardo: spellcheck section + prose review of changed copy
        - Francisca: lint / typecheck / tests / coverage / security-grep

@@ -111,6 +111,10 @@ resumes at the right gate.
 
   A failing suite loops back into implementation. Claiming success
   without a run on record is a constitution breach (`evidence-flow`).
+  Prefer running the suite THROUGH the evidence engine
+  (`arka-py -m core.governance.evidence_checks . --checks tests --json`):
+  the run leaves a tree-keyed receipt Gate 4 reuses when the tree is
+  byte-identical — the suite stops running twice for one diff.
 
 ### Gate 4 — REVIEW `[arka:gate:4]`
 

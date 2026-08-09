@@ -576,8 +576,10 @@ def test_tests_prefers_project_venv_pytest(tmp_path, monkeypatch):
     assert result.ran is True
     assert result.passed is True
     assert "tests(project-venv)" in result.command
-    assert calls[0][0].endswith(".venv/bin/pytest")
-    assert len(calls) == 1  # no collect-only probe for the project venv
+    # PR-5 receipts probe git first; the subject here is the pytest path
+    pytest_calls = [c for c in calls if c[0] != "git"]
+    assert pytest_calls[0][0].endswith(".venv/bin/pytest")
+    assert len(pytest_calls) == 1  # no collect-only probe for the project venv
 
 
 def test_tests_foreign_pytest_skips_when_collection_fails(tmp_path, monkeypatch):
@@ -588,6 +590,8 @@ def test_tests_foreign_pytest_skips_when_collection_fails(tmp_path, monkeypatch)
     )
 
     def fake_run(cmd, **kwargs):
+        if cmd[0] == "git":  # PR-5 receipt probe — fail closed, no receipt
+            return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="")
         assert "--collect-only" in cmd  # only the probe may run
         return subprocess.CompletedProcess(cmd, 2, stdout="", stderr="ImportError")
 
@@ -617,8 +621,9 @@ def test_tests_foreign_pytest_runs_when_collection_succeeds(tmp_path, monkeypatc
     result = _result(report, "tests")
     assert result.ran is True
     assert result.passed is True
-    assert "--collect-only" in calls[0]
-    assert "--collect-only" not in calls[1]
+    pytest_calls = [c for c in calls if c[0] != "git"]
+    assert "--collect-only" in pytest_calls[0]
+    assert "--collect-only" not in pytest_calls[1]
 
 
 def test_tests_foreign_pytest_no_tests_collected_still_runs(tmp_path, monkeypatch):
@@ -3957,3 +3962,170 @@ class TestCliAutoDerive:
             [str(tmp_path), "--changed-files", "a.py,b.py", "--json"]
         ) == 0
         assert seen["changed"] == ["a.py", "b.py"]
+
+
+# ─── Tests receipt + auto check subset (Gate Economy PR-5) ──────────────
+
+
+class TestTreeStateDigest:
+    def _git(self, cwd, *args):
+        subprocess.run(
+            ["git", *args], cwd=cwd, check=True, capture_output=True,
+            env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"},
+        )
+
+    def _repo(self, tmp_path):
+        self._git(tmp_path, "init", "-q", "-b", "master")
+        (tmp_path / "a.py").write_text("x=1\n", "utf-8")
+        self._git(tmp_path, "add", "a.py")
+        self._git(tmp_path, "commit", "-qm", "base")
+        return tmp_path
+
+    def test_digest_changes_with_tracked_edit(self, tmp_path):
+        from core.governance.evidence_checks import _tree_state_digest
+
+        repo = self._repo(tmp_path)
+        before = _tree_state_digest(repo)
+        (repo / "a.py").write_text("x=2\n", "utf-8")
+        after = _tree_state_digest(repo)
+        assert before and after and before != after
+
+    def test_digest_changes_with_untracked_content(self, tmp_path):
+        from core.governance.evidence_checks import _tree_state_digest
+
+        repo = self._repo(tmp_path)
+        before = _tree_state_digest(repo)
+        (repo / "new.py").write_text("y=1\n", "utf-8")
+        mid = _tree_state_digest(repo)
+        (repo / "new.py").write_text("y=2\n", "utf-8")
+        after = _tree_state_digest(repo)
+        assert len({before, mid, after}) == 3
+
+    def test_no_repo_is_none(self, tmp_path):
+        from core.governance.evidence_checks import _tree_state_digest
+
+        assert _tree_state_digest(tmp_path) is None
+
+
+class TestTestsReceipt:
+    def _stub_run(self, monkeypatch, counter):
+        from core.governance import evidence_checks as ec
+
+        def fake_run(check, argv, project_dir, timeout):
+            counter["runs"] += 1
+            return ec.CheckResult(
+                check=check, ran=True, passed=True,
+                command=" ".join(str(a) for a in argv), exit_code=0,
+                summary="1 passed",
+            )
+
+        monkeypatch.setattr(ec, "_run", fake_run)
+        monkeypatch.setattr(ec, "_project_pytest", lambda p: ["pytest"])
+
+    def test_identical_tree_reuses_receipt(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "m.py").write_text("x=1\n", "utf-8")
+        monkeypatch.setattr(ec, "_tree_state_digest", lambda p: "t" * 64)
+        counter = {"runs": 0}
+        self._stub_run(monkeypatch, counter)
+        first = ec._check_tests(tmp_path, None, None, 60)
+        second = ec._check_tests(tmp_path, None, None, 60)
+        assert counter["runs"] == 1
+        assert "[reused]" not in first.summary
+        assert "[reused]" in second.summary
+        assert second.passed is True
+
+    def test_changed_tree_runs_again(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "m.py").write_text("x=1\n", "utf-8")
+        trees = iter(["a" * 64, "b" * 64])
+        monkeypatch.setattr(
+            ec, "_tree_state_digest", lambda p: next(trees)
+        )
+        counter = {"runs": 0}
+        self._stub_run(monkeypatch, counter)
+        ec._check_tests(tmp_path, None, None, 60)
+        ec._check_tests(tmp_path, None, None, 60)
+        assert counter["runs"] == 2
+
+    def test_final_gate_never_reuses(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "m.py").write_text("x=1\n", "utf-8")
+        monkeypatch.setattr(ec, "_tree_state_digest", lambda p: "t" * 64)
+        counter = {"runs": 0}
+        self._stub_run(monkeypatch, counter)
+        ec._check_tests(tmp_path, None, None, 60)
+        result = ec._check_tests(
+            tmp_path, None, None, 60, force_full=True
+        )
+        assert counter["runs"] == 2
+        assert "[reused]" not in result.summary
+
+    def test_expired_receipt_runs_again(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "m.py").write_text("x=1\n", "utf-8")
+        monkeypatch.setattr(ec, "_tree_state_digest", lambda p: "t" * 64)
+        counter = {"runs": 0}
+        self._stub_run(monkeypatch, counter)
+        ec._check_tests(tmp_path, None, None, 60)
+        receipt = json.loads(
+            ec._tests_receipt_path(tmp_path).read_text(encoding="utf-8")
+        )
+        receipt["ts"] = receipt["ts"] - ec.TESTS_RECEIPT_TTL_SECONDS - 1
+        ec._tests_receipt_path(tmp_path).write_text(
+            json.dumps(receipt), encoding="utf-8"
+        )
+        ec._check_tests(tmp_path, None, None, 60)
+        assert counter["runs"] == 2
+
+    def test_inconclusive_run_leaves_no_receipt(self, tmp_path, monkeypatch):
+        from core.governance import evidence_checks as ec
+
+        (tmp_path / "m.py").write_text("x=1\n", "utf-8")
+        monkeypatch.setattr(ec, "_tree_state_digest", lambda p: "t" * 64)
+
+        def fake_run(check, argv, project_dir, timeout):
+            return ec.CheckResult(
+                check=check, ran=True, passed=None,
+                command="pytest", exit_code=None, summary="timeout",
+            )
+
+        monkeypatch.setattr(ec, "_run", fake_run)
+        monkeypatch.setattr(ec, "_project_pytest", lambda p: ["pytest"])
+        ec._check_tests(tmp_path, None, None, 60)
+        assert not ec._tests_receipt_path(tmp_path).exists()
+
+
+class TestAutoChecks:
+    def test_no_changed_list_keeps_full_set(self):
+        from core.governance.evidence_checks import ALL_CHECKS, _auto_checks
+
+        assert _auto_checks(None) == list(ALL_CHECKS)
+
+    def test_pure_python_diff_drops_ui_and_prose_checks(self):
+        from core.governance.evidence_checks import _auto_checks
+
+        selected = _auto_checks(["core/x.py", "tests/python/test_x.py"])
+        assert "spellcheck" not in selected
+        assert "design-slop" not in selected
+        assert "ui-screenshot" not in selected
+        assert "tests" in selected and "lint" in selected
+
+    def test_prose_diff_keeps_spellcheck(self):
+        from core.governance.evidence_checks import _auto_checks
+
+        selected = _auto_checks(["docs/a.md"])
+        assert "spellcheck" in selected
+        assert "design-slop" not in selected
+
+    def test_ui_diff_keeps_design_checks(self):
+        from core.governance.evidence_checks import _auto_checks
+
+        selected = _auto_checks(["app/Hero.vue"])
+        assert "design-slop" in selected
+        assert "ui-screenshot" in selected

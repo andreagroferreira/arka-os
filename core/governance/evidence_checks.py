@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import configparser
 import fnmatch
+import hashlib
 import importlib.util
 import json
 import os
@@ -793,11 +794,10 @@ def _cached_advisory(project_dir: Path, head: str | None) -> str | None:
         )
     except (OSError, json.JSONDecodeError):
         return None
-    if payload.get("head") != head or not isinstance(
-        payload.get("note"), str
-    ):
+    note = payload.get("note")
+    if payload.get("head") != head or not isinstance(note, str):
         return None
-    return payload["note"] + " [cached]"
+    return note + " [cached]"
 
 
 def _store_advisory(project_dir: Path, head: str | None, note: str) -> None:
@@ -1292,6 +1292,124 @@ def _run_pinned_tests(
 
 
 _PROSE_SUFFIXES = frozenset({".md", ".mdx", ".txt"})
+_UI_SUFFIXES = frozenset({".vue", ".tsx", ".jsx", ".css", ".scss", ".html"})
+
+# ─── Tests receipt (Gate Economy PR-5) ──────────────────────────────────
+# The suite used to run 2-4 times per cycle over a byte-identical tree: once
+# for G3, again inside the G4 evidence engine, again per redo round and
+# again when Marta reproduces. The engine now leaves a receipt keyed by
+# the exact tree state + run mode; an identical tree within the TTL
+# reuses the recorded verdict, marked "[reused]" so no reviewer can
+# mistake it for a fresh run. --final-gate NEVER reuses.
+
+TESTS_RECEIPT_TTL_SECONDS = 6 * 3600
+_UNTRACKED_HASH_CAP = 200
+
+
+def _tests_receipt_path(project_dir: Path) -> Path:
+    return project_dir / ".arka" / "cache" / "tests-receipt.json"
+
+
+def _tree_state_digest(project_dir: Path) -> str | None:
+    """sha256 of HEAD + tracked diff + untracked contents, or None.
+
+    None outside a usable repo, or when the untracked set is too large
+    to hash honestly — reuse must fail closed to a real run.
+    """
+    head = _head_sha(project_dir)
+    if head is None:
+        return None
+    try:
+        diff = subprocess.run(
+            ["git", "diff", "HEAD"],
+            cwd=project_dir, capture_output=True, text=True, timeout=30,
+        )
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=project_dir, capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if diff.returncode != 0 or untracked.returncode != 0:
+        return None
+    digest = hashlib.sha256(head.encode() + diff.stdout.encode())
+    names = sorted(
+        ln.strip() for ln in untracked.stdout.splitlines() if ln.strip()
+    )
+    if len(names) > _UNTRACKED_HASH_CAP:
+        return None
+    for name in names:
+        try:
+            digest.update(name.encode())
+            digest.update((project_dir / name).read_bytes())
+        except OSError:
+            return None
+    return digest.hexdigest()
+
+
+def _tests_receipt_key(
+    project_dir: Path,
+    test_command: str | None,
+    scoped: list[str] | None,
+) -> str | None:
+    tree = _tree_state_digest(project_dir)
+    if tree is None:
+        return None
+    mode = test_command or (
+        "scoped:" + ",".join(scoped) if scoped else "full"
+    )
+    return f"{tree}|{mode}"
+
+
+def _reusable_tests_receipt(
+    project_dir: Path, key: str
+) -> CheckResult | None:
+    try:
+        payload = json.loads(
+            _tests_receipt_path(project_dir).read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError):
+        return None
+    if payload.get("key") != key:
+        return None
+    try:
+        age = time.time() - float(payload.get("ts", 0))
+    except (TypeError, ValueError):
+        return None
+    if age < 0 or age > TESTS_RECEIPT_TTL_SECONDS:
+        return None
+    result = payload.get("result")
+    if not isinstance(result, dict):
+        return None
+    try:
+        reused = CheckResult(**result)
+    except TypeError:
+        return None
+    reused.summary = (
+        "[reused] identical tree already ran this session — " +
+        reused.summary
+    )
+    return reused
+
+
+def _store_tests_receipt(
+    project_dir: Path, key: str, result: CheckResult
+) -> None:
+    if not result.ran or result.passed is None:
+        return  # only conclusive runs are worth reusing
+    try:
+        receipt = _tests_receipt_path(project_dir)
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        receipt.write_text(
+            json.dumps({
+                "key": key,
+                "ts": time.time(),
+                "result": asdict(result),
+            }),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass  # the receipt is an optimization, never a gate
 
 
 def _mapped_test_files(
@@ -1346,12 +1464,40 @@ def _check_tests(
     test_command: str | None, timeout: int,
     *, force_full: bool = False,
 ) -> CheckResult:
+    """Receipt-aware tests check (Gate Economy PR-5).
+
+    An identical tree that already produced a conclusive verdict this
+    session reuses it (marked "[reused]"); ``--final-gate`` always runs
+    fresh, and any doubt about the tree state fails closed to a run.
+    """
+    scoped = (
+        None if force_full or test_command
+        else _mapped_test_files(project_dir, changed)
+    )
+    key = None
+    if not force_full:
+        key = _tests_receipt_key(project_dir, test_command, scoped)
+        if key:
+            reused = _reusable_tests_receipt(project_dir, key)
+            if reused is not None:
+                return reused
+    result = _run_tests_check(
+        project_dir, changed, test_command, timeout,
+        force_full=force_full, scoped=scoped,
+    )
+    if key:
+        _store_tests_receipt(project_dir, key, result)
+    return result
+
+
+def _run_tests_check(
+    project_dir: Path, changed: list[str] | None,
+    test_command: str | None, timeout: int,
+    *, force_full: bool, scoped: list[str] | None,
+) -> CheckResult:
     if test_command and not force_full:
         return _run_pinned_tests(test_command, project_dir, timeout)
     if _has_python(project_dir, changed):
-        scoped = (
-            None if force_full else _mapped_test_files(project_dir, changed)
-        )
         scope_args = scoped or []
         label = "tests(project-venv, diff-scoped)" if scoped else (
             "tests(project-venv)"
@@ -2263,6 +2409,28 @@ _CHECK_DISPATCH = {
 # ─── Public API ─────────────────────────────────────────────────────────
 
 
+def _auto_checks(changed: list[str] | None) -> list[str]:
+    """Default check set, subset by what the diff can even touch.
+
+    Gate Economy PR-5: with an honest changed list, a diff with no UI
+    files cannot fail design-slop/ui-screenshot and one with no prose
+    cannot fail spellcheck — dropping them saves their subprocess
+    starts. No changed list (None) keeps the full set.
+    """
+    if not changed:
+        return list(ALL_CHECKS)
+    suffixes = {PurePosixPath(c.strip()).suffix.lower() for c in changed}
+    selected = list(ALL_CHECKS)
+    if not (suffixes & _UI_SUFFIXES):
+        selected = [
+            c for c in selected
+            if c not in ("ui-screenshot", "design-slop")
+        ]
+    if not (suffixes & _PROSE_SUFFIXES):
+        selected = [c for c in selected if c != "spellcheck"]
+    return selected
+
+
 def _derive_overall(results: list[CheckResult]) -> str:
     """fail only when a GATING (blocker/major) check failed.
 
@@ -2343,7 +2511,7 @@ def run_evidence_checks(
     """
     _assert_provenance(project_dir)
     project_dir = Path(project_dir)
-    selected = list(checks) if checks else list(ALL_CHECKS)
+    selected = list(checks) if checks else _auto_checks(changed_files)
     results: list[CheckResult] = []
     for name in selected:
         check_fn = _CHECK_DISPATCH.get(name)
