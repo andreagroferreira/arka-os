@@ -19,6 +19,7 @@ import pytest
 from core.governance import evidence_checks
 from core.governance.evidence_checks import (
     ALL_CHECKS,
+    CHECK_SEVERITY,
     UI_SCREENSHOT_WINDOW_HOURS,
     CheckResult,
     EvidenceReport,
@@ -1190,14 +1191,21 @@ def test_ui_screenshot_picks_newest_artifact(tmp_path):
     assert result.details_path == str(newest)
 
 
-def test_ui_screenshot_failure_fails_overall_report(tmp_path):
+def test_ui_screenshot_failure_is_advisory_not_gating(tmp_path):
+    """Gate Economy: ui-screenshot is minor severity — the missing
+    evidence surfaces as a failed check for the fix-forward pass, but
+    it no longer flips the whole report to "fail" on its own (design
+    evidence at write time stays enforced by the frontend gate)."""
     (tmp_path / "app").mkdir()
     (tmp_path / "app" / "Hero.vue").write_text("<template/>", encoding="utf-8")
     report = run_evidence_checks(
         tmp_path, changed_files=["app/Hero.vue"],
         checks=["ui-screenshot"],
     )
-    assert report.overall == "fail"
+    by_check = {r.check: r for r in report.results}
+    assert by_check["ui-screenshot"].passed is False
+    assert by_check["ui-screenshot"].severity == "minor"
+    assert report.overall == "pass"
 
 
 # ─── F1 polish: venv-module tool resolution (task #12, QG follow-up) ───
@@ -3647,3 +3655,64 @@ class TestSpellcheckFindingsSurviveTruncation:
         assert f"{count} gating misspelling(s)" in result.summary, (
             "the summary must be the rebuilt verdict, not a raw tool dump"
         )
+
+
+# ─── Severity-weighted overall (Gate Economy, 2026-08-09) ───────────────
+
+
+class TestSeverityOverall:
+    def _result(self, check, passed, severity="major"):
+        return CheckResult(
+            check=check,
+            ran=True,
+            passed=passed,
+            command="x",
+            exit_code=0 if passed else 1,
+            summary="",
+            severity=severity,
+        )
+
+    def test_minor_only_failure_gates_pass(self):
+        results = [
+            self._result("tests", True, "blocker"),
+            self._result("spellcheck", False, "minor"),
+        ]
+        assert _derive_overall(results) == "pass"
+
+    def test_minor_failure_with_nothing_passing_still_concludes(self):
+        assert _derive_overall(
+            [self._result("spellcheck", False, "minor")]
+        ) == "pass"
+
+    def test_major_failure_gates_fail(self):
+        results = [
+            self._result("spellcheck", False, "minor"),
+            self._result("typecheck", False, "major"),
+        ]
+        assert _derive_overall(results) == "fail"
+
+    def test_blocker_failure_gates_fail(self):
+        assert _derive_overall(
+            [self._result("tests", False, "blocker")]
+        ) == "fail"
+
+    def test_legacy_default_severity_keeps_gating(self):
+        assert _derive_overall([self._result("lint", False)]) == "fail"
+
+    def test_nothing_concluded_is_insufficient(self):
+        results = [
+            CheckResult(
+                check="tests", ran=False, passed=None,
+                command="", exit_code=None, summary="skipped",
+            )
+        ]
+        assert _derive_overall(results) == "insufficient-evidence"
+
+    def test_check_severity_covers_every_check(self):
+        assert set(CHECK_SEVERITY) == set(ALL_CHECKS)
+        assert set(CHECK_SEVERITY.values()) <= {"blocker", "major", "minor"}
+
+    def test_run_evidence_checks_stamps_severity(self, tmp_path):
+        report = run_evidence_checks(tmp_path, checks=["spellcheck"])
+        by_check = {r.check: r for r in report.results}
+        assert by_check["spellcheck"].severity == "minor"

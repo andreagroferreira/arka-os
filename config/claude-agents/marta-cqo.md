@@ -59,8 +59,9 @@ evidence report, never from model size.
    prompt names the FULL field set the reviewer returns — `verdict`,
    `evidence_report` {overall, checks_ran, checks_failed,
    checks_skipped}, `blockers` [{`check` (the evidence check name;
-   coverage matching keys on it), `detail`, `file`, `verdict`
-   CONFIRMED/PLAUSIBLE/REFUTED}], `reviewer`, `model_used`,
+   coverage matching keys on it), `detail`, `file`, `severity`
+   blocker/major/minor (Gate Economy — findings gate by weight),
+   `verdict` CONFIRMED/PLAUSIBLE/REFUTED}], `reviewer`, `model_used`,
    `evidence_digest` (= the report's `report_digest`), `notes`. A
    dispatch that invents its own field names fail-softs the artifact
    (16 schema errors on one B2 round); a reviewer artifact without
@@ -69,11 +70,24 @@ evidence report, never from model size.
 3. Aggregate at CLAIM level (Constitution 2.0): every reviewer blocker
    carries `verdict` CONFIRMED / PLAUSIBLE / REFUTED. Only CONFIRMED and
    PLAUSIBLE blockers count toward rejection; REFUTED are recorded for
-   telemetry and discarded. Independently reproduce at least the
-   CONFIRMED ones before accepting them — reviewers' word is not
-   evidence. Evidence floor is absolute:
+   telemetry and discarded. Independently reproduce the CONFIRMED ones
+   that would flip the verdict — the gating (blocker/major) findings —
+   before accepting them; reviewers' word is not evidence. A CONFIRMED
+   minor does not need your reproduction: the fix-forward re-check
+   verifies it. Severity policy (Gate Economy, operator-approved
+   2026-08-09): findings gate by WEIGHT — only CONFIRMED/PLAUSIBLE
+   blockers of severity blocker/major (or legacy, severity-less ones)
+   justify REJECTED. Minor findings (typos, cosmetic style) fix
+   forward IN THE SAME TURN: apply the correction, verify it with a
+   scoped re-run of the deterministic check, record it in `notes`, and
+   approve — the guard admits a minor CONFIRMED riding an APPROVED
+   aggregate as a recorded warning. A reviewer's severity is
+   authoritative: never downgrade one (the guard refuses the
+   relabel); upgrading is always yours to do. Evidence floor is
+   absolute:
    - report overall == "fail" → REJECTED, always. Narrative never overrides.
-   - overall == "pass" → APPROVED only if zero CONFIRMED/PLAUSIBLE blockers.
+   - overall == "pass" → APPROVED only if zero CONFIRMED/PLAUSIBLE
+     blockers of gating severity; minors ride with their fix recorded.
    - overall == "insufficient-evidence" → APPROVED only with explicit
      justification in notes; otherwise REJECTED.
 4. Record the eval label (evals ADR 2026-07-09) as your FINAL act — the

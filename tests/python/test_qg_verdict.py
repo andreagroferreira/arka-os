@@ -154,3 +154,117 @@ def test_digest_carries_round_trip():
     reloaded = QGVerdict.model_validate_json(verdict.model_dump_json())
     assert reloaded == verdict
     assert reloaded.digest_carries[0].evidence_digest == "a" * 64
+
+
+# ─── Severity policy (Gate Economy, operator-approved 2026-08-09) ───────
+
+
+def _blocker(severity, verdict="CONFIRMED", check="spellcheck"):
+    return QGBlocker(
+        check=check,
+        detail="codespell: 'recieve' -> 'receive'",
+        file="docs/guide.md:12",
+        severity=severity,
+        verdict=verdict,
+    )
+
+
+def test_rejected_backed_only_by_minors_is_invalid():
+    with pytest.raises(ValidationError, match="fix forward"):
+        QGVerdict(
+            verdict="REJECTED",
+            evidence_report=_summary("pass"),
+            blockers=[_blocker("minor")],
+            reviewer="copy-director-eduardo",
+            model_used="opus",
+        )
+
+
+def test_rejected_with_major_on_passing_evidence_is_valid():
+    verdict = QGVerdict(
+        verdict="REJECTED",
+        evidence_report=_summary("pass"),
+        blockers=[_blocker("major", check="solid")],
+        reviewer="tech-director-francisca",
+        model_used="opus",
+    )
+    assert verdict.blockers[0].severity == "major"
+
+
+def test_rejected_with_minors_on_failing_evidence_stays_valid():
+    verdict = QGVerdict(
+        verdict="REJECTED",
+        evidence_report=_summary("fail"),
+        blockers=[_blocker("minor")],
+        reviewer="copy-director-eduardo",
+        model_used="opus",
+    )
+    assert verdict.verdict == "REJECTED"
+
+
+def test_legacy_severity_less_blockers_still_reject():
+    """Pre-severity corpus shape: None severity keeps gating."""
+    verdict = QGVerdict(
+        verdict="REJECTED",
+        evidence_report=_summary("pass"),
+        blockers=[_blocker(None, check="logic")],
+        reviewer="tech-director-francisca",
+        model_used="opus",
+    )
+    assert verdict.blockers[0].severity is None
+
+
+def test_approved_carrying_gating_confirmed_is_invalid():
+    with pytest.raises(ValidationError, match="gating severity"):
+        QGVerdict(
+            verdict="APPROVED",
+            evidence_report=_summary("pass"),
+            blockers=[_blocker("major", check="solid")],
+            reviewer="tech-director-francisca",
+            model_used="opus",
+        )
+
+
+def test_approved_carrying_plausible_legacy_blocker_is_invalid():
+    with pytest.raises(ValidationError, match="gating severity"):
+        QGVerdict(
+            verdict="APPROVED",
+            evidence_report=_summary("pass"),
+            blockers=[_blocker(None, verdict="PLAUSIBLE", check="logic")],
+            reviewer="tech-director-francisca",
+            model_used="opus",
+        )
+
+
+def test_approved_with_minor_requires_fix_forward_notes():
+    with pytest.raises(ValidationError, match="fix-forward"):
+        QGVerdict(
+            verdict="APPROVED",
+            evidence_report=_summary("pass"),
+            blockers=[_blocker("minor")],
+            reviewer="copy-director-eduardo",
+            model_used="opus",
+        )
+
+
+def test_approved_with_minor_and_recorded_fix_is_valid():
+    verdict = QGVerdict(
+        verdict="APPROVED",
+        evidence_report=_summary("pass"),
+        blockers=[_blocker("minor")],
+        reviewer="copy-director-eduardo",
+        model_used="opus",
+        notes="Fixed 'recieve' in docs/guide.md:12; codespell re-run clean.",
+    )
+    assert verdict.verdict == "APPROVED"
+
+
+def test_approved_with_refuted_minor_needs_no_notes():
+    verdict = QGVerdict(
+        verdict="APPROVED",
+        evidence_report=_summary("pass"),
+        blockers=[_blocker("minor", verdict="REFUTED")],
+        reviewer="copy-director-eduardo",
+        model_used="opus",
+    )
+    assert verdict.verdict == "APPROVED"

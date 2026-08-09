@@ -1682,3 +1682,58 @@ class TestBlockerReasonBranches:
         _write_ledger_record("sess-m12b", "eduardo-copy", seq=2)
         result = check_aggregate(_aggregate(), "sess-m12b")
         assert result.ok
+
+
+class TestMinorFixForward:
+    """Gate Economy: a reviewer's CONFIRMED minor may ride an APPROVED
+    aggregate as a recorded fix-forward; the REVIEWER's severity is
+    authoritative — a relabel in the aggregate never launders."""
+
+    def _quorum_with_minor(self, session_id, severity="minor"):
+        blocker = {
+            "check": "spellcheck",
+            "detail": "codespell: 'recieve' -> 'receive'",
+            "file": "docs/guide.md:12",
+            "severity": severity,
+            "verdict": "CONFIRMED",
+        }
+        _write_ledger_record(
+            session_id, "francisca-tech", seq=1,
+            verdict=_reviewer_verdict("francisca-tech", blockers=[blocker]),
+        )
+        _write_ledger_record(session_id, "eduardo-copy", seq=2)
+        return blocker
+
+    def test_minor_carried_on_approved_passes_with_warning(self, guard_home):
+        blocker = self._quorum_with_minor("sess-minor-1")
+        result = check_aggregate(
+            _aggregate(blockers=[dict(blocker)]), "sess-minor-1"
+        )
+        assert result.ok
+        assert any("fix-forward" in w for w in result.warnings)
+
+    def test_major_relabeled_minor_in_aggregate_still_refused(
+        self, guard_home
+    ):
+        blocker = self._quorum_with_minor("sess-minor-2", severity="major")
+        relabeled = dict(blocker, severity="minor")
+        result = check_aggregate(
+            _aggregate(blockers=[relabeled]), "sess-minor-2"
+        )
+        assert not result.ok
+        assert any("carried un-refuted" in r for r in result.reasons)
+
+    def test_severity_less_confirmed_still_refused_on_approved(
+        self, guard_home
+    ):
+        blocker = self._quorum_with_minor("sess-minor-3", severity="")
+        result = check_aggregate(
+            _aggregate(blockers=[dict(blocker)]), "sess-minor-3"
+        )
+        assert not result.ok
+
+    def test_minor_vanishing_still_refused(self, guard_home):
+        self._quorum_with_minor("sess-minor-4")
+        result = check_aggregate(_aggregate(blockers=[]), "sess-minor-4")
+        assert not result.ok
+        assert any("never disappears silently" in r for r in result.reasons)

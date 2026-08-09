@@ -33,6 +33,17 @@ class QGBlocker(BaseModel):
     file: str | None = Field(
         default=None, description="File (and line if known) of the issue"
     )
+    # Gate Economy (2026-08-09, operator-approved): severity vocabulary
+    # mirrored from JudgeFinding — findings gate by weight, not by count.
+    severity: Literal["blocker", "major", "minor"] | None = Field(
+        default=None,
+        description=(
+            "Gate severity: blocker/major findings gate the verdict; "
+            "minor findings (typos, cosmetic style) fix forward in the "
+            "same turn and never reopen a review round on their own. "
+            "None = pre-severity corpus, treated as gating."
+        ),
+    )
     # Constitution 2.0 (PR-5, 2026-07-08): claim-level verdict vocabulary
     # imported from the frontier review pattern — findings are judged
     # individually, not only the deliverable as a whole.
@@ -186,6 +197,48 @@ class QGVerdict(BaseModel):
             raise ValueError(
                 "APPROVED on insufficient-evidence requires explicit "
                 "justification in notes"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def enforce_severity_policy(self) -> QGVerdict:
+        """Gate Economy: findings gate by weight, minors fix forward.
+
+        A rejection needs at least one live (CONFIRMED/PLAUSIBLE)
+        blocker of gating severity — or failing evidence. An approval
+        carries no live gating blocker, and any live minor it carries
+        must have its fix-forward recorded in notes.
+        """
+        live = [
+            b for b in self.blockers if b.verdict in ("CONFIRMED", "PLAUSIBLE")
+        ]
+        gating = [b for b in live if b.severity in (None, "blocker", "major")]
+        if (
+            self.verdict == "REJECTED"
+            and self.evidence_report.overall != "fail"
+            and self.blockers
+            and not gating
+        ):
+            raise ValueError(
+                "REJECTED over passing evidence with only minor-severity "
+                "findings — minors fix forward in the same turn; a "
+                "rejection needs a blocker/major finding or failing "
+                "evidence"
+            )
+        if self.verdict == "APPROVED" and gating:
+            raise ValueError(
+                "APPROVED verdict carrying a live CONFIRMED/PLAUSIBLE "
+                "blocker of gating severity — fix it, refute it on the "
+                "record, or reject"
+            )
+        if (
+            self.verdict == "APPROVED"
+            and any(b.severity == "minor" for b in live)
+            and not self.notes.strip()
+        ):
+            raise ValueError(
+                "APPROVED with minor findings requires notes recording "
+                "the fix-forward (what was corrected, verified how)"
             )
         return self
 

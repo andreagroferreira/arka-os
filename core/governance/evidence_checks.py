@@ -50,6 +50,24 @@ ALL_CHECKS: tuple[str, ...] = (
     "ui-screenshot", "design-slop",
 )
 
+# Gate Economy (2026-08-09, operator-approved): per-check gate severity.
+# A blocker/major failure flips the report to "fail"; a minor failure is
+# advisory — its findings surface for the same-turn fix-forward pass and
+# never force a REJECTED round on their own. Lint stays gating (major)
+# in v1: the engine cannot yet split style-only hits from real defects
+# (an F821 undefined name) across ruff/eslint/pint, and a wrong "minor"
+# there would approve broken code.
+CHECK_SEVERITY: dict[str, str] = {
+    "lint": "major",
+    "typecheck": "major",
+    "tests": "blocker",
+    "coverage": "major",
+    "security-grep": "blocker",
+    "spellcheck": "minor",
+    "ui-screenshot": "minor",
+    "design-slop": "minor",
+}
+
 # ui-screenshot artifact contract (Excellence Reform PR-D3): captures land
 # in <project>/.arka/evidence/ui/ per brand/design-review; the check only
 # stats files (read-only), it never runs a browser.
@@ -142,6 +160,10 @@ class CheckResult:
     # enumerate findings, and for pre-existing corpus records.
     findings: list[str] = field(default_factory=list)
     findings_count: int = 0
+    # Gate Economy: severity a FAILURE of this check carries
+    # ("blocker" | "major" | "minor"), assigned from CHECK_SEVERITY at
+    # run time. The default keeps unknown and legacy results gating.
+    severity: str = "major"
 
 
 @dataclass
@@ -2089,11 +2111,23 @@ _CHECK_DISPATCH = {
 
 
 def _derive_overall(results: list[CheckResult]) -> str:
-    """fail if any ran check failed; insufficient if nothing concluded."""
-    if any(r.ran and r.passed is False for r in results):
+    """fail only when a GATING (blocker/major) check failed.
+
+    Minor-severity failures (spellcheck, design-slop, ui-screenshot)
+    are advisory: their findings stay in the report for the same-turn
+    fix-forward pass, but they never flip the overall on their own —
+    a concluded run whose only failures are minor still gates "pass"
+    (Gate Economy, operator-approved 2026-08-09).
+    """
+    if any(
+        r.ran and r.passed is False and r.severity != "minor"
+        for r in results
+    ):
         return "fail"
     if any(r.ran and r.passed is True for r in results):
         return "pass"
+    if any(r.ran and r.passed is False for r in results):
+        return "pass"  # concluded evidence, only minor failures
     return "insufficient-evidence"
 
 
@@ -2156,7 +2190,9 @@ def run_evidence_checks(
         if check_fn is None:
             results.append(_skip(name, f"unknown check: {name}"))
             continue
-        results.append(check_fn(project_dir, changed_files, test_command, timeout))
+        result = check_fn(project_dir, changed_files, test_command, timeout)
+        result.severity = CHECK_SEVERITY.get(name, "major")
+        results.append(result)
     return EvidenceReport(
         project_dir=str(project_dir),
         overall=_derive_overall(results),

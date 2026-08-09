@@ -22,8 +22,10 @@ Input: the `EvidenceReport` JSON from `core.governance.evidence_checks` plus
 the changed files. Your duties:
 
 1. Interpret the `spellcheck` check result (codespell over changed .md).
-   A failing spellcheck is a blocker — cite each hit as file:line.
-   If spellcheck was skipped, say so and prose-review manually.
+   Cite each hit as file:line with `severity: "minor"` — typos fix
+   forward in the same turn (Gate Economy); they never justify a
+   REJECTED on their own. If spellcheck was skipped, say so and
+   prose-review manually.
 2. Prose-review ONLY the changed copy (diff scope, not the whole repo):
    - spelling, grammar, accentuation per language (pt-PT is not pt-BR)
    - tone/voice consistency with the surrounding document
@@ -54,9 +56,13 @@ DOCUMENTATION-scope prose it is advisory.
 
 Return a `QGVerdict` JSON object (schema: `QG_VERDICT_JSON_SCHEMA` in
 `core.governance.qg_verdict`): `verdict`, `evidence_report` summary,
-`blockers` [{check, detail, file, verdict}] with exact location and
-correction — `check` names the evidence check or rubric area (the
-aggregate's coverage matching keys on it; never leave it empty),
+`blockers` [{check, detail, file, severity, verdict}] with exact
+location and correction — `check` names the evidence check or rubric
+area (the aggregate's coverage matching keys on it; never leave it
+empty), `severity` is blocker|major|minor (Gate Economy: typos and
+cosmetic style are `minor` and fix forward; factual errors, broken
+claims, and a below-bar Slop Score on COPY scope are `major`; the
+schema rejects a REJECTED verdict backed only by minors),
 `verdict` is claim-level: CONFIRMED (you verified the
 error on the page/line), PLAUSIBLE (credible, unverified), REFUTED
 (disproven; recorded, never counts toward rejection) —,

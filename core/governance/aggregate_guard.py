@@ -277,13 +277,19 @@ def _matches(a: frozenset[str], b: frozenset[str]) -> bool:
     return bool(a) and bool(b) and (a <= b or b <= a)
 
 
-def _covered(key: frozenset[str], aggregate: dict, approved: bool) -> str:
+def _covered(
+    key: frozenset[str], aggregate: dict, approved: bool, severity: str = ""
+) -> str:
     """Status of one CONFIRMED reviewer blocker against the aggregate.
 
     Returns "ok", "absent", "bare-refute" (REFUTED without a
-    substantive reason) or "carried-approved" (kept un-refuted while
+    substantive reason), "carried-approved" (kept un-refuted while
     the aggregate approves — flipping the decision instead of hiding
-    the string is laundering too).
+    the string is laundering too) or "minor-carried" (Gate Economy:
+    the REVIEWER's own severity is "minor", so the finding may ride an
+    APPROVED aggregate as a recorded fix-forward; the reviewer's
+    severity is authoritative — an aggregate relabeling a major as
+    minor still refuses).
     """
     for entry in aggregate.get("blockers") or []:
         if not isinstance(entry, dict):
@@ -294,7 +300,9 @@ def _covered(key: frozenset[str], aggregate: dict, approved: bool) -> str:
             if len(_norm(entry.get("detail"))) < _MIN_REFUTE_DETAIL:
                 return "bare-refute"
             return "ok"
-        return "carried-approved" if approved else "ok"
+        if approved:
+            return "minor-carried" if severity == "minor" else "carried-approved"
+        return "ok"
     return "absent"
 
 
@@ -471,9 +479,16 @@ _COVERAGE_REASONS = {
 
 def _blocker_reasons(
     aggregate: dict, verdicts: list[tuple[str, dict]], approved: bool
-) -> list[str]:
-    """CONFIRMED reviewer blockers must not vanish (or be out-voted)."""
+) -> tuple[list[str], list[str]]:
+    """CONFIRMED reviewer blockers must not vanish (or be out-voted).
+
+    Returns ``(reasons, warnings)``. A minor-severity finding carried
+    on an APPROVED aggregate is a recorded fix-forward (Gate Economy),
+    not a refusal — and the REVIEWER's severity decides, so an
+    aggregate can never launder a major by relabeling it minor.
+    """
     reasons: list[str] = []
+    warnings: list[str] = []
     for reviewer_id, verdict in verdicts:
         for blocker in verdict.get("blockers") or []:
             if not isinstance(blocker, dict):
@@ -491,13 +506,24 @@ def _blocker_reasons(
                     "check; the redo round supersedes this record"
                 )
                 continue
-            status = _covered(key, aggregate, approved)
+            status = _covered(
+                key, aggregate, approved, _norm(blocker.get("severity"))
+            )
+            if status == "minor-carried":
+                warnings.append(
+                    f"minor finding "
+                    f"'{_norm(blocker.get('check')) or '(no check field)'}' "
+                    f"({reviewer_id}) rides the APPROVED aggregate as a "
+                    "fix-forward — the correction belongs in the "
+                    "aggregate notes"
+                )
+                continue
             if status != "ok":
                 reasons.append(_COVERAGE_REASONS[status].format(
                     check=_norm(blocker.get("check")) or "(no check field)",
                     rid=reviewer_id,
                 ))
-    return reasons
+    return reasons, warnings
 
 
 def _own_finding_warnings(
@@ -621,14 +647,15 @@ def _reasons(
     approved = _norm(aggregate.get("verdict")) == "approved"
     issues, notes = _digest_issues(aggregate, verdicts)
     issues += _ended_issues(session_id, artifact_names)
-    reasons = (
-        _verdict_reasons(aggregate, verdicts)
-        + _blocker_reasons(aggregate, verdicts, approved)
+    blocker_reasons, blocker_warnings = _blocker_reasons(
+        aggregate, verdicts, approved
     )
+    reasons = _verdict_reasons(aggregate, verdicts) + blocker_reasons
     warnings = (
         notes
         + _check_key_warnings(verdicts)
         + _own_finding_warnings(aggregate, verdicts)
+        + blocker_warnings
     )
     if approved:
         return issues + reasons, warnings

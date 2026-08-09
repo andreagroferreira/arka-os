@@ -46,11 +46,18 @@ Any Department Workflow:
     2. Marta dispatches Eduardo + Francisca to INTERPRET the report:
        - Eduardo: spellcheck section + prose review of changed copy
        - Francisca: lint / typecheck / tests / coverage / security-grep
-    3. Verdict rules (binary, evidence-floored):
+    3. Verdict rules (binary, evidence-floored, severity-weighted —
+       Gate Economy, operator-approved 2026-08-09):
        - overall == "fail"  → REJECTED. Always. No persona can override
-         failing evidence with narrative.
-       - overall == "pass"  → APPROVED only if reviewers find no blocker
-         the checks cannot see (logic, copy, UX).
+         failing evidence with narrative. (Minor-severity check
+         failures — spellcheck, design-slop, ui-screenshot — no longer
+         flip the overall: they surface as findings instead.)
+       - overall == "pass"  → APPROVED only if reviewers find no
+         GATING (blocker/major) finding the checks cannot see (logic,
+         copy, UX). Minor findings fix forward in the same turn: apply
+         the correction, verify it with a scoped re-run, record it in
+         the aggregate notes, and approve. A REJECTED backed only by
+         minors is rejected by the schema itself.
        - overall == "insufficient-evidence" → APPROVED only with an
          explicit justification in the verdict notes; otherwise REJECTED.
     4. If ANY reviewer rejects → work loops back with the blockers list.
@@ -105,14 +112,16 @@ shape; a dispatch that invents its own field names fail-softs the artifact):
         prompt="<evidence report JSON incl. report_digest> + <diff summary> — "
                "interpret and return, in a ```arka-qgverdict fence, a QGVerdict "
                "with fields: verdict, evidence_report, blockers "
-               "[{check, detail, file, verdict}], reviewer, model_used, "
-               "evidence_digest (= the report_digest), notes",
+               "[{check, detail, file, severity, verdict}], reviewer, "
+               "model_used, evidence_digest (= the report_digest), notes",
     )
 
 Each reviewer MUST return a `QGVerdict` JSON object in a ```arka-qgverdict
 fence: `verdict` (APPROVED|REJECTED), `evidence_report` (embedded summary),
-`blockers` (`[{check, detail, file, verdict}]` — `check` names the evidence
-check; the aggregate guard's coverage matching keys on it), `reviewer`,
+`blockers` (`[{check, detail, file, severity, verdict}]` — `check` names the
+evidence check; the aggregate guard's coverage matching keys on it;
+`severity` is blocker|major|minor — findings gate by weight, minors fix
+forward), `reviewer`,
 `model_used`, `evidence_digest` (mandatory since PR-B4 — an artifact without
 it cannot support an APPROVED aggregate), `notes`. The Pydantic model rejects
 APPROVED-with-failing-evidence at validation time, and the anti-self-approval
