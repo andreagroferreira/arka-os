@@ -150,6 +150,31 @@ def emit_additional_context(event_name: str, context: str) -> None:
     print(json.dumps(additional_context_payload(event_name, context)))
 
 
+# Growth cap for the degraded log. The failure mode this telemetry exists
+# to expose — a venv that cannot import the gate modules — degrades on
+# EVERY tool call, so the log is unbounded exactly when it matters: a
+# machine left in that state writes ~264MB before anyone notices. One
+# rotation to `.1` bounds the pair at twice this and costs a stat() per
+# write, never a read of the log. The same constant is mirrored by the
+# shell writer (arka_hook_degraded) and the Node shim (recordDegraded);
+# tests/python/test_hook_output_contract.py pins the three together.
+DEGRADED_LOG_MAX_BYTES = 5 * 1024 * 1024
+
+
+def _rotate_degraded_log(path: Path) -> None:
+    """Roll the log to `.1` once it passes the cap. Never raises.
+
+    Swallows its own errors rather than propagating them: a log that
+    cannot be rotated must still be appended to, and a cap that can
+    suppress the record defeats the point of recording.
+    """
+    try:
+        if path.stat().st_size >= DEGRADED_LOG_MAX_BYTES:
+            path.replace(path.parent / (path.name + ".1"))
+    except OSError:
+        pass
+
+
 def record_degraded(hook: str, reason: str, detail: str = "") -> None:
     """Record that a gate allowed because it could not run, not because it decided.
 
@@ -168,9 +193,22 @@ def record_degraded(hook: str, reason: str, detail: str = "") -> None:
     who wants it pays for it.
 
     Never raises: telemetry must not become the thing that breaks a hook.
-    This lives in Python rather than in the shell/PowerShell wrappers on
-    purpose — one implementation serves every platform, so the twins cannot
-    drift the way session-start.ps1 did.
+
+    NOT the only writer, and deliberately not claimed as one. Three
+    surfaces reach a fail-open before any Python runs, so each has its own
+    implementation appending to this same file: ``arka_hook_degraded()`` in
+    config/hooks/_lib/arka_python.sh (no interpreter, missing entrypoint,
+    entrypoint crashed) and ``recordDegraded()`` in config/hooks/
+    pre-tool-use.cjs — which is what a POSIX install actually registers, so
+    its fail-opens happen before the shell chain exists. Drift between the
+    three is prevented by executing all three and comparing the records
+    (tests/python/test_hook_output_contract.py::TestDegradedTelemetryParity),
+    not by asserting that one implementation covers every platform.
+
+    The Windows chain is NOT covered. pre-tool-use.ps1 is a parallel
+    implementation with its own embedded Python, and its six fail-open
+    exits remain silent — recorded as deferred scope by the same test, not
+    quietly folded into a cross-platform claim.
     """
     try:
         import time
@@ -192,9 +230,9 @@ def record_degraded(hook: str, reason: str, detail: str = "") -> None:
         }, ensure_ascii=False)
         directory = Path.home() / ".arkaos" / "telemetry"
         directory.mkdir(parents=True, exist_ok=True)
-        with (directory / "hook-degraded.jsonl").open(
-            "a", encoding="utf-8"
-        ) as handle:
+        path = directory / "hook-degraded.jsonl"
+        _rotate_degraded_log(path)
+        with path.open("a", encoding="utf-8") as handle:
             handle.write(line + "\n")
     except Exception:
         pass

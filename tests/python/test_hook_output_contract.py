@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -532,4 +533,199 @@ class TestShellFallbackParity:
         payload = json.loads(line)
         assert "[Constitution]" in (
             payload["hookSpecificOutput"]["additionalContext"]
+        )
+
+
+DEGRADED_LOG_REL = Path(".arkaos") / "telemetry" / "hook-degraded.jsonl"
+
+
+class TestDegradedTelemetryParity:
+    """Three writers, one record (#502).
+
+    The degraded-run telemetry has three independent implementations, one
+    per surface: ``record_degraded()`` in core/hooks/_shared.py,
+    ``arka_hook_degraded()`` in config/hooks/_lib/arka_python.sh, and
+    ``recordDegraded()`` in the Node fast-path shim that a POSIX install
+    actually registers. They append to the SAME file, so a reader consumes
+    all three interchangeably — and any drift between them surfaces as a
+    parse error or a missing field, in production, months later.
+
+    This is the twin-parity problem of TestTwinWrapperParity one level
+    down, and it is guarded the same way: not by grepping three languages
+    for a shape, but by RUNNING each writer against a sandboxed HOME and
+    comparing what lands on disk.
+    """
+
+    EXPECTED_KEYS: ClassVar[list[str]] = ["ts", "hook", "reason", "detail"]
+    TS_RE: ClassVar[re.Pattern] = re.compile(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"
+    )
+
+    @staticmethod
+    def _lines(home: Path) -> list[str]:
+        path = home / DEGRADED_LOG_REL
+        if not path.is_file():
+            return []
+        return [
+            line for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    @staticmethod
+    def _emit_python(home: Path) -> subprocess.CompletedProcess:
+        env = dict(os.environ)
+        env.update({
+            "HOME": str(home), "USERPROFILE": str(home),
+            "PYTHONPATH": str(REPO_ROOT),
+        })
+        return subprocess.run(
+            [sys.executable, "-c",
+             "from core.hooks._shared import record_degraded;"
+             "record_degraded('pre-tool-use', 'parity', 'from python')"],
+            capture_output=True, text=True, timeout=30, env=env, check=False,
+        )
+
+    @staticmethod
+    def _emit_shell(home: Path) -> subprocess.CompletedProcess:
+        env = dict(os.environ)
+        env.update({"HOME": str(home), "USERPROFILE": str(home)})
+        lib = HOOKS_SH_DIR / "_lib" / "arka_python.sh"
+        return subprocess.run(
+            [BASH, "-c",
+             f'. "{lib}"\n'
+             'arka_hook_degraded "pre-tool-use" "parity" "from shell"\n'],
+            capture_output=True, text=True, timeout=30, env=env, check=False,
+        )
+
+    @staticmethod
+    def _emit_node(home: Path, tmp_path: Path) -> subprocess.CompletedProcess:
+        """Drive the real shim into its delegate-target-missing fail-open.
+
+        The shim is copied WITHOUT its sibling .sh, which is the deployed
+        state this branch exists for; the kill switch sends it straight to
+        delegate() so no manifest or engine is needed. Nothing is stubbed —
+        the line under test is written by the shipped code path.
+        """
+        lonely = tmp_path / "lonely-hooks"
+        lonely.mkdir(exist_ok=True)
+        shutil.copy(HOOKS_SH_DIR / "pre-tool-use.cjs", lonely / "pre-tool-use.cjs")
+        return subprocess.run(
+            ["node", str(lonely / "pre-tool-use.cjs")],
+            input="{}", capture_output=True, text=True, timeout=30, check=False,
+            env={
+                "PATH": os.environ.get("PATH", ""),
+                "HOME": str(home),
+                "ARKA_HOOK_FASTPATH": "0",
+            },
+        )
+
+    def _emit(self, surface: str, home: Path, tmp_path: Path):
+        if surface == "python":
+            return self._emit_python(home)
+        if surface == "shell":
+            return self._emit_shell(home)
+        if shutil.which("node") is None:
+            pytest.skip("node not available — cannot execute the .cjs writer")
+        return self._emit_node(home, tmp_path)
+
+    @pytest.mark.parametrize("surface", ["python", "shell", "node"])
+    def test_each_writer_emits_the_same_record_shape(self, surface, tmp_path):
+        home = tmp_path / f"home-{surface}"
+        home.mkdir()
+
+        result = self._emit(surface, home, tmp_path)
+
+        assert result.returncode == 0, result.stderr
+        lines = self._lines(home)
+        assert len(lines) == 1, f"{surface} wrote {len(lines)} lines, expected 1"
+        record = json.loads(lines[0])
+        assert list(record) == self.EXPECTED_KEYS, (
+            f"{surface} emits {list(record)} — the three writers append to one "
+            "file, so a reader cannot tolerate a fourth shape"
+        )
+        assert record["hook"] == "pre-tool-use"
+        assert self.TS_RE.fullmatch(record["ts"]), (
+            f"{surface} ts={record['ts']!r} is not the shared UTC "
+            "second-precision form"
+        )
+        assert isinstance(record["detail"], str)
+
+    @pytest.mark.parametrize("surface", ["python", "shell", "node"])
+    def test_no_writer_speaks_on_stdout_or_stderr(self, surface, tmp_path):
+        # The rule that makes this telemetry safe to leave on: Claude Code
+        # surfaces hook stderr to the user as an error, and stdout is the
+        # hook's decision payload. A writer that touches either turns a
+        # silent degradation into visible noise, or corrupts the decision.
+        home = tmp_path / f"quiet-{surface}"
+        home.mkdir()
+
+        result = self._emit(surface, home, tmp_path)
+
+        assert result.stdout == "", f"{surface} writer wrote to stdout"
+        assert result.stderr == "", f"{surface} writer wrote to stderr"
+
+    def test_all_three_writers_target_one_file(self, tmp_path):
+        # Same HOME for all three: a reader tails ONE path, so three
+        # records must land in one file, in order, one line each.
+        home = tmp_path / "shared-home"
+        home.mkdir()
+        if shutil.which("node") is None:
+            pytest.skip("node not available — cannot execute the .cjs writer")
+
+        for surface in ("python", "shell", "node"):
+            assert self._emit(surface, home, tmp_path).returncode == 0
+
+        records = [json.loads(line) for line in self._lines(home)]
+        assert len(records) == 3
+        assert {r["detail"] for r in records} >= {"from python", "from shell"}
+        assert all(list(r) == self.EXPECTED_KEYS for r in records)
+
+    def test_powershell_chain_is_not_instrumented_and_the_scope_says_so(self):
+        """Recorded deferral, made executable.
+
+        pre-tool-use.ps1 is a PARALLEL chain, not a wrapper around an
+        instrumented one: it embeds its own Python here-strings and never
+        reaches record_degraded, arka_hook_degraded or the shim. Its
+        fail-open exits are still silent — deliberately deferred, never
+        quietly claimed as covered by a "cross-platform" telemetry.
+
+        Inverted guard, in the shape of KNOWN_DRIFTED_TWINS above: whoever
+        instruments the .ps1 gets a failure here pointing at the
+        bookkeeping, so the deferral cannot outlive the debt it records.
+        """
+        text = (HOOKS_SH_DIR / "pre-tool-use.ps1").read_text(encoding="utf-8")
+        for marker in ("hook-degraded", "arka_hook_degraded", "record_degraded"):
+            assert marker not in text, (
+                f"pre-tool-use.ps1 now carries {marker!r} — the Windows chain "
+                "is being instrumented. Move it out of this guard and give it "
+                "its own coverage instead of leaving a stale deferral here."
+            )
+
+        # PowerShell-level `exit 0` sites, counted so the deferral names a
+        # size rather than gesturing at "Windows is out of scope":
+        #   6 fail-open  — empty stdin, unparsable stdin, no interpreter,
+        #                  missing enforcer, empty decision, unparsable
+        #                  decision. Every one of these allows without the
+        #                  gate chain ever deciding, and says nothing.
+        #   2 decisions  — the non-flow-gated fast allow, and an enforcer
+        #                  decision.allow. Correctly silent.
+        # Three further import-failure allows live INSIDE the embedded
+        # here-strings (sys.exit(0)), one per gate, and are equally silent.
+        code = [
+            line for line in text.splitlines()
+            if not line.lstrip().startswith("#")
+        ]
+        exits = sum(len(re.findall(r"\bexit 0\b", line)) for line in code)
+        assert exits == 8, (
+            f"pre-tool-use.ps1 has {exits} `exit 0` sites, not the 8 this "
+            "guard was written against (6 fail-open + 2 decisions). Re-classify "
+            "the new one and update the count — an uncounted fail-open on "
+            "Windows is exactly the silence #502 exists to end."
+        )
+        heredoc_exits = sum(
+            len(re.findall(r"sys\.exit\(0\)", line)) for line in code
+        )
+        assert heredoc_exits == 3, (
+            f"pre-tool-use.ps1 embeds {heredoc_exits} import-failure allows, "
+            "not the 3 recorded here"
         )

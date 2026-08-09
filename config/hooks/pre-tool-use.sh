@@ -75,5 +75,10 @@ fi
 # ─── Single python process; stdin/stdout/stderr/exit-code pass through ──
 # Interpreter resolution handled by the shared resolver (ARKA_PY): prefers
 # the ArkaOS venv (has pyyaml/pydantic), falls back to a yaml-capable python3.
+#
+# NOT `exec`, unlike every other .sh wrapper here — deliberate, and the
+# trade-off is written out in full at arka_run_hook in _lib/arka_python.sh.
+# Short version: exec replaces this shell with Python, leaving nobody to
+# read the exit status, and the status IS the entrypoint-failed signal.
 export PYTHONPATH="$ARKAOS_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 arka_run_hook "pre-tool-use" core.hooks.pre_tool_use

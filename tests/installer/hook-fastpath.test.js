@@ -346,3 +346,155 @@ test("QG B3: split deploy (engine.cjs missing) delegates instead of crashing", (
     rmSync(sandbox.root, { recursive: true, force: true });
   }
 });
+
+// ─── degraded-run telemetry on the registered shim (#502) ────────────────
+//
+// On POSIX this .cjs — not pre-tool-use.sh — is what the installer
+// registers as the PreToolUse command whenever it and the fastpath engine
+// are deployed (installer/adapters/claude-code.js::hookEntry). Its three
+// fail-open exits therefore happen BEFORE the shell chain that carries the
+// bash-side telemetry is ever reached: instrumenting only the .sh would
+// have left the default install's silent allows exactly as silent.
+//
+// Same JSONL record as the other two writers — {ts,hook,reason,detail},
+// appended to ~/.arkaos/telemetry/hook-degraded.jsonl. The cross-surface
+// schema parity is executed in tests/python/test_hook_output_contract.py.
+
+const DEGRADED_LOG = ".arkaos/telemetry/hook-degraded.jsonl";
+
+function readDegraded(sandbox) {
+  return readLines(sandbox, DEGRADED_LOG);
+}
+
+function assertDegradedShape(record, reason) {
+  assert.deepEqual(Object.keys(record), ["ts", "hook", "reason", "detail"]);
+  assert.equal(record.hook, "pre-tool-use");
+  assert.equal(record.reason, reason);
+  assert.match(record.ts, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  assert.ok(record.detail.startsWith("via=cjs "),
+    `detail must name the surface, got ${JSON.stringify(record.detail)}`);
+}
+
+test("degraded: a missing sibling .sh is recorded, and still allows", () => {
+  // The highest-stakes silent allow in the file: a split deploy that lands
+  // the .cjs without the .sh disables every gate for the whole install.
+  const sandbox = makeSandbox();
+  try {
+    rmSync(join(sandbox.hooks, "pre-tool-use.sh"));
+    const r = runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Write", session_id: "fp-sid", tool_input: { file_path: "/x" } });
+
+    assert.equal(r.status, 0, "fail-open contract is unchanged");
+    assert.equal(r.stdout, "", "an allow emits no stdout");
+    assert.equal(r.stderr, "", "never stderr: Claude Code shows it as an error");
+    const lines = readDegraded(sandbox);
+    assert.equal(lines.length, 1);
+    assertDegradedShape(lines[0], "delegate-target-missing");
+    assert.ok(lines[0].detail.includes("pre-tool-use.sh"),
+      "the record must name the path that was missing");
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("degraded: a sibling killed by a signal is recorded, and still allows", () => {
+  // spawnSync reports status null when the child dies on a signal — the
+  // gate chain never decided, so this is not the allow it looks like.
+  const sandbox = makeSandbox();
+  try {
+    writeFileSync(join(sandbox.hooks, "pre-tool-use.sh"),
+      "#!/usr/bin/env bash\nkill -9 $$\n");
+    chmodSync(join(sandbox.hooks, "pre-tool-use.sh"), 0o755);
+
+    const r = runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Write", session_id: "fp-sid", tool_input: { file_path: "/x" } });
+
+    assert.equal(r.status, 0);
+    assert.equal(r.stdout, "");
+    const lines = readDegraded(sandbox);
+    assert.equal(lines.length, 1);
+    assertDegradedShape(lines[0], "delegate-spawn-failed");
+    assert.ok(lines[0].detail.includes("status=null"), lines[0].detail);
+    assert.ok(lines[0].detail.includes("signal=SIGKILL"), lines[0].detail);
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("degraded: an internal throw is recorded, and still allows", () => {
+  // The shim's own last resort — structurally the same handler as the
+  // `unhandled-fail-open` at the bottom of core/hooks/pre_tool_use.py. A
+  // loadable-but-broken engine is the version-skew shape of that failure:
+  // require() succeeds, so the delegate-on-require-failure guard does not
+  // fire, and the throw lands in the outer catch.
+  const sandbox = makeSandbox();
+  try {
+    writeFileSync(join(sandbox.hooks, "_lib", "fastpath", "engine.cjs"),
+      'module.exports = { readJsonFile() { throw new Error("engine skew"); },' +
+      " decidePre() { return { action: \"fast-allow\", writes: [] }; } };\n");
+
+    const r = runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Read", session_id: "fp-sid", tool_input: {} });
+
+    assert.equal(r.status, 0, "fail-open: an internal error still allows");
+    assert.equal(r.stdout, "");
+    assert.equal(r.stderr, "", "a stack trace on stderr would be user-visible");
+    const lines = readDegraded(sandbox);
+    assert.equal(lines.length, 1);
+    assertDegradedShape(lines[0], "unhandled-fail-open");
+    assert.ok(lines[0].detail.includes("engine skew"),
+      "the record must carry the cause, not just the fact");
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("degraded: healthy runs write NOTHING to the degraded log", () => {
+  // Telemetry that fires on healthy runs is worse than none — it buries
+  // the real signal under a line per tool call. A fast-allow and a clean
+  // delegation are both gates doing their job.
+  const sandbox = makeSandbox();
+  try {
+    runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Read", session_id: "fp-sid", tool_input: {} });
+    runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Write", session_id: "fp-sid", tool_input: { file_path: "/x" } });
+    assert.deepEqual(readDegraded(sandbox), []);
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("degraded: a deny passing through the shim is not a degradation", () => {
+  const sandbox = makeSandbox({ shExit: 2 });
+  try {
+    const r = runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Write", session_id: "fp-sid", tool_input: { file_path: "/x" } });
+    assert.equal(r.status, 2, "the deny survives the shim");
+    assert.deepEqual(readDegraded(sandbox), [],
+      "exit 2 is the documented block code, never a degradation");
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("degraded: the log rotates once past 5MB instead of growing forever", () => {
+  // The recorded cases fire on every tool call, so an uncapped log on a
+  // broken machine is the runaway rather than the corner case.
+  const sandbox = makeSandbox();
+  try {
+    const log = join(sandbox.home, DEGRADED_LOG);
+    mkdirSync(dirname(log), { recursive: true });
+    writeFileSync(log, "x".repeat(5 * 1024 * 1024));
+    rmSync(join(sandbox.hooks, "pre-tool-use.sh"));
+
+    runShim(sandbox, "pre-tool-use.cjs",
+      { tool_name: "Write", session_id: "fp-sid", tool_input: { file_path: "/x" } });
+
+    assert.ok(existsSync(log + ".1"), "the oversized log is kept, not deleted");
+    assert.equal(readFileSync(log + ".1", "utf-8").length, 5 * 1024 * 1024);
+    assert.equal(readDegraded(sandbox).length, 1);
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});

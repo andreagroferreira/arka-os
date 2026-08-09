@@ -990,5 +990,339 @@ class TestHelpers:
         assert _extract_persona("no markers") == ""
 
 
+# ─── degraded-run telemetry (#502) ───────────────────────────────────────
+#
+# A gate that allows because it could not run is indistinguishable, from
+# the outside, from a gate that ran and found nothing: exit 0, no stdout,
+# no stderr. record_degraded() is what makes the two distinguishable, so
+# the tests below are the only thing standing between a working record and
+# a mechanism that silently records nothing — the exact failure it exists
+# to expose. Two halves: the writer's own contract, then every call site.
+
+
+@pytest.fixture
+def degraded_home(tmp_path, monkeypatch):
+    """Isolated home for the in-process writer tests.
+
+    Both variables, deliberately: Path.home() consults HOME on POSIX and
+    USERPROFILE on Windows, and record_degraded ships on both. Setting one
+    leaves the developer's real ~/.arkaos in play on the other platform.
+    """
+    home = tmp_path / "degraded-home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    return home
+
+
+def _degraded_path(home: Path) -> Path:
+    return home / ".arkaos" / "telemetry" / "hook-degraded.jsonl"
+
+
+def _degraded_lines(home: Path) -> list[dict]:
+    """Parsed JSONL records, or [] when nothing was ever written.
+
+    Parses rather than greps: a record that is not valid JSON is not a
+    record, and the whole point is that a reader can consume the file.
+    """
+    path = _degraded_path(home)
+    if not path.is_file():
+        return []
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+class TestRecordDegraded:
+    """The writer: schema, append semantics, and the never-raises promise."""
+
+    def test_writes_one_line_with_the_declared_schema(self, degraded_home):
+        from core.hooks._shared import record_degraded
+        record_degraded("pre-tool-use", "kb-gate-import-failed", "no pydantic")
+        lines = _degraded_lines(degraded_home)
+        assert len(lines) == 1
+        assert set(lines[0]) == {"ts", "hook", "reason", "detail"}
+        assert lines[0]["hook"] == "pre-tool-use"
+        assert lines[0]["reason"] == "kb-gate-import-failed"
+        assert lines[0]["detail"] == "no pydantic"
+        assert re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", lines[0]["ts"]
+        ), f"ts is not the UTC second-precision form: {lines[0]['ts']!r}"
+
+    def test_events_append_one_line_each(self, degraded_home):
+        from core.hooks._shared import record_degraded
+        record_degraded("pre-tool-use", "first")
+        record_degraded("pre-tool-use", "second")
+        raw = _degraded_path(degraded_home).read_text(encoding="utf-8")
+        assert raw.count("\n") == 2, "JSONL: exactly one newline per record"
+        assert [r["reason"] for r in _degraded_lines(degraded_home)] == [
+            "first", "second"
+        ]
+
+    def test_detail_defaults_to_the_live_exception(self, degraded_home):
+        # Every current call site sits inside an `except` block and passes
+        # no detail — the exception in flight IS the diagnosis, and a record
+        # that dropped it would name the gate but never the cause.
+        from core.hooks._shared import record_degraded
+        try:
+            raise ModuleNotFoundError("No module named 'pydantic'")
+        except ModuleNotFoundError:
+            record_degraded("pre-tool-use", "kb-gate-import-failed")
+        assert _degraded_lines(degraded_home)[0]["detail"] == (
+            "ModuleNotFoundError: No module named 'pydantic'"
+        )
+
+    def test_detail_is_clipped(self, degraded_home):
+        from core.hooks._shared import record_degraded
+        record_degraded("pre-tool-use", "verbose", "x" * 4000)
+        assert len(_degraded_lines(degraded_home)[0]["detail"]) == 400
+
+    def test_control_characters_survive_as_valid_json(self, degraded_home):
+        # json.dumps escapes them rather than emitting raw bytes; the shell
+        # twin has to strip them by hand, so pin the Python side too.
+        from core.hooks._shared import record_degraded
+        record_degraded("pre-tool-use", "raw", 'tab\there\nnl \x01 "quote" \\')
+        record = _degraded_lines(degraded_home)[0]
+        assert record["detail"] == 'tab\there\nnl \x01 "quote" \\'
+
+    def test_writes_nothing_to_stdout_or_stderr(self, degraded_home, capsys):
+        # NON-NEGOTIABLE for this writer: Claude Code surfaces hook stderr
+        # to the user as an error, so a diagnostic there would trade a silent
+        # degradation for visible noise on every single event.
+        from core.hooks._shared import record_degraded
+        record_degraded("pre-tool-use", "silent-by-contract")
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err == ""
+
+    def test_never_raises_when_home_cannot_be_resolved(self, monkeypatch):
+        # Exactly what Path.home() does when neither the env nor the passwd
+        # database yields a directory. Patched rather than env-deleted: on
+        # POSIX, unsetting HOME makes expanduser fall back to the real
+        # account and this test would write into the developer's own vault.
+        from core.hooks._shared import record_degraded
+
+        def unresolvable():
+            raise RuntimeError("Could not determine home directory")
+
+        monkeypatch.setattr(Path, "home", staticmethod(unresolvable))
+        record_degraded("pre-tool-use", "no-home")  # must not raise
+
+    def test_never_raises_when_the_telemetry_dir_is_a_file(self, degraded_home):
+        arkaos = degraded_home / ".arkaos"
+        arkaos.mkdir()
+        (arkaos / "telemetry").write_text("occupied", encoding="utf-8")
+        from core.hooks._shared import record_degraded
+        record_degraded("pre-tool-use", "dir-is-a-file")  # must not raise
+        assert (arkaos / "telemetry").read_text(encoding="utf-8") == "occupied"
+
+    @pytest.mark.skipif(
+        sys.platform == "win32" or getattr(os, "geteuid", lambda: 1)() == 0,
+        reason="directory permissions do not restrict root or Windows",
+    )
+    def test_never_raises_when_home_is_read_only(self, degraded_home):
+        from core.hooks._shared import record_degraded
+        os.chmod(degraded_home, 0o500)
+        try:
+            record_degraded("pre-tool-use", "read-only-home")  # must not raise
+        finally:
+            os.chmod(degraded_home, 0o700)
+        assert _degraded_lines(degraded_home) == []
+
+    def test_rotates_once_past_the_cap(self, degraded_home):
+        # The runaway this cap exists for: the degradations recorded here
+        # fire on EVERY tool call, so an uncapped log on a broken machine
+        # grows without bound (264MB measured in the PR review's probe).
+        from core.hooks._shared import DEGRADED_LOG_MAX_BYTES, record_degraded
+        path = _degraded_path(degraded_home)
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"x" * DEGRADED_LOG_MAX_BYTES)
+
+        record_degraded("pre-tool-use", "after-rotation")
+
+        rotated = path.parent / (path.name + ".1")
+        assert rotated.is_file(), "the oversized log must be kept, not deleted"
+        assert rotated.stat().st_size == DEGRADED_LOG_MAX_BYTES
+        assert [r["reason"] for r in _degraded_lines(degraded_home)] == [
+            "after-rotation"
+        ]
+
+    def test_does_not_rotate_below_the_cap(self, degraded_home):
+        from core.hooks._shared import DEGRADED_LOG_MAX_BYTES, record_degraded
+        path = _degraded_path(degraded_home)
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"x" * (DEGRADED_LOG_MAX_BYTES - 1))
+        record_degraded("pre-tool-use", "still-appending")
+        assert not (path.parent / (path.name + ".1")).exists()
+        assert path.stat().st_size > DEGRADED_LOG_MAX_BYTES
+
+
+class TestPreToolUseDegradedCallSites:
+    """Every fail-open in core/hooks/pre_tool_use.py leaves a record.
+
+    Each gate turns an unimportable module into "allow" — the right posture
+    for governance code, since a broken dependency must never block the
+    user's work — and each was previously indistinguishable from a gate that
+    ran. The break is applied the way a real one arrives: the module becomes
+    unimportable and the gate's own ``except Exception`` is what catches it.
+    Nothing here asserts on the handler's source, so deleting a
+    record_degraded() call fails these tests rather than passing vacuously.
+    """
+
+    @staticmethod
+    def _break_import(monkeypatch, module: str) -> None:
+        # ``sys.modules[name] = None`` makes ``from name import x`` raise
+        # ImportError from inside the import machinery — the same shape a
+        # missing transitive dependency produces, without needing one.
+        monkeypatch.setitem(sys.modules, module, None)
+
+    def test_kb_gate_records_and_still_allows(self, degraded_home, monkeypatch):
+        from core.hooks import pre_tool_use
+        self._break_import(monkeypatch, "core.workflow.research_gate")
+
+        verdict = pre_tool_use._kb_gate(str(REPO_ROOT), "WebSearch", "sid", "q")
+
+        assert verdict is None, "fail-open contract: a broken gate allows"
+        lines = _degraded_lines(degraded_home)
+        assert [(r["hook"], r["reason"]) for r in lines] == [
+            ("pre-tool-use", "kb-gate-import-failed")
+        ]
+        # The auto-captured detail names the module that could not load —
+        # without it the record says which gate degraded but never why.
+        assert "core.workflow.research_gate" in lines[0]["detail"]
+
+    def test_specialist_gate_records_and_still_allows(
+        self, degraded_home, monkeypatch
+    ):
+        from core.hooks import pre_tool_use
+        self._break_import(monkeypatch, "core.workflow.specialist_enforcer")
+
+        verdict = pre_tool_use._specialist_gate(
+            str(REPO_ROOT), "Write", "", "sid", "/tmp",
+            {"file_path": "/tmp/x.py"}, pre_tool_use._MessagesOnce(""),
+        )
+
+        assert verdict is None
+        assert [r["reason"] for r in _degraded_lines(degraded_home)] == [
+            "specialist-import-failed"
+        ]
+
+    def test_frontend_gate_records_and_still_allows(
+        self, degraded_home, monkeypatch
+    ):
+        from core.hooks import pre_tool_use
+        self._break_import(monkeypatch, "core.workflow.frontend_gate")
+
+        verdict = pre_tool_use._frontend_gate(
+            str(REPO_ROOT), "Write", "", "sid", "/tmp",
+            {"file_path": "/tmp/App.vue"}, pre_tool_use._MessagesOnce(""),
+        )
+
+        assert verdict is None
+        assert [r["reason"] for r in _degraded_lines(degraded_home)] == [
+            "frontend-gate-import-failed"
+        ]
+
+    def test_config_gate_records_and_still_allows(
+        self, degraded_home, monkeypatch
+    ):
+        from core.hooks import pre_tool_use
+        self._break_import(monkeypatch, "core.workflow.config_guard")
+
+        verdict = pre_tool_use._config_gate(
+            str(REPO_ROOT), "Write", "", {"file_path": "/tmp/.ruff.toml"}
+        )
+
+        assert verdict is None
+        assert [r["reason"] for r in _degraded_lines(degraded_home)] == [
+            "config-guard-import-failed"
+        ]
+
+    def test_flow_gate_records_and_still_allows(self, degraded_home, monkeypatch):
+        from core.hooks import pre_tool_use
+        self._break_import(monkeypatch, "core.workflow.flow_enforcer")
+
+        verdict = pre_tool_use._flow_gate(
+            str(REPO_ROOT), "Write", "", "sid", "/tmp",
+            {"file_path": "/tmp/x.py"}, pre_tool_use._MessagesOnce(""),
+        )
+
+        assert verdict == 0, "fail-open contract: a broken enforcer allows"
+        assert [r["reason"] for r in _degraded_lines(degraded_home)] == [
+            "enforcer-import-failed"
+        ]
+
+    def test_unhandled_failure_records_and_still_exits_zero(
+        self, degraded_home, monkeypatch, capsys
+    ):
+        """The module's own last resort, executed as ``__main__``.
+
+        runpy re-executes the shipped source under run_name="__main__", so
+        the guard under test is the real one rather than a copy of it. The
+        failure is injected at main()'s first call — read_stdin_json, bound
+        from the cached core.hooks._shared — because a handler that exists
+        for "whatever nothing else caught" has no in-band trigger.
+        """
+        import runpy
+        import warnings
+
+        def boom():
+            raise RuntimeError("interpreter cannot import the gate modules")
+
+        monkeypatch.setattr("core.hooks._shared.read_stdin_json", boom)
+
+        with warnings.catch_warnings():
+            # runpy warns that the module is already in sys.modules — true,
+            # expected, and irrelevant here: alter_sys defaults to False, so
+            # the fresh execution never replaces the cached entry.
+            warnings.simplefilter("ignore", RuntimeWarning)
+            with pytest.raises(SystemExit) as exc:
+                runpy.run_module("core.hooks.pre_tool_use", run_name="__main__")
+
+        assert exc.value.code == 0, "fail-open contract: still allows"
+        captured = capsys.readouterr()
+        assert captured.out == "", "an allow emits no stdout, degraded or not"
+        lines = _degraded_lines(degraded_home)
+        assert [r["reason"] for r in lines] == ["unhandled-fail-open"]
+        assert lines[0]["detail"] == (
+            "RuntimeError: interpreter cannot import the gate modules"
+        )
+
+
+class TestDecisionsAreNeverRecordedAsDegradation:
+    """The other half of the contract, at process level.
+
+    Telemetry that fires on healthy runs is worse than none: it would bury
+    the real signal under a line per tool call and teach every reader to
+    ignore the file. A gate that ran — whether it allowed or denied — must
+    leave this log untouched.
+    """
+
+    def test_a_clean_allow_writes_no_degraded_line(self, hook_home):
+        result = _run_module("core.hooks.pre_tool_use", {
+            "tool_name": "Read", "session_id": "degraded-allow",
+            "transcript_path": "", "cwd": "/tmp", "tool_input": {},
+        }, _env(hook_home))
+        assert result.returncode == 0
+        assert _degraded_lines(Path(hook_home["HOME"])) == []
+
+    def test_a_real_deny_writes_no_degraded_line(self, hook_home):
+        # exit 2 is a gate doing its job — the documented block code, never
+        # a degradation.
+        payload = {
+            "tool_name": "WebSearch", "session_id": "degraded-deny",
+            "transcript_path": "", "cwd": "/tmp",
+            "tool_input": {"query": "laravel service pattern"},
+        }
+        assert _run_module(
+            "core.hooks.pre_tool_use", payload, _env(hook_home)
+        ).returncode == 0
+        second = _run_module("core.hooks.pre_tool_use", payload, _env(hook_home))
+        assert second.returncode == 2, second.stderr
+        assert _degraded_lines(Path(hook_home["HOME"])) == []
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
