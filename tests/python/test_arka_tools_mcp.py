@@ -29,6 +29,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def tools(tmp_path, monkeypatch):
     """Import a fresh server module with isolated HOME + pinned repo."""
     monkeypatch.setenv("HOME", str(tmp_path))
+    # In-project workflow state (Gate Economy): with the checkout as
+    # cwd, workflow_get would read the LIVE dev session's gate state
+    # from <repo>/.arka/ — anchor cwd in tmp so reads stay isolated.
+    monkeypatch.chdir(tmp_path)
+    from core.workflow import state as _st
+
+    _st.reset_root_cache()
     monkeypatch.setenv("ARKA_OS", str(REPO_ROOT))
     monkeypatch.setenv("ARKA_SESSION_MEMORY_DB", str(tmp_path / "sm.db"))
     monkeypatch.delenv("ARKA_TOOLS_WRITE", raising=False)
