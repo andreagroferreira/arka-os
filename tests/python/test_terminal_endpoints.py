@@ -16,7 +16,6 @@ import pytest
 pytest.importorskip("fastapi")  # optional dashboard dependency
 from fastapi.testclient import TestClient
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -99,6 +98,93 @@ def test_cap_returns_429(api):
     r = client.post("/api/terminal/sessions", json={"shell": "/bin/sh"})
     assert r.status_code == 429
     assert "max sessions" in r.json()["detail"].lower()
+
+
+def _no_pty_response(api):
+    """Drive the real no-PTY code path and return the browser's response.
+
+    Reproduces production instead of injecting a synthetic exception:
+    ``_PTY_SUPPORTED = False`` sends ``create()`` down the ConPTY branch,
+    and a ``winpty`` entry of ``None`` in ``sys.modules`` makes the
+    backend's ``import winpty`` raise ModuleNotFoundError through the
+    real import machinery — the same class a Windows box without
+    pywinpty produces. Pinning the import that way also keeps
+    the test hermetic on a Windows runner where pywinpty *is* installed —
+    otherwise it would spawn a real shell and never reach the error path.
+
+    ``raise_server_exceptions=False`` is what makes the assertion mean
+    anything: it returns the response the browser would actually receive
+    rather than re-raising server-side, so an unhandled error shows up as
+    the bare 500 that ServerErrorMiddleware produces *outside* the CORS
+    middleware — no Access-Control-Allow-Origin, hence "Failed to fetch".
+    """
+    from core.terminal import session as _sess
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(_sess, "_PTY_SUPPORTED", False)
+        mp.setitem(sys.modules, "winpty", None)
+        client = TestClient(api.app, raise_server_exceptions=False)
+        return client.post(
+            "/api/terminal/sessions",
+            json={"shell": "powershell.exe"},
+            headers={"Origin": "http://localhost:3000"},
+        )
+
+
+def test_no_pty_returns_501(api):
+    """A platform with no PTY backend must answer 501, not an opaque 500."""
+    r = _no_pty_response(api)
+    assert r.status_code == 501
+    detail = r.json()["detail"]
+    assert "no pty backend" in detail.lower()
+    # The class name is the triage hint an operator acts on — and it is
+    # the genuine one a Windows box without pywinpty produces, because
+    # the real import machinery ran.
+    assert "ModuleNotFoundError" in detail
+    # The underlying exception's own text must never be echoed back:
+    # the reviewed version returned str(exc) and leaked internals.
+    assert "sys.modules" not in detail and "halted" not in detail
+
+
+def test_no_pty_501_carries_cors_header(api):
+    """The decisive assertion: the 501 must reach the browser readable.
+
+    Without CORS headers the fetch fails before the status is ever
+    observable, which is precisely the bug — the operator saw only
+    "Failed to fetch" and never the reason.
+    """
+    r = _no_pty_response(api)
+    assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_no_pty_leaks_no_session(api):
+    """A failed backend build must not register a half-built session."""
+    _no_pty_response(api)
+    assert TestClient(api.app).get("/api/terminal/sessions").json()["sessions"] == []
+
+
+def test_unrelated_runtime_error_is_not_labelled_501(api, monkeypatch):
+    """501 means "no PTY here", never "some bug happened".
+
+    Here the injected exception *is* the subject: the handler must
+    discriminate on PtyUnavailableError, not on its RuntimeError base.
+    Catching the base would relabel every genuine bug as a permanent
+    platform limitation and send the operator hunting for pywinpty on a
+    machine that has a perfectly good PTY.
+    """
+    from core.terminal import session as _sess
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("unrelated failure")
+
+    monkeypatch.setattr(_sess.default_manager(), "create", _boom)
+    r = TestClient(api.app, raise_server_exceptions=False).post(
+        "/api/terminal/sessions",
+        json={"shell": "/bin/sh"},
+        headers={"Origin": "http://localhost:3000"},
+    )
+    assert r.status_code != 501
+    assert r.status_code == 500
 
 
 def test_origin_helper_rejects_external(api):

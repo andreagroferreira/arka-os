@@ -27,7 +27,7 @@ import shutil
 import signal
 import struct
 import time
-from typing import Any, Optional
+from typing import Any
 
 try:  # POSIX-only: the Windows backend lives in session_windows.py
     import fcntl
@@ -38,11 +38,38 @@ except ModuleNotFoundError:
     fcntl = pty = termios = None  # type: ignore[assignment]
     _PTY_SUPPORTED = False
 
+import contextlib
+
 from core.terminal import audit
 
 
 class SessionCapacityError(RuntimeError):
     """Raised when ``create()`` is called past the configured cap."""
+
+
+NO_PTY_MESSAGE = (
+    "no PTY backend available on this platform "
+    "(pywinpty missing or ConPTY unavailable)"
+)
+
+
+class PtyUnavailableError(RuntimeError):
+    """Raised when no PTY backend can be constructed on this platform.
+
+    Subclasses ``RuntimeError`` so pre-existing broad handlers keep
+    behaving, but the dashboard API catches it *by name* to answer
+    ``501 Not Implemented``. That matters: an unhandled exception is
+    turned into a 500 by Starlette's ServerErrorMiddleware, which sits
+    outside the CORS middleware, so the browser receives no
+    ``Access-Control-Allow-Origin`` and can only report an opaque
+    "Failed to fetch" with the real cause never reaching the operator.
+
+    The message is deliberately operator-facing — it never carries the
+    underlying exception's text, only its class name as a triage hint
+    (``ModuleNotFoundError`` → install pywinpty; ``WinptyError`` →
+    ConPTY refused; ``FileNotFoundError`` → the shell path is wrong).
+    The original exception stays chained for the server-side traceback.
+    """
 
 
 def _default_shell() -> str:
@@ -118,7 +145,7 @@ class TerminalSession:
         self.cwd = cwd
         self.created_at = time.time()
         self.last_activity = time.monotonic()
-        self.exit_code: Optional[int] = None
+        self.exit_code: int | None = None
         self.title: str = ""
         self.scrollback_max = max(0, int(scrollback_bytes))
         self._scrollback = bytearray()
@@ -131,10 +158,8 @@ class TerminalSession:
 
     @staticmethod
     def _child_exec(shell: str, cwd: str) -> None:
-        try:
+        with contextlib.suppress(OSError):
             os.chdir(cwd)
-        except OSError:
-            pass
         env = os.environ.copy()
         env["TERM"] = env.get("TERM", "xterm-256color")
         env["COLORTERM"] = env.get("COLORTERM", "truecolor")
@@ -189,14 +214,12 @@ class TerminalSession:
             return
         cols = max(1, int(cols))
         rows = max(1, int(rows))
-        try:
+        with contextlib.suppress(OSError):
             fcntl.ioctl(
                 self.master_fd,
                 termios.TIOCSWINSZ,
                 struct.pack("HHHH", rows, cols, 0, 0),
             )
-        except OSError:
-            pass
 
     def is_alive(self) -> bool:
         if self._closed:
@@ -217,27 +240,21 @@ class TerminalSession:
     def kill(self, sig: int = signal.SIGTERM) -> None:
         if self._closed:
             return
-        try:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
             os.kill(self.pid, sig)
-        except (ProcessLookupError, PermissionError):
-            pass
         for _ in range(10):
             if not self.is_alive():
                 break
             time.sleep(0.05)
         if self.is_alive():
-            try:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.kill(self.pid, signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
         self._close_fd()
 
     def _close_fd(self) -> None:
         if self.master_fd >= 0:
-            try:
+            with contextlib.suppress(OSError):
                 os.close(self.master_fd)
-            except OSError:
-                pass
             self.master_fd = -1
         self._scrollback.clear()
         self._closed = True
@@ -264,8 +281,8 @@ class TerminalSessionManager:
 
     def __init__(
         self,
-        max_sessions: Optional[int] = None,
-        idle_timeout_s: Optional[int] = None,
+        max_sessions: int | None = None,
+        idle_timeout_s: int | None = None,
     ) -> None:
         max_default = self.DEFAULT_MAX if max_sessions is None else max_sessions
         idle_default = self.DEFAULT_IDLE_S if idle_timeout_s is None else idle_timeout_s
@@ -282,8 +299,8 @@ class TerminalSessionManager:
 
     def create(
         self,
-        shell: Optional[str] = None,
-        cwd: Optional[str] = None,
+        shell: str | None = None,
+        cwd: str | None = None,
         cols: int = 120,
         rows: int = 32,
     ) -> TerminalSession:
@@ -296,15 +313,30 @@ class TerminalSessionManager:
         chosen_shell = shell or _default_shell()
         chosen_cwd = cwd or _default_cwd()
         if not _PTY_SUPPORTED:
-            from core.terminal.session_windows import WindowsTerminalSession
-            session = WindowsTerminalSession(
-                session_id=sid,
-                shell=chosen_shell,
-                cwd=chosen_cwd,
-                cols=cols,
-                rows=rows,
-                scrollback_bytes=self.scrollback_bytes,
-            )
+            # No Unix PTY here, so the ConPTY backend is the only option
+            # and every way it can fail means the same thing to the
+            # operator: there is no usable terminal on this machine.
+            # pywinpty absent raises ModuleNotFoundError, ConPTY refusing
+            # raises winpty.WinptyError (not an OSError, so it cannot be
+            # named in a narrow tuple without importing the dependency we
+            # just failed to import), a bad shell path raises
+            # FileNotFoundError. Normalise the lot into
+            # PtyUnavailableError so the API answers 501 through the CORS
+            # middleware; the real cause stays chained for the traceback.
+            try:
+                from core.terminal.session_windows import WindowsTerminalSession
+                session = WindowsTerminalSession(
+                    session_id=sid,
+                    shell=chosen_shell,
+                    cwd=chosen_cwd,
+                    cols=cols,
+                    rows=rows,
+                    scrollback_bytes=self.scrollback_bytes,
+                )
+            except Exception as exc:
+                raise PtyUnavailableError(
+                    f"{NO_PTY_MESSAGE} [{type(exc).__name__}]"
+                ) from exc
         else:
             session = TerminalSession(
                 session_id=sid,
@@ -318,7 +350,7 @@ class TerminalSessionManager:
         audit.log_start(sid, chosen_shell, chosen_cwd)
         return session
 
-    def get(self, session_id: str) -> Optional[TerminalSession]:
+    def get(self, session_id: str) -> TerminalSession | None:
         return self._sessions.get(session_id)
 
     def list_all(self) -> list[dict]:
@@ -360,7 +392,7 @@ class TerminalSessionManager:
             self.close(sid, reason="shutdown")
 
 
-_default_manager: Optional[TerminalSessionManager] = None
+_default_manager: TerminalSessionManager | None = None
 
 
 def default_manager() -> TerminalSessionManager:
