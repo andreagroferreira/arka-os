@@ -123,6 +123,21 @@ the prompt — the Agent tool has no structured-output parameter, so the
 contract IS the dispatch prompt naming the exact fields (PR-B4 dispatch
 shape; a dispatch that invents its own field names fail-softs the artifact):
 
+**Context is PRE-PACKED (Gate Economy PR-7).** A reviewer dispatch at
+~51k uncached tokens was 6-7x a normal turn because reviewers re-derived
+their own context on opus. The dispatch prompt MUST embed, inline:
+(a) the full evidence report JSON, (b) the diff itself
+(`git diff <merge-base>` output; over 1500 lines, embed per-file stat
+plus the hunks for the files in that reviewer's domain), and (c) the
+changed-file list. The reviewer works FROM the packed context under a
+tool budget: Reads only for changed files whose surrounding context the
+diff hides, hard cap 10 Reads; no repo-wide Grep/Glob sweeps; Bash
+(Francisca) only to REPRODUCE a specific finding, never to re-run whole
+suites — the engine already ran them and its receipt is the record. A
+review that needs more than the budget is evidence the diff is not
+LIGHT enough or the pack was dishonest: say so in `notes` instead of
+sweeping.
+
     from core.governance.qg_verdict import QG_VERDICT_JSON_SCHEMA
 
     Agent(

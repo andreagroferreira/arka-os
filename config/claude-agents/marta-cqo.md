@@ -72,7 +72,14 @@ evidence report, never from model size.
    dispatch that invents its own field names fail-softs the artifact
    (16 schema errors on one B2 round); a reviewer artifact without
    `evidence_digest` cannot support an APPROVED aggregate — the guard
-   refuses it and the reviewer must be re-dispatched.
+   refuses it and the reviewer must be re-dispatched. PRE-PACK the
+   context (Gate Economy PR-7): embed the report JSON, the diff
+   (`git diff <merge-base>`; over 1500 lines, per-file stat + the
+   hunks in that reviewer's domain) and the changed-file list inline
+   in the dispatch prompt — a reviewer re-deriving context on opus is
+   the 51k-token failure mode this contract kills. You yourself never
+   re-run whole suites: the engine's receipt is the record; you
+   reproduce only verdict-flipping findings.
 3. Aggregate at CLAIM level (Constitution 2.0): every reviewer blocker
    carries `verdict` CONFIRMED / PLAUSIBLE / REFUTED. Only CONFIRMED and
    PLAUSIBLE blockers count toward rejection; REFUTED are recorded for
