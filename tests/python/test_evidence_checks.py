@@ -3425,3 +3425,103 @@ class TestSpellcheckScopedToAddedLines:
         assert "_attribute_hits(" in source, (
             "the mypy path must delegate to the shared attribution engine"
         )
+
+
+class TestSpellcheckFindingsSurviveTruncation:
+    """A capped summary must not be the only record of what gated.
+
+    Reported by the copy reviewer during the v5.14.0 campaign: the
+    spellcheck summary is truncated, so hits beyond the visible ones
+    could be neither confirmed nor dismissed. Two ends cut it — `_tail`
+    drops the head of a raw tool dump, `stop_lint` drops the tail of the
+    rendered summary — so no single formatting fix makes the string
+    trustworthy. The structured `findings` record is the durable answer,
+    the same contract security-grep's `suppressions` already honours.
+
+    Each test pins ONE mechanism: the cap-with-marker on the attributed
+    path, and the rebuild-from-parsed-hits on the path that has no
+    merge-base. Real git repo + real codespell, confined to tmp_path.
+    """
+
+    _HIT_LINE = "please recieve this note\n"  # codespell:ignore recieve
+    _CLEAN = "an ordinary line of prose\n"
+
+    @staticmethod
+    def _git(args: list[str], cwd: Path) -> None:
+        subprocess.run(
+            ["git", *args], cwd=cwd, check=True, capture_output=True, text=True,
+        )
+
+    def _repo(self, root: Path) -> None:
+        self._git(["init", "-q", "-b", "master"], root)
+        self._git(["config", "user.email", "t@t.t"], root)
+        self._git(["config", "user.name", "t"], root)
+        (root / "seed.md").write_text(self._CLEAN, encoding="utf-8")
+        self._git(["add", "seed.md"], root)
+        self._git(["commit", "-qm", "baseline"], root)
+
+    @staticmethod
+    def _codespell_or_skip() -> None:
+        if evidence_checks._tool_cmd("codespell", module="codespell_lib") is None:
+            pytest.skip("codespell not installed")
+
+    def test_hits_beyond_the_cap_stay_certifiable(self, tmp_path: Path) -> None:
+        """The string caps and SAYS so; the structured record stays whole."""
+        self._codespell_or_skip()
+        self._repo(tmp_path)
+        count = evidence_checks._MAX_GREP_HITS + 5
+        (tmp_path / "many.md").write_text(
+            self._HIT_LINE * count, encoding="utf-8",
+        )
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, ["many.md"], None, 60,
+        )
+
+        assert result.passed is False
+        assert result.findings_count == count
+        assert len(result.findings) == count, (
+            "the structured record must survive the summary cap intact"
+        )
+        assert all(f.startswith("many.md:") for f in result.findings), (
+            "every finding must stay path-complete to be certifiable"
+        )
+        assert f"(+{count - evidence_checks._MAX_GREP_HITS} more" in (
+            result.summary
+        ), "a capped listing must declare its cap, never truncate quietly"
+        assert "findings" in result.summary, (
+            "the summary must point at where the complete record lives"
+        )
+
+    def test_the_no_merge_base_path_is_rebuilt_not_tail_truncated(
+        self, tmp_path: Path,
+    ) -> None:
+        """Outside a repo there is no attribution — and there was no record.
+
+        That path used to report codespell's raw stdout after `_tail`,
+        which keeps the LAST 800 characters. With enough hits the
+        earliest ones fell off the front of the only record that
+        existed, which is precisely the "cannot certify" complaint. The
+        verdict is now rebuilt from every parsed hit on this path too,
+        so the FIRST hit is the assertion that matters.
+        """
+        self._codespell_or_skip()
+        count = evidence_checks._MAX_GREP_HITS + 5
+        (tmp_path / "many.md").write_text(
+            self._HIT_LINE * count, encoding="utf-8",
+        )
+
+        result = evidence_checks._check_spellcheck(
+            tmp_path, ["many.md"], None, 60,
+        )
+
+        assert result.passed is False
+        assert "ALL of them gate" in result.summary
+        assert result.findings_count == count
+        assert any(f.startswith("many.md:1:") for f in result.findings), (
+            "the FIRST hit is the one front-truncation dropped — it must "
+            "be in the record, not merely the survivors of a tail cut"
+        )
+        assert f"{count} gating misspelling(s)" in result.summary, (
+            "the summary must be the rebuilt verdict, not a raw tool dump"
+        )

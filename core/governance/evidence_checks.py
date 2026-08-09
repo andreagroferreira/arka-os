@@ -135,6 +135,13 @@ class CheckResult:
     # for pre-existing corpus records.
     suppressions: list[str] = field(default_factory=list)
     suppressed_count: int = 0
+    # The FULL record of findings that DO gate, path-qualified, for the
+    # same reason: the summary is capped and truncated at both ends, and
+    # a reviewer cannot certify a finding the formatting removed
+    # (issue #493). Filled by spellcheck; empty for checks that do not
+    # enumerate findings, and for pre-existing corpus records.
+    findings: list[str] = field(default_factory=list)
+    findings_count: int = 0
 
 
 @dataclass
@@ -1612,40 +1619,96 @@ _CODESPELL_HIT_RE = re.compile(
     r"^(?P<path>[^\s:][^:]*):(?P<line>\d+):\s*(?P<msg>.*)$"
 )
 
+def _hit_lines(output: str) -> list[str]:
+    """Every codespell finding in ``output``, one stripped raw line each."""
+    return [
+        stripped for stripped in (line.strip() for line in output.splitlines())
+        if _CODESPELL_HIT_RE.match(stripped)
+    ]
 
-def _spellcheck_verdict(
-    result: CheckResult, gating: list[str], inherited: list[str],
-    unattributable: list[str],
-) -> CheckResult:
-    """Rebuild the verdict from misspellings this diff actually added.
+
+@dataclass(frozen=True)
+class _SpellHits:
+    """Every codespell hit of one run, bucketed by what may gate on it.
+
+    Correlated lists that are always built and read together; a
+    parameter object keeps the verdict a function of ONE value rather
+    than of four positional arguments nobody can order correctly twice.
+    """
+
+    gating: list[str]
+    inherited: list[str]
+    unattributable: list[str]
+    attributed: bool = True
+
+
+def _spellcheck_gating_note(hits: _SpellHits) -> str:
+    """The headline verdict, capped but pointing at the complete record."""
+    if not hits.gating:
+        return "no misspellings on lines this diff added"
+    shown = "\n".join(hits.gating[:_MAX_GREP_HITS])
+    if len(hits.gating) > _MAX_GREP_HITS:
+        shown += (
+            f"\n(+{len(hits.gating) - _MAX_GREP_HITS} more; the complete "
+            "path-qualified list is in CheckResult.findings)"
+        )
+    return f"{len(hits.gating)} gating misspelling(s):\n{shown}"
+
+
+def _spellcheck_policy_notes(hits: _SpellHits) -> str:
+    """Every non-gating outcome, each named for what it actually is.
+
+    Three different things stop a hit from gating and only one of them
+    is "this diff did not write it". Collapsing them into one line would
+    launder policy decisions into findings, so each keeps its own
+    sentence.
+    """
+    notes: list[str] = []
+    if not hits.attributed:
+        notes.append(
+            "no merge-base with the default branch — hits could not be "
+            "attributed to added lines; ALL of them gate"
+        )
+    if hits.unattributable:
+        listed = ", ".join(sorted(hits.unattributable)[:3])
+        notes.append(
+            f"git could not describe {len(hits.unattributable)} of the changed "
+            f"file(s) ({listed}) — untracked, renamed, or outside this "
+            "repository. Their hits gate as UNATTRIBUTED, not as proven "
+            "additions."
+        )
+    if hits.inherited:
+        notes.append(
+            f"{len(hits.inherited)} misspelling(s) on lines this diff did not "
+            "add — NOT gating; pre-existing text in a touched file"
+        )
+    return "\n".join(notes)
+
+
+def _spellcheck_verdict(result: CheckResult, hits: _SpellHits) -> CheckResult:
+    """Rebuild the verdict from the misspellings that may actually gate.
 
     Two different reasons put a hit in ``gating`` — git placed it on an
     added line, or git could not describe the file at all — and only the
     first is a statement about this diff. Reporting both as "on lines
     this diff added" would make the gate assert a provenance nothing
     verified, so the fail-closed share is named separately.
+
+    The complete gating list is filled into the structured ``findings``
+    field rather than left to the summary string: the string is capped
+    at ``_MAX_GREP_HITS`` and truncated at both ends downstream
+    (``_tail`` cuts the head, ``stop_lint`` cuts the tail), and a
+    reviewer cannot certify a finding the formatting removed.
     """
-    if gating:
-        shown = "\n".join(gating[:_MAX_GREP_HITS])
-        if len(gating) > _MAX_GREP_HITS:
-            shown += f"\n(+{len(gating) - _MAX_GREP_HITS} more)"
-        summary = f"{len(gating)} gating misspelling(s):\n{shown}"
-    else:
-        summary = "no misspellings on lines this diff added"
-    if unattributable:
-        listed = ", ".join(sorted(unattributable)[:3])
-        summary += (
-            f"\ngit could not describe {len(unattributable)} of the changed "
-            f"file(s) ({listed}) — untracked, renamed, or outside this "
-            "repository. Their hits gate as UNATTRIBUTED, not as proven "
-            "additions."
-        )
-    if inherited:
-        summary += (
-            f"\n{len(inherited)} misspelling(s) on lines this diff did not "
-            "add — NOT gating; pre-existing text in a touched file"
-        )
-    return replace(result, passed=not gating, summary=summary)
+    summary = "\n".join(
+        part for part in
+        (_spellcheck_gating_note(hits), _spellcheck_policy_notes(hits))
+        if part
+    )
+    return replace(
+        result, passed=not hits.gating, summary=summary,
+        findings=list(hits.gating), findings_count=len(hits.gating),
+    )
 
 
 def _spellcheck_attributed(
@@ -1661,23 +1724,26 @@ def _spellcheck_attributed(
     hits, all outside the edited regions and all present verbatim in the
     pre-5.10.0 baseline (issue #498).
 
-    Only a run that CONCLUDED with findings is attributed. A clean run,
-    a timeout, or output whose shape the hit pattern does not describe
+    Only a run that CONCLUDED with findings is attributed, and only
+    findings this parser recognised are re-adjudicated. A clean run, a
+    timeout, or output whose shape the hit pattern does not describe
     keeps codespell's own verdict — an empty gating list must never be
     an artefact of our failure to parse.
     """
     if result.exit_code in (None, 0):
         return result
+    parsed = _hit_lines(output)
+    if not parsed:
+        return result
     attribution = _attribute_hits(project_dir, output, _CODESPELL_HIT_RE)
     if attribution is None:
-        return replace(result, summary=(
-            f"{result.summary}\nno merge-base with the default branch — "
-            "hits could not be attributed to added lines; ALL of them gate"
+        return _spellcheck_verdict(result, _SpellHits(
+            gating=parsed, inherited=[], unattributable=[], attributed=False,
         ))
     gating, inherited, unattributable = attribution
-    if not gating and not inherited:
-        return result
-    return _spellcheck_verdict(result, gating, inherited, unattributable)
+    return _spellcheck_verdict(
+        result, _SpellHits(gating, inherited, unattributable),
+    )
 
 
 def _check_spellcheck(
