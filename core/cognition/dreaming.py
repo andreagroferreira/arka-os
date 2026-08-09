@@ -621,8 +621,9 @@ def _strip_non_topic_text(text: str) -> str:
     Frontmatter, cross-reference sections, bare wikilink lines and
     citation attributions all carry capitalised tokens with no topical
     meaning. Left in, they are the dominant source of false clusters —
-    the anchor reviews between 2026-07-31 and 2026-08-05 (Data, Marlon,
-    Architecture, HTTP, Convergem, Brian) each traced back to one.
+    every false anchor in the reviews between 2026-07-31 and 2026-08-05
+    (generic nouns like Data/Architecture/HTTP, plus capitalised first
+    names lifted from citation lines) traced back to one.
 
     Call this on the whole document, before ``_split_for_clustering``.
     Filtering per chunk cannot work: the section heading and the lines
