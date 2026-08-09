@@ -122,11 +122,20 @@ since their last artifact:
   flagged and the sections she interprets (lint/typecheck/tests/
   coverage/security-grep) are unchanged in outcome.
 
-A carried reviewer enters the aggregate via `digest_carries`
-[{reviewer, evidence_digest, reason}] — name the digest THAT reviewer
-actually reviewed and why the review still stands (>= 40 chars; the
-guard validates the carry against the session ledger). Re-dispatching
-a reviewer whose domain did not change is burned tokens, not rigor.
+Derive the carries MECHANICALLY — never by hand:
+
+    ~/.arkaos/bin/arka-py -m core.governance.carry_advisor <session> \
+      --delta-files f1,f2
+
+Paste its `carries` array verbatim into `digest_carries` (the shape
+already matches, digest and >= 40-char reason included; the guard
+validates each carry against the session ledger). The `re_dispatch`
+list names the ONLY reviewers you re-dispatch — and a re-dispatched
+reviewer receives ONLY the delta since the last round plus the gating
+(blocker/major) findings they must re-judge, never the whole
+deliverable again. The advisor fails closed: mixed/unknown deltas and
+REJECTED artifacts always re-dispatch. Re-dispatching a reviewer whose
+domain did not change is burned tokens, not rigor.
 
 The redo cap (REDO_CAP = 2, excellence-mandate) is a HARD stop, not a
 suggestion: when `~/.arkaos/quality-gate/<session>/ESCALATE` exists —

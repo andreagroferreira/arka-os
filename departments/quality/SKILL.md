@@ -62,9 +62,13 @@ Any Department Workflow:
          explicit justification in the verdict notes; otherwise REJECTED.
     4. If ANY reviewer rejects → work loops back with the blockers list.
        On the redo round, re-dispatch ONLY reviewers whose domain
-       changed since their artifact; carry the rest via digest_carries
-       (QGDigestCarry — reviewer, exact digest, >= 40-char reason,
-       validated against the session ledger). Carry is the norm for an
+       changed since their artifact; carry the rest via digest_carries,
+       derived mechanically:
+         arka-py -m core.governance.carry_advisor <session> --delta-files f1,f2
+       (its carries array pastes verbatim into digest_carries; the
+       advisor fails closed on mixed/unknown deltas and REJECTED
+       artifacts). A re-dispatched reviewer receives ONLY the delta +
+       the gating findings to re-judge. Carry is the norm for an
        untouched domain, not the exception. HARD STOP at the redo cap:
        when ~/.arkaos/quality-gate/<session>/ESCALATE exists (dropped
        by the record CLI at REDO_CAP = 2), no further reviewer is
