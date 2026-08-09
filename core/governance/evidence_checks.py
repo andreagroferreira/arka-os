@@ -1519,8 +1519,8 @@ def _check_security_grep(
     diff`` answers a brand-new path with exit 0 and EMPTY output, and
     reading that silence as "no added lines" scanned ZERO lines, so a
     new module with a hardcoded secret passed GREEN through a
-    NON-NEGOTIABLE gate (issue #481). Only ``git ls-files`` can answer
-    it: an empty diff cannot tell "brand new" from "unchanged", and
+    NON-NEGOTIABLE gate (issue #481). ``git ls-files`` answers what the
+    diff cannot: an empty diff does not tell "brand new" from "unchanged", and
     treating unchanged files as new would resurrect the very
     regression the added-lines scope exists to prevent. Same
     fail-closed contract as ``_added_line_numbers``.
