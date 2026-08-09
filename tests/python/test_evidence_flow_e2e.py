@@ -37,7 +37,7 @@ TURNS: list[str] = [
 def _isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.chdir(tmp_path)
-    _state_module._ROOT_CACHE.clear()
+    _state_module.reset_root_cache()
     yield
 
 

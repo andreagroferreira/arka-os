@@ -124,8 +124,20 @@ COST_FMT=$(printf '$%.2f' "${COST:-0}")
 # resolver: git toplevel, cwd fallback (Gate Economy PR-9, QG round 1).
 # Shows the active workflow, current gate as G<n>/<total>, and violations.
 WF_SEGMENT=""
-WF_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-WF_STATE="$WF_ROOT/.arka/workflow-state.json"
+# Payload-cwd convention (QG round 2): the state root follows WORK_DIR —
+# the runtime's own statement of the project — never the process cwd,
+# and the toplevel lookup rides the same 5s cache as the branch query.
+WF_ROOT=""
+if [ -n "$WORK_DIR" ] && [ -d "$WORK_DIR" ]; then
+  ROOT_CACHE_FILE="${GIT_CACHE}-root-${CACHE_KEY}"
+  if [ -f "$ROOT_CACHE_FILE" ] && [ $(($(date +%s) - $(stat -f%m "$ROOT_CACHE_FILE" 2>/dev/null || stat -c%Y "$ROOT_CACHE_FILE" 2>/dev/null || echo 0))) -lt $CACHE_MAX_AGE ]; then
+    WF_ROOT=$(cat "$ROOT_CACHE_FILE" 2>/dev/null)
+  else
+    WF_ROOT=$(git -C "$WORK_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$WORK_DIR")
+    echo "${WF_ROOT}" > "$ROOT_CACHE_FILE" 2>/dev/null
+  fi
+fi
+WF_STATE="${WF_ROOT:-$WORK_DIR}/.arka/workflow-state.json"
 if [ -f "$WF_STATE" ]; then
   WF_LINE=$(jq -r '
     (.phases // {}) as $p

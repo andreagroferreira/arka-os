@@ -27,6 +27,12 @@ MAX_VIOLATIONS = 100
 _ROOT_CACHE: dict[str, Path] = {}
 
 
+def reset_root_cache() -> None:
+    """Public seam for tests and long-lived callers (QG round 2 minor:
+    six test sites were clearing the private global by hand)."""
+    _ROOT_CACHE.clear()
+
+
 def _project_root() -> Path:
     """The project root: git toplevel, cwd fallback (QG round 1, B1).
 
@@ -103,6 +109,14 @@ def _write(state: dict[str, Any]) -> dict[str, Any]:
     """Atomic write: write to temp file then rename."""
     path = _state_path()
     path.parent.mkdir(parents=True, exist_ok=True)
+    # QG round 2 blocker: .arka/ is gitignored in the ArkaOS repo ONLY.
+    # In a user project nothing ignores it, so violation history with
+    # absolute paths would become committable — the directory ignores
+    # itself, the standard self-ignoring-dir pattern.
+    ignore = path.parent / ".gitignore"
+    if not ignore.exists():
+        with contextlib.suppress(OSError):
+            ignore.write_text("*\n", encoding="utf-8")
     with NamedTemporaryFile(
         mode="w",
         dir=str(path.parent),

@@ -25,7 +25,7 @@ def _isolated_home(tmp_path, monkeypatch):
     # In-project state (QG round 1): anchor the resolver in tmp so the
     # suite never writes into the real checkout.
     monkeypatch.chdir(tmp_path)
-    _state_module._ROOT_CACHE.clear()
+    _state_module.reset_root_cache()
     yield
 
 

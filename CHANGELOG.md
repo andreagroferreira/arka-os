@@ -27,11 +27,12 @@ issue tracker 21 → 0, contributor queue fully integrated.
   (#514, mechanism by @marlonoliveira182)
 - **tests:** codespell typo no longer blocks every PR against master
   (#499, authored by @marlonoliveira182)
-- **installer:** CRLF CLAUDE.md adoption + `pathToFileURL` sweep (#511)
-  and the dashboard no-PTY path answers 501 through CORS (#513) — both
-  carried forward from @marlonoliveira182's originals with credit, as
-  were the dreaming CLI fixes (#512, diagnosis and original
-  implementation by @marlonoliveira182)
+- **installer:** CRLF CLAUDE.md adoption + `pathToFileURL` sweep
+  (#511, carried forward from @marlonoliveira182's original with
+  credit — as were the cognition fixes above)
+- **dashboard:** the no-PTY path returns its 501 with CORS headers
+  (#513, carried forward from @marlonoliveira182's original with
+  credit)
 - **release:** preflight catches a personal name in a dreaming
   docstring example before publish (scrubbed in 34a19fa2)
 

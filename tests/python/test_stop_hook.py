@@ -162,7 +162,7 @@ def _anchor_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     from core.workflow import state as _st
 
-    _st._ROOT_CACHE.clear()
+    _st.reset_root_cache()
 
 class _FakeProc:
     stdin = None

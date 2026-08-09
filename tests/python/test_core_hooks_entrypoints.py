@@ -416,7 +416,7 @@ class TestDetectRuleViolations:
         monkeypatch.chdir(project)
         from core.workflow import state as _st
 
-        _st._ROOT_CACHE.clear()
+        _st.reset_root_cache()
 
     def test_commit_on_master_flags_branch_isolation(
         self, monkeypatch, tmp_path
@@ -1427,7 +1427,7 @@ class TestPostToolUseGateScope:
         monkeypatch.chdir(root)
         from core.workflow import state as _st
 
-        _st._ROOT_CACHE.clear()
+        _st.reset_root_cache()
 
     def _write_payload(self, root, file_path: Path) -> dict:
         return {

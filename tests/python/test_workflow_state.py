@@ -167,7 +167,7 @@ class TestProjectScoping:
 
         monkeypatch.setattr(st, "_state_path", _real_state_path)
         monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
-        st._ROOT_CACHE.clear()
+        st.reset_root_cache()
         return st
 
     def test_state_path_is_per_project(self, tmp_path, monkeypatch):
@@ -200,7 +200,7 @@ class TestProjectScoping:
         )
         monkeypatch.chdir(repo)
         root_path = st._state_path()
-        st._ROOT_CACHE.clear()
+        st.reset_root_cache()
         monkeypatch.chdir(repo / "core")
         sub_path = st._state_path()
         assert root_path == sub_path == repo / ".arka" / "workflow-state.json"
@@ -435,7 +435,7 @@ class TestGovernanceThroughRealReader:
         import core.workflow.state as st
 
         monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
-        st._ROOT_CACHE.clear()
+        st.reset_root_cache()
         project = tmp_path / "proj"
         (project / "core").mkdir(parents=True)
         monkeypatch.chdir(project)
@@ -488,3 +488,53 @@ class TestGovernanceThroughRealReader:
         })
         assert msg == ""
         assert persist == []
+
+
+class TestRound2Fixes:
+    """QG round 2 gating findings, each pinned by a test."""
+
+    def test_write_drops_self_ignoring_gitignore(self, tmp_path, monkeypatch):
+        """Blocker: in a USER project nothing ignores .arka/ — the
+        directory must ignore itself on first write."""
+        import core.workflow.state as st
+
+        monkeypatch.setattr(st, "_state_path", _real_state_path)
+        monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
+        st.reset_root_cache()
+        project = tmp_path / "userproj"
+        project.mkdir()
+        monkeypatch.chdir(project)
+        st.init_workflow("evidence-flow", str(project), ["g1"])
+        ignore = project / ".arka" / ".gitignore"
+        assert ignore.read_text(encoding="utf-8") == "*\n"
+
+    def test_non_dict_state_never_fabricates_violations(
+        self, tmp_path, monkeypatch
+    ):
+        """Major: a corrupt (non-dict) state file fabricated a
+        branch-isolation violation and crashed the Edit path."""
+        import core.workflow.state as st
+        from core.hooks import post_tool_use as ptu
+
+        monkeypatch.setattr(st.Path, "home", lambda: tmp_path)
+        st.reset_root_cache()
+        project = tmp_path / "proj"
+        (project / ".arka").mkdir(parents=True)
+        (project / ".arka" / "workflow-state.json").write_text(
+            "[]", encoding="utf-8"
+        )
+        monkeypatch.chdir(project)
+        assert ptu._workflow_state() is None
+        msg, persist = ptu._detect_rule_violations({
+            "tool_name": "Bash",
+            "cwd": str(project),
+            "tool_input": {"command": "git commit -m x"},
+            "tool_response": "[master abc1234] x",
+        })
+        assert msg == "" and persist == []
+        msg, persist = ptu._detect_rule_violations({
+            "tool_name": "Edit",
+            "cwd": str(project),
+            "tool_input": {"file_path": str(project / "a.py")},
+        })
+        assert msg == "" and persist == []

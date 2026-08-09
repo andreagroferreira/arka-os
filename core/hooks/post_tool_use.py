@@ -465,12 +465,16 @@ def _workflow_state() -> dict | None:
     # QG round 1, B1: the reader MUST resolve the state the way the
     # writer does — a hardcoded legacy path left this detector reading
     # a file the tracker deletes, silencing branch-isolation entirely.
+    # QG round 2: keep the isinstance guard the sibling reader kept —
+    # a corrupt non-dict state fabricated violations and crashed the
+    # Edit path — and catch only what reading can raise.
     try:
         from core.workflow.state import get_state
 
-        return get_state()
-    except Exception:
+        state = get_state()
+    except (OSError, ValueError, RuntimeError):
         return None
+    return state if isinstance(state, dict) else None
 
 
 def _phase_status(state: dict, phase: str) -> str:

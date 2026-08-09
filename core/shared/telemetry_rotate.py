@@ -36,14 +36,16 @@ def rotate_if_oversized(path: Path, max_bytes: int | None = None) -> bool:
     """Rotate ``path`` to ``<name>.1`` when it exceeds the cap.
 
     Returns True when a rotation happened. Never raises — telemetry
-    plumbing must not break a hook. Concurrent ROTATORS are serialized
-    on a dedicated ``<name>.rotlock`` flock and the size is re-checked
-    under the lock, so a losing rotator sees the fresh (small) file and
-    stands down instead of replacing again and destroying the one kept
-    generation (QG round 1 minor — the earlier docstring overclaimed
-    "benign"). A concurrent APPENDER holding a handle to the renamed
-    inode keeps writing into ``<name>.1`` — data lands in the kept
-    generation, never lost.
+    plumbing must not break a hook. On POSIX, concurrent ROTATORS are
+    serialized on a dedicated ``<name>.rotlock`` flock and the size is
+    re-checked under the lock, so a losing rotator sees the fresh
+    (small) file and stands down instead of replacing again and
+    destroying the one kept generation. Where ``fcntl`` is unavailable
+    (Windows) the flock helpers no-op, rotation is best-effort, and a
+    rare concurrent double-rotation can still drop the kept generation
+    — bounded to telemetry logs. A concurrent APPENDER holding a
+    handle to the renamed inode keeps writing into ``<name>.1`` — data
+    lands in the kept generation, never lost.
     """
     cap = _max_bytes() if max_bytes is None else max_bytes
     if cap <= 0:

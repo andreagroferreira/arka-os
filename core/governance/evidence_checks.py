@@ -65,6 +65,10 @@ CHECK_SEVERITY: dict[str, str] = {
     "coverage": "major",
     "security-grep": "blocker",
     "spellcheck": "minor",
+    # ui-screenshot/design-slop are minor HERE because UI evidence is
+    # enforced at WRITE time by the frontend PreToolUse gate (the
+    # [arka:design] marker, excellence-mandate) — this report row is
+    # the audit trail, not the enforcement point.
     "ui-screenshot": "minor",
     "design-slop": "minor",
 }

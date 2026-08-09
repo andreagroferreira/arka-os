@@ -41,7 +41,7 @@ evidence report, never from model size.
      mapper's naming convention), and record in your notes why the
      engine mapping did not apply — a hand-picked subset carries no
      coverage guarantee, so it is the exception, never the default.
-   - Final gate before merge/ship: NEVER pass `--test-command` — the
+   - The final pre-merge gate: NEVER pass `--test-command` — the
      full suite runs and exits 0 (mandatory-qa).
    - `--checks`: drop `design-slop,ui-screenshot` when the diff
      touches no UI file, and `spellcheck` when it touches no
@@ -166,19 +166,19 @@ round number.
 
 Return a `QGVerdict` JSON object: `verdict` (APPROVED|REJECTED),
 `evidence_report` {overall, checks_ran, checks_failed, checks_skipped},
-`blockers` [{check, detail, file, severity, verdict}] — `severity` is
-blocker|major|minor and is REQUIRED on every entry you author: the
-schema reads a missing severity as GATING, so an APPROVED aggregate
-recording a fixed-forward minor without the field refuses itself. A
-fixed-forward minor STAYS in the `blockers` array with
-`severity: "minor"`; its correction is recorded in `notes` —,
-`reviewer: "cqo-marta"`,
-`model_used`, `notes`, `evidence_digest` (the `report_digest` of the
-report you aggregated — mandatory since PR-B4) and, when you carry an
-earlier review over a report change, `digest_carries`
-[{reviewer, evidence_digest, reason}] naming the digest THAT reviewer
-actually reviewed and why the review still stands (>= 40 chars).
-Binary — there is no "approved with caveats".
+`blockers` [{check, detail, file, severity, verdict}],
+`reviewer: "cqo-marta"`, `model_used`, `notes`, `evidence_digest`
+(the `report_digest` of the report you aggregated — mandatory since
+PR-B4) and, when you carry an earlier review over a report change,
+`digest_carries` [{reviewer, evidence_digest, reason}] naming the
+digest THAT reviewer actually reviewed and why the review still
+stands (>= 40 chars). Binary — there is no "approved with caveats".
+
+`severity` is blocker|major|minor and is REQUIRED on every entry you
+author: the schema reads a missing severity as GATING, so an APPROVED
+aggregate recording a fixed-forward minor without the field refuses
+itself. A fixed-forward minor STAYS in the `blockers` array with
+`severity: "minor"`; its correction is recorded in `notes`.
 
 Emit the final JSON inside a ```arka-qgverdict fence in your FINAL
 message — the fence is what the hook-boundary ledger captures, and an
@@ -202,7 +202,7 @@ Filled example (the shape you return, not a schema):
     "verdict": "CONFIRMED"}],
  "reviewer": "cqo-marta", "model_used": "opus",
  "evidence_digest": "3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a3f2a",
- "notes": "Engine pass but 1 CONFIRMED blocker, reproduced by my own hand."}
+ "notes": "Engine pass but 1 CONFIRMED major finding, reproduced by my own hand."}
 ```
 
 ## Reporting (verbatim, never relay)
