@@ -13,7 +13,10 @@ The contract locked here:
 - `detection_pattern` matches the feature's own `content`, so injected
   sections are always detected on the next run;
 - the pattern also matches a bare `## <section_title>` heading, so
-  legacy or operator-customized sections (unmarked) are never duplicated.
+  legacy or operator-customized sections (unmarked) are never duplicated;
+- and, for `workflow-tiers`, it matches a host-language heading built on
+  the anchor token `Tiers` (issue #494), without matching a heading that
+  merely mentions the topic.
 """
 from __future__ import annotations
 
@@ -100,6 +103,67 @@ def test_detection_pattern_does_not_overmatch_summary_prose(path: Path):
         f"unrelated summary prose ({match.group(0)!r}) — the feature would be "
         "considered present and its mandatory section never injected"
     )
+
+
+# The shape of the three real collisions of issue #494, with the host names
+# replaced by placeholders. Each host had written its own tier taxonomy under
+# a Portuguese heading; the English-only pattern missed it, so Phase 4
+# injected a SECOND, contradictory tier table a dozen lines below — Tier 0-3
+# by scope next to Enterprise/Focused/Specialist by phase count, both headed
+# "Tier". What is load-bearing is the anchor token leading the heading, never
+# the parenthetical.
+_LOCALIZED_TIER_HEADINGS = (
+    "## Tiers de Projeto (Ecosystem A)",
+    "## Tiers de Produção (Ecosystem B)",
+    "## Tiers do Produto",
+)
+
+
+def test_workflow_tiers_detects_a_localized_heading():
+    """A tier section headed in the host's own language counts as present."""
+    spec = _load(_FEATURES_DIR / "workflow-tiers.yaml")
+    for heading in _LOCALIZED_TIER_HEADINGS:
+        host = (
+            "# Ecosystem\n\n"
+            f"{heading}\n\n"
+            "| Tier | Scope | Flow |\n"
+            "|------|-------|------|\n"
+            "| Tier 0 (trivial) | Typo fix under 10 lines | direct edit |\n"
+        )
+        assert re.search(spec.detection_pattern, host), (
+            f"workflow-tiers.yaml: detection_pattern {spec.detection_pattern!r} "
+            f"misses {heading!r} — Phase 4 would inject a second, "
+            "contradictory tier table into that host"
+        )
+
+
+# Headings that MENTION a tier without being the tier section; every shape
+# here occurs in the installed tree. Matching any would score the mandatory
+# section present in a host that lacks it — the mirror-image defect, and the
+# reason the alternative anchors on "Tiers" LEADING the heading rather than
+# appearing anywhere in it. The last entry locks the `\b`: without it the
+# anchor bleeds into any word that merely starts with those five letters.
+_TIER_MENTIONS = (
+    "## Complexity Tiers",
+    "## Tier Structure (deep dive)",
+    "## Vendor Risk Tiering",
+    "## Open Priorities (Tier 0 attention)",
+    "## Priority tier 1 (composite score >= 60)",
+    "## Tiersuffix conventions",
+)
+
+
+def test_workflow_tiers_ignores_a_heading_that_merely_mentions_tiers():
+    """Broadening detection must not suppress a legitimate injection."""
+    spec = _load(_FEATURES_DIR / "workflow-tiers.yaml")
+    for heading in _TIER_MENTIONS:
+        host = f"# Ecosystem\n\n{heading}\n\nunrelated body\n"
+        match = re.search(spec.detection_pattern, host)
+        assert match is None, (
+            f"workflow-tiers.yaml: detection_pattern {spec.detection_pattern!r} "
+            f"matches {heading!r} ({match.group(0)!r}) — the mandatory Workflow "
+            "Tiers section would never be injected into that host"
+        )
 
 
 _SKILLS_MANIFEST = _ROOT / "knowledge" / "skills-manifest.json"

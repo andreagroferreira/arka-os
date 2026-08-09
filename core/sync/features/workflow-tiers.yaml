@@ -2,7 +2,7 @@ name: workflow-tiers
 added_in: "2.12.0"
 mandatory: true
 section_title: "Workflow Tiers"
-detection_pattern: "arka:feature:workflow-tiers|## Workflow Tiers"
+detection_pattern: "arka:feature:workflow-tiers|## Workflow Tiers|## Tiers\\b"
 deprecated_in: null
 content: |
   <!-- arka:feature:workflow-tiers:start -->
