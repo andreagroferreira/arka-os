@@ -17,7 +17,7 @@ import os
 import re
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)", re.DOTALL)
@@ -94,6 +94,15 @@ class ProposalReport:
     report_path: Path | None = None
 
 
+class KbDirMissingError(FileNotFoundError):
+    """The KB directory does not exist — distinct from an empty KB.
+
+    A missing directory used to scan as an empty one, so a wrong path
+    produced exit 0 and a zero-artifact report byte-identical to a real
+    quiet window — the failure was unobservable (issue #521, found on a
+    fresh install where the old hardcoded default could never exist)."""
+
+
 def build_proposal(
     kb_dir: Path,
     *,
@@ -103,10 +112,12 @@ def build_proposal(
 ) -> ProposalReport:
     """Aggregate recent KB artifacts into a propose-only markdown report."""
     kb_dir = Path(kb_dir)
-    cutoff = datetime.now(timezone.utc).date() - timedelta(days=max(since_days - 1, 0))
+    if not kb_dir.is_dir():
+        raise KbDirMissingError(str(kb_dir))
+    cutoff = datetime.now(UTC).date() - timedelta(days=max(since_days - 1, 0))
     artifacts = _scan_kb(kb_dir, cutoff)
     by_category = _aggregate_by_category(artifacts)
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
     markdown = _render(artifacts, by_category, since_days, kb_dir, generated_at)
     report_path = None if dry_run else _write_report(markdown, output_dir)
     return ProposalReport(
@@ -131,7 +142,7 @@ def _write_report(markdown: str, output_dir: Path | None) -> Path:
     """Atomic markdown write to a validated output directory."""
     out = _validate_output_dir(output_dir)
     out.mkdir(parents=True, exist_ok=True)
-    report_path = out / datetime.now(timezone.utc).strftime(_PROPOSAL_FILENAME_FMT)
+    report_path = out / datetime.now(UTC).strftime(_PROPOSAL_FILENAME_FMT)
     tmp_path = report_path.with_suffix(f".tmp-{os.getpid()}.md")
     tmp_path.write_text(markdown, encoding="utf-8")
     os.replace(tmp_path, report_path)
@@ -171,8 +182,9 @@ def _validate_output_dir(output_dir: Path | None) -> Path:
 
 
 def _scan_kb(kb_dir: Path, cutoff) -> list[KbArtifact]:
-    if not kb_dir.is_dir():
-        return []
+    # No missing-dir guard here on purpose: build_proposal raises
+    # KbDirMissingError before this runs. A silent [] for a missing dir is
+    # the exact defect this module carries a named exception for.
     out: list[KbArtifact] = []
     for md in sorted(kb_dir.rglob("*.md")):
         category = _category_from_filename(md.name)
