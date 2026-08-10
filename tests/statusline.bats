@@ -32,11 +32,14 @@ load helpers/setup
 # ─── F2-5: workflow gate + budget segment ──────────────────────────────
 
 @test "statusline shows workflow gate when workflow-state.json is active" {
+  # Per-project contract (Gate Economy PR-9): state lives at
+  # <payload-cwd toplevel>/.arka/workflow-state.json, not under $HOME.
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
-  mkdir -p "$FAKE_HOME/.arkaos"
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
   printf '{"workflow":"dev-feature","phases":{"spec":{"status":"completed"},"gate-2-build":{"status":"in_progress"}},"violations":[]}' \
-    > "$FAKE_HOME/.arkaos/workflow-state.json"
-  payload='{"model":{"display_name":"Fable 5"},"cwd":"/x/proj","context_window":{"used_percentage":10},"cost":{"total_cost_usd":0.1}}'
+    > "$PROJ/.arka/workflow-state.json"
+  payload="{\"model\":{\"display_name\":\"Fable 5\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":10},\"cost\":{\"total_cost_usd\":0.1}}"
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
   [[ "$output" == *"dev-feature"* ]]
@@ -45,10 +48,11 @@ load helpers/setup
 
 @test "statusline shows the violations warning glyph, not just a digit" {
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
-  mkdir -p "$FAKE_HOME/.arkaos"
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
   printf '{"workflow":"wf","phases":{"a":{"status":"in_progress"}},"violations":[{"r":1},{"r":2},{"r":3}]}' \
-    > "$FAKE_HOME/.arkaos/workflow-state.json"
-  payload='{"model":{"display_name":"m"},"cwd":"/x","context_window":{"used_percentage":5},"cost":{"total_cost_usd":0}}'
+    > "$PROJ/.arka/workflow-state.json"
+  payload="{\"model\":{\"display_name\":\"m\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":5},\"cost\":{\"total_cost_usd\":0}}"
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
   # The warning glyph + count, not a bare digit that could be the gate.
@@ -60,10 +64,11 @@ load helpers/setup
   # Completed workflow (no in_progress phase) with violations: the tab
   # delimiter used to collapse the empty gate field and DROP the warning.
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
-  mkdir -p "$FAKE_HOME/.arkaos"
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
   printf '{"workflow":"wf","phases":{"a":{"status":"completed"}},"violations":[{"r":1},{"r":2},{"r":3},{"r":4}]}' \
-    > "$FAKE_HOME/.arkaos/workflow-state.json"
-  payload='{"model":{"display_name":"m"},"cwd":"/x","context_window":{"used_percentage":5},"cost":{"total_cost_usd":0}}'
+    > "$PROJ/.arka/workflow-state.json"
+  payload="{\"model\":{\"display_name\":\"m\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":5},\"cost\":{\"total_cost_usd\":0}}"
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
   [[ "$output" == *$'\xe2\x9a\xa0'*"4"* ]]    # warning present with count 4
@@ -73,10 +78,11 @@ load helpers/setup
 
 @test "QG B4: a workflow name with escape/newline never breaks 2 lines" {
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
-  mkdir -p "$FAKE_HOME/.arkaos"
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
   printf '{"workflow":"evil\u001b[31mX\ninjected","phases":{"a":{"status":"in_progress"}},"violations":[]}' \
-    > "$FAKE_HOME/.arkaos/workflow-state.json"
-  payload='{"model":{"display_name":"m"},"cwd":"/x","context_window":{"used_percentage":5},"cost":{"total_cost_usd":0}}'
+    > "$PROJ/.arka/workflow-state.json"
+  payload="{\"model\":{\"display_name\":\"m\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":5},\"cost\":{\"total_cost_usd\":0}}"
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
   line_count=$(printf '%s' "$output" | grep -c '')
@@ -86,10 +92,11 @@ load helpers/setup
 @test "QG M2: gate index is positional, not grepped from the phase name" {
   # in_progress phase named "gate-5-x" but at position 3 of 3 -> G3/3.
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
-  mkdir -p "$FAKE_HOME/.arkaos"
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
   printf '{"workflow":"wf","phases":{"a":{"status":"completed"},"b":{"status":"completed"},"gate-5-x":{"status":"in_progress"}},"violations":[]}' \
-    > "$FAKE_HOME/.arkaos/workflow-state.json"
-  payload='{"model":{"display_name":"m"},"cwd":"/x","context_window":{"used_percentage":5},"cost":{"total_cost_usd":0}}'
+    > "$PROJ/.arka/workflow-state.json"
+  payload="{\"model\":{\"display_name\":\"m\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":5},\"cost\":{\"total_cost_usd\":0}}"
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
   [[ "$output" == *"G3/3"* ]]
@@ -114,10 +121,11 @@ load helpers/setup
   # Deleting the gsub raises the count to 13 -> this test fails
   # (mutation-verified: neutralizing the gsub fails this assertion).
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
-  mkdir -p "$FAKE_HOME/.arkaos"
-  printf '%s' '{"workflow":"pre\u001b[31mQ","phases":{"a":{"status":"in_progress"}},"violations":[]}' > "$FAKE_HOME/.arkaos/workflow-state.json"
-  python3 -c "import json; json.load(open('$FAKE_HOME/.arkaos/workflow-state.json'))"
-  payload='{"model":{"display_name":"m"},"cwd":"/x","context_window":{"used_percentage":5},"cost":{"total_cost_usd":0}}'
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
+  printf '%s' '{"workflow":"pre\u001b[31mQ","phases":{"a":{"status":"in_progress"}},"violations":[]}' > "$PROJ/.arka/workflow-state.json"
+  python3 -c "import json; json.load(open('$PROJ/.arka/workflow-state.json'))"
+  payload="{\"model\":{\"display_name\":\"m\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":5},\"cost\":{\"total_cost_usd\":0}}"
   line1=$(printf '%s' "$payload" | HOME="$FAKE_HOME" bash "$REPO_DIR/config/statusline.sh" 2>/dev/null | head -1)
   esc_count=$(printf '%s' "$line1" | LC_ALL=C od -An -tx1 | tr ' ' '\n' | grep -c '^1b$')
   [ "$esc_count" -eq 12 ]     # colour codes only; the injected ESC is gone
@@ -144,13 +152,33 @@ load helpers/setup
 
 @test "statusline still produces exactly 2 lines with workflow segment" {
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
-  mkdir -p "$FAKE_HOME/.arkaos"
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
   printf '{"workflow":"wf","phases":{"a":{"status":"in_progress"}},"violations":[{"r":1}]}' \
-    > "$FAKE_HOME/.arkaos/workflow-state.json"
+    > "$PROJ/.arka/workflow-state.json"
   printf '{"budget":{"hardCapUsd":10}}' > "$FAKE_HOME/.arkaos/config.json"
-  payload='{"model":{"display_name":"m"},"cwd":"/x","context_window":{"used_percentage":5},"cost":{"total_cost_usd":1}}'
+  payload="{\"model\":{\"display_name\":\"m\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":5},\"cost\":{\"total_cost_usd\":1}}"
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
+  # The segment must actually render — otherwise this 2-line check is
+  # vacuous (it passed for years while reading a dead state path).
+  [[ "$output" == *"wf"* ]]
   line_count=$(echo "$output" | wc -l | tr -d ' ')
   [ "$line_count" -eq 2 ]
+}
+
+@test "per-project contract: HOME-global state alone renders no segment (Gate Economy PR-9)" {
+  # Regression pin for the state-path move: a workflow-state.json under
+  # $HOME/.arkaos (the pre-Gate-Economy location) must be IGNORED when
+  # the payload cwd's project has none. Reverting statusline.sh to the
+  # legacy global path makes "ghost" appear and fails this test.
+  FAKE_HOME="$BATS_TEST_TMPDIR/home"
+  PROJ="$BATS_TEST_TMPDIR/proj"
+  mkdir -p "$FAKE_HOME/.arkaos" "$PROJ"
+  printf '{"workflow":"ghost","phases":{"a":{"status":"in_progress"}},"violations":[]}' \
+    > "$FAKE_HOME/.arkaos/workflow-state.json"
+  payload="{\"model\":{\"display_name\":\"m\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":5},\"cost\":{\"total_cost_usd\":0}}"
+  run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"ghost"* ]]
 }
