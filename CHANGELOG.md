@@ -5,6 +5,30 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.16.1] - 2026-08-10
+
+### Fixed
+- **Windows installer: frontend tooling no longer reports false failures
+  on every `npx arkaos update`** (#539, by @marlonoliveira182). npm/npx/
+  impeccable spawns route through `cmd.exe /c` via the new
+  `nodeToolCommand()` helper — bare `.cmd` shims fail with ENOENT/EINVAL
+  since Node's CVE-2024-27980 fix. `motion-ai` now skips with an
+  actionable `requires-tty` instead of failing on piped stdio, the
+  `claude mcp list` probe timeout goes 10s→60s (it scales with the
+  operator's MCP count), and an `already exists` on `mcp add` reads as
+  already-present rather than a failure.
+- Statusline bats tests migrated to the per-project workflow-state
+  contract (Gate Economy PR-9); 5 tests had been red on CI since the
+  v5.16.0 merge. Includes a regression pin proving the legacy `$HOME`
+  state path stays dead (`6a666ff4`).
+- The 16 department plugin manifests now carry the release version — the
+  v5.16.0 bump commit missed them, which broke `test_marketplace_gen.py`
+  on clean clones (`1222325b`).
+
+### Changed
+- Dependabot ignores `mcp` semver-major updates until the 2.x migration
+  (#540) lands; PR #538 closed with the rationale on record (`0f6046d6`).
+
 ## [5.16.0] - 2026-08-09
 
 Gate Economy — the operator-approved campaign that keeps the Quality
