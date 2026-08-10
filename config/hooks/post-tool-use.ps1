@@ -19,7 +19,8 @@
 # - Always exits 0 and writes `{}` on stdout — PostToolUse does not inject
 #   context.
 # - Side effect: updates %USERPROFILE%\.arkaos\gotchas.json and
-#   %USERPROFILE%\.arkaos\hook-metrics.json.
+#   %USERPROFILE%\.arkaos\hook-metrics.json, and writes the flow marker
+#   and KB-first evidence markers through core/ (see Invoke-ArkaosCore).
 #
 # State files live under the canonical v2 runtime directory `~/.arkaos/`.
 # Older builds of the bash twin used `~/.arka-os/` (with a dash); the
@@ -95,6 +96,81 @@ function New-StringArrayList {
         }
     }
     return ,$list
+}
+
+# ─── Reaching core/ from PowerShell ──────────────────────────────────
+# Two side effects in this port need a real Python: the flow marker cache
+# and the KB-first evidence marker. Both used to be written inline; the
+# resolution logic lived inside the marker branch and could not be reused,
+# which is part of why the KB marker was never ported at all. Hoisted here
+# so any further core call is three lines, not sixty.
+
+function Resolve-ArkaosRoot {
+    if ($env:ARKAOS_ROOT) { return $env:ARKAOS_ROOT }
+    $root = $null
+    $repoPathFile = Join-Path $env:USERPROFILE '.arkaos\.repo-path'
+    if (Test-Path -LiteralPath $repoPathFile) {
+        try { $root = (Get-Content -Raw -LiteralPath $repoPathFile -Encoding UTF8).Trim() } catch { }
+    }
+    # .repo-path may point at a purged npx cache — fall through to the
+    # ~/.arkaos/lib snapshot when core is missing there.
+    if (-not ($root -and (Test-Path -LiteralPath (Join-Path $root 'core\sync\__init__.py')))) {
+        $lib = Join-Path $env:USERPROFILE '.arkaos\lib'
+        if (Test-Path -LiteralPath (Join-Path $lib 'core\sync\__init__.py')) { $root = $lib }
+    }
+    if (-not $root) { $root = Join-Path $env:USERPROFILE '.arkaos' }
+    return $root
+}
+
+function Resolve-ArkaosPython {
+    $venvPy = Join-Path $env:USERPROFILE '.arkaos\venv\Scripts\python.exe'
+    if (Test-Path -LiteralPath $venvPy) { return $venvPy }
+    # Never accept %LOCALAPPDATA%\Microsoft\WindowsApps: the python3.exe
+    # there is the Store install-manager alias, and running it downloads a
+    # full CPython into the cwd — which for a hook is the user's own project
+    # directory. Same reason "python" is tried before "python3" here.
+    foreach ($cmd in 'python', 'py', 'python3') {
+        $resolved = Get-Command $cmd -ErrorAction SilentlyContinue
+        if ($resolved -and $resolved.Source -notmatch '\\Microsoft\\WindowsApps\\') {
+            return $resolved.Source
+        }
+    }
+    return $null
+}
+
+function Invoke-ArkaosCore {
+    # Code goes in over stdin (`python -`), NOT as a `-c` argument.
+    # The previous form flattened the snippet with newline -> "; ", which
+    # cannot express a compound statement: `import os; try:;     from ...`
+    # is a SyntaxError, so every call died at parse time and the guarded
+    # catch plus redirected stderr hid it completely. Measured 2026-08-10:
+    # the flow marker cache had therefore never been written on Windows.
+    # stdin preserves the snippet byte for byte and needs no quoting.
+    param([string]$Code, [hashtable]$EnvVars, [int]$TimeoutMs = 1500)
+    $python = Resolve-ArkaosPython
+    if (-not $python) { return }
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $python
+    $psi.Arguments = '-'
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    # Indexer, never .Add(): Add throws when the key is already in the
+    # inherited environment, and PYTHONPATH very often is. The throw landed
+    # in the caller's catch, so a developer with PYTHONPATH exported got a
+    # hook that silently did nothing.
+    foreach ($key in $EnvVars.Keys) {
+        $psi.EnvironmentVariables[$key] = [string]$EnvVars[$key]
+    }
+    $psi.EnvironmentVariables['PYTHONPATH'] = (Resolve-ArkaosRoot)
+    try {
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $proc.StandardInput.Write($Code)
+        $proc.StandardInput.Close()
+        if (-not $proc.WaitForExit($TimeoutMs)) { try { $proc.Kill() } catch { } }
+    } catch { }
 }
 
 # ─── Read hook payload from stdin (with empty-stdin tolerance) ────────
@@ -177,46 +253,7 @@ if ($shouldProcessGotchas -and $null -ne $payload) {
                 $markerKind = 'trivial'
             }
             if ($markerKind) {
-                $arkaosRootPtu = $env:ARKAOS_ROOT
-                if (-not $arkaosRootPtu) {
-                    $repoPathFile = Join-Path $env:USERPROFILE '.arkaos\.repo-path'
-                    if (Test-Path -LiteralPath $repoPathFile) {
-                        try {
-                            $arkaosRootPtu = (Get-Content -Raw -LiteralPath $repoPathFile -Encoding UTF8).Trim()
-                        } catch { }
-                    }
-                    # .repo-path may point at a purged npx cache — fall through
-                    # to the ~/.arkaos/lib snapshot when core is missing.
-                    if (-not ($arkaosRootPtu -and (Test-Path -LiteralPath (Join-Path $arkaosRootPtu 'core\sync\__init__.py')))) {
-                        $libPtu = Join-Path $env:USERPROFILE '.arkaos\lib'
-                        if (Test-Path -LiteralPath (Join-Path $libPtu 'core\sync\__init__.py')) {
-                            $arkaosRootPtu = $libPtu
-                        }
-                    }
-                }
-                if (-not $arkaosRootPtu) {
-                    $arkaosRootPtu = Join-Path $env:USERPROFILE '.arkaos'
-                }
-                # Locate Python (venv-first, then system).
-                $pythonForMarker = $null
-                $venvPy = Join-Path $env:USERPROFILE '.arkaos\venv\Scripts\python.exe'
-                if (Test-Path -LiteralPath $venvPy) {
-                    $pythonForMarker = $venvPy
-                } else {
-                    # Never accept %LOCALAPPDATA%\Microsoft\WindowsApps: the
-                    # python3.exe there is the Store install-manager alias,
-                    # and running it downloads a full CPython into the cwd —
-                    # which for a hook is the user's own project directory.
-                    # Same reason "python" is tried before "python3" here.
-                    foreach ($cmd in 'python','py','python3') {
-                        $resolved = Get-Command $cmd -ErrorAction SilentlyContinue
-                        if ($resolved -and $resolved.Source -notmatch '\\Microsoft\\WindowsApps\\') {
-                            $pythonForMarker = $resolved.Source; break
-                        }
-                    }
-                }
-                if ($pythonForMarker) {
-                    $pyCode = @"
+                Invoke-ArkaosCore -Code @"
 import os
 try:
     from core.workflow.marker_cache import write_marker
@@ -228,24 +265,50 @@ try:
     )
 except Exception:
     pass
-"@
-                    $psi = New-Object System.Diagnostics.ProcessStartInfo
-                    $psi.FileName = $pythonForMarker
-                    $psi.Arguments = "-c `"$($pyCode -replace '"','\"' -replace "`r?`n",'; ')`""
-                    $psi.UseShellExecute = $false
-                    $psi.CreateNoWindow = $true
-                    $psi.RedirectStandardOutput = $true
-                    $psi.RedirectStandardError = $true
-                    [void]$psi.EnvironmentVariables.Add('SESSION_ID_PTU', $sessionIdPtu)
-                    [void]$psi.EnvironmentVariables.Add('MARKER_KIND', $markerKind)
-                    [void]$psi.EnvironmentVariables.Add('MARKER_DEPT', $markerDept)
-                    [void]$psi.EnvironmentVariables.Add('MARKER_LEAD', $markerLead)
-                    [void]$psi.EnvironmentVariables.Add('PYTHONPATH', $arkaosRootPtu)
-                    try {
-                        $proc = [System.Diagnostics.Process]::Start($psi)
-                        if (-not $proc.WaitForExit(1500)) { try { $proc.Kill() } catch { } }
-                    } catch { }
+"@ -EnvVars @{
+                    SESSION_ID_PTU = $sessionIdPtu
+                    MARKER_KIND    = $markerKind
+                    MARKER_DEPT    = $markerDept
+                    MARKER_LEAD    = $markerLead
                 }
+            }
+        }
+    } catch { }
+
+    # --- KB-first evidence marker ----------------------------------------
+    # A genuine Obsidian consult is the ONLY thing that satisfies the
+    # research gate's "KB-first was respected" branch. The bash twin gets
+    # this for free by delegating to core/hooks/post_tool_use.py:867; this
+    # port reimplements the event and never carried the branch over, so on
+    # Windows the gate could never see a consult and denied every second
+    # external search for the rest of the turn, however many times the vault
+    # was actually queried. Mirror of the Python source, fallback order
+    # included. Synapse L2.5 records its automatic injection under
+    # kind="injected", which the gate deliberately ignores — writing
+    # "obsidian" here is what keeps evidence distinct from telemetry.
+    try {
+        $sessionIdKb = if ($null -ne $payload.session_id) { [string]$payload.session_id } else { '' }
+        if ($sessionIdKb -and $toolName.StartsWith('mcp__obsidian__')) {
+            $queryHint = ''
+            if ($null -ne $payload.tool_input) {
+                if ($payload.tool_input.query) { $queryHint = [string]$payload.tool_input.query }
+                elseif ($payload.tool_input.path) { $queryHint = [string]$payload.tool_input.path }
+            }
+            if (-not $queryHint) { $queryHint = $toolName }
+            Invoke-ArkaosCore -Code @"
+import os
+try:
+    from core.synapse.kb_cache import record_obsidian_query
+    record_obsidian_query(
+        os.environ.get('SESSION_ID_KB', ''),
+        os.environ.get('KB_QUERY_HINT', ''),
+        hit_count=1,
+    )
+except Exception:
+    pass
+"@ -EnvVars @{
+                SESSION_ID_KB = $sessionIdKb
+                KB_QUERY_HINT = $queryHint
             }
         }
     } catch { }
