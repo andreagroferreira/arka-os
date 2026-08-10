@@ -567,6 +567,8 @@ export async function update({ skillsFlag = "" } = {}) {
     else if (ft.magicMcp?.action === "already-present") ok("Magic MCP already registered");
     else if (ft.magicMcp?.action === "failed") warn(`Magic MCP failed (${ft.magicMcp.reason})`);
     if (ft.motionKit?.action === "installed") ok("Motion AI Kit installed");
+    else if (ft.motionKit?.action === "skipped" && ft.motionKit.reason === "requires-tty")
+      warn("Motion AI Kit needs a terminal — run `npx motion-ai` once by hand");
     else if (ft.motionKit?.action === "failed") warn(`Motion AI Kit failed (${ft.motionKit.reason})`);
   } catch (err) {
     warn(`Could not set up frontend tooling (${err.message})`);

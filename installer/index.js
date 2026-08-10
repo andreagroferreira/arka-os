@@ -495,6 +495,8 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
     }
     if (ft.motionKit?.action === "installed") {
       detail("         Motion AI Kit installed.");
+    } else if (ft.motionKit?.action === "skipped" && ft.motionKit.reason === "requires-tty") {
+      detail("         Motion AI Kit needs a terminal - run `npx motion-ai` once by hand.");
     } else if (ft.motionKit?.action === "failed") {
       detail(`         Motion AI Kit install failed (${ft.motionKit.reason}).`);
     }

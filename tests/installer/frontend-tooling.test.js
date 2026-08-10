@@ -223,7 +223,7 @@ test("installMotionKit installs on success and writes the idempotency marker", (
   const home = makeTmpHome();
   try {
     withMockedPath([claude.dir, npx.dir], () => {
-      const result = installMotionKit({ runtime: "claude-code", home: home.dir });
+      const result = installMotionKit({ runtime: "claude-code", home: home.dir, interactive: true });
       assert.equal(result.action, "installed");
     });
     // Marker now exists.
@@ -254,13 +254,36 @@ test("installMotionKit is idempotent — skips when the marker already exists", 
   }
 });
 
+test("installMotionKit skips without a TTY instead of failing", () => {
+  // `motion-ai` refuses to run on a non-TTY stdin ("motion-ai is interactive
+  // - run it in a terminal", exit 1). Auto-running it headlessly could only
+  // ever produce a spurious "failed" on every unattended update, so the
+  // headless path must skip, and say so.
+  const claude = makeMockClaude();
+  const npx = makeMockNpx({ exit: 0 });
+  const home = makeTmpHome();
+  try {
+    withMockedPath([claude.dir, npx.dir], () => {
+      const result = installMotionKit({ runtime: "claude-code", home: home.dir, interactive: false });
+      assert.equal(result.action, "skipped");
+      assert.equal(result.reason, "requires-tty");
+    });
+    // No marker: a skipped kit must stay pending, not look installed.
+    assert.equal(existsSync(join(home.dir, ".arkaos", ".motion-kit-installed")), false);
+  } finally {
+    claude.cleanup();
+    npx.cleanup();
+    home.cleanup();
+  }
+});
+
 test("installMotionKit captures failure as 'failed'", () => {
   const claude = makeMockClaude();
   const npx = makeMockNpx({ exit: 1, stderr: "kit boom" });
   const home = makeTmpHome();
   try {
     withMockedPath([claude.dir, npx.dir], () => {
-      const result = installMotionKit({ runtime: "claude-code", home: home.dir });
+      const result = installMotionKit({ runtime: "claude-code", home: home.dir, interactive: true });
       assert.equal(result.action, "failed");
     });
   } finally {
@@ -280,7 +303,7 @@ test("setupFrontendTooling never throws and returns both sub-results", async () 
   const home = makeTmpHome({ MAGIC_API_KEY: "k" });
   try {
     const result = await withMockedPath([mock.dir, npx.dir], () =>
-      setupFrontendTooling({ runtime: "claude-code", home: home.dir }),
+      setupFrontendTooling({ runtime: "claude-code", home: home.dir, interactive: true }),
     );
     assert.ok(result.magicMcp);
     assert.ok(result.motionKit);
