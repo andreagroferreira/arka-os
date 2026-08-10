@@ -2,6 +2,7 @@
 # ArkaOS Dashboard - Start FastAPI + Nuxt servers (Windows / PowerShell 5.1+)
 #
 # Port of scripts/start-dashboard.sh. Same contract:
+# - Accepts `ensure` (exit 0 when already healthy) and `--no-browser`.
 # - Finds free TCP ports starting from ARKAOS_DASHBOARD_UI_PORT (default 3333).
 # - Stops any previously-started dashboard processes recorded in the PID file.
 # - Launches the FastAPI backend (scripts/dashboard-api.py) as a background
@@ -33,6 +34,55 @@ $apiLog       = Join-Path $arkaosHome 'api.log'
 $apiErrLog    = Join-Path $arkaosHome 'api.err.log'
 
 $null = New-Item -ItemType Directory -Force -Path $arkaosHome -ErrorAction SilentlyContinue
+
+# --- Args ------------------------------------------------------------------
+# Same contract as scripts/start-dashboard.sh:
+#   `ensure`       - idempotent mode: exit 0 if API+UI are already healthy,
+#                    otherwise fall through to a full start. Safe to call from
+#                    SessionStart hooks and Scheduled Task boot units.
+#   `--no-browser` - do not open the browser after start (also via
+#                    ARKAOS_NO_BROWSER=1 env, for boot/hook contexts).
+# Both were absent from this port, so every SessionStart killed a healthy
+# dashboard, started a replacement, and opened a browser tab.
+$mode = 'start'
+$noBrowser = [bool]$env:ARKAOS_NO_BROWSER
+foreach ($arg in $args) {
+    switch ($arg) {
+        'ensure'       { $mode = 'ensure' }
+        '--no-browser' { $noBrowser = $true }
+    }
+}
+
+# --- ensure: exit early when the dashboard is already healthy ---------------
+# Probe 127.0.0.1 and not `localhost`. Measured on Windows 10 (2026-08-10):
+# `localhost` resolves ::1 before 127.0.0.1, the dashboard binds IPv4 only,
+# and the wasted ::1 attempt costs 2.21 s against 0.08 s direct. With a 2 s
+# timeout the health check would intermittently declare a healthy dashboard
+# dead and trigger the very restart this mode exists to avoid.
+function Test-DashboardEndpoint([int]$Port, [string]$Path) {
+    if ($Port -le 0) { return $false }
+    try {
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$Port$Path" `
+            -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        return ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 500)
+    } catch {
+        return $false
+    }
+}
+
+if ($mode -eq 'ensure' -and (Test-Path -LiteralPath $portFile)) {
+    $ensureApiPort = 0
+    $ensureUiPort  = 0
+    foreach ($line in (Get-Content -LiteralPath $portFile -ErrorAction SilentlyContinue)) {
+        if ($line -match '^\s*API_PORT=(\d+)\s*$') { $ensureApiPort = [int]$Matches[1] }
+        elseif ($line -match '^\s*UI_PORT=(\d+)\s*$') { $ensureUiPort = [int]$Matches[1] }
+    }
+    if ((Test-DashboardEndpoint $ensureApiPort '/api/overview') -and
+        (Test-DashboardEndpoint $ensureUiPort  '/')) {
+        Write-Host "  Dashboard already running (API :$ensureApiPort, UI :$ensureUiPort)"
+        exit 0
+    }
+}
 
 # --- Kill existing dashboard processes -------------------------------------
 if (Test-Path -LiteralPath $pidFile) {
@@ -343,7 +393,10 @@ Write-Host "        or: Stop-Process -Id (Get-Content '$pidFile')"
 Write-Host ''
 
 # --- Open the browser at the UI URL ----------------------------------------
-if ($uiProc) {
+# Suppressed by --no-browser / ARKAOS_NO_BROWSER=1. The SessionStart hook
+# sets that variable (core/hooks/session_start.py) precisely so a hook-driven
+# start never steals focus with a browser tab.
+if ($uiProc -and -not $noBrowser) {
     Start-Sleep -Seconds 5
     try {
         Start-Process "http://localhost:$uiPort" | Out-Null
