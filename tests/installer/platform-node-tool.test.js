@@ -27,9 +27,20 @@ test("nodeToolCommand passes the tool through unchanged on POSIX", { skip: IS_WI
 });
 
 test("nodeToolCommand routes through cmd.exe on Windows", { skip: !IS_WINDOWS }, () => {
+  // The caret arrives doubled ON PURPOSE: cmd.exe consumes one before the
+  // program parses the line. The previous form of this assertion expected
+  // `pkg@^1.0` here and therefore locked in the bug.
   const [cmd, argv] = nodeToolCommand("npm", ["install", "-g", "pkg@^1.0"]);
   assert.equal(cmd, "cmd.exe");
-  assert.deepEqual(argv, ["/c", "npm", "install", "-g", "pkg@^1.0"]);
+  assert.deepEqual(argv, ["/c", "npm", "install", "-g", "pkg@^^1.0"]);
+});
+
+test("a whitespace-bearing argument keeps its caret undoubled", { skip: !IS_WINDOWS }, () => {
+  // Node quotes this one, and inside quotes cmd.exe leaves `^` alone.
+  // Doubling here would deliver a literal `^^` — measured, which is why the
+  // escape is conditional rather than blanket.
+  const [, argv] = nodeToolCommand("npm", ["install", "pkg@^1.0 extra"]);
+  assert.deepEqual(argv, ["/c", "npm", "install", "pkg@^1.0 extra"]);
 });
 
 test("nodeToolCommand keeps arguments as discrete argv entries", () => {
@@ -50,6 +61,32 @@ test("nodeToolCommand defaults to an empty argument list", () => {
 // pre-fix form (`spawnSync("npm", ...)`) errors with ENOENT, so a passing
 // run here is evidence the argv builder produces something launchable on
 // the host platform — not merely a plausible-looking array.
+// The detector-proving test for the caret. It runs on EVERY platform and
+// asserts the same thing on each: whatever the caller passed is what the
+// program receives. On POSIX that has always held (no shell in the path);
+// on Windows it fails without the escape, because `impeccable@^3.2` reaches
+// npm as `impeccable@3.2` and quietly narrows `>=3.2 <4` to `3.2.x`.
+//
+// The oracle deliberately contains no spaces (`console.log(process.argv[1])`)
+// so the measurement cannot be confounded by Node's own quoting of the -e
+// expression. An earlier version of this probe used an interpreter path with
+// a space in it and blamed the argument for a failure that belonged to the
+// executable.
+test("an argument with a caret reaches the program unchanged", () => {
+  const SPEC = "impeccable@^3.2";
+  const [cmd, argv] = nodeToolCommand("node", [
+    "-e", "console.log(process.argv[1])", SPEC,
+  ]);
+  const out = spawnSync(cmd, argv, {
+    timeout: 60_000,
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf-8",
+  });
+  assert.equal(out.error, undefined, `spawn failed on ${platform()}: ${out.error?.code}`);
+  assert.equal(out.status, 0, String(out.stderr));
+  assert.equal(String(out.stdout).trim(), SPEC);
+});
+
 test("nodeToolCommand produces an argv that spawnSync can actually launch", () => {
   const [cmd, argv] = nodeToolCommand("npm", ["--version"]);
   const out = spawnSync(cmd, argv, {
