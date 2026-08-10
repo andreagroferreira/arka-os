@@ -19,6 +19,7 @@ import { execSync, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { nodeToolCommand } from "./platform.js";
 
 const MAGIC_ENV = "MAGIC_API_KEY";
 
@@ -77,9 +78,14 @@ function isClaudeCliAvailable() {
   } catch { return false; }
 }
 
+// `claude mcp list` health-checks every configured server, so it scales
+// with the operator's MCP count: measured at 16.1 s on a machine with a
+// dozen servers, well past the former 10 s cut-off. A timed-out probe
+// read as "not registered" and sent the installer into a doomed re-add
+// that reports `already exists` as a failure. 60 s matches `mcp add`.
 function isMagicMcpRegistered() {
   const out = spawnSync("claude", ["mcp", "list"], {
-    timeout: 10_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8",
+    timeout: 60_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8",
   });
   return out.status === 0 && /(^|\s)magic(\s|:)/.test(out.stdout || "");
 }
@@ -102,6 +108,10 @@ export function registerMagicMcp({ runtime = "claude-code", apiKey = "" } = {}) 
   ], { timeout: 60_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8" });
   if (out.error || out.status !== 0) {
     const reason = (out.stderr || out.error?.message || "unknown").trim().slice(0, 200);
+    // No probe is perfectly reliable (it can time out under a slow health
+    // check), so the add itself is the second line of defence: a server
+    // that is already there is a success, not a failure to report.
+    if (/already exists/i.test(reason)) return { action: "already-present" };
     return { action: "failed", reason };
   }
   return { action: "registered" };
@@ -116,15 +126,24 @@ function motionMarkerPath(home) {
 // re-runs (e.g. every `npx arkaos update`) skip the 180s kit instead of
 // re-downloading it. Claude-runtime only, requires the claude CLI (the
 // kit installs Motion skills into the Claude agent), never-throws.
-export function installMotionKit({ runtime = "claude-code", home = homedir() } = {}) {
+//
+// `motion-ai` is interactive: with a non-TTY stdin it refuses to run
+// ("motion-ai is interactive - run it in a terminal") and exits 1. Capturing
+// its output would therefore guarantee failure, so stdio is inherited and
+// headless runs are skipped up front, per the node-installer rule.
+export function installMotionKit({
+  runtime = "claude-code",
+  home = homedir(),
+  interactive = Boolean(process.stdin.isTTY),
+} = {}) {
   if (runtime !== "claude-code") return { action: "skipped", reason: "runtime-not-claude-code" };
   if (!isClaudeCliAvailable()) return { action: "skipped", reason: "claude-cli-not-found" };
   if (existsSync(motionMarkerPath(home))) return { action: "already-present" };
-  const out = spawnSync("npx", ["-y", "motion-ai"], {
-    timeout: 180_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8",
-  });
+  if (!interactive) return { action: "skipped", reason: "requires-tty" };
+  const [cmd, argv] = nodeToolCommand("npx", ["-y", "motion-ai"]);
+  const out = spawnSync(cmd, argv, { timeout: 180_000, stdio: "inherit" });
   if (out.error || out.status !== 0) {
-    const reason = (out.stderr || out.error?.message || "unknown").trim().slice(0, 200);
+    const reason = (out.error?.message || `exit ${out.status}`).trim().slice(0, 200);
     return { action: "failed", reason };
   }
   try { writeFileSync(motionMarkerPath(home), new Date().toISOString()); } catch {}
@@ -135,8 +154,13 @@ function impeccableMarkerPath(home) {
   return join(home, ".arkaos", ".impeccable-installed");
 }
 
+// `impeccable` is itself an npm-installed shim, so the PATH probe needs the
+// same cross-platform argv as the install: a bare spawn was ENOENT on every
+// Windows box, which made an already-installed detector look absent and
+// re-ran `npm install -g` on every single update.
 function isImpeccableAvailable() {
-  const out = spawnSync("impeccable", ["--version"], {
+  const [cmd, argv] = nodeToolCommand("impeccable", ["--version"]);
+  const out = spawnSync(cmd, argv, {
     timeout: 10_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8",
   });
   return !out.error && out.status === 0;
@@ -151,7 +175,8 @@ function isImpeccableAvailable() {
 export function installImpeccableDetector({ home = homedir() } = {}) {
   if (isImpeccableAvailable()) return { action: "already-present" };
   if (existsSync(impeccableMarkerPath(home))) return { action: "already-present" };
-  const out = spawnSync("npm", ["install", "-g", "impeccable@^3.2"], {
+  const [cmd, argv] = nodeToolCommand("npm", ["install", "-g", "impeccable@^3.2"]);
+  const out = spawnSync(cmd, argv, {
     timeout: 180_000, stdio: ["ignore", "pipe", "pipe"], encoding: "utf-8",
   });
   if (out.error || out.status !== 0) {
@@ -164,7 +189,11 @@ export function installImpeccableDetector({ home = homedir() } = {}) {
 
 // Orchestrate the full frontend tooling setup. Single entry point wired
 // into both installer/index.js and installer/update.js.
-export async function setupFrontendTooling({ runtime = "claude-code", home = homedir() } = {}) {
+export async function setupFrontendTooling({
+  runtime = "claude-code",
+  home = homedir(),
+  interactive = Boolean(process.stdin.isTTY),
+} = {}) {
   const results = {};
   try {
     const apiKey = await ensureMagicApiKey({ home });
@@ -173,7 +202,7 @@ export async function setupFrontendTooling({ runtime = "claude-code", home = hom
     results.magicMcp = { action: "failed", reason: err.message };
   }
   try {
-    results.motionKit = installMotionKit({ runtime, home });
+    results.motionKit = installMotionKit({ runtime, home, interactive });
   } catch (err) {
     results.motionKit = { action: "failed", reason: err.message };
   }
