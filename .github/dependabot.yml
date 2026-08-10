@@ -31,6 +31,12 @@ updates:
       pip:
         patterns:
           - "*"
+    ignore:
+      # mcp 2.0.0 removed mcp.server.fastmcp — the 1.x import path our MCP
+      # server uses. The <2 ceiling in pyproject.toml is intentional until
+      # the 2.x migration lands. Context: PR #538 (closed), issue #540.
+      - dependency-name: mcp
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions pinned by major (actions/checkout@v4, setup-node@v4, …).
   - package-ecosystem: github-actions
