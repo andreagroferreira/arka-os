@@ -41,7 +41,7 @@ mcp = [
     # <2: mcp 2.0.0 (2026-07-28) removed mcp.server.fastmcp — the 1.x
     # import path server.py uses. Migrating to the 2.x API is its own
     # change; the ceiling keeps CI deterministic until then.
-    "mcp[cli]>=1.2.0,<2",
+    "mcp[cli]>=1.2.0,<3",
 ]
 dashboard = [
     "fastapi>=0.115.0",
