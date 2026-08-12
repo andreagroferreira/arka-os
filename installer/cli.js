@@ -69,7 +69,7 @@ Usage:
   npx arkaos dashboard        Start monitoring dashboard
   npx arkaos autostart <enable|disable|status>  Start dashboard on boot
   npx arkaos autoupdate <enable|disable|status|run>  Keep ArkaOS updated automatically (daily check + notification)
-  npx arkaos menubar <enable|disable|status>  Menu bar launcher (macOS — ▲ quick actions)
+  npx arkaos menubar <enable|disable|status>  Menu bar launcher (macOS menu bar / Windows tray — ▲ quick actions)
   npx arkaos keys             Manage API keys (OpenAI, fal.ai, etc.)
   npx arkaos models           Model Fabric: which model runs each role
   npx arkaos models set <role> <provider>/<model>  Re-route a role

@@ -611,22 +611,27 @@ export async function update({ skillsFlag = "" } = {}) {
     warn(`Auto-update daemon not enabled (${err.message})`);
   }
 
-  // ── 7c. Menu bar launcher (Foundation PR-5) — macOS, default-on ──
-  // Opt-out consulted BEFORE pip (QG M3): a disabled menu bar must not
-  // cost its dependency on every daemon update. CI runners never get
-  // LaunchAgents (QG M4).
-  if (process.platform === "darwin" && !process.env.CI) {
+  // ── 7c. Menu bar launcher (Foundation PR-5, +#548) — macOS + Windows,
+  // default-on. Opt-out consulted BEFORE pip (QG M3): a disabled menu bar
+  // must not cost its dependency on every daemon update. CI runners never
+  // get login items (QG M4).
+  if ((process.platform === "darwin" || process.platform === "win32") && !process.env.CI) {
     try {
       const { ensureDefaultEnabled: ensureMenubar, status: menubarStatus } =
         await import("./menubar.js");
+      const uiDeps = process.platform === "win32" ? "pystray Pillow" : "rumps";
       if (menubarStatus().optout) {
         detail("         · Menu bar launcher: user opt-out respected");
       } else {
-        if (!pipInstall("rumps", { log, timeout: 120000 })) {
-          warn("rumps install failed — menu bar app will hint on first run");
+        if (!pipInstall(uiDeps, { log, timeout: 120000 })) {
+          warn(`${uiDeps} install failed — menu bar app will hint on first run`);
         }
         const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
-        if (mb.action === "enabled") ok("Menu bar launcher enabled (▲ in the macOS menu bar)");
+        if (mb.action === "enabled") {
+          ok(process.platform === "win32"
+            ? "Menu bar launcher enabled (▲ in the system tray)"
+            : "Menu bar launcher enabled (▲ in the macOS menu bar)");
+        }
         else if (mb.action === "already-enabled") ok("Menu bar launcher active");
         else if (mb.action === "partial") warn(`Menu bar launcher: ${mb.message}`);
       }

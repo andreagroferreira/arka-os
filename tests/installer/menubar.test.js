@@ -20,7 +20,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   MENUBAR_LABEL, deployMenubarScript, ensureDefaultEnabled, menubarHealthy,
-  menubarScriptPath, optoutPath, unitFor, xmlEscape,
+  menubarScriptPath, optoutPath, startupDir, startupScriptPath, unitFor,
+  windowsInterpreterFor, xmlEscape,
 } = await import(pathToFileURL(join(ROOT, "installer", "menubar.js")));
 const { optoutPath: autoupdateOptoutPath } = await import(
   pathToFileURL(join(ROOT, "installer", "autoupdate.js"))
@@ -78,9 +79,95 @@ test("plist values are XML-escaped — '&' and '<' are legal in macOS paths (QG 
     "raw ampersand leaked into plist");
 });
 
-test("non-macOS platforms throw (callers report unsupported)", () => {
-  for (const os of ["linux", "win32", "sunos"]) {
-    assert.throws(() => unitFor(os, ctx), /macOS-only/);
+test("unsupported platforms throw (callers report unsupported)", () => {
+  for (const os of ["linux", "sunos"]) {
+    assert.throws(() => unitFor(os, ctx), /macOS\/Windows-only/);
+  }
+});
+
+// ── Windows unit (#548) — Startup-folder .vbs, pure generation ─────────
+
+const winCtx = {
+  home: "C:\\Users\\x",
+  pythonPath: "C:\\Users\\x\\.arkaos\\venv\\Scripts\\pythonw.exe",
+  scriptPath: "C:\\Users\\x\\.arkaos\\bin\\arka-menubar.py",
+};
+
+test("win32 unit is a Startup .vbs running the tray app hidden (window style 0, no wait)", () => {
+  const u = unitFor("win32", winCtx);
+  assert.equal(u.kind, "startup");
+  assert.equal(u.files.length, 1);
+  assert.ok(u.files[0].path.endsWith(join("Programs", "Startup", "ArkaOS Menubar.vbs")));
+  // VBS doubles quotes inside strings — both paths must arrive quoted so
+  // spaces in the profile path survive shell.Run.
+  assert.ok(u.files[0].content.includes(`""${winCtx.pythonPath}""`));
+  assert.ok(u.files[0].content.includes(`""${winCtx.scriptPath}""`));
+  // Window style 0 (hidden) and no wait — a visible console at every
+  // login would be the Windows twin of a crashing login item.
+  assert.match(u.files[0].content, /, 0, False/);
+  assert.match(u.files[0].content, /WScript\.Shell/);
+});
+
+test("startup paths derive from the fake home (hermetic tests never touch the real APPDATA)", () => {
+  const home = "C:\\Users\\x";
+  assert.ok(startupDir(home).startsWith(join(home, "AppData", "Roaming")));
+  assert.equal(
+    startupScriptPath(home),
+    join(startupDir(home), "ArkaOS Menubar.vbs"),
+  );
+});
+
+test("windowsInterpreterFor prefers an existing pythonw.exe sibling, keeps python.exe otherwise", () => {
+  const venv = mkdtempSync(join(tmpdir(), "arka-menubar-pyw-"));
+  try {
+    const python = join(venv, "python.exe");
+    const pythonw = join(venv, "pythonw.exe");
+    writeFileSync(python, "");
+    // No pythonw yet — falls back to the console interpreter.
+    assert.equal(windowsInterpreterFor(python), python);
+    writeFileSync(pythonw, "");
+    assert.equal(windowsInterpreterFor(python), pythonw);
+    // Non-python paths pass through untouched.
+    assert.equal(windowsInterpreterFor("/usr/bin/python3"), "/usr/bin/python3");
+  } finally {
+    rmSync(venv, { recursive: true, force: true });
+  }
+});
+
+test("status/menubarHealthy win32: optout healthy, missing files unhealthy, live probe decides the rest (QG M2 parity)", () => {
+  const home = mkdtempSync(join(tmpdir(), "arka-menubar-win-health-"));
+  try {
+    // Not installed → unhealthy (exec must not even be consulted).
+    assert.equal(
+      menubarHealthy({ home, platform: "win32", exec: () => { throw new Error("never"); } }),
+      false,
+    );
+    // Persisted opt-out is a healthy, chosen state.
+    mkdirSync(join(home, ".arkaos"), { recursive: true });
+    writeFileSync(optoutPath(home), "x");
+    assert.equal(
+      menubarHealthy({ home, platform: "win32", exec: () => { throw new Error("never"); } }),
+      true,
+    );
+    rmSync(optoutPath(home));
+    // Installed: healthy iff the process query finds a tray process.
+    mkdirSync(startupDir(home), { recursive: true });
+    writeFileSync(startupScriptPath(home), "' vbs");
+    mkdirSync(dirname(menubarScriptPath(home)), { recursive: true });
+    writeFileSync(menubarScriptPath(home), "#!/usr/bin/env python3\n");
+    const calls = [];
+    const exec = (file, args) => { calls.push([file, ...args]); return true; };
+    assert.equal(menubarHealthy({ home, platform: "win32", exec }), true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][0], "powershell.exe");
+    assert.match(calls[0].join(" "), /arka-menubar/);
+    assert.equal(
+      menubarHealthy({ home, platform: "win32", exec: () => false }),
+      false,
+      "files present but no tray process must be unhealthy",
+    );
+  } finally {
+    rmSync(home, { recursive: true, force: true });
   }
 });
 

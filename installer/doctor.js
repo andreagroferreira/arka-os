@@ -903,7 +903,7 @@ export const checks = [
   },
   {
     name: "menubar",
-    description: "Menu bar launcher running (macOS — ▲ quick actions)",
+    description: "Menu bar launcher running (macOS menu bar / Windows tray — ▲ quick actions)",
     severity: "warn",
     // Live probe, not file decoration: menubarHealthy composes file
     // presence + opt-out semantics + `launchctl list` (QG M2). Every
