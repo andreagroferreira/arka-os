@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""ArkaOS menu bar launcher (Foundation PR-5).
+"""ArkaOS menu bar launcher (Foundation PR-5; Windows tray host #548).
 
-A lightweight macOS menu bar app (rumps) that surfaces the ArkaOS
-runtime state and one-click actions:
+A lightweight menu bar / system tray app that surfaces the ArkaOS
+runtime state and one-click actions. macOS renders through rumps,
+Windows through pystray — both hosts consume the same pure state
+model and the same action helpers, which branch per platform:
 
-  - Check for updates      -> scripts/auto-update.sh --force (PR-1 daemon)
-  - Open Dashboard         -> start-dashboard.sh ensure + open UI port
-  - Start Ollama           -> open -a Ollama (fallback: ollama serve)
+  - Check for updates      -> scripts/auto-update.sh|.ps1 --force (PR-1 daemon)
+  - Open Dashboard         -> start-dashboard.sh|.ps1 ensure + open UI port
+  - Start Ollama           -> open -a Ollama / "ollama app.exe"
+                              (fallback: ollama serve)
                               [local-ai profile only, when stopped]
-  - Doctor                 -> Terminal running `npx arkaos doctor`
+  - Doctor                 -> Terminal/console running `npx arkaos doctor`
   - Auto-update on/off     -> npx arkaos autoupdate enable|disable
   - Quit
 
 Posture (matches scripts/auto-update.sh): every failure path logs and
-exits 0 — a broken login item must never crash. rumps import is guarded:
-non-macOS, missing rumps, or headless -> clean exit 0 with a hint.
+exits 0 — a broken login item must never crash. The UI imports are
+guarded per platform: missing rumps/pystray, an unsupported platform,
+or a headless session -> clean exit 0 with a hint.
 
 State model and menu-visibility logic are PURE functions so tests
 exercise them via the introspection flags without rumps or a display:
@@ -42,6 +46,9 @@ import sys
 import threading
 from pathlib import Path
 
+IS_MACOS = sys.platform == "darwin"
+IS_WINDOWS = sys.platform == "win32"
+
 VALID_PROFILES = ("essential", "complete", "local-ai")
 REFRESH_SECONDS = 60
 TITLE = "▲"  # ▲ — brand wordmark glyph
@@ -52,7 +59,7 @@ TITLE_PENDING = "▲ •"  # ▲ • — sync pending badge
 MENUBAR_OPTOUT_BASENAME = "menubar.optout"
 AUTOUPDATE_OPTOUT_BASENAME = "autoupdate.optout"
 
-USAGE = """arka-menubar.py — ArkaOS menu bar launcher (macOS)
+USAGE = """arka-menubar.py — ArkaOS menu bar launcher (macOS + Windows)
   (no args)        run the menu bar app (exits 0 when unsupported)
   --print-state    JSON snapshot of the runtime state
   --print-menu     JSON list of visible menu item ids
@@ -152,6 +159,30 @@ def version_label(state: dict) -> str:
 # ── Action helpers (subprocess, never blocking the UI thread) ────────────
 
 
+def _no_window() -> dict:
+    """CREATE_NO_WINDOW so tray actions never flash a console (Windows).
+    Empty elsewhere — the flag does not exist off Windows."""
+    if IS_WINDOWS:
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
+
+
+def _powershell(script: Path, *args: str) -> list:
+    """argv for a scripts/*.ps1 sibling — same positional CLI as the .sh
+    twins (`--force`, `ensure`), parsed from $args on the PowerShell side."""
+    return [
+        "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", str(script), *args,
+    ]
+
+
+def _open_url(url: str) -> None:
+    if IS_WINDOWS:
+        os.startfile(url)  # noqa: S606 — the URL is built from our own port file
+    else:
+        subprocess.run(["/usr/bin/open", url], timeout=15)
+
+
 def stable_script(name: str) -> Path | None:
     """Resolve a scripts/ file: purge-proof ~/.arkaos/lib snapshot first,
     then the .repo-path reference (autoupdate.js::stableRoot parity)."""
@@ -180,18 +211,45 @@ def log_line(message: str) -> None:
 
 
 def action_check_updates() -> None:
-    script = stable_script("auto-update.sh")
+    name = "auto-update.ps1" if IS_WINDOWS else "auto-update.sh"
+    script = stable_script(name)
     if script is None:
-        log_line("check_updates: auto-update.sh not found")
+        log_line(f"check_updates: {name} not found")
         return
-    subprocess.Popen(["/bin/bash", str(script), "--force"])
+    if IS_WINDOWS:
+        subprocess.Popen(_powershell(script, "--force"), **_no_window())
+    else:
+        subprocess.Popen(["/bin/bash", str(script), "--force"])
+
+
+def _dashboard_env() -> dict:
+    """Env for start-dashboard.*: the lib snapshot ships scripts/ but NOT
+    dashboard/, so a script resolving ARKAOS_ROOT to its own parent finds
+    no UI and degrades to API-only (verified live on Windows: no UI_PORT
+    ever written, the button dead-ends). Point ARKAOS_ROOT at the
+    .repo-path checkout — the same fallback stable_script() already
+    trusts — where the built dashboard actually lives."""
+    env = dict(os.environ)
+    try:
+        root = (arka_home() / ".repo-path").read_text(encoding="utf-8").strip()
+        if root and Path(root).exists():
+            env.setdefault("ARKAOS_ROOT", root)
+    except Exception:
+        pass
+    return env
 
 
 def action_open_dashboard() -> None:
-    script = stable_script("start-dashboard.sh")
+    name = "start-dashboard.ps1" if IS_WINDOWS else "start-dashboard.sh"
+    script = stable_script(name)
     if script is not None:
         try:
-            subprocess.run(["/bin/bash", str(script), "ensure"], timeout=120)
+            if IS_WINDOWS:
+                subprocess.run(_powershell(script, "ensure"),
+                               timeout=120, env=_dashboard_env(), **_no_window())
+            else:
+                subprocess.run(["/bin/bash", str(script), "ensure"],
+                               timeout=120, env=_dashboard_env())
         except Exception as err:
             log_line(f"open_dashboard: ensure failed ({err})")
     ui_port = ""
@@ -203,16 +261,32 @@ def action_open_dashboard() -> None:
     except Exception:
         pass
     if ui_port.isdigit():
-        subprocess.run(["/usr/bin/open", f"http://localhost:{ui_port}"], timeout=15)
+        _open_url(f"http://localhost:{ui_port}")
     else:
         log_line(
-            "open_dashboard: no UI_PORT after start-dashboard.sh ensure — "
+            f"open_dashboard: no UI_PORT after {name} ensure — "
             "check ~/.arkaos/logs for the dashboard startup error"
         )
 
 
 def action_start_ollama() -> None:
     # Operator decision (PR-5 Phase 0): the app first, `serve` as fallback.
+    if IS_WINDOWS:
+        local = os.environ.get("LOCALAPPDATA", "")
+        app = Path(local) / "Programs" / "Ollama" / "ollama app.exe"
+        if local and app.exists():
+            subprocess.Popen([str(app)], **_no_window())
+            return
+        if shutil.which("ollama"):
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                **_no_window(),
+            )
+        else:
+            log_line("start_ollama: neither the Ollama app nor the ollama binary found")
+        return
     result = subprocess.run(["/usr/bin/open", "-a", "Ollama"],
                             capture_output=True, timeout=15)
     if result.returncode != 0:
@@ -227,6 +301,16 @@ def action_start_ollama() -> None:
 
 
 def action_doctor() -> None:
+    if IS_WINDOWS:
+        # `start` (with an explicit window title) opens a console the user
+        # keeps; cmd resolves npx.cmd through PATHEXT, which CreateProcess
+        # alone cannot.
+        subprocess.Popen(
+            ["cmd.exe", "/c", "start", "ArkaOS Doctor",
+             "cmd.exe", "/k", "npx arkaos doctor"],
+            **_no_window(),
+        )
+        return
     subprocess.run([
         "/usr/bin/osascript", "-e",
         'tell application "Terminal" to activate',
@@ -239,14 +323,36 @@ def action_autoupdate(enable: bool) -> None:
     """Runs on a worker thread (npx resolves the registry — slow/offline
     must degrade to a logged line, never a silent no-op)."""
     verb = "enable" if enable else "disable"
-    if shutil.which("npx") is None:
+    if shutil.which("npx") is not None:
+        argv = ["npx", "arkaos", "autoupdate", verb]
+        if IS_WINDOWS:
+            # npx is npx.cmd — CreateProcess cannot exec batch files, so
+            # route through cmd. Every argument is a fixed literal.
+            argv = ["cmd.exe", "/c", *argv]
+        subprocess.run(argv, capture_output=True, timeout=180, **_no_window())
+    else:
         log_line(
-            "autoupdate_toggle: npx not on the LaunchAgent PATH — "
+            "autoupdate_toggle: npx not on the launcher PATH — "
             f"run manually: npx arkaos autoupdate {verb}"
         )
-        return
-    subprocess.run(["npx", "arkaos", "autoupdate", verb],
-                   capture_output=True, timeout=180)
+    # The CLI is the authority, but verify the observable contract: where
+    # autoupdate.js has no platform support (win32 today) it errors WITHOUT
+    # touching the opt-out marker, and the toggle would lie. The marker is
+    # the whole read-side contract (read_state + auto-update.sh/.ps1 both
+    # gate on it), so apply it directly when the CLI left it unchanged.
+    marker = arka_home() / AUTOUPDATE_OPTOUT_BASENAME
+    if marker.exists() == enable:  # still the opposite of what verb asked
+        try:
+            if enable:
+                marker.unlink()
+            else:
+                marker.parent.mkdir(parents=True, exist_ok=True)
+                marker.write_text("disabled from the menu bar\n", encoding="utf-8")
+            log_line(
+                f"autoupdate_toggle: CLI left the marker untouched — applied {verb} directly"
+            )
+        except Exception as err:
+            log_line(f"autoupdate_toggle: {err}")
 
 
 def action_disable_menubar() -> None:
@@ -259,18 +365,24 @@ def action_disable_menubar() -> None:
     log_line("disable: opt-out marker written — re-enable: npx arkaos menubar enable")
 
 
-# ── rumps app (guarded import — never a crashing login item) ─────────────
+# ── UI hosts (guarded imports — never a crashing login item) ─────────────
 
 
 def run_app() -> int:
-    if sys.platform != "darwin":
-        print("arka-menubar: macOS only — nothing to do")
-        return 0
-    # Permanent opt-out (QG M7): the plist may still RunAtLoad until an
-    # update removes it — the marker makes that launch an instant no-op.
+    # Permanent opt-out (QG M7): the plist/Startup entry may still fire
+    # until an update removes it — the marker makes that launch a no-op.
     if (arka_home() / MENUBAR_OPTOUT_BASENAME).exists():
         print("arka-menubar: user opt-out — exiting (re-enable: npx arkaos menubar enable)")
         return 0
+    if IS_MACOS:
+        return run_app_macos()
+    if IS_WINDOWS:
+        return run_app_windows()
+    print("arka-menubar: no menu bar host for this platform — nothing to do")
+    return 0
+
+
+def run_app_macos() -> int:
     try:
         import rumps
     except Exception as err:  # missing dep, headless session, SIP oddity
@@ -443,6 +555,162 @@ def run_app() -> int:
     except Exception as err:
         log_line(f"fatal: {err}")
         print(f"arka-menubar: exiting cleanly after error ({err})")
+    return 0
+
+
+def run_app_windows() -> int:
+    """pystray tray host (#548) — same state model and action helpers as
+    the rumps host. The menu is regenerated from a callable every time it
+    opens (pystray contract), so there is no rumps-style menu.update():
+    workers refresh the cached snapshot and the icon/tooltip only."""
+    try:
+        import pystray
+        from PIL import Image, ImageDraw
+    except Exception as err:  # missing deps, headless session
+        print(
+            "arka-menubar: pystray/Pillow unavailable "
+            f"({err}) — install: %USERPROFILE%\\.arkaos\\venv\\Scripts\\pip install pystray Pillow"
+        )
+        return 0
+
+    def draw_icon(pending: bool) -> "Image.Image":
+        """The ▲ wordmark as a drawn glyph — Windows tray icons are
+        bitmaps, not text. White reads on the dark taskbar; the amber dot
+        mirrors the TITLE_PENDING badge."""
+        img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.polygon([(32, 6), (60, 54), (4, 54)], fill=(255, 255, 255, 255))
+        if pending:
+            draw.ellipse((42, 38, 62, 58), fill=(255, 149, 0, 255))
+        return img
+
+    # Shared mutable snapshot: menu generation must be instant (it runs
+    # when the menu opens), so the 2s ollama probe only ever runs on the
+    # refresher/worker threads — the rumps host's cache posture (QG r2).
+    ui = {
+        "state": read_state(),
+        "ollama": "absent",
+        "toggle_inflight": False,
+    }
+    stop_event = threading.Event()
+    icon = pystray.Icon("ArkaOS")
+
+    def refresh(probe_ollama: bool = True) -> None:
+        state = read_state()
+        ui["state"] = state
+        if probe_ollama:
+            ui["ollama"] = ollama_status_for(state)
+        icon.icon = draw_icon(state.get("sync_pending", False))
+        icon.title = "ArkaOS — sync pending" if state.get("sync_pending") else "ArkaOS"
+        icon.update_menu()
+
+    def spawn(work, refresh_after: bool = False) -> None:
+        """Worker thread with the same guard posture as rumps _spawn: a
+        missing binary must log, never die silently (QG M5)."""
+        def guarded():
+            try:
+                work()
+            except Exception as err:
+                log_line(f"action: {err}")
+            finally:
+                if refresh_after:
+                    refresh()
+
+        threading.Thread(target=guarded, daemon=True).start()
+
+    def on_check_updates(_icon, _item):
+        spawn(action_check_updates)
+
+    def on_open_dashboard(_icon, _item):
+        spawn(action_open_dashboard)
+
+    def on_doctor(_icon, _item):
+        spawn(action_doctor)
+
+    def on_start_ollama(_icon, _item):
+        spawn(action_start_ollama, refresh_after=True)
+
+    def on_autoupdate_toggle(_icon, _item):
+        if ui["toggle_inflight"]:
+            return
+        ui["toggle_inflight"] = True
+        enable = not read_state()["autoupdate_on"]
+
+        def work():
+            try:
+                action_autoupdate(enable=enable)
+            finally:
+                ui["toggle_inflight"] = False
+
+        spawn(work, refresh_after=True)
+        icon.update_menu()
+
+    def on_disable(_icon, _item):
+        try:
+            action_disable_menubar()
+        except Exception as err:
+            log_line(f"disable: {err}")
+        icon.stop()
+
+    def on_quit(_icon, _item):
+        icon.stop()
+
+    def build_menu():
+        state = ui["state"]
+        info = pystray.MenuItem(version_label(state), None, enabled=False)
+        yield info
+        if state.get("sync_pending"):
+            yield pystray.MenuItem(
+                "Sync pending — open a Claude session", None, enabled=False
+            )
+        yield pystray.Menu.SEPARATOR
+        inflight = ui["toggle_inflight"]
+        labels = {
+            "check_updates": pystray.MenuItem("Check for updates", on_check_updates),
+            # default=True: left-clicking the tray icon opens the dashboard.
+            "open_dashboard": pystray.MenuItem(
+                "Open Dashboard", on_open_dashboard, default=True
+            ),
+            "doctor": pystray.MenuItem("Run Doctor", on_doctor),
+            "start_ollama": pystray.MenuItem("Start Ollama", on_start_ollama),
+            "autoupdate_toggle": pystray.MenuItem(
+                "Auto-update: switching…" if inflight
+                else ("Auto-update: on" if state.get("autoupdate_on") else "Auto-update: off"),
+                None if inflight else on_autoupdate_toggle,
+                checked=None if inflight
+                else (lambda _item: ui["state"].get("autoupdate_on", True)),
+                enabled=not inflight,
+            ),
+            "disable": pystray.MenuItem("Disable menu bar (permanent)", on_disable),
+            "quit": pystray.MenuItem("Quit until next login", on_quit),
+        }
+        for item_id in menu_items(state, ui["ollama"]):
+            if item_id == "disable":
+                yield pystray.Menu.SEPARATOR
+            yield labels[item_id]
+
+    icon.menu = pystray.Menu(build_menu)
+    icon.icon = draw_icon(ui["state"].get("sync_pending", False))
+    icon.title = "ArkaOS"
+
+    def refresher():
+        # First pass runs the (profile-gated) ollama probe off the UI
+        # thread before the user ever opens the menu.
+        refresh()
+        while not stop_event.wait(REFRESH_SECONDS):
+            refresh()
+
+    def setup(live_icon):
+        live_icon.visible = True
+        threading.Thread(target=refresher, daemon=True).start()
+
+    try:
+        icon.run(setup=setup)
+    except Exception as err:
+        log_line(f"fatal: {err}")
+        print(f"arka-menubar: exiting cleanly after error ({err})")
+    finally:
+        stop_event.set()
     return 0
 
 
