@@ -250,6 +250,108 @@ except Exception:
         }
     } catch { }
 
+    # --- KB-first evidence: record a GENUINE Obsidian consult ------------
+    # Windows parity fix. Mirror of core/hooks/post_tool_use.py:867-877.
+    #
+    # The bash hook delegates to post_tool_use.py, which writes the only
+    # marker kind the research gate reads (kind="obsidian"). This .ps1 is a
+    # partial reimplementation and never had that branch, so on Windows a
+    # KB consult was invisible to the gate: from the second external-search
+    # call of a turn onward everything was denied, no matter how many times
+    # the vault had actually been queried. The gate was not lying — it was
+    # blind.
+    #
+    # Synapse L2.5 writes kind="injected", which the gate deliberately does
+    # not read: passive injection must never certify the gate it feeds.
+    #
+    # The python is fed over stdin, NOT via -c. The -c path used by the
+    # flow-marker block above joins source lines with '; ', which turns any
+    # try/except into a SyntaxError.
+    try {
+        $sessionIdKb = if ($null -ne $payload.session_id) { [string]$payload.session_id } else { '' }
+        if ($sessionIdKb -and $toolName -and $toolName.StartsWith('mcp__obsidian__')) {
+            $queryHintKb = ''
+            if ($null -ne $payload.tool_input) {
+                if ($null -ne $payload.tool_input.query) {
+                    $queryHintKb = [string]$payload.tool_input.query
+                } elseif ($null -ne $payload.tool_input.path) {
+                    $queryHintKb = [string]$payload.tool_input.path
+                }
+            }
+            if (-not $queryHintKb) { $queryHintKb = $toolName }
+
+            # Resolve the arkaos root exactly as the flow-marker block does:
+            # ARKAOS_ROOT, then .repo-path, then the ~/.arkaos/lib snapshot
+            # (the npx cache .repo-path points at can be purged).
+            $arkaosRootKb = $env:ARKAOS_ROOT
+            if (-not $arkaosRootKb) {
+                $repoPathFileKb = Join-Path $env:USERPROFILE '.arkaos\.repo-path'
+                if (Test-Path -LiteralPath $repoPathFileKb) {
+                    try {
+                        $arkaosRootKb = (Get-Content -Raw -LiteralPath $repoPathFileKb -Encoding UTF8).Trim()
+                    } catch { }
+                }
+                if (-not ($arkaosRootKb -and (Test-Path -LiteralPath (Join-Path $arkaosRootKb 'core\synapse\kb_cache.py')))) {
+                    $libKb = Join-Path $env:USERPROFILE '.arkaos\lib'
+                    if (Test-Path -LiteralPath (Join-Path $libKb 'core\synapse\kb_cache.py')) {
+                        $arkaosRootKb = $libKb
+                    }
+                }
+            }
+            if (-not $arkaosRootKb) { $arkaosRootKb = Join-Path $env:USERPROFILE '.arkaos' }
+
+            # Never accept %LOCALAPPDATA%\Microsoft\WindowsApps: python3.exe
+            # there is the Store install-manager alias, and running it
+            # downloads a full CPython into the cwd — for a hook that is the
+            # user's own project directory. Same reason "python" precedes
+            # "python3" here.
+            $pythonForKb = $null
+            $venvPyKb = Join-Path $env:USERPROFILE '.arkaos\venv\Scripts\python.exe'
+            if (Test-Path -LiteralPath $venvPyKb) {
+                $pythonForKb = $venvPyKb
+            } else {
+                foreach ($cmdKb in 'python','py','python3') {
+                    $resolvedKb = Get-Command $cmdKb -ErrorAction SilentlyContinue
+                    if ($resolvedKb -and $resolvedKb.Source -notmatch '\\Microsoft\\WindowsApps\\') {
+                        $pythonForKb = $resolvedKb.Source; break
+                    }
+                }
+            }
+
+            if ($pythonForKb) {
+                $kbCode = @'
+import os
+try:
+    from core.synapse.kb_cache import record_obsidian_query
+    record_obsidian_query(
+        os.environ.get("SESSION_ID_KB", ""),
+        os.environ.get("QUERY_HINT_KB", ""),
+        hit_count=1,
+    )
+except Exception:
+    pass
+'@
+                $psiKb = New-Object System.Diagnostics.ProcessStartInfo
+                $psiKb.FileName = $pythonForKb
+                $psiKb.Arguments = '-'
+                $psiKb.UseShellExecute = $false
+                $psiKb.CreateNoWindow = $true
+                $psiKb.RedirectStandardInput = $true
+                $psiKb.RedirectStandardOutput = $true
+                $psiKb.RedirectStandardError = $true
+                [void]$psiKb.EnvironmentVariables.Add('SESSION_ID_KB', $sessionIdKb)
+                [void]$psiKb.EnvironmentVariables.Add('QUERY_HINT_KB', $queryHintKb)
+                [void]$psiKb.EnvironmentVariables.Add('PYTHONPATH', $arkaosRootKb)
+                try {
+                    $procKb = [System.Diagnostics.Process]::Start($psiKb)
+                    $procKb.StandardInput.Write($kbCode)
+                    $procKb.StandardInput.Close()
+                    if (-not $procKb.WaitForExit(1500)) { try { $procKb.Kill() } catch { } }
+                } catch { }
+            }
+        }
+    } catch { }
+
     # ─── Only process when there is actually an error ─────────────────
     $errorPattern = '(?i)(error:|fatal:|exception:|failed|ENOENT|EACCES|EPERM|panic:)'
     if ($exitCode -eq '0' -or [string]::IsNullOrEmpty($exitCode)) {
