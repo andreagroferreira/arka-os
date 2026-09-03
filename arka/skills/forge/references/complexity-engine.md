@@ -6,7 +6,7 @@ Referenced from SKILL.md. Read only when needed.
 
 | Tier | Score | Explorers | Critic | Companion | Model |
 |------|-------|-----------|--------|-----------|-------|
-| Simple (Shallow) | ≤ 30 | 1 (Pragmatic, inline) | Light | None | haiku |
+| Simple (Shallow) | ≤ 30 | 1 (Pragmatic, inline) | Light | None | sonnet |
 | Standard | 31-65 | 2 (Pragmatic + Architectural, parallel) | Full | On request | sonnet |
 | Complex (Deep) | 66-85 | 3 (Pragmatic + Architectural + Contrarian, parallel) | Full | Proactive | opus |
 | Super | ≥ 86 | 3 + full synthesis | Full (highest judgment) | Proactive | opus |

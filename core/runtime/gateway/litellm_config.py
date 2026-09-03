@@ -50,14 +50,17 @@ _SLOT_ROLE: dict[str, str] = {
 }
 
 # runtime-tier tokens -> real Anthropic model ids the proxy calls upstream.
-# Real ids (claude-fable-5, claude-*) pass straight through.
+# Real ids (claude-fable-5-1, claude-*) pass straight through.
+# Runtime Sync 2026-09-03: `best` is Fable 5.1, `opus` is Opus 5, and the
+# weakest lane (`haiku`/`fast`) is Sonnet 5 — ArkaOS never routes to Haiku.
 _RUNTIME_TO_ANTHROPIC: dict[str, str] = {
-    "opus": "claude-opus-4-8",
-    "best": "claude-opus-4-8",
+    "opus": "claude-opus-5",
+    "best": "claude-fable-5-1",
+    "fable": "claude-fable-5-1",
     "sonnet": "claude-sonnet-5",
     "default": "claude-sonnet-5",
-    "haiku": "claude-haiku-4-5-20251001",
-    "fast": "claude-haiku-4-5-20251001",
+    "haiku": "claude-sonnet-5",
+    "fast": "claude-sonnet-5",
 }
 
 _DEFAULT_OLLAMA_BASE = "http://localhost:11434"

@@ -26,7 +26,6 @@ from core.runtime.llm_provider import (
     get_llm_provider,
 )
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────
 
 
@@ -95,7 +94,7 @@ class _FakeAdapter(RuntimeAdapter):
 class TestLLMResponse:
     def test_llm_response_is_frozen(self):
         resp = LLMResponse(text="x", tokens_in=0, tokens_out=0, cached_tokens=0, model="m")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017 — frozen model: any raise proves immutability
             resp.text = "changed"  # type: ignore[misc]
 
     def test_llm_response_equality(self):
@@ -199,7 +198,7 @@ class TestSubagentProvider:
     def test_records_cost_on_success(self, tmp_cost_file):
         adapter = _FakeAdapter(response=LLMResponse(
             text="ok", tokens_in=5, tokens_out=10, cached_tokens=0,
-            model="claude-opus-4-7",
+            model="claude-opus-5",
         ))
         provider = SubagentProvider(adapter=adapter)
         provider.complete("hi")
@@ -219,14 +218,14 @@ class TestAnthropicDirectProvider:
         assert AnthropicDirectProvider().is_available() is False
 
     def test_is_available_false_without_api_key(self, monkeypatch):
-        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-5")
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         # Client not injected → checks real env; real SDK unlikely to be
         # present in test env, but either way no API key means False.
         assert AnthropicDirectProvider().is_available() is False
 
     def test_is_available_true_with_injected_client(self, monkeypatch):
-        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-5")
         fake_client = MagicMock()
         assert AnthropicDirectProvider(client=fake_client).is_available() is True
 
@@ -238,14 +237,14 @@ class TestAnthropicDirectProvider:
             provider.complete("hi")
 
     def test_enables_prompt_caching_on_system(self, monkeypatch, tmp_cost_file):
-        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-5")
         fake_raw = SimpleNamespace(
             content=[SimpleNamespace(type="text", text="answer")],
             usage=SimpleNamespace(
                 input_tokens=10, output_tokens=5,
                 cache_read_input_tokens=0, cache_creation_input_tokens=0,
             ),
-            model="claude-opus-4-7",
+            model="claude-opus-5",
         )
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_raw
@@ -256,14 +255,14 @@ class TestAnthropicDirectProvider:
         assert payload["system"][0]["text"] == "sys prompt"
 
     def test_omits_system_when_empty(self, monkeypatch, tmp_cost_file):
-        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-5")
         fake_raw = SimpleNamespace(
             content=[SimpleNamespace(type="text", text="x")],
             usage=SimpleNamespace(
                 input_tokens=1, output_tokens=1,
                 cache_read_input_tokens=0, cache_creation_input_tokens=0,
             ),
-            model="claude-opus-4-7",
+            model="claude-opus-5",
         )
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_raw
@@ -272,14 +271,14 @@ class TestAnthropicDirectProvider:
         assert "system" not in payload
 
     def test_extracts_usage_from_response(self, monkeypatch, tmp_cost_file):
-        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-5")
         fake_raw = SimpleNamespace(
             content=[SimpleNamespace(type="text", text="ok")],
             usage=SimpleNamespace(
                 input_tokens=100, output_tokens=50,
                 cache_read_input_tokens=20, cache_creation_input_tokens=30,
             ),
-            model="claude-opus-4-7",
+            model="claude-opus-5",
         )
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_raw
@@ -288,17 +287,17 @@ class TestAnthropicDirectProvider:
         assert resp.tokens_in == 150  # 100 + 20 + 30
         assert resp.tokens_out == 50
         assert resp.cached_tokens == 20
-        assert resp.model == "claude-opus-4-7"
+        assert resp.model == "claude-opus-5"
 
     def test_records_cost(self, monkeypatch, tmp_cost_file):
-        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-5")
         fake_raw = SimpleNamespace(
             content=[SimpleNamespace(type="text", text="ok")],
             usage=SimpleNamespace(
                 input_tokens=10, output_tokens=5,
                 cache_read_input_tokens=0, cache_creation_input_tokens=0,
             ),
-            model="claude-opus-4-7",
+            model="claude-opus-5",
         )
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_raw
@@ -307,7 +306,7 @@ class TestAnthropicDirectProvider:
         assert any(e["provider"] == "anthropic-direct" for e in entries)
 
     def test_sdk_failure_wraps_as_llm_unavailable(self, monkeypatch, tmp_cost_file):
-        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-5")
         fake_client = MagicMock()
         fake_client.messages.create.side_effect = RuntimeError("500")
         provider = AnthropicDirectProvider(client=fake_client)
@@ -400,7 +399,7 @@ class TestAdapterHeadless:
     def test_claude_code_parses_json_response(self):
         stdout = json.dumps({
             "result": "hi there",
-            "model": "claude-opus-4-7",
+            "model": "claude-opus-5",
             "usage": {
                 "input_tokens": 10, "output_tokens": 5,
                 "cache_read_input_tokens": 2, "cache_creation_input_tokens": 3,
@@ -411,7 +410,7 @@ class TestAdapterHeadless:
         assert resp.tokens_in == 15  # 10 + 2 + 3
         assert resp.tokens_out == 5
         assert resp.cached_tokens == 2
-        assert resp.model == "claude-opus-4-7"
+        assert resp.model == "claude-opus-5"
 
     def test_claude_code_missing_cli_raises_not_implemented(self, monkeypatch):
         monkeypatch.setattr(
@@ -477,7 +476,7 @@ class TestAdapterHeadless:
             lambda _name: "/fake/claude",
         )
         fake_stdout = json.dumps({
-            "result": "reply", "model": "claude-opus-4-7",
+            "result": "reply", "model": "claude-opus-5",
             "usage": {"input_tokens": 1, "output_tokens": 1,
                       "cache_read_input_tokens": 0,
                       "cache_creation_input_tokens": 0},
@@ -491,7 +490,7 @@ class TestAdapterHeadless:
             "hi", max_tokens=100, system="sys"
         )
         assert resp.text == "reply"
-        assert resp.model == "claude-opus-4-7"
+        assert resp.model == "claude-opus-5"
 
     def test_pr60_category_env_var_flows_to_telemetry(
         self, monkeypatch, tmp_path,
@@ -508,7 +507,7 @@ class TestAdapterHeadless:
             lambda _name: "/fake/claude",
         )
         fake_stdout = json.dumps({
-            "result": "ok", "model": "claude-opus-4-7",
+            "result": "ok", "model": "claude-opus-5",
             "usage": {"input_tokens": 5, "output_tokens": 5,
                       "cache_read_input_tokens": 0,
                       "cache_creation_input_tokens": 0},
@@ -541,7 +540,7 @@ class TestAdapterHeadless:
             lambda _name: "/fake/claude",
         )
         fake_stdout = json.dumps({
-            "result": "ok", "model": "claude-opus-4-7",
+            "result": "ok", "model": "claude-opus-5",
             "usage": {"input_tokens": 5, "output_tokens": 5,
                       "cache_read_input_tokens": 0,
                       "cache_creation_input_tokens": 0},
@@ -573,7 +572,7 @@ class TestAdapterHeadless:
             lambda _name: "/fake/claude",
         )
         fake_stdout = json.dumps({
-            "result": "ok", "model": "claude-opus-4-7",
+            "result": "ok", "model": "claude-opus-5",
             "usage": {"input_tokens": 1, "output_tokens": 1,
                       "cache_read_input_tokens": 0,
                       "cache_creation_input_tokens": 0},

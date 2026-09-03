@@ -39,7 +39,7 @@ load helpers/setup
   mkdir -p "$FAKE_HOME/.arkaos" "$PROJ/.arka"
   printf '{"workflow":"dev-feature","phases":{"spec":{"status":"completed"},"gate-2-build":{"status":"in_progress"}},"violations":[]}' \
     > "$PROJ/.arka/workflow-state.json"
-  payload="{\"model\":{\"display_name\":\"Fable 5\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":10},\"cost\":{\"total_cost_usd\":0.1}}"
+  payload="{\"model\":{\"display_name\":\"Fable 5.1\"},\"cwd\":\"$PROJ\",\"context_window\":{\"used_percentage\":10},\"cost\":{\"total_cost_usd\":0.1}}"
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
   [[ "$output" == *"dev-feature"* ]]
@@ -134,7 +134,7 @@ load helpers/setup
 @test "statusline omits workflow segment when no active workflow" {
   FAKE_HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$FAKE_HOME/.arkaos"
-  payload='{"model":{"display_name":"Fable 5"},"cwd":"/x/proj","context_window":{"used_percentage":10},"cost":{"total_cost_usd":0.1}}'
+  payload='{"model":{"display_name":"Fable 5.1"},"cwd":"/x/proj","context_window":{"used_percentage":10},"cost":{"total_cost_usd":0.1}}'
   run bash -c "printf '%s' '$payload' | HOME='$FAKE_HOME' bash '$REPO_DIR/config/statusline.sh'"
   [ "$status" -eq 0 ]
   [[ "$output" != *"⚑"* ]]

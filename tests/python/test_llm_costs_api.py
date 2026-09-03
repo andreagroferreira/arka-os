@@ -5,11 +5,10 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DASHBOARD_API_PATH = REPO_ROOT / "scripts" / "dashboard-api.py"
@@ -41,7 +40,7 @@ def _row(
     cost: float | None = 0.01,
     category: str | None = None,
     provider: str = "anthropic",
-    model: str = "claude-opus-4-7",
+    model: str = "claude-opus-5",
 ) -> dict:
     row = {
         "ts": ts.isoformat(),
@@ -74,7 +73,7 @@ class TestLlmCostsEndpoint:
         assert "period" in result["error"]
 
     def test_returns_summary_with_pr47_fields(self, dashboard_module, tmp_telemetry):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(now, category="skill:arka", cost=1.0),
             _row(now, category="subagent:dev", cost=0.5),
@@ -126,7 +125,7 @@ class TestLlmCostsTrend:
         assert len(result["days"]) == 1
 
     def test_aggregates_per_day(self, dashboard_module, tmp_telemetry):
-        today = datetime.now(timezone.utc)
+        today = datetime.now(UTC)
         yesterday = today - timedelta(days=1)
         _seed(tmp_telemetry, [
             _row(today, cost=0.10, tokens_in=100, tokens_out=20),
@@ -144,7 +143,7 @@ class TestLlmCostsTrend:
         assert yest_bucket["cost_usd"] == pytest.approx(0.20, abs=1e-6)
 
     def test_missing_cost_yields_null(self, dashboard_module, tmp_telemetry):
-        today = datetime.now(timezone.utc)
+        today = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(today, cost=None, tokens_in=100, tokens_out=20),
         ])
@@ -165,7 +164,7 @@ class TestLlmCostsTrend:
             assert b["cost_usd"] is None  # cost_known never flipped
 
     def test_ignores_malformed_ts(self, dashboard_module, tmp_telemetry):
-        today = datetime.now(timezone.utc)
+        today = datetime.now(UTC)
         rows = [
             _row(today, cost=0.10),
             {"ts": "garbage", "tokens_in": 999, "estimated_cost_usd": 99.9},
@@ -176,7 +175,7 @@ class TestLlmCostsTrend:
         assert result["days"][0]["cost_usd"] == pytest.approx(0.10, abs=1e-6)
 
     def test_ignores_rows_older_than_window(self, dashboard_module, tmp_telemetry):
-        today = datetime.now(timezone.utc)
+        today = datetime.now(UTC)
         far_past = today - timedelta(days=30)
         _seed(tmp_telemetry, [
             _row(today, cost=0.10),

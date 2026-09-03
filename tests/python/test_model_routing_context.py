@@ -10,10 +10,11 @@ from core.runtime import model_routing_context as mrc
 @pytest.fixture
 def user_models(tmp_path, monkeypatch):
     import yaml
+
     from core.runtime import model_router
     path = tmp_path / "models.yaml"
     path.write_text(yaml.safe_dump({
-        "aliases": {"runtime": {"best": "opus", "default": "sonnet", "fast": "haiku"}},
+        "aliases": {"runtime": {"best": "fable", "default": "sonnet", "fast": "sonnet"}},
         "roles": {
             "review": {"provider": "runtime", "model": "best", "effort": "max"},
             "execution": {"provider": "runtime", "model": "default", "effort": "high"},
@@ -27,9 +28,10 @@ def user_models(tmp_path, monkeypatch):
 class TestRoutingSummary:
     def test_summary_lists_resolved_models(self, user_models):
         summary = mrc.routing_summary()
-        assert "review=runtime/opus@max" in summary
+        assert "review=runtime/fable@max" in summary
         assert "execution=runtime/sonnet@high" in summary
-        assert "mechanical=runtime/haiku@low" in summary
+        # Runtime Sync 2026-09-03: the weakest lane is Sonnet 5, never Haiku.
+        assert "mechanical=runtime/sonnet@low" in summary
 
     def test_summary_empty_when_config_unreadable(self, monkeypatch):
         from core.runtime import model_router

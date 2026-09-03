@@ -3,10 +3,12 @@
 The Model Fabric ``runtime`` provider shells out to the active CLI. This
 module lists the concrete models that CLI accepts, with human labels and
 tier, so the dashboard dropdown and ``/arka-fusion`` can offer real
-choices (Fable 5, Opus, Sonnet, Haiku) instead of only the abstract
-best/default/fast aliases.
+choices (Fable 5.1, Opus 5, Sonnet 5) instead of only the abstract
+best/default/fast aliases. Haiku is deliberately absent: the weakest
+lane ArkaOS routes to is Sonnet 5 (operator decision, Runtime Sync 2026-09-03).
 
-Model IDs verified against the Claude API reference (2026-07). This is
+Model IDs verified against the Claude Code changelog 2.1.257 (2026-09-01)
+and the model-config reference (2026-09). This is
 the single place they are hand-listed — update HERE when the runtime
 ships new models; the dashboard and CLI read from this module. Codex /
 Gemini / Cursor models are left empty on purpose: we do not hardcode
@@ -16,18 +18,15 @@ so the user types the exact id their runtime accepts.
 
 from __future__ import annotations
 
-
 # Claude Code accepts the short aliases opus/sonnet/haiku and full model
 # IDs. `value` is what gets written to models.yaml as the role's model.
 CLAUDE_CODE_MODELS: list[dict[str, str]] = [
-    {"value": "claude-fable-5", "label": "Fable 5", "tier": "frontier",
-     "note": "most capable"},
-    {"value": "opus", "label": "Opus 4.8", "tier": "frontier",
+    {"value": "claude-fable-5-1", "label": "Fable 5.1", "tier": "frontier",
+     "note": "most capable — 1M context, cache reads $0.25/MTok"},
+    {"value": "opus", "label": "Opus 5", "tier": "frontier",
      "note": "frontier"},
     {"value": "sonnet", "label": "Sonnet 5", "tier": "balanced",
-     "note": "balanced speed/quality"},
-    {"value": "haiku", "label": "Haiku 4.5", "tier": "fast",
-     "note": "fast + cheap"},
+     "note": "balanced speed/quality — also the mechanical lane"},
 ]
 
 _MODELS_BY_RUNTIME: dict[str, list[dict[str, str]]] = {

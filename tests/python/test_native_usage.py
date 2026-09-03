@@ -28,7 +28,7 @@ def cursor_dir(tmp_path):
     return tmp_path / "native-cost"
 
 
-def _assistant_record(uuid, model="claude-haiku-4-5", usage=None):
+def _assistant_record(uuid, model="claude-sonnet-5", usage=None):
     return {
         "type": "assistant",
         "uuid": uuid,
@@ -154,12 +154,12 @@ class TestRecordNativeUsage:
         row = rows[0]
         assert row["category"] == "native:session"
         assert row["provider"] == "native"
-        assert row["model"] == "claude-haiku-4-5"
+        assert row["model"] == "claude-sonnet-5"
         # 10 fresh + 5 cache-read + 3 cache-write = 18 billable input
         assert row["tokens_in"] == 18
         assert row["tokens_out"] == 7
         assert row["cached_tokens"] == 5
-        # claude-haiku-4-5 is a priced alias → real (non-null) cost
+        # claude-sonnet-5 is a priced alias → real (non-null) cost
         assert row["estimated_cost_usd"] is not None
 
     def test_dedupe_cursor_blocks_second_record(
@@ -261,12 +261,12 @@ class TestFullTurnCapture:
             tmp_path,
             [
                 _assistant_record("u1", model="claude-opus-5"),
-                _assistant_record("u2", model="claude-haiku-4-5"),
+                _assistant_record("u2", model="claude-fable-5-1"),
             ],
         )
         assert record_native_usage(transcript, "sess-full-3", cursor_dir)
         models = {e["model"] for e in read_entries()}
-        assert models == {"claude-opus-5", "claude-haiku-4-5"}
+        assert models == {"claude-opus-5", "claude-fable-5-1"}
 
     def test_lost_cursor_falls_back_to_last_record_only(
         self, tmp_path, tmp_cost_file, cursor_dir
@@ -328,3 +328,28 @@ class TestSubagentCapture:
             transcript, "sess-sub-3", "x", cursor_dir
         )
         assert read_entries() == []
+
+
+class TestPricingStatus:
+    def test_unknown_model_row_carries_pricing_status(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(
+            tmp_path, [_assistant_record("u1", model="claude-mythos-9")]
+        )
+        assert record_native_usage(transcript, "sess-unknown", cursor_dir)
+        rows = read_entries()
+        assert rows[-1]["model"] == "claude-mythos-9"
+        assert rows[-1]["estimated_cost_usd"] is None
+        assert rows[-1]["pricing_status"] == "unknown-model"
+
+    def test_priced_model_row_has_no_pricing_status(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        transcript = _write_transcript(
+            tmp_path, [_assistant_record("u1", model="claude-fable-5-1")]
+        )
+        assert record_native_usage(transcript, "sess-priced", cursor_dir)
+        rows = read_entries()
+        assert rows[-1]["estimated_cost_usd"] is not None
+        assert "pricing_status" not in rows[-1]

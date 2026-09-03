@@ -28,7 +28,7 @@ Tier is enforced by the validator: tier-2+ agents that have `veto: true` produce
 | `role` | string | Yes | Short role label (e.g. `Backend Core Lead`). |
 | `department` | string | Yes | Must match the parent directory name (e.g. `dev`). |
 | `tier` | integer 0-3 | Yes | See tier table above. |
-| `model` | `haiku` / `sonnet` / `opus` | No | Overrides the tier default at dispatch time. Omit to use tier default. |
+| `model` | `sonnet` / `opus` / `fable` (`haiku` accepted for legacy YAML only) | No | Overrides the tier default at dispatch time. Omit to use tier default. |
 | `parent_squad` | string | No | Slug of the parent squad for sub-squad agents (e.g. `dev`). |
 | `sub_squad_role` | string | No | Role within the sub-squad (e.g. `lead`). Requires `parent_squad`. |
 | `memory_path` | string | No | Auto-filled to `~/.claude/agent-memory/arka-<id>/MEMORY.md` when omitted. |
@@ -68,7 +68,7 @@ When `model` is omitted, the runtime resolves it at dispatch:
 - Tier 0: `opus`
 - Tiers 1, 2, 3: `sonnet`
 
-Haiku is assigned explicitly for mechanical roles (commit writers, keyword extractors).
+Mechanical roles (commit writers, keyword extractors) run Sonnet 5 at low effort — the weakest lane ArkaOS routes to (Runtime Sync 2026-09-03).
 
 ## behavioral_dna
 

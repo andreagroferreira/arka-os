@@ -5,36 +5,32 @@ across all supported runtimes (Claude Code, Codex CLI, Gemini CLI, Cursor).
 Each runtime gets its own dispatcher implementation.
 
 Model routing per tier:
-- shallow (≤30):  haiku  (cost-optimized, inline execution)
+- shallow (≤30):  sonnet (cheapest lane ArkaOS routes to, inline execution)
 - standard (31-65): sonnet (balanced cost/quality)
 - deep (66-85):   opus  (highest quality for complex judgment)
 - super (≥86):     opus  (full synthesis, highest judgment)
 """
 
-import json
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any
 
 from core.forge.schema import (
-    ExplorerLens,
-    ExplorerApproach,
     CriticVerdict,
+    ExplorerApproach,
+    ExplorerLens,
     ForgeContext,
     ForgeTier,
-    PhaseDeliverable,
-    KeyDecision,
-    RiskSeverity,
-    RejectedElement,
     IdentifiedRisk,
+    KeyDecision,
+    PhaseDeliverable,
+    RejectedElement,
+    RiskSeverity,
 )
 
+EXPLORER_PREAMBLE = """You are an expert planning agent within ArkaOS. Your task is to produce a structured execution plan for the following prompt."""  # noqa: E501
 
-EXPLORER_PREAMBLE = """You are an expert planning agent within ArkaOS. Your task is to produce a structured execution plan for the following prompt."""
-
-CRITIC_PREAMBLE = """You are the Plan Critic within ArkaOS. You have received {n} independent planning approaches for the same prompt. Your job is to synthesize the best plan by combining the strongest elements from each approach."""
+CRITIC_PREAMBLE = """You are the Plan Critic within ArkaOS. You have received {n} independent planning approaches for the same prompt. Your job is to synthesize the best plan by combining the strongest elements from each approach."""  # noqa: E501
 
 
 CONSTITUTION_RULES = """CONSTITUTION RULES (non-negotiable):
@@ -45,9 +41,10 @@ CONSTITUTION_RULES = """CONSTITUTION RULES (non-negotiable):
   - quality-gate: Marta + Eduardo + Francisca must APPROVE before done
   - conventional-commits: all commits follow conventional commit format"""
 
-AVAILABLE_DEPARTMENTS = "dev, ops, mkt, brand, fin, strat, pm, saas, landing, content, ecom, kb, sales, lead, community, org"
+AVAILABLE_DEPARTMENTS = "dev, ops, mkt, brand, fin, strat, pm, saas, landing, content, ecom, kb, sales, lead, community, org"  # noqa: E501
 
-AVAILABLE_AGENTS = """dev: Paulo (lead), Gabriel (architect), Andre (backend), Diana (frontend), Bruno (security), Carlos (devops), Rita (qa), Vasco (dba)
+AVAILABLE_AGENTS = """dev: Paulo (lead), Gabriel (architect), Andre (backend), Diana (frontend),
+Bruno (security), Carlos (devops), Rita (qa), Vasco (dba)
 ops: Daniel (lead), Lucas (automation)
 mkt: Luna (lead), Sofia (growth), Pedro (analytics), Carla (email)
 brand: Valentina (lead), Miguel (visual), Ana (copy), Joao (ux)
@@ -62,7 +59,7 @@ Principles:
   - Fewer phases is better — collapse where safe to do so
   - Prefer known, proven solutions over novel ones
   - Identify what can be skipped without meaningful quality loss
-Be direct. Challenge gold-plating. Propose the leanest plan that still satisfies all Constitution rules.""",
+Be direct. Challenge gold-plating. Propose the leanest plan that still satisfies all Constitution rules.""",  # noqa: E501
     ExplorerLens.ARCHITECTURAL: """Your lens: ARCHITECTURAL
 Question to answer: "What is the right way to build this for the long term?"
 Principles:
@@ -80,7 +77,7 @@ Principles:
   - Question every assumed constraint — are they real?
   - Propose an alternative framing if the original prompt is misguided
   - Identify the single biggest risk in the other approaches
-Be adversarial but constructive. Your job is to stress-test assumptions, not to be contrarian for its own sake. You must still produce a valid plan.""",
+Be adversarial but constructive. Your job is to stress-test assumptions, not to be contrarian for its own sake. You must still produce a valid plan.""",  # noqa: E501
 }
 
 
@@ -141,7 +138,7 @@ class CriticDispatchRequest:
 def _tier_to_model(tier: ForgeTier) -> str:
     """Map tier to default model."""
     mapping = {
-        ForgeTier.SHALLOW: "haiku",
+        ForgeTier.SHALLOW: "sonnet",
         ForgeTier.STANDARD: "sonnet",
         ForgeTier.DEEP: "opus",
     }
@@ -199,7 +196,7 @@ def _build_critic_prompt(req: CriticDispatchRequest) -> str:
             for d in approach.key_decisions
         )
         phases = "\n".join(
-            f"  - name: {p.name}\n    department: {p.department}\n    agents: {p.agents}\n    deliverables: {p.deliverables}\n    acceptance_criteria: {p.acceptance_criteria}\n    depends_on: {p.depends_on}"
+            f"  - name: {p.name}\n    department: {p.department}\n    agents: {p.agents}\n    deliverables: {p.deliverables}\n    acceptance_criteria: {p.acceptance_criteria}\n    depends_on: {p.depends_on}"  # noqa: E501
             for p in approach.phases
         )
         text = f"""APPROACH {i} ({approach.explorer.value}):
@@ -253,7 +250,6 @@ Phases:
 
 def _parse_explorer_output(raw: str, lens: ExplorerLens) -> ExplorerApproach:
     """Parse structured text output from an explorer subagent."""
-    explorer_match = re.search(r"EXPLORER:\s*(\w+)", raw)
     summary_match = re.search(r"SUMMARY:\s*(.+?)(?=KEY_DECISIONS:|$)", raw, re.DOTALL)
     key_decisions = []
     for match in re.finditer(
@@ -465,16 +461,13 @@ def create_dispatcher(runtime: str | None = None) -> ForgeTaskDispatcher:
 
 def _detect_runtime() -> str:
     """Auto-detect the current runtime environment."""
+    import importlib.util
     import os
 
     if os.environ.get("ARKAOS_RUNTIME"):
         return os.environ["ARKAOS_RUNTIME"]
 
-    try:
-        import claude
-
+    if importlib.util.find_spec("claude") is not None:
         return "claude-code"
-    except ImportError:
-        pass
 
     return "claude-code"

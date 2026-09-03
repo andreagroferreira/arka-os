@@ -13,7 +13,7 @@ ADRs, Quality Gate reviews, Forge complex/super tiers — runs the **best
 model available at maximum effort** by default. Cost optimisation never
 downgrades a quality phase. The ONLY exception is genuinely mechanical
 work (commit messages, changelog, keyword extraction, data fetching,
-formatting), which runs haiku-class/local.
+formatting), which runs Sonnet 5 at low effort or a local model.
 
 This is enforced by the `model-routing` Constitution rule and the Model
 Fabric (`core/runtime/model_router.py`): `~/.arkaos/models.yaml` is the

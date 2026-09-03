@@ -3,7 +3,7 @@ name: Isabel
 role: Documentation Writer
 department: ops
 tier: 3
-model: haiku
+model: sonnet
 
 behavioral_dna:
   disc:

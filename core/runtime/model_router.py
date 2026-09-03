@@ -23,6 +23,7 @@ Public API::
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 import yaml
@@ -53,6 +54,39 @@ def role_description(role: str) -> str:
 KNOWN_EFFORTS = ("low", "medium", "high", "max")
 
 _ALIAS_NAMES = frozenset({"best", "default", "fast"})
+
+# Runtime Sync 2026-09-03 — ids that no longer exist, or lanes ArkaOS no
+# longer routes to (Opus 4.x → Opus 5, Fable 5 → Fable 5.1, Haiku → Sonnet 5).
+# Normalised when a role is RESOLVED; the operator's models.yaml is never
+# rewritten. One stderr notice per process per id, so a stale pin is
+# visible without becoming noise.
+LEGACY_MODEL_IDS: dict[str, str] = {
+    "claude-fable-5": "claude-fable-5-1",
+    "claude-fable-5[1m]": "claude-fable-5-1[1m]",
+    "claude-opus-4-8": "claude-opus-5",
+    "claude-opus-4-8[1m]": "claude-opus-5[1m]",
+    "claude-opus-4-7": "claude-opus-5",
+    "claude-opus-4-6": "claude-opus-5",
+    "claude-haiku-4-5-20251001": "claude-sonnet-5",
+    "claude-haiku-4-5": "claude-sonnet-5",
+    "haiku": "sonnet",
+}
+_LEGACY_NOTICED: set[str] = set()
+
+
+def normalise_model_id(model: str) -> str:
+    """Map a legacy model id to its current lane (identity for anything else)."""
+    current = LEGACY_MODEL_IDS.get(model)
+    if current is None:
+        return model
+    if model not in _LEGACY_NOTICED:
+        _LEGACY_NOTICED.add(model)
+        print(
+            f"[arka:warn] models.yaml pins legacy model {model!r}; resolving as "
+            f"{current!r} (Runtime Sync 2026-09-03). Update the pin to silence this.",
+            file=sys.stderr,
+        )
+    return current
 
 
 class RoleChoice(BaseModel):
@@ -112,7 +146,7 @@ def _builtin_config() -> ModelsConfig:
     roles["mechanical"] = RoleChoice(model="fast", effort="low")
     return ModelsConfig(
         providers={"runtime": {"type": "subagent"}},
-        aliases={"runtime": {"best": "opus", "default": "sonnet", "fast": "haiku"}},
+        aliases={"runtime": {"best": "fable", "default": "sonnet", "fast": "sonnet"}},
         roles=roles,
     )
 
@@ -164,7 +198,7 @@ def resolve(role: str, user_path: Path | None = None) -> ResolvedModel:
     return ResolvedModel(
         role=role,
         provider=choice.provider,
-        model=_resolve_alias(config, choice.provider, choice.model),
+        model=normalise_model_id(_resolve_alias(config, choice.provider, choice.model)),
         effort=choice.effort,
         source=source,
     )

@@ -224,6 +224,9 @@ def _record_grouped(
         totals["out"] += usage["output_tokens"]
         totals["cached"] += usage["cache_read_input_tokens"]
     for model, totals in by_model.items():
+        estimated = estimate_cost_usd(
+            model, totals["in"], totals["out"], totals["cached"]
+        )
         record_cost(
             session_id=session_id,
             provider=provider,
@@ -231,10 +234,10 @@ def _record_grouped(
             tokens_in=totals["in"],
             tokens_out=totals["out"],
             cached_tokens=totals["cached"],
-            estimated_cost_usd=estimate_cost_usd(
-                model, totals["in"], totals["out"], totals["cached"]
-            ),
+            estimated_cost_usd=estimated,
             category=category,
+            # Runtime Sync PR2: an unpriced model must be visible, not $0.00.
+            pricing_status="" if estimated is not None else "unknown-model",
         )
 
 

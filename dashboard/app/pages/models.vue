@@ -128,7 +128,7 @@ const targetOptions = computed(() => {
   const o = overview.value
   if (!o) return []
   const options: { label: string, value: string }[] = []
-  // Concrete runtime models first (Fable 5, Opus, Sonnet, Haiku) so the
+  // Concrete runtime models first (Fable 5.1, Opus 5, Sonnet 5) so the
   // operator picks a real model, not just an abstract alias.
   for (const m of o.runtime?.models ?? []) {
     options.push({ label: `runtime / ${m.label} · ${m.note}`, value: `runtime/${m.value}` })

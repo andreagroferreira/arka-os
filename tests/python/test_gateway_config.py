@@ -21,12 +21,12 @@ _MODELS_YAML = textwrap.dedent(
       anthropic: {type: anthropic-direct}
       ollama: {type: ollama, base_url: "http://localhost:11434"}
     aliases:
-      runtime: {best: opus, default: sonnet, fast: haiku}
+      runtime: {best: fable, default: sonnet, fast: sonnet}
     roles:
       design:       {provider: runtime, model: best, effort: max}
       review:       {provider: runtime, model: best, effort: max}
       architecture: {provider: runtime, model: best, effort: max}
-      strategy:     {provider: runtime, model: claude-fable-5, effort: max}
+      strategy:     {provider: runtime, model: claude-fable-5-1, effort: max}
       quality_gate: {provider: runtime, model: best, effort: max}
       execution:    {provider: ollama, model: "kimi-k2.7-code:cloud", effort: high}
       mechanical:   {provider: runtime, model: sonnet, effort: low}
@@ -61,7 +61,7 @@ def test_role_alias_collapse():
 def test_gateway_plan_maps_slots_to_upstreams(models_path: Path):
     plan = build_gateway_plan(models_path)
     assert plan.slots["opus"].kind == "anthropic"
-    assert plan.slots["opus"].model_id == "claude-opus-4-8"
+    assert plan.slots["opus"].model_id == "claude-fable-5-1"
     assert plan.slots["sonnet"].kind == "anthropic"
     assert plan.slots["sonnet"].model_id == "claude-sonnet-5"
     # execution hijacks the haiku slot -> local Ollama
@@ -72,7 +72,7 @@ def test_gateway_plan_maps_slots_to_upstreams(models_path: Path):
 
 def test_litellm_config_routes(models_path: Path):
     cfg = build_litellm_config(models_path)
-    assert _route(cfg, "arka-opus")["model"] == "claude-opus-4-8"
+    assert _route(cfg, "arka-opus")["model"] == "claude-fable-5-1"
     assert _route(cfg, "arka-sonnet")["model"] == "claude-sonnet-5"
     haiku = _route(cfg, "arka-haiku")
     assert haiku["model"] == "ollama_chat/kimi-k2.7-code:cloud"

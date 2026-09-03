@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -35,7 +35,7 @@ def test_record_cost_appends_jsonl(tmp_telemetry: Path):
     record_cost(
         session_id="sess-1",
         provider="stub",
-        model="claude-opus-4-7",
+        model="claude-opus-5",
         tokens_in=100,
         tokens_out=50,
         cached_tokens=0,
@@ -46,7 +46,7 @@ def test_record_cost_appends_jsonl(tmp_telemetry: Path):
     entry = entries[0]
     assert entry["session_id"] == "sess-1"
     assert entry["provider"] == "stub"
-    assert entry["model"] == "claude-opus-4-7"
+    assert entry["model"] == "claude-opus-5"
     assert entry["tokens_in"] == 100
     assert entry["tokens_out"] == 50
     assert entry["estimated_cost_usd"] == 0.0125
@@ -156,7 +156,7 @@ def _entry(
     ts: datetime,
     session_id: str = "s",
     provider: str = "anthropic",
-    model: str = "claude-opus-4-7",
+    model: str = "claude-opus-5",
     tokens_in: int = 1000,
     tokens_out: int = 200,
     cached_tokens: int = 0,
@@ -182,11 +182,11 @@ def test_fallback_diagnostic_rows_stay_out_of_by_model(tmp_telemetry: Path):
     """_log_fallback rows carry the fallback reason in the model field
     ('unavailable'/'selected'); they must feed by_provider (degraded
     chains) but never surface as bogus models in by_model."""
-    now = datetime(2026, 7, 9, 14, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 7, 9, 14, 0, tzinfo=UTC)
     _write_entries(
         tmp_telemetry,
         [
-            _entry(now, model="claude-opus-4-7", cost=0.20),
+            _entry(now, model="claude-opus-5", cost=0.20),
             _entry(
                 now,
                 provider="fallback:claude_code->ollama",
@@ -206,12 +206,12 @@ def test_fallback_diagnostic_rows_stay_out_of_by_model(tmp_telemetry: Path):
         ],
     )
     summary = summarise(period="today", path=tmp_telemetry, now=now)
-    assert set(summary.by_model) == {"claude-opus-4-7"}
+    assert set(summary.by_model) == {"claude-opus-5"}
     assert "fallback:claude_code->ollama" in summary.by_provider
 
 
 def test_summarise_today_filters_by_utc_midnight(tmp_telemetry: Path):
-    now = datetime(2026, 4, 20, 14, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 4, 20, 14, 0, tzinfo=UTC)
     yesterday = now - timedelta(days=1)
     just_after_midnight = now.replace(hour=0, minute=1)
     _write_entries(
@@ -228,7 +228,7 @@ def test_summarise_today_filters_by_utc_midnight(tmp_telemetry: Path):
 
 
 def test_summarise_week_rolling_7_days(tmp_telemetry: Path):
-    now = datetime(2026, 4, 20, 14, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 4, 20, 14, 0, tzinfo=UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -243,7 +243,7 @@ def test_summarise_week_rolling_7_days(tmp_telemetry: Path):
 
 
 def test_summarise_month_rolling_30_days(tmp_telemetry: Path):
-    now = datetime(2026, 4, 20, 14, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 4, 20, 14, 0, tzinfo=UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -258,7 +258,7 @@ def test_summarise_month_rolling_30_days(tmp_telemetry: Path):
 
 
 def test_summarise_all_includes_every_entry(tmp_telemetry: Path):
-    now = datetime(2026, 4, 20, tzinfo=timezone.utc)
+    now = datetime(2026, 4, 20, tzinfo=UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -297,7 +297,7 @@ def test_summarise_missing_file_returns_zero_summary(tmp_path):
 
 def test_summarise_corrupt_jsonl_skips_and_counts(tmp_telemetry: Path):
     tmp_telemetry.parent.mkdir(parents=True, exist_ok=True)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     tmp_telemetry.write_text(
         "\n".join(
             [
@@ -318,7 +318,7 @@ def test_summarise_corrupt_jsonl_skips_and_counts(tmp_telemetry: Path):
 
 
 def test_summarise_groups_by_provider(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -335,17 +335,17 @@ def test_summarise_groups_by_provider(tmp_telemetry: Path):
 
 
 def test_summarise_groups_by_model_unknown_bucketed(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
-            _entry(now, model="claude-opus-4-7", cost=1.0),
+            _entry(now, model="claude-opus-5", cost=1.0),
             _entry(now, model="", cost=None),
             _entry(now, model="", cost=None),
         ],
     )
     summary = summarise(period="all", path=tmp_telemetry)
-    assert "claude-opus-4-7" in summary.by_model
+    assert "claude-opus-5" in summary.by_model
     assert "" in summary.by_model  # unknown bucket
     assert summary.by_model[""]["call_count"] == 2
     assert summary.by_model[""]["total_cost_usd"] is None
@@ -369,7 +369,7 @@ def test_record_cost_defaults_category_to_empty_string(tmp_telemetry: Path):
 
 
 def test_summarise_groups_by_category(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -395,7 +395,7 @@ def test_summarise_groups_by_category(tmp_telemetry: Path):
 def test_summarise_groups_legacy_entries_without_category_into_empty_bucket(
     tmp_telemetry: Path,
 ):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -413,7 +413,7 @@ def test_summarise_groups_legacy_entries_without_category_into_empty_bucket(
 
 
 def test_summarise_top_sessions_sorted_desc_by_cost(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -430,7 +430,7 @@ def test_summarise_top_sessions_sorted_desc_by_cost(tmp_telemetry: Path):
 
 
 def test_summarise_cache_hit_rate_calculation(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -445,7 +445,7 @@ def test_summarise_cache_hit_rate_calculation(tmp_telemetry: Path):
 
 
 def test_summarise_advisories_triggered_over_threshold(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -462,7 +462,7 @@ def test_summarise_advisories_triggered_over_threshold(tmp_telemetry: Path):
 
 
 def test_summarise_advisories_empty_when_under_threshold(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [_entry(now, session_id="quiet", cost=0.10)],
@@ -479,7 +479,7 @@ def test_summarise_invalid_period_raises(tmp_telemetry: Path):
 
 
 def test_list_expensive_sessions_limit_respected(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows = [
         _entry(now, session_id=f"s{i}", cost=float(i)) for i in range(1, 16)
     ]
@@ -500,7 +500,7 @@ def test_list_expensive_sessions_missing_file(tmp_path):
 
 
 def test_summarise_all_null_costs_totals_none(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -516,7 +516,7 @@ def test_summarise_all_null_costs_totals_none(tmp_telemetry: Path):
 
 
 def test_summarise_huge_numbers(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -537,7 +537,7 @@ def test_summarise_huge_numbers(tmp_telemetry: Path):
 
 
 def test_summarise_unicode_session_ids(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -551,7 +551,7 @@ def test_summarise_unicode_session_ids(tmp_telemetry: Path):
 
 
 def test_summarise_mixed_costs_sum_known_only(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_entries(
         tmp_telemetry,
         [
@@ -591,7 +591,7 @@ def test_summarise_handles_entries_without_ts(tmp_telemetry: Path):
 
 
 def test_summarise_handles_z_suffix_ts(tmp_telemetry: Path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     z_ts = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     tmp_telemetry.parent.mkdir(parents=True, exist_ok=True)
     tmp_telemetry.write_text(
@@ -612,3 +612,23 @@ def test_summarise_handles_z_suffix_ts(tmp_telemetry: Path):
     )
     summary = summarise(period="today", path=tmp_telemetry, now=now)
     assert summary.call_count == 1
+
+
+class TestPricingUnknownAdvisory:
+    """Runtime Sync PR2: an unpriced model is announced, never a silent $0.00."""
+
+    def test_unknown_model_gets_an_advisory_and_a_status(self, tmp_path, monkeypatch):
+        from core.runtime import llm_cost_telemetry as t
+
+        path = tmp_path / "llm-cost.jsonl"
+        monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
+        t.record_cost("s1", "native", "claude-opus-5", 1000, 10, 0, 0.5, category="native:session")
+        t.record_cost("s1", "native", "claude-mythos-9", 2000, 20, 0, None,
+                      category="native:session", pricing_status="unknown-model")
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        assert "pricing_status" not in rows[0]
+        assert rows[1]["pricing_status"] == "unknown-model"
+        summary = t.summarise("today", path=path)
+        assert summary.by_model["claude-mythos-9"]["total_cost_usd"] is None
+        assert any("pricing-unknown: claude-mythos-9" in a for a in summary.advisories)
+        assert not any("claude-opus-5" in a for a in summary.advisories)

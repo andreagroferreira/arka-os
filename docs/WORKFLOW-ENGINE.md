@@ -48,7 +48,7 @@ A workflow lives in `departments/{dept}/workflows/{name}.yaml`. The Pydantic mod
 | `outputs` | list | no | Documents/artefacts produced by this phase |
 | `depends_on` | list\[string\] | no | Phase IDs that must complete before this one starts |
 | `skip_if` | string | no | Boolean expression; phase is skipped when true |
-| `model_override` | `haiku` \| `sonnet` \| `opus` | no | Forces a specific model for all agents in this phase |
+| `model_override` | `sonnet` \| `opus` \| `fable` (`haiku` legacy) | no | Forces a specific model for all agents in this phase |
 | `status` | runtime | — | Managed by the engine: pending/in\_progress/completed/skipped/failed/blocked |
 
 **Agent assignment fields:**
