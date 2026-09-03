@@ -6,8 +6,8 @@ their public per-token pricing. It is used to compute an optional
 any model-selection logic — that is explicitly forbidden by the
 LLM-agnostic contract.
 
-Snapshot 2026-07-18: values sourced from the public Anthropic pricing
-page (https://platform.claude.com/docs/en/about-claude/pricing) and
+Snapshot 2026-09-03 (Runtime Sync PR-2): values sourced from the public
+Anthropic pricing page (https://platform.claude.com/docs/en/about-claude/pricing) and
 OpenAI (https://openai.com/api/pricing). Refresh when model families
 change. Unknown models return `None` from `estimate_cost_usd` and are
 logged with a null cost — never a guessed number.
@@ -18,8 +18,35 @@ from __future__ import annotations
 # USD per 1M tokens. Only the `cache_read` and `cache_write` keys apply
 # to providers that expose prompt caching (currently Anthropic; rates
 # are the 0.1x / 1.25x input multipliers for 5-minute cache writes).
-# Missing keys fall back to 0 cost contribution rather than raising.
+# Missing keys fall back to 0 cost contribution rather than raising —
+# which is exactly why an UNKNOWN model id must be surfaced loudly
+# (native_usage marks `pricing_status: unknown-model`; /arka status warns):
+# on 2026-09-03 every Fable 5.1 row was costing $0.00 in silence.
 PRICING: dict[str, dict[str, float]] = {
+    # Claude Fable 5.1 (2026-09-01): $10/$50 per MTok, cache reads $0.25
+    # (75% below Fable 5), 5m cache writes $12.50 — all from the public
+    # pricing page as of 2026-09-03. 1M context is native.
+    "claude-fable-5-1": {
+        "input": 10.00,
+        "output": 50.00,
+        "cache_read": 0.25,
+        "cache_write": 12.50,
+    },
+    "claude-fable-5-1[1m]": {
+        "input": 10.00,
+        "output": 50.00,
+        "cache_read": 0.25,
+        "cache_write": 12.50,
+    },
+    # Claude Mythos 5.1 — same underlying model and rate card as Fable 5.1,
+    # restricted access (limited availability per the pricing page). Priced
+    # so the estimator never returns None for a legitimately served row.
+    "claude-mythos-5-1": {
+        "input": 10.00,
+        "output": 50.00,
+        "cache_read": 0.25,
+        "cache_write": 12.50,
+    },
     "claude-fable-5": {
         "input": 10.00,
         "output": 50.00,
@@ -75,9 +102,8 @@ PRICING: dict[str, dict[str, float]] = {
         "cache_read": 0.50,
         "cache_write": 6.25,
     },
-    # Introductory pricing ($2/$10) is in effect through 2026-08-31;
-    # from 2026-09-01 the standard rate is $3/$15 (cache $0.30/$3.75).
-    # Refresh this row when the introductory window closes.
+    # $2/$10 is the STANDARD list price: the pricing page (2026-09-03) states
+    # the increase scheduled for 2026-09-01 will not occur.
     "claude-sonnet-5": {
         "input": 2.00,
         "output": 10.00,

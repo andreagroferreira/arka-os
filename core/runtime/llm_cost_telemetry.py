@@ -14,11 +14,12 @@ here — advisories are soft strings attached to the returned summary.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -51,10 +52,8 @@ def _locked_append(path: Path):
         yield fh
     finally:
         if _HAS_FLOCK:
-            try:
+            with contextlib.suppress(OSError):
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                pass
         fh.close()
 
 
@@ -67,8 +66,14 @@ def record_cost(
     cached_tokens: int,
     estimated_cost_usd: float | None,
     category: str = "",
+    pricing_status: str = "",
 ) -> None:
     """Append one JSONL line describing an LLM call's cost.
+
+    `pricing_status` (Runtime Sync PR-2) is ``"unknown-model"`` when the
+    caller could not price the model at all — the row would otherwise
+    contribute $0.00 in silence (Fable 5.1 on 2026-09-03). Empty means
+    priced; the key is omitted so old readers see the old shape.
 
     `category` mirrors Claude Code v2.1.149's per-category usage
     breakdown: ``"skill:<slug>"``, ``"subagent:<dept>"``,
@@ -81,7 +86,7 @@ def record_cost(
     """
     try:
         entry: dict[str, Any] = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "session_id": str(session_id or ""),
             "provider": str(provider or ""),
             "model": str(model or ""),
@@ -95,9 +100,11 @@ def record_cost(
             ),
             "category": str(category or ""),
         }
+        if pricing_status:
+            entry["pricing_status"] = str(pricing_status)
         with _locked_append(_telemetry_path()) as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception:  # noqa: BLE001 — telemetry must never raise
+    except Exception:
         return
 
 
@@ -147,7 +154,7 @@ class CostSummary:
 
 
 def _period_cutoff(period: str, now: datetime | None = None) -> datetime | None:
-    ref = now or datetime.now(timezone.utc)
+    ref = now or datetime.now(UTC)
     if period == "today":
         return ref.replace(hour=0, minute=0, second=0, microsecond=0)
     if period == "week":
@@ -167,7 +174,7 @@ def _parse_ts(raw: Any) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
     return parsed
 
 
@@ -274,6 +281,42 @@ def _build_advisories(
     return out
 
 
+def _pricing_advisories(entries: list[dict[str, Any]]) -> list[str]:
+    """Advisories for rows the recorder could not price (Runtime Sync PR-2).
+
+    Keyed on the recorder's own ``pricing_status`` — a None cost alone is
+    not evidence: local rows, zero-token synthetic rows and rows without a
+    model id all look the same. One line per (provider, model) with a
+    message that is true for that case.
+    """
+    buckets: dict[tuple[str, str], dict[str, int]] = {}
+    for e in entries:
+        if e.get("pricing_status") != "unknown-model":
+            continue
+        tokens = int(e.get("tokens_in") or 0) + int(e.get("tokens_out") or 0)
+        if tokens == 0:
+            continue  # nothing was spent; nothing to price
+        key = (str(e.get("provider") or ""), str(e.get("model") or ""))
+        b = buckets.setdefault(key, {"calls": 0, "tokens_in": 0})
+        b["calls"] += 1
+        b["tokens_in"] += int(e.get("tokens_in") or 0)
+    out: list[str] = []
+    for (provider, model), b in sorted(buckets.items()):
+        if not model:
+            out.append(
+                f"[arka:warn] pricing-unknown: {b['calls']} call(s) recorded by "
+                f"provider {provider or '<unknown>'} without a model id "
+                f"({b['tokens_in']:,} tokens in) — fix the recorder; the row cannot be priced"
+            )
+            continue
+        out.append(
+            f"[arka:warn] pricing-unknown: {model} ({b['calls']} call(s), "
+            f"{b['tokens_in']:,} tokens in) has no row in core/runtime/pricing.py — "
+            "its spend is invisible to the CostGovernor until one is added"
+        )
+    return out
+
+
 def _totals_bucket(entries: list[dict[str, Any]]) -> dict[str, Any]:
     totals = _zero_bucket()
     for entry in entries:
@@ -313,7 +356,8 @@ def summarise(
         ),
         by_category=_group(entries, "category"),
         by_session=sessions,
-        advisories=_build_advisories(sessions, advisory_threshold_usd),
+        advisories=_build_advisories(sessions, advisory_threshold_usd)
+        + _pricing_advisories(entries),
         corrupt_line_count=corrupt,
     )
 

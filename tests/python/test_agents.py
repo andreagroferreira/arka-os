@@ -1,21 +1,31 @@
 """Tests for the agent schema, loader, and validator."""
 
-import pytest
-import yaml
 from pathlib import Path
 
-from core.agents.schema import (
-    Agent, BehavioralDNA, DISCProfile, DISCType,
-    EnneagramProfile, EnneagramType, BigFiveProfile,
-    MBTIProfile, MBTIType, CognitiveFunction,
-    Authority, MentalModels, MBTI_STACKS,
-    ENNEAGRAM_GROWTH, ENNEAGRAM_STRESS,
-)
-from core.agents.validator import validate_agent_consistency, ValidationResult
-from core.agents.loader import load_agent, agent_to_yaml
+import pytest
+import yaml
 
+from core.agents.loader import agent_to_yaml, load_agent
+from core.agents.schema import (
+    ENNEAGRAM_GROWTH,
+    ENNEAGRAM_STRESS,
+    MBTI_STACKS,
+    Agent,
+    Authority,
+    BehavioralDNA,
+    BigFiveProfile,
+    CognitiveFunction,
+    DISCProfile,
+    DISCType,
+    EnneagramProfile,
+    EnneagramType,
+    MBTIProfile,
+    MBTIType,
+)
+from core.agents.validator import validate_agent_consistency
 
 # --- Fixtures ---
+
 
 def make_dna(**overrides) -> BehavioralDNA:
     """Create a valid BehavioralDNA with optional overrides."""
@@ -23,8 +33,7 @@ def make_dna(**overrides) -> BehavioralDNA:
         "disc": DISCProfile(primary=DISCType.D, secondary=DISCType.C),
         "enneagram": EnneagramProfile(type=EnneagramType.CHALLENGER, wing=7),
         "big_five": BigFiveProfile(
-            openness=70, conscientiousness=80,
-            extraversion=60, agreeableness=40, neuroticism=25
+            openness=70, conscientiousness=80, extraversion=60, agreeableness=40, neuroticism=25
         ),
         "mbti": MBTIProfile(type=MBTIType.ENTJ),
     }
@@ -47,6 +56,7 @@ def make_agent(**overrides) -> Agent:
 
 
 # --- DISC Tests ---
+
 
 class TestDISC:
     def test_valid_disc_profile(self):
@@ -78,6 +88,7 @@ class TestDISC:
 
 # --- Enneagram Tests ---
 
+
 class TestEnneagram:
     def test_valid_enneagram(self):
         e = EnneagramProfile(type=EnneagramType.INVESTIGATOR, wing=6)
@@ -106,21 +117,33 @@ class TestEnneagram:
 
 # --- Big Five Tests ---
 
+
 class TestBigFive:
     def test_valid_big_five(self):
-        bf = BigFiveProfile(openness=70, conscientiousness=80, extraversion=50, agreeableness=40, neuroticism=30)
+        bf = BigFiveProfile(
+            openness=70, conscientiousness=80, extraversion=50, agreeableness=40, neuroticism=30
+        )
         assert bf.openness == 70
 
     def test_out_of_range_rejected(self):
         with pytest.raises(ValueError):
-            BigFiveProfile(openness=101, conscientiousness=80, extraversion=50, agreeableness=40, neuroticism=30)
+            BigFiveProfile(
+                openness=101,
+                conscientiousness=80,
+                extraversion=50,
+                agreeableness=40,
+                neuroticism=30,
+            )
 
     def test_negative_rejected(self):
         with pytest.raises(ValueError):
-            BigFiveProfile(openness=-1, conscientiousness=80, extraversion=50, agreeableness=40, neuroticism=30)
+            BigFiveProfile(
+                openness=-1, conscientiousness=80, extraversion=50, agreeableness=40, neuroticism=30
+            )
 
 
 # --- MBTI Tests ---
+
 
 class TestMBTI:
     def test_auto_fills_cognitive_stack(self):
@@ -139,6 +162,7 @@ class TestMBTI:
 
 
 # --- Complete Agent Tests ---
+
 
 class TestAgent:
     def test_create_valid_agent(self):
@@ -165,7 +189,13 @@ class TestAgent:
             "behavioral_dna": {
                 "disc": {"primary": "D", "secondary": "C"},
                 "enneagram": {"type": 5, "wing": 6},
-                "big_five": {"openness": 78, "conscientiousness": 85, "extraversion": 35, "agreeableness": 40, "neuroticism": 25},
+                "big_five": {
+                    "openness": 78,
+                    "conscientiousness": 85,
+                    "extraversion": 35,
+                    "agreeableness": 40,
+                    "neuroticism": 25,
+                },
                 "mbti": {"type": "INTJ"},
             },
             "authority": {"veto": True, "approve_architecture": True},
@@ -179,11 +209,14 @@ class TestAgent:
 
 # --- Model Routing Tests ---
 
+
 class TestModelRouting:
-    def test_model_haiku(self):
+    def test_model_haiku_parses_but_routes_to_sonnet(self):
+        # Runtime Sync 2026-09-03: legacy YAML still parses; dispatch never
+        # lands on Haiku.
         agent = make_agent(model="haiku")
         assert agent.model == "haiku"
-        assert agent.get_model() == "haiku"
+        assert agent.get_model() == "sonnet"
 
     def test_model_sonnet(self):
         agent = make_agent(model="sonnet")
@@ -213,6 +246,7 @@ class TestModelRouting:
 
 # --- Validator Tests ---
 
+
 class TestValidator:
     def test_consistent_dc_agent(self):
         """D+C with Enneagram 8, INTJ, high C low A — fully consistent."""
@@ -221,7 +255,13 @@ class TestValidator:
             behavioral_dna=make_dna(
                 disc=DISCProfile(primary=DISCType.D, secondary=DISCType.C),
                 enneagram=EnneagramProfile(type=EnneagramType.CHALLENGER, wing=7),
-                big_five=BigFiveProfile(openness=70, conscientiousness=85, extraversion=60, agreeableness=35, neuroticism=20),
+                big_five=BigFiveProfile(
+                    openness=70,
+                    conscientiousness=85,
+                    extraversion=60,
+                    agreeableness=35,
+                    neuroticism=20,
+                ),
                 mbti=MBTIProfile(type=MBTIType.ENTJ),
             ),
             authority=Authority(veto=True),
@@ -257,9 +297,12 @@ class TestValidator:
 
 # --- YAML Loader Tests ---
 
+
 class TestLoader:
     def test_load_cto_yaml(self):
-        cto_path = Path(__file__).parent.parent.parent / "departments" / "dev" / "agents" / "cto.yaml"
+        cto_path = (
+            Path(__file__).parent.parent.parent / "departments" / "dev" / "agents" / "cto.yaml"
+        )
         if cto_path.exists():
             agent = load_agent(cto_path)
             assert agent.id == "cto-marco"

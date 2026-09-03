@@ -18,12 +18,12 @@ _MODELS_YAML = textwrap.dedent(
     providers:
       ollama: {type: ollama, base_url: "http://localhost:11434"}
     aliases:
-      runtime: {best: opus, default: sonnet, fast: haiku}
+      runtime: {best: fable, default: sonnet, fast: sonnet}
     roles:
       quality_gate: {provider: runtime, model: best, effort: max}
       mechanical:   {provider: runtime, model: sonnet, effort: low}
       execution:    {provider: ollama, model: "kimi-k2.7-code:cloud", effort: high}
-      strategy:     {provider: runtime, model: claude-fable-5, effort: max}
+      strategy:     {provider: runtime, model: claude-fable-5-1, effort: max}
     """
 )
 
@@ -37,7 +37,7 @@ def models_path(tmp_path: Path) -> Path:
 
 def test_resolved_routes(models_path: Path):
     routes = resolved_routes(models_path)
-    assert routes["opus"] == "anthropic:claude-opus-4-8"
+    assert routes["opus"] == "anthropic:claude-fable-5-1"
     assert routes["sonnet"] == "anthropic:claude-sonnet-5"
     assert routes["haiku"] == "ollama:kimi-k2.7-code:cloud"
 

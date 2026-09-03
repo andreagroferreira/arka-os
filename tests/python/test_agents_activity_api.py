@@ -5,11 +5,10 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DASHBOARD_API_PATH = REPO_ROOT / "scripts" / "dashboard-api.py"
@@ -43,7 +42,7 @@ def _row(
         "ts": ts.isoformat(),
         "session_id": "s",
         "provider": "anthropic",
-        "model": "claude-opus-4-7",
+        "model": "claude-opus-5",
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
         "cached_tokens": 0,
@@ -70,7 +69,7 @@ class TestAgentsActivity:
     def test_groups_subagent_categories_by_department(
         self, dashboard_module, tmp_telemetry,
     ):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(now, category="subagent:dev", tokens_in=100, cost=0.10),
             _row(now, category="subagent:dev", tokens_in=200, cost=0.20),
@@ -87,7 +86,7 @@ class TestAgentsActivity:
         self, dashboard_module, tmp_telemetry,
     ):
         """Skill/plugin/mcp categories must not pollute the agent activity view."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(now, category="subagent:dev", tokens_in=100, cost=0.10),
             _row(now, category="skill:arka-spec", tokens_in=200, cost=0.50),
@@ -102,7 +101,7 @@ class TestAgentsActivity:
     def test_unknown_after_subagent_prefix(self, dashboard_module, tmp_telemetry):
         """`subagent:` alone (no dept) should still bucket under 'unknown'
         so the data isn't silently lost."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(now, category="subagent:", tokens_in=100, cost=0.10),
         ])
@@ -120,7 +119,7 @@ class TestAgentsActivity:
     def test_cost_null_when_no_row_has_known_cost(
         self, dashboard_module, tmp_telemetry,
     ):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(now, category="subagent:dev", cost=None),
             _row(now, category="subagent:dev", cost=None),
@@ -132,7 +131,7 @@ class TestAgentsActivity:
     def test_partial_cost_still_aggregates_known_rows(
         self, dashboard_module, tmp_telemetry,
     ):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(now, category="subagent:dev", cost=0.10),
             _row(now, category="subagent:dev", cost=None),  # unknown
@@ -145,7 +144,7 @@ class TestAgentsActivity:
     def test_tokens_aggregate_correctly(
         self, dashboard_module, tmp_telemetry,
     ):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         _seed(tmp_telemetry, [
             _row(now, category="subagent:dev", tokens_in=100, tokens_out=50),
             _row(now, category="subagent:dev", tokens_in=200, tokens_out=80),

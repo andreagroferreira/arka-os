@@ -48,7 +48,7 @@ The Forge analyses any prompt across 5 complexity dimensions, routes to 1-3 expl
 
 | Tier | Score | Explorers | Critic | Companion | Model |
 |------|-------|-----------|--------|-----------|-------|
-| Simple (Shallow) | ≤ 30 | 1 (Pragmatic, inline) | Light | None | haiku |
+| Simple (Shallow) | ≤ 30 | 1 (Pragmatic, inline) | Light | None | sonnet |
 | Standard | 31-65 | 2 (Pragmatic + Architectural, parallel) | Full | On request | sonnet |
 | Complex (Deep) | 66-85 | 3 (+ Contrarian, parallel) | Full | Proactive | opus |
 | Super | ≥ 86 | 3 + full synthesis | Full (highest judgment) | Proactive | opus |
@@ -59,7 +59,7 @@ Five dimensions score 0-100 each: **scope**, **dependencies**, **ambiguity**, **
 
 When dispatching explorer subagents via the Task tool, include `model: <tier_model>` parameter. The tier-to-model mapping is:
 
-- simple → `model: haiku` (fast routing, single explorer)
+- simple → `model: sonnet` (fast routing, single explorer; the weakest lane ArkaOS routes to)
 - standard → `model: sonnet` (default, 1-2 explorers)
 - complex → `model: opus` (3 explorers + critic synthesis)
 - super → `model: opus` (highest judgment, full synthesis)

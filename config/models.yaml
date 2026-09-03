@@ -34,13 +34,13 @@ providers:
 # `best` / `default` / `fast` resolve per provider, so roles stay readable.
 aliases:
   runtime:
-    best: opus
+    best: fable            # Claude Code alias → Fable 5.1 (Claude Code 2.1.257+)
     default: sonnet
-    fast: haiku
+    fast: sonnet           # weakest lane is Sonnet 5 — never Haiku
   anthropic:
-    best: claude-opus-4-8
+    best: claude-fable-5-1
     default: claude-sonnet-5
-    fast: claude-haiku-4-5-20251001
+    fast: claude-sonnet-5
   ollama:
     best: ""                # set your strongest local model, e.g. kimi-k2.6
     default: ""

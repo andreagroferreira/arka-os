@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import json
 from unittest.mock import patch
 
@@ -27,6 +26,47 @@ class _FakeResponse:
         return self._body
 
 
+@pytest.fixture(autouse=True)
+def _isolated_cost_telemetry(tmp_path, monkeypatch):
+    # complete() now records through llm_provider._record; keep the
+    # operator's real ~/.arkaos/telemetry out of every test in this file.
+    monkeypatch.setenv("ARKA_LLM_COST_PATH", str(tmp_path / "llm-cost.jsonl"))
+    monkeypatch.setenv("ARKA_SESSION_ID", "ollama-test-session")
+
+
+def test_record_marks_local_rows_priced_at_zero(tmp_path, monkeypatch):
+    """Runtime Sync PR-2: a local model has no spend — $0.00, status "local",
+    visible in /arka costs, never an unknown-model advisory."""
+    import json
+
+    from core.runtime.llm_provider import LLMResponse, _record
+
+    path = tmp_path / "llm-cost.jsonl"
+    monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
+    _record(
+        "s",
+        "ollama",
+        LLMResponse(text="", tokens_in=10, tokens_out=1, cached_tokens=0, model="kimi-k2.6"),
+    )
+    row = json.loads(path.read_text(encoding="utf-8").splitlines()[-1])
+    assert row["pricing_status"] == "local"
+    assert row["estimated_cost_usd"] == 0.0
+    assert row["provider"] == "ollama"
+
+
+def test_complete_records_a_local_cost_row(tmp_path, monkeypatch):
+    import json
+
+    path = tmp_path / "llm-cost.jsonl"
+    monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
+    body = json.dumps({"response": "hi", "prompt_eval_count": 7, "eval_count": 3}).encode()
+    with patch("core.runtime.ollama_provider.urllib.request.urlopen") as mock:
+        mock.return_value.__enter__.return_value.read.return_value = body
+        OllamaProvider(model="kimi-k2.6").complete("q")
+    row = json.loads(path.read_text(encoding="utf-8").splitlines()[-1])
+    assert row["model"] == "kimi-k2.6" and row["pricing_status"] == "local"
+
+
 def test_name_is_ollama():
     assert OllamaProvider().name() == "ollama"
 
@@ -38,16 +78,21 @@ def test_is_available_true_when_tags_returns_200():
 
 
 def test_is_available_false_when_tags_unreachable():
-    with patch("core.runtime.ollama_provider.urllib.request.urlopen", side_effect=OSError("connection refused")):
+    with patch(
+        "core.runtime.ollama_provider.urllib.request.urlopen",
+        side_effect=OSError("connection refused"),
+    ):
         assert OllamaProvider().is_available() is False
 
 
 def test_complete_returns_llm_response_with_text_and_tokens():
-    payload = json.dumps({
-        "message": {"role": "assistant", "content": "  here is the answer  "},
-        "prompt_eval_count": 12,
-        "eval_count": 34,
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "message": {"role": "assistant", "content": "  here is the answer  "},
+            "prompt_eval_count": 12,
+            "eval_count": 34,
+        }
+    ).encode("utf-8")
     with patch("core.runtime.ollama_provider.urllib.request.urlopen") as mock:
         mock.return_value = _FakeResponse(200, payload)
         response = OllamaProvider(model="qwen3-coder:30b").complete("hi")
@@ -60,11 +105,13 @@ def test_complete_returns_llm_response_with_text_and_tokens():
 
 def test_complete_falls_back_to_response_field_for_legacy_models():
     """Older models returning the /api/generate shape also work."""
-    payload = json.dumps({
-        "response": "legacy answer",
-        "prompt_eval_count": 5,
-        "eval_count": 7,
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "response": "legacy answer",
+            "prompt_eval_count": 5,
+            "eval_count": 7,
+        }
+    ).encode("utf-8")
     with patch("core.runtime.ollama_provider.urllib.request.urlopen") as mock:
         mock.return_value = _FakeResponse(200, payload)
         response = OllamaProvider(model="x").complete("hi")
@@ -72,9 +119,11 @@ def test_complete_falls_back_to_response_field_for_legacy_models():
 
 
 def test_complete_raises_llm_unavailable_on_network_error():
-    with patch("core.runtime.ollama_provider.urllib.request.urlopen", side_effect=OSError("connection refused")):
-        with pytest.raises(LLMUnavailable, match="Ollama request failed"):
-            OllamaProvider(model="x").complete("hi")
+    with patch(
+        "core.runtime.ollama_provider.urllib.request.urlopen",
+        side_effect=OSError("connection refused"),
+    ), pytest.raises(LLMUnavailable, match="Ollama request failed"):
+        OllamaProvider(model="x").complete("hi")
 
 
 def test_complete_raises_llm_unavailable_on_invalid_json():
@@ -86,13 +135,9 @@ def test_complete_raises_llm_unavailable_on_invalid_json():
 
 def test_complete_raises_when_no_model_configured(monkeypatch):
     monkeypatch.delenv("OLLAMA_MODEL", raising=False)
-    monkeypatch.setattr(
-        "core.runtime.ollama_provider._read_profile_model", lambda: None
-    )
+    monkeypatch.setattr("core.runtime.ollama_provider._read_profile_model", lambda: None)
     # Patch the default to None so we can verify the no-model path
-    monkeypatch.setattr(
-        "core.runtime.ollama_provider._DEFAULT_MODEL", None
-    )
+    monkeypatch.setattr("core.runtime.ollama_provider._DEFAULT_MODEL", None)
     with pytest.raises(LLMUnavailable, match="model not configured"):
         OllamaProvider().complete("hi")
 
@@ -100,7 +145,9 @@ def test_complete_raises_when_no_model_configured(monkeypatch):
 def test_env_model_overrides_default(monkeypatch):
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3-coder:30b")
     monkeypatch.setattr("core.runtime.ollama_provider._read_profile_model", lambda: None)
-    payload = json.dumps({"message": {"content": "x"}, "prompt_eval_count": 1, "eval_count": 1}).encode()
+    payload = json.dumps(
+        {"message": {"content": "x"}, "prompt_eval_count": 1, "eval_count": 1}
+    ).encode()
     with patch("core.runtime.ollama_provider.urllib.request.urlopen") as mock:
         mock.return_value = _FakeResponse(200, payload)
         response = OllamaProvider().complete("hi")
@@ -110,7 +157,9 @@ def test_env_model_overrides_default(monkeypatch):
 def test_explicit_model_arg_wins_over_env(monkeypatch):
     monkeypatch.setenv("OLLAMA_MODEL", "from-env")
     monkeypatch.setattr("core.runtime.ollama_provider._read_profile_model", lambda: None)
-    payload = json.dumps({"message": {"content": "x"}, "prompt_eval_count": 1, "eval_count": 1}).encode()
+    payload = json.dumps(
+        {"message": {"content": "x"}, "prompt_eval_count": 1, "eval_count": 1}
+    ).encode()
     with patch("core.runtime.ollama_provider.urllib.request.urlopen") as mock:
         mock.return_value = _FakeResponse(200, payload)
         response = OllamaProvider(model="from-arg").complete("hi")
@@ -119,6 +168,7 @@ def test_explicit_model_arg_wins_over_env(monkeypatch):
 
 def test_provider_registered_in_factory_chain():
     from core.runtime.llm_provider import _FALLBACK_ORDER, _PROVIDERS
+
     assert "ollama" in _PROVIDERS
     assert "ollama" in _FALLBACK_ORDER
     # Ollama should sit between subagent and anthropic-direct in the chain

@@ -9,13 +9,14 @@ Workflows define multi-phase execution plans with:
 """
 
 from enum import Enum
-from typing import Optional, Any, Literal
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
-ModelOverride = Literal["haiku", "sonnet", "opus"]
+ModelOverride = Literal["haiku", "sonnet", "opus", "fable"]
 
 
-class PhaseStatus(str, Enum):
+class PhaseStatus(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -24,7 +25,7 @@ class PhaseStatus(str, Enum):
     BLOCKED = "blocked"
 
 
-class GateType(str, Enum):
+class GateType(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     USER_APPROVAL = "user_approval"     # Requires user to confirm
     QUALITY_GATE = "quality_gate"       # Marta + Eduardo + Francisca
     AUTO = "auto"                       # Passes automatically if phase succeeds
@@ -36,7 +37,7 @@ class Gate(BaseModel):
     """A gate between phases — controls flow progression."""
     type: GateType = GateType.AUTO
     description: str = ""
-    condition: Optional[str] = None     # Python expression for CONDITION type
+    condition: str | None = None     # Python expression for CONDITION type
     required_verdict: str = "APPROVED"  # For QUALITY_GATE type
     timeout_seconds: int = 0            # 0 = no timeout
 
@@ -66,13 +67,14 @@ class Phase(BaseModel):
     gate: Gate = Field(default_factory=Gate)
     outputs: list[PhaseOutput] = Field(default_factory=list)
     depends_on: list[str] = Field(default_factory=list)
-    skip_if: Optional[str] = None       # Condition to skip this phase
-    model_override: Optional[ModelOverride] = None  # Force model for this phase (overrides agent defaults)
+    skip_if: str | None = None       # Condition to skip this phase
+    # Force model for this phase (overrides agent defaults)
+    model_override: ModelOverride | None = None
     status: PhaseStatus = PhaseStatus.PENDING
-    result: Optional[str] = None
+    result: str | None = None
 
 
-class WorkflowTier(str, Enum):
+class WorkflowTier(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     ENTERPRISE = "enterprise"           # Full 7-10 phase workflow
     FOCUSED = "focused"                 # 3-4 phases for medium tasks
     SPECIALIST = "specialist"           # 1-2 phases for simple tasks
@@ -104,13 +106,13 @@ class Workflow(BaseModel):
     current_phase: int = 0
     status: PhaseStatus = PhaseStatus.PENDING
 
-    def get_current_phase(self) -> Optional[Phase]:
+    def get_current_phase(self) -> Phase | None:
         """Get the currently active phase."""
         if 0 <= self.current_phase < len(self.phases):
             return self.phases[self.current_phase]
         return None
 
-    def get_phase_by_id(self, phase_id: str) -> Optional[Phase]:
+    def get_phase_by_id(self, phase_id: str) -> Phase | None:
         """Find a phase by its ID."""
         for phase in self.phases:
             if phase.id == phase_id:
@@ -124,7 +126,7 @@ class Workflow(BaseModel):
             for p in self.phases
         )
 
-    def next_phase(self) -> Optional[Phase]:
+    def next_phase(self) -> Phase | None:
         """Get the next pending phase."""
         for i, phase in enumerate(self.phases):
             if phase.status == PhaseStatus.PENDING:

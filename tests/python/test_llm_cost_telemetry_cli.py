@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import json
 from contextlib import redirect_stderr, redirect_stdout
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -18,13 +18,13 @@ def populated_telemetry(tmp_path, monkeypatch) -> Path:
     """Build a 5-entry JSONL the CLI can aggregate."""
     path = tmp_path / "llm-cost.jsonl"
     monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows = [
         {
             "ts": now.isoformat(),
             "session_id": "sess-a",
             "provider": "anthropic",
-            "model": "claude-opus-4-7",
+            "model": "claude-opus-5",
             "tokens_in": 2000,
             "tokens_out": 400,
             "cached_tokens": 500,
@@ -68,7 +68,7 @@ def populated_telemetry(tmp_path, monkeypatch) -> Path:
             "ts": (now - timedelta(days=45)).isoformat(),
             "session_id": "sess-d",
             "provider": "anthropic",
-            "model": "claude-opus-4-7",
+            "model": "claude-opus-5",
             "tokens_in": 10000,
             "tokens_out": 2000,
             "cached_tokens": 1000,
@@ -178,7 +178,7 @@ def _write_rows(path: Path, rows: list[dict]) -> None:
 def test_cli_renders_by_category_when_present(tmp_path, monkeypatch):
     path = tmp_path / "categorised.jsonl"
     monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _write_rows(
         path,
         [
@@ -186,7 +186,7 @@ def test_cli_renders_by_category_when_present(tmp_path, monkeypatch):
                 "ts": now.isoformat(),
                 "session_id": "s",
                 "provider": "anthropic",
-                "model": "claude-opus-4-7",
+                "model": "claude-opus-5",
                 "tokens_in": 100,
                 "tokens_out": 50,
                 "cached_tokens": 0,
@@ -197,7 +197,7 @@ def test_cli_renders_by_category_when_present(tmp_path, monkeypatch):
                 "ts": now.isoformat(),
                 "session_id": "s",
                 "provider": "anthropic",
-                "model": "claude-opus-4-7",
+                "model": "claude-opus-5",
                 "tokens_in": 100,
                 "tokens_out": 50,
                 "cached_tokens": 0,
@@ -224,7 +224,7 @@ def test_cli_hides_by_category_for_legacy_only_entries(
 
 def test_cli_unknown_models_bucketed(tmp_path, monkeypatch):
     path = tmp_path / "unknown.jsonl"
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     path.write_text(
         "\n".join(
             [

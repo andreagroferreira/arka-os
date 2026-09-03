@@ -209,7 +209,7 @@ There is no "APPROVED WITH CAVEATS". It's binary. Fix issues first.
 
 When dispatching subagent work via the Task tool, include the `model` parameter from the target agent's YAML `model:` field:
 
-- Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | haiku`
+- Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | fable` (`haiku` still parses in legacy YAML; ArkaOS ships no agent on it — use `sonnet`)
 - Quality Gate agents (Marta aggregating, Eduardo + Francisca reviewing)
   run on the BEST model available — single source: constitution
   `quality_gate.model_policy` (Excellence Reform 2026-07-05, frontier
@@ -218,7 +218,7 @@ When dispatching subagent work via the Task tool, include the `model` parameter 
 - Marta keeps her veto regardless of the model tier the review ran on —
   the verdict derives from evidence, not from model size.
 - Default to `sonnet` if the agent YAML has no `model` field
-- Mechanical tasks (commit messages, routing, keyword extraction) use `model: haiku`
+- Mechanical tasks (commit messages, routing, keyword extraction) use `model: sonnet` (the weakest lane ArkaOS routes to)
 
 Example Task tool call:
 

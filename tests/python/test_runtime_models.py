@@ -3,20 +3,22 @@
 from __future__ import annotations
 
 from core.runtime import runtime_models
-from core.runtime.model_router import ROLE_DESCRIPTIONS, QUALITY_ROLES, role_description
+from core.runtime.model_router import QUALITY_ROLES, ROLE_DESCRIPTIONS, role_description
 
 
 class TestRuntimeModels:
     def test_claude_code_lists_the_current_models(self):
         models = runtime_models.models_for_runtime("claude-code")
         labels = {m["label"] for m in models}
-        assert {"Fable 5", "Opus 4.8", "Sonnet 5", "Haiku 4.5"} <= labels
+        # Runtime Sync 2026-09-03: exactly these three lanes — the weakest
+        # is Sonnet 5, and no previous-generation label survives.
+        assert sorted(labels) == ["Fable 5.1", "Opus 5", "Sonnet 5"]
 
     def test_fable_is_the_full_id_and_flagged_most_capable(self):
         fable = next(
-            m for m in runtime_models.CLAUDE_CODE_MODELS if m["label"] == "Fable 5"
+            m for m in runtime_models.CLAUDE_CODE_MODELS if m["label"] == "Fable 5.1"
         )
-        assert fable["value"] == "claude-fable-5"
+        assert fable["value"] == "claude-fable-5-1"
         assert fable["tier"] == "frontier"
         assert "most capable" in fable["note"]
 

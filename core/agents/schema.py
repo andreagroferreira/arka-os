@@ -8,11 +8,24 @@ Every ArkaOS agent has a complete behavioral profile composed of:
 """
 
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
+# "haiku" stays accepted for legacy client YAML only; ArkaOS's weakest
+# lane is Sonnet 5 (Runtime Sync 2026-09-03). "fable" = Claude Code alias.
+ModelTier = Literal["haiku", "sonnet", "opus", "fable"]
 
-ModelTier = Literal["haiku", "sonnet", "opus"]
+
+# Runtime Sync 2026-09-03: the weakest lane ArkaOS routes to is Sonnet 5.
+# "haiku" still PARSES (legacy client YAML) but never reaches a dispatch:
+# get_model() and the compiled frontmatter both normalise it.
+_LANE_NORMALISATION: dict[ModelTier, ModelTier] = {"haiku": "sonnet"}
+
+
+def normalise_tier(model: ModelTier) -> ModelTier:
+    """Map a legacy lane to the one ArkaOS actually routes to."""
+    return _LANE_NORMALISATION.get(model, model)
 
 
 def tier_default_model(tier: int) -> ModelTier:
@@ -24,9 +37,9 @@ def tier_default_model(tier: int) -> ModelTier:
 
 # --- DISC Framework ---
 
-class DISCType(str, Enum):
+class DISCType(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     D = "D"  # Dominance
-    I = "I"  # Influence
+    I = "I"  # noqa: E741 — DISC letter is the contract
     S = "S"  # Steadiness
     C = "C"  # Conscientiousness
 
@@ -64,13 +77,13 @@ class EnneagramType(int, Enum):
     PEACEMAKER = 9
 
 
-class EnneagramCenter(str, Enum):
+class EnneagramCenter(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     BODY = "body"      # 8, 9, 1 — Anger/Instinct
     HEART = "heart"    # 2, 3, 4 — Shame/Feeling
     HEAD = "head"      # 5, 6, 7 — Fear/Thinking
 
 
-class InstinctualSubtype(str, Enum):
+class InstinctualSubtype(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     SP = "self-preservation"
     SO = "social"
     SX = "sexual"
@@ -136,14 +149,26 @@ class BigFiveProfile(BaseModel):
 
 # --- MBTI Framework ---
 
-class MBTIType(str, Enum):
-    INTJ = "INTJ"; INTP = "INTP"; ENTJ = "ENTJ"; ENTP = "ENTP"
-    INFJ = "INFJ"; INFP = "INFP"; ENFJ = "ENFJ"; ENFP = "ENFP"
-    ISTJ = "ISTJ"; ISFJ = "ISFJ"; ESTJ = "ESTJ"; ESFJ = "ESFJ"
-    ISTP = "ISTP"; ISFP = "ISFP"; ESTP = "ESTP"; ESFP = "ESFP"
+class MBTIType(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
+    INTJ = "INTJ"
+    INTP = "INTP"
+    ENTJ = "ENTJ"
+    ENTP = "ENTP"
+    INFJ = "INFJ"
+    INFP = "INFP"
+    ENFJ = "ENFJ"
+    ENFP = "ENFP"
+    ISTJ = "ISTJ"
+    ISFJ = "ISFJ"
+    ESTJ = "ESTJ"
+    ESFJ = "ESFJ"
+    ISTP = "ISTP"
+    ISFP = "ISFP"
+    ESTP = "ESTP"
+    ESFP = "ESFP"
 
 
-class CognitiveFunction(str, Enum):
+class CognitiveFunction(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     Ni = "Ni"  # Introverted Intuition
     Ne = "Ne"  # Extraverted Intuition
     Si = "Si"  # Introverted Sensing
@@ -217,7 +242,7 @@ class Authority(BaseModel):
     block_delivery: bool = False
     orchestrate: bool = False
     delegates_to: list[str] = Field(default_factory=list)
-    escalates_to: Optional[str] = None
+    escalates_to: str | None = None
 
 
 # --- Communication Style ---
@@ -272,12 +297,12 @@ class Agent(BaseModel):
 
     memory_path: str = ""
 
-    model: Optional[ModelTier] = Field(
+    model: ModelTier | None = Field(
         default=None,
         description="Claude model override for dispatch. Falls back to tier default when None.",
     )
 
-    parent_squad: Optional[str] = Field(
+    parent_squad: str | None = Field(
         default=None,
         description=(
             "Slug of the parent squad when this agent belongs to a sub-squad. "
@@ -287,7 +312,7 @@ class Agent(BaseModel):
         ),
     )
 
-    sub_squad_role: Optional[str] = Field(
+    sub_squad_role: str | None = Field(
         default=None,
         description=(
             "Role within the sub-squad when parent_squad is set "
@@ -314,4 +339,4 @@ class Agent(BaseModel):
 
     def get_model(self) -> ModelTier:
         """Return the resolved Claude model, using tier default when unset."""
-        return self.model or tier_default_model(self.tier)
+        return normalise_tier(self.model or tier_default_model(self.tier))

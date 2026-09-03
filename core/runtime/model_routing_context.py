@@ -81,7 +81,7 @@ def routing_directive() -> str:
         if gateway_healthy():
             gateway_line = (
                 "\nGateway LIVE: the Task model param physically routes the "
-                "upstream. Dispatch execution with model=haiku (→ Ollama), "
+                "upstream. Dispatch execution with model=haiku (slot → Ollama), "
                 "mechanical with model=sonnet, and design/review/architecture/"
                 "quality_gate with model=opus (→ Anthropic). strategy is the "
                 "main loop model."

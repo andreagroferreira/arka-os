@@ -3,7 +3,7 @@ name: Maria
 role: Research Assistant
 department: dev
 tier: 3
-model: haiku
+model: sonnet
 
 behavioral_dna:
   disc:

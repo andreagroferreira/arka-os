@@ -30,7 +30,6 @@ from core.runtime.llm_cost_telemetry import record_cost
 from core.runtime.llm_retry import retry_completion
 from core.runtime.pricing import estimate_cost_usd
 
-
 _DEFAULT_CONFIG_PATH = Path.home() / ".arkaos" / "config.json"
 _FALLBACK_ORDER: tuple[str, ...] = (
     "subagent", "ollama", "openrouter", "anthropic-direct", "stub"
@@ -52,7 +51,7 @@ class LLMResponse:
 # ─── Exceptions ───────────────────────────────────────────────────────
 
 
-class LLMUnavailable(RuntimeError):
+class LLMUnavailable(RuntimeError):  # noqa: N818 — public name imported by 16 core modules; rename to LLMUnavailableError tracked in PR #555 follow-ups
     """Raised when a provider cannot complete a request at call time.
 
     `is_available()` surfaces the static capability check; this
@@ -104,11 +103,11 @@ class SubagentProvider:
     def is_available(self) -> bool:
         try:
             adapter = self._resolve_adapter()
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
         try:
             return adapter.headless_supported()
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     def complete(
@@ -129,7 +128,7 @@ class SubagentProvider:
                 raise LLMUnavailable(str(exc)) from exc
             except LLMUnavailable:
                 raise
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 raise LLMUnavailable(
                     f"headless_complete failed: {exc.__class__.__name__}: {exc}"
                 ) from exc
@@ -250,7 +249,7 @@ class AnthropicDirectProvider:
             )
         except LLMUnavailable:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise LLMUnavailable(
                 f"anthropic.messages.create failed: {exc.__class__.__name__}: {exc}"
             ) from exc
@@ -313,10 +312,10 @@ class StubProvider:
 
     def complete(
         self,
-        prompt: str,  # noqa: ARG002
+        prompt: str,
         *,
-        max_tokens: int = 2000,  # noqa: ARG002
-        system: str = "",  # noqa: ARG002
+        max_tokens: int = 2000,
+        system: str = "",
     ) -> LLMResponse:
         return LLMResponse(
             text="", tokens_in=0, tokens_out=0, cached_tokens=0, model=""
@@ -420,6 +419,9 @@ def _log_fallback(preferred: str, selected: str, reason: str = "") -> None:
     )
 
 
+_LOCAL_PROVIDERS = frozenset({"ollama"})
+
+
 def _record(session_id: str, provider: str, response: LLMResponse) -> None:
     cost = estimate_cost_usd(
         response.model,
@@ -427,6 +429,15 @@ def _record(session_id: str, provider: str, response: LLMResponse) -> None:
         response.tokens_out,
         response.cached_tokens,
     )
+    # Runtime Sync PR-2: a local model has no spend — price it at $0.00 and
+    # say so, instead of leaving None for the unknown-model advisory to
+    # misread (QG B1). A cloud model the table does not know is announced.
+    status = ""
+    if cost is None:
+        if provider in _LOCAL_PROVIDERS:
+            cost, status = 0.0, "local"
+        else:
+            status = "unknown-model"
     record_cost(
         session_id=session_id,
         provider=provider,
@@ -436,4 +447,5 @@ def _record(session_id: str, provider: str, response: LLMResponse) -> None:
         cached_tokens=response.cached_tokens,
         estimated_cost_usd=cost,
         category=_current_category(),
+        pricing_status=status,
     )

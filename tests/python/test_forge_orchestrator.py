@@ -1,46 +1,46 @@
 """Tests for ForgeOrchestrator — 10-step planning flow."""
 
-import pytest
-from unittest.mock import MagicMock, patch, Mock
-from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
-from core.forge.schema import (
-    ForgePlan,
-    ForgeContext,
-    ForgeStatus,
-    ForgeTier,
-    ComplexityScore,
-    ComplexityDimensions,
-    ExplorerLens,
-    ExplorerApproach,
-    CriticVerdict,
-    RejectedElement,
-    IdentifiedRisk,
-    RiskSeverity,
-    PlanPhase,
-    ExecutionPath,
-    ExecutionPathType,
-    ForgeGovernance,
-    KeyDecision,
-    PhaseDeliverable,
-)
+import pytest
+
 from core.forge.orchestrator import (
-    ForgeOrchestrator,
-    ForgeDecision,
-    ForgeStep,
-    ForgeStatusOutput,
-    ForgeHistoryEntry,
-    ForgeCompareOutput,
     CONSTITUTION_PHASES,
+    ForgeCompareOutput,
+    ForgeDecision,
+    ForgeHistoryEntry,
+    ForgeOrchestrator,
+    ForgeStatusOutput,
+    ForgeStep,
 )
 from core.forge.runtime_dispatcher import (
-    ForgeTaskDispatcher,
-    ForgeDispatchUnavailableError,
     ClaudeCodeForgeDispatcher,
-    ExplorerDispatchRequest,
     CriticDispatchRequest,
     DispatchResult,
+    ExplorerDispatchRequest,
+    ForgeDispatchUnavailableError,
+    ForgeTaskDispatcher,
     _tier_to_model,
+)
+from core.forge.schema import (
+    ComplexityDimensions,
+    ComplexityScore,
+    CriticVerdict,
+    ExecutionPath,
+    ExecutionPathType,
+    ExplorerApproach,
+    ExplorerLens,
+    ForgeContext,
+    ForgeGovernance,
+    ForgePlan,
+    ForgeStatus,
+    ForgeTier,
+    IdentifiedRisk,
+    KeyDecision,
+    PhaseDeliverable,
+    PlanPhase,
+    RejectedElement,
+    RiskSeverity,
 )
 
 
@@ -216,7 +216,7 @@ FINAL_PHASES:
 class TestForgeOrchestratorInit:
     def test_default_dispatcher_is_claude_code(self):
         with patch("core.forge.orchestrator.ClaudeCodeForgeDispatcher") as mock:
-            orch = ForgeOrchestrator()
+            ForgeOrchestrator()
             mock.assert_called_once()
 
     def test_custom_dispatcher(self):
@@ -555,7 +555,8 @@ def _setup_orchestrator(orch: ForgeOrchestrator):
 
 
 # =============================================================================
-# TestForgeCommands — forge(), resume(), status(), history(), show(), compare(), patterns(), cancel()
+# TestForgeCommands — forge(), resume(), status(), history(), show(),
+# compare(), patterns(), cancel()
 # =============================================================================
 
 
@@ -970,7 +971,7 @@ class TestRenderOutput:
 
         with patch("core.forge.orchestrator.render_complexity") as mock_render:
             mock_render.return_value = "complexity output"
-            result = orch.render_complexity()
+            orch.render_complexity()
 
             mock_render.assert_called_once_with(mock_plan.complexity)
 
@@ -1009,8 +1010,9 @@ class TestConstitutionEnforcement:
 
 
 class TestModelRouting:
-    def test_shallow_maps_to_haiku(self):
-        assert _tier_to_model(ForgeTier.SHALLOW) == "haiku"
+    def test_shallow_maps_to_sonnet(self):
+        # Runtime Sync 2026-09-03: the weakest lane ArkaOS routes to is Sonnet 5.
+        assert _tier_to_model(ForgeTier.SHALLOW) == "sonnet"
 
     def test_standard_maps_to_sonnet(self):
         assert _tier_to_model(ForgeTier.STANDARD) == "sonnet"
@@ -1078,8 +1080,8 @@ class TestForgeHistoryEntry:
 
 class TestForgeCompareOutput:
     def test_compare_output_creation(self):
-        left_plan = _make_plan("left", "Left")
-        right_plan = _make_plan("right", "Right")
+        _make_plan("left", "Left")
+        _make_plan("right", "Right")
 
         output = ForgeCompareOutput(
             left=ForgeStatusOutput(
@@ -1287,7 +1289,7 @@ class TestDegradedPlan:
         )
 
     def test_degraded_plan_renders_warning(self):
-        from core.forge.renderer import render_terminal, DEGRADED_NOTICE
+        from core.forge.renderer import DEGRADED_NOTICE, render_terminal
 
         orch = ForgeOrchestrator()
         _setup_orchestrator(orch)

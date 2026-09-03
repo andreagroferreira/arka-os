@@ -71,7 +71,7 @@ Outside this skill's scope but worth surfacing alongside the summary:
 | --- | --- | --- |
 | `ARKAOS_LLM_PROVIDER` | env | Switch between Anthropic, OpenAI, Gemini adapters per the multi-LLM router. |
 | `ANTHROPIC_BEDROCK_SERVICE_TIER` | env (Claude Code 2.1.122+) | `default` / `flex` / `priority`. Only relevant when routing through AWS Bedrock — `flex` cuts cost ~50 % on non-urgent workloads at the price of higher tail latency. |
-| Agent `model:` field | `departments/*/agents/*.yaml` | Per-agent override per the model-routing matrix in CLAUDE.md. Mechanical roles default to haiku, C-suite to opus. |
+| Agent `model:` field | `departments/*/agents/*.yaml` | Per-agent override per the model-routing matrix in CLAUDE.md. Mechanical roles default to `sonnet` at low effort, C-suite to `opus` (Opus 5); the Quality Gate row below lifts Marta / Eduardo / Francisca to the frontier tier. |
 | Quality Gate model | constitution `quality_gate.model_policy` | Marta / Eduardo / Francisca run on the best model available (frontier tier) regardless of the cost ceiling — review quality is never the place to save tokens. |
 
 ## Non-negotiables

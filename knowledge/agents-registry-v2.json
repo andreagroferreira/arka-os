@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-08-05T17:46:33.926189",
+    "generated": "2026-09-03T17:17:36.246487",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {
@@ -1854,7 +1854,7 @@
       "role": "Research Assistant",
       "department": "dev",
       "tier": 3,
-      "model": "haiku",
+      "model": "sonnet",
       "provenance": {
         "origin": "arkaos"
       },
@@ -2376,7 +2376,7 @@
       "role": "Data Collector",
       "department": "kb",
       "tier": 3,
-      "model": "haiku",
+      "model": "sonnet",
       "provenance": {
         "origin": "arkaos"
       },
@@ -3372,7 +3372,7 @@
       "role": "Documentation Writer",
       "department": "ops",
       "tier": 3,
-      "model": "haiku",
+      "model": "sonnet",
       "provenance": {
         "origin": "arkaos"
       },

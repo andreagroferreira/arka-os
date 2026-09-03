@@ -27,7 +27,6 @@ from pathlib import Path
 
 from core.runtime.llm_provider import LLMResponse, LLMUnavailable
 
-
 _OLLAMA_HOST = "http://localhost:11434"
 _DEFAULT_MODEL = "gemma3:27b"  # fallback only — most users override via env / profile
 _GENERATE_TIMEOUT_S = 120  # nightly Dreaming run — large prompts allowed
@@ -64,11 +63,20 @@ class OllamaProvider:
     ) -> LLMResponse:
         model = self._resolve_model()
         if not model:
-            raise LLMUnavailable("Ollama model not configured (set OLLAMA_MODEL or profile.cognitiveModel)")
+            raise LLMUnavailable(
+                "Ollama model not configured (set OLLAMA_MODEL or profile.cognitiveModel)"
+            )
 
         payload = self._build_payload(model, prompt, system, max_tokens)
         data = self._post_generate(payload)
-        return self._to_response(data, model)
+        response = self._to_response(data, model)
+        # Local calls are visible in /arka costs as $0.00 / pricing_status
+        # "local" — the same telemetry path the cloud providers use.
+        # function-local: llm_provider imports this module to build _PROVIDERS
+        from core.runtime.llm_provider import _record
+
+        _record(os.environ.get("ARKA_SESSION_ID", ""), self.name(), response)
+        return response
 
     def _resolve_model(self) -> str | None:
         if self._model_override:

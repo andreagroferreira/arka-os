@@ -7,11 +7,11 @@ It supports hooks, subagents (Agent tool), MCP servers, and worktrees.
 import json
 import shutil
 import subprocess
-from pathlib import Path
 from os.path import expanduser
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-from core.runtime.base import RuntimeAdapter, RuntimeConfig, AgentContext, AgentResult
+from core.runtime.base import AgentContext, AgentResult, RuntimeAdapter, RuntimeConfig
 
 if TYPE_CHECKING:
     from core.runtime.llm_provider import LLMResponse
@@ -168,6 +168,30 @@ def _run_claude_cli(cmd: list[str]) -> subprocess.CompletedProcess:
         raise LLMUnavailable(f"claude CLI subprocess failed: {exc}") from exc
 
 
+def _model_from_payload(payload: dict[str, Any]) -> str:
+    """The model id a `claude -p --output-format json` run actually used.
+
+    The payload carries no top-level ``model`` key (2.1.259 capture in
+    tests/python/fixtures/claude_p_output_json_2_1_259.json); the ids live
+    under ``modelUsage`` keyed by model, one entry per model the turn
+    touched. Pick the entry with the largest input volume, fall back to a
+    top-level ``model`` for older or gateway payloads, else "" — which the
+    cost recorder then reports as an unpriceable row instead of $0.00.
+    """
+    usage = payload.get("modelUsage")
+    if isinstance(usage, dict) and usage:
+        def _volume(item: tuple[str, object]) -> int:
+            entry = item[1] if isinstance(item[1], dict) else {}
+            return sum(
+                int(entry.get(k) or 0)
+                for k in ("inputTokens", "cacheReadInputTokens", "cacheCreationInputTokens")
+            )
+        model, _ = max(usage.items(), key=_volume)
+        if model:
+            return str(model)
+    return str(payload.get("model") or "")
+
+
 def _parse_claude_cli_output(stdout: str) -> "LLMResponse":
     from core.runtime.llm_provider import LLMResponse
 
@@ -179,7 +203,7 @@ def _parse_claude_cli_output(stdout: str) -> "LLMResponse":
     cache_read = int(usage.get("cache_read_input_tokens") or 0)
     cache_write = int(usage.get("cache_creation_input_tokens") or 0)
     total_input = tokens_in + cache_read + cache_write
-    model = str(payload.get("model") or "")
+    model = _model_from_payload(payload)
     return LLMResponse(
         text=text,
         tokens_in=total_input,

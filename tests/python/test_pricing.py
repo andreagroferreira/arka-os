@@ -65,3 +65,22 @@ class TestOpus5Pricing:
 
     def test_fable_1m_alias_present(self):
         assert PRICING["claude-fable-5[1m]"]["input"] == 10.00
+
+
+class TestFable51Rows:
+    """Runtime Sync PR-2 (2026-09-03): the model the operator runs is priced."""
+
+    def test_fable_5_1_and_1m_alias_are_priced(self):
+        from core.runtime import pricing
+
+        for mid in ("claude-fable-5-1", "claude-fable-5-1[1m]", "claude-mythos-5-1"):
+            row = pricing.PRICING[mid]
+            assert row["input"] == 10.00 and row["output"] == 50.00
+            assert row["cache_read"] == 0.25  # 75% below the previous Fable rate
+            assert pricing.estimate_cost_usd(mid, 1_000_000, 100_000) is not None
+
+    def test_sonnet_5_is_standard_list_price(self):
+        from core.runtime import pricing
+
+        row = pricing.PRICING["claude-sonnet-5"]
+        assert (row["input"], row["output"]) == (2.00, 10.00)

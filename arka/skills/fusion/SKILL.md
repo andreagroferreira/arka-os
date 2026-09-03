@@ -68,7 +68,7 @@ Produce a table: role → provider/model + ONE-line rationale each. Rules:
   evidence: budget panel + frontier judge beats frontier solo at ~50%
   cost).
 - `mechanical` → cheapest competent lane: local coder model if Ollama
-  runs one, else haiku-class.
+  runs one, else Sonnet 5 at low effort (the weakest cloud lane).
 - Fusion panel: 2-3 DIVERSE models (different families — e.g. one
   Anthropic, one Kimi/DeepSeek, one local large) + frontier judge.
   Homogeneous panels waste the fan-out.

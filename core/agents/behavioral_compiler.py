@@ -32,6 +32,8 @@ from pathlib import Path
 
 import yaml
 
+from core.agents.schema import normalise_tier
+
 _ROOT = Path(__file__).resolve().parents[2]
 _OUT_DIR = _ROOT / "config" / "claude-agents"
 
@@ -95,7 +97,7 @@ def _frontmatter(slug: str, data: dict) -> str:
     desc = f"{data.get('name', slug)} — {role} ({dept} squad)."
     if domains:
         desc += f" Executes: {domains}."
-    model = data.get("model", "sonnet")
+    model = normalise_tier(data.get("model", "sonnet"))
     return (
         f"---\nname: {slug}\ndescription: >\n  {desc}\nmodel: {model}\n---"
     )

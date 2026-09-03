@@ -75,10 +75,10 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 
 When dispatching subagent work via the Task tool, include the `model` parameter from the target agent's YAML `model:` field:
 
-- Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | haiku`
+- Agent YAMLs at `departments/*/agents/*.yaml` have `model: opus | sonnet | fable` (`haiku` still parses in legacy YAML; ArkaOS ships no agent on it — use `sonnet`)
 - Quality Gate dispatch model: constitution `quality_gate.model_policy` (single source — best-available via Model Fabric; veto is model-independent)
 - Default to `sonnet` if the agent YAML has no `model` field
-- Mechanical tasks (commit messages, routing, keyword extraction) use `model: haiku`
+- Mechanical tasks (commit messages, routing, keyword extraction) use `model: sonnet` (the weakest lane ArkaOS routes to)
 
 Example Task tool call:
 

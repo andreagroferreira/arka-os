@@ -5,32 +5,28 @@ across all supported runtimes (Claude Code, Codex CLI, Gemini CLI, Cursor).
 Each runtime gets its own dispatcher implementation.
 
 Model routing per tier:
-- shallow (≤30):  haiku  (cost-optimized, inline execution)
+- shallow (≤30):  sonnet (cheapest lane ArkaOS routes to, inline execution)
 - standard (31-65): sonnet (balanced cost/quality)
 - deep (66-85):   opus  (highest quality for complex judgment)
 - super (≥86):     opus  (full synthesis, highest judgment)
 """
 
-import json
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any
 
 from core.forge.schema import (
-    ExplorerLens,
-    ExplorerApproach,
     CriticVerdict,
+    ExplorerApproach,
+    ExplorerLens,
     ForgeContext,
     ForgeTier,
-    PhaseDeliverable,
-    KeyDecision,
-    RiskSeverity,
-    RejectedElement,
     IdentifiedRisk,
+    KeyDecision,
+    PhaseDeliverable,
+    RejectedElement,
+    RiskSeverity,
 )
-
 
 EXPLORER_PREAMBLE = """You are an expert planning agent within ArkaOS. Your task is to produce a structured execution plan for the following prompt."""
 
@@ -141,7 +137,7 @@ class CriticDispatchRequest:
 def _tier_to_model(tier: ForgeTier) -> str:
     """Map tier to default model."""
     mapping = {
-        ForgeTier.SHALLOW: "haiku",
+        ForgeTier.SHALLOW: "sonnet",
         ForgeTier.STANDARD: "sonnet",
         ForgeTier.DEEP: "opus",
     }
@@ -253,7 +249,6 @@ Phases:
 
 def _parse_explorer_output(raw: str, lens: ExplorerLens) -> ExplorerApproach:
     """Parse structured text output from an explorer subagent."""
-    explorer_match = re.search(r"EXPLORER:\s*(\w+)", raw)
     summary_match = re.search(r"SUMMARY:\s*(.+?)(?=KEY_DECISIONS:|$)", raw, re.DOTALL)
     key_decisions = []
     for match in re.finditer(
@@ -469,12 +464,4 @@ def _detect_runtime() -> str:
 
     if os.environ.get("ARKAOS_RUNTIME"):
         return os.environ["ARKAOS_RUNTIME"]
-
-    try:
-        import claude
-
-        return "claude-code"
-    except ImportError:
-        pass
-
     return "claude-code"
