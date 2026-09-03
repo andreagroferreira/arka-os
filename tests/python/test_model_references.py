@@ -13,12 +13,14 @@ import re
 import subprocess
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parent.parent.parent
 
 STALE = re.compile(
-    r"(?<![\w-])opus-4-[5-8]\b|Opus 4\.[5-8]\b"
-    r"|(?<![\w-])claude-fable-5(?![-.\w])|Fable 5(?![.\d\w])"
-    r"|haiku-4-5|Haiku 4\.5|^model: haiku\b",
+    r"\bopus-4-[5-8]\b|Opus 4\.[5-8]\b"
+    r"|\bclaude-fable-5(?![-.\w])|Fable 5(?![.\d\w])"
+    r"|haiku-4-5|Haiku 4\.5|^\s*model:\s*haiku\b",
     re.M,
 )
 ALLOWED_FILES = {
@@ -29,7 +31,7 @@ ALLOWED_FILES = {
     "tests/python/test_model_router.py",
     "tests/python/test_model_references.py",
 }
-ALLOWED_PREFIXES = ("docs/adr/", "docs/superpowers/", "docs/strategy/", "harness/")
+ALLOWED_PREFIXES = ("docs/adr/", "docs/superpowers/", "docs/strategy/")
 TEXT_SUFFIXES = {".py", ".md", ".yaml", ".yml", ".json", ".js", ".cjs", ".mjs",
                  ".sh", ".bats", ".vue", ".ts", ".toml", ".txt"}
 
@@ -48,9 +50,26 @@ def _tracked_text_files() -> list[str]:
 
 _PROSE_SURFACES = ("config/claude-agents/", "departments/")
 _PROSE_ALLOWED = re.compile(
-    r"never (routed|haiku)|legacy YAML only|LEGACY_MODEL_IDS|haiku-class", re.I
+    r"never routed|never haiku|legacy YAML|LEGACY_MODEL_IDS|no shipped agent", re.I
 )
 _PROSE_HAIKU = re.compile(r"\bhaiku\b", re.I)
+
+
+@pytest.mark.parametrize("sample", [
+    "claude-opus-4-8", "best: claude-opus-4-8", "claude-opus-4-7[1m]",
+    "claude-fable-5", "Opus 4.8", "  model: haiku", "claude-haiku-4-5-20251001",
+])
+def test_stale_regex_catches_retired_ids(sample):
+    """The guard proves itself: every retired form the sweep removed must match."""
+    assert STALE.search(sample), sample
+
+
+@pytest.mark.parametrize("sample", [
+    "claude-opus-5", "claude-fable-5-1", "Fable 5.1", "claude-sonnet-5",
+    "claude-opus-5[1m]", "model: sonnet",
+])
+def test_stale_regex_ignores_current_ids(sample):
+    assert not STALE.search(sample), sample
 
 
 def test_no_prose_routes_to_haiku_in_shipped_instruction_surfaces():

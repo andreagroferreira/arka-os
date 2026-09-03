@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.0",
-    "generated": "2026-09-03T16:37:24.069398",
+    "generated": "2026-09-03T17:17:36.246487",
     "total_agents": 89,
     "generator": "core/agents/registry_gen.py",
     "tiers": {

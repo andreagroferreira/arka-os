@@ -34,7 +34,7 @@ providers:
 # `best` / `default` / `fast` resolve per provider, so roles stay readable.
 aliases:
   runtime:
-    best: fable            # Claude Code alias → Fable 5.1 (2.1.255+)
+    best: fable            # Claude Code alias → Fable 5.1 (Claude Code 2.1.257+)
     default: sonnet
     fast: sonnet           # weakest lane is Sonnet 5 — never Haiku
   anthropic:

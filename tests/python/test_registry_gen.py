@@ -16,7 +16,7 @@ REPO_ROOT = Path(__file__).parent.parent.parent
 DEPARTMENTS = REPO_ROOT / "departments"
 COMMITTED_REGISTRY = REPO_ROOT / "knowledge" / "agents-registry-v2.json"
 
-VALID_MODELS = {"haiku", "sonnet", "opus", "fable"}  # haiku: legacy YAML only
+VALID_MODELS = {"sonnet", "opus", "fable"}  # haiku normalises away before the registry
 
 
 @pytest.fixture(scope="module")

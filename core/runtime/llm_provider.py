@@ -51,7 +51,7 @@ class LLMResponse:
 # ─── Exceptions ───────────────────────────────────────────────────────
 
 
-class LLMUnavailable(RuntimeError):
+class LLMUnavailable(RuntimeError):  # noqa: N818 — public name imported by 16 core modules; rename to LLMUnavailableError tracked in PR #555 follow-ups
     """Raised when a provider cannot complete a request at call time.
 
     `is_available()` surfaces the static capability check; this

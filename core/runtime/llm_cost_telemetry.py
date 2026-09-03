@@ -284,12 +284,10 @@ def _build_advisories(
 def _pricing_advisories(entries: list[dict[str, Any]]) -> list[str]:
     """Advisories for rows the recorder could not price (Runtime Sync PR2).
 
-    Keyed on the recorder's own ``pricing_status`` — never inferred from a
-    None cost, which is also what provider=local rows, zero-token synthetic
-    rows and rows recorded without a model id look like (QG B1: the first
-    cut fired on all three with a remediation that made no sense for any
-    of them). One line per (provider, model) with a message that is true
-    for that case.
+    Keyed on the recorder's own ``pricing_status`` — a None cost alone is
+    not evidence: local rows, zero-token synthetic rows and rows without a
+    model id all look the same. One line per (provider, model) with a
+    message that is true for that case.
     """
     buckets: dict[tuple[str, str], dict[str, int]] = {}
     for e in entries:
@@ -308,7 +306,7 @@ def _pricing_advisories(entries: list[dict[str, Any]]) -> list[str]:
             out.append(
                 f"[arka:warn] pricing-unknown: {b['calls']} call(s) recorded by "
                 f"provider {provider or '<unknown>'} without a model id "
-                f"({b['tokens_in']:,} tokens in) — fix the recorder, the row cannot be priced"
+                f"({b['tokens_in']:,} tokens in) — fix the recorder; the row cannot be priced"
             )
             continue
         out.append(

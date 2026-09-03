@@ -17,6 +17,17 @@ from pydantic import BaseModel, Field, model_validator
 ModelTier = Literal["haiku", "sonnet", "opus", "fable"]
 
 
+# Runtime Sync 2026-09-03: the weakest lane ArkaOS routes to is Sonnet 5.
+# "haiku" still PARSES (legacy client YAML) but never reaches a dispatch:
+# get_model() and the compiled frontmatter both normalise it.
+_LANE_NORMALISATION: dict[str, ModelTier] = {"haiku": "sonnet"}
+
+
+def normalise_tier(model: str) -> ModelTier:
+    """Map a legacy lane to the one ArkaOS actually routes to."""
+    return _LANE_NORMALISATION.get(model, model)  # type: ignore[return-value]
+
+
 def tier_default_model(tier: int) -> ModelTier:
     """Return default Claude model for a given agent tier."""
     if tier == 0:
@@ -328,4 +339,4 @@ class Agent(BaseModel):
 
     def get_model(self) -> ModelTier:
         """Return the resolved Claude model, using tier default when unset."""
-        return self.model or tier_default_model(self.tier)
+        return normalise_tier(self.model or tier_default_model(self.tier))
