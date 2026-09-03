@@ -460,13 +460,8 @@ def create_dispatcher(runtime: str | None = None) -> ForgeTaskDispatcher:
 
 def _detect_runtime() -> str:
     """Auto-detect the current runtime environment."""
-    import importlib.util
     import os
 
     if os.environ.get("ARKAOS_RUNTIME"):
         return os.environ["ARKAOS_RUNTIME"]
-
-    if importlib.util.find_spec("claude") is not None:
-        return "claude-code"
-
     return "claude-code"

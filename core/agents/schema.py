@@ -26,7 +26,7 @@ def tier_default_model(tier: int) -> ModelTier:
 
 # --- DISC Framework ---
 
-class DISCType(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (serialised DNA)
+class DISCType(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     D = "D"  # Dominance
     I = "I"  # noqa: E741 — DISC letter is the contract
     S = "S"  # Steadiness
@@ -66,13 +66,13 @@ class EnneagramType(int, Enum):
     PEACEMAKER = 9
 
 
-class EnneagramCenter(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (serialised DNA)
+class EnneagramCenter(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     BODY = "body"      # 8, 9, 1 — Anger/Instinct
     HEART = "heart"    # 2, 3, 4 — Shame/Feeling
     HEAD = "head"      # 5, 6, 7 — Fear/Thinking
 
 
-class InstinctualSubtype(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (serialised DNA)
+class InstinctualSubtype(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     SP = "self-preservation"
     SO = "social"
     SX = "sexual"
@@ -138,7 +138,7 @@ class BigFiveProfile(BaseModel):
 
 # --- MBTI Framework ---
 
-class MBTIType(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (serialised DNA)
+class MBTIType(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     INTJ = "INTJ"
     INTP = "INTP"
     ENTJ = "ENTJ"
@@ -157,7 +157,7 @@ class MBTIType(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (seri
     ESFP = "ESFP"
 
 
-class CognitiveFunction(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (serialised DNA)
+class CognitiveFunction(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     Ni = "Ni"  # Introverted Intuition
     Ne = "Ne"  # Extraverted Intuition
     Si = "Si"  # Introverted Sensing

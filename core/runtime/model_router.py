@@ -183,6 +183,19 @@ def _resolve_alias(config: ModelsConfig, provider: str, model: str) -> str:
     return config.aliases.get(provider, {}).get(model, "") or model
 
 
+def legacy_pins(user_path: Path | None = None) -> list[tuple[str, str, str]]:
+    """(role, pinned id, current lane) for every role whose configured model
+    is a legacy id — for /arka status, where a stderr notice is invisible."""
+    config, _ = load_config(user_path)
+    out: list[tuple[str, str, str]] = []
+    for role, choice in sorted(config.roles.items()):
+        pinned = _resolve_alias(config, choice.provider, choice.model)
+        current = LEGACY_MODEL_IDS.get(pinned)
+        if current is not None:
+            out.append((role, pinned, current))
+    return out
+
+
 def resolve(role: str, user_path: Path | None = None) -> ResolvedModel:
     """Resolve a role name to a concrete (provider, model, effort).
 

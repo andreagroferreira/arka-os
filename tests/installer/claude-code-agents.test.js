@@ -64,7 +64,7 @@ test("repo ships the QG/lead + compiled full-catalog agent definitions", () => {
     assert.ok(existsSync(path), `${file} must exist in config/claude-agents/`);
     const text = readFileSync(path, "utf-8");
     assert.match(text, /^---\n/, `${file} must start with YAML frontmatter`);
-    assert.match(text, /\nmodel: (opus|sonnet|haiku)\n/, `${file} needs a model`);
+    assert.match(text, /\nmodel: (opus|sonnet|fable)\n/, `${file} needs a model (haiku is never routed)`);
   }
 });
 

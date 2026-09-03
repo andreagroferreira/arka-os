@@ -632,3 +632,27 @@ class TestPricingUnknownAdvisory:
         assert summary.by_model["claude-mythos-9"]["total_cost_usd"] is None
         assert any("pricing-unknown: claude-mythos-9" in a for a in summary.advisories)
         assert not any("claude-opus-5" in a for a in summary.advisories)
+
+    def test_advisory_never_fires_on_local_synthetic_or_unstatused_rows(
+        self, tmp_path, monkeypatch
+    ):
+        # QG B1: a None cost alone is not evidence of an unpriced cloud model.
+        from core.runtime import llm_cost_telemetry as t
+
+        path = tmp_path / "llm-cost.jsonl"
+        monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
+        t.record_cost("s", "ollama", "kimi-k2.6", 5000, 50, 0, 0.0, pricing_status="local")
+        t.record_cost("s", "native", "<synthetic>", 0, 0, 0, None, pricing_status="unknown-model")
+        t.record_cost("s", "subagent", "", 9000, 90, 0, None)  # legacy recorder, no status
+        summary = t.summarise("today", path=path)
+        assert summary.advisories == []
+
+    def test_advisory_for_empty_model_id_names_the_recorder(self, tmp_path, monkeypatch):
+        from core.runtime import llm_cost_telemetry as t
+
+        path = tmp_path / "llm-cost.jsonl"
+        monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
+        t.record_cost("s", "subagent", "", 9000, 90, 0, None, pricing_status="unknown-model")
+        [advisory] = t.summarise("today", path=path).advisories
+        assert "recorded by provider subagent without a model id" in advisory
+        assert "fix the recorder" in advisory

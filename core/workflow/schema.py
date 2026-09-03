@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 ModelOverride = Literal["haiku", "sonnet", "opus", "fable"]
 
 
-class PhaseStatus(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (YAML round-trip)
+class PhaseStatus(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -25,7 +25,7 @@ class PhaseStatus(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (Y
     BLOCKED = "blocked"
 
 
-class GateType(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (YAML round-trip)
+class GateType(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     USER_APPROVAL = "user_approval"     # Requires user to confirm
     QUALITY_GATE = "quality_gate"       # Marta + Eduardo + Francisca
     AUTO = "auto"                       # Passes automatically if phase succeeds
@@ -74,7 +74,7 @@ class Phase(BaseModel):
     result: str | None = None
 
 
-class WorkflowTier(str, Enum):  # noqa: UP042 — StrEnum would change __str__ (YAML round-trip)
+class WorkflowTier(str, Enum):  # noqa: UP042 — behavioural parity kept; StrEnum migration deferred
     ENTERPRISE = "enterprise"           # Full 7-10 phase workflow
     FOCUSED = "focused"                 # 3-4 phases for medium tasks
     SPECIALIST = "specialist"           # 1-2 phases for simple tasks

@@ -37,7 +37,7 @@ not cut corners to look fast.
   self-documenting names, no dead code.
 - TDD where practical; coverage >= 80% on new code (constitution MUST).
 - Conventional commits, feature branches, never commit to main/master/dev.
-- Model routing: dispatch specialists on sonnet, mechanical tasks on haiku;
+- Model routing: dispatch specialists on sonnet, mechanical tasks on sonnet at low effort — never haiku;
   opus only for Tier 0/security-scope reviews.
 
 ## Signature Rules (anti-sycophancy)

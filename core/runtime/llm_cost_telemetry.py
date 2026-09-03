@@ -281,22 +281,41 @@ def _build_advisories(
     return out
 
 
-def _pricing_advisories(by_model: dict[str, dict[str, Any]]) -> list[str]:
-    """One advisory per model whose every call was unpriced (Runtime Sync PR2).
+def _pricing_advisories(entries: list[dict[str, Any]]) -> list[str]:
+    """Advisories for rows the recorder could not price (Runtime Sync PR2).
 
-    A model absent from core/runtime/pricing.py costs $0.00 in every
-    report and never reaches the CostGovernor — the failure that hid
-    Fable 5.1 spend on 2026-09-03. Say so instead of printing "n/a".
+    Keyed on the recorder's own ``pricing_status`` — never inferred from a
+    None cost, which is also what provider=local rows, zero-token synthetic
+    rows and rows recorded without a model id look like (QG B1: the first
+    cut fired on all three with a remediation that made no sense for any
+    of them). One line per (provider, model) with a message that is true
+    for that case.
     """
+    buckets: dict[tuple[str, str], dict[str, int]] = {}
+    for e in entries:
+        if e.get("pricing_status") != "unknown-model":
+            continue
+        tokens = int(e.get("tokens_in") or 0) + int(e.get("tokens_out") or 0)
+        if tokens == 0:
+            continue  # nothing was spent; nothing to price
+        key = (str(e.get("provider") or ""), str(e.get("model") or ""))
+        b = buckets.setdefault(key, {"calls": 0, "tokens_in": 0})
+        b["calls"] += 1
+        b["tokens_in"] += int(e.get("tokens_in") or 0)
     out: list[str] = []
-    for model, bucket in sorted(by_model.items()):
-        if bucket.get("total_cost_usd") is None and bucket.get("call_count"):
+    for (provider, model), b in sorted(buckets.items()):
+        if not model:
             out.append(
-                f"[arka:warn] pricing-unknown: {model or '<unknown>'} "
-                f"({bucket['call_count']} call(s), {bucket['total_tokens_in']:,} tokens in) "
-                "has no row in core/runtime/pricing.py — its spend is invisible "
-                "to the CostGovernor until one is added"
+                f"[arka:warn] pricing-unknown: {b['calls']} call(s) recorded by "
+                f"provider {provider or '<unknown>'} without a model id "
+                f"({b['tokens_in']:,} tokens in) — fix the recorder, the row cannot be priced"
             )
+            continue
+        out.append(
+            f"[arka:warn] pricing-unknown: {model} ({b['calls']} call(s), "
+            f"{b['tokens_in']:,} tokens in) has no row in core/runtime/pricing.py — "
+            "its spend is invisible to the CostGovernor until one is added"
+        )
     return out
 
 
@@ -325,7 +344,6 @@ def summarise(
     entries, corrupt = _load_slice(path, _period_cutoff(period, now=now))
     finalised = _totals_bucket(entries)
     sessions = _top_sessions(entries, top_n=10)
-    by_model = _group([e for e in entries if not _is_fallback_diagnostic(e)], "model")
     return CostSummary(
         period=period,
         total_cost_usd=finalised["total_cost_usd"],
@@ -335,11 +353,13 @@ def summarise(
         cache_hit_rate=finalised["cache_hit_rate"],
         call_count=finalised["call_count"],
         by_provider=_group(entries, "provider"),
-        by_model=by_model,
+        by_model=_group(
+            [e for e in entries if not _is_fallback_diagnostic(e)], "model"
+        ),
         by_category=_group(entries, "category"),
         by_session=sessions,
         advisories=_build_advisories(sessions, advisory_threshold_usd)
-        + _pricing_advisories(by_model),
+        + _pricing_advisories(entries),
         corrupt_line_count=corrupt,
     )
 

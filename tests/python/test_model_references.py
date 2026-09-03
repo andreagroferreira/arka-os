@@ -46,6 +46,28 @@ def _tracked_text_files() -> list[str]:
     ]
 
 
+_PROSE_SURFACES = ("config/claude-agents/", "departments/")
+_PROSE_ALLOWED = re.compile(
+    r"never (routed|haiku)|legacy YAML only|LEGACY_MODEL_IDS|haiku-class", re.I
+)
+_PROSE_HAIKU = re.compile(r"\bhaiku\b", re.I)
+
+
+def test_no_prose_routes_to_haiku_in_shipped_instruction_surfaces():
+    """QG B4: an agent definition or department hub that says "haiku" in
+    prose still routes a non-gateway session to real Haiku. Only sentences
+    that explicitly ban or scope it are allowed."""
+    hits: list[str] = []
+    for rel in _tracked_text_files():
+        if not rel.startswith(_PROSE_SURFACES) or not rel.endswith(".md"):
+            continue
+        text = (REPO / rel).read_text(encoding="utf-8")
+        for i, line in enumerate(text.splitlines(), 1):
+            if _PROSE_HAIKU.search(line) and not _PROSE_ALLOWED.search(line):
+                hits.append(f"{rel}:{i}: {line.strip()[:100]}")
+    assert not hits, "instruction surfaces still route to Haiku:\n" + "\n".join(hits[:40])
+
+
 def test_no_stale_model_references_outside_history():
     hits: list[str] = []
     for rel in _tracked_text_files():

@@ -24,19 +24,19 @@ from __future__ import annotations
 # on 2026-09-03 every Fable 5.1 row was costing $0.00 in silence.
 PRICING: dict[str, dict[str, float]] = {
     # Claude Fable 5.1 (2026-09-01): $10/$50 per MTok, cache reads $0.25
-    # (75% below Fable 5); cache write not published — Fable 5's 1.25x
-    # write multiplier assumed, marked unverified. 1M context is native.
+    # (75% below Fable 5), 5m cache writes $12.50 — all from the public
+    # pricing page (QG-verified 2026-09-03). 1M context is native.
     "claude-fable-5-1": {
         "input": 10.00,
         "output": 50.00,
         "cache_read": 0.25,
-        "cache_write": 12.50,  # unverified: Fable 5 multiplier
+        "cache_write": 12.50,
     },
     "claude-fable-5-1[1m]": {
         "input": 10.00,
         "output": 50.00,
         "cache_read": 0.25,
-        "cache_write": 12.50,  # unverified: Fable 5 multiplier
+        "cache_write": 12.50,
     },
     # Claude Mythos 5.1 — same underlying model and rate card as Fable 5.1,
     # restricted access (CVP/LSVP). Priced so the estimator never returns

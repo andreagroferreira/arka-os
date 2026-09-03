@@ -158,8 +158,12 @@ class TestLegacyModelIds:
     """Runtime Sync 2026-09-03: stale pins resolve to the current lane, the
     file is never rewritten, and the operator is told once per process."""
 
-    def test_legacy_ids_resolve_to_current_lane(self, user_path, capsys):
+    def test_legacy_ids_resolve_to_current_lane(self, user_path, capsys, monkeypatch):
         import yaml as _yaml
+
+        # The once-per-process notice set is module state; an earlier test
+        # (or the operator's real models.yaml) may have consumed it (QG B2).
+        monkeypatch.setattr(model_router, "_LEGACY_NOTICED", set())
 
         user_path.write_text(_yaml.safe_dump({
             "roles": {
@@ -183,3 +187,18 @@ class TestLegacyModelIds:
         assert model_router.normalise_model_id("claude-fable-5-1") == "claude-fable-5-1"
         assert model_router.normalise_model_id("sonnet") == "sonnet"
         assert model_router.normalise_model_id("kimi-k2.7-code:cloud") == "kimi-k2.7-code:cloud"
+
+
+class TestLegacyPinsSurface:
+    def test_legacy_pins_lists_every_stale_role(self, user_path):
+        import yaml as _yaml
+
+        user_path.write_text(_yaml.safe_dump({
+            "roles": {
+                "review": {"provider": "anthropic", "model": "claude-opus-4-8", "effort": "max"},
+                "execution": {"provider": "runtime", "model": "sonnet", "effort": "high"},
+            },
+        }), encoding="utf-8")
+        assert model_router.legacy_pins(user_path) == [
+            ("review", "claude-opus-4-8", "claude-opus-5"),
+        ]

@@ -68,4 +68,14 @@ def status_summary(port: int = _DEFAULT_PORT, user_path=None, log_path=None) -> 
     if counts:
         served = " ".join(f"{slot}={n}" for slot, n in sorted(counts.items()))
         lines.append(f"  served: {served}")
+    # Runtime Sync PR2 (QG B3): a legacy pin is normalised at resolve time
+    # with a stderr notice that hook contexts never show — say it here too.
+    try:
+        from core.runtime.model_router import legacy_pins
+        for role, pinned, current in legacy_pins(user_path):
+            lines.append(
+                f"  legacy pin: {role}: {pinned} → served as {current} (update models.yaml)"
+            )
+    except Exception:
+        pass
     return header + "\n" + "\n".join(lines)
