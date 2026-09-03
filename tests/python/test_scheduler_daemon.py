@@ -926,7 +926,7 @@ class TestLoadBoundaryValidation:
         bad = {"command": "bad", "prompt_file": "/p", "time": "02:00", "fallback_models": chain}
         path = tmp_path / "s.yaml"
         path.write_text(yaml.dump({"schedules": {"bad": bad}}), encoding="utf-8")
-        with pytest.raises(ValueError, match="schedule 'bad'"):
+        with pytest.raises(ValueError, match="schedule 'bad': fallback_models"):
             ScheduleConfig.load(str(path))
 
     @pytest.mark.parametrize(
@@ -961,6 +961,32 @@ class TestLoadBoundaryValidation:
             scheduler.run_once()  # no exception escapes
         log = next((tmp_path / "logs" / "bad").glob("*.log")).read_text(encoding="utf-8")
         assert "FATAL" in log
+
+    def test_fatal_line_names_the_exception_class(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """QG round 2 (Francisca N2): a config error and a programming error
+        read differently in the schedule log — the class on both, the
+        traceback only on the TypeError."""
+        bad = ScheduleConfig(
+            command="bad", prompt_file=str(_prompt(tmp_path)), run_time=time(2, 0),
+            model=5,  # type: ignore[arg-type]
+        )
+        with patch("subprocess.run", side_effect=AssertionError("must not run")):
+            assert scheduler.execute(bad) is False
+        log = next((tmp_path / "logs" / "bad").glob("*.log")).read_text(encoding="utf-8")
+        assert "FATAL: schedule 'bad': model must be a non-empty string, got 5 (ValueError)" in log
+        assert "Traceback" not in log
+        with (
+            patch.object(
+                scheduler, "_model_plan", side_effect=TypeError("unhashable type: 'dict'")
+            ),
+            patch("subprocess.run", side_effect=AssertionError("must not run")),
+        ):
+            assert scheduler.execute(bad) is False
+        log = next((tmp_path / "logs" / "bad").glob("*.log")).read_text(encoding="utf-8")
+        assert "FATAL: unhashable type: 'dict' (TypeError)" in log
+        assert "Traceback (most recent call last)" in log
 
 
 class TestModelPlan:

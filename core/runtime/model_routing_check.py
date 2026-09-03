@@ -65,8 +65,9 @@ class FallbackSetting:
 
     ``state``: ``unset`` (key absent, null, file missing or unreadable —
     the seeder would write the default), ``chain`` (ids to try),
-    ``disabled`` (``[]`` or a blank string — present, so the seeder leaves
-    it alone: the operator turned the chain off), ``invalid`` (any other
+    ``disabled`` (``[]``, a list of blank strings, or a blank string —
+    present, so the seeder leaves it alone: the operator turned the chain
+    off), ``invalid`` (any other
     shape — present, so the seeder leaves it alone, but the runtime cannot
     use it).
     """
@@ -120,8 +121,8 @@ def fallback_line(settings_path: Path | None = None) -> str:
     if setting.state == "chain" and setting.chain:
         return "  fallback: " + " → ".join(setting.chain)
     if setting.state == "disabled":
-        shape = "[]" if isinstance(setting.raw, list) else "an empty string"
-        return f"  fallback: disabled (fallbackModel is {shape} in ~/.claude/settings.json)"
+        literal = json.dumps(setting.raw)  # what the file holds, as JSON
+        return f"  fallback: disabled (fallbackModel is {literal} in ~/.claude/settings.json)"
     if setting.state == "invalid":
         return (
             f"  fallback: invalid ({setting.raw!r}) — expected an array of model ids "

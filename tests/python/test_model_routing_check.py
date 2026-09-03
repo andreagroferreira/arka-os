@@ -113,17 +113,24 @@ def test_unset_is_absent_null_or_unreadable(tmp_path: Path, payload):
 
 @pytest.mark.parametrize(
     "payload",
-    [{"fallbackModel": []}, {"fallbackModel": ""}, {"fallbackModel": " "}],
-    ids=["empty-array", "empty-string", "blank"],
+    [
+        {"fallbackModel": []},
+        {"fallbackModel": ""},
+        {"fallbackModel": " "},
+        {"fallbackModel": [""]},
+    ],
+    ids=["empty-array", "empty-string", "blank", "blank-item"],
 )
 def test_disabled_is_present_but_empty(tmp_path: Path, payload):
     """QG round 1 (Francisca B1): `[]` is the operator's choice — the seeder
-    leaves it alone, so the status must not prescribe the seeder."""
+    leaves it alone, so the status must not prescribe the seeder. QG round 2
+    (N1): the line quotes the literal the file holds, `[""]` included."""
     p = _settings(tmp_path, payload)
     assert read_fallback_setting(p).state == "disabled"
     assert fallback_chain(p) == []
     line = fallback_line(p)
     assert line.startswith("  fallback: disabled (fallbackModel is ")
+    assert f"fallbackModel is {json.dumps(payload['fallbackModel'])} in" in line
     assert "npx arkaos update" not in line
 
 

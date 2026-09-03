@@ -32,6 +32,7 @@ import shutil
 import subprocess
 import sys
 import time as time_mod
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, time
 from pathlib import Path
@@ -49,23 +50,26 @@ _CLAUDE_PROVIDERS = frozenset({"runtime", "anthropic"})
 # Where a schedule's model ids come from — named in the legacy-id notice
 # so the operator is sent to the right file.
 SCHEDULES_SOURCE = "schedules.yaml"
+# What a bad ``fallback_models`` item is called in its error, so the
+# operator is not sent to ``model:``.
+_CHAIN_ENTRY = "fallback_models entry"
 
 
-def _model_pin(raw: object, command: str) -> str:
+def _model_pin(raw: object, command: str, what: str = "model") -> str:
     """A validated model id from ``schedules.yaml``.
 
     A non-empty string, stripped, that cannot be mistaken for a flag: a
     pin such as ``--dangerously-skip-permissions`` would otherwise land on
-    the argv as one.
+    the argv as one. ``what`` names the key the error blames.
     """
     if not isinstance(raw, str) or not raw.strip():
         raise ValueError(
-            f"schedule '{command}': model must be a non-empty string, got {raw!r}"
+            f"schedule '{command}': {what} must be a non-empty string, got {raw!r}"
         )
     value = raw.strip()
     if value.startswith("-"):
         raise ValueError(
-            f"schedule '{command}': model {value!r} looks like a flag, not a model id"
+            f"schedule '{command}': {what} {value!r} looks like a flag, not a model id"
         )
     return value
 
@@ -87,10 +91,10 @@ def _fallback_list(raw: object, command: str) -> list[str]:
     if raw is None:
         return list(DEFAULT_FALLBACK_MODELS)
     if isinstance(raw, str):
-        return [_model_pin(raw, command)] if raw.strip() else []
+        return [_model_pin(raw, command, _CHAIN_ENTRY)] if raw.strip() else []
     if isinstance(raw, list):
         return [
-            _model_pin(item, command)
+            _model_pin(item, command, _CHAIN_ENTRY)
             for item in raw
             if not (isinstance(item, str) and not item.strip())
         ]
@@ -339,7 +343,8 @@ class ArkaScheduler:
         chain: list[str] = []
         for model in schedule.fallback_models:
             lane = normalise_model_id(
-                _model_pin(model, schedule.command), source=SCHEDULES_SOURCE
+                _model_pin(model, schedule.command, _CHAIN_ENTRY),
+                source=SCHEDULES_SOURCE,
             )
             if lane != primary and lane not in chain:
                 chain.append(lane)
@@ -567,8 +572,11 @@ class ArkaScheduler:
             cmd = self._build_command(schedule, plan)
             env = self._schedule_env(schedule, plan)
         except (OSError, ValueError, TypeError) as exc:
+            detail = f"FATAL: {exc} ({type(exc).__name__})"
+            if isinstance(exc, TypeError):  # a programming error, not a config one
+                detail += "\n" + traceback.format_exc().rstrip()
             with open(log_file, "a", encoding="utf-8") as lf:
-                lf.write(f"\n--- at {datetime.now().isoformat()} ---\nFATAL: {exc}\n")
+                lf.write(f"\n--- at {datetime.now().isoformat()} ---\n{detail}\n")
             return False
 
         for attempt in range(1, max_attempts + 1):
