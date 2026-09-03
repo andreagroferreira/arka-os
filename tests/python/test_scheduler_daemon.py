@@ -11,7 +11,6 @@ import yaml
 from core.cognition.scheduler import ArkaScheduler, ScheduleConfig
 from core.cognition.scheduler.cli import list_schedules, run_now, scheduler_status
 
-
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
@@ -245,9 +244,11 @@ class TestArkaScheduler:
             goal_condition="something",
             task_budget=None,
         )
-        with patch.object(Path, "home", return_value=tmp_path):
-            with pytest.raises(ValueError, match="task_budget"):
-                scheduler._build_command(schedule)
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            pytest.raises(ValueError, match="task_budget"),
+        ):
+            scheduler._build_command(schedule)
 
     def test_no_goal_condition_yields_legacy_argv(
         self, scheduler: ArkaScheduler, tmp_path: Path
@@ -289,9 +290,10 @@ class TestArkaScheduler:
         self, scheduler: ArkaScheduler, tmp_path: Path
     ) -> None:
         """Falls back to shutil.which when known paths don't exist."""
+        which = {"claude": "/usr/bin/claude"}
         with (
             patch.object(Path, "home", return_value=tmp_path),
-            patch("shutil.which", side_effect=lambda x: "/usr/bin/claude" if x == "claude" else None),
+            patch("shutil.which", side_effect=which.get),
         ):
             result = ArkaScheduler._resolve_claude_binary()
         assert result == "/usr/bin/claude"
@@ -303,9 +305,9 @@ class TestArkaScheduler:
         with (
             patch.object(Path, "home", return_value=tmp_path),
             patch("shutil.which", return_value=None),
+            pytest.raises(FileNotFoundError, match="Claude CLI not found"),
         ):
-            with pytest.raises(FileNotFoundError, match="Claude CLI not found"):
-                ArkaScheduler._resolve_claude_binary()
+            ArkaScheduler._resolve_claude_binary()
 
     def test_daemon_env_includes_claude_paths(self, scheduler: ArkaScheduler) -> None:
         """_daemon_env PATH must include .local/bin and .arkaos/bin."""
@@ -541,3 +543,345 @@ class TestSchedulerCLI:
                 log_dir=cli_fixture["log_dir"],
                 lock_path=cli_fixture["lock_path"],
             )
+
+
+# ---------------------------------------------------------------------------
+# Runtime Sync PR3 — model pin and fallback chain
+# ---------------------------------------------------------------------------
+
+
+import re as _re  # noqa: E402 — appended section keeps the module's import block intact
+
+from core.cognition.scheduler import daemon as _daemon  # noqa: E402
+from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS  # noqa: E402
+from core.runtime.model_router import ResolvedModel  # noqa: E402
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _fake_binary(tmp_path: Path) -> Path:
+    fake_claude = tmp_path / ".local" / "bin" / "claude"
+    fake_claude.parent.mkdir(parents=True, exist_ok=True)
+    fake_claude.write_text("#!/bin/sh\n", encoding="utf-8")
+    fake_claude.chmod(0o755)
+    return fake_claude
+
+
+def _prompt(tmp_path: Path) -> Path:
+    prompt_file = tmp_path / "research.md"
+    prompt_file.write_text("# research prompt", encoding="utf-8")
+    return prompt_file
+
+
+def _fabric(model: str, provider: str = "runtime") -> ResolvedModel:
+    return ResolvedModel(
+        role="strategy", provider=provider, model=model, effort="max", source="test"
+    )
+
+
+def _flag(cmd: list[str], flag: str) -> str | None:
+    return cmd[cmd.index(flag) + 1] if flag in cmd else None
+
+
+class TestModelPinAndFallback:
+    """The nightly cycle no longer dies on one overload or model 404."""
+
+    @pytest.fixture(autouse=True)
+    def _fresh_warnings(self) -> None:
+        # The missing-chain warning is once per process per (schedule,
+        # version); earlier tests in this module already burned "research".
+        _daemon._FALLBACK_WARNED.clear()
+
+    def test_default_chain_is_the_shared_constant(self) -> None:
+        assert DEFAULT_FALLBACK_MODELS == ("claude-opus-5", "claude-sonnet-5")
+        schedule = ScheduleConfig(command="x", prompt_file="/x", run_time=time(2, 0))
+        assert schedule.model is None
+        assert schedule.fallback_models == list(DEFAULT_FALLBACK_MODELS)
+
+    def test_js_seed_carries_the_same_chain(self) -> None:
+        """installer/fallback-model.js and the Python constant are two copies
+        of one truth — parse the JS rather than trust a comment."""
+        source = (REPO_ROOT / "installer" / "fallback-model.js").read_text(encoding="utf-8")
+        match = _re.search(r"export const DEFAULT_FALLBACK_MODELS = \[(.*?)\];", source)
+        assert match, "DEFAULT_FALLBACK_MODELS not found in installer/fallback-model.js"
+        assert tuple(_re.findall(r'"([^"]+)"', match.group(1))) == DEFAULT_FALLBACK_MODELS
+
+    def test_yaml_keys_are_read_and_defaulted(self, tmp_path: Path) -> None:
+        data = {
+            "schedules": {
+                "pinned": {
+                    "command": "pinned", "prompt_file": "/p", "time": "02:00",
+                    "model": "claude-sonnet-5", "fallback_models": ["claude-opus-5"],
+                },
+                "bare": {"command": "bare", "prompt_file": "/p", "time": "03:00"},
+                "nochain": {
+                    "command": "nochain", "prompt_file": "/p", "time": "04:00",
+                    "fallback_models": [],
+                },
+                "legacy-string": {
+                    "command": "legacy-string", "prompt_file": "/p", "time": "05:00",
+                    "fallback_models": "claude-opus-5",
+                },
+            }
+        }
+        path = tmp_path / "s.yaml"
+        path.write_text(yaml.dump(data), encoding="utf-8")
+        by_name = {s.command: s for s in ScheduleConfig.load(str(path))}
+        assert by_name["pinned"].model == "claude-sonnet-5"
+        assert by_name["pinned"].fallback_models == ["claude-opus-5"]
+        assert by_name["bare"].model is None
+        assert by_name["bare"].fallback_models == list(DEFAULT_FALLBACK_MODELS)
+        assert by_name["nochain"].fallback_models == []
+        assert by_name["legacy-string"].fallback_models == ["claude-opus-5"]
+
+    def test_bare_schedule_gets_fabric_default_and_the_chain(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """AC1: no `model` → no --model; ANTHROPIC_DEFAULT_MODEL is the Model
+        Fabric strategy model; the chain is the shared default."""
+        fake_claude = _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0)
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("core.runtime.model_router.resolve", return_value=_fabric("fable")),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=(2, 1, 259),
+            ) as probe,
+        ):
+            cmd = scheduler._build_command(schedule)
+            env = scheduler._schedule_env(schedule)
+        assert cmd[0] == str(fake_claude)
+        assert "--model" not in cmd
+        assert _flag(cmd, "--fallback-model") == "claude-opus-5,claude-sonnet-5"
+        assert env["ANTHROPIC_DEFAULT_MODEL"] == "fable"
+        assert ".local/bin" in env["PATH"], "the daemon PATH extension survives"
+        probe.assert_called_with(binary=str(fake_claude))
+
+    def test_pinned_schedule_puts_the_pin_on_argv_and_env(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """AC2: an explicit pin is `--model` (highest precedence) and also the
+        session default; the chain is exactly what was configured."""
+        _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0),
+            model="claude-sonnet-5", fallback_models=["claude-opus-5"],
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch(
+                "core.runtime.model_router.resolve",
+                side_effect=AssertionError("the Model Fabric must not be consulted"),
+            ),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=(2, 1, 259),
+            ),
+        ):
+            cmd = scheduler._build_command(schedule)
+            env = scheduler._schedule_env(schedule)
+        assert _flag(cmd, "--model") == "claude-sonnet-5"
+        assert _flag(cmd, "--fallback-model") == "claude-opus-5"
+        assert env["ANTHROPIC_DEFAULT_MODEL"] == "claude-sonnet-5"
+
+    def test_chain_drops_the_primary_and_duplicates(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0),
+            model="claude-opus-5",
+            fallback_models=["claude-opus-5", "claude-sonnet-5", "claude-sonnet-5"],
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=(2, 1, 259),
+            ),
+        ):
+            cmd = scheduler._build_command(schedule)
+        assert _flag(cmd, "--fallback-model") == "claude-sonnet-5"
+
+    def test_empty_chain_means_no_flag(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0),
+            fallback_models=[],
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("core.runtime.model_router.resolve", return_value=_fabric("fable")),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                side_effect=AssertionError("no chain → no probe"),
+            ),
+        ):
+            cmd = scheduler._build_command(schedule)
+        assert "--fallback-model" not in cmd
+
+    @pytest.mark.parametrize("version", [None, (2, 1, 150)])
+    def test_old_or_unknown_binary_omits_the_flag_with_a_warning(
+        self, scheduler: ArkaScheduler, tmp_path: Path, capsys, version
+    ) -> None:
+        """AC4: below the 2.1.166 chain floor (or unknowable) the flag is
+        omitted and the operator is told — never a silently ignored argv."""
+        _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0)
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("core.runtime.model_router.resolve", return_value=_fabric("fable")),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=version,
+            ),
+        ):
+            cmd = scheduler._build_command(schedule)
+        assert "--fallback-model" not in cmd
+        err = capsys.readouterr().err
+        assert "--fallback-model omitted" in err
+        assert "2.1.166" in err
+        assert ("unknown" if version is None else "2.1.150") in err
+
+    def test_probe_failure_is_unknown_not_fatal(
+        self, scheduler: ArkaScheduler, tmp_path: Path, capsys
+    ) -> None:
+        _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research-probe-fails", prompt_file=str(_prompt(tmp_path)),
+            run_time=time(5, 0),
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("core.runtime.model_router.resolve", return_value=_fabric("fable")),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                side_effect=OSError("boom"),
+            ),
+        ):
+            cmd = scheduler._build_command(schedule)
+        assert "--fallback-model" not in cmd
+        assert "unknown" in capsys.readouterr().err
+
+    def test_missing_chain_warning_is_once_per_process(
+        self, scheduler: ArkaScheduler, tmp_path: Path, capsys
+    ) -> None:
+        """Retries within one run must not repeat the line; a different
+        version answer (an upgrade mid-life) warns again."""
+        _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research-once", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0)
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("core.runtime.model_router.resolve", return_value=_fabric("fable")),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=(2, 1, 150),
+            ),
+        ):
+            scheduler._build_command(schedule)
+            assert "--fallback-model omitted" in capsys.readouterr().err
+            scheduler._build_command(schedule)
+            assert capsys.readouterr().err == ""
+
+    def test_fabric_role_on_a_local_provider_sets_no_default(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """A strategy role parked on Ollama cannot be the CLI's default model."""
+        schedule = ScheduleConfig(command="x", prompt_file="/x", run_time=time(2, 0))
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch(
+                "core.runtime.model_router.resolve",
+                return_value=_fabric("kimi-k2.7-code:cloud", provider="ollama"),
+            ),
+        ):
+            env = scheduler._schedule_env(schedule)
+        assert "ANTHROPIC_DEFAULT_MODEL" not in env
+
+    def test_broken_models_yaml_never_stops_the_cron(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        schedule = ScheduleConfig(command="x", prompt_file="/x", run_time=time(2, 0))
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("core.runtime.model_router.resolve", side_effect=ValueError("bad yaml")),
+        ):
+            env = scheduler._schedule_env(schedule)
+        assert "ANTHROPIC_DEFAULT_MODEL" not in env
+
+    def test_execute_passes_the_schedule_env_to_the_child(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """The env is built once per execute and reaches subprocess.run."""
+        prompt_file = _prompt(tmp_path)
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(prompt_file), run_time=time(5, 0),
+            model="claude-sonnet-5",
+        )
+        seen: dict = {}
+
+        def fake_run(cmd, **kwargs):
+            seen["cmd"] = cmd
+            seen["env"] = kwargs["env"]
+            return MagicMock(returncode=0)
+
+        with (
+            patch.object(scheduler, "_resolve_claude_binary", return_value="/bin/echo"),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=(2, 1, 259),
+            ),
+            patch("subprocess.run", side_effect=fake_run),
+        ):
+            assert scheduler.execute(schedule) is True
+        assert seen["env"]["ANTHROPIC_DEFAULT_MODEL"] == "claude-sonnet-5"
+        assert _flag(seen["cmd"], "--model") == "claude-sonnet-5"
+        log = next((tmp_path / "logs" / "research").glob("*.log")).read_text(encoding="utf-8")
+        assert "model: claude-sonnet-5 (pinned); fallback: claude-opus-5" in log
+
+    def test_describe_model_names_what_the_run_uses(self) -> None:
+        describe = ArkaScheduler._describe_model
+        assert describe(["claude", "-p", "x"], {}) == "runtime default; fallback: none"
+        assert describe(["claude", "-p", "x"], {"ANTHROPIC_DEFAULT_MODEL": "fable"}) == (
+            "fable (ANTHROPIC_DEFAULT_MODEL); fallback: none"
+        )
+        assert describe(
+            ["claude", "--model", "claude-sonnet-5", "--fallback-model", "a,b"],
+            {"ANTHROPIC_DEFAULT_MODEL": "claude-sonnet-5"},
+        ) == "claude-sonnet-5 (pinned); fallback: a → b"
+
+    def test_list_schedules_reports_the_pin_and_the_chain(self, tmp_path: Path) -> None:
+        data = {
+            "schedules": {
+                "pinned": {
+                    "command": "pinned", "prompt_file": "/p", "time": "02:00",
+                    "model": "claude-sonnet-5", "fallback_models": ["claude-opus-5"],
+                },
+            }
+        }
+        path = tmp_path / "s.yaml"
+        path.write_text(yaml.dump(data), encoding="utf-8")
+        [row] = list_schedules(str(path))
+        assert row["model"] == "claude-sonnet-5"
+        assert row["fallback_models"] == ["claude-opus-5"]
+
+    def test_python_module_schedules_are_untouched(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        schedule = ScheduleConfig(
+            command="dreaming-v2", prompt_file="/unused", run_time=time(2, 0),
+            python_module="core.cognition.dreaming",
+        )
+        with patch.object(Path, "home", return_value=tmp_path):
+            cmd = scheduler._build_command(schedule)
+        assert cmd[:3] == [sys.executable, "-m", "core.cognition.dreaming"]
+        assert "--fallback-model" not in cmd and "--model" not in cmd

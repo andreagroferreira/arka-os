@@ -126,6 +126,7 @@ class TestSeedPolicy:
         settings = read_settings(env)
         settings["statusLine"] = {"type": "command", "command": "starship"}
         settings["worktree"] = {"baseRef": "detached"}
+        settings["fallbackModel"] = ["claude-sonnet-5"]
         from core.harness.json_store import write_json_atomic
 
         write_json_atomic(paths.claude_settings_path(home), settings)
@@ -133,9 +134,10 @@ class TestSeedPolicy:
         after = read_settings(env)
         assert after["statusLine"]["command"].endswith("statusline.sh")
         assert after["worktree"] == {"baseRef": "head"}
+        assert after["fallbackModel"] == ["claude-opus-5", "claude-sonnet-5"]
         assert {a.surface for a in report.actions
                 if a.action == "reseeded"} == {
-            "settings:statusLine", "settings:worktree",
+            "settings:statusLine", "settings:worktree", "settings:fallbackModel",
         }
 
 

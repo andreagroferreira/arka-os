@@ -43,6 +43,7 @@ def settings_from_spec(hooks_root, ext=".sh"):
             "padding": 2,
         },
         "worktree": {"baseRef": "head"},
+        "fallbackModel": ["claude-opus-5", "claude-sonnet-5"],
     }
 
 
@@ -157,11 +158,13 @@ class TestSeedSurfaces:
         settings = settings_from_spec(root)
         del settings["statusLine"]
         del settings["worktree"]
+        del settings["fallbackModel"]
         write_settings(tmp_path, settings)
         report = scan(home=tmp_path, platform="linux", hooks_root=root)
         assert statuses(report) == {
             ("settings:statusLine", DriftStatus.MISSING),
             ("settings:worktree", DriftStatus.MISSING),
+            ("settings:fallbackModel", DriftStatus.MISSING),
         }
 
     def test_operator_worktree_is_adopted(self, tmp_path):
@@ -172,6 +175,18 @@ class TestSeedSurfaces:
         report = scan(home=tmp_path, platform="linux", hooks_root=root)
         assert statuses(report) == {
             ("settings:worktree", DriftStatus.ADOPTED)
+        }
+
+    def test_operator_fallback_chain_is_adopted(self, tmp_path):
+        """Runtime Sync PR3: a chain the operator wrote — array or the
+        legacy string form — is theirs; the seed policy never reverts it."""
+        root = make_hooks_root(tmp_path)
+        settings = settings_from_spec(root)
+        settings["fallbackModel"] = "claude-sonnet-5"
+        write_settings(tmp_path, settings)
+        report = scan(home=tmp_path, platform="linux", hooks_root=root)
+        assert statuses(report) == {
+            ("settings:fallbackModel", DriftStatus.ADOPTED)
         }
 
 

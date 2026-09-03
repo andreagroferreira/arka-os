@@ -9,12 +9,15 @@ gateway is off, so ``/arka status`` always has a truthful line to show.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
+from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
 from core.runtime.gateway.litellm_config import build_gateway_plan
 
 _GATEWAY_LOG = Path.home() / ".arkaos" / "gateway" / "litellm.log"
+_CLAUDE_SETTINGS = Path.home() / ".claude" / "settings.json"
 _DEFAULT_PORT = 4000
 _ROUTE_RE = re.compile(r"\barka-(opus|sonnet|haiku)\b")
 
@@ -55,7 +58,41 @@ def served_counts(log_path: Path | None = None) -> dict[str, int]:
     return counts
 
 
-def status_summary(port: int = _DEFAULT_PORT, user_path=None, log_path=None) -> str:
+def fallback_chain(settings_path: Path | None = None) -> list[str] | None:
+    """The ``fallbackModel`` chain in settings.json, or None when unset.
+
+    The runtime accepts the legacy string form as well as the array; it is
+    normalised here to a one-entry list and never rewritten on disk.
+    """
+    path = settings_path or _CLAUDE_SETTINGS
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    raw = data.get("fallbackModel") if isinstance(data, dict) else None
+    if isinstance(raw, str):
+        return [raw.strip()] if raw.strip() else None
+    if isinstance(raw, list):
+        chain = [item.strip() for item in raw if isinstance(item, str) and item.strip()]
+        return chain or None
+    return None
+
+
+def fallback_line(settings_path: Path | None = None) -> str:
+    """The `/arka status` line for the fallback chain (Runtime Sync PR3)."""
+    chain = fallback_chain(settings_path)
+    if chain:
+        return "  fallback: " + " → ".join(chain)
+    seeded = " → ".join(DEFAULT_FALLBACK_MODELS)
+    return f"  fallback: unset (npx arkaos update seeds {seeded})"
+
+
+def status_summary(
+    port: int = _DEFAULT_PORT,
+    user_path: Path | None = None,
+    log_path: Path | None = None,
+    settings_path: Path | None = None,
+) -> str:
     """One compact block for /arka status — reality, not intent."""
     live = gateway_healthy(port)
     routes = resolved_routes(user_path)
@@ -76,4 +113,7 @@ def status_summary(port: int = _DEFAULT_PORT, user_path=None, log_path=None) -> 
         lines.append(
             f"  legacy pin: {role}: {pinned} → served as {current} (update models.yaml)"
         )
+    # The runtime never confirms the chain at startup; this is the only
+    # place the operator sees it (Runtime Sync PR3).
+    lines.append(fallback_line(settings_path))
     return header + "\n" + "\n".join(lines)

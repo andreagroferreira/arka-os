@@ -224,3 +224,44 @@ class TestSupportsFeature:
             "file_ops": True,
             "hooks": True,
         }
+
+
+class TestExplicitBinary:
+    """Runtime Sync PR3: a daemon resolves its own binary — no PATH to ask."""
+
+    def test_explicit_binary_is_probed_not_the_path_lookup(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[list[str]] = []
+
+        def run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+            calls.append(list(argv))
+            return subprocess.CompletedProcess(argv, 0, stdout="2.1.259 (Claude Code)", stderr="")
+
+        _binary_at(monkeypatch, None)  # nothing on PATH
+        monkeypatch.setattr(subprocess, "run", run)
+        assert detect_claude_code_version(binary="/opt/daemon/claude") == (2, 1, 259)
+        assert calls == [["/opt/daemon/claude", "--version"]]
+
+    def test_cache_is_per_binary(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        answers = {"/a/claude": "2.1.240", "/b/claude": "2.1.259"}
+        calls: list[str] = []
+
+        def run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+            calls.append(argv[0])
+            return subprocess.CompletedProcess(argv, 0, stdout=answers[argv[0]], stderr="")
+
+        monkeypatch.setattr(subprocess, "run", run)
+        assert detect_claude_code_version(binary="/a/claude") == (2, 1, 240)
+        assert detect_claude_code_version(binary="/b/claude") == (2, 1, 259)
+        assert detect_claude_code_version(binary="/a/claude") == (2, 1, 240)
+        assert calls == ["/a/claude", "/b/claude"], "each binary probed exactly once"
+
+    def test_non_string_stdout_is_unknown(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A mocked subprocess (tests around the daemon patch subprocess.run
+        with a MagicMock) must degrade to unknown, never raise inside a hook."""
+        def run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(argv, 0, stdout=object(), stderr=None)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(subprocess, "run", run)
+        assert detect_claude_code_version(binary="/x/claude") is None

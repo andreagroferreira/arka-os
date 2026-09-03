@@ -41,6 +41,7 @@ from pathlib import Path
 from core.harness import drift, json_store, paths
 from core.harness.manifest import OwnershipManifest
 from core.harness.spec import HookRegistration, spec_for
+from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
 
 
 @dataclass
@@ -540,6 +541,10 @@ def _seed_surfaces(manager: ClaudeConfigManager):
         (
             "settings:worktree", "worktree", {"baseRef": "head"},
             lambda v: isinstance(v, dict) and v.get("baseRef") == "head",
+        ),
+        (
+            "settings:fallbackModel", "fallbackModel", list(DEFAULT_FALLBACK_MODELS),
+            lambda v: v == list(DEFAULT_FALLBACK_MODELS),
         ),
     )
 

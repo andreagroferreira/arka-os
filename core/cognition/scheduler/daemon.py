@@ -12,6 +12,15 @@ prompt_file path — `python_module` entries ignore it. Commented-out
 examples live in the installer-seeded template `config/cognition/
 schedules.yaml` (deployed to `~/.arkaos/schedules.yaml`); nothing
 goal-based auto-runs without the operator uncommenting it.
+
+Model pin and fallback chain (Runtime Sync PR3): a schedule's ``model``
+goes on the argv as ``--model`` (highest precedence — a pin is a pin);
+without one, the Model Fabric ``strategy`` role becomes
+``ANTHROPIC_DEFAULT_MODEL`` in the child's environment (Claude Code
+2.1.236+), a default that a persisted ``/model`` pick may still override.
+``fallback_models`` becomes ``--fallback-model a,b`` (2.1.166+ chain
+semantics; omitted with a warning on an older or unknown binary) so one
+overload or model 404 no longer ends the nightly cycle.
 """
 
 import os
@@ -24,6 +33,29 @@ from datetime import datetime, time
 from pathlib import Path
 
 import yaml
+
+from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
+
+# The Model Fabric role a schedule runs as when it pins no model: the
+# nightly cycles are strategy work, never the economy lane.
+SCHEDULE_ROLE = "strategy"
+# Providers the Claude CLI can run itself. A role parked on Ollama or
+# OpenRouter cannot become ANTHROPIC_DEFAULT_MODEL — the CLI would 404.
+_CLAUDE_PROVIDERS = frozenset({"runtime", "anthropic"})
+# (schedule, version seen) pairs already warned about a missing chain —
+# once per process, so retries within one run do not repeat the line.
+_FALLBACK_WARNED: set[tuple[str, str]] = set()
+
+
+def _fallback_list(raw: object) -> list[str]:
+    """The YAML ``fallback_models`` value as a list; None means the default."""
+    if raw is None:
+        return list(DEFAULT_FALLBACK_MODELS)
+    if isinstance(raw, str):
+        return [raw] if raw.strip() else []
+    if isinstance(raw, list):
+        return [str(item) for item in raw if isinstance(item, str) and item.strip()]
+    return list(DEFAULT_FALLBACK_MODELS)
 
 
 @dataclass
@@ -57,6 +89,14 @@ class ScheduleConfig:
     # the model overcommitting to ambiguous goals (infinite-loop risk).
     goal_condition: str | None = None
     task_budget: int | None = None
+    # Runtime Sync PR3 — `model` pins the CLI model (argv --model); None
+    # resolves the Model Fabric `strategy` role into ANTHROPIC_DEFAULT_MODEL.
+    # `fallback_models` is the --fallback-model chain; an explicit empty
+    # list disables it.
+    model: str | None = None
+    fallback_models: list[str] = field(
+        default_factory=lambda: list(DEFAULT_FALLBACK_MODELS)
+    )
 
     @classmethod
     def load(cls, config_path: str) -> "list[ScheduleConfig]":
@@ -83,6 +123,8 @@ class ScheduleConfig:
                     module_args=list(cfg.get("module_args") or []),
                     goal_condition=cfg.get("goal_condition"),
                     task_budget=cfg.get("task_budget"),
+                    model=cfg.get("model") or None,
+                    fallback_models=_fallback_list(cfg.get("fallback_models")),
                 )
             )
         return schedules
@@ -106,7 +148,9 @@ class ArkaScheduler:
         """Acquire an exclusive file lock. Returns False if already locked."""
         Path(self._lock_path).parent.mkdir(parents=True, exist_ok=True)
         try:
-            fd = open(self._lock_path, "w", encoding="utf-8")  # noqa: WPS515
+            # The lock fd must outlive this method: it is held for the
+            # daemon's lifetime and closed in release_lock.
+            fd = open(self._lock_path, "w", encoding="utf-8")  # noqa: SIM115
             if sys.platform == "win32":
                 import msvcrt  # type: ignore[import]
 
@@ -117,7 +161,7 @@ class ArkaScheduler:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             self._lock_fd = fd
             return True
-        except (OSError, IOError):
+        except OSError:
             return False
 
     def release_lock(self) -> None:
@@ -192,8 +236,100 @@ class ArkaScheduler:
         except Exception:
             pass  # fall back to raw template if profile unavailable
         argv = [claude_bin, "-p", prompt_content, "--dangerously-skip-permissions"]
+        argv.extend(self._model_argv(schedule))
+        argv.extend(self._fallback_argv(schedule, claude_bin))
         argv.extend(self._goal_argv(schedule))
         return argv
+
+    # ------------------------------------------------------------------
+    # Model pin and fallback chain (Runtime Sync PR3)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _pinned_model(schedule: ScheduleConfig) -> str | None:
+        """The model the schedule pins, with a legacy id mapped to its lane."""
+        if not schedule.model:
+            return None
+        from core.runtime.model_router import normalise_model_id
+
+        return normalise_model_id(schedule.model)
+
+    @staticmethod
+    def _fabric_model() -> str | None:
+        """The Model Fabric `strategy` model when the Claude CLI can run it."""
+        try:
+            from core.runtime.model_router import resolve
+
+            resolved = resolve(SCHEDULE_ROLE)
+        except Exception:  # a broken models.yaml must not stop the cron
+            return None
+        if resolved.provider not in _CLAUDE_PROVIDERS or not resolved.model:
+            return None
+        return resolved.model
+
+    def _primary_model(self, schedule: ScheduleConfig) -> str | None:
+        return self._pinned_model(schedule) or self._fabric_model()
+
+    def _model_argv(self, schedule: ScheduleConfig) -> list[str]:
+        pinned = self._pinned_model(schedule)
+        return ["--model", pinned] if pinned else []
+
+    def _fallback_chain(self, schedule: ScheduleConfig) -> list[str]:
+        """The chain minus the primary model and duplicates, lane-normalised."""
+        from core.runtime.model_router import normalise_model_id
+
+        primary = self._primary_model(schedule)
+        chain: list[str] = []
+        for model in schedule.fallback_models:
+            lane = normalise_model_id(model)
+            if lane and lane != primary and lane not in chain:
+                chain.append(lane)
+        return chain
+
+    def _fallback_argv(self, schedule: ScheduleConfig, claude_bin: str) -> list[str]:
+        """``--fallback-model a,b`` when the binary knows fallback chains.
+
+        Gated on the 2.1.166 floor (the changelog line that documents the
+        chain semantics); an older or unknown binary gets no flag and a
+        warning in the log, never a silently ignored argument.
+        """
+        chain = self._fallback_chain(schedule)
+        if not chain:
+            return []
+        from core.runtime.claude_code import FEATURE_FLOORS, detect_claude_code_version
+
+        floor = FEATURE_FLOORS["fallback_model_setting"]
+        try:
+            version = detect_claude_code_version(binary=claude_bin)
+        except Exception:  # the probe is advisory; the run is not
+            version = None
+        if version is None or version < floor:
+            seen = "unknown" if version is None else ".".join(map(str, version))
+            if (schedule.command, seen) not in _FALLBACK_WARNED:
+                _FALLBACK_WARNED.add((schedule.command, seen))
+                self._warn(
+                    f"[arkaos] schedule '{schedule.command}': --fallback-model omitted — "
+                    f"Claude Code {seen} is below {'.'.join(map(str, floor))}, "
+                    "where fallback chains are documented; upgrade the binary."
+                )
+            return []
+        return ["--fallback-model", ",".join(chain)]
+
+    def _schedule_env(self, schedule: ScheduleConfig) -> dict[str, str]:
+        """The daemon env plus ANTHROPIC_DEFAULT_MODEL for this schedule."""
+        env = self._daemon_env()
+        model = self._primary_model(schedule)
+        if model:
+            env["ANTHROPIC_DEFAULT_MODEL"] = model
+        return env
+
+    @staticmethod
+    def _warn(message: str) -> None:
+        try:
+            sys.stderr.write(message + "\n")
+            sys.stderr.flush()
+        except Exception:  # stderr may be closed under launchd
+            pass
 
     @staticmethod
     def _goal_argv(schedule: ScheduleConfig) -> list[str]:
@@ -287,13 +423,19 @@ class ArkaScheduler:
         return env
 
     def _run_attempt(
-        self, cmd: list[str], log_file: Path, attempt: int, timeout: int,
+        self,
+        cmd: list[str],
+        log_file: Path,
+        attempt: int,
+        timeout: int,
+        env: dict[str, str] | None = None,
     ) -> bool:
         """Run a single attempt of a scheduled command. Returns True on success."""
-        env = self._daemon_env()
+        env = env if env is not None else self._daemon_env()
         with open(log_file, "a", encoding="utf-8") as lf:
             lf.write(f"\n--- attempt {attempt} at {datetime.now().isoformat()} ---\n")
             lf.write(f"cmd: {cmd[0]}\n")
+            lf.write(f"model: {self._describe_model(cmd, env)}\n")
             try:
                 # The daemon runs under pythonw.exe and owns no console, so
                 # a console-subsystem child (schedules on the `prompt_file`
@@ -311,9 +453,27 @@ class ArkaScheduler:
                 lf.write(f"exit code: {result.returncode}\n")
             except subprocess.TimeoutExpired:
                 lf.write("TIMEOUT\n")
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 lf.write(f"ERROR: {exc}\n")
         return False
+
+    @staticmethod
+    def _describe_model(cmd: list[str], env: dict[str, str]) -> str:
+        """One log line naming what the run will actually use."""
+        pinned = cmd[cmd.index("--model") + 1] if "--model" in cmd else None
+        default = env.get("ANTHROPIC_DEFAULT_MODEL")
+        if pinned:
+            model = f"{pinned} (pinned)"
+        elif default:
+            model = f"{default} (ANTHROPIC_DEFAULT_MODEL)"
+        else:
+            model = "runtime default"
+        chain = (
+            cmd[cmd.index("--fallback-model") + 1].replace(",", " → ")
+            if "--fallback-model" in cmd
+            else "none"
+        )
+        return f"{model}; fallback: {chain}"
 
     def execute(self, schedule: ScheduleConfig) -> bool:
         """Run the scheduled command with retries and backoff."""
@@ -327,9 +487,10 @@ class ArkaScheduler:
             with open(log_file, "a", encoding="utf-8") as lf:
                 lf.write(f"\n--- at {datetime.now().isoformat()} ---\nFATAL: {exc}\n")
             return False
+        env = self._schedule_env(schedule)
 
         for attempt in range(1, max_attempts + 1):
-            if self._run_attempt(cmd, log_file, attempt, timeout):
+            if self._run_attempt(cmd, log_file, attempt, timeout, env=env):
                 return True
             if attempt < max_attempts:
                 time_mod.sleep(30 * attempt)

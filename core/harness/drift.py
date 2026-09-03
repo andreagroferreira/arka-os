@@ -178,6 +178,7 @@ def _scan_into(
     _check_hard_deny(report, spec, settings)
     _check_status_line(report, settings)
     _check_worktree(report, settings)
+    _check_fallback_model(report, settings)
 
 
 def _check_hooks(
@@ -457,6 +458,26 @@ def _check_worktree(report: DriftReport, settings: dict[str, Any]) -> None:
             DriftFinding(
                 "settings:worktree", DriftStatus.ADOPTED, "worktree",
                 "operator-configured worktree; seed policy adopts it",
+            )
+        )
+
+
+def _check_fallback_model(report: DriftReport, settings: dict[str, Any]) -> None:
+    from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
+
+    chain = settings.get("fallbackModel")
+    if chain is None:
+        report.findings.append(
+            DriftFinding(
+                "settings:fallbackModel", DriftStatus.MISSING, "fallbackModel",
+                "fallbackModel chain default not seeded",
+            )
+        )
+    elif chain != list(DEFAULT_FALLBACK_MODELS):
+        report.findings.append(
+            DriftFinding(
+                "settings:fallbackModel", DriftStatus.ADOPTED, "fallbackModel",
+                "operator-configured fallback chain; seed policy adopts it",
             )
         )
 

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-08-05T23:24:53Z",
+    "generated": "2026-09-03T20:04:35Z",
     "total_commands": 306,
     "generator": "core/registry/generator.py",
     "departments": {
@@ -29,7 +29,7 @@
       "id": "arka-status",
       "command": "/arka status",
       "department": "arka",
-      "description": "System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period=\"today\")`. Also includes **Enforcement (24h)** section: total calls, block rate, top blocked tools/reasons from `core.governance.enforcement_telemetry.summarise(period=\"today\")` (PR19 v2.41.0). Plus **Reorganization (today)** section: today's proposal path + artifact count from `core.cognition.reorganizer_scheduler.status_summary()` (PR24 v2.46.0). Plus **Model routing** section: gateway live/off + resolved per-slot routes + served counts from `core.runtime.model_routing_check.status_summary()`. Plus **MCP usage (24h)** section: total calls + servers in use + top servers from `core.runtime.mcp_telemetry.summarise(period=\"today\")`.",
+      "description": "System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period=\"today\")`. Also includes **Enforcement (24h)** section: total calls, block rate, top blocked tools/reasons from `core.governance.enforcement_telemetry.summarise(period=\"today\")` (PR19 v2.41.0). Plus **Reorganization (today)** section: today's proposal path + artifact count from `core.cognition.reorganizer_scheduler.status_summary()` (PR24 v2.46.0). Plus **Model routing** section: gateway live/off + resolved per-slot routes + served counts + the `fallbackModel` chain in force (or `unset`, Runtime Sync PR3) from `core.runtime.model_routing_check.status_summary()`. Plus **MCP usage (24h)** section: total calls + servers in use + top servers from `core.runtime.mcp_telemetry.summarise(period=\"today\")`.",
       "lead_agent": "arka",
       "keywords": [
         "system status",

@@ -243,6 +243,18 @@ export async function update({ skillsFlag = "" } = {}) {
   } catch (err) {
     warn(`Output style update failed (${err.message})`);
   }
+  // Runtime Sync PR3 — seed fallbackModel on update too, so machines that
+  // installed before the chain existed get it. If-absent only: an operator
+  // chain (array, empty array or legacy string) is never touched.
+  try {
+    const { seedFallbackModel } = await import("./fallback-model.js");
+    const fbResult = seedFallbackModel({ runtime: manifest.runtime || "claude-code" });
+    if (!fbResult.skipped && fbResult.action === "created") {
+      ok(`fallbackModel set to ${JSON.stringify(fbResult.value)}`);
+    }
+  } catch (err) {
+    warn(`fallbackModel seed failed (${err.message})`);
+  }
 
   // ── 3. Update hooks ──
   section(3, 9, "Updating hooks...");
