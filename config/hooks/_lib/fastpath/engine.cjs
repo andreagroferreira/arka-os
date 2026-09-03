@@ -311,7 +311,7 @@ function toolText(payload) {
 /**
  * PostToolUse decision. Returns
  *   {action:"fast-exit", stdout:"{}", writes:[...]} — mcp telemetry only
- *   {action:"delegate", reason}
+ *   {action:"delegate", reason} — incl. "kb-marker" for KB-consult tools
  * ctx: {homeDir, config, env, fs, now?: Date}
  */
 function decidePost(payload, manifest, ctx) {
@@ -331,6 +331,21 @@ function decidePost(payload, manifest, ctx) {
   // Q3/Q4 — plan approval (G2) + subagent tracking live in Python.
   if (manifest.tools.post_delegate_always.includes(toolName)) {
     return { action: "delegate", reason: "post-stateful-tool" };
+  }
+
+  // Q3b — KB-first evidence (Runtime Sync PR0). The "obsidian"/"graphify"
+  // turn markers the research gate reads have exactly one writer, in
+  // Python (post_tool_use.KB_MARKER_TOOL_PREFIXES → manifest). A fast-exit
+  // here skipped it, so on a turn whose KB call took this path the gate
+  // could not see the consult (kb_first.jsonl 2026-09-03: 66 denials,
+  // 0 kb-consulted). Prefix = server; Python decides whether the tool is
+  // a read consult. Old manifests without the key keep the previous
+  // behaviour (fail-open, never deny).
+  const kbPrefixes = Array.isArray(manifest.tools.post_delegate_prefixes)
+    ? manifest.tools.post_delegate_prefixes
+    : [];
+  if (kbPrefixes.some((p) => toolName.startsWith(p))) {
+    return { action: "delegate", reason: "kb-marker" };
   }
 
   // Q5 — error path: gotchas, violations, cognition capture, metrics.

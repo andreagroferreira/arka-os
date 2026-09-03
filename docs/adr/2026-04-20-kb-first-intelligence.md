@@ -133,7 +133,7 @@ feature/intelligence-v2.
 | Output | [arka:kb-context] markdown block with top N notes + wikilinks |
 | Feature flag | synapse.l25KbContext; default true |
 | Kill switch | ARKA_BYPASS_L25=1 |
-| Side effect | Calls kb_cache.record_obsidian_query() |
+| Side effect | Calls kb_cache.record_injected_context() (kind=injected; deliberately NOT the gate-satisfying obsidian kind — see Addendum 2026-09-03) |
 | Fallback | Jaccard when embedder/vector store absent |
 
 ### Layer 2 — Research Gate (core/workflow/research_gate.py)
@@ -244,3 +244,30 @@ indefinitely. All bypass usage is audited.
 - Cognitive Layer design: docs/superpowers/specs/2026-04-09-cognitive-layer-design.md
 - Related ADR (amendment): docs/adr/2026-04-20-flow-marker-v2.md
 - Obsidian: [[ArkaOS v2 Architecture Decisions]]
+
+## Addendum 2026-09-03 — fast-path regression (Runtime Sync PR0)
+
+From the hook fast-path (ADR 2026-07-12) to 2026-09-03, the PreToolUse
+research gate could not be satisfied on any turn whose KB call took the
+fast path: the shim fast-exited `mcp__obsidian__*` PostToolUse calls
+before Python could write the `obsidian` turn marker, so
+`kb_cache.obsidian_queried_this_turn()` stayed false on those turns and
+the second external call was denied regardless of real consults. Turns
+that delegated for another reason (error trigger, or stale flow-auth
+under hard enforcement or shadow-deny) still wrote it, which is why
+`/tmp/arkaos-kb-query/` still held one `obsidian` marker in the PR0
+authoring snapshot; no gated external call followed on that turn, so it
+produced no `kb-consulted` event.
+`~/.arkaos/telemetry/kb_first.jsonl` for 2026-09-03, as of the PR0
+authoring snapshot: 66 `kb-first-required` events — the reason
+`research_gate.evaluate_research_gate` emits only with `allow=False`
+(`core/workflow/research_gate.py:386-387`), so each is a denial — and 0
+`kb-consulted`. Fixed by delegating to Python every tool whose name starts
+with a prefix in `tools.post_delegate_prefixes`, where
+`post_tool_use.KB_CONSULT_TOOLS` restricts the marker to READ tools — a
+vault write proves nothing about consulting. The `injected` kind that
+Synapse L2.5 records is cache accounting only and never satisfies the
+research gate; the gate reads the `obsidian` kind alone. The `graphify`
+marker gained its first writer and its per-turn invalidation in the same
+change. Lesson (applies to ADR 2026-07-12 as well): any marker a gate reads
+imposes a parity duty on every path that can skip its writer.

@@ -291,6 +291,46 @@ test("decidePost replicates the mcp-usage line for MCP tools", () => {
   assert.deepEqual(Object.keys(line), manifest.telemetry.mcp_keys);
 });
 
+test("decidePost delegates KB-consult MCP tools so Python writes the marker", () => {
+  // Runtime Sync PR0. The "obsidian"/"graphify" turn markers the research
+  // gate reads have one writer (core.hooks.post_tool_use). A fast-exit
+  // here skipped it — 66 false `kb-first-required` DENYs measured on
+  // 2026-09-03 with 0 `kb-consulted`. Same benign context as the
+  // mcp-usage test above, so the ONLY thing that can delegate is the
+  // prefix rule (mutation: drop the Q3b block → this test fails).
+  const benign = ctxWith({ config: {
+    state: "ok", data: { hooks: { shadowDeny: false } } } });
+  assert.ok(Array.isArray(manifest.tools.post_delegate_prefixes));
+  assert.ok(manifest.tools.post_delegate_prefixes.includes("mcp__obsidian__"));
+  assert.ok(manifest.tools.post_delegate_prefixes.includes("mcp__graphify__"));
+  for (const tool of [
+    "mcp__obsidian__search_notes",
+    "mcp__obsidian__read_note",
+    "mcp__graphify__query_graph",
+  ]) {
+    const decision = engine.decidePost(
+      { tool_name: tool, tool_response: { content: [] },
+        session_id: "parity-sid" },
+      manifest, benign);
+    assert.equal(decision.action, "delegate", `fast-exit would skip the marker for ${tool}`);
+    assert.equal(decision.reason, "kb-marker");
+  }
+  // A non-KB MCP tool keeps the fast path (no cost regression).
+  const other = engine.decidePost(
+    { tool_name: "mcp__plugin_claude-mem_mcp-search__search",
+      tool_response: { content: [] }, session_id: "parity-sid" },
+    manifest, benign);
+  assert.equal(other.action, "fast-exit");
+  // Old manifest without the key → previous behaviour, never a throw.
+  const legacy = { ...manifest, tools: { ...manifest.tools } };
+  delete legacy.tools.post_delegate_prefixes;
+  const legacyDecision = engine.decidePost(
+    { tool_name: "mcp__obsidian__search_notes", tool_response: { content: [] },
+      session_id: "parity-sid" },
+    legacy, benign);
+  assert.equal(legacyDecision.action, "fast-exit");
+});
+
 test("toolText parity with the Python _tool_text helper", () => {
   // Mirrors the PostToolUse cases of TestToolResultExtraction in
   // tests/python/test_core_hooks_entrypoints.py (byte-identical inputs)

@@ -44,7 +44,30 @@ build.
 |---|---|---|
 | Pre P4 | tool ∉ flow-gated ∧ ∉ research set | kb_first.jsonl append (`tool-not-gated`) |
 | Pre P5 | Bash ∧ discovery (`bash_is_effect` replica) ∧ no active budget cap | kb_first + enforcement.jsonl appends |
-| Post Q6 | benign exit ∧ no error-trigger ∧ tool ∉ {ExitPlanMode, Task, Agent} ∧ ((hardEnforcement off ∧ shadowDeny off) ∨ flow-auth fresh) | mcp-usage.jsonl append for `mcp__*`, stdout `{}` |
+| Post Q6 | benign exit ∧ no error-trigger ∧ tool ∉ {ExitPlanMode, Task, Agent} ∧ no prefix in `tools.post_delegate_prefixes` matches tool (`startsWith`, Q3b) ∧ ((hardEnforcement off ∧ shadowDeny off) ∨ flow-auth fresh) | mcp-usage.jsonl append for `mcp__*`, stdout `{}` |
+
+**Amended 2026-09-03 (Runtime Sync PR0):** the original Q6 row omitted a
+parity duty: `core/hooks/post_tool_use.py` is the only writer of the
+KB-first turn markers (`obsidian`, `graphify`);
+`core/workflow/research_gate.py` reads `obsidian` alone. Fast-exiting
+every benign `mcp__*` call skipped that writer, so on any turn whose KB
+call took the fast path the gate could not observe the consult (turns
+that delegated for another reason — error trigger, or stale flow-auth
+under hard enforcement or shadow-deny — still wrote it).
+`~/.arkaos/telemetry/kb_first.jsonl` for
+2026-09-03, as of the PR0 authoring snapshot: 66 `kb-first-required`
+events — the reason `research_gate.evaluate_research_gate` emits only
+with `allow=False` (`core/workflow/research_gate.py:386-387`), so each is
+a denial — and 0 `kb-consulted`. The shim now delegates any tool whose
+name starts with a prefix in `tools.post_delegate_prefixes` (generated
+from `post_tool_use.KB_MARKER_TOOL_PREFIXES`) with reason `kb-marker`;
+Q3b sits after the stateful set (Q3/Q4) and before the error trigger
+(Q5). The prefix names a server, not a tool: Python alone decides whether
+the tool is a read consult (`post_tool_use.KB_CONSULT_TOOLS`) — a vault
+write is not. The marker is deliberately NOT replicated in JS: one atomic
+writer, and the ~98ms delegation cost (99ms Python chain + 18ms node
+startup − the 19ms fast exit; Measured result section,
+`benchmarks/hooks-bench.sh`) lands only on KB-server tools.
 
 Key semantic pins (all corpus-tested):
 

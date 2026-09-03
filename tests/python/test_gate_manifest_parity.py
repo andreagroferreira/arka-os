@@ -73,6 +73,48 @@ def test_pre_tool_corpus_matches_gate_routing(committed):
         assert expected == case["expect"], f"corpus wrong for {tool!r}"
 
 
+def test_post_delegate_prefixes_cover_every_kb_marker_writer(committed):
+    """Runtime Sync PR0: the shim delegates exactly the tool prefixes whose
+    PostToolUse writes a KB-first turn marker. Derived from the writer's
+    own table — a prefix added to post_tool_use without regenerating the
+    manifest fails here (and the byte-parity test above)."""
+    from core.hooks import post_tool_use
+    from core.synapse import kb_cache
+
+    prefixes = committed["tools"]["post_delegate_prefixes"]
+    assert prefixes == sorted(post_tool_use.KB_MARKER_TOOL_PREFIXES)
+    assert "mcp__obsidian__" in prefixes and "mcp__graphify__" in prefixes
+    # No prefix may be a prefix of another — kb_consult_kind stops at the
+    # first match (QG 2026-09-03, M2).
+    for a in prefixes:
+        for b in prefixes:
+            assert a == b or not b.startswith(a), (a, b)
+    # Every kind has an explicit writer AND a read-tool allowlist; no kind
+    # may fall back onto another kind's writer.
+    kinds = set(post_tool_use.KB_MARKER_TOOL_PREFIXES.values())
+    assert kinds == {"obsidian", "graphify"}
+    writers = post_tool_use._kb_marker_writers()
+    assert set(writers) == kinds
+    assert writers["obsidian"] is kb_cache.record_obsidian_query
+    assert writers["graphify"] is kb_cache.record_graphify_query
+    assert set(post_tool_use.KB_CONSULT_TOOLS) == kinds
+    assert all(post_tool_use.KB_CONSULT_TOOLS[k] for k in kinds)
+    # A vault write is never a consult (QG 2026-09-03, M1).
+    for write_tool in ("write_note", "patch_note", "delete_note", "move_note",
+                       "move_file", "update_frontmatter", "manage_tags", "wiki_link"):
+        assert write_tool not in post_tool_use.KB_CONSULT_TOOLS["obsidian"], write_tool
+        assert post_tool_use.kb_consult_kind(f"mcp__obsidian__{write_tool}") is None
+    # Known writes and known reads never overlap; a tool in neither is drift.
+    for kind in kinds:
+        assert not (post_tool_use.KB_CONSULT_TOOLS[kind] & post_tool_use.KB_WRITE_TOOLS[kind]), kind
+    assert post_tool_use.classify_kb_tool("mcp__obsidian__write_note") == ("obsidian", "write")
+    assert post_tool_use.classify_kb_tool("mcp__obsidian__get_backlinks") == ("obsidian", "unknown")
+    assert post_tool_use.classify_kb_tool("Read") == (None, "none")
+    assert post_tool_use.kb_consult_kind("mcp__obsidian__search_notes") == "obsidian"
+    assert post_tool_use.kb_consult_kind("mcp__graphify__query_graph") == "graphify"
+    assert post_tool_use.kb_consult_kind("mcp__obsidian-extra__search_notes") is None
+
+
 def test_session_id_corpus_matches_strict_validator(committed):
     from core.shared.safe_session_id import safe_session_id
 

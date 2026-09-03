@@ -198,17 +198,55 @@ test("Q6: benign MCP call fast-exits '{}' and appends mcp-usage", () => {
     mkdirSync(join(sandbox.home, ".arkaos"), { recursive: true });
     writeFileSync(join(sandbox.home, ".arkaos", "config.json"),
       JSON.stringify({ hooks: { shadowDeny: false } }));
+    // A non-KB MCP tool: KB-consult prefixes (mcp__obsidian__,
+    // mcp__graphify__) delegate since Runtime Sync PR0 — see Q3b below.
     const r = runShim(sandbox, "post-tool-use.cjs", {
-      tool_name: "mcp__obsidian__search_notes", session_id: "fp-sid",
-      tool_response: { stdout: "3 notes", stderr: "" },
+      tool_name: "mcp__plugin_claude-mem_mcp-search__search", session_id: "fp-sid",
+      tool_response: { stdout: "3 hits", stderr: "" },
     });
     assert.equal(r.status, 0);
     assert.equal(r.stdout.trim(), "{}");
     const lines = readLines(sandbox, ".arkaos/telemetry/mcp-usage.jsonl");
     assert.equal(lines.length, 1);
-    assert.equal(lines[0].server, "obsidian");
+    assert.equal(lines[0].server, "plugin_claude-mem_mcp-search");
     assert.ok(!existsSync(
       join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt")));
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+test("Q3b: KB-consult MCP call delegates to Python, the marker's only writer", () => {
+  // Runtime Sync PR0. Before it, this call fast-exited and the research
+  // gate never saw the consult (66 false DENYs/day, 0 kb-consulted on
+  // 2026-09-03). Same benign context as Q6: the prefix rule is the only
+  // thing that can delegate here.
+  const sandbox = makeSandbox();
+  try {
+    mkdirSync(join(sandbox.home, ".arkaos"), { recursive: true });
+    writeFileSync(join(sandbox.home, ".arkaos", "config.json"),
+      JSON.stringify({ hooks: { shadowDeny: false } }));
+    for (const tool of ["mcp__obsidian__search_notes", "mcp__graphify__query_graph"]) {
+      const payload = {
+        tool_name: tool, session_id: "fp-sid",
+        tool_input: { query: "live proof" },
+        tool_response: { stdout: "3 notes", stderr: "" },
+      };
+      const r = runShim(sandbox, "post-tool-use.cjs", payload);
+      assert.equal(r.status, 0);
+      // The stub sibling answers, proving the .sh (→ Python) ran.
+      assert.equal(r.stdout.trim(), '{"stub":true}', `${tool} must delegate`);
+      const delegated = join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt");
+      assert.ok(existsSync(delegated), `${tool} must reach the sibling`);
+      // The whole payload, session_id included (the marker writer keys on
+      // it), reaches Python byte-for-byte.
+      assert.deepEqual(JSON.parse(readFileSync(delegated, "utf8")), payload);
+      rmSync(delegated);
+    }
+    // The fast path wrote no mcp-usage line — Python owns telemetry when
+    // it runs (no double-counting).
+    assert.equal(
+      readLines(sandbox, ".arkaos/telemetry/mcp-usage.jsonl").length, 0);
   } finally {
     rmSync(sandbox.root, { recursive: true, force: true });
   }

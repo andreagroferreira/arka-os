@@ -8,8 +8,11 @@ user's one-word reply "sim", allowing WebSearch as "kb-consulted").
 
 The contract now:
   - L2.5 records kind="injected" (telemetry; gate ignores it)
-  - PostToolUse records kind="obsidian" on genuine ``mcp__obsidian__*``
-    calls (evidence; gate reads it)
+  - PostToolUse records kind="obsidian" only on genuine ``mcp__obsidian__``
+    READ consults (``KB_CONSULT_TOOLS``; a vault write is not a consult)
+    and kind="graphify" on ``mcp__graphify__`` reads. The gate reads the
+    ``obsidian`` kind alone (evidence). A tool under a KB prefix that is in
+    neither table writes nothing and is reported as ``kb-marker-unknown-tool``.
 """
 
 from __future__ import annotations
@@ -25,6 +28,19 @@ def _isolated_dirs(tmp_path, monkeypatch):
     monkeypatch.setenv("ARKA_KB_QUERY_DIR", str(tmp_path / "kb-query"))
     monkeypatch.setenv("ARKA_KB_VIOLATION_DIR", str(tmp_path / "kb-violation"))
     monkeypatch.setenv("ARKA_BYPASS_KB_FIRST", "")
+    # post_tool_use.main() also appends mcp-usage telemetry and hook
+    # metrics under the operator's real ~/.arkaos (QG 2026-09-03, m8).
+    # Redirect those two writers directly — NOT via $HOME: several modules
+    # capture Path.home() in import-time constants, so a patched HOME at
+    # first import leaks into gate_manifest's byte-parity render (QG r2).
+    from core.hooks import post_tool_use
+    from core.runtime import mcp_telemetry
+
+    monkeypatch.setattr(mcp_telemetry, "DEFAULT_PATH", tmp_path / "mcp-usage.jsonl")
+    monkeypatch.setattr(post_tool_use, "_log_metrics", lambda *a, **k: None)
+    # The degraded channel is real ~/.arkaos telemetry too; tests that
+    # observe it override this per-test (QG r2, Francisca m4).
+    monkeypatch.setattr(post_tool_use, "record_degraded", lambda *a, **k: None)
 
 
 class TestGateIgnoresInjection:
@@ -74,6 +90,112 @@ class TestPostToolUseRecordsGenuineConsults:
         record = kb_cache.read_obsidian_query("hon-post-1")
         assert record is not None
         assert record["queries"][-1]["query"] == "testing patterns"
+        # The mcp-usage line landed in the redirected file, not ~/.arkaos.
+        from core.runtime import mcp_telemetry
+        assert "hon-post-1" in mcp_telemetry.DEFAULT_PATH.read_text(encoding="utf-8")
+
+    def test_graphify_tool_call_writes_graphify_marker(self):
+        # Runtime Sync PR0: the graphify kind had no writer at all before.
+        from core.hooks import post_tool_use
+
+        post_tool_use.main({
+            "tool_name": "mcp__graphify__query_graph",
+            "session_id": "hon-post-3",
+            "transcript_path": "",
+            "cwd": "/tmp",
+            "tool_input": {"question": "hooks adapter version"},
+            "tool_output": "nodes",
+        })
+        record = kb_cache.read_graphify_query("hon-post-3")
+        assert record is not None
+        assert record["queries"][-1]["query"] == "hooks adapter version"
+        # kinds stay separate: a graphify consult never forges obsidian evidence
+        assert kb_cache.read_obsidian_query("hon-post-3") is None
+
+    def test_vault_write_is_not_a_consult(self):
+        # QG 2026-09-03 M1: saving one's own deliverable must not unlock
+        # the gate that exists to prove a READ.
+        from core.hooks import post_tool_use
+
+        for tool in ("write_note", "patch_note", "update_frontmatter", "delete_note"):
+            post_tool_use.main({
+                "tool_name": f"mcp__obsidian__{tool}",
+                "session_id": "hon-post-w",
+                "transcript_path": "",
+                "cwd": "/tmp",
+                "tool_input": {"path": "Projects/out.md", "content": "my own deliverable"},
+                "tool_output": "ok",
+            })
+        assert kb_cache.read_obsidian_query("hon-post-w") is None
+        decision = research_gate.evaluate_research_gate(
+            "WebSearch", session_id="hon-post-w", query="how to do X")
+        assert decision.reason != "kb-consulted"
+
+    def test_unknown_kind_writes_nothing_and_is_reported(self, monkeypatch):
+        # QG 2026-09-03 M2: a third kind must never fall back onto graphify.
+        from core.hooks import post_tool_use
+
+        monkeypatch.setattr(post_tool_use, "KB_MARKER_TOOL_PREFIXES",
+                            {**post_tool_use.KB_MARKER_TOOL_PREFIXES, "mcp__zettel__": "zettel"})
+        monkeypatch.setattr(post_tool_use, "KB_CONSULT_TOOLS",
+                            {**post_tool_use.KB_CONSULT_TOOLS, "zettel": frozenset({"search"})})
+        degraded: list[tuple[str, str, str]] = []
+        monkeypatch.setattr(post_tool_use, "record_degraded",
+                            lambda hook, reason, detail="": degraded.append((hook, reason, detail)))
+        post_tool_use._record_kb_marker(
+            "mcp__zettel__search", "hon-post-z", {"tool_input": {"query": "q"}})
+        assert kb_cache.read_graphify_query("hon-post-z") is None
+        assert kb_cache.read_obsidian_query("hon-post-z") is None
+        assert degraded == [("post-tool-use", "kb-marker-no-writer", "zettel")]
+
+    def test_unknown_read_tool_under_kb_prefix_is_reported_not_silent(self, monkeypatch):
+        # QG r2 m2 (Francisca): server-side drift must be visible, while a
+        # KNOWN write stays silent (it is not drift, it is not a consult).
+        from core.hooks import post_tool_use
+
+        degraded: list[tuple[str, str, str]] = []
+        monkeypatch.setattr(post_tool_use, "record_degraded",
+                            lambda hook, reason, detail="": degraded.append((hook, reason, detail)))
+        post_tool_use._record_kb_marker(
+            "mcp__obsidian__get_backlinks", "hon-post-u", {"tool_input": {"path": "a.md"}})
+        assert kb_cache.read_obsidian_query("hon-post-u") is None
+        assert degraded == [
+            ("post-tool-use", "kb-marker-unknown-tool", "mcp__obsidian__get_backlinks")]
+        degraded.clear()
+        post_tool_use._record_kb_marker(
+            "mcp__obsidian__write_note", "hon-post-u", {"tool_input": {"path": "a.md"}})
+        assert kb_cache.read_obsidian_query("hon-post-u") is None
+        assert degraded == []
+
+    def test_writer_failure_reaches_the_degraded_channel(self, monkeypatch):
+        # QG 2026-09-03 m7: a broken writer must not deny for weeks in silence.
+        from core.hooks import post_tool_use
+
+        def boom(*_a, **_k):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(kb_cache, "record_obsidian_query", boom)
+        degraded: list[tuple[str, str, str]] = []
+        monkeypatch.setattr(post_tool_use, "record_degraded",
+                            lambda hook, reason, detail="": degraded.append((hook, reason, detail)))
+        post_tool_use._record_kb_marker(
+            "mcp__obsidian__read_note", "hon-post-f", {"tool_input": {"path": "a.md"}})
+        assert degraded and degraded[0][1] == "kb-marker-write-failed"
+        assert "disk full" in degraded[0][2]
+
+    def test_new_turn_resets_every_marker_kind(self):
+        # QG 2026-09-03 M3: graphify gained a writer; it must reset per turn.
+        from core.hooks.user_prompt_submit import _invalidate_turn_caches
+
+        kb_cache.record_obsidian_query("hon-turn-1", "q", 1)
+        kb_cache.record_graphify_query("hon-turn-1", "g", 1)
+        kb_cache.record_injected_context("hon-turn-1", "i", 1)
+        assert kb_cache.obsidian_queried_this_turn("hon-turn-1")
+        assert kb_cache.graphify_queried_this_turn("hon-turn-1")
+        _invalidate_turn_caches("hon-turn-1")
+        assert not kb_cache.obsidian_queried_this_turn("hon-turn-1")
+        assert not kb_cache.graphify_queried_this_turn("hon-turn-1")
+        assert kb_cache.read_injected_context("hon-turn-1") is None
 
     def test_non_obsidian_tool_writes_nothing(self):
         from core.hooks import post_tool_use

@@ -735,6 +735,10 @@
       "ExitPlanMode",
       "Task"
     ],
+    "post_delegate_prefixes": [
+      "mcp__graphify__",
+      "mcp__obsidian__"
+    ],
     "research_external": [
       "WebFetch",
       "WebSearch",

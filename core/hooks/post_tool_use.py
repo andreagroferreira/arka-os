@@ -39,8 +39,10 @@ import re
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from core.hooks._shared import (
     emit_additional_context,
@@ -48,6 +50,7 @@ from core.hooks._shared import (
     get_str,
     is_within_project,
     read_stdin_json,
+    record_degraded,
     repo_path,
     resolve_arkaos_root,
     venv_python,
@@ -828,6 +831,116 @@ def _log_metrics(duration_ms: int, attribution: dict | None = None) -> None:
 # ─── Entry point ─────────────────────────────────────────────────────────
 
 
+# KB-first evidence — the single source for two consumers:
+#
+# * KB_MARKER_TOOL_PREFIXES: MCP server prefixes whose PostToolUse the
+#   fast-path shim must DELEGATE to Python (core.hooks.gate_manifest emits
+#   them as tools.post_delegate_prefixes). Delegation is per server; the
+#   shim never decides what counts as a consult.
+# * KB_CONSULT_TOOLS: per marker kind, the READ tools whose PostToolUse
+#   proves a genuine consult. A write (write_note, patch_note, ...) is not
+#   a consult — the operator produced knowledge, they did not read any —
+#   so it writes no marker (QG 2026-09-03, M1).
+# * KB_WRITE_TOOLS: the known non-consult tools per kind. A tool under a
+#   KB prefix that is in NEITHER set is server-side drift (the MCP server
+#   grew a read tool this table does not know): it writes no marker
+#   (fail-closed — the gate then denies, never a false green) AND lands on
+#   the hook-degraded channel as `kb-marker-unknown-tool`, so the drift
+#   is visible instead of starving the gate in silence (QG r2, m2).
+#
+# Extend all three here, regenerate the manifest, never edit the JSON.
+KB_MARKER_TOOL_PREFIXES: dict[str, str] = {
+    "mcp__obsidian__": "obsidian",
+    "mcp__graphify__": "graphify",
+}
+
+KB_CONSULT_TOOLS: dict[str, frozenset[str]] = {
+    "obsidian": frozenset({
+        "search_notes", "read_note", "read_note_lines", "read_multiple_notes",
+        "get_note_outline", "get_notes_info", "get_frontmatter",
+        "list_directory", "list_all_tags", "get_vault_stats",
+    }),
+    "graphify": frozenset({
+        "query_graph", "god_nodes", "shortest_path", "get_node",
+        "get_neighbors", "get_community", "graph_stats", "get_pr_impact",
+        "list_prs", "triage_prs",
+    }),
+}
+
+
+KB_WRITE_TOOLS: dict[str, frozenset[str]] = {
+    "obsidian": frozenset({
+        "write_note", "patch_note", "delete_note", "move_note", "move_file",
+        "update_frontmatter", "manage_tags", "wiki_link",
+    }),
+    "graphify": frozenset(),
+}
+
+
+def _kb_marker_writers() -> dict[str, Callable[..., None]]:
+    """Explicit kind → writer table.
+
+    A kind absent here writes NOTHING — never a silent fallback onto another
+    kind (QG 2026-09-03, M2: a third kind must not forge graphify evidence).
+    """
+    from core.synapse import kb_cache
+    return {
+        "obsidian": kb_cache.record_obsidian_query,
+        "graphify": kb_cache.record_graphify_query,
+    }
+
+
+def classify_kb_tool(tool_name: str) -> tuple[str | None, str]:
+    """(kind, status) for a tool call: status is "consult", "write",
+    "unknown" (KB prefix matched, tool in neither table) or "none"."""
+    for prefix, kind in KB_MARKER_TOOL_PREFIXES.items():
+        if not tool_name.startswith(prefix):
+            continue
+        tool = tool_name[len(prefix):]
+        if tool in KB_CONSULT_TOOLS.get(kind, frozenset()):
+            return kind, "consult"
+        if tool in KB_WRITE_TOOLS.get(kind, frozenset()):
+            return kind, "write"
+        return kind, "unknown"
+    return None, "none"
+
+
+def kb_consult_kind(tool_name: str) -> str | None:
+    """Marker kind a tool call proves, or None when it is not a read consult."""
+    kind, status = classify_kb_tool(tool_name)
+    return kind if status == "consult" else None
+
+
+def _record_kb_marker(tool_name: str, session_id: str, stdin_json: dict[str, Any]) -> None:
+    """Write the turn marker for a genuine KB read consult (never raises).
+
+    Failures are not swallowed silently: they land on the hook-degraded
+    channel so a broken writer cannot deny for weeks unnoticed again.
+    """
+    if not session_id:
+        return
+    kind, status = classify_kb_tool(tool_name)
+    if status == "unknown":
+        record_degraded("post-tool-use", "kb-marker-unknown-tool", tool_name)
+        return
+    if kind is None or status != "consult":
+        return
+    try:
+        writer = _kb_marker_writers().get(kind)
+        if writer is None:
+            record_degraded("post-tool-use", "kb-marker-no-writer", kind)
+            return
+        query_hint = (
+            get_str(stdin_json, "tool_input", "query")
+            or get_str(stdin_json, "tool_input", "question")
+            or get_str(stdin_json, "tool_input", "path")
+            or tool_name
+        )
+        writer(session_id, query_hint, hit_count=1)
+    except Exception as exc:
+        record_degraded("post-tool-use", "kb-marker-write-failed", f"{kind}: {exc!r}")
+
+
 def main(stdin_json: dict | None = None) -> int:
     start = time.monotonic()
     if stdin_json is None:
@@ -858,23 +971,20 @@ def main(stdin_json: dict | None = None) -> int:
     except Exception:
         pass
 
-    # KB-first evidence: a GENUINE Obsidian consult is recorded here — the
-    # only writer of the "obsidian" marker kind. Synapse L2.5 records its
-    # automatic injection under kind="injected", which the research gate
-    # deliberately does not read: before this split, the injection layer
-    # satisfied the very gate it was supposed to feed (self-certification —
-    # the marker said "consulted" on every turn regardless of behavior).
-    if tool_name.startswith("mcp__obsidian__") and session_id:
-        try:
-            from core.synapse.kb_cache import record_obsidian_query
-            query_hint = (
-                get_str(stdin_json, "tool_input", "query")
-                or get_str(stdin_json, "tool_input", "path")
-                or tool_name
-            )
-            record_obsidian_query(session_id, query_hint, hit_count=1)
-        except Exception:
-            pass
+    # KB-first evidence: a GENUINE KB read consult is recorded here — the
+    # only writer of the "obsidian" and "graphify" marker kinds. Synapse
+    # L2.5 records its automatic injection under kind="injected", which the
+    # research gate deliberately does not read: before this split, the
+    # injection layer satisfied the very gate it was supposed to feed
+    # (self-certification — the marker said "consulted" on every turn
+    # regardless of behavior).
+    #
+    # Runtime Sync PR0: the fast-path shim (engine.cjs decidePost) MUST
+    # delegate the KB server prefixes to Python — on a turn whose KB call
+    # took the fast path this block never ran, so the gate could not see
+    # the consult. ~/.arkaos/telemetry/kb_first.jsonl for 2026-09-03:
+    # 66 `kb-first-required` denials, 0 `kb-consulted` at measurement time.
+    _record_kb_marker(tool_name, session_id, stdin_json)
 
     # Interaction Reform PR3 — the native plan-mode approve button IS
     # explicit plan approval: a successful ExitPlanMode marks the

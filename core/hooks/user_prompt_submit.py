@@ -248,6 +248,13 @@ def _invalidate_turn_caches(session_id: str) -> None:
         invalidate_injected_context(session_id)
     except Exception:
         pass
+    # Runtime Sync PR0: graphify gained its first writer; without this the
+    # marker would be permanently true once set (QG 2026-09-03, M3).
+    try:
+        from core.synapse.kb_cache import invalidate_graphify_query
+        invalidate_graphify_query(session_id)
+    except Exception:
+        pass
 
 
 # ─── Section 4: Synapse bridge (in-process) ──────────────────────────────
