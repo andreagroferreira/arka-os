@@ -2,6 +2,16 @@
 #
 # This file is deployed to ~/.arkaos/schedules.yaml during installation.
 # Edit the deployed copy to customize schedules.
+#
+# Model pin and fallback chain (Runtime Sync PR3) — per schedule, optional:
+#   model: claude-sonnet-5            # pinned: goes to `claude --model`
+#   fallback_models: [claude-opus-5]  # `--fallback-model a,b`; [] disables
+# Without `model`, the Model Fabric `strategy` role (~/.arkaos/models.yaml)
+# becomes ANTHROPIC_DEFAULT_MODEL for the run. Without `fallback_models`,
+# the chain is claude-opus-5 → claude-sonnet-5. The runtime caps chains at
+# three models after de-duplication, removes ids outside `availableModels`
+# before the walk and fails over past an id it cannot reach (a retired
+# model); the ArkaOS gateway plays no part in the chain.
 
 schedules:
   dreaming:

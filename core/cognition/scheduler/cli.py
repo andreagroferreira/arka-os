@@ -14,6 +14,8 @@ def list_schedules(config_path: str) -> list[dict]:
             "time": s.run_time.strftime("%H:%M"),
             "timeout": s.timeout_minutes,
             "retry": s.retry_on_fail,
+            "model": s.model,
+            "fallback_models": list(s.fallback_models),
         }
         for s in schedules
     ]

@@ -71,18 +71,24 @@ LEGACY_MODEL_IDS: dict[str, str] = {
     "claude-haiku-4-5": "claude-sonnet-5",
     "haiku": "sonnet",
 }
-_LEGACY_NOTICED: set[str] = set()
+# (source file, legacy id) pairs already noticed — once per process each.
+_LEGACY_NOTICED: set[tuple[str, str]] = set()
 
 
-def normalise_model_id(model: str) -> str:
-    """Map a legacy model id to its current lane (identity for anything else)."""
+def normalise_model_id(model: str, source: str = "models.yaml") -> str:
+    """Map a legacy model id to its current lane (identity for anything else).
+
+    ``source`` names the file the id came from, so the notice sends the
+    operator to the pin that exists (Runtime Sync PR3: schedules.yaml pins
+    flow through here too).
+    """
     current = LEGACY_MODEL_IDS.get(model)
     if current is None:
         return model
-    if model not in _LEGACY_NOTICED:
-        _LEGACY_NOTICED.add(model)
+    if (source, model) not in _LEGACY_NOTICED:
+        _LEGACY_NOTICED.add((source, model))
         print(
-            f"[arka:warn] models.yaml pins legacy model {model!r}; resolving as "
+            f"[arka:warn] {source} pins legacy model {model!r}; resolving as "
             f"{current!r} (Runtime Sync 2026-09-03). Update the pin to silence this.",
             file=sys.stderr,
         )

@@ -146,6 +146,12 @@ _CLAUDE_CODE_SURFACES: tuple[SurfaceSpec, ...] = (
         "worktree.baseRef default; an operator change is adopted once "
         "C2 owns the surface",
     ),
+    SurfaceSpec(
+        "settings:fallbackModel",
+        "seed",
+        "fallbackModel chain default; an operator chain is adopted once "
+        "C2 owns the surface",
+    ),
 )
 
 

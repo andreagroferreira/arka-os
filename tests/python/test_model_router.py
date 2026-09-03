@@ -183,6 +183,18 @@ class TestLegacyModelIds:
         resolve("review", user_path)
         assert capsys.readouterr().err == ""
 
+    def test_notice_names_the_source_file(self, capsys, monkeypatch):
+        """Runtime Sync PR3: a schedules.yaml pin must not send the operator
+        to models.yaml; each (source, id) pair is noticed once."""
+        monkeypatch.setattr(model_router, "_LEGACY_NOTICED", set())
+        assert model_router.normalise_model_id("haiku", source="schedules.yaml") == "sonnet"
+        err = capsys.readouterr().err
+        assert "[arka:warn] schedules.yaml pins legacy model 'haiku'" in err
+        model_router.normalise_model_id("haiku", source="schedules.yaml")
+        assert capsys.readouterr().err == "", "once per (source, id)"
+        model_router.normalise_model_id("haiku")
+        assert "models.yaml pins legacy model 'haiku'" in capsys.readouterr().err
+
     def test_current_ids_pass_through(self):
         assert model_router.normalise_model_id("claude-fable-5-1") == "claude-fable-5-1"
         assert model_router.normalise_model_id("sonnet") == "sonnet"

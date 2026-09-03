@@ -54,9 +54,17 @@ _STATIC_FEATURES: dict[str, bool] = {
 VERSION_ENV = "ARKA_CLAUDE_VERSION"
 _VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
 _PROBE_TIMEOUT_SECONDS = 10
-# One-slot cache for the `claude --version` probe. Empty = not probed yet.
-# In-memory only: a disk cache would let one session answer for the next.
-_probe_cache: list[tuple[int, int, int] | None] = []
+# The `fallbackModel` chain ArkaOS seeds into ~/.claude/settings.json and
+# hands the scheduler (Runtime Sync PR3). Tried in order when the primary
+# model is overloaded or unavailable; the runtime caps chains at three after
+# de-duplication. installer/fallback-model.js carries the same list —
+# tests/python/test_scheduler_daemon.py pins the two to each other.
+DEFAULT_FALLBACK_MODELS: tuple[str, ...] = ("claude-opus-5", "claude-sonnet-5")
+
+# Cache for the `claude --version` probe, keyed by the binary probed ("" =
+# the PATH lookup). In-memory only: a disk cache would let one session
+# answer for the next.
+_probe_cache: dict[str, tuple[int, int, int] | None] = {}
 
 
 def parse_version(text: str | None) -> tuple[int, int, int] | None:
@@ -67,8 +75,8 @@ def parse_version(text: str | None) -> tuple[int, int, int] | None:
     return int(match.group(1)), int(match.group(2)), int(match.group(3))
 
 
-def _probe_binary() -> tuple[int, int, int] | None:
-    binary = shutil.which("claude")
+def _probe_binary(binary: str | None = None) -> tuple[int, int, int] | None:
+    binary = binary or shutil.which("claude")
     if not binary:
         return None
     try:
@@ -83,22 +91,27 @@ def _probe_binary() -> tuple[int, int, int] | None:
         return None
     if result.returncode != 0:
         return None
-    return parse_version(result.stdout) or parse_version(result.stderr)
+    stdout = result.stdout if isinstance(result.stdout, str) else ""
+    stderr = result.stderr if isinstance(result.stderr, str) else ""
+    return parse_version(stdout) or parse_version(stderr)
 
 
-def detect_claude_code_version() -> tuple[int, int, int] | None:
+def detect_claude_code_version(binary: str | None = None) -> tuple[int, int, int] | None:
     """The Claude Code version on this machine, or None when unknowable.
 
     ``ARKA_CLAUDE_VERSION`` wins when set to a non-blank value and is read
-    on every call (a blank value counts as unset). The binary probe runs
-    once per process and is cached in memory only.
+    on every call (a blank value counts as unset). ``binary`` names the
+    executable to probe when the caller resolved it itself — a daemon
+    under launchd has no PATH worth asking; None means the PATH lookup.
+    Each binary is probed once per process and cached in memory only.
     """
     override = os.environ.get(VERSION_ENV)
     if override is not None and override.strip():
         return parse_version(override)
-    if not _probe_cache:
-        _probe_cache.append(_probe_binary())
-    return _probe_cache[0]
+    key = binary or ""
+    if key not in _probe_cache:
+        _probe_cache[key] = _probe_binary(binary)
+    return _probe_cache[key]
 
 
 def reset_version_cache() -> None:

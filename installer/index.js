@@ -433,6 +433,20 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
     detail(`         Warning: could not seed worktree.baseRef (${err.message})`);
   }
 
+  // Runtime Sync PR3 — seed fallbackModel = ["claude-opus-5", "claude-sonnet-5"]
+  // so an overloaded or unavailable primary degrades instead of failing the
+  // session. If-absent only: an operator chain (array or legacy string) is
+  // never touched.
+  try {
+    const { seedFallbackModel } = await import("./fallback-model.js");
+    const fbResult = seedFallbackModel({ runtime });
+    if (!fbResult.skipped && fbResult.action === "created") {
+      detail(`         fallbackModel set to ${JSON.stringify(fbResult.value)}.`);
+    }
+  } catch (err) {
+    detail(`         Warning: could not seed fallbackModel (${err.message})`);
+  }
+
   // Interaction Reform PR1 — install the ArkaOS output style and seed
   // it as the Claude Code default. File copy is unconditional (making
   // the style available is not a preference); the settings seed is
