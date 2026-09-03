@@ -25,11 +25,16 @@ def _isolated_dirs(tmp_path, monkeypatch):
     monkeypatch.setenv("ARKA_KB_QUERY_DIR", str(tmp_path / "kb-query"))
     monkeypatch.setenv("ARKA_KB_VIOLATION_DIR", str(tmp_path / "kb-violation"))
     monkeypatch.setenv("ARKA_BYPASS_KB_FIRST", "")
-    # post_tool_use.main() also appends mcp-usage telemetry under $HOME —
-    # keep the operator's real ~/.arkaos out of the test (QG 2026-09-03, m8).
-    home = tmp_path / "home"
-    home.mkdir()
-    monkeypatch.setenv("HOME", str(home))
+    # post_tool_use.main() also appends mcp-usage telemetry and hook
+    # metrics under the operator's real ~/.arkaos (QG 2026-09-03, m8).
+    # Redirect those two writers directly — NOT via $HOME: several modules
+    # capture Path.home() in import-time constants, so a patched HOME at
+    # first import leaks into gate_manifest's byte-parity render (QG r2).
+    from core.hooks import post_tool_use
+    from core.runtime import mcp_telemetry
+
+    monkeypatch.setattr(mcp_telemetry, "DEFAULT_PATH", tmp_path / "mcp-usage.jsonl")
+    monkeypatch.setattr(post_tool_use, "_log_metrics", lambda *a, **k: None)
 
 
 class TestGateIgnoresInjection:
@@ -79,6 +84,9 @@ class TestPostToolUseRecordsGenuineConsults:
         record = kb_cache.read_obsidian_query("hon-post-1")
         assert record is not None
         assert record["queries"][-1]["query"] == "testing patterns"
+        # The mcp-usage line landed in the redirected file, not ~/.arkaos.
+        from core.runtime import mcp_telemetry
+        assert "hon-post-1" in mcp_telemetry.DEFAULT_PATH.read_text(encoding="utf-8")
 
     def test_graphify_tool_call_writes_graphify_marker(self):
         # Runtime Sync PR0: the graphify kind had no writer at all before.
