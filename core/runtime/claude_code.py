@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from os.path import expanduser
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from core.runtime.base import AgentContext, AgentResult, RuntimeAdapter, RuntimeConfig
 
@@ -168,7 +168,7 @@ def _run_claude_cli(cmd: list[str]) -> subprocess.CompletedProcess:
         raise LLMUnavailable(f"claude CLI subprocess failed: {exc}") from exc
 
 
-def _model_from_payload(payload: dict) -> str:
+def _model_from_payload(payload: dict[str, Any]) -> str:
     """The model id a `claude -p --output-format json` run actually used.
 
     The payload carries no top-level ``model`` key (2.1.259 capture in

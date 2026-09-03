@@ -8,7 +8,7 @@ Every ArkaOS agent has a complete behavioral profile composed of:
 """
 
 from enum import Enum
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -20,12 +20,12 @@ ModelTier = Literal["haiku", "sonnet", "opus", "fable"]
 # Runtime Sync 2026-09-03: the weakest lane ArkaOS routes to is Sonnet 5.
 # "haiku" still PARSES (legacy client YAML) but never reaches a dispatch:
 # get_model() and the compiled frontmatter both normalise it.
-_LANE_NORMALISATION: dict[str, ModelTier] = {"haiku": "sonnet"}
+_LANE_NORMALISATION: dict[str, str] = {"haiku": "sonnet"}
 
 
 def normalise_tier(model: str) -> ModelTier:
     """Map a legacy lane to the one ArkaOS actually routes to."""
-    return _LANE_NORMALISATION.get(model, model)  # type: ignore[return-value]
+    return cast(ModelTier, _LANE_NORMALISATION.get(model, model))
 
 
 def tier_default_model(tier: int) -> ModelTier:
