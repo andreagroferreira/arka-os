@@ -121,6 +121,15 @@ class TestRetiredTools:
         with pytest.raises(AssertionError, match="list-form"):
             declared_tools(agent)
 
+    def test_tools_regex_stays_on_its_line(self) -> None:
+        """The whitespace class is horizontal only: with `\\s*` the pattern
+        matched `tools:` followed by a newline and captured the next key as
+        the value (Francisca M3)."""
+        assert _TOOLS_LINE.search("tools:\n  - Read\n") is None
+        assert _TOOLS_LINE.search("tools:\nmodel: sonnet\n") is None
+        match = _TOOLS_LINE.search("tools:  Read, Agent  \nmodel: sonnet\n")
+        assert match is not None and match.group(1) == "Read, Agent"
+
     def test_parser_does_not_cross_lines_or_stop_at_a_fake_delimiter(self, tmp_path: Path) -> None:
         agent = tmp_path / "x.md"
         agent.write_text(
