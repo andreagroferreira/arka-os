@@ -133,7 +133,7 @@ feature/intelligence-v2.
 | Output | [arka:kb-context] markdown block with top N notes + wikilinks |
 | Feature flag | synapse.l25KbContext; default true |
 | Kill switch | ARKA_BYPASS_L25=1 |
-| Side effect | Calls kb_cache.record_obsidian_query() |
+| Side effect | Calls kb_cache.record_injected_context() (kind=injected; deliberately NOT the gate-satisfying obsidian kind — see Addendum 2026-09-03) |
 | Fallback | Jaccard when embedder/vector store absent |
 
 ### Layer 2 — Research Gate (core/workflow/research_gate.py)
@@ -248,12 +248,17 @@ indefinitely. All bypass usage is audited.
 ## Addendum 2026-09-03 — fast-path regression (Runtime Sync PR0)
 
 Between the hook fast-path (ADR 2026-07-12) and 2026-09-03 the PreToolUse
-research gate was unsatisfiable on POSIX installs: the fast-path shim
-fast-exited `mcp__obsidian__*` PostToolUse calls before Python could write
-the `obsidian` turn marker, so `kb_cache.obsidian_queried_this_turn()`
-was always false and the second external call of every turn was denied
-regardless of real consults. Fixed by delegating
-`tools.post_delegate_prefixes` to Python; the `graphify` marker gained
-its first writer in the same change. Lesson for both ADRs: a marker the
-gate reads is a parity duty of every path that can skip its writer.
-
+research gate could not be satisfied on any turn whose KB call took the
+fast path: the shim fast-exited `mcp__obsidian__*` PostToolUse calls
+before Python could write the `obsidian` turn marker, so
+`kb_cache.obsidian_queried_this_turn()` stayed false on those turns and
+the second external call was denied regardless of real consults (turns
+that delegated for another reason still wrote it, which is why one
+`obsidian` marker survived in the measurement). `~/.arkaos/telemetry/kb_first.jsonl`
+for 2026-09-03: 66 `kb-first-required`, 0 `kb-consulted`. Fixed by
+delegating `tools.post_delegate_prefixes` to Python, where
+`post_tool_use.KB_CONSULT_TOOLS` restricts the marker to READ tools — a
+vault write proves nothing about consulting. The `graphify` marker gained
+its first writer and its per-turn invalidation in the same change. Lesson
+for both ADRs: a marker the gate reads is a parity duty of every path that
+can skip its writer.

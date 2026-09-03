@@ -44,19 +44,25 @@ build.
 |---|---|---|
 | Pre P4 | tool ∉ flow-gated ∧ ∉ research set | kb_first.jsonl append (`tool-not-gated`) |
 | Pre P5 | Bash ∧ discovery (`bash_is_effect` replica) ∧ no active budget cap | kb_first + enforcement.jsonl appends |
-| Post Q6 | benign exit ∧ no error-trigger ∧ tool ∉ {ExitPlanMode, Task, Agent} ∧ tool ∉ `tools.post_delegate_prefixes` ∧ ((hardEnforcement off ∧ shadowDeny off) ∨ flow-auth fresh) | mcp-usage.jsonl append for `mcp__*`, stdout `{}` |
+| Post Q6 | benign exit ∧ no error-trigger ∧ tool ∉ {ExitPlanMode, Task, Agent} ∧ no prefix in `tools.post_delegate_prefixes` matches tool (`startsWith`, Q3b) ∧ ((hardEnforcement off ∧ shadowDeny off) ∨ flow-auth fresh) | mcp-usage.jsonl append for `mcp__*`, stdout `{}` |
 
-**Adenda 2026-09-03 (Runtime Sync PR0).** The original Q6 row omitted a
+**Amended 2026-09-03 (Runtime Sync PR0):** the original Q6 row omitted a
 parity duty: `core/hooks/post_tool_use.py` is the only writer of the
 KB-first turn markers (`obsidian`, `graphify`) that
 `core/workflow/research_gate.py` reads. Fast-exiting every benign
-`mcp__*` call skipped that writer, so the gate could never observe a
-genuine consult — measured on 2026-09-03 as 66 `kb-first-required`
-denials in one day with 0 `kb-consulted`. The shim now delegates any
-tool whose name starts with a prefix in `tools.post_delegate_prefixes`
-(generated from `post_tool_use.KB_MARKER_TOOL_PREFIXES`) with reason
-`kb-marker`. The marker is deliberately NOT replicated in JS: one
-atomic writer, and the ~80 ms cost lands only on KB tools.
+`mcp__*` call skipped that writer, so on any turn whose KB call took the
+fast path the gate could not observe the consult (turns that delegated
+for another reason — error trigger, stateful tool, hard enforcement
+without fresh auth — still wrote it). `~/.arkaos/telemetry/kb_first.jsonl`
+for 2026-09-03 recorded 66 `kb-first-required` denials and 0
+`kb-consulted` at measurement time. The shim now delegates any tool whose
+name starts with a prefix in `tools.post_delegate_prefixes` (generated
+from `post_tool_use.KB_MARKER_TOOL_PREFIXES`) with reason `kb-marker`;
+Q3b sits after the stateful set (Q3/Q4) and before the error trigger
+(Q5). The prefix is the server: Python alone decides whether the tool is
+a read consult (`post_tool_use.KB_CONSULT_TOOLS`) — a vault write is not.
+The marker is deliberately NOT replicated in JS: one atomic writer, and
+the ~80 ms cost lands only on KB-server tools.
 
 Key semantic pins (all corpus-tested):
 

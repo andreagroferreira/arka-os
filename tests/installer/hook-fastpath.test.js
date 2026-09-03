@@ -227,17 +227,20 @@ test("Q3b: KB-consult MCP call delegates to Python, the marker's only writer", (
     writeFileSync(join(sandbox.home, ".arkaos", "config.json"),
       JSON.stringify({ hooks: { shadowDeny: false } }));
     for (const tool of ["mcp__obsidian__search_notes", "mcp__graphify__query_graph"]) {
-      const r = runShim(sandbox, "post-tool-use.cjs", {
+      const payload = {
         tool_name: tool, session_id: "fp-sid",
+        tool_input: { query: "live proof" },
         tool_response: { stdout: "3 notes", stderr: "" },
-      });
+      };
+      const r = runShim(sandbox, "post-tool-use.cjs", payload);
       assert.equal(r.status, 0);
       // The stub sibling answers, proving the .sh (→ Python) ran.
       assert.equal(r.stdout.trim(), '{"stub":true}', `${tool} must delegate`);
       const delegated = join(sandbox.home, "delegated-stdin-post-tool-use.sh.txt");
       assert.ok(existsSync(delegated), `${tool} must reach the sibling`);
-      const forwarded = JSON.parse(readFileSync(delegated, "utf8"));
-      assert.equal(forwarded.tool_name, tool, "stdin forwarded verbatim");
+      // The whole payload, session_id included (the marker writer keys on
+      // it), reaches Python byte-for-byte.
+      assert.deepEqual(JSON.parse(readFileSync(delegated, "utf8")), payload);
       rmSync(delegated);
     }
     // The fast path wrote no mcp-usage line — Python owns telemetry when
