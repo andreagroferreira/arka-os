@@ -73,6 +73,24 @@ def test_pre_tool_corpus_matches_gate_routing(committed):
         assert expected == case["expect"], f"corpus wrong for {tool!r}"
 
 
+def test_post_delegate_prefixes_cover_every_kb_marker_writer(committed):
+    """Runtime Sync PR0: the shim delegates exactly the tool prefixes whose
+    PostToolUse writes a KB-first turn marker. Derived from the writer's
+    own table — a prefix added to post_tool_use without regenerating the
+    manifest fails here (and the byte-parity test above)."""
+    from core.hooks import post_tool_use
+    from core.synapse import kb_cache
+
+    prefixes = committed["tools"]["post_delegate_prefixes"]
+    assert prefixes == sorted(post_tool_use.KB_MARKER_TOOL_PREFIXES)
+    assert "mcp__obsidian__" in prefixes and "mcp__graphify__" in prefixes
+    # Every marker kind the research gate can read has a writer prefix.
+    kinds = set(post_tool_use.KB_MARKER_TOOL_PREFIXES.values())
+    assert kinds == {"obsidian", "graphify"}
+    assert callable(kb_cache.record_obsidian_query)
+    assert callable(kb_cache.record_graphify_query)
+
+
 def test_session_id_corpus_matches_strict_validator(committed):
     from core.shared.safe_session_id import safe_session_id
 

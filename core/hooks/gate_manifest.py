@@ -179,7 +179,7 @@ def _error_trigger_corpus() -> list[dict]:
 
 
 def _tool_sets() -> dict:
-    from core.hooks import pre_tool_use
+    from core.hooks import post_tool_use, pre_tool_use
     from core.workflow import flow_enforcer, research_gate
 
     if flow_enforcer.EFFECT_TOOLS_ALWAYS | {"Bash"} != pre_tool_use._FLOW_GATED_TOOLS:
@@ -193,6 +193,9 @@ def _tool_sets() -> dict:
         "effect_always": sorted(flow_enforcer.EFFECT_TOOLS_ALWAYS),
         "research_external": sorted(research_gate.RESEARCH_EXTERNAL_TOOLS),
         "post_delegate_always": ["Agent", "ExitPlanMode", "Task"],
+        # Runtime Sync PR0: every tool prefix whose PostToolUse writes a
+        # KB-first turn marker must reach Python — the shim has no writer.
+        "post_delegate_prefixes": sorted(post_tool_use.KB_MARKER_TOOL_PREFIXES),
     }
 
 

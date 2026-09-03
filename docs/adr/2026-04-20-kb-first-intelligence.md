@@ -244,3 +244,16 @@ indefinitely. All bypass usage is audited.
 - Cognitive Layer design: docs/superpowers/specs/2026-04-09-cognitive-layer-design.md
 - Related ADR (amendment): docs/adr/2026-04-20-flow-marker-v2.md
 - Obsidian: [[ArkaOS v2 Architecture Decisions]]
+
+## Addendum 2026-09-03 — fast-path regression (Runtime Sync PR0)
+
+Between the hook fast-path (ADR 2026-07-12) and 2026-09-03 the PreToolUse
+research gate was unsatisfiable on POSIX installs: the fast-path shim
+fast-exited `mcp__obsidian__*` PostToolUse calls before Python could write
+the `obsidian` turn marker, so `kb_cache.obsidian_queried_this_turn()`
+was always false and the second external call of every turn was denied
+regardless of real consults. Fixed by delegating
+`tools.post_delegate_prefixes` to Python; the `graphify` marker gained
+its first writer in the same change. Lesson for both ADRs: a marker the
+gate reads is a parity duty of every path that can skip its writer.
+

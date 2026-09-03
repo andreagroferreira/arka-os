@@ -41,6 +41,7 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from core.hooks._shared import (
     emit_additional_context,
@@ -828,6 +829,42 @@ def _log_metrics(duration_ms: int, attribution: dict | None = None) -> None:
 # ─── Entry point ─────────────────────────────────────────────────────────
 
 
+# Tool-name prefixes whose PostToolUse proves a GENUINE knowledge-base
+# consult, mapped to the turn-marker kind they write (core.synapse.kb_cache).
+# Consumed by core.hooks.gate_manifest (tools.post_delegate_prefixes) so the
+# fast-path shim delegates exactly these to Python — the markers have no
+# other writer. Extend here, regenerate the manifest, never edit the JSON.
+KB_MARKER_TOOL_PREFIXES: dict[str, str] = {
+    "mcp__obsidian__": "obsidian",
+    "mcp__graphify__": "graphify",
+}
+
+
+def _record_kb_marker(tool_name: str, session_id: str, stdin_json: dict[str, Any]) -> None:
+    """Write the turn marker for a genuine KB consult (never raises)."""
+    if not session_id:
+        return
+    for prefix, kind in KB_MARKER_TOOL_PREFIXES.items():
+        if not tool_name.startswith(prefix):
+            continue
+        try:
+            from core.synapse import kb_cache
+            query_hint = (
+                get_str(stdin_json, "tool_input", "query")
+                or get_str(stdin_json, "tool_input", "question")
+                or get_str(stdin_json, "tool_input", "path")
+                or tool_name
+            )
+            writer = (
+                kb_cache.record_obsidian_query if kind == "obsidian"
+                else kb_cache.record_graphify_query
+            )
+            writer(session_id, query_hint, hit_count=1)
+        except Exception:
+            pass
+        return
+
+
 def main(stdin_json: dict | None = None) -> int:
     start = time.monotonic()
     if stdin_json is None:
@@ -858,23 +895,20 @@ def main(stdin_json: dict | None = None) -> int:
     except Exception:
         pass
 
-    # KB-first evidence: a GENUINE Obsidian consult is recorded here — the
-    # only writer of the "obsidian" marker kind. Synapse L2.5 records its
-    # automatic injection under kind="injected", which the research gate
-    # deliberately does not read: before this split, the injection layer
-    # satisfied the very gate it was supposed to feed (self-certification —
-    # the marker said "consulted" on every turn regardless of behavior).
-    if tool_name.startswith("mcp__obsidian__") and session_id:
-        try:
-            from core.synapse.kb_cache import record_obsidian_query
-            query_hint = (
-                get_str(stdin_json, "tool_input", "query")
-                or get_str(stdin_json, "tool_input", "path")
-                or tool_name
-            )
-            record_obsidian_query(session_id, query_hint, hit_count=1)
-        except Exception:
-            pass
+    # KB-first evidence: a GENUINE KB consult is recorded here — the only
+    # writer of the "obsidian" and "graphify" marker kinds. Synapse L2.5
+    # records its automatic injection under kind="injected", which the
+    # research gate deliberately does not read: before this split, the
+    # injection layer satisfied the very gate it was supposed to feed
+    # (self-certification — the marker said "consulted" on every turn
+    # regardless of behavior).
+    #
+    # Runtime Sync PR0: the fast-path shim (engine.cjs decidePost) MUST
+    # delegate these tool prefixes to Python — a fast-exit skips this block
+    # and the gate can never observe a consult (66 false DENYs/day measured
+    # 2026-09-03). KB_MARKER_TOOL_PREFIXES is the single source both the
+    # gate manifest and this writer derive from.
+    _record_kb_marker(tool_name, session_id, stdin_json)
 
     # Interaction Reform PR3 — the native plan-mode approve button IS
     # explicit plan approval: a successful ExitPlanMode marks the

@@ -75,6 +75,24 @@ class TestPostToolUseRecordsGenuineConsults:
         assert record is not None
         assert record["queries"][-1]["query"] == "testing patterns"
 
+    def test_graphify_tool_call_writes_graphify_marker(self):
+        # Runtime Sync PR0: the graphify kind had no writer at all before.
+        from core.hooks import post_tool_use
+
+        post_tool_use.main({
+            "tool_name": "mcp__graphify__query_graph",
+            "session_id": "hon-post-3",
+            "transcript_path": "",
+            "cwd": "/tmp",
+            "tool_input": {"question": "hooks adapter version"},
+            "tool_output": "nodes",
+        })
+        record = kb_cache.read_graphify_query("hon-post-3")
+        assert record is not None
+        assert record["queries"][-1]["query"] == "hooks adapter version"
+        # kinds stay separate: a graphify consult never forges obsidian evidence
+        assert kb_cache.read_obsidian_query("hon-post-3") is None
+
     def test_non_obsidian_tool_writes_nothing(self):
         from core.hooks import post_tool_use
 
