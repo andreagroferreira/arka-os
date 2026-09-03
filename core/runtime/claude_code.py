@@ -43,11 +43,13 @@ FEATURE_FLOORS: dict[str, tuple[int, int, int]] = {
     "block_reads_outside_cwd": (2, 1, 257),
 }
 
-# Todo/task-tracking tools the runtime no longer offers on the frontier
-# families (changelog 2.1.233; the 2.1.259 binary gates exactly these five
-# on its own family list opus ≥ 4.8, sonnet ≥ 5, fable ≥ 5, mythos ≥ 5,
-# unless CLAUDE_CODE_ENABLE_TODO_TOOLS is set). An agent that declares one
-# of them in `tools:` names a tool it will never be handed (Runtime Sync PR4).
+# Todo/task-tracking tools not offered in an interactive frontier session
+# (changelog 2.1.233; the 2.1.259 binary gates exactly these five on its
+# own family list opus ≥ 4.8, sonnet ≥ 5, fable ≥ 5, mythos ≥ 5, reading
+# the main-loop model). Re-enabled by CLAUDE_CODE_ENABLE_TODO_TOOLS, the
+# host's todoToolsOptIn, a bg session, or the tengu_rosy_wren flag — none
+# of which the sessions ArkaOS runs use. An agent that declares one of
+# them in `tools:` names a tool it is not handed there (Runtime Sync PR4).
 FRONTIER_RETIRED_TOOLS: frozenset[str] = frozenset({
     "TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList",
 })

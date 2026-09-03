@@ -20,19 +20,33 @@ from core.runtime.claude_code import FRONTIER_RETIRED_TOOLS, KNOWN_BUILTIN_TOOLS
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AGENTS_DIR = REPO_ROOT / "config" / "claude-agents"
-_TOOLS_LINE = re.compile(r"^tools:\s*(.+?)\s*$", re.M)
+# Horizontal whitespace only: ``\s`` would let the capture cross the line
+# break and read the next key as the value.
+_TOOLS_LINE = re.compile(r"^tools:[ \t]*(\S.*?)[ \t]*$", re.M)
+_BARE_TOOLS_LINE = re.compile(r"^tools:[ \t]*$", re.M)
+_CLOSING_DELIMITER = re.compile(r"^---[ \t]*$", re.M)
 
 
 def _frontmatter(text: str) -> str:
     assert text.startswith("---\n"), "agent file without frontmatter"
-    end = text.index("\n---", 4)
-    return text[4:end]
+    closing = _CLOSING_DELIMITER.search(text, 4)
+    assert closing is not None, "agent frontmatter never closes"
+    return text[4 : closing.start()]
 
 
 def declared_tools(path: Path) -> list[str]:
     """The ``tools:`` list of one agent file; empty when the key is absent
-    (an agent without the key inherits every tool)."""
-    match = _TOOLS_LINE.search(_frontmatter(path.read_text(encoding="utf-8")))
+    (an agent without the key inherits every tool).
+
+    Only the inline comma form is parsed; a bare ``tools:`` line (the YAML
+    list form) is rejected so a retired name on the next line cannot hide.
+    """
+    frontmatter = _frontmatter(path.read_text(encoding="utf-8"))
+    assert _BARE_TOOLS_LINE.search(frontmatter) is None, (
+        f"{path.name}: list-form `tools:` is not parsed here — write the inline "
+        "comma form so the guard can read it"
+    )
+    match = _TOOLS_LINE.search(frontmatter)
     if match is None:
         return []
     return [tool.strip() for tool in match.group(1).split(",") if tool.strip()]
@@ -93,6 +107,30 @@ class TestRetiredTools:
         assert [t for t in declared_tools(agent) if t in FRONTIER_RETIRED_TOOLS] == ["TaskCreate"]
         agent.write_text("---\nname: y\nmodel: sonnet\n---\n", encoding="utf-8")
         assert declared_tools(agent) == []
+
+    def test_parser_rejects_the_list_form_instead_of_missing_a_retired_name(
+        self, tmp_path: Path
+    ) -> None:
+        """QG round 1 (Francisca M3): `tools:\n  - Read\n  - TaskCreate` must
+        not read as `['- Read']` with TaskCreate invisible."""
+        agent = tmp_path / "x.md"
+        agent.write_text(
+            "---\nname: x\ntools:\n  - Read\n  - TaskCreate\nmodel: sonnet\n---\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(AssertionError, match="list-form"):
+            declared_tools(agent)
+
+    def test_parser_does_not_cross_lines_or_stop_at_a_fake_delimiter(self, tmp_path: Path) -> None:
+        agent = tmp_path / "x.md"
+        agent.write_text(
+            "---\nname: x\ndescription: >\n  ---x is not a delimiter\n"
+            "tools: Read, Agent\nmodel: sonnet\n---\n\ntools: TaskCreate\n",
+            encoding="utf-8",
+        )
+        assert declared_tools(agent) == ["Read", "Agent"], (
+            "the body's tools: line is outside the frontmatter"
+        )
 
 
 class TestKnownBuiltins:

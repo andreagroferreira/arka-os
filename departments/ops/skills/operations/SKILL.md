@@ -26,7 +26,7 @@ Company operations, automations, and routine process management.
 
 0. BRIEF (Sofia) — clarify, check ClickUp/Calendar, save to Obsidian, gate
 1. CHALLENGE & RESEARCH (Lucas) — best practices, gate
-2. PLANNING (Sofia) — steps announced per phase, success criteria
+2. PLANNING (Sofia) — step list, success criteria
 3. EXECUTION (Sofia) — ClickUp/Gmail/Calendar, one-at-a-time validation
 4. SELF-CRITIQUE (Sofia)
 5. SUPERVISION (Marco or Helena) — gate
