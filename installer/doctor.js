@@ -290,6 +290,56 @@ export function qgLedgerPopulated(
   }
 }
 
+// ─── Claude Code runtime floor (Runtime Sync PR1) ──────────────────────
+// 2.1.257 (2026-09-01) is the first release where Fable 5.1 is the default
+// `fable` model, CLAUDE_CODE_SUBAGENT_MODEL_FORCE exists and
+// permissions.blockReadsOutsideWorkingDirectories exists; it also carries
+// the 2.1.248 hook contract (a `{…}` stdout that is not valid JSON is a
+// hook error, no longer plain text). The Python twin of this pin is
+// core/runtime/claude_code.py:FEATURE_FLOORS — the floor here must equal
+// its highest entry (tests/python/test_runtime_claude_code.py locks it).
+export const CLAUDE_CODE_MIN_VERSION = "2.1.257";
+export const CLAUDE_CODE_MIN_VERSION_REASON =
+  "Fable 5.1 default, CLAUDE_CODE_SUBAGENT_MODEL_FORCE, " +
+  "permissions.blockReadsOutsideWorkingDirectories";
+
+/** `[major, minor, patch]` from any text carrying a dotted triple, else null. */
+export function parseClaudeCodeVersion(text) {
+  const m = String(text ?? "").match(/(\d+)\.(\d+)\.(\d+)/);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+/** True when `text` carries a version >= `floor`; unparsable input is false. */
+export function versionAtLeast(text, floor) {
+  const have = parseClaudeCodeVersion(text);
+  const need = parseClaudeCodeVersion(floor);
+  if (!have || !need) return false;
+  for (let i = 0; i < 3; i++) {
+    if (have[i] > need[i]) return true;
+    if (have[i] < need[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * What `claude --version` answered: `text` is the raw output (kept even when
+ * the binary exits non-zero, so the fix hint can name what it saw; null when
+ * nothing came back) and `ok` is whether the command exited 0.
+ */
+export function claudeCodeVersionOutput() {
+  try {
+    const text = execSync("claude --version 2>&1", { stdio: "pipe" }).toString().trim();
+    return { text, ok: true };
+  } catch (err) {
+    const text = err && err.stdout ? err.stdout.toString().trim() : "";
+    return { text: text || null, ok: false };
+  }
+}
+
+// What the last claude-code-version check saw, so the fix hint can name
+// the detected build (and a failed exit) instead of a generic "upgrade".
+let lastClaudeCodeVersionProbe = null;
+
 export const checks = [
   {
     name: "install-dir",
@@ -595,28 +645,30 @@ export const checks = [
   },
   {
     name: "claude-code-version",
-    description: "Claude Code 2.1.122+ (ToolSearch late-binding + hooks isolation)",
+    description: `Claude Code ${CLAUDE_CODE_MIN_VERSION}+ (${CLAUDE_CODE_MIN_VERSION_REASON})`,
     severity: "warn",
     check: () => {
       if (!commandExists("claude")) return true; // no claude binary = not applicable
-      try {
-        const out = execSync("claude --version 2>&1", {
-          stdio: "pipe",
-        }).toString().trim();
-        const m = out.match(/(\d+)\.(\d+)\.(\d+)/);
-        if (!m) return false;
-        const [, maj, min, patch] = m.map(Number);
-        // 2.1.122 minimum
-        if (maj > 2) return true;
-        if (maj < 2) return false;
-        if (min > 1) return true;
-        if (min < 1) return false;
-        return patch >= 122;
-      } catch {
-        return false;
-      }
+      lastClaudeCodeVersionProbe = claudeCodeVersionOutput();
+      return lastClaudeCodeVersionProbe.ok &&
+        versionAtLeast(lastClaudeCodeVersionProbe.text, CLAUDE_CODE_MIN_VERSION);
     },
-    fix: () => "Upgrade Claude Code: npm install -g @anthropic-ai/claude-code@latest",
+    fix: () => {
+      const probe = lastClaudeCodeVersionProbe || { text: null, ok: false };
+      const detected = parseClaudeCodeVersion(probe.text);
+      const build = detected ? detected.join(".") : null;
+      let seen;
+      if (probe.ok) {
+        seen = build || "no parsable `claude --version`";
+      } else if (build) {
+        seen = `${build}, but \`claude --version\` exited non-zero`;
+      } else {
+        seen = "a `claude --version` that exited non-zero";
+      }
+      return `Detected ${seen}; ArkaOS needs ${CLAUDE_CODE_MIN_VERSION}+ ` +
+        `(${CLAUDE_CODE_MIN_VERSION_REASON}). ` +
+        "Upgrade: npm install -g @anthropic-ai/claude-code@latest";
+    },
   },
   {
     name: "graphify",

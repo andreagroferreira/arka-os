@@ -98,6 +98,10 @@ class TestPermissions:
         # The runtime's own allow-everything forms — the first draft
         # missed these entirely.
         "Bash(*:*)", "Bash(:*)",
+        # Retired as a TOOL, live as a permission RULE: the 2.1.259
+        # binary maps `MultiEdit(...)` onto Edit, so an unscoped
+        # MultiEdit allow is an unscoped Edit allow (Runtime Sync PR1).
+        "MultiEdit", "MultiEdit(*)",
     ])
     def test_unscoped_tool_allow(self, rule, tmp_path):
         write(tmp_path, "settings.json", {"permissions": {

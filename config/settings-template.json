@@ -14,7 +14,7 @@
           {
             "type": "command",
             "command": "{{HOOKS_DIR}}/session-start.sh",
-            "timeout": 5
+            "timeout": 15
           }
         ]
       }
@@ -26,17 +26,6 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/user-prompt-submit.sh",
             "timeout": 20
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "{{HOOKS_DIR}}/pre-compact.sh",
-            "timeout": 30
           }
         ]
       }
@@ -63,18 +52,16 @@
         ]
       }
     ],
-    "CwdChanged": [
+    "PreToolUse": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "{{HOOKS_DIR}}/cwd-changed.sh",
-            "timeout": 5
+            "command": "{{HOOKS_DIR}}/pre-tool-use.sh",
+            "timeout": 10
           }
         ]
-      }
-    ],
-    "PreToolUse": [
+      },
       {
         "matcher": "Task",
         "hooks": [
@@ -82,6 +69,61 @@
             "type": "command",
             "command": "{{HOOKS_DIR}}/agent-provision.sh",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/stop.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/subagent-stop.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/session-end.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/pre-compact.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_DIR}}/cwd-changed.sh",
+            "timeout": 5
           }
         ]
       }

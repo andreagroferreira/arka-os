@@ -1,7 +1,7 @@
 # ============================================================================
 # ArkaOS v2 — PreToolUse Hook (Windows PowerShell)
 #
-# Parity with config/hooks/pre-tool-use.sh. Blocks Write/Edit/MultiEdit when
+# Parity with config/hooks/pre-tool-use.sh. Blocks Write/Edit when
 # the mandatory 13-phase flow is required for the session AND the assistant
 # has not emitted a flow marker in its last 3 messages of the transcript.
 #
@@ -127,7 +127,7 @@ print(json.dumps({
 # Blocks Tier-1 leads from writing to specialist-owned files without
 # dispatching first. Only fires for file-mutation tools.
 $specialistPy = Join-Path $env:ARKAOS_ROOT "core/workflow/specialist_enforcer.py"
-if ((Test-Path $specialistPy) -and ($toolName -in @("Write","Edit","MultiEdit","NotebookEdit"))) {
+if ((Test-Path $specialistPy) -and ($toolName -in @("Write","Edit","NotebookEdit"))) {
     $toolInputJson = "{}"
     if ($inp.tool_input) {
         $toolInputJson = ($inp.tool_input | ConvertTo-Json -Compress -Depth 10)
@@ -201,7 +201,7 @@ print(json.dumps({
 }
 
 # --- Fast allow: not a flow-gated tool ---
-if ($toolName -ne "Write" -and $toolName -ne "Edit" -and $toolName -ne "MultiEdit") {
+if ($toolName -ne "Write" -and $toolName -ne "Edit") {
     exit 0
 }
 

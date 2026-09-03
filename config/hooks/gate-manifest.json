@@ -519,7 +519,7 @@
         "tool": "Edit"
       },
       {
-        "expect": "delegate",
+        "expect": "fast_allow",
         "tool": "MultiEdit"
       },
       {
@@ -715,7 +715,6 @@
   "tools": {
     "effect_always": [
       "Edit",
-      "MultiEdit",
       "NotebookEdit",
       "Skill",
       "Task",
@@ -724,7 +723,6 @@
     "flow_gated": [
       "Bash",
       "Edit",
-      "MultiEdit",
       "NotebookEdit",
       "Skill",
       "Task",

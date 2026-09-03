@@ -318,10 +318,11 @@ Multi-runtime support via adapter pattern.
 
 | File | Purpose |
 |------|---------|
-| `core/runtime/claude_code.py` | Claude Code adapter (hooks, CLAUDE.md injection) |
-| `core/runtime/codex.py` | Codex CLI adapter |
-| `core/runtime/gemini.py` | Gemini CLI adapter |
+| `core/runtime/claude_code.py` | Claude Code adapter (hooks, headless `claude -p`, version-gated `supports_feature` over `FEATURE_FLOORS`) |
+| `core/runtime/codex_cli.py` | Codex CLI adapter |
+| `core/runtime/gemini_cli.py` | Gemini CLI adapter |
 | `core/runtime/cursor.py` | Cursor adapter (rules injection) |
+| `core/runtime/opencode.py` | OpenCode adapter (agents, commands, MCP, plugin bridge in `opencode_hooks.py`) |
 | `core/runtime/subagent.py` | Subagent dispatch: fresh instances per task, ~379 token handoff |
 
 ## Hook Lifecycle

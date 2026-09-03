@@ -1,8 +1,9 @@
 """Evidence-flow enforcement for write-mutation tools.
 
-Invoked by the Claude Code `PreToolUse` hook. Decides whether a `Write`,
-`Edit`, or `MultiEdit` tool call may proceed, based on markers observed
-in the last N assistant messages of the session transcript.
+Invoked by the Claude Code `PreToolUse` hook. Decides whether an effect
+tool call (`Write`, `Edit`, `NotebookEdit`, `Task`, `Skill`, or an effect
+`Bash` command) may proceed, based on markers observed in the last N
+assistant messages of the session transcript.
 
 Design contract:
 - Stateless transcript parse (no /tmp state for decisions).
@@ -76,8 +77,14 @@ def _locked_append(path: Path):
 # Mutating commands (rm, mv, git commit/push, npm install, etc.) are
 # EFFECT. Unknown commands default to EFFECT (safer).
 
+# `MultiEdit` left this set in Runtime Sync PR1: the runtime stopped
+# offering the tool before the 2.1.257 floor (its built-in tool registry
+# carries no such name), so no PreToolUse payload can ever name it. The
+# harness scanner still recognises it in PERMISSION rules — the
+# permission engine maps `MultiEdit(...)` onto `Edit` — which is a
+# different surface from tool gating.
 EFFECT_TOOLS_ALWAYS: frozenset[str] = frozenset({
-    "Write", "Edit", "MultiEdit", "NotebookEdit",
+    "Write", "Edit", "NotebookEdit",
     "Task", "Skill",  # Agent dispatch + skill invocation cascade to effect
 })
 
@@ -461,9 +468,9 @@ def evaluate(
     Returns a Decision. Caller is responsible for translating `allow=False`
     into the appropriate hook exit code or permissionDecision output.
 
-    PR11 v2.33.0 expanded the gated set beyond Write/Edit/MultiEdit to
-    cover all EFFECT tools (NotebookEdit, Task, Skill) and to classify
-    Bash commands per-command via ``bash_is_effect``.
+    PR11 v2.33.0 expanded the gated set beyond Write/Edit (and the
+    since-retired MultiEdit) to cover all EFFECT tools (NotebookEdit, Task,
+    Skill) and to classify Bash commands per-command via ``bash_is_effect``.
 
     ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages.
     When None (default) the transcript is read from ``transcript_path`` —

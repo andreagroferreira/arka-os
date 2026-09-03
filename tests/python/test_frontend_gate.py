@@ -119,12 +119,21 @@ class TestHeuristicScope:
             {"content": "const Card = styled.div`padding: 4px`"},
         )
 
-    def test_multiedit_payloads_are_scanned(self):
-        assert is_heuristic_ui_file(
+    def test_retired_multiedit_payloads_are_not_scanned(self):
+        """Runtime Sync PR1 removed the MultiEdit branch with the tool: a
+        payload under that name never arrives from a 2.1.257+ runtime, so
+        it carries no text to scan. Restoring the branch fails here."""
+        assert not is_heuristic_ui_file(
             "app/render.ts", "MultiEdit",
             {"edits": [{"new_string": "const x = 1"},
                        {"new_string": "cva('btn')"}]},
         )
+
+    def test_retired_multiedit_is_not_a_gated_tool(self):
+        """The gate SET is pinned too, not only the payload branch: re-admitting
+        the retired name here fails (QG fix-forward, Runtime Sync PR1)."""
+        assert "MultiEdit" not in frontend_gate._GATED_TOOLS
+        assert frozenset({"Write", "Edit"}) == frontend_gate._GATED_TOOLS
 
     def test_heuristic_gates_in_warn_with_own_scope(self, config):
         decision = _evaluate(

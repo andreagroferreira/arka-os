@@ -41,9 +41,9 @@ from core.hooks._shared import (
 )
 
 _FLOW_GATED_TOOLS = frozenset({
-    "Write", "Edit", "MultiEdit", "NotebookEdit", "Task", "Skill", "Bash",
+    "Write", "Edit", "NotebookEdit", "Task", "Skill", "Bash",
 })
-_SPECIALIST_TOOLS = frozenset({"Write", "Edit", "MultiEdit", "NotebookEdit"})
+_SPECIALIST_TOOLS = frozenset({"Write", "Edit", "NotebookEdit"})
 _ASSISTANT_WINDOW = 20
 
 
@@ -260,7 +260,7 @@ def _frontend_gate(
 # Config edits only ever land through file_path tools. NotebookEdit
 # addresses a notebook_path, never a linter config, so it is not in the
 # set — a notebook can never be a protected config file.
-_CONFIG_GATED_TOOLS = frozenset({"Write", "Edit", "MultiEdit"})
+_CONFIG_GATED_TOOLS = frozenset({"Write", "Edit"})
 
 
 def _operator_messages(transcript_path: str) -> list[str]:

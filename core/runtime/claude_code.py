@@ -5,6 +5,8 @@ It supports hooks, subagents (Agent tool), MCP servers, and worktrees.
 """
 
 import json
+import os
+import re
 import shutil
 import subprocess
 from os.path import expanduser
@@ -15,6 +17,93 @@ from core.runtime.base import AgentContext, AgentResult, RuntimeAdapter, Runtime
 
 if TYPE_CHECKING:
     from core.runtime.llm_provider import LLMResponse
+
+
+# Claude Code versions that introduced each behaviour ArkaOS gates on.
+# Every entry is a changelog "Added"/"Changed" line, verified 2026-09-03
+# against code.claude.com/docs/en/changelog. ``supports_feature`` compares
+# the detected binary against this table; the installer doctor pins its
+# floor to the highest value here (tests/python/test_runtime_claude_code.py).
+FEATURE_FLOORS: dict[str, tuple[int, int, int]] = {
+    # `fallbackModel` setting — up to three models tried in order
+    "fallback_model_setting": (2, 1, 166),
+    # subagent forking on by default; interactive spawns run in the background
+    "fork_default": (2, 1, 232),
+    # TaskCreate/Get/Update/List and TodoWrite removed on frontier models
+    "todo_tools_removed": (2, 1, 233),
+    # a `{…}` stdout that is not valid JSON is a hook error, not plain text
+    "hook_json_strict": (2, 1, 248),
+    # PreModelSwitch / PostModelSwitch hook events
+    "pre_model_switch": (2, 1, 251),
+    # claude-fable-5-1 is the default `fable` model
+    "fable_5_1": (2, 1, 257),
+    # CLAUDE_CODE_SUBAGENT_MODEL_FORCE
+    "subagent_model_force": (2, 1, 257),
+    # permissions.blockReadsOutsideWorkingDirectories
+    "block_reads_outside_cwd": (2, 1, 257),
+}
+
+# Truths no version changes; everything else falls through to the config.
+_STATIC_FEATURES: dict[str, bool] = {
+    "parallel_agents": True,
+    "worktrees": True,
+}
+
+# Operator/test override, read on every call (never cached): pin the
+# version a gateway build reports, or simulate an older binary in tests.
+VERSION_ENV = "ARKA_CLAUDE_VERSION"
+_VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
+_PROBE_TIMEOUT_SECONDS = 10
+# One-slot cache for the `claude --version` probe. Empty = not probed yet.
+# In-memory only: a disk cache would let one session answer for the next.
+_probe_cache: list[tuple[int, int, int] | None] = []
+
+
+def parse_version(text: str | None) -> tuple[int, int, int] | None:
+    """The first dotted triple in ``text`` (``"2.1.259 (Claude Code)"``)."""
+    match = _VERSION_RE.search(text or "")
+    if match is None:
+        return None
+    return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def _probe_binary() -> tuple[int, int, int] | None:
+    binary = shutil.which("claude")
+    if not binary:
+        return None
+    try:
+        result = subprocess.run(
+            [binary, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=_PROBE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    return parse_version(result.stdout) or parse_version(result.stderr)
+
+
+def detect_claude_code_version() -> tuple[int, int, int] | None:
+    """The Claude Code version on this machine, or None when unknowable.
+
+    ``ARKA_CLAUDE_VERSION`` wins when set to a non-blank value and is read
+    on every call (a blank value counts as unset). The binary probe runs
+    once per process and is cached in memory only.
+    """
+    override = os.environ.get(VERSION_ENV)
+    if override is not None and override.strip():
+        return parse_version(override)
+    if not _probe_cache:
+        _probe_cache.append(_probe_binary())
+    return _probe_cache[0]
+
+
+def reset_version_cache() -> None:
+    """Forget the probed version (tests, or after an in-place upgrade)."""
+    _probe_cache.clear()
 
 
 class ClaudeCodeAdapter(RuntimeAdapter):
@@ -39,7 +128,7 @@ class ClaudeCodeAdapter(RuntimeAdapter):
             "agent_dispatch": True,   # Agent tool — real subagent dispatch
             "headless": True,         # claude -p
             "file_ops": True,         # native Read/Write/Edit tools
-            "hooks": True,            # 5 lifecycle hooks
+            "hooks": True,            # 11 registrations on 10 events — core/harness/spec.py
         }
 
     def inject_context(self, layers: dict[str, str]) -> str:
@@ -115,8 +204,20 @@ class ClaudeCodeAdapter(RuntimeAdapter):
         raise NotImplementedError("Use Claude Code's native Grep tool")
 
     def supports_feature(self, feature: str) -> bool:
-        """Claude Code supports all features."""
-        return True
+        """Version-gated where the runtime changed; config-backed or static otherwise.
+
+        A feature in ``FEATURE_FLOORS`` is supported only when the detected
+        binary meets its floor; an unknown version answers the conservative
+        False and never raises. ``hooks``/``subagents``/``mcp`` come from
+        the config; ``parallel_agents``/``worktrees`` are static truths.
+        """
+        floor = FEATURE_FLOORS.get(feature)
+        if floor is not None:
+            version = detect_claude_code_version()
+            return version is not None and version >= floor
+        if feature in _STATIC_FEATURES:
+            return _STATIC_FEATURES[feature]
+        return super().supports_feature(feature)
 
     def headless_supported(self) -> bool:
         return shutil.which("claude") is not None

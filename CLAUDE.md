@@ -77,7 +77,7 @@ npx arkaos@latest update
 
 This updates:
 - Python dependencies
-- Hook scripts (SessionStart, UserPromptSubmit, PostToolUse, PreCompact, CwdChanged)
+- Hook scripts — 11 registrations on 10 events (`core/harness/spec.py`): SessionStart, UserPromptSubmit, PreToolUse (+ a `Task`-matcher entry for agent provisioning), PostToolUse, PostToolUseFailure, Stop, SubagentStop, SessionEnd, PreCompact, CwdChanged
 - CLI wrapper (`arka-claude`)
 - `/arka` skill
 - Constitution and config files

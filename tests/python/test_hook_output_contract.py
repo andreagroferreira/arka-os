@@ -8,6 +8,16 @@ consolidation, so [ARKA:ROUTE], [ARKA:WORKFLOW-REQUIRED] and the entire
 Synapse block were computed and discarded on every turn. These tests pin
 every entrypoint, and the shell/PowerShell wrappers, to the accepted shape
 so the bug class cannot be reintroduced in core/hooks or config/hooks.
+
+Runtime Sync PR1 (2.1.248 contract): stdout is parsed as ONE JSON object
+when it starts with ``{`` and ends with ``}``. Two lines that each set a
+field are a parse failure — reported as a hook error, and on SessionStart
+and UserPromptSubmit the text is NOT added as context (before 2.1.248 it
+was treated as plain text). So every emitting entrypoint must print
+exactly one document, and every stdout path — including the ones the
+minimal fixtures never reach (PreToolUse deny, Stop reviewer notices) —
+is pinned below. Mutation-proven: a truncated ``json.dumps`` or a second
+emission fails these tests.
 """
 
 from __future__ import annotations
@@ -176,6 +186,24 @@ def _assert_payload_shape(line: str, event_name: str) -> None:
         )
 
 
+def _assert_single_document(stdout: str, event_name: str) -> dict:
+    """The whole stdout must be one JSON object (2.1.248 contract).
+
+    The runtime does not read line by line: a stdout of two objects that
+    each set a field is a parse failure, so ``json.loads`` over the full
+    text — not over each line — is the assertion that matches it.
+    """
+    lines = [line for line in stdout.strip().splitlines() if line.strip()]
+    assert len(lines) == 1, (
+        f"expected exactly one JSON document on stdout for {event_name}, "
+        f"got {len(lines)} non-empty lines: {lines!r}"
+    )
+    payload = json.loads(stdout.strip())
+    assert isinstance(payload, dict), f"stdout is not a JSON object: {stdout!r}"
+    _assert_payload_shape(lines[0], event_name)
+    return payload
+
+
 class TestHelperUnit:
     """In-process coverage of the single construction site."""
 
@@ -198,6 +226,24 @@ class TestHelperUnit:
         out = capsys.readouterr().out.strip().splitlines()
         assert len(out) == 1, f"expected exactly one stdout line, got {out!r}"
         _assert_payload_shape(out[0], "SubagentStop")
+
+    def test_pre_tool_use_deny_payload_shape(self, capsys):
+        """PreToolUse's only stdout path is the deny payload. The
+        subprocess fixture takes the silent path (a Read is never gated),
+        so the emitter is pinned here — a broken ``json.dumps`` in
+        ``emit_deny_json`` fails this test, and so does a second line.
+        """
+        import core.hooks.pre_tool_use as ptu
+
+        reason = "KB-first: consult the vault before external research"
+        rc = ptu._deny(reason)
+        assert rc == 2, "a deny also exits 2: stderr blocks even where the JSON is unparsed"
+        captured = capsys.readouterr()
+        payload = _assert_single_document(captured.out, "PreToolUse")
+        hso = payload["hookSpecificOutput"]
+        assert hso["permissionDecision"] == "deny"
+        assert hso["permissionDecisionReason"] == reason
+        assert captured.err.strip() == reason, "stderr carries the human reason"
 
     def test_post_tool_use_violation_payload_shape(self, monkeypatch, capsys):
         """Pins the PostToolUse additionalContext at runtime.
@@ -313,17 +359,48 @@ class TestPythonEntrypoints:
             )
             return
         assert lines, f"{module} emitted nothing — the case went vacuous"
-        for line in lines:
-            _assert_payload_shape(line, event_name)
-        assert any(
-            json.loads(line).get("hookSpecificOutput", {}).get("hookEventName")
-            == event_name
-            for line in lines
+        payload = _assert_single_document(result.stdout, event_name)
+        assert (
+            payload.get("hookSpecificOutput", {}).get("hookEventName") == event_name
         ), (
             f"{module} never emitted hookSpecificOutput with "
             f"hookEventName={event_name!r} — the declared event went "
             "unasserted (vacuous case)"
         )
+
+    def test_stop_relays_reviewer_notices_as_one_document(
+        self, contract_home, monkeypatch
+    ):
+        """Stop's only stdout path — reviewer notices queued at SubagentStop.
+
+        The parametrized fixture cannot reach it (nothing queued → silent),
+        so the emitter would go unexercised. Seed a notice through the
+        ledger API under the contract HOME — the WRITER is redirected, HOME
+        is not monkeypatched in-process (import-time ``Path.home()``
+        constants elsewhere would be poisoned) — then run the entrypoint
+        for real with HOME pointed at the same tree.
+        """
+        from core.governance import reviewer_ledger
+
+        session_id = "contract-stop-notice"
+        ledger_root = contract_home / ".arkaos" / "quality-gate"
+        monkeypatch.setattr(reviewer_ledger, "ledger_root", lambda: ledger_root)
+        nudge = "QA nudge: route the deliverable through the Quality Gate"
+        reviewer_ledger.queue_notice(session_id, None, nudge)
+        assert (ledger_root / session_id / "NOTICES.jsonl").is_file(), (
+            "the seed never landed — the test would go vacuous"
+        )
+
+        result = _run_module(
+            "core.hooks.stop",
+            {"session_id": session_id, "transcript_path": ""},
+            contract_home,
+        )
+        assert result.returncode == 0, result.stderr
+        payload = _assert_single_document(result.stdout, "Stop")
+        hso = payload["hookSpecificOutput"]
+        assert hso["hookEventName"] == "Stop"
+        assert nudge in hso["additionalContext"]
 
 
 class TestSourceGuards:

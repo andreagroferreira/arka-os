@@ -633,3 +633,13 @@ def test_session_id_with_traversal_rejected(tmp_path, tmp_config):
     )
     # The malicious path must not exist
     assert not (tmp_path / "evil").exists()
+
+
+def test_retired_multiedit_is_not_a_gated_tool():
+    """Runtime Sync PR1: the runtime stopped offering MultiEdit before the
+    2.1.257 floor, so the specialist gate set must not name it. Putting it
+    back fails here (QG fix-forward)."""
+    from core.workflow.specialist_enforcer import GATED_TOOLS
+
+    assert "MultiEdit" not in GATED_TOOLS
+    assert frozenset({"Write", "Edit", "NotebookEdit"}) == GATED_TOOLS

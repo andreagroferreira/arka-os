@@ -94,7 +94,7 @@ discipline over time.
 | Confidence helper | `kb_first_decider.decide_confidence()` — determines whether the vault result is strong enough to skip external lookup |
 
 The gate runs **before** the flow enforcer for these four tool families, so it
-does not interfere with Write/Edit/MultiEdit enforcement (governed by
+does not interfere with Write/Edit enforcement (governed by
 ADR-2026-04-17).
 
 ---
