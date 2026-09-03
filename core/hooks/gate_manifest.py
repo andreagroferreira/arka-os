@@ -139,7 +139,10 @@ def _pre_tool_corpus() -> list[dict]:
         ("mcp__firecrawl__firecrawl_scrape", "delegate"),
         ("Write", "delegate"),
         ("Edit", "delegate"),
-        ("MultiEdit", "delegate"),
+        # Retired tool name (Runtime Sync PR1): the runtime stopped
+        # offering MultiEdit before the 2.1.257 floor, so the gate sets
+        # dropped it. The row stays to prove no gate special-cases it.
+        ("MultiEdit", "fast_allow"),
         ("NotebookEdit", "delegate"),
         ("Task", "delegate"),
         ("Skill", "delegate"),

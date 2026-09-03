@@ -213,6 +213,14 @@ def is_secret_binding(name: str, value: object) -> bool:
 # UNSCOPED when it grants the whole tool: bare `Bash`, `Bash()`,
 # `Bash(*)`, or `Bash(*:*)` / `Bash(:*)` — the last two are the runtime's
 # own "allow everything" forms, which the first draft missed entirely.
+#
+# `MultiEdit` is no longer a tool the runtime offers (retired before the
+# 2.1.257 floor; the gate manifests dropped it in Runtime Sync PR1) but it
+# is NOT retired from the permission grammar: the 2.1.259 binary still
+# validates a `MultiEdit(...)` rule by mapping it onto `Edit` (rule
+# validation in the permission engine, proven by inspecting the binary).
+# An unscoped `MultiEdit` allow therefore still grants every Edit, so the
+# name stays in this pattern and in _SCOPE_HINT.
 _UNSCOPED_RULE = re.compile(
     r"^(Bash|Write|Edit|MultiEdit|WebFetch|NotebookEdit|Read)"
     r"(\(\s*\*?\s*(:\s*\*\s*)?\))?$"

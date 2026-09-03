@@ -94,9 +94,7 @@ ROSTER_PATH = (
     / "agent-roster.json"
 )
 
-GATED_TOOLS: frozenset[str] = frozenset(
-    {"Write", "Edit", "MultiEdit", "NotebookEdit"}
-)
+GATED_TOOLS: frozenset[str] = frozenset({"Write", "Edit", "NotebookEdit"})
 
 # Marker regexes — see docs/adr/2026-05-28-specialist-dispatch-...md
 ROUTING_RE = re.compile(
@@ -651,7 +649,7 @@ def evaluate(
     messages: list[str] | None = None,
     is_sidechain: bool | None = None,
 ) -> Decision:
-    """Decide whether a Write/Edit/MultiEdit/NotebookEdit may proceed.
+    """Decide whether a Write/Edit/NotebookEdit may proceed.
 
     ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages;
     when None the transcript is read from ``transcript_path``.

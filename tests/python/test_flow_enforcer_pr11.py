@@ -2,7 +2,7 @@
 
 Covers the bash_is_effect classifier and the expanded EFFECT_TOOLS_ALWAYS
 set. Earlier tests live in test_flow_enforcer.py and continue to cover
-the original Write/Edit/MultiEdit gating path.
+the original Write/Edit gating path.
 """
 
 from __future__ import annotations
@@ -27,10 +27,16 @@ def _exhaust_grace(flow_enforcer, monkeypatch, tmp_path, session_id):
 
 
 class TestEffectToolsAlwaysSet:
-    def test_includes_legacy_write_edit_multiedit(self):
+    def test_includes_write_and_edit(self):
         assert "Write" in EFFECT_TOOLS_ALWAYS
         assert "Edit" in EFFECT_TOOLS_ALWAYS
-        assert "MultiEdit" in EFFECT_TOOLS_ALWAYS
+
+    def test_retired_multiedit_is_not_gated(self):
+        """Runtime Sync PR1: the runtime stopped offering MultiEdit before
+        the 2.1.257 floor, so a gate on the name is dead weight — and a
+        manifest listing a tool the runtime cannot send misdescribes the
+        contract. Putting it back fails here."""
+        assert "MultiEdit" not in EFFECT_TOOLS_ALWAYS
 
     def test_includes_notebook_edit(self):
         assert "NotebookEdit" in EFFECT_TOOLS_ALWAYS

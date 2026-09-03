@@ -227,7 +227,7 @@ function decidePre(payload, manifest, ctx) {
     return { action: "delegate", reason: "bash-effect-or-budget" };
   }
 
-  // P7/P8 — Write/Edit/MultiEdit/NotebookEdit/Task/Skill: specialist +
+  // P7/P8 — Write/Edit/NotebookEdit/Task/Skill: specialist +
   // frontend + flow chains with decision-bearing state writes.
   return { action: "delegate", reason: "flow-gated" };
 }

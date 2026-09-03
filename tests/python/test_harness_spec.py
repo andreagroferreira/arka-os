@@ -7,6 +7,7 @@ equality. Editing installer/hard-deny.js or the claude-code adapter
 without updating core/harness/spec.py (or vice versa) fails here.
 """
 
+import json
 import re
 from pathlib import Path
 
@@ -21,6 +22,8 @@ from core.harness.spec import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HARD_DENY_JS = REPO_ROOT / "installer" / "hard-deny.js"
 ADAPTER_JS = REPO_ROOT / "installer" / "adapters" / "claude-code.js"
+SETTINGS_TEMPLATE = REPO_ROOT / "config" / "settings-template.json"
+HOOKS_DIR = REPO_ROOT / "config" / "hooks"
 
 
 def js_hard_deny_rules() -> list[str]:
@@ -55,6 +58,22 @@ def js_hook_registrations() -> set[tuple]:
     assert push, "Task-matcher push not found in the adapter"
     event, matcher, script, timeout = push.groups()
     registrations.add((event, script, int(timeout), matcher))
+    return registrations
+
+
+def template_hook_registrations() -> set[tuple]:
+    """(event, script, timeout, matcher) tuples the settings template declares."""
+    template = json.loads(SETTINGS_TEMPLATE.read_text(encoding="utf-8"))
+    registrations = set()
+    for event, entries in template["hooks"].items():
+        for entry in entries:
+            for hook in entry["hooks"]:
+                command = hook["command"]
+                assert command.startswith("{{HOOKS_DIR}}/"), command
+                script = command.removeprefix("{{HOOKS_DIR}}/").removesuffix(".sh")
+                registrations.add(
+                    (event, script, int(hook["timeout"]), entry.get("matcher"))
+                )
     return registrations
 
 
@@ -114,6 +133,37 @@ class TestHookRegistrationParity:
         assert "settings.statusLine = {" in source
         surfaces = {s.surface for s in spec_for("claude-code").surfaces}
         assert "settings:statusLine" in surfaces
+
+
+class TestSettingsTemplateParity:
+    """config/settings-template.json is a THIRD copy of the registrations.
+
+    It is install.sh's executed path (the template is merged verbatim into
+    settings.json, install.sh:1029) and the reference every other writer
+    is pinned to (tests/installer/hook-consistency.test.js). It declared 7
+    of the adapter's 11 registrations and a 5 s SessionStart for months
+    (Runtime Sync PR1). Pin it to the spec, which is pinned to the adapter,
+    and the three surfaces cannot drift again.
+    """
+
+    def test_template_registers_exactly_the_spec(self):
+        spec = spec_for("claude-code")
+        ours = {
+            (r.event, r.script, r.timeout, r.matcher)
+            for r in spec.hook_registrations
+        }
+        assert template_hook_registrations() == ours
+
+    def test_template_extraction_found_a_real_corpus(self):
+        assert len(template_hook_registrations()) >= 10
+
+    def test_every_template_script_ships(self):
+        missing = sorted(
+            script
+            for _, script, _, _ in template_hook_registrations()
+            if not (HOOKS_DIR / f"{script}.sh").is_file()
+        )
+        assert missing == [], f"template points at hooks that do not ship: {missing}"
 
 
 class TestRuntimeKeying:

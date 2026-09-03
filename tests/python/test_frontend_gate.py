@@ -119,8 +119,11 @@ class TestHeuristicScope:
             {"content": "const Card = styled.div`padding: 4px`"},
         )
 
-    def test_multiedit_payloads_are_scanned(self):
-        assert is_heuristic_ui_file(
+    def test_retired_multiedit_payloads_are_not_scanned(self):
+        """Runtime Sync PR1 removed the MultiEdit branch with the tool: a
+        payload under that name never arrives from a 2.1.257+ runtime, so
+        it carries no text to scan. Restoring the branch fails here."""
+        assert not is_heuristic_ui_file(
             "app/render.ts", "MultiEdit",
             {"edits": [{"new_string": "const x = 1"},
                        {"new_string": "cva('btn')"}]},

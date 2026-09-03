@@ -15,7 +15,10 @@ flips ownership.
 
 ``config/settings-template.json`` is NOT a source here — the template
 is not the executed path (PR-B5 lesson: it declared agent-provision for
-months while the adapter never registered it).
+months while the adapter never registered it). It IS pinned to this
+module the other way round (Runtime Sync PR1, ``TestSettingsTemplateParity``):
+install.sh merges the template verbatim, and it carried 7 of these 11
+registrations with a 5 s SessionStart until the pin existed.
 """
 
 from __future__ import annotations

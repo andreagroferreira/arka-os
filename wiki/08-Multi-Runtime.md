@@ -79,7 +79,7 @@ ArkaOS installs these lifecycle hooks into `~/.claude/settings.json`:
 
 A `PreToolUse` gate on the `Task` tool handles agent provisioning. When
 `hooks.hardEnforcement` is `true`, a second `PreToolUse` hook blocks `Write`,
-`Edit`, `MultiEdit`, and `Task` when no `[arka:routing]` or `[arka:trivial]`
+`Edit`, and `Task` when no `[arka:routing]` or `[arka:trivial]`
 marker is present in the recent assistant messages.
 
 ### Subagents

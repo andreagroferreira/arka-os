@@ -184,3 +184,21 @@ with partial enforcement.
 - Obsidian: `anti-pattern-duplicated-security-logic.md`,
   `anti-pattern-shipping-acknowledged-no-ops.md`
 - Plan: `~/.arkaos/plans/2026-04-17-binding-flow-enforcement.md`
+
+## Addendum (2026-09-03, Runtime Sync PR1) — `MultiEdit` retired from the gate sets
+
+The gated set named `MultiEdit` since this ADR. The Claude Code runtime
+stopped offering that tool before 2.1.257 (the floor `installer/doctor.js`
+now enforces): its built-in tool registry carries no such name, so no
+`PreToolUse` payload can ever arrive with `tool_name: "MultiEdit"`. The
+name left `flow_enforcer.EFFECT_TOOLS_ALWAYS`, the `pre_tool_use` sets,
+`frontend_gate`, `specialist_enforcer`, the PowerShell wrapper and the
+generated `gate-manifest.json`; the manifest's `pre_tools` corpus keeps
+the row with `fast_allow` to prove no gate special-cases it.
+
+One surface deliberately keeps the name: `core/governance/harness_scanner.py`
+still flags an unscoped `MultiEdit` allow rule. Inspecting the 2.1.259
+binary shows the permission engine validating `MultiEdit(...)` rules by
+mapping them onto `Edit`, so such a rule still grants every Edit. Tool
+gating and permission grammar are different surfaces; each follows what
+the runtime actually does.

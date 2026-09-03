@@ -3,7 +3,7 @@
 Constitution: ``excellence-mandate`` (NON-NEGOTIABLE, Excellence Reform
 2026-07-05). UI work must load the frontend design skills and judge
 against a named benchmark BEFORE code is written. This gate makes that
-duty mechanical: a Write/Edit/MultiEdit touching a UI file requires the
+duty mechanical: a Write/Edit touching a UI file requires the
 STRUCTURED design marker in the recent assistant messages:
 
     [arka:design] benchmark=<Company> skills=<comma,list> tokens=<path|none>
@@ -64,7 +64,7 @@ MARKER_TEMPLATE = (
     "[arka:design] benchmark=<Company> skills=<comma,list> tokens=<path|none>"
 )
 
-_GATED_TOOLS = frozenset({"Write", "Edit", "MultiEdit"})
+_GATED_TOOLS = frozenset({"Write", "Edit"})
 
 # Component + stylesheet extensions. Plain .ts/.js stay out of the suffix
 # set (stores, utils, configs would flood the gate) — they are covered by
@@ -152,9 +152,6 @@ def _edit_payloads(tool_name: str, tool_input: dict) -> list[str]:
         return [str(tool_input.get("content", ""))]
     if tool_name == "Edit":
         return [str(tool_input.get("new_string", ""))]
-    if tool_name == "MultiEdit":
-        edits = tool_input.get("edits") or []
-        return [str(e.get("new_string", "")) for e in edits if isinstance(e, dict)]
     return []
 
 
