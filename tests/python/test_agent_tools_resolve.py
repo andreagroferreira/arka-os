@@ -1,9 +1,9 @@
 """Every deployed agent's ``tools:`` resolves on Claude Code 2.1.259 (Runtime Sync PR4).
 
 Since 2.1.233 the todo/task-tracking tools (``TaskCreate/Get/Update/List``,
-``TodoWrite``) are not offered on Opus 4.8, Sonnet 5, Fable 5, Mythos 5 and
-newer — the 2.1.259 binary gates them on that family list unless
-``CLAUDE_CODE_ENABLE_TODO_TOOLS`` is set. ``paulo-tech-lead.md`` declared
+``TodoWrite``) are not offered on the frontier families — the 2.1.259 binary
+gates them on its own list (opus ≥ 4.8, sonnet ≥ 5, fable ≥ 5, mythos ≥ 5)
+unless ``CLAUDE_CODE_ENABLE_TODO_TOOLS`` is set. ``paulo-tech-lead.md`` declared
 ``TaskCreate`` and told the Tech Lead to open every job with it. These
 tests pin every ``tools:`` line in ``config/claude-agents/`` to the known
 built-in names, and the retired five to absence.
