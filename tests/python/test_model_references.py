@@ -21,7 +21,7 @@ STALE = re.compile(
     r"\bopus-4-[5-8]\b|Opus 4\.[5-8]\b"
     r"|\bclaude-fable-5(?![-.\w])|Fable 5(?![.\d\w])"
     r"|haiku-4-5|Haiku 4\.5|^\s*model:\s*haiku\b",
-    re.M,
+    re.M | re.I,
 )
 ALLOWED_FILES = {
     "CHANGELOG.md",
@@ -50,7 +50,7 @@ def _tracked_text_files() -> list[str]:
 
 _PROSE_SURFACES = ("config/claude-agents/", "departments/")
 _PROSE_ALLOWED = re.compile(
-    r"never routed|never haiku|legacy YAML|LEGACY_MODEL_IDS|no shipped agent", re.I
+    r"never routed|never haiku|parses in legacy YAML|LEGACY_MODEL_IDS|ships no agent", re.I
 )
 _PROSE_HAIKU = re.compile(r"\bhaiku\b", re.I)
 
@@ -58,6 +58,7 @@ _PROSE_HAIKU = re.compile(r"\bhaiku\b", re.I)
 @pytest.mark.parametrize("sample", [
     "claude-opus-4-8", "best: claude-opus-4-8", "claude-opus-4-7[1m]",
     "claude-fable-5", "Opus 4.8", "  model: haiku", "claude-haiku-4-5-20251001",
+    "opus 4.5",
 ])
 def test_stale_regex_catches_retired_ids(sample):
     """The guard proves itself: every retired form the sweep removed must match."""

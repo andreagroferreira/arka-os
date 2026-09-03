@@ -236,7 +236,7 @@ def _record_grouped(
             cached_tokens=totals["cached"],
             estimated_cost_usd=estimated,
             category=category,
-            # Runtime Sync PR2: an unpriced model must be visible, not $0.00.
+            # Runtime Sync PR-2: an unpriced model must be visible, not $0.00.
             pricing_status="" if estimated is not None else "unknown-model",
         )
 

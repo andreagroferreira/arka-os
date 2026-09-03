@@ -18,7 +18,7 @@ so the user types the exact id their runtime accepts.
 
 from __future__ import annotations
 
-# Claude Code accepts the short aliases opus/sonnet/fable (haiku exists,
+# Claude Code accepts the short aliases opus/sonnet/fable (haiku exists;
 # ArkaOS never routes to it) and full model IDs. `value` is what gets
 # written to models.yaml as the role's model.
 CLAUDE_CODE_MODELS: list[dict[str, str]] = [

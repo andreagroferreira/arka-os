@@ -68,7 +68,7 @@ class TestOpus5Pricing:
 
 
 class TestFable51Rows:
-    """Runtime Sync PR2 (2026-09-03): the model the operator runs is priced."""
+    """Runtime Sync PR-2 (2026-09-03): the model the operator runs is priced."""
 
     def test_fable_5_1_and_1m_alias_are_priced(self):
         from core.runtime import pricing

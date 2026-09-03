@@ -615,7 +615,7 @@ def test_summarise_handles_z_suffix_ts(tmp_telemetry: Path):
 
 
 class TestPricingUnknownAdvisory:
-    """Runtime Sync PR2: an unpriced model is announced, never a silent $0.00."""
+    """Runtime Sync PR-2: an unpriced model is announced, never a silent $0.00."""
 
     def test_unknown_model_gets_an_advisory_and_a_status(self, tmp_path, monkeypatch):
         from core.runtime import llm_cost_telemetry as t

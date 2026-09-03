@@ -35,7 +35,7 @@ def _isolated_cost_telemetry(tmp_path, monkeypatch):
 
 
 def test_record_marks_local_rows_priced_at_zero(tmp_path, monkeypatch):
-    """Runtime Sync PR2: a local model has no spend — $0.00, status "local",
+    """Runtime Sync PR-2: a local model has no spend — $0.00, status "local",
     visible in /arka costs, never an unknown-model advisory."""
     import json
 

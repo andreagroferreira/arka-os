@@ -28,7 +28,7 @@ Tier is enforced by the validator: tier-2+ agents that have `veto: true` produce
 | `role` | string | Yes | Short role label (e.g. `Backend Core Lead`). |
 | `department` | string | Yes | Must match the parent directory name (e.g. `dev`). |
 | `tier` | integer 0-3 | Yes | See tier table above. |
-| `model` | `sonnet` / `opus` / `fable` (`haiku` still parses in legacy YAML; no shipped agent uses it) | No | Overrides the tier default at dispatch time. Omit to use tier default. |
+| `model` | `sonnet` / `opus` / `fable` (`haiku` still parses in legacy YAML and resolves to `sonnet`; no shipped agent uses it) | No | Overrides the tier default at dispatch time. Omit to use tier default. |
 | `parent_squad` | string | No | Slug of the parent squad for sub-squad agents (e.g. `dev`). |
 | `sub_squad_role` | string | No | Role within the sub-squad (e.g. `lead`). Requires `parent_squad`. |
 | `memory_path` | string | No | Auto-filled to `~/.claude/agent-memory/arka-<id>/MEMORY.md` when omitted. |

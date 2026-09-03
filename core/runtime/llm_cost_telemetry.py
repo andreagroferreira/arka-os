@@ -70,7 +70,7 @@ def record_cost(
 ) -> None:
     """Append one JSONL line describing an LLM call's cost.
 
-    `pricing_status` (Runtime Sync PR2) is ``"unknown-model"`` when the
+    `pricing_status` (Runtime Sync PR-2) is ``"unknown-model"`` when the
     caller could not price the model at all — the row would otherwise
     contribute $0.00 in silence (Fable 5.1 on 2026-09-03). Empty means
     priced; the key is omitted so old readers see the old shape.
@@ -282,7 +282,7 @@ def _build_advisories(
 
 
 def _pricing_advisories(entries: list[dict[str, Any]]) -> list[str]:
-    """Advisories for rows the recorder could not price (Runtime Sync PR2).
+    """Advisories for rows the recorder could not price (Runtime Sync PR-2).
 
     Keyed on the recorder's own ``pricing_status`` — a None cost alone is
     not evidence: local rows, zero-token synthetic rows and rows without a

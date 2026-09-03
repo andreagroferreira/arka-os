@@ -429,7 +429,7 @@ def _record(session_id: str, provider: str, response: LLMResponse) -> None:
         response.tokens_out,
         response.cached_tokens,
     )
-    # Runtime Sync PR2: a local model has no spend — price it at $0.00 and
+    # Runtime Sync PR-2: a local model has no spend — price it at $0.00 and
     # say so, instead of leaving None for the unknown-model advisory to
     # misread (QG B1). A cloud model the table does not know is announced.
     status = ""

@@ -72,6 +72,7 @@ class OllamaProvider:
         response = self._to_response(data, model)
         # Local calls are visible in /arka costs as $0.00 / pricing_status
         # "local" — the same telemetry path the cloud providers use.
+        # function-local: llm_provider imports this module to build _PROVIDERS
         from core.runtime.llm_provider import _record
 
         _record(os.environ.get("ARKA_SESSION_ID", ""), self.name(), response)

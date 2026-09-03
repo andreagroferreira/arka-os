@@ -1,4 +1,4 @@
-"""Headless `claude -p --output-format json` parsing (Runtime Sync PR2).
+"""Headless `claude -p --output-format json` parsing (Runtime Sync PR-2).
 
 The CLI payload has no top-level ``model`` key; before this the recorder
 wrote an empty model id on every headless row (2,803 of 16,923 live rows on
