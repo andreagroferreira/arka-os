@@ -463,6 +463,9 @@ def _check_worktree(report: DriftReport, settings: dict[str, Any]) -> None:
 
 
 def _check_fallback_model(report: DriftReport, settings: dict[str, Any]) -> None:
+    """MISSING when the key is absent or JSON null (the seeder writes the
+    default in both cases); ADOPTED for any other value that is not the
+    default — an array, an empty array, or the legacy string form."""
     from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
 
     chain = settings.get("fallbackModel")

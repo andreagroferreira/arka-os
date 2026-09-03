@@ -9,9 +9,9 @@
 //
 // Behaviour (same contract as worktree-baseref.js):
 //   - No-op when runtime is not Claude Code.
-//   - Only sets the value when the key is absent. An operator chain — an
-//     array, an explicit empty array, or the legacy string form — is
-//     preserved byte for byte (this is a default, not a contract).
+//   - Only sets the value when the key is absent or JSON null. An operator
+//     chain — an array, an explicit empty array, or the legacy string form
+//     — is preserved byte for byte (a default the operator may replace).
 //   - Atomic write via .tmp + rename.
 //   - Never raises — failures are non-fatal.
 //
@@ -49,8 +49,10 @@ export function seedFallbackModel({
   }
   const existing = settings.fallbackModel;
   if (existing !== undefined && existing !== null) {
-    // Present in any shape is the operator's choice: an array, an empty
-    // array (chain disabled on purpose) or the legacy single string.
+    // Present in any non-null shape is the operator's choice: an array, an
+    // empty array (chain disabled on purpose) or the legacy single string.
+    // JSON null reads as unset (the runtime, drift and the config manager
+    // agree), so it is seeded like an absent key.
     return { skipped: null, action: "noop", value: existing };
   }
   const value = [...defaultValue];

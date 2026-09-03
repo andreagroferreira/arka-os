@@ -552,7 +552,6 @@ class TestSchedulerCLI:
 
 import re as _re  # noqa: E402 — appended section keeps the module's import block intact
 
-from core.cognition.scheduler import daemon as _daemon  # noqa: E402
 from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS  # noqa: E402
 from core.runtime.model_router import ResolvedModel  # noqa: E402
 
@@ -585,12 +584,6 @@ def _flag(cmd: list[str], flag: str) -> str | None:
 
 class TestModelPinAndFallback:
     """The nightly cycle no longer dies on one overload or model 404."""
-
-    @pytest.fixture(autouse=True)
-    def _fresh_warnings(self) -> None:
-        # The missing-chain warning is once per process per (schedule,
-        # version); earlier tests in this module already burned "research".
-        _daemon._FALLBACK_WARNED.clear()
 
     def test_default_chain_is_the_shared_constant(self) -> None:
         assert DEFAULT_FALLBACK_MODELS == ("claude-opus-5", "claude-sonnet-5")
@@ -748,7 +741,12 @@ class TestModelPinAndFallback:
         err = capsys.readouterr().err
         assert "--fallback-model omitted" in err
         assert "2.1.166" in err
-        assert ("unknown" if version is None else "2.1.150") in err
+        if version is None:
+            assert "version unknown (probe of" in err
+            assert "upgrade" not in err, "a failed probe is not an old binary"
+        else:
+            assert "2.1.150 is below 2.1.166" in err
+            assert "upgrade the binary" in err
 
     def test_probe_failure_is_unknown_not_fatal(
         self, scheduler: ArkaScheduler, tmp_path: Path, capsys
@@ -768,7 +766,7 @@ class TestModelPinAndFallback:
         ):
             cmd = scheduler._build_command(schedule)
         assert "--fallback-model" not in cmd
-        assert "unknown" in capsys.readouterr().err
+        assert "version unknown (probe of" in capsys.readouterr().err
 
     def test_missing_chain_warning_is_once_per_process(
         self, scheduler: ArkaScheduler, tmp_path: Path, capsys
@@ -848,11 +846,12 @@ class TestModelPinAndFallback:
         log = next((tmp_path / "logs" / "research").glob("*.log")).read_text(encoding="utf-8")
         assert "model: claude-sonnet-5 (pinned); fallback: claude-opus-5" in log
 
-    def test_describe_model_names_what_the_run_uses(self) -> None:
+    def test_describe_model_names_what_the_run_asks_for(self) -> None:
         describe = ArkaScheduler._describe_model
         assert describe(["claude", "-p", "x"], {}) == "runtime default; fallback: none"
         assert describe(["claude", "-p", "x"], {"ANTHROPIC_DEFAULT_MODEL": "fable"}) == (
-            "fable (ANTHROPIC_DEFAULT_MODEL); fallback: none"
+            "fable (ANTHROPIC_DEFAULT_MODEL; a settings model or /model pick overrides); "
+            "fallback: none"
         )
         assert describe(
             ["claude", "--model", "claude-sonnet-5", "--fallback-model", "a,b"],
@@ -885,3 +884,133 @@ class TestModelPinAndFallback:
             cmd = scheduler._build_command(schedule)
         assert cmd[:3] == [sys.executable, "-m", "core.cognition.dreaming"]
         assert "--fallback-model" not in cmd and "--model" not in cmd
+
+
+class TestLoadBoundaryValidation:
+    """QG round 1 (Francisca B2): a malformed pin must never reach the argv
+    nor kill the daemon loop."""
+
+    @pytest.mark.parametrize(
+        "model",
+        [{"lane": "opus"}, 5, ["claude-opus-5"], "--dangerously-skip-permissions", "-x"],
+        ids=["mapping", "int", "list", "flag", "dash"],
+    )
+    def test_malformed_model_pin_fails_the_load_naming_the_schedule(
+        self, tmp_path: Path, model: object
+    ) -> None:
+        bad = {"command": "bad", "prompt_file": "/p", "time": "02:00", "model": model}
+        path = tmp_path / "s.yaml"
+        path.write_text(yaml.dump({"schedules": {"bad": bad}}), encoding="utf-8")
+        with pytest.raises(ValueError, match="schedule 'bad'"):
+            ScheduleConfig.load(str(path))
+
+    def test_blank_model_is_no_pin_and_items_are_stripped(self, tmp_path: Path) -> None:
+        data = {
+            "schedules": {
+                "s": {
+                    "command": "s", "prompt_file": "/p", "time": "02:00",
+                    "model": "  ", "fallback_models": [" claude-opus-5 ", "", "claude-sonnet-5"],
+                }
+            }
+        }
+        path = tmp_path / "s.yaml"
+        path.write_text(yaml.dump(data), encoding="utf-8")
+        [schedule] = ScheduleConfig.load(str(path))
+        assert schedule.model is None
+        assert schedule.fallback_models == ["claude-opus-5", "claude-sonnet-5"]
+
+    @pytest.mark.parametrize(
+        "chain", [{"a": 1}, 7, [5], ["-x"]], ids=["mapping", "int", "int-item", "flag-item"]
+    )
+    def test_malformed_chain_fails_the_load(self, tmp_path: Path, chain: object) -> None:
+        bad = {"command": "bad", "prompt_file": "/p", "time": "02:00", "fallback_models": chain}
+        path = tmp_path / "s.yaml"
+        path.write_text(yaml.dump({"schedules": {"bad": bad}}), encoding="utf-8")
+        with pytest.raises(ValueError, match="schedule 'bad'"):
+            ScheduleConfig.load(str(path))
+
+    @pytest.mark.parametrize(
+        "python_module", [None, "core.cognition.dreaming"], ids=["claude", "python_module"]
+    )
+    def test_execute_logs_fatal_on_a_hand_built_malformed_pin(
+        self, scheduler: ArkaScheduler, tmp_path: Path, python_module: str | None
+    ) -> None:
+        """A ScheduleConfig built without `load` still cannot kill the loop:
+        FATAL in the log, False to the caller, no exception."""
+        schedule = ScheduleConfig(
+            command="bad", prompt_file=str(_prompt(tmp_path)), run_time=time(2, 0),
+            python_module=python_module, model={"lane": "opus"},  # type: ignore[arg-type]
+        )
+        with (
+            patch.object(scheduler, "_resolve_claude_binary", return_value="/bin/echo"),
+            patch("subprocess.run", side_effect=AssertionError("must not run")),
+        ):
+            assert scheduler.execute(schedule) is False
+        log = next((tmp_path / "logs" / "bad").glob("*.log")).read_text(encoding="utf-8")
+        assert "FATAL: schedule 'bad': model must be a non-empty string" in log
+
+    def test_run_once_survives_a_malformed_schedule(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        bad = ScheduleConfig(
+            command="bad", prompt_file=str(_prompt(tmp_path)), run_time=time(2, 0),
+            model=5,  # type: ignore[arg-type]
+        )
+        scheduler.schedules = [bad]
+        with patch.object(scheduler, "_should_run", return_value=True):
+            scheduler.run_once()  # no exception escapes
+        log = next((tmp_path / "logs" / "bad").glob("*.log")).read_text(encoding="utf-8")
+        assert "FATAL" in log
+
+
+class TestModelPlan:
+    def test_fabric_is_resolved_once_per_execute(
+        self, scheduler: ArkaScheduler, tmp_path: Path
+    ) -> None:
+        """QG round 1 (Francisca M3): one models.yaml read per run."""
+        calls: list[str] = []
+
+        def resolve(role: str, user_path: object = None) -> ResolvedModel:
+            calls.append(role)
+            return _fabric("fable")
+
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0)
+        )
+        with (
+            patch.object(scheduler, "_resolve_claude_binary", return_value="/bin/echo"),
+            patch("core.runtime.model_router.resolve", side_effect=resolve),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=(2, 1, 259),
+            ),
+            patch("subprocess.run", return_value=MagicMock(returncode=0)),
+        ):
+            assert scheduler.execute(schedule) is True
+        assert calls == ["strategy"]
+
+    def test_legacy_pin_notice_names_schedules_yaml(
+        self, scheduler: ArkaScheduler, tmp_path: Path, capsys, monkeypatch
+    ) -> None:
+        """QG round 1 (Eduardo / Francisca M2): the operator is sent to the
+        file that holds the pin."""
+        from core.runtime import model_router
+
+        monkeypatch.setattr(model_router, "_LEGACY_NOTICED", set())
+        _fake_binary(tmp_path)
+        schedule = ScheduleConfig(
+            command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0),
+            model="haiku", fallback_models=[],
+        )
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch(
+                "core.runtime.claude_code.detect_claude_code_version",
+                return_value=(2, 1, 259),
+            ),
+        ):
+            cmd = scheduler._build_command(schedule)
+        assert _flag(cmd, "--model") == "sonnet"
+        err = capsys.readouterr().err
+        assert "schedules.yaml pins legacy model 'haiku'" in err
+        assert "models.yaml pins" not in err

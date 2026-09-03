@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
@@ -58,31 +59,74 @@ def served_counts(log_path: Path | None = None) -> dict[str, int]:
     return counts
 
 
-def fallback_chain(settings_path: Path | None = None) -> list[str] | None:
-    """The ``fallbackModel`` chain in settings.json, or None when unset.
+@dataclass(frozen=True)
+class FallbackSetting:
+    """What ``fallbackModel`` in settings.json says, in the seeder's terms.
 
-    The runtime accepts the legacy string form as well as the array; it is
-    normalised here to a one-entry list and never rewritten on disk.
+    ``state``: ``unset`` (key absent, null, file missing or unreadable —
+    the seeder would write the default), ``chain`` (ids to try),
+    ``disabled`` (``[]`` or a blank string — present, so the seeder leaves
+    it alone: the operator turned the chain off), ``invalid`` (any other
+    shape — present, so the seeder leaves it alone, but the runtime cannot
+    use it).
+    """
+
+    state: str
+    chain: list[str] | None = None
+    raw: object = None
+
+
+def read_fallback_setting(settings_path: Path | None = None) -> FallbackSetting:
+    """Read ``fallbackModel`` without rewriting it (Runtime Sync PR3).
+
+    The runtime accepts the legacy string form as well as the array; the
+    string is normalised to a one-entry chain here, on read only.
     """
     path = settings_path or _CLAUDE_SETTINGS
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return None
-    raw = data.get("fallbackModel") if isinstance(data, dict) else None
+        return FallbackSetting("unset")
+    if not isinstance(data, dict) or data.get("fallbackModel") is None:
+        return FallbackSetting("unset")
+    raw = data["fallbackModel"]
     if isinstance(raw, str):
-        return [raw.strip()] if raw.strip() else None
-    if isinstance(raw, list):
-        chain = [item.strip() for item in raw if isinstance(item, str) and item.strip()]
-        return chain or None
-    return None
+        value = raw.strip()
+        if not value:
+            return FallbackSetting("disabled", [], raw)
+        return FallbackSetting("chain", [value], raw)
+    if isinstance(raw, list) and all(isinstance(item, str) for item in raw):
+        chain = [item.strip() for item in raw if item.strip()]
+        if not chain:
+            return FallbackSetting("disabled", [], raw)
+        return FallbackSetting("chain", chain, raw)
+    return FallbackSetting("invalid", None, raw)
+
+
+def fallback_chain(settings_path: Path | None = None) -> list[str] | None:
+    """The chain the runtime would use: ids, ``[]`` when the operator
+    disabled it, None when nothing usable is configured (unset or invalid).
+    """
+    return read_fallback_setting(settings_path).chain
 
 
 def fallback_line(settings_path: Path | None = None) -> str:
-    """The `/arka status` line for the fallback chain (Runtime Sync PR3)."""
-    chain = fallback_chain(settings_path)
-    if chain:
-        return "  fallback: " + " → ".join(chain)
+    """The `/arka status` line for the fallback chain (Runtime Sync PR3).
+
+    Each state names a different remediation: only ``unset`` is fixed by
+    the seeder, which leaves a present value — even ``[]`` — untouched.
+    """
+    setting = read_fallback_setting(settings_path)
+    if setting.state == "chain" and setting.chain:
+        return "  fallback: " + " → ".join(setting.chain)
+    if setting.state == "disabled":
+        shape = "[]" if isinstance(setting.raw, list) else "an empty string"
+        return f"  fallback: disabled (fallbackModel is {shape} in ~/.claude/settings.json)"
+    if setting.state == "invalid":
+        return (
+            f"  fallback: invalid ({setting.raw!r}) — expected an array of model ids "
+            "in ~/.claude/settings.json"
+        )
     seeded = " → ".join(DEFAULT_FALLBACK_MODELS)
     return f"  fallback: unset (npx arkaos update seeds {seeded})"
 

@@ -149,8 +149,8 @@ _CLAUDE_CODE_SURFACES: tuple[SurfaceSpec, ...] = (
     SurfaceSpec(
         "settings:fallbackModel",
         "seed",
-        "fallbackModel chain default (Runtime Sync PR3); an operator chain "
-        "is adopted once C2 owns the surface",
+        "fallbackModel chain default; an operator chain is adopted once "
+        "C2 owns the surface",
     ),
 )
 
