@@ -28,9 +28,9 @@ from core.forge.schema import (
     RiskSeverity,
 )
 
-EXPLORER_PREAMBLE = """You are an expert planning agent within ArkaOS. Your task is to produce a structured execution plan for the following prompt."""  # noqa: E501
+EXPLORER_PREAMBLE = """You are an expert planning agent within ArkaOS. Your task is to produce a structured execution plan for the following prompt."""
 
-CRITIC_PREAMBLE = """You are the Plan Critic within ArkaOS. You have received {n} independent planning approaches for the same prompt. Your job is to synthesize the best plan by combining the strongest elements from each approach."""  # noqa: E501
+CRITIC_PREAMBLE = """You are the Plan Critic within ArkaOS. You have received {n} independent planning approaches for the same prompt. Your job is to synthesize the best plan by combining the strongest elements from each approach."""
 
 
 CONSTITUTION_RULES = """CONSTITUTION RULES (non-negotiable):
@@ -41,10 +41,9 @@ CONSTITUTION_RULES = """CONSTITUTION RULES (non-negotiable):
   - quality-gate: Marta + Eduardo + Francisca must APPROVE before done
   - conventional-commits: all commits follow conventional commit format"""
 
-AVAILABLE_DEPARTMENTS = "dev, ops, mkt, brand, fin, strat, pm, saas, landing, content, ecom, kb, sales, lead, community, org"  # noqa: E501
+AVAILABLE_DEPARTMENTS = "dev, ops, mkt, brand, fin, strat, pm, saas, landing, content, ecom, kb, sales, lead, community, org"
 
-AVAILABLE_AGENTS = """dev: Paulo (lead), Gabriel (architect), Andre (backend), Diana (frontend),
-Bruno (security), Carlos (devops), Rita (qa), Vasco (dba)
+AVAILABLE_AGENTS = """dev: Paulo (lead), Gabriel (architect), Andre (backend), Diana (frontend), Bruno (security), Carlos (devops), Rita (qa), Vasco (dba)
 ops: Daniel (lead), Lucas (automation)
 mkt: Luna (lead), Sofia (growth), Pedro (analytics), Carla (email)
 brand: Valentina (lead), Miguel (visual), Ana (copy), Joao (ux)
@@ -59,7 +58,7 @@ Principles:
   - Fewer phases is better — collapse where safe to do so
   - Prefer known, proven solutions over novel ones
   - Identify what can be skipped without meaningful quality loss
-Be direct. Challenge gold-plating. Propose the leanest plan that still satisfies all Constitution rules.""",  # noqa: E501
+Be direct. Challenge gold-plating. Propose the leanest plan that still satisfies all Constitution rules.""",
     ExplorerLens.ARCHITECTURAL: """Your lens: ARCHITECTURAL
 Question to answer: "What is the right way to build this for the long term?"
 Principles:
@@ -77,7 +76,7 @@ Principles:
   - Question every assumed constraint — are they real?
   - Propose an alternative framing if the original prompt is misguided
   - Identify the single biggest risk in the other approaches
-Be adversarial but constructive. Your job is to stress-test assumptions, not to be contrarian for its own sake. You must still produce a valid plan.""",  # noqa: E501
+Be adversarial but constructive. Your job is to stress-test assumptions, not to be contrarian for its own sake. You must still produce a valid plan.""",
 }
 
 
@@ -196,7 +195,7 @@ def _build_critic_prompt(req: CriticDispatchRequest) -> str:
             for d in approach.key_decisions
         )
         phases = "\n".join(
-            f"  - name: {p.name}\n    department: {p.department}\n    agents: {p.agents}\n    deliverables: {p.deliverables}\n    acceptance_criteria: {p.acceptance_criteria}\n    depends_on: {p.depends_on}"  # noqa: E501
+            f"  - name: {p.name}\n    department: {p.department}\n    agents: {p.agents}\n    deliverables: {p.deliverables}\n    acceptance_criteria: {p.acceptance_criteria}\n    depends_on: {p.depends_on}"
             for p in approach.phases
         )
         text = f"""APPROACH {i} ({approach.explorer.value}):
