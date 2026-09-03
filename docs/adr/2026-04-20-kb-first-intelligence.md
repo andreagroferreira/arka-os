@@ -253,10 +253,11 @@ fast path: the shim fast-exited `mcp__obsidian__*` PostToolUse calls
 before Python could write the `obsidian` turn marker, so
 `kb_cache.obsidian_queried_this_turn()` stayed false on those turns and
 the second external call was denied regardless of real consults. Turns
-that delegated for another reason (error trigger, hard enforcement
-without fresh auth) still wrote it, which is why `/tmp/arkaos-kb-query/`
-still held one `obsidian` marker in the same snapshot; no gated external
-call followed on that turn, so it produced no `kb-consulted` event.
+that delegated for another reason (error trigger, or stale flow-auth
+under hard enforcement or shadow-deny) still wrote it, which is why
+`/tmp/arkaos-kb-query/` still held one `obsidian` marker in the PR0
+authoring snapshot; no gated external call followed on that turn, so it
+produced no `kb-consulted` event.
 `~/.arkaos/telemetry/kb_first.jsonl` for 2026-09-03, as of the PR0
 authoring snapshot: 66 `kb-first-required` events — the reason
 `research_gate.evaluate_research_gate` emits only with `allow=False`

@@ -8,8 +8,11 @@ user's one-word reply "sim", allowing WebSearch as "kb-consulted").
 
 The contract now:
   - L2.5 records kind="injected" (telemetry; gate ignores it)
-  - PostToolUse records kind="obsidian" on genuine ``mcp__obsidian__*``
-    calls (evidence; gate reads it)
+  - PostToolUse records kind="obsidian" only on genuine ``mcp__obsidian__``
+    READ consults (``KB_CONSULT_TOOLS``; a vault write is not a consult)
+    and kind="graphify" on ``mcp__graphify__`` reads. The gate reads the
+    ``obsidian`` kind alone (evidence). A tool under a KB prefix that is in
+    neither table writes nothing and is reported as ``kb-marker-unknown-tool``.
 """
 
 from __future__ import annotations
@@ -35,6 +38,9 @@ def _isolated_dirs(tmp_path, monkeypatch):
 
     monkeypatch.setattr(mcp_telemetry, "DEFAULT_PATH", tmp_path / "mcp-usage.jsonl")
     monkeypatch.setattr(post_tool_use, "_log_metrics", lambda *a, **k: None)
+    # The degraded channel is real ~/.arkaos telemetry too; tests that
+    # observe it override this per-test (QG r2, Francisca m4).
+    monkeypatch.setattr(post_tool_use, "record_degraded", lambda *a, **k: None)
 
 
 class TestGateIgnoresInjection:
