@@ -5,7 +5,7 @@ description: >
   work into atomic tasks, dispatches specialists, enforces the evidence flow
   (real test runs, exit codes on record), and submits deliverables to the
   Quality Gate before anything ships.
-tools: Read, Grep, Glob, Bash, Agent, TaskCreate
+tools: Read, Grep, Glob, Bash, Agent
 model: sonnet
 ---
 

@@ -43,6 +43,49 @@ FEATURE_FLOORS: dict[str, tuple[int, int, int]] = {
     "block_reads_outside_cwd": (2, 1, 257),
 }
 
+# Todo/task-tracking tools the runtime no longer offers on the frontier
+# families (changelog 2.1.233; the 2.1.259 binary gates exactly these five
+# on its own family list opus ≥ 4.8, sonnet ≥ 5, fable ≥ 5, mythos ≥ 5,
+# unless CLAUDE_CODE_ENABLE_TODO_TOOLS is set). An agent that declares one
+# of them in `tools:` names a tool it will never be handed (Runtime Sync PR4).
+FRONTIER_RETIRED_TOOLS: frozenset[str] = frozenset({
+    "TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList",
+})
+
+# Built-in tool names Claude Code 2.1.259 knows, for validating an agent's
+# `tools:` frontmatter (tests/python/test_agent_tools_resolve.py). Three
+# sources, read 2026-09-03: the binary's BUILTIN_TOOL_NAMES policy list,
+# the binary's built-in tool registry, and the tool set a 2.1.259 session
+# exposes. Retired names stay in — they are still built-ins on older
+# models — and FRONTIER_RETIRED_TOOLS is the separate, gating set.
+# `mcp__*` names are per-server and validated by prefix, not listed here.
+KNOWN_BUILTIN_TOOLS: frozenset[str] = frozenset({
+    # file and shell
+    "Bash", "BashOutput", "KillShell", "PowerShell", "Tmux", "Monitor", "REPL",
+    "JavaScript", "Read", "Edit", "MultiEdit", "Write", "NotebookEdit",
+    "NotebookRead", "Glob", "Grep", "LS", "LSP", "Snip",
+    # todo/task tracking (retired on frontier models) + background tasks
+    "TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList",
+    "TaskStop", "TaskOutput",
+    # agents, skills, planning
+    "Agent", "Task", "Skill", "Workflow", "ToolSearch", "AskUserQuestion",
+    "EnterPlanMode", "ExitPlanMode", "EnterWorktree", "ExitWorktree",
+    # web and MCP resources
+    "WebFetch", "WebSearch", "WebBrowser", "ReadMcpResourceTool",
+    "ReadMcpResourceDirTool", "ListMcpResourcesTool", "RefreshMcpTools",
+    "SearchMcpRegistry", "ListConnectors", "SuggestConnectors",
+    # scheduling, sessions, messaging
+    "CronCreate", "CronDelete", "CronList", "ScheduleWakeup", "RemoteTrigger",
+    "SendMessage", "SendUserMessage", "ListAgents", "ListPeers", "Brief",
+    "PushNotification", "SendFeedback", "SendFile", "SendUserFile",
+    "SubscribePR", "EndConversation",
+    # artifacts, design, review, plugins
+    "Artifact", "DesignSync", "ClaudeDesign", "Projects", "ConnectGitHub",
+    "ReportFindings", "ObserverReport", "propose_skills",
+    "SuggestPluginInstall", "SuggestSkills", "ListPlugins", "ListSkills",
+    "SearchPlugins", "SearchSkills",
+})
+
 # Truths no version changes; everything else falls through to the config.
 _STATIC_FEATURES: dict[str, bool] = {
     "parallel_agents": True,
