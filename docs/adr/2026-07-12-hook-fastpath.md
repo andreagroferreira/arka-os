@@ -52,17 +52,21 @@ KB-first turn markers (`obsidian`, `graphify`) that
 `core/workflow/research_gate.py` reads. Fast-exiting every benign
 `mcp__*` call skipped that writer, so on any turn whose KB call took the
 fast path the gate could not observe the consult (turns that delegated
-for another reason — error trigger, stateful tool, hard enforcement
-without fresh auth — still wrote it). `~/.arkaos/telemetry/kb_first.jsonl`
-for 2026-09-03 recorded 66 `kb-first-required` denials and 0
-`kb-consulted` at measurement time. The shim now delegates any tool whose
+for another reason — error trigger, hard enforcement without fresh
+auth — still wrote it). `~/.arkaos/telemetry/kb_first.jsonl` for
+2026-09-03, as of the PR0 authoring snapshot: 66 `kb-first-required`
+events — the reason `research_gate.evaluate_research_gate` emits only
+with `allow=False` (`core/workflow/research_gate.py:386-387`), so each is
+a denial — and 0 `kb-consulted`. The shim now delegates any tool whose
 name starts with a prefix in `tools.post_delegate_prefixes` (generated
 from `post_tool_use.KB_MARKER_TOOL_PREFIXES`) with reason `kb-marker`;
 Q3b sits after the stateful set (Q3/Q4) and before the error trigger
-(Q5). The prefix is the server: Python alone decides whether the tool is
-a read consult (`post_tool_use.KB_CONSULT_TOOLS`) — a vault write is not.
-The marker is deliberately NOT replicated in JS: one atomic writer, and
-the ~80 ms cost lands only on KB-server tools.
+(Q5). The prefix names a server, not a tool: Python alone decides whether
+the tool is a read consult (`post_tool_use.KB_CONSULT_TOOLS`) — a vault
+write is not. The marker is deliberately NOT replicated in JS: one atomic
+writer, and the ~98 ms delegation cost (99 ms Python chain + 18 ms node
+startup − the 19 ms fast exit; Measured result section,
+`benchmarks/hooks-bench.sh`) lands only on KB-server tools.
 
 Key semantic pins (all corpus-tested):
 

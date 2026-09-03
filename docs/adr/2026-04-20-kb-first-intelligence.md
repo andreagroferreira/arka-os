@@ -247,18 +247,26 @@ indefinitely. All bypass usage is audited.
 
 ## Addendum 2026-09-03 — fast-path regression (Runtime Sync PR0)
 
-Between the hook fast-path (ADR 2026-07-12) and 2026-09-03 the PreToolUse
+From the hook fast-path (ADR 2026-07-12) to 2026-09-03, the PreToolUse
 research gate could not be satisfied on any turn whose KB call took the
 fast path: the shim fast-exited `mcp__obsidian__*` PostToolUse calls
 before Python could write the `obsidian` turn marker, so
 `kb_cache.obsidian_queried_this_turn()` stayed false on those turns and
-the second external call was denied regardless of real consults (turns
-that delegated for another reason still wrote it, which is why one
-`obsidian` marker survived in the measurement). `~/.arkaos/telemetry/kb_first.jsonl`
-for 2026-09-03: 66 `kb-first-required`, 0 `kb-consulted`. Fixed by
-delegating `tools.post_delegate_prefixes` to Python, where
+the second external call was denied regardless of real consults. Turns
+that delegated for another reason (error trigger, hard enforcement
+without fresh auth) still wrote it, which is why `/tmp/arkaos-kb-query/`
+still held one `obsidian` marker in the same snapshot; no gated external
+call followed on that turn, so it produced no `kb-consulted` event.
+`~/.arkaos/telemetry/kb_first.jsonl` for 2026-09-03, as of the PR0
+authoring snapshot: 66 `kb-first-required` events — the reason
+`research_gate.evaluate_research_gate` emits only with `allow=False`
+(`core/workflow/research_gate.py:386-387`), so each is a denial — and 0
+`kb-consulted`. Fixed by delegating to Python every tool whose name starts
+with a prefix in `tools.post_delegate_prefixes`, where
 `post_tool_use.KB_CONSULT_TOOLS` restricts the marker to READ tools — a
-vault write proves nothing about consulting. The `graphify` marker gained
-its first writer and its per-turn invalidation in the same change. Lesson
-for both ADRs: a marker the gate reads is a parity duty of every path that
-can skip its writer.
+vault write proves nothing about consulting. The `injected` kind that
+Synapse L2.5 records is cache accounting only and never satisfies the
+research gate; the gate reads the `obsidian` kind alone. The `graphify`
+marker gained its first writer and its per-turn invalidation in the same
+change. Lesson (applies to ADR 2026-07-12 as well): any marker a gate reads
+imposes a parity duty on every path that can skip its writer.

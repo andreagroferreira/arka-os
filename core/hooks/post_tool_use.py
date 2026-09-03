@@ -840,9 +840,15 @@ def _log_metrics(duration_ms: int, attribution: dict | None = None) -> None:
 # * KB_CONSULT_TOOLS: per marker kind, the READ tools whose PostToolUse
 #   proves a genuine consult. A write (write_note, patch_note, ...) is not
 #   a consult — the operator produced knowledge, they did not read any —
-#   so it writes no marker (QG 2026-09-03, M1). Unknown tools write nothing.
+#   so it writes no marker (QG 2026-09-03, M1).
+# * KB_WRITE_TOOLS: the known non-consult tools per kind. A tool under a
+#   KB prefix that is in NEITHER set is server-side drift (the MCP server
+#   grew a read tool this table does not know): it writes no marker
+#   (fail-closed — the gate then denies, never a false green) AND lands on
+#   the hook-degraded channel as `kb-marker-unknown-tool`, so the drift
+#   is visible instead of starving the gate in silence (QG r2, m2).
 #
-# Extend both here, regenerate the manifest, never edit the JSON.
+# Extend all three here, regenerate the manifest, never edit the JSON.
 KB_MARKER_TOOL_PREFIXES: dict[str, str] = {
     "mcp__obsidian__": "obsidian",
     "mcp__graphify__": "graphify",
@@ -862,6 +868,15 @@ KB_CONSULT_TOOLS: dict[str, frozenset[str]] = {
 }
 
 
+KB_WRITE_TOOLS: dict[str, frozenset[str]] = {
+    "obsidian": frozenset({
+        "write_note", "patch_note", "delete_note", "move_note", "move_file",
+        "update_frontmatter", "manage_tags", "wiki_link",
+    }),
+    "graphify": frozenset(),
+}
+
+
 def _kb_marker_writers() -> dict[str, Callable[..., None]]:
     """Explicit kind → writer table.
 
@@ -875,13 +890,25 @@ def _kb_marker_writers() -> dict[str, Callable[..., None]]:
     }
 
 
+def classify_kb_tool(tool_name: str) -> tuple[str | None, str]:
+    """(kind, status) for a tool call: status is "consult", "write",
+    "unknown" (KB prefix matched, tool in neither table) or "none"."""
+    for prefix, kind in KB_MARKER_TOOL_PREFIXES.items():
+        if not tool_name.startswith(prefix):
+            continue
+        tool = tool_name[len(prefix):]
+        if tool in KB_CONSULT_TOOLS.get(kind, frozenset()):
+            return kind, "consult"
+        if tool in KB_WRITE_TOOLS.get(kind, frozenset()):
+            return kind, "write"
+        return kind, "unknown"
+    return None, "none"
+
+
 def kb_consult_kind(tool_name: str) -> str | None:
     """Marker kind a tool call proves, or None when it is not a read consult."""
-    for prefix, kind in KB_MARKER_TOOL_PREFIXES.items():
-        if tool_name.startswith(prefix):
-            tool = tool_name[len(prefix):]
-            return kind if tool in KB_CONSULT_TOOLS.get(kind, frozenset()) else None
-    return None
+    kind, status = classify_kb_tool(tool_name)
+    return kind if status == "consult" else None
 
 
 def _record_kb_marker(tool_name: str, session_id: str, stdin_json: dict[str, Any]) -> None:
@@ -892,8 +919,11 @@ def _record_kb_marker(tool_name: str, session_id: str, stdin_json: dict[str, Any
     """
     if not session_id:
         return
-    kind = kb_consult_kind(tool_name)
-    if kind is None:
+    kind, status = classify_kb_tool(tool_name)
+    if status == "unknown":
+        record_degraded("post-tool-use", "kb-marker-unknown-tool", tool_name)
+        return
+    if kind is None or status != "consult":
         return
     try:
         writer = _kb_marker_writers().get(kind)

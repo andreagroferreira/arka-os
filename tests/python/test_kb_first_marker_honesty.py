@@ -142,6 +142,25 @@ class TestPostToolUseRecordsGenuineConsults:
         assert kb_cache.read_obsidian_query("hon-post-z") is None
         assert degraded == [("post-tool-use", "kb-marker-no-writer", "zettel")]
 
+    def test_unknown_read_tool_under_kb_prefix_is_reported_not_silent(self, monkeypatch):
+        # QG r2 m2 (Francisca): server-side drift must be visible, while a
+        # KNOWN write stays silent (it is not drift, it is not a consult).
+        from core.hooks import post_tool_use
+
+        degraded: list[tuple[str, str, str]] = []
+        monkeypatch.setattr(post_tool_use, "record_degraded",
+                            lambda hook, reason, detail="": degraded.append((hook, reason, detail)))
+        post_tool_use._record_kb_marker(
+            "mcp__obsidian__get_backlinks", "hon-post-u", {"tool_input": {"path": "a.md"}})
+        assert kb_cache.read_obsidian_query("hon-post-u") is None
+        assert degraded == [
+            ("post-tool-use", "kb-marker-unknown-tool", "mcp__obsidian__get_backlinks")]
+        degraded.clear()
+        post_tool_use._record_kb_marker(
+            "mcp__obsidian__write_note", "hon-post-u", {"tool_input": {"path": "a.md"}})
+        assert kb_cache.read_obsidian_query("hon-post-u") is None
+        assert degraded == []
+
     def test_writer_failure_reaches_the_degraded_channel(self, monkeypatch):
         # QG 2026-09-03 m7: a broken writer must not deny for weeks in silence.
         from core.hooks import post_tool_use

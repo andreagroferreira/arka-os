@@ -104,6 +104,12 @@ def test_post_delegate_prefixes_cover_every_kb_marker_writer(committed):
                        "move_file", "update_frontmatter", "manage_tags", "wiki_link"):
         assert write_tool not in post_tool_use.KB_CONSULT_TOOLS["obsidian"], write_tool
         assert post_tool_use.kb_consult_kind(f"mcp__obsidian__{write_tool}") is None
+    # Known writes and known reads never overlap; a tool in neither is drift.
+    for kind in kinds:
+        assert not (post_tool_use.KB_CONSULT_TOOLS[kind] & post_tool_use.KB_WRITE_TOOLS[kind]), kind
+    assert post_tool_use.classify_kb_tool("mcp__obsidian__write_note") == ("obsidian", "write")
+    assert post_tool_use.classify_kb_tool("mcp__obsidian__get_backlinks") == ("obsidian", "unknown")
+    assert post_tool_use.classify_kb_tool("Read") == (None, "none")
     assert post_tool_use.kb_consult_kind("mcp__obsidian__search_notes") == "obsidian"
     assert post_tool_use.kb_consult_kind("mcp__graphify__query_graph") == "graphify"
     assert post_tool_use.kb_consult_kind("mcp__obsidian-extra__search_notes") is None
