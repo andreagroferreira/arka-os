@@ -187,9 +187,9 @@ with partial enforcement.
 
 ## Addendum (2026-09-03, Runtime Sync PR1) — `MultiEdit` retired from the gate sets
 
-The gated set named `MultiEdit` since this ADR. The Claude Code runtime
+The gated set has named `MultiEdit` since this ADR. The Claude Code runtime
 stopped offering that tool before 2.1.257 (the floor `installer/doctor.js`
-now enforces): its built-in tool registry carries no such name, so no
+now warns below): its built-in tool registry carries no such name, so no
 `PreToolUse` payload can ever arrive with `tool_name: "MultiEdit"`. The
 name left `flow_enforcer.EFFECT_TOOLS_ALWAYS`, the `pre_tool_use` sets,
 `frontend_gate`, `specialist_enforcer`, the PowerShell wrapper and the

@@ -1,4 +1,4 @@
-// Runtime Sync PR1 — the Claude Code version floor the doctor enforces.
+// Runtime Sync PR1 — the Claude Code version floor the doctor checks (warn, never fail).
 //
 // The floor is a pure comparison over `claude --version` text; the wired
 // check is exercised through a PATH-prepended mock `claude` so the real
@@ -105,10 +105,12 @@ test("a binary at or above the floor passes", { skip: IS_WINDOWS }, () => {
   });
 });
 
-test("a binary that cannot answer --version warns with a parse hint", { skip: IS_WINDOWS }, () => {
+test("a binary that cannot answer --version warns and names the cause", { skip: IS_WINDOWS }, () => {
   withMockClaude({ version: "2.1.259", exit: 1 }, () => {
     assert.equal(entry.check(), false, "non-zero exit is not a pass");
-    assert.ok(entry.fix().includes("no parsable"), entry.fix());
+    const fix = entry.fix();
+    assert.ok(fix.includes("Detected 2.1.259, but `claude --version` exited non-zero"), fix);
+    assert.ok(!fix.includes("no parsable"), "the text WAS parsable; the failed exit is the cause");
   });
   withMockClaude({ version: "claude mock 0.0.0" }, () => {
     assert.equal(entry.check(), false);

@@ -237,7 +237,7 @@ class TestHelperUnit:
 
         reason = "KB-first: consult the vault before external research"
         rc = ptu._deny(reason)
-        assert rc == 2, "a deny must also exit 2 — JSON cannot block on its own"
+        assert rc == 2, "a deny also exits 2: stderr blocks even where the JSON is unparsed"
         captured = capsys.readouterr()
         payload = _assert_single_document(captured.out, "PreToolUse")
         hso = payload["hookSpecificOutput"]

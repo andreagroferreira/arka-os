@@ -119,6 +119,18 @@ class TestDetect:
         monkeypatch.setenv(VERSION_ENV, "latest")
         assert detect_claude_code_version() is None
 
+    def test_blank_override_falls_through_to_the_probe(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An exported-but-empty ``ARKA_CLAUDE_VERSION`` is unset, not
+        "unknown": it must not silence every floored feature (QG fix-forward)."""
+        _binary_at(monkeypatch, "/opt/bin/claude")
+        monkeypatch.setattr(subprocess, "run", _fake_run("2.1.259 (Claude Code)"))
+        monkeypatch.setenv(VERSION_ENV, "")
+        assert detect_claude_code_version() == (2, 1, 259)
+        monkeypatch.setenv(VERSION_ENV, "   ")
+        assert detect_claude_code_version() == (2, 1, 259)
+
     def test_no_binary_is_unknown_without_raising(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _binary_at(monkeypatch, None)
         assert detect_claude_code_version() is None

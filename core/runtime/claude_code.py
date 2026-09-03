@@ -89,11 +89,12 @@ def _probe_binary() -> tuple[int, int, int] | None:
 def detect_claude_code_version() -> tuple[int, int, int] | None:
     """The Claude Code version on this machine, or None when unknowable.
 
-    ``ARKA_CLAUDE_VERSION`` wins when set and is read on every call. The
-    binary probe runs once per process and is cached in memory only.
+    ``ARKA_CLAUDE_VERSION`` wins when set to a non-blank value and is read
+    on every call (a blank value counts as unset). The binary probe runs
+    once per process and is cached in memory only.
     """
     override = os.environ.get(VERSION_ENV)
-    if override is not None:
+    if override is not None and override.strip():
         return parse_version(override)
     if not _probe_cache:
         _probe_cache.append(_probe_binary())
@@ -203,12 +204,12 @@ class ClaudeCodeAdapter(RuntimeAdapter):
         raise NotImplementedError("Use Claude Code's native Grep tool")
 
     def supports_feature(self, feature: str) -> bool:
-        """Version-gated where the runtime changed, static otherwise.
+        """Version-gated where the runtime changed; config-backed or static otherwise.
 
         A feature in ``FEATURE_FLOORS`` is supported only when the detected
         binary meets its floor; an unknown version answers the conservative
         False and never raises. ``hooks``/``subagents``/``mcp`` come from
-        the config, ``parallel_agents``/``worktrees`` are static truths.
+        the config; ``parallel_agents``/``worktrees`` are static truths.
         """
         floor = FEATURE_FLOORS.get(feature)
         if floor is not None:

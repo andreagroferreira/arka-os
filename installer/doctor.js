@@ -321,18 +321,24 @@ export function versionAtLeast(text, floor) {
   return true;
 }
 
-/** Raw `claude --version` output, or null when the binary cannot answer. */
+/**
+ * What `claude --version` answered: `text` is the raw output (kept even when
+ * the binary exits non-zero, so the fix hint can name what it saw; null when
+ * nothing came back) and `ok` is whether the command exited 0.
+ */
 export function claudeCodeVersionOutput() {
   try {
-    return execSync("claude --version 2>&1", { stdio: "pipe" }).toString().trim();
-  } catch {
-    return null;
+    const text = execSync("claude --version 2>&1", { stdio: "pipe" }).toString().trim();
+    return { text, ok: true };
+  } catch (err) {
+    const text = err && err.stdout ? err.stdout.toString().trim() : "";
+    return { text: text || null, ok: false };
   }
 }
 
 // What the last claude-code-version check saw, so the fix hint can name
-// the detected build instead of a generic "upgrade".
-let lastClaudeCodeVersionOutput = null;
+// the detected build (and a failed exit) instead of a generic "upgrade".
+let lastClaudeCodeVersionProbe = null;
 
 export const checks = [
   {
@@ -643,12 +649,22 @@ export const checks = [
     severity: "warn",
     check: () => {
       if (!commandExists("claude")) return true; // no claude binary = not applicable
-      lastClaudeCodeVersionOutput = claudeCodeVersionOutput();
-      return versionAtLeast(lastClaudeCodeVersionOutput, CLAUDE_CODE_MIN_VERSION);
+      lastClaudeCodeVersionProbe = claudeCodeVersionOutput();
+      return lastClaudeCodeVersionProbe.ok &&
+        versionAtLeast(lastClaudeCodeVersionProbe.text, CLAUDE_CODE_MIN_VERSION);
     },
     fix: () => {
-      const detected = parseClaudeCodeVersion(lastClaudeCodeVersionOutput);
-      const seen = detected ? detected.join(".") : "no parsable `claude --version`";
+      const probe = lastClaudeCodeVersionProbe || { text: null, ok: false };
+      const detected = parseClaudeCodeVersion(probe.text);
+      const build = detected ? detected.join(".") : null;
+      let seen;
+      if (probe.ok) {
+        seen = build || "no parsable `claude --version`";
+      } else if (build) {
+        seen = `${build}, but \`claude --version\` exited non-zero`;
+      } else {
+        seen = "a `claude --version` that exited non-zero";
+      }
       return `Detected ${seen}; ArkaOS needs ${CLAUDE_CODE_MIN_VERSION}+ ` +
         `(${CLAUDE_CODE_MIN_VERSION_REASON}). ` +
         "Upgrade: npm install -g @anthropic-ai/claude-code@latest";

@@ -129,6 +129,12 @@ class TestHeuristicScope:
                        {"new_string": "cva('btn')"}]},
         )
 
+    def test_retired_multiedit_is_not_a_gated_tool(self):
+        """The gate SET is pinned too, not only the payload branch: re-admitting
+        the retired name here fails (QG fix-forward, Runtime Sync PR1)."""
+        assert "MultiEdit" not in frontend_gate._GATED_TOOLS
+        assert frozenset({"Write", "Edit"}) == frontend_gate._GATED_TOOLS
+
     def test_heuristic_gates_in_warn_with_own_scope(self, config):
         decision = _evaluate(
             [], file_path="app/Button.styles.ts",

@@ -468,10 +468,9 @@ def evaluate(
     Returns a Decision. Caller is responsible for translating `allow=False`
     into the appropriate hook exit code or permissionDecision output.
 
-    PR11 v2.33.0 expanded the gated set beyond Write/Edit (and the since-
-    retired MultiEdit) to
-    cover all EFFECT tools (NotebookEdit, Task, Skill) and to classify
-    Bash commands per-command via ``bash_is_effect``.
+    PR11 v2.33.0 expanded the gated set beyond Write/Edit (and the
+    since-retired MultiEdit) to cover all EFFECT tools (NotebookEdit, Task,
+    Skill) and to classify Bash commands per-command via ``bash_is_effect``.
 
     ``messages`` (PR-6 hook consolidation): pre-parsed assistant messages.
     When None (default) the transcript is read from ``transcript_path`` —

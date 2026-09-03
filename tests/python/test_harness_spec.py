@@ -138,9 +138,10 @@ class TestHookRegistrationParity:
 class TestSettingsTemplateParity:
     """config/settings-template.json is a THIRD copy of the registrations.
 
-    It is install.sh's executed path (the template is merged verbatim into
-    settings.json, install.sh:1029) and the reference every other writer
-    is pinned to (tests/installer/hook-consistency.test.js). It declared 7
+    It is install.sh's executed path, not the npm installer's (the template
+    is merged verbatim into settings.json, install.sh:1029), and the
+    reference every other writer is pinned to
+    (tests/installer/hook-consistency.test.js). It declared 7
     of the adapter's 11 registrations and a 5 s SessionStart for months
     (Runtime Sync PR1). Pin it to the spec, which is pinned to the adapter,
     and the three surfaces cannot drift again.
