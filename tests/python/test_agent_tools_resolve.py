@@ -39,17 +39,23 @@ def declared_tools(path: Path) -> list[str]:
     (an agent without the key inherits every tool).
 
     Only the inline comma form is parsed; a bare ``tools:`` line (the YAML
-    list form) is rejected so a retired name on the next line cannot hide.
+    list form) is rejected so a retired name on the next line cannot hide,
+    and a duplicate key is rejected so a second line cannot hide behind
+    the first.
     """
     frontmatter = _frontmatter(path.read_text(encoding="utf-8"))
     assert _BARE_TOOLS_LINE.search(frontmatter) is None, (
         f"{path.name}: list-form `tools:` is not parsed here — write the inline "
         "comma form so the guard can read it"
     )
-    match = _TOOLS_LINE.search(frontmatter)
-    if match is None:
+    lines = _TOOLS_LINE.findall(frontmatter)
+    assert len(lines) <= 1, (
+        f"{path.name}: {len(lines)} `tools:` lines — the guard reads one key, "
+        "a duplicate would hide the second"
+    )
+    if not lines:
         return []
-    return [tool.strip() for tool in match.group(1).split(",") if tool.strip()]
+    return [tool.strip() for tool in lines[0].split(",") if tool.strip()]
 
 
 def agent_files() -> list[Path]:
@@ -131,15 +137,34 @@ class TestRetiredTools:
         assert match is not None and match.group(1) == "Read, Agent"
 
     def test_parser_does_not_cross_lines_or_stop_at_a_fake_delimiter(self, tmp_path: Path) -> None:
+        """A column-0 ``----`` before the real closer is not a delimiter, and
+        a closer may carry trailing blanks. QG round 2 (Francisca M3): the
+        round-1 fixture indented its fake delimiter, which the old
+        ``"\\n---"`` search never matched either, so the end anchor of
+        ``_CLOSING_DELIMITER`` was unproven. The ``----`` line probes this
+        parser; it is not YAML the behavioral compiler would emit."""
+        assert _frontmatter("---\na: 1\n----\nb: 2\n---\n") == "a: 1\n----\nb: 2\n"
         agent = tmp_path / "x.md"
         agent.write_text(
-            "---\nname: x\ndescription: >\n  ---x is not a delimiter\n"
-            "tools: Read, Agent\nmodel: sonnet\n---\n\ntools: TaskCreate\n",
+            "---\nname: x\n----\ntools: Read, Agent\nmodel: sonnet\n---   \n\n"
+            "tools: TaskCreate\n",
             encoding="utf-8",
         )
         assert declared_tools(agent) == ["Read", "Agent"], (
-            "the body's tools: line is outside the frontmatter"
+            "the tools: line after the fake delimiter is inside the frontmatter; "
+            "the body's tools: line is outside it"
         )
+
+    def test_parser_rejects_a_duplicate_tools_key(self, tmp_path: Path) -> None:
+        """A second ``tools:`` line would be invisible to a first-match read
+        (QG round 2, Francisca M3 hardening)."""
+        agent = tmp_path / "x.md"
+        agent.write_text(
+            "---\nname: x\ntools: Read\ntools: TaskCreate\nmodel: sonnet\n---\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(AssertionError, match="2 `tools:` lines"):
+            declared_tools(agent)
 
 
 class TestKnownBuiltins:
