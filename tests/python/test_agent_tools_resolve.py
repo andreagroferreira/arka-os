@@ -50,7 +50,7 @@ def declared_tools(path: Path) -> list[str]:
     )
     lines = _TOOLS_LINE.findall(frontmatter)
     assert len(lines) <= 1, (
-        f"{path.name}: {len(lines)} `tools:` lines — the guard reads one key, "
+        f"{path.name}: {len(lines)} `tools:` lines — the guard reads one key; "
         "a duplicate would hide the second"
     )
     if not lines:

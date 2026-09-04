@@ -49,9 +49,11 @@ FEATURE_FLOORS: dict[str, tuple[int, int, int]] = {
 # the main-loop model). Re-enabled by CLAUDE_CODE_ENABLE_TODO_TOOLS, the
 # host's todoToolsOptIn, a bg session or bg takeover, the tengu_rosy_wren
 # flag, or a main-loop model the binary has not resolved yet
-# (mainLoopCanonical unset) — an ArkaOS session sets none of the four
-# switches. An agent that declares one of them in `tools:` names a tool
-# it is not handed there (Runtime Sync PR4).
+# (mainLoopCanonical unset). ArkaOS sets none of the four switches (the
+# env var, the host opt-in, the session kind or takeover; the flag is
+# remote, not ours to set), and the fifth is binary state, not a switch.
+# An agent that declares one of them in `tools:` names a tool it is not
+# handed there (Runtime Sync PR4).
 FRONTIER_RETIRED_TOOLS: frozenset[str] = frozenset({
     "TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList",
 })
