@@ -5,6 +5,108 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.17.0] - 2026-09-04
+
+Runtime Sync, Phase A — ArkaOS catches up with Claude Code 2.1.259 and
+Fable 5.1. Five PRs (#554–#558), each through the Quality Gate on
+Fable 5.1: four defects proven by execution at the start of the campaign
+(a KB-first gate no turn could satisfy, a Fable 5.1 cost the CostGovernor
+could not see, a scheduler that died on one model outage, a Tech Lead
+told to use a tool the runtime no longer offers) plus the version floor
+the code already assumed.
+
+### Fixed
+- **KB-first gate was unsatisfiable under the hook fast-path** (PR0,
+  #554). `engine.cjs decidePost` fast-exited every benign `mcp__*`
+  PostToolUse, skipping the only writer of the `obsidian` turn marker the
+  research gate reads — measured 2026-09-03 as 66 `kb-first-required`
+  denials in a day with 0 `kb-consulted`. The shim now delegates
+  `tools.post_delegate_prefixes` (generated from
+  `post_tool_use.KB_MARKER_TOOL_PREFIXES`) to Python with reason
+  `kb-marker`; Graphify consults write their marker too; unknown consult
+  tools are recorded as `kb-marker-unknown-tool` instead of passing
+  silently. Old manifests keep the previous behaviour (fail-open).
+- **`npx arkaos doctor` warned only below Claude Code 2.1.122** while the
+  core already depends on later behaviour and Fable 5.1 needs 2.1.257
+  (PR1, #556). The floor is 2.1.257; the warning names the reason (Fable
+  5.1 default, `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`,
+  `permissions.blockReadsOutsideWorkingDirectories`) and the detected
+  build, including one that printed a version but exited non-zero.
+- **`ClaudeCodeAdapter.supports_feature()` answered `True` for
+  everything** (PR1). It now compares `claude --version` (probed once per
+  process, per binary; `ARKA_CLAUDE_VERSION` overrides, blank counts as
+  unset) against `FEATURE_FLOORS`, a changelog-verified table; an unknown
+  version answers `False`.
+- **`config/settings-template.json` declared 7 of the 11 hook
+  registrations with a 5 s `SessionStart`** (PR1). It now matches the
+  adapter and `core/harness/spec.py` (pinned by test), so `install.sh`
+  installs register Stop, SubagentStop, SessionEnd and the unmatched
+  PreToolUse gate too.
+- **Hook stdout contract for Claude Code 2.1.248+** (PR1): every emitting
+  hook prints exactly one JSON document (two field-setting lines are a
+  parse failure that drops context); the PreToolUse deny and Stop
+  reviewer-notice paths are covered by tests and mutation-proven.
+- **The CostGovernor and `/arka costs` saw `n/a` for every Fable 5.1
+  turn** (PR2, #555). `core/runtime/pricing.py` prices `claude-fable-5-1`
+  (and `[1m]`) at $10 / $50 per Mtok with $0.25 cache reads, lists
+  `claude-mythos-5-1` as restricted, and drops the cancelled Sonnet 5
+  price note. An unknown model no longer prices silently at nothing: the
+  recorder writes `pricing_status: unknown-model` and `/arka costs` shows
+  `[arka:warn] pricing-unknown <id>`.
+- **Headless `claude -p` cost rows carried an empty model id** (PR2): the
+  adapter takes the id from the payload's `modelUsage` (largest-volume
+  entry; a real 2.1.259 capture is the fixture). Ollama calls now record
+  through the same cost recorder (local, $0.00).
+- **The cognitive scheduler launched `claude -p` with no model and no
+  fallback**, so one overload or model 404 ended the nightly
+  Research/Dreaming cycle (PR3, #557). Each schedule may pin `model:`
+  (sent as `--model`) and `fallback_models:` (sent as `--fallback-model
+  a,b`, default `claude-opus-5 → claude-sonnet-5`); without a pin the
+  Model Fabric `strategy` role becomes `ANTHROPIC_DEFAULT_MODEL`. Both
+  keys are validated when the YAML loads (a malformed value fails the
+  load naming the schedule; a hand-built config ends in `FATAL` + `False`
+  instead of killing the daemon loop). The log names the model and chain
+  each attempt; an older or unknown binary gets a warning instead of a
+  silently ignored flag.
+- **The Tech Lead was told to open every job with `TaskCreate`**, a tool
+  Claude Code 2.1.233+ no longer offers on the frontier model families
+  and drops silently when declared (PR4, #558). `paulo-tech-lead` no
+  longer declares it, the legacy persona announces phases with
+  `[arka:gate:N]` markers that the Stop hook persists in the workflow
+  state, and the operations skill's planning phase names no runtime todo
+  tool.
+
+### Added
+- `fallbackModel` seed (PR3): `npx arkaos install` and `update` write
+  `["claude-opus-5", "claude-sonnet-5"]` into `~/.claude/settings.json`
+  when the key is absent or null and never touch an operator chain
+  (array, empty array or legacy string). The harness spec, drift scan and
+  config manager know the surface.
+- `/arka status` shows the fallback chain from `settings.json` or its
+  state — `unset` with the seeding command, `disabled`, `invalid` (PR3);
+  the runtime never confirms the chain at startup.
+- `KNOWN_BUILTIN_TOOLS` and `FRONTIER_RETIRED_TOOLS` on the Claude Code
+  adapter, with a test that fails on any deployed agent whose `tools:`
+  names a retired or unknown tool (PR4).
+- Guards against regression: a test that rejects retired model ids
+  (Opus 4.x, Fable 5, Haiku) outside history (PR2); template ↔ harness
+  spec parity (PR1); Python ↔ JS parity for the doctor floor and the
+  fallback chain (PR1, PR3).
+
+### Changed
+- **Model Fabric lanes** (PR2): `best` → Fable 5.1, `opus` → Opus 5, the
+  weakest lane → Sonnet 5 — never Haiku. Legacy ids in the operator's
+  `models.yaml` resolve to the current lane with one notice per process
+  (naming the file the pin came from) and the file is never rewritten;
+  `/arka status` lists the legacy pins. The agent layer normalises a
+  `model: haiku` YAML to `sonnet` at dispatch; the 89 generated agent
+  files, the registry and the plugin manifests are regenerated; every
+  hub, skill and doc that named Opus 4.8, Fable 5 or Haiku is swept.
+- `MultiEdit` retired from the flow/specialist/frontend gate sets and the
+  fast-path manifest (the runtime no longer offers the tool); the harness
+  scanner still flags unscoped `MultiEdit` permission rules because the
+  permission engine maps them onto `Edit` (PR1).
+
 ## [5.16.1] - 2026-08-10
 
 ### Fixed
