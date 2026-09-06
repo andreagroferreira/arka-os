@@ -78,7 +78,8 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
    still outdated: treat it as setup drift (below). Skills missing
    (`~/.claude/skills/hyperframes/SKILL.md` absent): STOP with the exact
    message "Hyperframes não instalado — corre /content video-setup" —
-   NEVER load `/hyperframes` blind or improvise what Hyperframes might be. (Tier degradation is a Phase 0 decision;
+   NEVER load `/hyperframes` blind or improvise what Hyperframes might
+   be. (Tier degradation is a Phase 0 decision;
    reaching this step on the Full tier with the skills missing or stale
    means setup drift: the honest move is the stop + fix command, or an
    explicitly re-stated downgrade to the Degraded/Manual tier.)

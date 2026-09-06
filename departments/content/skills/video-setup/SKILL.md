@@ -35,8 +35,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 | Higgsfield key | `HIGGSFIELD_API_KEY` in env or `~/.arkaos/keys.json` | generation engine (MCP) |
 
 `npx arkaos doctor` runs the same five checks (warn-only; its Hyperframes
-row is the installed sentinel only, freshness is this skill's job) from the
-installer side — this skill is the interactive fix path.
+row is the installed sentinel only — freshness is this skill's job) from the
+installer side; this skill is the interactive fix path.
 
 ## Install steps — EACH gated on explicit user confirmation, never silent
 
