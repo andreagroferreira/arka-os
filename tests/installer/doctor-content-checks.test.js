@@ -82,5 +82,10 @@ test("agent-reach fix points at the real git source, never the phantom PyPI pack
 });
 
 test("hyperframes-skills fix names the exact recovery command", () => {
-  assert.ok(byName["hyperframes-skills"].fix().includes("/content video-setup"));
+  const fix = byName["hyperframes-skills"].fix();
+  assert.ok(fix.includes("/content video-setup"));
+  // Upstream retired the flag-based install: the non-interactive path is
+  // the hyperframes CLI itself, so `--full-depth` advice is dead text.
+  assert.ok(fix.includes("npx hyperframes skills update"), "must name the upstream install/refresh command");
+  assert.ok(!fix.includes("--full-depth"), "must not carry the retired flag-based advice");
 });

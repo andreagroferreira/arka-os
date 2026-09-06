@@ -230,6 +230,128 @@ class TestCommandHintsLayer:
         assert hint_count == 2, "top-2 exactly: three matches must yield two hints"
 
 
+# --- L5 project signal (hyperframes-routing) ---
+
+HYPERFRAMES_CMD = {
+    "id": "content-hyperframes",
+    "command": "/content hyperframes <task>",
+    "department": "content",
+    "keywords": ["hyperframes"],
+}
+HYPERFRAMES_HINT = (
+    "[arka:skill-hint] Skill(arka-content) -> /content hyperframes <task>"
+)
+# Deliberately shares no token with any keyword below: the hint may only
+# come from the project shape, never from the prompt.
+OFF_TOPIC = "qual é o estado do standup"
+
+
+class TestCommandHintsProjectSignal:
+    def test_hyperframes_json_forces_hint_on_unrelated_prompt(self, tmp_path):
+        (tmp_path / "hyperframes.json").write_text("{}", encoding="utf-8")
+        layer = CommandHintsLayer(commands=[HYPERFRAMES_CMD])
+        result = layer.compute(
+            PromptContext(user_input=OFF_TOPIC, cwd=str(tmp_path))
+        )
+        assert HYPERFRAMES_HINT in result.tag
+
+    def test_brief_plus_storyboard_forces_hint(self, tmp_path):
+        (tmp_path / "BRIEF.md").write_text("brief", encoding="utf-8")
+        (tmp_path / "STORYBOARD.md").write_text("board", encoding="utf-8")
+        layer = CommandHintsLayer(commands=[HYPERFRAMES_CMD])
+        result = layer.compute(
+            PromptContext(user_input=OFF_TOPIC, cwd=str(tmp_path))
+        )
+        assert HYPERFRAMES_HINT in result.tag
+
+    def test_partial_group_does_not_signal(self, tmp_path):
+        """A group signals only when EVERY file in it is present."""
+        (tmp_path / "BRIEF.md").write_text("brief", encoding="utf-8")
+        layer = CommandHintsLayer(commands=[HYPERFRAMES_CMD])
+        result = layer.compute(
+            PromptContext(user_input=OFF_TOPIC, cwd=str(tmp_path))
+        )
+        assert result.tag == ""
+
+    def test_signal_leads_and_top_two_cap_holds(self, tmp_path):
+        """Signal first, keyword hints after, still exactly two."""
+        (tmp_path / "hyperframes.json").write_text("{}", encoding="utf-8")
+        commands = [
+            {"command": "/dev feature", "keywords": ["build"]},
+            {"command": "/dev api", "keywords": ["build"]},
+            {"command": "/dev debug", "keywords": ["build"]},
+            HYPERFRAMES_CMD,
+        ]
+        layer = CommandHintsLayer(commands=commands)
+        result = layer.compute(
+            PromptContext(user_input="build something", cwd=str(tmp_path))
+        )
+        assert result.tag.count("[arka:skill-hint]") == 2
+        assert HYPERFRAMES_HINT in result.tag
+        # Order is load-bearing: the signal hint must precede the keyword
+        # one, so a merge that appends instead of prepending fails here.
+        assert result.tag.index(HYPERFRAMES_HINT) < result.tag.index(
+            "-> /dev "
+        )
+
+    def test_signal_precedes_a_surviving_keyword_hint(self, tmp_path):
+        """Order guard with BOTH hints inside the cap.
+
+        Sibling test above uses three keyword matches, where the cap makes
+        "signal last" indistinguishable from "signal absent". Here exactly
+        two hints exist, so a merge that appends the signal instead of
+        prepending it still emits both — and only the index comparison
+        catches it.
+        """
+        (tmp_path / "hyperframes.json").write_text("{}", encoding="utf-8")
+        commands = [
+            {"command": "/dev feature", "keywords": ["build"]},
+            HYPERFRAMES_CMD,
+        ]
+        layer = CommandHintsLayer(commands=commands)
+        result = layer.compute(
+            PromptContext(user_input="build something", cwd=str(tmp_path))
+        )
+        assert result.tag.count("[arka:skill-hint]") == 2
+        assert HYPERFRAMES_HINT in result.tag
+        assert result.tag.index(HYPERFRAMES_HINT) < result.tag.index(
+            "-> /dev feature"
+        )
+        # content mirrors the tag order — the hint list is the same merge.
+        assert result.content == "/content hyperframes <task> /dev feature"
+
+    def test_signal_id_absent_from_registry_is_silent(self, tmp_path):
+        """A signal may only surface a command the registry carries."""
+        (tmp_path / "hyperframes.json").write_text("{}", encoding="utf-8")
+        commands = [{"id": "dev-feature", "command": "/dev feature",
+                     "keywords": ["build"]}]
+        layer = CommandHintsLayer(commands=commands)
+        result = layer.compute(
+            PromptContext(user_input=OFF_TOPIC, cwd=str(tmp_path))
+        )
+        assert result.tag == ""
+        assert result.content == ""
+
+    def test_missing_or_empty_cwd_never_raises(self):
+        layer = CommandHintsLayer(commands=[HYPERFRAMES_CMD])
+        empty = layer.compute(PromptContext(user_input=OFF_TOPIC, cwd=""))
+        missing = layer.compute(
+            PromptContext(user_input=OFF_TOPIC, cwd="/definitely/not/a/dir")
+        )
+        assert empty.tag == "" and empty.content == ""
+        assert missing.tag == empty.tag
+        assert missing.content == empty.content
+
+    def test_explicit_slash_command_still_wins_over_signal(self, tmp_path):
+        """The explicit-command early return runs before the signal."""
+        (tmp_path / "hyperframes.json").write_text("{}", encoding="utf-8")
+        layer = CommandHintsLayer(commands=[HYPERFRAMES_CMD])
+        result = layer.compute(
+            PromptContext(user_input="/dev feature x", cwd=str(tmp_path))
+        )
+        assert result.tag == ""
+
+
 # --- Engine Tests ---
 
 

@@ -1554,13 +1554,40 @@
       "edit video",
       "edita o vídeo",
       "render video",
-      "monta o vídeo",
-      "hyperframes"
+      "monta o vídeo"
     ],
     "examples": [
       "produz um vídeo sobre agentes de AI",
       "produce a video about our launch",
       "edita este vídeo com legendas e b-roll"
+    ]
+  },
+  "content-hyperframes": {
+    "keywords": [
+      "hyperframes",
+      "hyperframes.json",
+      "video as code",
+      "vídeo em código",
+      "renderiza o vídeo",
+      "render the video",
+      "render composition",
+      "renderiza a composição",
+      "keyframes",
+      "motion graphic",
+      "legendas embutidas",
+      "embedded captions",
+      "lower third",
+      "title card",
+      "remotion",
+      "figma to video",
+      "figma para vídeo",
+      "slideshow",
+      "faceless explainer"
+    ],
+    "examples": [
+      "renderiza o projeto hyperframes em ./launch-film",
+      "add word-level captions to this talking head",
+      "converte esta composição remotion para hyperframes"
     ]
   },
   "content-trends": {

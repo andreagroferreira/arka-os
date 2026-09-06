@@ -21,7 +21,7 @@ description: >
 |---|---|---|
 | Node.js 22+ | `node --version` | Hyperframes rendering |
 | FFmpeg | `ffmpeg -version` | encode/cut + transcription |
-| Hyperframes skills | `ls ~/.claude/skills/ \| grep -i hyperframes` | video-as-code editing |
+| Hyperframes skills (installed AND fresh) | `npx hyperframes skills check` — 0 outdated required; fallback sentinel `ls ~/.claude/skills/hyperframes/SKILL.md` | video-as-code editing |
 | Agent-Reach | `agent-reach doctor` | trend/research platform pulls |
 | Higgsfield key | `HIGGSFIELD_API_KEY` in env or `~/.arkaos/keys.json` | generation engine (MCP) |
 
@@ -30,16 +30,25 @@ installer side — this skill is the interactive fix path.
 
 ## Install steps — EACH gated on explicit user confirmation, never silent
 
-1. **Hyperframes skills** (free, Apache-2.0, HeyGen):
+1. **Hyperframes skills** (free, Apache-2.0, HeyGen). Interactive install —
+   select **Core Skills**; the `/hyperframes` router lazy-installs the
+   creation workflow a request needs (`/product-launch-video`,
+   `/faceless-explainer`, `/talking-head-recut`, `/motion-graphics`,
+   `/embedded-captions`, `/media-use`…):
    ```
-   npx skills add heygen-com/hyperframes --full-depth --yes
+   npx skills add heygen-com/hyperframes
    ```
-   `--full-depth` is MANDATORY — without it the skills registry serves a
-   stale snapshot that lags the upstream main branch. Installs ~20
-   skills including the `/hyperframes` router, `/talking-head-recut`,
-   `/faceless-explainer`, `/product-launch-video`, `/motion-graphics`,
-   `/embedded-captions`, `/media-use`. Keep fresh later with
-   `npx hyperframes skills update <workflow>`.
+   Non-interactive install or refresh (agent, CI) of the core set plus every
+   HyperFrames skill already present on the machine:
+   ```
+   npx hyperframes skills update
+   ```
+   Freshness is a first-class check: `npx hyperframes skills check` lists
+   outdated skills, and the preflight row must read 0 outdated, not merely
+   "installed". Skills land in `~/.claude/skills/` and `~/.agents/skills/`
+   (the CLI links them into every detected agent). The full published set
+   (`npx hyperframes skills`) is a deliberate choice for machines that must
+   work offline across every workflow. Upstream doc: hyperframes.heygen.com.
 2. **Agent-Reach CLI** (MIT, beta — THIRD-PARTY GitHub code, NOT on
    PyPI): the package `agent-reach` does NOT exist in any registry —
    `pipx install agent-reach` / `uv tool install agent-reach` fail with
@@ -92,4 +101,4 @@ hardcoded to a single external backend).
 
 Setup report: preflight table, what was installed (with user consent
 noted per step), the capability matrix, and the exact next command to
-try (`/content video <topic>`).
+try (`/content video <topic>` for a brief-to-MP4 run, `/content hyperframes <task>` for direct work on a HyperFrames project).

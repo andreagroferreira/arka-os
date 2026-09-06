@@ -2,7 +2,7 @@
 
 ← [Departments index](README.md) · [Home](../Home.md)
 
-> **Prefix:** `/content` · **Lead:** Rafael (Tier 1) · **Agents:** 8 · **Skills:** 20
+> **Prefix:** `/content` · **Lead:** Rafael (Tier 1) · **Agents:** 8 · **Skills:** 21
 
 The Content & Viralization department is responsible for creating content that spreads. Rafael's squad works the full production chain — from hook design and script structure through to platform-native distribution and systematic repurposing. The output is not content for its own sake; it is content engineered to capture attention, hold it, and move it toward a business outcome.
 
@@ -12,7 +12,7 @@ The squad operates with a platform-first discipline: the same idea gets packaged
 
 | Commands | Skills | Agents |
 | --- | --- | --- |
-| 20 | 20 | 8 |
+| 21 | 21 | 8 |
 
 **Commands** (20 via `/content`):
 
@@ -32,7 +32,7 @@ The squad operates with a platform-first discipline: the same idea gets packaged
 | `/content short <topic>` | Short-form content (Reels, TikTok, Shorts) |
 | ... | 8 more — full list in [docs/COMMANDS.md](../../docs/COMMANDS.md) |
 
-**Skills** (20 — 19 sub-skills plus the `/content` hub):
+**Skills** (21 — 20 sub-skills plus the `/content` hub):
 
 | Skill | What it does |
 | --- | --- |
@@ -42,6 +42,7 @@ The squad operates with a platform-first discipline: the same idea gets packaged
 | `content-hub` | Content Creation & Viralization department. Viral content design, hooks, scripts, content operating systems... |
 | `content-system` | Sets up a full Content Operating System: pillar content strategy (GaryVee model), weekly batching workflow,... |
 | `hook-write` | Writes hooks for the first 3 seconds of any content: generates 10+ variants across 7 hook types (controvers... |
+| `hyperframes` | Direct HyperFrames work — video-as-code in HTML/CSS/JS + GSAP rendered to a deterministic MP4 — on a new or... |
 | `image-create` | Create, edit, and optimize marketing images — blog heroes, social graphics, product mockups, banners, brand... |
 | `monetization-plan` | Creator monetization plan: a 5-level ladder from ads and affiliates up to high-ticket offers, with revenue... |
 | `newsletter-write` | Newsletter writing: subject line variants, intro hook, body sections, CTA, and growth tactics, delivered as... |

@@ -69,8 +69,13 @@ function commandExists(cmd) {
 }
 
 // Sentinel for the Hyperframes skill bundle. `npx skills add
-// heygen-com/hyperframes` lands skills under ~/.claude/skills/<name>;
-// the router skill is the sentinel. skillsDir is injectable for tests.
+// heygen-com/hyperframes` lands the skills under BOTH
+// ~/.claude/skills/<name> and ~/.agents/skills/<name>; the router skill
+// is the sentinel and this probe reads the Claude path by default.
+// `npx hyperframes skills update` is the non-interactive install/refresh
+// path (it installs the core set and re-syncs an existing bundle);
+// `npx hyperframes skills check` only reports staleness.
+// skillsDir is injectable for tests.
 export function hyperframesSkillsInstalled(
   skillsDir = join(homedir(), ".claude", "skills")
 ) {
@@ -739,7 +744,7 @@ export const checks = [
     description: "Hyperframes skills installed (video-as-code editing for /content video)",
     severity: "warn",
     check: () => hyperframesSkillsInstalled(),
-    fix: () => "Run /content video-setup in Claude Code, or: npx skills add heygen-com/hyperframes --full-depth --yes",
+    fix: () => "Run /content video-setup in Claude Code, or: npx hyperframes skills update (core set; npx hyperframes skills check reports staleness)",
   },
   {
     name: "higgsfield-api-key",

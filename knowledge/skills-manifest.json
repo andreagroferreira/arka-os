@@ -1715,6 +1715,19 @@
         "origin": "arkaos"
       }
     },
+    "hyperframes": {
+      "depts": [
+        "content"
+      ],
+      "curated": false,
+      "plugins": [
+        "arkaos-content@arkaos"
+      ],
+      "collision": false,
+      "provenance": {
+        "origin": "arkaos"
+      }
+    },
     "identity-system": {
       "depts": [
         "brand"

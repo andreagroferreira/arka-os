@@ -21,6 +21,7 @@ layers_kb.py. Both are re-exported here so existing
 `core.synapse.layers` imports keep working.
 """
 
+import os
 import re
 import time
 from typing import Any
@@ -412,6 +413,22 @@ def _hub_skill(department: str) -> str:
     return _DEPT_HUB_EXCEPTIONS.get(department, f"arka-{department}")
 
 
+# Project-shape signals: a cwd carrying ANY of these file groups (every
+# file in a group present) forces the command's hint regardless of the
+# prompt text — "working inside a HyperFrames project" is a route.
+PROJECT_SIGNALS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "content-hyperframes": (
+        ("hyperframes.json",),
+        ("BRIEF.md", "STORYBOARD.md"),
+    ),
+}
+
+# A keyword score is bounded by the keyword count of a single registry
+# command (single digits live), so this constant puts every signalled
+# command ahead of every keyword match without a bespoke sort key.
+_SIGNAL_SCORE = 10_000
+
+
 def _hint_department(cmd: dict) -> str:
     """Department for the hint's hub skill.
 
@@ -424,6 +441,63 @@ def _hint_department(cmd: dict) -> str:
         return dept
     prefix = str(cmd.get("command", "")).lstrip("/").split(" ")[0]
     return prefix.split("-")[0]
+
+
+def _group_present(cwd: str, group: tuple[str, ...]) -> bool:
+    """True when EVERY file of the group sits directly in ``cwd``."""
+    return all(os.path.isfile(os.path.join(cwd, name)) for name in group)
+
+
+def _project_signal_ids(cwd: str) -> list[str]:
+    """Registry command ids whose project shape matches the hook cwd.
+
+    Looks at ``cwd`` itself only — no parent walk — and never raises: an
+    empty cwd, a directory that does not exist, or any filesystem error
+    yields no signal and L5 degrades to plain keyword scoring.
+    """
+    if not cwd:
+        return []
+    try:
+        if not os.path.isdir(cwd):
+            return []
+        return [
+            cmd_id
+            for cmd_id, groups in PROJECT_SIGNALS.items()
+            if any(_group_present(cwd, group) for group in groups)
+        ]
+    except (OSError, ValueError):
+        return []
+
+
+def _signal_commands(
+    commands: list[dict], ids: list[str]
+) -> list[tuple[int, str, str]]:
+    """Scored tuples for the signalled ids, shaped like _score_commands.
+
+    An id the registry does not carry is skipped in silence: a signal
+    may only surface a command that actually exists, never invent one.
+    """
+    wanted = set(ids)
+    return [
+        (_SIGNAL_SCORE, cmd.get("command", ""), _hint_department(cmd))
+        for cmd in commands
+        if cmd.get("id") in wanted
+    ]
+
+
+def _merge_hints(
+    signal: list[tuple[int, str, str]],
+    keyword: list[tuple[int, str, str]],
+) -> list[tuple[int, str, str]]:
+    """Signal hints first, keyword hints after, de-duped by command text."""
+    seen: set[str] = set()
+    merged: list[tuple[int, str, str]] = []
+    for entry in [*signal, *keyword]:
+        if entry[1] in seen:
+            continue
+        seen.add(entry[1])
+        merged.append(entry)
+    return merged
 
 
 def _score_commands(
@@ -468,6 +542,17 @@ class CommandHintsLayer(Layer):
     the route. The old `[hint:/cmd]` form was declarative and routinely
     ignored: the model announced the squad in prose and the skill's
     content never entered context.
+
+    Beyond the prompt words, the layer routes by PROJECT SHAPE: when the
+    hook cwd carries the files that identify a project kind
+    (``PROJECT_SIGNALS`` — e.g. a HyperFrames video-as-code project ships
+    ``hyperframes.json``, or ``BRIEF.md`` + ``STORYBOARD.md``), that
+    command is hinted even when the prompt matches no keyword. An
+    operator standing inside such a project asks "render the intro" or
+    "muda o segundo plano" — vocabulary the registry cannot enumerate —
+    and keyword-only scoring left the specialist route silent while the
+    generic assistant answered. Signal hints lead the merged list and the
+    top-2 cap still holds, so a signal costs at most one keyword slot.
     """
 
     def __init__(self, commands: list[dict] | None = None) -> None:
@@ -510,7 +595,12 @@ class CommandHintsLayer(Layer):
                 cached=False,
             )
 
-        top = _score_commands(self._commands, text)[:2]
+        signal = _signal_commands(
+            self._commands, _project_signal_ids(ctx.cwd)
+        )
+        top = _merge_hints(
+            signal, _score_commands(self._commands, text)
+        )[:2]
         hints = [command for _, command, _ in top]
 
         tags = _hint_tag(top)
