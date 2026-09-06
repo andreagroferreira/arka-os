@@ -57,8 +57,9 @@ department. They are exercised through skills, never hard-coded in core:
   `higgsfield-*` skill family (generate, soul-id, product-photoshoot,
   marketplace-cards).
 - **Hyperframes** — HTML composition framework that renders deterministic
-  MP4s. Consumed by `content/video-produce` and the hyperframes skill
-  family (`hyperframes-core`, `hyperframes-animation`, `hyperframes-cli`,
+  MP4s. Consumed by `content/hyperframes` (direct work on a project — it
+  loads the `/hyperframes` router first), `content/video-produce` (edit/render
+  phase) and the hyperframes skill family (`hyperframes-core`, `hyperframes-animation`, `hyperframes-cli`,
   `hyperframes-registry`, `hyperframes-creative`, `hyperframes-keyframes`).
 - **`dev/watch`** — downloads video (yt-dlp), extracts scene-aware frames
   (ffmpeg), pulls a timestamped transcript (native captions first, Whisper
@@ -125,7 +126,7 @@ Obsidian + vector store without error.
 
 | Skill family | Tool |
 |---|---|
-| `content/video-produce`, `dev/scroll-world`, `dev/animated-website` | Higgsfield + Hyperframes |
+| `content/hyperframes`, `content/video-produce`, `dev/scroll-world`, `dev/animated-website` | Higgsfield + Hyperframes |
 | `content/image-create`, `higgsfield-*` | Higgsfield AI |
 | `dev/watch`, `embedded-captions`, KB YouTube ingest | yt-dlp + ffmpeg + Whisper |
 | `arka/research`, `kb/*`, `strat/*` research | Firecrawl + Context7 + WebSearch |

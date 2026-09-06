@@ -1,0 +1,43 @@
+# Top-level status mirrors spec.status for the spec-driven gate
+# (core/workflow/rules_registry.py matches ^status: at column 0).
+status: approved
+spec:
+  feature: hyperframes-routing
+  project: arka-os
+  status: approved
+  date_created: "2026-09-06"
+  date_approved: "2026-09-06"
+  approved_by: operator
+  canonical: "Obsidian: Projects/WizardingCode Internal/ArkaOS/Specs/SPEC-hyperframes-routing.md"
+  overview: >
+    Make the Hyperframes skill family (heygen-com/hyperframes: core set
+    under ~/.claude/skills, workflows installed on demand by the router)
+    the mandatory path whenever the operator works
+    on video-as-code. Today the only route is the 9-phase /content video
+    pipeline, which loads the /hyperframes router at phase 6; direct work
+    on an existing Hyperframes project (render, keyframes, captions,
+    Remotion port, Figma import) has no route of its own, and the
+    frontend gate (.html scope) fires on compositions without any skill
+    telling the agent to emit the [arka:design] marker.
+    Scope: (1) sub-skill content/hyperframes -> /content hyperframes <task>,
+    an ArkaOS adapter that preflights freshness (npx hyperframes skills
+    check), invokes Skill(hyperframes) immediately, owns the [arka:design]
+    marker for HTML compositions, reviews renders through dev/watch and
+    closes with the Quality Gate; (2) pt/en keywords for the new command
+    in knowledge/commands-keywords.json, registry regenerated;
+    (3) Synapse L5 project signal: hyperframes.json, or BRIEF.md +
+    STORYBOARD.md, in the hook cwd forces the
+    [arka:skill-hint] Skill(arka-content) -> /content hyperframes hint;
+    (4) content/video-setup and the doctor fix strings aligned to the
+    current upstream install/refresh commands; the orphan website-to-video
+    skill (merged upstream into product-launch-video) removed from the
+    operator machine. Out of scope by operator decision: claude-vision
+    (/video duplicates dev/watch, hook collides with every *video* skill)
+    and ai-director (paid X2C wrapper from a deprecated marketplace).
+  acceptance_criteria:
+    - departments/content/skills/hyperframes/SKILL.md exists, declares origin arkaos, carries the kb-first prefix, and instructs Skill(hyperframes) first plus the structured [arka:design] marker for .html compositions
+    - "'/content hyperframes <task>' row in departments/content/SKILL.md; commands-registry.json regenerated with id content-hyperframes and its keyword seed"
+    - L5 emits the content-hyperframes hint when cwd holds hyperframes.json or BRIEF.md+STORYBOARD.md, never raises on a missing cwd, keeps the top-2 cap, and stays silent without the signal
+    - video-setup and installer/doctor.js fix text name the upstream commands (npx skills add heygen-com/hyperframes; npx hyperframes skills check/update)
+    - generated artifacts regenerated (registry, marketplace, skills catalog, docs_stats counters, harness bundles); drift tests green
+    - full pytest suite green; installer node tests green; Quality Gate APPROVED before merge

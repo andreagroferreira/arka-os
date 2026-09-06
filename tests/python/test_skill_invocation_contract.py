@@ -257,3 +257,40 @@ class TestImperativeHintFormat:
         assert orphans == [], (
             f"command prefixes with no shipped hub: {orphans}"
         )
+
+
+# ── Project-shape signals (hyperframes-routing, 2026-09-06) ──────────────
+# `_signal_commands` looks a PROJECT_SIGNALS key up by registry id and
+# skips an unknown id in silence (fail-safe by design). Silence is also
+# how a renamed command would disappear from routing without a trace, so
+# every signal key is pinned to a real id in the committed registry.
+
+
+def test_every_project_signal_key_is_a_registry_command_id():
+    import json
+    from pathlib import Path
+
+    from core.synapse.layers import PROJECT_SIGNALS
+
+    root = Path(__file__).resolve().parents[2]
+    registry = json.loads(
+        (root / "knowledge" / "commands-registry.json").read_text(encoding="utf-8")
+    )
+    ids = {cmd.get("id") for cmd in registry["commands"]}
+    missing = sorted(key for key in PROJECT_SIGNALS if key not in ids)
+    assert not missing, (
+        f"PROJECT_SIGNALS keys with no registry command: {missing} — the "
+        "signal would go silent (no crash, no hint). Rename the key or the "
+        "command table row, then regenerate with `arka-py -m core.registry.generator`."
+    )
+
+
+def test_project_signal_groups_are_non_empty_file_tuples():
+    from core.synapse.layers import PROJECT_SIGNALS
+
+    for key, groups in PROJECT_SIGNALS.items():
+        assert groups, f"{key}: no file groups"
+        for group in groups:
+            assert group and all(isinstance(name, str) and name for name in group), (
+                f"{key}: malformed group {group!r}"
+            )

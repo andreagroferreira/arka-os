@@ -35,7 +35,9 @@ local install; the rest run locally via `npx`/`uv`.
   `dev/scroll-world`, `dev/animated-website`, and the `higgsfield-*`
   skill family.
 - **Hyperframes** — deterministic HTML compositions rendered to MP4:
-  `content/video-produce` and the `hyperframes-*` family.
+  `content/hyperframes` (direct work on a project — it loads the
+  `/hyperframes` router first), `content/video-produce` (edit/render
+  phase) and the `hyperframes-*` family.
 - **`dev/watch` + `embedded-captions`** — yt-dlp + ffmpeg + Whisper for
   video analysis and local caption compositing.
 

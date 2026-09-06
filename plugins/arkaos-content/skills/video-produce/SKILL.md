@@ -11,7 +11,9 @@ description: >
   videos -> /content shorts (content-shorts-produce workflow); short-form
   scripting only -> /content short (content/short-form); one-off
   environment setup ->
-  content/video-setup; YouTube channel strategy -> content/youtube-strategy.
+  content/video-setup; direct work on an existing Hyperframes project
+  (render, keyframes, captions, port) -> content/hyperframes; YouTube channel
+  strategy -> content/youtube-strategy.
 metadata:
   origin: community
   source: https://github.com/coreyhaines31/marketingskills
@@ -37,7 +39,7 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
 | Capability | Full | Degraded | Manual |
 |---|---|---|---|
 | Asset generation | Higgsfield MCP (`generate_image/video/audio`, `create_voice`, `motion_control`, `upscale`) | `arka-comfyui` local | asset brief: engine-ready prompts per shot |
-| Edit / render | Hyperframes skills (Node 22 + FFmpeg; load `/hyperframes` router) | Higgsfield `explainer_video` / `shorts_studio` server-side | edit-ready package: script + assets + shot list/EDL + SRT captions |
+| Edit / render | Hyperframes skills (Node 22 + FFmpeg; via `content/hyperframes`) | Higgsfield `explainer_video` / `shorts_studio` server-side | edit-ready package: script + assets + shot list/EDL + SRT captions |
 | Research | agent-reach | firecrawl + WebSearch | KB-only |
 
 ## Pipeline (gates match the content-video workflow)
@@ -62,22 +64,29 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
    `upscale`/`reframe`. → **user approval on generated assets —
    Higgsfield credits are metered; NEVER regenerate in a loop without
    explicit approval.**
-6. **Edit / render** — PREFLIGHT (one line, mandatory before the Full
-   tier): if `ls ~/.claude/skills | grep -qi hyperframes` fails, STOP
-   with the exact message "Hyperframes não instalado — corre
-   /content video-setup" — NEVER load `/hyperframes` blind or improvise
-   what Hyperframes might be. (Tier degradation is a Phase 0 decision;
-   reaching this step on the Full tier with the skills missing means
-   setup drift: the honest move is the stop + fix command, or an
+6. **Edit / render** — PREFLIGHT (one command, mandatory before the Full
+   tier): `npx hyperframes skills check`. It must report 0 outdated.
+   Outdated listed: run `npx hyperframes skills update` and re-check;
+   still outdated: treat it as setup drift (below). Skills missing
+   (`~/.claude/skills/hyperframes/SKILL.md` absent): STOP with the exact
+   message "Hyperframes não instalado — corre /content video-setup" —
+   NEVER load `/hyperframes` blind or improvise what Hyperframes might
+   be. (Tier degradation is a Phase 0 decision;
+   reaching this step on the Full tier with the skills missing or stale
+   means setup drift: the honest move is the stop + fix command, or an
    explicitly re-stated downgrade to the Degraded/Manual tier.)
-   Full tier: load the `/hyperframes` router skill, pick the
-   workflow (`/talking-head-recut`, `/faceless-explainer`,
-   `/product-launch-video`…), compose in HTML+GSAP (load `dev/gsap` —
-   `references/core.md` + `references/timeline.md` for motion graphics; `references/plugins.md` for kinetic
-   type/SplitText), add word-level captions (`/embedded-captions`),
-   render MP4. Degraded tier: hand assets+script to Higgsfield
-   `explainer_video`/`shorts_studio`. Manual tier: assemble the
-   edit-ready package and say exactly what a human editor gets.
+   Full tier: run `content/hyperframes` — it loads the `/hyperframes`
+   router, which picks the workflow (`/talking-head-recut`,
+   `/faceless-explainer`, `/product-launch-video`…), and it owns the
+   ArkaOS ceremony around the composition: the structured `[arka:design]`
+   marker before any `.html` is written, GSAP timelines with labels and
+   position params for motion graphics, word-level captions via
+   `/embedded-captions`, and the `dev/watch` review of the render. The
+   pipeline keeps ownership of the project directory; the skill is its
+   edit/render phase, not a second pipeline. Degraded tier: hand
+   assets+script to Higgsfield `explainer_video`/`shorts_studio`. Manual
+   tier: assemble the edit-ready package and say exactly what a human
+   editor gets.
 7. **Virality QA** — STEPPS audit pre-publish (Filipe) +
    `virality_predictor`/`video_analysis` when Higgsfield is live
    (hook strength, retention risk) + technical QC (sync, caption
@@ -313,6 +322,7 @@ requests — so no manual editing step is required.
 - **`content/short-form`** — short-form scripting and batches
 - **`content/youtube-strategy`** — YouTube channel strategy
 - **`content/video-setup`** — one-off environment setup
+- **`content/hyperframes`** — direct work on a Hyperframes project (the Full-tier edit/render phase runs it)
 - **`mkt/social-strategy`** — video content strategy and what to post
 - **`mkt/paid-campaign`** — paid video ad creative and iteration
 - **`landing/copy-framework`** — video scripts and messaging

@@ -19,7 +19,7 @@ Each department has a **lead** (Tier 1) who orchestrates **specialists**
 | [E-Commerce](ecom.md) | `/ecom` | Ricardo | 4 | 15 | Store optimization, CRO, pricing, RFM |
 | [Knowledge](kb.md) | `/kb` | Clara | 4 | 18 | Research, Zettelkasten, persona building, ingestion |
 | [Project Management](pm.md) | `/pm` | Carolina | 4 | 15 | Scrum, Shape Up, discovery, roadmaps |
-| [Content](content.md) | `/content` | Rafael | 8 | 20 | Viral hooks, scripts, repurposing, calendars |
+| [Content](content.md) | `/content` | Rafael | 8 | 21 | Viral hooks, scripts, repurposing, calendars |
 | [Sales](sales.md) | `/sales` | Miguel | 4 | 14 | Pipeline, SPIN selling, negotiation |
 | [SaaS](saas.md) | `/saas` | Tiago | 5 | 19 | Idea validation, metrics, PLG, scaffolding |
 | [Organization](org.md) | `/org` | Sofia | 5 | 13 | Org design, team topologies, matrix structure |

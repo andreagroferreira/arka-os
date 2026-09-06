@@ -41,6 +41,15 @@ load helpers/setup
   [ "$has_hf" -eq 1 ]
 }
 
+@test "arka-doctor --json hyperframes-skills fix string matches installer/doctor.js exactly" {
+  # Parity pin: bash and node must emit the SAME recovery command. Nothing
+  # else catches drift between bin/arka-doctor and installer/doctor.js.
+  run bash "$REPO_DIR/bin/arka-doctor" --json
+  [ "$status" -eq 0 ]
+  hf_fix=$(echo "$output" | jq -r '.[] | select(.name == "hyperframes-skills") | .fix')
+  [ "$hf_fix" = "Run /content video-setup in Claude Code, or: npx hyperframes skills update (core set; npx hyperframes skills check reports staleness)" ]
+}
+
 @test "arka-doctor --json checks have required fields" {
   run bash "$REPO_DIR/bin/arka-doctor" --json
   [ "$status" -eq 0 ]

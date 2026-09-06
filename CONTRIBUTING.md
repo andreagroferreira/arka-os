@@ -47,7 +47,7 @@ file — a hand edit fails CI immediately. Regenerate with:
 ```
 
 Also verify against the canonical counters (`scripts/tools/docs_stats.py`):
-**340 skills** (325 department + 15 `/arka`), **89 agents**, **17 departments**.
+**341 skills** (326 department + 15 `/arka`), **89 agents**, **17 departments**.
 
 ## Documentation conventions
 
