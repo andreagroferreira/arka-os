@@ -352,28 +352,32 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
     detail(`         Warning: auto-update daemon not enabled (${err.message})`);
   }
 
-  // Foundation PR-5 — menu bar launcher (macOS only), default-on with
-  // persisted opt-out (npx arkaos menubar disable). rumps install and
-  // launchd wiring are best-effort: a failure can never break install.
-  // Guards (QG M3/M4): a LaunchAgent is system integration, so it
-  // honors --no-system and never touches CI runners; the opt-out is
-  // consulted BEFORE pip — a user who disabled the menu bar must not
-  // receive its dependency on every install.
-  if (process.platform === "darwin" && !skipSystem && !process.env.CI) {
+  // Foundation PR-5 (+#548) — menu bar launcher (macOS + Windows),
+  // default-on with persisted opt-out (npx arkaos menubar disable). The
+  // UI-framework install and login wiring are best-effort: a failure can
+  // never break install. Guards (QG M3/M4): a login item is system
+  // integration, so it honors --no-system and never touches CI runners;
+  // the opt-out is consulted BEFORE pip — a user who disabled the menu
+  // bar must not receive its dependency on every install.
+  if ((process.platform === "darwin" || process.platform === "win32")
+      && !skipSystem && !process.env.CI) {
     try {
       const { ensureDefaultEnabled: ensureMenubar, status: menubarStatus } =
         await import("./menubar.js");
+      const uiDeps = process.platform === "win32" ? "pystray Pillow" : "rumps";
       if (menubarStatus().optout) {
         detail("         Menu bar launcher: user opt-out respected.");
       } else {
-        if (pipInstall("rumps", { log: (m) => detail(m), timeout: 120000 })) {
-          ok("rumps installed (menu bar framework)");
+        if (pipInstall(uiDeps, { log: (m) => detail(m), timeout: 120000 })) {
+          ok(`${uiDeps} installed (menu bar framework)`);
         } else {
-          warn("rumps install failed — menu bar app will hint on first run");
+          warn(`${uiDeps} install failed — menu bar app will hint on first run`);
         }
         const mb = ensureMenubar({ repoRoot: ARKAOS_ROOT });
         if (mb.action === "enabled") {
-          detail("         Menu bar launcher enabled (▲ in the macOS menu bar).");
+          detail(process.platform === "win32"
+            ? "         Menu bar launcher enabled (▲ in the system tray)."
+            : "         Menu bar launcher enabled (▲ in the macOS menu bar).");
         } else if (mb.action === "partial") {
           detail(`         Menu bar launcher: ${mb.message}`);
         }
