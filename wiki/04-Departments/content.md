@@ -42,7 +42,7 @@ The squad operates with a platform-first discipline: the same idea gets packaged
 | `content-hub` | Content Creation & Viralization department. Viral content design, hooks, scripts, content operating systems... |
 | `content-system` | Sets up a full Content Operating System: pillar content strategy (GaryVee model), weekly batching workflow,... |
 | `hook-write` | Writes hooks for the first 3 seconds of any content: generates 10+ variants across 7 hook types (controvers... |
-| `hyperframes` | Direct HyperFrames work — video-as-code in HTML/CSS/JS + GSAP rendered to a deterministic MP4 — on a new or... |
+| `hyperframes` | Direct Hyperframes work — video-as-code in HTML/CSS/JS + GSAP rendered to a deterministic MP4 — on a new or... |
 | `image-create` | Create, edit, and optimize marketing images — blog heroes, social graphics, product mockups, banners, brand... |
 | `monetization-plan` | Creator monetization plan: a 5-level ladder from ads and affiliates up to high-ticket offers, with revenue... |
 | `newsletter-write` | Newsletter writing: subject line variants, intro hook, body sections, CTA, and growth tactics, delivered as... |

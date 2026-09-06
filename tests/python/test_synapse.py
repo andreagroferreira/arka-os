@@ -320,6 +320,31 @@ class TestCommandHintsProjectSignal:
         # content mirrors the tag order — the hint list is the same merge.
         assert result.content == "/content hyperframes <task> /dev feature"
 
+    def test_signal_and_keyword_match_of_same_command_dedupe(self, tmp_path):
+        """A command both signalled AND keyword-matched surfaces ONCE.
+
+        Without the dedupe in _merge_hints the merged list would be
+        [hyperframes (signal), hyperframes (keyword), dev feature] and
+        the top-2 cap would emit the same route twice while pushing the
+        second distinct route out — so both assertions are load-bearing.
+        """
+        (tmp_path / "hyperframes.json").write_text("{}", encoding="utf-8")
+        commands = [
+            {**HYPERFRAMES_CMD,
+             "keywords": ["hyperframes", "render the video"]},
+            {"id": "dev-feature", "command": "/dev feature <description>",
+             "department": "dev", "keywords": ["render the video"]},
+        ]
+        layer = CommandHintsLayer(commands=commands)
+        result = layer.compute(
+            PromptContext(
+                user_input="hyperframes: render the video",
+                cwd=str(tmp_path),
+            )
+        )
+        assert result.tag.count("/content hyperframes <task>") == 1
+        assert "-> /dev feature" in result.tag
+
     def test_signal_id_absent_from_registry_is_silent(self, tmp_path):
         """A signal may only surface a command the registry carries."""
         (tmp_path / "hyperframes.json").write_text("{}", encoding="utf-8")

@@ -8,7 +8,8 @@ description: >
   "prepara o ambiente de vídeo", "instala o hyperframes", "configura a
   produção de vídeo", "video production setup". SKIP: actually producing
   a video -> content/video-produce (it preflights non-interactively and
-  degrades); general MCP setup -> /arka keys or apply-mcps.
+  degrades); direct work on an existing Hyperframes project ->
+  content/hyperframes; general MCP setup -> /arka keys or apply-mcps.
 ---
 
 # Video Setup
@@ -39,16 +40,18 @@ installer side — this skill is the interactive fix path.
    npx skills add heygen-com/hyperframes
    ```
    Non-interactive install or refresh (agent, CI) of the core set plus every
-   HyperFrames skill already present on the machine:
+   Hyperframes skill already present on the machine:
    ```
    npx hyperframes skills update
    ```
    Freshness is a first-class check: `npx hyperframes skills check` lists
    outdated skills, and the preflight row must read 0 outdated, not merely
    "installed". Skills land in `~/.claude/skills/` and `~/.agents/skills/`
-   (the CLI links them into every detected agent). The full published set
-   (`npx hyperframes skills`) is a deliberate choice for machines that must
-   work offline across every workflow. Upstream doc: hyperframes.heygen.com.
+   (the CLI links them into every detected agent). To install every
+   published workflow up front — only for a machine that must work offline
+   across every workflow — run `npx hyperframes skills`: it installs the
+   complete published set, not just the core. Upstream doc:
+   hyperframes.heygen.com.
 2. **Agent-Reach CLI** (MIT, beta — THIRD-PARTY GitHub code, NOT on
    PyPI): the package `agent-reach` does NOT exist in any registry —
    `pipx install agent-reach` / `uv tool install agent-reach` fail with
@@ -101,4 +104,4 @@ hardcoded to a single external backend).
 
 Setup report: preflight table, what was installed (with user consent
 noted per step), the capability matrix, and the exact next command to
-try (`/content video <topic>` for a brief-to-MP4 run, `/content hyperframes <task>` for direct work on a HyperFrames project).
+try (`/content video <topic>` for a brief-to-MP4 run, `/content hyperframes <task>` for direct work on a Hyperframes project).

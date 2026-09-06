@@ -423,9 +423,11 @@ PROJECT_SIGNALS: dict[str, tuple[tuple[str, ...], ...]] = {
     ),
 }
 
-# A keyword score is bounded by the keyword count of a single registry
-# command (single digits live), so this constant puts every signalled
-# command ahead of every keyword match without a bespoke sort key.
+# The score slot exists only so signal entries share the
+# (score, command, department) tuple shape of _score_commands. Nothing
+# sorts on it in the merge path: _hint_tag and compute discard the score,
+# and precedence comes from _merge_hints concatenating signal entries
+# before the keyword ones.
 _SIGNAL_SCORE = 10_000
 
 
@@ -451,26 +453,24 @@ def _group_present(cwd: str, group: tuple[str, ...]) -> bool:
 def _project_signal_ids(cwd: str) -> list[str]:
     """Registry command ids whose project shape matches the hook cwd.
 
-    Looks at ``cwd`` itself only — no parent walk — and never raises: an
-    empty cwd, a directory that does not exist, or any filesystem error
-    yields no signal and L5 degrades to plain keyword scoring.
+    Looks at ``cwd`` itself only — no parent walk — and never raises:
+    ``PromptContext.cwd`` is typed ``str``, and for str input the
+    ``os.path`` predicates (``isdir``/``isfile``) are exception-free —
+    they swallow OSError and ValueError internally — so an empty cwd, a
+    directory that does not exist, or an unreadable path yields no signal
+    and L5 degrades to plain keyword scoring. No try/except is needed.
     """
-    if not cwd:
+    if not cwd or not os.path.isdir(cwd):
         return []
-    try:
-        if not os.path.isdir(cwd):
-            return []
-        return [
-            cmd_id
-            for cmd_id, groups in PROJECT_SIGNALS.items()
-            if any(_group_present(cwd, group) for group in groups)
-        ]
-    except (OSError, ValueError):
-        return []
+    return [
+        cmd_id
+        for cmd_id, groups in PROJECT_SIGNALS.items()
+        if any(_group_present(cwd, group) for group in groups)
+    ]
 
 
 def _signal_commands(
-    commands: list[dict], ids: list[str]
+    commands: list[dict[str, Any]], ids: list[str]
 ) -> list[tuple[int, str, str]]:
     """Scored tuples for the signalled ids, shaped like _score_commands.
 
@@ -501,7 +501,7 @@ def _merge_hints(
 
 
 def _score_commands(
-    commands: list[dict], text: str
+    commands: list[dict[str, Any]], text: str
 ) -> list[tuple[int, str, str]]:
     """Keyword-score the registry commands against the prompt text,
     best score first; zero-score commands never qualify."""

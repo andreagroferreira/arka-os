@@ -75,6 +75,28 @@ test("hyperframesSkillsInstalled accepts the hyperframes-core sentinel", () => {
   }
 });
 
+test("hyperframesSkillsInstalled probes every root — sentinel only in the second still counts", () => {
+  const claudeDir = mkdtempSync(join(tmpdir(), "arka-hf-claude-"));
+  const agentsDir = mkdtempSync(join(tmpdir(), "arka-hf-agents-"));
+  try {
+    assert.equal(
+      hyperframesSkillsInstalled([claudeDir, agentsDir]),
+      false,
+      "sentinel in neither root must be false"
+    );
+    mkdirSync(join(agentsDir, "hyperframes"), { recursive: true });
+    writeFileSync(join(agentsDir, "hyperframes", "SKILL.md"), "# router\n");
+    assert.equal(
+      hyperframesSkillsInstalled([claudeDir, agentsDir]),
+      true,
+      "sentinel only in the second root must be true"
+    );
+  } finally {
+    rmSync(claudeDir, { recursive: true, force: true });
+    rmSync(agentsDir, { recursive: true, force: true });
+  }
+});
+
 test("agent-reach fix points at the real git source, never the phantom PyPI package", () => {
   const fix = byName["agent-reach"].fix();
   assert.ok(fix.includes("github.com/Panniantong/Agent-Reach"), "must name the git source");

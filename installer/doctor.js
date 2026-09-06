@@ -71,16 +71,23 @@ function commandExists(cmd) {
 // Sentinel for the Hyperframes skill bundle. `npx skills add
 // heygen-com/hyperframes` lands the skills under BOTH
 // ~/.claude/skills/<name> and ~/.agents/skills/<name>; the router skill
-// is the sentinel and this probe reads the Claude path by default.
+// is the sentinel and this probe reads BOTH roots — either one holding
+// it proves the bundle is installed.
 // `npx hyperframes skills update` is the non-interactive install/refresh
 // path (it installs the core set and re-syncs an existing bundle);
 // `npx hyperframes skills check` only reports staleness.
-// skillsDir is injectable for tests.
+// skillsDirs is injectable for tests: a single dir string or an array.
 export function hyperframesSkillsInstalled(
-  skillsDir = join(homedir(), ".claude", "skills")
+  skillsDirs = [
+    join(homedir(), ".claude", "skills"),
+    join(homedir(), ".agents", "skills"),
+  ]
 ) {
-  return ["hyperframes", "hyperframes-core"].some((name) =>
-    existsSync(join(skillsDir, name, "SKILL.md"))
+  const dirs = Array.isArray(skillsDirs) ? skillsDirs : [skillsDirs];
+  return dirs.some((dir) =>
+    ["hyperframes", "hyperframes-core"].some((name) =>
+      existsSync(join(dir, name, "SKILL.md"))
+    )
   );
 }
 

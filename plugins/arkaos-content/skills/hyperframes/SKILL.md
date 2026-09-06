@@ -1,7 +1,7 @@
 ---
 name: hyperframes
 description: >
-  Direct HyperFrames work — video-as-code in HTML/CSS/JS + GSAP rendered to a
+  Direct Hyperframes work — video-as-code in HTML/CSS/JS + GSAP rendered to a
   deterministic MP4 — on a new or existing project: compose, animate, keyframe,
   caption, mix audio, port from Remotion, import from Figma, render, preview,
   publish, batch-render. Loads the /hyperframes router FIRST and wraps it in the
@@ -9,21 +9,23 @@ description: >
   dev/watch review of the render, Quality Gate). TRIGGER: "/content
   hyperframes", "renderiza o vídeo", "render this composition", "ajusta os
   keyframes", "adiciona legendas embutidas", "motion graphic", "title card",
-  "lower third", "converte esta Remotion", "importa do Figma para vídeo",
-  "slideshow", "explainer faceless", any cwd holding hyperframes.json or
-  BRIEF.md + STORYBOARD.md (Synapse L5 project signal). SKIP: brief-to-MP4
+  "lower third", "converte este projeto Remotion", "importa do Figma para
+  vídeo", "slideshow", "faceless explainer", "explainer sem rosto", any cwd
+  holding hyperframes.json or BRIEF.md + STORYBOARD.md (Synapse L5 project
+  signal — inside a running /content video pipeline the pipeline keeps
+  ownership and calls this skill at its edit/render phase). SKIP: brief-to-MP4
   production with research, script and asset generation -> content/video-produce
-  (it reaches this skill at its edit/render phase); one-off environment install
+  (its edit/render phase loads this skill); one-off environment install
   -> content/video-setup; watching or analysing a video -> dev/watch;
   scroll-driven website from a video -> dev/animated-website.
 metadata:
   origin: arkaos
 ---
 
-# HyperFrames
+# Hyperframes
 
-> **Agent:** Simão (Video Producer) | **Engine:** HyperFrames by HeyGen (Apache-2.0), 20 skills under `~/.claude/skills/`
-> **Rule:** the `/hyperframes` router owns the workflow; this skill owns the ArkaOS ceremony around it. Never reconstruct HyperFrames from memory.
+> **Agent:** Simão (Video Producer) | **Engine:** Hyperframes by HeyGen (Apache-2.0) — core skills under `~/.claude/skills/`, creation workflows installed on demand by the router
+> **Rule:** the `/hyperframes` router owns the workflow; this skill owns the ArkaOS ceremony around it. Never reconstruct Hyperframes from memory.
 
 ## Phase 0 — Preflight (one command, always)
 
@@ -40,14 +42,14 @@ npx hyperframes skills check
 
 ## Phase 1 — Load the router, then follow it
 
-Invoke `Skill(hyperframes)` FIRST. It resumes project state (`BRIEF.md`, `hyperframes.json`, `STORYBOARD.md`), runs the intent interview for fresh creation, picks the owning workflow from its route table and installs it. The route table lives there; it is not duplicated here. Two ArkaOS constraints on top:
+Invoke `Skill(hyperframes)` FIRST. It resumes project state (`BRIEF.md`, `hyperframes.json`, `STORYBOARD.md`), runs the intent interview for fresh creation, picks the owning workflow from its route table and installs it. Two ArkaOS constraints on top:
 
 - A specific operation on an existing project (inspect, diagnose, validate, preview, render, publish, batch-render): the router loads `/hyperframes-cli` — do that operation and nothing else.
 - Fresh creation: the interview ends by writing `BRIEF.md`. Read the marketing context first (KB-first: `WizardingCode/Marketing/product-marketing.md` in Obsidian, else the project-local `.agents/product-marketing.md`) so the brief carries the real positioning, never an invented one.
 
 ## Phase 2 — Compose under the design doctrine
 
-A HyperFrames composition is `.html`, so the frontend excellence gate applies exactly as it does to UI (constitution `excellence-mandate`, `core/workflow/frontend_gate.py`). Before the first Write/Edit of a composition emit the structured marker on a line of its own:
+A Hyperframes composition is `.html`, so the frontend excellence gate applies exactly as it does to UI (constitution `excellence-mandate`, `core/workflow/frontend_gate.py`). Before the first Write/Edit of a composition emit the structured marker on a line of its own:
 
 ```
 [arka:design] benchmark=<named reference: Linear launch films, Vercel Ship keynote, Stripe Sessions…> skills=hyperframes,hyperframes-core,hyperframes-animation,<hyperframes-creative|hyperframes-keyframes|hyperframes-audio as loaded> tokens=<brand tokens path|none>
@@ -70,16 +72,16 @@ Marta orchestrates Eduardo (on-screen copy, captions, description) and Francisca
 
 ## Never
 
-- Never load `/hyperframes` when the preflight fails, and never guess what HyperFrames is.
+- Never load `/hyperframes` when the preflight fails, and never guess what Hyperframes is.
 - Never bypass the router's route table with a hand-picked workflow "because it looks right" — the router reads `references/routes/<workflow>.md` and decides.
 - Never ship a render nobody watched.
-- Never install HyperFrames skills from a marketplace other than `heygen-com/hyperframes`; third-party "video" skills that wrap paid engines or hook every `*video*` skill are rejected by decision (spec `hyperframes-routing`).
+- Never install Hyperframes skills from a marketplace other than `heygen-com/hyperframes`; third-party "video" skills that wrap paid engines or hook every `*video*` skill are rejected by decision (spec `hyperframes-routing`).
 
 ## Examples
 
 ```
 /content hyperframes "renderiza o projeto em ./launch-film e revê o resultado"
 /content hyperframes "adiciona legendas embutidas word-level ao talking head em ./ep03"
-/content hyperframes "converte a composição Remotion em ./remotion-intro para HyperFrames"
+/content hyperframes "converte a composição Remotion em ./remotion-intro para Hyperframes"
 /content hyperframes "motion graphic de 8 s com o número 30K a subir, brand ArkaOS"
 ```

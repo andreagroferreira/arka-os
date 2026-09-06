@@ -347,7 +347,7 @@
 | `calendar` | content/calendar | Content calendar planning: weekly themes, pillar assignments, and derivative scheduling mapped from pillar to platform-native pieces. |
 | `content-system` | content/content-system | Sets up a full Content Operating System: pillar content strategy (GaryVee model), weekly batching workflow, 1-to-30+ repurposing pipeline, calendar template, and metrics tracking. |
 | `hook-write` | content/hook-write | Writes hooks for the first 3 seconds of any content: generates 10+ variants across 7 hook types (controversy, curiosity gap, pain point, result, counter-intuitive, story... |
-| `hyperframes` | content/hyperframes | Direct HyperFrames work — video-as-code in HTML/CSS/JS + GSAP rendered to a deterministic MP4 — on a new or existing project: compose, animate, keyframe, caption, mix audio... |
+| `hyperframes` | content/hyperframes | Direct Hyperframes work — video-as-code in HTML/CSS/JS + GSAP rendered to a deterministic MP4 — on a new or existing project: compose, animate, keyframe, caption, mix audio... |
 | `image-create` | content/image-create | Create, edit, and optimize marketing images — blog heroes, social graphics, product mockups, banners, brand assets, and OG images — picking the right AI model or design tool... |
 | `monetization-plan` | content/monetization-plan | Creator monetization plan: a 5-level ladder from ads and affiliates up to high-ticket offers, with revenue projections per level. |
 | `newsletter-write` | content/newsletter-write | Newsletter writing: subject line variants, intro hook, body sections, CTA, and growth tactics, delivered as a ready-to-send draft with growth recommendations. |
