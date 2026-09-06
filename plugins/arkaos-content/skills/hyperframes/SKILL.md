@@ -36,7 +36,7 @@ npx hyperframes skills check
 | Result | Action |
 |---|---|
 | `N current`, nothing outdated | proceed |
-| `↑ outdated` listed | `npx hyperframes skills update` refreshes the core set; the router refreshes the chosen workflow itself (`npx hyperframes skills update <workflow>`) |
+| `↑ outdated` listed | `npx hyperframes skills update` refreshes the core set and every skill already installed; a workflow not yet installed arrives when the router selects it (`npx hyperframes skills update <workflow>`) |
 | `~/.claude/skills/hyperframes/SKILL.md` missing | STOP with exactly "Hyperframes não instalado — corre /content video-setup". Never improvise the format. |
 | `node --version` below 22, or no `ffmpeg` | STOP and print the platform install line — `content/video-setup` owns installs, this skill never mutates system packages |
 
@@ -55,9 +55,9 @@ A Hyperframes composition is `.html`, so the frontend excellence gate applies ex
 [arka:design] benchmark=<named reference: Linear launch films, Vercel Ship keynote, Stripe Sessions…> skills=hyperframes,hyperframes-core,hyperframes-animation,<hyperframes-creative|hyperframes-keyframes|hyperframes-audio as loaded> tokens=<brand tokens path|none>
 ```
 
-- ArkaOS-branded output follows The Assembly v1.1 (`docs/design/brand-assembly/`, skill `arkaos-design`): zinc + rose, Signal used scarcely, Space Grotesk / IBM Plex — `tokens=` points there.
+- ArkaOS-branded output follows The Assembly v1.1 (`docs/design/brand-assembly/`, skill `arkaos-design`): zinc + rose, Signal used sparingly, Space Grotesk / IBM Plex — `tokens=` points there.
 - Client work: `tokens=` points at the project's design-system document (`project-design-system-prerequisite`): no document, no composition — extract it first with `/brand design-system`.
-- Anti-default: no template title cards, no stock easing on every element, no "AI video" look. GSAP timelines with labels and position parameters (Simão's framework); word-level captions through `/embedded-captions` whenever there is speech.
+- Anti-default: no template title cards, no stock easing on every element, no "AI video" look. GSAP timelines with labels and position parameters (Simão's framework): load `dev/gsap` for GSAP itself (`references/core.md` for timelines, labels and position parameters; `references/plugins.md` for kinetic type and SplitText; `references/performance.md` before the render) — upstream `hyperframes-animation` covers the Hyperframes-specific timing, it does not replace it. Word-level captions through `/embedded-captions` whenever there is speech.
 - Assets: `/media-use` resolves BGM, SFX, images and logos from licensed sources before anything is downloaded. Generated assets come from Higgsfield (`content/image-create`, `generate_video`); credits are metered — never regenerate in a loop without explicit approval.
 
 ## Phase 3 — Render and review with evidence

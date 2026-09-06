@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-09-06T09:32:14Z",
+    "generated": "2026-09-06T10:59:22Z",
     "total_commands": 307,
     "generator": "core/registry/generator.py",
     "departments": {
@@ -1366,7 +1366,7 @@
       "id": "content-hyperframes",
       "command": "/content hyperframes <task>",
       "department": "content",
-      "description": "Direct HyperFrames work: compose, animate, caption, port, render and review a video-as-code project",
+      "description": "Direct Hyperframes work: compose, animate, caption, port, render and review a video-as-code project",
       "lead_agent": "arka-content",
       "keywords": [
         "hyperframes",

@@ -30,11 +30,12 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, WebFetch, WebSearch]
 |---|---|---|
 | Node.js 22+ | `node --version` | Hyperframes rendering |
 | FFmpeg | `ffmpeg -version` | encode/cut + transcription |
-| Hyperframes skills (installed AND fresh) | `npx hyperframes skills check` — 0 outdated required; fallback sentinel `ls ~/.claude/skills/hyperframes/SKILL.md` | video-as-code editing |
+| Hyperframes skills (installed AND fresh) | `npx hyperframes skills check` — 0 outdated required; when `npx hyperframes` cannot run (offline), the sentinel `ls ~/.claude/skills/hyperframes/SKILL.md` proves installed, not fresh | video-as-code editing |
 | Agent-Reach | `agent-reach doctor` | trend/research platform pulls |
 | Higgsfield key | `HIGGSFIELD_API_KEY` in env or `~/.arkaos/keys.json` | generation engine (MCP) |
 
-`npx arkaos doctor` runs the same five checks (warn-only) from the
+`npx arkaos doctor` runs the same five checks (warn-only; its Hyperframes
+row is the installed sentinel only, freshness is this skill's job) from the
 installer side — this skill is the interactive fix path.
 
 ## Install steps — EACH gated on explicit user confirmation, never silent

@@ -378,7 +378,10 @@ for hf_root in "$HOME/.claude/skills" "$HOME/.agents/skills"; do
   for hf_name in hyperframes hyperframes-core; do
     if [ -f "$hf_root/$hf_name/SKILL.md" ]; then
       HF_OK=true
-      HF_DESC="Hyperframes skills installed ($hf_name under $hf_root)"
+      # Static, matching installer/doctor.js `description` exactly: run_check
+      # splices $desc unescaped into the --json payload, so no path or
+      # name interpolation may reach it.
+      HF_DESC="Hyperframes skills installed (video-as-code editing for /content video)"
       break 2
     fi
   done

@@ -10,11 +10,12 @@ spec:
   approved_by: operator
   canonical: "Obsidian: Projects/WizardingCode Internal/ArkaOS/Specs/SPEC-hyperframes-routing.md"
   overview: >
-    Make the HyperFrames skill family (heygen-com/hyperframes, 20 skills
-    under ~/.claude/skills) the mandatory path whenever the operator works
+    Make the Hyperframes skill family (heygen-com/hyperframes: core set
+    under ~/.claude/skills, workflows installed on demand by the router)
+    the mandatory path whenever the operator works
     on video-as-code. Today the only route is the 9-phase /content video
     pipeline, which loads the /hyperframes router at phase 6; direct work
-    on an existing HyperFrames project (render, keyframes, captions,
+    on an existing Hyperframes project (render, keyframes, captions,
     Remotion port, Figma import) has no route of its own, and the
     frontend gate (.html scope) fires on compositions without any skill
     telling the agent to emit the [arka:design] marker.

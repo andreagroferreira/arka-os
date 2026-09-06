@@ -47,7 +47,7 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
 | Capability | Full | Degraded | Manual |
 |---|---|---|---|
 | Asset generation | Higgsfield MCP (`generate_image/video/audio`, `create_voice`, `motion_control`, `upscale`) | `arka-comfyui` local | asset brief: engine-ready prompts per shot |
-| Edit / render | Hyperframes skills (Node 22 + FFmpeg; load `/hyperframes` router) | Higgsfield `explainer_video` / `shorts_studio` server-side | edit-ready package: script + assets + shot list/EDL + SRT captions |
+| Edit / render | Hyperframes skills (Node 22 + FFmpeg; via `content/hyperframes`) | Higgsfield `explainer_video` / `shorts_studio` server-side | edit-ready package: script + assets + shot list/EDL + SRT captions |
 | Research | agent-reach | firecrawl + WebSearch | KB-only |
 
 ## Pipeline (gates match the content-video workflow)
@@ -73,11 +73,12 @@ tier PER CAPABILITY. Print the matrix, state the tiers chosen, proceed
    Higgsfield credits are metered; NEVER regenerate in a loop without
    explicit approval.**
 6. **Edit / render** — PREFLIGHT (one command, mandatory before the Full
-   tier): `npx hyperframes skills check`. It must report 0 outdated; if
-   the skills are missing (`~/.claude/skills/hyperframes/SKILL.md`
-   absent) STOP with the exact message "Hyperframes não instalado — corre
-   /content video-setup" — NEVER load `/hyperframes` blind or improvise
-   what Hyperframes might be. (Tier degradation is a Phase 0 decision;
+   tier): `npx hyperframes skills check`. It must report 0 outdated.
+   Outdated listed: run `npx hyperframes skills update` and re-check;
+   still outdated: treat it as setup drift (below). Skills missing
+   (`~/.claude/skills/hyperframes/SKILL.md` absent): STOP with the exact
+   message "Hyperframes não instalado — corre /content video-setup" —
+   NEVER load `/hyperframes` blind or improvise what Hyperframes might be. (Tier degradation is a Phase 0 decision;
    reaching this step on the Full tier with the skills missing or stale
    means setup drift: the honest move is the stop + fix command, or an
    explicitly re-stated downgrade to the Degraded/Manual tier.)
@@ -328,6 +329,7 @@ requests — so no manual editing step is required.
 - **`content/short-form`** — short-form scripting and batches
 - **`content/youtube-strategy`** — YouTube channel strategy
 - **`content/video-setup`** — one-off environment setup
+- **`content/hyperframes`** — direct work on a Hyperframes project (the Full-tier edit/render phase runs it)
 - **`mkt/social-strategy`** — video content strategy and what to post
 - **`mkt/paid-campaign`** — paid video ad creative and iteration
 - **`landing/copy-framework`** — video scripts and messaging

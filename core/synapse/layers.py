@@ -415,7 +415,7 @@ def _hub_skill(department: str) -> str:
 
 # Project-shape signals: a cwd carrying ANY of these file groups (every
 # file in a group present) forces the command's hint regardless of the
-# prompt text — "working inside a HyperFrames project" is a route.
+# prompt text — "working inside a Hyperframes project" is a route.
 PROJECT_SIGNALS: dict[str, tuple[tuple[str, ...], ...]] = {
     "content-hyperframes": (
         ("hyperframes.json",),
@@ -545,7 +545,7 @@ class CommandHintsLayer(Layer):
 
     Beyond the prompt words, the layer routes by PROJECT SHAPE: when the
     hook cwd carries the files that identify a project kind
-    (``PROJECT_SIGNALS`` — e.g. a HyperFrames video-as-code project ships
+    (``PROJECT_SIGNALS`` — e.g. a Hyperframes video-as-code project ships
     ``hyperframes.json``, or ``BRIEF.md`` + ``STORYBOARD.md``), that
     command is hinted even when the prompt matches no keyword. An
     operator standing inside such a project asks "render the intro" or
