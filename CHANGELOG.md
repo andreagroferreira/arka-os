@@ -5,6 +5,64 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.17.1] - 2026-09-06
+
+Hyperframes routing (PR #559). The Hyperframes skill family
+(heygen-com/hyperframes) becomes the mandatory path for video-as-code
+work. Until now the only route was the 9-phase `/content video` pipeline,
+which loaded the `/hyperframes` router at its edit phase; direct work on a
+Hyperframes project (render, keyframes, captions, Remotion port, Figma
+import) had no route, and the frontend gate fired on `.html` compositions
+without any skill naming the `[arka:design]` marker. Four Quality Gate
+rounds (REJECTED → APPROVED with eleven minors fixed forward → REJECTED on
+a pointer the fix-forward itself broke → APPROVED), spec `.arkaos/specs/hyperframes-routing.yaml`.
+
+### Added
+- **`/content hyperframes <task>`** (`content/hyperframes`): ArkaOS adapter
+  around the upstream router — preflights `npx hyperframes skills check`
+  (stops honestly when missing or stale), invokes `Skill(hyperframes)`
+  first, Simão owns it, structured `[arka:design]` marker for HTML
+  compositions (The Assembly v1.1 for ArkaOS output, the project's design
+  system for clients), `dev/gsap` for the GSAP layer, render reviewed
+  through `dev/watch`, Quality Gate before delivery.
+- **Synapse L5 project signal** (`core/synapse/layers.py`
+  `PROJECT_SIGNALS`): a hook cwd holding `hyperframes.json`, or `BRIEF.md`
+  + `STORYBOARD.md`, forces
+  `[arka:skill-hint] Skill(arka-content) -> /content hyperframes <task>`
+  even when the prompt matches no keyword — routing by project shape, not
+  only by prompt words. Signal hints lead, the top-2 cap holds, duplicates
+  are merged, unknown ids are skipped, nothing raises on a missing cwd. A
+  drift test pins every signal key to a real registry command id.
+- `content-hyperframes` keyword seed (pt/en); `"hyperframes"` left
+  `content-video` so the two no longer tie.
+- bats case pinning the `hyperframes-skills` doctor fix string across
+  `bin/arka-doctor` and `installer/doctor.js` (no test caught bash/node
+  fix-string drift before).
+
+### Changed
+- `content/video-setup` and both doctors follow the current upstream
+  install/refresh commands: `npx skills add heygen-com/hyperframes` (Core
+  Skills), `npx hyperframes skills update` (non-interactive),
+  `npx hyperframes skills check` (freshness is a first-class preflight row;
+  the retired `--full-depth` advice is gone). The doctor sentinel probes
+  both `~/.claude/skills` and `~/.agents/skills`.
+- `content/video-produce` phase 6 runs `content/hyperframes` (its SKIP
+  reciprocity claim is now true), its preflight is `skills check` with an
+  explicit installed-but-stale branch, and the two skills declare each
+  other in their SKIP lists.
+- Harness bundles regenerated: they had been stale at v5.16.1 since the
+  5.17.0 bump.
+- Counters: 341 skills, 267 plugin skills, content 21 commands, propagated
+  to every prose surface (the superseded-count tripwire caught four the
+  grep missed).
+
+### Decided
+- Not absorbed, objection on record in the spec: `claude-vision /video`
+  (video analysis that duplicates `dev/watch`; dead without the plugin
+  hooks; as a plugin its hook fires on every `*video*` skill) and
+  `ai-director` (paid X2C wrapper with plaintext credentials, from a
+  deprecated marketplace whose upstream was deleted).
+
 ## [5.17.0] - 2026-09-04
 
 Runtime Sync, Phase A — ArkaOS catches up with Claude Code 2.1.259 and
