@@ -12,7 +12,7 @@ class TestRuntimeModels:
         labels = {m["label"] for m in models}
         # Runtime Sync 2026-09-03: exactly these three lanes — the weakest
         # is Sonnet 5, and no previous-generation label survives.
-        assert sorted(labels) == ["Fable 5.1", "Opus 5", "Sonnet 5"]
+        assert sorted(labels) == ["Fable 5.1", "Opus 5.5", "Sonnet 5"]
 
     def test_fable_is_the_full_id_and_flagged_most_capable(self):
         fable = next(

@@ -40,7 +40,7 @@ def _row(
     cost: float | None = 0.01,
     category: str | None = None,
     provider: str = "anthropic",
-    model: str = "claude-opus-5",
+    model: str = "claude-opus-5-5",
 ) -> dict:
     row = {
         "ts": ts.isoformat(),

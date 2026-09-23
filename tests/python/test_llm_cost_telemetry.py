@@ -35,7 +35,7 @@ def test_record_cost_appends_jsonl(tmp_telemetry: Path):
     record_cost(
         session_id="sess-1",
         provider="stub",
-        model="claude-opus-5",
+        model="claude-opus-5-5",
         tokens_in=100,
         tokens_out=50,
         cached_tokens=0,
@@ -46,7 +46,7 @@ def test_record_cost_appends_jsonl(tmp_telemetry: Path):
     entry = entries[0]
     assert entry["session_id"] == "sess-1"
     assert entry["provider"] == "stub"
-    assert entry["model"] == "claude-opus-5"
+    assert entry["model"] == "claude-opus-5-5"
     assert entry["tokens_in"] == 100
     assert entry["tokens_out"] == 50
     assert entry["estimated_cost_usd"] == 0.0125
@@ -156,7 +156,7 @@ def _entry(
     ts: datetime,
     session_id: str = "s",
     provider: str = "anthropic",
-    model: str = "claude-opus-5",
+    model: str = "claude-opus-5-5",
     tokens_in: int = 1000,
     tokens_out: int = 200,
     cached_tokens: int = 0,
@@ -186,7 +186,7 @@ def test_fallback_diagnostic_rows_stay_out_of_by_model(tmp_telemetry: Path):
     _write_entries(
         tmp_telemetry,
         [
-            _entry(now, model="claude-opus-5", cost=0.20),
+            _entry(now, model="claude-opus-5-5", cost=0.20),
             _entry(
                 now,
                 provider="fallback:claude_code->ollama",
@@ -206,7 +206,7 @@ def test_fallback_diagnostic_rows_stay_out_of_by_model(tmp_telemetry: Path):
         ],
     )
     summary = summarise(period="today", path=tmp_telemetry, now=now)
-    assert set(summary.by_model) == {"claude-opus-5"}
+    assert set(summary.by_model) == {"claude-opus-5-5"}
     assert "fallback:claude_code->ollama" in summary.by_provider
 
 
@@ -339,13 +339,13 @@ def test_summarise_groups_by_model_unknown_bucketed(tmp_telemetry: Path):
     _write_entries(
         tmp_telemetry,
         [
-            _entry(now, model="claude-opus-5", cost=1.0),
+            _entry(now, model="claude-opus-5-5", cost=1.0),
             _entry(now, model="", cost=None),
             _entry(now, model="", cost=None),
         ],
     )
     summary = summarise(period="all", path=tmp_telemetry)
-    assert "claude-opus-5" in summary.by_model
+    assert "claude-opus-5-5" in summary.by_model
     assert "" in summary.by_model  # unknown bucket
     assert summary.by_model[""]["call_count"] == 2
     assert summary.by_model[""]["total_cost_usd"] is None
@@ -622,7 +622,9 @@ class TestPricingUnknownAdvisory:
 
         path = tmp_path / "llm-cost.jsonl"
         monkeypatch.setenv("ARKA_LLM_COST_PATH", str(path))
-        t.record_cost("s1", "native", "claude-opus-5", 1000, 10, 0, 0.5, category="native:session")
+        t.record_cost(
+            "s1", "native", "claude-opus-5-5", 1000, 10, 0, 0.5, category="native:session"
+        )
         t.record_cost("s1", "native", "claude-mythos-9", 2000, 20, 0, None,
                       category="native:session", pricing_status="unknown-model")
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
@@ -631,7 +633,7 @@ class TestPricingUnknownAdvisory:
         summary = t.summarise("today", path=path)
         assert summary.by_model["claude-mythos-9"]["total_cost_usd"] is None
         assert any("pricing-unknown: claude-mythos-9" in a for a in summary.advisories)
-        assert not any("claude-opus-5" in a for a in summary.advisories)
+        assert not any("claude-opus-5-5" in a for a in summary.advisories)
 
     def test_advisory_never_fires_on_local_synthetic_or_unstatused_rows(
         self, tmp_path, monkeypatch

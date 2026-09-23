@@ -55,18 +55,23 @@ KNOWN_EFFORTS = ("low", "medium", "high", "max")
 
 _ALIAS_NAMES = frozenset({"best", "default", "fast"})
 
-# Runtime Sync 2026-09-03 — ids that no longer exist, or lanes ArkaOS no
-# longer routes to (Opus 4.x → Opus 5, Fable 5 → Fable 5.1, Haiku → Sonnet 5).
-# Normalised when a role is RESOLVED; the operator's models.yaml is never
-# rewritten. One stderr notice per process per id, so a stale pin is
-# visible without becoming noise.
+# Runtime Sync 2026-09-03 (Opus 4.x → Opus 5, Fable 5 → Fable 5.1, Haiku →
+# Sonnet 5) and the Opus 5.5 sweep 2026-09-22 (Opus 5 → Opus 5.5) — ids that
+# no longer exist, or lanes ArkaOS no longer routes to. Normalised when a
+# role is RESOLVED; the operator's models.yaml is never rewritten. One
+# stderr notice per process per id, so a stale pin is visible without
+# becoming noise. Legacy ids map straight to the CURRENT lane — the lookup
+# is a single dict read, not a transitive walk, so no value may be a key.
+LEGACY_SYNC_DATE = "2026-09-22"
 LEGACY_MODEL_IDS: dict[str, str] = {
     "claude-fable-5": "claude-fable-5-1",
     "claude-fable-5[1m]": "claude-fable-5-1[1m]",
-    "claude-opus-4-8": "claude-opus-5",
-    "claude-opus-4-8[1m]": "claude-opus-5[1m]",
-    "claude-opus-4-7": "claude-opus-5",
-    "claude-opus-4-6": "claude-opus-5",
+    "claude-opus-5": "claude-opus-5-5",
+    "claude-opus-5[1m]": "claude-opus-5-5[1m]",
+    "claude-opus-4-8": "claude-opus-5-5",
+    "claude-opus-4-8[1m]": "claude-opus-5-5[1m]",
+    "claude-opus-4-7": "claude-opus-5-5",
+    "claude-opus-4-6": "claude-opus-5-5",
     "claude-haiku-4-5-20251001": "claude-sonnet-5",
     "claude-haiku-4-5": "claude-sonnet-5",
     "haiku": "sonnet",
@@ -89,7 +94,7 @@ def normalise_model_id(model: str, source: str = "models.yaml") -> str:
         _LEGACY_NOTICED.add((source, model))
         print(
             f"[arka:warn] {source} pins legacy model {model!r}; resolving as "
-            f"{current!r} (Runtime Sync 2026-09-03). Update the pin to silence this.",
+            f"{current!r} (Runtime Sync {LEGACY_SYNC_DATE}). Update the pin to silence this.",
             file=sys.stderr,
         )
     return current

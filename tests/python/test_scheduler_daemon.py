@@ -586,7 +586,7 @@ class TestModelPinAndFallback:
     """The nightly cycle no longer dies on one overload or model 404."""
 
     def test_default_chain_is_the_shared_constant(self) -> None:
-        assert DEFAULT_FALLBACK_MODELS == ("claude-opus-5", "claude-sonnet-5")
+        assert DEFAULT_FALLBACK_MODELS == ("claude-opus-5-5", "claude-sonnet-5")
         schedule = ScheduleConfig(command="x", prompt_file="/x", run_time=time(2, 0))
         assert schedule.model is None
         assert schedule.fallback_models == list(DEFAULT_FALLBACK_MODELS)
@@ -599,12 +599,40 @@ class TestModelPinAndFallback:
         assert match, "DEFAULT_FALLBACK_MODELS not found in installer/fallback-model.js"
         assert tuple(_re.findall(r'"([^"]+)"', match.group(1))) == DEFAULT_FALLBACK_MODELS
 
+    def test_js_seed_carries_the_same_previous_defaults(self) -> None:
+        """The chains the seeder upgrades are one list in two languages —
+        parse the JS literal (one line, JSON-valid) and compare."""
+        import json as _json
+
+        from core.runtime.claude_code import PREVIOUS_FALLBACK_DEFAULTS
+
+        source = (REPO_ROOT / "installer" / "fallback-model.js").read_text(encoding="utf-8")
+        match = _re.search(r"export const PREVIOUS_FALLBACK_DEFAULTS = (\[.*?\]);\n", source)
+        assert match, "PREVIOUS_FALLBACK_DEFAULTS not found in installer/fallback-model.js"
+        js_chains = tuple(tuple(chain) for chain in _json.loads(match.group(1)))
+        assert js_chains == PREVIOUS_FALLBACK_DEFAULTS
+
+    def test_previous_defaults_are_the_chains_we_shipped_before(self) -> None:
+        from core.runtime.claude_code import (
+            PREVIOUS_FALLBACK_DEFAULTS,
+            is_previous_fallback_default,
+        )
+
+        # The literal pin lives on a PREVIOUS_FALLBACK_DEFAULTS line on purpose.
+        assert PREVIOUS_FALLBACK_DEFAULTS == (("claude-opus-5", "claude-sonnet-5"),)
+        assert DEFAULT_FALLBACK_MODELS not in PREVIOUS_FALLBACK_DEFAULTS
+        assert is_previous_fallback_default(list(PREVIOUS_FALLBACK_DEFAULTS[0]))
+        assert not is_previous_fallback_default(list(DEFAULT_FALLBACK_MODELS))
+        assert not is_previous_fallback_default(["claude-sonnet-5"])
+        assert not is_previous_fallback_default("claude-sonnet-5")
+        assert not is_previous_fallback_default([])
+
     def test_yaml_keys_are_read_and_defaulted(self, tmp_path: Path) -> None:
         data = {
             "schedules": {
                 "pinned": {
                     "command": "pinned", "prompt_file": "/p", "time": "02:00",
-                    "model": "claude-sonnet-5", "fallback_models": ["claude-opus-5"],
+                    "model": "claude-sonnet-5", "fallback_models": ["claude-opus-5-5"],
                 },
                 "bare": {"command": "bare", "prompt_file": "/p", "time": "03:00"},
                 "nochain": {
@@ -613,7 +641,7 @@ class TestModelPinAndFallback:
                 },
                 "legacy-string": {
                     "command": "legacy-string", "prompt_file": "/p", "time": "05:00",
-                    "fallback_models": "claude-opus-5",
+                    "fallback_models": "claude-opus-5-5",
                 },
             }
         }
@@ -621,11 +649,11 @@ class TestModelPinAndFallback:
         path.write_text(yaml.dump(data), encoding="utf-8")
         by_name = {s.command: s for s in ScheduleConfig.load(str(path))}
         assert by_name["pinned"].model == "claude-sonnet-5"
-        assert by_name["pinned"].fallback_models == ["claude-opus-5"]
+        assert by_name["pinned"].fallback_models == ["claude-opus-5-5"]
         assert by_name["bare"].model is None
         assert by_name["bare"].fallback_models == list(DEFAULT_FALLBACK_MODELS)
         assert by_name["nochain"].fallback_models == []
-        assert by_name["legacy-string"].fallback_models == ["claude-opus-5"]
+        assert by_name["legacy-string"].fallback_models == ["claude-opus-5-5"]
 
     def test_bare_schedule_gets_fabric_default_and_the_chain(
         self, scheduler: ArkaScheduler, tmp_path: Path
@@ -648,7 +676,7 @@ class TestModelPinAndFallback:
             env = scheduler._schedule_env(schedule)
         assert cmd[0] == str(fake_claude)
         assert "--model" not in cmd
-        assert _flag(cmd, "--fallback-model") == "claude-opus-5,claude-sonnet-5"
+        assert _flag(cmd, "--fallback-model") == "claude-opus-5-5,claude-sonnet-5"
         assert env["ANTHROPIC_DEFAULT_MODEL"] == "fable"
         assert ".local/bin" in env["PATH"], "the daemon PATH extension survives"
         probe.assert_called_with(binary=str(fake_claude))
@@ -661,7 +689,7 @@ class TestModelPinAndFallback:
         _fake_binary(tmp_path)
         schedule = ScheduleConfig(
             command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0),
-            model="claude-sonnet-5", fallback_models=["claude-opus-5"],
+            model="claude-sonnet-5", fallback_models=["claude-opus-5-5"],
         )
         with (
             patch.object(Path, "home", return_value=tmp_path),
@@ -677,7 +705,7 @@ class TestModelPinAndFallback:
             cmd = scheduler._build_command(schedule)
             env = scheduler._schedule_env(schedule)
         assert _flag(cmd, "--model") == "claude-sonnet-5"
-        assert _flag(cmd, "--fallback-model") == "claude-opus-5"
+        assert _flag(cmd, "--fallback-model") == "claude-opus-5-5"
         assert env["ANTHROPIC_DEFAULT_MODEL"] == "claude-sonnet-5"
 
     def test_chain_drops_the_primary_and_duplicates(
@@ -686,8 +714,8 @@ class TestModelPinAndFallback:
         _fake_binary(tmp_path)
         schedule = ScheduleConfig(
             command="research", prompt_file=str(_prompt(tmp_path)), run_time=time(5, 0),
-            model="claude-opus-5",
-            fallback_models=["claude-opus-5", "claude-sonnet-5", "claude-sonnet-5"],
+            model="claude-opus-5-5",
+            fallback_models=["claude-opus-5-5", "claude-sonnet-5", "claude-sonnet-5"],
         )
         with (
             patch.object(Path, "home", return_value=tmp_path),
@@ -844,7 +872,7 @@ class TestModelPinAndFallback:
         assert seen["env"]["ANTHROPIC_DEFAULT_MODEL"] == "claude-sonnet-5"
         assert _flag(seen["cmd"], "--model") == "claude-sonnet-5"
         log = next((tmp_path / "logs" / "research").glob("*.log")).read_text(encoding="utf-8")
-        assert "model: claude-sonnet-5 (pinned); fallback: claude-opus-5" in log
+        assert "model: claude-sonnet-5 (pinned); fallback: claude-opus-5-5" in log
 
     def test_describe_model_names_what_the_run_asks_for(self) -> None:
         describe = ArkaScheduler._describe_model
@@ -863,7 +891,7 @@ class TestModelPinAndFallback:
             "schedules": {
                 "pinned": {
                     "command": "pinned", "prompt_file": "/p", "time": "02:00",
-                    "model": "claude-sonnet-5", "fallback_models": ["claude-opus-5"],
+                    "model": "claude-sonnet-5", "fallback_models": ["claude-opus-5-5"],
                 },
             }
         }
@@ -871,7 +899,7 @@ class TestModelPinAndFallback:
         path.write_text(yaml.dump(data), encoding="utf-8")
         [row] = list_schedules(str(path))
         assert row["model"] == "claude-sonnet-5"
-        assert row["fallback_models"] == ["claude-opus-5"]
+        assert row["fallback_models"] == ["claude-opus-5-5"]
 
     def test_python_module_schedules_are_untouched(
         self, scheduler: ArkaScheduler, tmp_path: Path
@@ -892,7 +920,7 @@ class TestLoadBoundaryValidation:
 
     @pytest.mark.parametrize(
         "model",
-        [{"lane": "opus"}, 5, ["claude-opus-5"], "--dangerously-skip-permissions", "-x"],
+        [{"lane": "opus"}, 5, ["claude-opus-5-5"], "--dangerously-skip-permissions", "-x"],
         ids=["mapping", "int", "list", "flag", "dash"],
     )
     def test_malformed_model_pin_fails_the_load_naming_the_schedule(
@@ -909,7 +937,7 @@ class TestLoadBoundaryValidation:
             "schedules": {
                 "s": {
                     "command": "s", "prompt_file": "/p", "time": "02:00",
-                    "model": "  ", "fallback_models": [" claude-opus-5 ", "", "claude-sonnet-5"],
+                    "model": "  ", "fallback_models": [" claude-opus-5-5 ", "", "claude-sonnet-5"],
                 }
             }
         }
@@ -917,7 +945,7 @@ class TestLoadBoundaryValidation:
         path.write_text(yaml.dump(data), encoding="utf-8")
         [schedule] = ScheduleConfig.load(str(path))
         assert schedule.model is None
-        assert schedule.fallback_models == ["claude-opus-5", "claude-sonnet-5"]
+        assert schedule.fallback_models == ["claude-opus-5-5", "claude-sonnet-5"]
 
     @pytest.mark.parametrize(
         "chain", [{"a": 1}, 7, [5], ["-x"]], ids=["mapping", "int", "int-item", "flag-item"]

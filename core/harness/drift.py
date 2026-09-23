@@ -462,25 +462,36 @@ def _check_worktree(report: DriftReport, settings: dict[str, Any]) -> None:
         )
 
 
+def _fallback_finding(status: DriftStatus, detail: str) -> DriftFinding:
+    return DriftFinding("settings:fallbackModel", status, "fallbackModel", detail)
+
+
 def _check_fallback_model(report: DriftReport, settings: dict[str, Any]) -> None:
     """MISSING when the key is absent or JSON null (the seeder writes the
-    default in both cases); ADOPTED for any other value that is not the
-    default — an array, an empty array, or the legacy string form."""
-    from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
+    default in both cases); DIVERGED when the chain is exactly a default
+    ArkaOS seeded in an earlier release (assert upgrades it); ADOPTED for
+    any other value that is not the default — an array, an empty array,
+    or the legacy string form."""
+    from core.runtime.claude_code import (
+        DEFAULT_FALLBACK_MODELS,
+        is_previous_fallback_default,
+    )
 
     chain = settings.get("fallbackModel")
     if chain is None:
         report.findings.append(
-            DriftFinding(
-                "settings:fallbackModel", DriftStatus.MISSING, "fallbackModel",
-                "fallbackModel chain default not seeded",
-            )
+            _fallback_finding(DriftStatus.MISSING, "fallbackModel chain default not seeded")
         )
+    elif is_previous_fallback_default(chain):
+        detail = (
+            f"previous ArkaOS default chain ({' → '.join(chain)}); "
+            f"`arka harness assert` upgrades it to {' → '.join(DEFAULT_FALLBACK_MODELS)}"
+        )
+        report.findings.append(_fallback_finding(DriftStatus.DIVERGED, detail))
     elif chain != list(DEFAULT_FALLBACK_MODELS):
         report.findings.append(
-            DriftFinding(
-                "settings:fallbackModel", DriftStatus.ADOPTED, "fallbackModel",
-                "operator-configured fallback chain; seed policy adopts it",
+            _fallback_finding(
+                DriftStatus.ADOPTED, "operator-configured fallback chain; seed policy adopts it"
             )
         )
 

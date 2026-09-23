@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const {
   DEFAULT_FALLBACK_MODELS,
+  PREVIOUS_FALLBACK_DEFAULTS,
   seedFallbackModel,
 } = await import(pathToFileURL(join(ROOT, "installer", "fallback-model.js")));
 
@@ -39,8 +40,16 @@ function loadSettings(path) {
 }
 
 
-test("the seeded chain is Opus 5 then Sonnet 5", () => {
-  assert.deepEqual(DEFAULT_FALLBACK_MODELS, ["claude-opus-5", "claude-sonnet-5"]);
+test("the seeded chain is Opus 5.5 then Sonnet 5", () => {
+  assert.deepEqual(DEFAULT_FALLBACK_MODELS, ["claude-opus-5-5", "claude-sonnet-5"]);
+});
+
+
+test("the previous defaults are exactly the chains ArkaOS seeded before", () => {
+  assert.deepEqual(PREVIOUS_FALLBACK_DEFAULTS, [["claude-opus-5", "claude-sonnet-5"]]); // PREVIOUS_FALLBACK_DEFAULTS pin
+  for (const prev of PREVIOUS_FALLBACK_DEFAULTS) {
+    assert.notDeepEqual(prev, DEFAULT_FALLBACK_MODELS, "a previous default cannot be the current one");
+  }
 });
 
 
@@ -102,9 +111,9 @@ test("seeds the chain when the key is absent and keeps the rest", () => {
     const r = seedFallbackModel({ runtime: "claude-code", home: home.dir });
     assert.equal(r.skipped, null);
     assert.equal(r.action, "created");
-    assert.deepEqual(r.value, ["claude-opus-5", "claude-sonnet-5"]);
+    assert.deepEqual(r.value, ["claude-opus-5-5", "claude-sonnet-5"]);
     const after = loadSettings(home.settingsPath);
-    assert.deepEqual(after.fallbackModel, ["claude-opus-5", "claude-sonnet-5"]);
+    assert.deepEqual(after.fallbackModel, ["claude-opus-5-5", "claude-sonnet-5"]);
     assert.deepEqual(after.worktree, { baseRef: "head" });
     const leftovers = readdirSync(join(home.dir, ".claude")).filter((f) => f.includes(".tmp-"));
     assert.deepEqual(leftovers, [], "atomic write must leave no temp file");
@@ -119,7 +128,7 @@ test("the returned value is a copy — mutating it cannot change the default", (
   try {
     const r = seedFallbackModel({ runtime: "claude-code", home: home.dir });
     r.value.push("mutated");
-    assert.deepEqual(DEFAULT_FALLBACK_MODELS, ["claude-opus-5", "claude-sonnet-5"]);
+    assert.deepEqual(DEFAULT_FALLBACK_MODELS, ["claude-opus-5-5", "claude-sonnet-5"]);
   } finally {
     home.cleanup();
   }
@@ -160,6 +169,57 @@ test("an explicit empty array means 'no chain' and is preserved", () => {
     const r = seedFallbackModel({ runtime: "claude-code", home: home.dir });
     assert.equal(r.action, "noop");
     assert.deepEqual(loadSettings(home.settingsPath).fallbackModel, []);
+  } finally {
+    home.cleanup();
+  }
+});
+
+
+// ─── Upgrade of previous ArkaOS defaults ─────────────────────────────────
+
+
+test("a chain equal to a previous ArkaOS default is upgraded, not preserved", () => {
+  const previous = [...PREVIOUS_FALLBACK_DEFAULTS[0]];
+  const home = makeTmpHome({ settings: { fallbackModel: previous, worktree: { baseRef: "head" } } });
+  try {
+    const r = seedFallbackModel({ runtime: "claude-code", home: home.dir });
+    assert.equal(r.skipped, null);
+    assert.equal(r.action, "upgraded");
+    assert.deepEqual(r.previous, previous);
+    assert.deepEqual(r.value, DEFAULT_FALLBACK_MODELS);
+    const after = loadSettings(home.settingsPath);
+    assert.deepEqual(after.fallbackModel, DEFAULT_FALLBACK_MODELS);
+    assert.deepEqual(after.worktree, { baseRef: "head" });
+    const leftovers = readdirSync(join(home.dir, ".claude")).filter((f) => f.includes(".tmp-"));
+    assert.deepEqual(leftovers, [], "atomic write must leave no temp file");
+  } finally {
+    home.cleanup();
+  }
+});
+
+
+test("a previous default that equals the custom defaultValue is a noop", () => {
+  const previous = [...PREVIOUS_FALLBACK_DEFAULTS[0]];
+  const raw = JSON.stringify({ fallbackModel: previous }, null, 4) + "\n";
+  const home = makeTmpHome({ raw });
+  try {
+    const r = seedFallbackModel({ runtime: "claude-code", home: home.dir, defaultValue: previous });
+    assert.equal(r.action, "noop");
+    assert.equal(readFileSync(home.settingsPath, "utf-8"), raw);
+  } finally {
+    home.cleanup();
+  }
+});
+
+
+test("a chain that merely overlaps a previous default is the operator's", () => {
+  const superset = [...PREVIOUS_FALLBACK_DEFAULTS[0], "claude-fable-5-1"];
+  const raw = JSON.stringify({ fallbackModel: superset }) + "\n";
+  const home = makeTmpHome({ raw });
+  try {
+    const r = seedFallbackModel({ runtime: "claude-code", home: home.dir });
+    assert.equal(r.action, "noop");
+    assert.equal(readFileSync(home.settingsPath, "utf-8"), raw);
   } finally {
     home.cleanup();
   }

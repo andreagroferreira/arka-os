@@ -70,6 +70,22 @@ def test_gateway_plan_maps_slots_to_upstreams(models_path: Path):
     assert plan.slots["haiku"].api_base == "http://localhost:11434"
 
 
+def test_opus_runtime_token_upstream_is_opus_5_5(tmp_path: Path):
+    """The `opus` runtime token must reach the id the Claude Code alias
+    resolves to (2.1.280: claude-opus-5-5); nothing else pins this map."""
+    p = tmp_path / "models.yaml"
+    p.write_text(
+        _MODELS_YAML.replace(
+            "quality_gate: {provider: runtime, model: best,",
+            "quality_gate: {provider: runtime, model: opus,",
+        ),
+        encoding="utf-8",
+    )
+    plan = build_gateway_plan(p)
+    assert plan.slots["opus"].kind == "anthropic"
+    assert plan.slots["opus"].model_id == "claude-opus-5-5"
+
+
 def test_litellm_config_routes(models_path: Path):
     cfg = build_litellm_config(models_path)
     assert _route(cfg, "arka-opus")["model"] == "claude-fable-5-1"

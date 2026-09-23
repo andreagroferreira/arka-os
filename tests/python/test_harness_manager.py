@@ -134,11 +134,50 @@ class TestSeedPolicy:
         after = read_settings(env)
         assert after["statusLine"]["command"].endswith("statusline.sh")
         assert after["worktree"] == {"baseRef": "head"}
-        assert after["fallbackModel"] == ["claude-opus-5", "claude-sonnet-5"]
+        assert after["fallbackModel"] == ["claude-opus-5-5", "claude-sonnet-5"]
         assert {a.surface for a in report.actions
                 if a.action == "reseeded"} == {
             "settings:statusLine", "settings:worktree", "settings:fallbackModel",
         }
+
+
+class TestPreviousDefaultUpgrade:
+    """Opus 5.5 sweep: a chain ArkaOS itself seeded earlier is not an
+    operator decision — assert moves it to the current default; anything
+    else present stays adopted."""
+
+    def _write_chain(self, env, chain):
+        mgr = make_manager(env)
+        mgr.assert_ownership()
+        home, _root = env
+        settings = read_settings(env)
+        settings["fallbackModel"] = chain
+        from core.harness.json_store import write_json_atomic
+
+        write_json_atomic(paths.claude_settings_path(home), settings)
+        return mgr
+
+    def test_assert_upgrades_a_previous_default_chain(self, env):
+        from core.runtime.claude_code import (
+            DEFAULT_FALLBACK_MODELS,
+            PREVIOUS_FALLBACK_DEFAULTS,
+        )
+
+        mgr = self._write_chain(env, list(PREVIOUS_FALLBACK_DEFAULTS[0]))
+        report = mgr.assert_ownership()
+        assert read_settings(env)["fallbackModel"] == list(DEFAULT_FALLBACK_MODELS)
+        upgraded = [a for a in report.actions if a.action == "upgraded"]
+        assert [a.surface for a in upgraded] == ["settings:fallbackModel"]
+        assert "previous ArkaOS default" in upgraded[0].detail
+        assert not [a for a in report.actions if a.action == "adopted-skip"]
+
+    def test_assert_still_adopts_an_operator_chain(self, env):
+        mgr = self._write_chain(env, ["claude-sonnet-5"])
+        report = mgr.assert_ownership()
+        assert read_settings(env)["fallbackModel"] == ["claude-sonnet-5"]
+        skips = [a.surface for a in report.actions if a.action == "adopted-skip"]
+        assert skips == ["settings:fallbackModel"]
+        assert not [a for a in report.actions if a.action == "upgraded"]
 
 
 class TestStaleRootRepair:

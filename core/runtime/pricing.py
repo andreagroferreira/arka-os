@@ -6,7 +6,8 @@ their public per-token pricing. It is used to compute an optional
 any model-selection logic — that is explicitly forbidden by the
 LLM-agnostic contract.
 
-Snapshot 2026-09-03 (Runtime Sync PR-2): values sourced from the public
+Snapshot 2026-09-03 (Runtime Sync PR-2), Opus 5.5 rows added 2026-09-22:
+values sourced from the public
 Anthropic pricing page (https://platform.claude.com/docs/en/about-claude/pricing) and
 OpenAI (https://openai.com/api/pricing). Refresh when model families
 change. Unknown models return `None` from `estimate_cost_usd` and are
@@ -61,11 +62,32 @@ PRICING: dict[str, dict[str, float]] = {
         "cache_read": 1.00,
         "cache_write": 12.50,
     },
-    # Snapshot 2026-08-09 (Gate Economy PR-8): drop-in at Opus 4.8's
-    # rates per the official model catalog — 1M context is the default
-    # with NO long-context premium, so the [1m] alias prices the same.
-    # This row was missing while claude-opus-5 carried 28% of weekly
+    # Snapshot 2026-09-22 (Opus 5.5 sweep): $4 / $20 per MTok and cache
+    # reads at $0.20 (0.05x input) per the public pricing page; the Claude
+    # Code 2.1.280 alias `opus` resolves here, so this is the lane every
+    # `model: opus` agent runs on. cache_write is NOT published yet: 5.00
+    # is the standard 1.25x five-minute multiplier — the same assumption
+    # the Fable 5.1 row shipped with — replace it when the page lists it.
+    # 1M context is native; the [1m] alias prices the same.
+    "claude-opus-5-5": {
+        "input": 4.00,
+        "output": 20.00,
+        "cache_read": 0.20,
+        "cache_write": 5.00,
+    },
+    "claude-opus-5-5[1m]": {
+        "input": 4.00,
+        "output": 20.00,
+        "cache_read": 0.20,
+        "cache_write": 5.00,
+    },
+    # History — snapshot 2026-08-09 (Gate Economy PR-8): drop-in at Opus
+    # 4.8's rates per the official model catalog — 1M context is the
+    # default with NO long-context premium, so the [1m] alias prices the
+    # same. The row was missing while claude-opus-5 carried 28% of weekly
     # input tokens, pricing them at $0.00 and blinding the CostGovernor.
+    # Retained so 2026-08/09 sessions stay priced; the live lane is
+    # claude-opus-5-5 above.
     "claude-opus-5": {
         "input": 5.00,
         "output": 25.00,
