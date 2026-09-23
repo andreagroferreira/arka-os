@@ -132,9 +132,9 @@ def test_hostile_refine_gap_abstains():
 
 
 def test_interpret_choice_with_explicit_options():
-    ans = Answer(choice=HOSTILE, confidence=0.99)
-    assert interpret_choice(ans, 0.5, options={"dev", "none"}) is None
-    assert interpret_choice(ans, 0.5) == HOSTILE  # no options: caller's contract
+    hostile_answer = Answer(choice=HOSTILE, confidence=0.99)
+    assert interpret_choice(hostile_answer, 0.5, options={"dev", "none"}) is None
+    assert interpret_choice(hostile_answer, 0.5) == HOSTILE  # no options: caller's contract
     assert interpret_choice(Answer(choice="dev", confidence=0.9), 0.5, {"dev"}) == "dev"
 
 
@@ -160,5 +160,5 @@ def test_non_choice_answers_pass_through():
     from core.decisions.site import valid_answers
 
     qs = {"q": Question(type="noul", instructions="x")}
-    ans = {"q": Answer(noul=0.9), "stray": Answer(choice=HOSTILE)}
-    assert valid_answers(qs, ans) == ans
+    hostile_answer = {"q": Answer(noul=0.9), "stray": Answer(choice=HOSTILE)}
+    assert valid_answers(qs, hostile_answer) == hostile_answer
