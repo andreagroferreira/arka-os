@@ -195,6 +195,56 @@ def bash_is_effect(command: str) -> bool:
     # Unknown commands default to requiring routing.
     return first not in _BASH_DISCOVERY_FIRST
 
+
+# JEV Decisions Layer PR2 — the bash-effect site's ceiling (ADR invariant 6).
+BASH_JEV_TIMEOUT_MS = 1000
+# ``Decision.bash_path`` on every Bash line this module classifies. The
+# Node fast-path (config/hooks/_lib/fastpath/engine.cjs) fast-allows
+# discovery commands with the manifest template, where it stays "": the
+# two counts are what PR5 decides the shim's delegation on.
+BASH_PATH_PYTHON = "python"
+
+
+def _bash_jev_live() -> bool:
+    """``engine.active(names=("bash-effect",))`` without the engine's imports
+    (~45 ms a keyless PreToolUse would otherwise pay). Parity pinned by test."""
+    from core.decisions.config import load_decisions_config, site_mode
+    from core.decisions.sites.command import BASH_EFFECT
+    from core.decisions.transport import resolve_transport
+
+    cfg = load_decisions_config()
+    return site_mode(cfg, BASH_EFFECT) != "off" and resolve_transport(cfg) is not None
+
+
+def _bash_effect_with_jev(command: str, session_id: str) -> bool:
+    """``bash_is_effect``, escalated by the ``bash-effect`` Jev site.
+
+    The regex decides first: an effect is gated with no network, and an
+    empty command is never gated (no network either). Only a command the
+    regex let through as discovery is asked, under a 1000 ms ceiling; the
+    site is escalate-only, so Jev can gate it, never un-gate one.
+    Any failure keeps the regex's answer (``decide`` itself never raises).
+    """
+    if bash_is_effect(command):
+        return True
+    if not command.strip():
+        return False
+    try:
+        if not _bash_jev_live():
+            return False
+        from core.decisions.engine import decide
+        from core.decisions.site import SiteCall
+        from core.decisions.sites.command import BASH_EFFECT, command_state
+        from core.decisions.transport import configured_model
+
+        outcomes = decide(
+            [SiteCall(BASH_EFFECT, False)], command_state(command),
+            session_id=session_id, timeout_ms=BASH_JEV_TIMEOUT_MS, model=configured_model(),
+        )
+        return outcomes["bash-effect"].value is True
+    except Exception:
+        return False
+
 ROUTING_RE = re.compile(r"\[arka:routing\]\s*[\w-]+\s*->\s*\w+", re.IGNORECASE)
 TRIVIAL_RE = re.compile(r"\[arka:trivial\]\s*\S+", re.IGNORECASE)
 GATE_RE = re.compile(r"\[arka:gate:[1-4]\]", re.IGNORECASE)
@@ -246,6 +296,10 @@ class Decision:
     would_block: bool = False
     shadow_reason: str = ""
     shadow_ms: float = 0.0
+    # JEV PR2 decision 1: "python" when this module classified a Bash
+    # command (see BASH_PATH_PYTHON); "" otherwise, and on the Node
+    # fast-path's lines, which render the manifest template.
+    bash_path: str = ""
 
     def to_stderr_message(self) -> str:
         if self.allow:
@@ -496,12 +550,28 @@ def _evaluate_flow(
     tool_input: dict | None = None,
     messages: list[str] | None = None,
 ) -> Decision:
+    decision = _evaluate_gate(
+        tool_name, transcript_path, session_id, cwd, tool_input, messages
+    )
+    if tool_name == "Bash":
+        decision.bash_path = BASH_PATH_PYTHON
+    return decision
+
+
+def _evaluate_gate(
+    tool_name: str,
+    transcript_path: str,
+    session_id: str,
+    cwd: str,
+    tool_input: dict[str, object] | None,
+    messages: list[str] | None,
+) -> Decision:
     is_gated = tool_name in EFFECT_TOOLS_ALWAYS
     if not is_gated and tool_name == "Bash":
         bash_cmd = ""
         if tool_input and isinstance(tool_input, dict):
             bash_cmd = str(tool_input.get("command", ""))
-        is_gated = bash_is_effect(bash_cmd)
+        is_gated = _bash_effect_with_jev(bash_cmd, session_id)
     if not is_gated:
         return Decision(allow=True, reason="tool-not-gated")
 

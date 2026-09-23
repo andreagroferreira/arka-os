@@ -58,7 +58,9 @@ from core.hooks._shared import (
 from core.shared.temp_paths import arkaos_temp_dir, wf_required_dir
 
 if TYPE_CHECKING:
+    from core.decisions.config import DecisionsConfig
     from core.decisions.site import Outcome, SiteCall
+    from core.hooks.ups_dispatch import SkillMenu
 
 _T = TypeVar("_T")
 
@@ -279,7 +281,11 @@ def _invalidate_turn_caches(session_id: str) -> None:
 
 
 def _bridge_payload(
-    user_input: str, session_id: str, cwd: str, route_hint: dict[str, Any] | None
+    user_input: str,
+    session_id: str,
+    cwd: str,
+    route_hint: dict[str, Any] | None,
+    skill_hint: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {"user_input": user_input, "session_id": session_id}
     if cwd:
@@ -287,9 +293,13 @@ def _bridge_payload(
         # project; an unscoped search would leak across clients.
         payload["cwd"] = cwd
     if route_hint:
-        # JEV route decision (acted on) — Synapse L1 prefers it over the
+        # Jev route decision (acted on) — Synapse L1 prefers it over the
         # keyword count, never over an explicit /prefix.
         payload["route_hint"] = route_hint
+    if skill_hint:
+        # Jev skill-hints decision (acted on, registry id) — Synapse L5
+        # puts it first, after the project signal.
+        payload["skill_hint"] = skill_hint
     return payload
 
 
@@ -299,6 +309,7 @@ def _run_bridge(
     session_id: str,
     cwd: str = "",
     route_hint: dict[str, Any] | None = None,
+    skill_hint: dict[str, Any] | None = None,
 ) -> str:
     bridge_path = Path(root) / "scripts" / "synapse-bridge.py"
     if not bridge_path.is_file() or not Path(root).is_dir():
@@ -313,7 +324,7 @@ def _run_bridge(
         # The old hook piped bridge stderr to /dev/null — keep it quiet.
         with contextlib.redirect_stderr(io.StringIO()):
             spec.loader.exec_module(module)
-            payload = _bridge_payload(user_input, session_id, cwd, route_hint)
+            payload = _bridge_payload(user_input, session_id, cwd, route_hint, skill_hint)
             output, code = module.run_bridge(payload, Path(root))
         if code == 0:
             return _bridge_text(output)
@@ -566,7 +577,7 @@ def _refine_hint(user_input: str, outcome: Outcome | None = None) -> str:
     code identifier ("fix the typo in README.md", "add a test to
     AuthService") is specific, never refine-worthy.
 
-    JEV Decisions PR1: when the ``refine`` site acted on the JEV, its
+    JEV Decisions PR1: when the ``refine`` site acted on Jev, its
     answer replaces the score (``source=jev``); else the score decides.
     """
     if outcome is not None and outcome.acted_on == "jev":
@@ -587,7 +598,7 @@ def _jev_refine_hint(outcome: Outcome) -> str:
     vague = outcome.answers.get("vague")
     missing = outcome.answers.get("missing")
     p = _fmt_p(vague.noul if vague is not None else None)
-    # Allowlist, never the raw answer: the JEV's text reaches the model.
+    # Allowlist, never the raw answer: Jev's text reaches the model.
     choice = missing.choice if missing is not None else None
     gap = choice if choice in REFINE_GAPS else "unknown"
     return f"[arka:refine-suggested] source=jev p={p} missing={gap} — {_REFINE_TEXT}"
@@ -601,7 +612,7 @@ def _safe_token(value: object, pattern: re.Pattern[str] = _SAFE_TOKEN_RE) -> str
     """``value`` when it is a short plain token, else ``unknown``.
 
     Every marker field derived from a decision goes through here (or an
-    allowlist): a JEV answer is untrusted text, and a newline in it would
+    allowlist): a Jev answer is untrusted text, and a newline in it would
     forge a line such as ``[ARKA:...]`` in the model's context.
     """
     if isinstance(value, str) and pattern.fullmatch(value):
@@ -652,7 +663,14 @@ def _workflow_section(
 # ─── Section 3.5: typed decisions (JEV Decisions Layer PR1) ──────────────
 
 _DECISIONS_HOOK = "user-prompt-submit"
-# Outcome reasons that mean the JEV was reachable (answered, abstained,
+# The sites this stage asks (PR1's four prompt sites + PR2's three
+# dispatch sites). ``_decisions_live`` scopes the liveness check to them,
+# so a live bash-effect or Forge site never wakes this stage.
+UPS_SITE_NAMES: tuple[str, ...] = (
+    "topic-drift", "refine", "creation-intent", "route",
+    "dispatch-role", "subagent-discipline", "skill-hints",
+)
+# Outcome reasons that mean Jev was reachable (answered, abstained,
 # was overruled, or was never asked). Anything else on an ``act`` site is
 # an unavailability, recorded in hook-degraded.jsonl.
 _JEV_REACHED = frozenset({"jev", "abstain", "downgrade-blocked", "shadow", "off"})
@@ -661,7 +679,7 @@ _JEV_REACHED = frozenset({"jev", "abstain", "downgrade-blocked", "shadow", "off"
 def _prompt_decisions(
     user_input: str, transcript_path: str, session_id: str, budget: _Budget
 ) -> dict[str, Outcome]:
-    """JEV outcomes for the four prompt sites, or {}.
+    """Jev outcomes for the four prompt sites, or {}.
 
     Inactive (every site off, bypass, or no key) → {} with no stage
     recorded, so the turn is byte-identical to one without the layer.
@@ -675,7 +693,7 @@ def _prompt_decisions(
         if not user_input or not _decisions_live(cfg):
             return {}
         result = budget.run("decisions", lambda: _decide_prompt(
-            user_input, transcript_path, session_id, budget, cfg.hook_timeout_ms
+            user_input, transcript_path, session_id, budget, cfg
         ))
     except Exception as exc:
         record_degraded(_DECISIONS_HOOK, "decisions-internal", type(exc).__name__)
@@ -684,41 +702,83 @@ def _prompt_decisions(
 
 
 def _decisions_live(cfg: Any) -> bool:
-    """``engine.active`` without importing the engine (~35 ms of imports a
-    keyless turn would otherwise pay). Parity pinned by test."""
+    """``engine.active(cfg, names=UPS_SITE_NAMES)`` without importing the
+    engine (~35 ms of imports a keyless turn would otherwise pay). Parity
+    pinned by test."""
     from core.decisions.config import site_mode
     from core.decisions.registry import SITES
     from core.decisions.transport import resolve_transport
 
-    if not any(site_mode(cfg, site) != "off" for site in SITES.values()):
+    sites = [SITES[name] for name in UPS_SITE_NAMES if name in SITES]
+    if not any(site_mode(cfg, site) != "off" for site in sites):
         return False
     return resolve_transport(cfg) is not None
 
 
 def _decide_prompt(
-    user_input: str, transcript_path: str, session_id: str, budget: _Budget, cap_ms: int
+    user_input: str,
+    transcript_path: str,
+    session_id: str,
+    budget: _Budget,
+    cfg: DecisionsConfig,
 ) -> dict[str, Outcome]:
     from core.decisions.engine import decide
     from core.decisions.sites.prompt import prompt_state
     from core.decisions.transport import configured_model
+    from core.hooks import ups_dispatch
 
     prior = _recent_user_messages(transcript_path)
-    calls = _prompt_site_calls(user_input, prior)
+    menu = ups_dispatch.build_skill_menu(user_input, resolve_arkaos_root())
+    calls = _prompt_site_calls(user_input, prior) + ups_dispatch.skill_calls(menu)
     if not calls:
         return {}
+    model = configured_model()
+    state = ups_dispatch.turn_state(
+        prompt_state(user_input, prior), user_input, menu.candidates if menu else [])
     outcomes = decide(
-        calls, prompt_state(user_input, prior), session_id=session_id,
-        timeout_ms=budget.remaining_ms(cap_ms), model=configured_model(),
+        calls, state, session_id=session_id,
+        timeout_ms=budget.remaining_ms(cfg.hook_timeout_ms), model=model,
     )
+    _repair_skill_hint(outcomes, menu, session_id, budget, cfg, model)
     _record_unavailable(outcomes)
     return outcomes
 
 
+def _repair_skill_hint(
+    outcomes: dict[str, Outcome],
+    menu: SkillMenu | None,
+    session_id: str,
+    budget: _Budget,
+    cfg: DecisionsConfig,
+    model: str | None,
+) -> None:
+    """Re-ask skill-hints, once, with the menu of the department Jev
+    routed to (``ups_dispatch.repair_dept`` says when). Bounded by what is
+    left of the same budget; the second call stays in the ``decisions``
+    stage, so the skip list never changes."""
+    from core.decisions.config import site_mode
+    from core.decisions.engine import decide
+    from core.decisions.site import SiteCall
+    from core.decisions.sites.dispatch import SKILL_HINT, skill_state
+    from core.hooks import ups_dispatch
+
+    dept = ups_dispatch.repair_dept(outcomes, menu, site_mode(cfg, SKILL_HINT) == "act")
+    candidates = menu.for_dept(dept) if dept and menu else []
+    if not menu or not candidates or candidates == menu.candidates:
+        return
+    repaired = decide(
+        [SiteCall(SKILL_HINT, menu.heuristic)], skill_state(menu.prompt, candidates),
+        session_id=session_id, timeout_ms=budget.remaining_ms(cfg.hook_timeout_ms), model=model,
+    )
+    outcomes["skill-hints"] = repaired["skill-hints"]
+
+
 def _prompt_site_calls(user_input: str, prior: list[str]) -> list[SiteCall]:
     """One SiteCall per site whose precondition holds, each carrying the
-    heuristic value the hook would act on without the JEV."""
+    heuristic value the hook would act on without Jev."""
     from core.decisions.site import SiteCall
     from core.decisions.sites.prompt import CREATION_INTENT, REFINE, ROUTE, TOPIC_DRIFT
+    from core.hooks.ups_dispatch import dispatch_site_calls
     from core.synapse.layers import keyword_department, prefix_department
 
     calls: list[SiteCall] = []
@@ -730,6 +790,7 @@ def _prompt_site_calls(user_input: str, prior: list[str]) -> list[SiteCall]:
         calls.append(SiteCall(CREATION_INTENT, creation))
         if creation and not _names_concrete_target(user_input):
             calls.append(SiteCall(REFINE, _refine_heuristic(user_input)))
+        calls.extend(dispatch_site_calls(user_input))
     if prefix_department(user_input) is None:
         calls.append(SiteCall(ROUTE, keyword_department(user_input) or ""))
     return calls
@@ -943,11 +1004,32 @@ def _bridge_context(
     outcomes = outcomes or {}
     # Positional on purpose: tests stub _run_bridge with ``lambda *a``.
     python_result = budget.time("bridge", lambda: _run_bridge(
-        root, user_input, session_id, cwd, _route_hint(outcomes)
+        root, user_input, session_id, cwd, _route_hint(outcomes),
+        _skill_hint(root, outcomes),
     ))
     context = _decorate(python_result) if python_result else _fallback_context()
-    marker = _route_marker(outcomes)
-    return f"{context}\n{marker}" if marker else context
+    markers = _decision_markers(outcomes)
+    return f"{context}\n{markers}" if markers else context
+
+
+def _skill_hint(root: str, outcomes: Mapping[str, Outcome]) -> dict[str, Any] | None:
+    """The bridge's ``skill_hint`` when skill-hints acted on a registry id."""
+    if "skill-hints" not in outcomes:
+        return None
+    from core.hooks.ups_dispatch import load_commands, skill_hint_payload
+
+    return skill_hint_payload(outcomes, load_commands(root))
+
+
+def _decision_markers(outcomes: Mapping[str, Outcome]) -> str:
+    """The route, dispatch-role and subagent-discipline lines, in that
+    order; each is "" unless its ``act`` site has something to say."""
+    lines = [_route_marker(outcomes)]
+    if outcomes:
+        from core.hooks.ups_dispatch import discipline_marker, dispatch_role_marker
+
+        lines += [dispatch_role_marker(outcomes, _fmt_p), discipline_marker(outcomes, _fmt_p)]
+    return "\n".join(line for line in lines if line)
 
 
 def _decorate(python_result: str) -> str:
@@ -1097,7 +1179,7 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
         user_input, session_id, budget, outcomes
     )
 
-    # Enforcement semantics stay on the regex (_wf_classify), never JEV.
+    # Enforcement semantics stay on the regex (_wf_classify), never Jev.
     _classify_plan_reply(session_id, user_input)
 
     context_hits = budget.run(

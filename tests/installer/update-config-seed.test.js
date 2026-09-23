@@ -2,7 +2,7 @@
 // update` counterpart to installer/index.js's fresh-install call to
 // seedArkaosConfig (index.js:329-330).
 //
-// Gap this closes (PR1, JEV Decisions Layer campaign): before this change,
+// Gap this closes (PR1+PR2, JEV Decisions Layer campaign): before this change,
 // `seedArkaosConfig` was only ever invoked from the install() flow. An
 // operator who only ever ran `npx arkaos update` on an existing install
 // never had new template keys (hooks.hardEnforcement, decisions.*, ...)
@@ -70,6 +70,12 @@ test("update flow: config.json without decisions gains the full section", async 
     assert.equal(cfg.decisions.sites.refine, "shadow");
     assert.equal(cfg.decisions.sites["creation-intent"], "act");
     assert.deepEqual(cfg.decisions.sites.route, { mode: "act", minConfidence: 0.7, timeoutMs: 1000 });
+    assert.deepEqual(cfg.decisions.sites["bash-effect"], { mode: "act", timeoutMs: 1000 });
+    assert.equal(cfg.decisions.sites["forge-departments"], "shadow");
+    assert.equal(cfg.decisions.sites["forge-complexity"], "shadow");
+    assert.equal(cfg.decisions.sites["skill-hints"], "act");
+    assert.equal(cfg.decisions.sites["dispatch-role"], "act");
+    assert.equal(cfg.decisions.sites["subagent-discipline"], "act");
     // Pre-existing sections must survive the update-flow seed untouched.
     assert.equal(cfg.hooks.hardEnforcement, true);
     assert.equal(cfg.memory.sessionMemory, true);

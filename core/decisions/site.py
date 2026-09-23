@@ -3,7 +3,7 @@
 A :class:`Site` owns its typed questions and an ``interpret`` function
 mapping ``{question: Answer}`` plus the action threshold to a value of
 the SAME type as the site's heuristic, or None (abstain). ``direction
-="escalate_only"`` sites accept the JEV only when ``is_escalation(jev,
+="escalate_only"`` sites accept Jev only when ``is_escalation(jev,
 heuristic)`` holds — governance checks may be tightened, never relaxed.
 
 Every ``interpret`` is wrapped at construction so it only ever sees
@@ -11,11 +11,20 @@ choice answers that name an option the question offered (and whose
 ``probabilities`` keys are options too): the endpoint's free-text
 ``choice`` otherwise flowed raw into hook context (QG r1 B3). An
 off-menu answer is dropped, so the site abstains and the heuristic acts.
+The same pass (QG PR1 carry) drops answers to questions nobody asked,
+answers whose ``probabilities`` are not a distribution (finite values in
+[0, 1] summing to 1 ± :data:`PROB_SUM_TOLERANCE`), and clears the
+``choice``/``score`` fields a question of another type never asked for.
+
+A site whose questions depend on the call (a candidate menu) sets
+``questions_for``: the engine asks ``questions_for(state)`` and validates
+the answers against exactly those questions (:meth:`Site.judge`).
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Mapping
+import math
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -39,38 +48,66 @@ LANGUAGE_PREAMBLE = (
 )
 
 
+Interpret = Callable[[dict[str, Answer], float], object | None]
+Judge = Callable[[dict[str, Answer], float, object], object | None]
+QuestionsFor = Callable[[object], dict[str, Question]]
+
+PROB_SUM_TOLERANCE = 0.05
+
+
 @dataclass(frozen=True)
 class Site:
     """One decision point in ArkaOS."""
 
     name: str
     questions: Callable[[], dict[str, Question]]
-    interpret: Callable[[dict[str, Answer], float], object | None]
+    interpret: Interpret
     risk: Risk
     default_mode: Mode = "act"
     direction: Direction = "any"
     redact_default: bool = True
     timeout_ms: int = 1500
     is_escalation: Callable[[object, object], bool] | None = None
+    # Questions built from the call's state (e.g. a candidate menu). None
+    # keeps the static ``questions``; when set, ``questions`` is only the
+    # stateless fallback a state-free ``interpret`` call validates against.
+    questions_for: QuestionsFor | None = None
     # Required, no permissive default: a new site must say what its state
     # carries, or a diff site would silently egress as a prompt (QG r1 m1).
     state_class: StateClass = field(kw_only=True)
+    # ``interpret`` with the answers validated against the questions the
+    # call really asked; built in __post_init__, never passed in.
+    judge: Judge = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        if getattr(self.interpret, "_arka_guarded", False):
-            return
-        object.__setattr__(self, "interpret", _guarded(self.questions, self.interpret))
+        raw = getattr(self.interpret, "_arka_raw", self.interpret)
+        judge = _guarded(self, raw)
+        object.__setattr__(self, "judge", judge)
+        object.__setattr__(self, "interpret", _stateless(judge, raw))
+
+    def questions_of(self, state: object = None) -> dict[str, Question]:
+        """The questions this call asks: ``questions_for(state)`` or the static set."""
+        if self.questions_for is None:
+            return self.questions()
+        return self.questions_for(state)
 
 
-def _guarded(
-    questions: Callable[[], dict[str, Question]],
-    interpret: Callable[[dict[str, Answer], float], object | None],
-) -> Callable[[dict[str, Answer], float], object | None]:
-    def guarded(answers: dict[str, Answer], threshold: float) -> object | None:
-        return interpret(valid_answers(questions(), answers), threshold)
+def _guarded(site: Site, raw: Interpret) -> Judge:
+    def judge(answers: dict[str, Answer], threshold: float, state: object = None) -> object | None:
+        return raw(valid_answers(site.questions_of(state), answers), threshold)
 
-    guarded._arka_guarded = True  # type: ignore[attr-defined]
-    return guarded
+    return judge
+
+
+def _stateless(judge: Judge, raw: Interpret) -> Interpret:
+    # Re-wrapping unwraps ``_arka_raw`` first, so ``dataclasses.replace``
+    # never stacks guards and the guard always reads the NEW site.
+    def interpret(answers: dict[str, Answer], threshold: float) -> object | None:
+        return judge(answers, threshold, None)
+
+    interpret._arka_guarded = True  # type: ignore[attr-defined]
+    interpret._arka_raw = raw  # type: ignore[attr-defined]
+    return interpret
 
 
 def choice_options(question: Question) -> frozenset[str] | None:
@@ -89,16 +126,53 @@ def is_valid_choice(answer: Answer, options: Collection[str]) -> bool:
     return not (isinstance(probs, dict) and not set(probs) <= set(options))
 
 
+def is_distribution(probs: Mapping[str, float] | Sequence[float] | None) -> bool:
+    """None, or finite values in [0, 1] summing to 1 ± :data:`PROB_SUM_TOLERANCE`."""
+    if probs is None:
+        return True
+    values = list(probs.values()) if isinstance(probs, Mapping) else list(probs)
+    if not all(_is_unit(v) for v in values):
+        return False
+    return abs(math.fsum(values) - 1.0) <= PROB_SUM_TOLERANCE
+
+
+def _is_unit(value: object) -> bool:
+    # NaN and ±inf fail the range comparison itself (NaN compares False).
+    return isinstance(value, int | float) and not isinstance(value, bool) and 0.0 <= value <= 1.0
+
+
+def clean_answer(question: Question, answer: Answer) -> Answer | None:
+    """``answer`` as ``question`` allows it, or None when it must be dropped."""
+    if not is_distribution(answer.probabilities):
+        return None
+    options = choice_options(question)
+    if options is not None:
+        return answer if is_valid_choice(answer, options) else None
+    update: dict[str, object] = {"choice": None}
+    if question.type is not QuestionType.SCORE or not _is_number(answer.score):
+        update["score"] = None
+    if all(getattr(answer, k) is None for k in update):
+        return answer
+    return answer.model_copy(update=update)
+
+
+def _is_number(value: object) -> bool:
+    try:
+        return value is not None and math.isfinite(float(value))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return False
+
+
 def valid_answers(
     questions: Mapping[str, Question], answers: Mapping[str, Answer]
 ) -> dict[str, Answer]:
-    """``answers`` minus choice answers that step outside their options."""
+    """The answers to asked questions, each cleaned by :func:`clean_answer`."""
     out: dict[str, Answer] = {}
     for name, answer in answers.items():
         question = questions.get(name)
-        options = choice_options(question) if question is not None else None
-        if options is None or is_valid_choice(answer, options):
-            out[name] = answer
+        kept = clean_answer(question, answer) if question is not None else None
+        if kept is not None:
+            out[name] = kept
     return out
 
 
@@ -121,8 +195,8 @@ class Outcome:
     mode: Mode
     acted_on: ActedOn
     reason: str
-    # This site's raw answers (bare question names) when the JEV answered;
-    # empty on every fallback path. Lets a caller cite what the JEV saw
+    # This site's raw answers (bare question names) when Jev answered;
+    # empty on every fallback path. Lets a caller cite what Jev saw
     # (e.g. the refine hint's ``missing=<choice>``) without a second call.
     answers: Mapping[str, Answer] = field(default_factory=dict)
 
@@ -156,6 +230,36 @@ def interpret_choice(
     if confidence is None or confidence < threshold:
         return None
     return answer.choice
+
+
+def interpret_score(answer: Answer | None, threshold: float, levels: int) -> float | None:
+    """The fractional level in ``[0, levels - 1]`` when its confidence reaches the threshold.
+
+    Confidence is the answer's ``confidence``, else the probability of the
+    nearest level; an answer with neither abstains.
+    """
+    if answer is None or not _is_number(answer.score):
+        return None
+    level = float(answer.score)  # type: ignore[arg-type]
+    if not 0.0 <= level <= levels - 1:
+        return None
+    confidence = score_confidence(answer, level)
+    if confidence is None or confidence < threshold:
+        return None
+    return level
+
+
+def score_confidence(answer: Answer, level: float) -> float | None:
+    """``confidence``, else the probability of the level nearest ``level``."""
+    if answer.confidence is not None:
+        return answer.confidence
+    probs, nearest = answer.probabilities, round(level)
+    if isinstance(probs, dict):
+        value = probs.get(str(nearest))
+        return None if value is None else float(value)
+    if isinstance(probs, list) and 0 <= nearest < len(probs):
+        return float(probs[nearest])
+    return None
 
 
 def choice_confidence(answer: Answer) -> float | None:

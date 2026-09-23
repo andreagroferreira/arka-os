@@ -26,7 +26,8 @@ from core.hooks import user_prompt_submit as ups
 
 URLOPEN = "core.decisions.client.urllib.request.urlopen"
 POPEN = "core.decisions.shadow.subprocess.Popen"
-ALL_SITES = ("topic-drift", "refine", "creation-intent", "route")
+# Every site the stage asks (PR1 prompt sites + PR2 dispatch sites).
+ALL_SITES = ups.UPS_SITE_NAMES
 
 FAKE_BRIDGE = """
     import json
@@ -319,8 +320,7 @@ def test_explicit_prefix_skips_the_route_site(turn):
 
 
 def test_route_shadow_changes_nothing(turn):
-    turn.config(route="shadow", **{"topic-drift": "off", "refine": "off",
-                                   "creation-intent": "off"})
+    turn.config(route="shadow", **{s: "off" for s in ALL_SITES if s != "route"})
     with patch(URLOPEN) as net, patch(POPEN):
         out = turn(ROUTE_PROMPT)
     net.assert_not_called()
@@ -474,15 +474,29 @@ def test_live_gate_matches_engine_active(monkeypatch, tmp_path):
     home = isolate_decisions(monkeypatch, tmp_path)
     cases = [({}, True), ({"enabled": False}, False),
              ({"sites": {s: "off" for s in ALL_SITES}}, False),
-             ({"sites": {"route": "shadow", "topic-drift": "off", "refine": "off",
-                         "creation-intent": "off"}}, True)]
+             ({"sites": {"route": "shadow", **{s: "off" for s in ALL_SITES if s != "route"}}},
+              True)]
     for block, expected in cases:
         write_config(home, block)
         cfg = load_decisions_config()
-        assert ups._decisions_live(cfg) is active(cfg) is expected, block
+        assert ups._decisions_live(cfg) is active(cfg, names=ALL_SITES) is expected, block
     monkeypatch.delenv("OPENROUTER_API_KEY")
     cfg = load_decisions_config()
-    assert ups._decisions_live(cfg) is active(cfg) is False
+    assert ups._decisions_live(cfg) is active(cfg, names=ALL_SITES) is False
+
+
+def test_live_gate_ignores_sites_outside_the_stage(monkeypatch, tmp_path):
+    """A live bash-effect or Forge site never wakes the prompt stage."""
+    from _decisions_helpers import write_config
+
+    from core.decisions.config import load_decisions_config
+    from core.decisions.engine import active
+
+    home = isolate_decisions(monkeypatch, tmp_path)
+    write_config(home, {"sites": {s: "off" for s in ALL_SITES}})
+    cfg = load_decisions_config()
+    assert active(cfg) is True  # bash-effect / forge-* default to act
+    assert ups._decisions_live(cfg) is False
 
 
 def test_marker_allowlist_holds_even_if_the_engine_acted(turn):

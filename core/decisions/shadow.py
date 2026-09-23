@@ -1,9 +1,9 @@
-"""Shadow mode: the JEV is asked off the hot path, the heuristic acts.
+"""Shadow mode: Jev is asked off the hot path, the heuristic acts.
 
 :func:`spawn_shadow` spools the call (0600, capped at
 :data:`SPOOL_MAX_PENDING`) and detaches a worker — same pattern as
 ``core/hooks/stop.py`` (``Popen(start_new_session=True)``), so the hook
-pays zero network latency. The worker (:func:`main`) asks the JEV with
+pays zero network latency. The worker (:func:`main`) asks Jev with
 a 5 s ceiling, records telemetry with ``agree``, deletes its spool in
 ``finally`` and sweeps spools older than an hour.
 """

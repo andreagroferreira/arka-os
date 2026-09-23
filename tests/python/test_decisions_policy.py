@@ -155,10 +155,114 @@ def test_state_class_is_required():
     assert {s.state_class for s in PROMPT_SITES} == {"prompt"}
 
 
-def test_non_choice_answers_pass_through():
+def test_unasked_keys_are_dropped():
+    # Kills: valid_answers keeping answers whose question was never asked.
     from core.decisions.models import Question
     from core.decisions.site import valid_answers
 
     qs = {"q": Question(type="noul", instructions="x")}
     hostile_answer = {"q": Answer(noul=0.9), "stray": Answer(choice=HOSTILE)}
-    assert valid_answers(qs, hostile_answer) == hostile_answer
+    assert valid_answers(qs, hostile_answer) == {"q": Answer(noul=0.9)}
+
+
+# --- probabilities, stray fields (QG PR1 carry, item 1) ----------------------
+
+NAN, INF = float("nan"), float("inf")
+
+
+def _route_with(probs):
+    return ROUTE.interpret({"department": Answer(choice="dev", probabilities=probs)}, 0.7)
+
+
+def test_valid_distribution_acts():
+    # The control every hostile case below differs from by ONE value.
+    assert _route_with({"dev": 0.9, "pm": 0.1}) == "dev"
+    assert _route_with({"dev": 0.93, "pm": 0.1}) == "dev"  # sum 1.03, inside ± 0.05
+
+
+@pytest.mark.parametrize(("probs", "kills"), [
+    ({"dev": NAN, "pm": 0.1}, "finite check"),
+    ({"dev": 0.9, "pm": INF}, "finite check"),
+    ({"dev": 1.1, "pm": -0.1}, "[0, 1] lower bound"),
+    ({"dev": 1.2, "pm": 0.0}, "[0, 1] upper bound"),
+    ({"dev": 0.9, "pm": 0.7}, "sum tolerance (1.6)"),
+    ({"dev": 0.9}, "sum tolerance (0.9)"),
+])
+def test_malformed_distribution_is_dropped(probs, kills):
+    assert _route_with(probs) is None, kills
+
+
+def test_value_above_one_alone_is_dropped():
+    # Sum 1.03 is inside the tolerance: only the upper bound catches it.
+    assert _route_with({"dev": 1.03, "pm": 0.0}) is None
+
+
+def test_negative_value_alone_is_dropped():
+    # Sum stays 1.0: only the lower bound catches it.
+    assert _route_with({"dev": 1.0, "pm": 0.1, "ops": -0.1}) is None
+
+
+def test_bool_is_not_a_probability():
+    # The model coerces True → 1.0; the helper itself must still refuse it.
+    from core.decisions.site import is_distribution
+
+    assert is_distribution([True, 0.0]) is False
+    assert is_distribution([1.0, 0.0]) is True and is_distribution(None) is True
+
+
+def test_list_distributions_are_checked_too():
+    from core.decisions.models import Question
+    from core.decisions.site import valid_answers
+
+    qs = {"q": Question(type="score", instructions="x", criteria=["a", "b"])}
+    good = Answer(score=1, probabilities=[0.2, 0.8])
+    assert valid_answers(qs, {"q": good}) == {"q": good}
+    assert valid_answers(qs, {"q": Answer(score=1, probabilities=[0.9, 0.9])}) == {}
+
+
+def test_choice_is_cleared_on_non_choice_answers():
+    # Kills: clean_answer keeping ``choice`` on a noul/score answer.
+    from core.decisions.models import Question
+    from core.decisions.site import valid_answers
+
+    qs = {"n": Question(type="noul", instructions="x"),
+          "s": Question(type="score", instructions="x", criteria=["a", "b"])}
+    out = valid_answers(qs, {"n": Answer(noul=0.9, choice=HOSTILE),
+                             "s": Answer(score=1, choice=HOSTILE)})
+    assert out["n"] == Answer(noul=0.9) and out["s"] == Answer(score=1)
+
+
+def test_non_numeric_score_is_cleared():
+    from core.decisions.models import Question
+    from core.decisions.site import valid_answers
+
+    qs = {"s": Question(type="score", instructions="x", criteria=["a", "b"]),
+          "n": Question(type="noul", instructions="x")}
+    out = valid_answers(qs, {"s": Answer(score=HOSTILE, confidence=0.9),
+                             "n": Answer(noul=0.2, score=3)})
+    assert out["s"].score is None and out["n"].score is None
+    kept = valid_answers(qs, {"s": Answer(score="1.5")})
+    assert kept["s"].score == "1.5"
+
+
+def test_questions_for_drives_validation_and_stays_optional():
+    # Retro-compat: a site without questions_for asks its static questions.
+    from core.decisions.site import Site
+
+    assert ROUTE.questions_for is None
+    assert ROUTE.questions_of({"anything": 1}) == ROUTE.questions()
+
+    from core.decisions.models import Question
+
+    def dynamic(state):
+        opts = state.get("opts", ["x"]) if isinstance(state, dict) else ["x"]
+        return {"q": Question(type="choice", instructions="i", criteria={o: o for o in opts})}
+
+    site = Site(name="dyn", questions=lambda: dynamic(None), questions_for=dynamic,
+                interpret=lambda a, t: interpret_choice(a.get("q"), t), risk="read",
+                state_class="prompt")
+    answer = {"q": Answer(choice="b", confidence=0.9)}
+    assert site.judge(answer, 0.5, {"opts": ["a", "b"]}) == "b"
+    assert site.interpret(answer, 0.5) is None  # static menu has only "x"
+    swapped = dataclasses.replace(site, questions_for=lambda s: dynamic({"opts": ["b"]}))
+    assert swapped.judge(answer, 0.5, None) == "b"  # the guard reads the NEW site

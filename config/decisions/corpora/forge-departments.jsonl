@@ -1,0 +1,34 @@
+{"id": "forge-departments-01", "lang": "pt", "prompt": "Planeia o lançamento do novo plano Pro: página de preços, campanha de email e alterações no checkout", "prior": [], "expected": ["landing", "marketing", "dev"]}
+{"id": "forge-departments-02", "lang": "en", "prompt": "Plan the migration of the billing service to Stripe with zero downtime", "prior": [], "expected": ["dev"]}
+{"id": "forge-departments-03", "lang": "pt", "prompt": "Cria a identidade visual da marca e o design system da aplicação", "prior": [], "expected": ["brand"]}
+{"id": "forge-departments-04", "lang": "en", "prompt": "Build a content engine: weekly YouTube videos repurposed into shorts and a newsletter", "prior": [], "expected": ["content"]}
+{"id": "forge-departments-05", "lang": "pt", "prompt": "Monta o funil de vendas com landing page, oferta e sequência de follow-up comercial", "prior": [], "expected": ["landing", "sales"]}
+{"id": "forge-departments-06", "lang": "en", "prompt": "Design the onboarding flow and churn dashboard for our SaaS", "prior": [], "expected": ["saas"]}
+{"id": "forge-departments-07", "lang": "pt", "prompt": "Reestrutura a equipa de suporte e define os papéis e a compensação", "prior": [], "expected": ["org"]}
+{"id": "forge-departments-08", "lang": "en", "prompt": "Automate invoice processing between the CRM and accounting with n8n", "prior": [], "expected": ["ops"]}
+{"id": "forge-departments-09", "lang": "pt", "prompt": "Prepara o modelo financeiro e o orçamento para a ronda seed", "prior": [], "expected": ["finance"]}
+{"id": "forge-departments-10", "lang": "en", "prompt": "Launch a Discord community for our users with onboarding and gamification", "prior": [], "expected": ["community"]}
+{"id": "forge-departments-11", "lang": "pt", "prompt": "Analisa a concorrência e define o posicionamento para entrar no mercado espanhol", "prior": [], "expected": ["strategy"]}
+{"id": "forge-departments-12", "lang": "en", "prompt": "Optimise the Shopify store: product pages, checkout and cart recovery emails", "prior": [], "expected": ["ecom"]}
+{"id": "forge-departments-13", "lang": "pt", "prompt": "Organiza a base de conhecimento no Obsidian e cria mapas de conteúdo", "prior": [], "expected": ["kb"]}
+{"id": "forge-departments-14", "lang": "en", "prompt": "Plan the next two sprints and groom the backlog for the mobile app", "prior": [], "expected": ["pm"]}
+{"id": "forge-departments-15", "lang": "pt", "prompt": "Prepara as avaliações de desempenho e um plano de feedback para a equipa", "prior": [], "expected": ["lead"]}
+{"id": "forge-departments-16", "lang": "en", "prompt": "Refactor the auth module and add integration tests", "prior": [], "expected": ["dev"]}
+{"id": "forge-departments-17", "lang": "pt", "prompt": "Implementa a API de encomendas e o painel de administração em Vue", "prior": [], "expected": ["dev"]}
+{"id": "forge-departments-18", "lang": "en", "prompt": "Rebrand the product: new logo, palette and a landing page announcing it", "prior": [], "expected": ["brand", "landing"]}
+{"id": "forge-departments-19", "lang": "pt", "prompt": "Lança o curso online: página de vendas, emails de lançamento e grupo privado de alunos", "prior": [], "expected": ["landing", "marketing", "community"]}
+{"id": "forge-departments-20", "lang": "en", "prompt": "Set up SEO and a content calendar for the blog", "prior": [], "expected": ["marketing"]}
+{"id": "forge-departments-21", "lang": "pt", "prompt": "Desenha a estratégia de preços do SaaS e o impacto no MRR", "prior": [], "expected": ["saas", "finance"]}
+{"id": "forge-departments-22", "lang": "en", "prompt": "Build a pipeline dashboard for the sales team and clean up CRM data", "prior": [], "expected": ["sales", "ops"]}
+{"id": "forge-departments-23", "lang": "pt", "prompt": "Cria vídeos curtos para o TikTok e o Instagram sobre o produto", "prior": [], "expected": ["content"]}
+{"id": "forge-departments-24", "lang": "en", "prompt": "Deploy the app to Kubernetes with CI/CD and monitoring", "prior": [], "expected": ["dev"]}
+{"id": "forge-departments-25", "lang": "pt", "prompt": "Define os OKRs do trimestre para todos os departamentos", "prior": [], "expected": ["org"]}
+{"id": "forge-departments-26", "lang": "en", "prompt": "Research our customers with interviews and turn it into positioning and messaging", "prior": [], "expected": ["marketing", "strategy"]}
+{"id": "forge-departments-27", "lang": "pt", "prompt": "Monta a loja online com catálogo, pagamentos e integração com o armazém", "prior": [], "expected": ["ecom", "dev"]}
+{"id": "forge-departments-28", "lang": "en", "prompt": "Write the SOPs for client onboarding and automate the welcome emails", "prior": [], "expected": ["ops"]}
+{"id": "forge-departments-29", "lang": "pt", "prompt": "Contrata dois engenheiros: plano de recrutamento, entrevistas e onboarding", "prior": [], "expected": ["lead", "org"]}
+{"id": "forge-departments-30", "lang": "en", "prompt": "Build a micro-SaaS MVP with a landing page and Stripe subscriptions", "prior": [], "expected": ["saas", "dev", "landing"]}
+{"id": "forge-departments-31", "lang": "pt", "prompt": "Faz a análise de unit economics e o cash flow dos próximos 12 meses", "prior": [], "expected": ["finance"]}
+{"id": "forge-departments-32", "lang": "en", "prompt": "Prepare the product roadmap and stakeholder map for the platform", "prior": [], "expected": ["pm"]}
+{"id": "forge-departments-33", "lang": "pt", "prompt": "Corrige os bugs do formulário de registo e melhora a validação", "prior": [], "expected": ["dev"]}
+{"id": "forge-departments-34", "lang": "en", "prompt": "Grow the newsletter with a lead magnet and a referral loop", "prior": [], "expected": ["marketing"]}

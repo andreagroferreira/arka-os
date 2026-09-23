@@ -15,62 +15,56 @@ User interaction (Approve/Revise/Companion/Detail/Quit) is handled
 by the caller (Claude Code session) via method calls on this orchestrator.
 """
 
+import contextlib
 import hashlib
 import subprocess
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Optional
 
-from core.shared.temp_paths import arkaos_temp_dir
-from core.forge.schema import (
-    ForgeContext,
-    ForgePlan,
-    ForgeStatus,
-    ForgeTier,
-    ComplexityScore,
-    ComplexityDimensions,
-    ExplorerLens,
-    ExplorerApproach,
-    CriticVerdict,
-    PlanPhase,
-    ExecutionPath,
-    ForgeGovernance,
-)
+from core.forge.budget import ForgeBudget
 from core.forge.complexity import analyze_complexity
+from core.forge.handoff import (
+    check_repo_drift,
+    select_execution_path,
+)
+from core.forge.jev_sites import decide_departments, decide_dimensions
 from core.forge.persistence import (
-    save_plan,
-    load_plan,
-    list_plans,
-    get_active_plan,
-    set_active_plan,
     clear_active_plan,
     export_to_obsidian,
     extract_patterns,
+    get_active_plan,
+    list_plans,
     load_patterns,
-)
-from core.forge.handoff import (
-    select_execution_path,
-    check_repo_drift,
-    generate_workflow_yaml,
+    load_plan,
+    save_plan,
+    set_active_plan,
 )
 from core.forge.renderer import (
-    render_terminal,
     render_complexity,
-    render_critic_summary,
-    render_plan_overview,
     render_html,
-    should_suggest_companion,
+    render_terminal,
 )
 from core.forge.runtime_dispatcher import (
-    ForgeTaskDispatcher,
     ClaudeCodeForgeDispatcher,
-    ExplorerDispatchRequest,
     CriticDispatchRequest,
+    ExplorerDispatchRequest,
+    ForgeTaskDispatcher,
     _tier_to_model,
 )
-
+from core.forge.schema import (
+    CriticVerdict,
+    ExplorerApproach,
+    ExplorerLens,
+    ForgeContext,
+    ForgeGovernance,
+    ForgePlan,
+    ForgeStatus,
+    ForgeTier,
+    PlanPhase,
+)
+from core.shared.temp_paths import arkaos_temp_dir
 
 CONSTITUTION_PHASES = [
     "Create feature branch",
@@ -89,7 +83,12 @@ class ForgeStep:
     description: str
 
 
-class ForgeDecision(str, Enum):
+def _any_named(names: list[str], *words: str) -> bool:
+    """True when any phase name contains any of ``words``."""
+    return any(word in name for name in names for word in words)
+
+
+class ForgeDecision(StrEnum):
     APPROVE = "approve"
     REVISE = "revise"
     COMPANION = "companion"
@@ -148,7 +147,7 @@ class ForgeOrchestrator:
         # User decides: orch.approve() or orch.revise("add tests")
     """
 
-    def __init__(self, dispatcher: Optional[ForgeTaskDispatcher] = None):
+    def __init__(self, dispatcher: ForgeTaskDispatcher | None = None):
         """Initialize orchestrator.
 
         Args:
@@ -156,9 +155,9 @@ class ForgeOrchestrator:
                        Defaults to ClaudeCodeForgeDispatcher.
         """
         self._dispatcher = dispatcher or ClaudeCodeForgeDispatcher()
-        self._current_plan: Optional[ForgePlan] = None
-        self._current_step: Optional[ForgeStep] = None
-        self._critic_verdict: Optional[CriticVerdict] = None
+        self._current_plan: ForgePlan | None = None
+        self._current_step: ForgeStep | None = None
+        self._critic_verdict: CriticVerdict | None = None
         self._dispatch_errors: list[str] = []
 
     # -------------------------------------------------------------------------
@@ -188,7 +187,7 @@ class ForgeOrchestrator:
         self._step9_render()
         return self._current_plan
 
-    def resume(self) -> Optional[ForgePlan]:
+    def resume(self) -> ForgePlan | None:
         """Resume the active forge plan.
 
         Returns:
@@ -200,7 +199,7 @@ class ForgeOrchestrator:
         self._current_plan = active
         return active
 
-    def status(self) -> Optional[ForgeStatusOutput]:
+    def status(self) -> ForgeStatusOutput | None:
         """Get status of the active plan.
 
         Returns:
@@ -250,7 +249,7 @@ class ForgeOrchestrator:
             )
         return entries
 
-    def show(self, plan_id: str) -> Optional[ForgePlan]:
+    def show(self, plan_id: str) -> ForgePlan | None:
         """Load and return a specific plan by ID.
 
         Args:
@@ -264,7 +263,7 @@ class ForgeOrchestrator:
             self._current_plan = plan
         return plan
 
-    def compare(self, id1: str, id2: str) -> Optional[ForgeCompareOutput]:
+    def compare(self, id1: str, id2: str) -> ForgeCompareOutput | None:
         """Compare two plans side by side.
 
         Args:
@@ -366,7 +365,7 @@ class ForgeOrchestrator:
         Path(path).write_text(html, encoding="utf-8")
         return path
 
-    def detail(self, phase_index: int) -> Optional[str]:
+    def detail(self, phase_index: int) -> str | None:
         """Get detail for a specific phase.
 
         Args:
@@ -502,19 +501,30 @@ class ForgeOrchestrator:
             pass
 
     def _step3_complexity(self) -> None:
-        """Step 3: Analyze complexity."""
+        """Step 3: Analyze complexity.
+
+        The keyword estimates are refined by the ``forge-departments`` and
+        ``forge-complexity`` Jev sites (``core/forge/jev_sites.py``), both
+        under one ForgeBudget; any fallback keeps the estimates.
+        """
         prompt = self._forge_context.prompt
         affected_files = self._estimate_affected_files(prompt)
-        departments = self._estimate_departments(prompt)
-
-        result = analyze_complexity(
+        budget = ForgeBudget()
+        departments = decide_departments(
+            prompt, affected_files, self._estimate_departments(prompt), budget
+        )
+        dimensions = decide_dimensions(
+            prompt, affected_files, departments,
+            (self._similar_plans, self._reused_patterns), budget,
+        )
+        self._complexity = analyze_complexity(
             prompt=prompt,
             affected_files=affected_files,
             departments=departments,
             similar_plans=self._similar_plans,
             reused_patterns=self._reused_patterns,
+            dimensions=dimensions,
         )
-        self._complexity = result
 
     def _step4_confirm_tier(self) -> ForgeTier:
         """Step 4: Confirm tier (returns current tier, caller handles user input).
@@ -571,7 +581,7 @@ class ForgeOrchestrator:
                     f"explorer[{req.lens.value}]: {type(e).__name__}: {e}"
                 )
 
-    def _step6_critic_synthesis(self, revision_request: Optional[str] = None) -> None:
+    def _step6_critic_synthesis(self, revision_request: str | None = None) -> None:
         """Step 6: Launch critic subagent for synthesis.
 
         Args:
@@ -600,10 +610,10 @@ class ForgeOrchestrator:
         self._enforced_phases: list[PlanPhase] = []
         phase_names = [p.name.lower() for p in self._final_phases_from_critic()]
 
-        has_branch = any("branch" in n or "feature" in n for n in phase_names)
-        has_spec = any("spec" in n or "specification" in n for n in phase_names)
-        has_qg = any("quality" in n or "gate" in n or "qg" in n for n in phase_names)
-        has_obsidian = any("obsidian" in n or "persist" in n or "document" in n for n in phase_names)
+        has_branch = _any_named(phase_names, "branch", "feature")
+        has_spec = _any_named(phase_names, "spec", "specification")
+        has_qg = _any_named(phase_names, "quality", "gate", "qg")
+        has_obsidian = _any_named(phase_names, "obsidian", "persist", "document")
 
         enforced = []
         if not has_branch:
@@ -664,7 +674,7 @@ class ForgeOrchestrator:
         self._current_plan = ForgePlan(
             id=plan_id,
             name=self._forge_context.prompt[:60],
-            created_at=datetime.now(timezone.utc).isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
             forged_by="forge",
             version=1,
             context=self._forge_context,
@@ -686,27 +696,21 @@ class ForgeOrchestrator:
 
     def _step9_handoff(self) -> None:
         """Step 9: Handoff - check drift, select execution path."""
-        drift = check_repo_drift(self._current_plan.context.commit_at_forge)
-        self._drift = drift
-
-        if drift["changed"]:
-            pass
-
-        self._current_plan.status = ForgeStatus.APPROVED
-        self._current_plan.approved_at = datetime.now(timezone.utc).isoformat()
-
-        exec_path = select_execution_path(self._current_plan.plan_phases)
-        self._current_plan.execution_path = exec_path
+        plan = self._current_plan
+        if plan is None:
+            raise RuntimeError("Forge step 9 needs the plan built by step 8")
+        self._drift = check_repo_drift(plan.context.commit_at_forge)
+        plan.status = ForgeStatus.APPROVED
+        plan.approved_at = datetime.now(UTC).isoformat()
+        plan.execution_path = select_execution_path(plan.plan_phases)
 
     def _step10_persist(self) -> None:
         """Step 10: Persist plan to YAML and Obsidian."""
         save_plan(self._current_plan)
         set_active_plan(self._current_plan.id)
 
-        try:
+        with contextlib.suppress(Exception):
             export_to_obsidian(self._current_plan)
-        except Exception:
-            pass
 
         try:
             patterns = extract_patterns(self._current_plan)
@@ -745,7 +749,7 @@ class ForgeOrchestrator:
 
     def _generate_plan_id(self, prompt: str) -> str:
         """Generate a forge plan ID."""
-        date = datetime.now(timezone.utc).strftime("%Y%m%d")
+        date = datetime.now(UTC).strftime("%Y%m%d")
         suffix = hashlib.md5(prompt.encode()).hexdigest()[:4]
         return f"forge-{date}-{suffix}"
 

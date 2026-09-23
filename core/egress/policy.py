@@ -8,8 +8,11 @@ Check order, each one sufficient to deny:
 2. **Residual client identifiers** — the redacted text is re-scanned
    with the same pattern source; any hit means redaction failed.
    Never allowlistable.
-3. **Secrets** — ``secret_labels`` vocabulary; allowlistable per exact
-   label, with expiry.
+3. **Secrets** — ``credentials.egress_secret_labels``: the vendor-prefix
+   vocabulary of ``secret_labels`` plus context-marked credentials
+   (secret-named assignments, auth headers, password flags, URL
+   userinfo — security review PR2); allowlistable per exact label,
+   with expiry.
 4. **Operator home paths** — absolute paths under the operator's home
    AND their tilde form, matched case-insensitively; both expose
    local project structure; allowlistable per exact path.
@@ -31,7 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from core.egress import allowlist, audit, redact
-from core.governance.harness_scanner import secret_labels
+from core.egress.credentials import egress_secret_labels
 
 
 @dataclass(frozen=True)
@@ -285,7 +288,7 @@ def _collect_findings(
         allowlist_path or allowlist.default_allowlist_path(home), now
     )
     candidates = [
-        Finding("secret", label) for label in secret_labels(clean)
+        Finding("secret", label) for label in egress_secret_labels(clean)
     ] + [Finding("home-path", p) for p in _home_paths(clean, home)]
     for finding in candidates:
         cleared = allowlist.permits(

@@ -1,6 +1,6 @@
 // Tests for the ~/.arkaos/config.json seed/migration logic
 // (PR19 v2.41.0; kbFirst added in PR-3 v4.1; decisions.* added in PR1 of
-// the JEV Decisions Layer campaign).
+// the JEV Decisions Layer campaign, extended to 10 sites in PR2).
 //
 // Contract: seedArkaosConfig is idempotent. Writes each template key
 // (hooks.hardEnforcement, hooks.kbFirst) to true only when the key is
@@ -165,6 +165,12 @@ test("seed is idempotent when all template keys are true", () => {
           refine: "shadow",
           "creation-intent": "act",
           route: { mode: "act", minConfidence: 0.7, timeoutMs: 1000 },
+          "bash-effect": { mode: "act", timeoutMs: 1000 },
+          "forge-departments": "shadow",
+          "forge-complexity": "shadow",
+          "skill-hints": "act",
+          "dispatch-role": "act",
+          "subagent-discipline": "act",
         },
       },
     });
@@ -236,6 +242,12 @@ test("seed returns a status object describing the action taken", () => {
           refine: "shadow",
           "creation-intent": "act",
           route: { mode: "act", minConfidence: 0.7, timeoutMs: 1000 },
+          "bash-effect": { mode: "act", timeoutMs: 1000 },
+          "forge-departments": "shadow",
+          "forge-complexity": "shadow",
+          "skill-hints": "act",
+          "dispatch-role": "act",
+          "subagent-discipline": "act",
         },
       },
     });
@@ -303,6 +315,32 @@ test("seed creates the full decisions section when file absent (JEV Decisions La
     assert.equal(cfg.decisions.sites.refine, "shadow");
     assert.equal(cfg.decisions.sites["creation-intent"], "act");
     assert.deepEqual(cfg.decisions.sites.route, { mode: "act", minConfidence: 0.7, timeoutMs: 1000 });
+    assert.deepEqual(cfg.decisions.sites["bash-effect"], { mode: "act", timeoutMs: 1000 });
+    assert.equal(cfg.decisions.sites["forge-departments"], "shadow");
+    assert.equal(cfg.decisions.sites["forge-complexity"], "shadow");
+    assert.equal(cfg.decisions.sites["skill-hints"], "act");
+    assert.equal(cfg.decisions.sites["dispatch-role"], "act");
+    assert.equal(cfg.decisions.sites["subagent-discipline"], "act");
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed preserves a user decisions.sites[\"bash-effect\"]=\"off\" string and fills the rest", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, {
+      decisions: { sites: { "bash-effect": "off" } },
+    });
+    const result = seedArkaosConfig({ home: dir });
+    assert.equal(result.action, "added-key");
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+    assert.equal(cfg.decisions.sites["bash-effect"], "off",
+      "an existing string leaf must never be turned into the seeded {mode, timeoutMs} object");
+    assert.equal(cfg.decisions.sites["topic-drift"], "act", "sibling sites still seeded");
+    assert.equal(cfg.decisions.sites["forge-departments"], "shadow", "sibling sites still seeded");
+    assert.equal(cfg.decisions.enabled, true, "other decisions scalars still seeded");
+    assert.equal(cfg.decisions.transport, "openrouter", "other decisions scalars still seeded");
   } finally {
     cleanup();
   }
@@ -371,6 +409,9 @@ test("seed fills missing decisions.* keys around a partial user section", () => 
     assert.equal(cfg.decisions.sites.refine, "shadow", "missing site filled in");
     assert.equal(cfg.decisions.transport, "openrouter", "missing scalar filled in");
     assert.deepEqual(cfg.decisions.sites.route, { mode: "act", minConfidence: 0.7, timeoutMs: 1000 });
+    assert.deepEqual(cfg.decisions.sites["bash-effect"], { mode: "act", timeoutMs: 1000 },
+      "PR2 sites are filled in around a partial user section too");
+    assert.equal(cfg.decisions.sites["subagent-discipline"], "act");
   } finally {
     cleanup();
   }

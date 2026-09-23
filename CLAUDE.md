@@ -216,11 +216,10 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `core/decisions/` is a System 1 layer under the agents: sites ask Jev
 (`typesafe/jev-1.13` via the OpenRouter Decisions endpoint) typed
-questions — yes/no, choice, score — instead of regex heuristics. PR1
-wires the four UserPromptSubmit sites (topic-drift, refine,
-creation-intent, route); command, Forge, governance and cognition sites
-follow in later PRs. Jev generates no text; it is not a Model Fabric role and
-never an `LLMProvider`. ADR: `docs/adr/2026-09-23-jev-decisions-layer.md`.
+questions — yes/no, choice, score — instead of regex heuristics. Governance
+and cognition sites follow in later PRs. Jev generates no text; it is not a
+Model Fabric role and never an `LLMProvider`. ADR:
+`docs/adr/2026-09-23-jev-decisions-layer.md`.
 
 | Mode | Behaviour |
 |---|---|
@@ -228,7 +227,18 @@ never an `LLMProvider`. ADR: `docs/adr/2026-09-23-jev-decisions-layer.md`.
 | `shadow` | Detached worker; heuristic drives, agreement is logged |
 | `off` | Heuristic only |
 
-refine ships in shadow (replay 2026-09-23: Jev 60.6 % vs heuristic 90.9 %); topic-drift, creation-intent and route act.
+| Site | Where | Default mode |
+|---|---|---|
+| topic-drift | UserPromptSubmit `decisions` stage | act |
+| refine | UserPromptSubmit `decisions` stage | shadow (replay: Jev 60.6 % vs heuristic 90.9 %) |
+| creation-intent | UserPromptSubmit `decisions` stage (escalate-only) | act |
+| route | UserPromptSubmit → Synapse L1 `route_hint` | act |
+| dispatch-role | UserPromptSubmit → `[arka:dispatch-role]` (never quality → economy) | act |
+| subagent-discipline | UserPromptSubmit → `[arka:subagent-discipline]` (QG exempt) | act |
+| skill-hints | UserPromptSubmit → Synapse L5 `skill_hint` | act |
+| bash-effect | PreToolUse `flow_enforcer`, Python path only (escalate-only, 1000 ms) | act |
+| forge-departments | Forge step 3 (`ForgeBudget`, 3 s per call, 5 s total) | shadow (replay at 3 s: abstain 29.4 %; `act` only by operator override) |
+| forge-complexity | Forge step 3 (`ForgeBudget`) | shadow (replay: Jev answered 3 of 32, abstain 90.6 %; `act` only by operator override) |
 
 - Unavailability falls back to the site's heuristic (a no-op where none
   exists); every fallback is counted. Kill-switch: `ARKA_BYPASS_DECISIONS=1`.

@@ -11,10 +11,22 @@ The audit file itself must be safe to read aloud.
 (``policy.evaluate``) treats a failed audit as fail-closed — an ALLOW
 that cannot be audited flips to denied, and the flip itself is
 re-recorded best-effort.
+
+Rotation (security review PR2, finding 8): before each append the file
+is rotated to ``audit.jsonl.1`` once it passes :data:`AUDIT_MAX_BYTES`,
+through the shared ``rotate_if_oversized`` (flock on
+``audit.jsonl.rotlock``, size re-checked under the lock, so concurrent
+writers rotate once and an appender holding the old inode lands in
+``.1``). Rotation is housekeeping, never a gate: a rotation that fails
+or raises leaves the line in the current file with ``"rotation":
+"failed"``, and the egress decision is unaffected. The cap is a
+constant, not an environment knob: a tiny cap would overwrite the kept
+generation on every write and erase the evidence.
 """
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import hmac
 import json
@@ -22,6 +34,13 @@ import os
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+
+from core.shared.telemetry_rotate import rotate_if_oversized
+
+#: One kept generation (``.1``) at this size: ~20 MB of evidence, about a
+#: month at the PR2 rate (~2000 calls a day x ~300 bytes a line).
+AUDIT_MAX_BYTES = 10 * 1024 * 1024
+ROTATION_FAILED = "failed"
 
 
 def default_audit_path(home: Path | None = None) -> Path:
@@ -96,7 +115,7 @@ def hash_token(token: str, salt: bytes = b"") -> str:
     return hmac.new(salt, payload, hashlib.sha256).hexdigest()[:16]
 
 
-def record(entry: dict, path: Path, now: datetime | None = None) -> bool:
+def record(entry: dict[str, object], path: Path, now: datetime | None = None) -> bool:
     """Append one audit line; True on durable success, False otherwise.
 
     The catch is broad by design: any failure — filesystem OR a
@@ -107,11 +126,7 @@ def record(entry: dict, path: Path, now: datetime | None = None) -> bool:
     M2).
     """
     try:
-        stamped = {
-            "ts": (now or datetime.now(UTC)).isoformat(),
-            **entry,
-        }
-        line = json.dumps(stamped, ensure_ascii=False, sort_keys=True)
+        line = json.dumps(_stamped(entry, path, now), ensure_ascii=False, sort_keys=True)
         path.parent.mkdir(parents=True, exist_ok=True)
         os.chmod(path.parent, 0o700)
         fd = os.open(
@@ -125,3 +140,28 @@ def record(entry: dict, path: Path, now: datetime | None = None) -> bool:
         return True
     except Exception:
         return False
+
+
+def _stamped(entry: dict[str, object], path: Path, now: datetime | None) -> dict[str, object]:
+    # The timestamp, the entry, and a rotation-failure note when the file
+    # is still over the cap after rotating (the line is written anyway).
+    stamped: dict[str, object] = {"ts": (now or datetime.now(UTC)).isoformat(), **entry}
+    if not _rotated_or_small(path):
+        stamped["rotation"] = ROTATION_FAILED
+    return stamped
+
+
+def _rotated_or_small(path: Path) -> bool:
+    """Rotate when oversized; False only when the file is STILL over the cap.
+
+    Never raises. A concurrent writer that rotated first leaves a small
+    file, which reads as success; a refused rename or a crashing helper
+    leaves the big file, which reads as failure and is noted on the line.
+    """
+    # A crash falls through to the size check: the line is still written.
+    with contextlib.suppress(Exception):
+        rotate_if_oversized(path, AUDIT_MAX_BYTES)
+    try:
+        return path.stat().st_size <= AUDIT_MAX_BYTES
+    except OSError:
+        return True  # no file yet (first write) is not a rotation failure

@@ -1,4 +1,4 @@
-"""Pydantic contract of the OpenRouter Decisions endpoint (JEV).
+"""Pydantic contract of the OpenRouter Decisions endpoint (Jev).
 
 Request: ``{"model", "state", "questions": {key: {type, instructions,
 criteria}}}``. Response: ``{"model", "answers": {key: {...}}, "usage"}``.
@@ -21,7 +21,7 @@ State = str | dict[str, Any] | list[Any]
 
 
 class QuestionType(StrEnum):
-    """The three typed question kinds the JEV answers."""
+    """The three typed question kinds Jev answers."""
 
     NOUL = "noul"
     CHOICE = "choice"

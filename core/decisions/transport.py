@@ -7,6 +7,7 @@ transport — callers fall back to their heuristic.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -55,6 +56,12 @@ def _read_key_from_keys_json() -> str:
 
 def _resolve_key() -> str:
     return os.environ.get(ENV_KEY, "").strip() or _read_key_from_keys_json()
+
+
+def key_fingerprint() -> str:
+    """First 8 hex of the key's SHA-256 ("" without a key); never the key."""
+    key = _resolve_key()
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8] if key else ""
 
 
 def configured_model() -> str | None:

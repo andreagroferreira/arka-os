@@ -1,0 +1,32 @@
+{"id": "subagent-discipline-01", "lang": "pt", "prompt": "Audita todo o repositório à procura de segredos em claro", "prior": [], "expected": true}
+{"id": "subagent-discipline-02", "lang": "en", "prompt": "Investigate why the suite is slow across all test modules", "prior": [], "expected": true}
+{"id": "subagent-discipline-03", "lang": "pt", "prompt": "Pesquisa como os concorrentes implementam routing de agentes e resume", "prior": [], "expected": true}
+{"id": "subagent-discipline-04", "lang": "en", "prompt": "Map every call site of the decisions engine and their timeouts", "prior": [], "expected": true}
+{"id": "subagent-discipline-05", "lang": "pt", "prompt": "Revê de forma independente o diff do PR antes do Quality Gate", "prior": [], "expected": true}
+{"id": "subagent-discipline-06", "lang": "en", "prompt": "Research three libraries for PDF parsing and compare them", "prior": [], "expected": true}
+{"id": "subagent-discipline-07", "lang": "pt", "prompt": "Percorre os 17 departamentos e lista os comandos sem testes", "prior": [], "expected": true}
+{"id": "subagent-discipline-08", "lang": "en", "prompt": "Find every place we shell out to git without a timeout", "prior": [], "expected": true}
+{"id": "subagent-discipline-09", "lang": "pt", "prompt": "Faz um levantamento de todos os ficheiros YAML de workflows e das gates", "prior": [], "expected": true}
+{"id": "subagent-discipline-10", "lang": "en", "prompt": "Trace how a prompt flows from the hook through Synapse to the model", "prior": [], "expected": true}
+{"id": "subagent-discipline-11", "lang": "pt", "prompt": "Analisa os logs de telemetria da última semana e encontra padrões", "prior": [], "expected": true}
+{"id": "subagent-discipline-12", "lang": "en", "prompt": "Do a security audit of the installer and its adapters", "prior": [], "expected": true}
+{"id": "subagent-discipline-13", "lang": "pt", "prompt": "Compara as três versões do relatório e junta o melhor de cada", "prior": [], "expected": true}
+{"id": "subagent-discipline-14", "lang": "en", "prompt": "Migrate all 40 agent YAMLs to the new schema field", "prior": [], "expected": true}
+{"id": "subagent-discipline-15", "lang": "pt", "prompt": "Verifica se todos os skills têm frontmatter válido", "prior": [], "expected": true}
+{"id": "subagent-discipline-16", "lang": "en", "prompt": "Fix the typo in README.md line 12", "prior": [], "expected": false}
+{"id": "subagent-discipline-17", "lang": "pt", "prompt": "Muda o timeout do route para 900 ms no config", "prior": [], "expected": false}
+{"id": "subagent-discipline-18", "lang": "en", "prompt": "What does the MIN_CALL_MS constant do?", "prior": [], "expected": false}
+{"id": "subagent-discipline-19", "lang": "pt", "prompt": "Adiciona um teste para o caso de lista vazia em test_cache.py", "prior": [], "expected": false}
+{"id": "subagent-discipline-20", "lang": "en", "prompt": "Rename bash_is_effect's docstring heading", "prior": [], "expected": false}
+{"id": "subagent-discipline-21", "lang": "pt", "prompt": "Explica-me o que faz a função interpret_noul", "prior": [], "expected": false}
+{"id": "subagent-discipline-22", "lang": "en", "prompt": "Bump the version in VERSION to 5.18.0", "prior": [], "expected": false}
+{"id": "subagent-discipline-23", "lang": "pt", "prompt": "Corrige a indentação deste bloco", "prior": [], "expected": false}
+{"id": "subagent-discipline-24", "lang": "en", "prompt": "Add a comment explaining the 0.05 tolerance", "prior": [], "expected": false}
+{"id": "subagent-discipline-25", "lang": "pt", "prompt": "Qual é o limiar de confiança para sites destrutivos?", "prior": [], "expected": false}
+{"id": "subagent-discipline-26", "lang": "en", "prompt": "Change the button label from Save to Guardar", "prior": [], "expected": false}
+{"id": "subagent-discipline-27", "lang": "pt", "prompt": "Remove o import não usado em engine.py", "prior": [], "expected": false}
+{"id": "subagent-discipline-28", "lang": "en", "prompt": "Show me the last commit message", "prior": [], "expected": false}
+{"id": "subagent-discipline-29", "lang": "pt", "prompt": "Acrescenta o campo lang ao exemplo do corpus", "prior": [], "expected": false}
+{"id": "subagent-discipline-30", "lang": "en", "prompt": "Make the error message in load_corpus mention the site", "prior": [], "expected": false}
+{"id": "subagent-discipline-31", "lang": "pt", "prompt": "Escreve a docstring da função command_state", "prior": [], "expected": false}
+{"id": "subagent-discipline-32", "lang": "en", "prompt": "Look up how many cases the route corpus has", "prior": [], "expected": false}

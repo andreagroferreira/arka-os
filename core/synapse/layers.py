@@ -243,7 +243,7 @@ class DepartmentLayer(Layer):
         return 10
 
     def compute(self, ctx: PromptContext) -> LayerResult:
-        # Precedence: explicit /prefix → route hint (JEV) → keyword count.
+        # Precedence: explicit /prefix → route hint (Jev) → keyword count.
         start = time.time()
         dept = prefix_department(ctx.user_input)
         if dept is None:
@@ -511,6 +511,26 @@ def _merge_hints(
     return merged
 
 
+def _hinted_command(
+    ctx: PromptContext, commands: list[dict[str, Any]]
+) -> tuple[int, str, str] | None:
+    """The Jev skill hint the UserPromptSubmit decisions stage put in
+    ``ctx.extra["skill_hint"]``, as a scored tuple, or None.
+
+    Pure: no config, no IO — only the registry L5 already holds. An id
+    the registry does not carry is ignored, so a malformed or hostile
+    hint can never invent a command (mirror of ``_hinted_department``).
+    """
+    hint = (ctx.extra or {}).get("skill_hint")
+    cmd_id = hint.get("id") if isinstance(hint, dict) else None
+    if not isinstance(cmd_id, str) or not cmd_id:
+        return None
+    for cmd in commands:
+        if cmd.get("id") == cmd_id:
+            return (_SIGNAL_SCORE, str(cmd.get("command", "")), _hint_department(cmd))
+    return None
+
+
 def _score_commands(
     commands: list[dict[str, Any]], text: str
 ) -> list[tuple[int, str, str]]:
@@ -589,6 +609,22 @@ class CommandHintsLayer(Layer):
     def priority(self) -> int:
         return 50
 
+    def _ranked_hints(
+        self, ctx: PromptContext, text: str
+    ) -> list[tuple[int, str, str]]:
+        """Top-2: project signal, then the Jev skill hint, then keywords.
+
+        The signal keeps winning as before; an acted Jev hint takes the
+        first keyword slot, and the keyword ranking fills what is left.
+        """
+        signal = _signal_commands(
+            self._commands, _project_signal_ids(ctx.cwd)
+        )
+        hinted = _hinted_command(ctx, self._commands)
+        keyword = _score_commands(self._commands, text)
+        ranked = [hinted, *keyword] if hinted else keyword
+        return _merge_hints(signal, ranked)[:2]
+
     def compute(self, ctx: PromptContext) -> LayerResult:
         start = time.time()
         text = ctx.user_input.lower()
@@ -606,12 +642,7 @@ class CommandHintsLayer(Layer):
                 cached=False,
             )
 
-        signal = _signal_commands(
-            self._commands, _project_signal_ids(ctx.cwd)
-        )
-        top = _merge_hints(
-            signal, _score_commands(self._commands, text)
-        )[:2]
+        top = self._ranked_hints(ctx, text)
         hints = [command for _, command, _ in top]
 
         tags = _hint_tag(top)
