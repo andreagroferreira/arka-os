@@ -1,16 +1,21 @@
 """Replay harness — the evidence gate for moving a site between modes.
 
 Runs a labelled corpus (``config/decisions/corpora/<site>.jsonl``) through
-the site's heuristic and, online, through the JEV. Gate (online):
+the site's heuristic and, online, through Jev. Gate (online):
 
-* JEV precision on the cases it answers ≥ heuristic precision on the SAME
+* Jev precision on the cases it answers ≥ heuristic precision on the SAME
   cases + 5 pp;
 * abstain rate (abstain + unavailable) ≤ 25 %;
 * escalate-only sites: false escalations ≤ 5 % of the cases where the
   heuristic was already right.
 
-Corpus validity (both modes): ≥ 30 cases and ≥ 50 % pt-PT. ``--offline``
+Corpus validity (both modes): ≥ 30 cases, ≥ 50 % pt-PT, and every
+``expected`` of the site's type (:data:`EXPECTED`: bool, a department, a
+role, a tier, a department list or a registry command id). ``--offline``
 scores the heuristic only and passes on a valid corpus.
+
+Sites whose value is not the corpus label compare through :data:`LABELS`
+(forge-complexity: dimensions → tier; forge-departments: order-free set).
 Exit codes: 0 pass, 1 fail, 2 usage.
 """
 
@@ -21,27 +26,40 @@ import json
 import statistics
 import sys
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, StrictBool, ValidationError
 
-from core.decisions.config import DecisionsConfig, load_decisions_config, threshold_for
+from core.decisions.config import (
+    DecisionsConfig,
+    load_decisions_config,
+    site_timeout_ms,
+    threshold_for,
+)
 from core.decisions.engine import resolve, run_sync
+from core.decisions.models import State
 from core.decisions.paths import repo_root
 from core.decisions.registry import SITES
 from core.decisions.site import Outcome, Site, SiteCall
+from core.decisions.sites.command import command_state
+from core.decisions.sites.dispatch import skill_state
+from core.decisions.sites.forge import forge_state
 from core.decisions.sites.prompt import prompt_state
 from core.decisions.telemetry import call_cost_usd
 from core.decisions.transport import Transport, resolve_transport
+
+# dispatch-role and subagent-discipline: the keyword baselines the UPS hook
+# ships as those sites' heuristics — replayed as the SAME functions.
+from core.hooks.ups_dispatch import keyword_dispatch_role, keyword_needs_isolation
 
 MIN_CASES = 30
 MIN_PT_SHARE = 0.5
 MARGIN = 0.05
 MAX_ABSTAIN = 0.25
 MAX_FALSE_ESCALATION = 0.05
-REPLAY_TIMEOUT_S = 5.0
 
 Gate = Literal["pass", "fail", "offline"]
 
@@ -55,7 +73,7 @@ class ReplayCase(BaseModel):
     lang: Literal["pt", "en"]
     prompt: str
     prior: list[str] = []
-    expected: StrictBool | str
+    expected: StrictBool | str | list[str]
 
 
 @dataclass
@@ -78,6 +96,9 @@ class ReplayReport:
     # the cache), so "not measured" never reads as "0 ms measured".
     p50_latency_ms: int | None = None
     cost_usd: float | None = None
+    # The per-call ceiling of an online run: the site's own ceiling (what
+    # the live call site uses) unless ``--timeout-ms`` overrides it.
+    timeout_ms: int | None = None
     by_lang: dict[str, dict[str, float | None]] = field(default_factory=dict)
     gate: Gate = "offline"
     failures: list[str] = field(default_factory=list)
@@ -116,11 +137,181 @@ def _heuristic_route(case: ReplayCase) -> str:
     return keyword_department(case.prompt) or ""
 
 
+def _heuristic_bash_effect(case: ReplayCase) -> bool:
+    from core.workflow.flow_enforcer import bash_is_effect
+
+    return bash_is_effect(case.prompt)
+
+
+def forge_estimates(prompt: str) -> tuple[list[str], list[str]]:
+    """``(affected_files, departments)`` exactly as Forge step 3 estimates them.
+
+    Both estimators are ``ForgeOrchestrator`` methods that read no instance
+    state, so a bare instance (no ``__init__``, no dispatcher) runs the
+    real code without its side effects.
+    """
+    from core.forge.orchestrator import ForgeOrchestrator
+
+    bare = ForgeOrchestrator.__new__(ForgeOrchestrator)
+    return bare._estimate_affected_files(prompt), bare._estimate_departments(prompt)
+
+
+def _heuristic_forge_departments(case: ReplayCase) -> list[str]:
+    return sorted(forge_estimates(case.prompt)[1])
+
+
+def _heuristic_forge_complexity(case: ReplayCase) -> dict[str, int]:
+    # No similar plans / reused patterns: replay has no plan history, so
+    # novelty scores as the heuristic's maximum (90) on every case.
+    from core.forge.complexity import score_dimensions
+
+    files, departments = forge_estimates(case.prompt)
+    return score_dimensions(case.prompt, files, departments, [], []).model_dump()
+
+
+@lru_cache(maxsize=1)
+def registry_commands() -> tuple[dict[str, object], ...]:
+    """``knowledge/commands-registry.json`` commands (read once)."""
+    path = repo_root() / "knowledge" / "commands-registry.json"
+    return tuple(json.loads(path.read_text(encoding="utf-8"))["commands"])
+
+
+def skill_candidates_for(prompt: str, dept: str | None = None) -> list[dict[str, str]]:
+    """The skill-hints menu, built by the SAME function the UPS hook uses
+    (``core.synapse.command_menu.skill_hint_candidates``): top-20 keyword
+    commands + the routed department's commands, capped at 60.
+
+    ``dept`` is the department the route site settled on; None falls back
+    to the L1 keyword route, which is what the hook uses when the route
+    site does not act.
+    """
+    from core.synapse.command_menu import skill_hint_candidates
+    from core.synapse.layers import keyword_department
+
+    routed = (keyword_department(prompt) or "") if dept is None else dept
+    return skill_hint_candidates(registry_commands(), prompt, routed)
+
+
+def replay_route(case: ReplayCase) -> str | None:
+    """The route the skill-hints replay assumes: the expected command's department.
+
+    The replay scores the skill-hints site on its own job (pick the command
+    from the menu), with the route taken as correct; the route site has its
+    own replay (90.9 % on 2026-09-23), and end-to-end coverage in the hook
+    is bounded by it. A case whose expected answer is "no command" keeps
+    the keyword route (None).
+    """
+    from core.synapse.command_menu import command_department
+
+    for command in registry_commands():
+        if command.get("id") == case.expected:
+            return command_department(command) or None
+    return None
+
+
+def _heuristic_skill_hint(case: ReplayCase) -> str:
+    # The live L5 hint is keyword-only: the routed-department fill of the
+    # menu never becomes a hint by itself.
+    from core.synapse.layers import _score_commands
+
+    top = _score_commands(list(registry_commands()), case.prompt.lower())
+    ids = {str(c.get("command", "")): str(c["id"]) for c in reversed(registry_commands())}
+    return ids.get(top[0][1], "") if top else ""
+
+
 HEURISTICS: dict[str, Callable[[ReplayCase], object]] = {
     "topic-drift": _heuristic_topic_drift,
     "refine": _heuristic_refine,
     "creation-intent": _heuristic_creation,
     "route": _heuristic_route,
+    "bash-effect": _heuristic_bash_effect,
+    "forge-departments": _heuristic_forge_departments,
+    "forge-complexity": _heuristic_forge_complexity,
+    "skill-hints": _heuristic_skill_hint,
+    "dispatch-role": lambda case: keyword_dispatch_role(case.prompt),
+    "subagent-discipline": lambda case: keyword_needs_isolation(case.prompt),
+}
+
+
+def _forge_case_state(case: ReplayCase) -> State:
+    files, departments = forge_estimates(case.prompt)
+    return forge_state(case.prompt, files, departments)
+
+
+STATES: dict[str, Callable[[ReplayCase], State]] = {
+    "bash-effect": lambda case: command_state(case.prompt),
+    "forge-departments": _forge_case_state,
+    "forge-complexity": _forge_case_state,
+    "skill-hints": lambda case: skill_state(
+        case.prompt, skill_candidates_for(case.prompt, replay_route(case))),
+}
+
+
+def case_state(site: str, case: ReplayCase) -> State:
+    """The state the live call site would send for this case."""
+    builder = STATES.get(site)
+    return builder(case) if builder else prompt_state(case.prompt, case.prior)
+
+
+# --- corpus labels -----------------------------------------------------------
+
+TIERS = frozenset({"SHALLOW", "STANDARD", "DEEP"})
+
+
+def _is_department(value: object) -> bool:
+    from core.synapse.layers import DEPARTMENT_PATTERNS
+
+    return isinstance(value, str) and value in DEPARTMENT_PATTERNS
+
+
+def _is_department_list(value: object) -> bool:
+    return (isinstance(value, list) and 1 <= len(value) <= 4
+            and len(set(value)) == len(value) and all(_is_department(v) for v in value))
+
+
+def _is_role(value: object) -> bool:
+    from core.runtime.model_router import ROLE_DESCRIPTIONS
+
+    return isinstance(value, str) and value in ROLE_DESCRIPTIONS
+
+
+def _is_command_id(value: object) -> bool:
+    return isinstance(value, str) and value in {c.get("id") for c in registry_commands()}
+
+
+def _is_bool(value: object) -> bool:
+    return isinstance(value, bool)
+
+
+EXPECTED: dict[str, Callable[[object], bool]] = {
+    "topic-drift": _is_bool, "refine": _is_bool, "creation-intent": _is_bool,
+    "bash-effect": _is_bool, "subagent-discipline": _is_bool,
+    "route": lambda v: v == "" or _is_department(v),
+    "dispatch-role": _is_role,
+    "forge-complexity": lambda v: isinstance(v, str) and v in TIERS,
+    "forge-departments": _is_department_list,
+    "skill-hints": _is_command_id,
+}
+
+
+def complexity_tier(value: object) -> object:
+    """Dimensions (0-100 each) → ``SHALLOW|STANDARD|DEEP`` with the Forge's weights."""
+    if not isinstance(value, dict):
+        return value
+    from core.forge.complexity import calculate_weighted_score, determine_tier
+    from core.forge.schema import ComplexityDimensions
+
+    tier = determine_tier(calculate_weighted_score(ComplexityDimensions(**value)))
+    return tier.value.upper()
+
+
+def _department_set(value: object) -> object:
+    return sorted(value) if isinstance(value, list) else value
+
+
+LABELS: dict[str, Callable[[object], object]] = {
+    "forge-complexity": complexity_tier,
+    "forge-departments": _department_set,
 }
 
 
@@ -132,20 +323,41 @@ def default_corpus_path(site: str) -> Path:
 def load_corpus(site: str, path: Path | None = None) -> list[ReplayCase]:
     """Parse a JSONL corpus; ValueError names the first bad line."""
     source = path or default_corpus_path(site)
+    check = EXPECTED.get(site)
     cases: list[ReplayCase] = []
     for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         try:
-            cases.append(ReplayCase.model_validate(json.loads(line)))
+            case = ReplayCase.model_validate(json.loads(line))
         except (ValueError, ValidationError) as exc:
             raise ValueError(f"{source}:{number}: {exc}") from exc
+        if check is not None and not check(case.expected):
+            raise ValueError(f"{source}:{number}: expected {case.expected!r} is not a {site} label")
+        cases.append(case)
     return cases
 
 
 # --- scoring -----------------------------------------------------------------
 
 Row = tuple[ReplayCase, object, Outcome | None]
+
+
+def _labelled(site: str, rows: Sequence[Row]) -> list[Row]:
+    label = LABELS.get(site)
+    if label is None:
+        return list(rows)
+    # Both sides go through the label: a department list is compared as a
+    # set, so the corpus order must not matter either.
+    return [(case.model_copy(update={"expected": label(case.expected)}), label(h),
+             _label_outcome(label, out)) for case, h, out in rows]
+
+
+def _label_outcome(label: Callable[[object], object], out: Outcome | None) -> Outcome | None:
+    if out is None:
+        return None
+    jev = None if out.jev is None else label(out.jev)
+    return replace(out, value=label(out.value), heuristic=label(out.heuristic), jev=jev)
 
 
 def _rate(hits: int, total: int) -> float | None:
@@ -212,9 +424,9 @@ def _gate_failures(report: ReplayReport) -> list[str]:
     failures = []
     jev, base = report.jev_accuracy, report.heuristic_on_answered
     if jev is None or base is None:
-        failures.append("JEV answered no case")
+        failures.append("Jev answered no case")
     elif jev < base + MARGIN:
-        failures.append(f"JEV precision {jev:.1%} < heuristic {base:.1%} + {MARGIN:.0%}")
+        failures.append(f"Jev precision {jev:.1%} < heuristic {base:.1%} + {MARGIN:.0%}")
     if report.abstain_rate is not None and report.abstain_rate > MAX_ABSTAIN:
         failures.append(f"abstain {report.abstain_rate:.1%} > {MAX_ABSTAIN:.0%}")
     fe = report.false_escalation_rate
@@ -232,14 +444,20 @@ class CallSample:
 
 
 def _ask(
-    site: Site, case: ReplayCase, heuristic: object, transport: Transport, cfg: DecisionsConfig
+    site: Site,
+    case: ReplayCase,
+    heuristic: object,
+    transport: Transport,
+    cfg: DecisionsConfig,
+    timeout_ms: int,
 ) -> tuple[Outcome, CallSample]:
     call = SiteCall(site, heuristic)
+    state = case_state(site.name, case)
     response, reason, latency = run_sync(
-        [call], prompt_state(case.prompt, case.prior), transport=transport,
-        cfg=cfg, timeout_s=REPLAY_TIMEOUT_S, session_id="replay",
+        [call], state, transport=transport,
+        cfg=cfg, timeout_s=timeout_ms / 1000, session_id="replay",
     )
-    outcome = resolve(call, response, "act", threshold_for(cfg, site), reason)
+    outcome = resolve(call, response, "act", threshold_for(cfg, site), reason, state=state)
     went_out = reason != "cache-hit" and not reason.startswith("backoff")
     fresh = reason == "ok" and response is not None
     cost = (call_cost_usd(transport, response.usage) or 0.0) if fresh and response else 0.0
@@ -255,26 +473,50 @@ def _call_scores(samples: Sequence[CallSample], report: ReplayReport) -> None:
     report.cost_usd = round(sum(s.cost_usd for s in samples), 10)
 
 
-def replay(
-    site: str, cases: Sequence[ReplayCase], *, transport: Transport | None, offline: bool = False
-) -> ReplayReport:
-    """Score ``cases`` for ``site``; offline (or no transport) = heuristic only."""
-    target = SITES[site]
-    heuristic = HEURISTICS[site]
-    online = not offline and transport is not None
-    cfg = load_decisions_config()  # the operator's thresholds are what ships
+def _score_cases(
+    site: Site,
+    cases: Sequence[ReplayCase],
+    transport: Transport | None,
+    cfg: DecisionsConfig,
+    ceiling_ms: int,
+) -> tuple[list[Row], list[CallSample]]:
+    """The heuristic for every case and, with a transport, Jev's outcome."""
+    heuristic = HEURISTICS[site.name]
     rows: list[Row] = []
     samples: list[CallSample] = []
     for case in cases:
         h = heuristic(case)
         outcome = None
-        if online and transport:
-            outcome, sample = _ask(target, case, h, transport, cfg)
+        if transport is not None:
+            outcome, sample = _ask(site, case, h, transport, cfg, ceiling_ms)
             samples.append(sample)
         rows.append((case, h, outcome))
+    return rows, samples
+
+
+def replay(
+    site: str,
+    cases: Sequence[ReplayCase],
+    *,
+    transport: Transport | None,
+    offline: bool = False,
+    timeout_ms: int | None = None,
+) -> ReplayReport:
+    """Score ``cases`` for ``site``; offline (or no transport) = heuristic only.
+
+    Each online call is capped at ``timeout_ms``, else at the site's own
+    ceiling: the replay cuts a call where the live site would.
+    """
+    target = SITES[site]
+    online = not offline and transport is not None
+    cfg = load_decisions_config()  # the operator's thresholds are what ships
+    ceiling = timeout_ms or site_timeout_ms(cfg, target)
+    rows, samples = _score_cases(target, cases, transport if online else None, cfg, ceiling)
+    rows = _labelled(site, rows)
     report = _base_report(target, rows)
     report.by_lang = _by_lang(rows, online)
     if online:
+        report.timeout_ms = ceiling
         _online_scores(target, rows, report)
         _call_scores(samples, report)
     report.failures = _corpus_failures(report) + (_gate_failures(report) if online else [])
@@ -295,7 +537,7 @@ def _render(report: ReplayReport) -> str:
              f"- cases: {report.cases} (pt-PT {report.pt_share:.0%})",
              f"- heuristic accuracy: {report.heuristic_accuracy:.1%}"]
     if report.jev_accuracy is not None:
-        lines += [f"- JEV precision (answered): {report.jev_accuracy:.1%} vs heuristic "
+        lines += [f"- Jev precision (answered): {report.jev_accuracy:.1%} vs heuristic "
                   f"{(report.heuristic_on_answered or 0):.1%} on the same cases",
                   f"- act accuracy: {(report.act_accuracy or 0):.1%}",
                   f"- abstain: {(report.abstain_rate or 0):.1%} (unavailable {report.unavailable})"]
@@ -314,6 +556,8 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("--corpus", type=Path, default=None)
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--timeout-ms", type=int, default=None,
+                        help="per-call ceiling (default: the site's own timeout_ms)")
     return parser.parse_args(argv)
 
 
@@ -332,7 +576,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not ns.offline and transport is None:
         print("error: no transport (set OPENROUTER_API_KEY) — or pass --offline", file=sys.stderr)
         return 2
-    report = replay(ns.site, cases, transport=transport, offline=ns.offline)
+    report = replay(ns.site, cases, transport=transport, offline=ns.offline,
+                    timeout_ms=ns.timeout_ms)
     print(json.dumps(asdict(report), ensure_ascii=False, indent=2) if ns.json else _render(report))
     return 0 if report.gate != "fail" else 1
 

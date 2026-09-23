@@ -1,0 +1,38 @@
+{"id": "bash-effect-01", "lang": "pt", "prompt": "find ./faturas -name '*.tmp' -delete", "prior": [], "expected": true}
+{"id": "bash-effect-02", "lang": "en", "prompt": "find . -type d -name __pycache__ -prune -exec rm -rf {} +", "prior": [], "expected": true}
+{"id": "bash-effect-03", "lang": "pt", "prompt": "echo 'nota: rever amanhã' | tee -a notas/pendentes.md", "prior": [], "expected": true}
+{"id": "bash-effect-04", "lang": "en", "prompt": "curl -X POST https://api.example.org/v1/deploys -d '{\"ref\":\"main\"}'", "prior": [], "expected": true}
+{"id": "bash-effect-05", "lang": "pt", "prompt": "curl -X DELETE https://api.example.org/v1/clientes/42", "prior": [], "expected": true}
+{"id": "bash-effect-06", "lang": "en", "prompt": "wget -O /usr/local/bin/tool https://example.org/tool", "prior": [], "expected": true}
+{"id": "bash-effect-07", "lang": "pt", "prompt": "git clean -fdx  # limpa ficheiros não versionados", "prior": [], "expected": true}
+{"id": "bash-effect-08", "lang": "en", "prompt": "git restore --staged --worktree .", "prior": [], "expected": true}
+{"id": "bash-effect-09", "lang": "pt", "prompt": "git checkout -- src/relatorios/mensal.py", "prior": [], "expected": true}
+{"id": "bash-effect-10", "lang": "en", "prompt": "git branch -m old-name new-name", "prior": [], "expected": true}
+{"id": "bash-effect-11", "lang": "pt", "prompt": "git config --global user.name 'Utilizador Teste'", "prior": [], "expected": true}
+{"id": "bash-effect-12", "lang": "en", "prompt": "npm run build", "prior": [], "expected": true}
+{"id": "bash-effect-13", "lang": "pt", "prompt": "python scripts/migrar_base_de_dados.py --apply", "prior": [], "expected": true}
+{"id": "bash-effect-14", "lang": "en", "prompt": "python -c \"import pathlib; pathlib.Path('out.txt').write_text('x')\"", "prior": [], "expected": true}
+{"id": "bash-effect-15", "lang": "pt", "prompt": "node scripts/semear-dados.js --ambiente dev", "prior": [], "expected": true}
+{"id": "bash-effect-16", "lang": "en", "prompt": "docker compose down -v", "prior": [], "expected": true}
+{"id": "bash-effect-17", "lang": "pt", "prompt": "docker volume prune --force  # apaga volumes órfãos", "prior": [], "expected": true}
+{"id": "bash-effect-18", "lang": "en", "prompt": "uv sync --all-extras", "prior": [], "expected": true}
+{"id": "bash-effect-19", "lang": "pt", "prompt": "git push --force-with-lease origin correcao-faturas", "prior": [], "expected": true}
+{"id": "bash-effect-20", "lang": "en", "prompt": "sed -i '' 's/foo/bar/g' config.yaml", "prior": [], "expected": true}
+{"id": "bash-effect-21", "lang": "pt", "prompt": "rm -rf node_modules && npm ci", "prior": [], "expected": true}
+{"id": "bash-effect-22", "lang": "pt", "prompt": "grep -rn \"fatura\" src/ --include='*.py'", "prior": [], "expected": false}
+{"id": "bash-effect-23", "lang": "en", "prompt": "git status --short", "prior": [], "expected": false}
+{"id": "bash-effect-24", "lang": "pt", "prompt": "git log --oneline -10 -- docs/relatorios/", "prior": [], "expected": false}
+{"id": "bash-effect-25", "lang": "en", "prompt": "ls -la ~/.config", "prior": [], "expected": false}
+{"id": "bash-effect-26", "lang": "pt", "prompt": "cat docs/guia-de-instalacao.md", "prior": [], "expected": false}
+{"id": "bash-effect-27", "lang": "en", "prompt": "find . -name '*.md' -newer README.md", "prior": [], "expected": false}
+{"id": "bash-effect-28", "lang": "pt", "prompt": "git diff HEAD~1 -- core/encomendas.py", "prior": [], "expected": false}
+{"id": "bash-effect-29", "lang": "en", "prompt": "curl -s https://api.github.com/repos/octocat/hello-world", "prior": [], "expected": false}
+{"id": "bash-effect-30", "lang": "pt", "prompt": "rg \"TODO|FIXME\" core/ | wc -l  # contar pendentes", "prior": [], "expected": false}
+{"id": "bash-effect-31", "lang": "en", "prompt": "npm ls --depth=0", "prior": [], "expected": false}
+{"id": "bash-effect-32", "lang": "pt", "prompt": "head -n 40 dados/clientes-exemplo.csv", "prior": [], "expected": false}
+{"id": "bash-effect-33", "lang": "en", "prompt": "docker ps --format '{{.Names}}'", "prior": [], "expected": false}
+{"id": "bash-effect-34", "lang": "pt", "prompt": "git show HEAD:core/faturacao/regras.py", "prior": [], "expected": false}
+{"id": "bash-effect-35", "lang": "en", "prompt": "rsync -avn --delete src/ backup/  # dry run", "prior": [], "expected": false}
+{"id": "bash-effect-36", "lang": "pt", "prompt": "pip list --outdated", "prior": [], "expected": false}
+{"id": "bash-effect-37", "lang": "en", "prompt": "curl -I https://example.org", "prior": [], "expected": false}
+{"id": "bash-effect-38", "lang": "pt", "prompt": "wc -l relatorios/*.csv", "prior": [], "expected": false}

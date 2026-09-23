@@ -1,0 +1,34 @@
+{"id": "skill-hints-01", "lang": "pt", "prompt": "desenha uma paleta de cores quente para a marca de café", "prior": [], "expected": "brand-colors"}
+{"id": "skill-hints-02", "lang": "en", "prompt": "write five hooks for a video about remote work", "prior": [], "expected": "content-hook"}
+{"id": "skill-hints-03", "lang": "pt", "prompt": "faz uma auditoria de SEO ao site da empresa", "prior": [], "expected": "mkt-seo-audit"}
+{"id": "skill-hints-04", "lang": "en", "prompt": "create a financial model with DCF for the startup", "prior": [], "expected": "fin-model"}
+{"id": "skill-hints-05", "lang": "pt", "prompt": "escreve as user stories com critérios de aceitação para o checkout", "prior": [], "expected": "pm-story"}
+{"id": "skill-hints-06", "lang": "en", "prompt": "review this pull request for SOLID violations", "prior": [], "expected": "dev-review"}
+{"id": "skill-hints-07", "lang": "pt", "prompt": "encontra a causa do erro 500 no login", "prior": [], "expected": "dev-debug"}
+{"id": "skill-hints-08", "lang": "en", "prompt": "design the database schema and migrations for invoices", "prior": [], "expected": "dev-db"}
+{"id": "skill-hints-09", "lang": "pt", "prompt": "prepara a proposta comercial para o novo cliente", "prior": [], "expected": "sales-proposal"}
+{"id": "skill-hints-10", "lang": "en", "prompt": "plan a sprint for the mobile team", "prior": [], "expected": "pm-sprint"}
+{"id": "skill-hints-11", "lang": "pt", "prompt": "cria um logótipo para a startup de energia", "prior": [], "expected": "brand-logo"}
+{"id": "skill-hints-12", "lang": "en", "prompt": "set up a CI/CD pipeline with GitHub Actions", "prior": [], "expected": "dev-pipeline"}
+{"id": "skill-hints-13", "lang": "pt", "prompt": "faz a análise SWOT do nosso negócio", "prior": [], "expected": "strat-swot"}
+{"id": "skill-hints-14", "lang": "en", "prompt": "size the market with TAM SAM SOM for pet insurance", "prior": [], "expected": "strat-tam"}
+{"id": "skill-hints-15", "lang": "pt", "prompt": "escreve a sequência de emails de boas-vindas", "prior": [], "expected": "mkt-email-sequence"}
+{"id": "skill-hints-16", "lang": "en", "prompt": "run an OWASP security audit on the API", "prior": [], "expected": "dev-security-audit"}
+{"id": "skill-hints-17", "lang": "pt", "prompt": "desenha o fluxo de onboarding de membros da comunidade", "prior": [], "expected": "community-onboard"}
+{"id": "skill-hints-18", "lang": "en", "prompt": "analyse churn with cohorts for our SaaS", "prior": [], "expected": "saas-churn"}
+{"id": "skill-hints-19", "lang": "pt", "prompt": "cria o calendário de conteúdo para o próximo mês", "prior": [], "expected": "content-calendar"}
+{"id": "skill-hints-20", "lang": "en", "prompt": "write the landing page headline variants for the course", "prior": [], "expected": "landing-headline"}
+{"id": "skill-hints-21", "lang": "pt", "prompt": "prepara a agenda da reunião one-on-one com a Ana", "prior": [], "expected": "lead-1on1"}
+{"id": "skill-hints-22", "lang": "en", "prompt": "design an n8n workflow to sync leads into the CRM", "prior": [], "expected": "ops-n8n"}
+{"id": "skill-hints-23", "lang": "pt", "prompt": "escreve os testes em falta para o serviço de pagamentos", "prior": [], "expected": "dev-test"}
+{"id": "skill-hints-24", "lang": "en", "prompt": "design a Grand Slam offer for the coaching program", "prior": [], "expected": "landing-offer"}
+{"id": "skill-hints-25", "lang": "pt", "prompt": "analisa as cinco forças de Porter no setor da restauração", "prior": [], "expected": "strat-five-forces"}
+{"id": "skill-hints-26", "lang": "en", "prompt": "create a thumbnail and title package for the next video", "prior": [], "expected": "content-thumbnail"}
+{"id": "skill-hints-27", "lang": "pt", "prompt": "faz o planeamento do orçamento anual do marketing", "prior": [], "expected": "fin-budget"}
+{"id": "skill-hints-28", "lang": "en", "prompt": "segment our customers with RFM", "prior": [], "expected": "ecom-rfm"}
+{"id": "skill-hints-29", "lang": "pt", "prompt": "refatoriza o módulo de faturação com revisão de clean code", "prior": [], "expected": "dev-refactor"}
+{"id": "skill-hints-30", "lang": "en", "prompt": "write the spec for the export feature before we build it", "prior": [], "expected": "dev-spec"}
+{"id": "skill-hints-31", "lang": "pt", "prompt": "implementa a funcionalidade de exportar faturas para PDF", "prior": [], "expected": "dev-feature"}
+{"id": "skill-hints-32", "lang": "en", "prompt": "prepare the investor pitch deck financials for seed", "prior": [], "expected": "fin-pitch"}
+{"id": "skill-hints-33", "lang": "pt", "prompt": "cria um script de vídeo para o YouTube sobre produtividade", "prior": [], "expected": "content-script"}
+{"id": "skill-hints-34", "lang": "en", "prompt": "build a gamification system for the Discord server", "prior": [], "expected": "community-gamify"}

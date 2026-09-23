@@ -3,11 +3,11 @@
 * ``topic-drift`` — is the new prompt a different task? (read)
 * ``refine`` — is the request too vague to build from? (read)
 * ``creation-intent`` — does the prompt ask to create/change? (write,
-  escalate-only: the JEV may turn a missed directive into a workflow,
+  escalate-only: Jev may turn a missed directive into a workflow,
   never switch the evidence flow off)
 * ``route`` — which department owns the prompt? (write)
 
-Questions are in English (the JEV's primary language) with an explicit
+Questions are in English (Jev's primary language) with an explicit
 pt-PT preamble. ROUTE's options derive from
 ``core.synapse.layers.DEPARTMENT_PATTERNS`` so a new department is never
 missing from the question.
@@ -29,6 +29,20 @@ REFINE_GAPS: dict[str, str] = {
     "acceptance": "It does not say how to tell it is DONE (behaviour, criteria, tests).",
     "none": "Nothing essential is missing.",
 }
+
+# Eduardo's wording (QG PR1 carry): the two clauses are exact complements
+# over the same three items, so no prompt satisfies both. The old "NO if it
+# names what to change and the intended result" overlapped the YES clause
+# for a prompt with a target and a scope but no success criterion.
+REFINE_CHECKLIST = (
+    "Check three items: a concrete target (WHAT to change: a file, component, page "
+    "or artefact), a bounded scope (HOW MUCH to change), and a success criterion "
+    "(how to tell it is DONE: the intended behaviour or result). An item counts as "
+    "present when it is stated, even briefly, or unmistakably implied (\"fix the "
+    "failing login test\" states its own success criterion). Answer YES when at "
+    "least one of the three items is missing; answer NO only when all three are "
+    "present."
+)
 
 # One line per department, from the CLAUDE.md department table.
 DEPARTMENT_DESCRIPTIONS: dict[str, str] = {
@@ -93,10 +107,7 @@ def _refine_questions() -> dict[str, Question]:
     return {
         "vague": Question(type=QuestionType.NOUL, instructions=_instructions(
             "The prompt asks an AI coding assistant to build or change something. "
-            "Answer yes when it is too vague to act on without guessing (it lacks a "
-            "concrete target, a bounded scope, or a success criterion), so asking "
-            "clarifying questions first would clearly help. Answer no when a "
-            "competent engineer could start working from it as written."
+            f"{REFINE_CHECKLIST}"
         )),
         "missing": Question(type=QuestionType.CHOICE, instructions=_instructions(
             "Which essential piece of information is most clearly missing from the "

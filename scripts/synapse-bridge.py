@@ -123,16 +123,18 @@ def load_commands_registry(root: Path) -> list:
 
 
 def _context_extra(input_data: dict[str, Any], session_id: str) -> dict[str, Any]:
-    """``PromptContext.extra``: the session id, plus the UPS route hint.
+    """``PromptContext.extra``: the session id, plus the UPS decision hints.
 
-    The hint (``{"dept", "p", "source"}``) comes from the JEV decisions
-    stage in the UserPromptSubmit hook; L1 validates it, the bridge only
-    carries it.
+    Both come from the JEV decisions stage in the UserPromptSubmit hook:
+    ``route_hint`` (``{"dept", "p", "source"}``, validated by L1) and
+    ``skill_hint`` (``{"id", "p", "source"}``, validated by L5 against the
+    registry). The bridge only carries them; a non-dict hint is dropped.
     """
     extra: dict[str, Any] = {"session_id": session_id}
-    hint = input_data.get("route_hint")
-    if isinstance(hint, dict):
-        extra["route_hint"] = hint
+    for key in ("route_hint", "skill_hint"):
+        hint = input_data.get(key)
+        if isinstance(hint, dict):
+            extra[key] = hint
     return extra
 
 

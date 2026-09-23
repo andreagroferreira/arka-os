@@ -165,7 +165,7 @@ PRICING: dict[str, dict[str, float]] = {
         "input": 1.25,
         "output": 5.00,
     },
-    # TypeSafe JEV 1.13 (typed decisions, not an LLM) — OpenRouter model
+    # TypeSafe Jev 1.13 (typed decisions, not an LLM) — OpenRouter model
     # page, 2026-09: $0.042 per MTok of input, output tokens free. The
     # smoke test of 2026-09-23 confirmed output_tokens billed at 0. The
     # endpoint echoes a dated id (typesafe/jev-1.13-20260917); callers

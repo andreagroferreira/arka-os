@@ -1,0 +1,32 @@
+{"id": "dispatch-role-01", "lang": "pt", "prompt": "Desenha o ecrã de onboarding com a nova paleta e tipografia", "prior": [], "expected": "design"}
+{"id": "dispatch-role-02", "lang": "en", "prompt": "Mock up the settings page layout for mobile", "prior": [], "expected": "design"}
+{"id": "dispatch-role-03", "lang": "pt", "prompt": "Revê este PR e aponta problemas de SOLID", "prior": [], "expected": "review"}
+{"id": "dispatch-role-04", "lang": "en", "prompt": "Do an adversarial review of the payment refactor", "prior": [], "expected": "review"}
+{"id": "dispatch-role-05", "lang": "pt", "prompt": "Audita o diff do módulo de autenticação antes do merge", "prior": [], "expected": "review"}
+{"id": "dispatch-role-06", "lang": "en", "prompt": "Write the ADR for moving the queue to Redis streams", "prior": [], "expected": "architecture"}
+{"id": "dispatch-role-07", "lang": "pt", "prompt": "Define o contrato de API entre o serviço de encomendas e o de stock", "prior": [], "expected": "architecture"}
+{"id": "dispatch-role-08", "lang": "en", "prompt": "Design the system boundaries for the new billing service", "prior": [], "expected": "architecture"}
+{"id": "dispatch-role-09", "lang": "pt", "prompt": "Analisa o mercado de ferramentas de agentes e o nosso posicionamento", "prior": [], "expected": "strategy"}
+{"id": "dispatch-role-10", "lang": "en", "prompt": "Build the pricing strategy for the pro tier", "prior": [], "expected": "strategy"}
+{"id": "dispatch-role-11", "lang": "pt", "prompt": "Prepara o roadmap do próximo trimestre com as apostas de produto", "prior": [], "expected": "strategy"}
+{"id": "dispatch-role-12", "lang": "en", "prompt": "Run the quality gate on this deliverable", "prior": [], "expected": "quality_gate"}
+{"id": "dispatch-role-13", "lang": "pt", "prompt": "Corre o Quality Gate com a Marta, o Eduardo e a Francisca", "prior": [], "expected": "quality_gate"}
+{"id": "dispatch-role-14", "lang": "en", "prompt": "Give me the QG verdict for the release notes", "prior": [], "expected": "quality_gate"}
+{"id": "dispatch-role-15", "lang": "pt", "prompt": "Implementa o endpoint de exportação de faturas em CSV", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-16", "lang": "en", "prompt": "Fix the failing test in test_orders.py", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-17", "lang": "pt", "prompt": "Adiciona paginação à listagem de clientes", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-18", "lang": "en", "prompt": "Wire the new webhook handler into the router", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-19", "lang": "pt", "prompt": "Corrige o bug do login que devolve 500", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-20", "lang": "en", "prompt": "Add a retry with backoff to the HTTP client", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-21", "lang": "pt", "prompt": "Escreve a mensagem de commit para estas alterações", "prior": [], "expected": "mechanical"}
+{"id": "dispatch-role-22", "lang": "en", "prompt": "Update the changelog for v5.18.0", "prior": [], "expected": "mechanical"}
+{"id": "dispatch-role-23", "lang": "pt", "prompt": "Formata estes ficheiros com o ruff e o prettier", "prior": [], "expected": "mechanical"}
+{"id": "dispatch-role-24", "lang": "en", "prompt": "Rename the variable usr to user across this file", "prior": [], "expected": "mechanical"}
+{"id": "dispatch-role-25", "lang": "pt", "prompt": "Vai buscar a lista de issues abertas e cola-a aqui", "prior": [], "expected": "mechanical"}
+{"id": "dispatch-role-26", "lang": "en", "prompt": "Review the copy of the landing page for tone and typos", "prior": [], "expected": "review"}
+{"id": "dispatch-role-27", "lang": "pt", "prompt": "Cria o design system dos botões e dos inputs", "prior": [], "expected": "design"}
+{"id": "dispatch-role-28", "lang": "en", "prompt": "Implement the design Valentina approved for the pricing table", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-29", "lang": "pt", "prompt": "Planeia a arquitetura do cache distribuído com ADR", "prior": [], "expected": "architecture"}
+{"id": "dispatch-role-30", "lang": "en", "prompt": "Assess our competitors' go-to-market and where we can win", "prior": [], "expected": "strategy"}
+{"id": "dispatch-role-31", "lang": "pt", "prompt": "Escreve os testes em falta para o serviço de envios", "prior": [], "expected": "execution"}
+{"id": "dispatch-role-32", "lang": "en", "prompt": "Regenerate the marketplace JSON after the version bump", "prior": [], "expected": "mechanical"}

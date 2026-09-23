@@ -1,8 +1,10 @@
 """Prepare a decision state for egress to a third party.
 
-Order: serialise (JSON for dict/list) → normalise the operator home to
-``<home>`` → with ``redact=True`` run ``core.egress.policy.evaluate``
-(clients, secrets, home paths; fail-closed) and keep the REDACTED text;
+Order: refuse secrets in every RAW string of the state (before JSON
+escaping hides quoted values) → serialise (JSON for dict/list) →
+normalise the operator home to ``<home>`` → with ``redact=True`` run
+``core.egress.policy.evaluate`` (clients, secrets, home paths;
+fail-closed) and keep the REDACTED text;
 with ``redact=False`` (prompt/command only; diff and transcript are
 always redacted) still refuse any secret and audit the send → cap at
 :data:`MAX_STATE_CHARS`. A denial raises
@@ -40,8 +42,8 @@ from core.decisions.models import State
 from core.decisions.paths import cache_root
 from core.decisions.site import StateClass
 from core.egress import audit
+from core.egress.credentials import egress_secret_labels
 from core.egress.policy import default_redaction_config_path, evaluate, payload_digest
-from core.governance.harness_scanner import secret_labels
 
 MAX_STATE_CHARS = 96_000
 # Raw text beyond this is dropped before the checks run (bounds their
@@ -67,6 +69,7 @@ def prepare_state(
     session_id: str = "",
 ) -> State:
     """The state as it may leave the machine, or DecisionUnavailable."""
+    _refuse_leaf_secrets(state)
     structured = isinstance(state, dict | list)
     text, scan_cut = _bounded(_normalise_home(_serialise(state)))
     # redactClients:false is honoured for prompt/command only: a diff or a
@@ -148,8 +151,53 @@ def _config_absent() -> bool:
     return isinstance(data, dict) and data.get("clients") == []
 
 
+def _leaves(state: object) -> Iterable[str]:
+    """Every string a state would serialise: keys, values, ``str()`` of the rest.
+
+    Iterative (a deep state cannot blow the stack) and bounded by
+    :data:`MAX_SCAN_CHARS` in total, the same budget as the text scan.
+    """
+    stack: list[object] = [state]
+    budget = MAX_SCAN_CHARS
+    while stack and budget > 0:
+        node = stack.pop()
+        if isinstance(node, dict):
+            stack.extend(node.values())
+            stack.extend(node.keys())
+            continue
+        if isinstance(node, list | tuple):
+            stack.extend(node)
+            continue
+        leaf = node if isinstance(node, str) else _leaf_text(node)
+        budget -= len(leaf)
+        yield leaf[:MAX_SCAN_CHARS]
+
+
+def _leaf_text(node: object) -> str:
+    if node is None or isinstance(node, bool | int | float):
+        return ""
+    try:
+        return str(node)  # json.dumps(default=str) ships exactly this
+    except Exception:
+        return ""
+
+
+def _refuse_leaf_secrets(state: object) -> None:
+    """Scan the RAW strings, before ``json.dumps`` escapes them.
+
+    Serialising first turned ``API_TOKEN="v"`` into ``API_TOKEN=\\"v\\"``,
+    and the value patterns captured only the backslash: quoted
+    credentials left on every path (QG PR2 r1 B1). The serialised text
+    is still scanned afterwards, as the second layer.
+    """
+    if any(egress_secret_labels(leaf) for leaf in _leaves(state)):
+        raise DecisionUnavailable("egress-denied:secret")
+
+
 def _refuse_secrets(text: str) -> str:
-    if secret_labels(text):
+    # One secret vocabulary with the policy (R-P1): vendor prefixes AND
+    # context-marked credentials (export TOKEN=, Bearer, -p, user:pass@).
+    if egress_secret_labels(text):
         raise DecisionUnavailable("egress-denied:secret")
     return text
 

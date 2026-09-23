@@ -681,6 +681,7 @@
     "enforcement_template": {
       "allow": true,
       "approval_state": "",
+      "bash_path": "",
       "bypass_used": false,
       "marker_found": null,
       "phase_observed": null,

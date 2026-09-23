@@ -94,8 +94,9 @@ The measured latency sits inside the 1.5 s hook ceiling. The route cap
 is 1000 ms: live telemetry on 2026-09-23 measured 462–589 ms per call,
 and three calls were cut on `timeout` at 638 ms under the former 600 ms
 cap, so 600 ms was cutting real calls. 1000 ms clears every call measured
-so far; bash-effect (PR2) keeps 600 ms until its own telemetry says
-otherwise. Both rely on the cache and on fallback when the cap is hit.
+so far. bash-effect moved to 1000 ms on 2026-09-23 after its first
+telemetry: replay p50 910 ms, and 2 of 4 live calls cut at 606 ms. Both
+rely on the cache and on fallback when the cap is hit.
 
 ### Operator decisions (2026-09-23)
 
@@ -148,7 +149,7 @@ never raises; `model` is `decisions.model` from `models.yaml`
    site uses its heuristic (or a no-op where none exists), the reason is
    logged and the hook records `[arka:degraded]`.
 6. **Bounded network.** ≤ 1.5 s hard timeout in hooks (1000 ms for route;
-   600 ms for bash-effect), 3–5 s in Forge, QG and cognition. The route
+   1000 ms for bash-effect since 2026-09-23), 3–5 s in Forge, QG and cognition. The route
    cap sits above what was measured on 2026-09-23: live calls between
    462 and 589 ms, three calls cut at 638 ms under the former 600 ms
    cap, and a p50 of 334 ms over one refine replay run (n = 34). No p95
@@ -164,6 +165,8 @@ never raises; `model` is `decisions.model` from `models.yaml`
    and `/arka decisions [period]` reports per site.
 9. **One call per UPS turn.** The questions of all active prompt sites
    travel in one request (answered in parallel), keyed `<site>__<q>`.
+   One bounded exception since PR2: the skill-hints repair call (see
+   "PR2" below), inside the same `decisions` stage and budget.
 
 ### Modes and thresholds
 
@@ -183,8 +186,8 @@ thresholds by risk: read 0.60, write 0.75, destructive 0.90.
 | 2 | refine (vague request) | `core/forge/complexity.py`, UPS | additive score ≥ 85 + carve-out | noul + choice {target, scope, acceptance, none} | read | 1 |
 | 3 | creation-intent | UPS | bilingual regex, unbudgeted | noul | write, escalate-only | 1 |
 | 4 | route (L1) | `core/synapse/layers.py` | regex counts, tie by dict order | choice: 16 departments + none | write (0.70) | 1 |
-| 5 | bash-effect | `core/workflow/flow_enforcer.py` | regex blacklist + whitelist | noul ×2 (mutates, destructive) | destructive, escalate-only | 2 |
-| 6 | forge-departments | `core/forge/orchestrator.py` | 5 keywords | choice; set p ≥ 0.20 ∪ keywords | read | 2 |
+| 5 | bash-effect | `core/workflow/flow_enforcer.py` | regex blacklist + whitelist | noul `requires_gating` (one question; PR2) | destructive, escalate-only | 2 |
+| 6 | forge-departments | `core/forge/orchestrator.py` | 5 keywords | choice; the set of departments with p ≥ 0.20, cap 4; no keyword union | read | 2 |
 | 7 | forge-complexity | `core/forge/complexity.py` | fixed weights over regex | 5× score (10 levels → 0–100) | read | 2 |
 | 8 | skill-hints (L5) | `core/synapse/layers.py` | substring count | choice top-2, precomputed | read | 2 |
 | 9 | ui-in-ts (frontend gate) | `core/workflow/frontend_gate.py` | content regex, WARN-only | noul | write, escalate-only | 3 |
@@ -236,6 +239,180 @@ heuristic 90.9 %, n = 34). Caveat: the refine corpus was seeded from the
 heuristic's own unit tests, which favours the heuristic; PR5 relabels it
 independently before any promotion.
 
+## PR2 — command, Forge and dispatch sites (2026-09-23)
+
+Spec: the PR2 note of 2026-09-23 in the vault (`Projects/ArkaOS/Specs/`,
+Paulo's decisions 1–5). Six sites; four `act` by default, the two Forge
+sites `shadow` (demoted by the replay gate, below):
+
+| Site | Call site | Heuristic | Output |
+|---|---|---|---|
+| bash-effect | `flow_enforcer._bash_effect_with_jev` (from `_evaluate_gate`) | `bash_is_effect` | escalate-only: a discovery command may become gated, never the reverse |
+| forge-departments | `core/forge/jev_sites.decide_departments` (step 3) | `_estimate_departments` | the Jev set (p ≥ 0.20, cap 4, no keyword union) when it acts; `shadow` since 2026-09-23 |
+| forge-complexity | `core/forge/jev_sites.decide_dimensions` (step 3) | `score_dimensions` | five 0–100 scores into `analyze_complexity(dimensions=)`; weights and `determine_tier` untouched; `shadow` since 2026-09-23 |
+| dispatch-role | UPS `decisions` stage | `keyword_dispatch_role` | `[arka:dispatch-role] role=<r> p=<p> source=jev\|heuristic`; never quality → economy |
+| subagent-discipline | UPS `decisions` stage | `keyword_needs_isolation` | `[arka:subagent-discipline] isolate=yes\|no p=<p> source=jev`; quality dispatches ask nothing |
+| skill-hints | UPS `decisions` stage → bridge `skill_hint` → L5 | L5 top-1 keyword command | L5 ranks the hinted registry id first, after a project signal |
+
+**Decision 1 — the Node fast-path stays as it is.** `engine.cjs::decidePre()`
+fast-allows discovery commands (~18 ms) without starting Python; asking
+Jev there would make the shim delegate every discovery command
+(the majority per turn, +300–600 ms each) for a marginal gain: the
+whitelist is ~40 read-only tokens and anything unknown is already
+default-deny. PR2 therefore consults Jev **only on the Python path**
+(commands that reach `flow_enforcer`: effect commands, or discovery
+commands while a budget is active or the fast-path is off), under a
+1000 ms ceiling the hook enforces itself (an operator `timeoutMs` cannot
+raise it). Every Bash line `flow_enforcer` writes to
+`~/.arkaos/telemetry/enforcement.jsonl` carries `bash_path: "python"`;
+the Node fast-path renders the manifest template, where it stays `""`.
+PR5 decides the shim's delegation on those two counts, not on opinion.
+
+**Skill-hints menu.** Jev never sees the 308 commands (the endpoint
+caps a choice at 255 options). `core/synapse/command_menu.skill_hint_candidates`
+— the one builder the hook and the replay share — returns the top-20
+L5 keyword commands, then every command of the routed department,
+de-duplicated and capped at 60 (+ `none`), descriptions cut to 160
+characters. The routed department is the L1 keyword route in the turn's
+single call. When the Jev route moves the prompt to another department
+and that first menu yielded no command (not asked, `none`, or unsure),
+the stage makes **one** repair call for skill-hints alone over the new
+department's menu, bounded by what is left of the same budget; an
+unanswered skill question is never repaired. Menu coverage on the
+skill-hints corpus: 58.8 % (20/34) with the keyword route, 100 % (34/34)
+with the right route. The replay scores the site with the route taken as
+correct (`replay_route`: the expected command's department) — it
+measures the site's own job; end-to-end coverage is bounded by the route
+site (90.9 % in PR1's replay).
+
+**Forge budget (decision 3).** The Forge had no latency primitive.
+`core/forge/budget.ForgeBudget` is a monotonic deadline (5 s per step 3)
+and `remaining_ms(cap=3000)` bounds each call; the two sites run in
+sequence (the complexity question sees the departments the first call
+settled on), so the second call gets `min(3000, what is left)`. No call
+leaves without a deadline; any fallback keeps the keyword estimates and
+the Forge scores exactly as before.
+
+**Two weak baselines, on record.** The replay's offline numbers for the
+heuristics Jev replaces: forge-complexity puts all 32 corpus cases
+in STANDARD (37.5 % accuracy, the share of STANDARD labels), and
+skill-hints' L5 top-1 keyword command is right in 17.6 % of 34 cases.
+Beating them is not evidence of quality on its own; the gate still
+compares Jev against the heuristic on the same cases + 5 pp.
+
+PR2 replay (online, 2026-09-23). skill-hints with the keyword route only
+(no repair): Jev 62.5 % (20 of 32 answered), act accuracy 58.8 % (20 of 34).
+
+| Site | Corpus n | Answered | Jev | Heuristic | Result |
+|---|---|---|---|---|---|
+| bash-effect | 38 | 33 | 100.0 % | 48.5 % | pass, `act` (abstain 13.2 %, false escalations 0.0 %) |
+| forge-departments | 34 | 24 | 70.8 % | 16.7 % | fail (abstain 29.4 % at the 3000 ms ceiling), demoted to `shadow` |
+| forge-complexity | 32 | 3 | 66.7 % | 33.3 % | fail (abstain 90.6 %), demoted to `shadow` |
+| dispatch-role | 32 | 32 | 100.0 % | 84.4 % | pass, `act` (abstain 0.0 %, false escalations 0.0 %) |
+| subagent-discipline | 32 | 25 | 96.0 % | 88.0 % | pass, `act` (abstain 21.9 %) |
+| skill-hints | 34 | 34 | 100.0 % | 17.6 % | pass, `act` |
+
+Online replay by Rita on 2026-09-23 with an empty cache; heuristic
+accuracy is measured on the same answered cases. forge-departments,
+forge-complexity and dispatch-role were re-run 2026-09-23 after the
+question/corpus edits, each with its own empty cache and breaker
+directory (`ARKA_DECISIONS_CACHE_DIR`); unavailable calls count as
+abstentions: 2 timeouts for forge-complexity, none for dispatch-role.
+
+Those runs capped every call at a fixed 5 s, above the ceilings the live
+sites use. forge-departments was therefore re-run once more at the
+Forge's real 3000 ms per-call cap (`--timeout-ms 3000`, own cache and
+breaker): 6 of 34 calls were cut at 3 s, abstain rose to 29.4 % (> 25 %),
+and the site failed the gate although Jev was right on 70.8 % of the 24
+cases it answered vs the keyword estimate's 16.7 % (p50 561 ms). What
+follows from the ceiling: the question is right more often than the
+heuristic, but too slow for the budget, so forge-departments ships in
+`shadow` and the Forge keeps its keyword estimate; promotion waits for a
+call that fits 3 s. Since this run the replay caps each call at the
+site's own `timeout_ms` by default (`--timeout-ms` overrides it), so a
+replay measures the call the live site would make. The bash-effect,
+dispatch-role, subagent-discipline and skill-hints rows above were
+measured at the fixed 5 s and are not yet re-validated at their own
+ceilings (1000 ms and 1500 ms). The skill-hints row carries a caveat:
+`replay_route` builds the menu from the expected command's department,
+so the replay accuracy is an isolated upper bound, not the live routing
+condition.
+
+**Ceiling re-validation: not on record after two attempts.** Two re-runs
+on 2026-09-23 tried to measure the live sites at their own ceilings, and
+both measured the endpoint, not the sites. The first, on the four PR2
+`act` sites above, hit an overloaded endpoint (HTTP 529, then the
+breaker). The second ran at ~21:25 local on route, topic-drift,
+creation-intent, refine and forge-departments, each with its own empty
+cache and breaker directory and `--timeout-ms` at the site's live
+ceiling, on a machine at load average 6.8 on 16 cores. bash-effect,
+dispatch-role, subagent-discipline and skill-hints were not in it.
+
+| Site | Ceiling | n | Unavailable | Jev abstained | Answered | Jev on answered | Heuristic, same cases | p50 (calls sent) | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| route | 1000 ms | 33 | 14 | 0 | 19 | 89.5 % | 73.7 % | 557 ms | fail (abstain 42.4 %) |
+| topic-drift | 1500 ms | 34 | 27 | 0 | 7 | 100.0 % | 85.7 % | 1114 ms | fail (abstain 79.4 %) |
+| creation-intent | 1500 ms | 47 | 40 | 2 | 5 | 80.0 % | 80.0 % | 1501 ms | fail (abstain 89.4 %; precision below +5 pp on 5 cases; false escalations 0.0 %) |
+| refine | 1500 ms | 34 | 20 | 0 | 14 | 57.1 % | 85.7 % | 712 ms | fail (abstain 58.8 %; precision below the heuristic, consistent with the PR1 demotion) |
+| forge-departments | 3000 ms | 34 | 26 | 1 | 7 | 71.4 % | 14.3 % | 504 ms | fail (abstain 79.4 %) |
+
+Abstain is (unavailable + Jev abstained) / n. The report's `abstain_rate`
+covers both; `unavailable` counts only the cases no call answered, so Jev
+abstained = abstain_rate × n − unavailable.
+Derived from `replay-r4/<site>.json` (`abstain_rate`, `unavailable`,
+`jev_accuracy`, `heuristic_on_answered`, `p50_latency_ms`, `timeout_ms`,
+`gate`; n is the sum of `by_lang.*.cases`).
+
+In all five runs the breaker opened on three consecutive timeouts
+(`backoff-<site>.json`: `{"reason": "timeout"}`), and the remaining cases
+were counted unavailable (`backoff:timeout`) without a call. Three
+probes of the endpoint in the same 25 minutes, one-question payload and
+an 8 s client timeout: at 21:33, 29 of 30 answered (1 timeout), p50
+2588 ms, p90 3560 ms, 12 under 1000 ms; at 21:43, 20 of 20, p50 649 ms,
+p90 4553 ms, 13 under 1000 ms; at 21:46, 15 of 20 (5 timeouts), p50
+354 ms, p90 4362 ms, 9 under 1000 ms. About half answered under
+1000 ms (34 of 70); the p90 sat between 3.5 and 4.6 s and the slowest
+answer took 6.7 s. At 13:40 the same day the smoke test got answers
+in 282–589 ms. On the cases Jev did answer, the ordering matched the
+PR1 and PR2 replays for every site: Jev above the heuristic on route,
+topic-drift and forge-departments, below it on refine, and
+creation-intent inconclusive on 5 answered cases.
+
+Modes are therefore unchanged and rest on the PR1 and PR2 measurements
+above. The abstain gate measures availability at a point in time; the
+precision gate measures quality. A demotion needs a run that measured
+the site, not an endpoint outage, and neither re-run was one. Under an
+endpoint in this state, `act` costs this: each hook call waits up to its
+ceiling, three consecutive timeouts open the breaker for 60 s, the
+heuristic answers meanwhile, and every fallback is counted
+(`reason=timeout` in the hook tag, `backoff:timeout` in the replay).
+That is the designed degradation, bounded by the UPS budget. The
+session showed it live: the UserPromptSubmit hook emitted
+`[arka:route-confidence] dept=ops source=keyword reason=timeout` at 21:45
+and `dept=dev p=0.93 source=jev` at 21:47.
+
+Carried to PR5: (a) re-validate the seven `act` sites at their ceilings
+on a day the one-question probe's p90 sits under 1000 ms, before the
+PR5 demotion pass; (b) split `unavailable` in the replay report by
+reason (timeout, http-5xx, backoff, egress), so a run can tell an
+endpoint outage from a Jev abstention. Today it cannot: this record had
+to lean on `backoff-<site>.json` and an external probe; (c) when (b)
+lands, write the rule "a demotion needs a run that measured the site"
+into the gate text itself (the shadow → act gate paragraph above and
+`replay.py`). Today it lives only in this narrative.
+
+`forge-complexity` demoted to shadow on 2026-09-23 by the replay gate
+(re-run: Jev 66.7 % vs heuristic 33.3 % on the 3 cases it answered,
+abstain 90.6 %, n = 32). With the threshold at zero (measured on the
+first run only) the tier accuracy was 43.8 % vs 37.5 %: the weakness is
+in the answers, not the threshold.
+PR5 relabels the corpus before any promotion. The site stays
+registered; it runs in `act` only by operator override
+(`decisions.sites.forge-complexity: act` in `~/.arkaos/config.json`),
+and in shadow the Forge scores with `score_dimensions` exactly as
+before. The same holds for forge-departments
+(`decisions.sites.forge-departments: act`).
+
 ## Consequences
 
 - Hooks gain one bounded outbound call per turn when a key exists; p95 of
@@ -270,6 +447,13 @@ independently before any promotion.
   that inherit the environment.
 - Every heuristic remains in the codebase as a pure function, reachable
   as the fallback and as the replay baseline. Nothing is deleted.
+- Open for PR5 (from the PR2 ceiling re-validation): the seven `act`
+  sites are not yet measured at their own ceilings on a healthy endpoint
+  (re-run when the one-question probe's p90 is under 1000 ms, before the
+  demotion pass), and the replay report does not split `unavailable` by
+  reason (timeout, http-5xx, backoff, egress); when it does, the rule
+  "a demotion needs a run that measured the site" moves from this
+  narrative into the gate text and `replay.py`.
 - Operator prerequisites: `npx arkaos keys set OPENROUTER_API_KEY <key>`
   and disabling training/logging for paid models on the OpenRouter
   account.

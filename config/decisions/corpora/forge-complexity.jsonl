@@ -1,0 +1,32 @@
+{"id": "forge-complexity-01", "lang": "pt", "prompt": "Corrige a gralha no título do README", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-02", "lang": "en", "prompt": "Rename the constant MAX_RETRIES to RETRY_LIMIT in client.py", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-03", "lang": "pt", "prompt": "Muda a cor do botão principal para azul no ficheiro de tema", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-04", "lang": "en", "prompt": "Bump the lodash version in package.json", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-05", "lang": "pt", "prompt": "Acrescenta um comentário a explicar a tolerância de 0.05", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-06", "lang": "en", "prompt": "Fix the broken link in docs/install.md", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-07", "lang": "pt", "prompt": "Remove o import não usado em core/decisions/engine.py", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-08", "lang": "en", "prompt": "Update the copyright year in the footer component", "prior": [], "expected": "SHALLOW"}
+{"id": "forge-complexity-09", "lang": "pt", "prompt": "Adiciona o campo telefone ao formulário de contacto com validação e teste", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-10", "lang": "en", "prompt": "Add pagination to the orders API endpoint with tests", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-11", "lang": "pt", "prompt": "Implementa a exportação de relatórios em CSV no painel de administração", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-12", "lang": "en", "prompt": "Add a retry with exponential backoff to the webhook sender and cover it with tests", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-13", "lang": "pt", "prompt": "Cria uma página de definições com preferências de notificação", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-14", "lang": "en", "prompt": "Write a new CLI subcommand that lists stale specs", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-15", "lang": "pt", "prompt": "Integra o envio de emails transacionais com o fornecedor atual e testes", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-16", "lang": "en", "prompt": "Refactor the cache module to support TTL per key", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-17", "lang": "pt", "prompt": "Adiciona filtros por data e estado à listagem de encomendas", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-18", "lang": "en", "prompt": "Build a small dashboard widget showing today's LLM cost", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-19", "lang": "pt", "prompt": "Cria o endpoint de pesquisa de produtos com paginação", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-20", "lang": "en", "prompt": "Add dark mode to the settings page", "prior": [], "expected": "STANDARD"}
+{"id": "forge-complexity-21", "lang": "pt", "prompt": "Migra a autenticação de sessões para OAuth2 com SSO em todos os serviços, incluindo migração da base de dados", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-22", "lang": "en", "prompt": "Re-architect the billing system for multi-currency payments with a production data migration", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-23", "lang": "pt", "prompt": "Divide o monólito em microsserviços com filas de eventos e deploy independente", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-24", "lang": "en", "prompt": "Replace the workflow engine with a new event-sourced core across every department", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-25", "lang": "pt", "prompt": "Implementa encriptação ponta a ponta das mensagens com rotação de chaves e auditoria de segurança", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-26", "lang": "en", "prompt": "Move the whole infrastructure to Kubernetes with zero-downtime deploys and secrets management", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-27", "lang": "pt", "prompt": "Reescreve o motor de permissões com RBAC por organização e migração dos dados de produção", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-28", "lang": "en", "prompt": "Build multi-tenant isolation into the database schema and every API", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-29", "lang": "pt", "prompt": "Melhora o sistema", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-30", "lang": "en", "prompt": "Make everything better and faster", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-31", "lang": "pt", "prompt": "Cria uma plataforma nova de pagamentos com faturação, subscrições e conformidade PCI", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-32", "lang": "en", "prompt": "Introduce a plugin system with a public API contract and a migration path for existing integrations", "prior": [], "expected": "DEEP"}

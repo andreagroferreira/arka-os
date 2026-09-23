@@ -35,8 +35,21 @@ def test_new_department_is_never_forgotten(monkeypatch):
     assert route_options()["legal"] == "The 'legal' department."
 
 
-def test_registry_holds_the_four_sites():
-    assert set(SITES) == {"topic-drift", "refine", "creation-intent", "route"}
+def test_registry_holds_the_ten_sites():
+    assert set(SITES) == {
+        "topic-drift", "refine", "creation-intent", "route", "bash-effect",
+        "forge-departments", "forge-complexity", "dispatch-role",
+        "subagent-discipline", "skill-hints",
+    }
+
+
+def test_site_names_never_collide_on_the_wire():
+    # question_key maps "-" to "_" and splits on "__": two names equal after
+    # the mapping, or one holding "__", would mix their answers.
+    wire = [name.replace("-", "_") for name in SITES]
+    assert len(set(wire)) == len(wire) == 10
+    assert not any("__" in w for w in wire)
+    assert all(site.name == name for name, site in SITES.items())
 
 
 @pytest.mark.parametrize("site", [TOPIC_DRIFT, REFINE, CREATION_INTENT, ROUTE])
@@ -49,7 +62,7 @@ def test_questions_carry_the_language_preamble(site):
 
 
 def test_all_questions_fit_in_one_request():
-    calls = [SiteCall(s, None) for s in SITES.values()]
+    calls = [SiteCall(s, None) for s in prompt_sites.PROMPT_SITES]
     request = build_request(calls, prompt_state("olá"), "typesafe/jev-1.13")
     assert set(request.questions) == {
         "topic_drift__topic_shift", "refine__vague", "refine__missing",
@@ -94,3 +107,15 @@ def test_route_interpret():
     assert ROUTE.interpret({"department": Answer(choice="dev", confidence=1.0)}, 0.7) == "dev"
     assert ROUTE.interpret({"department": Answer(choice="none", confidence=0.79)}, 0.7) == ""
     assert ROUTE.interpret({"department": Answer(choice="dev", confidence=0.5)}, 0.7) is None
+
+
+def test_refine_clauses_are_exact_complements():
+    # Eduardo (QG PR1 carry): a prompt with target + scope but no success
+    # criterion must fall into ONE clause — YES — never into both.
+    text = REFINE.questions()["vague"].instructions
+    assert "Answer YES when at least one of the three items is missing" in text
+    assert "answer NO only when all three are present" in text
+    for item in ("concrete target", "bounded scope", "success criterion"):
+        assert item in text
+    assert "competent engineer" not in text and "intended result, even briefly" not in text
+    assert prompt_sites.REFINE_CHECKLIST in text

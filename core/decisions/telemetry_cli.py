@@ -43,7 +43,7 @@ def _render(summary: DecisionsSummary) -> str:
     ]
     if summary.by_site:
         lines += ["", "## By site", "",
-                  "| Site | Calls | Agree | Fallback | Acted JEV | p50 | Cost |",
+                  "| Site | Calls | Agree | Fallback | Acted Jev | p50 | Cost |",
                   "|---|---|---|---|---|---|---|"]
         lines += [_site_row(name, s) for name, s in summary.by_site.items()]
     if summary.top_fallback_reasons:

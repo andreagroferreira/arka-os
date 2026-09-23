@@ -66,9 +66,16 @@ def analyze_complexity(
     departments: list[str],
     similar_plans: list[str],
     reused_patterns: list[str],
+    dimensions: ComplexityDimensions | None = None,
 ) -> ComplexityScore:
-    """Full complexity analysis: dimensions, weighted score, tier."""
-    dims = score_dimensions(prompt, affected_files, departments, similar_plans, reused_patterns)
+    """Full complexity analysis: dimensions, weighted score, tier.
+
+    ``dimensions`` are precomputed scores (the Forge's ``forge-complexity``
+    Jev site); None scores them here with the heuristic, as before.
+    """
+    dims = dimensions if dimensions is not None else score_dimensions(
+        prompt, affected_files, departments, similar_plans, reused_patterns
+    )
     score = calculate_weighted_score(dims)
     tier = determine_tier(score)
     return ComplexityScore(
@@ -121,7 +128,8 @@ def _score_risk(prompt: str, files: list[str]) -> int:
     risk_matches = len(_RISK_KEYWORDS.findall(prompt))
     score += min(50, risk_matches * 15)
     sensitive_paths = sum(
-        1 for f in files if any(kw in f for kw in ("auth", "security", "migration", "deploy", "config"))
+        1 for f in files
+        if any(kw in f for kw in ("auth", "security", "migration", "deploy", "config"))
     )
     score += min(30, sensitive_paths * 15)
     return min(100, score)

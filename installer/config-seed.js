@@ -11,12 +11,18 @@
 //   knowledge.graphify.enabled  = true   (graphify HTTP — "active once configured".
 //                                          Applies only when a url + token are also
 //                                          set; a fresh user with no endpoint is a no-op.)
-//   decisions.*                 = see SCALAR_SEEDS below (PR1 — JEV Decisions
-//                                          Layer campaign: enabled, transport,
-//                                          redactClients, timeouts, thresholds,
-//                                          per-site modes. Non-boolean scalars,
-//                                          seeded key-by-key so a partial user
-//                                          "decisions" section only fills gaps.)
+//   decisions.*                 = see SCALAR_SEEDS below (PR1+PR2 — JEV
+//                                          Decisions Layer campaign: enabled,
+//                                          transport, redactClients, timeouts,
+//                                          thresholds, per-site modes across
+//                                          10 sites (topic-drift, refine,
+//                                          creation-intent, route, bash-effect,
+//                                          forge-departments, forge-complexity,
+//                                          skill-hints, dispatch-role,
+//                                          subagent-discipline). Non-boolean
+//                                          scalars, seeded key-by-key so a
+//                                          partial user "decisions" section
+//                                          only fills gaps.)
 //
 // Returns a status object:
 //   { action: "created" | "added-key" | "noop"
@@ -66,6 +72,13 @@ const SCALAR_SEEDS = [
   [["decisions", "sites", "route", "mode"], "act"],
   [["decisions", "sites", "route", "minConfidence"], 0.7],
   [["decisions", "sites", "route", "timeoutMs"], 1000],
+  [["decisions", "sites", "bash-effect", "mode"], "act"],
+  [["decisions", "sites", "bash-effect", "timeoutMs"], 1000],
+  [["decisions", "sites", "forge-departments"], "shadow"],
+  [["decisions", "sites", "forge-complexity"], "shadow"],
+  [["decisions", "sites", "skill-hints"], "act"],
+  [["decisions", "sites", "dispatch-role"], "act"],
+  [["decisions", "sites", "subagent-discipline"], "act"],
 ];
 
 function defaultConfig() {

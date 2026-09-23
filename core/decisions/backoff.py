@@ -1,7 +1,10 @@
 """Circuit breaker shared by every process: one JSON file under the cache.
 
 ``trip`` records ``{"reason", "until"}``; ``blocked`` answers the reason
-while ``now < until``. A longer existing block is never shortened.
+while ``now < until``. A longer existing block is never shortened — unless
+another key set it: an ``http-401`` trip also records the key's
+fingerprint (:func:`~core.decisions.transport.key_fingerprint`), and
+rotating the key reopens the breaker at once (R-B1).
 Neither function raises — a broken breaker means "not blocked".
 
 Transport failures (``timeout`` / ``network``) trip it too, but only
@@ -23,6 +26,7 @@ import time
 from pathlib import Path
 
 from core.decisions.paths import cache_root
+from core.decisions.transport import key_fingerprint
 
 # No caller trips for longer (client.py caps Retry-After at an hour); a
 # deadline further out is a corrupt or planted file, not a real trip,
@@ -90,7 +94,7 @@ def blocked(now: float | None = None) -> str | None:
     """The trip reason while the breaker is open, else None."""
     state = _read()
     until = state.get("until")
-    if not isinstance(until, int | float):
+    if not isinstance(until, int | float) or _set_by_other_key(state):
         return None
     ref = time.time() if now is None else now
     if ref >= until or until - ref > MAX_BLOCK_S:
@@ -102,11 +106,21 @@ def trip(reason: str, seconds: float, now: float | None = None) -> None:
     """Open the breaker for ``seconds``; keeps any later existing deadline."""
     ref = time.time() if now is None else now
     until = ref + min(max(0.0, float(seconds)), MAX_BLOCK_S)
-    current = _read().get("until")
-    if isinstance(current, int | float) and until < current <= ref + MAX_BLOCK_S:
+    state = _read()
+    current = state.get("until")
+    keep = not _set_by_other_key(state)
+    if keep and isinstance(current, int | float) and until < current <= ref + MAX_BLOCK_S:
         return
+    payload: dict[str, object] = {"reason": reason, "until": until}
+    if reason == "http-401":
+        payload["key"] = key_fingerprint()
     with contextlib.suppress(OSError, ValueError):
-        _atomic_write(_state_path(), {"reason": reason, "until": until})
+        _atomic_write(_state_path(), payload)
+
+
+def _set_by_other_key(state: dict[str, object]) -> bool:
+    key = state.get("key")
+    return isinstance(key, str) and key != key_fingerprint()
 
 
 def _atomic_write(path: Path, payload: dict[str, object]) -> None:

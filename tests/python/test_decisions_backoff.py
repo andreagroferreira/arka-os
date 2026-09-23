@@ -108,3 +108,56 @@ def test_created_directory_chain_is_private(tmp_path, monkeypatch):
         os.umask(old)
     for d in (tmp_path / "a", tmp_path / "a" / "b", root):
         assert stat.S_IMODE(d.stat().st_mode) == 0o700, d
+
+
+# --- R-B1: a 401 is bound to the key that earned it -------------------------
+
+def test_rotating_the_key_reopens_a_401_breaker(monkeypatch, tmp_path):
+    # Kills: blocked() / trip() ignoring the stored key fingerprint.
+    from _decisions_helpers import isolate_decisions
+
+    from core.decisions import backoff as bo
+    from core.decisions.transport import key_fingerprint
+
+    isolate_decisions(monkeypatch, tmp_path, key="sk-or-key-a")
+    fp_a = key_fingerprint()
+    bo.trip("http-401", 600)
+    assert bo.blocked() == "http-401"
+    assert bo._read()["key"] == fp_a and len(fp_a) == 8
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-key-b")
+    assert key_fingerprint() != fp_a
+    assert bo.blocked() is None
+    long_until = bo._read()["until"]
+    bo.trip("http-401", 10)  # key B's shorter trip replaces key A's longer one
+    assert bo.blocked() == "http-401"
+    assert bo._read()["until"] < long_until - 500
+    assert bo._read()["key"] == key_fingerprint()
+
+
+def test_non_401_trips_are_not_key_bound(monkeypatch, tmp_path):
+    from _decisions_helpers import isolate_decisions
+
+    from core.decisions import backoff as bo
+
+    isolate_decisions(monkeypatch, tmp_path, key="sk-or-key-a")
+    bo.trip("http-529", 600)
+    assert "key" not in bo._read()
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-key-b")
+    assert bo.blocked() == "http-529"
+    bo.trip("http-529", 10)  # same unbound breaker: the later deadline stays
+    assert bo._read()["until"] > time_now() + 500
+
+
+def time_now() -> float:
+    import time
+
+    return time.time()
+
+
+def test_key_fingerprint_without_a_key_is_empty(monkeypatch, tmp_path):
+    from _decisions_helpers import isolate_decisions
+
+    from core.decisions.transport import key_fingerprint
+
+    isolate_decisions(monkeypatch, tmp_path, key=None)
+    assert key_fingerprint() == ""
