@@ -8,9 +8,11 @@ best/default/fast aliases. Haiku is deliberately absent: the weakest
 lane ArkaOS routes to is Sonnet 5 (operator decision, Runtime Sync 2026-09-03).
 
 Model IDs verified against the Claude Code 2.1.280 alias table (2026-09-22:
-`opus` → claude-opus-5-5) and the model-config reference (2026-09). This is the single place they
-are hand-listed — update HERE when the runtime
-ships new models; the dashboard and CLI read from this module. Codex /
+`opus` → claude-opus-5-5) and the model-config reference (2026-09). This is the single place
+the picker catalogue is hand-listed — update HERE when the runtime ships new
+models; the dashboard and CLI read from this module. The ids also live in
+pricing.py, model_router.py, claude_code.py, gateway/litellm_config.py and
+installer/fallback-model.js (one sweep touches all six). Codex /
 Gemini / Cursor models are left empty on purpose: we do not hardcode
 another vendor's catalogue, and the UI falls back to a free-text field
 so the user types the exact id their runtime accepts.

@@ -368,7 +368,10 @@ class ClaudeConfigManager:
                 # decision: move it to the current default.
                 settings[key] = default
                 report.actions.append(
-                    SurfaceAction(surface, "upgraded", "previous ArkaOS default; re-seeded")
+                    SurfaceAction(
+                        surface, "upgraded",
+                        "previous ArkaOS default; moved to the current default",
+                    )
                 )
             elif reseed:
                 settings[key] = default

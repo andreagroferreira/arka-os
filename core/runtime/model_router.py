@@ -94,7 +94,8 @@ def normalise_model_id(model: str, source: str = "models.yaml") -> str:
         _LEGACY_NOTICED.add((source, model))
         print(
             f"[arka:warn] {source} pins legacy model {model!r}; resolving as "
-            f"{current!r} (Runtime Sync {LEGACY_SYNC_DATE}). Update the pin to silence this.",
+            f"{current!r} (retired lane; last sweep {LEGACY_SYNC_DATE}). "
+            "Update the pin to silence this.",
             file=sys.stderr,
         )
     return current

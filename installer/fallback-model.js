@@ -13,7 +13,7 @@
 //     chain that is exactly a default ArkaOS itself seeded in an earlier
 //     release (PREVIOUS_FALLBACK_DEFAULTS). Any other operator chain — an
 //     array, an explicit empty array, or the legacy string form — is
-//     preserved byte for byte (a default the operator may replace).
+//     preserved byte for byte.
 //   - Atomic write via .tmp + rename.
 //   - Never raises — failures are non-fatal.
 //
@@ -41,6 +41,54 @@ function isPreviousDefault(value) {
 }
 
 
+// The settings object, or the `skipped` reason the seeder reports as-is.
+function readSettingsObject(settingsPath) {
+  if (!existsSync(settingsPath)) {
+    return { skipped: "claude-settings-not-found" };
+  }
+  let settings;
+  try {
+    settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+  } catch {
+    return { skipped: "settings-not-parseable" };
+  }
+  if (typeof settings !== "object" || settings === null || Array.isArray(settings)) {
+    return { skipped: "settings-not-object" };
+  }
+  return { settings };
+}
+
+// What the seeder does with the value already under `fallbackModel`:
+//   created  — key absent or JSON null (the runtime, drift and the config
+//              manager all read null as unset);
+//   upgraded — exactly a chain ArkaOS itself seeded before, and not the
+//              chain being seeded now (a custom defaultValue may equal it):
+//              written by us, not by the operator, so it moves on;
+//   noop     — any other present value is the operator's choice: an array,
+//              an empty array (chain disabled on purpose) or the legacy
+//              single string, preserved byte for byte.
+function seedAction(existing, defaultValue) {
+  if (existing === undefined || existing === null) {
+    return "created";
+  }
+  if (isPreviousDefault(existing) && !sameChain(existing, defaultValue)) {
+    return "upgraded";
+  }
+  return "noop";
+}
+
+// Atomic write via .tmp + rename; false on any failure (the seeder never raises).
+function writeSettingsAtomic(settingsPath, settings) {
+  const tmp = `${settingsPath}.tmp-${process.pid}`;
+  try {
+    writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n");
+    renameSync(tmp, settingsPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function seedFallbackModel({
   runtime = "claude-code",
   home = homedir(),
@@ -50,41 +98,22 @@ export function seedFallbackModel({
     return { skipped: "runtime-not-claude-code", action: null };
   }
   const settingsPath = join(home, ".claude", "settings.json");
-  if (!existsSync(settingsPath)) {
-    return { skipped: "claude-settings-not-found", action: null };
+  const loaded = readSettingsObject(settingsPath);
+  if (loaded.skipped) {
+    return { skipped: loaded.skipped, action: null };
   }
-  let settings;
-  try {
-    settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
-  } catch {
-    return { skipped: "settings-not-parseable", action: null };
-  }
-  if (typeof settings !== "object" || settings === null || Array.isArray(settings)) {
-    return { skipped: "settings-not-object", action: null };
-  }
+  const { settings } = loaded;
   const existing = settings.fallbackModel;
-  // A chain equal to a previous ArkaOS default was written by us, not by
-  // the operator: it moves to the current default (unless a custom
-  // defaultValue already equals it).
-  const upgrade = isPreviousDefault(existing) && !sameChain(existing, defaultValue);
-  if (existing !== undefined && existing !== null && !upgrade) {
-    // Present in any other non-null shape is the operator's choice: an
-    // array, an empty array (chain disabled on purpose) or the legacy
-    // single string. JSON null reads as unset (the runtime, drift and the
-    // config manager agree), so it is seeded like an absent key.
-    return { skipped: null, action: "noop", value: existing };
+  const action = seedAction(existing, defaultValue);
+  if (action === "noop") {
+    return { skipped: null, action, value: existing };
   }
   const value = [...defaultValue];
   settings.fallbackModel = value;
-  const tmp = `${settingsPath}.tmp-${process.pid}`;
-  try {
-    writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n");
-    renameSync(tmp, settingsPath);
-  } catch {
+  if (!writeSettingsAtomic(settingsPath, settings)) {
     return { skipped: "write-failed", action: null };
   }
-  if (upgrade) {
-    return { skipped: null, action: "upgraded", value, previous: existing };
-  }
-  return { skipped: null, action: "created", value };
+  return action === "upgraded"
+    ? { skipped: null, action, value, previous: existing }
+    : { skipped: null, action, value };
 }

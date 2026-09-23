@@ -52,7 +52,7 @@ class TestOpus55Pricing:
     resolves to is priced — 10 subagent rows had cost None the day the
     alias flipped."""
 
-    def test_opus55_rows_present_with_published_rates(self):
+    def test_opus55_rows_carry_published_rates_and_the_assumed_cache_write(self):
         for model in ("claude-opus-5-5", "claude-opus-5-5[1m]"):
             row = PRICING[model]
             assert row["input"] == 4.00

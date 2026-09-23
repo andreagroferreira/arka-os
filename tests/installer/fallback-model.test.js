@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync,
+  mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, chmodSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -235,6 +235,26 @@ test("a custom default is honoured", () => {
     assert.equal(r.action, "created");
     assert.deepEqual(loadSettings(home.settingsPath).fallbackModel, ["claude-sonnet-5"]);
   } finally {
+    home.cleanup();
+  }
+});
+
+
+test("a write failure is reported as write-failed and leaves the file untouched", {
+  skip: typeof process.getuid === "function" && process.getuid() === 0
+    ? "root ignores directory modes" : false,
+}, () => {
+  const previous = [...PREVIOUS_FALLBACK_DEFAULTS[0]];
+  const raw = JSON.stringify({ fallbackModel: previous }) + "\n";
+  const home = makeTmpHome({ raw });
+  const claudeDir = dirname(home.settingsPath);
+  chmodSync(claudeDir, 0o500); // the .tmp sibling cannot be created
+  try {
+    const r = seedFallbackModel({ runtime: "claude-code", home: home.dir });
+    assert.deepEqual(r, { skipped: "write-failed", action: null });
+    assert.equal(readFileSync(home.settingsPath, "utf-8"), raw);
+  } finally {
+    chmodSync(claudeDir, 0o700);
     home.cleanup();
   }
 });
