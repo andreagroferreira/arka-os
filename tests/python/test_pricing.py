@@ -47,9 +47,34 @@ class TestEstimateCostUsd:
                 assert value > 0, f"{model}.{key} should be positive"
 
 
+class TestOpus55Pricing:
+    """Opus 5.5 sweep (2026-09-22): the id the Claude Code `opus` alias
+    resolves to is priced — 10 subagent rows had cost None the day the
+    alias flipped."""
+
+    def test_opus55_rows_carry_published_rates_and_the_assumed_cache_write(self):
+        for model in ("claude-opus-5-5", "claude-opus-5-5[1m]"):
+            row = PRICING[model]
+            assert row["input"] == 4.00
+            assert row["output"] == 20.00
+            assert row["cache_read"] == 0.20
+            assert row["cache_write"] == 5.00  # 1.25x input, unpublished — assumed
+
+    def test_opus55_estimate_is_not_none(self):
+        cost = estimate_cost_usd("claude-opus-5-5", 1_000_000, 100_000, 0)
+        assert cost == 4.00 + 2.00
+
+    def test_opus55_cache_reads_billed_at_five_percent(self):
+        cost = estimate_cost_usd(
+            "claude-opus-5-5", tokens_in=1_000_000, tokens_out=0, cached_tokens=1_000_000
+        )
+        assert cost == 0.20
+
+
 class TestOpus5Pricing:
-    """Gate Economy PR-8: claude-opus-5 carried 28% of weekly input
-    tokens at $0.00 attributed because the row was missing."""
+    """History — Gate Economy PR-8: claude-opus-5 carried 28% of weekly
+    input tokens at $0.00 attributed because the row was missing. The rows
+    stay so 2026-08/09 sessions keep their cost; the live lane is 5.5."""
 
     def test_opus5_rows_present_with_published_rates(self):
         for model in ("claude-opus-5", "claude-opus-5[1m]"):

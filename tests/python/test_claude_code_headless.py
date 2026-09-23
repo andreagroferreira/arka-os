@@ -41,14 +41,14 @@ def test_model_from_payload_prefers_the_largest_entry_and_falls_back():
                 "cacheReadInputTokens": 0,
                 "cacheCreationInputTokens": 0,
             },
-            "claude-opus-5": {
+            "claude-opus-5-5": {
                 "inputTokens": 500,
                 "cacheReadInputTokens": 0,
                 "cacheCreationInputTokens": 0,
             },
         }
     }
-    assert claude_code._model_from_payload(multi) == "claude-opus-5"
-    assert claude_code._model_from_payload({"model": "claude-opus-5"}) == "claude-opus-5"
+    assert claude_code._model_from_payload(multi) == "claude-opus-5-5"
+    assert claude_code._model_from_payload({"model": "claude-opus-5-5"}) == "claude-opus-5-5"
     assert claude_code._model_from_payload({"modelUsage": {}, "model": ""}) == ""
     assert claude_code._model_from_payload({}) == ""

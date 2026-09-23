@@ -51,10 +51,11 @@ _SLOT_ROLE: dict[str, str] = {
 
 # runtime-tier tokens -> real Anthropic model ids the proxy calls upstream.
 # Real ids (claude-fable-5-1, claude-*) pass straight through.
-# Runtime Sync 2026-09-03: `best` is Fable 5.1, `opus` is Opus 5, and the
-# weakest lane (`haiku`/`fast`) is Sonnet 5 — ArkaOS never routes to Haiku.
+# Runtime Sync 2026-09-03 (+ Opus 5.5 sweep 2026-09-22): `best` is Fable 5.1,
+# `opus` is Opus 5.5 (the id the Claude Code 2.1.280 alias resolves to), and
+# the weakest lane (`haiku`/`fast`) is Sonnet 5 — ArkaOS never routes to Haiku.
 _RUNTIME_TO_ANTHROPIC: dict[str, str] = {
-    "opus": "claude-opus-5",
+    "opus": "claude-opus-5-5",
     "best": "claude-fable-5-1",
     "fable": "claude-fable-5-1",
     "sonnet": "claude-sonnet-5",

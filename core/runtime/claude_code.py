@@ -108,7 +108,19 @@ _PROBE_TIMEOUT_SECONDS = 10
 # model is overloaded or unavailable; the runtime caps chains at three after
 # de-duplication. installer/fallback-model.js carries the same list —
 # tests/python/test_scheduler_daemon.py pins the two to each other.
-DEFAULT_FALLBACK_MODELS: tuple[str, ...] = ("claude-opus-5", "claude-sonnet-5")
+DEFAULT_FALLBACK_MODELS: tuple[str, ...] = ("claude-opus-5-5", "claude-sonnet-5")
+# Chains ArkaOS ITSELF seeded in earlier releases. A settings.json holding one
+# of these byte for byte is not an operator decision, so the seeder and
+# `arka harness assert` upgrade it to DEFAULT_FALLBACK_MODELS; any other
+# present value is the operator's and stays. Append, never edit — the JS twin
+# in installer/fallback-model.js is pinned to this list by the same test.
+PREVIOUS_FALLBACK_DEFAULTS: tuple[tuple[str, ...], ...] = (("claude-opus-5", "claude-sonnet-5"),)
+
+
+def is_previous_fallback_default(chain: object) -> bool:
+    """True when ``chain`` is exactly a chain ArkaOS seeded in the past."""
+    return isinstance(chain, list) and tuple(chain) in PREVIOUS_FALLBACK_DEFAULTS
+
 
 # Cache for the `claude --version` probe, keyed by the binary probed ("" =
 # the PATH lookup). In-memory only: a disk cache would let one session

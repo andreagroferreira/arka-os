@@ -41,7 +41,10 @@ from pathlib import Path
 from core.harness import drift, json_store, paths
 from core.harness.manifest import OwnershipManifest
 from core.harness.spec import HookRegistration, spec_for
-from core.runtime.claude_code import DEFAULT_FALLBACK_MODELS
+from core.runtime.claude_code import (
+    DEFAULT_FALLBACK_MODELS,
+    is_previous_fallback_default,
+)
 
 
 @dataclass
@@ -49,8 +52,8 @@ class SurfaceAction:
     """One thing assert did (or deliberately did not do) to a surface."""
 
     surface: str
-    # created | repaired | unrepaired | reseeded | adopted-skip
-    # | refused | noop
+    # created | repaired | unrepaired | reseeded | upgraded
+    # | adopted-skip | refused | noop
     action: str
     detail: str = ""
 
@@ -353,13 +356,23 @@ class ClaudeConfigManager:
     def _assert_seed(
         self, settings: dict, report: AssertReport, reseed: bool
     ) -> None:
-        for surface, key, default, is_ours in _seed_surfaces(self):
+        for surface, key, default, is_ours, is_previous in _seed_surfaces(self):
             current = settings.get(key)
             if current is None:
                 settings[key] = default
                 report.actions.append(SurfaceAction(surface, "created"))
             elif is_ours(current):
                 report.actions.append(SurfaceAction(surface, "noop"))
+            elif is_previous(current):
+                # A chain ArkaOS itself seeded before is not an operator
+                # decision: move it to the current default.
+                settings[key] = default
+                report.actions.append(
+                    SurfaceAction(
+                        surface, "upgraded",
+                        "previous ArkaOS default; moved to the current default",
+                    )
+                )
             elif reseed:
                 settings[key] = default
                 report.actions.append(SurfaceAction(surface, "reseeded"))
@@ -531,20 +544,27 @@ def _user_deny_extensions(home: Path | None) -> list[str]:
     return [r for r in raw if isinstance(r, str) and r]
 
 
+def _never_previous(_value: object) -> bool:
+    """Surfaces with no history of ArkaOS-authored defaults to upgrade."""
+    return False
+
+
 def _seed_surfaces(manager: ClaudeConfigManager):
     statusline = _statusline_default(manager)
     return (
         (
             "settings:statusLine", "statusLine", statusline,
-            drift._is_arkaos_statusline,
+            drift._is_arkaos_statusline, _never_previous,
         ),
         (
             "settings:worktree", "worktree", {"baseRef": "head"},
             lambda v: isinstance(v, dict) and v.get("baseRef") == "head",
+            _never_previous,
         ),
         (
             "settings:fallbackModel", "fallbackModel", list(DEFAULT_FALLBACK_MODELS),
             lambda v: v == list(DEFAULT_FALLBACK_MODELS),
+            is_previous_fallback_default,
         ),
     )
 

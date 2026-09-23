@@ -260,13 +260,13 @@ class TestFullTurnCapture:
         transcript = _write_transcript(
             tmp_path,
             [
-                _assistant_record("u1", model="claude-opus-5"),
+                _assistant_record("u1", model="claude-opus-5-5"),
                 _assistant_record("u2", model="claude-fable-5-1"),
             ],
         )
         assert record_native_usage(transcript, "sess-full-3", cursor_dir)
         models = {e["model"] for e in read_entries()}
-        assert models == {"claude-opus-5", "claude-fable-5-1"}
+        assert models == {"claude-opus-5-5", "claude-fable-5-1"}
 
     def test_lost_cursor_falls_back_to_last_record_only(
         self, tmp_path, tmp_cost_file, cursor_dir
@@ -342,6 +342,21 @@ class TestPricingStatus:
         assert rows[-1]["model"] == "claude-mythos-9"
         assert rows[-1]["estimated_cost_usd"] is None
         assert rows[-1]["pricing_status"] == "unknown-model"
+
+    def test_opus_alias_lane_is_priced_not_unknown(
+        self, tmp_path, tmp_cost_file, cursor_dir
+    ):
+        """Opus 5.5 sweep: the id the runtime's `opus` alias resolves to must
+        never fall into the unknown-model path — that is the CostGovernor's
+        blind spot this sweep closes."""
+        transcript = _write_transcript(
+            tmp_path, [_assistant_record("u1", model="claude-opus-5-5")]
+        )
+        assert record_native_usage(transcript, "sess-opus55", cursor_dir)
+        row = read_entries()[-1]
+        assert row["model"] == "claude-opus-5-5"
+        assert row["estimated_cost_usd"] is not None
+        assert "pricing_status" not in row, "the recorder omits the key for a priced row"
 
     def test_priced_model_row_has_no_pricing_status(
         self, tmp_path, tmp_cost_file, cursor_dir

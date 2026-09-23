@@ -168,12 +168,14 @@ class TestLegacyModelIds:
         user_path.write_text(_yaml.safe_dump({
             "roles": {
                 "review": {"provider": "anthropic", "model": "claude-opus-4-8", "effort": "max"},
+                "design": {"provider": "anthropic", "model": "claude-opus-5", "effort": "max"},
                 "strategy": {"provider": "runtime", "model": "claude-fable-5", "effort": "max"},
                 "mechanical": {"provider": "runtime", "model": "haiku", "effort": "low"},
             },
         }), encoding="utf-8")
         before = user_path.read_bytes()
-        assert resolve("review", user_path).model == "claude-opus-5"
+        assert resolve("review", user_path).model == "claude-opus-5-5"
+        assert resolve("design", user_path).model == "claude-opus-5-5"
         assert resolve("strategy", user_path).model == "claude-fable-5-1"
         assert resolve("mechanical", user_path).model == "sonnet"
         assert user_path.read_bytes() == before, "the operator's file is never rewritten"
@@ -197,8 +199,22 @@ class TestLegacyModelIds:
 
     def test_current_ids_pass_through(self):
         assert model_router.normalise_model_id("claude-fable-5-1") == "claude-fable-5-1"
+        assert model_router.normalise_model_id("claude-opus-5-5") == "claude-opus-5-5"
+        assert model_router.normalise_model_id("claude-opus-5-5[1m]") == "claude-opus-5-5[1m]"
         assert model_router.normalise_model_id("sonnet") == "sonnet"
         assert model_router.normalise_model_id("kimi-k2.7-code:cloud") == "kimi-k2.7-code:cloud"
+
+    def test_opus_5_and_1m_alias_resolve_to_opus_5_5(self, monkeypatch):
+        monkeypatch.setattr(model_router, "_LEGACY_NOTICED", set())
+        assert model_router.normalise_model_id("claude-opus-5") == "claude-opus-5-5"
+        assert model_router.normalise_model_id("claude-opus-5[1m]") == "claude-opus-5-5[1m]"
+
+    def test_no_legacy_id_maps_to_another_legacy_id(self):
+        """normalise_model_id is a single dict read, not a transitive walk:
+        every value must already be a current lane, or a stale pin would
+        resolve to a lane that is itself stale (Opus 4.x → Opus 5 → ?)."""
+        chained = set(model_router.LEGACY_MODEL_IDS.values()) & set(model_router.LEGACY_MODEL_IDS)
+        assert chained == set(), f"legacy ids mapped to legacy ids: {sorted(chained)}"
 
 
 class TestLegacyPinsSurface:
@@ -212,5 +228,5 @@ class TestLegacyPinsSurface:
             },
         }), encoding="utf-8")
         assert model_router.legacy_pins(user_path) == [
-            ("review", "claude-opus-4-8", "claude-opus-5"),
+            ("review", "claude-opus-4-8", "claude-opus-5-5"),
         ]

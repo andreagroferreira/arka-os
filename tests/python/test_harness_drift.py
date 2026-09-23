@@ -43,7 +43,7 @@ def settings_from_spec(hooks_root, ext=".sh"):
             "padding": 2,
         },
         "worktree": {"baseRef": "head"},
-        "fallbackModel": ["claude-opus-5", "claude-sonnet-5"],
+        "fallbackModel": ["claude-opus-5-5", "claude-sonnet-5"],
     }
 
 
@@ -176,6 +176,25 @@ class TestSeedSurfaces:
         assert statuses(report) == {
             ("settings:worktree", DriftStatus.ADOPTED)
         }
+
+    def test_previous_default_chain_is_diverged_not_adopted(self, tmp_path):
+        """Opus 5.5 sweep: a chain ArkaOS seeded in an earlier release is
+        ours to move on — reporting it as adopted would hide a stale seed
+        on every machine that installed before the bump."""
+        from core.runtime.claude_code import PREVIOUS_FALLBACK_DEFAULTS
+
+        root = make_hooks_root(tmp_path)
+        settings = settings_from_spec(root)
+        settings["fallbackModel"] = list(PREVIOUS_FALLBACK_DEFAULTS[0])
+        write_settings(tmp_path, settings)
+        report = scan(home=tmp_path, platform="linux", hooks_root=root)
+        assert statuses(report) == {
+            ("settings:fallbackModel", DriftStatus.DIVERGED)
+        }
+        assert report.ok is False
+        finding = report.findings[0]
+        assert "previous ArkaOS default" in finding.detail
+        assert "arka harness assert" in finding.detail
 
     def test_operator_fallback_chain_is_adopted(self, tmp_path):
         """Runtime Sync PR3: a chain the operator wrote — array or the

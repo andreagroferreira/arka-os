@@ -42,7 +42,7 @@ def _row(
         "ts": ts.isoformat(),
         "session_id": "s",
         "provider": "anthropic",
-        "model": "claude-opus-5",
+        "model": "claude-opus-5-5",
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
         "cached_tokens": 0,

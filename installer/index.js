@@ -433,15 +433,18 @@ export async function install({ runtime, path, force, skipSystem, withOllama, pr
     detail(`         Warning: could not seed worktree.baseRef (${err.message})`);
   }
 
-  // Runtime Sync PR3 — seed fallbackModel = ["claude-opus-5", "claude-sonnet-5"]
-  // so an overloaded or unavailable primary degrades instead of failing the
-  // session. If-absent only: an operator chain (array or legacy string) is
-  // never touched.
+  // Runtime Sync PR3 — seed fallbackModel = DEFAULT_FALLBACK_MODELS (see
+  // fallback-model.js) so an overloaded or unavailable primary degrades
+  // instead of failing the session. Absent keys are seeded and a chain that
+  // is exactly a previous ArkaOS default is upgraded; an operator chain
+  // (array or legacy string) is never touched.
   try {
     const { seedFallbackModel } = await import("./fallback-model.js");
     const fbResult = seedFallbackModel({ runtime });
     if (!fbResult.skipped && fbResult.action === "created") {
       detail(`         fallbackModel set to ${JSON.stringify(fbResult.value)}.`);
+    } else if (!fbResult.skipped && fbResult.action === "upgraded") {
+      detail(`         fallbackModel upgraded from ${JSON.stringify(fbResult.previous)} to ${JSON.stringify(fbResult.value)}.`);
     }
   } catch (err) {
     detail(`         Warning: could not seed fallbackModel (${err.message})`);

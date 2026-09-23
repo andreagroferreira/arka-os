@@ -3,14 +3,16 @@
 The Model Fabric ``runtime`` provider shells out to the active CLI. This
 module lists the concrete models that CLI accepts, with human labels and
 tier, so the dashboard dropdown and ``/arka-fusion`` can offer real
-choices (Fable 5.1, Opus 5, Sonnet 5) instead of only the abstract
+choices (Fable 5.1, Opus 5.5, Sonnet 5) instead of only the abstract
 best/default/fast aliases. Haiku is deliberately absent: the weakest
 lane ArkaOS routes to is Sonnet 5 (operator decision, Runtime Sync 2026-09-03).
 
-Model IDs verified against the Claude Code changelog 2.1.257 (2026-09-01)
-and the model-config reference (2026-09). This is the single place they
-are hand-listed — update HERE when the runtime
-ships new models; the dashboard and CLI read from this module. Codex /
+Model IDs verified against the Claude Code 2.1.280 alias table (2026-09-22:
+`opus` → claude-opus-5-5) and the model-config reference (2026-09). This is the single place
+the picker catalogue is hand-listed — update HERE when the runtime ships new
+models; the dashboard and CLI read from this module. The ids also live in
+pricing.py, model_router.py, claude_code.py, gateway/litellm_config.py and
+installer/fallback-model.js (one sweep touches all six). Codex /
 Gemini / Cursor models are left empty on purpose: we do not hardcode
 another vendor's catalogue, and the UI falls back to a free-text field
 so the user types the exact id their runtime accepts.
@@ -24,8 +26,8 @@ from __future__ import annotations
 CLAUDE_CODE_MODELS: list[dict[str, str]] = [
     {"value": "claude-fable-5-1", "label": "Fable 5.1", "tier": "frontier",
      "note": "most capable — 1M context, cache reads $0.25/MTok"},
-    {"value": "opus", "label": "Opus 5", "tier": "frontier",
-     "note": "frontier"},
+    {"value": "opus", "label": "Opus 5.5", "tier": "frontier",
+     "note": "frontier — $4/$20 per MTok, cache reads $0.20"},
     {"value": "sonnet", "label": "Sonnet 5", "tier": "balanced",
      "note": "balanced speed/quality — also the mechanical lane"},
 ]
