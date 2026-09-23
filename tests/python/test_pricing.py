@@ -42,8 +42,14 @@ class TestEstimateCostUsd:
         assert "gemini-2.5-pro" in known
 
     def test_pricing_values_are_positive(self):
+        # The JEV bills output at $0 by design (typed answers, no text);
+        # every other rate — and every JEV input rate — must be positive.
+        free_output = {"typesafe/jev-1.13", "typesafe/jev-1.13-20260917", "jev-1.13.0"}
         for model, row in PRICING.items():
             for key, value in row.items():
+                if key == "output" and model in free_output:
+                    assert value == 0.0, f"{model}.output is free by contract"
+                    continue
                 assert value > 0, f"{model}.{key} should be positive"
 
 
@@ -109,3 +115,17 @@ class TestFable51Rows:
 
         row = pricing.PRICING["claude-sonnet-5"]
         assert (row["input"], row["output"]) == (2.00, 10.00)
+
+
+class TestJevPricing:
+    """JEV Decisions Layer PR1 — $0.042/MTok input, output free."""
+
+    def test_jev_input_million_tokens(self):
+        assert estimate_cost_usd("typesafe/jev-1.13", 1_000_000, 0) == 0.042
+
+    def test_jev_output_is_free(self):
+        assert estimate_cost_usd("typesafe/jev-1.13", 0, 1_000_000) == 0.0
+
+    def test_jev_aliases_share_the_rate(self):
+        for mid in ("jev-1.13.0", "typesafe/jev-1.13-20260917"):
+            assert PRICING[mid] == PRICING["typesafe/jev-1.13"]

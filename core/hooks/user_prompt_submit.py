@@ -41,19 +41,26 @@ import os
 import re
 import subprocess
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from core.hooks._shared import (
     emit_additional_context,
     ensure_root_on_path,
     get_str,
     read_stdin_json,
+    record_degraded,
     repo_path,
     resolve_arkaos_root,
     safe_session_id,
 )
 from core.shared.temp_paths import arkaos_temp_dir, wf_required_dir
+
+if TYPE_CHECKING:
+    from core.decisions.site import Outcome, SiteCall
+
+_T = TypeVar("_T")
 
 _CACHE_DIR = arkaos_temp_dir("arkaos-context-cache")
 _CACHE_TTL = 300  # Constitution cache: 5 minutes
@@ -128,6 +135,17 @@ _STOPWORDS = frozenset([
 _VAGUE_PHRASES = (
     "fix the bug", "that file", "the error",
     "esse ficheiro", "esse erro", "aquele bug",
+)
+
+_TOPIC_SHIFT_SUGGESTION = (
+    "[arka:suggest] Topic shift detected — consider /clear "
+    "for a fresh session."
+)
+
+_REFINE_THRESHOLD = 85
+_REFINE_TEXT = (
+    "the request may be vague; consider /arka refine to ask about the "
+    "topic and compile a precise prompt before building."
 )
 
 # A prompt is CONCRETE (never refine-worthy) when it names a real
@@ -260,7 +278,28 @@ def _invalidate_turn_caches(session_id: str) -> None:
 # ─── Section 4: Synapse bridge (in-process) ──────────────────────────────
 
 
-def _run_bridge(root: str, user_input: str, session_id: str, cwd: str = "") -> str:
+def _bridge_payload(
+    user_input: str, session_id: str, cwd: str, route_hint: dict[str, Any] | None
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {"user_input": user_input, "session_id": session_id}
+    if cwd:
+        # Explicit hook cwd — L9.5 scopes cross-session memory by
+        # project; an unscoped search would leak across clients.
+        payload["cwd"] = cwd
+    if route_hint:
+        # JEV route decision (acted on) — Synapse L1 prefers it over the
+        # keyword count, never over an explicit /prefix.
+        payload["route_hint"] = route_hint
+    return payload
+
+
+def _run_bridge(
+    root: str,
+    user_input: str,
+    session_id: str,
+    cwd: str = "",
+    route_hint: dict[str, Any] | None = None,
+) -> str:
     bridge_path = Path(root) / "scripts" / "synapse-bridge.py"
     if not bridge_path.is_file() or not Path(root).is_dir():
         return ""
@@ -274,24 +313,24 @@ def _run_bridge(root: str, user_input: str, session_id: str, cwd: str = "") -> s
         # The old hook piped bridge stderr to /dev/null — keep it quiet.
         with contextlib.redirect_stderr(io.StringIO()):
             spec.loader.exec_module(module)
-            payload = {"user_input": user_input, "session_id": session_id}
-            if cwd:
-                # Explicit hook cwd — L9.5 scopes cross-session memory by
-                # project; an unscoped search would leak across clients.
-                payload["cwd"] = cwd
+            payload = _bridge_payload(user_input, session_id, cwd, route_hint)
             output, code = module.run_bridge(payload, Path(root))
         if code == 0:
-            parts = [str(output.get("context_string", ""))]
-            # Full-text blocks follow the compact tag line. A tag such as
-            # `[kb-context:5 +graph]` announces an injection; without these
-            # the announcement was all the model ever received.
-            blocks = output.get("content_blocks") or []
-            if isinstance(blocks, list):
-                parts.extend(str(b) for b in blocks if b)
-            return "\n".join(p for p in parts if p)
+            return _bridge_text(output)
     except Exception:
         pass
     return ""
+
+
+def _bridge_text(output: dict[str, Any]) -> str:
+    parts = [str(output.get("context_string", ""))]
+    # Full-text blocks follow the compact tag line. A tag such as
+    # `[kb-context:5 +graph]` announces an injection; without these
+    # the announcement was all the model ever received.
+    blocks = output.get("content_blocks") or []
+    if isinstance(blocks, list):
+        parts.extend(str(b) for b in blocks if b)
+    return "\n".join(p for p in parts if p)
 
 
 # ─── Section 5: workflow-state + forge tags ──────────────────────────────
@@ -396,14 +435,19 @@ def _keywords(text: str) -> list[str]:
 
 
 def _last_user_messages(transcript_path: str, n: int = 3) -> str:
+    return "\n".join(_recent_user_messages(transcript_path, n))
+
+
+def _recent_user_messages(transcript_path: str, n: int = 3) -> list[str]:
+    """The last ``n`` user messages of the transcript (oldest first)."""
     if not transcript_path or not Path(transcript_path).is_file():
-        return ""
+        return []
     try:
         lines = Path(transcript_path).read_text(
             encoding="utf-8", errors="replace"
         ).splitlines()[-200:]
     except OSError:
-        return ""
+        return []
     msgs: list[str] = []
     for line in lines:
         try:
@@ -421,37 +465,51 @@ def _last_user_messages(transcript_path: str, n: int = 3) -> str:
                     p.get("text", "") for p in content if isinstance(p, dict)
                 )
             msgs.append(str(content))
-    return "\n".join(msgs[-n:])
+    return msgs[-n:]
 
 
-def _token_hygiene(prompt: str, transcript_path: str) -> str:
-    suggestions: list[str] = []
+def keyword_topic_shift(prompt: str, prior: str) -> bool:
+    """Topic-drift heuristic: < 30 % keyword overlap with ``prior``.
 
+    Needs ``prior`` and more than two keywords in ``prompt``; else False.
+    """
+    cur_kw = _keywords(prompt)[:20]
+    if not (prior and cur_kw and len(cur_kw) > 2):
+        return False
+    overlap = len(set(cur_kw) & set(_keywords(prior)))
+    return overlap * 100 // len(cur_kw) < 30
+
+
+def _context_usage_suggestion() -> str:
     ctx_raw = os.environ.get("CLAUDE_CONTEXT_USED", "").rstrip("%")
-    if ctx_raw:
-        try:
-            ctx = int(ctx_raw)
-            if ctx > 80:
-                suggestions.append(
-                    f"[arka:warn] Context at {ctx}% — /compact recommended NOW."
-                )
-            elif ctx > 60:
-                suggestions.append(
-                    f"[arka:suggest] Context at {ctx}% — consider /compact."
-                )
-        except ValueError:
-            pass
+    if not ctx_raw:
+        return ""
+    try:
+        ctx = int(ctx_raw)
+    except ValueError:
+        return ""
+    if ctx > 80:
+        return f"[arka:warn] Context at {ctx}% — /compact recommended NOW."
+    if ctx > 60:
+        return f"[arka:suggest] Context at {ctx}% — consider /compact."
+    return ""
+
+
+def _token_hygiene(
+    prompt: str, transcript_path: str, topic_shift: bool | None = None
+) -> str:
+    # topic_shift: the decisions stage's outcome; None → keyword heuristic.
+    suggestions: list[str] = []
+    context_usage = _context_usage_suggestion()
+    if context_usage:
+        suggestions.append(context_usage)
 
     if prompt:
-        prior = _last_user_messages(transcript_path)
-        cur_kw = _keywords(prompt)[:20]
-        if prior and cur_kw and len(cur_kw) > 2:
-            overlap = len(set(cur_kw) & set(_keywords(prior)))
-            if overlap * 100 // len(cur_kw) < 30:
-                suggestions.append(
-                    "[arka:suggest] Topic shift detected — consider /clear "
-                    "for a fresh session."
-                )
+        if topic_shift is None:
+            prior = _last_user_messages(transcript_path)
+            topic_shift = keyword_topic_shift(prompt, prior)
+        if topic_shift:
+            suggestions.append(_TOPIC_SHIFT_SUGGESTION)
 
         if len(prompt) > 2000 and "```" in prompt:
             suggestions.append(
@@ -495,7 +553,7 @@ def _wf_mark_required(session_id: str) -> None:
         pass
 
 
-def _refine_hint(user_input: str) -> str:
+def _refine_hint(user_input: str, outcome: Outcome | None = None) -> str:
     """Interaction Reform PR5 — a vague code-modifying request is a
     signal to refine the prompt (ask about the topic) BEFORE the
     workflow. SUGGESTION only; /do decides. Not a slash command.
@@ -507,20 +565,215 @@ def _refine_hint(user_input: str) -> str:
     carve-out applied by the caller: a prompt that names a file or a
     code identifier ("fix the typo in README.md", "add a test to
     AuthService") is specific, never refine-worthy.
+
+    JEV Decisions PR1: when the ``refine`` site acted on the JEV, its
+    answer replaces the score (``source=jev``); else the score decides.
     """
+    if outcome is not None and outcome.acted_on == "jev":
+        return _jev_refine_hint(outcome) if outcome.value else ""
     try:
         from core.forge.complexity import score_prompt_ambiguity
         score = score_prompt_ambiguity(user_input)
-        if score >= 85:
-            return (
-                f"[arka:refine-suggested] score={score}/100 — the "
-                f"request may be vague; consider /arka refine to ask "
-                f"about the topic and compile a precise prompt "
-                f"before building."
-            )
+        if score >= _REFINE_THRESHOLD:
+            return f"[arka:refine-suggested] score={score}/100 — {_REFINE_TEXT}"
     except Exception:
         pass
     return ""
+
+
+def _jev_refine_hint(outcome: Outcome) -> str:
+    from core.decisions.sites.prompt import REFINE_GAPS
+
+    vague = outcome.answers.get("vague")
+    missing = outcome.answers.get("missing")
+    p = _fmt_p(vague.noul if vague is not None else None)
+    # Allowlist, never the raw answer: the JEV's text reaches the model.
+    choice = missing.choice if missing is not None else None
+    gap = choice if choice in REFINE_GAPS else "unknown"
+    return f"[arka:refine-suggested] source=jev p={p} missing={gap} — {_REFINE_TEXT}"
+
+
+_SAFE_TOKEN_RE = re.compile(r"[a-z0-9_-]{1,32}")
+_SAFE_REASON_RE = re.compile(r"[a-z0-9_:.-]{1,48}")
+
+
+def _safe_token(value: object, pattern: re.Pattern[str] = _SAFE_TOKEN_RE) -> str:
+    """``value`` when it is a short plain token, else ``unknown``.
+
+    Every marker field derived from a decision goes through here (or an
+    allowlist): a JEV answer is untrusted text, and a newline in it would
+    forge a line such as ``[ARKA:...]`` in the model's context.
+    """
+    if isinstance(value, str) and pattern.fullmatch(value):
+        return value
+    return "unknown"
+
+
+def _fmt_p(value: object) -> str:
+    """A probability we format ourselves (0.00-1.00), else ``n/a``."""
+    if isinstance(value, int | float) and not isinstance(value, bool) and 0 <= value <= 1:
+        return f"{value:.2f}"
+    return "n/a"
+
+
+def _refine_heuristic(user_input: str) -> bool:
+    """The score half of the refine hint, as the ``refine`` site's heuristic."""
+    try:
+        from core.forge.complexity import score_prompt_ambiguity
+        return score_prompt_ambiguity(user_input) >= _REFINE_THRESHOLD
+    except Exception:
+        return False
+
+
+def _workflow_section(
+    user_input: str, session_id: str, budget: _Budget, outcomes: Mapping[str, Outcome]
+) -> tuple[str, str]:
+    """(workflow directive, refine hint). ``creation-intent`` is
+    escalate-only, so its outcome can add the directive, never drop it."""
+    creation = outcomes.get("creation-intent")
+    if creation is not None:
+        required = bool(creation.value)
+    else:
+        required = bool(user_input) and _wf_classify(user_input)
+    if not required:
+        return "", ""
+    _wf_mark_required(session_id)
+    refine_hint = ""
+    if (
+        not user_input.strip().startswith("/")
+        and not _names_concrete_target(user_input)
+    ):
+        refine_hint = budget.run("refine-score", lambda: _refine_hint(
+            user_input, outcomes.get("refine")
+        ))
+    return _WORKFLOW_DIRECTIVE, refine_hint
+
+
+# ─── Section 3.5: typed decisions (JEV Decisions Layer PR1) ──────────────
+
+_DECISIONS_HOOK = "user-prompt-submit"
+# Outcome reasons that mean the JEV was reachable (answered, abstained,
+# was overruled, or was never asked). Anything else on an ``act`` site is
+# an unavailability, recorded in hook-degraded.jsonl.
+_JEV_REACHED = frozenset({"jev", "abstain", "downgrade-blocked", "shadow", "off"})
+
+
+def _prompt_decisions(
+    user_input: str, transcript_path: str, session_id: str, budget: _Budget
+) -> dict[str, Outcome]:
+    """JEV outcomes for the four prompt sites, or {}.
+
+    Inactive (every site off, bypass, or no key) → {} with no stage
+    recorded, so the turn is byte-identical to one without the layer.
+    Past the deadline the stage is skipped and named in [arka:degraded].
+    Never raises: an internal error is recorded and yields {}.
+    """
+    try:
+        from core.decisions.config import load_decisions_config
+
+        cfg = load_decisions_config()
+        if not user_input or not _decisions_live(cfg):
+            return {}
+        result = budget.run("decisions", lambda: _decide_prompt(
+            user_input, transcript_path, session_id, budget, cfg.hook_timeout_ms
+        ))
+    except Exception as exc:
+        record_degraded(_DECISIONS_HOOK, "decisions-internal", type(exc).__name__)
+        return {}
+    return result if isinstance(result, dict) else {}
+
+
+def _decisions_live(cfg: Any) -> bool:
+    """``engine.active`` without importing the engine (~35 ms of imports a
+    keyless turn would otherwise pay). Parity pinned by test."""
+    from core.decisions.config import site_mode
+    from core.decisions.registry import SITES
+    from core.decisions.transport import resolve_transport
+
+    if not any(site_mode(cfg, site) != "off" for site in SITES.values()):
+        return False
+    return resolve_transport(cfg) is not None
+
+
+def _decide_prompt(
+    user_input: str, transcript_path: str, session_id: str, budget: _Budget, cap_ms: int
+) -> dict[str, Outcome]:
+    from core.decisions.engine import decide
+    from core.decisions.sites.prompt import prompt_state
+    from core.decisions.transport import configured_model
+
+    prior = _recent_user_messages(transcript_path)
+    calls = _prompt_site_calls(user_input, prior)
+    if not calls:
+        return {}
+    outcomes = decide(
+        calls, prompt_state(user_input, prior), session_id=session_id,
+        timeout_ms=budget.remaining_ms(cap_ms), model=configured_model(),
+    )
+    _record_unavailable(outcomes)
+    return outcomes
+
+
+def _prompt_site_calls(user_input: str, prior: list[str]) -> list[SiteCall]:
+    """One SiteCall per site whose precondition holds, each carrying the
+    heuristic value the hook would act on without the JEV."""
+    from core.decisions.site import SiteCall
+    from core.decisions.sites.prompt import CREATION_INTENT, REFINE, ROUTE, TOPIC_DRIFT
+    from core.synapse.layers import keyword_department, prefix_department
+
+    calls: list[SiteCall] = []
+    if prior:
+        shifted = keyword_topic_shift(user_input, "\n".join(prior))
+        calls.append(SiteCall(TOPIC_DRIFT, shifted))
+    if user_input.lstrip()[:1] not in ("/", "!"):
+        creation = _wf_classify(user_input)
+        calls.append(SiteCall(CREATION_INTENT, creation))
+        if creation and not _names_concrete_target(user_input):
+            calls.append(SiteCall(REFINE, _refine_heuristic(user_input)))
+    if prefix_department(user_input) is None:
+        calls.append(SiteCall(ROUTE, keyword_department(user_input) or ""))
+    return calls
+
+
+def _record_unavailable(outcomes: Mapping[str, Outcome]) -> None:
+    reasons = sorted({
+        o.reason for o in outcomes.values()
+        if o.mode == "act" and o.reason not in _JEV_REACHED
+    })
+    if reasons:
+        record_degraded(_DECISIONS_HOOK, "decisions-unavailable", ",".join(reasons))
+
+
+def _known_dept(value: object) -> str | None:
+    from core.synapse.layers import DEPARTMENT_PATTERNS
+
+    return value if isinstance(value, str) and value in DEPARTMENT_PATTERNS else None
+
+
+def _route_hint(outcomes: Mapping[str, Outcome]) -> dict[str, Any] | None:
+    """The bridge's ``route_hint`` when the route site acted on a KNOWN dept."""
+    route = outcomes.get("route")
+    if route is None or route.acted_on != "jev":
+        return None
+    dept = _known_dept(route.value)
+    return {"dept": dept, "p": route.confidence, "source": "jev"} if dept else None
+
+
+def _route_marker(outcomes: Mapping[str, Outcome]) -> str:
+    """``[arka:route-confidence]`` for an ``act`` route site; "" otherwise
+    (shadow and off never change the output). Fields are allowlisted."""
+    route = outcomes.get("route")
+    if route is None or route.mode != "act":
+        return ""
+    dept = _known_dept(route.value) if route.acted_on == "jev" else None
+    if dept:
+        return f"[arka:route-confidence] dept={dept} p={_fmt_p(route.confidence)} source=jev"
+    if route.acted_on == "jev":
+        reason = "jev-none" if route.value == "" else "jev-invalid"
+    else:
+        reason = _safe_token(route.reason, _SAFE_REASON_RE)
+    fallback = _known_dept(route.heuristic) or "none"
+    return f"[arka:route-confidence] dept={fallback} source=keyword reason={reason}"
 
 
 # ─── Section 10: cognitive inject + one-shot nudges ──────────────────────
@@ -589,6 +842,9 @@ def _log_metrics(
 # ─── Deadline budget (PR-A3) ─────────────────────────────────────────────
 
 
+_BUDGET_RESERVE_MS = 500
+
+
 class _Budget:
     """Monotonic deadline for the per-turn hook (PR-A3).
 
@@ -615,19 +871,26 @@ class _Budget:
         self.skipped: list[str] = []
         self.stage_ms: dict[str, int] = {}
 
-    def time(self, stage: str, fn: Callable[[], str]) -> str:
+    def time(self, stage: str, fn: Callable[[], _T]) -> _T:
         """Run a stage unconditionally, recording its duration."""
         t0 = time.monotonic()
         result = fn()
         self.stage_ms[stage] = int((time.monotonic() - t0) * 1000)
         return result
 
-    def run(self, stage: str, fn: Callable[[], str]) -> str:
-        """Run an optional stage inside the budget, or record the skip."""
+    def run(self, stage: str, fn: Callable[[], _T]) -> _T | str:
+        """Run an optional stage inside the budget, or record the skip
+        (a skipped stage returns "")."""
         if time.monotonic() > self.deadline:
             self.skipped.append(stage)
             return ""
         return self.time(stage, fn)
+
+    def remaining_ms(self, cap: int) -> int:
+        """Milliseconds a network stage may spend: at most ``cap``, and
+        never the last 500 ms reserved for the stages that follow."""
+        left = int((self.deadline - time.monotonic()) * 1000) - _BUDGET_RESERVE_MS
+        return max(0, min(cap, left))
 
     def over(self, stage: str) -> bool:
         """True when the deadline has passed; records the skip when it
@@ -668,14 +931,27 @@ def _nudges_pending(session_id: str) -> bool:
 
 
 def _bridge_context(
-    root: str, user_input: str, session_id: str, cwd: str, budget: _Budget
+    root: str,
+    user_input: str,
+    session_id: str,
+    cwd: str,
+    budget: _Budget,
+    outcomes: Mapping[str, Outcome] | None = None,
 ) -> str:
-    """Synapse bridge output decorated with tags, or the fallback."""
+    """Synapse bridge output decorated with tags, or the fallback, plus
+    the ``[arka:route-confidence]`` line when the route site acts."""
+    outcomes = outcomes or {}
+    # Positional on purpose: tests stub _run_bridge with ``lambda *a``.
     python_result = budget.time("bridge", lambda: _run_bridge(
-        root, user_input, session_id, cwd
+        root, user_input, session_id, cwd, _route_hint(outcomes)
     ))
-    if not python_result:
-        return _fallback_context()
+    context = _decorate(python_result) if python_result else _fallback_context()
+    marker = _route_marker(outcomes)
+    return f"{context}\n{marker}" if marker else context
+
+
+def _decorate(python_result: str) -> str:
+    """Workflow-state + Forge tags appended to the bridge context."""
     wf_tag = _workflow_tag()
     if wf_tag:
         python_result = f"{python_result} {wf_tag}"
@@ -711,6 +987,28 @@ def _classify_plan_reply(session_id: str, user_input: str) -> None:
                 plan_approval.mark_rejected(session_id)
     except Exception:
         pass
+
+
+def _collect_nudges(
+    session_id: str, surface_nudges: bool, budget: _Budget
+) -> tuple[str, str, str]:
+    """(kb-cite, meta-tag, closing-marker) one-shot nudges.
+
+    over() only runs when a nudge file actually exists: one-shot nudges
+    are empty on most turns, and recording a skip for work that had
+    nothing to do would inflate the degraded telemetry the 6000 ms
+    default will be judged on.
+    """
+    if not (
+        session_id and surface_nudges and _nudges_pending(session_id)
+        and not budget.over("nudges")
+    ):
+        return "", "", ""
+    return (
+        _one_shot_nudge("arkaos-cite", session_id),
+        _one_shot_nudge("arkaos-meta", session_id),
+        _one_shot_nudge("arkaos-closing", session_id),
+    )
 
 
 def _assemble_output(
@@ -781,51 +1079,34 @@ def main(stdin_json: dict | None = None, raw: str = "") -> int:
         user_input = raw[:2000]
 
     budget = _Budget(start)
+    transcript_path = get_str(stdin_json, "transcript_path")
 
+    # Before the bridge: an acted route decision must reach Synapse L1.
+    outcomes = _prompt_decisions(user_input, transcript_path, session_id, budget)
     python_result = _bridge_context(
-        root, user_input, session_id, get_str(stdin_json, "cwd"), budget
+        root, user_input, session_id, get_str(stdin_json, "cwd"), budget,
+        outcomes,
     )
 
+    drift = outcomes.get("topic-drift")
     hygiene = budget.run("token-hygiene", lambda: _token_hygiene(
-        user_input, get_str(stdin_json, "transcript_path")
+        user_input, transcript_path, None if drift is None else bool(drift.value)
     ))
 
-    workflow_directive = ""
-    refine_hint = ""
-    if user_input and _wf_classify(user_input):
-        _wf_mark_required(session_id)
-        workflow_directive = _WORKFLOW_DIRECTIVE
-        if (
-            not user_input.strip().startswith("/")
-            and not _names_concrete_target(user_input)
-        ):
-            refine_hint = budget.run(
-                "refine-score", lambda: _refine_hint(user_input)
-            )
+    workflow_directive, refine_hint = _workflow_section(
+        user_input, session_id, budget, outcomes
+    )
 
+    # Enforcement semantics stay on the regex (_wf_classify), never JEV.
     _classify_plan_reply(session_id, user_input)
 
     context_hits = budget.run(
         "cognitive-hits", lambda: _cognitive_hits(session_id)
     )
 
-    # over() only runs when a nudge file actually exists: one-shot
-    # nudges are empty on most turns, and recording a skip for work
-    # that had nothing to do would inflate the degraded telemetry the
-    # 6000 ms default will be judged on.
-    kb_cite_nudge = meta_tag_nudge = closing_marker_nudge = ""
-    if (
-        session_id and surface_nudges and _nudges_pending(session_id)
-        and not budget.over("nudges")
-    ):
-        kb_cite_nudge = _one_shot_nudge("arkaos-cite", session_id)
-        meta_tag_nudge = _one_shot_nudge("arkaos-meta", session_id)
-        closing_marker_nudge = _one_shot_nudge("arkaos-closing", session_id)
-
     out = _assemble_output(
         sync_notice, workflow_directive, python_result, hygiene,
-        refine_hint,
-        (kb_cite_nudge, meta_tag_nudge, closing_marker_nudge),
+        refine_hint, _collect_nudges(session_id, surface_nudges, budget),
         context_hits, budget,
     )
     emit_additional_context("UserPromptSubmit", out)

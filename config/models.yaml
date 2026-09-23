@@ -27,8 +27,8 @@ providers:
     type: anthropic-direct  # SDK; needs ANTHROPIC_API_KEY
   ollama:
     type: ollama            # local models, http://localhost:11434
-  # openrouter:             # one key -> hundreds of models (Model Fabric PR-B)
-  #   type: openrouter
+  openrouter:               # one key -> hundreds of models; also the Jev decisions transport
+    type: openrouter        # needs OPENROUTER_API_KEY
 
 # ─── Aliases ────────────────────────────────────────────────────────────
 # `best` / `default` / `fast` resolve per provider, so roles stay readable.
@@ -68,3 +68,11 @@ fusion:
   #   - {provider: ollama, model: kimi-k2.6}
   #   - {provider: openrouter, model: deepseek/deepseek-v4-pro}
   #   - {provider: anthropic, model: best}
+
+# ─── Decisions (Jev typed classifier — not a role) ──────────────────────
+# Typed yes/no, choice and score answers for hooks, gates, Forge and
+# cognition (core/decisions/). No text generation, so never a role above.
+# Per-site modes (act | shadow | off) live in ~/.arkaos/config.json.
+decisions:
+  transport: openrouter   # only transport supported (operator decision 2026-09-23)
+  model: jev-1.13         # alias -> typesafe/jev-1.13 on OpenRouter

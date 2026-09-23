@@ -10,7 +10,7 @@ real changes — one behavioural drift away from silently dirtying commits.
 A third read the operator's REAL ``~/.arkaos/projects`` and handed all 20
 registered project directories to five sync writers.
 
-This module holds ONLY the fixture. Every helper lives in
+This module holds ONLY fixtures. Every helper lives in
 ``_real_state_guard.py``, because pytest imports conftests under the bare
 name ``conftest`` and the sibling ``diagram/`` and ``watch/`` conftests
 claim that name first — a test importing helpers from ``conftest`` aborts
@@ -42,3 +42,17 @@ def real_state_write_guard():
     report = format_failure(collect_violations(before, fingerprints()))
     if report:
         pytest.fail(report, pytrace=False)
+
+
+@pytest.fixture(autouse=True)
+def _no_live_decisions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test may send a prompt to the JEV (JEV Decisions Layer PR1).
+
+    Hook tests run subprocesses that inherit this env: without the
+    bypass and with a real ``OPENROUTER_API_KEY`` exported, every
+    UserPromptSubmit test would POST its prompt to OpenRouter. Decisions
+    tests opt out explicitly with ``monkeypatch.delenv("ARKA_BYPASS_DECISIONS")``
+    and mock ``urlopen``.
+    """
+    monkeypatch.setenv("ARKA_BYPASS_DECISIONS", "1")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)

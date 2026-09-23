@@ -22,7 +22,6 @@ from core.governance.leak_scanner import (
     scan_text,
 )
 
-
 # ─── Fixtures ───────────────────────────────────────────────────────────
 
 
@@ -213,3 +212,34 @@ class TestScanText:
             "acmecorp", config_path=tmp_path / "absent.json",
         )
         assert matches == []
+
+
+# ─── JSONL corpora (config/decisions/corpora/*.jsonl) ───────────────────
+
+
+class TestJsonlCorpora:
+    """Replay corpora are JSONL; a scanner blind to the extension let a
+    client identifier ship in them unseen (security review 2026-09-23).
+    Mutation: drop ".jsonl" from _SCAN_EXTENSIONS and both tests fail."""
+
+    def test_jsonl_file_is_scanned(self, tmp_path: Path, synthetic_config: Path):
+        corpus = tmp_path / "route.jsonl"
+        corpus.write_text(
+            '{"prompt": "ok"}\n{"prompt": "fix the globexsa checkout"}\n',
+            encoding="utf-8",
+        )
+        report = scan_paths([corpus], config_path=synthetic_config)
+        assert report.files_scanned == 1
+        assert [(h.line_number, h.matched_token.lower()) for h in report.hits] == [(2, "globexsa")]
+
+    def test_jsonl_found_when_walking_a_directory(
+        self, tmp_path: Path, synthetic_config: Path,
+    ):
+        corpora = tmp_path / "config" / "decisions" / "corpora"
+        corpora.mkdir(parents=True)
+        (corpora / "refine.jsonl").write_text(
+            '{"prompt": "Initechinc landing page"}\n', encoding="utf-8",
+        )
+        report = scan_paths([tmp_path / "config"], config_path=synthetic_config)
+        assert report.clean is False
+        assert {h.path.name for h in report.hits} == {"refine.jsonl"}

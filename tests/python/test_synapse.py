@@ -686,3 +686,115 @@ class TestContentChannel:
         engine = SynapseEngine()
         engine.register_layer(self._layer(0, "[dept:dev]", "dev", emits=False))
         assert engine.inject(PromptContext(user_input="q")).content_blocks == []
+
+
+# --- L1 route hint + extracted pure functions (JEV Decisions PR1) ---
+
+
+_L1_PARITY_PROMPTS = (
+    "build a new feature for auth",
+    "create social media campaign",
+    "prepare budget forecast",
+    "analyze churn and MRR metrics",
+    "design a sales funnel with landing page",
+    "hello",
+    "",
+    "growth growth",  # marketing/strategy tie → dict order (marketing)
+    "pricing",  # finance/ecom tie → finance
+    "youtube tiktok",  # tie across marketing/kb/content
+    "implement a new user authentication feature",
+    "Prepara o email de lançamento do produto",
+    "FIX THE BUG IN THE API",
+    "/unknownprefix build the api",
+    "/fin report monthly",
+    "/do build landing page",
+)
+
+
+def _legacy_keyword_department(text: str) -> str:
+    """The pre-extraction L1 count, verbatim — the parity oracle."""
+    import re
+
+    from core.synapse.layers import DEPARTMENT_PATTERNS
+
+    scores: dict[str, int] = {}
+    for dept, pattern in DEPARTMENT_PATTERNS.items():
+        matches = re.findall(pattern, text.lower(), re.IGNORECASE)
+        if matches:
+            scores[dept] = len(matches)
+    return max(scores, key=scores.get) if scores else ""
+
+
+def _l1(user_input: str, hint: object = None) -> LayerResult:
+    extra = {} if hint is None else {"route_hint": hint}
+    return DepartmentLayer().compute(PromptContext(user_input=user_input, extra=extra))
+
+
+class TestDepartmentRouteHint:
+    def test_keyword_department_matches_the_legacy_count(self):
+        from core.synapse.layers import keyword_department
+
+        for prompt in _L1_PARITY_PROMPTS:
+            assert (keyword_department(prompt) or "") == _legacy_keyword_department(prompt), prompt
+
+    def test_compute_without_hint_is_prefix_then_keyword(self):
+        from core.synapse.layers import ORCHESTRATOR, keyword_department, prefix_department
+
+        for prompt in _L1_PARITY_PROMPTS:
+            prefix = prefix_department(prompt)
+            expected = "" if prefix == ORCHESTRATOR else prefix or keyword_department(prompt) or ""
+            result = _l1(prompt)
+            assert result.content == expected, prompt
+            assert result.tag == (f"[dept:{expected}]" if expected else ""), prompt
+
+    def test_hint_overrides_keyword(self):
+        hint = {"dept": "marketing", "p": 0.8, "source": "jev"}
+        result = _l1("build a new feature for auth", hint)
+        assert (result.content, result.tag) == ("marketing", "[dept:marketing]")
+
+    def test_hint_fills_a_prompt_without_keywords(self):
+        assert _l1("prepara o lançamento", {"dept": "marketing"}).content == "marketing"
+
+    def test_unknown_hint_dept_is_ignored(self):
+        for hint in ({"dept": "orchestrator"}, {"dept": "hacker"}, {"dept": ""},
+                     {"dept": None}, {"dept": ["dev"]}, "marketing", 42, {}):
+            assert _l1("build a new feature for auth", hint).content == "dev", hint
+
+    def test_explicit_prefix_beats_the_hint(self):
+        assert _l1("/fin report monthly", {"dept": "marketing"}).content == "finance"
+        do = _l1("/do build landing page", {"dept": "marketing"})
+        assert (do.content, do.tag, do.tokens_est) == ("", "", 0)
+
+    def test_hinted_department_never_reads_config_or_disk(self, monkeypatch):
+        import builtins
+
+        from core.synapse import layers
+
+        def _no_io(*_a, **_k):
+            raise AssertionError("L1 hint path must not do IO")
+
+        monkeypatch.setattr(builtins, "open", _no_io)
+        ctx = PromptContext(user_input="x", extra={"route_hint": {"dept": "sales"}})
+        assert layers._hinted_department(ctx) == "sales"
+
+    def test_bridge_carries_the_hint_into_l1(self, tmp_path, monkeypatch):
+        """End to end through scripts/synapse-bridge.py: the payload's
+        route_hint becomes ctx.extra and L1 emits [dept:<hint>]."""
+        import importlib.util
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[2]
+        bridge = root / "scripts" / "synapse-bridge.py"
+        spec = importlib.util.spec_from_file_location("bridge_t", bridge)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert module._context_extra({"route_hint": {"dept": "sales"}}, "s") == {
+            "session_id": "s", "route_hint": {"dept": "sales"}}
+        assert module._context_extra({"route_hint": "sales"}, "s") == {"session_id": "s"}
+        monkeypatch.setenv("HOME", str(tmp_path))
+        out, code = module.run_bridge(
+            {"user_input": "build the api", "session_id": "s-hint", "cwd": str(tmp_path),
+             "route_hint": {"dept": "sales", "p": 0.9, "source": "jev"}}, root)
+        assert code == 0
+        assert "[dept:sales]" in out["context_string"]
+        assert "[dept:dev]" not in out["context_string"]

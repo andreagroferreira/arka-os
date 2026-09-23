@@ -163,8 +163,68 @@ DEPARTMENT_PATTERNS: dict[str, str] = {
 }
 
 
+# Explicit command prefix → department. ``/do`` and ``/arka-do`` hand the
+# prompt to the orchestrator, which L1 answers with no tag.
+ORCHESTRATOR = "orchestrator"
+PREFIX_DEPARTMENTS: dict[str, str] = {
+    "dev": "dev",
+    "mkt": "marketing",
+    "fin": "finance",
+    "strat": "strategy",
+    "ops": "ops",
+    "ecom": "ecom",
+    "kb": "kb",
+    "brand": "brand",
+    "saas": "saas",
+    "landing": "landing",
+    "community": "community",
+    "content": "content",
+    "pm": "pm",
+    "lead": "lead",
+    "sales": "sales",
+    "org": "org",
+    "do": ORCHESTRATOR,
+    "arka-do": ORCHESTRATOR,
+}
+# [-\w] handles hyphenated commands like /arka-do.
+_PREFIX_RE = re.compile(r"^/([-\w]+)\s")
+
+
+def prefix_department(text: str) -> str | None:
+    """Department named by an explicit ``/prefix `` command, else None.
+
+    Returns :data:`ORCHESTRATOR` for ``/do`` and ``/arka-do``.
+    """
+    match = _PREFIX_RE.match(text.lower())
+    return PREFIX_DEPARTMENTS.get(match.group(1)) if match else None
+
+
+def keyword_department(text: str) -> str | None:
+    """Department with the most keyword hits (dict order breaks ties), else None."""
+    lowered = text.lower()
+    scores: dict[str, int] = {}
+    for dept, pattern in DEPARTMENT_PATTERNS.items():
+        matches = re.findall(pattern, lowered, re.IGNORECASE)
+        if matches:
+            scores[dept] = len(matches)
+    return max(scores, key=lambda d: scores[d]) if scores else None
+
+
+def _hinted_department(ctx: PromptContext) -> str | None:
+    """The route hint the UserPromptSubmit decisions stage put in ``ctx.extra``.
+
+    Pure: no config, no IO. Only a known L1 department is accepted, so a
+    malformed or hostile hint can never invent a department.
+    """
+    hint = (ctx.extra or {}).get("route_hint")
+    if not isinstance(hint, dict):
+        return None
+    dept = hint.get("dept")
+    return dept if isinstance(dept, str) and dept in DEPARTMENT_PATTERNS else None
+
+
 class DepartmentLayer(Layer):
-    """L1: Detect department from user input via keyword matching."""
+    """L1: department from an explicit prefix, a route hint, or keywords."""
 
     @property
     def id(self) -> str:
@@ -183,69 +243,20 @@ class DepartmentLayer(Layer):
         return 10
 
     def compute(self, ctx: PromptContext) -> LayerResult:
+        # Precedence: explicit /prefix → route hint (JEV) → keyword count.
         start = time.time()
-        text = ctx.user_input.lower()
-
-        # Check for explicit command prefix first
-        # Use [-\w] to handle hyphenated commands like /arka-do
-        prefix_match = re.match(r"^/([-\w]+)\s", text)
-        if prefix_match:
-            prefix = prefix_match.group(1)
-            dept_map = {
-                "dev": "dev",
-                "mkt": "marketing",
-                "fin": "finance",
-                "strat": "strategy",
-                "ops": "ops",
-                "ecom": "ecom",
-                "kb": "kb",
-                "brand": "brand",
-                "saas": "saas",
-                "landing": "landing",
-                "community": "community",
-                "content": "content",
-                "pm": "pm",
-                "lead": "lead",
-                "sales": "sales",
-                "org": "org",
-                "do": "orchestrator",
-                "arka-do": "orchestrator",
-            }
-            if prefix in dept_map:
-                dept = dept_map[prefix]
-                ms = int((time.time() - start) * 1000)
-                if dept == "orchestrator":
-                    return LayerResult(
-                        layer_id=self.id,
-                        tag="",
-                        content="",
-                        tokens_est=0,
-                        compute_ms=ms,
-                        cached=False,
-                    )
-                return LayerResult(
-                    layer_id=self.id,
-                    tag=f"[dept:{dept}]",
-                    content=dept,
-                    tokens_est=1,
-                    compute_ms=ms,
-                    cached=False,
-                )
-
-        # Pattern matching on input text
-        scores: dict[str, int] = {}
-        for dept, pattern in DEPARTMENT_PATTERNS.items():
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            if matches:
-                scores[dept] = len(matches)
-
-        dept = max(scores, key=scores.get) if scores else ""
-        tag = f"[dept:{dept}]" if dept else ""
-
+        dept = prefix_department(ctx.user_input)
+        if dept is None:
+            dept = _hinted_department(ctx) or keyword_department(ctx.user_input) or ""
         ms = int((time.time() - start) * 1000)
+        if dept == ORCHESTRATOR:
+            return LayerResult(
+                layer_id=self.id, tag="", content="", tokens_est=0,
+                compute_ms=ms, cached=False,
+            )
         return LayerResult(
             layer_id=self.id,
-            tag=tag,
+            tag=f"[dept:{dept}]" if dept else "",
             content=dept,
             tokens_est=1,
             compute_ms=ms,

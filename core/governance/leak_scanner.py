@@ -16,15 +16,15 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 _DEFAULT_CONFIG_PATH = Path.home() / ".arkaos" / "redaction-clients.json"
 _MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB per-file cap
 _SCAN_EXTENSIONS: frozenset[str] = frozenset({
     ".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs",
-    ".json", ".yaml", ".yml", ".toml", ".md", ".sh", ".txt",
+    ".json", ".jsonl", ".yaml", ".yml", ".toml", ".md", ".sh", ".txt",
 })
 _EXCLUDE_DIRS: frozenset[str] = frozenset({
     "node_modules", "__pycache__", ".venv", ".git", "dist", "build",

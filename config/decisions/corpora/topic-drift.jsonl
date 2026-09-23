@@ -1,0 +1,34 @@
+{"id": "td-pt-01", "lang": "pt", "prompt": "agora prepara o email de lançamento", "prior": ["corrige o bug do login"], "expected": true}
+{"id": "td-pt-02", "lang": "pt", "prompt": "escreve um post para o LinkedIn sobre o nosso novo produto", "prior": ["implementa a paginação na lista de encomendas", "adiciona testes à paginação"], "expected": true}
+{"id": "td-pt-03", "lang": "pt", "prompt": "configura o pipeline de CI no GitHub Actions", "prior": ["revê a proposta comercial para o ClienteY"], "expected": true}
+{"id": "td-pt-04", "lang": "pt", "prompt": "desenha um logótipo para a marca ProjetoX", "prior": ["analisa os custos de tokens desta semana"], "expected": true}
+{"id": "td-pt-05", "lang": "pt", "prompt": "qual é a melhor receita de bacalhau?", "prior": ["migra a base de dados para PostgreSQL 17"], "expected": true}
+{"id": "td-pt-06", "lang": "pt", "prompt": "corrige o erro de TypeScript no componente do checkout", "prior": ["prepara o orçamento do trimestre"], "expected": true}
+{"id": "td-pt-07", "lang": "pt", "prompt": "refatora o serviço de autenticação", "prior": ["escreve o guião do vídeo curto sobre produtividade"], "expected": true}
+{"id": "td-pt-08", "lang": "pt", "prompt": "faz a reconciliação das faturas de agosto", "prior": ["cria a landing page do webinar"], "expected": true}
+{"id": "td-pt-09", "lang": "pt", "prompt": "faz o planeamento financeiro do próximo ano", "prior": ["cria o componente do calendário"], "expected": true}
+{"id": "td-pt-10", "lang": "pt", "prompt": "e agora adiciona um teste para esse caso", "prior": ["corrige o bug do login"], "expected": false}
+{"id": "td-pt-11", "lang": "pt", "prompt": "usa 20 itens por página em vez de 50", "prior": ["implementa a paginação na lista de encomendas"], "expected": false}
+{"id": "td-pt-12", "lang": "pt", "prompt": "torna o assunto mais curto e direto", "prior": ["escreve o email de lançamento"], "expected": false}
+{"id": "td-pt-13", "lang": "pt", "prompt": "acrescenta uma secção de preços à proposta", "prior": ["revê a proposta para o ClienteY"], "expected": false}
+{"id": "td-pt-14", "lang": "pt", "prompt": "o job de testes falhou, vê o log", "prior": ["configura o pipeline de CI"], "expected": false}
+{"id": "td-pt-15", "lang": "pt", "prompt": "divide a análise do churn por plano", "prior": ["analisa o churn do último trimestre"], "expected": false}
+{"id": "td-pt-16", "lang": "pt", "prompt": "muda o título da landing para algo mais forte", "prior": ["cria a landing page do webinar"], "expected": false}
+{"id": "td-pt-17", "lang": "pt", "prompt": "não te esqueças dos índices na migração", "prior": ["migra a base de dados para PostgreSQL 17"], "expected": false}
+{"id": "td-pt-18", "lang": "pt", "prompt": "cria um script de backup", "prior": [], "expected": false}
+{"id": "td-pt-19", "lang": "pt", "prompt": "continua", "prior": ["corrige o bug do login", "adiciona teste ao login"], "expected": false}
+{"id": "td-pt-20", "lang": "pt", "prompt": "põe o calendário a começar à segunda-feira", "prior": ["cria o componente do calendário"], "expected": false}
+{"id": "td-en-01", "lang": "en", "prompt": "now draft the launch announcement for Twitter", "prior": ["fix the login redirect bug"], "expected": true}
+{"id": "td-en-02", "lang": "en", "prompt": "what's a good name for our podcast?", "prior": ["refactor the payment service into smaller classes"], "expected": true}
+{"id": "td-en-03", "lang": "en", "prompt": "write a cold email sequence for SaaS founders", "prior": ["set up the staging database"], "expected": true}
+{"id": "td-en-04", "lang": "en", "prompt": "debug the flaky websocket test in CI", "prior": ["review the pricing page copy"], "expected": true}
+{"id": "td-en-05", "lang": "en", "prompt": "design a colour palette for the brand refresh", "prior": ["plan the sprint backlog for next week"], "expected": true}
+{"id": "td-en-06", "lang": "en", "prompt": "negotiate the renewal terms with ClienteY", "prior": ["summarise the research notes on vector databases"], "expected": true}
+{"id": "td-en-07", "lang": "en", "prompt": "also add a regression test for it", "prior": ["fix the login redirect bug"], "expected": false}
+{"id": "td-en-08", "lang": "en", "prompt": "keep the public interface unchanged while you do it", "prior": ["refactor the payment service"], "expected": false}
+{"id": "td-en-09", "lang": "en", "prompt": "use the same credentials vault as production", "prior": ["set up the staging database"], "expected": false}
+{"id": "td-en-10", "lang": "en", "prompt": "make the headline shorter", "prior": ["review the pricing page copy"], "expected": false}
+{"id": "td-en-11", "lang": "en", "prompt": "move the auth stories to the top", "prior": ["plan the sprint backlog"], "expected": false}
+{"id": "td-en-12", "lang": "en", "prompt": "compare pgvector and Qdrant in a table", "prior": ["summarise the research notes on vector databases"], "expected": false}
+{"id": "td-en-13", "lang": "en", "prompt": "mention the new decisions layer first", "prior": ["write the release notes for v5.18"], "expected": false}
+{"id": "td-en-14", "lang": "en", "prompt": "now run the smoke tests against staging", "prior": ["deploy the api to staging"], "expected": false}

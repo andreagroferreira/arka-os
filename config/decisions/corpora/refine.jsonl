@@ -1,0 +1,34 @@
+{"id": "rf-pt-01", "lang": "pt", "prompt": "cria um site melhor", "expected": true}
+{"id": "rf-pt-02", "lang": "pt", "prompt": "melhora isto", "expected": true}
+{"id": "rf-pt-03", "lang": "pt", "prompt": "faz uma app", "expected": true}
+{"id": "rf-pt-04", "lang": "pt", "prompt": "corrige isso", "expected": true}
+{"id": "rf-pt-05", "lang": "pt", "prompt": "implementa o que falámos", "expected": true}
+{"id": "rf-pt-06", "lang": "pt", "prompt": "melhora o desempenho", "expected": true}
+{"id": "rf-pt-07", "lang": "pt", "prompt": "cria uma coisa para os clientes", "expected": true}
+{"id": "rf-pt-08", "lang": "pt", "prompt": "faz o dashboard ficar mais bonito", "expected": true}
+{"id": "rf-pt-09", "lang": "pt", "prompt": "adiciona umas funcionalidades novas", "expected": true}
+{"id": "rf-pt-10", "lang": "pt", "prompt": "constrói um sistema de pagamentos", "expected": true}
+{"id": "rf-pt-11", "lang": "pt", "prompt": "corrige aquilo", "expected": true}
+{"id": "rf-pt-12", "lang": "pt", "prompt": "implementa retry com backoff exponencial em core/api/client.py com no máximo 3 tentativas e testes", "expected": false}
+{"id": "rf-pt-13", "lang": "pt", "prompt": "corrige o user_repo agora", "expected": false}
+{"id": "rf-pt-14", "lang": "pt", "prompt": "atualiza o `config.yaml`", "expected": false}
+{"id": "rf-pt-15", "lang": "pt", "prompt": "adiciona validação de email ao formulário de registo com mensagem de erro em português e um teste", "expected": false}
+{"id": "rf-pt-16", "lang": "pt", "prompt": "cria um endpoint GET /api/orders paginado a 20 itens com filtro por estado", "expected": false}
+{"id": "rf-pt-17", "lang": "pt", "prompt": "corrige o erro 500 no checkout quando o carrinho está vazio e acrescenta um teste de regressão", "expected": false}
+{"id": "rf-pt-18", "lang": "pt", "prompt": "muda o botão principal da homepage para a cor #FF5733", "expected": false}
+{"id": "rf-pt-19", "lang": "pt", "prompt": "adiciona um índice na coluna created_at da tabela orders", "expected": false}
+{"id": "rf-pt-20", "lang": "pt", "prompt": "implementa o export para CSV da lista de clientes com as colunas nome, email e data de registo", "expected": false}
+{"id": "rf-pt-21", "lang": "pt", "prompt": "o que é que este projeto faz?", "expected": false}
+{"id": "rf-en-01", "lang": "en", "prompt": "make it better", "expected": true}
+{"id": "rf-en-02", "lang": "en", "prompt": "build an app", "expected": true}
+{"id": "rf-en-03", "lang": "en", "prompt": "fix the thing", "expected": true}
+{"id": "rf-en-04", "lang": "en", "prompt": "improve performance", "expected": true}
+{"id": "rf-en-05", "lang": "en", "prompt": "add some features", "expected": true}
+{"id": "rf-en-06", "lang": "en", "prompt": "create a dashboard", "expected": true}
+{"id": "rf-en-07", "lang": "en", "prompt": "refactor everything", "expected": true}
+{"id": "rf-en-08", "lang": "en", "prompt": "fix the typo in README.md", "expected": false}
+{"id": "rf-en-09", "lang": "en", "prompt": "add a test to AuthService", "expected": false}
+{"id": "rf-en-10", "lang": "en", "prompt": "add rate limiting of 100 requests per minute per IP to the public API with a 429 response", "expected": false}
+{"id": "rf-en-11", "lang": "en", "prompt": "create a React hook useDebounce with a 300ms default delay and unit tests", "expected": false}
+{"id": "rf-en-12", "lang": "en", "prompt": "what does this function do?", "expected": false}
+{"id": "rf-en-13", "lang": "en", "prompt": "rename the env var OPENROUTER_KEY to OPENROUTER_API_KEY in all scripts", "expected": false}

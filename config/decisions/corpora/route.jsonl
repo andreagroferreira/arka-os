@@ -1,0 +1,33 @@
+{"id": "rt-pt-01", "lang": "pt", "prompt": "corrige o bug do login no ProjetoX", "expected": "dev"}
+{"id": "rt-pt-02", "lang": "pt", "prompt": "prepara uma campanha de Instagram para o lançamento", "expected": "marketing"}
+{"id": "rt-pt-03", "lang": "pt", "prompt": "faz a previsão de cash flow para o próximo trimestre", "expected": "finance"}
+{"id": "rt-pt-04", "lang": "pt", "prompt": "otimiza o checkout da loja Shopify", "expected": "ecom"}
+{"id": "rt-pt-05", "lang": "pt", "prompt": "analisa os concorrentes e sugere um posicionamento", "expected": "strategy"}
+{"id": "rt-pt-06", "lang": "pt", "prompt": "automatiza o envio de faturas com n8n", "expected": "ops"}
+{"id": "rt-pt-07", "lang": "pt", "prompt": "transcreve este vídeo do YouTube para o vault", "expected": "kb"}
+{"id": "rt-pt-08", "lang": "pt", "prompt": "desenha um logótipo novo e a paleta de cores", "expected": "brand"}
+{"id": "rt-pt-09", "lang": "pt", "prompt": "calcula o MRR e o churn do nosso SaaS", "expected": "saas"}
+{"id": "rt-pt-10", "lang": "pt", "prompt": "cria uma landing page para o webinar de março", "expected": "landing"}
+{"id": "rt-pt-11", "lang": "pt", "prompt": "como ponho a comunidade do Discord mais ativa?", "expected": "community"}
+{"id": "rt-pt-12", "lang": "pt", "prompt": "escreve um guião para um reel de 30 segundos", "expected": "content"}
+{"id": "rt-pt-13", "lang": "pt", "prompt": "planeia o próximo sprint e limpa o backlog", "expected": "pm"}
+{"id": "rt-pt-14", "lang": "pt", "prompt": "como dou feedback difícil a um colaborador?", "expected": "lead"}
+{"id": "rt-pt-15", "lang": "pt", "prompt": "prepara uma proposta comercial para o ClienteY", "expected": "sales"}
+{"id": "rt-pt-16", "lang": "pt", "prompt": "redesenha o organigrama da equipa remota", "expected": "org"}
+{"id": "rt-pt-17", "lang": "pt", "prompt": "olá, tudo bem?", "expected": ""}
+{"id": "rt-pt-18", "lang": "pt", "prompt": "obrigado!", "expected": ""}
+{"id": "rt-pt-19", "lang": "pt", "prompt": "agora prepara o email de lançamento", "expected": "marketing"}
+{"id": "rt-pt-20", "lang": "pt", "prompt": "faz o deploy da API para produção", "expected": "dev"}
+{"id": "rt-pt-21", "lang": "pt", "prompt": "corrige aquilo", "expected": ""}
+{"id": "rt-en-01", "lang": "en", "prompt": "fix the failing migration in the orders table", "expected": "dev"}
+{"id": "rt-en-02", "lang": "en", "prompt": "write three LinkedIn posts about our launch", "expected": "marketing"}
+{"id": "rt-en-03", "lang": "en", "prompt": "build a DCF valuation model for the acquisition", "expected": "finance"}
+{"id": "rt-en-04", "lang": "en", "prompt": "set up abandoned cart emails for the store", "expected": "ecom"}
+{"id": "rt-en-05", "lang": "en", "prompt": "run a SWOT analysis on the new market", "expected": "strategy"}
+{"id": "rt-en-06", "lang": "en", "prompt": "map our invoicing process and automate the manual steps", "expected": "ops"}
+{"id": "rt-en-07", "lang": "en", "prompt": "design the user flow wireframes for the mobile app", "expected": "brand"}
+{"id": "rt-en-08", "lang": "en", "prompt": "prepare a hiring plan for next year's headcount", "expected": "org"}
+{"id": "rt-en-09", "lang": "en", "prompt": "write a newsletter issue about our viral short", "expected": "content"}
+{"id": "rt-en-10", "lang": "en", "prompt": "handle this objection: 'it's too expensive'", "expected": "sales"}
+{"id": "rt-en-11", "lang": "en", "prompt": "what's the weather like?", "expected": ""}
+{"id": "rt-en-12", "lang": "en", "prompt": "increase trial-to-paid conversion with a better freemium plan", "expected": "saas"}

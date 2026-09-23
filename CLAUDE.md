@@ -169,7 +169,7 @@ block execution — the user decides whether to act.
 | Check | Triggers when | Output |
 |---|---|---|
 | Context % monitor | Runtime exposes context usage > 60% (>80% = warn) | `[arka:suggest]` / `[arka:warn]` |
-| Topic drift | Keyword overlap with last 3 user messages < 30% | `[arka:suggest] Topic shift — consider /clear` |
+| Topic drift | Jev `topic-drift` in act mode; otherwise keyword overlap < 30% with the last 3 user messages | `[arka:suggest] Topic shift — consider /clear` |
 | Large paste | Prompt > 2000 chars AND contains code fence | `[arka:suggest] Large paste — use @filepath` |
 | Vague reference | Phrases like "fix the bug", "that file", "esse ficheiro" without any `@` reference | `[arka:suggest] Vague reference — use @path` |
 
@@ -212,6 +212,33 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 **SHOULD (12 rules):** research-first, self-critique, kb-contribution, complexity-assessment, communication-standard, design-system-locked, dna-fidelity-warn, pattern-library-first, quality-over-speed, always-research, inter-agent-checkpoints, hybrid-learning
 
+## Typed Decisions (Jev)
+
+`core/decisions/` is a System 1 layer under the agents: sites ask Jev
+(`typesafe/jev-1.13` via the OpenRouter Decisions endpoint) typed
+questions — yes/no, choice, score — instead of regex heuristics. PR1
+wires the four UserPromptSubmit sites (topic-drift, refine,
+creation-intent, route); command, Forge, governance and cognition sites
+follow in later PRs. Jev generates no text; it is not a Model Fabric role and
+never an `LLMProvider`. ADR: `docs/adr/2026-09-23-jev-decisions-layer.md`.
+
+| Mode | Behaviour |
+|---|---|
+| `act` (default) | Bounded synchronous call; Jev's answer drives the site |
+| `shadow` | Detached worker; heuristic drives, agreement is logged |
+| `off` | Heuristic only |
+
+refine ships in shadow (replay 2026-09-23: Jev 60.6 % vs heuristic 90.9 %); topic-drift, creation-intent and route act.
+
+- Unavailability falls back to the site's heuristic (a no-op where none
+  exists); every fallback is counted. Kill-switch: `ARKA_BYPASS_DECISIONS=1`.
+- Governance sites are **escalate-only**: Jev may tighten, never loosen.
+- Never inside a Synapse layer; never replaces subagents or QG reviewers.
+- Payloads pass `core/egress/policy.evaluate()` first; denial = fallback.
+- Telemetry: `~/.arkaos/telemetry/decisions.jsonl`, `/arka decisions`,
+  cost as `record_cost(category="decision")`.
+- Prerequisite: `OPENROUTER_API_KEY` (`npx arkaos keys set`). No key = off.
+
 ## Core Systems
 
 | System | Purpose | Code |
@@ -225,6 +252,7 @@ Agent YAML files: `departments/*/agents/*.yaml`
 | **Governance** | Constitution, quality gates, audit trails | `core/governance/` |
 | **Multi-Runtime** | Claude Code, Codex, Gemini, Cursor adapters | `core/runtime/` |
 | **The Forge** | Multi-agent planning with complexity escalation | `core/forge/` |
+| **Decisions** | Jev typed classifier layer (System 1 under the agents) | `core/decisions/` |
 
 ## Workflows
 
@@ -351,6 +379,7 @@ arkaos/
 | **0. Preflight** | `~/.arkaos/bin/arka-py -m core.release.preflight_cli --expected-npm-user wizardingcode` | **Mandatory step 0** (PR21 v2.43.0). Exit 1 = STOP, fix every remediation, re-run. Catches: version-misalignment, npm/gh auth expired, missing remote. Prevents the v2.40.0 friction (60-min release because expired token only surfaced after merge). |
 | 1. Bump version | Update `VERSION`, `package.json`, `pyproject.toml` | All three must match |
 | 1b. Regenerate marketplace | `~/.arkaos/bin/arka-py scripts/marketplace_gen.py` | Marketplace/plugin JSONs embed the version; `test_marketplace_gen.py` fails the suite on a bump without regen (bit v4.14.4) |
+| 1c. Regenerate harness | `~/.arkaos/bin/arka-py scripts/harness_gen.py` | Runtime bundles under `harness/` embed the version; `test_harness_gen.py` fails the suite on a bump without regen (bit v5.17.2: master shipped with `harness/` at v5.17.1, caught on the JEV branch 2026-09-23) |
 | 2. Commit | `git commit -m "chore: bump to vX.Y.Z"` | |
 | 3. Push | `git push origin master` | |
 | 4. GitHub release | `gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."` | |
