@@ -5,6 +5,57 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.17.2] - 2026-09-23
+
+Opus 5.5 sweep (PR #562). Claude Code 2.1.280 resolves the `opus` alias to
+`claude-opus-5-5`, so every `model: opus` agent was already running there
+while ArkaOS still priced, seeded and normalised around Opus 5. Same defect
+class PR2 (#555) closed for Fable 5.1; this release mirrors PR2 + PR3.
+Quality Gate round 1 APPROVED (0 gating, 12 minors fixed forward), spec
+`Projects/ArkaOS/Specs/SPEC-opus-5-5-sweep` in the vault.
+
+### Fixed
+- **The CostGovernor and `/arka costs` priced every Opus 5.5 turn at
+  nothing.** The day the alias flipped, 10 subagent dispatches (~21M input
+  tokens, 92% cache reads, ≈ $13.83) landed with `estimated_cost_usd: null`
+  and `pricing_status: unknown-model`. `core/runtime/pricing.py` prices
+  `claude-opus-5-5` (and `[1m]`) at $4 / $20 per Mtok with $0.20 cache
+  reads; cache write is the 1.25× assumption ($5.00) until the page lists
+  it (#564). Opus 5 rows stay so earlier sessions keep their cost.
+- **Legacy pins normalised to a lane that was itself legacy.** The Opus 4.x
+  ids in `LEGACY_MODEL_IDS` pointed at `claude-opus-5`; they and
+  `claude-opus-5` (+`[1m]`) now resolve straight to `claude-opus-5-5`, a
+  test proves no legacy id maps to another legacy id, and the notice reads
+  "retired lane; last sweep 2026-09-22" instead of dating every pin with
+  the newest sweep.
+
+### Changed
+- **Model Fabric `opus` lane → Opus 5.5**: gateway upstream for the `opus`
+  slot, runtime catalogue label and price note, `schedules.yaml` and the
+  costs skill; every hub, test and doc that named Opus 5 is swept (an
+  idempotent script with a negative lookahead, so `claude-opus-5-5` is
+  never rewritten).
+- **`fallbackModel` default chain is `claude-opus-5-5 → claude-sonnet-5`**
+  (operator decision: two models). The seeder now recognises the chains
+  ArkaOS itself wrote before (`PREVIOUS_FALLBACK_DEFAULTS`, one list in
+  Python and JS, parity-tested): `npx arkaos install` / `update` and
+  `arka harness assert` upgrade a chain that is exactly a previous default
+  (`action: upgraded`, previous chain reported) and still never touch an
+  operator chain — array, `[]`, legacy string or superset. Drift reports the
+  old default as `diverged` (so the report fails) instead of `adopted`.
+- `seedFallbackModel` split into read / decide / write helpers (it was
+  already over the 30-line rule on master); the write-failed branch is now
+  pinned by a test.
+
+### Added
+- Guard: `test_model_references.py` rejects `claude-opus-5` / "Opus 5"
+  outside history, with positive and negative samples and a line-level
+  exemption for the `PREVIOUS_FALLBACK_DEFAULTS` literals (proven
+  load-bearing by mutation). Ten mutation proofs on record for the sweep.
+- Follow-ups filed: #563 (`dev/watch` passes `-vsync`, gone in current
+  ffmpeg — the full suite is red on any machine with ffmpeg ≥ 8 while CI
+  skips without ffmpeg) and #564 (confirm the Opus 5.5 cache-write rate).
+
 ## [5.17.1] - 2026-09-06
 
 Hyperframes routing (PR #559). The Hyperframes skill family
