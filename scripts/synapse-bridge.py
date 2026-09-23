@@ -122,6 +122,20 @@ def load_commands_registry(root: Path) -> list:
         return []
 
 
+def _context_extra(input_data: dict[str, Any], session_id: str) -> dict[str, Any]:
+    """``PromptContext.extra``: the session id, plus the UPS route hint.
+
+    The hint (``{"dept", "p", "source"}``) comes from the JEV decisions
+    stage in the UserPromptSubmit hook; L1 validates it, the bridge only
+    carries it.
+    """
+    extra: dict[str, Any] = {"session_id": session_id}
+    hint = input_data.get("route_hint")
+    if isinstance(hint, dict):
+        extra["route_hint"] = hint
+    return extra
+
+
 def run_bridge(
     input_data: dict,
     root: Path,
@@ -203,7 +217,7 @@ def run_bridge(
             project_stack=input_data.get("project_stack", ""),
             active_agent=input_data.get("active_agent", ""),
             runtime_id=input_data.get("runtime_id", "claude-code"),
-            extra={"session_id": session_id},
+            extra=_context_extra(input_data, session_id),
         )
 
         result = engine.inject(ctx)

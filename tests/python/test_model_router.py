@@ -8,6 +8,7 @@ import yaml
 from core.runtime import model_router
 from core.runtime.model_router import (
     QUALITY_ROLES,
+    DecisionsModelConfig,
     RoleChoice,
     ensure_user_config,
     load_config,
@@ -230,3 +231,75 @@ class TestLegacyPinsSurface:
         assert model_router.legacy_pins(user_path) == [
             ("review", "claude-opus-4-8", "claude-opus-5-5"),
         ]
+
+
+class TestDecisionsBlock:
+    """JEV Decisions Layer PR1: the `decisions:` block is parsed, defaults
+    when absent, and a malformed value NEVER discards the whole file —
+    `_read_yaml` returns None on ValueError, which would silently drop the
+    operator's roles back to the packaged default."""
+
+    def _write(self, path: Path, decisions: object) -> None:
+        path.write_text(yaml.safe_dump({
+            "version": 1,
+            "roles": {"review": {"provider": "ollama", "model": "kimi-k2.6",
+                                 "effort": "max"}},
+            "decisions": decisions,
+        }), encoding="utf-8")
+
+    def test_block_parses_values(self, user_path):
+        self._write(user_path, {"transport": "openrouter", "model": "jev-2.0"})
+        config, source = load_config(user_path)
+        assert source == "user"
+        assert config.decisions.transport == "openrouter"
+        assert config.decisions.model == "jev-2.0"
+
+    def test_absent_block_uses_defaults(self, user_path):
+        user_path.write_text(yaml.safe_dump({"version": 1, "roles": {}}),
+                             encoding="utf-8")
+        config, source = load_config(user_path)
+        assert source == "user"
+        assert config.decisions == DecisionsModelConfig()
+        assert (config.decisions.transport, config.decisions.model) == (
+            "openrouter", "jev-1.13")
+
+    def test_packaged_default_ships_the_block(self, user_path):
+        config, source = load_config(user_path)
+        assert source == "packaged"
+        assert config.decisions.transport == "openrouter"
+        assert config.decisions.model == "jev-1.13"
+        assert config.providers["openrouter"] == {"type": "openrouter"}
+
+    @pytest.mark.parametrize("bad", [42, "anthropic", "", None, ["openrouter"]])
+    def test_bad_transport_coerced_and_roles_survive(self, user_path, bad):
+        self._write(user_path, {"transport": bad, "model": "jev-1.13"})
+        config, source = load_config(user_path)
+        assert source == "user"  # the file was NOT discarded
+        assert config.decisions.transport == "openrouter"
+        assert config.roles["review"].provider == "ollama"
+        assert resolve("review", user_path).model == "kimi-k2.6"
+
+    @pytest.mark.parametrize("bad", [None, 7, "openrouter", ["x"]])
+    def test_non_mapping_block_falls_back_to_defaults(self, user_path, bad):
+        self._write(user_path, bad)
+        config, source = load_config(user_path)
+        assert source == "user"
+        assert config.decisions == DecisionsModelConfig()
+        assert config.roles["review"].provider == "ollama"
+
+    @pytest.mark.parametrize("bad", [None, 3, "   "])
+    def test_bad_model_falls_back_to_default(self, user_path, bad):
+        self._write(user_path, {"transport": "openrouter", "model": bad})
+        config, source = load_config(user_path)
+        assert source == "user"
+        assert config.decisions.model == "jev-1.13"
+
+    def test_set_role_preserves_decisions_block(self, user_path):
+        self._write(user_path, {"transport": "openrouter", "model": "jev-2.0"})
+        set_role("mechanical", "ollama/qwen3:8b", effort="low",
+                 user_path=user_path)
+        raw = yaml.safe_load(user_path.read_text(encoding="utf-8"))
+        assert raw["decisions"] == {"transport": "openrouter", "model": "jev-2.0"}
+        config, _ = load_config(user_path)
+        assert config.decisions.model == "jev-2.0"
+        assert config.roles["mechanical"].provider == "ollama"

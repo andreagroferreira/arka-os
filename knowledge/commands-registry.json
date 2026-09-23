@@ -1,11 +1,11 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-09-06T10:59:22Z",
-    "total_commands": 307,
+    "generated": "2026-09-23T15:42:59Z",
+    "total_commands": 308,
     "generator": "core/registry/generator.py",
     "departments": {
-      "arka": 22,
+      "arka": 23,
       "brand": 14,
       "community": 15,
       "content": 21,
@@ -29,7 +29,7 @@
       "id": "arka-status",
       "command": "/arka status",
       "department": "arka",
-      "description": "System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period=\"today\")`. Also includes **Enforcement (24h)** section: total calls, block rate, top blocked tools/reasons from `core.governance.enforcement_telemetry.summarise(period=\"today\")` (PR19 v2.41.0). Plus **Reorganization (today)** section: today's proposal path + artifact count from `core.cognition.reorganizer_scheduler.status_summary()` (PR24 v2.46.0). Plus **Model routing** section: gateway live/off + resolved per-slot routes + served counts + the `fallbackModel` chain from settings.json or its state (`unset` / `disabled` / `invalid`) (Runtime Sync PR3 v5.17.0) from `core.runtime.model_routing_check.status_summary()`. Plus **MCP usage (24h)** section: total calls + servers in use + top servers from `core.runtime.mcp_telemetry.summarise(period=\"today\")`.",
+      "description": "System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period=\"today\")`. Also includes **Enforcement (24h)** section: total calls, block rate, top blocked tools/reasons from `core.governance.enforcement_telemetry.summarise(period=\"today\")` (PR19 v2.41.0). Plus **Reorganization (today)** section: today's proposal path + artifact count from `core.cognition.reorganizer_scheduler.status_summary()` (PR24 v2.46.0). Plus **Model routing** section: gateway live/off + resolved per-slot routes + served counts + the `fallbackModel` chain from settings.json or its state (`unset` / `disabled` / `invalid`) (Runtime Sync PR3 v5.17.0) from `core.runtime.model_routing_check.status_summary()`. Plus **MCP usage (24h)** section: total calls + servers in use + top servers from `core.runtime.mcp_telemetry.summarise(period=\"today\")`. Plus **Decisions (24h)** section from `core.decisions.telemetry.summarise(period=\"today\")`: per site, calls, agreement with the heuristic, fallback rate, share acted on Jev, p50 latency and cost; overall, total cost, p50 latency, cache-hit rate and the top fallback reasons.",
       "lead_agent": "arka",
       "keywords": [
         "system status",
@@ -78,6 +78,19 @@
       "command": "/arka mcps [period]",
       "department": "arka",
       "description": "MCP usage — aggregates the PostToolUse MCP telemetry (`~/.arkaos/telemetry/mcp-usage.jsonl`) by day/week/month/all. Shows total calls, servers in use, top servers and top tools. Shells out to `~/.arkaos/bin/arka-py -m core.runtime.mcp_telemetry_cli <period>`.",
+      "lead_agent": "arka",
+      "keywords": [],
+      "examples": [],
+      "source": "builtin",
+      "tier": 2,
+      "requires_branch": false,
+      "modifies_code": false
+    },
+    {
+      "id": "arka-decisions",
+      "command": "/arka decisions [period]",
+      "department": "arka",
+      "description": "Jev typed-decision telemetry (`~/.arkaos/telemetry/decisions.jsonl`) by day/week/month/all: per site: calls, agreement with the heuristic, fallback rate, share acted on Jev, p50 latency and cost; overall: total cost, p50 latency, cache-hit rate and the top fallback reasons. Shells out to `~/.arkaos/bin/arka-py -m core.decisions.telemetry_cli <period>`.",
       "lead_agent": "arka",
       "keywords": [],
       "examples": [],

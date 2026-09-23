@@ -769,6 +769,9 @@ class TestUserPromptSubmit:
         for key, value in _env(hook_home).items():
             monkeypatch.setenv(key, value)
         monkeypatch.setenv("ARKA_UPS_BUDGET_MS", "0")
+        # Hermetic: an ambient CLAUDE_EFFORT=low|medium (the runtime sets
+        # it for a subagent) turns the nudge gate off and drops "nudges".
+        monkeypatch.delenv("CLAUDE_EFFORT", raising=False)
         monkeypatch.setattr(
             ups, "_run_bridge", lambda *a: "[BRIDGE-SENTINEL]"
         )

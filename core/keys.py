@@ -16,6 +16,10 @@ PROVIDERS = {
         "name": "OpenAI",
         "used_for": "Whisper transcription (/watch fallback), embeddings, GPT",
     },
+    "OPENROUTER_API_KEY": {
+        "name": "OpenRouter",
+        "used_for": "Model Fabric fusion panels + Jev decisions layer",
+    },
     "GOOGLE_API_KEY": {
         "name": "Google",
         "used_for": "Gemini API, Nano Banana, Google Cloud AI",

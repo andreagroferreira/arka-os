@@ -125,6 +125,35 @@ class FusionConfig(BaseModel):
     panel: list[RoleChoice] = Field(default_factory=list)
 
 
+DECISIONS_TRANSPORTS = frozenset({"openrouter"})
+
+
+class DecisionsModelConfig(BaseModel):
+    """The ``decisions:`` block — Jev typed classifier, not a role.
+
+    Tolerant by construction: ``_read_yaml`` drops the WHOLE file on any
+    ``ValueError``, so an unknown or non-string transport is coerced to the
+    only supported one instead of raising (ADR 2026-09-23 jev-decisions-layer).
+    """
+
+    transport: str = "openrouter"
+    model: str = "jev-1.13"
+
+    @field_validator("transport", mode="before")
+    @classmethod
+    def _known_transport(cls, value: object) -> str:
+        if isinstance(value, str) and value.strip().lower() in DECISIONS_TRANSPORTS:
+            return value.strip().lower()
+        return "openrouter"
+
+    @field_validator("model", mode="before")
+    @classmethod
+    def _model_or_default(cls, value: object) -> str:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return "jev-1.13"
+
+
 class ModelsConfig(BaseModel):
     """Validated shape of models.yaml."""
 
@@ -133,6 +162,15 @@ class ModelsConfig(BaseModel):
     aliases: dict[str, dict[str, str]] = Field(default_factory=dict)
     roles: dict[str, RoleChoice] = Field(default_factory=dict)
     fusion: FusionConfig = Field(default_factory=FusionConfig)
+    decisions: DecisionsModelConfig = Field(default_factory=DecisionsModelConfig)
+
+    @field_validator("decisions", mode="before")
+    @classmethod
+    def _decisions_mapping(cls, value: object) -> object:
+        # `decisions: null` / a scalar must not discard the whole file either.
+        if isinstance(value, (dict, DecisionsModelConfig)):
+            return value
+        return {}
 
 
 class ResolvedModel(BaseModel):

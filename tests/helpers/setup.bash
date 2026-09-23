@@ -6,6 +6,11 @@
 
 # Create temp directories for test isolation
 setup() {
+  # hermetic: never call the Jev decisions API from tests
+  export ARKA_BYPASS_DECISIONS=1
+  # deterministic: past the 6000 ms default budget the UPS hook skips its
+  # nudges by design, so a loaded machine turned nudge asserts into flakes
+  export ARKA_UPS_BUDGET_MS=60000
   export TEST_TEMP_DIR="$(mktemp -d)"
   export TEST_HOME="$TEST_TEMP_DIR/home"
   export TEST_ARKA_OS="$TEST_HOME/.claude/skills/arka"

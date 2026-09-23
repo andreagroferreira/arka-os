@@ -11,6 +11,12 @@
 //   knowledge.graphify.enabled  = true   (graphify HTTP — "active once configured".
 //                                          Applies only when a url + token are also
 //                                          set; a fresh user with no endpoint is a no-op.)
+//   decisions.*                 = see SCALAR_SEEDS below (PR1 — JEV Decisions
+//                                          Layer campaign: enabled, transport,
+//                                          redactClients, timeouts, thresholds,
+//                                          per-site modes. Non-boolean scalars,
+//                                          seeded key-by-key so a partial user
+//                                          "decisions" section only fills gaps.)
 //
 // Returns a status object:
 //   { action: "created" | "added-key" | "noop"
@@ -39,6 +45,29 @@ const NESTED_SEEDS = [
   ["knowledge", "graphify", "enabled", true],
 ];
 
+// Scalar seed table for arbitrary-depth, non-boolean-flag keys (strings,
+// numbers): [path, value]. Same idempotent contract as SEEDED_SECTIONS/
+// NESTED_SEEDS (seed only when the leaf is unset, never clobber an
+// explicit value), but supports any scalar type and any depth. Used for
+// the JEV Decisions Layer config (PR1): transport, timeouts, thresholds,
+// per-site modes.
+const SCALAR_SEEDS = [
+  [["decisions", "enabled"], true],
+  [["decisions", "transport"], "openrouter"],
+  [["decisions", "redactClients"], true],
+  [["decisions", "hookTimeoutMs"], 1500],
+  [["decisions", "cacheTtlSeconds"], 86400],
+  [["decisions", "thresholds", "read"], 0.6],
+  [["decisions", "thresholds", "write"], 0.75],
+  [["decisions", "thresholds", "destructive"], 0.9],
+  [["decisions", "sites", "topic-drift"], "act"],
+  [["decisions", "sites", "refine"], "shadow"],
+  [["decisions", "sites", "creation-intent"], "act"],
+  [["decisions", "sites", "route", "mode"], "act"],
+  [["decisions", "sites", "route", "minConfidence"], 0.7],
+  [["decisions", "sites", "route", "timeoutMs"], 1000],
+];
+
 function defaultConfig() {
   const config = {};
   for (const [section, keys] of Object.entries(SEEDED_SECTIONS)) {
@@ -50,6 +79,7 @@ function defaultConfig() {
     config[section][sub] = config[section][sub] || {};
     config[section][sub][key] = value;
   }
+  applyScalarSeeds(config);
   return config;
 }
 
@@ -98,6 +128,44 @@ function applyNestedSeeds(config) {
   return { added, preservedFalse };
 }
 
+// Walk `path` in `config`, creating empty objects along the way. Returns
+// the parent object to write the leaf into, or null when a path segment
+// already holds a non-object value (e.g. a legacy `sites.route: "off"`
+// string) — the caller then skips that seed, preserving the user's value
+// whole rather than descending into it.
+function walkToParent(config, path) {
+  let node = config;
+  for (const key of path.slice(0, -1)) {
+    const existing = node[key];
+    if (existing === undefined) {
+      node[key] = {};
+    } else if (typeof existing !== "object" || existing === null || Array.isArray(existing)) {
+      return null;
+    }
+    node = node[key];
+  }
+  return node;
+}
+
+// Seed the arbitrary-depth scalar keys in SCALAR_SEEDS: write only when the
+// leaf is unset, never clobber an explicit value of any type. Unlike
+// applyFlatSeeds/applyNestedSeeds there is no "preserve explicit false"
+// status — any defined value (false, 0, "off", ...) already reads as user
+// intent under the generic "leaf is unset" check, so it is preserved the
+// same way as any other explicit value.
+function applyScalarSeeds(config) {
+  let added = false;
+  for (const [path, value] of SCALAR_SEEDS) {
+    const parent = walkToParent(config, path);
+    if (parent === null) continue; // blocked by an existing non-object value
+    const leaf = path[path.length - 1];
+    if (parent[leaf] !== undefined) continue; // already set — preserve
+    parent[leaf] = value;
+    added = true;
+  }
+  return { added };
+}
+
 // Load the config for seeding. Returns {config} when there is something to
 // seed, or {done} when the file was absent or corrupt and has been written
 // from the template — in which case the caller returns that status as-is.
@@ -130,7 +198,8 @@ export function seedArkaosConfig({ home = homedir() } = {}) {
 
   const flat = applyFlatSeeds(config);
   const nested = applyNestedSeeds(config);
-  const added = flat.added || nested.added;
+  const scalar = applyScalarSeeds(config);
+  const added = flat.added || nested.added || scalar.added;
   const preservedFalse = flat.preservedFalse || nested.preservedFalse;
 
   if (added) {

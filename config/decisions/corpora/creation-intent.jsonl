@@ -1,0 +1,47 @@
+{"id": "ci-pt-01", "lang": "pt", "prompt": "criar uma feature de auth", "expected": true}
+{"id": "ci-pt-02", "lang": "pt", "prompt": "faz isso aqui", "expected": true}
+{"id": "ci-pt-03", "lang": "pt", "prompt": "continua", "expected": true}
+{"id": "ci-pt-04", "lang": "pt", "prompt": "força", "expected": true}
+{"id": "ci-pt-05", "lang": "pt", "prompt": "vamos continuar", "expected": true}
+{"id": "ci-pt-06", "lang": "pt", "prompt": "melhorar o arkaos em si", "expected": true}
+{"id": "ci-pt-07", "lang": "pt", "prompt": "vamos colocar todas do 1 ao 3", "expected": true}
+{"id": "ci-pt-08", "lang": "pt", "prompt": "terminar isto agora", "expected": true}
+{"id": "ci-pt-09", "lang": "pt", "prompt": "podes implementar a exportacao?", "expected": true}
+{"id": "ci-pt-10", "lang": "pt", "prompt": "como combinado, implementa a feature", "expected": true}
+{"id": "ci-pt-11", "lang": "pt", "prompt": "corrige o bug do login no ProjetoX", "expected": true}
+{"id": "ci-pt-12", "lang": "pt", "prompt": "prepara o email de lançamento para o ClienteY", "expected": true}
+{"id": "ci-pt-13", "lang": "pt", "prompt": "escreve os testes para o módulo de pagamentos", "expected": true}
+{"id": "ci-pt-14", "lang": "pt", "prompt": "atualiza as dependências do projeto", "expected": true}
+{"id": "ci-pt-15", "lang": "pt", "prompt": "remove o endpoint antigo de exportação", "expected": true}
+{"id": "ci-pt-16", "lang": "pt", "prompt": "muda a cor do botão para azul", "expected": true}
+{"id": "ci-pt-17", "lang": "pt", "prompt": "trata do deploy de hoje", "expected": true}
+{"id": "ci-pt-18", "lang": "pt", "prompt": "gera o relatório mensal em PDF", "expected": true}
+{"id": "ci-pt-19", "lang": "pt", "prompt": "o que e que este projeto faz?", "expected": false}
+{"id": "ci-pt-20", "lang": "pt", "prompt": "como fazes o deploy?", "expected": false}
+{"id": "ci-pt-21", "lang": "pt", "prompt": "obrigado pela ajuda", "expected": false}
+{"id": "ci-pt-22", "lang": "pt", "prompt": "olá, bom dia", "expected": false}
+{"id": "ci-pt-23", "lang": "pt", "prompt": "porque é que o teste falha?", "expected": false}
+{"id": "ci-pt-24", "lang": "pt", "prompt": "explica-me como funciona o motor de workflows", "expected": false}
+{"id": "ci-pt-25", "lang": "pt", "prompt": "qual é a diferença entre shadow e act?", "expected": false}
+{"id": "ci-pt-26", "lang": "pt", "prompt": "onde está definido o limiar de confiança?", "expected": false}
+{"id": "ci-pt-27", "lang": "pt", "prompt": "isto está bem assim, obrigado", "expected": false}
+{"id": "ci-pt-28", "lang": "pt", "prompt": "achas que faz sentido usar Redis aqui?", "expected": false}
+{"id": "ci-en-01", "lang": "en", "prompt": "create a user auth feature", "expected": true}
+{"id": "ci-en-02", "lang": "en", "prompt": "implement this", "expected": true}
+{"id": "ci-en-03", "lang": "en", "prompt": "continue with the next PR", "expected": true}
+{"id": "ci-en-04", "lang": "en", "prompt": "ship v2.75 to npm", "expected": true}
+{"id": "ci-en-05", "lang": "en", "prompt": "merge that PR", "expected": true}
+{"id": "ci-en-06", "lang": "en", "prompt": "deploy this to production", "expected": true}
+{"id": "ci-en-07", "lang": "en", "prompt": "improve the api responses", "expected": true}
+{"id": "ci-en-08", "lang": "en", "prompt": "finish this task", "expected": true}
+{"id": "ci-en-09", "lang": "en", "prompt": "write the release notes for v5.18", "expected": true}
+{"id": "ci-en-10", "lang": "en", "prompt": "rename the config key to hookTimeoutMs", "expected": true}
+{"id": "ci-en-11", "lang": "en", "prompt": "can you add pagination to the orders list?", "expected": true}
+{"id": "ci-en-12", "lang": "en", "prompt": "what is X?", "expected": false}
+{"id": "ci-en-13", "lang": "en", "prompt": "how do I implement auth here?", "expected": false}
+{"id": "ci-en-14", "lang": "en", "prompt": "how does Y work?", "expected": false}
+{"id": "ci-en-15", "lang": "en", "prompt": "hello", "expected": false}
+{"id": "ci-en-16", "lang": "en", "prompt": "thanks for the help", "expected": false}
+{"id": "ci-en-17", "lang": "en", "prompt": "/arka help", "expected": false}
+{"id": "ci-en-18", "lang": "en", "prompt": "!ls", "expected": false}
+{"id": "ci-en-19", "lang": "en", "prompt": "why is the cache miss rate so high?", "expected": false}

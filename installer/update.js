@@ -659,6 +659,8 @@ export async function update({ skillsFlag = "" } = {}) {
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   ok("Manifest updated");
 
+  await seedGlobalConfigOnUpdate(homedir());
+
   // Reset sync state to trigger /arka update on next session
   const syncStatePath = join(installDir, "sync-state.json");
   const syncState = {
@@ -738,6 +740,33 @@ export async function update({ skillsFlag = "" } = {}) {
 function ensureDir(dir) {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
+  }
+}
+
+/**
+ * Seed ~/.arkaos/config.json on `npx arkaos update` too — not just on a
+ * fresh `npx arkaos install` (installer/index.js:329-330 has that call).
+ * Until PR1 (JEV Decisions Layer campaign), an existing install that only
+ * ever ran `update` never picked up new template keys added after its
+ * install date (hooks.hardEnforcement, decisions.*, ...). Same idempotent
+ * contract as install: only fills a key that is unset, never overwrites an
+ * explicit user value (true, false, a custom string/number, ...).
+ */
+export async function seedGlobalConfigOnUpdate(home) {
+  try {
+    const { seedArkaosConfig } = await import("./config-seed.js");
+    const seedResult = seedArkaosConfig({ home });
+    if (seedResult.action === "created") {
+      ok("config.json created (defaults seeded)");
+    } else if (seedResult.action === "added-key") {
+      ok("config.json: seeded new default keys (existing overrides preserved)");
+    } else if (seedResult.action === "preserved-user-false") {
+      detail("         config.json: user overrides preserved, nothing new to seed");
+    } else if (seedResult.action === "rewrote-corrupt") {
+      warn(`config.json was corrupt — rewrote, backup at ${seedResult.backup}`);
+    }
+  } catch (err) {
+    warn(`config.json seed skipped (${err.message})`);
   }
 }
 

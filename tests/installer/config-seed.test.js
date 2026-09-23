@@ -1,10 +1,12 @@
 // Tests for the ~/.arkaos/config.json seed/migration logic
-// (PR19 v2.41.0; kbFirst added in PR-3 v4.1).
+// (PR19 v2.41.0; kbFirst added in PR-3 v4.1; decisions.* added in PR1 of
+// the JEV Decisions Layer campaign).
 //
 // Contract: seedArkaosConfig is idempotent. Writes each template key
 // (hooks.hardEnforcement, hooks.kbFirst) to true only when the key is
 // unset (file absent or key undefined). Explicit user choice (true OR
-// false) is preserved unchanged.
+// false) is preserved unchanged. The decisions.* scalar seeds follow the
+// same "only when unset" contract for arbitrary-depth, non-boolean values.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -151,6 +153,20 @@ test("seed is idempotent when all template keys are true", () => {
       hooks: { hardEnforcement: true, kbFirst: true },
       memory: { sessionMemory: true },
       knowledge: { graphify: { enabled: true } },
+      decisions: {
+        enabled: true,
+        transport: "openrouter",
+        redactClients: true,
+        hookTimeoutMs: 1500,
+        cacheTtlSeconds: 86400,
+        thresholds: { read: 0.6, write: 0.75, destructive: 0.9 },
+        sites: {
+          "topic-drift": "act",
+          refine: "shadow",
+          "creation-intent": "act",
+          route: { mode: "act", minConfidence: 0.7, timeoutMs: 1000 },
+        },
+      },
     });
     const before = readFileSync(cfgPath, "utf-8");
     seedArkaosConfig({ home: dir });
@@ -208,6 +224,20 @@ test("seed returns a status object describing the action taken", () => {
       hooks: { hardEnforcement: false, kbFirst: false },
       memory: { sessionMemory: false },
       knowledge: { graphify: { enabled: false } },
+      decisions: {
+        enabled: true,
+        transport: "openrouter",
+        redactClients: true,
+        hookTimeoutMs: 1500,
+        cacheTtlSeconds: 86400,
+        thresholds: { read: 0.6, write: 0.75, destructive: 0.9 },
+        sites: {
+          "topic-drift": "act",
+          refine: "shadow",
+          "creation-intent": "act",
+          route: { mode: "act", minConfidence: 0.7, timeoutMs: 1000 },
+        },
+      },
     });
     const r3 = seedArkaosConfig({ home: dir });
     assert.equal(r3.action, "preserved-user-false");
@@ -251,6 +281,96 @@ test("seed preserves memory.sessionMemory=false (operator opt-out)", () => {
     seedArkaosConfig({ home: dir });
     const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
     assert.equal(cfg.memory.sessionMemory, false, "explicit false is never overwritten");
+  } finally {
+    cleanup();
+  }
+});
+
+// --- decisions.* (JEV Decisions Layer, PR1) -------------------------------
+
+test("seed creates the full decisions section when file absent (JEV Decisions Layer)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    seedArkaosConfig({ home: dir });
+    const cfg = JSON.parse(readFileSync(join(dir, ".arkaos", "config.json"), "utf-8"));
+    assert.equal(cfg.decisions.enabled, true);
+    assert.equal(cfg.decisions.transport, "openrouter");
+    assert.equal(cfg.decisions.redactClients, true);
+    assert.equal(cfg.decisions.hookTimeoutMs, 1500);
+    assert.equal(cfg.decisions.cacheTtlSeconds, 86400);
+    assert.deepEqual(cfg.decisions.thresholds, { read: 0.6, write: 0.75, destructive: 0.9 });
+    assert.equal(cfg.decisions.sites["topic-drift"], "act");
+    assert.equal(cfg.decisions.sites.refine, "shadow");
+    assert.equal(cfg.decisions.sites["creation-intent"], "act");
+    assert.deepEqual(cfg.decisions.sites.route, { mode: "act", minConfidence: 0.7, timeoutMs: 1000 });
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed preserves a user decisions.sites.route=\"off\" string and fills the rest", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, {
+      decisions: { sites: { route: "off" } },
+    });
+    const result = seedArkaosConfig({ home: dir });
+    assert.equal(result.action, "added-key");
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+    assert.equal(cfg.decisions.sites.route, "off",
+      "an existing string leaf must never be turned into an object");
+    assert.equal(cfg.decisions.sites["topic-drift"], "act", "sibling sites still seeded");
+    assert.equal(cfg.decisions.sites.refine, "shadow", "sibling sites still seeded");
+    assert.equal(cfg.decisions.enabled, true, "other decisions scalars still seeded");
+    assert.equal(cfg.decisions.transport, "openrouter", "other decisions scalars still seeded");
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed run twice on a fresh install is a byte-identical noop (decisions included)", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    seedArkaosConfig({ home: dir }); // first run: create + seed everything, incl. decisions
+    const cfgPath = join(dir, ".arkaos", "config.json");
+    const before = readFileSync(cfgPath, "utf-8");
+    const result = seedArkaosConfig({ home: dir });
+    const after = readFileSync(cfgPath, "utf-8");
+    assert.equal(result.action, "noop");
+    assert.equal(after, before, "second run must not rewrite an already-seeded decisions section");
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed preserves explicit decisions.enabled=false", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, { decisions: { enabled: false } });
+    const result = seedArkaosConfig({ home: dir });
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+    assert.equal(cfg.decisions.enabled, false, "user-set false must not be clobbered");
+    assert.equal(cfg.decisions.transport, "openrouter", "other decisions scalars still seeded");
+    assert.equal(result.action, "added-key", "the rest of decisions.* was still unset");
+  } finally {
+    cleanup();
+  }
+});
+
+test("seed fills missing decisions.* keys around a partial user section", () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, {
+      decisions: { enabled: true, sites: { "topic-drift": "shadow" } },
+    });
+    const result = seedArkaosConfig({ home: dir });
+    assert.equal(result.action, "added-key");
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
+    assert.equal(cfg.decisions.enabled, true, "user value untouched");
+    assert.equal(cfg.decisions.sites["topic-drift"], "shadow", "user value untouched");
+    assert.equal(cfg.decisions.sites.refine, "shadow", "missing site filled in");
+    assert.equal(cfg.decisions.transport, "openrouter", "missing scalar filled in");
+    assert.deepEqual(cfg.decisions.sites.route, { mode: "act", minConfidence: 0.7, timeoutMs: 1000 });
   } finally {
     cleanup();
   }
