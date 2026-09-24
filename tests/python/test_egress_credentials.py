@@ -442,8 +442,8 @@ _CAP_SLOW = 4.0  # CPU seconds for one form at the 1 MB cap (up to 2 MB serialis
 
 # PR3 post-approval CI calibration. The absolute ceilings in this file measure
 # the machine as well as the code: the ubuntu 3.12 coverage leg ran the same
-# scans ~2.3x slower than the operator's machine (0.8 -> 1.64 s, 1.15 -> 2.64
-# s) and failed four ceilings while every interleaved RATIO test passed. Each
+# scans ~3x slower than the operator's machine (0.52 -> 1.64 s, 0.87-1.02 ->
+# 2.64 s) and failed four ceilings while every interleaved RATIO test passed. Each
 # absolute ceiling is multiplied by ``_machine()``: a fixed regex workload
 # independent of ``core.egress`` (so a slower scan cannot loosen its own
 # bound), timed once per session, divided by its time on the operator's
