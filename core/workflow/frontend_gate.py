@@ -204,6 +204,62 @@ def _resolve_ui_scope(
     return None
 
 
+# JEV Decisions Layer PR3 — the ui-in-ts site's ceiling (site #17).
+UI_JEV_TIMEOUT_MS = 600
+
+
+def _ui_jev_live() -> bool:
+    """``engine.active(names=("ui-in-ts",))`` without the engine's imports,
+    as ``flow_enforcer._bash_jev_live`` does for a keyless PreToolUse."""
+    from core.decisions.config import load_decisions_config, site_mode
+    from core.decisions.sites.governance import UI_IN_TS
+    from core.decisions.transport import resolve_transport
+
+    cfg = load_decisions_config()
+    return site_mode(cfg, UI_IN_TS) != "off" and resolve_transport(cfg) is not None
+
+
+def _jev_ui_scope(
+    tool_name: str, file_path: str, tool_input: dict[str, object], session_id: str
+) -> str | None:
+    """'heuristic' when the ``ui-in-ts`` Jev site calls a .ts/.js payload UI.
+
+    Escalate-only, asked only where the regex said "not UI": the scope
+    it returns never denies, even in hard mode. Gate off, design bypass,
+    an empty payload or any failure keep the regex's answer, no network.
+    """
+    if tool_name not in _GATED_TOOLS or Path(file_path).suffix.lower() not in _HEURISTIC_SUFFIXES:
+        return None
+    content = "\n".join(_edit_payloads(tool_name, tool_input))
+    if not content.strip() or os.environ.get("ARKA_BYPASS_DESIGN") == "1":
+        return None
+    try:
+        if _mode() == "off" or not _ui_jev_live():
+            return None
+        from core.decisions.engine import decide
+        from core.decisions.site import SiteCall
+        from core.decisions.sites.governance import UI_IN_TS, ui_state
+        from core.decisions.transport import configured_model
+
+        outcomes = decide(
+            [SiteCall(UI_IN_TS, False)], ui_state(file_path, content),
+            session_id=session_id, timeout_ms=UI_JEV_TIMEOUT_MS, model=configured_model(),
+        )
+        return "heuristic" if outcomes["ui-in-ts"].value is True else None
+    except Exception:
+        return None
+
+
+def _gate_ui_scope(
+    tool_name: str, file_path: str, tool_input: dict[str, object], session_id: str
+) -> str | None:
+    """The regex's UI scope; only where it says "not UI" is Jev asked."""
+    ui_scope = _resolve_ui_scope(tool_name, file_path, tool_input)
+    if ui_scope is None:
+        ui_scope = _jev_ui_scope(tool_name, file_path, tool_input, session_id)
+    return ui_scope
+
+
 def _marker_decision(
     session_id: str, marker: str | None, kind: str,
     mode: str, file_path: str, ui_scope: str,
@@ -296,7 +352,7 @@ def evaluate(
 ) -> Decision:
     """Evaluate one tool call against the frontend excellence gate."""
     file_path = str(tool_input.get("file_path", ""))
-    ui_scope = _resolve_ui_scope(tool_name, file_path, tool_input)
+    ui_scope = _gate_ui_scope(tool_name, file_path, tool_input, session_id)
     if ui_scope is None:
         return Decision(allow=True, reason="not-ui-scope", target_file=file_path)
     mode = _mode()

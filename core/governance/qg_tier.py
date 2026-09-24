@@ -164,6 +164,23 @@ def compute_tier(
     }
 
 
+FULL_REVIEWERS: tuple[str, ...] = ("eduardo-copy", "francisca-tech")
+
+
+def dispatch_reviewers(tier: dict[str, Any]) -> list[str]:
+    """The reviewers Marta dispatches for a ``compute_tier`` result.
+
+    LIGHT with a named reviewer → that one reviewer; anything else
+    (FULL, an unknown tier, a LIGHT without a reviewer) → the full pair.
+    Nothing else feeds this list: the Jev prescreen is advisory and is
+    proven, by test, never to change it.
+    """
+    reviewer = tier.get("reviewer")
+    if tier.get("tier") == "LIGHT" and reviewer in FULL_REVIEWERS:
+        return [str(reviewer)]
+    return list(FULL_REVIEWERS)
+
+
 def validate_trivial(
     project_dir: Path, changed: list[str] | None = None
 ) -> dict[str, Any]:

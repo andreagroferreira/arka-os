@@ -1053,3 +1053,24 @@ class TestRejectedDigestsNeverHarvested:
         assert record["evidence_digest"] is None
         # The raw text itself is preserved — fail-soft, not fail-lossy.
         assert "a" * 64 in record["raw_output"]
+
+
+def test_prescreen_name_is_in_the_contract_and_retention_keeps_working(ledger_home):
+    """JEV PR3: qg_prescreen writes PRESCREEN.json beside the verdicts. An
+    unowned name would make _purge refuse the dir (retention a no-op);
+    it must also never pass as a reviewer record."""
+    import time
+
+    assert reviewer_ledger.PRESCREEN_NAME == "PRESCREEN.json"
+    assert not reviewer_ledger._RECORD_NAME_RE.fullmatch(reviewer_ledger.PRESCREEN_NAME)
+    reviewer_ledger.record_reviewer_output(
+        "sess-prescreen", "francisca-tech", _reviewer_output(), "subagent-stop"
+    )
+    session_dir = reviewer_ledger.ledger_root() / "sess-prescreen"
+    prescreen = session_dir / reviewer_ledger.PRESCREEN_NAME
+    prescreen.write_text('{"verdict": "approved"}', encoding="utf-8")
+    assert reviewer_ledger._is_own_file(prescreen)
+    ancient = time.time() - (100 * 86400)
+    os.utime(session_dir, (ancient, ancient))
+    assert reviewer_ledger.sweep_expired(days=90) == 1
+    assert not session_dir.exists()

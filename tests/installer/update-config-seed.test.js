@@ -76,6 +76,13 @@ test("update flow: config.json without decisions gains the full section", async 
     assert.equal(cfg.decisions.sites["skill-hints"], "act");
     assert.equal(cfg.decisions.sites["dispatch-role"], "act");
     assert.equal(cfg.decisions.sites["subagent-discipline"], "act");
+    assert.equal(cfg.decisions.sites["sycophancy"], "act");
+    assert.equal(cfg.decisions.sites["phantom-action"], "act");
+    assert.equal(cfg.decisions.sites["skill-proposer"], "act");
+    assert.equal(cfg.decisions.sites["learning-signal"], "act");
+    assert.equal(cfg.decisions.sites["ui-in-ts"], "act");
+    assert.equal(cfg.decisions.sites["qg-prescreen"], "shadow");
+    assert.equal(cfg.decisions.sites["slop-score"], "act");
     // Pre-existing sections must survive the update-flow seed untouched.
     assert.equal(cfg.hooks.hardEnforcement, true);
     assert.equal(cfg.memory.sessionMemory, true);

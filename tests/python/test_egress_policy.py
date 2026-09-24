@@ -255,7 +255,7 @@ class TestNeverRaises:
             "expires": (NOW + timedelta(days=1)).isoformat(),
         }
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef",
+            tmp_path, "slack xoxb-1234567890-abcdef",
             entries=[entry], now=datetime(2026, 7, 31, 12, 0),
         )
         assert not decision.allowed  # naive now -> no live entries
@@ -341,7 +341,9 @@ class TestSecretsAndPaths:
     def test_secret_denies(self, tmp_path):
         decision = run(tmp_path, "token: xoxb-1234567890-abcdef")
         assert not decision.allowed
-        assert kinds(decision) == ["secret"]
+        # Vendor prefix AND the key/value context (security review PR3,
+        # finding 33): two labels, one kind.
+        assert kinds(decision) == ["secret", "secret"]
 
     def test_private_key_header_denies(self, tmp_path):
         decision = run(tmp_path, "-----BEGIN RSA PRIVATE KEY-----")
@@ -382,7 +384,7 @@ class TestAllowlist:
     def test_live_entry_permits_exact_finding(self, tmp_path):
         entry = self.secret_entry((NOW + timedelta(days=1)).isoformat())
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef", entries=[entry]
+            tmp_path, "slack xoxb-1234567890-abcdef", entries=[entry]
         )
         assert decision.allowed
         assert [f.kind for f in decision.allowlisted] == ["secret"]
@@ -395,7 +397,7 @@ class TestAllowlist:
             (NOW + timedelta(days=1)).isoformat(), token="OpenAI key"
         )
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef", entries=[entry]
+            tmp_path, "slack xoxb-1234567890-abcdef", entries=[entry]
         )
         assert not decision.allowed
 
@@ -408,7 +410,7 @@ class TestAllowlist:
             "expires": (NOW + timedelta(days=1)).isoformat(),
         }
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef", entries=[entry]
+            tmp_path, "slack xoxb-1234567890-abcdef", entries=[entry]
         )
         assert not decision.allowed
 
@@ -418,7 +420,7 @@ class TestAllowlist:
             "expires": (NOW + timedelta(days=1)).isoformat(),
         }
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef", entries=[entry]
+            tmp_path, "slack xoxb-1234567890-abcdef", entries=[entry]
         )
         assert not decision.allowed
 
@@ -454,14 +456,14 @@ class TestAllowlist:
     def test_expired_entry_permits_nothing(self, tmp_path):
         entry = self.secret_entry((NOW - timedelta(seconds=1)).isoformat())
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef", entries=[entry]
+            tmp_path, "slack xoxb-1234567890-abcdef", entries=[entry]
         )
         assert not decision.allowed
 
     def test_naive_expiry_is_invalid(self, tmp_path):
         entry = self.secret_entry("2099-01-01T00:00:00")  # no timezone
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef", entries=[entry]
+            tmp_path, "slack xoxb-1234567890-abcdef", entries=[entry]
         )
         assert not decision.allowed
 
@@ -516,7 +518,7 @@ class TestAllowlist:
             (NOW + timedelta(days=1)).isoformat(), destinations=["other"]
         )
         decision = run(
-            tmp_path, "token: xoxb-1234567890-abcdef", entries=[entry]
+            tmp_path, "slack xoxb-1234567890-abcdef", entries=[entry]
         )
         assert not decision.allowed
 
@@ -525,7 +527,7 @@ class TestAllowlist:
         path.write_text("{broken", encoding="utf-8")
         cfg = write_clients(tmp_path)
         decision = evaluate(
-            "token: xoxb-1234567890-abcdef", DEST, config_path=cfg,
+            "slack xoxb-1234567890-abcdef", DEST, config_path=cfg,
             home=tmp_path / "home", allowlist_path=path,
             audit_path=tmp_path / "audit.jsonl", now=NOW,
         )
@@ -545,7 +547,7 @@ class TestAudit:
 
     def test_allow_and_deny_are_both_recorded(self, tmp_path):
         run(tmp_path, "clean text")
-        run(tmp_path, "token: xoxb-1234567890-abcdef")
+        run(tmp_path, "slack xoxb-1234567890-abcdef")
         lines = self.read_lines(tmp_path)
         assert [entry["allowed"] for entry in lines] == [True, False]
 
@@ -602,7 +604,7 @@ class TestAudit:
         self, tmp_path, monkeypatch
     ):
         monkeypatch.setattr(policy.audit, "record", lambda *a, **k: False)
-        decision = run(tmp_path, "token: xoxb-1234567890-abcdef")
+        decision = run(tmp_path, "slack xoxb-1234567890-abcdef")
         assert not decision.allowed
         assert decision.audited is False
 
@@ -680,7 +682,7 @@ class TestAuditModule:
         cfg = write_clients(tmp_path)
         home = tmp_path / "home"
         evaluate(
-            "token: xoxb-1234567890-abcdef", DEST, config_path=cfg,
+            "slack xoxb-1234567890-abcdef", DEST, config_path=cfg,
             home=home, allowlist_path=tmp_path / "a.json",
             audit_path=tmp_path / "audit.jsonl", now=NOW,
         )

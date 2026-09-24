@@ -41,6 +41,7 @@ from pathlib import Path, PurePosixPath
 from xml.etree import ElementTree
 
 import core
+from core.governance import literal_git
 from core.governance.qg_digest import evidence_digest
 from core.shared.test_evidence import coverage_percent_from_xml
 
@@ -48,7 +49,7 @@ TIMEOUT_SECONDS = 300
 COVERAGE_THRESHOLD = 80.0
 ALL_CHECKS: tuple[str, ...] = (
     "lint", "typecheck", "tests", "coverage", "security-grep", "spellcheck",
-    "ui-screenshot", "design-slop",
+    "ui-screenshot", "design-slop", "slop-score",
 )
 
 # Gate Economy (2026-08-09, operator-approved): per-check gate severity.
@@ -72,7 +73,15 @@ CHECK_SEVERITY: dict[str, str] = {
     # audit trail, not the enforcement point.
     "ui-screenshot": "minor",
     "design-slop": "minor",
+    # JEV PR3: a model's Slop Score of changed prose is advisory — a
+    # fix-forward finding below 35/50, never a gate (slop_check.py).
+    "slop-score": "minor",
 }
+
+# Checks whose PASS is a model's judgement, not executable evidence:
+# they can neither fail the overall (minor) nor lift an otherwise
+# insufficient-evidence report to "pass" (evidence-flow).
+ADVISORY_ONLY_CHECKS: frozenset[str] = frozenset({"slop-score"})
 
 # ui-screenshot artifact contract (Excellence Reform PR-D3): captures land
 # in <project>/.arka/evidence/ui/ per brand/design-review; the check only
@@ -865,12 +874,10 @@ _MYPY_ERROR_RE = re.compile(
 
 
 def _git_tracks(project_dir: Path, name: str) -> bool:
-    """True when git has ``name`` in the index."""
+    """True when git has ``name`` in the index (``name`` read literally, finding 52)."""
     try:
-        proc = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "--", name],
-            cwd=project_dir, capture_output=True, text=True, timeout=10,
-        )
+        proc = literal_git.run(project_dir, "ls-files", "--error-unmatch", "--", name,
+                               timeout=10)
     except (OSError, subprocess.TimeoutExpired):
         return False
     return proc.returncode == 0
@@ -1855,12 +1862,10 @@ def _added_lines(
     Line numbers come from the ``+`` side of the ``-U0`` hunk headers,
     so findings carry a location in both scan modes. Returns None when
     git cannot answer — callers fall back to the whole-file scan
-    rather than silently passing.
+    rather than silently passing. ``name`` is read literally, never as a
+    pathspec (:mod:`core.governance.literal_git`, finding 52).
     """
-    proc = subprocess.run(
-        ["git", "diff", "-U0", base, "--", name],
-        cwd=project_dir, capture_output=True, text=True, timeout=30,
-    )
+    proc = literal_git.run(project_dir, "diff", "-U0", base, "--", name, timeout=30)
     if proc.returncode != 0:
         return None
     added: list[tuple[int, str]] = []
@@ -2398,6 +2403,16 @@ def _check_design_slop(
     return result
 
 
+def _check_slop_score(
+    project_dir: Path, changed: list[str] | None,
+    test_command: str | None, timeout: int,
+) -> CheckResult:
+    # Lazy: slop_check imports this module's helpers (no import cycle).
+    from core.governance.slop_check import check_slop_score
+
+    return check_slop_score(project_dir, changed, test_command, timeout)
+
+
 _CHECK_DISPATCH = {
     "lint": _check_lint,
     "typecheck": _check_typecheck,
@@ -2407,6 +2422,7 @@ _CHECK_DISPATCH = {
     "spellcheck": _check_spellcheck,
     "ui-screenshot": _check_ui_screenshot,
     "design-slop": _check_design_slop,
+    "slop-score": _check_slop_score,
 }
 
 
@@ -2437,9 +2453,9 @@ def _auto_skips(changed: list[str] | None) -> dict[str, str]:
         skips["ui-screenshot"] = reason
         skips["design-slop"] = reason
     if not (suffixes & _PROSE_SUFFIXES):
-        skips["spellcheck"] = (
-            "auto-subset: diff touches no prose file (.md/.mdx/.txt)"
-        )
+        reason = "auto-subset: diff touches no prose file (.md/.mdx/.txt)"
+        skips["spellcheck"] = reason
+        skips["slop-score"] = reason
     return skips
 
 
@@ -2450,16 +2466,23 @@ def _derive_overall(results: list[CheckResult]) -> str:
     are advisory: their findings stay in the report for the same-turn
     fix-forward pass, but they never flip the overall on their own —
     a concluded run whose only failures are minor still gates "pass"
-    (Gate Economy, operator-approved 2026-08-09).
+    (Gate Economy, operator-approved 2026-08-09). An ADVISORY_ONLY check
+    (a model's score) never concludes the evidence on its own.
     """
     if any(
         r.ran and r.passed is False and r.severity != "minor"
         for r in results
     ):
         return "fail"
-    if any(r.ran and r.passed is True for r in results):
+    if any(
+        r.ran and r.passed is True and r.check not in ADVISORY_ONLY_CHECKS
+        for r in results
+    ):
         return "pass"
-    if any(r.ran and r.passed is False for r in results):
+    if any(
+        r.ran and r.passed is False and r.check not in ADVISORY_ONLY_CHECKS
+        for r in results
+    ):
         return "pass"  # concluded evidence, only minor failures
     return "insufficient-evidence"
 

@@ -40,7 +40,10 @@ Any Department Workflow:
        no coverage guarantee. The final pre-merge gate NEVER pins
        --test-command: full suite, exit 0.
        Drop design-slop,ui-screenshot via --checks when no UI file
-       changed, and spellcheck when no .md/copy changed:
+       changed, and spellcheck,slop-score when no .md/copy changed
+       (slop-score is Jev's Slop Score of changed prose: minor,
+       advisory, skipped without the redaction list — it never fails
+       the overall and never counts as evidence on its own):
          ARKA_CALL_CATEGORY=subagent:quality \
          ~/.arkaos/bin/arka-py -m core.governance.evidence_checks <project_dir> \
            --changed-files f1,f2 [--test-command '...'] [--checks ...] --json
@@ -56,8 +59,32 @@ Any Department Workflow:
        reviewer chosen by content (Francisca for code, Eduardo for
        prose). Aggregation, veto and the evidence floor are identical
        in both tiers; releases are always FULL:
-       - Eduardo: spellcheck section + prose review of changed copy
+       - Eduardo: spellcheck + slop-score sections + prose review of
+         changed copy
        - Francisca: lint / typecheck / tests / coverage / security-grep
+    2.5. Prescreen (advisory, JEV PR3) — AFTER the tier, BEFORE any
+       Agent() dispatch:
+         ~/.arkaos/bin/arka-py -m core.governance.qg_prescreen <project_dir> \
+           --changed-files f1,f2 --session-id <session>
+       The site is `shadow` by default (replay gate, 2026-09-24): Jev
+       is asked off the hot path, its agreement is logged, and the
+       marker reads `skipped reason=shadow` — dispatch as usual. It
+       runs live only by operator override
+       (`decisions.sites.qg-prescreen: act` in ~/.arkaos/config.json).
+       It prints one marker line:
+         [arka:qg-prescreen] verdict=<approved|rejected|unknown> blocker=<class[,class]|none> p=<0.00|-> blocker_p=<0.00|-> source=jev|neutral
+         [arka:qg-prescreen] skipped reason=shadow|redaction-config-missing|bypass|unavailable:<reason>
+       (`p` is the verdict's own confidence, `blocker_p` the blocker
+       class's; a `shadow verdict=…` line is a logged prediction nobody
+       acts on) and writes PRESCREEN.json into the session ledger (the
+       verdict label copies it). How to read it: a `rejected` prediction with a
+       blocker class (spellcheck, tests, diff-review, security, lint)
+       tells the reviewers WHERE TO LOOK FIRST — paste the marker line
+       into each dispatch prompt. It is a prediction, not evidence: it
+       NEVER skips, adds or reorders a reviewer (the reviewer list is
+       the tier's, identical on every prescreen outcome — pinned by
+       test), never lowers scrutiny on `approved`, and `skipped` or
+       `unknown` changes nothing.
     3. Verdict rules (binary, evidence-floored, severity-weighted —
        Gate Economy, operator-approved 2026-08-09):
        - overall == "fail"  → REJECTED. Always. No persona can override

@@ -79,8 +79,9 @@ def test_empty_client_list_is_treated_as_missing(home):
 def test_missing_config_diff_transcript_unknown_fail_closed(home, state_class):
     # Kills: widening DEGRADABLE, or a default-allow for unknown classes.
     _drop_config(home)
+    state = {"path": "app.py", "diff": "+olá"} if state_class == "diff" else "olá"
     with pytest.raises(DecisionUnavailable) as info:
-        prepare_state("olá", redact=True, state_class=state_class)
+        prepare_state(state, redact=True, state_class=state_class)
     assert info.value.reason == "egress-denied:redaction-config-missing"
 
 
@@ -272,5 +273,7 @@ def test_egress_audit_stays_in_fake_home(home):
 @pytest.mark.parametrize("state_class", ["diff", "transcript"])
 def test_redaction_disabled_never_applies_to_diff_or_transcript(home, state_class):
     # Kills: honouring redact=False for every class (QG r1 m1).
-    out = prepare_state("patch for AcmeCorp", redact=False, state_class=state_class)
-    assert isinstance(out, str) and "acmecorp" not in out.lower()
+    state = {"path": "app.py", "diff": "patch for AcmeCorp"} if state_class == "diff" else (
+        "patch for AcmeCorp")
+    out = prepare_state(state, redact=False, state_class=state_class)
+    assert "acmecorp" not in json.dumps(out).lower()

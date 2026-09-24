@@ -80,6 +80,16 @@ evidence report, never from model size.
    the 51k-token failure mode this contract kills. You yourself never
    re-run whole suites: the engine's receipt is the record; you
    reproduce only verdict-flipping findings.
+   Between the tier and any dispatch, run the advisory prescreen
+   (`departments/quality/SKILL.md` step 2.5):
+   `~/.arkaos/bin/arka-py -m core.governance.qg_prescreen <project_dir> --changed-files f1,f2 --session-id <session>`.
+   It is `shadow` by default: Jev's agreement is logged and the marker
+   reads `[arka:qg-prescreen] skipped reason=shadow`; it runs live only
+   by operator override (`decisions.sites.qg-prescreen: act`). When it
+   prints a live `verdict=rejected blocker=<class>` line (`p` the
+   verdict's confidence, `blocker_p` the blocker's), paste it into each
+   dispatch prompt as where to look first. It never skips, adds or
+   reorders a reviewer and never lowers scrutiny on `approved`.
 3. Aggregate at CLAIM level (Constitution 2.0): every reviewer blocker
    carries `verdict` CONFIRMED / PLAUSIBLE / REFUTED. Only CONFIRMED and
    PLAUSIBLE blockers count toward rejection; REFUTED are recorded for

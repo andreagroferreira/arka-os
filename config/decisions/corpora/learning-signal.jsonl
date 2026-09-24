@@ -1,0 +1,35 @@
+{"id": "learning-signal-01", "lang": "en", "prompt": "The deployment finished at 14:32 UTC.", "expected": "none"}
+{"id": "learning-signal-02", "lang": "en", "prompt": "What time is the meeting?", "expected": "none"}
+{"id": "learning-signal-03", "lang": "pt", "prompt": "guarda isto como regra permanente: nunca faças push sem os testes verdes", "expected": "explicit"}
+{"id": "learning-signal-04", "lang": "en", "prompt": "save this as a permanent rule going forward: every release runs the preflight first", "expected": "explicit"}
+{"id": "learning-signal-05", "lang": "pt", "prompt": "faz sempre isto antes de continuar com qualquer trabalho substantivo", "expected": "explicit"}
+{"id": "learning-signal-06", "lang": "pt", "prompt": "nunca aceites a primeira resposta sem crítica adicional", "expected": "explicit"}
+{"id": "learning-signal-07", "lang": "pt", "prompt": "sem exceções, todas as entregas têm de passar pelo Quality Gate", "expected": "explicit"}
+{"id": "learning-signal-08", "lang": "en", "prompt": "always cite reference companies when making recommendations", "expected": "explicit"}
+{"id": "learning-signal-09", "lang": "en", "prompt": "this is NON-NEGOTIABLE for all future deployments", "expected": "explicit"}
+{"id": "learning-signal-10", "lang": "pt", "prompt": "para de assumir que eu sei o contexto do projeto", "expected": "implicit"}
+{"id": "learning-signal-11", "lang": "pt", "prompt": "deixa de pedir confirmação para cada pequena alteração", "expected": "implicit"}
+{"id": "learning-signal-12", "lang": "en", "prompt": "stop doing the early-return pattern in those views", "expected": "implicit"}
+{"id": "learning-signal-13", "lang": "en", "prompt": "don't assume the test data is fresh between runs", "expected": "implicit"}
+{"id": "learning-signal-14", "lang": "pt", "prompt": "eu prefiro que sejas mais conciso nas respostas longas", "expected": "implicit"}
+{"id": "learning-signal-15", "lang": "en", "prompt": "I prefer markdown tables when the data is structured", "expected": "implicit"}
+{"id": "learning-signal-16", "lang": "pt", "prompt": "o que eu quero é ver o output do Playwright sem flakiness", "expected": "implicit"}
+{"id": "learning-signal-17", "lang": "pt", "prompt": "Obrigado, ficou ótimo!", "expected": "none"}
+{"id": "learning-signal-18", "lang": "pt", "prompt": "Corre os testes outra vez, por favor.", "expected": "none"}
+{"id": "learning-signal-19", "lang": "pt", "prompt": "Nesta tarefa usa o ficheiro de exemplo que está na pasta docs.", "expected": "none"}
+{"id": "learning-signal-20", "lang": "en", "prompt": "For this PR only, skip the changelog entry.", "expected": "none"}
+{"id": "learning-signal-21", "lang": "pt", "prompt": "Quanto tempo demorou o build?", "expected": "none"}
+{"id": "learning-signal-22", "lang": "pt", "prompt": "Isto está errado, o botão devia ser azul.", "expected": "none"}
+{"id": "learning-signal-23", "lang": "pt", "prompt": "A partir de agora escreve sempre em português europeu, nunca em brasileiro, em todos os projetos.", "expected": "explicit"}
+{"id": "learning-signal-24", "lang": "pt", "prompt": "Não gosto de respostas com muitos emojis; prefiro texto limpo.", "expected": "implicit"}
+{"id": "learning-signal-25", "lang": "en", "prompt": "Going forward, no compromise on the security audit before any merge.", "expected": "explicit"}
+{"id": "learning-signal-26", "lang": "pt", "prompt": "em vez de Inertia v2 usa sempre a v3 com a nova API nos projetos Laravel", "expected": "explicit"}
+{"id": "learning-signal-27", "lang": "pt", "prompt": "Prefiro que me mostres o diff antes de gravares ficheiros grandes.", "expected": "implicit"}
+{"id": "learning-signal-28", "lang": "en", "prompt": "Please avoid long preambles in your answers, get to the point.", "expected": "implicit"}
+{"id": "learning-signal-29", "lang": "pt", "prompt": "Muda o título desta página para 'Preços'.", "expected": "none"}
+{"id": "learning-signal-30", "lang": "pt", "prompt": "isto é não negociável: nunca uses git stash neste repositório, já perdemos trabalho três vezes por causa disso", "expected": "explicit"}
+{"id": "learning-signal-31", "lang": "en", "prompt": "Nice work on the migration.", "expected": "none"}
+{"id": "learning-signal-32", "lang": "pt", "prompt": "Evita usar tabelas quando a resposta tem só dois itens, fica pesado.", "expected": "implicit"}
+{"id": "learning-signal-33", "lang": "pt", "prompt": "Hoje não vou precisar do relatório, podes deixar para amanhã.", "expected": "none"}
+{"id": "learning-signal-34", "lang": "en", "prompt": "I like it when you list the commands you ran with their exit codes.", "expected": "implicit"}
+{"id": "learning-signal-35", "lang": "pt", "prompt": "conitnua ja tens tudo disponivel", "expected": "none"}

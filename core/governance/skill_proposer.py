@@ -37,6 +37,7 @@ _SKILL_WORTHY_HINTS: tuple[re.Pattern[str], ...] = (
 )
 
 _TRIVIAL_WORD_THRESHOLD: int = 15
+MIN_SKILL_HINTS: int = 2
 _DEFAULT_OUTPUT_DIR: Path = Path.home() / ".arkaos" / "skill-proposals"
 
 
@@ -62,26 +63,34 @@ def evaluate(
     *,
     output_dir: Path | None = None,
     today: str | None = None,
+    repeatable: bool | None = None,
 ) -> SkillProposal:
-    """Classify the closing transcript tail; propose a skill if warranted."""
+    """Classify the closing transcript tail; propose a skill if warranted.
+
+    ``repeatable`` is a classification made elsewhere (the Jev
+    ``skill-proposer`` site) that replaces the regex ladder; None keeps
+    the ladder. A bypass marker wins either way: an explicit opt-out is
+    the author's decision, not a classification.
+    """
     text = transcript_tail or ""
 
-    if _has_bypass(text):
+    if has_bypass(text):
         return SkillProposal(False, "bypass-marker", None, None, None)
 
-    if not _has_completion_signal(text):
-        return SkillProposal(False, "no-completion-signal", None, None, None)
+    if repeatable is False:
+        return SkillProposal(False, "jev-declined", None, None, None)
 
-    if _is_trivial_length(text):
-        return SkillProposal(False, "trivial-length", None, None, None)
+    declined = None if repeatable else _ladder_decline(text)
+    if declined is not None:
+        return SkillProposal(False, declined, None, None, None)
 
-    hint_count = sum(1 for pat in _SKILL_WORTHY_HINTS if pat.search(text))
-    if hint_count < 2:
-        return SkillProposal(False, "below-skill-hint-floor", None, None, None)
+    return _write_proposal(text, output_dir or _DEFAULT_OUTPUT_DIR, today)
 
+
+def _write_proposal(text: str, out_dir: Path, today: str | None) -> SkillProposal:
+    """Render the proposal and land it on a collision-free path."""
     slug = _suggest_slug(text)
     markdown = _render_proposal(text, slug, today=today)
-    out_dir = output_dir or _DEFAULT_OUTPUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     iso_today = today or datetime.now(UTC).strftime("%Y-%m-%d")
     path = _collision_free_path(out_dir, iso_today, slug, markdown)
@@ -158,16 +167,32 @@ def _already_holds(path: Path, markdown: str) -> bool:
         return False
 
 
-def _has_completion_signal(text: str) -> bool:
+def _ladder_decline(text: str) -> str | None:
+    """The regex ladder's decline reason, or None when it would propose."""
+    if not has_completion_signal(text):
+        return "no-completion-signal"
+    if is_trivial_length(text):
+        return "trivial-length"
+    if skill_hint_count(text) < MIN_SKILL_HINTS:
+        return "below-skill-hint-floor"
+    return None
+
+
+def has_completion_signal(text: str) -> bool:
     return any(p.search(text) for p in _COMPLETION_PATTERNS)
 
 
-def _has_bypass(text: str) -> bool:
+def has_bypass(text: str) -> bool:
     return any(p.search(text) for p in _BYPASS_PATTERNS)
 
 
-def _is_trivial_length(text: str) -> bool:
+def is_trivial_length(text: str) -> bool:
     return len(text.split()) < _TRIVIAL_WORD_THRESHOLD
+
+
+def skill_hint_count(text: str) -> int:
+    """How many distinct skill-worthy hints the text carries."""
+    return sum(1 for pat in _SKILL_WORTHY_HINTS if pat.search(text))
 
 
 def _suggest_slug(text: str) -> str:

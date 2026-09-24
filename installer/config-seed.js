@@ -11,15 +11,18 @@
 //   knowledge.graphify.enabled  = true   (graphify HTTP — "active once configured".
 //                                          Applies only when a url + token are also
 //                                          set; a fresh user with no endpoint is a no-op.)
-//   decisions.*                 = see SCALAR_SEEDS below (PR1+PR2 — JEV
+//   decisions.*                 = see SCALAR_SEEDS below (PR1-PR3 — JEV
 //                                          Decisions Layer campaign: enabled,
 //                                          transport, redactClients, timeouts,
 //                                          thresholds, per-site modes across
-//                                          10 sites (topic-drift, refine,
+//                                          17 sites (topic-drift, refine,
 //                                          creation-intent, route, bash-effect,
 //                                          forge-departments, forge-complexity,
 //                                          skill-hints, dispatch-role,
-//                                          subagent-discipline). Non-boolean
+//                                          subagent-discipline, sycophancy,
+//                                          phantom-action, skill-proposer,
+//                                          learning-signal, ui-in-ts,
+//                                          qg-prescreen, slop-score). Non-boolean
 //                                          scalars, seeded key-by-key so a
 //                                          partial user "decisions" section
 //                                          only fills gaps.)
@@ -79,6 +82,15 @@ const SCALAR_SEEDS = [
   [["decisions", "sites", "skill-hints"], "act"],
   [["decisions", "sites", "dispatch-role"], "act"],
   [["decisions", "sites", "subagent-discipline"], "act"],
+  [["decisions", "sites", "sycophancy"], "act"],
+  [["decisions", "sites", "phantom-action"], "act"],
+  [["decisions", "sites", "skill-proposer"], "act"],
+  [["decisions", "sites", "learning-signal"], "act"],
+  [["decisions", "sites", "ui-in-ts"], "act"],
+  // shadow by the replay gate: abstain 34.4 % on r7c (0 unavailable), 25.0 %
+  // on r7b, 31.3 % on the r7 answers — verdict-only interpretation (JEV PR3).
+  [["decisions", "sites", "qg-prescreen"], "shadow"],
+  [["decisions", "sites", "slop-score"], "act"],
 ];
 
 function defaultConfig() {
