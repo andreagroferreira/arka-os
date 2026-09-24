@@ -656,7 +656,11 @@ gitleaks and trufflehog pair their detectors with path scoping.
   `_CAP_SLOW / 2 = 2.0` CPU seconds, the same bound per character;
   without coverage it is unchanged. Measured under `--cov=core`: 12.7,
   9.5 and 5.0 s per test on the three cap-step units (500 KB under
-  coverage; round 6: 21.5, 15.0 and 8.7 s).
+  coverage; round 6: 21.5, 15.0 and 8.7 s). Since 2026-09-24
+  (post-approval CI fix), the absolute ceilings are scaled by a machine
+  factor measured once per session on the runner, capped at 4.0: the
+  3.12 CI runner was about 2.3× slower than the operator's machine,
+  while the ratio tests, which prove linearity, passed everywhere.
 - **Round 7 (finding 49).** The round-6 majors and minors are fixed.
   (B1) `_XML_CARRY` carries a secret-named parent tag across a bounded,
   atomic gap of at most 64 characters to its `<value>` child. (B2) both

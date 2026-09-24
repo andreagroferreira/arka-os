@@ -7,6 +7,7 @@ security-grep never fires on this file.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 from datetime import UTC, datetime
@@ -439,6 +440,49 @@ def test_probe_reviewer_leak_is_refused(probe_home, text, path):
 _SLOW = 1.0
 _CAP_SLOW = 4.0  # CPU seconds for one form at the 1 MB cap (up to 2 MB serialised)
 
+# PR3 post-approval CI calibration. The absolute ceilings in this file measure
+# the machine as well as the code: the ubuntu 3.12 coverage leg ran the same
+# scans ~2.3x slower than the operator's machine (0.8 -> 1.64 s, 1.15 -> 2.64
+# s) and failed four ceilings while every interleaved RATIO test passed. Each
+# absolute ceiling is multiplied by ``_machine()``: a fixed regex workload
+# independent of ``core.egress`` (so a slower scan cannot loosen its own
+# bound), timed once per session, divided by its time on the operator's
+# machine. The factor never goes below 1.0 and is capped at 4.0, so code 4x
+# slower than today still fails on the slowest supported runner. The ratio
+# tests stay unscaled: they are the linearity proof.
+_REFERENCE_LOCAL = 0.083  # CPU s, best of 3, Apple M4 Max, CPython 3.13, 2026-09-24
+_MACHINE_MAX = 4.0
+_CALIBRATION_TEXT = "".join(f'"k{i % 97}": "v{i * 7919 % 10007}", ' for i in range(80_000))
+_CALIBRATION_RE = re.compile(r'"([a-z]\w*)":\s*"([^"\\]*)"|\d{3,}')
+
+
+def _reference_workload() -> float:
+    """Best of 3 in process CPU time: six ``findall`` passes over ~1.26 MB."""
+    from time import process_time
+
+    best = float("inf")
+    for _ in range(3):
+        began = process_time()
+        for _ in range(6):
+            _CALIBRATION_RE.findall(_CALIBRATION_TEXT)
+        best = min(best, process_time() - began)
+    return best
+
+
+@functools.cache
+def _machine() -> float:
+    """How much slower this machine is than the reference one, in ``[1.0, 4.0]``."""
+    return min(_MACHINE_MAX, max(1.0, _reference_workload() / _REFERENCE_LOCAL))
+
+
+def _ceiling(base: float) -> float:
+    return base * _machine()
+
+
+def _over(took: float, base: float) -> str:
+    return (f"took {took:.2f} s CPU (ceiling {_ceiling(base):.2f} s, "
+            f"machine factor {_machine():.2f})")
+
 
 def _under_coverage() -> bool:
     """A tracer (``sys.settrace``), pytest-cov's env, or a live ``coverage.Coverage``."""
@@ -487,7 +531,7 @@ def _timed(text: str) -> float:
         began = process_time()
         credential_labels(text)
         best = min(best, process_time() - began)
-        if best > 2 * _SHAPE_SLOW:
+        if best > 2 * _ceiling(_SHAPE_SLOW):
             break
     return best
 
@@ -515,7 +559,7 @@ def test_serialised_many_match_paste_scans_in_linear_time():
     # Kills: the round-5 ``_local`` (O(line) per match), 15x over the bound.
     small, large = _interleaved(json.dumps({"prompt": _curl_paste(500)}),  # ~50 KB
                                 json.dumps({"prompt": _curl_paste(2000)}))  # ~200 KB
-    assert large <= _SLOW, f"200 KB serialised paste took {large:.2f} s"
+    assert large <= _ceiling(_SLOW), f"200 KB serialised paste {_over(large, _SLOW)}"
     # 4x the text: linear is ~4x the time, quadratic ~16x (round 5: 0.97 s ->
     # 15.62 s). 8x sits halfway, with a 2x margin to either side.
     assert large <= 8 * small + 0.05, f"not linear: {small:.3f} s -> {large:.3f} s"
@@ -546,7 +590,7 @@ def test_adversarial_text_scans_under_a_second(unit, quote, size):
     text = f"{quote} " + unit * (size // len(unit)) + quote
     for form in (text, json.dumps({"prompt": text})):
         took = _timed(form)
-        assert took < _SHAPE_SLOW, f"{len(form)} chars took {took:.2f} s CPU"
+        assert took < _ceiling(_SHAPE_SLOW), f"{len(form)} chars {_over(took, _SHAPE_SLOW)}"
 
 
 @pytest.mark.parametrize(
@@ -874,7 +918,7 @@ def test_finding_42_detectors_scan_in_linear_time(unit):
     text = unit * (300_000 // len(unit))
     for form in (text, json.dumps({"diff": text})):
         took = _timed(form)
-        assert took < _SHAPE_SLOW, f"{len(form)} chars took {took:.2f} s CPU"
+        assert took < _ceiling(_SHAPE_SLOW), f"{len(form)} chars {_over(took, _SHAPE_SLOW)}"
 
 
 # --- PR3 QG r4: dotted quoted names (R4-B1), Ruby forms (R4-M1), m13 --------
@@ -1231,7 +1275,7 @@ def test_the_catch_all_alone_scans_a_megabyte_in_linear_time(catch_all_only, hea
     for half_text, full_text in zip(forms(_CAP_SIZE // 2), forms(_CAP_SIZE), strict=True):
         half, full = _interleaved(half_text, full_text, rounds=2)  # 3 MB of scan per round
         assert full <= 3 * half + 0.05, f"not linear: {half:.3f} s -> {full:.3f} s"
-        assert full <= _CAP_CEILING, f"{len(full_text)} chars took {full:.2f} s"
+        assert full <= _ceiling(_CAP_CEILING), f"{len(full_text)} chars {_over(full, _CAP_CEILING)}"
 
 
 # --- PR3 QG r6 -> round 7: nested <value>, netrc account, path-keyed secrets --
@@ -1283,7 +1327,7 @@ def test_the_nested_value_carry_scans_in_linear_time():
                  '<s name="password"><value>x</value>'):
         small, large = _interleaved(unit * (25_000 // len(unit)), unit * (100_000 // len(unit)))
         assert large <= 8 * small + 0.05, f"not linear: {small:.3f} s -> {large:.3f} s"
-        assert large < _SHAPE_SLOW
+        assert large < _ceiling(_SHAPE_SLOW), f"{unit[:20]!r} {_over(large, _SHAPE_SLOW)}"
 
 
 # B2: netrc(5) defines ``account`` as an additional password.
