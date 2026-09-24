@@ -19,7 +19,8 @@ from core.decisions.transport import resolve_transport
 URLOPEN = "core.decisions.client.urllib.request.urlopen"
 SITES = ("topic-drift", "refine", "creation-intent", "route", "bash-effect",
          "forge-departments", "forge-complexity", "skill-hints", "dispatch-role",
-         "subagent-discipline")
+         "subagent-discipline", "sycophancy", "phantom-action", "skill-proposer",
+         "learning-signal", "ui-in-ts", "qg-prescreen", "slop-score")
 
 
 @pytest.fixture
@@ -477,3 +478,152 @@ def test_cli_passes_the_timeout_flag(monkeypatch):
     assert captured["timeout_ms"] == 3000
     assert main(["--site", "route", "--offline"]) == 0
     assert captured["timeout_ms"] is None
+
+
+# --- PR3 sites: governance + quality ------------------------------------------
+
+_TEXT_KEYS = ("prompt", "command", "response", "user_message", "content", "diff", "prose")
+
+
+def _pr3_key(state: dict[str, Any]) -> tuple[str, object]:
+    text = next(state[k] for k in _TEXT_KEYS if state.get(k))
+    return text, state.get("tool_uses")
+
+
+def _pr3_oracle(site: str, cases: list[ReplayCase], answer: Callable[[ReplayCase], dict]):
+    by_key = {_pr3_key(rp.case_state(site, c)): c for c in cases}
+
+    def respond(request, timeout):
+        state = json.loads(request.data.decode("utf-8"))["state"]
+        return fake_ok(answer(by_key[_pr3_key(state)]))
+
+    return respond
+
+
+def _run(site: str, transport, answer: Callable[[ReplayCase], dict]):
+    cases = load_corpus(site)
+    with patch(URLOPEN, side_effect=_pr3_oracle(site, cases, answer)):
+        return replay(site, cases, transport=transport)
+
+
+NOUL_SITES = {"sycophancy": "is_sycophantic", "phantom-action": "claims_unbacked_effect",
+              "skill-proposer": "is_repeatable_capability", "ui-in-ts": "is_ui_code"}
+
+
+@pytest.mark.parametrize("site", sorted(NOUL_SITES))
+def test_perfect_pr3_noul_oracle_passes(transport, site):
+    key = f"{site.replace('-', '_')}__{NOUL_SITES[site]}"
+    report = _run(site, transport, lambda c: {key: {"noul": 0.99 if c.expected else 0.01}})
+    assert report.gate == "pass", report.failures
+    assert report.jev_accuracy == 1.0 and report.unavailable == 0
+    if rp.SITES[site].direction == "escalate_only":
+        assert report.false_escalation_rate == 0.0
+
+
+def test_phantom_cases_with_tool_calls_are_never_asked(transport):
+    cases = load_corpus("phantom-action")
+    with_tools = sum(1 for c in cases if c.context.get("tool_uses") != 0)
+    report = _run("phantom-action", transport,
+                  lambda c: {"phantom_action__claims_unbacked_effect": {"noul": 0.99}})
+    assert with_tools >= 3
+    assert report.abstain_rate == round(with_tools / len(cases), 4)
+
+
+def test_perfect_learning_oracle_passes_through_the_signal_label(transport):
+    def answer(c):
+        leverage = 0.9 if c.expected == "explicit" else 0.1
+        return {"learning_signal__signal": {"choice": c.expected, "confidence": 0.9},
+                "learning_signal__high_leverage": {"noul": leverage}}
+
+    report = _run("learning-signal", transport, answer)
+    assert report.gate == "pass", report.failures
+    # 29/35: case 35 (the live Stop false positive, "none") is one the regex gets right.
+    assert report.jev_accuracy == 1.0 and report.heuristic_on_answered == 0.8286
+
+
+def test_perfect_prescreen_oracle_passes_against_the_label_only(transport):
+    def answer(c):
+        verdict, blocker = c.expected
+        return {"qg_prescreen__likely_verdict": {"choice": verdict, "confidence": 0.9},
+                "qg_prescreen__blocker_class": {"choice": blocker, "confidence": 0.9}}
+
+    report = _run("qg-prescreen", transport, answer)
+    assert report.gate == "pass", report.failures
+    assert (report.jev_accuracy, report.heuristic_on_answered) == (1.0, 0.0)
+
+
+def _slop_answer(offset: int) -> Callable[[ReplayCase], dict]:
+    from core.decisions.sites.quality import SLOP_DIMENSIONS
+
+    def answer(c):
+        return {f"slop_score__{d}": {"score": min(9, max(0, v - 1 + offset)), "confidence": 0.9}
+                for d, v in zip(SLOP_DIMENSIONS, c.expected, strict=True)}
+
+    return answer
+
+
+def test_perfect_slop_oracle_passes_on_mean_absolute_error(transport, capsys):
+    report = _run("slop-score", transport, _slop_answer(0))
+    assert report.gate == "pass", report.failures
+    assert report.mean_abs_error == 0.0 and report.jev_accuracy == 1.0
+    assert "mean absolute error (total, 5-50): 0.0" in rp._render(report)
+
+
+def test_slop_oracle_off_by_two_per_dimension_fails_the_mae_gate(transport):
+    report = _run("slop-score", transport, _slop_answer(-2))
+    assert report.gate == "fail"
+    assert report.mean_abs_error is not None and report.mean_abs_error > rp.MAX_SLOP_MAE
+    assert any(f.startswith("mean absolute error") for f in report.failures)
+    assert not any("precision" in f for f in report.failures)
+
+
+def test_mae_is_only_reported_for_slop(transport):
+    report = _run("ui-in-ts", transport, lambda c: {"ui_in_ts__is_ui_code": {"noul": 0.99}})
+    assert report.mean_abs_error is None
+
+
+@pytest.mark.parametrize(("site", "bad"), [
+    ("sycophancy", "yes"), ("phantom-action", 1), ("ui-in-ts", ["x"]),
+    ("learning-signal", "rule"), ("learning-signal", True),
+    ("qg-prescreen", ["approved", "tests"]), ("qg-prescreen", ["rejected", "none"]),
+    ("qg-prescreen", ["unknown", "none"]), ("qg-prescreen", "approved"),
+    ("slop-score", [5, 5, 5, 5]), ("slop-score", [0, 5, 5, 5, 5]),
+    ("slop-score", [5, 5, 5, 5, 11]), ("slop-score", 35),
+])
+def test_pr3_expected_of_the_wrong_kind_names_the_line(tmp_path, site, bad):
+    path = tmp_path / "c.jsonl"
+    path.write_text(json.dumps({"id": "a", "lang": "pt", "prompt": "x", "expected": bad}),
+                    encoding="utf-8")
+    with pytest.raises(ValueError, match=r"c\.jsonl:1"):
+        load_corpus(site, path)
+
+
+def test_replay_case_context_and_int_labels():
+    case = ReplayCase(id="p", lang="pt", prompt="Fiz commit.", context={"tool_uses": 0},
+                      expected=True)
+    assert rp.case_state("phantom-action", case) == {
+        "response": "Fiz commit.", "user_message": "", "tool_uses": 0}
+    assert rp.HEURISTICS["phantom-action"](case) is True
+    assert rp.HEURISTICS["phantom-action"](case.model_copy(update={"context": {}})) is False
+    slop = ReplayCase(id="s", lang="pt", prompt="x", expected=[1, 2, 3, 4, 5])
+    assert slop.expected == [1, 2, 3, 4, 5]
+    with pytest.raises(ValueError):
+        ReplayCase(id="c", lang="pt", prompt="x", context={"k": 1.5}, expected=True)
+
+
+def test_pr3_case_states():
+    syc = ReplayCase(id="a", lang="pt", prompt="Sim.", prior=["apaga tudo"], expected=True)
+    assert rp.case_state("sycophancy", syc)["user_message"] == "apaga tudo"
+    learn = ReplayCase(id="b", lang="pt", prompt="nunca faças isto", expected="explicit")
+    assert rp.case_state("learning-signal", learn) == {
+        "response": "", "user_message": "nunca faças isto", "tool_uses": None}
+    ui = ReplayCase(id="c", lang="en", prompt="x", context={"path": "a.ts"}, expected=False)
+    assert rp.case_state("ui-in-ts", ui) == {"path": "a.ts", "content": "x"}
+    head = "diff --git a/core/x.py b/core/x.py\n+a"
+    diff = ReplayCase(id="d", lang="pt", prompt=head, expected=["approved", "none"])
+    assert rp.case_state("qg-prescreen", diff) == {"path": "core/x.py", "diff": head}
+    bare = ReplayCase(id="d2", lang="pt", prompt="+a", expected=["approved", "none"])
+    assert rp.case_state("qg-prescreen", bare) == {"path": "", "diff": "+a"}  # privacy refuses
+    prose = ReplayCase(id="e", lang="pt", prompt="Olá.", expected=[5, 5, 5, 5, 5])
+    assert rp.case_state("slop-score", prose) == {"path": "e.md", "prose": "Olá."}
+    assert rp.HEURISTICS["slop-score"](prose) is None

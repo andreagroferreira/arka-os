@@ -228,9 +228,24 @@ class TestSecrets:
         ("ghp_" + "y" * 36, "GitHub token"),
         ("AKIA" + "Q" * 16, "AWS key id"),
         ("-----BEGIN RSA PRIVATE KEY-----", "private key"),
+        # Stripe (QG PR3 r7), built at runtime: no literal key in the repo.
+        ("sk_" + "live_" + "Zq9k7" * 5, "Stripe key"),
+        ("rk_" + "live_" + "Zq9k7" * 5, "Stripe key"),
+        ("sk_" + "test_" + "Zq9k7" * 5, "Stripe key"),
+        ("rk_" + "test_" + "Zq9k7" * 5, "Stripe key"),
+        ("whsec_" + "Zq9k7" * 7, "Stripe webhook secret"),
     ])
     def test_secret_labels(self, blob, label):
         assert label in secret_labels(blob)
+
+    @pytest.mark.parametrize("blob", [
+        "sk_" + "live_" + "short1",  # under 20 characters after the prefix
+        "sk_test_mode_enabled = True",  # an identifier, not a key
+        "task_" + "live_" + "Zq9k7" * 5,  # ``sk_`` inside a longer word
+        "whsec_placeholder",
+    ])
+    def test_stripe_lookalikes_are_not_keys(self, blob):
+        assert not {"Stripe key", "Stripe webhook secret"} & set(secret_labels(blob))
 
 
 class TestHooks:
@@ -267,16 +282,9 @@ class TestHooks:
         ]}})
         assert "hook-script-missing" in rules_in(scan(tmp_path))
 
-    def test_unreadable_script_never_erases_the_files_criticals(
-            self, tmp_path):
-        """QG C3 r10, Francisca B1 — the blast radius, pinned.
-
-        `path.exists()` raised on 3.13, the per-file backstop caught it,
-        and every finding already accumulated for that settings file was
-        replaced by one LOW `scanner-error`: a config carrying a CRITICAL
-        dangerous-allow graded **A (98/100), exit 0**. One unstat-able
-        hook target laundered the whole file.
-        """
+    @staticmethod
+    def _scan_with_an_unreadable_hook(tmp_path):
+        """A dangerous allow plus a hook whose directory is mode 000."""
         import os
 
         if os.geteuid() == 0:
@@ -292,9 +300,21 @@ class TestHooks:
         })
         vault.chmod(0o000)
         try:
-            report = scan(tmp_path)
+            return scan(tmp_path)
         finally:
             vault.chmod(0o755)
+
+    def test_unreadable_script_never_erases_the_files_criticals(
+            self, tmp_path):
+        """QG C3 r10, Francisca B1 — the blast radius, pinned.
+
+        `path.exists()` raised on 3.13, the per-file backstop caught it,
+        and every finding already accumulated for that settings file was
+        replaced by one LOW `scanner-error`: a config carrying a CRITICAL
+        dangerous-allow graded **A (98/100), exit 0**. One unstat-able
+        hook target laundered the whole file.
+        """
+        report = self._scan_with_an_unreadable_hook(tmp_path)
         rules = rules_in(report)
         assert "scanner-error" not in rules, "the file must not be discarded"
         assert "hook-script-unreadable" in rules, "unaudited, and named"

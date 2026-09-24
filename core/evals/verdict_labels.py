@@ -61,14 +61,13 @@ def record_verdict_label(
     kind: str = "",
     round_label: str = "",
     head: str = "",
+    prescreen: dict[str, Any] | None = None,
 ) -> None:
     """Append one labeled QG example. Never raises (telemetry contract).
 
-    ``kind``/``round_label``/``head`` live on the envelope, not the
-    schema: QGVerdict drops unknown fields, so without them the corpus
-    could not distinguish rounds of one PR (QG r13 register).
-    ``round_label`` persists under the ``round`` key — the parameter
-    avoids shadowing the builtin.
+    ``kind``/``round_label``/``head``/``prescreen`` live on the envelope, not the schema:
+    QGVerdict drops unknown fields, so without them the corpus could not distinguish rounds
+    of one PR (QG r13 register). ``round`` stores ``round_label`` (no builtin shadowing).
     """
     try:
         entry: dict[str, Any] = {
@@ -80,12 +79,33 @@ def record_verdict_label(
             "kind": str(kind or ""),
             "round": _normalize_round(round_label),
             "head": str(head or ""),
+            "prescreen": _prescreen_envelope(session_id, prescreen),
             **verdict.model_dump(),
         }
         with _locked_append(_labels_path()) as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except Exception:
         return
+
+
+def _prescreen_envelope(
+    session_id: str, prescreen: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """The four envelope keys of ``prescreen``, or the session's PRESCREEN.json.
+
+    ``prescreen`` (JEV PR3) defaults to the session's PRESCREEN.json
+    envelope, None without one. Never raises: a broken prescreen must not
+    cost the label itself.
+    """
+    if prescreen is None:
+        try:
+            from core.governance.qg_prescreen import read_prescreen
+
+            return read_prescreen(str(session_id or ""))
+        except Exception:
+            return None
+    keys = ("verdict", "blocker", "p", "source")
+    return {key: prescreen.get(key) for key in keys} if isinstance(prescreen, dict) else None
 
 
 def record_judge_label(

@@ -84,6 +84,29 @@ DEFERRED_IN_PS1: dict[str, str] = {
         "core/synapse/routing_feedback_layer.py. Same detached-spawn gap "
         "as stop_lint."
     ),
+    "core.governance.learning_detector": (
+        "Its only product is hook OUTPUT: the [arka:learned-rule] marker "
+        "and Marta's confirmation line ride Stop's additionalContext. This "
+        "port writes no hook output (same gap as reviewer_ledger), and the "
+        "detector writes no state a later reader could pick up instead."
+    ),
+    **dict.fromkeys(
+        (
+            "core.decisions.config",
+            "core.decisions.engine",
+            "core.decisions.registry",
+            "core.decisions.site",
+            "core.decisions.sites.governance",
+            "core.decisions.transport",
+        ),
+        "The Jev Stop call (JEV Decisions Layer PR3). The port has no "
+        "StopBudget and no decisions telemetry contract, and a bounded "
+        "network call needs both before it runs on Windows. Meanwhile "
+        "the port runs the regex detectors themselves, so a Windows "
+        "Stop behaves exactly like one with decisions off -- the "
+        "sycophancy and phantom-action sites are escalate-only, so no "
+        "detection is lost, only Jev's additions.",
+    ),
 }
 
 
@@ -111,8 +134,10 @@ def _invokes(text: str, module: str) -> bool:
 
 
 def _governance_modules_in_stop_py() -> set[str]:
+    """Every ``core.governance.*`` and ``core.decisions.*`` module stop.py imports."""
     text = STOP_PY.read_text(encoding="utf-8")
-    return set(re.findall(r"from (core\.governance\.[a-z_]+) import", text))
+    return set(re.findall(
+        r"from (core\.(?:governance|decisions)\.[a-z_.]+) import", text))
 
 
 # ── The port delegates, and the delegation is real ────────────────────────

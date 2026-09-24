@@ -8,10 +8,12 @@ security-grep never fires on this file.
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 
 import pytest
 
+from core.egress import credentials as _cred
 from core.egress.credentials import credential_labels, egress_secret_labels
 from core.egress.policy import evaluate
 
@@ -335,7 +337,6 @@ REVIEWER_LEAKS: list[str] = [
     'ssh host "export API_TOKEN=\\"abc123XYZ99\\" && ./run"',
     'bash -c "curl -u \\"bob:hunter2pw\\" x"', 'bash -c "mysql -p\\"hunter22\\" app"',
     'export API_TOKEN=\\"abc123XYZ99\\"',
-    'bash -c "ssh h \\"export API_TOKEN=\\\\\\"abc123XYZ99\\\\\\"\\""',
     # r4 N1, either reading refuses: here the shell really opens the quote at
     # the apostrophe, so the $ is data and the local "..." reading is wrong.
     "echo don't -H \"Authorization: Bearer ab$c9Zq9k7k7\" x'",
@@ -436,6 +437,32 @@ def test_probe_reviewer_leak_is_refused(probe_home, text, path):
 # is quadratic there. Measured on the round-5 code: 100 KB 3.9 s, 200 KB
 # 15.6 s; after the fix 0.05 s and 0.10 s.
 _SLOW = 1.0
+_CAP_SLOW = 4.0  # CPU seconds for one form at the 1 MB cap (up to 2 MB serialised)
+
+
+def _under_coverage() -> bool:
+    """A tracer (``sys.settrace``), pytest-cov's env, or a live ``coverage.Coverage``."""
+    import os
+    import sys
+
+    cov = sys.modules.get("coverage")
+    current = getattr(getattr(cov, "Coverage", None), "current", None)
+    return (sys.gettrace() is not None or bool(os.environ.get("COV_CORE_SOURCE"))
+            or (callable(current) and current() is not None))
+
+
+# QG PR3 r6 m3: the tracer makes the 1 MB cap step cost 9-22 s per unit. Under
+# coverage the step runs at half the size (250 KB -> 500 KB, 1 MB serialised)
+# with half the ceiling, so the bound per character is the same.
+_CAP_SIZE, _CAP_CEILING = (500_000, _CAP_SLOW / 2) if _under_coverage() else (
+    1_000_000, _CAP_SLOW)
+# CPU seconds for one adversarial shape (``_timed``). Worst form measured on
+# the PR3 round-5 tree, best of 3 in process CPU time: 0.31 s without
+# coverage, 0.51 s under ``--cov=core`` (``kv-json`` and the finding-42
+# ``positional`` row, ~420 KB serialised); 1.5 s is a 2.9x margin over the
+# worst under coverage. The quadratic mutants these rows kill run for many
+# seconds at these sizes. The test name keeps its review references.
+_SHAPE_SLOW = 1.5
 
 
 def _curl_paste(lines: int) -> str:
@@ -447,33 +474,69 @@ def _curl_paste(lines: int) -> str:
 
 
 def _timed(text: str) -> float:
-    """Best of 3 runs of the detector; stops early once a run is clearly slow."""
-    from time import perf_counter
+    """Best of 3 runs of the detector in CPU time; stops once a run is clearly slow.
+
+    Process CPU time, not wall time (PR3 round 5): the scheduler time a
+    loaded runner takes away is not counted, and a quadratic scan is still
+    quadratic in it. Same discipline as ``_interleaved``.
+    """
+    from time import process_time
 
     best = float("inf")
     for _ in range(3):
-        began = perf_counter()
+        began = process_time()
         credential_labels(text)
-        best = min(best, perf_counter() - began)
-        if best > 2 * _SLOW:
+        best = min(best, process_time() - began)
+        if best > 2 * _SHAPE_SLOW:
             break
     return best
 
 
+def _interleaved(small_text: str, large_text: str, rounds: int = 5) -> tuple[float, float]:
+    """Best of ``rounds`` for each size, ALTERNATING, in CPU time (PR2 round-6 m1).
+
+    Wall time back to back let machine load land on one size only (the 3x
+    ratio flaked 2/8 under 2x CPU load; interleaved wall time still 1/8 at
+    4x). Process CPU time does not count the time the scheduler takes away,
+    and a quadratic scan is still quadratic in it.
+    """
+    from time import process_time
+
+    best = [float("inf"), float("inf")]
+    for _ in range(rounds):
+        for i, text in enumerate((small_text, large_text)):
+            began = process_time()
+            credential_labels(text)
+            best[i] = min(best[i], process_time() - began)
+    return best[0], best[1]
+
+
 def test_serialised_many_match_paste_scans_in_linear_time():
     # Kills: the round-5 ``_local`` (O(line) per match), 15x over the bound.
-    small = _timed(json.dumps({"prompt": _curl_paste(1000)}))  # ~100 KB
-    large = _timed(json.dumps({"prompt": _curl_paste(2000)}))  # ~200 KB
+    small, large = _interleaved(json.dumps({"prompt": _curl_paste(500)}),  # ~50 KB
+                                json.dumps({"prompt": _curl_paste(2000)}))  # ~200 KB
     assert large <= _SLOW, f"200 KB serialised paste took {large:.2f} s"
-    assert large <= 3 * small + 0.05, f"not linear: {small:.3f} s -> {large:.3f} s"
+    # 4x the text: linear is ~4x the time, quadratic ~16x (round 5: 0.97 s ->
+    # 15.62 s). 8x sits halfway, with a 2x margin to either side.
+    assert large <= 8 * small + 0.05, f"not linear: {small:.3f} s -> {large:.3f} s"
 
 
 @pytest.mark.parametrize(
     ("unit", "quote", "size"),
     [("'a' \"-u x:y\" ", "", 100_000), ("-u a:$(x) ", "'", 300_000), ("mysql x ", "", 100_000),
      ("http x ", "", 100_000), ("redis-cli x ", "", 100_000), ("docker login x ", "", 100_000),
-     ("a.", "", 100_000), ("a-", "", 100_000)],
-    ids=["quotes", "one-quoted-span", "mysql", "httpie", "redis", "docker", "dotted", "dashed"],
+     ("a.", "", 100_000), ("a-", "", 100_000),
+     # PR3 finding 33: the key/value and annotated-assignment detectors.
+     ('"a": "b", ', "", 300_000), ("token: " + "x" * 47 + " ", "", 300_000),
+     ("k", "", 300_000),
+     # PR3 finding 43: one identifier holding the secret word again and again.
+     ("token", "", 100_000),
+     # QG r5 finding 47: element openers, unclosed elements, netrc windows.
+     ("<password key='a' ", "", 300_000), ("<password>a", "", 300_000),
+     ("machine login ", "", 300_000), ("\n password ", "", 300_000)],
+    ids=["quotes", "one-quoted-span", "mysql", "httpie", "redis", "docker", "dotted", "dashed",
+         "kv-json", "annotation", "one-identifier", "secret-word-run", "xml-attrs",
+         "xml-unclosed", "netrc-machine", "netrc-lines"],
 )
 def test_adversarial_text_scans_under_a_second(unit, quote, size):
     # Kills: the round-5 ``_local`` (quotes), a value read without its cap
@@ -483,7 +546,7 @@ def test_adversarial_text_scans_under_a_second(unit, quote, size):
     text = f"{quote} " + unit * (size // len(unit)) + quote
     for form in (text, json.dumps({"prompt": text})):
         took = _timed(form)
-        assert took < _SLOW, f"{len(form)} chars took {took:.2f} s"
+        assert took < _SHAPE_SLOW, f"{len(form)} chars took {took:.2f} s CPU"
 
 
 @pytest.mark.parametrize(
@@ -500,3 +563,859 @@ def test_adversarial_text_scans_under_a_second(unit, quote, size):
 def test_bounded_reads_keep_long_values(text, label):
     for form in (text, json.dumps({"prompt": text})):
         assert label in credential_labels(form)
+
+
+# PR2 round-6 m3: the lower edges of the two bounds. ~490 characters of real
+# arguments before the password flag stay inside ``_ARGS{0,512}`` (kills
+# ``_ARGS{0,16}``); a quoted value is read ``_VALUE_CAP`` characters past
+# its regex match (m2: ``start + floor + _VALUE_CAP``), and a read that hits
+# the cap gets no reference exemption.
+_ARG_RUNS = {
+    "mysql": ("mysql ", "--host=db.example.org ", f"-p{PASSWORD} app"),
+    "redis-cli": ("redis-cli ", "-h cache.example.org ", f"-a {PASSWORD} ping"),
+    "docker": ("docker login ", "--username=bob-builder ", f"-p {PASSWORD} r.example.org"),
+    "httpie": ("http ", "Accept:application/json ", f"-a bob:{PASSWORD} x.example.org"),
+}
+
+
+@pytest.mark.parametrize("tool", sorted(_ARG_RUNS))
+def test_a_password_flag_after_490_chars_of_arguments_is_refused(tool):
+    head, arg, tail = _ARG_RUNS[tool]
+    args = arg * (490 // len(arg))
+    assert 470 <= len(args) <= 500
+    text = head + args + tail
+    for form in (text, json.dumps({"command": text})):
+        assert credential_labels(form), f"{tool}: {len(args)} chars of args"
+
+
+def test_a_literal_tail_past_a_long_reference_head_is_refused():
+    # Kills the round-5 read as it shipped: ``start + max(floor, _VALUE_CAP)``
+    # AND no capped rule; the 301-char head then reads as a whole reference
+    # and the tail is never seen. With the capped rule in place the formula
+    # alone survives here (a capped read is refused anyway); the next row
+    # separates the two formulas.
+    text = "curl -u 'bob:$" + "A" * 300 + " tail9!' https://h.example.org"
+    assert "basic-auth flag" in credential_labels(text)
+
+
+def test_a_reference_of_exactly_the_cap_past_a_one_char_floor_is_read_to_its_end():
+    # Kills ``limit = start + max(floor, _VALUE_CAP)`` on its own: the bare
+    # run is ``$`` (floor 1, it stops at ``(``) and the value is 256 chars.
+    # ``start + floor + 256`` reads it to its closing quote, a reference;
+    # ``start + max(1, 256)`` stops one char short, capped, and refuses it.
+    value = "$(" + "x" * 253 + ")"
+    assert len(value) == 256
+    assert credential_labels(f"curl -u 'bob:{value}' https://h.example.org") == []
+
+
+def test_a_capped_value_gets_no_reference_exemption():
+    # Kills: ``not val.capped`` dropped from ``_literal``: the first 257 chars
+    # read as ``$(...`` although the single-quoted value is a literal.
+    text = "curl -u 'bob:$(" + "x" * 400 + ") tail9!' https://h.example.org"
+    assert "basic-auth flag" in credential_labels(text)
+
+
+def test_a_long_reference_read_to_its_end_is_not_a_secret():
+    # Kills: ``_VALUE_CAP = 8``: a 203-char reference read to its closing
+    # quote is a name, not a secret; capped early it would be refused.
+    text = "curl -u 'bob:$(" + "x" * 200 + ")' https://h.example.org"
+    assert credential_labels(text) == []
+
+
+# --- PR3 findings 38 and 39: source-code strings and header call forms -----
+
+DOLLAR_PW = "Tr0ub4dor" + "$" + "3xYz"  # a literal password holding ``$``
+DOLLAR_TOKEN = "q8Zr" + "$" + OPAQUE[:16]
+BEARER = OPAQUE[:16]  # 16 opaque chars, the quoted-bearer floor
+
+# Finding 38: ``$`` inside a source-code string literal is data.
+CODE_DOLLAR_LEAKS = [
+    ('{"password": "' + DOLLAR_PW + '"}', "credential key-value"),  # JSON
+    ("const cfg = { password: \"" + DOLLAR_PW + "\" };", "credential key-value"),  # JS
+    ('password: "' + DOLLAR_PW + '"', "credential key-value"),  # YAML, double
+    ("password: '" + DOLLAR_PW + "'", "credential key-value"),  # YAML, single
+    ("password: " + DOLLAR_PW, "credential key-value"),  # YAML, bare
+    ("'password' => \"" + DOLLAR_PW + "\",", "credential key-value"),  # PHP
+    ("  password: `" + DOLLAR_PW + "`,", "credential key-value"),  # template, no slot
+    ("  apiKey: `${prefix}" + OPAQUE + "`,", "credential key-value"),  # slot + literal
+    ('password = "' + DOLLAR_PW + '"', "credential assignment"),  # Python
+    ('API_KEY: str = "' + DOLLAR_PW + '"', "credential assignment"),  # typed
+    ('{"Authorization": "Bearer ' + DOLLAR_TOKEN + '"}', "auth header"),  # quoted key
+]
+CODE_DOLLAR_BENIGN = [
+    '{"password": "${DB_PASSWORD}"}',
+    '{"password": "$DB_PASSWORD"}',
+    'password: "${env.DB_PASSWORD}"',
+    '"password": "$(cat /run/secrets/pw)"',
+    "  apiKey: `${API_KEY}`,",
+    "  token: `${prefix}-${suffix}`,",  # a template of slots only
+    "headers: { Authorization: `Bearer ${token}` }",
+    "'password' => $password,",
+    "'password' => $this->password,",
+    "password: $DB_PASSWORD",
+    "token: ${{ secrets.GITHUB_TOKEN }}",
+    # Shell assignments keep the shell reading: no spaces around ``=``.
+    'export TOKEN="a${B}c1234"',
+    'TOKEN="$A$B" ./run',
+]
+
+# Finding 39: the auth header as a call argument, and a quoted bearer string.
+HEADER_CALL_LEAKS = [
+    'headers.set("Authorization", "Bearer ' + BEARER + '")',  # JS Headers
+    'req.Header.Set("Authorization", "Bearer ' + BEARER + '")',  # Go
+    'conn.setRequestProperty("Authorization", "Bearer ' + BEARER + '");',  # Java
+    "fetch(url, { headers: { Authorization: 'Bearer " + BEARER + "' } })",  # JS fetch
+    'new Headers([["Authorization", "Token ' + BEARER + '"]])',
+    'requests.get(u, headers={"Authorization": "Bearer ' + BEARER + '"})',  # Python
+    'headers.set("Authorization", "Bearer ' + DOLLAR_TOKEN + '")',  # ``$`` in code
+    'req.Header.Set("Authorization", "' + OPAQUE + '")',  # no scheme word
+    "curl -H 'Authorization: Token token=" + OPAQUE + "' https://api.example.org",  # G2
+    # No header key the detector knows: only the quoted-bearer string.
+    'headers["Authorization"] = "Bearer ' + BEARER + '"',
+    'conn.setRequestProperty(AUTH_HEADER, "Bearer ' + BEARER + '");',
+]
+HEADER_CALL_BENIGN = [
+    'headers.set("Authorization", "Bearer " + token)',
+    "headers.set('Authorization', `Bearer ${token}`)",
+    "headers: { Authorization: `Bearer ${scheme}${token}` }",  # a template stays shell-read
+    'req.Header.Set("Authorization", auth)',
+    'req.Header.Set("Authorization", "Bearer "+tok)',
+    # The same rows as a quoted fixture line: the scheme word is not a value.
+    "'headers.set(\"Authorization\", \"Bearer \" + token)',",
+    'log.warn("Token expired")',
+    'raise Unauthorized("Bearer authentication")',
+    'curl -H "Authorization: Bearer $TOKEN" https://api.example.org',
+    "curl -H 'Authorization: Bearer ${TOKEN}' https://api.example.org",
+    'headers["Authorization"] = "Bearer xxxxxxxxxxxxxxxxxxxx"',
+]
+
+
+@pytest.mark.parametrize(("text", "label"), CODE_DOLLAR_LEAKS)
+def test_a_dollar_inside_a_source_code_string_is_data(text, label):
+    # Kills: ``_kv_value`` mapping ``"`` back to _DOUBLE, the assignment or
+    # header code reading dropped (finding 38).
+    assert label in credential_labels(text)
+    assert label in credential_labels(json.dumps({"diff": "+" + text}))
+
+
+@pytest.mark.parametrize("text", CODE_DOLLAR_BENIGN)
+def test_a_whole_reference_in_source_code_is_still_a_reference(text):
+    assert credential_labels(text) == []
+
+
+@pytest.mark.parametrize("text", HEADER_CALL_LEAKS)
+def test_an_auth_header_as_a_call_argument_is_refused(text):
+    # Kills: the ``"key", "value"`` form or the quoted-bearer detector removed
+    # (finding 39).
+    assert "auth header" in credential_labels(text)
+    assert "auth header" in credential_labels(json.dumps({"diff": "+" + text}))
+
+
+@pytest.mark.parametrize("text", HEADER_CALL_BENIGN)
+def test_a_header_built_from_a_variable_is_not_a_secret(text):
+    assert credential_labels(text) == []
+
+
+# --- PR3 finding 41 (QG r2 B1): prefixed strings, keyword args, Go forms ----
+
+PLAIN_PW = "Tr0ub4dor" + "X3xYz"  # a literal password without ``$``
+F_TOKEN = "q8Zr" + "2mXv7LpT0wKd"
+
+# Each row: the text, the label, and what it proves.
+STRING_FORM_LEAKS = [
+    ('conn = psycopg2.connect(host=h, password="' + DOLLAR_PW + '")',
+     "credential assignment"),  # keyword argument after ``,``
+    ('db.connect(user="u", password="' + DOLLAR_PW + '")', "credential assignment"),
+    ('client = Client(api_key="' + DOLLAR_PW + '")', "credential assignment"),  # after ``(``
+    ('    password="' + DOLLAR_PW + '",', "credential assignment"),  # exploded call
+    ('conn = connect(password="' + DOLLAR_PW + '" if prod else None)',
+     "credential assignment"),  # after ``(`` only
+    ('SECRET_KEY = b"' + PLAIN_PW + '9"', "credential assignment"),  # bytes
+    ('SECRET_KEY = rb"' + PLAIN_PW + '9"', "credential assignment"),
+    ('password = r"' + DOLLAR_PW + '"', "credential assignment"),  # raw
+    ("password = u'" + PLAIN_PW + "'", "credential assignment"),
+    ('token = f"' + F_TOKEN + '"', "credential assignment"),  # f-string, no slot
+    ('token = f"{prefix}' + F_TOKEN + '"', "credential assignment"),  # slot + literal
+    ('TOKEN=b"' + PLAIN_PW + '"', "credential assignment"),  # prefix, no spaces
+    ('SECRET_KEY=b"' + DOLLAR_PW + '"', "credential assignment"),  # prefix alone is code
+    ('password := "' + PLAIN_PW + '"', "credential assignment"),  # Go
+    ('password := "' + DOLLAR_PW + '"', "credential assignment"),
+    ('password:="' + DOLLAR_PW + '"', "credential assignment"),
+    ('var password string = "' + DOLLAR_PW + '"', "credential assignment"),
+    ('const apiKey string = "' + PLAIN_PW + '"', "credential assignment"),
+    ('{"password": b"' + PLAIN_PW + '"}', "credential key-value"),
+    ("password: f'{a}" + F_TOKEN + "'", "credential key-value"),
+    ('password: "${DB_PASSWORD:-' + PLAIN_PW + '}"', "credential key-value"),  # literal default
+    ('SECRET_KEY = "' + PLAIN_PW + '9"', "credential assignment"),  # the control
+]
+STRING_FORM_BENIGN = [
+    'token = f"{prefix}{suffix}"',
+    'connect(password=f"{pw}")',
+    'token = f"TOKEN={tok}"',  # a run ending in ``=`` labels the slot
+    '"api_token": f"TOKEN={tok}"',
+    '"token": f"{head}{tail}"',
+    '"api_token": f"Bearer {tok}"',
+    "connect(password=password, token=self.token)",
+    'connect(password="$DB_PASSWORD")',  # arka:sec-ok(hardcoded-password): a reference
+    'connect(password="${DB_PASSWORD}")',  # arka:sec-ok(hardcoded-password): a reference
+    'password := os.Getenv("DB_PASSWORD")',
+    "var password string",
+    'token = b""',
+    "the api key value = abc123",  # typed form needs ``var``/``const``
+    # QG r2 m7: an empty default, a message or another name is a reference.
+    'POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-}"',
+    '"password": "${X:?required}"',
+    "password: '${DB_PASSWORD:?set DB_PASSWORD}'",
+    'password: "${DB_PASSWORD:-$FALLBACK_PW}"',
+    'password: "${DB_PASSWORD:-${FALLBACK_PW}}"',
+    # QG r2 m8: a format slot and a documented bearer placeholder.
+    '"secret": "%(SECRET)s"',
+    'doc: "Bearer token_here_placeholder"',
+    'example = "Bearer your_token_goes_here1"',
+]
+
+
+@pytest.mark.parametrize(("text", "label"), STRING_FORM_LEAKS)
+def test_prefixed_keyword_and_go_string_forms_are_refused(text, label):
+    # Kills: the string-prefix group, the keyword-argument reading, ``:=`` or
+    # the ``var``/``const`` type form removed, the f-string slot drop kept
+    # whole (finding 41).
+    assert label in credential_labels(text)
+    assert label in credential_labels(json.dumps({"diff": "+" + text}))
+
+
+@pytest.mark.parametrize("text", STRING_FORM_BENIGN)
+def test_templates_references_and_placeholders_in_string_forms_pass(text):
+    # Kills: the label-run rule of ``_template_literal``, the ``${NAME:-}``
+    # reference forms, the ``-$OTHER`` resume guard, ``%(...)s`` or the
+    # bearer placeholder words dropped (QG r2 m7, m8).
+    assert credential_labels(text) == []
+
+
+# --- PR3 finding 42 (QG r3 B2): a secret named inside a quoted string -------
+
+WP_SALT = "x7#Qm!2@vL9p" + "$Kz&4Rt^8Yw*0Nb(3Hc)6Jd_1Fg+5Se="  # a wp-config salt shape
+
+# Each row: the text, the label, and the rule it pins.
+QUOTED_NAME_LEAKS = [
+    ("define('AUTH_KEY',         '" + WP_SALT + "');", "credential quoted name"),  # wp-config
+    ("define( 'DB_PASSWORD', '" + DOLLAR_PW + "' );", "credential quoted name"),
+    ('os.environ["API_TOKEN"] = "' + F_TOKEN + '"', "credential quoted name"),  # subscript
+    ('app.config["SECRET_KEY"] = "' + F_TOKEN + '9Zx"', "credential quoted name"),  # Flask
+    ("$config['encryption_key'] = '" + F_TOKEN + "';", "credential quoted name"),  # PHP
+    ("ENV['API_TOKEN'] = '" + F_TOKEN + "'", "credential quoted name"),  # Ruby
+    ('if request.headers["X-Api-Key"] == "' + F_TOKEN + '":', "credential quoted name"),
+    ('os.environ.setdefault("DB_PASSWORD", "' + PLAIN_PW + '")', "credential quoted name"),
+    ('PASSWORD = os.getenv("PW", "' + DOLLAR_PW + '")', "credential quoted name"),  # ``pw``
+    ('cfg.get("a", "API_TOKEN", "' + F_TOKEN + '")', "credential quoted name"),  # resume
+    ('<add key="ApiKey" value="' + F_TOKEN + '" />', "credential quoted name"),  # .NET
+    ('ds.setPassword("' + PLAIN_PW + '");', "credential setter"),  # setter verb
+    ('builder.password("' + PLAIN_PW + '")', "credential setter"),  # the word alone
+    ('client.withApiKey("' + F_TOKEN + '")', "credential setter"),
+    ('requests.get(url, auth=("admin", "' + PLAIN_PW + '"))', "basic-auth pair"),
+    ('s.auth = HTTPBasicAuth(user, "' + PLAIN_PW + '")', "basic-auth pair"),  # user a name
+    ('session.mount(a, HTTPDigestAuth("admin", "' + PLAIN_PW + '"))', "basic-auth pair"),
+    ('requests.get(u, auth=HTTPProxyAuth("admin", "' + PLAIN_PW + '"))', "basic-auth pair"),
+    ('t.set_token("' + F_TOKEN + '", ttl=60)', "credential setter"),  # first argument
+    # QG r3 m11: Kotlin and Swift declarations, refused by the assignment reading.
+    ('val password = "' + DOLLAR_PW + '"', "credential assignment"),
+    ('val password: String = "' + DOLLAR_PW + '"', "credential assignment"),
+    ('let password = "' + DOLLAR_PW + '"', "credential assignment"),
+    ('let password: String = "' + DOLLAR_PW + '"', "credential assignment"),
+    # QG r3 m10: a secret split into short runs by slots is judged joined.
+    ('token = f"q8Z{a}r2m{b}Xv7"', "credential assignment"),
+    # QG r3 m12: a placeholder word INSIDE a token does not make it one.
+    ('headers[AUTH] = "Bearer ' + F_TOKEN + '-example-Zz91"', "auth header"),
+    ('headers[AUTH] = "Bearer eyJhbGciOiJIUzI1NiJ9.dummyX' + F_TOKEN + '.abc"', "auth header"),
+    ('token: "' + F_TOKEN + '-example"', "credential key-value"),
+]
+QUOTED_NAME_BENIGN = [
+    'home = os.environ["HOME"]',
+    'config["timeout"] = "30s"',
+    'os.environ["GIT_COMMIT"] = "a1b2c3d4e5f6"',  # an opaque value under a plain name
+    "define('WP_DEBUG', 'false')",
+    'tok = os.environ.get("API_TOKEN")',
+    'os.environ.get("API_TOKEN", "")',
+    "define('AUTH_KEY', 'put your unique phrase here');",  # the wp-config sample
+    '<add key="Timeout" value="30" />',
+    'FIELDS = ("password", "token", "secret")',
+    "ds.setPassword(password)",
+    "requests.get(url, auth=(user, pw))",
+    'secret = get_secret("prod/db-password-2024")',  # a lookup by name, not a setter
+    '"token": "user@example.com"',  # an RFC 2606 documentation address
+    'api_key: "sk-your-api-key-here"',  # a short prefix, then placeholder words
+    '"SEQUENZY_API_KEY": "seq_user_your_key_here"',
+    'headers[AUTH] = "Bearer access_token_here2"',  # a digit after a placeholder word
+]
+
+
+@pytest.mark.parametrize(("text", "label"), QUOTED_NAME_LEAKS)
+def test_a_secret_named_in_quotes_is_refused(text, label):
+    # Kills: each finding-42 separator, the resume at the value, ``pw``, the
+    # setter and pair detectors, the joined template runs (m10) and the
+    # whole-value placeholder anchor (m12).
+    assert label in credential_labels(text)
+    assert label in credential_labels(json.dumps({"diff": "+" + text}))
+
+
+@pytest.mark.parametrize("text", QUOTED_NAME_BENIGN)
+def test_a_quoted_name_without_a_literal_secret_passes(text):
+    # Kills: the setter verb rule, the name judged by words, the RFC 2606
+    # address and the short-prefix placeholder rules dropped.
+    assert credential_labels(text) == []
+    assert credential_labels(json.dumps({"diff": "+" + text})) == []
+
+
+@pytest.mark.parametrize(
+    "unit", ['"a", ', 'x["a"] = "b"; ', 'set("a") ', 'auth=("a", ', '"Bearer ' + "token" * 4],
+    ids=["positional", "subscript", "setter", "auth-pair", "placeholder-words"],
+)
+def test_finding_42_detectors_scan_in_linear_time(unit):
+    text = unit * (300_000 // len(unit))
+    for form in (text, json.dumps({"diff": text})):
+        took = _timed(form)
+        assert took < _SHAPE_SLOW, f"{len(form)} chars took {took:.2f} s CPU"
+
+
+# --- PR3 QG r4: dotted quoted names (R4-B1), Ruby forms (R4-M1), m13 --------
+
+# Each row: the text, the label. A dot is allowed in a QUOTED name only.
+DOTTED_AND_RUBY_LEAKS = [
+    ('Config::set("services.stripe.secret", "' + F_TOKEN + '");', "credential quoted name"),
+    ("config()->set('services.stripe.secret', '" + F_TOKEN + "');", "credential quoted name"),
+    ("'stripe.secret' => '" + F_TOKEN + "',", "credential key-value"),  # Laravel config array
+    ('"db.password": "' + PLAIN_PW + '"', "credential key-value"),  # dotted JSON key
+    ('"fs.s3a.secret.key": "' + F_TOKEN + '"', "credential key-value"),
+    ('System.setProperty("javax.net.ssl.trustStorePassword", "' + PLAIN_PW + '")',
+     "credential quoted name"),  # Java system property
+    ('conf.set("spark.hadoop.fs.s3a.secret.key", "' + F_TOKEN + '")', "credential quoted name"),
+    ('ENV["API_TOKEN"] ||= "' + F_TOKEN + '"', "credential quoted name"),  # Ruby ``||=``
+    ('config[:api_key] = "' + F_TOKEN + '"', "credential quoted name"),  # symbol subscript
+    ('config[:api_key] ||= "' + F_TOKEN + '"', "credential quoted name"),
+    ('ENV.fetch("API_TOKEN") { "' + F_TOKEN + '" }', "credential quoted name"),  # fetch block
+    # m13: the trailing ``$`` of _PLACEHOLDER_WORDS: a word HEAD is not a placeholder.
+    ('password: "my-' + F_TOKEN + '"', "credential key-value"),
+    ('token: "test_' + F_TOKEN + '"', "credential key-value"),
+    ('os.environ["API_TOKEN"] = "live-' + F_TOKEN + '"', "credential quoted name"),
+]
+DOTTED_AND_RUBY_BENIGN = [
+    '"db.password.file": "/etc/x/pw"',  # a pointer word ends the name
+    '"spring.datasource.password": "${DB_PASSWORD}"',  # a reference
+    '"api.key.id": "k1a2b3c4d5"',
+    "'services.stripe.key' => env('STRIPE_KEY'),",  # a call, not a literal
+    "'app.name' => 'Laravel',",
+    'ENV.fetch("API_TOKEN") { nil }',
+    'ENV["API_TOKEN"] ||= ENV["FALLBACK_TOKEN"]',
+    "x[:5] = 'abc'",  # a slice, not a symbol
+]
+
+
+@pytest.mark.parametrize(("text", "label"), DOTTED_AND_RUBY_LEAKS)
+def test_dotted_names_and_ruby_forms_are_refused(text, label):
+    # Kills: the dot in the quoted-name alphabet of _QUOTED_NAME or
+    # _KEY_VALUE, ``||=``, ``) {``, the symbol subscript (QG r4 B1, M1) and
+    # the ``$`` anchor of the placeholder words (m13) removed.
+    assert label in credential_labels(text)
+    assert label in credential_labels(json.dumps({"diff": "+" + text}))
+
+
+@pytest.mark.parametrize("text", DOTTED_AND_RUBY_BENIGN)
+def test_dotted_names_and_ruby_forms_without_a_literal_pass(text):
+    assert credential_labels(text) == []
+    assert credential_labels(json.dumps({"diff": "+" + text})) == []
+
+
+# --- PR3 QG r5 (finding 47): XML element text, .netrc, ``priv`` ------------
+
+SHORT_TOKEN = F_TOKEN[:11]  # 11 chars: Paulo's reproduction length
+# Each row: the text, the label. Every shape was SENT by every layer on the
+# round-5 tree (R5-M1): the element text and the netrc token are unquoted.
+XML_NETRC_LEAKS = [
+    (f"<password>{SHORT_TOKEN}</password>", "credential xml element"),
+    (f"<Password>{F_TOKEN}</Password>", "credential xml element"),  # case
+    (f"<db:password>{F_TOKEN}</db:password>", "credential xml element"),  # namespace
+    (f"<secret>{F_TOKEN}</secret>", "credential xml element"),
+    (f"<apiKey>{F_TOKEN}</apiKey>", "credential xml element"),
+    (f"<ApiToken>{F_TOKEN}</ApiToken>", "credential xml element"),
+    (f'<property name="hibernate.connection.password">{F_TOKEN}</property>',
+     "credential xml element"),  # the key in a name= attribute
+    (f'<entry key="db.password">{F_TOKEN}</entry>', "credential xml element"),  # key=
+    (f"<password><![CDATA[{F_TOKEN}]]></password>", "credential xml element"),
+    (f"<password>\n    {F_TOKEN}\n  </password>", "credential xml element"),  # pretty-printed
+    (f"<password>\n+    {F_TOKEN}\n+  </password>", "credential xml element"),  # in a diff
+    (f"machine api.example.com login me password {F_TOKEN}", "netrc password"),
+    (f"default login me password {F_TOKEN}", "netrc password"),
+    (f"machine api.example.com\n  login me\n  password {F_TOKEN}\n", "netrc password"),
+    (f"  password {F_TOKEN}", "netrc password"),  # the multi-line form's own line
+    # Marta's r5 probe: ``priv`` qualifies ``key`` as ``private`` does.
+    (f'privKey: "{F_TOKEN}"', "credential key-value"),
+]
+XML_NETRC_BENIGN = [
+    "<password></password>",
+    "<password>${DB_PASSWORD}</password>",
+    "<password>@db.password@</password>",  # a Maven/Ant filter
+    "<password>#{vault.dbPassword}</password>",  # Spring EL
+    "<passwordPolicy>strict</passwordPolicy>",
+    "<passwordPolicy><minLength>12</minLength></passwordPolicy>",
+    '<entry key="timeout">30</entry>',
+    "<name>password</name>",
+    "<token_url>https://auth.example.invalid/t1</token_url>",  # a pointer word ends the name
+    "machine api.example.com login me password $NETRC_PASSWORD",
+    "machine api.example.com login me password {netrc_password}",  # a template slot
+    'fmt = "  password {user_pw}"',  # a quote ends the token, the slot is left
+    "the machine needs a password reset…",
+    "Enter the password below",
+    'let pubKey = decode("' + SHORT_TOKEN + '");',  # a public key is no secret
+    'pubKey: "' + F_TOKEN + '"',
+]
+
+
+@pytest.mark.parametrize(("text", "label"), XML_NETRC_LEAKS)
+def test_xml_element_text_and_netrc_passwords_are_refused(text, label):
+    # Kills: the element detector, the attribute key, the namespace/case
+    # reading, CDATA, the netrc rule (each form), ``priv`` removed (R5-M1).
+    assert label in credential_labels(text)
+    assert label in credential_labels(json.dumps({"diff": "+" + text + "\n"}))
+
+
+@pytest.mark.parametrize("text", XML_NETRC_BENIGN)
+def test_xml_and_netrc_references_and_prose_pass(text):
+    # Kills: the reference skips (``@x@``, ``#{x}``), the netrc token alphabet
+    # (the ellipsis), ``pub`` made a qualifier.
+    assert credential_labels(text) == []
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == []
+
+
+def test_marta_priv_key_call_is_refused():
+    # Marta r5: ``let privKey = decode("…")`` was SENT; no precise detector
+    # reads a call argument, the catch-all does once ``priv`` qualifies ``key``.
+    text = 'let privKey = decode("' + SHORT_TOKEN + '");'
+    assert credential_labels(text) == [_cred.CATCH_ALL_LABEL]
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == [_cred.CATCH_ALL_LABEL]
+
+
+# --- PR3 QG r4: the catch-all layer -----------------------------------------
+
+CATCH_ALL = _cred.CATCH_ALL_LABEL
+
+# Shapes no precise detector knows; the catch-all alone refuses each.
+CATCH_ALL_LEAKS = [
+    'user.resetPassword("' + PLAIN_PW + '")',  # residual 42(a): a setter verb outside the four
+    'login("admin", "' + PLAIN_PW + '")  # password',  # 42(a): not the first argument
+    'keyring.set_password("svc", "bob", "' + PLAIN_PW + '")',
+    'env[f"{prefix}_TOKEN"] = "' + F_TOKEN + '"',  # 42(c): a name built at run time
+    'password = """' + PLAIN_PW + '"""',  # 42(f): a triple-quoted literal
+    'ENV.fetch("API_TOKEN") do "' + F_TOKEN + '" end',
+    'secrets.put(name, "' + F_TOKEN + '")',
+    'set_secret(name="x", value="' + F_TOKEN + '")',
+    'token ||= "' + F_TOKEN + '"',
+    'auth_header = "Basic " + "' + F_TOKEN + '"',
+    'String pw = "' + PLAIN_PW + '";',
+    'run(env="${DB_DEFAULT:-' + PLAIN_PW + '}")  # the db password',  # a literal default
+    # Finding 47: the literal unquoted, a bare token no precise detector reads.
+    "ENV API_TOKEN " + F_TOKEN,  # a Dockerfile ENV without ``=``
+    "<td>api token</td><td>" + F_TOKEN + "</td>",  # a table cell, ``<``/``>`` delimited
+    "set the admin password to " + SHORT_TOKEN,  # prose around a bare value
+    "ENV API_TOKEN " + "9f2f7db979a7d557" + "cfc92fa53aca95ba",  # lowercase hex, 20+ chars
+]
+# Each row kills one guard of the layer (named in the comment).
+CATCH_ALL_BENIGN = [
+    'logger.info("token rotated", extra={"build": "a1b2c3d4"})',  # 8 chars: _CATCH_MIN 10 -> 8
+    'support.auth_phone = "(555)123-4567"',  # no letters: the two-class rule
+    '"integrity": "sha512-RZPHBoxXuNnPQO9rvjh5jdkRmVizktkT7TCDkDmQ0W2SwHInKCAV95GRuvdSvA7w4VMwfCjU'
+    'iPwDi0ZO6Nfe9A=="',  # ``Pw`` inside the hash: the word must be outside the literal
+    'SECRET_WORDS = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.I)',  # alternation
+    'GITHUB = re.compile(r"\\bghp_[A-Za-z0-9]{20,}")  # token',
+    '"Read(~/.aws/credentials)",',  # a call-shaped rule, a path in it
+    "Every design token must come through `var(--token-name)`.",  # a call
+    '-H "Authorization: Bearer $OUTREACH_ACCESS_TOKEN" \\',  # a reference once the scheme goes
+    'body: "grant_type=client_credentials",',  # a NAME=name setting
+    'expires = self.secret_entry("2099-01-01T00:00:00+00:00")',  # a timestamp
+    'bash "$ARKA_OS/mcps/scripts/apply-mcps.sh" --token-ttl 60',  # a path from a variable
+    "- Payloads pass `core/egress/policy.evaluate()` first",  # ``pass`` is prose
+    'passwordHint: "Use at least 12 characters"',  # whitespace
+    'link("…/tokens/Zq9k7k7k7k7")  # token docs',  # outside ASCII: documentation
+    'api_key: "sk-your-api-key-here"',
+    'tokenUrl: "https://auth.example.invalid/oauth/token"',  # a URL without userinfo
+    '"GRAPHIFY_TOKEN": "${GRAPHIFY_TOKEN:-}"',
+    "hints = ['tokenHint: \"created_at\"']",  # a quoted value inside the literal
+    # m1: the words of a file-path literal name the file (Laravel hash manifest).
+    "'/app/Http/Auth/LoginController.php' => 'cc77e6827498680eabf56e7d4c7dab22',",
+    # Finding 47, the bare reading: one row per guard.
+    "if (!ACCESS_TOKEN && !process.env.ZOOMINFO_USERNAME) {",  # the gate: no digit
+    "token rotated in commit 9f2f7db979",  # the gate: a digit alone, under 20 characters
+    "pkg/auth v1.2.0 h1:Zq9k7K7k7k7k7k7k7k7k7k7A=",  # a declared hash (go.sum)
+    "if (!token) cache[q8Zr2mX7] = 1",  # code: a subscript glued to a name
+    "renderSlot({ token: o }, createElementVNode$1)",  # a bundler's ``$1`` suffix
+    "the session token is now token_2024_Q3!",  # the value holds the secret word
+    'ssh h "export API_TOKEN=\\"\\$UPSTREAM_2\\""',  # an escaped reference, backslash trimmed
+    # A bare path next to a hex digest (QG r7, replacing the r5 base64 row
+    # that M-B moved to the leak side): its words name the file.
+    "./app/Auth/Guard.php  " + "9f2f7db979a7d557" + "cfc92fa53aca95ba",  # a manifest listing
+    "9f2f7db979a7d557" + "cfc92fa53aca95ba" + "  ./app/Auth/Guard.php",  # ``sha256sum``
+]
+
+
+@pytest.mark.parametrize("text", CATCH_ALL_LEAKS)
+def test_the_catch_all_refuses_a_shape_no_detector_knows(text):
+    # Kills: the layer off, ``password`` or ``token`` dropped from its words,
+    # the literal default of ``${X:-v}`` dropped with the slot.
+    assert credential_labels(text) == [CATCH_ALL]
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == [CATCH_ALL]
+
+
+@pytest.mark.parametrize("text", CATCH_ALL_BENIGN)
+def test_the_catch_all_passes_names_patterns_and_references(text):
+    # Kills: _CATCH_MIN 10 -> 8, the two-class rule off, the word read inside
+    # the literal, each _NOT_A_SECRET guard dropped.
+    assert credential_labels(text) == []
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == []
+
+
+def test_the_catch_all_reads_a_serialised_state_by_its_leaves():
+    # Kills: _catch_units off. As a JSON value a short code line is ONE quoted
+    # literal (``"+ds.setPassword(password)"``) beside the ``diff`` key.
+    for line in ("ds.setPassword(password)", 'os.environ.get("API_TOKEN", "")'):
+        assert credential_labels(json.dumps({"diff": "+" + line})) == []
+    pair = json.dumps({"auths": {"r.example.invalid": {"auth": F_TOKEN}}})
+    assert credential_labels(pair) != []  # the key names the plain value
+
+
+# QG PR3 r6: relative paths (a Vite/Laravel ``manifest.json``, a hash
+# manifest keyed by a relative path) name files; their words and a hashed
+# asset name are not a credential. Values built at runtime.
+HEX56 = "cc77e6827498680e" + "abf56e7d4c7dab22" + "9303046e0994daf37f4fce84"
+ASSET = "assets/Login-" + "Bk3x9Zq2.js"
+SRI = "sha512-" + "RZPHBoxXuNnPQO9rvjh5jdkRmVizktkT7TCDkDmQ0W2S=="
+RELATIVE_PATH_BENIGN = [
+    '"resources/js/Pages/Auth/Login.vue": {"file": "' + ASSET + '", "src": '
+    '"resources/js/Pages/Auth/Login.vue"},',
+    '"resources/js/Pages/Auth/ForgotPassword.vue": {"file": "assets/ForgotPassword-'
+    + "Dq8sZk2p.js" + '"},',
+    '"resources/js/Auth/Login.vue": "' + HEX56 + '"',  # kills: relative path words kept
+    "'app/Actions/Auth/AuthenticateCustomer.php' => '" + HEX56 + "',",
+    # kills: the hashed asset read as a secret (``name`` is a word outside it)
+    '"resources/js/Pages/Auth/Login.vue": {"file": "' + ASSET + '", "name": "auth"},',
+    # Controls that were already sent.
+    '"resources/js/Pages/Home.vue": "' + SRI + '"', '"file": "' + ASSET + '",',
+    '<script integrity="sha384-' + "Ab9x" * 8 + '">',
+    '"reference": "' + "9f2f7db979a7d557" + "cfc92fa53aca95ba12345678" + '"',
+]
+# With every precise detector off these stay refused: a secret holding ``/``
+# is no path (a digit interleaved inside a segment, no extension), and a URL
+# path without an extension keeps its words.
+SLASHED_SECRETS = [
+    'token = "ab/Cd12' + 'Xy9Qw7Lp3Zk"', 'auth_token = "q8Zr/2mXv7' + 'Lp/T0wKd9"',
+    'token: "ab/Cd12Xy9Qw7/' + 'Lp3Zk.Mn"', 'fetch("api/token/v1", "' + F_TOKEN + '")',
+    '"password": "' + DOLLAR_PW + '"',
+]
+
+
+@pytest.mark.parametrize("text", RELATIVE_PATH_BENIGN)
+def test_relative_paths_and_hashed_assets_are_not_credentials(text):
+    assert egress_secret_labels(text) == []
+    assert egress_secret_labels(json.dumps({"diff": "+" + text + "\n"})) == []
+
+
+@pytest.mark.parametrize("text", SLASHED_SECRETS)
+def test_a_secret_holding_a_slash_is_not_read_as_a_path(catch_all_only, text):
+    # Kills: a relative-path rule wide enough to swallow base64 or a URL path.
+    assert credential_labels(text) == [CATCH_ALL]
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == [CATCH_ALL]
+
+
+def test_below_the_gate_a_bare_value_is_sent():
+    # Residual of finding 46 (round 5), pinned: one letter case with digits,
+    # under 20 characters, is below the bare gate, and a Dockerfile ``ENV``
+    # without ``=`` reaches no precise detector.
+    assert credential_labels("ENV API_TOKEN abc123def456") == []
+
+
+def test_the_catch_all_runs_only_when_no_detector_fired():
+    labels = credential_labels('SECRET_KEY = "' + PLAIN_PW + '9"')
+    assert labels == ["credential assignment"]
+
+
+# The Quality Gate history, rounds 1 to 5, with every precise detector
+# switched off: what the catch-all alone refuses. The misses are its
+# residual (security review, finding 46), pinned so that a change moves
+# the row and the review together; each is refused by a precise detector.
+QUOTED_LEAK_FORMS = [v for v in LEAK_FORMS.values() if "'" in v or '"' in v]
+N1_AND_30 = [r for r in REVIEWER_LEAKS if "'t " in r or "'s:" in r or '\\"' in r]
+CATCH_ALL_HISTORY = [
+    *QUOTED_LEAK_FORMS, *N1_AND_30, *(t for t, _ in CODE_DOLLAR_LEAKS), *HEADER_CALL_LEAKS,
+    *(t for t, _ in STRING_FORM_LEAKS), *(t for t, _ in QUOTED_NAME_LEAKS),
+    *(t for t, _ in DOTTED_AND_RUBY_LEAKS), *(t for t, _ in XML_NETRC_LEAKS),
+]
+CATCH_ALL_MISSES = {
+    # (a) No secret word on the line: the shell auth flags, userinfo, a -p flag (14).
+    *(v for v in QUOTED_LEAK_FORMS if not re.search(r"(?i)token|password|authoriz|api_key", v)),
+    *(r for r in N1_AND_30 if not re.search(r"(?i)token|authoriz", r)),
+    # (b) Whitespace inside the literal: a passphrase.
+    LEAK_FORMS["assign-quoted-space"],
+    # (c) Under 10 characters once the slots go.
+    'token = f"q8Z{a}r2m{b}Xv7"',
+    # (d) A quote paired across an apostrophe: the value is inside a literal
+    # that holds whitespace, and no bare token is read inside a literal.
+    "echo don't -H \"Authorization: Bearer ab$c9Zq9k7k7\" x'",
+    # (e) A ``{…}`` run read as a template slot.
+    LEAK_FORMS["authhdr-single-brace"],
+    # (f) A query credential inside a URL literal (the URL guard).
+    LEAK_FORMS["query-single-bracket"],
+    # (g) An element value on a line of its own: no secret word on that line.
+    f"<password>\n    {F_TOKEN}\n  </password>", f"<password>\n+    {F_TOKEN}\n+  </password>",
+}
+
+HISTORY_ROWS, HISTORY_REFUSED = 127, 106  # distinct rows; the misses are the 21 above
+
+
+@pytest.fixture
+def catch_all_only(monkeypatch):
+    monkeypatch.setattr(_cred, "_DETECTORS", ())
+
+
+@pytest.mark.parametrize("text", CATCH_ALL_HISTORY)
+def test_the_catch_all_alone_refuses_the_review_history(catch_all_only, text):
+    # Kills: the layer off, ``authorization`` or ``token`` dropped from its
+    # words, the label split off (``'Authorization: Bearer v'``).
+    want = [] if text in CATCH_ALL_MISSES else [CATCH_ALL]
+    assert credential_labels(text) == want
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == want
+
+
+def test_the_catch_all_alone_misses_only_the_documented_residual(catch_all_only):
+    rows = set(CATCH_ALL_HISTORY)
+    refused = {t for t in rows if credential_labels(t)}
+    assert refused == rows - CATCH_ALL_MISSES
+    assert (len(rows), len(refused)) == (HISTORY_ROWS, HISTORY_REFUSED)  # finding 46
+
+
+# The cap step runs on three representative units (QG r5 m2): the worst one
+# measured (``escapes``), a plain literal body (``digits``) and the bare
+# reading (``bare-tokens``); every unit runs the 4x ratio step.
+_AT_THE_CAP = frozenset({"escapes", "digits", "bare-tokens"})
+
+
+@pytest.mark.parametrize(
+    ("head", "body"),
+    [('token "', "a1"), ('token "', "[a-"), ('token "', "a."), ('token "', "x("),
+     ("token '", '\\"'), ("key ", '"q8Zr2mXv7Lp" '), ('password "', "${a:-"), ("token `", "Pw"),
+     ("secret '", "a|"), ('auth "', "{1,"),
+     # Finding 47: bare tokens, element tags, netrc windows.
+     ("password ", "q8Zr2mX!7Lp "), ("<password>", "<a>"), ("machine ", "login ")],
+    ids=["digits", "range", "dots", "call", "escapes", "no-word", "default", "backtick",
+         "alternation", "repeat", "bare-tokens", "xml-tags", "netrc-window"],
+)
+def test_the_catch_all_alone_scans_a_megabyte_in_linear_time(catch_all_only, head, body, request):
+    # Kills: the ``[a-`` class and the call guard written with a backtracking
+    # run (the first draft took over 5 s on 100 KB), the escaped-quote
+    # lookbehind removed. Each form is timed in CPU time, sizes interleaved
+    # (``_interleaved``), because the coverage tracer roughly doubles
+    # pure-Python time and CI runs under it: an absolute 1 s bound failed
+    # there on the 2 MB serialised forms (1.47 s) while the scan stayed linear.
+    def forms(size: int) -> list[str]:
+        run = head + body * (size // len(body))
+        texts = (run, run + head.strip()[-1])  # the literal left open, and closed
+        return [form for text in texts for form in (text, json.dumps({"diff": text}))]
+
+    # 4x the text on a small size first: linear ~4x, quadratic ~16x, and a
+    # quadratic draft fails here in seconds instead of minutes at 1 MB.
+    for small_text, large_text in zip(forms(25_000), forms(100_000), strict=True):
+        small, large = _interleaved(small_text, large_text, rounds=3)
+        assert large <= 8 * small + 0.05, f"not linear: {small:.3f} s -> {large:.3f} s"
+    if request.node.callspec.id not in _AT_THE_CAP:
+        return
+    # Then at the 1 MB cap (``MAX_SCAN_CHARS``): 2x the text, linear ~2x,
+    # quadratic ~4x; and a ceiling (``_CAP_SLOW``) with a margin over the
+    # worst form measured under coverage (security review, finding 46).
+    for half_text, full_text in zip(forms(_CAP_SIZE // 2), forms(_CAP_SIZE), strict=True):
+        half, full = _interleaved(half_text, full_text, rounds=2)  # 3 MB of scan per round
+        assert full <= 3 * half + 0.05, f"not linear: {half:.3f} s -> {full:.3f} s"
+        assert full <= _CAP_CEILING, f"{len(full_text)} chars took {full:.2f} s"
+
+
+# --- PR3 QG r6 -> round 7: nested <value>, netrc account, path-keyed secrets --
+
+_DOTNET = ('<setting name="ApiSecret" serializeAs="String">\n'
+           "    <value>" + F_TOKEN + "</value>\n</setting>")
+_SPRING = ('<property name="password">\n        <value>' + F_TOKEN + "</value>\n"
+           "    </property>")
+
+
+def _as_diff(text: str) -> str:
+    return "\n".join("+" + line for line in text.splitlines())
+
+
+# B1: the key sits in the parent's ``name=``, the value in the next ``<value>``.
+NESTED_VALUE_LEAKS = [
+    _DOTNET, _SPRING, _as_diff(_DOTNET), _as_diff(_SPRING),
+    '<property name="db.password"><value>' + F_TOKEN + "</value></property>",  # one line
+    '<entry key="api.token">\r\n  <value type="string">' + F_TOKEN + "</value>",  # CRLF, attrs
+    "<password>\n  <value><![CDATA[" + F_TOKEN + "]]></value>",  # the tag names it, CDATA
+]
+NESTED_VALUE_BENIGN = [
+    '<property name="username">\n  <value>' + F_TOKEN + "</value>\n</property>",
+    '<property name="password">\n  <value>${DB_PASSWORD}</value>\n</property>',
+    '<property name="password"/>\n<value>' + F_TOKEN + "</value>",  # self-closed: no child
+    '<property name="password">' + " " * 65 + "<value>" + F_TOKEN + "</value>",  # past the gap
+    '<property name="passwordPolicy">\n  <value>strict-mode-v2</value>',
+]
+
+
+@pytest.mark.parametrize("text", NESTED_VALUE_LEAKS)
+def test_a_nested_value_child_carries_its_parent_key(text):
+    # Kills: the carry off (_xml_carry_hit), the diff sign or the serialised
+    # ``\n`` out of the gap, the tag name left out of the carried names.
+    assert "credential xml element" in credential_labels(text)
+    assert "credential xml element" in credential_labels(json.dumps({"diff": text + "\n"}))
+
+
+@pytest.mark.parametrize("text", NESTED_VALUE_BENIGN)
+def test_a_nested_value_without_a_secret_key_or_literal_passes(text):
+    assert "credential xml element" not in credential_labels(text)
+    assert "credential xml element" not in credential_labels(json.dumps({"diff": text}))
+
+
+def test_the_nested_value_carry_scans_in_linear_time():
+    # Every ``<`` opens a tag whose gap never reaches a ``<value>``, or whose
+    # ``<value>`` never closes: bounded per ``<``, 4x the text ~4x the time.
+    for unit in ('<s name="password">' + "\\n+ " * 20, '<s key="token"> <value>',
+                 '<s name="password"><value>x</value>'):
+        small, large = _interleaved(unit * (25_000 // len(unit)), unit * (100_000 // len(unit)))
+        assert large <= 8 * small + 0.05, f"not linear: {small:.3f} s -> {large:.3f} s"
+        assert large < _SHAPE_SLOW
+
+
+# B2: netrc(5) defines ``account`` as an additional password.
+NETRC_ACCOUNT_LEAKS = [
+    "machine h login u account " + F_TOKEN,
+    "default login u account " + F_TOKEN,
+    "machine h.example.invalid\n  login u\n  account " + F_TOKEN + "\n",
+    "+  account " + F_TOKEN,
+]
+NETRC_ACCOUNT_BENIGN = [
+    "account: 'account [info]',",  # a CLI usage string, found by the round-7 sweep
+    "account: 'account [credits|countries|currencies]',",
+    "machine h login u account $NETRC_ACCOUNT",
+    "Pick an account below",
+]
+
+
+@pytest.mark.parametrize("text", NETRC_ACCOUNT_LEAKS)
+def test_a_netrc_account_is_refused_as_a_password(text):
+    # Kills: ``account`` dropped from either _NETRC pattern.
+    assert "netrc password" in credential_labels(text)
+    assert "netrc password" in credential_labels(json.dumps({"diff": "+" + text + "\n"}))
+
+
+@pytest.mark.parametrize("text", NETRC_ACCOUNT_BENIGN)
+def test_a_netrc_account_reference_or_usage_passes(text):
+    # Kills: the usage-list guard (_NETRC_USAGE) dropped.
+    assert credential_labels(text) == []
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == []
+
+
+# m1: a rule ABOUT a secret is no secret; the secret itself still is.
+POLICY_BENIGN = [
+    "<passwordPolicy>strict-mode-v2</passwordPolicy>", "passwordPolicy: strict-mode-v2",
+    "PASSWORD_POLICY=strict-mode-v2", 'token_expiry: "2099-01-01T00:00:00Z"',
+    "password_min_length: 12", "PASSWORD_MAX=64", "secret_rules: strict-v2",
+    'password_reset: "enabled-v2"', 'passwordHint: "min-12-chars"',
+]
+POLICY_STILL_REFUSED = [
+    ('password_reset_token = "' + F_TOKEN + '"', "credential assignment"),
+    ("PASSWORD_RESET_TOKEN=" + F_TOKEN, "credential assignment"),
+    ('resetPassword: "' + F_TOKEN + '"', "credential key-value"),
+    ("<policyToken>" + F_TOKEN + "</policyToken>", "credential xml element"),
+]
+
+
+@pytest.mark.parametrize("text", POLICY_BENIGN)
+def test_a_policy_about_a_secret_passes(text):
+    # Kills: each pointer word (policy, expiry, min, max, rules, reset, hint)
+    # and each pointer suffix dropped.
+    assert credential_labels(text) == []
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == []
+
+
+@pytest.mark.parametrize(("text", "label"), POLICY_STILL_REFUSED)
+def test_a_secret_named_after_its_policy_is_still_refused(text, label):
+    assert label in credential_labels(text)
+    assert label in credential_labels(json.dumps({"diff": "+" + text + "\n"}))
+
+
+# M-B: a secret keyed by a file path (fix-introduces-defect of the round-6
+# path-word drop). The words name the value unless it is a hash or a path.
+PATH_KEYED_LEAKS = [
+    '"auth/secret.key": "' + F_TOKEN + '"',
+    '"config/Auth/token.php": "' + F_TOKEN + '"',
+    '"/etc/secrets/api.token": "' + F_TOKEN + '"',
+    "'auth/secret.key' => '" + F_TOKEN + "',",
+    "'config/Auth/token.php' => '" + F_TOKEN + "',",
+    "'/etc/secrets/api.token' => '" + F_TOKEN + "',",
+    "./app/Auth/Guard.php  Zq9k7K7k7k7k7k7k7k7k7k7A==",  # was benign in r5: base64 is no hash
+]
+
+
+@pytest.mark.parametrize("text", PATH_KEYED_LEAKS)
+def test_a_secret_keyed_by_a_file_path_is_refused(text):
+    # Kills: the path words dropped whatever the value (the round-6 rule).
+    assert credential_labels(text) == [CATCH_ALL]
+    assert credential_labels(json.dumps({"diff": "+" + text + "\n"})) == [CATCH_ALL]
+
+
+@pytest.mark.parametrize("text", PATH_KEYED_LEAKS)
+def test_a_path_keyed_secret_is_refused_by_the_catch_all_alone(catch_all_only, text):
+    assert credential_labels(json.dumps({"path": "a.php", "diff": "+" + text})) == [CATCH_ALL]
+
+
+def test_a_path_keyed_hex_digest_is_the_documented_residual():
+    # Residual (i), pinned: a hex value of 32+ characters after a path is read
+    # as a hash manifest, so a hex secret keyed by a path is sent.
+    hex_secret = "9f2f7db979a7d557" + "cfc92fa53aca95ba"
+    assert credential_labels('"auth/secret.key": "' + hex_secret + '"') == []
+
+
+# m2: a standard base64 key cut at ``/`` and ``+`` is no name.
+AWS_DOC_KEY = "wJalrXUtnFEMI/" + "K7MDENG/bPxRfiCY" + "EXAMPLEKEY"
+
+
+def test_a_slashed_base64_key_is_not_read_as_a_name(catch_all_only):
+    # Kills: _CATCH_NAME_VALUE replaced by _CATCH_NAME (Francisca r6 m2).
+    assert credential_labels('Settings::SECRET << "' + AWS_DOC_KEY + '"') == [CATCH_ALL]
+    assert credential_labels('secret = get_secret("prod/db-password-2024")') == []
+
+
+def test_random_base64_keys_miss_only_the_documented_residual(catch_all_only):
+    # Residual (h), pinned by category on a fixed seed: 34 of 2000 open on
+    # ``/`` (read as a path), 3 hold no ``/`` or ``+`` and one digit run
+    # (read as a name), 2 have no digit (the two-class rule).
+    import random
+    import string
+
+    rng, alphabet = random.Random(7), string.ascii_letters + string.digits + "+/"
+    misses: dict[str, int] = {}
+    for _ in range(2000):
+        key = "".join(rng.choice(alphabet) for _ in range(40))
+        if not credential_labels('Settings::SECRET << "' + key + '"'):
+            why = ("slash" if key[0] == "/" else "name" if _cred._CATCH_NAME_VALUE.match(key)
+                   else "two-class")
+            misses[why] = misses.get(why, 0) + 1
+    assert misses == {"slash": 34, "name": 3, "two-class": 2}
+
+
+# Stripe (QG PR3 r6 M-A, scoped into the PR by the operator).
+STRIPE_LIVE = "sk_" + "live_" + "51Hq8Zr2mXv7LpT0wKd9Qx"
+STRIPE_LEAKS = [
+    'const stripe = new Stripe("' + STRIPE_LIVE + '");',
+    "curl https://api.stripe.com/v1/charges -u " + STRIPE_LIVE + ":",
+    "rk_" + "live_" + "51Hq8Zr2mXv7LpT0wKd9Qx", "sk_" + "test_" + "51Hq8Zr2mXv7LpT0wKd9Qx",
+    "rk_" + "test_" + "51Hq8Zr2mXv7LpT0wKd9Qx", "whsec_" + "q8Zr2mXv7LpT0wKd9Qx4Nb",
+]
+
+
+@pytest.mark.parametrize("text", STRIPE_LEAKS)
+def test_stripe_keys_are_refused_by_the_vendor_vocabulary(text):
+    labels = egress_secret_labels(text)
+    assert {"Stripe key", "Stripe webhook secret"} & set(labels)
+    assert egress_secret_labels(json.dumps({"diff": "+" + text + "\n"})) == labels

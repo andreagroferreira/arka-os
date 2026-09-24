@@ -35,11 +35,13 @@ def test_new_department_is_never_forgotten(monkeypatch):
     assert route_options()["legal"] == "The 'legal' department."
 
 
-def test_registry_holds_the_ten_sites():
+def test_registry_holds_the_seventeen_sites():
     assert set(SITES) == {
         "topic-drift", "refine", "creation-intent", "route", "bash-effect",
         "forge-departments", "forge-complexity", "dispatch-role",
         "subagent-discipline", "skill-hints",
+        "sycophancy", "phantom-action", "skill-proposer", "learning-signal", "ui-in-ts",
+        "qg-prescreen", "slop-score",
     }
 
 
@@ -47,7 +49,7 @@ def test_site_names_never_collide_on_the_wire():
     # question_key maps "-" to "_" and splits on "__": two names equal after
     # the mapping, or one holding "__", would mix their answers.
     wire = [name.replace("-", "_") for name in SITES]
-    assert len(set(wire)) == len(wire) == 10
+    assert len(set(wire)) == len(wire) == 17
     assert not any("__" in w for w in wire)
     assert all(site.name == name for name, site in SITES.items())
 

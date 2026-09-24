@@ -161,6 +161,10 @@ _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GitHub token", re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}")),
     ("AWS key id", re.compile(r"AKIA[0-9A-Z]{16}")),
     ("Slack token", re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}")),
+    # Stripe secret and restricted keys, live and test (gitleaks
+    # ``stripe-access-token``), and webhook signing secrets.
+    ("Stripe key", re.compile(r"\b[sr]k_(?:live|test)_[A-Za-z0-9]{20,}")),
+    ("Stripe webhook secret", re.compile(r"\bwhsec_[A-Za-z0-9]{20,}")),
     ("private key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
 )
 _SECRET_NAME = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.I)

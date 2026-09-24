@@ -4112,7 +4112,7 @@ class TestAutoChecks:
         from core.governance.evidence_checks import _auto_skips
 
         skips = _auto_skips(["core/x.py", "tests/python/test_x.py"])
-        assert set(skips) == {"ui-screenshot", "design-slop", "spellcheck"}
+        assert set(skips) == {"ui-screenshot", "design-slop", "spellcheck", "slop-score"}
 
     def test_prose_diff_keeps_spellcheck(self):
         from core.governance.evidence_checks import _auto_skips

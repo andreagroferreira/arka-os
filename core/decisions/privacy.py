@@ -25,6 +25,28 @@ operator's own key; the override is written to the egress audit (no
 audit, no egress) and noted once per session in the decisions
 telemetry. Every other class (``diff``, ``transcript``, unknown) stays
 fail-closed.
+
+A ``diff`` state leaves only for a file the allowlist names (QG PR3 r7,
+the operator's decision): six review rounds each found one more syntax
+that binds a secret in a config file (a subscript, a setter, a dotted
+name, a Ruby block, XML, netrc, a nested ``<value>``), so the detectors
+are defence in depth and the boundary is the file's suffix. What is
+checked, and must end in :data:`DIFF_SOURCE_SUFFIXES`: the state's own
+``path``; the ``path`` of each file entry in a list, at the top level or
+in a list one level down; and both sides of every ``diff --git`` header
+inside an entry's ``diff`` key. Not checked: lists deeper than that,
+file entries held in a dict, headers under
+``patch``/``content``/``prose``, ``diff --cc`` headers. Producers
+therefore pass the file's path explicitly (``quality.diff_state``,
+``quality.prose_state`` and ``governance.ui_state`` require it, and
+every caller passes it). A diff state that names no file is refused too.
+The check is on NAMES: this module has no project directory and cannot
+resolve a link, so a consumer that reads from disk judges the resolved
+file itself (``jev_advisory.resolved_path_allowed``, finding 51).
+Config, dotfiles and suffix-less files (``.env``, ``.netrc``,
+``Dockerfile``), key material, lock files and binaries never leave:
+``DecisionUnavailable("egress-denied:path-class")``, audited like a
+secret refusal.
 """
 
 from __future__ import annotations
@@ -35,7 +57,7 @@ import json
 import os
 import re
 from collections.abc import Iterable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from core.decisions.client import DecisionUnavailable
 from core.decisions.models import State
@@ -43,7 +65,13 @@ from core.decisions.paths import cache_root
 from core.decisions.site import StateClass
 from core.egress import audit
 from core.egress.credentials import egress_secret_labels
-from core.egress.policy import default_redaction_config_path, evaluate, payload_digest
+from core.egress.policy import (
+    EgressDecision,
+    Finding,
+    default_redaction_config_path,
+    evaluate,
+    payload_digest,
+)
 
 MAX_STATE_CHARS = 96_000
 # Raw text beyond this is dropped before the checks run (bounds their
@@ -59,6 +87,18 @@ DEGRADABLE: frozenset[str] = frozenset({"prompt", "command"})
 _STRICTNESS: tuple[str, ...] = ("transcript", "diff", "command", "prompt")
 _HOME_TOKEN = "<home>"
 _TRUNCATED = "…[truncated]"
+# Source code and prose: what a ``diff`` state may carry (see the docstring).
+DIFF_SOURCE_SUFFIXES: frozenset[str] = frozenset({
+    ".py", ".pyi", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".vue", ".svelte",
+    ".php", ".rb", ".go", ".rs", ".java", ".kt", ".swift", ".c", ".h", ".cc", ".cpp",
+    ".hpp", ".cs", ".sh", ".bash", ".zsh", ".sql", ".css", ".scss", ".less", ".html",
+    ".md", ".mdx", ".txt", ".rst", ".bats",
+})
+PATH_CLASS = "path-class"
+# The keys that make a dict a file entry: it must then name its ``path``.
+_FILE_KEYS = frozenset({"path", "diff", "content", "prose"})
+_GIT_HEADER = re.compile(r"^diff --git .*$", re.M)
+_GIT_PATHS = re.compile(r'^diff --git "?a/(?P<a>.+?)"? "?b/(?P<b>.+?)"?$')
 
 
 def prepare_state(
@@ -69,6 +109,8 @@ def prepare_state(
     session_id: str = "",
 ) -> State:
     """The state as it may leave the machine, or DecisionUnavailable."""
+    if state_class == "diff":
+        _refuse_path_class(state)
     _refuse_leaf_secrets(state)
     structured = isinstance(state, dict | list)
     text, scan_cut = _bounded(_normalise_home(_serialise(state)))
@@ -182,6 +224,49 @@ def _leaf_text(node: object) -> str:
         return ""
 
 
+def diff_path_allowed(path: object) -> bool:
+    """True when ``path`` ends in a suffix of :data:`DIFF_SOURCE_SUFFIXES`.
+
+    A dotfile (``.env``, ``.netrc``) and a name without a dot
+    (``Dockerfile``) have no suffix, so they are refused.
+    """
+    if not isinstance(path, str) or not path:
+        return False
+    return PurePosixPath(path.replace("\\", "/")).suffix.lower() in DIFF_SOURCE_SUFFIXES
+
+
+def _file_entries(state: object) -> list[dict[object, object]]:
+    """The state itself and the dicts one list below it that look like file entries."""
+    top = [state] if isinstance(state, dict) else state if isinstance(state, list) else []
+    nested = [
+        item for node in top if isinstance(node, dict) for value in node.values()
+        if isinstance(value, list) for item in value if isinstance(item, dict)
+    ]
+    return [e for e in [*top, *nested] if isinstance(e, dict) and _FILE_KEYS & set(e)]
+
+
+def _named_paths(entry: dict[object, object]) -> list[object]:
+    """The entry's ``path`` and both sides of every git header in its ``diff``.
+
+    A header this module cannot read is returned as ``None``: refused.
+    """
+    paths: list[object] = [entry.get("path")]
+    diff = entry.get("diff")
+    for header in _GIT_HEADER.findall(diff if isinstance(diff, str) else ""):
+        m = _GIT_PATHS.match(header)
+        paths += [m.group("a"), m.group("b")] if m else [None]
+    return paths
+
+
+def _refuse_path_class(state: object) -> None:
+    """A ``diff`` state leaves only for allowlisted files, and must name one."""
+    paths = [p for entry in _file_entries(state) for p in _named_paths(entry)]
+    if paths and all(diff_path_allowed(p) for p in paths):
+        return
+    _audit_refusal(["suffix-outside-allowlist" if paths else "pathless"], "", PATH_CLASS)
+    raise DecisionUnavailable(f"egress-denied:{PATH_CLASS}")
+
+
 def _refuse_leaf_secrets(state: object) -> None:
     """Scan the RAW strings, before ``json.dumps`` escapes them.
 
@@ -189,17 +274,43 @@ def _refuse_leaf_secrets(state: object) -> None:
     and the value patterns captured only the backslash: quoted
     credentials left on every path (QG PR2 r1 B1). The serialised text
     is still scanned afterwards, as the second layer.
+
+    A refusal here never reaches ``evaluate``, so it writes its own deny
+    line (security review PR3, finding 37). No payload digest: an unsalted
+    sha256 of one short leaf would confirm a guessed secret.
     """
-    if any(egress_secret_labels(leaf) for leaf in _leaves(state)):
-        raise DecisionUnavailable("egress-denied:secret")
+    for leaf in _leaves(state):
+        labels = egress_secret_labels(leaf)
+        if labels:
+            _audit_refusal(labels, "")
+            raise DecisionUnavailable("egress-denied:secret")
 
 
 def _refuse_secrets(text: str) -> str:
     # One secret vocabulary with the policy (R-P1): vendor prefixes AND
     # context-marked credentials (export TOKEN=, Bearer, -p, user:pass@).
-    if egress_secret_labels(text):
+    labels = egress_secret_labels(text)
+    if labels:
+        _audit_refusal(labels, payload_digest(text))
         raise DecisionUnavailable("egress-denied:secret")
     return text
+
+
+def _audit_refusal(labels: list[str], digest: str, kind: str = "secret") -> None:
+    """The deny line ``evaluate`` would have written; best-effort.
+
+    A refusal is fail-closed whether or not its line lands: the audit is
+    evidence of the denial, never a condition of it.
+    """
+    with contextlib.suppress(Exception):
+        home = Path.home()
+        salt = audit.load_or_create_salt(audit.default_salt_path(home))
+        decision = EgressDecision(
+            allowed=False, destination=DESTINATION, payload_sha256=digest,
+            findings=[Finding(kind, label) for label in labels],
+        )
+        entry = {**decision.to_audit(salt), "layer": "privacy"}
+        audit.record(entry, audit.default_audit_path(home))
 
 
 def _unredacted(text: str) -> str:

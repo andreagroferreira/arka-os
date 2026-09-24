@@ -11,11 +11,28 @@ the site's heuristic and, online, through Jev. Gate (online):
 
 Corpus validity (both modes): ≥ 30 cases, ≥ 50 % pt-PT, and every
 ``expected`` of the site's type (:data:`EXPECTED`: bool, a department, a
-role, a tier, a department list or a registry command id). ``--offline``
+role, a tier, a department list, a registry command id, a learning signal,
+a ``[verdict, blocker]`` pair or five 1-10 slop scores). ``--offline``
 scores the heuristic only and passes on a valid corpus.
 
 Sites whose value is not the corpus label compare through :data:`LABELS`
-(forge-complexity: dimensions → tier; forge-departments: order-free set).
+(forge-complexity: dimensions → tier; forge-departments: order-free set;
+learning-signal: the ``signal``; qg-prescreen: ``[verdict, blocker]``;
+slop-score: the five scores in rubric order).
+
+Two PR3 sites have no heuristic, so "Jev vs heuristic" is not their gate:
+
+* ``qg-prescreen`` replays against the neutral ``{"verdict": "unknown"}``
+  baseline, which never matches a label: the report measures Jev against
+  the real label only (the precision rule reduces to Jev ≥ 5 %, the
+  abstain rule is what binds).
+* ``slop-score`` (:data:`MAE_SITES`): the precision rule is replaced by
+  the mean absolute error of Jev's TOTAL (5-50) against the labelled total
+  on the answered cases, ``mean_abs_error`` ≤ :data:`MAX_SLOP_MAE`; exact
+  five-score agreement is still reported as ``jev_accuracy``.
+
+Cases may carry ``context``: the site inputs the live call site has
+besides the text (phantom-action ``tool_uses``, ui-in-ts ``path``).
 Exit codes: 0 pass, 1 fail, 2 usage.
 """
 
@@ -23,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import statistics
 import sys
 from collections.abc import Callable, Sequence
@@ -31,7 +49,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, StrictBool, ValidationError
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, ValidationError
 
 from core.decisions.config import (
     DecisionsConfig,
@@ -44,6 +62,8 @@ from core.decisions.models import State
 from core.decisions.paths import repo_root
 from core.decisions.registry import SITES
 from core.decisions.site import Outcome, Site, SiteCall
+from core.decisions.sites import governance as gov
+from core.decisions.sites import quality
 from core.decisions.sites.command import command_state
 from core.decisions.sites.dispatch import skill_state
 from core.decisions.sites.forge import forge_state
@@ -60,6 +80,8 @@ MIN_PT_SHARE = 0.5
 MARGIN = 0.05
 MAX_ABSTAIN = 0.25
 MAX_FALSE_ESCALATION = 0.05
+MAX_SLOP_MAE = 5.0  # of a 5-50 total: one point per dimension on average
+MAE_SITES = frozenset({"slop-score"})
 
 Gate = Literal["pass", "fail", "offline"]
 
@@ -73,7 +95,8 @@ class ReplayCase(BaseModel):
     lang: Literal["pt", "en"]
     prompt: str
     prior: list[str] = []
-    expected: StrictBool | str | list[str]
+    context: dict[str, StrictInt | str] = {}
+    expected: StrictBool | str | list[str] | list[StrictInt]
 
 
 @dataclass
@@ -89,6 +112,8 @@ class ReplayReport:
     act_accuracy: float | None = None
     abstain_rate: float | None = None
     false_escalation_rate: float | None = None
+    # MAE_SITES only: mean |Jev total - labelled total| on the answered cases.
+    mean_abs_error: float | None = None
     unavailable: int = 0
     # G3 evidence: median latency of the calls that really went out
     # (cache hits and an open breaker excluded) and their summed cost.
@@ -219,6 +244,14 @@ def _heuristic_skill_hint(case: ReplayCase) -> str:
     return ids.get(top[0][1], "") if top else ""
 
 
+def _heuristic_phantom(case: ReplayCase) -> bool:
+    return gov.heuristic_unbacked_effect(case.prompt, case.context.get("tool_uses"))
+
+
+def _heuristic_ui(case: ReplayCase) -> bool:
+    return gov.heuristic_ui_code(str(case.context.get("path", "")), case.prompt)
+
+
 HEURISTICS: dict[str, Callable[[ReplayCase], object]] = {
     "topic-drift": _heuristic_topic_drift,
     "refine": _heuristic_refine,
@@ -230,6 +263,13 @@ HEURISTICS: dict[str, Callable[[ReplayCase], object]] = {
     "skill-hints": _heuristic_skill_hint,
     "dispatch-role": lambda case: keyword_dispatch_role(case.prompt),
     "subagent-discipline": lambda case: keyword_needs_isolation(case.prompt),
+    "sycophancy": lambda case: gov.heuristic_sycophantic(case.prompt),
+    "phantom-action": _heuristic_phantom,
+    "skill-proposer": lambda case: gov.heuristic_repeatable_capability(case.prompt),
+    "learning-signal": lambda case: gov.heuristic_learning_signal(case.prompt),
+    "ui-in-ts": _heuristic_ui,
+    "qg-prescreen": lambda case: quality.prescreen_heuristic(),
+    "slop-score": lambda case: None,  # no slop heuristic exists in code
 }
 
 
@@ -238,12 +278,38 @@ def _forge_case_state(case: ReplayCase) -> State:
     return forge_state(case.prompt, files, departments)
 
 
+def _sycophancy_state(case: ReplayCase) -> State:
+    return gov.stop_state(case.prompt, user_message=case.prior[-1] if case.prior else "")
+
+
+def _phantom_state(case: ReplayCase) -> State:
+    tool_uses = case.context.get("tool_uses")
+    return gov.stop_state(case.prompt, tool_uses=tool_uses if isinstance(tool_uses, int) else None)
+
+
+_GIT_B_PATH = re.compile(r"^diff --git a/\S+ b/(\S+)$", re.M)
+
+
+def _diff_path(diff: str) -> str:
+    """The file a corpus diff names first ('' when none: privacy then refuses it)."""
+    m = _GIT_B_PATH.search(diff)
+    return m.group(1) if m else ""
+
+
 STATES: dict[str, Callable[[ReplayCase], State]] = {
     "bash-effect": lambda case: command_state(case.prompt),
     "forge-departments": _forge_case_state,
     "forge-complexity": _forge_case_state,
     "skill-hints": lambda case: skill_state(
         case.prompt, skill_candidates_for(case.prompt, replay_route(case))),
+    "sycophancy": _sycophancy_state,
+    "phantom-action": _phantom_state,
+    "skill-proposer": lambda case: gov.stop_state(case.prompt),
+    "learning-signal": lambda case: gov.stop_state("", user_message=case.prompt),
+    "ui-in-ts": lambda case: gov.ui_state(str(case.context.get("path", "")), case.prompt),
+    "qg-prescreen": lambda case: quality.diff_state(case.prompt, _diff_path(case.prompt)),
+    # A corpus row is prose, as the live site's .md/.mdx/.txt files are.
+    "slop-score": lambda case: quality.prose_state(case.prompt, f"{case.id}.md"),
 }
 
 
@@ -283,6 +349,24 @@ def _is_bool(value: object) -> bool:
     return isinstance(value, bool)
 
 
+def _is_prescreen_label(value: object) -> bool:
+    """``[verdict, blocker]``: approved pairs with none, rejected with a real class."""
+    if not (isinstance(value, list) and len(value) == 2):
+        return False
+    pair: list[object] = value
+    verdict, blocker = pair
+    if verdict == "approved":
+        return blocker == quality.NO_BLOCKER
+    return verdict == "rejected" and blocker in set(quality.BLOCKERS) - {quality.NO_BLOCKER}
+
+
+def _is_slop_label(value: object) -> bool:
+    """Five ints in 1..10, rubric order."""
+    return (isinstance(value, list) and len(value) == len(quality.SLOP_DIMENSIONS)
+            and all(isinstance(v, int) and not isinstance(v, bool)
+                    and 1 <= v <= quality.SLOP_LEVELS for v in value))
+
+
 EXPECTED: dict[str, Callable[[object], bool]] = {
     "topic-drift": _is_bool, "refine": _is_bool, "creation-intent": _is_bool,
     "bash-effect": _is_bool, "subagent-discipline": _is_bool,
@@ -291,6 +375,11 @@ EXPECTED: dict[str, Callable[[object], bool]] = {
     "forge-complexity": lambda v: isinstance(v, str) and v in TIERS,
     "forge-departments": _is_department_list,
     "skill-hints": _is_command_id,
+    "sycophancy": _is_bool, "phantom-action": _is_bool, "skill-proposer": _is_bool,
+    "ui-in-ts": _is_bool,
+    "learning-signal": lambda v: isinstance(v, str) and v in gov.LEARNING_SIGNALS,
+    "qg-prescreen": _is_prescreen_label,
+    "slop-score": _is_slop_label,
 }
 
 
@@ -309,9 +398,28 @@ def _department_set(value: object) -> object:
     return sorted(value) if isinstance(value, list) else value
 
 
+def _learning_label(value: object) -> object:
+    return value.get("signal") if isinstance(value, dict) else value
+
+
+def _prescreen_label(value: object) -> object:
+    if not isinstance(value, dict):
+        return value
+    return [value.get("verdict"), value.get("blocker")]
+
+
+def _slop_label(value: object) -> object:
+    if not isinstance(value, dict):
+        return value
+    return [value.get(d) for d in quality.SLOP_DIMENSIONS]
+
+
 LABELS: dict[str, Callable[[object], object]] = {
     "forge-complexity": complexity_tier,
     "forge-departments": _department_set,
+    "learning-signal": _learning_label,
+    "qg-prescreen": _prescreen_label,
+    "slop-score": _slop_label,
 }
 
 
@@ -407,8 +515,28 @@ def _online_scores(site: Site, rows: Sequence[Row], report: ReplayReport) -> Non
     report.act_accuracy = _accuracy(rows, lambda r: r[2].value if r[2] else r[1])
     report.abstain_rate = _rate(len(rows) - len(answered), len(rows))
     report.false_escalation_rate = _false_escalation(site, rows)
+    if site.name in MAE_SITES:
+        report.mean_abs_error = _mean_abs_error(answered)
+    # "no-questions" is a site choosing not to ask (phantom-action with tools on
+    # record, a skill bypass marker): an abstain by design, not an outage.
     report.unavailable = sum(1 for r in rows if r[2] is None or r[2].reason not in
-                             ("jev", "abstain", "shadow", "downgrade-blocked"))
+                             ("jev", "abstain", "shadow", "downgrade-blocked", "no-questions"))
+
+
+def _total(value: object) -> int | None:
+    if not isinstance(value, list) or not all(isinstance(v, int) for v in value):
+        return None
+    return sum(value)
+
+
+def _mean_abs_error(answered: Sequence[Row]) -> float | None:
+    """Mean |Jev total - labelled total| over the answered rows (5-list labels)."""
+    errors = []
+    for case, _, out in answered:
+        jev, want = _total(out.jev if out else None), _total(case.expected)
+        if jev is not None and want is not None:
+            errors.append(abs(jev - want))
+    return round(statistics.fmean(errors), 4) if errors else None
 
 
 def _corpus_failures(report: ReplayReport) -> list[str]:
@@ -420,13 +548,22 @@ def _corpus_failures(report: ReplayReport) -> list[str]:
     return failures
 
 
-def _gate_failures(report: ReplayReport) -> list[str]:
-    failures = []
+def _precision_failures(report: ReplayReport) -> list[str]:
     jev, base = report.jev_accuracy, report.heuristic_on_answered
     if jev is None or base is None:
-        failures.append("Jev answered no case")
-    elif jev < base + MARGIN:
-        failures.append(f"Jev precision {jev:.1%} < heuristic {base:.1%} + {MARGIN:.0%}")
+        return ["Jev answered no case"]
+    if report.site in MAE_SITES:
+        mae = report.mean_abs_error
+        if mae is None or mae > MAX_SLOP_MAE:
+            return [f"mean absolute error {mae} > {MAX_SLOP_MAE} (total, 5-50)"]
+        return []
+    if jev < base + MARGIN:
+        return [f"Jev precision {jev:.1%} < heuristic {base:.1%} + {MARGIN:.0%}"]
+    return []
+
+
+def _gate_failures(report: ReplayReport) -> list[str]:
+    failures = _precision_failures(report)
     if report.abstain_rate is not None and report.abstain_rate > MAX_ABSTAIN:
         failures.append(f"abstain {report.abstain_rate:.1%} > {MAX_ABSTAIN:.0%}")
     fe = report.false_escalation_rate
@@ -544,6 +681,8 @@ def _render(report: ReplayReport) -> str:
     lines.append(_call_line(report))
     if report.false_escalation_rate is not None:
         lines.append(f"- false escalation: {report.false_escalation_rate:.1%}")
+    if report.mean_abs_error is not None:
+        lines.append(f"- mean absolute error (total, 5-50): {report.mean_abs_error}")
     for lang, scores in report.by_lang.items():
         lines.append(f"- {lang}: " + ", ".join(f"{k}={v}" for k, v in scores.items()))
     lines += [f"- FAIL: {f}" for f in report.failures]

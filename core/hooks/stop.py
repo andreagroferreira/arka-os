@@ -27,26 +27,35 @@ heuristic (the old hook parsed it four times).
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import os
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from core.hooks._shared import (
     emit_additional_context,
     ensure_root_on_path,
     get_str,
     read_stdin_json,
+    record_degraded,
     repo_path,
     resolve_arkaos_root,
     safe_session_id,
 )
+from core.hooks.stop_budget import StopBudget
 from core.shared.temp_paths import arkaos_temp_dir, wf_required_dir
 
-if TYPE_CHECKING:  # hooks pay for every import; this one is annotation-only
+if TYPE_CHECKING:  # hooks pay for every import; these are annotation-only
+    from core.decisions.config import DecisionsConfig
+    from core.decisions.site import Outcome, SiteCall
+    from core.governance.phantom_action_check import PhantomActionResult
     from core.governance.skill_proposer import SkillProposal
+    from core.governance.sycophancy_detector import SycophancyVerdict
 
 _DISPATCH_RE = re.compile(
     r"\[arka:dispatch\][ \t]*[A-Za-z0-9_-]+[ \t]*->[ \t]*([A-Za-z0-9_-]+)",
@@ -156,11 +165,384 @@ def record_skill_proposal(
     _write_tmp_state("arkaos-skill-proposal", safe_sid, state)
 
 
+# ─── Jev Stop sites (JEV Decisions Layer PR3) ────────────────────────────
+#
+# ONE decide() per Stop, capped at min(1200 ms, what the StopBudget has
+# left), BEFORE the detectors consume the outcomes. State = the closing
+# text, the user's last message and the MECHANICAL tool_use count —
+# never the transcript. Flagged turns (WF marker) ask all four sites;
+# the rest ask learning-signal only, the one site consumed on every turn
+# (and asked once per user message: a repeat Stop skips it).
+# Inactive (bypass, every site off, no key) → no config read past the
+# kill-switch, no network, byte-identical output.
+
+_STOP_HOOK = "stop"
+STOP_SITE_NAMES: tuple[str, ...] = (
+    "sycophancy", "phantom-action", "skill-proposer", "learning-signal",
+)
+# Outcome reasons that mean Jev was reachable (the UPS set): anything
+# else on an ``act`` site is recorded in hook-degraded.jsonl.
+_JEV_REACHED = frozenset({"jev", "abstain", "downgrade-blocked", "shadow", "off"})
+_LEARNED_SIGNALS = ("explicit", "implicit")
+_MARTA_CONFIRM = (
+    "[arka:learned-rule:confirm] marta-cqo: the operator's last message reads"
+    " as a high-leverage rule. Ask the operator to confirm it, quoted"
+    " verbatim, before it is saved to memory; this hook saved nothing."
+)
+_JEV_PHANTOM_SUGGESTION = (
+    "Phantom action (Jev) — the closing message claims a completed effect"
+    " and the turn has no tool call on record (evidence-flow: gates pass on"
+    " evidence, never on narration)."
+)
+
+
+@dataclass(frozen=True)
+class StopVerdicts:
+    """What the Jev stage hands the detectors, the telemetry and the context."""
+
+    outcomes: Mapping[str, Outcome] = field(default_factory=dict)
+    telemetry: Mapping[str, Any] = field(default_factory=dict)
+    context: str = ""
+
+
+def _stop_context(
+    session_id: str, transcript_path: str, raw: str | None, budget: StopBudget
+) -> StopVerdicts:
+    """The Jev stage, then the ONE Stop context emission (notices + learning)."""
+    verdicts = StopVerdicts()
+    with contextlib.suppress(Exception):  # the stage never breaks the turn
+        verdicts = _stop_verdicts(session_id, transcript_path, raw, budget)
+    _emit_subagent_notices(session_id, verdicts.context)
+    return verdicts
+
+
+def _stop_verdicts(
+    session_id: str, transcript_path: str, raw: str | None, budget: StopBudget
+) -> StopVerdicts:
+    user = _last_user_message(raw)
+    # "" once this user message was classified: learning-signal is asked
+    # and its marker emitted once per message, not once per Stop.
+    learn = "" if _learning_classified(session_id, user) else user
+    outcomes: Mapping[str, Outcome] = {}
+    telemetry: Mapping[str, Any] = {}
+    # A failing Jev stage (config, registry, transport) leaves the outcomes
+    # empty, so the learning marker below falls back to the detector.
+    with contextlib.suppress(Exception):
+        outcomes, telemetry = _jev_stop_stage(
+            session_id, transcript_path, raw, budget, (user, learn))
+    context = _learning_context(learn, outcomes)
+    _mark_learning_classified(session_id, learn)
+    return StopVerdicts(outcomes, telemetry, context)
+
+
+def _jev_stop_stage(
+    session_id: str,
+    transcript_path: str,
+    raw: str | None,
+    budget: StopBudget,
+    messages: tuple[str, str],
+) -> tuple[Mapping[str, Outcome], Mapping[str, Any]]:
+    """The one bounded decide() of this Stop, or ({}, {}) when inactive.
+
+    ``messages`` = (the operator's last message, the same message or ""
+    when learning-signal already classified it).
+    """
+    user, learn = messages
+    cfg = _stop_decisions_cfg()
+    if cfg is None:
+        return {}, {}
+    # An unflagged turn sends the user's message only: the closing
+    # text and the count feed sites that turn never consumes.
+    flagged = _wf_flagged(session_id)
+    last = _closing_text(transcript_path, raw) if flagged else ""
+    tool_uses = _tool_uses(raw) if flagged else None
+    calls = _stop_site_calls(last, learn, tool_uses)
+    if not calls:
+        return {}, {}
+    from core.decisions.sites.governance import stop_state
+
+    state = stop_state(last, user, tool_uses)
+    return _decide_stop(calls, state, session_id, budget, cfg)
+
+
+def _stop_decisions_cfg() -> DecisionsConfig | None:
+    """The config when a Stop site is live and a transport exists, else None.
+
+    The kill-switch is read first, so a bypassed turn never loads the
+    config or the site registry (``_decisions_live`` in the UPS, scoped).
+    """
+    from core.decisions.config import bypassed, load_decisions_config, site_mode
+
+    if bypassed():
+        return None
+    cfg = load_decisions_config()
+    from core.decisions.registry import SITES
+    from core.decisions.transport import resolve_transport
+
+    sites = [SITES[name] for name in STOP_SITE_NAMES if name in SITES]
+    if not any(site_mode(cfg, site) != "off" for site in sites):
+        return None
+    return cfg if resolve_transport(cfg) is not None else None
+
+
+def _stop_site_calls(last: str, user: str, tool_uses: int | None) -> list[SiteCall]:
+    """One SiteCall per site this Stop asks, carrying the detector's own
+    verdict ("" ``last`` = an unflagged turn: learning-signal only)."""
+    from core.decisions.site import SiteCall
+    from core.decisions.sites.governance import (
+        LEARNING_SIGNAL,
+        PHANTOM_ACTION,
+        SKILL_PROPOSER,
+        SYCOPHANCY,
+        heuristic_learning_signal,
+        heuristic_repeatable_capability,
+        heuristic_sycophantic,
+        heuristic_unbacked_effect,
+    )
+
+    calls: list[SiteCall] = []
+    if last:
+        calls.append(SiteCall(SYCOPHANCY, heuristic_sycophantic(last)))
+        calls.append(SiteCall(PHANTOM_ACTION, heuristic_unbacked_effect(last, tool_uses)))
+        calls.append(SiteCall(SKILL_PROPOSER, heuristic_repeatable_capability(last)))
+    if user:
+        calls.append(SiteCall(LEARNING_SIGNAL, heuristic_learning_signal(user)))
+    return calls
+
+
+def _decide_stop(
+    calls: list[SiteCall],
+    state: dict[str, Any],
+    session_id: str,
+    budget: StopBudget,
+    cfg: DecisionsConfig,
+) -> tuple[Mapping[str, Outcome], dict[str, Any]]:
+    """The bounded call. Below the engine's floor it never reaches the wire:
+    the engine records ``deadline`` and the summary carries the degraded mark."""
+    from core.decisions.engine import MIN_CALL_MS, decide
+    from core.decisions.sites.governance import STOP_TIMEOUT_MS
+    from core.decisions.transport import configured_model
+
+    timeout_ms = budget.remaining_ms(STOP_TIMEOUT_MS)
+    outcomes = decide(
+        calls, state, session_id=session_id, timeout_ms=timeout_ms, cfg=cfg,
+        model=configured_model(),
+    )
+    _record_stop_unavailable(outcomes)
+    summary = _decisions_summary(outcomes)
+    if timeout_ms < MIN_CALL_MS:
+        summary["degraded"] = "budget"
+    return outcomes, {"decisions": summary}
+
+
+def _decisions_summary(outcomes: Mapping[str, Outcome]) -> dict[str, Any]:
+    """The enforcement-telemetry view of one Stop call (new key, old keys untouched)."""
+    return {
+        "fallback_used": any(o.jev is None for o in outcomes.values()),
+        "reason": ",".join(sorted({o.reason for o in outcomes.values()})),
+        "acted_on": {name: o.acted_on for name, o in outcomes.items()},
+    }
+
+
+def _record_stop_unavailable(outcomes: Mapping[str, Outcome]) -> None:
+    reasons = sorted({
+        o.reason for o in outcomes.values()
+        if o.mode == "act" and o.reason not in _JEV_REACHED
+    })
+    if reasons:
+        record_degraded(_STOP_HOOK, "decisions-unavailable", ",".join(reasons))
+
+
+def _last_user_message(raw: str | None) -> str:
+    """The operator's latest GENUINE message, or "" — never harness text
+    (hand-backs, task notifications, reminders, tool results); see
+    ``core.hooks.operator_message`` for the fields relied on."""
+    from core.hooks.operator_message import last_operator_message
+
+    return last_operator_message(raw)
+
+
+def _closing_text(transcript_path: str, raw: str | None) -> str:
+    """The same closing message ``_flow_checks`` judges."""
+    from core.workflow.flow_enforcer import _load_last_assistant_messages
+
+    messages = _load_last_assistant_messages(transcript_path, n=1, raw_text=raw)
+    return messages[-1] if messages else ""
+
+
+def _tool_uses(raw: str | None) -> int | None:
+    """The mechanical tool_use count of the turn (None = unknown)."""
+    from core.governance.phantom_action_check import count_turn_tool_uses
+
+    return count_turn_tool_uses(raw)
+
+
+def _wf_flagged(session_id: str) -> bool:
+    """The WF-marker gate ``main`` applies before ``_flow_checks``."""
+    if not session_id or not safe_session_id(session_id):
+        return False
+    return (wf_required_dir() / session_id).is_file()
+
+
+# ─── learning-signal consumer (constitution ``hybrid-learning``) ─────────
+
+
+_LEARNING_DIGEST_DIR = "arkaos-learning-signal"
+
+
+def _user_digest(user: str) -> str:
+    return hashlib.sha256(user.encode("utf-8")).hexdigest()
+
+
+def _learning_digest_path(session_id: str) -> Path | None:
+    safe_sid = safe_session_id(session_id)
+    return arkaos_temp_dir(_LEARNING_DIGEST_DIR) / f"{safe_sid}.json" if safe_sid else None
+
+
+def _learning_classified(session_id: str, user: str) -> bool:
+    """True when ``user`` is the message this session last classified.
+
+    The state file holds its sha256 only, never the text; a missing or
+    unreadable file means "not classified" (the site asks, as before).
+    """
+    path = _learning_digest_path(session_id)
+    if not user or path is None:
+        return False
+    try:
+        stored: object = json.loads(path.read_text(encoding="utf-8")).get("user_sha256")
+    except (OSError, ValueError, AttributeError):
+        return False
+    return stored == _user_digest(user)
+
+
+def _mark_learning_classified(session_id: str, user: str) -> None:
+    """Record ``user`` as classified; a failed write only means a re-ask."""
+    safe_sid = safe_session_id(session_id)
+    if user and safe_sid:
+        with contextlib.suppress(OSError):
+            _write_tmp_state(
+                _LEARNING_DIGEST_DIR, safe_sid, {"user_sha256": _user_digest(user)})
+
+
+def _learning_context(user: str, outcomes: Mapping[str, Outcome]) -> str:
+    """``[arka:learned-rule ...]`` (+ Marta's confirmation line) or "".
+
+    Never writes memory: the marker tells the orchestrator a rule was
+    heard; saving it stays the orchestrator's (and, when high-leverage,
+    Marta's) decision.
+    """
+    if not user:
+        return ""
+    value, confidence = _learning_value(user, outcomes.get("learning-signal"))
+    signal = value.get("signal")
+    if signal not in _LEARNED_SIGNALS:
+        return ""
+    line = f"[arka:learned-rule confidence={confidence:.2f} signal={signal}]"
+    return f"{line}\n{_MARTA_CONFIRM}" if value.get("high_leverage") is True else line
+
+
+def _learning_value(
+    user: str, outcome: Outcome | None
+) -> tuple[Mapping[str, Any], float]:
+    """Jev's value and the ``signal`` answer's own confidence when it acted;
+    else the detector's.
+
+    Not ``Outcome.confidence``: that is the engine's minimum across both
+    answers, so an unsure ``high_leverage`` (0.50) printed as the
+    confidence of a signal Jev was sure of (0.90).
+    """
+    if outcome is not None and outcome.acted_on == "jev" and isinstance(outcome.value, dict):
+        return outcome.value, _signal_confidence(outcome)
+    from core.decisions.sites.governance import heuristic_learning_signal
+    from core.governance.learning_detector import detect_correction_signal
+
+    return heuristic_learning_signal(user), detect_correction_signal(user).confidence
+
+
+def _signal_confidence(outcome: Outcome) -> float:
+    from core.decisions.site import choice_confidence
+
+    answer = (outcome.answers or {}).get("signal")
+    confidence = None if answer is None else choice_confidence(answer)
+    return float(confidence or 0.0)
+
+
+# ─── detector consumers: escalate-only for sycophancy / phantom-action ───
+
+
+def _jev_escalated(verdicts: StopVerdicts, site: str) -> Outcome | None:
+    """The outcome when Jev acted AND flagged; the engine already applied
+    escalate-only, and this re-checks it: a Jev True only ever adds."""
+    outcome = verdicts.outcomes.get(site)
+    if outcome is None or outcome.acted_on != "jev" or outcome.value is not True:
+        return None
+    return outcome
+
+
+def _sycophancy_verdict(
+    sv: SycophancyVerdict, verdicts: StopVerdicts
+) -> tuple[bool, list[str], float]:
+    """(is_flagged, signals, confidence): the regex, raised — never cleared — by Jev."""
+    outcome = None if sv.is_sycophantic else _jev_escalated(verdicts, "sycophancy")
+    if outcome is None:
+        return sv.is_sycophantic, sv.signals, sv.confidence
+    return True, [*sv.signals, "jev"], float(outcome.confidence or 0.0)
+
+
+def _phantom_verdict(
+    pr: PhantomActionResult, verdicts: StopVerdicts
+) -> PhantomActionResult:
+    """The check's result, failed — never passed — by a Jev escalation."""
+    if not pr.passed or _jev_escalated(verdicts, "phantom-action") is None:
+        return pr
+    return replace(
+        pr, passed=False, reason="phantom-action-jev",
+        suggestion=_JEV_PHANTOM_SUGGESTION,
+    )
+
+
+def _skill_override(verdicts: StopVerdicts) -> bool | None:
+    """Jev's skill-proposer verdict when it acted AND disagreed, else None
+    (the ladder decides, so an agreeing Jev leaves the reasons unchanged)."""
+    outcome = verdicts.outcomes.get("skill-proposer")
+    if outcome is None or outcome.acted_on != "jev" or outcome.value == outcome.heuristic:
+        return None
+    return bool(outcome.value)
+
+
+def _skill_proposal(last: str, verdicts: StopVerdicts) -> SkillProposal:
+    """``skill_proposer.evaluate``, with Jev's disagreement as the override."""
+    from core.governance.skill_proposer import evaluate
+
+    override = _skill_override(verdicts)
+    if override is None:
+        return evaluate(last)
+    return evaluate(last, repeatable=override)
+
+
+def _append_flow_telemetry(
+    path: Path, entry: dict[str, Any], verdicts: StopVerdicts
+) -> None:
+    """One enforcement row: the detectors' entry, then the Jev ``decisions``
+    summary merged last (the pre-layer keys keep their order and values)."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({**entry, **verdicts.telemetry}) + "\n")
+    except Exception:
+        pass
+
+
 def _flow_checks(
     session_id: str, transcript_path: str, cwd: str,
-    effort_level: str, raw: str | None,
+    effort_level: str, raw: str | None, verdicts: StopVerdicts | None = None,
 ) -> None:
-    """Sections 5-6: soft-block checks + telemetry + gate checkpoint."""
+    """Sections 5-6: soft-block checks + telemetry + gate checkpoint.
+
+    ``verdicts`` carries the Stop call's Jev outcomes; None (or an empty
+    set) leaves every detector exactly as it was without the layer.
+    """
+    verdicts = verdicts if verdicts is not None else StopVerdicts()
     try:
         from core.workflow.flow_enforcer import (
             TELEMETRY_PATH,
@@ -221,10 +603,9 @@ def _flow_checks(
     is_sycophantic = False
     try:
         from core.governance.sycophancy_detector import detect_sycophancy
-        sv = detect_sycophancy(last)
-        sycophancy_signals = sv.signals
-        sycophancy_confidence = sv.confidence
-        is_sycophantic = sv.is_sycophantic
+        is_sycophantic, sycophancy_signals, sycophancy_confidence = (
+            _sycophancy_verdict(detect_sycophancy(last), verdicts)
+        )
     except Exception:
         pass
 
@@ -252,11 +633,8 @@ def _flow_checks(
     except Exception:
         pass
 
-    try:
-        from core.governance.skill_proposer import evaluate as _eval_skill
-        record_skill_proposal(_eval_skill(last), safe_sid)
-    except Exception:
-        pass
+    with contextlib.suppress(Exception):
+        record_skill_proposal(_skill_proposal(last, verdicts), safe_sid)
 
     meta_passed = True
     meta_reason = "trivial"
@@ -327,7 +705,7 @@ def _flow_checks(
     phantom_claims: list = []
     try:
         from core.governance.phantom_action_check import check_phantom_actions
-        pr = check_phantom_actions(last, raw)
+        pr = _phantom_verdict(check_phantom_actions(last, raw), verdicts)
         phantom_passed = pr.passed
         phantom_reason = pr.reason
         phantom_claims = pr.claims
@@ -397,12 +775,7 @@ def _flow_checks(
         "effort_level": effort_level,
         "mode": "warn",
     }
-    try:
-        TELEMETRY_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with TELEMETRY_PATH.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(entry) + "\n")
-    except Exception:
-        pass
+    _append_flow_telemetry(TELEMETRY_PATH, entry, verdicts)
 
     with contextlib.suppress(Exception):
         clear_flow_required(session_id)
@@ -590,24 +963,28 @@ def _enqueue_routing_rebuild() -> None:
         pass
 
 
-def _emit_subagent_notices(session_id: str) -> None:
+def _claim_notices(session_id: str) -> tuple[str, list[Path]]:
+    """The queued notices block and its claim tokens, or ("", [])."""
+    if not session_id or not safe_session_id(session_id):
+        return "", []
+    try:
+        from core.governance.reviewer_ledger import claim_notices_context
+
+        return claim_notices_context(session_id)
+    except Exception:  # notices are best-effort — this hook never blocks
+        return "", []
+
+
+def _emit_subagent_notices(session_id: str, extra: str = "") -> None:
     """Deliver queued reviewer verdicts and QA nudges to the orchestrator.
 
     Drains ``core.governance.reviewer_ledger`` notices, so a QG reviewer's
     verdict and the path to its verbatim artifact arrive without passing
-    through the aggregator's prose.
+    through the aggregator's prose. ``extra`` (the learning-signal lines)
+    rides the SAME emission: a Stop hook prints one JSON object or none.
     """
-    if not session_id or not safe_session_id(session_id):
-        return
-    try:
-        from core.governance.reviewer_ledger import (
-            claim_notices_context,
-            clear_notices,
-        )
-
-        context, tokens = claim_notices_context(session_id)
-    except Exception:  # notices are best-effort — this hook never blocks
-        return
+    context, tokens = _claim_notices(session_id)
+    context = "\n".join(part for part in (context, extra) if part)
     if not context:
         return
     # Emit first, clear second, and clear only what was CLAIMED: a
@@ -619,12 +996,15 @@ def _emit_subagent_notices(session_id: str) -> None:
         emit_additional_context("Stop", context)
     except Exception:
         return  # the claim survives and is re-delivered next turn
-    clear_notices(session_id, tokens)
+    if tokens:
+        from core.governance.reviewer_ledger import clear_notices
+
+        clear_notices(session_id, tokens)
 
 
 def main(stdin_json: dict | None = None) -> int:
-    if stdin_json is None:
-        stdin_json, _ = read_stdin_json()
+    budget = StopBudget()
+    stdin_json = stdin_json if stdin_json is not None else read_stdin_json()[0]
     root = resolve_arkaos_root()
     ensure_root_on_path(root)
 
@@ -650,7 +1030,7 @@ def main(stdin_json: dict | None = None) -> int:
     # Reviewer verdicts captured at SubagentStop reach the orchestrator
     # HERE: Stop's additionalContext is "delivered to the model", while
     # SubagentStop's is "delivered to the subagent" (2.1.220 contract).
-    _emit_subagent_notices(session_id)
+    verdicts = _stop_context(session_id, transcript_path, raw, budget)
 
     with contextlib.suppress(Exception):
         _enqueue_turn_capture(session_id, transcript_path, cwd)
@@ -663,7 +1043,7 @@ def main(stdin_json: dict | None = None) -> int:
         return 0
 
     if (Path(root) / "core" / "workflow" / "flow_enforcer.py").is_file():
-        _flow_checks(session_id, transcript_path, cwd, effort_level, raw)
+        _flow_checks(session_id, transcript_path, cwd, effort_level, raw, verdicts)
 
     _enqueue_stop_lint(session_id, cwd)
 

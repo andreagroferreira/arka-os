@@ -171,6 +171,13 @@ test("seed is idempotent when all template keys are true", () => {
           "skill-hints": "act",
           "dispatch-role": "act",
           "subagent-discipline": "act",
+          sycophancy: "act",
+          "phantom-action": "act",
+          "skill-proposer": "act",
+          "learning-signal": "act",
+          "ui-in-ts": "act",
+          "qg-prescreen": "shadow",
+          "slop-score": "act",
         },
       },
     });
@@ -248,6 +255,13 @@ test("seed returns a status object describing the action taken", () => {
           "skill-hints": "act",
           "dispatch-role": "act",
           "subagent-discipline": "act",
+          sycophancy: "act",
+          "phantom-action": "act",
+          "skill-proposer": "act",
+          "learning-signal": "act",
+          "ui-in-ts": "act",
+          "qg-prescreen": "shadow",
+          "slop-score": "act",
         },
       },
     });
@@ -321,6 +335,13 @@ test("seed creates the full decisions section when file absent (JEV Decisions La
     assert.equal(cfg.decisions.sites["skill-hints"], "act");
     assert.equal(cfg.decisions.sites["dispatch-role"], "act");
     assert.equal(cfg.decisions.sites["subagent-discipline"], "act");
+    assert.equal(cfg.decisions.sites["sycophancy"], "act");
+    assert.equal(cfg.decisions.sites["phantom-action"], "act");
+    assert.equal(cfg.decisions.sites["skill-proposer"], "act");
+    assert.equal(cfg.decisions.sites["learning-signal"], "act");
+    assert.equal(cfg.decisions.sites["ui-in-ts"], "act");
+    assert.equal(cfg.decisions.sites["qg-prescreen"], "shadow");
+    assert.equal(cfg.decisions.sites["slop-score"], "act");
   } finally {
     cleanup();
   }
@@ -412,6 +433,13 @@ test("seed fills missing decisions.* keys around a partial user section", () => 
     assert.deepEqual(cfg.decisions.sites["bash-effect"], { mode: "act", timeoutMs: 1000 },
       "PR2 sites are filled in around a partial user section too");
     assert.equal(cfg.decisions.sites["subagent-discipline"], "act");
+    assert.equal(cfg.decisions.sites["sycophancy"], "act");
+    assert.equal(cfg.decisions.sites["phantom-action"], "act");
+    assert.equal(cfg.decisions.sites["skill-proposer"], "act");
+    assert.equal(cfg.decisions.sites["learning-signal"], "act");
+    assert.equal(cfg.decisions.sites["ui-in-ts"], "act");
+    assert.equal(cfg.decisions.sites["qg-prescreen"], "shadow");
+    assert.equal(cfg.decisions.sites["slop-score"], "act");
   } finally {
     cleanup();
   }

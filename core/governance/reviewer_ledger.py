@@ -122,6 +122,12 @@ AGGREGATE_NAME = "AGGREGATE.json"
 # record pool skips dot names, so the stamp can never count as a
 # verdict.
 ENDED_NAME = ".ended"
+# Written by qg_prescreen (JEV PR3): Jev's advisory prediction for the
+# session's diff, read back by the verdict label. Owned here for the
+# same reason as the aggregate — an unowned name would make _purge
+# refuse the whole directory. Not a record name, so it never enters the
+# aggregate guard's reviewer pool.
+PRESCREEN_NAME = "PRESCREEN.json"
 _RECORD_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}-\d+-[0-9a-f]{8}\.json$")
 
 
@@ -548,7 +554,8 @@ def _expired(session_dir: Path, cutoff: datetime) -> bool:
 
 def _is_own_file(item: Path) -> bool:
     """True only for names the ledger OWNS: those this module writes,
-    plus the aggregate written by aggregate_guard (PR-B3)."""
+    plus the aggregate (aggregate_guard, PR-B3) and the prescreen
+    (qg_prescreen, JEV PR3)."""
     if item.is_symlink() or not item.is_file():
         return False
     name = item.name
@@ -558,6 +565,8 @@ def _is_own_file(item: Path) -> bool:
         return True  # the accepted aggregate (aggregate_guard, PR-B3)
     if name == ENDED_NAME:
         return True  # the SessionEnd stamp (mark_session_ended, PR-B4)
+    if name == PRESCREEN_NAME:
+        return True  # the advisory prescreen (qg_prescreen, JEV PR3)
     if name.startswith(".") and ".tmp-" in name:
         return True  # an interrupted atomic publish
     return bool(_RECORD_NAME_RE.fullmatch(name))

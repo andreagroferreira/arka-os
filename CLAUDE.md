@@ -216,8 +216,8 @@ Agent YAML files: `departments/*/agents/*.yaml`
 
 `core/decisions/` is a System 1 layer under the agents: sites ask Jev
 (`typesafe/jev-1.13` via the OpenRouter Decisions endpoint) typed
-questions — yes/no, choice, score — instead of regex heuristics. Governance
-and cognition sites follow in later PRs. Jev generates no text; it is not a
+questions — yes/no, choice, score — instead of regex heuristics.
+Cognition sites follow in PR4. Jev generates no text; it is not a
 Model Fabric role and never an `LLMProvider`. ADR:
 `docs/adr/2026-09-23-jev-decisions-layer.md`.
 
@@ -239,10 +239,17 @@ Model Fabric role and never an `LLMProvider`. ADR:
 | bash-effect | PreToolUse `flow_enforcer`, Python path only (escalate-only, 1000 ms) | act |
 | forge-departments | Forge step 3 (`ForgeBudget`, 3 s per call, 5 s total) | shadow (replay at 3 s: abstain 29.4 %; `act` only by operator override) |
 | forge-complexity | Forge step 3 (`ForgeBudget`) | shadow (replay: Jev answered 3 of 32, abstain 90.6 %; `act` only by operator override) |
+| sycophancy | Stop hook, one call with the other Stop sites (`StopBudget`, 1200 ms; escalate-only) | act |
+| phantom-action | Stop hook, only with 0 tool calls on record (escalate-only) | act |
+| skill-proposer | Stop hook → `skill_proposer.evaluate(repeatable=)` | act |
+| learning-signal | Stop hook, every turn → `[arka:learned-rule]` (never writes memory) | act |
+| ui-in-ts | PreToolUse frontend gate, `.ts`/`.js`/`.mjs`/`.cjs` files the regex calls non-UI (600 ms; escalate-only, WARN-only; `diff` class, so no redaction list means no call; allowlisted source/prose suffixes only, `egress-denied:path-class` otherwise) | act |
+| qg-prescreen | QG step 2.5 CLI `core.governance.qg_prescreen` (advisory; never touches the reviewer list; diff class: allowlisted source/prose suffixes only, `egress-denied:path-class` otherwise) | shadow (replay: abstain above 25 % on five of six runs, 43.8 / 34.4 / 31.6 / 30.4 / 28.3 %; `act` only by operator override) |
+| slop-score | `evidence_checks` section `slop-score` (advisory-only, minor) | act |
 
 - Unavailability falls back to the site's heuristic (a no-op where none
   exists); every fallback is counted. Kill-switch: `ARKA_BYPASS_DECISIONS=1`.
-- Governance sites are **escalate-only**: Jev may tighten, never loosen.
+- Gating sites (creation-intent, bash-effect, dispatch-role, sycophancy, phantom-action, ui-in-ts) are **escalate-only**: Jev may tighten, never loosen. skill-proposer and learning-signal are advisory (`any`).
 - Never inside a Synapse layer; never replaces subagents or QG reviewers.
 - Payloads pass `core/egress/policy.evaluate()` first; denial = fallback.
 - Telemetry: `~/.arkaos/telemetry/decisions.jsonl`, `/arka decisions`,
