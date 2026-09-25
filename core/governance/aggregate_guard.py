@@ -57,9 +57,11 @@ import contextlib
 import json
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from core.governance.reviewer_ledger import (
     _RECORD_NAME_RE,
@@ -142,6 +144,82 @@ def _counted(record: dict) -> bool:
         and reviewer_id in REVIEWER_IDS
         and not record.get("parse_error")
         and isinstance(record.get("verdict"), dict)
+    )
+
+
+def _uncaptured(record: Mapping[str, Any]) -> bool:
+    """True for a hook-captured reviewer record filed WITHOUT a verdict.
+
+    Two shapes (issue #568): ``capture_error`` (the ledger found no
+    verdict fence in the reply or, when a transcript was readable, in
+    it) and ``parse_error`` (a fence was found but is broken, never
+    closes, is foreign or is ambiguous). Either record still supersedes the
+    reviewer's earlier rounds: reading an older seq as if it were
+    current handed the guard stale blockers. A record that carries
+    neither field and no verdict (written before the fix) keeps its old
+    treatment.
+    """
+    reviewer_id = str(record.get("reviewer_id") or "")
+    return (
+        record.get("source") in CAPTURE_SOURCES
+        and reviewer_id in REVIEWER_IDS
+        and bool(record.get("capture_error") or record.get("parse_error"))
+    )
+
+
+def uncaptured_reason(record: Mapping[str, Any]) -> str:
+    """``no-fence`` or ``parse_error``: why an ``_uncaptured`` record
+    carries no verdict (the field name, never the parser's message)."""
+    if record.get("capture_error"):
+        return str(record["capture_error"])
+    return "parse_error"
+
+
+def latest_reviewer_records(
+    session_id: str,
+) -> tuple[list[tuple[str, dict[str, Any]]], list[tuple[str, dict[str, Any]]]]:
+    """(counted, missing): the latest record per reviewer, split.
+
+    ``missing`` holds the (name, record) pairs whose LATEST capture
+    carries no verdict (``_uncaptured``). They are never replaced by an
+    older round.
+    """
+    latest = _latest_per_reviewer([
+        (name, rec) for name, rec in _session_records(session_id)
+        if _counted(rec) or _uncaptured(rec)
+    ])
+    counted = [pair for pair in latest if not _uncaptured(pair[1])]
+    missing = [pair for pair in latest if _uncaptured(pair[1])]
+    return counted, missing
+
+
+def _missing_reason(name: str, record: Mapping[str, Any]) -> str:
+    rid = _identity(str(record.get("reviewer_id")))
+    return (
+        f"reviewer {rid} captured without a verdict ({name}: "
+        f"{uncaptured_reason(record)}); re-dispatch {rid} with a "
+        "well-formed arka-qgverdict fence as the last text of its final "
+        "message or its SubagentHandback; its next capture supersedes "
+        "this record"
+    )
+
+
+def _missing_refusal(
+    counted: list[tuple[str, dict[str, Any]]],
+    missing: list[tuple[str, dict[str, Any]]],
+) -> GuardResult:
+    """Refuse while any reviewer's latest capture carries no verdict.
+
+    Verdict-independent on purpose: the aggregate would otherwise be
+    judged against a quorum that silently lacks that reviewer.
+    """
+    return GuardResult(
+        ok=False,
+        reasons=[_missing_reason(name, rec) for name, rec in missing],
+        artifacts=[name for name, _ in counted + missing],
+        reviewers=sorted({
+            _identity(str(rec.get("reviewer_id"))) for _, rec in counted
+        }),
     )
 
 
@@ -326,8 +404,7 @@ def _carry_issue(
     None means the carry stands: it names the digest the reviewer's own
     artifact carries, with a substantive reason. Anything else is the
     plain mismatch — an undeclared carry, a carry pointing at a digest
-    the reviewer never reviewed, or a bare justification.
-    """
+    the reviewer never reviewed, or a bare justification."""
     if carry is None:
         return (
             f"evidence_digest mismatch: {reviewer_id} reviewed "
@@ -375,13 +452,10 @@ def _digest_issues(
     Returns (issues, notes). Issues are verdict-aware at the caller:
     they refuse an APPROVED aggregate and are demoted to warnings on a
     REJECTED one. Notes (accepted carries) are always warnings — a
-    carry is legitimate, and legitimate is not invisible.
-    """
-    issues: list[str] = []
-    notes: list[str] = []
+    carry is legitimate, and legitimate is not invisible."""
     agg_digest = _norm(aggregate.get("evidence_digest"))
-    if not agg_digest:
-        issues.append(_MISSING_AGGREGATE_DIGEST)
+    issues: list[str] = [] if agg_digest else [_MISSING_AGGREGATE_DIGEST]
+    notes: list[str] = []
     carries = _carries(aggregate)
     for reviewer_id, verdict in verdicts:
         their = _norm(verdict.get("evidence_digest"))
@@ -402,6 +476,19 @@ def _digest_issues(
     return issues, notes
 
 
+def _outlives_stamp(
+    session_dir: Path, stamp: Path, artifact_names: list[str]
+) -> bool:
+    """True when a counted record is strictly newer than the stamp."""
+    try:
+        newest = max(
+            (session_dir / name).stat().st_mtime for name in artifact_names
+        )
+        return newest > stamp.stat().st_mtime
+    except (OSError, ValueError):
+        return False  # no readable counted record newer than the stamp
+
+
 def _ended_issues(session_id: str, artifact_names: list[str]) -> list[str]:
     """A stamped session is not a live quorum (PR-B4 session binding).
 
@@ -419,16 +506,8 @@ def _ended_issues(session_id: str, artifact_names: list[str]) -> list[str]:
 
     session_dir = ledger_root() / session_id
     stamp = session_dir / ENDED_NAME
-    if not stamp.is_file():
+    if not stamp.is_file() or _outlives_stamp(session_dir, stamp, artifact_names):
         return []
-    try:
-        newest = max(
-            (session_dir / name).stat().st_mtime for name in artifact_names
-        )
-        if newest > stamp.stat().st_mtime:
-            return []
-    except (OSError, ValueError):
-        pass  # no readable counted record newer than the stamp
     return [
         f"session {session_id} is marked ended (SessionEnd stamped its "
         "ledger) — a past session's reviewer records are not a reusable "
@@ -498,35 +577,44 @@ def _blocker_reasons(
                 continue
             if _norm(blocker.get("verdict")) != "confirmed":
                 continue
-            key = _blocker_key(blocker)
-            if not key:
-                # Liveness (r2 M2): an unmatchable blocker must name an
-                # achievable remedy, not deadlock the session forever.
-                reasons.append(
-                    f"CONFIRMED blocker with empty check/detail/file "
-                    f"({reviewer_id}) cannot be matched — re-dispatch "
-                    "the reviewer to file it with an identifiable "
-                    "check; the redo round supersedes this record"
-                )
-                continue
-            status = _covered(
-                key, aggregate, approved, _norm(blocker.get("severity"))
+            reason, warning = _blocker_outcome(
+                reviewer_id, blocker, aggregate, approved
             )
-            if status == "minor-carried":
-                warnings.append(
-                    f"minor finding "
-                    f"'{_norm(blocker.get('check')) or '(no check field)'}' "
-                    f"({reviewer_id}) rides the APPROVED aggregate as a "
-                    "fix-forward — the correction belongs in the "
-                    "aggregate notes"
-                )
-                continue
-            if status != "ok":
-                reasons.append(_COVERAGE_REASONS[status].format(
-                    check=_norm(blocker.get("check")) or "(no check field)",
-                    rid=reviewer_id,
-                ))
+            if reason:
+                reasons.append(reason)
+            if warning:
+                warnings.append(warning)
     return reasons, warnings
+
+
+def _blocker_outcome(
+    reviewer_id: str,
+    blocker: dict[str, Any],
+    aggregate: dict[str, Any],
+    approved: bool,
+) -> tuple[str, str]:
+    """(reason, warning) for one CONFIRMED blocker; "" where none."""
+    key = _blocker_key(blocker)
+    if not key:
+        # Liveness (r2 M2): an unmatchable blocker must name an
+        # achievable remedy, not deadlock the session forever.
+        return (
+            f"CONFIRMED blocker with empty check/detail/file "
+            f"({reviewer_id}) cannot be matched — re-dispatch "
+            "the reviewer to file it with an identifiable "
+            "check; the redo round supersedes this record"
+        ), ""
+    status = _covered(key, aggregate, approved, _norm(blocker.get("severity")))
+    check = _norm(blocker.get("check")) or "(no check field)"
+    if status == "minor-carried":
+        return "", (
+            f"minor finding '{check}' ({reviewer_id}) rides the APPROVED "
+            "aggregate as a fix-forward — the correction belongs in the "
+            "aggregate notes"
+        )
+    if status != "ok":
+        return _COVERAGE_REASONS[status].format(check=check, rid=reviewer_id), ""
+    return "", ""
 
 
 def _own_finding_warnings(
@@ -591,13 +679,7 @@ def _quorum_shortfall(
     )
 
 
-def check_aggregate(aggregate: dict, session_id: str) -> GuardResult:
-    """Refuse an aggregate the session ledger cannot support.
-
-    Quorum, verdicts and blocker coverage are computed over the LATEST
-    hook-captured record per reviewer identity — see
-    _latest_per_reviewer.
-    """
+def _session_id_refusal(session_id: str) -> GuardResult | None:
     if not session_id:
         return GuardResult(ok=False, reasons=["--session-id is mandatory"])
     if not _safe_id(session_id):  # refuse loudly, with the reason
@@ -606,27 +688,34 @@ def check_aggregate(aggregate: dict, session_id: str) -> GuardResult:
             "(path separators, leading dots and oversize ids are "
             "refused — a session id is a directory name, not a path)"
         ])
-    counted = _latest_per_reviewer([
-        (name, rec) for name, rec in _session_records(session_id)
-        if _counted(rec)
-    ])
+    return None
+
+
+def check_aggregate(aggregate: dict[str, Any], session_id: str) -> GuardResult:
+    """Refuse an aggregate the session ledger cannot support.
+
+    Quorum, verdicts and blocker coverage are computed over the LATEST
+    hook-captured record per reviewer identity — see
+    latest_reviewer_records; a reviewer whose latest capture carries no
+    verdict refuses the aggregate outright.
+    """
+    refused = _session_id_refusal(session_id)
+    if refused is not None:
+        return refused
+    counted, missing = latest_reviewer_records(session_id)
+    if missing:
+        return _missing_refusal(counted, missing)
+    names = [name for name, _ in counted]
     reviewers = sorted({
         _identity(str(r.get("reviewer_id"))) for _, r in counted
     })
     if len(reviewers) < _MIN_REVIEWERS:
-        return _quorum_shortfall(
-            reviewers, [name for name, _ in counted]
-        )
+        return _quorum_shortfall(reviewers, names)
     verdicts = [(str(r.get("reviewer_id")), r["verdict"]) for _, r in counted]
-    reasons, warnings = _reasons(
-        aggregate, verdicts, session_id, [name for name, _ in counted]
-    )
+    reasons, warnings = _reasons(aggregate, verdicts, session_id, names)
     return GuardResult(
-        ok=not reasons,
-        reasons=reasons,
-        warnings=warnings,
-        artifacts=[name for name, _ in counted],
-        reviewers=reviewers,
+        ok=not reasons, reasons=reasons, warnings=warnings,
+        artifacts=names, reviewers=reviewers,
     )
 
 
@@ -645,14 +734,11 @@ def _reasons(
     refuse only an APPROVED aggregate: refusing a REJECTED one over
     shape would throw away the rejection label in exactly the case
     where the CQO catches a bad delta, and a recorded rejection
-    launders nothing — the redo loop continues either way.
-    """
+    launders nothing — the redo loop continues either way."""
     approved = _norm(aggregate.get("verdict")) == "approved"
     issues, notes = _digest_issues(aggregate, verdicts)
     issues += _ended_issues(session_id, artifact_names)
-    blocker_reasons, blocker_warnings = _blocker_reasons(
-        aggregate, verdicts, approved
-    )
+    blocker_reasons, blocker_warnings = _blocker_reasons(aggregate, verdicts, approved)
     reasons = _verdict_reasons(aggregate, verdicts) + blocker_reasons
     warnings = (
         notes
@@ -662,12 +748,15 @@ def _reasons(
     )
     if approved:
         return issues + reasons, warnings
-    demoted = [
+    return reasons, _demoted(issues) + warnings
+
+
+def _demoted(issues: list[str]) -> list[str]:
+    return [
         f"{issue} [recorded anyway: the refusal is verdict-aware "
         "(PR-B4) — a REJECTED label is never lost to dispatch shape]"
         for issue in issues
     ]
-    return reasons, demoted + warnings
 
 
 def write_aggregate(
@@ -694,15 +783,24 @@ def write_aggregate(
     if tmp is None:
         return None
     path = session_dir / AGGREGATE_NAME
+    if not _replace_atomically(tmp, path):
+        return None
+    return path if path.is_file() else None
+
+
+def _replace_atomically(tmp: Path, path: Path) -> bool:
+    """Move ``tmp`` onto ``path``; on failure drop ``tmp`` and say so.
+
+    Atomic replace: a redo round re-issues the aggregate and there must
+    be no window with neither version on disk.
+    """
     try:
-        # Atomic replace: a redo round re-issues the aggregate and there
-        # must be no window with neither version on disk.
         os.replace(tmp, path)
     except OSError:
         with contextlib.suppress(OSError):
             tmp.unlink(missing_ok=True)
-        return None
-    return path if path.is_file() else None
+        return False
+    return True
 
 
 def _aggregate_record(

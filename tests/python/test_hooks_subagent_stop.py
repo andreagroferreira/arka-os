@@ -194,6 +194,7 @@ VERDICT_TEXT = (
         "blockers": [{"check": "lint", "detail": "ruff exit 1",
                       "file": "a.py", "verdict": "CONFIRMED"}],
         "reviewer": "tech-director-francisca",
+        "model_used": "opus",
     })
     + "\n```\n"
 )
@@ -603,3 +604,149 @@ def test_cqo_experience_persistence_fires_on_the_dispatched_id(
         "tool_response": {"content": [{"type": "text", "text": "done"}]},
     })
     assert seen == [], "and must not fire for a non-CQO dispatch"
+
+
+# ─── Issue #568: prose after SubagentHandback ─────────────────────────────
+
+FIXTURE = Path(__file__).parent / "fixtures" / "reviewer_transcript_post_handback.jsonl"
+CLOSING_PROSE = "Handback delivered. The verdict and all findings are in the report above."
+
+
+def _scoped_copy(tmp_path) -> str:
+    subdir = tmp_path / "parent" / "subagents"
+    subdir.mkdir(parents=True, exist_ok=True)
+    path = subdir / "agent-a0fixture.jsonl"
+    path.write_bytes(FIXTURE.read_bytes())
+    return str(path)
+
+
+def _only_record(tmp_path, session_id):
+    files = list((tmp_path / ".arkaos" / "quality-gate" / session_id).glob("*-*-*.json"))
+    assert len(files) == 1
+    return json.loads(files[0].read_text(encoding="utf-8"))
+
+
+def test_prose_after_handback_files_the_handback_verdict(tmp_path):
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    assert main({"session_id": "qg-568", "subagent_type": "eduardo-copy",
+                 "transcript_path": parent,
+                 "agent_transcript_path": _scoped_copy(tmp_path),
+                 "last_assistant_message": CLOSING_PROSE}) == 0
+    record = _only_record(tmp_path, "qg-568")
+    assert record["verdict"]["verdict"] == "REJECTED"
+    assert record["fence_source"] == "transcript_handback"
+    assert record["capture_error"] is None
+    assert "```arka-qgverdict" in record["raw_output"]
+
+
+def test_payload_fence_is_filed_without_reading_the_transcript(tmp_path, monkeypatch):
+    calls: list[str] = []
+    monkeypatch.setattr(reviewer_ledger, "recover_fence",
+                        lambda path, *a, **k: calls.append(path))
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    main({"session_id": "qg-568p", "subagent_type": "francisca-tech",
+          "transcript_path": parent,
+          "agent_transcript_path": _scoped_copy(tmp_path),
+          "last_assistant_message": VERDICT_TEXT})
+    record = _only_record(tmp_path, "qg-568p")
+    assert record["raw_output"] == VERDICT_TEXT
+    assert record["fence_source"] == "last_message"
+    assert calls == [], "a fenced payload never opens the transcript"
+
+
+def test_parent_transcript_is_never_a_recovery_source(tmp_path):
+    """agent_transcript_path equal to the parent: no recovery, no-fence."""
+    parent = _scoped_copy(tmp_path)  # a fenced file, but it IS the parent
+    main({"session_id": "qg-568q", "subagent_type": "eduardo-copy",
+          "transcript_path": parent, "agent_transcript_path": parent,
+          "last_assistant_message": CLOSING_PROSE})
+    record = _only_record(tmp_path, "qg-568q")
+    assert record["verdict"] is None
+    assert record["capture_error"] == "no-fence"
+    assert record["raw_output"] == CLOSING_PROSE
+
+
+def test_fenceless_capture_is_queued_as_missing(tmp_path):
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    agent = _agent_transcript(tmp_path, "nofence", "Done, see the handback.")
+    main({"session_id": "qg-568n", "subagent_type": "eduardo-copy",
+          "transcript_path": parent, "agent_transcript_path": agent,
+          "last_assistant_message": CLOSING_PROSE})
+    assert _only_record(tmp_path, "qg-568n")["capture_error"] == "no-fence"
+    context = reviewer_ledger.notices_context("qg-568n")
+    assert "verdict-unparsed" in context and "re-dispatch it" in context
+
+
+def test_handback_as_last_act_is_recovered_from_a_placeholder(tmp_path):
+    """The last message is the tool call itself: the placeholder alone is
+    not attributable, but the scoped transcript carries the verdict."""
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    assert subagent_stop._ledger_capture(
+        "payload", "qg-568h", "eduardo-copy", "<tool_use:SubagentHandback>",
+        _scoped_copy(tmp_path),
+    )["fence_source"] == "transcript_handback"
+    assert subagent_stop._ledger_capture(
+        "payload", "qg-568h2", "eduardo-copy", "<tool_use:SubagentHandback>", "",
+    ) is None, "without a scoped transcript a placeholder stays unattributable"
+    assert subagent_stop._ledger_capture(
+        "parent", "qg-568h3", "eduardo-copy", "<tool_use:SubagentHandback>",
+        parent,
+    ) is None, "the parent source never files a record"
+
+
+def test_usage_capture_shares_the_scoped_transcript_rule(tmp_path, monkeypatch):
+    """_capture_usage asks _scoped_transcript, not a copy of its rule."""
+    seen: list[str] = []
+    monkeypatch.setattr(subagent_stop, "_scoped_transcript",
+                        lambda stdin, parent: seen.append(parent) or "")
+    import core.runtime.native_usage as native_usage
+    monkeypatch.setattr(native_usage, "record_subagent_usage",
+                        lambda *a: pytest.fail("usage recorded for an unscoped transcript"))
+    subagent_stop._capture_usage(
+        {"agent_transcript_path": str(tmp_path / "agent.jsonl")},
+        "qg-568u", "eduardo-copy", str(tmp_path / "parent.jsonl"),
+    )
+    assert seen == [str(tmp_path / "parent.jsonl")]
+
+
+def _notified_prose_transcript(tmp_path) -> str:
+    """A reviewer woken by a system notification after its handback: the
+    notification opens a new turn that ends in prose, with no fence."""
+    subdir = tmp_path / "parent" / "subagents"
+    subdir.mkdir(parents=True, exist_ok=True)
+    path = subdir / "agent-a0woken.jsonl"
+    lines = [
+        {"type": "user", "message": {"role": "user", "content": "review it"}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "name": "SubagentHandback",
+             "input": {"message": VERDICT_TEXT}}]}},
+        {"type": "user", "message": {"role": "user",
+                                     "content": "SYSTEM NOTIFICATION: task done"}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": CLOSING_PROSE}]}},
+    ]
+    path.write_text("\n".join(json.dumps(x) for x in lines) + "\n", encoding="utf-8")
+    return str(path)
+
+
+def test_verbatim_resend_after_a_woken_prose_turn_is_counted(tmp_path):
+    """QG round 2, B1, end to end through main(): the resend supersedes
+    the fenceless record instead of being deduped onto seq 1."""
+    from core.governance.aggregate_guard import latest_reviewer_records
+
+    parent = _parent_transcript(tmp_path, "orchestrator status update")
+    sid, rid = "qg-568b1", "francisca-tech"
+    fenced = VERDICT_TEXT.replace('"reviewer"', '"model_used": "opus", "reviewer"')
+    base = {"session_id": sid, "subagent_type": rid, "transcript_path": parent}
+    assert main({**base, "last_assistant_message": fenced}) == 0
+    counted, _ = latest_reviewer_records(sid)
+    assert [rec["seq"] for _, rec in counted] == [1], "a schema-valid verdict"
+    assert main({**base, "agent_transcript_path": _notified_prose_transcript(tmp_path),
+                 "last_assistant_message": CLOSING_PROSE}) == 0
+    counted, missing = latest_reviewer_records(sid)
+    assert [rec["seq"] for _, rec in missing] == [2]
+    assert main({**base, "last_assistant_message": fenced}) == 0
+    counted, missing = latest_reviewer_records(sid)
+    assert missing == []
+    assert [rec["seq"] for _, rec in counted] == [3]
+    assert counted[0][1]["verdict"]["verdict"] == "REJECTED"

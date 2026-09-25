@@ -1087,6 +1087,28 @@ class TestAggregateFile:
         again = write_aggregate("sess-w1", aggregate, result)
         assert again is not None
 
+    def test_a_failed_replace_is_a_refusal_even_over_an_older_aggregate(
+        self, guard_home, monkeypatch
+    ):
+        """A redo whose replace fails must not report the PREVIOUS
+        round's file as written, and leaves no temp file behind."""
+        import core.governance.aggregate_guard as guard
+
+        _write_ledger_record("sess-w3", "francisca-tech", seq=1)
+        _write_ledger_record("sess-w3", "eduardo-copy", seq=2)
+        aggregate = _aggregate()
+        result = check_aggregate(aggregate, "sess-w3")
+        assert write_aggregate("sess-w3", aggregate, result) is not None
+
+        def refuse(src, dst):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(guard.os, "replace", refuse)
+        assert write_aggregate("sess-w3", aggregate, result) is None
+        leftovers = [p.name for p in (ledger_root() / "sess-w3").iterdir()
+                     if ".tmp-" in p.name]
+        assert leftovers == []
+
     def test_aggregate_file_never_enters_the_quorum(self, guard_home):
         _write_ledger_record("sess-w2", "francisca-tech", seq=1)
         _write_ledger_record("sess-w2", "eduardo-copy", seq=2)
@@ -1799,3 +1821,211 @@ class TestRoundTelemetry:
             guard_home / ".arkaos" / "quality-gate" / sid / "ESCALATE"
         )
         assert marker.exists()
+
+
+# ─── Issue #568: a fenceless latest capture is MISSING, never stale ───────
+
+
+def _write_uncaptured(
+    session_id: str, reviewer_id: str, seq: int, ts: str = "", **extra
+) -> None:
+    """A record as the ledger files a capture with no fence anywhere."""
+    session_dir = ledger_root() / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    record = {
+        "session_id": session_id, "reviewer_id": reviewer_id, "seq": seq,
+        "ts": ts, "source": "subagent-stop", "parse_error": None,
+        "verdict": None, "raw_output": "closing prose after the handback",
+        "fence_source": None, "capture_error": "no-fence", **extra,
+    }
+    (session_dir / f"{reviewer_id}-{seq}-{'1' * 8}.json").write_text(
+        json.dumps(record), encoding="utf-8"
+    )
+
+
+class TestUncapturedVerdict:
+    def test_fenceless_latest_blocks_instead_of_reading_the_old_round(
+        self, guard_home
+    ):
+        stale = [{"check": "lint", "detail": "round-6 blocker",
+                  "file": "a.py", "verdict": "CONFIRMED"}]
+        _write_ledger_record("sess-568", "francisca-tech", seq=1,
+                             verdict=_reviewer_verdict(verdict="REJECTED",
+                                                       blockers=stale))
+        _write_ledger_record("sess-568", "eduardo-copy", seq=1)
+        _write_uncaptured("sess-568", "francisca-tech", seq=2)
+        result = check_aggregate(_aggregate(), "sess-568")
+        assert not result.ok
+        assert result.reasons == [
+            "reviewer francisca-tech captured without a verdict "
+            "(francisca-tech-2-11111111.json: no-fence); re-dispatch "
+            "francisca-tech with a well-formed arka-qgverdict fence as the "
+            "last text of its final message or its SubagentHandback; its "
+            "next capture supersedes this record"
+        ]
+        assert "round-6 blocker" not in " ".join(result.reasons)
+        assert "francisca-tech-1-00000000.json" not in result.artifacts
+        assert result.reviewers == ["eduardo-copy"]
+
+    def test_rejected_aggregate_is_blocked_too(self, guard_home):
+        _write_ledger_record("sess-568r", "francisca-tech", seq=1)
+        _write_ledger_record("sess-568r", "eduardo-copy", seq=1)
+        _write_uncaptured("sess-568r", "eduardo-copy", seq=2)
+        result = check_aggregate(_aggregate(verdict="REJECTED"), "sess-568r")
+        assert not result.ok
+        assert "reviewer eduardo-copy captured without a verdict" in result.reasons[0]
+
+    def test_reissue_after_the_fenceless_capture_closes(self, guard_home):
+        _write_ledger_record("sess-568i", "eduardo-copy", seq=1)
+        _write_ledger_record("sess-568i", "francisca-tech", seq=1)
+        _write_uncaptured("sess-568i", "francisca-tech", seq=2)
+        _write_ledger_record("sess-568i", "francisca-tech", seq=3)
+        result = check_aggregate(_aggregate(), "sess-568i")
+        assert result.ok, result.reasons
+        assert "francisca-tech-3-00000000.json" in result.artifacts
+
+    def test_alias_spelling_fenceless_newer_by_clock_is_missing(self, guard_home):
+        _write_ledger_record("sess-568a", "eduardo-copy", seq=1)
+        _write_ledger_record("sess-568a", "francisca-tech", seq=1,
+                             ts="2026-09-24T10:00:00+00:00")
+        _write_uncaptured("sess-568a", "tech-director-francisca", seq=1,
+                          ts="2026-09-24T11:00:00+00:00")
+        result = check_aggregate(_aggregate(), "sess-568a")
+        assert not result.ok
+        assert "reviewer francisca-tech captured without a verdict" in result.reasons[0]
+
+    def test_legacy_verdictless_record_keeps_old_behaviour(self, guard_home):
+        """A record written before #568 (no capture_error, no parse_error,
+        no verdict) is still simply not counted, even when latest."""
+        _write_ledger_record("sess-568l", "eduardo-copy", seq=1)
+        _write_ledger_record("sess-568l", "francisca-tech", seq=1)
+        legacy = {
+            "session_id": "sess-568l", "reviewer_id": "francisca-tech",
+            "seq": 2, "ts": "", "source": "subagent-stop",
+            "parse_error": None, "verdict": None, "raw_output": "prose",
+        }
+        (ledger_root() / "sess-568l" / "francisca-tech-2-11111111.json"
+         ).write_text(json.dumps(legacy), encoding="utf-8")
+        result = check_aggregate(_aggregate(), "sess-568l")
+        assert result.ok, result.reasons
+
+    def test_broken_fence_latest_is_missing_not_the_old_round(self, guard_home):
+        """QG round 1, M2: parse_error on the LATEST capture is missing."""
+        _write_ledger_record("sess-568pe", "eduardo-copy", seq=1)
+        _write_ledger_record("sess-568pe", "francisca-tech", seq=1)
+        _write_ledger_record("sess-568pe", "francisca-tech", seq=2,
+                             parse_error="json: Expecting value")
+        result = check_aggregate(_aggregate(), "sess-568pe")
+        assert not result.ok
+        assert result.reasons == [
+            "reviewer francisca-tech captured without a verdict "
+            "(francisca-tech-2-00000000.json: parse_error); re-dispatch "
+            "francisca-tech with a well-formed arka-qgverdict fence as the "
+            "last text of its final message or its SubagentHandback; its "
+            "next capture supersedes this record"
+        ]
+        assert result.reviewers == ["eduardo-copy"]
+
+    def test_a_valid_capture_after_a_broken_fence_closes(self, guard_home):
+        _write_ledger_record("sess-568pf", "eduardo-copy", seq=1)
+        _write_ledger_record("sess-568pf", "francisca-tech", seq=1,
+                             parse_error="json: Expecting value")
+        _write_ledger_record("sess-568pf", "francisca-tech", seq=2)
+        assert check_aggregate(_aggregate(), "sess-568pf").ok
+
+    def test_resumed_reviewer_ending_in_prose_blocks_end_to_end(
+        self, guard_home, tmp_path
+    ):
+        """Marta's round-1 repro through the real writer: round 1 APPROVED
+        by handback, round 2 (same transcript, resumed) ends in prose."""
+        from core.governance.reviewer_ledger import record_reviewer_output
+
+        sid, rid = "sess-568e2e", "francisca-tech"
+        round1 = "Review.\n```arka-qgverdict\n" + json.dumps(
+            _reviewer_verdict(reviewer=rid)) + "\n```\n"
+        record_reviewer_output(sid, "eduardo-copy", round1.replace(
+            rid, "eduardo-copy"), "subagent-stop")
+        record_reviewer_output(sid, rid, round1, "subagent-stop")
+        lines = [
+            {"type": "user", "message": {"role": "user", "content": "round 1"}},
+            {"type": "assistant", "message": {"role": "assistant", "content": [
+                {"type": "tool_use", "name": "SubagentHandback",
+                 "input": {"message": round1}}]}},
+            {"type": "user", "message": {"role": "user",
+                                         "content": "re-judge round 2"}},
+            {"type": "assistant", "message": {"role": "assistant", "content": [
+                {"type": "text", "text": "REJECTED, one finding remains."}]}},
+        ]
+        transcript = tmp_path / "agent-resumed.jsonl"
+        transcript.write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+        record = record_reviewer_output(
+            sid, rid, "REJECTED, one finding remains.", "subagent-stop",
+            str(transcript),
+        )
+        assert record["seq"] == 2 and record["capture_error"] == "no-fence"
+        result = check_aggregate(_aggregate(), sid)
+        assert not result.ok
+        assert "reviewer francisca-tech captured without a verdict" in result.reasons[0]
+
+    def test_aggregator_fenceless_capture_is_not_a_reviewer(self, guard_home):
+        _write_ledger_record("sess-568m", "eduardo-copy", seq=1)
+        _write_ledger_record("sess-568m", "francisca-tech", seq=1)
+        _write_uncaptured("sess-568m", "marta-cqo", seq=1)
+        assert check_aggregate(_aggregate(), "sess-568m").ok
+
+    def test_unknown_source_fenceless_record_is_ignored(self, guard_home):
+        _write_ledger_record("sess-568s", "eduardo-copy", seq=1)
+        _write_ledger_record("sess-568s", "francisca-tech", seq=1)
+        _write_uncaptured("sess-568s", "francisca-tech", seq=2, source="manual")
+        assert check_aggregate(_aggregate(), "sess-568s").ok
+
+
+# ─── Issue #568, QG round 2: dedup deadlock and the unterminated fence ────
+
+
+def _fenced(reviewer_id: str, **kwargs) -> str:
+    return "Review.\n```arka-qgverdict\n" + json.dumps(
+        _reviewer_verdict(reviewer=reviewer_id, **kwargs)) + "\n```\n"
+
+
+class TestRoundTwoRegressions:
+    def test_verbatim_resend_after_a_prose_turn_closes_the_gate(self, guard_home):
+        """B1 (QG round 2 repro): fenced X, prose-only, X again must count."""
+        from core.governance.reviewer_ledger import record_reviewer_output
+
+        sid = "sess-568b1"
+        record_reviewer_output(sid, "eduardo-copy", _fenced("eduardo-copy"),
+                               "subagent-stop")
+        x = _fenced("francisca-tech")
+        record_reviewer_output(sid, "francisca-tech", x, "subagent-stop")
+        record_reviewer_output(sid, "francisca-tech",
+                               "woken by notification, prose only", "subagent-stop")
+        assert not check_aggregate(_aggregate(), sid).ok
+        again = record_reviewer_output(sid, "francisca-tech", x, "subagent-stop")
+        assert again["seq"] == 3 and isinstance(again["verdict"], dict)
+        result = check_aggregate(_aggregate(), sid)
+        assert result.ok, result.reasons
+        assert any(name.startswith("francisca-tech-3-") for name in result.artifacts)
+
+    def test_a_reply_cut_mid_fence_is_missing_not_the_old_round(self, guard_home):
+        """Eduardo M1 (QG round 2 repro): round 1 APPROVED, round 2
+        REJECTED cut before the closing fence. The guard must refuse."""
+        from core.governance.reviewer_ledger import record_reviewer_output
+
+        sid = "sess-568ut"
+        for rid in ("eduardo-copy", "francisca-tech"):
+            record_reviewer_output(sid, rid, _fenced(rid), "subagent-stop")
+        cut = "R2\n```arka-qgverdict\n" + json.dumps(_reviewer_verdict(
+            reviewer="francisca-tech", verdict="REJECTED")) + "\n"
+        record = record_reviewer_output(sid, "francisca-tech", cut, "subagent-stop")
+        assert record["parse_error"] == "unterminated arka-qgverdict fence"
+        result = check_aggregate(_aggregate(), sid)
+        assert not result.ok
+        assert result.reasons[0].startswith(
+            "reviewer francisca-tech captured without a verdict "
+            "(francisca-tech-2-"
+        )
+        assert ": parse_error); re-dispatch francisca-tech with a well-formed" in (
+            result.reasons[0]
+        )
+        assert result.reviewers == ["eduardo-copy"]

@@ -30,10 +30,9 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from core.governance.aggregate_guard import (
-    _counted,
     _identity,
-    _latest_per_reviewer,
-    _session_records,
+    latest_reviewer_records,
+    uncaptured_reason,
 )
 
 CODE_SUFFIXES = frozenset({
@@ -97,13 +96,9 @@ def carry_candidates(
     """
     kind = delta_kind(delta_files)
     carries: list[dict[str, str]] = []
-    re_dispatch: list[dict[str, str]] = []
-    counted = [
-        (name, rec)
-        for name, rec in _session_records(session_id)
-        if _counted(rec)
-    ]
-    for _, record in _latest_per_reviewer(counted):
+    counted, missing = latest_reviewer_records(session_id)
+    re_dispatch = _missing_dispatch(missing)
+    for _, record in counted:
         reviewer_id = str(record.get("reviewer_id") or "")
         verdict = record.get("verdict") or {}
         digest = _artifact_digest(record)
@@ -111,21 +106,43 @@ def carry_candidates(
         if blocked:
             re_dispatch.append({"reviewer": reviewer_id, "why": blocked})
             continue
-        carries.append({
-            "reviewer": reviewer_id,
-            "evidence_digest": digest,
-            "reason": (
-                f"delta since digest {digest[:12]} is {kind}-only "
-                f"({len(delta_files)} file(s)); this reviewer's domain "
-                "is untouched — mechanical carry (Gate Economy PR-3)"
-            ),
-        })
+        carries.append(_carry_entry(reviewer_id, digest, kind, len(delta_files)))
     return {
         "session_id": session_id,
         "delta_kind": kind,
         "carries": carries,
         "re_dispatch": re_dispatch,
     }
+
+
+def _carry_entry(
+    reviewer_id: str, digest: str, kind: str, delta_count: int
+) -> dict[str, str]:
+    return {
+        "reviewer": reviewer_id,
+        "evidence_digest": digest,
+        "reason": (
+            f"delta since digest {digest[:12]} is {kind}-only "
+            f"({delta_count} file(s)); this reviewer's domain "
+            "is untouched — mechanical carry (Gate Economy PR-3)"
+        ),
+    }
+
+
+def _missing_dispatch(
+    missing: list[tuple[str, dict[str, Any]]]
+) -> list[dict[str, str]]:
+    """Re-dispatch entries for reviewers whose latest capture carries no
+    verdict (no fence, or a broken one): an older round's digest is never
+    carried for them (#568)."""
+    return [
+        {"reviewer": str(rec.get("reviewer_id") or ""),
+         "why": (
+             f"latest capture carries no verdict ({uncaptured_reason(rec)}); "
+             "re-dispatch"
+         )}
+        for _, rec in missing
+    ]
 
 
 def _carry_block_reason(
