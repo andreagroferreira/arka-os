@@ -57,6 +57,22 @@ Source:
 - `core/runtime/llm_cost_telemetry.py` — `summarise`, `list_expensive_sessions`
 - `core/runtime/llm_cost_telemetry_cli.py` — markdown renderer
 
+## Jev decision cost
+
+Jev typed-decision calls land in the ledger in two categories, and the
+"By category" breakdown shows them apart:
+
+| Category | What it is |
+| --- | --- |
+| `decision` | Live calls from the hooks, Forge and QG sites. This is production spend. |
+| `decision-replay` | Replay evidence runs (`core.decisions.replay`, `core.decisions.replay_report`). Not production spend. |
+
+Rows written before 5.18.0 have no `decision-replay` category: a replay
+row then was `decision` with session `replay`, so here it still counts
+under `decision`. `/arka decisions` already moves those older rows to the
+replay line. For cost per site, what each site changed, and why no
+saving is claimed, use `/arka decisions [period] [--by-site]`.
+
 ## Data source
 
 `~/.arkaos/telemetry/llm-cost.jsonl` (override with `ARKA_LLM_COST_PATH`).

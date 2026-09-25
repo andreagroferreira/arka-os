@@ -14,7 +14,7 @@ from core.decisions.engine import decide
 from core.decisions.models import Answer
 from core.decisions.paths import repo_root
 from core.decisions.privacy import prepare_state
-from core.decisions.site import LANGUAGE_PREAMBLE, SiteCall
+from core.decisions.site import LANGUAGE_PREAMBLE, SiteCall, window_mass
 from core.decisions.sites import quality
 from core.decisions.sites.quality import QG_PRESCREEN, QUALITY_SITES, SLOP_SCORE
 
@@ -229,12 +229,14 @@ def test_window_mass_not_the_single_cell_decides():
 
 
 def test_window_is_one_level_each_side_and_clipped_at_the_edges():
+    # The reader is shared (site.py, PR5 D6); slop-score reads through it.
     probs = [0.5, 0.2, 0.1, 0.05, 0.05, 0.02, 0.02, 0.02, 0.02, 0.02]
-    assert quality.window_mass(probs, 0) == pytest.approx(0.7)
-    assert quality.window_mass(probs, 4) == pytest.approx(0.12)
-    assert quality.window_mass({str(i): p for i, p in enumerate(probs)}, 9) == (
+    assert window_mass(probs, 0, 10) == pytest.approx(0.7)
+    assert window_mass(probs, 4, 10) == pytest.approx(0.12)
+    assert window_mass({str(i): p for i, p in enumerate(probs)}, 9, 10) == (
         pytest.approx(0.04))
-    assert quality.window_mass(None, 3) is None
+    assert window_mass(None, 3, 10) is None
+    assert window_mass(probs, 4, 10, window=0) == pytest.approx(0.05)
 
 
 def test_mean_below_threshold_abstains():

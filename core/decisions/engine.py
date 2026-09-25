@@ -38,6 +38,7 @@ from core.decisions.registry import SITES
 from core.decisions.shadow import spawn_shadow
 from core.decisions.site import Outcome, Site, SiteCall, answer_confidence, valid_answers
 from core.decisions.telemetry import (
+    COST_CATEGORY,
     DecisionRecord,
     call_cost_usd,
     record,
@@ -207,8 +208,17 @@ def run_sync(
     cfg: DecisionsConfig,
     timeout_s: float,
     session_id: str = "",
+    cost_category: str = COST_CATEGORY,
+    mark_local: bool = False,
 ) -> RunResult:
-    """backoff → privacy → cache → POST → cache.put. ``(response|None, reason, ms)``."""
+    """backoff → privacy → cache → POST → cache.put. ``(response|None, reason, ms)``.
+
+    ``cost_category`` labels the ledger row of a fresh call (the replay
+    harness passes ``decision-replay``). ``mark_local`` (replay only)
+    reports a failure decided on this machine as ``<reason>:local``
+    (:meth:`DecisionUnavailable.run_reason`); live telemetry keeps the
+    bare reason vocabulary.
+    """
     cause = blocked()
     if cause is not None:
         # The trip's cause rides along ("backoff:http-401") so telemetry and
@@ -216,9 +226,10 @@ def run_sync(
         return None, f"backoff:{cause}", 0
     start = time.monotonic()
     try:
-        return _fetch(calls, state, transport, cfg, timeout_s, session_id)
+        return _fetch(calls, state, transport, cfg, timeout_s, session_id, cost_category)
     except DecisionUnavailable as exc:
-        return None, exc.reason, int((time.monotonic() - start) * 1000)
+        reason = exc.run_reason() if mark_local else exc.reason
+        return None, reason, int((time.monotonic() - start) * 1000)
 
 
 def _fetch(
@@ -228,6 +239,7 @@ def _fetch(
     cfg: DecisionsConfig,
     timeout_s: float,
     session_id: str,
+    cost_category: str = COST_CATEGORY,
 ) -> RunResult:
     redact = cfg.redact_clients and any(c.site.redact_default for c in calls)
     # The strictest class governs a mixed call (a diff site keeps the whole
@@ -247,7 +259,7 @@ def _fetch(
         return hit, "cache-hit", 0
     response, latency_ms = post_decision(transport, request, timeout_s)
     cache.put(key, response)
-    record_call_cost(session_id, transport, response.usage)
+    record_call_cost(session_id, transport, response.usage, category=cost_category)
     return response, "ok", latency_ms
 
 

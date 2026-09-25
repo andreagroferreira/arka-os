@@ -21,6 +21,9 @@ NOW = datetime(2026, 9, 23, 12, 0, tzinfo=UTC)
 def paths(tmp_path, monkeypatch):
     monkeypatch.setenv("ARKA_DECISIONS_TELEMETRY_PATH", str(tmp_path / "d.jsonl"))
     monkeypatch.setenv("ARKA_LLM_COST_PATH", str(tmp_path / "cost.jsonl"))
+    # The CLI's cost section also reads these two: never the operator's files.
+    monkeypatch.setenv("ARKA_QG_LABELS_PATH", str(tmp_path / "qg.jsonl"))
+    monkeypatch.setattr("core.governance.activation_tracker.TELEMETRY_PATH", tmp_path / "act.jsonl")
     return tmp_path
 
 
@@ -118,6 +121,32 @@ def test_summarise_aggregates(paths):
     assert s.cache_hit_pct == 25.0 and s.top_fallback_reasons == [("timeout", 1)]
     assert s.by_site["topic-drift"].p50_latency_ms is None
     assert summarise("week", path=paths / "d.jsonl", now=NOW).calls == 5
+
+
+def test_record_call_cost_takes_the_replay_category(paths):
+    record_call_cost("replay", _t(), Usage(input_tokens=1, cost=1e-06), category="decision-replay")
+    (row,) = read_jsonl(paths / "cost.jsonl")
+    assert (row["category"], row["session_id"]) == ("decision-replay", "replay")
+
+
+def test_summarise_counts_effects_per_site(paths):
+    _write(paths, [
+        _row("route", acted_on="jev", jev_result="dev", reason="jev"),
+        _row("route", jev_result="dev", reason="shadow"),
+        _row("route", fallback_used=True, reason="abstain"),
+        _row("route", fallback_used=True, reason="egress-denied:secret"),
+        _row("route", fallback_used=True, reason="timeout"),
+        _row("route", fallback_used=True, reason="timeout"),
+        _row("refine", fallback_used=True, reason="timeout"),
+    ])
+    route = summarise("today", path=paths / "d.jsonl", now=NOW).by_site["route"]
+    assert (route.acted_jev, route.fallback, route.abstain) == (1, 4, 1)
+    # Only Jev's own abstain counts against it: 1 / (2 answered + 1 abstain).
+    assert route.abstain_attributable_pct == 33.3
+    assert route.top_fallback_reasons == (("timeout", 2), ("abstain", 1),
+                                          ("egress-denied:secret", 1))
+    refine = summarise("today", path=paths / "d.jsonl", now=NOW).by_site["refine"]
+    assert refine.abstain_attributable_pct is None, "no answer and no abstain: not measured"
 
 
 def test_summarise_edges(paths):

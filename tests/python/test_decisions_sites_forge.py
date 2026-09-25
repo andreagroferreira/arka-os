@@ -15,6 +15,8 @@ from core.decisions.sites.forge import (
     MAX_FILES,
     forge_state,
     level_to_percent,
+    single_cell_complexity,
+    window_level,
 )
 from core.forge.schema import ComplexityDimensions
 from core.synapse.layers import DEPARTMENT_PATTERNS
@@ -34,9 +36,21 @@ def test_policies():
         assert (site.risk, site.timeout_ms, site.direction) == ("read", 3000, "any")
         for question in site.questions().values():
             assert question.instructions.startswith(LANGUAGE_PREAMBLE)
-    # Replay gate 2026-09-23: both shadow (departments at the real 3 s ceiling).
+    # Values come from replay session jev-pr5-final; a change needs a new replay.
     assert (FORGE_DEPARTMENTS.default_mode, FORGE_COMPLEXITY.default_mode) == (
-        "shadow", "shadow")
+        "act", "shadow")
+
+
+def test_default_modes_pinned_by_replay_final():
+    """Pins the shipped modes proposed by replay-final (PROPOSALS.json):
+    forge-departments promoted, the three shadow sites kept. Changing any
+    of these needs a new two-run replay, not an edit."""
+    from core.decisions.registry import SITES
+
+    assert {n: SITES[n].default_mode for n in (
+        "forge-departments", "forge-complexity", "qg-prescreen", "refine")} == {
+        "forge-departments": "act", "forge-complexity": "shadow",
+        "qg-prescreen": "shadow", "refine": "shadow"}
 
 
 def test_department_options_are_l1_plus_none():
@@ -158,17 +172,38 @@ def test_list_probabilities_give_the_nearest_level_confidence():
 
 # Real score answers (live probe 2026-09-23) carry a calibrated ``confidence``
 # next to a 10-level distribution whose top level is often well under it.
+# D6 (PR5): the ±1-level window mass decides, as on slop-score.
 FLAT = {str(i): 0.1 for i in range(10)}
+# Spread honestly over three neighbours: top cell 0.4, window 0.9.
+SPREAD = {str(i): 0.1 / 7 for i in range(10)} | {"3": 0.25, "4": 0.4, "5": 0.25}
 
 
-def test_calibrated_confidence_governs_not_the_level_probability():
-    # Kills: score_confidence preferring the nearest-level probability.
+def test_window_mass_governs_not_the_calibrated_confidence():
+    # Kills: the stated ``confidence`` (0.7) deciding over a flat window (0.3).
     answers = {d: Answer(score=4.5, probabilities=FLAT, confidence=0.7) for d in DIMENSIONS}
-    assert FORGE_COMPLEXITY.interpret(answers, T) == {d: 50 for d in DIMENSIONS}
-
-
-def test_one_calibrated_confidence_below_threshold_abstains():
-    answers = {d: Answer(score=4.5, probabilities=FLAT, confidence=0.7) for d in DIMENSIONS}
-    answers["novelty"] = Answer(score=4.5, probabilities={"4": 0.95, "5": 0.05},
-                                confidence=0.4)
     assert FORGE_COMPLEXITY.interpret(answers, T) is None
+
+
+def test_a_spread_answer_is_read_by_its_window_not_its_top_cell():
+    # Kills: the single-cell reading (top 0.4, confidence 0.45, both < 0.60).
+    answers = {d: Answer(score=4.2, probabilities=SPREAD, confidence=0.45) for d in DIMENSIONS}
+    assert FORGE_COMPLEXITY.interpret(answers, T) == {d: 47 for d in DIMENSIONS}
+    assert single_cell_complexity(answers, T) is None
+
+
+def test_one_flat_window_abstains_the_whole_site():
+    answers = {d: Answer(score=4.2, probabilities=SPREAD) for d in DIMENSIONS}
+    answers["novelty"] = Answer(score=4.5, probabilities=FLAT, confidence=0.95)
+    assert FORGE_COMPLEXITY.interpret(answers, T) is None
+
+
+@pytest.mark.parametrize(("score", "percent"), [(-0.3, 0), (9.4, 100)])
+def test_scores_within_half_a_level_of_the_scale_are_clamped(score, percent):
+    answers = _scores(scope=Answer(score=score, confidence=0.9))
+    assert FORGE_COMPLEXITY.interpret(answers, T)["scope"] == percent
+    ComplexityDimensions(**FORGE_COMPLEXITY.interpret(answers, T))
+
+
+def test_window_level_without_an_answer_is_none():
+    assert window_level(None, T) is None
+    assert window_level(Answer(score=3), T) is None  # neither probabilities nor confidence

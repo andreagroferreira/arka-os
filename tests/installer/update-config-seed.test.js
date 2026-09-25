@@ -2,7 +2,8 @@
 // update` counterpart to installer/index.js's fresh-install call to
 // seedArkaosConfig (index.js:329-330).
 //
-// Gap this closes (PR1+PR2, JEV Decisions Layer campaign): before this change,
+// Gap this closes (PR1+PR2, JEV Decisions Layer campaign; the decisions seed
+// was reduced to enabled/transport/redactClients in PR5, spec D3): before this change,
 // `seedArkaosConfig` was only ever invoked from the install() flow. An
 // operator who only ever ran `npx arkaos update` on an existing install
 // never had new template keys (hooks.hardEnforcement, decisions.*, ...)
@@ -51,7 +52,7 @@ function readConfig(home) {
   return JSON.parse(readFileSync(join(home, ".arkaos", "config.json"), "utf-8"));
 }
 
-test("update flow: config.json without decisions gains the full section", async () => {
+test("update flow: config.json without decisions gains only the three switches, no sites (D3)", async () => {
   const { dir, cleanup } = makeTmpHome();
   try {
     seedExistingConfig(dir, {
@@ -60,29 +61,9 @@ test("update flow: config.json without decisions gains the full section", async 
     });
     await seedGlobalConfigOnUpdate(dir);
     const cfg = readConfig(dir);
-    assert.equal(cfg.decisions.enabled, true);
-    assert.equal(cfg.decisions.transport, "openrouter");
-    assert.equal(cfg.decisions.redactClients, true);
-    assert.equal(cfg.decisions.hookTimeoutMs, 1500);
-    assert.equal(cfg.decisions.cacheTtlSeconds, 86400);
-    assert.deepEqual(cfg.decisions.thresholds, { read: 0.6, write: 0.75, destructive: 0.9 });
-    assert.equal(cfg.decisions.sites["topic-drift"], "act");
-    assert.equal(cfg.decisions.sites.refine, "shadow");
-    assert.equal(cfg.decisions.sites["creation-intent"], "act");
-    assert.deepEqual(cfg.decisions.sites.route, { mode: "act", minConfidence: 0.7, timeoutMs: 1000 });
-    assert.deepEqual(cfg.decisions.sites["bash-effect"], { mode: "act", timeoutMs: 1000 });
-    assert.equal(cfg.decisions.sites["forge-departments"], "shadow");
-    assert.equal(cfg.decisions.sites["forge-complexity"], "shadow");
-    assert.equal(cfg.decisions.sites["skill-hints"], "act");
-    assert.equal(cfg.decisions.sites["dispatch-role"], "act");
-    assert.equal(cfg.decisions.sites["subagent-discipline"], "act");
-    assert.equal(cfg.decisions.sites["sycophancy"], "act");
-    assert.equal(cfg.decisions.sites["phantom-action"], "act");
-    assert.equal(cfg.decisions.sites["skill-proposer"], "act");
-    assert.equal(cfg.decisions.sites["learning-signal"], "act");
-    assert.equal(cfg.decisions.sites["ui-in-ts"], "act");
-    assert.equal(cfg.decisions.sites["qg-prescreen"], "shadow");
-    assert.equal(cfg.decisions.sites["slop-score"], "act");
+    assert.deepEqual(cfg.decisions, { enabled: true, transport: "openrouter", redactClients: true },
+      "update seeds the same reduced decisions block as install; sites live in Site.default_mode");
+    assert.equal("sites" in cfg.decisions, false);
     // Pre-existing sections must survive the update-flow seed untouched.
     assert.equal(cfg.hooks.hardEnforcement, true);
     assert.equal(cfg.memory.sessionMemory, true);
@@ -91,19 +72,41 @@ test("update flow: config.json without decisions gains the full section", async 
   }
 });
 
-test("update flow: user decisions.sites.route=\"off\" survives, rest is filled in", async () => {
+test("update flow: an operator decisions.sites.refine=\"act\" survives unchanged (D3)", async () => {
   const { dir, cleanup } = makeTmpHome();
   try {
     const cfgPath = seedExistingConfig(dir, {
-      decisions: { sites: { route: "off" } },
+      decisions: { sites: { refine: "act", route: "off" } },
     });
     await seedGlobalConfigOnUpdate(dir);
     const cfg = JSON.parse(readFileSync(cfgPath, "utf-8"));
-    assert.equal(cfg.decisions.sites.route, "off",
-      "the update flow must never overwrite an explicit user site mode");
-    assert.equal(cfg.decisions.sites["topic-drift"], "act", "sibling sites still seeded");
-    assert.equal(cfg.decisions.enabled, true, "other decisions scalars still seeded");
-    assert.equal(cfg.decisions.transport, "openrouter", "other decisions scalars still seeded");
+    assert.deepEqual(cfg.decisions.sites, { refine: "act", route: "off" },
+      "the update flow never adds, rewrites or deletes a site entry");
+    assert.equal(cfg.decisions.enabled, true, "missing switches still seeded");
+    assert.equal(cfg.decisions.transport, "openrouter", "missing switches still seeded");
+    assert.equal(cfg.decisions.redactClients, true, "missing switches still seeded");
+  } finally {
+    cleanup();
+  }
+});
+
+test("update flow: a full pre-5.18.0 decisions block is left byte-identical (D3)", async () => {
+  const { dir, cleanup } = makeTmpHome();
+  try {
+    const cfgPath = seedExistingConfig(dir, {
+      hooks: { hardEnforcement: true, kbFirst: true },
+      memory: { sessionMemory: true },
+      knowledge: { graphify: { enabled: true } },
+      decisions: {
+        enabled: true, transport: "openrouter", redactClients: true,
+        hookTimeoutMs: 1500, cacheTtlSeconds: 86400,
+        thresholds: { read: 0.6, write: 0.75, destructive: 0.9 },
+        sites: { "topic-drift": "act", refine: "shadow", "qg-prescreen": "shadow" },
+      },
+    });
+    const before = readFileSync(cfgPath, "utf-8");
+    await seedGlobalConfigOnUpdate(dir);
+    assert.equal(readFileSync(cfgPath, "utf-8"), before);
   } finally {
     cleanup();
   }

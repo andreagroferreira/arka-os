@@ -544,7 +544,9 @@ def test_pinned_command_resolving_to_a_directory_fails_cleanly(tmp_path):
     assert report.overall == "fail"
 
 
-def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):
+def test_tests_check_timeout_is_a_failure(tmp_path, monkeypatch):
+    # Issue #570: a killed suite concluded nothing, so it FAILS; the old
+    # passed=None let any other check's pass carry overall to "pass".
     def fake_run(*args, **kwargs):
         raise subprocess.TimeoutExpired(cmd=args[0], timeout=1)
 
@@ -554,9 +556,9 @@ def test_tests_check_timeout_is_clean(tmp_path, monkeypatch):
     )
     result = _result(report, "tests")
     assert result.ran is True
-    assert result.passed is None
-    assert result.summary == "timeout"
-    assert report.overall == "insufficient-evidence"
+    assert result.passed is False
+    assert result.summary == "timed out after 300 s"
+    assert report.overall == "fail"
 
 
 def test_tests_prefers_project_venv_pytest(tmp_path, monkeypatch):

@@ -1,34 +1,104 @@
-{"id": "rf-pt-01", "lang": "pt", "prompt": "cria um site melhor", "expected": true}
-{"id": "rf-pt-02", "lang": "pt", "prompt": "melhora isto", "expected": true}
-{"id": "rf-pt-03", "lang": "pt", "prompt": "faz uma app", "expected": true}
-{"id": "rf-pt-04", "lang": "pt", "prompt": "corrige isso", "expected": true}
-{"id": "rf-pt-05", "lang": "pt", "prompt": "implementa o que falámos", "expected": true}
-{"id": "rf-pt-06", "lang": "pt", "prompt": "melhora o desempenho", "expected": true}
-{"id": "rf-pt-07", "lang": "pt", "prompt": "cria uma coisa para os clientes", "expected": true}
-{"id": "rf-pt-08", "lang": "pt", "prompt": "faz o dashboard ficar mais bonito", "expected": true}
-{"id": "rf-pt-09", "lang": "pt", "prompt": "adiciona umas funcionalidades novas", "expected": true}
-{"id": "rf-pt-10", "lang": "pt", "prompt": "constrói um sistema de pagamentos", "expected": true}
-{"id": "rf-pt-11", "lang": "pt", "prompt": "corrige aquilo", "expected": true}
-{"id": "rf-pt-12", "lang": "pt", "prompt": "implementa retry com backoff exponencial em core/api/client.py com no máximo 3 tentativas e testes", "expected": false}
-{"id": "rf-pt-13", "lang": "pt", "prompt": "corrige o user_repo agora", "expected": false}
-{"id": "rf-pt-14", "lang": "pt", "prompt": "atualiza o `config.yaml`", "expected": false}
-{"id": "rf-pt-15", "lang": "pt", "prompt": "adiciona validação de email ao formulário de registo com mensagem de erro em português e um teste", "expected": false}
-{"id": "rf-pt-16", "lang": "pt", "prompt": "cria um endpoint GET /api/orders paginado a 20 itens com filtro por estado", "expected": false}
-{"id": "rf-pt-17", "lang": "pt", "prompt": "corrige o erro 500 no checkout quando o carrinho está vazio e acrescenta um teste de regressão", "expected": false}
-{"id": "rf-pt-18", "lang": "pt", "prompt": "muda o botão principal da homepage para a cor #FF5733", "expected": false}
-{"id": "rf-pt-19", "lang": "pt", "prompt": "adiciona um índice na coluna created_at da tabela orders", "expected": false}
-{"id": "rf-pt-20", "lang": "pt", "prompt": "implementa o export para CSV da lista de clientes com as colunas nome, email e data de registo", "expected": false}
-{"id": "rf-pt-21", "lang": "pt", "prompt": "o que é que este projeto faz?", "expected": false}
-{"id": "rf-en-01", "lang": "en", "prompt": "make it better", "expected": true}
-{"id": "rf-en-02", "lang": "en", "prompt": "build an app", "expected": true}
-{"id": "rf-en-03", "lang": "en", "prompt": "fix the thing", "expected": true}
-{"id": "rf-en-04", "lang": "en", "prompt": "improve performance", "expected": true}
-{"id": "rf-en-05", "lang": "en", "prompt": "add some features", "expected": true}
-{"id": "rf-en-06", "lang": "en", "prompt": "create a dashboard", "expected": true}
-{"id": "rf-en-07", "lang": "en", "prompt": "refactor everything", "expected": true}
-{"id": "rf-en-08", "lang": "en", "prompt": "fix the typo in README.md", "expected": false}
-{"id": "rf-en-09", "lang": "en", "prompt": "add a test to AuthService", "expected": false}
-{"id": "rf-en-10", "lang": "en", "prompt": "add rate limiting of 100 requests per minute per IP to the public API with a 429 response", "expected": false}
-{"id": "rf-en-11", "lang": "en", "prompt": "create a React hook useDebounce with a 300ms default delay and unit tests", "expected": false}
-{"id": "rf-en-12", "lang": "en", "prompt": "what does this function do?", "expected": false}
-{"id": "rf-en-13", "lang": "en", "prompt": "rename the env var OPENROUTER_KEY to OPENROUTER_API_KEY in all scripts", "expected": false}
+{"id": "rf-pt-01", "lang": "pt", "prompt": "cria um site melhor", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-02", "lang": "pt", "prompt": "melhora isto", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-03", "lang": "pt", "prompt": "faz uma app", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-04", "lang": "pt", "prompt": "corrige isso", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-05", "lang": "pt", "prompt": "implementa o que falámos", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-06", "lang": "pt", "prompt": "melhora o desempenho", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-07", "lang": "pt", "prompt": "cria uma coisa para os clientes", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-08", "lang": "pt", "prompt": "faz o dashboard ficar mais bonito", "expected": true, "gap": "acceptance", "source": "seed"}
+{"id": "rf-pt-09", "lang": "pt", "prompt": "adiciona umas funcionalidades novas", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-10", "lang": "pt", "prompt": "constrói um sistema de pagamentos", "expected": true, "gap": "scope", "source": "seed"}
+{"id": "rf-pt-11", "lang": "pt", "prompt": "corrige aquilo", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-pt-12", "lang": "pt", "prompt": "implementa retry com backoff exponencial em core/api/client.py com no máximo 3 tentativas e testes", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-pt-13", "lang": "pt", "prompt": "corrige o user_repo agora", "expected": true, "gap": "acceptance", "source": "seed"}
+{"id": "rf-pt-14", "lang": "pt", "prompt": "atualiza o `config.yaml`", "expected": true, "gap": "acceptance", "source": "seed"}
+{"id": "rf-pt-15", "lang": "pt", "prompt": "adiciona validação de email ao formulário de registo com mensagem de erro em português e um teste", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-pt-16", "lang": "pt", "prompt": "cria um endpoint GET /api/orders paginado a 20 itens com filtro por estado", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-pt-17", "lang": "pt", "prompt": "corrige o erro 500 no checkout quando o carrinho está vazio e acrescenta um teste de regressão", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-pt-18", "lang": "pt", "prompt": "muda o botão principal da homepage para a cor #FF5733", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-pt-19", "lang": "pt", "prompt": "adiciona um índice na coluna created_at da tabela orders", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-pt-20", "lang": "pt", "prompt": "implementa o export para CSV da lista de clientes com as colunas nome, email e data de registo", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-pt-21", "lang": "pt", "prompt": "o que é que este projeto faz?", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-en-01", "lang": "en", "prompt": "make it better", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-en-02", "lang": "en", "prompt": "build an app", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-en-03", "lang": "en", "prompt": "fix the thing", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-en-04", "lang": "en", "prompt": "improve performance", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-en-05", "lang": "en", "prompt": "add some features", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-en-06", "lang": "en", "prompt": "create a dashboard", "expected": true, "gap": "target", "source": "seed"}
+{"id": "rf-en-07", "lang": "en", "prompt": "refactor everything", "expected": true, "gap": "scope", "source": "seed"}
+{"id": "rf-en-08", "lang": "en", "prompt": "fix the typo in README.md", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-en-09", "lang": "en", "prompt": "add a test to AuthService", "expected": true, "gap": "acceptance", "source": "seed"}
+{"id": "rf-en-10", "lang": "en", "prompt": "add rate limiting of 100 requests per minute per IP to the public API with a 429 response", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-en-11", "lang": "en", "prompt": "create a React hook useDebounce with a 300ms default delay and unit tests", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-en-12", "lang": "en", "prompt": "what does this function do?", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-en-13", "lang": "en", "prompt": "rename the env var OPENROUTER_KEY to OPENROUTER_API_KEY in all scripts", "expected": false, "gap": "none", "source": "seed"}
+{"id": "rf-A-01", "lang": "pt", "prompt": "melhora os testes", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-02", "lang": "pt", "prompt": "acaba a migração", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-03", "lang": "pt", "prompt": "refaz o login", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-04", "lang": "pt", "prompt": "adiciona autenticação por dois fatores ao painel de administração com TOTP, códigos de recuperação e testes de feature", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-05", "lang": "pt", "prompt": "corrige o teste que está a falhar em tests/python/test_forge.py::test_tier_deep", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-06", "lang": "pt", "prompt": "otimiza a query dos relatórios mensais", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-07", "lang": "pt", "prompt": "muda o texto do botão 'Enviar' para 'Submeter' no formulário de contacto", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-08", "lang": "pt", "prompt": "põe o site mais rápido", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-09", "lang": "pt", "prompt": "remove o código morto", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-10", "lang": "pt", "prompt": "adiciona logs ao serviço de faturação", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-11", "lang": "pt", "prompt": "cria um comando artisan que apaga sessões expiradas há mais de 30 dias, agendado diariamente, com teste", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-12", "lang": "pt", "prompt": "faz deploy", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-13", "lang": "pt", "prompt": "revê a arquitetura do módulo de encomendas e diz-me o que mudarias", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-14", "lang": "pt", "prompt": "escreve um post para o LinkedIn", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-15", "lang": "pt", "prompt": "cria uma campanha de email de reativação para clientes inativos há 90 dias, com 3 emails e assunto A/B no primeiro", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-16", "lang": "pt", "prompt": "faz um logótipo novo", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-17", "lang": "pt", "prompt": "prepara o orçamento do próximo trimestre", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-18", "lang": "pt", "prompt": "reescreve a headline da landing page do produto de agendamento para focar na poupança de tempo, máximo 10 palavras", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-19", "lang": "pt", "prompt": "melhora a conversão", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-20", "lang": "pt", "prompt": "faz uma análise da concorrência", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-21", "lang": "pt", "prompt": "atualiza as cores da marca", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-22", "lang": "pt", "prompt": "cria um guião de 60 segundos para um Reel sobre o lançamento da versão 2 da app de faturação, com gancho nos primeiros 3 segundos", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-23", "lang": "pt", "prompt": "calcula o LTV e o CAC do plano Pro com os dados do último semestre e compara com o plano Base", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-24", "lang": "pt", "prompt": "organiza o backlog", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-25", "lang": "en", "prompt": "clean up the codebase", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-26", "lang": "en", "prompt": "add dark mode", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-27", "lang": "en", "prompt": "add a CHANGELOG entry for the 2.3.0 release listing the three merged fixes", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-28", "lang": "en", "prompt": "make the onboarding better", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-29", "lang": "en", "prompt": "migrate the users table to UUID primary keys, keeping foreign keys intact, with a reversible migration and tests", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-30", "lang": "en", "prompt": "write some tests", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-31", "lang": "en", "prompt": "set up CI", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-32", "lang": "en", "prompt": "design a pricing page", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-33", "lang": "en", "prompt": "draft a cold email to CFOs of mid-size logistics firms about our invoice automation tool, under 120 words", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-34", "lang": "en", "prompt": "fix the flaky test", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-35", "lang": "en", "prompt": "update the dependencies", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-A-36", "lang": "en", "prompt": "add an index", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-A"}
+{"id": "rf-B-pt-01", "lang": "pt", "prompt": "melhora a página de produto da loja", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-02", "lang": "pt", "prompt": "cria uma landing page para o lançamento do curso online com hero, três testemunhos, secção de preços com dois planos e formulário de inscrição ligado à lista de email", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-03", "lang": "pt", "prompt": "escreve uma sequência de emails de boas-vindas", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-04", "lang": "pt", "prompt": "escreve uma sequência de 5 emails de boas-vindas para novos subscritores do SaaS de faturação, um por dia, cada um com um CTA para ativar a primeira fatura", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-05", "lang": "pt", "prompt": "otimiza o checkout", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-06", "lang": "pt", "prompt": "reduz o tempo de carregamento da página de categoria para menos de 2 segundos no mobile sem remover imagens", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-07", "lang": "pt", "prompt": "trata do SEO", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-08", "lang": "pt", "prompt": "adiciona meta descriptions às 12 páginas de categoria da loja, até 155 caracteres cada, com a palavra-chave principal de cada categoria", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-09", "lang": "pt", "prompt": "automatiza os relatórios", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-10", "lang": "pt", "prompt": "cria um fluxo n8n que, a cada nova encomenda no Shopify, envia os dados para a folha de cálculo de logística e avisa no canal #armazém; testa com uma encomenda de teste", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-11", "lang": "pt", "prompt": "faz uns posts para as redes sociais", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-12", "lang": "pt", "prompt": "escreve 3 posts de LinkedIn sobre a nova funcionalidade de relatórios automáticos, até 150 palavras cada, com um gancho na primeira linha", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-13", "lang": "pt", "prompt": "revê a proposta comercial", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-14", "lang": "pt", "prompt": "atualiza a proposta comercial do plano anual: muda o preço para 49 €/mês, acrescenta a cláusula de cancelamento a 30 dias e exporta em PDF", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-15", "lang": "pt", "prompt": "corrige o teste de login que está a falhar", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-16", "lang": "pt", "prompt": "refaz o onboarding", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-17", "lang": "pt", "prompt": "muda o texto do botão 'Comprar' para 'Adicionar ao carrinho' em todas as páginas de produto", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-18", "lang": "pt", "prompt": "faz a migração da base de dados", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-19", "lang": "pt", "prompt": "adiciona a coluna discount_code (string, nullable) à tabela orders com uma migração reversível e atualiza o teste do repositório", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-20", "lang": "pt", "prompt": "prepara qualquer coisa para a reunião de vendas de amanhã", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-21", "lang": "pt", "prompt": "cria um guião de 60 segundos para um Reel sobre os 3 erros mais comuns na gestão de stock, com gancho nos primeiros 3 segundos e CTA final para a newsletter", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-22", "lang": "pt", "prompt": "arruma o repositório", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-pt-23", "lang": "pt", "prompt": "remove as dependências npm que não são usadas no pacote do dashboard e confirma que o build e os testes passam", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-01", "lang": "en", "prompt": "clean up the code", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-02", "lang": "en", "prompt": "add a CSV export button to the invoices table that downloads the currently filtered rows, with a feature test", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-03", "lang": "en", "prompt": "set up analytics", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-04", "lang": "en", "prompt": "add GA4 purchase events to the checkout confirmation page with order value and currency, and verify them in DebugView", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-05", "lang": "en", "prompt": "make the pricing page convert better", "expected": true, "gap": "acceptance", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-06", "lang": "en", "prompt": "write a cold email", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-07", "lang": "en", "prompt": "write a 120-word cold email to heads of operations at logistics companies offering a free 20-minute automation audit, with one clear call to action", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-09", "lang": "en", "prompt": "upgrade Laravel", "expected": true, "gap": "scope", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-10", "lang": "en", "prompt": "bump the Laravel framework from 11 to 12 in composer.json, apply the upgrade guide changes and keep the full test suite green", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-11", "lang": "en", "prompt": "help me with the churn problem", "expected": true, "gap": "target", "source": "handwritten-2026-09-25-B"}
+{"id": "rf-B-en-12", "lang": "en", "prompt": "add a unique index on users.email and a migration that fails loudly if duplicates exist", "expected": false, "gap": "none", "source": "handwritten-2026-09-25-B"}

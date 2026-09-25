@@ -186,6 +186,9 @@ def _route_interpret(answers: dict[str, Answer], threshold: float) -> str | None
 ROUTE = Site(
     name="route", questions=_route_questions, interpret=_route_interpret, risk="write",
     timeout_ms=1000,
+    # Spec PR5 D3, operator ruling 2026-09-25: the route acts from 0.70,
+    # below the generic write threshold; the value lives here, not in the seed.
+    min_confidence=0.70,
     state_class="prompt",
 )
 

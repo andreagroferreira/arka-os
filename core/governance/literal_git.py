@@ -16,9 +16,10 @@ A git too old to know the option exits 129 on every call. That alone
 does not make a caller read "no diff": ``qg_prescreen.file_diff`` treats
 only exit 1 of its ``ls-files --error-unmatch`` probe as "untracked" and
 returns '' on any other code, and :func:`names_exactly` answers False on
-any non-zero exit, so the prescreen sends nothing. ``slop_check`` reads
-such a name as untracked and scores the whole file, which is still the
-one allowlisted regular file the name resolves to.
+any non-zero exit, so the prescreen sends nothing. ``slop_check`` does
+the same since #573: ``evidence_checks._git_tracks`` answers None for
+any exit but 0 and 1, and ``prose_text`` then scores nothing
+(``path-class``) instead of reading the whole file.
 
 A literal pathspec still matches a directory's contents (``big.md``
 names ``big.md/inner.yaml``), so the name is not enough on its own:

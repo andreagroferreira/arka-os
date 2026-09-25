@@ -4,9 +4,9 @@ Writer (:func:`record`, never raises) appends to
 ``~/.arkaos/telemetry/decisions.jsonl`` (``ARKA_DECISIONS_TELEMETRY_PATH``
 overrides) under an advisory lock, rotating through
 ``core.shared.telemetry_rotate``. API cost goes to the shared LLM cost
-ledger with ``category="decision"``. :func:`summarise` is read-only and
-mirrors ``core.runtime.mcp_telemetry`` periods and corrupt-line
-tolerance.
+ledger with ``category="decision"`` (replay runs: ``"decision-replay"``).
+:func:`summarise` is read-only and mirrors ``core.runtime.mcp_telemetry``
+periods and corrupt-line tolerance.
 """
 
 from __future__ import annotations
@@ -44,6 +44,13 @@ _TOP_REASONS = 5
 # readable log confirms a guess (security review 2026-09-23, finding 9).
 SALT_NAME = "telemetry.salt"
 _FILE_MODE = 0o600
+# Ledger categories: live calls vs replay-harness calls, so ``/arka costs``
+# never reports the evidence runs as production spend.
+COST_CATEGORY = "decision"
+REPLAY_COST_CATEGORY = "decision-replay"
+# The session id every replay call carries; before ``decision-replay``
+# existed, it was the only mark of a replay row in the ledger.
+REPLAY_SESSION_ID = "replay"
 
 
 def _now_iso() -> str:
@@ -144,8 +151,10 @@ def call_cost_usd(transport: Transport, usage: Usage) -> float | None:
     return estimate_cost_usd(transport.model, usage.input_tokens, usage.output_tokens)
 
 
-def record_call_cost(session_id: str, transport: Transport, usage: Usage) -> None:
-    """Mirror one API call into the LLM cost ledger (``category=decision``)."""
+def record_call_cost(
+    session_id: str, transport: Transport, usage: Usage, category: str = COST_CATEGORY
+) -> None:
+    """Mirror one API call into the LLM cost ledger (``category`` as given)."""
     with contextlib.suppress(Exception):
         from core.runtime.llm_cost_telemetry import record_cost
 
@@ -153,7 +162,7 @@ def record_call_cost(session_id: str, transport: Transport, usage: Usage) -> Non
         record_cost(
             session_id, transport.name, transport.model,
             usage.input_tokens, usage.output_tokens, 0, cost,
-            category="decision",
+            category=category,
             pricing_status="" if cost is not None else "unknown-model",
         )
 
@@ -171,6 +180,14 @@ class SiteSummary:
     p50_latency_ms: int | None
     cost_usd: float
     acted_jev_pct: float
+    # Effect counts (PR5): lines acted on Jev, lines on the heuristic, and
+    # Jev's own abstentions. ``abstain_attributable_pct`` is abstain over
+    # (answered + abstain): egress, timeout, backoff and http are not Jev's.
+    acted_jev: int = 0
+    fallback: int = 0
+    abstain: int = 0
+    abstain_attributable_pct: float | None = None
+    top_fallback_reasons: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -273,16 +290,32 @@ def _cost(entries: list[dict[str, Any]]) -> float:
     return round(sum(float(e.get("cost_usd") or 0.0) for e in entries), 8)
 
 
+_SITE_TOP_REASONS = 3
+
+
+def _fallback_reasons(entries: list[dict[str, Any]], limit: int) -> list[tuple[str, int]]:
+    reasons = Counter(str(e.get("reason") or "?") for e in entries if e.get("fallback_used"))
+    return reasons.most_common(limit)
+
+
 def _site_summary(entries: list[dict[str, Any]]) -> SiteSummary:
     judged = [e for e in entries if isinstance(e.get("agree"), bool)]
     agreement = _pct(sum(1 for e in judged if e["agree"]), len(judged)) if judged else None
+    acted = sum(1 for e in entries if e.get("acted_on") == "jev")
+    fallback = sum(1 for e in entries if e.get("fallback_used"))
+    abstain = sum(1 for e in entries if e.get("reason") == "abstain")
+    answered = sum(1 for e in entries if e.get("jev_result") is not None)
     return SiteSummary(
         calls=len(entries),
         agreement_pct=agreement,
-        fallback_pct=_pct(sum(1 for e in entries if e.get("fallback_used")), len(entries)),
+        fallback_pct=_pct(fallback, len(entries)),
         p50_latency_ms=_p50(_latencies(entries)),
         cost_usd=_cost(entries),
-        acted_jev_pct=_pct(sum(1 for e in entries if e.get("acted_on") == "jev"), len(entries)),
+        acted_jev_pct=_pct(acted, len(entries)),
+        acted_jev=acted, fallback=fallback, abstain=abstain,
+        abstain_attributable_pct=(
+            _pct(abstain, answered + abstain) if answered + abstain else None),
+        top_fallback_reasons=tuple(_fallback_reasons(entries, _SITE_TOP_REASONS)),
     )
 
 
@@ -290,9 +323,6 @@ def _build_summary(period: str, entries: list[dict[str, Any]], corrupt: int) -> 
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in entries:
         grouped[str(entry.get("site") or "?")].append(entry)
-    reasons = Counter(
-        str(e.get("reason") or "?") for e in entries if e.get("fallback_used")
-    )
     return DecisionsSummary(
         period=period,
         calls=len(entries),
@@ -300,6 +330,6 @@ def _build_summary(period: str, entries: list[dict[str, Any]], corrupt: int) -> 
         total_cost_usd=_cost(entries),
         p50_latency_ms=_p50(_latencies(entries)),
         cache_hit_pct=_pct(sum(1 for e in entries if e.get("cache_hit")), len(entries)),
-        top_fallback_reasons=reasons.most_common(_TOP_REASONS),
+        top_fallback_reasons=_fallback_reasons(entries, _TOP_REASONS),
         corrupt_line_count=corrupt,
     )

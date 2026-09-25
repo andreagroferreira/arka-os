@@ -11,21 +11,21 @@
 //   knowledge.graphify.enabled  = true   (graphify HTTP — "active once configured".
 //                                          Applies only when a url + token are also
 //                                          set; a fresh user with no endpoint is a no-op.)
-//   decisions.*                 = see SCALAR_SEEDS below (PR1-PR3 — JEV
-//                                          Decisions Layer campaign: enabled,
-//                                          transport, redactClients, timeouts,
-//                                          thresholds, per-site modes across
-//                                          17 sites (topic-drift, refine,
-//                                          creation-intent, route, bash-effect,
-//                                          forge-departments, forge-complexity,
-//                                          skill-hints, dispatch-role,
-//                                          subagent-discipline, sycophancy,
-//                                          phantom-action, skill-proposer,
-//                                          learning-signal, ui-in-ts,
-//                                          qg-prescreen, slop-score). Non-boolean
-//                                          scalars, seeded key-by-key so a
-//                                          partial user "decisions" section
-//                                          only fills gaps.)
+//   decisions.enabled           = true          (JEV Decisions Layer — policy
+//   decisions.transport         = "openrouter"   switches the operator should
+//   decisions.redactClients     = true           see in their config.json)
+//
+// Deliberately NOT seeded (JEV PR5, spec D3 "Onde vive o modo por
+// defeito"): decisions.sites.*, decisions.hookTimeoutMs,
+// decisions.cacheTtlSeconds and decisions.thresholds.*. All of them have
+// defaults in code (Site.default_mode in core/decisions/sites/*.py,
+// core/decisions/config.py). The seed never rewrites a leaf once it is set,
+// so a seeded value becomes indistinguishable from an operator choice and
+// a later default change (the promotion/demotion pass) would never reach
+// an existing install. Keeping them out of the seed makes the code the
+// single source of truth and keeps them tunable by PR. Any decisions.sites
+// entry present in config.json is the operator's: read, never rewritten,
+// never deleted (including a block written by a pre-5.18.0 build).
 //
 // Returns a status object:
 //   { action: "created" | "added-key" | "noop"
@@ -57,40 +57,16 @@ const NESTED_SEEDS = [
 // Scalar seed table for arbitrary-depth, non-boolean-flag keys (strings,
 // numbers): [path, value]. Same idempotent contract as SEEDED_SECTIONS/
 // NESTED_SEEDS (seed only when the leaf is unset, never clobber an
-// explicit value), but supports any scalar type and any depth. Used for
-// the JEV Decisions Layer config (PR1): transport, timeouts, thresholds,
-// per-site modes.
+// explicit value), but supports any scalar type and any depth.
+//
+// JEV Decisions Layer: only the three policy switches. Never add a
+// ["decisions", "sites", ...] row here: per-site modes, limits and
+// timeouts live in code (spec D3, see the header comment);
+// tests/installer/config-seed.test.js fails if one comes back.
 const SCALAR_SEEDS = [
   [["decisions", "enabled"], true],
   [["decisions", "transport"], "openrouter"],
   [["decisions", "redactClients"], true],
-  [["decisions", "hookTimeoutMs"], 1500],
-  [["decisions", "cacheTtlSeconds"], 86400],
-  [["decisions", "thresholds", "read"], 0.6],
-  [["decisions", "thresholds", "write"], 0.75],
-  [["decisions", "thresholds", "destructive"], 0.9],
-  [["decisions", "sites", "topic-drift"], "act"],
-  [["decisions", "sites", "refine"], "shadow"],
-  [["decisions", "sites", "creation-intent"], "act"],
-  [["decisions", "sites", "route", "mode"], "act"],
-  [["decisions", "sites", "route", "minConfidence"], 0.7],
-  [["decisions", "sites", "route", "timeoutMs"], 1000],
-  [["decisions", "sites", "bash-effect", "mode"], "act"],
-  [["decisions", "sites", "bash-effect", "timeoutMs"], 1000],
-  [["decisions", "sites", "forge-departments"], "shadow"],
-  [["decisions", "sites", "forge-complexity"], "shadow"],
-  [["decisions", "sites", "skill-hints"], "act"],
-  [["decisions", "sites", "dispatch-role"], "act"],
-  [["decisions", "sites", "subagent-discipline"], "act"],
-  [["decisions", "sites", "sycophancy"], "act"],
-  [["decisions", "sites", "phantom-action"], "act"],
-  [["decisions", "sites", "skill-proposer"], "act"],
-  [["decisions", "sites", "learning-signal"], "act"],
-  [["decisions", "sites", "ui-in-ts"], "act"],
-  // shadow by the replay gate: abstain 34.4 % on r7c (0 unavailable), 25.0 %
-  // on r7b, 31.3 % on the r7 answers — verdict-only interpretation (JEV PR3).
-  [["decisions", "sites", "qg-prescreen"], "shadow"],
-  [["decisions", "sites", "slop-score"], "act"],
 ];
 
 function defaultConfig() {
@@ -155,9 +131,9 @@ function applyNestedSeeds(config) {
 
 // Walk `path` in `config`, creating empty objects along the way. Returns
 // the parent object to write the leaf into, or null when a path segment
-// already holds a non-object value (e.g. a legacy `sites.route: "off"`
-// string) — the caller then skips that seed, preserving the user's value
-// whole rather than descending into it.
+// already holds a non-object value (e.g. a hand-written `decisions: false`)
+// — the caller then skips that seed, preserving the user's value whole
+// rather than descending into it.
 function walkToParent(config, path) {
   let node = config;
   for (const key of path.slice(0, -1)) {

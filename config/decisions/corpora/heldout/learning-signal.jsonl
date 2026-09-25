@@ -1,0 +1,17 @@
+{"id": "ho-ls-A-01", "lang": "pt", "prompt": "A partir de agora, nunca faças commit sem me perguntar primeiro. Isto é inegociável.", "expected": "explicit", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-02", "lang": "pt", "prompt": "Prefiro que os relatórios venham em tabelas em vez de listas longas.", "expected": "implicit", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-03", "lang": "pt", "prompt": "Obrigado, está ótimo.", "expected": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-04", "lang": "pt", "prompt": "Neste ficheiro usa tabs em vez de espaços.", "expected": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-05", "lang": "pt", "prompt": "Guarda isto: nos projetos Laravel usamos sempre Form Requests para validação.", "expected": "explicit", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-06", "lang": "en", "prompt": "Don't assume the database is Postgres; check the config first.", "expected": "implicit", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-07", "lang": "pt", "prompt": "Podes voltar a correr os testes?", "expected": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-08", "lang": "en", "prompt": "Going forward, always write commit messages in English, even when we talk in Portuguese.", "expected": "explicit", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-09", "lang": "en", "prompt": "That headline is too long, cut it to eight words.", "expected": "none", "source": "handwritten-2026-09-25-A"}
+{"id": "ho-ls-A-10", "lang": "pt", "prompt": "Em vez de npm usa bun neste repositório.", "expected": "implicit", "source": "handwritten-2026-09-25-A"}
+{"id": "learning-signal-B-04", "lang": "pt", "prompt": "Não assumas que o cliente usa Shopify, pergunta sempre primeiro qual é a plataforma.", "expected": "explicit", "source": "handwritten-2026-09-25-B"}
+{"id": "learning-signal-B-05", "lang": "pt", "prompt": "Neste email, tira o último parágrafo.", "expected": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "learning-signal-B-06", "lang": "pt", "prompt": "Em vez de Mailchimp usa o Brevo nas próximas campanhas.", "expected": "implicit", "source": "handwritten-2026-09-25-B"}
+{"id": "learning-signal-B-07", "lang": "en", "prompt": "Going forward, every landing page must pass the accessibility audit before review. Save this.", "expected": "explicit", "source": "handwritten-2026-09-25-B"}
+{"id": "learning-signal-B-08", "lang": "en", "prompt": "I'd rather you keep commit messages under 50 characters.", "expected": "implicit", "source": "handwritten-2026-09-25-B"}
+{"id": "learning-signal-B-09", "lang": "en", "prompt": "What's the status of the migration?", "expected": "none", "source": "handwritten-2026-09-25-B"}
+{"id": "learning-signal-B-10", "lang": "en", "prompt": "Don't pad the answers with summaries at the end, I read the whole thing.", "expected": "implicit", "source": "handwritten-2026-09-25-B"}

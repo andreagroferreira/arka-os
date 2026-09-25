@@ -67,6 +67,10 @@ class Site:
     direction: Direction = "any"
     redact_default: bool = True
     timeout_ms: int = 1500
+    # The site's own action threshold (spec PR5 D3): sits between an
+    # operator ``sites.<name>.minConfidence`` override and the risk table.
+    # None = the risk table decides. route carries 0.70.
+    min_confidence: float | None = field(default=None, kw_only=True)
     is_escalation: Callable[[object, object], bool] | None = None
     # Questions built from the call's state (e.g. a candidate menu). None
     # keeps the static ``questions``; when set, ``questions`` is only the
@@ -80,6 +84,9 @@ class Site:
     judge: Judge = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
+        floor = self.min_confidence
+        if floor is not None and not 0.0 <= floor <= 1.0:
+            raise ValueError(f"{self.name}: min_confidence {floor!r} is not in [0, 1]")
         raw = getattr(self.interpret, "_arka_raw", self.interpret)
         judge = _guarded(self, raw)
         object.__setattr__(self, "judge", judge)
@@ -247,6 +254,63 @@ def interpret_score(answer: Answer | None, threshold: float, levels: int) -> flo
     if confidence is None or confidence < threshold:
         return None
     return level
+
+
+# Levels either side of the rounded level whose probability counts as
+# agreement: ±1 of a 10-level rubric (3 cells, 2 at an edge). Shared by
+# every score site (slop-score since PR3, forge-complexity since PR5 D6).
+SCORE_WINDOW = 1
+
+
+def score_level(score: object, levels: int) -> int | None:
+    """The 0-based level of a continuous score: half-up rounding into ``0..levels-1``.
+
+    Jev answers a score question with a fractional level (1.58 = between
+    the 2nd and 3rd level). Scores within half a level of the scale round
+    into it (-0.3 → 0, 9.4 → 9 of ten); anything further out, a bool, or a
+    non-numeric value is malformed → None. Numeric strings are numbers.
+    """
+    if isinstance(score, bool) or not _is_number(score):
+        return None
+    value = float(score)  # type: ignore[arg-type]
+    if not -0.5 <= value < levels - 0.5:
+        return None
+    return math.floor(value + 0.5)
+
+
+def window_mass(
+    probs: Mapping[str, float] | Sequence[float] | None,
+    level: int,
+    levels: int,
+    window: int = SCORE_WINDOW,
+) -> float | None:
+    """Probability of the levels within ``window`` of ``level``; None without probs."""
+    cells = range(max(0, level - window), min(levels, level + window + 1))
+    if isinstance(probs, Mapping):
+        return math.fsum(float(probs.get(str(i), 0.0)) for i in cells)
+    if isinstance(probs, Sequence) and not isinstance(probs, str):
+        return math.fsum(float(probs[i]) for i in cells if i < len(probs))
+    return None
+
+
+def window_confidence(answer: Answer | None, levels: int) -> tuple[int, float] | None:
+    """``(0-based level, confidence)`` of one score answer, or None.
+
+    Confidence is the probability mass within :data:`SCORE_WINDOW` of the
+    rounded level, NOT the single most likely cell: a 10-level rubric
+    spreads an honest answer over neighbouring levels ({'0': 0.28, '1':
+    0.27, '2': 0.24, …}), and "level 2 give or take one" is what the score
+    claims. Without ``probabilities`` the answer's own ``confidence``
+    stands in; with neither, None.
+    """
+    if answer is None:
+        return None
+    level = score_level(answer.score, levels)
+    if level is None:
+        return None
+    mass = window_mass(answer.probabilities, level, levels)
+    confidence = answer.confidence if mass is None else mass
+    return None if confidence is None else (level, confidence)
 
 
 def score_confidence(answer: Answer, level: float) -> float | None:

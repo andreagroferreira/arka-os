@@ -450,33 +450,22 @@ def _last_user_messages(transcript_path: str, n: int = 3) -> str:
 
 
 def _recent_user_messages(transcript_path: str, n: int = 3) -> list[str]:
-    """The last ``n`` user messages of the transcript (oldest first)."""
+    """The last ``n`` OPERATOR messages of the transcript (oldest first).
+
+    Read through ``transcript_scope`` so harness text written with the
+    user role (hand-backs, compaction summaries, reminders, tool results)
+    never feeds the topic-drift fallback or the Jev prompt state (#569).
+    """
     if not transcript_path or not Path(transcript_path).is_file():
         return []
     try:
-        lines = Path(transcript_path).read_text(
+        tail = Path(transcript_path).read_text(
             encoding="utf-8", errors="replace"
         ).splitlines()[-200:]
-    except OSError:
-        return []
-    msgs: list[str] = []
-    for line in lines:
-        try:
-            record = json.loads(line)
-        except (json.JSONDecodeError, ValueError):
-            continue
-        if not isinstance(record, dict):
-            continue
-        if record.get("type") == "user" or record.get("role") == "user":
-            content = record.get("content") or record.get(
-                "message", {}
-            ).get("content", "")
-            if isinstance(content, list):
-                content = " ".join(
-                    p.get("text", "") for p in content if isinstance(p, dict)
-                )
-            msgs.append(str(content))
-    return msgs[-n:]
+        from core.workflow.transcript_scope import recent_user_messages
+    except (OSError, ImportError):
+        return []  # unreadable or degraded env: no prior, never harness text
+    return recent_user_messages("\n".join(tail), n)
 
 
 def keyword_topic_shift(prompt: str, prior: str) -> bool:

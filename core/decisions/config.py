@@ -1,13 +1,17 @@
 """Decisions config — the ``decisions`` block of ``~/.arkaos/config.json``.
 
-Shape (every key optional; the seed lives in ``installer/config-seed.js``)::
+The installer seed (``installer/config-seed.js``) writes three keys::
 
     "decisions": {"enabled": true, "transport": "openrouter",
-      "redactClients": true, "hookTimeoutMs": 1500,
-      "cacheTtlSeconds": 86400,
-      "thresholds": {"read": 0.6, "write": 0.75, "destructive": 0.9},
-      "sites": {"topic-drift": "act",
-                "route": {"mode": "act", "minConfidence": 0.7}}}
+                  "redactClients": true}
+
+Everything else has its default in code (``hookTimeoutMs``,
+``cacheTtlSeconds``, ``thresholds`` here; each site's mode in
+``Site.default_mode``). A key the operator writes overrides that
+default and is never rewritten, for example::
+
+    "sites": {"topic-drift": "shadow",
+              "route": {"mode": "act", "minConfidence": 0.8}}
 
 Loading never raises: a missing, oversized, corrupt or invalid file
 yields the defaults. ``ARKA_BYPASS_DECISIONS=1`` turns every site off.
@@ -43,13 +47,18 @@ class SiteConfig(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
-    mode: Mode = "act"
+    # None = "the site's own ``default_mode``" (PR5 D3): an override that
+    # only tunes ``timeoutMs`` or ``minConfidence`` must not flip a shadow
+    # site to act, as the old ``"act"`` default did.
+    mode: Mode | None = None
     min_confidence: float | None = Field(default=None, alias="minConfidence", ge=0.0, le=1.0)
     timeout_ms: int | None = Field(default=None, alias="timeoutMs", gt=0)
 
     @field_validator("mode", mode="before")
     @classmethod
     def _unknown_mode_is_off(cls, value: object) -> object:
+        if value is None:
+            return None
         return value if isinstance(value, str) and value in MODES else "off"
 
 
@@ -105,19 +114,38 @@ def bypassed() -> bool:
     return os.environ.get(BYPASS_ENV, "").strip() == "1"
 
 
+def configured_mode(cfg: DecisionsConfig, site: Site) -> Mode:
+    """The operator's ``mode`` for ``site`` when set, else ``site.default_mode``.
+
+    Ignores the kill-switch and ``enabled``: this is what the config says,
+    for reports; :func:`site_mode` is what a call site runs.
+    """
+    override = cfg.sites.get(site.name)
+    if override is None or override.mode is None:
+        return site.default_mode
+    return override.mode
+
+
 def site_mode(cfg: DecisionsConfig, site: Site) -> Mode:
     """Effective mode: bypass/disabled → off, else config, else site default."""
     if bypassed() or not cfg.enabled:
         return "off"
-    override = cfg.sites.get(site.name)
-    return override.mode if override is not None else site.default_mode
+    return configured_mode(cfg, site)
 
 
 def threshold_for(cfg: DecisionsConfig, site: Site) -> float:
-    """Site ``minConfidence``, else config threshold, else ``THRESHOLDS[risk]``."""
+    """Operator ``minConfidence`` > ``Site.min_confidence`` > config table > ``THRESHOLDS``.
+
+    A site's own floor (spec PR5 D3; route = 0.70) outranks the risk table,
+    including an operator ``thresholds`` override, because the table speaks
+    for a risk class and the site value for one decision point. Only the
+    per-site ``sites.<name>.minConfidence`` override beats it.
+    """
     override = cfg.sites.get(site.name)
     if override is not None and override.min_confidence is not None:
         return override.min_confidence
+    if site.min_confidence is not None:
+        return site.min_confidence
     if site.risk in cfg.thresholds:
         return cfg.thresholds[site.risk]
     return THRESHOLDS[site.risk]

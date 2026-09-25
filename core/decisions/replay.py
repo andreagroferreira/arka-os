@@ -49,8 +49,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, ValidationError
 
+from core.decisions.client import LOCAL_MARK
 from core.decisions.config import (
     DecisionsConfig,
     load_decisions_config,
@@ -58,7 +59,7 @@ from core.decisions.config import (
     threshold_for,
 )
 from core.decisions.engine import resolve, run_sync
-from core.decisions.models import State
+from core.decisions.models import Answer, State
 from core.decisions.paths import repo_root
 from core.decisions.registry import SITES
 from core.decisions.site import Outcome, Site, SiteCall
@@ -66,9 +67,9 @@ from core.decisions.sites import governance as gov
 from core.decisions.sites import quality
 from core.decisions.sites.command import command_state
 from core.decisions.sites.dispatch import skill_state
-from core.decisions.sites.forge import forge_state
+from core.decisions.sites.forge import forge_state, single_cell_complexity
 from core.decisions.sites.prompt import prompt_state
-from core.decisions.telemetry import call_cost_usd
+from core.decisions.telemetry import REPLAY_COST_CATEGORY, REPLAY_SESSION_ID, call_cost_usd
 from core.decisions.transport import Transport, resolve_transport
 
 # dispatch-role and subagent-discipline: the keyword baselines the UPS hook
@@ -82,12 +83,31 @@ MAX_ABSTAIN = 0.25
 MAX_FALSE_ESCALATION = 0.05
 MAX_SLOP_MAE = 5.0  # of a 5-50 total: one point per dimension on average
 MAE_SITES = frozenset({"slop-score"})
+# Held-out sets (spec PR5 D7): small generalisation checks, never mixed
+# into the corpora above; a held-out run is reported on its own.
+HELDOUT_SITES = ("learning-signal", "qg-prescreen", "slop-score")
+MIN_HELDOUT_CASES = 15
 
 Gate = Literal["pass", "fail", "offline"]
+CorpusKind = Literal["corpus", "heldout"]
+
+
+# ``seed`` or a labeller batch ``handwritten-<batch>``; anything else is a typo.
+SOURCE_PATTERN = r"^(seed|handwritten-[A-Za-z0-9][A-Za-z0-9-]*)$"
 
 
 class ReplayCase(BaseModel):
-    """One labelled prompt."""
+    """One labelled prompt.
+
+    ``source`` says where the case came from and is validated against
+    :data:`SOURCE_PATTERN`: ``seed`` for the PR1-PR3 corpora, or
+    ``handwritten-<batch>`` for a labeller's relabel batch (e.g.
+    ``handwritten-2026-09-25-A``); the adjudication itself lives in the
+    spec, never in the jsonl. ``gap`` is refine's missing piece
+    (:data:`~core.decisions.sites.prompt.REFINE_GAPS`), compared with
+    Jev's ``missing`` choice as a secondary score; the vague bool in
+    ``expected`` stays the gate's label.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -97,6 +117,8 @@ class ReplayCase(BaseModel):
     prior: list[str] = []
     context: dict[str, StrictInt | str] = {}
     expected: StrictBool | str | list[str] | list[StrictInt]
+    source: str = Field("seed", pattern=SOURCE_PATTERN)
+    gap: str | None = None
 
 
 @dataclass
@@ -124,7 +146,19 @@ class ReplayReport:
     # The per-call ceiling of an online run: the site's own ceiling (what
     # the live call site uses) unless ``--timeout-ms`` overrides it.
     timeout_ms: int | None = None
+    # Online only: cases whose site asked a question (a designed
+    # "no-questions" is not asked) and, of those, calls that reached the
+    # endpoint. ``replay_report`` counts a run only when enough reached.
+    asked: int | None = None
+    reached: int | None = None
     by_lang: dict[str, dict[str, float | None]] = field(default_factory=dict)
+    # refine only: Jev's ``missing`` choice vs the labelled ``gap`` on the
+    # cases where both exist (secondary: never part of the gate).
+    gap_accuracy: float | None = None
+    # forge-complexity only (D6): the abstain rate the pre-D6 single-cell
+    # reading gives on the SAME answers, reported next to the window one.
+    single_cell_abstain_rate: float | None = None
+    corpus: CorpusKind = "corpus"
     gate: Gate = "offline"
     failures: list[str] = field(default_factory=list)
 
@@ -428,6 +462,26 @@ def default_corpus_path(site: str) -> Path:
     return repo_root() / "config" / "decisions" / "corpora" / f"{site}.jsonl"
 
 
+def heldout_corpus_path(site: str) -> Path:
+    """``config/decisions/corpora/heldout/<site>.jsonl`` in this checkout."""
+    return repo_root() / "config" / "decisions" / "corpora" / "heldout" / f"{site}.jsonl"
+
+
+def _gap_error(site: str, case: ReplayCase) -> str | None:
+    """Why ``case.gap`` is invalid for ``site``, or None."""
+    if case.gap is None:
+        return None
+    if site != "refine":
+        return f"gap is a refine field, not a {site} one"
+    from core.decisions.sites.prompt import REFINE_GAPS
+
+    if case.gap not in REFINE_GAPS:
+        return f"gap {case.gap!r} is not one of {sorted(REFINE_GAPS)}"
+    if (case.gap == "none") is bool(case.expected):
+        return f"gap {case.gap!r} contradicts expected {case.expected!r}"
+    return None
+
+
 def load_corpus(site: str, path: Path | None = None) -> list[ReplayCase]:
     """Parse a JSONL corpus; ValueError names the first bad line."""
     source = path or default_corpus_path(site)
@@ -442,6 +496,9 @@ def load_corpus(site: str, path: Path | None = None) -> list[ReplayCase]:
             raise ValueError(f"{source}:{number}: {exc}") from exc
         if check is not None and not check(case.expected):
             raise ValueError(f"{source}:{number}: expected {case.expected!r} is not a {site} label")
+        gap_error = _gap_error(site, case)
+        if gap_error:
+            raise ValueError(f"{source}:{number}: {gap_error}")
         cases.append(case)
     return cases
 
@@ -539,10 +596,37 @@ def _mean_abs_error(answered: Sequence[Row]) -> float | None:
     return round(statistics.fmean(errors), 4) if errors else None
 
 
+def _secondary_scores(site: Site, rows: Sequence[Row], report: ReplayReport,
+                      threshold: float) -> None:
+    """Scores reported next to the gate, never part of it."""
+    if site.name == "refine":
+        report.gap_accuracy = _gap_accuracy(rows)
+    reader = ALT_READERS.get(site.name)
+    if reader is not None:
+        answered = sum(1 for _, _, out in rows
+                       if out is not None and reader(dict(out.answers), threshold) is not None)
+        report.single_cell_abstain_rate = _rate(len(rows) - answered, len(rows))
+
+
+def _gap_accuracy(rows: Sequence[Row]) -> float | None:
+    """Jev's ``missing`` choice vs the labelled ``gap``, where both exist."""
+    pairs = [(case.gap, out.answers["missing"].choice) for case, _, out in rows
+             if case.gap is not None and out is not None and "missing" in out.answers
+             and out.answers["missing"].choice]
+    return _rate(sum(1 for want, got in pairs if want == got), len(pairs))
+
+
+# D6: the pre-window reading of a site, run on the same answers for the report.
+ALT_READERS: dict[str, Callable[[dict[str, Answer], float], object | None]] = {
+    "forge-complexity": single_cell_complexity,
+}
+
+
 def _corpus_failures(report: ReplayReport) -> list[str]:
     failures = []
-    if report.cases < MIN_CASES:
-        failures.append(f"corpus has {report.cases} cases (< {MIN_CASES})")
+    floor = MIN_HELDOUT_CASES if report.corpus == "heldout" else MIN_CASES
+    if report.cases < floor:
+        failures.append(f"corpus has {report.cases} cases (< {floor})")
     if report.pt_share < MIN_PT_SHARE:
         failures.append(f"pt-PT share {report.pt_share:.0%} (< {MIN_PT_SHARE:.0%})")
     return failures
@@ -572,12 +656,30 @@ def _gate_failures(report: ReplayReport) -> list[str]:
     return failures
 
 
+# Reasons decided on this machine, before any byte left it.
+LOCAL_REASONS = frozenset({"cache-hit", "no-questions", "deadline", "backoff", "egress-denied"})
+
+
+def reached_endpoint(reason: str) -> bool:
+    """True when the endpoint decided the call (answered, or erred there).
+
+    Not reached: a :data:`LOCAL_REASONS` head, and any ``<reason>:local``
+    (:data:`~core.decisions.client.LOCAL_MARK`): ``invalid-shape:local``
+    (a state or body that never serialised) and ``timeout:local`` (our own
+    wall-clock deadline, not an answer or an error from the endpoint).
+    """
+    head, _, cause = reason.partition(":")
+    return head not in LOCAL_REASONS and cause != LOCAL_MARK
+
+
 @dataclass(frozen=True)
 class CallSample:
     """What one replay call cost: latency when it went out, and USD."""
 
     latency_ms: int | None
     cost_usd: float
+    reached: bool = False
+    asked: bool = True
 
 
 def _ask(
@@ -592,16 +694,21 @@ def _ask(
     state = case_state(site.name, case)
     response, reason, latency = run_sync(
         [call], state, transport=transport,
-        cfg=cfg, timeout_s=timeout_ms / 1000, session_id="replay",
+        cfg=cfg, timeout_s=timeout_ms / 1000, session_id=REPLAY_SESSION_ID,
+        cost_category=REPLAY_COST_CATEGORY, mark_local=True,
     )
     outcome = resolve(call, response, "act", threshold_for(cfg, site), reason, state=state)
     went_out = reason != "cache-hit" and not reason.startswith("backoff")
     fresh = reason == "ok" and response is not None
     cost = (call_cost_usd(transport, response.usage) or 0.0) if fresh and response else 0.0
-    return outcome, CallSample(latency if went_out else None, cost)
+    sample = CallSample(latency if went_out else None, cost,
+                        reached=reached_endpoint(reason), asked=reason != "no-questions")
+    return outcome, sample
 
 
 def _call_scores(samples: Sequence[CallSample], report: ReplayReport) -> None:
+    report.asked = sum(1 for s in samples if s.asked)
+    report.reached = sum(1 for s in samples if s.asked and s.reached)
     latencies = [s.latency_ms for s in samples if s.latency_ms is not None]
     if not latencies:
         report.p50_latency_ms = report.cost_usd = None
@@ -638,24 +745,35 @@ def replay(
     transport: Transport | None,
     offline: bool = False,
     timeout_ms: int | None = None,
+    cfg: DecisionsConfig | None = None,
+    corpus: CorpusKind = "corpus",
 ) -> ReplayReport:
     """Score ``cases`` for ``site``; offline (or no transport) = heuristic only.
 
     Each online call is capped at ``timeout_ms``, else at the site's own
-    ceiling: the replay cuts a call where the live site would.
+    ceiling: the replay cuts a call where the live site would. ``cfg``
+    defaults to the operator's config (its thresholds are what ships);
+    ``replay_report`` passes a copy with the answer cache off. ``corpus=
+    "heldout"`` marks a held-out set (its own, smaller size floor).
     """
     target = SITES[site]
     online = not offline and transport is not None
-    cfg = load_decisions_config()  # the operator's thresholds are what ships
+    cfg = cfg or load_decisions_config()
     ceiling = timeout_ms or site_timeout_ms(cfg, target)
     rows, samples = _score_cases(target, cases, transport if online else None, cfg, ceiling)
     rows = _labelled(site, rows)
     report = _base_report(target, rows)
+    report.corpus = corpus
     report.by_lang = _by_lang(rows, online)
     if online:
         report.timeout_ms = ceiling
         _online_scores(target, rows, report)
+        _secondary_scores(target, rows, report, threshold_for(cfg, target))
         _call_scores(samples, report)
+    return _judged(report, online)
+
+
+def _judged(report: ReplayReport, online: bool) -> ReplayReport:
     report.failures = _corpus_failures(report) + (_gate_failures(report) if online else [])
     report.gate = "fail" if report.failures else ("pass" if online else "offline")
     return report
@@ -670,7 +788,8 @@ def _call_line(report: ReplayReport) -> str:
 
 
 def _render(report: ReplayReport) -> str:
-    lines = [f"# Replay — {report.site} ({report.gate})",
+    kind = ", held-out" if report.corpus == "heldout" else ""
+    lines = [f"# Replay — {report.site} ({report.gate}{kind})",
              f"- cases: {report.cases} (pt-PT {report.pt_share:.0%})",
              f"- heuristic accuracy: {report.heuristic_accuracy:.1%}"]
     if report.jev_accuracy is not None:
@@ -683,6 +802,11 @@ def _render(report: ReplayReport) -> str:
         lines.append(f"- false escalation: {report.false_escalation_rate:.1%}")
     if report.mean_abs_error is not None:
         lines.append(f"- mean absolute error (total, 5-50): {report.mean_abs_error}")
+    if report.gap_accuracy is not None:
+        lines.append(f"- missing-piece choice vs gap label: {report.gap_accuracy:.1%}")
+    if report.single_cell_abstain_rate is not None:
+        lines.append(f"- abstain with the single-cell reading (pre-D6): "
+                     f"{report.single_cell_abstain_rate:.1%}")
     for lang, scores in report.by_lang.items():
         lines.append(f"- {lang}: " + ", ".join(f"{k}={v}" for k, v in scores.items()))
     lines += [f"- FAIL: {f}" for f in report.failures]
@@ -693,6 +817,8 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="python -m core.decisions.replay")
     parser.add_argument("--site", required=True, choices=sorted(SITES))
     parser.add_argument("--corpus", type=Path, default=None)
+    parser.add_argument("--heldout", action="store_true",
+                        help="replay the held-out set (corpora/heldout/<site>.jsonl)")
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=None,
@@ -706,8 +832,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         ns = _parse_args(argv)
     except SystemExit as exc:
         return 0 if exc.code == 0 else 2
+    heldout = ns.heldout and ns.corpus is None
     try:
-        cases = load_corpus(ns.site, ns.corpus)
+        cases = load_corpus(ns.site, heldout_corpus_path(ns.site) if heldout else ns.corpus)
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -716,7 +843,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("error: no transport (set OPENROUTER_API_KEY) — or pass --offline", file=sys.stderr)
         return 2
     report = replay(ns.site, cases, transport=transport, offline=ns.offline,
-                    timeout_ms=ns.timeout_ms)
+                    timeout_ms=ns.timeout_ms, corpus="heldout" if ns.heldout else "corpus")
     print(json.dumps(asdict(report), ensure_ascii=False, indent=2) if ns.json else _render(report))
     return 0 if report.gate != "fail" else 1
 

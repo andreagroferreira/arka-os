@@ -6,6 +6,7 @@
 * ``forge-complexity`` — the five dimensions of
   ``core/forge/complexity.py`` as 10-level scores, each mapped onto the
   heuristic's 0-100 scale; weights and ``determine_tier`` stay untouched.
+  Each score is read with the shared ±1-level window (PR5 D6).
 
 Level criteria mirror the heuristics in ``core/forge/complexity.py`` so
 Jev and the regex score the same thing.
@@ -13,11 +14,17 @@ Jev and the regex score the same thing.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from core.decisions.models import Answer, Question, QuestionType
-from core.decisions.site import LANGUAGE_PREAMBLE, Site, interpret_choice, interpret_score
+from core.decisions.site import (
+    LANGUAGE_PREAMBLE,
+    Site,
+    interpret_choice,
+    interpret_score,
+    window_confidence,
+)
 from core.decisions.sites.prompt import NO_DEPARTMENT, route_options
 
 DEPARTMENT_MIN_P = 0.20
@@ -74,14 +81,12 @@ def _departments_from(probs: dict[str, float]) -> list[str] | None:
     return picked[:MAX_DEPARTMENTS] or None
 
 
-# Demoted to shadow on 2026-09-23 by the online replay gate at the Forge's
-# real 3000 ms per-call ceiling (n=34): abstain 29.4 % > 25 % (6 calls cut
-# at 3 s), although Jev was right on 70.8 % of the 24 answered vs the
-# keyword estimate's 16.7 %. Re-promote once the call fits the ceiling.
+# Promoted shadow -> act by replay session jev-pr5-final (n=34, 3 s ceiling):
+# Jev 60.7 % / 63.3 % vs heuristic 17.9 % / 16.7 %, abstain 17.6 % / 11.8 %.
 FORGE_DEPARTMENTS = Site(
     name="forge-departments", questions=_departments_questions,
     interpret=_departments_interpret, risk="read", timeout_ms=3000,
-    default_mode="shadow",
+    default_mode="act",
     state_class="prompt",
 )
 
@@ -169,14 +174,45 @@ def level_to_percent(level: float) -> int:
     return round(level * 100 / (SCORE_LEVELS - 1))
 
 
-def _complexity_interpret(answers: dict[str, Answer], threshold: float) -> dict[str, int] | None:
+LevelReader = Callable[[Answer | None], float | None]
+
+
+def _dimensions(answers: dict[str, Answer], read: LevelReader) -> dict[str, int] | None:
+    # One unreadable or unsure dimension abstains the whole site.
     out: dict[str, int] = {}
     for dim in DIMENSIONS:
-        level = interpret_score(answers.get(dim), threshold, SCORE_LEVELS)
+        level = read(answers.get(dim))
         if level is None:
             return None
         out[dim] = level_to_percent(level)
     return out
+
+
+def window_level(answer: Answer | None, threshold: float) -> float | None:
+    """The fractional level (clamped to ``0..9``) when its ±1 window is confident.
+
+    D6 (PR5): the confidence is the window mass of
+    :func:`~core.decisions.site.window_confidence`, as slop-score reads it,
+    not one cell; the level keeps its fraction so the 0-100 mapping is as
+    fine as before.
+    """
+    read = window_confidence(answer, SCORE_LEVELS)
+    if answer is None or read is None or read[1] < threshold:
+        return None
+    return min(max(float(answer.score), 0.0), SCORE_LEVELS - 1)  # type: ignore[arg-type]
+
+
+def _complexity_interpret(answers: dict[str, Answer], threshold: float) -> dict[str, int] | None:
+    return _dimensions(answers, lambda answer: window_level(answer, threshold))
+
+
+def single_cell_complexity(answers: dict[str, Answer], threshold: float) -> dict[str, int] | None:
+    """The pre-D6 reading (one cell per dimension), kept only for the replay.
+
+    The replay reports both readings on the same answers (spec D6: "regista
+    ambas antes de qualquer proposta"); no live call site uses this one.
+    """
+    return _dimensions(answers, lambda answer: interpret_score(answer, threshold, SCORE_LEVELS))
 
 
 # Demoted to shadow on 2026-09-23 by the online replay gate (n=32): abstain
