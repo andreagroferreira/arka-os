@@ -1009,12 +1009,16 @@ class TestBalancedFenceExtraction:
         assert verdict is None
         assert error and "json:" in error
 
-    def test_unterminated_fence_yields_no_body(self):
+    def test_unterminated_fence_yields_no_body_and_a_parse_error(self):
+        """Master pinned ``error is None`` here, the behaviour behind the
+        #568 stale read: a record with neither a verdict nor an error was skipped by
+        the guard (QG round 2, Eduardo M1)."""
         raw = "text\n```arka-qgverdict\n{\"verdict\": \"REJECTED\""
         verdict, error = reviewer_ledger._extract_verdict(
             raw, "francisca-tech"
         )
-        assert verdict is None and error is None
+        assert verdict is None
+        assert error == "unterminated arka-qgverdict fence"
 
 
 class TestRejectedDigestsNeverHarvested:
@@ -1074,3 +1078,523 @@ def test_prescreen_name_is_in_the_contract_and_retention_keeps_working(ledger_ho
     os.utime(session_dir, (ancient, ancient))
     assert reviewer_ledger.sweep_expired(days=90) == 1
     assert not session_dir.exists()
+
+
+# ─── Issue #568: fence recovery from the reviewer's own transcript ────────
+
+FIXTURE = Path(__file__).parent / "fixtures" / "reviewer_transcript_post_handback.jsonl"
+PROSE = "Handback delivered. The verdict is in the report above."
+
+
+def _assistant(block: dict) -> str:
+    return json.dumps({"type": "assistant", "isSidechain": True,
+                       "message": {"role": "assistant", "content": [block]}})
+
+
+def _write_transcript(tmp_path: Path, lines: list[str], name: str = "t.jsonl") -> str:
+    path = tmp_path / name
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return str(path)
+
+
+def _handback(text: str) -> str:
+    return _assistant({"type": "tool_use", "id": "toolu_x", "name": "SubagentHandback",
+                       "input": {"message": text}})
+
+
+def _text(text: str) -> str:
+    return _assistant({"type": "text", "text": text})
+
+
+class TestFenceRecovery:
+    def test_fixture_pins_the_real_transcript_shape(self):
+        """The shape read from a round-7 reviewer transcript: the fence
+        rides in tool_use(SubagentHandback).input.message and the final
+        assistant text is prose without it."""
+        lines = [json.loads(line) for line in FIXTURE.read_text().splitlines()]
+        handback = [
+            block for rec in lines if rec.get("type") == "assistant"
+            for block in rec["message"]["content"]
+            if block.get("type") == "tool_use"
+        ]
+        assert [b["name"] for b in handback] == ["SubagentHandback"]
+        assert "```arka-qgverdict" in handback[0]["input"]["message"]
+        final = lines[-1]["message"]["content"][-1]
+        assert final["type"] == "text" and "arka-qgverdict" not in final["text"]
+
+    def test_last_message_fence_is_unchanged(self, ledger_home, tmp_path):
+        raw = _reviewer_output()
+        approved = {**VERDICT_BODY, "verdict": "APPROVED", "blockers": []}
+        transcript = _write_transcript(
+            tmp_path, [_handback(_reviewer_output(approved))]
+        )
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568a", "francisca-tech", raw, "subagent-stop", transcript
+        )
+        assert record["raw_output"] == raw
+        assert record["verdict"]["verdict"] == "REJECTED"
+        assert record["fence_source"] == "last_message"
+        assert record["capture_error"] is None
+
+    def test_prose_after_handback_recovers_the_handback_fence(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568b", "eduardo-copy", PROSE, "subagent-stop", str(FIXTURE)
+        )
+        assert record["verdict"]["verdict"] == "REJECTED"
+        assert record["fence_source"] == "transcript_handback"
+        assert record["capture_error"] is None
+        assert record["raw_output"].startswith("Copy review, round 7.")
+        assert "```arka-qgverdict" in record["raw_output"]
+
+    def test_fence_in_an_earlier_assistant_block(self, ledger_home, tmp_path):
+        fenced = _reviewer_output()
+        transcript = _write_transcript(tmp_path, [
+            _handback("an older handback, no fence"), _text(fenced), _text(PROSE),
+        ])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568c", "francisca-tech", PROSE, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_assistant"
+        assert record["raw_output"] == fenced
+        assert record["raw_sha256"] == __import__("hashlib").sha256(
+            fenced.encode("utf-8")).hexdigest()
+
+    def test_the_last_fence_wins_across_blocks(self, ledger_home, tmp_path):
+        older = _reviewer_output({**VERDICT_BODY, "verdict": "APPROVED", "blockers": []})
+        transcript = _write_transcript(tmp_path, [
+            _text(older), _handback(_reviewer_output()), _text(PROSE),
+        ])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568d", "francisca-tech", PROSE, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_handback"
+        assert record["verdict"]["verdict"] == "REJECTED"
+
+    def test_no_fence_anywhere_is_filed_with_capture_error(self, ledger_home, tmp_path):
+        transcript = _write_transcript(tmp_path, [_handback("no fence"), _text(PROSE)])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568e", "eduardo-copy", PROSE, "subagent-stop", transcript
+        )
+        assert record is not None, "a fenceless capture is still audited"
+        assert record["verdict"] is None
+        assert record["capture_error"] == "no-fence"
+        assert record["fence_source"] is None
+        assert record["raw_output"] == PROSE
+        assert Path(record["path"]).is_file()
+
+    def test_no_transcript_means_no_fence(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568f", "eduardo-copy", PROSE, "post-tool-use"
+        )
+        assert record["capture_error"] == "no-fence"
+
+    def test_broken_fence_keeps_the_parse_error_path(self, ledger_home, tmp_path):
+        broken = "Review.\n\n```arka-qgverdict\n{bad json,,}\n```\n"
+        transcript = _write_transcript(tmp_path, [_handback(_reviewer_output())])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568g", "eduardo-copy", broken, "subagent-stop", transcript
+        )
+        assert record["raw_output"] == broken
+        assert record["parse_error"]
+        assert record["capture_error"] is None
+        assert record["fence_source"] == "last_message"
+
+    def test_a_transcript_larger_than_the_tail_bound_finds_a_fence_inside_it(
+        self, ledger_home, tmp_path, monkeypatch
+    ):
+        from core.governance import fence_recovery
+
+        monkeypatch.setattr(fence_recovery, "TAIL_BYTES", 4096)
+        filler = [_text("x" * 200) for _ in range(200)]  # ~62 KiB of prose
+        transcript = _write_transcript(
+            tmp_path, [*filler, _handback(_reviewer_output()), _text(PROSE)]
+        )
+        assert Path(transcript).stat().st_size > 10 * 4096
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568h", "francisca-tech", PROSE, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_handback"
+
+    def test_a_fence_outside_the_tail_bound_is_not_read(self, tmp_path):
+        from core.governance import fence_recovery
+
+        transcript = _write_transcript(
+            tmp_path, [_handback(_reviewer_output())] + [_text("y" * 200)] * 50
+        )
+        assert fence_recovery.recover_fence(transcript, max_bytes=2048) is None
+        assert fence_recovery.recover_fence(transcript)[1] == "transcript_handback"
+
+    def test_malformed_lines_are_skipped(self, ledger_home, tmp_path):
+        transcript = _write_transcript(tmp_path, [
+            _handback(_reviewer_output()), "{not json", '"a string"', "[1, 2]",
+            json.dumps({"type": "assistant", "message": "odd"}),
+            json.dumps({"type": "assistant", "message": {"content": ["x", None]}}),
+            _text(PROSE)[:-5],
+        ])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568i", "francisca-tech", PROSE, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_handback"
+
+    def test_other_tools_input_is_not_a_handback(self, tmp_path):
+        from core.governance import fence_recovery
+
+        transcript = _write_transcript(tmp_path, [_assistant({
+            "type": "tool_use", "name": "Write",
+            "input": {"message": _reviewer_output()}})])
+        assert fence_recovery.recover_fence(transcript) is None
+
+    def test_unreadable_transcript_never_raises(self, ledger_home, tmp_path):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568j", "eduardo-copy", PROSE, "subagent-stop",
+            str(tmp_path / "missing.jsonl"),
+        )
+        assert record["capture_error"] == "no-fence"
+
+    def test_notice_names_the_missing_verdict(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568k", "eduardo-copy", PROSE, "subagent-stop"
+        )
+        reviewer_ledger.queue_notice("sess-568k", record, "")
+        context = reviewer_ledger.notices_context("sess-568k")
+        assert "verdict-unparsed" in context
+        assert "the gate treats eduardo-copy as missing: re-dispatch it" in context
+        assert "re-issue" not in context
+
+
+def _prompt(content: object, **extra: object) -> str:
+    return json.dumps({"type": "user", "isSidechain": True,
+                       "message": {"role": "user", "content": content}, **extra})
+
+
+def _tool_result() -> str:
+    return _prompt([{"type": "tool_result", "tool_use_id": "toolu_x",
+                     "content": "ok"}])
+
+
+APPROVED_BODY = {**VERDICT_BODY, "verdict": "APPROVED", "blockers": []}
+
+
+class TestTurnBoundary:
+    """A resumed reviewer appends its next round to the same transcript:
+    only the current turn may supply the fence (QG round 1, M1)."""
+
+    def test_a_resumed_round_ending_in_prose_is_no_fence(self, ledger_home, tmp_path):
+        transcript = _write_transcript(tmp_path, [
+            _prompt("review round 1"), _handback(_reviewer_output(APPROVED_BODY)),
+            _tool_result(), _prompt("round 2: your blockers are fixed, re-judge"),
+            _text("REJECTED: two findings remain."),
+        ])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568t", "francisca-tech", "REJECTED: two findings remain.",
+            "subagent-stop", transcript,
+        )
+        assert record["capture_error"] == "no-fence"
+        assert record["verdict"] is None
+        assert record["raw_output"] == "REJECTED: two findings remain."
+
+    def test_the_current_turn_fence_wins_over_the_previous_turn(self, tmp_path):
+        from core.governance import fence_recovery
+
+        current = _reviewer_output()
+        transcript = _write_transcript(tmp_path, [
+            _prompt("review round 1"), _handback(_reviewer_output(APPROVED_BODY)),
+            _prompt("round 2"), _handback(current), _tool_result(), _text(PROSE),
+        ])
+        assert fence_recovery.recover_fence(transcript) == (
+            current, "transcript_handback"
+        ), "a tool_result is not a turn boundary"
+
+    def test_a_list_prompt_and_a_mid_turn_meta_message_are_boundaries(self, tmp_path):
+        from core.governance import fence_recovery
+
+        for boundary in (
+            _prompt([{"type": "text", "text": "round 2"}]),
+            _prompt("The coordinator sent a message while you were working",
+                    isMeta=True),
+        ):
+            transcript = _write_transcript(tmp_path, [
+                _handback(_reviewer_output()), boundary, _text(PROSE),
+            ])
+            assert fence_recovery.recover_fence(transcript) is None
+
+
+class TestTailAndLineRules:
+    """Round-1 minors on fence_recovery: tail cut, per-line errors,
+    block order, line splitting and the compatibility fence."""
+
+    def test_a_cut_on_a_newline_keeps_the_first_complete_line(self, tmp_path):
+        from core.governance import fence_recovery
+
+        fenced, prose = _handback(_reviewer_output()), _text(PROSE)
+        transcript = _write_transcript(tmp_path, ["A" * 50, fenced, prose])
+        bound = len(fenced) + 1 + len(prose) + 1  # starts right after "A…\n"
+        assert fence_recovery.recover_fence(transcript, bound) == (
+            _reviewer_output(), "transcript_handback"
+        )
+
+    def test_a_mid_line_cut_drops_the_fragment_even_when_it_parses(self, tmp_path):
+        """The bytes after a mid-line cut are never trusted as a record,
+        even when they happen to form a valid, fenced one."""
+        from core.governance import fence_recovery
+
+        fenced, prose = _handback(_reviewer_output()), _text(PROSE)
+        path = tmp_path / "cut.jsonl"
+        # The byte before the window is a space, so the dropped segment
+        # (" " + fenced) is itself valid JSON: only the cut rule drops it.
+        path.write_text("X" * 50 + " " + fenced + "\n" + prose + "\n",
+                        encoding="utf-8")
+        bound = len(fenced) + 1 + len(prose) + 1
+        assert fence_recovery.recover_fence(str(path), bound) is None
+
+    def test_a_huge_int_or_deeply_nested_line_is_skipped(self, tmp_path):
+        from core.governance import fence_recovery
+
+        transcript = _write_transcript(tmp_path, [
+            _handback(_reviewer_output()),
+            '{"n": ' + "9" * 5000 + "}",  # ValueError, not JSONDecodeError
+            "[" * 200_000,  # RecursionError
+            _text(PROSE),
+        ])
+        assert fence_recovery.recover_fence(transcript)[1] == "transcript_handback"
+
+    def test_in_one_record_the_last_fenced_block_wins(self, ledger_home, tmp_path):
+        both = json.dumps({"type": "assistant", "message": {"role": "assistant",
+            "content": [{"type": "text", "text": _reviewer_output(APPROVED_BODY)},
+                        {"type": "tool_use", "name": "SubagentHandback",
+                         "input": {"message": _reviewer_output()}}]}})
+        transcript = _write_transcript(tmp_path, [both, _text(PROSE)])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568o", "francisca-tech", PROSE, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_handback"
+        assert record["verdict"]["verdict"] == "REJECTED"
+
+    def test_unicode_line_separators_do_not_split_a_record(self, tmp_path):
+        from core.governance import fence_recovery
+
+        message = "Report \u2028 line \u2029 para \u0085 next.\n" + _reviewer_output()
+        line = json.dumps({"type": "assistant", "message": {"role": "assistant",
+            "content": [{"type": "tool_use", "name": "SubagentHandback",
+                         "input": {"message": message}}]}}, ensure_ascii=False)
+        assert "\u2028" in line
+        transcript = _write_transcript(tmp_path, [line, _text(PROSE)])
+        assert fence_recovery.recover_fence(transcript) == (
+            message, "transcript_handback"
+        )
+
+    def test_the_compatibility_json_fence_is_recovered(self, ledger_home, tmp_path):
+        legacy = "Review.\n```json\n" + json.dumps(VERDICT_BODY) + "\n```\n"
+        transcript = _write_transcript(tmp_path, [_handback(legacy), _text(PROSE)])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568j2", "francisca-tech", PROSE, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_handback"
+        assert record["verdict"]["verdict"] == "REJECTED"
+
+    def test_a_json_fence_without_a_verdict_is_not_a_verdict(self, ledger_home, tmp_path):
+        example = "Config:\n```json\n{\"a\": 1}\n```\n"
+        transcript = _write_transcript(tmp_path, [
+            _handback(_reviewer_output()), _text(example),
+        ])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-568j3", "francisca-tech", example, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_handback"
+        assert record["raw_output"] == _reviewer_output()
+
+
+class TestEmptyPromptBoundary:
+    def test_an_empty_content_list_prompt_ends_the_scan(self, tmp_path):
+        """A user record whose content is an EMPTY list carries no
+        tool_result, so it opens a turn (QG round 2, Francisca m1)."""
+        from core.governance import fence_recovery
+
+        transcript = _write_transcript(tmp_path, [
+            _handback(_reviewer_output()), _prompt([]), _text(PROSE),
+        ])
+        assert fence_recovery.recover_fence(transcript) is None
+
+
+def _dir_records(session_id: str) -> list[dict]:
+    session_dir = reviewer_ledger.ledger_root() / session_id
+    return sorted(
+        (json.loads(p.read_text(encoding="utf-8"))
+         for p in session_dir.glob("*-*-*.json")),
+        key=lambda rec: rec["seq"],
+    )
+
+
+class TestLatestOnlyDedup:
+    """QG round 2, B1: dedup against ANY prior record deadlocked the gate."""
+
+    def test_verdict_resent_after_a_fenceless_capture_is_a_new_record(
+        self, ledger_home
+    ):
+        fenced = _reviewer_output()
+        capture = reviewer_ledger.record_reviewer_output
+        first = capture("sess-b1", "francisca-tech", fenced, "subagent-stop")
+        prose = capture("sess-b1", "francisca-tech", PROSE, "subagent-stop")
+        again = capture("sess-b1", "francisca-tech", fenced, "subagent-stop")
+        assert (first["seq"], prose["seq"], again["seq"]) == (1, 2, 3)
+        assert prose["capture_error"] == "no-fence"
+        assert again["verdict"]["verdict"] == "REJECTED"
+        assert again["raw_sha256"] == first["raw_sha256"]
+        assert [r["seq"] for r in _dir_records("sess-b1")] == [1, 2, 3]
+
+    def test_the_same_text_right_after_itself_is_adopted(self, ledger_home):
+        fenced = _reviewer_output()
+        capture = reviewer_ledger.record_reviewer_output
+        capture("sess-b1b", "francisca-tech", PROSE, "subagent-stop")
+        second = capture("sess-b1b", "francisca-tech", fenced, "post-tool-use")
+        third = capture("sess-b1b", "francisca-tech", fenced, "subagent-stop")
+        assert third["seq"] == second["seq"] == 2
+        assert third["source"] == "post-tool-use"
+        assert len(_dir_records("sess-b1b")) == 2
+
+    def test_latest_is_the_highest_seq_not_the_last_name(self, ledger_home):
+        """seq 10 sorts before seq 9 by name: latest is numeric."""
+        capture = reviewer_ledger.record_reviewer_output
+        for n in range(1, 10):
+            capture("sess-b1c", "francisca-tech", f"prose {n}", "subagent-stop")
+        tenth = capture("sess-b1c", "francisca-tech", _reviewer_output(),
+                        "subagent-stop")
+        again = capture("sess-b1c", "francisca-tech", _reviewer_output(),
+                        "post-tool-use")
+        assert tenth["seq"] == 10
+        assert again["seq"] == 10 and again["source"] == "subagent-stop"
+        assert len(_dir_records("sess-b1c")) == 10
+
+    def test_a_stray_dashed_name_never_breaks_the_seq_read(self, ledger_home):
+        """``_records_for`` admits ``<id>-<digits>-…``; the seq read must
+        parse every name it admits, or the capture is lost."""
+        capture = reviewer_ledger.record_reviewer_output
+        capture("sess-b1d", "francisca-tech", PROSE, "subagent-stop")
+        session_dir = reviewer_ledger.ledger_root() / "sess-b1d"
+        (session_dir / "francisca-tech-1-x-y.json").write_text("{}", encoding="utf-8")
+        record = capture("sess-b1d", "francisca-tech", _reviewer_output(),
+                         "subagent-stop")
+        assert record is not None and record["verdict"]["verdict"] == "REJECTED"
+
+
+
+class TestRoundThreeFixForward:
+    """QG round 3 minors, fixed forward by the CQO."""
+
+    def test_a_non_ascii_digit_name_never_drops_a_capture(self, ledger_home):
+        """``str.isdigit`` admits a superscript two that ``int`` rejects:
+        the stray name crashed every capture and the guard read the
+        previous round (Francisca r3 m1)."""
+        capture = reviewer_ledger.record_reviewer_output
+        capture("sess-r3a", "francisca-tech", PROSE, "subagent-stop")
+        session_dir = reviewer_ledger.ledger_root() / "sess-r3a"
+        (session_dir / "francisca-tech-\u00b2-bbbbbbbb.json").write_text(
+            "{}", encoding="utf-8")
+        record = capture("sess-r3a", "francisca-tech", _reviewer_output(),
+                         "subagent-stop")
+        assert record is not None and record["seq"] == 2
+
+    def test_a_shared_top_seq_is_never_adopted(self, ledger_home):
+        """Two divergent texts at the top seq: re-sending either one is
+        filed at the next seq, so it is the unambiguous latest
+        (Francisca r3 m2)."""
+        capture = reviewer_ledger.record_reviewer_output
+        fenced = _reviewer_output()
+        capture("sess-r3b", "francisca-tech", fenced, "subagent-stop")
+        session_dir = reviewer_ledger.ledger_root() / "sess-r3b"
+        twin = json.loads((session_dir / next(
+            p.name for p in session_dir.glob("francisca-tech-1-*.json")
+        )).read_text(encoding="utf-8"))
+        twin.update({"raw_output": PROSE, "raw_sha256": "f" * 64,
+                     "stored_sha256": "f" * 64, "verdict": None,
+                     "capture_error": "no-fence"})
+        (session_dir / "francisca-tech-1-ffffffff.json").write_text(
+            json.dumps(twin), encoding="utf-8")
+        again = capture("sess-r3b", "francisca-tech", fenced, "subagent-stop")
+        assert again["seq"] == 3
+        assert again["verdict"]["verdict"] == "REJECTED"
+
+    def test_a_verdict_beside_a_parse_error_renders_unparsed(self, ledger_home):
+        """A closed fence before a cut one keeps its verdict for audit, but
+        the guard treats the reviewer as missing: the notice headline
+        must say so, not print the earlier verdict (Francisca r3 m3)."""
+        closed = _reviewer_output()
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-r3c", "francisca-tech", closed + "\n" + _cut(), "subagent-stop")
+        assert record["verdict"] is not None and record["parse_error"]
+        reviewer_ledger.queue_notice("sess-r3c", record, "")
+        context = reviewer_ledger.notices_context("sess-r3c")
+        assert "francisca-tech verdict-unparsed" in context
+        assert "francisca-tech REJECTED" not in context
+
+
+UNTERMINATED = "unterminated arka-qgverdict fence"
+
+
+def _cut(body: dict | None = None) -> str:
+    """A reply cut after the opener and body, before the closing fence."""
+    payload = json.dumps(body if body is not None else VERDICT_BODY, indent=2)
+    return f"Round 2.\n\n```arka-qgverdict\n{payload}\n"
+
+
+class TestUnterminatedFence:
+    """QG round 2, Eduardo M1: an opener with no close is a broken fence."""
+
+    def test_last_message_opener_without_close_is_a_parse_error(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-ut", "francisca-tech", _cut(), "subagent-stop"
+        )
+        assert record["verdict"] is None
+        assert record["parse_error"] == UNTERMINATED
+        assert record["capture_error"] is None
+        assert record["fence_source"] == "last_message"
+
+    def test_transcript_opener_without_close_is_a_parse_error(
+        self, ledger_home, tmp_path
+    ):
+        transcript = _write_transcript(tmp_path, [_handback(_cut()), _text(PROSE)])
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-ut2", "francisca-tech", PROSE, "subagent-stop", transcript
+        )
+        assert record["fence_source"] == "transcript_handback"
+        assert record["verdict"] is None
+        assert record["parse_error"] == UNTERMINATED
+
+    def test_a_cut_fence_after_a_closed_one_still_breaks_the_record(
+        self, ledger_home
+    ):
+        """The closed fence may be a quoted earlier round: the cut one
+        that follows it keeps the record out of the quorum."""
+        text = _reviewer_output(APPROVED_BODY) + _cut()
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-ut3", "francisca-tech", text, "subagent-stop"
+        )
+        assert record["parse_error"].startswith(UNTERMINATED)
+
+    def test_an_unterminated_opener_is_not_rescued_by_a_json_fence(
+        self, ledger_home
+    ):
+        legacy = "```json\n" + json.dumps(APPROVED_BODY) + "\n```\n"
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-ut4", "francisca-tech", legacy + _cut(), "subagent-stop"
+        )
+        assert record["verdict"] is None
+        assert record["parse_error"] == UNTERMINATED
+
+    def test_unterminated_compatibility_json_fence_is_a_parse_error(
+        self, ledger_home
+    ):
+        cut = "Review.\n```json\n" + json.dumps(VERDICT_BODY) + "\n"
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-ut5", "francisca-tech", cut, "subagent-stop"
+        )
+        assert record["verdict"] is None
+        assert record["parse_error"] == "unterminated json fence"
+        assert record["capture_error"] == "no-fence"
+
+    def test_a_closed_fence_carries_no_unterminated_error(self, ledger_home):
+        record = reviewer_ledger.record_reviewer_output(
+            "sess-ut6", "francisca-tech", _reviewer_output(), "subagent-stop"
+        )
+        assert record["parse_error"] is None
+        assert record["verdict"]["verdict"] == "REJECTED"

@@ -21,9 +21,11 @@ changed anything: the two digests differ only when it rewrote the text,
 so a record with ``sanitized: true`` and equal digests was inspected and
 left alone. The dedup digest is part of the filename, so two captures
 that disagree land as separate records instead of overwriting each
-other. Adopting a prior record confirms the full 256 bits on the scan
-path; the late collision arm in ``_publish`` adopts on name alone (the
-~2^-32 window is described at ``_write_record``).
+other. Dedup compares against the reviewer's LATEST record only, so a
+text re-sent after a different capture is filed again rather than
+hidden behind its first copy. Adopting a prior record confirms the full
+256 bits on the scan path; the late collision arm in ``_publish`` adopts
+on name alone (the ~2^-32 window is described at ``_write_record``).
 (In the field every record has come from SubagentStop — the PostToolUse
 writer only sees synchronous dispatches — so treat that as collision
 safety, not as a delivered two-source cross-check.)
@@ -40,6 +42,22 @@ than trusted to either of them:
 - ``post-tool-use`` — ``tool_response.content`` of a SYNCHRONOUS Task
   dispatch, which is the subagent's own returned text. Async dispatches
   carry no output at that point and are skipped.
+
+FENCE RECOVERY (issue #568). A reviewer that hands its verdict back
+through ``SubagentHandback`` and then writes closing prose leaves the
+payload's last message without the fence. When the captured text holds
+no verdict fence (``_carries_fence``: an ``arka-qgverdict`` fence, or a
+compatibility ``json`` fence that carries a ``verdict`` key), the
+SubagentStop writer's scoped transcript is read
+(``core.governance.fence_recovery``, current turn only) and the message
+that carried the LAST fence becomes ``raw_output``; ``fence_source``
+records where it came from (``last_message``, ``transcript_assistant``,
+``transcript_handback``). A capture with no fence anywhere is still
+filed for audit, with ``capture_error: "no-fence"``. The aggregate
+guard treats that record, and a hook-captured record whose fence is
+broken (``parse_error``, which includes an opener that never closes),
+as a MISSING verdict, never as licence to read the reviewer's previous
+round.
 
 Missing a verdict is recoverable; a hashed record of words the reviewer
 never wrote is not — that failure produced three identical-hash
@@ -62,9 +80,13 @@ import hashlib
 import json
 import os
 import re
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
+
+from core.governance.fence_recovery import has_fence, recover_fence
 
 # Reviewer identities: constitution ids (config/constitution.yaml,
 # quality_gate.agents), deployed agent-file names, and the legacy persona
@@ -128,6 +150,11 @@ ENDED_NAME = ".ended"
 # refuse the whole directory. Not a record name, so it never enters the
 # aggregate guard's reviewer pool.
 PRESCREEN_NAME = "PRESCREEN.json"
+# Values of the record fields ``fence_source`` and ``capture_error``
+# (issue #568). Records written before the fix carry neither field and
+# are read exactly as before.
+FENCE_LAST_MESSAGE = "last_message"
+CAPTURE_NO_FENCE = "no-fence"
 _RECORD_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}-\d+-[0-9a-f]{8}\.json$")
 
 
@@ -176,19 +203,40 @@ def _balanced_body(text: str, start: int) -> tuple[str, int] | None:
     return text[start:start + closes[0]], start + closes[0] + len(_FENCE_CLOSE)
 
 
-def _fence_bodies(raw_output: str, open_re: re.Pattern[str]) -> list[str]:
-    """Every fence body for ``open_re``, balanced-JSON aware."""
+def _fence_bodies(
+    raw_output: str, open_re: re.Pattern[str]
+) -> tuple[list[str], bool]:
+    """Every fence body for ``open_re``, balanced-JSON aware, and whether
+    an opener was left unterminated (no closing fence after it)."""
     bodies: list[str] = []
     pos = 0
     while True:
         opened = open_re.search(raw_output, pos)
         if not opened:
-            return bodies
+            return bodies, False
         cut = _balanced_body(raw_output, opened.end())
         if cut is None:
-            return bodies
+            return bodies, True
         body, pos = cut
         bodies.append(body)
+
+
+def _candidate_fences(raw_output: str) -> tuple[list[str], str | None]:
+    """The fence family that decides the verdict, and its unterminated error.
+
+    An ``arka-qgverdict`` opener selects that family even when it never
+    closes; only a text without one falls back to the compatibility
+    ``json`` fence. An opener with no closing fence is a broken fence
+    (issue #568, QG round 2): it yields ``parse_error``, so a reply cut
+    mid-verdict is a missing verdict, never a record the guard skips.
+    """
+    for open_re, label in ((_VERDICT_OPEN_RE, "arka-qgverdict"),
+                           (_JSON_OPEN_RE, "json")):
+        bodies, unterminated = _fence_bodies(raw_output, open_re)
+        if bodies or unterminated:
+            error = f"unterminated {label} fence" if unterminated else None
+            return bodies, error
+    return [], None
 
 
 def _qualifying_fences(bodies: list[str]) -> tuple[list[dict], str | None]:
@@ -231,12 +279,21 @@ def _extract_verdict(
     names SOMEONE ELSE is a quotation, not this agent's verdict: the
     aggregator must reproduce each reviewer verbatim, so its own record
     took the last quoted reviewer as its own — filing a 7-blocker
-    verdict under an agent whose own list held 12.
+    verdict under an agent whose own list held 12. A fence that opens
+    and never closes is broken, not absent (``_candidate_fences``).
     """
-    candidates = (
-        _fence_bodies(raw_output, _VERDICT_OPEN_RE)
-        or _fence_bodies(raw_output, _JSON_OPEN_RE)
-    )
+    candidates, unterminated = _candidate_fences(raw_output)
+    verdict, parse_error = _verdict_from(candidates, reviewer_id)
+    if unterminated:
+        # Kept even beside a closed fence: the unterminated one came
+        # later, so the closed one may be a quoted earlier round.
+        parse_error = f"{unterminated}; {parse_error}" if parse_error else unterminated
+    return verdict, parse_error
+
+
+def _verdict_from(
+    candidates: list[str], reviewer_id: str
+) -> tuple[dict[str, Any] | None, str | None]:
     qualifying, parse_error = _qualifying_fences(candidates)
     if not qualifying:
         # No fence at all: the raw text is still the record.
@@ -310,8 +367,14 @@ def _records_for(session_dir: Path, reviewer_id: str) -> list[Path]:
     prefix = f"{reviewer_id}-"
     return sorted(
         path for path in session_dir.glob(f"{prefix}*.json")
-        if path.name[len(prefix):].split("-", 1)[0].isdigit()
+        if _is_ascii_seq(path.name[len(prefix):].split("-", 1)[0])
     )
+
+
+def _is_ascii_seq(seq: str) -> bool:
+    """ASCII digits only: ``str.isdigit`` also accepts e.g. a superscript
+    two, which ``int`` rejects, so a stray name crashed every capture."""
+    return seq.isascii() and seq.isdigit()
 
 
 def _write_record(session_dir: Path, record: dict) -> Path | None:
@@ -382,6 +445,7 @@ def _build_record(
     source: str,
     digest: str,
     seq: int,
+    provenance: Mapping[str, str | None] | None = None,
 ) -> dict:
     """One ledger record. Digest semantics: see the module docstring."""
     verdict, parse_error = _extract_verdict(raw_output, reviewer_id)
@@ -396,20 +460,68 @@ def _build_record(
         "raw_sha256": digest,
         "verdict": verdict,
         "parse_error": parse_error,
-        # Digest columns are harvested ONLY from a VALIDATED verdict:
-        # _validated is fail-soft (it keeps the raw dict so no review
-        # text is ever lost), but a value the validator rejected must
-        # not enter the corpus through these columns (QG r12 — a
-        # rejected tree_digest was reproduced landing on disk here).
-        "evidence_digest": (
-            None if parse_error else (verdict or {}).get("evidence_digest")
-        ),
-        "tree_digest": (
-            None if parse_error else (verdict or {}).get("tree_digest")
-        ),
+        **_harvested_digests(verdict, parse_error),
         "source": source,
         "sanitized": sanitized,
+        **(provenance or {}),
     }
+
+
+def _harvested_digests(
+    verdict: dict[str, Any] | None, parse_error: str | None
+) -> dict[str, Any]:
+    """The digest columns, harvested ONLY from a VALIDATED verdict.
+
+    ``_validated`` is fail-soft (it keeps the raw dict so no review text
+    is ever lost), but a value the validator rejected must not enter the
+    corpus through these columns (QG r12 — a rejected tree_digest was
+    reproduced landing on disk here).
+    """
+    trusted = {} if parse_error else (verdict or {})
+    return {
+        "evidence_digest": trusted.get("evidence_digest"),
+        "tree_digest": trusted.get("tree_digest"),
+    }
+
+
+def _carries_fence(text: str) -> bool:
+    """The acceptance rule ``_extract_verdict`` applies to a message.
+
+    An ``arka-qgverdict`` opener counts even when its body is broken or
+    never closes (the record then carries ``parse_error``); the
+    compatibility ``json`` fence counts only when a body parses to a
+    dict with a ``verdict`` key, since ordinary prose quotes JSON too.
+    """
+    if has_fence(text):
+        return True
+    bodies, _ = _fence_bodies(text, _JSON_OPEN_RE)
+    qualifying, _ = _qualifying_fences(bodies)
+    return bool(qualifying)
+
+
+def _resolve_output(
+    raw_output: str, reviewer_id: str, transcript_path: str
+) -> tuple[str, dict[str, str | None]]:
+    """The text to file and its provenance fields (issue #568).
+
+    The captured text wins whenever it carries a verdict fence — a
+    broken one included, so the ``parse_error`` path is unchanged.
+    Otherwise the scoped transcript supplies the last fenced message of
+    the current turn; failing that, the captured text is filed as
+    ``no-fence``.
+    """
+    if _carries_fence(raw_output):
+        return raw_output, {
+            "fence_source": FENCE_LAST_MESSAGE, "capture_error": None,
+        }
+    recovered = (
+        recover_fence(transcript_path, accepts=_carries_fence)
+        if transcript_path else None
+    )
+    if recovered is not None:
+        text, fence_source = recovered
+        return text, {"fence_source": fence_source, "capture_error": None}
+    return raw_output, {"fence_source": None, "capture_error": CAPTURE_NO_FENCE}
 
 
 def record_reviewer_output(
@@ -417,32 +529,43 @@ def record_reviewer_output(
     reviewer_id: str,
     raw_output: str,
     source: str,
+    transcript_path: str = "",
 ) -> dict | None:
     """Persist one reviewer dispatch verbatim. Returns the record or None.
 
-    Never raises. Deduplicates by finding the 8-hex digest prefix in a
-    filename and then confirming the full 256-bit ``raw_sha256`` in the
-    body, so the two writers do not double-record the same output and a
-    32-bit filename collision cannot adopt a different text on the scan
-    path (for the late scan-to-link window, see ``_write_record``).
+    ``transcript_path`` is the subagent's OWN transcript, passed only by
+    a writer that proved it is not the parent's; it is read only when
+    ``raw_output`` carries no verdict fence, and only back to the prompt
+    of the current turn (issue #568). Never raises. Dedup is against the
+    reviewer's LATEST record only (``_latest_by_digest``).
     """
     try:
-        if not raw_output or not is_reviewer(reviewer_id):
-            return None
-        if not _safe_id(reviewer_id):
-            return None
-        # The fail-closed attribution rule is enforced HERE, not only in
-        # the hook that calls this: a record carries a reviewer's name,
-        # so an unknown provenance must never produce one.
-        if source not in CAPTURE_SOURCES:
-            return None
-        session_dir = _session_dir(session_id)
+        session_dir = _capture_dir(session_id, reviewer_id, raw_output, source)
         if session_dir is None:
             return None
-        return _capture(session_dir, session_id, reviewer_id, raw_output, source)
+        text, provenance = _resolve_output(raw_output, reviewer_id, transcript_path)
+        return _capture(
+            session_dir, session_id, reviewer_id, text, source, provenance
+        )
     except Exception as exc:
         _record_capture_failure(session_id, reviewer_id, source, exc)
         return None
+
+
+def _capture_dir(
+    session_id: str, reviewer_id: str, raw_output: str, source: str
+) -> Path | None:
+    """The session directory for an admissible capture, else None."""
+    if not raw_output or not is_reviewer(reviewer_id):
+        return None
+    if not _safe_id(reviewer_id):
+        return None
+    # The fail-closed attribution rule is enforced HERE, not only in
+    # the hook that calls this: a record carries a reviewer's name,
+    # so an unknown provenance must never produce one.
+    if source not in CAPTURE_SOURCES:
+        return None
+    return _session_dir(session_id)
 
 
 def _record_capture_failure(
@@ -476,21 +599,55 @@ def _capture(
     reviewer_id: str,
     raw_output: str,
     source: str,
+    provenance: Mapping[str, str | None],
 ) -> dict | None:
     digest = hashlib.sha256(raw_output.encode("utf-8")).hexdigest()
     existing = _records_for(session_dir, reviewer_id)
-    prior = _find_by_digest(existing, digest)
+    prior = _latest_by_digest(existing, reviewer_id, digest)
     if prior is not None:
-        return prior  # already captured (other source, same text)
+        return prior  # the latest capture is this text (other source)
 
     record = _build_record(
-        session_id, reviewer_id, raw_output, source, digest, len(existing) + 1
+        session_id, reviewer_id, raw_output, source, digest,
+        len(existing) + 1, provenance,
     )
     path = _write_record(session_dir, record)
     if path is None:
         return None
     record["path"] = str(path)
     return record
+
+
+def _record_seq(path: Path, reviewer_id: str) -> int:
+    """The seq after ``<reviewer_id>-``, read exactly as ``_records_for``
+    filters it (so any name that reached here parses)."""
+    return int(path.name[len(reviewer_id) + 1:].split("-", 1)[0])
+
+
+def _latest_by_digest(
+    paths: list[Path], reviewer_id: str, digest: str
+) -> dict[str, Any] | None:
+    """The reviewer's LATEST record when it holds this exact text.
+
+    Only the highest seq is eligible (issue #568, QG round 2). Matching
+    ANY earlier record deadlocked the gate: fenced X, then a prose-only
+    turn filed as ``no-fence``, then X re-sent verbatim returned the
+    first record, so the no-fence record stayed latest and the guard
+    refused the reviewer for good. The same text after a different
+    capture is therefore a new record; the same text right after itself
+    (the second writer of one dispatch) is still adopted.
+    """
+    if not paths:
+        return None
+    seqs = [_record_seq(path, reviewer_id) for path in paths]
+    top = max(seqs)
+    latest = [path for path, seq in zip(paths, seqs, strict=True) if seq == top]
+    if len(latest) != 1:
+        # Two divergent texts share the top seq (the two-writer race):
+        # the guard picks one by clock, so adopting either could leave
+        # the other standing. A new record at the next seq is unambiguous.
+        return None
+    return _find_by_digest(latest, digest)
 
 
 def _find_by_digest(paths: list[Path], digest: str) -> dict | None:
@@ -642,6 +799,7 @@ def _notice_entry(record: dict | None, nudge: str) -> dict | None:
                 if (blocker or {}).get("verdict") != "REFUTED"
             ),
             "parse_error": record.get("parse_error"),
+            "capture_error": record.get("capture_error"),
             "artifact": record.get("path"),
         })
         # The record supersedes the nudge: the only nudge produced says
@@ -781,12 +939,24 @@ def claim_notices_context(session_id: str) -> tuple[str, list[Path]]:
     return _render(entries), tokens
 
 
+def _unparsed_reason(entry: Mapping[str, Any]) -> str:
+    if entry.get("parse_error"):
+        return str(entry["parse_error"])
+    if entry.get("capture_error") == CAPTURE_NO_FENCE:
+        return (
+            "no verdict block in the reply (nor in the current turn of its"
+            " transcript, when one was readable); the gate treats"
+            f" {entry.get('reviewer_id')} as missing: re-dispatch it"
+        )
+    return "no verdict block in the reply"
+
+
 def _render(entries: list[dict]) -> str:
     lines = []
     for entry in entries:
         if entry.get("kind") == "reviewer-verdict":
             verdict = entry.get("verdict")
-            if verdict:
+            if verdict and not entry.get("parse_error"):
                 head = (
                     f"{entry.get('reviewer_id')} {verdict}"
                     f" blockers={entry.get('blockers', 0)}"
@@ -795,7 +965,7 @@ def _render(entries: list[dict]) -> str:
                 # A reviewer who filed no parsable verdict is exactly who
                 # this line exists to surface — printing a Python None
                 # here tells the operator nothing.
-                reason = entry.get("parse_error") or "no verdict block in the reply"
+                reason = _unparsed_reason(entry)
                 head = f"{entry.get('reviewer_id')} verdict-unparsed ({reason})"
             lines.append(
                 f"[arka:qg:reviewer-verdict] {head}"

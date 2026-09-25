@@ -32,6 +32,7 @@ import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from core.hooks._shared import (
     ensure_root_on_path,
@@ -216,7 +217,24 @@ def _record(session_id: str, agent_id: str, qa: dict) -> None:
         pass
 
 
-def _record_reviewer(session_id: str, agent_id: str, text: str) -> dict | None:
+def _scoped_transcript(stdin_json: dict[str, Any], transcript_path: str) -> str:
+    """The subagent's OWN transcript path, or "" when it is not proven.
+
+    Handed to the ledger for fence recovery (issue #568): a reviewer that
+    returns its verdict through SubagentHandback and then writes closing
+    prose leaves ``last_assistant_message`` without the fence. The parent
+    transcript is refused for the same reason ``_subagent_text`` refuses
+    it — its words are not the reviewer's.
+    """
+    agent_transcript = get_str(stdin_json, "agent_transcript_path")
+    if not agent_transcript or _same_file(agent_transcript, transcript_path):
+        return ""
+    return agent_transcript
+
+
+def _record_reviewer(
+    session_id: str, agent_id: str, text: str, transcript: str = ""
+) -> dict[str, Any] | None:
     """Cross-check capture of a QG reviewer's verdict (see the ledger).
 
     Independent of the PostToolUse writer: the two sources dedupe on the
@@ -235,18 +253,27 @@ def _record_reviewer(session_id: str, agent_id: str, text: str) -> dict | None:
             reviewer_id=agent_id,
             raw_output=text,
             source="subagent-stop",
+            transcript_path=transcript,
         )
     except Exception:
         return None
 
 
 def _ledger_capture(
-    source: str, session_id: str, agent_id: str, text: str
+    source: str, session_id: str, agent_id: str, text: str, transcript: str = ""
 ) -> dict | None:
-    """Capture to the ledger only when attribution is proven."""
+    """Capture to the ledger only when attribution is proven.
+
+    A tool-call placeholder from a subagent-scoped source is still
+    handed on when the scoped transcript is known: a reviewer whose last
+    act was the SubagentHandback call carries its verdict there, and
+    dropping the capture let the guard read the previous round (#568).
+    """
     if not _attributable(source, text):
-        return None
-    return _record_reviewer(session_id, agent_id, text)
+        scoped = source in ("payload", "agent-transcript") and bool(transcript)
+        if not (scoped and _PLACEHOLDER_RE.fullmatch(text.strip())):
+            return None
+    return _record_reviewer(session_id, agent_id, text, transcript)
 
 
 def _nudge(agent_id: str, qa: dict) -> str:
@@ -293,7 +320,10 @@ def main(stdin_json: dict | None = None) -> int:
         return 0
 
     _persist_output(session_id, agent_id, text)
-    ledger = _ledger_capture(source, session_id, agent_id, text)
+    ledger = _ledger_capture(
+        source, session_id, agent_id, text,
+        _scoped_transcript(stdin_json, transcript_path),
+    )
     qa = _run_qa(text, raw)
     _record(session_id, agent_id, qa)
     _capture_usage(stdin_json, session_id, agent_id, transcript_path)
@@ -302,7 +332,7 @@ def main(stdin_json: dict | None = None) -> int:
 
 
 def _capture_usage(
-    stdin_json: dict[str, object],
+    stdin_json: dict[str, Any],
     session_id: str,
     agent_id: str,
     transcript_path: str,
@@ -314,8 +344,8 @@ def _capture_usage(
     already captured by the Stop hook, so capturing them again would
     double-count.
     """
-    agent_transcript = get_str(stdin_json, "agent_transcript_path")
-    if not agent_transcript or _same_file(agent_transcript, transcript_path):
+    agent_transcript = _scoped_transcript(stdin_json, transcript_path)
+    if not agent_transcript:
         return
     try:
         from core.runtime.native_usage import record_subagent_usage
