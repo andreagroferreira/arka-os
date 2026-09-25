@@ -405,6 +405,7 @@ arkaos/
 | 1. Bump version | Update `VERSION`, `package.json`, `pyproject.toml` | All three must match |
 | 1b. Regenerate marketplace | `~/.arkaos/bin/arka-py scripts/marketplace_gen.py` | Marketplace/plugin JSONs embed the version; `test_marketplace_gen.py` fails the suite on a bump without regen (bit v4.14.4) |
 | 1c. Regenerate harness | `~/.arkaos/bin/arka-py scripts/harness_gen.py` | Runtime bundles under `harness/` embed the version; `test_harness_gen.py` fails the suite on a bump without regen (bit v5.17.2: master shipped with `harness/` at v5.17.1, caught on the JEV branch 2026-09-23) |
+| 1d. Regenerate guide | `~/.arkaos/bin/arka-py scripts/guide_gen.py` | `THE-ARKAOS-GUIDE.md` embeds the version; `test_guide_gen.py` fails the suite on a bump without regen (bit v5.18.0: the release-gate suite failed on it after the bump, 2026-09-25) |
 | 2. Commit | `git commit -m "chore: bump to vX.Y.Z"` | |
 | 3. Push | `git push origin master` | |
 | 4. GitHub release | `gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."` | |

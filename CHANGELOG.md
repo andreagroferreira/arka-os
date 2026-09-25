@@ -5,6 +5,197 @@ All notable changes to ArkaOS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.18.0] - 2026-09-25
+
+Jev Decisions Layer (campaign approved 2026-09-23; PRs #565, #566, #567,
+#574, #575). ArkaOS gains a System 1 layer under the agents:
+`core/decisions/` asks TypeSafe's Jev (`typesafe/jev-1.13` through the
+OpenRouter Decisions endpoint) typed questions — yes/no, choice, score —
+at 17 sites where hooks used to guess with regex. Jev generates no text,
+is not a Model Fabric role and never replaces a subagent or a Quality
+Gate reviewer. Each site keeps its heuristic as the unavailability
+fallback and every fallback is counted. Modes are decided by replay
+against a labelled corpus, never by opinion: 14 sites ship in `act`,
+three in `shadow` (`refine`, `forge-complexity`, `qg-prescreen`). The
+Quality Gate approved PR1 at round 2, PR2 at 6, PR3 at 9, #574 at 3 and
+PR5 at 2. The record: the operator's rulings (the catch-all layer and
+the diff allowlist in PR3, the relabel arbitrations and the route
+threshold in PR5), ADR `docs/adr/2026-09-23-jev-decisions-layer.md`,
+security review `docs/security/2026-09-23-jev-decisions-review.md`, specs
+PR1–PR3 and PR5, and the KB note "Jev em harness de agentes" in the vault.
+
+Prerequisite: `npx arkaos keys set OPENROUTER_API_KEY <key>`, and
+training and logging turned off for paid models on the OpenRouter
+account. With a key, prompt text, Bash commands, Stop-hook transcript
+excerpts and diffs of allowlisted files are sent to OpenRouter, after
+secret refusal and client-name redaction. Without a key the decisions
+stage is not registered: no call leaves the machine and no Jev marker is
+added to hook output. Kill-switch: `ARKA_BYPASS_DECISIONS=1`.
+
+### Added
+- **`core/decisions/`** (PR1): stdlib client for the OpenRouter Decisions
+  API, three modes per site (`act`, `shadow` in a detached worker, `off`),
+  circuit breaker on 401/429/529, answer cache (sha256, TTL 24 h, never
+  stores state), `decisions.jsonl` telemetry (0600, salted HMAC state
+  digest), cost recorded as `category="decision"`, `decisions:` block in
+  `models.yaml`, `OPENROUTER_API_KEY` in the key catalogue, Jev rows in
+  `pricing.py`.
+- **Prompt sites** (PR1), one bounded call per UserPromptSubmit turn before
+  the Synapse bridge: `topic-drift`, `refine`, `creation-intent`
+  (escalate-only: Jev may add WORKFLOW-REQUIRED, never remove it) and
+  `route` (a department choice Synapse L1 consumes as a hint; an explicit
+  `/prefix` still wins). Output carries
+  `[arka:route-confidence] dept=<d> p=<p> source=jev`, or
+  `dept=<d> source=keyword reason=<r>` when the heuristic decides.
+- **Command, Forge and dispatch sites** (PR2): `bash-effect` (PreToolUse,
+  Python path only, escalate-only, 1000 ms), `forge-departments` and
+  `forge-complexity` (Forge step 3 under `ForgeBudget`, 3 s per call, 5 s
+  total), `dispatch-role` (`[arka:dispatch-role]`, never quality →
+  economy), `subagent-discipline` (`[arka:subagent-discipline]`, Quality
+  Gate dispatches exempt) and `skill-hints` (Synapse L5 hint from a menu
+  of the department's commands plus the top 20).
+- **Governance and quality sites** (PR3): `sycophancy`, `phantom-action`
+  (only with 0 tool calls on record), `skill-proposer` and
+  `learning-signal` (`[arka:learned-rule]`, never writes memory) share one
+  1200 ms call per Stop inside a 3000 ms `StopBudget` with a 500 ms
+  reserve; `ui-in-ts` (PreToolUse frontend gate, WARN-only,
+  escalate-only); `qg-prescreen` (advisory CLI
+  `core.governance.qg_prescreen` before the reviewers; never touches the
+  reviewer list); `slop-score` (advisory `evidence_checks` section, minor
+  severity).
+- **Replay harness and report**: `arka-py -m core.decisions.replay --site
+  <s> [--heldout]` with 17 corpora (≥ 30 cases, ≥ 50 % pt-PT, no client
+  names) and three held-out sets; `arka-py -m core.decisions.replay_report
+  --all --session <id>` runs every site N times with the answer cache off,
+  marks a run `not-measured` under 90 % endpoint reach or over 10 %
+  unavailable, records secondary scores and a live-telemetry column, and
+  writes `PROPOSALS.json` (PR5 D1).
+- **Promotion rule** `core/decisions/promotion.py` (PR5 D2): `shadow → act`
+  on two passing runs on the same corpus digest, `act → shadow` on two
+  fails in three, `off` never touched, a changed corpus restarts the
+  window; `qg-prescreen` needs abstain ≤ 20 %. Proposals only; the PR
+  applies them to `Site.default_mode`. `forge-departments` was promoted
+  this way (60.7 / 63.3 % vs 17.9 / 16.7 %, abstain 17.6 / 11.8 %).
+- **`Site.min_confidence`** (PR5 D3): a site's own action threshold, read
+  after the operator's `sites.<name>.minConfidence` and before
+  `thresholds[risk]` and the risk table; `route` acts from 0.70 (see
+  Decided).
+- **Cost and effect** `core/decisions/cost_effect.py` (PR5 D5): replay
+  spend lands under `decision-replay`, production under `decision`; the
+  four cost sites report a counterfactual ceiling (see Decided).
+  `/arka decisions [period] [--by-site]` and a Decisions (24h) section in
+  `/arka status`.
+- **Quality Gate plumbing**: `core/governance/fence_recovery.py` recovers
+  a reviewer's `arka-qgverdict` fence from its transcript (#574);
+  `operator_message.last_operator_message` reads a transcript by
+  structural flags, never by harness text; `stop_budget`, `jev_advisory`,
+  `slop_check`, `core/governance/literal_git` (`--literal-pathspecs`,
+  `names_exactly`, `--relative`); `scripts/tools/corpus_merge.py` merges
+  blind relabels with Cohen's kappa and drops near-duplicates, including
+  a held-out case that repeats a training case.
+- Tests: a parity test pins the CLAUDE.md Typed Decisions table to the
+  registry (PR5 D4); `ReplayCase.source` is validated (`seed` or
+  `handwritten-<batch>`).
+
+### Changed
+- **The installer seed writes only `decisions.enabled`, `transport` and
+  `redactClients`** (PR5 D3). `Site.default_mode` is the single source of
+  a site's default; a seeded mode would have been indistinguishable from
+  an operator choice after the first seed, so no later demotion could
+  reach an installed machine. `SiteConfig.mode` is `None` by default: an
+  override that only tunes `timeoutMs` or `minConfidence` no longer flips
+  a shadow site to act. An operator's `sites.*` entry survives
+  `npx arkaos update` unchanged.
+- **`forge-complexity` reads a ±1 window** over the score cells
+  (`window_mass`, shared in `site.py`, PR5 D6): abstain 88–89 % → 69.6 /
+  67.7 % on the relabelled corpus; still `shadow` at the 25 % gate.
+- **Corpora relabelled blind** (PR5 D7): `refine` 104 cases and
+  `forge-complexity` 102, two labellers each, kappa 1.00 (`refine`
+  vague), 0.83 (`refine` gap), 0.946 (`forge-complexity` tier), five
+  cases arbitrated by the operator; held-out sets for `learning-signal`
+  (17), `qg-prescreen` (20) and `slop-score` (20). `refine` stays `shadow`
+  (66.0 / 65.0 % vs 60.8 %; run 2 under +5 pp).
+- Replay counts a locally decided failure (`invalid-shape` on
+  unserialisable state, the wall-clock deadline) as not reached; live
+  telemetry keeps the bare reason vocabulary.
+- Harness bundles and the marketplace regenerated for 5.18.0.
+
+### Fixed
+- `npx arkaos update` never seeded `~/.arkaos/config.json` (only the root
+  install did), so every seeded flag since v2.40 reached existing installs
+  only on reinstall (PR1). From 5.18.0 `update` runs the same seed: it
+  fills only absent keys and never rewrites a value, so an existing
+  install receives the flags added since v2.40, and
+  `decisions.enabled: true`, on its first update.
+- `harness/` bundles shipped at v5.17.1 inside v5.17.2 (bump without
+  regen); the release pipeline gained step 1c (PR1).
+- The SubagentStop ledger stored a reviewer's closing prose with no
+  verdict and the aggregate guard fell back to the previous round's
+  artifact; rounds 7 and 8 of PR3 each had to re-dispatch both reviewers
+  (#568, #574). A resumed reviewer's earlier round is never eligible, a
+  broken or unterminated fence refuses the aggregate instead of reading
+  an older seq, and dedup adopts a prior record only when it is the
+  reviewer's latest.
+- `transcript_scope.recent_user_messages` fed harness-written text
+  (hand-backs, compaction summaries, reminders, queued commands) to
+  topic-drift and the Jev prompt state as if the operator had typed it
+  (#569).
+- The evidence engine reported `overall=pass` when the tests check timed
+  out at its 300 s cap; a killed command is now a failed row (#570).
+- `slop-score` read a whole file when git could not describe the name;
+  only exit 1 of the tracking probe means untracked, and a name not in
+  git's own spelling is skipped as `path-class` (#573).
+- Four timed egress tests used absolute CPU ceilings and flaked on a
+  slower CI runner; they now scale by a per-session machine factor.
+
+### Security
+- **Egress boundary for `diff` state** (PR3 Decision 2c, Quality Gate
+  rounds 7–9): a diff leaves the machine only when it names a file with
+  one of 36 source or prose suffixes (`privacy.DIFF_SOURCE_SUFFIXES`);
+  config, dotfiles, key material, lock files and binaries are refused as
+  `egress-denied:path-class` and the audit line never stores the path.
+  The boundary judges the file that is read, not the name: resolved
+  regular file, `st_nlink == 1`, inside the project and outside `.git`,
+  literal git pathspecs on every call that carries a changed-file name,
+  continuation chunks carry their `diff --git` header. Closed vectors:
+  symlink, hard link, magic pathspec, directory. Residuals are listed in
+  the ADR (rows 51 and 52).
+- **Credential detectors as defence in depth**: shell credentials refused
+  on the raw state leaves and on the serialised text with escape-layer
+  unfolding for nested `bash -c` / `ssh` quoting, linear on 1 MB one-line
+  JSON (PR2). PR3 (rounds 1–7) added a catch-all layer modelled on
+  gitleaks' `generic-api-key` rule; XML element and `.netrc` detectors;
+  nested `<value>` carry; and Stripe key patterns in the vendor vocabulary
+  (`harness_scanner._SECRET_PATTERNS`, read by the egress check).
+- Bearer key sent as an unredirected header and any redirected response
+  refused (`reason=redirected`); redaction and secret checks run on the
+  full text before the size cap; `prompt` and `command` state degrade
+  without a redaction list (secrets still refused, audit written) while
+  `diff` and `transcript` state stay fail-closed;
+  `~/.arkaos/egress/audit.jsonl` rotates; rotating the key clears a 401
+  trip at once (PR1, PR2).
+
+### Decided
+- The route threshold is 0.70 as spec D3 prescribed. The first PR5
+  delivery kept the 0.75 write threshold and restated the docs; Quality
+  Gate round 1 caught the divergence and the operator ruled on
+  2026-09-25. The replay does not separate the two values; live telemetry
+  showed 7 of 44 route abstentions inside [0.70, 0.75), the heuristic at
+  `ops` and Jev at `dev` in 6 of them.
+- No measured saving is claimed for the cost sites: `dispatch-role` only
+  raises roles, `qg-prescreen` never removes a reviewer, `forge-complexity`
+  is `shadow` and `subagent-discipline` has no turn id to attribute a
+  dispatch to. A counterfactual ceiling is reported as such, never as a
+  "saved" figure. Per-turn attribution is a campaign of its own.
+- The Node fast-path for Bash stays: since PR2, 12,039 commands took it
+  against 1,976 on the Python path, and `bash-effect` was asked 7 times
+  (ADR Decision 11).
+- Open carries: #571 (destructive-tests guard on live sessions), #572
+  (gitleaks top vendors in the vendor secret vocabulary, Stripe in the
+  evidence security-grep), the `forge-complexity` abstain rule (all-five
+  vs mean), and the cognition sites (18–21, PR4) parked with specs
+  PR4a/PR4b in the vault.
+
 ## [5.17.2] - 2026-09-23
 
 Opus 5.5 sweep (PR #562). Claude Code 2.1.280 resolves the `opus` alias to
