@@ -25,6 +25,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from core.hooks.operator_message import last_operator_message
 from core.workflow.flow_enforcer import _extract_text
 
 
@@ -75,37 +76,45 @@ def split_from_path(transcript_path: str) -> ScopeSplit:
 
 
 def recent_user_messages(raw_text: str, limit: int = 6) -> list[str]:
-    """The most recent USER message texts, newest last.
+    """The most recent OPERATOR message texts, newest last.
 
     ``split_by_scope`` collects assistant records only. A gate that must
-    know what the OPERATOR asked — not what the agent said — needs the
+    know what the OPERATOR asked (not what the agent said) needs the
     other role, and reading the wrong one inverts the gate: the guarded
     agent could authorise its own edit while the operator's real request
-    is never seen. Sidechain (subagent) user turns are excluded — a
-    dispatched agent's prompt is not the operator speaking.
+    is never seen.
+
+    A ``user``-role record is not necessarily the operator either: the
+    harness writes hand-backs, compaction summaries, system reminders,
+    queued commands and peer-session relays with the same role (issue
+    #569). Each record is judged by ``operator_message``'s structural
+    rules, the single source shared with the Stop-hook reader, so the two
+    can never disagree on who spoke.
     """
-    found: list[str] = []
-    for line in raw_text.splitlines():
-        if not line.strip():
-            continue
-        try:
-            record = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(record, dict):
-            continue
-        message = record.get("message")
-        message = message if isinstance(message, dict) else {}
-        role = record.get("role") or message.get("role")
-        if role != "user" or record.get("isSidechain", False):
-            continue
-        content = record.get("content")
-        if content is None:
-            content = message.get("content")
-        text = _extract_text(content)
-        if text:
-            found.append(text)
+    found = [text for text in map(_operator_line, raw_text.splitlines()) if text]
     return found[-limit:]
+
+
+def _operator_line(line: str) -> str:
+    """The operator's text in one JSONL record, or "" (not the operator).
+
+    Transcripts whose user records carry only a top-level ``type`` (no
+    ``role`` at either level) are normalised first, so the verdict turns
+    on the structural flags alone and never on that shape.
+    """
+    if not line.strip():
+        return ""
+    try:
+        record = json.loads(line)
+    except json.JSONDecodeError:
+        return ""
+    if not isinstance(record, dict):
+        return ""
+    message = record.get("message")
+    role = record.get("role") or (message.get("role") if isinstance(message, dict) else None)
+    if role is None and record.get("type") == "user":
+        line = json.dumps({**record, "role": "user"})
+    return last_operator_message(line)
 
 
 def user_messages_from_path(transcript_path: str, limit: int = 6) -> list[str]:

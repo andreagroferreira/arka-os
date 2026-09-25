@@ -68,7 +68,7 @@ from core.decisions.sites.command import command_state
 from core.decisions.sites.dispatch import skill_state
 from core.decisions.sites.forge import forge_state
 from core.decisions.sites.prompt import prompt_state
-from core.decisions.telemetry import call_cost_usd
+from core.decisions.telemetry import REPLAY_COST_CATEGORY, REPLAY_SESSION_ID, call_cost_usd
 from core.decisions.transport import Transport, resolve_transport
 
 # dispatch-role and subagent-discipline: the keyword baselines the UPS hook
@@ -124,6 +124,11 @@ class ReplayReport:
     # The per-call ceiling of an online run: the site's own ceiling (what
     # the live call site uses) unless ``--timeout-ms`` overrides it.
     timeout_ms: int | None = None
+    # Online only: cases whose site asked a question (a designed
+    # "no-questions" is not asked) and, of those, calls that reached the
+    # endpoint. ``replay_report`` counts a run only when enough reached.
+    asked: int | None = None
+    reached: int | None = None
     by_lang: dict[str, dict[str, float | None]] = field(default_factory=dict)
     gate: Gate = "offline"
     failures: list[str] = field(default_factory=list)
@@ -572,12 +577,23 @@ def _gate_failures(report: ReplayReport) -> list[str]:
     return failures
 
 
+# Reasons decided on this machine, before any byte left it.
+LOCAL_REASONS = frozenset({"cache-hit", "no-questions", "deadline", "backoff", "egress-denied"})
+
+
+def reached_endpoint(reason: str) -> bool:
+    """True when the call went to the endpoint (answered, timed out or erred there)."""
+    return reason.split(":", 1)[0] not in LOCAL_REASONS
+
+
 @dataclass(frozen=True)
 class CallSample:
     """What one replay call cost: latency when it went out, and USD."""
 
     latency_ms: int | None
     cost_usd: float
+    reached: bool = False
+    asked: bool = True
 
 
 def _ask(
@@ -592,16 +608,21 @@ def _ask(
     state = case_state(site.name, case)
     response, reason, latency = run_sync(
         [call], state, transport=transport,
-        cfg=cfg, timeout_s=timeout_ms / 1000, session_id="replay",
+        cfg=cfg, timeout_s=timeout_ms / 1000, session_id=REPLAY_SESSION_ID,
+        cost_category=REPLAY_COST_CATEGORY,
     )
     outcome = resolve(call, response, "act", threshold_for(cfg, site), reason, state=state)
     went_out = reason != "cache-hit" and not reason.startswith("backoff")
     fresh = reason == "ok" and response is not None
     cost = (call_cost_usd(transport, response.usage) or 0.0) if fresh and response else 0.0
-    return outcome, CallSample(latency if went_out else None, cost)
+    sample = CallSample(latency if went_out else None, cost,
+                        reached=reached_endpoint(reason), asked=reason != "no-questions")
+    return outcome, sample
 
 
 def _call_scores(samples: Sequence[CallSample], report: ReplayReport) -> None:
+    report.asked = sum(1 for s in samples if s.asked)
+    report.reached = sum(1 for s in samples if s.asked and s.reached)
     latencies = [s.latency_ms for s in samples if s.latency_ms is not None]
     if not latencies:
         report.p50_latency_ms = report.cost_usd = None
@@ -638,15 +659,18 @@ def replay(
     transport: Transport | None,
     offline: bool = False,
     timeout_ms: int | None = None,
+    cfg: DecisionsConfig | None = None,
 ) -> ReplayReport:
     """Score ``cases`` for ``site``; offline (or no transport) = heuristic only.
 
     Each online call is capped at ``timeout_ms``, else at the site's own
-    ceiling: the replay cuts a call where the live site would.
+    ceiling: the replay cuts a call where the live site would. ``cfg``
+    defaults to the operator's config (its thresholds are what ships);
+    ``replay_report`` passes a copy with the answer cache off.
     """
     target = SITES[site]
     online = not offline and transport is not None
-    cfg = load_decisions_config()  # the operator's thresholds are what ships
+    cfg = cfg or load_decisions_config()
     ceiling = timeout_ms or site_timeout_ms(cfg, target)
     rows, samples = _score_cases(target, cases, transport if online else None, cfg, ceiling)
     rows = _labelled(site, rows)

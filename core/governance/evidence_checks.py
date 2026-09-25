@@ -10,7 +10,9 @@ Safety contract:
   - subprocesses run with ``cwd=project_dir``, ``capture_output=True``,
     argument lists only (never ``shell=True`` with interpolated input)
   - 300s cap per check; on expiry the process is killed and the check
-    reports ``ran=True, passed=None, summary="timeout"``
+    FAILS: ``ran=True, passed=False, summary="timed out after N s"``. A
+    check that never finished concluded nothing, and an inconclusive row
+    let another check's pass carry ``overall`` (issue #570)
   - nothing that mutates: no installs, no git, no writes to the project
 
 CLI (for hooks/skills)::
@@ -259,28 +261,55 @@ def _run_capturing(
             cmd, cwd=project_dir, capture_output=True, text=True,
             timeout=timeout,
         )
-    except FileNotFoundError:
-        return _skip(check, f"tool not found: {cmd[0]}"), ""
-    except OSError as exc:
-        # Anything else exec can refuse — a directory, a non-executable
-        # file, a broken symlink. The gate must report, never raise: an
-        # uncaught error here produces no EvidenceReport at all, which is
-        # worse than the silent skip this module works to avoid.
-        return CheckResult(
-            check=check, ran=True, passed=False, command=command_str,
-            exit_code=None, summary=f"cannot execute {cmd[0]}: {exc.strerror}",
-        ), ""
-    except subprocess.TimeoutExpired:
-        # subprocess.run kills the child on expiry before raising.
-        return CheckResult(
-            check=check, ran=True, passed=None, command=command_str,
-            exit_code=None, summary="timeout",
-        ), ""
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _run_error(check, cmd, exc, timeout), ""
     full = proc.stdout.strip() or proc.stderr.strip()
     return CheckResult(
         check=check, ran=True, passed=proc.returncode == 0,
         command=command_str, exit_code=proc.returncode, summary=_tail(full),
     ), full
+
+
+def _run_error(
+    check: str, cmd: list[str], exc: Exception, timeout: int,
+) -> CheckResult:
+    """The report row for a command that never produced an exit code.
+
+    A missing binary is "not applicable" (a skip). Anything else exec can
+    refuse (a directory, a non-executable file, a broken symlink) and a
+    timeout are FAILURES: the gate must report, never raise, and a check
+    that never finished must never read as inconclusive, because
+    ``_derive_overall`` lets any other check's pass carry the overall
+    past an inconclusive row (issue #570).
+    """
+    if isinstance(exc, FileNotFoundError):
+        return _skip(check, f"tool not found: {cmd[0]}")
+    if isinstance(exc, subprocess.TimeoutExpired):
+        # subprocess.run kills the child on expiry before raising.
+        return _timed_out(check, " ".join(cmd), timeout)
+    reason = exc.strerror if isinstance(exc, OSError) else str(exc)
+    return CheckResult(
+        check=check, ran=True, passed=False, command=" ".join(cmd),
+        exit_code=None, summary=f"cannot execute {cmd[0]}: {reason}",
+    )
+
+
+_TIMEOUT_PREFIX = "timed out after "
+
+
+def _timed_out(check: str, command: str, timeout: int) -> CheckResult:
+    """A FAILED row for a command killed at its timeout (issue #570)."""
+    return CheckResult(
+        check=check, ran=True, passed=False, command=command,
+        exit_code=None, summary=f"{_TIMEOUT_PREFIX}{timeout} s",
+    )
+
+
+def _is_timeout(result: CheckResult) -> bool:
+    """Whether ``result`` is a command killed at its timeout."""
+    return result.exit_code is None and result.summary.startswith(
+        _TIMEOUT_PREFIX,
+    )
 
 
 # ─── Applicability detection ────────────────────────────────────────────
@@ -847,25 +876,29 @@ def _project_wide_advisory(
     result = _run(
         "typecheck", _mypy_project_argv(project_dir, mypy), project_dir, timeout,
     )
-    prefix = (
-        "typecheck (project-wide over the working tree, including this "
-        "diff; advisory, NOT gating): "
-    )
     if not result.ran:
         return ""
-    if result.passed is None and result.exit_code != 0:
-        return prefix + "did not finish (timeout)"  # never cached — retry
-    if result.exit_code == 0:
-        note = prefix + "clean"
-    else:
-        found = _MYPY_FOUND_RE.search(result.summary or "")
-        note = (
-            prefix + f"could not be summarised (exit {result.exit_code})"
-            if found is None
-            else f"{prefix}{found.group(0)} — master's debt, not this diff's"
-        )
+    if _is_timeout(result):
+        return _ADVISORY_PREFIX + "did not finish (timeout)"  # never cached — retry
+    note = _advisory_note(result)
     _store_advisory(project_dir, head, note)
     return note
+
+
+_ADVISORY_PREFIX = (
+    "typecheck (project-wide over the working tree, including this "
+    "diff; advisory, NOT gating): "
+)
+
+
+def _advisory_note(result: CheckResult) -> str:
+    """The cacheable note for a project-wide run that finished."""
+    if result.exit_code == 0:
+        return _ADVISORY_PREFIX + "clean"
+    found = _MYPY_FOUND_RE.search(result.summary or "")
+    if found is None:
+        return _ADVISORY_PREFIX + f"could not be summarised (exit {result.exit_code})"
+    return f"{_ADVISORY_PREFIX}{found.group(0)} — master's debt, not this diff's"
 
 
 _MYPY_ERROR_RE = re.compile(
@@ -1406,8 +1439,11 @@ def _reusable_tests_receipt(
 def _store_tests_receipt(
     project_dir: Path, key: str, result: CheckResult
 ) -> None:
-    if not result.ran or result.passed is None:
-        return  # only conclusive runs are worth reusing
+    if not result.ran or result.passed is None or _is_timeout(result):
+        # Only conclusive runs are worth reusing. A timeout is a FAIL
+        # (#570) but says nothing about the tree: a slower moment on the
+        # same tree must get a fresh run, not the recorded kill.
+        return
     try:
         receipt = _tests_receipt_path(project_dir)
         receipt.parent.mkdir(parents=True, exist_ok=True)

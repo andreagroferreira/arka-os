@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from typing import get_args
 
+import pytest
+
 from core.decisions import replay as rp
+from core.decisions.config import DecisionsConfig, site_mode
 from core.decisions.paths import repo_root
 from core.decisions.registry import SITES
 from core.decisions.site import StateClass
@@ -45,9 +49,45 @@ def test_every_state_class_is_known():
         "qg-prescreen", "slop-score", "ui-in-ts"}
 
 
-def test_every_site_is_replayable_and_seeded():
-    seed = (repo_root() / "installer" / "config-seed.js").read_text(encoding="utf-8")
+# A seed row is ``[["decisions", "sites", ...], value]``; prose in comments
+# may name the key, so only code lines count.
+SITE_SEED_ROW = re.compile(r"""["']decisions["']\s*,\s*["']sites["']""")
+
+
+def seed_code(text: str) -> str:
+    """The seed with its ``//`` comment lines removed."""
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
+
+
+def test_every_site_is_replayable_and_never_seeded():
+    """Spec PR5 D3/D4: a corpus per site, and no seeded ``decisions.sites`` row.
+
+    ``Site.default_mode`` is the only default: a seeded mode would be
+    indistinguishable from an operator choice after the first seed.
+    """
+    seed = seed_code((repo_root() / "installer" / "config-seed.js").read_text(encoding="utf-8"))
+    assert SITE_SEED_ROW.search(seed) is None
     for name in SITES:
         assert name in rp.HEURISTICS and name in rp.EXPECTED, name
         assert rp.default_corpus_path(name).is_file(), name
-        assert f'"sites", "{name}"' in seed, name
+
+
+def test_seed_row_detector_catches_a_seeded_site():
+    """The mutant that adds a site row back must fail the test above."""
+    mutant = '// decisions.sites.* are not seeded\n  [["decisions", "sites", "route"], "act"],'
+    assert SITE_SEED_ROW.search(seed_code(mutant)) is not None
+    assert SITE_SEED_ROW.search(seed_code("// [\"decisions\", \"sites\", ...] prose")) is None
+
+
+@pytest.mark.parametrize("name", ORDER)
+def test_absent_config_entry_yields_the_site_default_mode(name, monkeypatch):
+    monkeypatch.delenv("ARKA_BYPASS_DECISIONS", raising=False)
+    other = next(n for n in ORDER if n != name)
+    for cfg in (DecisionsConfig(), DecisionsConfig.model_validate({"sites": {other: "off"}})):
+        assert site_mode(cfg, SITES[name]) == SITES[name].default_mode
+
+
+def test_a_config_entry_is_an_operator_override(monkeypatch):
+    monkeypatch.delenv("ARKA_BYPASS_DECISIONS", raising=False)
+    cfg = DecisionsConfig.model_validate({"sites": {"refine": "act"}})
+    assert SITES["refine"].default_mode == "shadow" and site_mode(cfg, SITES["refine"]) == "act"

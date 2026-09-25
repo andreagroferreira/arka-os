@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "3.0.0",
-    "generated": "2026-09-23T15:42:59Z",
+    "generated": "2026-09-25T04:04:22Z",
     "total_commands": 308,
     "generator": "core/registry/generator.py",
     "departments": {
@@ -29,7 +29,7 @@
       "id": "arka-status",
       "command": "/arka status",
       "department": "arka",
-      "description": "System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period=\"today\")`. Also includes **Enforcement (24h)** section: total calls, block rate, top blocked tools/reasons from `core.governance.enforcement_telemetry.summarise(period=\"today\")` (PR19 v2.41.0). Plus **Reorganization (today)** section: today's proposal path + artifact count from `core.cognition.reorganizer_scheduler.status_summary()` (PR24 v2.46.0). Plus **Model routing** section: gateway live/off + resolved per-slot routes + served counts + the `fallbackModel` chain from settings.json or its state (`unset` / `disabled` / `invalid`) (Runtime Sync PR3 v5.17.0) from `core.runtime.model_routing_check.status_summary()`. Plus **MCP usage (24h)** section: total calls + servers in use + top servers from `core.runtime.mcp_telemetry.summarise(period=\"today\")`. Plus **Decisions (24h)** section from `core.decisions.telemetry.summarise(period=\"today\")`: per site, calls, agreement with the heuristic, fallback rate, share acted on Jev, p50 latency and cost; overall, total cost, p50 latency, cache-hit rate and the top fallback reasons.",
+      "description": "System status (version, departments, agents, active projects). Includes **LLM costs (24h)** section: top-line cost + cache hit rate + call count from `core.runtime.llm_cost_telemetry.summarise(period=\"today\")`. Also includes **Enforcement (24h)** section: total calls, block rate, top blocked tools/reasons from `core.governance.enforcement_telemetry.summarise(period=\"today\")` (PR19 v2.41.0). Plus **Reorganization (today)** section: today's proposal path + artifact count from `core.cognition.reorganizer_scheduler.status_summary()` (PR24 v2.46.0). Plus **Model routing** section: gateway live/off + resolved per-slot routes + served counts + the `fallbackModel` chain from settings.json or its state (`unset` / `disabled` / `invalid`) (Runtime Sync PR3 v5.17.0) from `core.runtime.model_routing_check.status_summary()`. Plus **MCP usage (24h)** section: total calls + servers in use + top servers from `core.runtime.mcp_telemetry.summarise(period=\"today\")`. Plus **Decisions (24h)** section from `core.decisions.telemetry.summarise(period=\"today\")`: per site, calls, agreement with the heuristic, fallback rate, share acted on Jev, p50 latency and cost; overall, total cost, p50 latency, cache-hit rate and the top fallback reasons; then its **Cost and effect** lines from `core.decisions.cost_effect.cost_effect(period=\"today\")`: Jev production cost from the ledger (`decision`) with replay runs (`decision-replay`) shown apart, and the counterfactual rows of forge-complexity, dispatch-role, qg-prescreen and subagent-discipline. No measured saving is claimable today, and the section says so: a counterfactual is never added to the cost or called a saving.",
       "lead_agent": "arka",
       "keywords": [
         "system status",
@@ -88,9 +88,9 @@
     },
     {
       "id": "arka-decisions",
-      "command": "/arka decisions [period]",
+      "command": "/arka decisions [period] [--by-site]",
       "department": "arka",
-      "description": "Jev typed-decision telemetry (`~/.arkaos/telemetry/decisions.jsonl`) by day/week/month/all: per site: calls, agreement with the heuristic, fallback rate, share acted on Jev, p50 latency and cost; overall: total cost, p50 latency, cache-hit rate and the top fallback reasons. Shells out to `~/.arkaos/bin/arka-py -m core.decisions.telemetry_cli <period>`.",
+      "description": "Jev typed-decision telemetry (`~/.arkaos/telemetry/decisions.jsonl`) by day/week/month/all: per site: calls, agreement with the heuristic, fallback rate, share acted on Jev, p50 latency and cost; overall: total cost, p50 latency, cache-hit rate and the top fallback reasons. Always ends with **Cost and effect**: measured Jev cost from the LLM ledger (production `decision` apart from replay `decision-replay`), then one row per cost site (#7 forge-complexity, #10 dispatch-role, #11 qg-prescreen, #22 subagent-discipline) with its effect count and a saving column that reads `—` with the reason, or `counterfactual (ceiling)` for the qg-prescreen reviewer cost. No measured saving is claimable today. `--by-site` adds a per-site table: measured cost, acted on Jev, fallback, abstain, abstain attributable to Jev (abstain over answered plus abstain; egress, timeout, backoff and HTTP are not Jev's) and the top fallback reasons. Shells out to `~/.arkaos/bin/arka-py -m core.decisions.telemetry_cli <period> [--by-site]`. The replay evidence report is a separate command: `~/.arkaos/bin/arka-py -m core.decisions.replay_report (--all or --sites a,b) --session <id> [--runs 2]`.",
       "lead_agent": "arka",
       "keywords": [],
       "examples": [],
