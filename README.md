@@ -1,5 +1,12 @@
 # ArkaOS
 
+> **This project is discontinued (2026-09-25).**
+> ArkaOS is no longer developed or maintained. The repository is archived
+> and the npm package is deprecated. The last release is
+> [v5.18.0](https://github.com/andreagroferreira/arka-os/releases/tag/v5.18.0).
+> The code stays available under the MIT license: fork it freely.
+> Thank you to everyone who tried it, opened issues, and sent pull requests.
+
 <img src="assets/github-social.png" alt="ArkaOS — The Operating System for AI Agent Teams" width="100%">
 
 **The Operating System for AI Agent Teams.**
